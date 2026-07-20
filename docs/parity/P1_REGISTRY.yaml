@@ -1,0 +1,375 @@
+# P1_REGISTRY — les P1, registre séparé (§2.2 du plan expert adopté).
+# Migré depuis la section p1s de P0_REGISTRY.yaml le 2026-07-20 (aucune
+# entrée modifiée). Ensemble EXACT verrouillé CI (EXPECTED_P1_IDS).
+schemaVersion: 1
+repoCommit: af9e4e83
+p1s:
+  - p1Id: P1-COV-01
+    title: "File History : historique par fichier indépendant de Git (bouton History, slider, Compare Latest, restore append-only, playback)"
+    source: "COVERAGE_GAP_AUDIT famille A ; PLAN_REMAINING_UNIFIED TASK3-FH-1..4 ; DESIGN_PROGRAM_MASTER RPL-FH-001.1–.6 ; doc Replit features/version-control/file-history"
+    priority: 1
+    owner: platform
+    status: OPEN
+    surfaceId: SRF-IDE-FILE-HISTORY
+    nextAction: "Exécuter le lot TASK3-FH (déjà dispatché) et tracer les preuves dans E2E_PROOFS"
+    conditionDeCloture: "Les 6 points RPL-FH-001 ✅ testés live (écran + greps, web/tablette/mobile)"
+    targetDate: "2026-09-15"
+  - p1Id: P1-COV-02
+    title: "Agent Skills : .agents/skills/<name>/SKILL.md, progressive disclosure, audit anti-prompt-injection du catalogue externe"
+    source: "COVERAGE_GAP_AUDIT famille A ; PLAN_REMAINING_UNIFIED TASK3-SK-1..3+QA-1 ; DESIGN_PROGRAM_MASTER RPL-SK-001.1–.4 ; standard agentskills.io/specification"
+    priority: 1
+    owner: platform
+    status: OPEN
+    surfaceId: SRF-IDE-AGENT-SKILLS
+    nextAction: "Exécuter le lot TASK3-SK (déjà dispatché) avec le pipeline de quarantaine"
+    conditionDeCloture: "Skill réel chargé à la demande + skill malveillant refusé avec journal d'audit, prouvés live"
+    targetDate: "2026-09-15"
+  - p1Id: P1-COV-03
+    title: "Project Editor : layout Window→Panes→Tabs, Tools dock, Resources panel, Spotlight, terminologie"
+    source: "COVERAGE_GAP_AUDIT famille A ; PLAN_REMAINING_UNIFIED IDE-LAYOUT-1..10 ; DESIGN_PROGRAM_MASTER RPL-IDE-001.1–.10 ; doc Replit editor-and-tools.md"
+    priority: 1
+    owner: platform
+    status: OPEN
+    surfaceId: SRF-IDE-PANES-LAYOUT
+    nextAction: "Exécuter le lot IDE-LAYOUT (déjà dispatché ; IDE Bolt préservé, captures avant/après à Avi avant push)"
+    conditionDeCloture: "Les 10 points RPL-IDE-001 ✅ testés live aux 3 formats"
+    targetDate: "2026-09-30"
+  - p1Id: P1-COV-04
+    title: "Types de déploiement Replit : tiers Reserved VM ($20/$40/$80/$160), changement de type en place, et traçabilité de Scheduled (preuve SCHEDULED-01 à inscrire dans E2E_PROOFS)"
+    source: "COVERAGE_GAP_AUDIT famille A ; docs/REPLIT_PARITY_SPEC.md:618-624 ; PLAN_REMAINING_UNIFIED:76 (note « Reste hors Phase A »)"
+    priority: 2
+    owner: platform
+    status: OPEN
+    surfaceId: SRF-DEPLOY-RESERVED-VM
+    nextAction: "1) tracer la preuve scheduled existante ; 2) spécifier puis implémenter Reserved VM + changement de type"
+    conditionDeCloture: "Scheduled tracé dans E2E_PROOFS ; Reserved VM déployable avec les 4 tiers facturés ; changement de type prouvé sans perte"
+    targetDate: "2026-09-30"
+  - p1Id: P1-COV-05
+    title: "Entitlements par plan (enforcement) : Starter 1 app publiée / 2 GB / liens 30 j, retrait badge « Made with », publish regions, Pro 50 viewers, parallel agents 1/2/10, allowances egress, per-user caps + single-tenant/static-IP/VPC/data-warehouse/Security-Center Enterprise"
+    source: "COVERAGE_GAP_AUDIT famille A ; docs/REPLIT_PARITY_SPEC.md:555,562,563,569,575,638,658,662 ; docs/REPLIT_PARITY_MATRIX.md:112,123"
+    priority: 2
+    owner: platform
+    status: OPEN
+    nextAction: "Inventorier l'existant (cap 20 apps fait) puis implémenter chaque enforcement avec test négatif"
+    conditionDeCloture: "Chaque limite listée a un enforcement serveur prouvé par test négatif (ou une décision hors-scope tracée)"
+    targetDate: "2026-10-31"
+  - p1Id: P1-COV-06
+    title: "Starters → démos publiées/remixables (TPL-02.5) + branche import→IDE→publish de TPL-02.PROOF (D5 ne couvre que remix + Python neuf)"
+    source: "COVERAGE_GAP_AUDIT famille A ; REPLIT_PARITY.md TPL-02.5/TPL-02.PROOF ; DESIGN_PROGRAM_MASTER TPL-02.5"
+    priority: 2
+    owner: platform
+    status: OPEN
+    surfaceId: SRF-GALLERY-STARTER-DEMOS
+    nextAction: "Publier les 6 démos via le pipeline Gallery réel ; ajouter la preuve import→publish au harness D5"
+    conditionDeCloture: "6 démos visibles/remixables en prod + preuve import→IDE→publish PROVEN"
+    targetDate: "2026-08-31"
+  - p1Id: P1-COV-07
+    title: "Parité pixel avec périmètre : appliquer les mesures live (tokens, panneaux Deploy+Git), re-vérifier REPLIT #1-4 (chrome IDE), décision light-theme (Avi)"
+    source: "COVERAGE_GAP_AUDIT famille A ; .vibecore-audit/replit-measurements.md ; outputs/ETAT_FINAL_100.md:23-26 ; outputs/REPLIT_PARITY.md:48-67"
+    priority: 2
+    owner: platform
+    status: OPEN
+    nextAction: "Décision thème (ACTIONS_AVI #8) puis application des mesures + captures comparatives"
+    conditionDeCloture: "Mesures appliquées avec captures avant/après ; REPLIT #1-4 re-vérifiés contre Replit"
+    targetDate: "2026-09-30"
+  - p1Id: P1-COV-08
+    title: "Réconciliation billing : ancien système crédits (SHADOW, codé+certifié) vs nouveau ledger (plan §3.7) — migration, remplacement ou go-live, à arbitrer puis exécuter"
+    source: "COVERAGE_GAP_AUDIT famille B ; docs/REPLIT_PARITY_MATRIX.md:61-124 ; docs/REPLIT_BILLING_PARITY.md:203-228 ; docs/REPLIT_PARITY_DELIVERY.md:61,381-389"
+    priority: 1
+    owner: platform
+    status: OPEN
+    nextAction: "Faire trancher DEC-BILLING-LEGACY-VS-LEDGER (Avi) puis exécuter UNK-BILLING-LEGACY-GOLIVE"
+    conditionDeCloture: "Décision DECIDED + chemin choisi exécuté avec preuve (facturation réelle OU migration prouvée)"
+    targetDate: "2026-08-15"
+
+  # --- Les 18 P1 de l'audit externe v3 (16/07) — enfin tracés individuellement (P0-A2-05).
+  # La plupart APPLIED au niveau documentaire (un contrat n'est pas une capacité).
+  - p1Id: P1-V3-01
+    title: "Sélecteur de modèle : affirmation universelle"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-01"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§3.8 : « non observé dans la doc/UI courante », jamais « aucun plan, à aucun moment »"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-02
+    title: "Libellé Gallery (Use Template)"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-02"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§3.1 : sémantique clone/remix modélisée, libellé UI non pinné"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-03
+    title: "Collecteur et archivage (WARC, authenticité, robots/ToS, SLA)"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-03"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§2.2 + OBSERVATION_REGISTRY (triageSla) ; tests de panne du collecteur = P1-A2-13 (OPEN)"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-04
+    title: "Community Profiles : privacy et entitlement"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-04"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§3.2 : visibilité/opt-in/retrait/modération/entitlement spécifiés ; capture détaillée = UNK"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-05
+    title: "Project Factory : contrôles cloud"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-05"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§4.3 : Org Policy, KMS/CMEK, Asset Inventory, log sinks, billing export, VPC-SC/PSC"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-06
+    title: "Edge : lifecycle et bypass interne"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-06"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§4.6 : run.app désactivé testé activement, fail-closed, domain mappings"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-07
+    title: "Multi-région / failover"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-07"
+    priority: 2
+    owner: platform
+    status: SUPERSEDED
+    nextAction: "Fait périmé : Cloud Run service health automatise failover/failback (GA 29/06/2026) — remplacé par GCP-11 ; l'exigence stratégie de données/sessions demeure (§4.6)"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-08
+    title: "Rétention des releases"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-08"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§4.7 : coût, fenêtre, legal hold, reference graph, pin, GC vérifiable"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-09
+    title: "IAM runtime"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-09"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§4.4 : frontières de privilège, rotation, revocation SLO, audit impersonations (+ correction WIF GCP-13)"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-10
+    title: "App Storage"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-10"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§3.6 : versioning, holds, rétention, CMEK, résidence, quotas, egress, antivirus"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-11
+    title: "Auth"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-11"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§3.9 corrigé (P0-A2-08) : MFA/passkeys/orgs = extension E-CODE, pas parité courante (RPL-25)"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-12
+    title: "Secret proxy"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-12"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§3.10 : contrat séparé lease/scope/revocation/redaction/audit/circuit breaker"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-13
+    title: "Trace Agent"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-13"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§3.8 : rétention, accès, chiffrement, résidence, sampling, interdiction contenu prompt/secret"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-14
+    title: "Database provider non figé"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-14"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§3.5 : provider abstraction, fournisseur production non figé"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-15
+    title: "Licence à l'import"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-15"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§3.3 : provenance + attestation owner + obligations de licence"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-16
+    title: "Schéma des preuves"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-16"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§6 : OS/browser/client version, traceId, horloge, stockage immuable, rétention"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-17
+    title: "Accessibilité et i18n"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-17"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§6 : WCAG 2.2 AA, clavier, screen reader, RTL, timezone IANA, locales"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-18
+    title: "Registre des inconnues"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-18"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "UNKNOWN_REGISTRY v2 : owner, priority, nextAction, targetDate ISO obligatoire, expiration"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  # --- Les 14 P1 de l'audit de réanalyse (20/07).
+  - p1Id: P1-A2-01
+    title: "Gallery : « aucune publication self-service OBSERVÉE »"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P1-01"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§3.1 + DEC-GALLERY-NO-SELF-PUBLISH reformulée — une absence d'observation ne prouve pas l'absence"
+    conditionDeCloture: "Revue humaine ; les OPEN exigent leur passe dédiée"
+    targetDate: "2026-08-31"
+  - p1Id: P1-A2-02
+    title: "Community : « première observation enregistrée », pas « lancé le »"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P1-02"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§2.2/§3.2 : eventDate estimé remplacé par première observation (OBS-COMMUNITY-PROFILES)"
+    conditionDeCloture: "Revue humaine ; les OPEN exigent leur passe dédiée"
+    targetDate: "2026-08-31"
+  - p1Id: P1-A2-03
+    title: "AR : suppression de l'image cible supprime ses attachments"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P1-03"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§4.5 + claim GCP-12 étendu (citation « delete attachments indirectly by deleting the artifact it refers to », snapshot déjà hashé) — le graphe de rétention protège image ET métadonnées"
+    conditionDeCloture: "Revue humaine ; les OPEN exigent leur passe dédiée"
+    targetDate: "2026-08-31"
+  - p1Id: P1-A2-04
+    title: "Multi-région : GA ≠ stratégie données/sessions ; min instances + trafic synthétique + coût"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P1-04"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§4.6 complété"
+    conditionDeCloture: "Revue humaine ; les OPEN exigent leur passe dédiée"
+    targetDate: "2026-08-31"
+  - p1Id: P1-A2-05
+    title: "evidenceId obligatoire par PREUVE LIVE"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P1-05"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§5 : chaque invariant PREUVE LIVE porte ses proofIds E2E explicites, pas un chemin seul"
+    conditionDeCloture: "Revue humaine ; les OPEN exigent leur passe dédiée"
+    targetDate: "2026-08-31"
+  - p1Id: P1-A2-06
+    title: "Claims non ancrés = UNVERIFIED, exclus des gates"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P1-06"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§2.3 + unanchoredClaims calculé + sourceBaselineReady FAIL (P0-A2-15 reste OPEN pour l'ancrage réel)"
+    conditionDeCloture: "Revue humaine ; les OPEN exigent leur passe dédiée"
+    targetDate: "2026-08-31"
+  - p1Id: P1-A2-07
+    title: "Dates décoratives → dépendances + critère de sortie"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P1-07"
+    priority: 2
+    owner: platform
+    status: OPEN
+    nextAction: "conditionDeCloture existe partout ; remplacement des targetDate par dépendances/capacité = passe dédiée"
+    conditionDeCloture: "Revue humaine ; les OPEN exigent leur passe dédiée"
+    targetDate: "2026-08-31"
+  - p1Id: P1-A2-08
+    title: "Owners = rôles, personnes dans un mapping versionné"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P1-08"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "OWNER_ROLES.yaml + owner: platform/owner/security/billing dans les registres"
+    conditionDeCloture: "Revue humaine ; les OPEN exigent leur passe dédiée"
+    targetDate: "2026-08-31"
+  - p1Id: P1-A2-09
+    title: "Hiérarchie documentaire explicite"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P1-09"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§1 : plan normatif / registres source d'état / vues générées / documents historiques — aucun état dupliqué"
+    conditionDeCloture: "Revue humaine ; les OPEN exigent leur passe dédiée"
+    targetDate: "2026-08-31"
+  - p1Id: P1-A2-10
+    title: "336 constats déplacés hors du plan"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P1-10"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "LEGACY_FINDING_REGISTRY.yaml ; le plan n'affiche qu'un résumé (§14)"
+    conditionDeCloture: "Revue humaine ; les OPEN exigent leur passe dédiée"
+    targetDate: "2026-08-31"
+  - p1Id: P1-A2-11
+    title: "Lifecycle items complet (ACTIVE…EXPIRED + lineage)"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P1-11"
+    priority: 2
+    owner: platform
+    status: OPEN
+    nextAction: "Statuts actuels conservés ; extension ACTIVE/DONE/ACCEPTED_RISK/SUPERSEDED/DUPLICATE/CANCELLED/EXPIRED + lineage = passe dédiée"
+    conditionDeCloture: "Revue humaine ; les OPEN exigent leur passe dédiée"
+    targetDate: "2026-08-31"
+  - p1Id: P1-A2-12
+    title: "contractsPresent + contractsValidated"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P1-12"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "Niveaux renommés ; contractsValidated exige contenu+reviewer et ÉCHOUE honnêtement"
+    conditionDeCloture: "Revue humaine ; les OPEN exigent leur passe dédiée"
+    targetDate: "2026-08-31"
+  - p1Id: P1-A2-13
+    title: "Tests de panne du collecteur"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P1-13"
+    priority: 2
+    owner: platform
+    status: OPEN
+    nextAction: "bot blocking, rendu JS incomplet, changement d'auth, route supprimée, WARC invalide — tests à écrire"
+    conditionDeCloture: "Revue humaine ; les OPEN exigent leur passe dédiée"
+    targetDate: "2026-08-31"
+  - p1Id: P1-A2-14
+    title: "Contrats des domaines cœur manquants"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P1-14"
+    priority: 2
+    owner: platform
+    status: OPEN
+    nextAction: "collaboration, Git/File History/Checkpoints, Agent tasks/skills, Canvas, Security Center, Enterprise, clients natifs — un backlog ne remplace pas leur contrat"
+    conditionDeCloture: "Revue humaine ; les OPEN exigent leur passe dédiée"
+    targetDate: "2026-08-31"

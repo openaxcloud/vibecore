@@ -1,0 +1,505 @@
+# PRODUCTION_READINESS_REGISTRY — le programme « mise en production sérieuse »
+# historique, tracé pour qu'il ne puisse plus disparaître.
+#
+# Origine : COVERAGE_GAP_AUDIT_2026-07-17.md, familles D et E. Sources :
+# docs/REMAINING_BLOCKERS.md (RB), docs/GO_LIVE_CHECKLIST.md (GLC),
+# docs/COMPLETION_MATRIX.md (CM), docs/DEFERRED_HARDENING.md (DH),
+# outputs/{ETAT_FINAL_100,MASTER_100_PERCENT,QA_PANEL_SCENARIOS,UI_PROOF_SCENARIOS,
+# DESIGN_AUDIT_LIVE}.md, docs/INTEGRATIONS_MASTER_PLAN.md, PLAN_REMAINING_UNIFIED.md.
+# Chaque entrée regroupe les lignes source qu'elle absorbe (champ source) —
+# les ~190 points historiques dédupliqués tiennent dans ces entrées.
+#
+# RÈGLES (mêmes que P0_REGISTRY) :
+# - statut par défaut NON_FAIT — les sources datent de mai–juin : même quand un
+#   travail ultérieur a PROBABLEMENT couvert un point, sans preuve tracée il
+#   reste NON_FAIT (la note le dit) ;
+# - FAIT_PROUVE exige un evidenceId présent sur disque (vérifié par CI) ;
+# - la CI compare l'ensemble EXACT des IDs attendus (EXPECTED_PROD_READINESS_IDS
+#   dans scripts/parity/generate-approval-status.mjs) — un ID absent casse le build ;
+# - targetDate ISO réelle obligatoire.
+# EXCLUSION VOLONTAIRE : la fuite tokenHash invitations (MASTER_100:185-188) est
+# traitée par une session dédiée (PR #6) — pas d'entrée ici pour éviter le doublon.
+schemaVersion: 1
+repoCommit: 9eab2990
+statuses: [NON_FAIT, EN_COURS, FAIT_PROUVE]
+items:
+  # ---- Runtime & isolation -------------------------------------------------
+  - id: PR-RUN-01
+    title: "Runtime K8s E2E complet post-deploy : terminal WS+reconnect, logs, snapshot/restore, stop/restart/delete, PVC survit"
+    source: "RB:9-13 ; GLC:68-79 ; CM:35-44"
+    priority: 1
+    owner: platform
+    status: NON_FAIT
+    note: "Le vertical créer→publier→rollback est prouvé (§7 verticalReady) ; CES sous-preuves précises ne sont tracées nulle part."
+    nextAction: "Rejouer la suite runtime:validate contre la prod déployée et tracer chaque sous-preuve dans E2E_PROOFS"
+    conditionDeCloture: "Chaque sous-étape a un evidenceId (logs bruts) dans E2E_PROOFS.yaml"
+    targetDate: "2026-09-30"
+  - id: PR-ISO-01
+    title: "Isolation gVisor prouvée live : admission rejette non-gvisor/privileged/hostPath/hostNetwork"
+    source: "RB:15-20 ; GLC:52-56"
+    priority: 1
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Drill d'admission réel dans le namespace workspace actif"
+    conditionDeCloture: "Pod interdit rejeté en live (preuve kubectl) pour chaque règle"
+    targetDate: "2026-09-30"
+  - id: PR-ISO-02
+    title: "NetworkPolicies : denied-traffic drill (metadata server, Cloud SQL/Redis/CIDR internes bloqués depuis les pods workspace)"
+    source: "RB:15-20 ; GLC:57-59"
+    priority: 1
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Exécuter networkpolicies:validate:live contre le namespace actif"
+    conditionDeCloture: "Drill vert avec logs bruts archivés"
+    targetDate: "2026-09-30"
+  - id: PR-ISO-03
+    title: "Kyverno : install Audit ≥1 semaine → Enforce policy par policy"
+    source: "DH:75-85 ; GLC:53-56"
+    priority: 2
+    owner: platform
+    status: NON_FAIT
+    note: "Opération supervisée cluster-wide — peut rejeter l'admission fleet-wide si mal scopée."
+    nextAction: "Installer en Audit, revue du policy report, puis Enforce un par un"
+    conditionDeCloture: "Baseline en Enforce sans rejet de workload légitime sur 1 semaine"
+    targetDate: "2026-10-31"
+  - id: PR-ISO-04
+    title: "Node-pool GKE : réduction des OAuth scopes (blue-green pool recreate supervisé)"
+    source: "DH:60-73 ; docs/REPLIT_PARITY_DELIVERY.md:514-515"
+    priority: 3
+    owner: owner
+    status: NON_FAIT
+    note: "Immutable sur pool existant : nouveau pool scopes minimaux + Workload Identity, cordon/drain, fenêtre de maintenance."
+    nextAction: "Planifier la fenêtre avec Avi ; procédure exacte dans DEFERRED_HARDENING §2a"
+    conditionDeCloture: "Ancien pool supprimé, workloads sains sur le nouveau, scopes vérifiés"
+    targetDate: "2026-11-30"
+  - id: PR-INFRA-01
+    title: "Environnement staging complet : Terraform appliqué sur un projet GCP staging dédié, clusters app+workspace joignables, ingress selector conforme, Cloud SQL PITR/Redis HA/Secret Manager/cert-manager vérifiés"
+    source: "GLC:49-51,60-64 ; CM:64 (Terraform apply réel)"
+    priority: 2
+    owner: owner
+    status: NON_FAIT
+    note: "Terraform apply = gated Avi (SA + state bucket réels) ; aujourd'hui les preuves se font directement en prod, un staging dédié n'existe pas."
+    nextAction: "Décider staging dédié vs preuves en prod assumées ; si staging : apply Terraform réel"
+    conditionDeCloture: "Staging joignable avec les 7 vérifications vertes, OU décision « pas de staging » tracée"
+    targetDate: "2026-11-30"
+  # ---- Config prod & secrets externes -------------------------------------
+  - id: PR-CFG-01
+    title: "Config prod entreprise : OIDC (8 vars) + un set SAML complet"
+    source: "RB:22-28 ; GLC:87-88 ; CM:38,40"
+    priority: 2
+    owner: owner
+    status: NON_FAIT
+    note: "Secrets IdP externes — nécessaires seulement quand un vrai client entreprise arrive."
+    nextAction: "Renseigner les secrets IdP puis rejouer production:validate:live --no-dotenv"
+    conditionDeCloture: "Groupes Entra/OIDC et SAML passent la validation live"
+    targetDate: "2026-10-31"
+  - id: PR-CFG-02
+    title: "Config prod observabilité/sécurité : SIEM_WEBHOOK/SIGNING, OTEL_*, INCIDENT_WEBHOOK, LOG_REDACTION, SECURITY_CONTACT"
+    source: "RB:29,33 ; GLC:31"
+    priority: 2
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Poser les valeurs réelles (cible SIEM réelle) et rejouer la validation"
+    conditionDeCloture: "Groupes SIEM + monitoring/incident passent la validation live"
+    targetDate: "2026-10-31"
+  - id: PR-CFG-03
+    title: "Rotation/SOC2 : SECRET_ROTATION_OWNER/CADENCE, AUDIT_RETENTION, SOC2_EVIDENCE_BUCKET, BACKUP_ENCRYPTION_KEY, RUNBOOK_OWNER"
+    source: "RB:34 ; GLC:31,179"
+    priority: 3
+    owner: owner
+    status: NON_FAIT
+    nextAction: "Désigner les owners et poser les valeurs"
+    conditionDeCloture: "Groupe rotation/SOC2 passe la validation live"
+    targetDate: "2026-11-30"
+  # ---- Billing / Stripe / quotas -------------------------------------------
+  - id: PR-STRIPE-01
+    title: "Drill Stripe test-mode complet : checkout, portal, rejet signature, idempotence doublons, invoice paid/failed, upgrade/downgrade/cancel/trial"
+    source: "RB:37-40,69 ; GLC:100-104 ; CM:46"
+    priority: 1
+    owner: platform
+    status: NON_FAIT
+    note: "Bloqué par la clé Stripe expirée + catalogue absent → ACTIONS_AVI.md #1."
+    nextAction: "Après action Avi : pnpm stripe:seed + drill CLI contre staging"
+    conditionDeCloture: "Les 10 scénarios du drill verts avec logs archivés"
+    targetDate: "2026-09-15"
+  - id: PR-STRIPE-02
+    title: "Dashboard billing réconcilié avec l'état backend/Stripe"
+    source: "RB:71 ; GLC:109"
+    priority: 2
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Rapprochement chiffré backend ↔ Stripe sur un compte de test"
+    conditionDeCloture: "Écart zéro documenté sur un cycle complet"
+    targetDate: "2026-09-30"
+  - id: PR-QUOTA-01
+    title: "Quotas sous charge : 429 backend, blocage workspace over-limit concurrent, override admin audité+expirant"
+    source: "RB:70 ; GLC:105-108 ; CM:47"
+    priority: 2
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Test de pression concurrent + vérif audit/usage"
+    conditionDeCloture: "Chaque comportement prouvé sous charge réelle"
+    targetDate: "2026-10-31"
+  # ---- DR / restore ---------------------------------------------------------
+  - id: PR-DR-01
+    title: "Restore drill : Cloud SQL PITR + project storage en staging, RTO/RPO mesurés et documentés"
+    source: "RB:42-45 ; GLC:132-134 ; CM:62 ; §5 OPERATIONS_DR (principe sans item)"
+    priority: 1
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Exécuter le drill et attacher les preuves (un backup non restauré n'est pas un backup)"
+    conditionDeCloture: "Restauration réelle vérifiée + RTO/RPO chiffrés dans OPERATIONS_DR"
+    targetDate: "2026-09-30"
+  - id: PR-DR-02
+    title: "DR runbook exercisé + rollback Helm ET Terraform exercisés + processus status page testé"
+    source: "GLC:135-138 ; RB:75 ; CM:63-64"
+    priority: 2
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Exercices en staging avec preuves"
+    conditionDeCloture: "Chaque exercice tracé avec log"
+    targetDate: "2026-10-31"
+  - id: PR-DR-03
+    title: "Décision DR multi-région vs mono-région documentée + tabletop répété à l'échelle"
+    source: "RB:86-93"
+    priority: 3
+    owner: owner
+    status: NON_FAIT
+    note: "La perte de ZONE (store Nix) est déjà tracée par UNK-NIX-MULTIZONE-IMPL ; ici c'est la RÉGION."
+    nextAction: "Décision propriétaire puis tabletop"
+    conditionDeCloture: "Décision tracée (DEC-*) + compte-rendu tabletop"
+    targetDate: "2026-12-31"
+  # ---- Load / scale ----------------------------------------------------------
+  - id: PR-LOAD-01
+    title: "k6 tests/load/api-load.js exécuté contre staging (p50/p95/p99, erreurs)"
+    source: "GLC:142 ; RB:47-50 ; CM:65"
+    priority: 2
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Exécuter et archiver le rapport"
+    conditionDeCloture: "Rapport k6 archivé avec seuils tenus"
+    targetDate: "2026-10-31"
+  - id: PR-LOAD-02
+    title: "k6 tests/load/workspace-lifecycle-load.js exécuté contre staging"
+    source: "GLC:143 ; RB:47-50"
+    priority: 2
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Exécuter et archiver le rapport"
+    conditionDeCloture: "Rapport k6 archivé (taux de succès workspace mesuré)"
+    targetDate: "2026-10-31"
+  - id: PR-LOAD-03
+    title: "k6 tests/load/preview-load.js exécuté contre staging"
+    source: "GLC:144 ; RB:47-50"
+    priority: 2
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Exécuter et archiver le rapport"
+    conditionDeCloture: "Rapport k6 archivé"
+    targetDate: "2026-10-31"
+  - id: PR-LOAD-04
+    title: "k6 tests/load/ai-simulated-load.js exécuté contre staging"
+    source: "GLC:145 ; RB:47-50"
+    priority: 2
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Exécuter et archiver le rapport"
+    conditionDeCloture: "Rapport k6 archivé (throttling IA observé)"
+    targetDate: "2026-10-31"
+  - id: PR-LOAD-05
+    title: "k6 tests/load/billing-webhook-load.js exécuté contre staging"
+    source: "GLC:146 ; RB:47-50"
+    priority: 2
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Exécuter et archiver le rapport"
+    conditionDeCloture: "Rapport k6 archivé"
+    targetDate: "2026-10-31"
+  - id: PR-SCALE-01
+    title: "Cibles de capacité beta/1k/10k users + modèle de coût mis à jour depuis les mesures"
+    source: "GLC:147-150 ; RB:77-93"
+    priority: 3
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Après PR-LOAD-* : dériver le modèle chiffré"
+    conditionDeCloture: "Modèle de coût/capacité documenté à partir des mesures"
+    targetDate: "2026-12-31"
+  # ---- Sécurité --------------------------------------------------------------
+  - id: PR-SEC-01
+    title: "Pentest externe planifié et exécuté avant lancement payant"
+    source: "GLC:121 ; CM:56"
+    priority: 2
+    owner: owner
+    status: NON_FAIT
+    nextAction: "Choisir le prestataire et planifier"
+    conditionDeCloture: "Rapport de pentest reçu + findings triés"
+    targetDate: "2026-11-30"
+  - id: PR-SEC-02
+    title: "Canary secret vérifié cross-surfaces LIVE : runtime K8s, vues admin, export audit, logs de deploy"
+    source: "RB:59-65 ; GLC:120"
+    priority: 1
+    owner: platform
+    status: NON_FAIT
+    note: "Les tests unitaires/API existent (19+53 verts) ; la preuve LIVE cross-surfaces manque."
+    nextAction: "Test canary navigateur/admin/export contre le runtime staging"
+    conditionDeCloture: "Canary introuvable dans les 4 surfaces live (preuve)"
+    targetDate: "2026-09-30"
+  - id: PR-SEC-03
+    title: "Couverture CSRF vérifiée browser/API-wide sur les mutations"
+    source: "GLC:118"
+    priority: 2
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Audit CSRF systématique des mutations + tests"
+    conditionDeCloture: "Matrice mutations×protection publiée, trous corrigés"
+    targetDate: "2026-10-31"
+  - id: PR-SEC-04
+    title: "Audit navigateur complet des actions admin dangereuses (rôle + re-auth/MFA + AdminAuditLog)"
+    source: "RB:52-57 ; GLC:122 ; CM:48"
+    priority: 2
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Suite Playwright admin passant chaque mutation dangereuse"
+    conditionDeCloture: "Chaque mutation dangereuse couverte par un test navigateur vert"
+    targetDate: "2026-10-31"
+  - id: PR-SEC-05
+    title: "Drills abuse + livraison SIEM observée contre une vraie cible"
+    source: "GLC:123 ; RB:83 ; CM:60"
+    priority: 2
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Déclencher un événement d'abus contrôlé et suivre la livraison"
+    conditionDeCloture: "Événement reçu côté SIEM avec preuve"
+    targetDate: "2026-10-31"
+  # ---- Observabilité / ops ---------------------------------------------------
+  - id: PR-OPS-01
+    title: "Chaîne d'observabilité déployée et peuplée : Prometheus scrapé, Grafana importé, alertes routées on-call, synthetics, Sentry/OTLP"
+    source: "GLC:127-131 ; CM:61 ; outputs/MASTER_100_PERCENT.md:23 (agrégateur multi-pods)"
+    priority: 1
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Déployer la stack contre staging puis prod"
+    conditionDeCloture: "Dashboards peuplés + une alerte réelle routée (preuve)"
+    targetDate: "2026-10-31"
+  - id: PR-OPS-02
+    title: "Support + incident response staffés et répétés (on-call routing live)"
+    source: "RB:74,84 ; GLC:129"
+    priority: 3
+    owner: owner
+    status: NON_FAIT
+    nextAction: "Définir qui est on-call et répéter un incident"
+    conditionDeCloture: "Exercice d'incident tracé avec les personnes réelles"
+    targetDate: "2026-11-30"
+  # ---- Parcours produit E2E --------------------------------------------------
+  - id: PR-PROD-01
+    title: "Auth E2E réels : signup/login/logout, email verify/reset via vrai SMTP, MFA+recovery, OAuth Google/GitHub, OIDC JWKS, SAML ACS, SCIM via vrais IdP"
+    source: "GLC:83-89 ; CM:38,40"
+    priority: 2
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Parcours E2E contre les providers réels (dépend PR-CFG-01 pour OIDC/SAML)"
+    conditionDeCloture: "Chaque parcours vert avec preuve"
+    targetDate: "2026-10-31"
+  - id: PR-PROD-02
+    title: "GitHub import/branch/commit/push/PR E2E + panels IDE E2E + project create/import/export/snapshot/restore"
+    source: "GLC:90-92"
+    priority: 2
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Suite E2E contre la prod déployée (compte D5)"
+    conditionDeCloture: "Suite verte tracée dans E2E_PROOFS"
+    targetDate: "2026-09-30"
+  - id: PR-PROD-03
+    title: "Collaboration 2 users : presence/edit/comment/share-link E2E ; décision CRDT/OT multi-writer"
+    source: "GLC:93 ; CM:54"
+    priority: 3
+    owner: platform
+    status: NON_FAIT
+    nextAction: "E2E 2 navigateurs + décision explicite sur le multi-writer"
+    conditionDeCloture: "E2E vert + décision CRDT tracée"
+    targetDate: "2026-11-30"
+  - id: PR-PROD-04
+    title: "Custom domain E2E réel"
+    source: "GLC:96"
+    priority: 2
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Brancher un domaine réel sur une app publiée"
+    conditionDeCloture: "Domaine custom sert l'app avec TLS (preuve)"
+    targetDate: "2026-10-31"
+  # ---- Mobile / desktop ------------------------------------------------------
+  - id: PR-MOB-01
+    title: "iOS : IPA signé + pipeline TestFlight vérifié"
+    source: "RB:97 ; GLC:157"
+    priority: 3
+    owner: owner
+    status: NON_FAIT
+    note: "Nécessite le compte Apple Developer d'Avi."
+    nextAction: "Certificats + build signé + upload TestFlight"
+    conditionDeCloture: "Build installable via TestFlight (preuve)"
+    targetDate: "2026-12-31"
+  - id: PR-MOB-02
+    title: "Android : AAB signé + Play internal track vérifié"
+    source: "RB:98 ; GLC:158"
+    priority: 3
+    owner: owner
+    status: NON_FAIT
+    nextAction: "Keystore + build signé + upload internal track"
+    conditionDeCloture: "Build installable via Play internal (preuve)"
+    targetDate: "2026-12-31"
+  - id: PR-MOB-03
+    title: "Push : APNs et FCM vérifiés"
+    source: "RB:99 ; GLC:164"
+    priority: 3
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Notification réelle reçue sur device iOS et Android"
+    conditionDeCloture: "Preuve de réception sur les 2 plateformes"
+    targetDate: "2026-12-31"
+  - id: PR-MOB-04
+    title: "App links : host prod configuré (MOBILE_APP_LINK_HOST encore app.example.com)"
+    source: "RB:100-103 ; GLC:159-163"
+    priority: 3
+    owner: platform
+    status: NON_FAIT
+    note: "Le générateur passe en dry-run avec métadonnées synthétiques — le blocage = métadonnées réelles."
+    nextAction: "Configurer le host réel + mobile:validate:release vert"
+    conditionDeCloture: "mobile:validate:release et release-assets:check verts avec host prod"
+    targetDate: "2026-09-30"
+  - id: PR-MOB-05
+    title: "QA éditeur sur vrais devices phone/tablette"
+    source: "RB:104 ; GLC:165 ; CM:49-53"
+    priority: 3
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Session QA device réel documentée"
+    conditionDeCloture: "Compte-rendu QA device avec captures"
+    targetDate: "2026-12-31"
+  - id: PR-DESK-01
+    title: "Desktop : builds signés macOS/Windows/Linux + drill auto-updater"
+    source: "RB:105-106 ; GLC:166-169"
+    priority: 3
+    owner: owner
+    status: NON_FAIT
+    note: "Certificats de signature = Avi."
+    nextAction: "Signer les 3 plateformes + exercer l'auto-update"
+    conditionDeCloture: "3 builds signés vérifiés + update réel appliqué"
+    targetDate: "2026-12-31"
+  # ---- Juridique -------------------------------------------------------------
+  - id: PR-LEGAL-01
+    title: "Revue juriste : ToS, Privacy, DPA, AUP, subprocessors (+ contenu SLA/rétention/DMCA/strikes des 5 pages légales)"
+    source: "RB:73 ; GLC:173-177 ; CM:67 ; outputs/REPLIT_LEGAL_SECURITY_PARITY_GAP.md:36"
+    priority: 2
+    owner: owner
+    status: NON_FAIT
+    nextAction: "Mandater un juriste → ACTIONS_AVI.md #4"
+    conditionDeCloture: "Version relue par un juriste publiée"
+    targetDate: "2026-10-31"
+  - id: PR-LEGAL-02
+    title: "Rétention des données alignée avec l'implémentation + SOC2 control owners assignés"
+    source: "GLC:178-179"
+    priority: 3
+    owner: owner
+    status: NON_FAIT
+    nextAction: "Vérifier politique vs code + désigner les owners"
+    conditionDeCloture: "Matrice rétention publiée + owners nommés"
+    targetDate: "2026-11-30"
+  # ---- Chantiers dédiés ------------------------------------------------------
+  - id: PR-RR7-01
+    title: "Migration React Router 7 (purge turbo-stream, advisory sécurité) — ~6-8 semaines, cutover atomique 297 routes"
+    source: "DH:9-48 ; docs/REPLIT_PARITY_MATRIX.md:242 ; docs/REPLIT_PARITY_DELIVERY.md:512-513"
+    priority: 2
+    owner: platform
+    status: NON_FAIT
+    note: "Plan en 5 étapes déjà écrit dans DEFERRED_HARDENING §1. Chantier dédié, PAS un patch autonome."
+    nextAction: "Décider la fenêtre de feature-freeze avec Avi puis lancer l'étape Prep"
+    conditionDeCloture: "pnpm why turbo-stream vide + audit clean + e2e cœur verts en prod"
+    targetDate: "2026-12-31"
+  # ---- QA / preuves UI -------------------------------------------------------
+  - id: PR-QA-01
+    title: "23 drives navigateur QA panel-par-panel + replay responsive 390/768/1024/1440"
+    source: "outputs/QA_PANEL_SCENARIOS.md:5-31"
+    priority: 2
+    owner: platform
+    status: NON_FAIT
+    note: "Le mécanisme existe (D5 : compte E2E + Playwright) mais AUCUN des 23 scénarios n'y est inscrit."
+    nextAction: "Inscrire les 23 scénarios dans le harness D5 et les exécuter"
+    conditionDeCloture: "23/23 verts avec captures archivées"
+    targetDate: "2026-10-31"
+  - id: PR-QA-02
+    title: "~12 scénarios UI restants (F7 preview file:line, F9 workflows drive, F16 SCIM dual-valid, diff-fallback, smallEdit, routing Auto…)"
+    source: "outputs/UI_PROOF_SCENARIOS.md:9-36 ; outputs/MASTER_100_PERCENT.md:91,109,113-115"
+    priority: 2
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Inscrire dans le harness D5 et exécuter"
+    conditionDeCloture: "Chaque scénario vert avec preuve, ou requalifié avec justification"
+    targetDate: "2026-10-31"
+  # ---- Divers orphelins (famille E) -----------------------------------------
+  - id: PR-MISC-01
+    title: "Flake CI onTaskUpdate (workspace-manager, ~16 min) corrigé"
+    source: "outputs/ETAT_FINAL_100.md:109"
+    priority: 3
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Reproduire, corriger, prouver 10 runs verts"
+    conditionDeCloture: "10 runs CI consécutifs sans le flake"
+    targetDate: "2026-09-30"
+  - id: PR-MISC-02
+    title: "Proxy agent-services Phase 2 (POST /agent-services/:service/*) : implémenter ou abandonner"
+    source: "docs/INTEGRATIONS_MASTER_PLAN.md:411"
+    priority: 4
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Décision explicite implémenter/abandonner"
+    conditionDeCloture: "Implémenté avec preuve OU abandon tracé dans le doc"
+    targetDate: "2026-12-31"
+  - id: PR-MISC-03
+    title: "Reliquat design A–I réintégré dans le suivi actif : A1 tokens dark-brand, E18/E27 SLA placeholders, G13 type-to-confirm, F15/F16 SSO-enforce/SCIM backend, H23 certif live, lot I (I3/I6/I18/I20/I21/I25)"
+    source: "outputs/DESIGN_AUDIT_LIVE.md:37,42,127,136,161,214-215,227,301,347-351"
+    priority: 3
+    owner: platform
+    status: NON_FAIT
+    note: "Ces points ne vivent QUE dans outputs/ — le DESIGN_PROGRAM_MASTER actuel ne porte plus les batchs A–I."
+    nextAction: "Recopier chaque point ouvert dans DESIGN_PROGRAM_MASTER avec ses 3 états"
+    conditionDeCloture: "Chaque point listé dans DESIGN_PROGRAM_MASTER (ou clos avec preuve)"
+    targetDate: "2026-09-30"
+  - id: PR-MISC-04
+    title: "Cache LLM : requalifier les points MASTER_100 (providers restants, preuve cache-hit key-gated) avec la preuve existante"
+    source: "outputs/MASTER_100_PERCENT.md:122-125,81-82"
+    priority: 4
+    owner: platform
+    status: NON_FAIT
+    note: "Probablement livré depuis (certification 33 modèles du 13/07, outputs/CACHE_MATRIX_ALL_MODELS.md) — mais AUCUNE clôture tracée : à requalifier avec la preuve, sinon reste NON_FAIT."
+    nextAction: "Croiser MASTER_100 avec CACHE_MATRIX_ALL_MODELS et clore ou rouvrir chaque point"
+    conditionDeCloture: "Chaque point clos avec pointeur de preuve ou rouvert avec action"
+    targetDate: "2026-08-31"
+  - id: PR-MISC-05
+    title: "Quota SSD : recréer le pool gvisor avec boot disks pd-standard 200 Go (débloque l'autoscale ; SSD 432/500)"
+    source: "PLAN_REMAINING_UNIFIED.md:104"
+    priority: 1
+    owner: owner
+    status: NON_FAIT
+    note: "GO d'Avi requis (drain = redémarrage des workspaces) → ACTIONS_AVI.md #2."
+    nextAction: "Obtenir le GO puis exécuter la recréation supervisée"
+    conditionDeCloture: "Pool recréé, SSD ~32/500, autoscale débloqué (mesure)"
+    targetDate: "2026-08-15"
+  - id: PR-MISC-06
+    title: "Bugs P2 différés documentés : CH2 clé React fallback index, I2 getDeviceScale() code mort"
+    source: "outputs/BUG_INVENTORY.md:35-36"
+    priority: 4
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Corriger en passant ou confirmer le report avec justification"
+    conditionDeCloture: "Corrigés ou report re-justifié"
+    targetDate: "2026-12-31"
+  - id: PR-MISC-07
+    title: "Surfaces admin/compte restantes : advanced plan/quota editing (admin) ; Profile/Preferences/Data/MCP-perso rendus en pages Dashboard avec me.isPlatformAdmin"
+    source: "docs/REPLIT_PARITY_DELIVERY.md:83,90"
+    priority: 3
+    owner: platform
+    status: NON_FAIT
+    note: "DELIVERY:90 est peut-être couvert par /account-settings/* livré depuis — aucune clôture tracée, donc NON_FAIT jusqu'à preuve."
+    nextAction: "Vérifier l'existant à l'écran puis clore avec preuve ou implémenter"
+    conditionDeCloture: "Chaque surface prouvée à l'écran ou implémentée"
+    targetDate: "2026-10-31"

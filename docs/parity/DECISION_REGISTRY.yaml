@@ -14,12 +14,12 @@ decisions:
       Soit on l'assume comme décision E-CODE AVEC son coût de modération
       (Trust & Safety, revue humaine, anti-abus), soit on ne le fait pas. Ne pas
       le présenter comme « parité Replit ».
-    owner: avi
+    owner: owner
     priority: 2
     cost: "modération humaine + anti-abus (non chiffré)"
     status: OPEN
-    nextAction: "Trancher : intake curé (parité) vs self-service modéré (décision E-CODE chiffrée)"
-    targetDate: UNKNOWN
+    nextAction: "Contenu option B retrouvé et inscrit (20/07) — reste à trancher la question distincte du self-publish (intake curé vs self-service modéré)"
+    targetDate: "2026-07-24"
   - decisionId: DEC-IMPORT-CREDIT-RESERVE
     title: "Réservation de crédits Agent idempotente avant import"
     rationale: >
@@ -27,21 +27,220 @@ decisions:
       réservation idempotente (clé = importJobId) avant démarrage est une décision
       E-CODE anti-double-charge, pas de la parité.
     consequence: "Marqueur creditsReserved ; débit réel = follow-up."
-    owner: avi
+    owner: owner
     priority: 2
     cost: "néant (marqueur) ; débit réel à câbler"
-    status: OPEN
-    nextAction: "Câbler le débit réel ou garder shadow"
-    targetDate: UNKNOWN
+    status: DECIDED
+    nextAction: "Tranché par D4 (DEC-OWNER-D4) : billing minimal sûr d'abord (réservation idempotente + compensation), débit réel ensuite — avant tout connecteur payant"
+    targetDate: "2026-08-15"
   - decisionId: DEC-TENANT-NO-FOLDER-PER-TENANT
     title: "Pas de folder GCP par tenant par défaut"
     rationale: >
       Création de folders = 0,1 req/s = 6/min (vérifié). 1000 tenants
       folder-per-tenant = 2,78 h de rate-limit pur. Sharding sous 300 enfants.
     consequence: "Folder dédié uniquement sur exigence contractuelle/policy mesurée."
-    owner: avi
+    owner: owner
     priority: 3
     cost: "néant (sharding) ; folder dédié = coût-temps mesuré"
     status: DECIDED
     nextAction: "Aucun — appliqué dans capacity-policy.ts + DOMAIN_MODEL §3"
     targetDate: "2026-07-16"
+
+  # ============================================================================
+  # OWNER_DECISION — décisions explicites d'Avi, citées verbatim (2026-07-17).
+  # Le contenu de D2–D6 = le document de son expert
+  # (Reponses_decisions_D1_D6_ECode_20260717.docx), approuvé par « Oui » à la
+  # question « tu adoptes D2 à D6 tels qu'écrits dans ce document ? » (17/07/2026).
+  # ============================================================================
+  - decisionId: DEC-OWNER-D1-GIT-RECONCILE
+    decisionType: OWNER_DECISION
+    title: "D1 — Réconciliation du split-brain Git, autorisée avec procédure contrôlée"
+    rationale: >
+      Citation Avi : « Merge toi meme et verifie les commits des autres sessions
+      si ils sont bon tu les prend ». Procédure adoptée (document expert, approuvé
+      17/07) : branche d'intégration créée depuis origin/main, refs de sauvegarde
+      des deux pointes, inventaire des commits uniques, aucune réécriture
+      d'historique, CI complète et PR avant main ; fichiers de suivi régénérés
+      après le merge. Aucun force-push.
+    consequence: "Une seule pointe canonique ; le worktree local n'est plus jamais une source de vérité ; main protégée."
+    owner: owner
+    priority: 1
+    cost: "fenêtre courte de freeze des 4 fichiers de suivi"
+    status: DECIDED
+    decidedAt: "2026-07-17"
+    nextAction: "Exécuter (UNK-GIT-RECONCILE-DONE, cible 2026-07-20)"
+    targetDate: "2026-07-20"
+  - decisionId: DEC-OWNER-D2-ROLLBACK-PERMANENT
+    decisionType: OWNER_DECISION
+    title: "D2 — Rollback par digest PERMANENT et fail-closed"
+    rationale: >
+      Approuvé « Oui » (17/07/2026), contenu = document expert : rendre
+      SERVER_DEPLOY_ROLLBACK_FROM_DIGEST=1 permanent dans Helm (values-prod +
+      staging + JSON schema, test de rendu obligatoire). Legacy fail-closed :
+      backfill retainedDigest quand l'artefact existe ; sinon 409 typé
+      NO_RETAINED_DIGEST — aucun fallback vers une URL potentiellement morte.
+      Canary + alerte si le flag manque après helm upgrade + test post-deploy.
+    consequence: "Le faux rollback ne peut pas revenir au prochain helm upgrade ; un 409 franc remplace un faux succès."
+    owner: owner
+    priority: 1
+    cost: "backfill + canary ; migration puis suppression du fallback URL-only"
+    status: DECIDED
+    decidedAt: "2026-07-17"
+    nextAction: "Appliquer (UNK-ROLLBACK-FLAG-APPLIED, cible 2026-07-24)"
+    targetDate: "2026-07-24"
+  - decisionId: DEC-OWNER-D3-NIX-MULTIZONE
+    decisionType: OWNER_DECISION
+    title: "D3 — GO store Nix multi-zone, topologie réelle + coût mesuré"
+    rationale: >
+      Approuvé « Oui » (17/07/2026), contenu = document expert : GO multi-zone
+      AVANT d'activer Python par défaut. Préférence : snapshot signé par
+      génération puis clone zonal identique dans chaque zone active, montage
+      topology-aware, même generationId/contentHash/signature partout (dérive ⇒
+      pod bloqué). Test de drain de zone-a puis projet Python créé en zone-b.
+      Le coût est MESURÉ sur les SKU/capacité provisionnée europe-west9 —
+      « ~10 $/mois » reste une hypothèse jusqu'à mesure. Regional PD = option à
+      benchmarker (2 zones, ~2× coût), pas le choix par défaut.
+    consequence: "Python zéro-manuel débloqué sans SPOF zonal (SPOF-1, OPERATIONS_DR.md)."
+    owner: owner
+    priority: 1
+    cost: "clones zonaux par génération — chiffrage après mesure SKU réelle"
+    status: DECIDED
+    decidedAt: "2026-07-17"
+    nextAction: "Exécuter (UNK-NIX-MULTIZONE-IMPL, cible 2026-08-01)"
+    targetDate: "2026-08-01"
+  - decisionId: DEC-OWNER-D4-BILLING-BEFORE-CONNECTORS
+    decisionType: OWNER_DECISION
+    title: "D4 — Billing minimal sûr AVANT les connecteurs Import, puis lots"
+    rationale: >
+      Approuvé « Oui » (17/07/2026), contenu = document expert : un import qui
+      consomme des crédits ne démarre pas sans réservation idempotente et
+      compensation sur échec. Minimum : UsageReservation (idempotency key,
+      montant max, expiration, release/commit), débit réel après étape billable,
+      hard limit à frontière sûre, UsageEvent immuable corrélé
+      importJobId↔reservationId↔ledgerEntryId, UI estimation/plafond/facturé.
+      Ensuite connecteurs PAR LOTS : lot 1 cœur Git (Vercel, Previous Agent
+      export, Bolt, Lovable, Base44) ; lot 2 design (Figma, Claude) ; lot 3
+      données (Spreadsheet). Inventaire corrigé : 12 entrées dont Previous
+      Agent export (RPL-24).
+    consequence: "Aucun travail billable sans contrôle ; surface produit livrée par lots mutualisés."
+    owner: owner
+    priority: 2
+    cost: "décale les connecteurs derrière le minimum billing"
+    status: DECIDED
+    decidedAt: "2026-07-17"
+    nextAction: "UNK-BILLING-MINIMAL-IMPL (2026-08-15) puis lot 1"
+    targetDate: "2026-08-15"
+  - decisionId: DEC-OWNER-D5-E2E-ACCOUNT
+    decisionType: OWNER_DECISION
+    title: "D5 — Compte E2E dédié, pas le Chrome personnel comme dépendance"
+    rationale: >
+      Approuvé « Oui » (17/07/2026), contenu = document expert : exécuter
+      maintenant les deux preuves (Gallery→Remix authentifié→IDE→Preview ;
+      projet Python neuf→auto-mount Nix sans allowlist→uv→Run→Preview→Publish)
+      avec un utilisateur E2E dédié + session Playwright reproductible
+      (vidéo, captures, trace réseau, traceId, commit, environnement). Jamais
+      les cookies du profil personnel. Ensuite : régression CI/staging.
+    consequence: "Les preuves UI deviennent rejouables ; le navigateur personnel d'Avi n'est plus un goulot."
+    owner: owner
+    priority: 2
+    cost: "fixtures nettoyables + secrets de test"
+    status: DECIDED
+    decidedAt: "2026-07-17"
+    nextAction: "Créer le compte E2E + rejouer les 2 preuves"
+    targetDate: "2026-08-01"
+  - decisionId: DEC-OWNER-D6-TPL02-POSTHOC
+    decisionType: OWNER_DECISION
+    title: "D6 — TPL-02 : validation a posteriori des captures + gate déplacé au merge/release"
+    rationale: >
+      Approuvé « Oui » (17/07/2026), contenu = document expert : valider a
+      posteriori les captures si conformes et liées au commit réellement poussé ;
+      ne pas retirer du code valide pour punir un écart de processus ;
+      enregistrer l'écart. NOUVELLE RÈGLE : les pushes vers une branche de
+      travail sont autorisés ; merge vers main, déploiement production et
+      passage à ✅ TESTÉ LIVE sont bloqués tant que la preuve n'est pas
+      approuvée (champ proofApproval : reviewer, timestamp, evidenceIds).
+    consequence: "L'écart de processus TPL-02.PROOF est clos par gouvernance, pas par revert."
+    owner: owner
+    priority: 3
+    cost: "champ proofApproval + blocage CI merge/release pour les chantiers capture-required"
+    status: DECIDED
+    decidedAt: "2026-07-17"
+    nextAction: "Valider les captures Gallery a posteriori + câbler proofApproval"
+    targetDate: "2026-07-31"
+  - decisionId: DEC-OWNER-TRACKING-FILES-VERSIONED
+    decisionType: OWNER_DECISION
+    title: "Fichiers de suivi versionnés/régénérés depuis les registres"
+    rationale: >
+      Citation Avi : « Oui si il faut le faire et c sans risque ». Les 4 fichiers
+      de suivi (REPLIT_PARITY, DESIGN_PROGRAM_MASTER, BUG_INVENTORY_LIVE,
+      PLAN_REMAINING_UNIFIED) sont régénérés/recalculés depuis la révision
+      canonique après la réconciliation D1 — jamais fusionnés à la main comme
+      des vérités concurrentes. Condition « sans risque » : aucune perte de
+      contenu (sauvegarde des deux pointes, D1).
+    consequence: "Un checkout local ne peut plus faire mentir les fichiers de suivi."
+    owner: owner
+    priority: 2
+    cost: "néant (procédure)"
+    status: DECIDED
+    decidedAt: "2026-07-17"
+    nextAction: "Appliquer après D1 (UNK-GIT-RECONCILE-DONE)"
+    targetDate: "2026-07-20"
+  - decisionId: DEC-OWNER-GALLERY-OPTION-B
+    decisionType: OWNER_DECISION
+    title: "Gallery option B — garder notre noyau prouvé + greffer la substance de l'autre session"
+    rationale: >
+      CONTENU EXACT RETROUVÉ (commit local d232a187 du 17/07, entrée
+      DEC-GALLERY-OPTION-B de la session Gallery — cité verbatim) : « Avi
+      laisse trancher ; décision B confirmée sur MESURE, pas sur goût :
+      (1) sa passation annonce "6 cartes converties en apps de démo (Orbit
+      CRM, Northstar, Pulse, Launchline, Kindred, Relay)" mais ses artefacts
+      public/gallery-apps/ s'appellent ai-agent/fastify-api/landing-page/
+      mobile-starter/next-dashboard = les noms framework — LA CONVERSION N'A
+      PAS EU LIEU ; (2) sa vue liste est cassée (chevauchement
+      vignettes/titres, documenté par lui) ; (3) rien de son travail n'est
+      prouvé live, notre noyau l'est (pin immuable + secrets:[] en base).
+      ⇒ noyau prouvé nôtre + greffe de TOUTE sa substance (modération,
+      signalement, provenance, versions, hub 12 sources avec adaptateurs
+      réels, catalogue package, probe SSRF/DNS-rebinding, Empty sans
+      Agent). » Exécution démarrée : c35b686e (greffe TemplateGallery UI
+      sur GalleryListing API, phase 1).
+    consequence: "Ne jette rien ; réconcilie sur la branche d'intégration, pas d'écrasement (GalleryListing vs ProjectTemplateGallery + renum migration)."
+    owner: owner
+    priority: 2
+    cost: "réconciliation des deux modèles DB + renum migration"
+    status: DECIDED
+    decidedAt: "2026-07-17"
+    approvalSource: "message Avi 17/07/2026 (« Gallery option B — il me laisse trancher ») + re-confirmation owner 20/07"
+    nextAction: "Phase 2 de la greffe (détail, modération, probe SSRF) — session Gallery"
+    targetDate: "2026-07-24"
+  - decisionId: DEC-BILLING-LEGACY-VS-LEDGER
+    title: "Ancien système de crédits (SHADOW) vs nouveau ledger (plan §3.7) : migration, remplacement ou go-live de l'un des deux"
+    rationale: "L'audit de couverture (COVERAGE_GAP_AUDIT_2026-07-17.md famille B) montre que ~35 points « go-live billing legacy » n'apparaissent nulle part dans le plan, et que la relation entre le wallet existant (codé, testé, certifié SHADOW en prod : REPLIT_PARITY_MATRIX §1-19) et le ledger double-entrée du plan §3.7 n'est arbitrée nulle part. Sans décision, les deux chantiers avancent en aveugle l'un de l'autre."
+    owner: owner
+    priority: 1
+    status: OPEN
+    options: "A) go-live du wallet existant maintenant, ledger ensuite en dessous ; B) attendre le ledger minimal (UNK-BILLING-MINIMAL-IMPL) et brancher le wallet dessus ; C) remplacer le wallet par le ledger avant tout go-live"
+    nextAction: "Présenter les 3 options à Avi avec coûts/risques ; consigner la réponse exacte ici"
+    conditionDeCloture: "Statut DECIDED avec la citation d'Avi + le chemin choisi tracé (UNK-BILLING-LEGACY-GOLIVE et/ou UNK-BILLING-MINIMAL-IMPL mis à jour)"
+    targetDate: "2026-08-01"
+    expiration: "2026-08-15"
+  - decisionId: DEC-ECODE-FREE-APP-EXPIRY-30D
+    decisionType: ECODE_DECISION
+    title: "App du plan gratuit effacée à 30 jours — ADOPTÉE (comme Replit)"
+    rationale: >
+      Avi dit OUI (20/07/2026) : E-Code adopte la règle mesurée chez Replit
+      (RPL-28 : 1 app publiée sur le plan gratuit, expiration à 30 jours).
+      Mécanique OBLIGATOIRE conforme à l'invariant §16.12 du plan : toute
+      suppression possède tombstone, fenêtre de récupération, purge
+      planifiée et preuve d'effacement — jamais un hard-delete silencieux.
+      Notification avant expiration ; un upgrade pendant la fenêtre
+      restaure sans perte.
+    consequence: "Entitlement starter (OFFERING) + job d'expiration (tombstone→fenêtre→purge→preuve) à implémenter et prouver."
+    owner: owner
+    priority: 2
+    cost: "job d'expiration + notifications + preuve d'effacement"
+    status: DECIDED
+    decidedAt: "2026-07-20"
+    nextAction: "Implémenter (UNK-FREE-EXPIRY-IMPL) — capacité, pas contrat"
+    targetDate: "2026-09-30"
+

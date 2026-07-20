@@ -141,3 +141,135 @@ claims:
     client: web
     status: VERIFIED
     triageState: PENDING
+  - claimId: RPL-24
+    statement: "Le hub « Import from a provider » compte EXACTEMENT 12 entrées (table « Supported sources ») : GitHub, Bitbucket, Vercel, Figma, Claude, Bolt, Lovable, Base44, ZIP, Spreadsheet, Previous Agent export, Empty. Convention unique : 12 entrées DONT Empty. « Previous Agent export » manquait à notre comptage (11) — corrigé."
+    sourceId: SRC-REPLIT-IMPORT-PROVIDERS
+    observedAt: "2026-07-17T09:51:51Z"
+    firstSeen: "2026-07-17"
+    lastVerified: "2026-07-17"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: GCP-11
+    statement: "Cloud Run service health automatise le failover/failback inter-régions (readiness probes + serverless NEGs, LB externe global et LB interne cross-region). GA le 29/06/2026 d'après les release notes (Preview interne 21/11/2025, externe 24/02/2026). Reclassé depuis « RPL-23 » du plan v5 : source cloud, pas produit Replit. NOTE divergence : la lecture owner du 17/07 rapportait une bannière Preview ; le snapshot hashé du 17/07 ne la montre pas sur cette page (les badges Preview du snapshot concernent d'autres pages : Ephemeral Disk, Sandboxes, Cloud Service Mesh). Exigence E-Code inchangée : fallback + exit strategy obligatoires (stratégie de données, cohérence sessions, idempotence, dégradation partielle)."
+    sourceId: SRC-CLOUDRUN-RELEASE-NOTES
+    observedAt: "2026-07-17T09:51:51Z"
+    firstSeen: "2025-11-21"
+    lastVerified: "2026-07-17"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: GCP-12
+    statement: "Artifact Registry attachments (métadonnées liées par referrers OCI) est en PREVIEW — bannière « Pre-GA Offerings Terms … available \"as is\" and might have limited support » présente dans le snapshot hashé. Dépendance production INTERDITE sans fallback (attestations Binary Authorization / Container Analysis, copie des referrers via ORAS) + exit strategy. COUPLAGE DE RÉTENTION (même snapshot) : « You can delete attachments indirectly by deleting the artifact it refers to » — supprimer l'image cible supprime ses attachments ; le graphe de rétention doit protéger l'image ET ses métadonnées, et le test de suppression/rollback doit le prouver."
+    sourceId: SRC-AR-ATTACHMENTS
+    observedAt: "2026-07-17T09:51:51Z"
+    firstSeen: "2026-07-17"
+    lastVerified: "2026-07-17"
+    plan: all
+    rollout: PREVIEW
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: GCP-13
+    statement: "Workload Identity Federation for GKE : « In GKE, Google Cloud manages the workload identity pool and provider for you and doesn't require an external identity provider » ; « the recommended way » pour les workloads GKE. REMPLACE le claim « WIF uniquement si source externe » (faux pour GKE). Trois chemins d'identité : GKE→WIF for GKE (aucun IdP externe) ; hors Google Cloud→IAM WIF avec fournisseur externe ; Cloud Run→service identity dédiée + impersonation courte durée. Zéro clé persistante partout."
+    sourceId: SRC-GKE-WORKLOAD-IDENTITY
+    observedAt: "2026-07-20T04:20:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: GCP-14
+    statement: "Cloud Run multi-tenant (doc mise à jour 2026-07-17) : 1 projet Google Cloud par tenant RECOMMANDÉ (multi-tenant par projet déconseillé) ; pool de projets PRÉCRÉÉS recommandé (latence de création/init) ; folders séparant code first-party et code tenant non fiable OBLIGATOIRES ; routage recommandé = Global External ALB + Service Extensions ; un billing account DIFFÉRENT par tier de réputation (abus) ; Cloud Armor pour DDoS."
+    sourceId: SRC-CLOUDRUN-MULTITENANT
+    observedAt: "2026-07-20T04:20:00Z"
+    firstSeen: "2026-07-17"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: GCP-15
+    statement: "Cloud Run quotas : maximum 1000 services par projet et par région (augmentable) ; 1000 jobs ; 1000 worker pools ; 1000 job executions en cours — dimensionne le sharding de CapacityPolicy."
+    sourceId: SRC-CLOUDRUN-QUOTAS
+    observedAt: "2026-07-20T04:20:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: RPL-25
+    statement: "Clerk Auth (Replit-managed) : tenant Clerk dédié par app, providers Google/GitHub/Apple/X, environnements DEV/PROD isolés, user management dans le Project Editor. « What's not supported » EXPLICITE : sign-in par SMS, MFA end-user, couverture SSO complète, Organization tenants. MFA/passkeys/orgs ne sont PAS de la parité courante — extension E-CODE si retenus."
+    sourceId: SRC-REPLIT-CLERK-AUTH
+    observedAt: "2026-07-20T04:20:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: RPL-26
+    statement: "Migration vers Clerk Auth : la doc couvre UNIQUEMENT la migration depuis une auth PERSONNALISÉE (import users + password digests, externalId→sessionClaims.userId). Citation : « It is not a guide for moving an app from Replit Auth to Clerk Auth — official guidance for that migration path is coming soon ». Le guide Replit Auth→Clerk est INCONNU/NON LIVRÉ."
+    sourceId: SRC-REPLIT-CLERK-MIGRATION
+    observedAt: "2026-07-20T04:20:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: RPL-27
+    statement: "Pricing affiché le 2026-07-20 (capture pricing.png sha256 0dea38e82de4c246…) : Starter GRATUIT · Replit Core $20/mois ($18 annuel, $20 crédits, 5 collaborateurs, 2 agents parallèles) · Replit Pro $100/mois ($90 annuel, $100 crédits paliers jusqu'à $2000, 15 collaborateurs + 50 viewers, 10 agents parallèles) · Enterprise sur devis (SSO/SAML, groupes, design system, data warehouse, single-tenant, IP statiques, VPC). LE PLAN TEAMS N'EXISTE PLUS À LA VENTE (doc du jour : « migration from the former Teams plan ») — les capacités d'équipe demeurent (P0-LS-15). CES PRIX SONT DES OBSERVATIONS CONTEXTUALISÉES (geo/cohorte inconnues, scan anonyme), JAMAIS des constantes (P0-LS-10) : une vérification expert du même jour rapporte Core à $25 — divergence CONSERVÉE dans OFFERING_ENTITLEMENT_REGISTRY.yaml."
+    sourceId: SRC-REPLIT-LIVESCAN-2026-07-20
+    observedAt: "2026-07-20T05:43:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: RPL-28
+    statement: "Plan gratuit (Starter) mesuré le 2026-07-20 (pricing.png + doc-starter-plan.md sha256 019962efcfbe8b66…) : crédits Agent quotidiens gratuits, Lite build UNIQUEMENT (Full build = Core/Pro), 1 SEULE app publiée qui EXPIRE À 30 JOURS, badge « Made with Replit » avec lien de parrainage, déploiements privés/mot de passe, 2 GB stockage, 20 apps simultanées max. Core requis pour : Plan Mode, connecteurs tiers, Replit AI Integrations, conversion Canvas→artefact, artefacts autres que web+mobile, retrait du badge."
+    sourceId: SRC-REPLIT-LIVESCAN-2026-07-20
+    observedAt: "2026-07-20T05:43:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: starter
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: RPL-29
+    statement: "Constats de retrait au 2026-07-20 (scan hashé, formulations CORRIGÉES par l'expert P0-LS-05/14/15) : Max mode RETIRÉ (« Max mode is no longer available », doc du jour) · starter templates par langage RETIRÉS (« have been removed », /templates sert la Gallery — hash identique 5e0cb9bbf4794ce6…) · GitLab : PAS UNE TUILE du hub d'import courant (confirmé) — capacité d'import Git plus large UNKNOWN, ne pas dire « retiré » · plan Teams RETIRÉ COMME OFFRE COMMERCIALE (« former Teams plan ») — les capacités d'équipe demeurent · Bounties : la route sert « Replit Experts » (pivot, bounties.png 6beff99f…) · profils /@user : LA route testée (/@mattpalmer) redirige vers Log In (hash 0fa5718b…) — une seule route testée ne prouve pas la suppression de tous les profils publics."
+    sourceId: SRC-REPLIT-LIVESCAN-2026-07-20
+    observedAt: "2026-07-20T05:43:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: RPL-30
+    statement: "Replit MCP Server (doc du jour platforms/mcp-server) : pilotage programmatique des apps via client MCP — statut DOC_CURRENT_BETA. CORRECTION P0-LS-13 : ne PAS en déduire qu'il « remplace » une API publique — PublicApiStatus = UNKNOWN (aucune « Public API » sous ce nom dans la doc du jour, ce qui n'est pas une preuve de disparition). Source secondaire (derrière login)."
+    sourceId: SRC-REPLIT-LIVESCAN-2026-07-20
+    observedAt: "2026-07-20T05:43:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: CONFIRMED

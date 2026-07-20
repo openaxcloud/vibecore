@@ -69,7 +69,7 @@ function sha256(buffer) {
 }
 
 /*
- * Assainissement AVANT écriture et hash (2026-07-19) : les pages tierces
+ * Assainissement AVANT écriture et hash (2026-07-17) : les pages tierces
  * embarquent des jetons CLIENT publics (clé web Google AIza…, jeton Datadog
  * browser pub…) qui déclenchent le secret-scan bloquant de la CI alors que ce
  * ne sont pas des secrets. On les caviarde à la capture ; le sha256 du

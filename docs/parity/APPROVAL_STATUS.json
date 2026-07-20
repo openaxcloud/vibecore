@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 4,
   "generatedFrom": [
     "P0_REGISTRY.yaml",
     "DECISION_REGISTRY.yaml",
@@ -8,18 +8,247 @@
     "SURFACE_REGISTRY.yaml",
     "E2E_PROOFS.yaml",
     "OBSERVATION_REGISTRY.yaml",
-    "SOURCE_REGISTRY.yaml"
+    "SOURCE_REGISTRY.yaml",
+    "BOLT_DEBT_REGISTRY.yaml",
+    "PRODUCTION_READINESS_REGISTRY.yaml",
+    "PLAN_PARITE_REPLIT.md",
+    "WORK_ITEM_REGISTRY.yaml",
+    "LEGACY_FINDING_REGISTRY.yaml"
   ],
   "note": "COMPUTED by scripts/parity/generate-approval-status.mjs — never edit by hand. The validator fails the build on drift.",
-  "algorithm": "APPROVED iff all 6 conditions pass (audit v4 H). See conditions[].",
-  "approvalReady": true,
-  "blocking": [],
+  "algorithm": "ÉCHELLE 11 NIVEAUX (audit de réanalyse 2026-07-20): overallStatus=NOT_APPROVED sauf approbation de périmètre explicite (APPROVALS.yaml, approbateur stocké). highestPassedLevel = plus haut niveau CONTIGU. Ni approvalReady ni approved.level n'existent (interdits). Les 6 conditions audit-v4 restent des sous-signaux.",
+  "overallStatus": "NOT_APPROVED",
+  "highestPassedLevel": "documentReconciled",
+  "generatedAt": "2026-07-20T12:30:00Z",
+  "levels": [
+    {
+      "name": "documentReconciled",
+      "passed": true,
+      "reasons": []
+    },
+    {
+      "name": "sourceBaselineReady",
+      "passed": false,
+      "reasons": [
+        "claim GCP-01 cited by the plan but not anchored (UNVERIFIED)",
+        "claim GCP-02 cited by the plan but not anchored (UNVERIFIED)",
+        "claim GCP-03 cited by the plan but not anchored (UNVERIFIED)",
+        "claim GCP-04 cited by the plan but not anchored (UNVERIFIED)",
+        "claim GCP-06 cited by the plan but not anchored (UNVERIFIED)",
+        "claim GCP-07 cited by the plan but not anchored (UNVERIFIED)",
+        "claim GCP-08 cited by the plan but not anchored (UNVERIFIED)",
+        "claim GCP-09 cited by the plan but not anchored (UNVERIFIED)",
+        "claim GCP-10 cited by the plan but not anchored (UNVERIFIED)",
+        "claim NIX-01 cited by the plan but not anchored (UNVERIFIED)",
+        "claim RPL-01 cited by the plan but not anchored (UNVERIFIED)",
+        "claim RPL-02 cited by the plan but not anchored (UNVERIFIED)",
+        "claim RPL-03 cited by the plan but not anchored (UNVERIFIED)",
+        "claim RPL-04 cited by the plan but not anchored (UNVERIFIED)",
+        "claim RPL-05 cited by the plan but not anchored (UNVERIFIED)",
+        "claim RPL-06 cited by the plan but not anchored (UNVERIFIED)",
+        "claim RPL-09 cited by the plan but not anchored (UNVERIFIED)",
+        "claim RPL-10 cited by the plan but not anchored (UNVERIFIED)",
+        "claim RPL-13 cited by the plan but not anchored (UNVERIFIED)",
+        "claim RPL-14 cited by the plan but not anchored (UNVERIFIED)",
+        "claim RPL-16 cited by the plan but not anchored (UNVERIFIED)"
+      ]
+    },
+    {
+      "name": "registryUniverseReady",
+      "passed": true,
+      "reasons": []
+    },
+    {
+      "name": "contractsPresent",
+      "passed": true,
+      "reasons": []
+    },
+    {
+      "name": "contractsValidated",
+      "passed": false,
+      "reasons": [
+        "DOMAIN_MODEL.md: no real reviewer",
+        "AUTH_ACCESS_CONTRACT.md: no real reviewer",
+        "GALLERY_COMMUNITY_CONTRACT.md: no real reviewer",
+        "RELEASE_PUBLISH_CONTRACT.md: no real reviewer",
+        "PROJECT_FACTORY_CONTRACT.md: no real reviewer",
+        "IAM_POLICY_BASELINE.md: no real reviewer",
+        "EDGE_CONTRACT.md: no real reviewer",
+        "WORKSPACE_STORAGE_CONTRACT.md: no real reviewer",
+        "CHECKPOINT_CONTRACT.md: no real reviewer",
+        "IMPORT_REMIX_CONTRACT.md: no real reviewer",
+        "AGENT_TOOL_BROKER_CONTRACT.md: no real reviewer",
+        "DATABASE_CONTRACT.md: no real reviewer",
+        "APP_STORAGE_CONTRACT.md: no real reviewer",
+        "EVIDENCE_ARTIFACT_CONTRACT.md: no real reviewer",
+        "REGRESSION_RUN_CONTRACT.md: no real reviewer",
+        "BILLING_LEDGER_CONTRACT.md: no real reviewer",
+        "RUNTIME_NIX_CONTRACT.md: no real reviewer",
+        "OPERATIONS_DR.md: no real reviewer",
+        "SECURITY_PRIVACY_COMPLIANCE.md: no real reviewer"
+      ]
+    },
+    {
+      "name": "implementationReady",
+      "passed": false,
+      "reasons": [
+        "P0-V3-01 is OPEN",
+        "P0-V3-05 is OPEN",
+        "P0-V3-06 is OPEN",
+        "P0-V3-07 is OPEN",
+        "P0-A2-12 is OPEN",
+        "P0-A2-15 is OPEN",
+        "P0-LS-18 is OPEN",
+        "P0-B-02 is OPEN",
+        "P0-EX-10 is OPEN"
+      ]
+    },
+    {
+      "name": "verticalBackendReady",
+      "passed": true,
+      "reasons": []
+    },
+    {
+      "name": "verticalUserJourneyReady",
+      "passed": false,
+      "reasons": [
+        "stage \"publish\" has no UI proof (une preuve API n'est pas une preuve UI)",
+        "stage \"rollback\" has no UI proof (une preuve API n'est pas une preuve UI)"
+      ]
+    },
+    {
+      "name": "betaReady",
+      "passed": false,
+      "reasons": [
+        "beta gate capability still unknown: UNK-GIT-RECONCILE-DONE",
+        "beta gate capability still unknown: UNK-ROLLBACK-FLAG-APPLIED",
+        "beta gate capability still unknown: UNK-NIX-MULTIZONE-IMPL",
+        "beta gate capability still unknown: UNK-AR-LIVE-PROMOTION",
+        "beta gate capability still unknown: UNK-CLOUDTENANT-IMPL",
+        "beta gate capability still unknown: UNK-BILLING-MINIMAL-IMPL"
+      ]
+    },
+    {
+      "name": "publicLaunchReady",
+      "passed": false,
+      "reasons": [
+        "betaReady not passed",
+        "P0-V4-1 not CLOSED (needs a real reviewer)",
+        "P0-V4-2 not CLOSED (needs a real reviewer)",
+        "P0-V4-3 not CLOSED (needs a real reviewer)",
+        "P0-V4-4 not CLOSED (needs a real reviewer)",
+        "P0-V3-01 not CLOSED (needs a real reviewer)",
+        "P0-V3-02 not CLOSED (needs a real reviewer)",
+        "P0-V3-03 not CLOSED (needs a real reviewer)",
+        "P0-V3-04 not CLOSED (needs a real reviewer)",
+        "P0-V3-05 not CLOSED (needs a real reviewer)",
+        "P0-V3-06 not CLOSED (needs a real reviewer)",
+        "P0-V3-07 not CLOSED (needs a real reviewer)",
+        "P0-V3-08 not CLOSED (needs a real reviewer)",
+        "P0-V3-09 not CLOSED (needs a real reviewer)",
+        "P0-V3-10 not CLOSED (needs a real reviewer)",
+        "P0-V3-11 not CLOSED (needs a real reviewer)",
+        "P0-V3-12 not CLOSED (needs a real reviewer)",
+        "P0-V3-13 not CLOSED (needs a real reviewer)",
+        "P0-V3-14 not CLOSED (needs a real reviewer)",
+        "P0-V3-15 not CLOSED (needs a real reviewer)",
+        "P0-A2-01 not CLOSED (needs a real reviewer)",
+        "P0-A2-02 not CLOSED (needs a real reviewer)",
+        "P0-A2-03 not CLOSED (needs a real reviewer)",
+        "P0-A2-04 not CLOSED (needs a real reviewer)",
+        "P0-A2-05 not CLOSED (needs a real reviewer)",
+        "P0-A2-06 not CLOSED (needs a real reviewer)",
+        "P0-A2-07 not CLOSED (needs a real reviewer)",
+        "P0-A2-08 not CLOSED (needs a real reviewer)",
+        "P0-A2-09 not CLOSED (needs a real reviewer)",
+        "P0-A2-10 not CLOSED (needs a real reviewer)",
+        "P0-A2-11 not CLOSED (needs a real reviewer)",
+        "P0-A2-12 not CLOSED (needs a real reviewer)",
+        "P0-A2-13 not CLOSED (needs a real reviewer)",
+        "P0-A2-14 not CLOSED (needs a real reviewer)",
+        "P0-A2-15 not CLOSED (needs a real reviewer)",
+        "P0-A2-16 not CLOSED (needs a real reviewer)",
+        "P0-LS-01 not CLOSED (needs a real reviewer)",
+        "P0-LS-02 not CLOSED (needs a real reviewer)",
+        "P0-LS-03 not CLOSED (needs a real reviewer)",
+        "P0-LS-04 not CLOSED (needs a real reviewer)",
+        "P0-LS-05 not CLOSED (needs a real reviewer)",
+        "P0-LS-06 not CLOSED (needs a real reviewer)",
+        "P0-LS-07 not CLOSED (needs a real reviewer)",
+        "P0-LS-08 not CLOSED (needs a real reviewer)",
+        "P0-LS-09 not CLOSED (needs a real reviewer)",
+        "P0-LS-10 not CLOSED (needs a real reviewer)",
+        "P0-LS-11 not CLOSED (needs a real reviewer)",
+        "P0-LS-12 not CLOSED (needs a real reviewer)",
+        "P0-LS-13 not CLOSED (needs a real reviewer)",
+        "P0-LS-14 not CLOSED (needs a real reviewer)",
+        "P0-LS-15 not CLOSED (needs a real reviewer)",
+        "P0-LS-16 not CLOSED (needs a real reviewer)",
+        "P0-LS-17 not CLOSED (needs a real reviewer)",
+        "P0-LS-18 not CLOSED (needs a real reviewer)",
+        "P0-B-01 not CLOSED (needs a real reviewer)",
+        "P0-B-02 not CLOSED (needs a real reviewer)",
+        "P0-EX-01 not CLOSED (needs a real reviewer)",
+        "P0-EX-02 not CLOSED (needs a real reviewer)",
+        "P0-EX-03 not CLOSED (needs a real reviewer)",
+        "P0-EX-04 not CLOSED (needs a real reviewer)",
+        "P0-EX-05 not CLOSED (needs a real reviewer)",
+        "P0-EX-06 not CLOSED (needs a real reviewer)",
+        "P0-EX-07 not CLOSED (needs a real reviewer)",
+        "P0-EX-08 not CLOSED (needs a real reviewer)",
+        "P0-EX-09 not CLOSED (needs a real reviewer)",
+        "P0-EX-10 not CLOSED (needs a real reviewer)",
+        "decision DEC-GALLERY-NO-SELF-PUBLISH still OPEN",
+        "decision DEC-BILLING-LEGACY-VS-LEDGER still OPEN",
+        "claim RPL-20 triage PENDING",
+        "claim RPL-21 triage PENDING",
+        "claim RPL-22 triage PENDING",
+        "claim RPL-23 triage PENDING"
+      ]
+    },
+    {
+      "name": "parityBaselineReady",
+      "passed": false,
+      "reasons": [
+        "surface SRF-IDE-FILE-HISTORY not done",
+        "surface SRF-IDE-AGENT-SKILLS not done",
+        "surface SRF-IDE-PANES-LAYOUT not done",
+        "surface SRF-DEPLOY-RESERVED-VM not done",
+        "surface SRF-DEPLOY-SCHEDULED not done",
+        "surface SRF-GALLERY-STARTER-DEMOS not done",
+        "158 surface universe entries not evaluated (availability UNKNOWN)",
+        "claim RPL-20 triage PENDING",
+        "claim RPL-21 triage PENDING",
+        "claim RPL-22 triage PENDING",
+        "claim RPL-23 triage PENDING"
+      ]
+    }
+  ],
+  "blocking": [
+    "level sourceBaselineReady FAILED: claim GCP-01 cited by the plan but not anchored (UNVERIFIED); claim GCP-02 cited by the plan but not anchored (UNVERIFIED); claim GCP-03 cited by the plan but not anchored (UNVERIFIED); claim GCP-04 cited by the plan but not anchored (UNVERIFIED); claim GCP-06 cited by the plan but not anchored (UNVERIFIED); claim GCP-07 cited by the plan but not anchored (UNVERIFIED); claim GCP-08 cited by the plan but not anchored (UNVERIFIED); claim GCP-09 cited by the plan but not anchored (UNVERIFIED); claim GCP-10 cited by the plan but not anchored (UNVERIFIED); claim NIX-01 cited by the plan but not anchored (UNVERIFIED); claim RPL-01 cited by the plan but not anchored (UNVERIFIED); claim RPL-02 cited by the plan but not anchored (UNVERIFIED); claim RPL-03 cited by the plan but not anchored (UNVERIFIED); claim RPL-04 cited by the plan but not anchored (UNVERIFIED); claim RPL-05 cited by the plan but not anchored (UNVERIFIED); claim RPL-06 cited by the plan but not anchored (UNVERIFIED); claim RPL-09 cited by the plan but not anchored (UNVERIFIED); claim RPL-10 cited by the plan but not anchored (UNVERIFIED); claim RPL-13 cited by the plan but not anchored (UNVERIFIED); claim RPL-14 cited by the plan but not anchored (UNVERIFIED); claim RPL-16 cited by the plan but not anchored (UNVERIFIED)",
+    "level contractsValidated FAILED: DOMAIN_MODEL.md: no real reviewer; AUTH_ACCESS_CONTRACT.md: no real reviewer; GALLERY_COMMUNITY_CONTRACT.md: no real reviewer; RELEASE_PUBLISH_CONTRACT.md: no real reviewer; PROJECT_FACTORY_CONTRACT.md: no real reviewer; IAM_POLICY_BASELINE.md: no real reviewer; EDGE_CONTRACT.md: no real reviewer; WORKSPACE_STORAGE_CONTRACT.md: no real reviewer; CHECKPOINT_CONTRACT.md: no real reviewer; IMPORT_REMIX_CONTRACT.md: no real reviewer; AGENT_TOOL_BROKER_CONTRACT.md: no real reviewer; DATABASE_CONTRACT.md: no real reviewer; APP_STORAGE_CONTRACT.md: no real reviewer; EVIDENCE_ARTIFACT_CONTRACT.md: no real reviewer; REGRESSION_RUN_CONTRACT.md: no real reviewer; BILLING_LEDGER_CONTRACT.md: no real reviewer; RUNTIME_NIX_CONTRACT.md: no real reviewer; OPERATIONS_DR.md: no real reviewer; SECURITY_PRIVACY_COMPLIANCE.md: no real reviewer",
+    "level implementationReady FAILED: P0-V3-01 is OPEN; P0-V3-05 is OPEN; P0-V3-06 is OPEN; P0-V3-07 is OPEN; P0-A2-12 is OPEN; P0-A2-15 is OPEN; P0-LS-18 is OPEN; P0-B-02 is OPEN; P0-EX-10 is OPEN",
+    "level verticalUserJourneyReady FAILED: stage \"publish\" has no UI proof (une preuve API n'est pas une preuve UI); stage \"rollback\" has no UI proof (une preuve API n'est pas une preuve UI)",
+    "level betaReady FAILED: beta gate capability still unknown: UNK-GIT-RECONCILE-DONE; beta gate capability still unknown: UNK-ROLLBACK-FLAG-APPLIED; beta gate capability still unknown: UNK-NIX-MULTIZONE-IMPL; beta gate capability still unknown: UNK-AR-LIVE-PROMOTION; beta gate capability still unknown: UNK-CLOUDTENANT-IMPL; beta gate capability still unknown: UNK-BILLING-MINIMAL-IMPL",
+    "level publicLaunchReady FAILED: betaReady not passed; P0-V4-1 not CLOSED (needs a real reviewer); P0-V4-2 not CLOSED (needs a real reviewer); P0-V4-3 not CLOSED (needs a real reviewer); P0-V4-4 not CLOSED (needs a real reviewer); P0-V3-01 not CLOSED (needs a real reviewer); P0-V3-02 not CLOSED (needs a real reviewer); P0-V3-03 not CLOSED (needs a real reviewer); P0-V3-04 not CLOSED (needs a real reviewer); P0-V3-05 not CLOSED (needs a real reviewer); P0-V3-06 not CLOSED (needs a real reviewer); P0-V3-07 not CLOSED (needs a real reviewer); P0-V3-08 not CLOSED (needs a real reviewer); P0-V3-09 not CLOSED (needs a real reviewer); P0-V3-10 not CLOSED (needs a real reviewer); P0-V3-11 not CLOSED (needs a real reviewer); P0-V3-12 not CLOSED (needs a real reviewer); P0-V3-13 not CLOSED (needs a real reviewer); P0-V3-14 not CLOSED (needs a real reviewer); P0-V3-15 not CLOSED (needs a real reviewer); P0-A2-01 not CLOSED (needs a real reviewer); P0-A2-02 not CLOSED (needs a real reviewer); P0-A2-03 not CLOSED (needs a real reviewer); P0-A2-04 not CLOSED (needs a real reviewer); P0-A2-05 not CLOSED (needs a real reviewer); P0-A2-06 not CLOSED (needs a real reviewer); P0-A2-07 not CLOSED (needs a real reviewer); P0-A2-08 not CLOSED (needs a real reviewer); P0-A2-09 not CLOSED (needs a real reviewer); P0-A2-10 not CLOSED (needs a real reviewer); P0-A2-11 not CLOSED (needs a real reviewer); P0-A2-12 not CLOSED (needs a real reviewer); P0-A2-13 not CLOSED (needs a real reviewer); P0-A2-14 not CLOSED (needs a real reviewer); P0-A2-15 not CLOSED (needs a real reviewer); P0-A2-16 not CLOSED (needs a real reviewer); P0-LS-01 not CLOSED (needs a real reviewer); P0-LS-02 not CLOSED (needs a real reviewer); P0-LS-03 not CLOSED (needs a real reviewer); P0-LS-04 not CLOSED (needs a real reviewer); P0-LS-05 not CLOSED (needs a real reviewer); P0-LS-06 not CLOSED (needs a real reviewer); P0-LS-07 not CLOSED (needs a real reviewer); P0-LS-08 not CLOSED (needs a real reviewer); P0-LS-09 not CLOSED (needs a real reviewer); P0-LS-10 not CLOSED (needs a real reviewer); P0-LS-11 not CLOSED (needs a real reviewer); P0-LS-12 not CLOSED (needs a real reviewer); P0-LS-13 not CLOSED (needs a real reviewer); P0-LS-14 not CLOSED (needs a real reviewer); P0-LS-15 not CLOSED (needs a real reviewer); P0-LS-16 not CLOSED (needs a real reviewer); P0-LS-17 not CLOSED (needs a real reviewer); P0-LS-18 not CLOSED (needs a real reviewer); P0-B-01 not CLOSED (needs a real reviewer); P0-B-02 not CLOSED (needs a real reviewer); P0-EX-01 not CLOSED (needs a real reviewer); P0-EX-02 not CLOSED (needs a real reviewer); P0-EX-03 not CLOSED (needs a real reviewer); P0-EX-04 not CLOSED (needs a real reviewer); P0-EX-05 not CLOSED (needs a real reviewer); P0-EX-06 not CLOSED (needs a real reviewer); P0-EX-07 not CLOSED (needs a real reviewer); P0-EX-08 not CLOSED (needs a real reviewer); P0-EX-09 not CLOSED (needs a real reviewer); P0-EX-10 not CLOSED (needs a real reviewer); decision DEC-GALLERY-NO-SELF-PUBLISH still OPEN; decision DEC-BILLING-LEGACY-VS-LEDGER still OPEN; claim RPL-20 triage PENDING; claim RPL-21 triage PENDING; claim RPL-22 triage PENDING; claim RPL-23 triage PENDING",
+    "level parityBaselineReady FAILED: surface SRF-IDE-FILE-HISTORY not done; surface SRF-IDE-AGENT-SKILLS not done; surface SRF-IDE-PANES-LAYOUT not done; surface SRF-DEPLOY-RESERVED-VM not done; surface SRF-DEPLOY-SCHEDULED not done; surface SRF-GALLERY-STARTER-DEMOS not done; 158 surface universe entries not evaluated (availability UNKNOWN); claim RPL-20 triage PENDING; claim RPL-21 triage PENDING; claim RPL-22 triage PENDING; claim RPL-23 triage PENDING"
+  ],
   "conditions": [
     {
       "id": 1,
       "description": "no P0 OPEN or BLOCKED",
-      "passed": true,
-      "reasons": []
+      "passed": false,
+      "reasons": [
+        "P0-V3-01 is OPEN",
+        "P0-V3-05 is OPEN",
+        "P0-V3-06 is OPEN",
+        "P0-V3-07 is OPEN",
+        "P0-A2-12 is OPEN",
+        "P0-A2-15 is OPEN",
+        "P0-LS-18 is OPEN",
+        "P0-B-02 is OPEN",
+        "P0-EX-10 is OPEN"
+      ]
     },
     {
       "id": 2,
@@ -44,49 +273,77 @@
           "green": true,
           "proofIds": [
             "E2E-VERTICAL-CREATE"
-          ]
+          ],
+          "clients": [
+            "web"
+          ],
+          "uiProven": true
         },
         {
           "stage": "modify",
           "green": true,
           "proofIds": [
             "E2E-VERTICAL-MODIFY"
-          ]
+          ],
+          "clients": [
+            "web"
+          ],
+          "uiProven": true
         },
         {
           "stage": "execute",
           "green": true,
           "proofIds": [
             "E2E-AGM-C"
-          ]
+          ],
+          "clients": [
+            "web"
+          ],
+          "uiProven": true
         },
         {
           "stage": "preview",
           "green": true,
           "proofIds": [
             "E2E-VERTICAL-PREVIEW"
-          ]
+          ],
+          "clients": [
+            "web"
+          ],
+          "uiProven": true
         },
         {
           "stage": "publish",
           "green": true,
           "proofIds": [
             "E2E-PHASEB-NODE"
-          ]
+          ],
+          "clients": [
+            "api"
+          ],
+          "uiProven": false
         },
         {
           "stage": "observe",
           "green": true,
           "proofIds": [
             "E2E-VERTICAL-OBSERVE"
-          ]
+          ],
+          "clients": [
+            "web"
+          ],
+          "uiProven": true
         },
         {
           "stage": "rollback",
           "green": true,
           "proofIds": [
             "E2E-VERTICAL-ROLLBACK"
-          ]
+          ],
+          "clients": [
+            "api"
+          ],
+          "uiProven": false
         }
       ]
     },
@@ -105,32 +362,77 @@
   ],
   "counts": {
     "p0": {
-      "total": 4,
+      "total": 65,
       "closed": 0,
-      "proven": 4,
-      "open": 0
+      "proven": 56,
+      "open": 9
     },
     "decisions": {
-      "total": 3,
+      "total": 13,
       "open": 2
     },
     "unknowns": {
-      "total": 11,
+      "total": 44,
       "p0Linked": 0
     },
     "claims": {
-      "total": 12,
+      "total": 24,
       "stale": 0
     },
     "surfaces": {
-      "total": 4,
+      "total": 10,
       "done": 4
     },
     "e2e": {
       "total": 12,
       "proven": 12
-    }
+    },
+    "p1": {
+      "total": 40,
+      "open": 12
+    },
+    "boltDebt": {
+      "total": 29,
+      "nonFait": 29,
+      "faitProuve": 0
+    },
+    "prodReadiness": {
+      "total": 50,
+      "nonFait": 50,
+      "faitProuve": 0
+    },
+    "backlog": {
+      "total": 336,
+      "nonFait": 332,
+      "dejaFait": 1,
+      "perime": 3
+    },
+    "canonicalWorkItems": 99,
+    "unanchoredClaims": 21
   },
+  "unanchoredClaims": [
+    "GCP-01",
+    "GCP-02",
+    "GCP-03",
+    "GCP-04",
+    "GCP-06",
+    "GCP-07",
+    "GCP-08",
+    "GCP-09",
+    "GCP-10",
+    "NIX-01",
+    "RPL-01",
+    "RPL-02",
+    "RPL-03",
+    "RPL-04",
+    "RPL-05",
+    "RPL-06",
+    "RPL-09",
+    "RPL-10",
+    "RPL-13",
+    "RPL-14",
+    "RPL-16"
+  ],
   "p0": [
     {
       "p0Id": "P0-V4-1",
@@ -163,6 +465,494 @@
       "derived": "PROVEN",
       "hasProof": true,
       "reviewed": false
+    },
+    {
+      "p0Id": "P0-V3-01",
+      "priority": 1,
+      "declared": "OPEN",
+      "derived": "OPEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-V3-02",
+      "priority": 2,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-V3-03",
+      "priority": 3,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-V3-04",
+      "priority": 4,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-V3-05",
+      "priority": 5,
+      "declared": "OPEN",
+      "derived": "OPEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-V3-06",
+      "priority": 6,
+      "declared": "OPEN",
+      "derived": "OPEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-V3-07",
+      "priority": 7,
+      "declared": "OPEN",
+      "derived": "OPEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-V3-08",
+      "priority": 8,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-V3-09",
+      "priority": 9,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-V3-10",
+      "priority": 10,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-V3-11",
+      "priority": 11,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-V3-12",
+      "priority": 12,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-V3-13",
+      "priority": 13,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-V3-14",
+      "priority": 14,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-V3-15",
+      "priority": 15,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-A2-01",
+      "priority": 1,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-A2-02",
+      "priority": 2,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-A2-03",
+      "priority": 3,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-A2-04",
+      "priority": 4,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-A2-05",
+      "priority": 5,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-A2-06",
+      "priority": 6,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-A2-07",
+      "priority": 7,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-A2-08",
+      "priority": 8,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-A2-09",
+      "priority": 9,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-A2-10",
+      "priority": 10,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-A2-11",
+      "priority": 11,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-A2-12",
+      "priority": 12,
+      "declared": "OPEN",
+      "derived": "OPEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-A2-13",
+      "priority": 13,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-A2-14",
+      "priority": 14,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-A2-15",
+      "priority": 15,
+      "declared": "OPEN",
+      "derived": "OPEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-A2-16",
+      "priority": 16,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-LS-01",
+      "priority": 1,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-LS-02",
+      "priority": 2,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-LS-03",
+      "priority": 3,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-LS-04",
+      "priority": 4,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-LS-05",
+      "priority": 5,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-LS-06",
+      "priority": 6,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-LS-07",
+      "priority": 7,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-LS-08",
+      "priority": 8,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-LS-09",
+      "priority": 9,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-LS-10",
+      "priority": 10,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-LS-11",
+      "priority": 11,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-LS-12",
+      "priority": 12,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-LS-13",
+      "priority": 13,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-LS-14",
+      "priority": 14,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-LS-15",
+      "priority": 15,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-LS-16",
+      "priority": 16,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-LS-17",
+      "priority": 17,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-LS-18",
+      "priority": 18,
+      "declared": "OPEN",
+      "derived": "OPEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-B-01",
+      "priority": 1,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-B-02",
+      "priority": 2,
+      "declared": "OPEN",
+      "derived": "OPEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-EX-01",
+      "priority": 1,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-EX-02",
+      "priority": 2,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-EX-03",
+      "priority": 3,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-EX-04",
+      "priority": 4,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-EX-05",
+      "priority": 5,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-EX-06",
+      "priority": 6,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-EX-07",
+      "priority": 7,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-EX-08",
+      "priority": 8,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-EX-09",
+      "priority": 9,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-EX-10",
+      "priority": 10,
+      "declared": "OPEN",
+      "derived": "OPEN",
+      "hasProof": true,
+      "reviewed": false
     }
   ],
   "surfaces": [
@@ -189,7 +979,140 @@
       "proofsReferenced": 1,
       "proofsProven": 1,
       "done": true
+    },
+    {
+      "surfaceId": "SRF-IDE-FILE-HISTORY",
+      "proofsReferenced": 0,
+      "proofsProven": 0,
+      "done": false
+    },
+    {
+      "surfaceId": "SRF-IDE-AGENT-SKILLS",
+      "proofsReferenced": 0,
+      "proofsProven": 0,
+      "done": false
+    },
+    {
+      "surfaceId": "SRF-IDE-PANES-LAYOUT",
+      "proofsReferenced": 0,
+      "proofsProven": 0,
+      "done": false
+    },
+    {
+      "surfaceId": "SRF-DEPLOY-RESERVED-VM",
+      "proofsReferenced": 0,
+      "proofsProven": 0,
+      "done": false
+    },
+    {
+      "surfaceId": "SRF-DEPLOY-SCHEDULED",
+      "proofsReferenced": 0,
+      "proofsProven": 0,
+      "done": false
+    },
+    {
+      "surfaceId": "SRF-GALLERY-STARTER-DEMOS",
+      "proofsReferenced": 0,
+      "proofsProven": 0,
+      "done": false
     }
+  ],
+  "surfaceUniverse": {
+    "expected": 159,
+    "present": 159,
+    "evaluated": 1,
+    "services": 56,
+    "implementationStates": {
+      "items": 159,
+      "proven": 11,
+      "coded": 68,
+      "integrated": 0,
+      "partial": 43,
+      "notStarted": 37,
+      "blocked": 0
+    }
+  },
+  "workItems": {
+    "sourceFindingCount": 336,
+    "canonicalWorkItemCount": 99
+  },
+  "evidence": [
+    {
+      "proofId": "E2E-PHASEB-NODE",
+      "evidenceId": "docs/deploy-evidence/2026-07-15-phase-b/",
+      "fileCount": 8,
+      "evidenceSha256": "bdc9e89824cb10582d9f7b8a904e125caa4f00b22834bc4fc63c3c44e071b657"
+    },
+    {
+      "proofId": "E2E-AUTOSCALE-Z",
+      "evidenceId": "docs/deploy-evidence/2026-07-16-zone-autoscale/",
+      "fileCount": 10,
+      "evidenceSha256": "997a83259c7d02d9add5ec05edc053e86e0cafbc996dc5291d50f9072399f184"
+    },
+    {
+      "proofId": "E2E-AGM-A",
+      "evidenceId": "docs/deploy-evidence/2026-07-16-agent-modes/",
+      "fileCount": 24,
+      "evidenceSha256": "6e19d9022633233b02703b5ef47eafc462d450ef2c2e2e1d8018c2d38ff25213"
+    },
+    {
+      "proofId": "E2E-AGM-B",
+      "evidenceId": "docs/deploy-evidence/2026-07-16-agent-modes/",
+      "fileCount": 24,
+      "evidenceSha256": "6e19d9022633233b02703b5ef47eafc462d450ef2c2e2e1d8018c2d38ff25213"
+    },
+    {
+      "proofId": "E2E-AGM-C",
+      "evidenceId": "docs/deploy-evidence/2026-07-16-agent-modes/",
+      "fileCount": 24,
+      "evidenceSha256": "6e19d9022633233b02703b5ef47eafc462d450ef2c2e2e1d8018c2d38ff25213"
+    },
+    {
+      "proofId": "E2E-AGM-E",
+      "evidenceId": "docs/deploy-evidence/2026-07-16-agent-modes/",
+      "fileCount": 24,
+      "evidenceSha256": "6e19d9022633233b02703b5ef47eafc462d450ef2c2e2e1d8018c2d38ff25213"
+    },
+    {
+      "proofId": "E2E-AGM-F",
+      "evidenceId": "docs/deploy-evidence/2026-07-16-agent-modes/",
+      "fileCount": 24,
+      "evidenceSha256": "6e19d9022633233b02703b5ef47eafc462d450ef2c2e2e1d8018c2d38ff25213"
+    },
+    {
+      "proofId": "E2E-VERTICAL-CREATE",
+      "evidenceId": "docs/deploy-evidence/2026-07-17-vertical/",
+      "fileCount": 4,
+      "evidenceSha256": "2d0b863e14e50bf915b85bd3d40f31a03f3c4d0f2f76c39d4c9e6d11ba3a5d58"
+    },
+    {
+      "proofId": "E2E-VERTICAL-MODIFY",
+      "evidenceId": "docs/deploy-evidence/2026-07-17-vertical/",
+      "fileCount": 4,
+      "evidenceSha256": "2d0b863e14e50bf915b85bd3d40f31a03f3c4d0f2f76c39d4c9e6d11ba3a5d58"
+    },
+    {
+      "proofId": "E2E-VERTICAL-PREVIEW",
+      "evidenceId": "docs/deploy-evidence/2026-07-17-vertical/",
+      "fileCount": 4,
+      "evidenceSha256": "2d0b863e14e50bf915b85bd3d40f31a03f3c4d0f2f76c39d4c9e6d11ba3a5d58"
+    },
+    {
+      "proofId": "E2E-VERTICAL-OBSERVE",
+      "evidenceId": "docs/deploy-evidence/2026-07-17-vertical/",
+      "fileCount": 4,
+      "evidenceSha256": "2d0b863e14e50bf915b85bd3d40f31a03f3c4d0f2f76c39d4c9e6d11ba3a5d58"
+    },
+    {
+      "proofId": "E2E-VERTICAL-ROLLBACK",
+      "evidenceId": "docs/deploy-evidence/2026-07-17-rollback/",
+      "fileCount": 24,
+      "evidenceSha256": "866402b1c298167ee1066005728251697b6bb93d17202d87471dbf79313042ea"
+    }
+  ],
+  "uiGaps": [
+    "publish",
+    "rollback"
   ],
   "staleSources": []
 }

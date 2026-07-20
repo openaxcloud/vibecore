@@ -1,0 +1,16 @@
+# PRICE_OBSERVATION_REGISTRY — observations de prix (plan §3.4, P0-EX-06 :
+# AUCUN montant tarifaire dans le plan durable — ils vivent ICI, contextualisés
+# geo/locale/cohorte/date/hash, divergences CONSERVÉES). RATE_CARD.json E-Code
+# indépendant.
+schemaVersion: 1
+repoCommit: d56931bd
+observations:
+  - {planId: STARTER, amount: 0, currency: n/a, cadence: MONTHLY, locale: en, countryOrGeo: UNKNOWN, authenticated: false, cookieCohort: anonyme, observedAt: "2026-07-20T05:43:00Z", sourceUrl: "https://replit.com/pricing", screenshotHash: "0dea38e82de4c246", textHash: null}
+  - {planId: CORE, amount: 20, currency: USD, cadence: MONTHLY, locale: en, countryOrGeo: UNKNOWN, authenticated: false, cookieCohort: anonyme, observedAt: "2026-07-20T05:43:00Z", sourceUrl: "https://replit.com/pricing", screenshotHash: "0dea38e82de4c246", textHash: null}
+  - {planId: CORE, amount: 18, currency: USD, cadence: ANNUAL_EFFECTIVE, locale: en, countryOrGeo: UNKNOWN, authenticated: false, cookieCohort: anonyme, observedAt: "2026-07-20T05:43:00Z", sourceUrl: "https://replit.com/pricing", screenshotHash: "0dea38e82de4c246", textHash: null}
+  - {planId: CORE, amount: 25, currency: USD, cadence: MONTHLY, locale: UNKNOWN, countryOrGeo: UNKNOWN, authenticated: false, cookieCohort: UNKNOWN, observedAt: "2026-07-20", sourceUrl: "https://replit.com/pricing", screenshotHash: null, textHash: null, note: "révision expert §3.4 — DIVERGENCE avec le scan CONSERVÉE"}
+  - {planId: CORE, amount: 20, currency: USD, cadence: ANNUAL_EFFECTIVE, locale: UNKNOWN, countryOrGeo: UNKNOWN, authenticated: false, cookieCohort: UNKNOWN, observedAt: "2026-07-20", sourceUrl: "https://replit.com/pricing", screenshotHash: null, textHash: null, note: "révision expert"}
+  - {planId: PRO, amount: 100, currency: USD, cadence: MONTHLY, locale: en, countryOrGeo: UNKNOWN, authenticated: false, cookieCohort: anonyme, observedAt: "2026-07-20T05:43:00Z", sourceUrl: "https://replit.com/pricing", screenshotHash: "0dea38e82de4c246", textHash: null}
+  - {planId: PRO, amount: 90, currency: USD, cadence: ANNUAL_EFFECTIVE, locale: en, countryOrGeo: UNKNOWN, authenticated: false, cookieCohort: anonyme, observedAt: "2026-07-20T05:43:00Z", sourceUrl: "https://replit.com/pricing", screenshotHash: "0dea38e82de4c246", textHash: null}
+  - {planId: PRO, amount: 95, currency: USD, cadence: ANNUAL_EFFECTIVE, locale: UNKNOWN, countryOrGeo: UNKNOWN, authenticated: false, cookieCohort: UNKNOWN, observedAt: "2026-07-20", sourceUrl: "https://replit.com/pricing", screenshotHash: null, textHash: null, note: "révision expert — divergence $90/$95 conservée"}
+  - {planId: ENTERPRISE, amount: null, currency: n/a, cadence: MONTHLY, locale: en, countryOrGeo: UNKNOWN, authenticated: false, cookieCohort: anonyme, observedAt: "2026-07-20T05:43:00Z", sourceUrl: "https://replit.com/pricing", screenshotHash: "0dea38e82de4c246", textHash: null, note: "sur devis"}

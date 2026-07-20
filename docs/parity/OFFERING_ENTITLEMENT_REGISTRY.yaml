@@ -1,0 +1,27 @@
+# OFFERING_ENTITLEMENT_REGISTRY — plans/prix/entitlements Replit comme
+# OBSERVATIONS CONTEXTUALISÉES (P0-LS-10) : un prix n'est JAMAIS une
+# constante — geo/locale/cohorte/date/hash obligatoires, divergences
+# CONSERVÉES. RATE_CARD.json (E-Code) reste totalement indépendant.
+schemaVersion: 1
+repoCommit: 42a48091
+offerings:
+  - offeringId: OFF-STARTER
+    name: Starter
+    priceObservations: "→ PRICE_OBSERVATION_REGISTRY.yaml (P0-EX-06 : aucun montant ici)"
+    entitlements: "RPL-28 : crédits quotidiens, Lite build seul, 1 app publiée expirant 30j, badge lien parrainage, 2GB, pas de Plan Mode/connecteurs"
+  - offeringId: OFF-CORE
+    name: Replit Core
+    priceObservations: "→ PRICE_OBSERVATION_REGISTRY.yaml (P0-EX-06 : aucun montant ici)"
+    entitlements: "crédits mensuels (montant → PRICE_OBSERVATION), 5 collaborateurs, 2 agents parallèles, toutes régions, badge retirable"
+  - offeringId: OFF-PRO
+    name: Replit Pro
+    priceObservations: "→ PRICE_OBSERVATION_REGISTRY.yaml (P0-EX-06 : aucun montant ici)"
+    entitlements: "crédits mensuels à paliers (montants → PRICE_OBSERVATION), 15 collaborateurs + 50 viewers, 10 agents parallèles, rollback DB 28j"
+  - offeringId: OFF-ENTERPRISE
+    name: Enterprise
+    priceObservations: "→ PRICE_OBSERVATION_REGISTRY.yaml (P0-EX-06 : aucun montant ici)"
+    entitlements: "SSO/SAML, groupes, design system, warehouse, single-tenant, IP statiques, VPC"
+  - offeringId: OFF-TEAMS-RETIRED
+    name: Teams (RETIRÉ COMME PLAN COMMERCIAL)
+    priceObservations: "→ PRICE_OBSERVATION_REGISTRY.yaml (P0-EX-06 : aucun montant ici)"
+    entitlements: "P0-LS-15 : le PLAN est retiré ; les CAPACITÉS d'équipe (workspaces, groupes, collaborateurs) DEMEURENT (CAP-TEAM-COLLAB)"

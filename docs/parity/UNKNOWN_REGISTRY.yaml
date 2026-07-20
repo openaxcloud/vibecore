@@ -1,82 +1,360 @@
 # UNKNOWN_REGISTRY — ce qu'on ne sait pas, explicitement, avec owner + expiration.
 # Un UNKNOWN sans owner ni date d'expiration est lui-même une dette.
-schemaVersion: 1
-repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
+# RÈGLE (durcie 2026-07-17, évaluation v5) : `targetDate: UNKNOWN` est INTERDIT.
+# Soit une date ISO réelle, soit `state: ACCEPTED_RISK` justifié avec owner +
+# expiration + reviewCondition (condition de réexamen). Le validateur l'impose.
+schemaVersion: 2
+repoCommit: b774bfa38e881ebaa071fbf2c2fa9d72ab89efb5
 unknowns:
   - unknownId: UNK-AR-LIVE-PROMOTION
-    question: "La promotion réelle contre un Artifact Registry live copie-t-elle bien signature+SBOM+provenance ?"
-    owner: claude
+    question: "La promotion réelle contre un Artifact Registry live copie-t-elle bien signature+SBOM+provenance (avec fallback ORAS/BinAuthz vu GCP-12 Preview) ?"
+    owner: platform
     priority: 4
-    nextAction: "Implémenter l'adapter AR live (API OCI referrers) + une promotion réelle + test négatif attachment manquant"
-    targetDate: UNKNOWN
+    nextAction: "Implémenter l'adapter AR live (API OCI referrers) + une promotion réelle + test négatif attachment manquant + fallback prouvé"
+    targetDate: "2026-08-15"
     expiration: "2026-08-31"
   - unknownId: UNK-GALLERY-REPORT-FLOW
     question: "Le flux de signalement Trust & Safety d'une app Gallery a-t-il une URL/archive rejouable ?"
-    owner: avi
+    owner: owner
     priority: 2
+    state: ACCEPTED_RISK
+    riskRationale: "Flux non observable sans compte auteur ; CONFIRMED via canal Trust & Safety (RPL-18) suffit pour la conception."
+    reviewCondition: "Réexaminer si le collecteur détecte un changement Trust & Safety ou si une observation UI authentifiée devient possible (D5 compte E2E)."
     nextAction: "Capturer le flux de report (rendu) si accessible ; sinon garder CONFIRMED via canal"
-    targetDate: UNKNOWN
+    targetDate: "2026-09-30"
     expiration: "2026-09-30"
   - unknownId: UNK-COLLECTOR-CI-RENDER
     question: "Le rendu JS (playwright) tourne-t-il en CI GitHub sans blocage bot ?"
-    owner: claude
+    owner: platform
     priority: 1
     nextAction: "Installer chromium en CI + run réel ; sinon renderer via service dédié"
-    targetDate: UNKNOWN
+    targetDate: "2026-08-01"
     expiration: "2026-08-15"
   - unknownId: UNK-CAPACITY-RATE-MEASURED
     question: "Le 0,1 req/s de création de folders est-il stable par projet/région (mesure live) ?"
-    owner: avi
+    owner: owner
     priority: 3
     nextAction: "Mesurer le débit réel de création de folders en prod GCP"
-    targetDate: UNKNOWN
+    targetDate: "2026-09-30"
     expiration: "2026-09-30"
   - unknownId: UNK-GALLERY-SELF-PUBLISH
     question: "Existe-t-il un Publish/Unpublish self-service DANS l'IDE Replit (vs Typeform externe curé) ?"
-    owner: avi
+    owner: owner
     priority: 2
-    nextAction: "Observer un compte auteur Replit ; sinon rester UNKNOWN — ne jamais présumer un self-service (cf. DEC-GALLERY-NO-SELF-PUBLISH)"
-    targetDate: UNKNOWN
+    state: ACCEPTED_RISK
+    riskRationale: "Nécessite un compte auteur Replit ; jamais présumer un self-service (DEC-GALLERY-NO-SELF-PUBLISH)."
+    reviewCondition: "Réexaminer dès qu'une observation UI authentifiée d'un compte auteur est possible, ou si le changelog/la doc mentionne un publish in-product."
+    nextAction: "Observer un compte auteur Replit ; sinon rester UNKNOWN"
+    targetDate: "2026-09-30"
     expiration: "2026-09-30"
   - unknownId: UNK-GALLERY-EMBED-PREVIEW
     question: "La carte Gallery embarque-t-elle une preview live (iframe) ou seulement un lien sortant ?"
-    owner: claude
+    owner: platform
     priority: 2
-    nextAction: "Capturer le DOM de la carte détail ; le rendu actuel ne montre qu'un lien"
-    targetDate: UNKNOWN
+    nextAction: "Capturer le DOM de la carte détail (rendu) ; le rendu actuel ne montre qu'un lien"
+    targetDate: "2026-08-15"
     expiration: "2026-09-30"
   - unknownId: UNK-GALLERY-REVIEW-WORKFLOW
     question: "Quel est le workflow interne de revue / sanctions / appels d'une soumission Gallery ?"
-    owner: avi
+    owner: owner
     priority: 3
-    nextAction: "Back-office non observable ; documenter si Replit publie sa politique, sinon rester UNKNOWN"
-    targetDate: UNKNOWN
+    state: ACCEPTED_RISK
+    riskRationale: "Back-office Replit non observable de l'extérieur, par construction."
+    reviewCondition: "Réexaminer si Replit publie sa politique de modération Gallery (collecteur famille légal/Trust & Safety)."
+    nextAction: "Documenter si Replit publie sa politique, sinon rester UNKNOWN"
+    targetDate: "2026-10-31"
     expiration: "2026-10-31"
   - unknownId: UNK-GALLERY-REMIX-LICENSE
     question: "Quelle licence / attribution s'applique au remix d'une app Gallery ?"
-    owner: avi
+    owner: owner
     priority: 3
-    nextAction: "Aucune mention de licence sur le rendu détail ; chercher CGU Replit ou rester UNKNOWN"
-    targetDate: UNKNOWN
+    nextAction: "Chercher CGU/Terms Replit (lisibles publiquement) ; sinon passer ACCEPTED_RISK avec rationale"
+    targetDate: "2026-10-31"
     expiration: "2026-10-31"
   - unknownId: UNK-AUTH-ACCESS-LIVE
-    question: "Les 4 modes d'accès déploiement (Public/Password/Workspace/Invite) + sign-in forcé + gouvernance admin sont-ils implémentés et prouvés live côté E-Code ?"
-    owner: claude
+    question: "Les 4 modes d'accès déploiement (Public/Password/Workspace/Invite, RPL-23) + sign-in forcé + gouvernance admin sont-ils implémentés et prouvés live côté E-Code ?"
+    owner: platform
     priority: 2
     nextAction: "Implémenter accessPolicyVersion sur ReleaseManifest + parcours e2e (mode Private → login forcé) ; cf. AUTH_ACCESS_CONTRACT.md"
-    targetDate: UNKNOWN
+    targetDate: "2026-08-31"
     expiration: "2026-09-30"
   - unknownId: UNK-REGRESSION-HARNESS
     question: "Existe-t-il un harnais de rejeu automatisé (cron) des preuves e2e pour détecter les régressions de parité ?"
-    owner: claude
+    owner: platform
     priority: 2
     nextAction: "Câbler un RegressionRun rejouant les proofs PROVEN + verdict GREEN/RED ; cf. REGRESSION_RUN_CONTRACT.md"
-    targetDate: UNKNOWN
+    targetDate: "2026-09-30"
     expiration: "2026-10-31"
-  - unknownId: UNK-ROLLBACK-FLAG-PERMANENCE
-    question: "Le flag SERVER_DEPLOY_ROLLBACK_FROM_DIGEST doit-il passer par défaut prod-wide (values-prod.yaml) — sachant que ON change le rollback des déploiements SANS digest (pre-fix) en 409 au lieu d'une URL-copie possiblement morte ?"
-    owner: avi
-    priority: 3
-    nextAction: "Décider l'activation permanente (values-prod.yaml) ; le mécanisme est PROUVÉ live (E2E-VERTICAL-ROLLBACK). Flag actuellement kubectl-set, tombera au prochain helm upgrade."
-    targetDate: UNKNOWN
+  # --- D2 DECIDED (OWNER_DECISION 2026-07-17) : la QUESTION du flag est tranchée
+  # (permanent, fail-closed). Reste l'APPLICATION — remplacé l'ancien
+  # UNK-ROLLBACK-FLAG-PERMANENCE par le suivi d'application ci-dessous.
+  - unknownId: UNK-ROLLBACK-FLAG-APPLIED
+    question: "D2 (rollback par digest permanent, fail-closed) est-il APPLIQUÉ : SERVER_DEPLOY_ROLLBACK_FROM_DIGEST=1 dans values-prod.yaml + schéma Helm + canary + test post-deploy + backfill retainedDigest ?"
+    owner: platform
+    priority: 1
+    nextAction: "Appliquer D2 tel qu'écrit (DEC-OWNER-D2) ; alerte si le flag manque après helm upgrade"
+    targetDate: "2026-07-24"
+    expiration: "2026-08-15"
+  # --- Capacités gatées bêta (le P0 audit correspondant est une SPEC prouvée ;
+  # la capacité reste à implémenter — « un contrat n'est pas une capacité »).
+  - unknownId: UNK-CLOUDTENANT-IMPL
+    question: "CloudTenant/ProjectFactory/IAM/edge minimum sont-ils implémentés pour les apps publiées de la bêta (P0-V3-04) ?"
+    owner: platform
+    priority: 1
+    nextAction: "Implémentation minimale : projet GCP dédié par client publiant + IAM baseline + edge fail-closed, prouvée live"
+    targetDate: "2026-08-31"
     expiration: "2026-09-30"
+  - unknownId: UNK-CHECKPOINT-IMPL
+    question: "Le protocole de checkpoint (barrière 2 phases, niveaux de cohérence) est-il implémenté avec preuve de restore (P0-V3-09) ?"
+    owner: platform
+    priority: 2
+    nextAction: "Implémenter volume+DB+manifest ; un backup non restauré n'est pas un backup"
+    targetDate: "2026-09-30"
+    expiration: "2026-10-31"
+  - unknownId: UNK-BILLING-MINIMAL-IMPL
+    question: "Le minimum billing sûr (UsageReservation idempotente + débit après étape billable + compensation sur échec + hard limit à frontière sûre) est-il implémenté (D4 étape 1, P0-V3-12) ?"
+    owner: platform
+    priority: 1
+    nextAction: "Implémenter avant tout connecteur Import payant (ordre D4)"
+    targetDate: "2026-08-15"
+    expiration: "2026-08-31"
+  - unknownId: UNK-NIX-MULTIZONE-IMPL
+    question: "Le store Nix est-il répliqué multi-zone (D3 GO : snapshot signé par génération + clone zonal identique, topology-aware, test de perte de zone, coût mesuré — pas « ~10 $ » figé) ?"
+    owner: platform
+    priority: 1
+    nextAction: "Exécuter D3 ; ne PAS activer Python par défaut avant le test de perte de zone"
+    targetDate: "2026-08-01"
+    expiration: "2026-08-15"
+  - unknownId: UNK-DB-MIGRATION-PUBLISH-IMPL
+    question: "Le protocole DBMigrationExecution (lock, backup vérifié, validation, forward-fix) est-il exécuté par un publish réel (P0-V3-11) ?"
+    owner: platform
+    priority: 2
+    nextAction: "Prouver une migration au publish live (avec échec simulé → FAILED_SAFE)"
+    targetDate: "2026-09-30"
+    expiration: "2026-10-31"
+  - unknownId: UNK-CLAIMS-ANCHORING
+    question: "Les étiquettes documentaires héritées du plan v5 (RPL-01…RPL-16, GCP-01…GCP-10, NIX-01) sont-elles toutes ancrées individuellement dans PUBLIC_BASELINE (URL + hash + snapshot), comme le sont RPL-17…24 et GCP-11/12 ?"
+    owner: platform
+    priority: 2
+    nextAction: "Ancrer chaque étiquette citée par le plan canonique dans PUBLIC_BASELINE + SOURCE_REGISTRY (snapshot hashé), ou requalifier l'assertion"
+    targetDate: "2026-08-15"
+    expiration: "2026-08-31"
+  - unknownId: UNK-GIT-RECONCILE-DONE
+    question: "La réconciliation D1 du split-brain Git (local 3e2d7013 divergent d'origin/main) est-elle terminée selon la procédure D1 (branche d'intégration, backups des deux pointes, inventaire, CI, PR, main protégée) ?"
+    owner: platform
+    priority: 1
+    nextAction: "Exécuter la procédure D1 telle qu'écrite (DEC-OWNER-D1) ; régénérer les 4 fichiers de suivi ensuite"
+    targetDate: "2026-07-20"
+    expiration: "2026-07-31"
+  # --- Audit de couverture 2026-07-19 (famille B — billing legacy) ----------
+  - unknownId: UNK-BILLING-LEGACY-GOLIVE
+    question: "Le système de crédits EXISTANT (CreditWallet/checkpoints/packs/PAYG, certifié SHADOW en prod) est-il mis en route : produits+clé Stripe (Avi), flip BILLING_CREDITS_ENABLED, backfill migrateLegacyPlanKey (pro→core, team→pro, free→starter), toggle annuel UI, sortie du DRY-RUN d'INACTIVITY_GC_ENABLED — OU remplacé selon DEC-BILLING-LEGACY-VS-LEDGER ?"
+    owner: owner
+    priority: 1
+    nextAction: "D'abord trancher DEC-BILLING-LEGACY-VS-LEDGER ; si go-live : actions Stripe (ACTIONS_AVI #1) puis flip + backfill prouvés"
+    targetDate: "2026-08-15"
+    expiration: "2026-08-31"
+  - unknownId: UNK-DB-COMPUTE-METERING
+    question: "Le metering DB-compute par heures ACTIVES (dernier émetteur legacy manquant ; requiert l'idle-tracking DB) est-il implémenté et prouvé ?"
+    owner: platform
+    priority: 2
+    nextAction: "Implémenter l'émetteur sur la base de l'idle-tracking CNPG, prouver un événement facturé exact (modèle Z3)"
+    targetDate: "2026-09-30"
+    expiration: "2026-10-31"
+
+  # --- 28 points « SANS TRACE » au live scan du 20/07 (ni présents ni absents :
+  # une absence de doc n'est PAS une preuve de retrait). Méthode de
+  # vérification commune : nécessite un VRAI compte Replit connecté
+  # (compte E2E légitime, DEC-OWNER-D5). Source : scan sha256 396b07e2520d1171… §6.
+  - unknownId: UNK-LS-P009
+    question: "P009 Centre de notifications : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P015
+    question: "P015 Search & Replace : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P016
+    question: "P016 Symbols / Outline : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P017
+    question: "P017 Problems / Diagnostics : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P018
+    question: "P018 Formatter : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P041
+    question: "P041 Agent activity : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P042
+    question: "P042 Diff review : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P054
+    question: "P054 Agent Inbox : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P055
+    question: "P055 Code Review : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P056
+    question: "P056 Security Agent (probable renommage → Security Center) : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P060
+    question: "P060 Asset Browser : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P069
+    question: "P069 Speaker Notes : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P070
+    question: "P070 Slides Export : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P086
+    question: "P086 Agent Prod Read-only : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P093
+    question: "P093 Integration Health : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P108
+    question: "P108 Application Analytics (sous ce nom) : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P112
+    question: "P112 Deployment History : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P146
+    question: "P146 Export ZIP : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P147
+    question: "P147 Download Assets : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P156
+    question: "P156 CLI / replit ai : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P157
+    question: "P157 Public API (probablement remplacée par MCP Server, RPL-30) : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P158
+    question: "P158 Webhooks (comme produit) : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-GITLAB-GIT
+    question: "GitLab n'est pas une tuile du hub d'import (confirmé) — mais une capacité d'import Git plus large (Source Control, intégrations, URL git générique) permet-elle d'importer un repo GitLab aujourd'hui ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Compte Replit connecté : tester Source Control / import par URL git (D5)"
+    nextAction: "Vérifier avec le compte E2E ; ne PAS écrire « retiré » sans preuve positive"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-FREE-EXPIRY-IMPL
+    question: "L'expiration à 30 jours de l'app du plan gratuit (DEC-ECODE-FREE-APP-EXPIRY-30D) est-elle implémentée avec tombstone + fenêtre de récupération + purge + preuve d'effacement (§16.12) ?"
+    owner: platform
+    priority: 2
+    nextAction: "Job d'expiration + notifications + preuve ; test négatif : purge sans tombstone refusée"
+    targetDate: "2026-09-30"
+    expiration: "2026-10-31"
+

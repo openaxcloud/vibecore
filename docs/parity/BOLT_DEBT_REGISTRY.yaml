@@ -1,0 +1,278 @@
+# BOLT_DEBT_REGISTRY — dette héritée du fork bolt.diy, tracée point par point.
+#
+# Origine : COVERAGE_GAP_AUDIT_2026-07-17.md, famille C. Source faisant foi :
+# outputs/BOLT_BACKEND_FRONTEND_GAP.md (le plus récent, preuves file:line),
+# complétée par outputs/BOLT_SURFACING_STATUS.md, docs/BOLT_FEATURE_PLACEMENT_MATRIX.md,
+# docs/MIGRATION_FROM_BOLT.md.
+#
+# RÈGLES (mêmes que P0_REGISTRY) :
+# - statut par défaut NON_FAIT — rien n'est « fait » sans preuve réelle ;
+# - FAIT_PROUVE exige un evidenceId présent sur disque (vérifié par CI) ;
+# - la CI compare l'ensemble EXACT des IDs attendus (EXPECTED_BOLT_DEBT_IDS
+#   dans scripts/parity/generate-approval-status.mjs) — un ID absent casse le build ;
+# - targetDate ISO réelle obligatoire.
+schemaVersion: 1
+repoCommit: 9eab2990
+statuses: [NON_FAIT, EN_COURS, FAIT_PROUVE]
+items:
+  - id: BD-01
+    title: "IDE Integrations : bouton sync = no-op, catalogue hardcodé"
+    source: "outputs/BOLT_BACKEND_FRONTEND_GAP.md:102"
+    priority: 1
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Câbler sync sur l'API réelle et servir le catalogue depuis le backend"
+    conditionDeCloture: "Sync exécute une vraie synchro observée (log/DB) + catalogue servi par l'API, prouvé à l'écran"
+    targetDate: "2026-09-30"
+  - id: BD-02
+    title: "IDE Debugger sans DAP — breakpoints/callStack décoratifs"
+    source: "outputs/BOLT_BACKEND_FRONTEND_GAP.md:103"
+    priority: 1
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Décider : implémenter DAP (node inspector au minimum) ou retirer/étiqueter le panneau honnêtement"
+    conditionDeCloture: "Breakpoint réel atteint dans un vrai process (preuve) OU panneau retiré/requalifié avec décision tracée"
+    targetDate: "2026-10-31"
+  - id: BD-03
+    title: "Workflows utilisateur : schedule/cron jamais déclenché (feature morte)"
+    source: "outputs/BOLT_BACKEND_FRONTEND_GAP.md:104 ; outputs/ETAT_FINAL_100.md:49 ; outputs/BOLT_SURFACING_STATUS.md:263"
+    priority: 1
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Brancher un tick réel sur les workflows user (≠ BUG-CRON-001 crons plateforme, ≠ SCHEDULED-01 scheduled deployments)"
+    conditionDeCloture: "Un workflow user planifié se déclenche réellement à l'heure dite (preuve log + effet observable)"
+    targetDate: "2026-09-15"
+  - id: BD-04
+    title: "billing.tsx n'appelle jamais GET /billing/invoices (endpoint existant)"
+    source: "outputs/BOLT_BACKEND_FRONTEND_GAP.md:105"
+    priority: 1
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Câbler la liste des factures dans la page billing"
+    conditionDeCloture: "Factures réelles affichées depuis l'endpoint, prouvé à l'écran"
+    targetDate: "2026-08-31"
+  - id: BD-05
+    title: "Feed notifications sans cloche/badge dans le shell"
+    source: "outputs/BOLT_BACKEND_FRONTEND_GAP.md:106"
+    priority: 1
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Ajouter cloche + badge non-lus branchés sur le feed réel"
+    conditionDeCloture: "Badge se met à jour sur une vraie notification, prouvé à l'écran (3 formats)"
+    targetDate: "2026-09-30"
+  - id: BD-06
+    title: "@settings ProfileTab en localStorage se fait passer pour du compte"
+    source: "outputs/BOLT_BACKEND_FRONTEND_GAP.md:107"
+    priority: 1
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Brancher sur l'API compte réelle ou retirer le tab (le vrai profil vit dans /account-settings)"
+    conditionDeCloture: "Aucune surface ne présente du localStorage comme état de compte ; décision retrait/câblage tracée"
+    targetDate: "2026-09-15"
+  - id: BD-07
+    title: "CloudProvidersTab BYOK localStorage vs toggle admin DB (double surface contradictoire)"
+    source: "outputs/BOLT_BACKEND_FRONTEND_GAP.md:110"
+    priority: 2
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Trancher le sort du tab (la DÉCISION E-CODE « aucun nom de modèle dans l'UI », plan §3.8, plaide pour le retrait)"
+    conditionDeCloture: "Une seule source de vérité BYOK ; tab retiré ou câblé ; décision tracée"
+    targetDate: "2026-09-30"
+  - id: BD-08
+    title: "5 formulaires PAT legacy en localStorage (vs UserConnection chiffré)"
+    source: "outputs/BOLT_BACKEND_FRONTEND_GAP.md:111"
+    priority: 2
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Migrer vers UserConnection chiffré ou retirer les formulaires legacy"
+    conditionDeCloture: "Zéro token stocké en localStorage ; greps de contrôle verts"
+    targetDate: "2026-09-30"
+  - id: BD-09
+    title: "@settings NotificationsTab affiche des logs IDE, pas les préférences"
+    source: "outputs/BOLT_BACKEND_FRONTEND_GAP.md:112"
+    priority: 2
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Brancher sur les préférences réelles ou renommer honnêtement"
+    conditionDeCloture: "Le tab reflète et modifie les préférences serveur, prouvé"
+    targetDate: "2026-09-30"
+  - id: BD-10
+    title: "Verrous fichiers IDE en localStorage — non enforced serveur, pas cross-device"
+    source: "outputs/BOLT_BACKEND_FRONTEND_GAP.md:113"
+    priority: 2
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Enforcement serveur des locks ou requalification honnête (« verrou local »)"
+    conditionDeCloture: "Un write refusé côté serveur sur fichier verrouillé depuis un autre device (preuve) OU requalification tracée"
+    targetDate: "2026-10-31"
+  - id: BD-11
+    title: "DevTools console/network limités (erreurs/navigations seulement)"
+    source: "outputs/BOLT_BACKEND_FRONTEND_GAP.md:114"
+    priority: 2
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Étendre la capture (console.log complet, requêtes réseau) ou documenter la limite dans l'UI"
+    conditionDeCloture: "Capture complète prouvée OU limite affichée à l'utilisateur"
+    targetDate: "2026-10-31"
+  - id: BD-12
+    title: "12 métriques Prometheus définies jamais peuplées (« no data »)"
+    source: "outputs/BOLT_BACKEND_FRONTEND_GAP.md:117"
+    priority: 3
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Peupler ou supprimer chaque métrique définie ; BUG-API-003 n'a corrigé que 2 compteurs"
+    conditionDeCloture: "Chaque métrique exposée porte des données réelles ou a été supprimée (liste avant/après)"
+    targetDate: "2026-10-31"
+  - id: BD-13
+    title: "Métriques stripe/resend/snapshot-restore collectées mais jamais affichées"
+    source: "outputs/BOLT_BACKEND_FRONTEND_GAP.md:118"
+    priority: 3
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Les surfacer (dashboard admin) ou arrêter la collecte"
+    conditionDeCloture: "Affichage réel ou collecte retirée, décision tracée"
+    targetDate: "2026-10-31"
+  - id: BD-14
+    title: "3 endpoints admin sans UI (refund-notes, logs/redact, quota-overrides per-org) + security-events sans resolve"
+    source: "outputs/BOLT_BACKEND_FRONTEND_GAP.md:119"
+    priority: 3
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Ajouter les surfaces admin manquantes (logs-redact était déjà noté sans UI au 30/06)"
+    conditionDeCloture: "Chaque endpoint a une UI admin fonctionnelle prouvée, ou est déprécié"
+    targetDate: "2026-10-31"
+  - id: BD-15
+    title: "Pod-log streaming k8s sans surface admin"
+    source: "outputs/BOLT_BACKEND_FRONTEND_GAP.md:120"
+    priority: 3
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Surfacer le streaming de logs pods dans l'admin"
+    conditionDeCloture: "Logs d'un pod réel streamés dans l'admin, prouvé"
+    targetDate: "2026-11-30"
+  - id: BD-16
+    title: "Routes orphelines : /search /help /marketplace/templates /mobile-workspace/:id"
+    source: "outputs/BOLT_BACKEND_FRONTEND_GAP.md:123 ; outputs/BOLT_SURFACING_STATUS.md:220 (/help,/search dits volontaires)"
+    priority: 4
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Relier, rediriger ou supprimer chaque route ; si « volontaire », le documenter"
+    conditionDeCloture: "Zéro route orpheline non documentée (liste vérifiée)"
+    targetDate: "2026-11-30"
+  - id: BD-17
+    title: "Pages marketing statiques avec API backing inutilisée (mcp/marketplace/polyglot/community/web-search)"
+    source: "outputs/BOLT_BACKEND_FRONTEND_GAP.md:124 ; docs/BOLT_FEATURE_PLACEMENT_MATRIX.md:135"
+    priority: 4
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Brancher les pages sur leurs APIs ou assumer le statique (décision par page)"
+    conditionDeCloture: "Chaque page branchée ou décision « statique assumé » tracée"
+    targetDate: "2026-11-30"
+  - id: BD-18
+    title: "Nav marketing morte dans SaaSLayout.tsx (publicMarketingMenus jamais rendue)"
+    source: "outputs/BOLT_BACKEND_FRONTEND_GAP.md:125"
+    priority: 4
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Rendre le menu ou supprimer le code mort"
+    conditionDeCloture: "Code mort supprimé ou menu rendu, prouvé"
+    targetDate: "2026-11-30"
+  - id: BD-19
+    title: "UX Enterprise : 8 pages seulement via hub /security-settings ; RBAC create-only ; SSO write-only ; add-member par User ID"
+    source: "outputs/BOLT_BACKEND_FRONTEND_GAP.md:126"
+    priority: 4
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Relier au orgNav + compléter RBAC edit/delete, SSO read-back, add-member par email"
+    conditionDeCloture: "Parcours admin org complet prouvé à l'écran"
+    targetDate: "2026-10-31"
+  - id: BD-20
+    title: "PITR DB rollback : WAL replay jamais prouvé, flag DB_ROLLBACK_ENABLED OFF en prod"
+    source: "outputs/BOLT_BACKEND_FRONTEND_GAP.md:129 ; outputs/BOLT_SURFACING_STATUS.md:256 ; docs/REPLIT_PARITY_MATRIX.md:124,241"
+    priority: 2
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Installer l'operator requis, prouver un WAL replay réel en staging, puis décider l'activation"
+    conditionDeCloture: "Un rollback PITR réel restaure un état antérieur vérifié (preuve), flag activé ou décision de report tracée"
+    targetDate: "2026-10-31"
+  - id: BD-21
+    title: "Connectors OAuth live (GitHub/GitLab/Netlify/Vercel/Supabase) — creds prod à fournir"
+    source: "outputs/BOLT_BACKEND_FRONTEND_GAP.md:129 ; outputs/BOLT_SURFACING_STATUS.md:262"
+    priority: 2
+    owner: owner
+    status: NON_FAIT
+    nextAction: "Avi renseigne les OAuth apps via /admin/oauth-providers ; ensuite preuve de connexion réelle par provider (≠ connecteurs d'IMPORT P0-V3-06/D4)"
+    conditionDeCloture: "Chaque provider activé a une connexion OAuth réelle prouvée"
+    targetDate: "2026-09-30"
+  - id: BD-22
+    title: "Deploy providers externes réels (Netlify/Vercel) : dispatch + rollback jamais prouvés"
+    source: "outputs/BOLT_BACKEND_FRONTEND_GAP.md:129 ; outputs/BOLT_SURFACING_STATUS.md:260 ; docs/GO_LIVE_CHECKLIST.md:94-95"
+    priority: 2
+    owner: owner
+    status: NON_FAIT
+    nextAction: "Creds sandbox providers (Avi) puis deploy + rollback réels (le pipeline server-deploy INTERNE, lui, est prouvé — plan §4.7)"
+    conditionDeCloture: "Un deploy et un rollback réels par provider activé, avec preuve"
+    targetDate: "2026-10-31"
+  - id: BD-23
+    title: "MCP stdio en prod via runner sandboxé dans le pod (off par sécurité, jamais décidé)"
+    source: "docs/BOLT_FEATURE_PLACEMENT_MATRIX.md:138"
+    priority: 4
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Décision explicite : implémenter le runner sandboxé ou acter l'abandon"
+    conditionDeCloture: "Décision tracée (DEC-*) ; si GO, preuve d'un MCP stdio sandboxé fonctionnel"
+    targetDate: "2026-11-30"
+  - id: BD-24
+    title: "Dette lint préexistante (~10 erreurs billing.tsx/usage.tsx + ~15 erreurs app.ts bloquant pre-commit)"
+    source: "outputs/BOLT_SURFACING_STATUS.md:258 ; outputs/MASTER_100_PERCENT.md:186-187"
+    priority: 3
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Purger la dette lint fichier par fichier (elle bloque des commits légitimes)"
+    conditionDeCloture: "pnpm lint = 0 erreur sur ces fichiers"
+    targetDate: "2026-09-30"
+  - id: BD-25
+    title: "MIGRATION_FROM_BOLT Phase 5 cleanup : prompts runtime-aware, stacktraces généralisées, routes preview/connect, observabilité runtime, E2E 2 modes"
+    source: "docs/MIGRATION_FROM_BOLT.md:86-94"
+    priority: 4
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Exécuter le cleanup conditionnel ou acter qu'il est caduc (le runtime remote est en prod)"
+    conditionDeCloture: "Chaque sous-point exécuté ou déclaré caduc avec justification"
+    targetDate: "2026-12-31"
+  - id: BD-26
+    title: "Requalification « Billing dans l'IDE » (verdict BUILD) → réalisé en User area : jamais actée nulle part"
+    source: "docs/AUDIT_BOLT_HIDDEN_FEATURES.md:580 ; COVERAGE_GAP_AUDIT_2026-07-17.md famille C"
+    priority: 4
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Acter la requalification par une note documentaire (matrice de placement)"
+    conditionDeCloture: "Note écrite dans docs/BOLT_FEATURE_PLACEMENT_MATRIX.md (ou successeur)"
+    targetDate: "2026-08-31"
+  - id: BD-27
+    title: "Dashboards Prometheus in-app avancés (per-org lifecycle P50/P95) — option jamais décidée"
+    source: "outputs/BOLT_SURFACING_STATUS.md:147 ; outputs/VIBECORE_AUDIT_LOG.md:39"
+    priority: 4
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Décider : construire les dashboards in-app ou s'appuyer sur Grafana (PR-OPS-01)"
+    conditionDeCloture: "Décision tracée ; si GO, dashboards peuplés prouvés"
+    targetDate: "2026-11-30"
+  - id: BD-28
+    title: "Panneau Monitoring du projet : lecture seule partielle, pas de service métriques dédié"
+    source: "outputs/ETAT_FINAL_100.md (panneau Monitoring partiel) ; outputs/BOLT_SURFACING_STATUS.md:31"
+    priority: 3
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Câbler des métriques réelles ou requalifier honnêtement le panneau"
+    conditionDeCloture: "Métriques réelles affichées (preuve) ou requalification tracée"
+    targetDate: "2026-10-31"
+  - id: BD-29
+    title: "Chats hors-projet (standalone) stockés en IndexedDB local, jamais synchronisés entre appareils"
+    source: "outputs/ETAT_FINAL_100.md:53-58 (chip task_56a3627f)"
+    priority: 3
+    owner: platform
+    status: NON_FAIT
+    nextAction: "Synchroniser côté serveur ou afficher clairement « local uniquement »"
+    conditionDeCloture: "Sync prouvée cross-device OU mention explicite dans l'UI"
+    targetDate: "2026-11-30"
