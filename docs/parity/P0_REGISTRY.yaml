@@ -7,7 +7,12 @@ p0s:
     title: "Collecteur aveugle : ajouter routes produit (rendu JS) + canal de lancement"
     priority: 1
     owner: platform
-    status: PROVEN
+    status: OPEN
+    conditionDeCloture: "Fournir artefacts rejouables : hashes Gallery obsolètes (fad9… vs 1f5f…) ; puis re-soumission au relecteur"
+    refusalReason: "hashes Gallery obsolètes (fad9… vs 1f5f…)"
+    refusalType: NON_REPRODUCTIBLE
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
     commit: "07ced1c56bdbcb3ce77e883704342b71a2ad0961"
     reviewer: UNKNOWN
     evidenceId: docs/deploy-evidence/2026-07-16-collector-gallery/
@@ -18,7 +23,12 @@ p0s:
     title: "Gallery : requalifier la table (mesures réelles, archive rendue)"
     priority: 2
     owner: platform
-    status: PROVEN
+    status: OPEN
+    conditionDeCloture: "Fournir artefacts rejouables : hashes Gallery obsolètes (fad9… vs 1f5f…) ; puis re-soumission au relecteur"
+    refusalReason: "hashes Gallery obsolètes (fad9… vs 1f5f…)"
+    refusalType: NON_REPRODUCTIBLE
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
     commit: "07ced1c56bdbcb3ce77e883704342b71a2ad0961"
     reviewer: UNKNOWN
     evidenceId: docs/deploy-evidence/2026-07-16-collector-gallery/
@@ -29,7 +39,12 @@ p0s:
     title: "Hiérarchie GCP : folder-per-tenant mort (300 cap + 0,1 req/s)"
     priority: 3
     owner: platform
-    status: PROVEN
+    status: OPEN
+    conditionDeCloture: "Obtenir la raison détaillée du refus (lot 57febeab), corriger, re-soumettre au relecteur"
+    refusalReason: "raison détaillée non transmise avec le verdict — à consigner verbatim dès réception du rapport du relecteur"
+    refusalType: A_PRECISER
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
     commit: "07ced1c5"
     reviewer: UNKNOWN
     evidenceId: services/api/src/capacity-policy.spec.ts
@@ -79,13 +94,17 @@ p0s:
     source: "Audit v3 (2026-07-16), P0-02"
     priority: 2
     owner: platform
-    status: PROVEN
+    status: OPEN
+    refusalReason: "hashes Gallery obsolètes (fad9… vs 1f5f…)"
+    refusalType: NON_REPRODUCTIBLE
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
     commit: "07ced1c56bdbcb3ce77e883704342b71a2ad0961"
     reviewer: UNKNOWN
     evidenceId: docs/deploy-evidence/2026-07-16-collector-gallery/
     proof: "RPL-17/18/19 VERIFIED/CONFIRMED sur rendu JS hashé (SRC-GALLERY-RENDERED sha256 fad9ec75…) ; inconnues restantes légitimes (self-publish IDE, review interne, licence) tracées ACCEPTED_RISK/UNKNOWN."
     dependances: []
-    conditionDeCloture: "Revue humaine (reviewer réel) de la table §3 du plan canonique"
+    conditionDeCloture: "Fournir artefacts rejouables : hashes Gallery obsolètes (fad9… vs 1f5f…) ; puis re-soumission au relecteur"
     nextAction: "Revue"
     targetDate: "2026-07-16"
   - p0Id: P0-V3-03
@@ -94,13 +113,17 @@ p0s:
     source: "Audit v3 (2026-07-16), P0-03"
     priority: 3
     owner: platform
-    status: PROVEN
+    status: OPEN
+    refusalReason: "raison détaillée non transmise avec le verdict — à consigner verbatim dès réception du rapport du relecteur"
+    refusalType: A_PRECISER
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
     commit: "07ced1c5"
     reviewer: UNKNOWN
     evidenceId: services/api/src/capacity-policy.spec.ts
     proof: "capacity-policy.ts : 1000 tenants sharded=admissible (~40s), folder-per-tenant=2,78h inadmissible ; DOMAIN_MODEL §3 corrigé ; DEC-TENANT-NO-FOLDER-PER-TENANT DECIDED."
     dependances: []
-    conditionDeCloture: "Revue humaine"
+    conditionDeCloture: "Obtenir la raison détaillée du refus (lot 57febeab), corriger, re-soumettre au relecteur"
     nextAction: "Revue"
     targetDate: "2026-07-16"
   - p0Id: P0-V3-04
@@ -109,13 +132,17 @@ p0s:
     source: "Audit v3 (2026-07-16), P0-04"
     priority: 4
     owner: platform
-    status: PROVEN
+    status: OPEN
+    refusalReason: "raison détaillée non transmise avec le verdict — à consigner verbatim dès réception du rapport du relecteur"
+    refusalType: A_PRECISER
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
     commit: "4a61800c"
     reviewer: UNKNOWN
     evidenceId: docs/parity/PROJECT_FACTORY_CONTRACT.md
     proof: "SPEC UNIQUEMENT : CloudTenant{customerBoundaryType,billingPrincipalId,legalEntityId,ownershipVersion,residencyPolicy} + machines à états transfer/merge/split/suspension/restoration contractualisées (DOMAIN_MODEL §3, PROJECT_FACTORY_CONTRACT). L'implémentation N'EST PAS commencée — un contrat n'est pas une capacité."
     dependances: [UNK-CLOUDTENANT-IMPL]
-    conditionDeCloture: "Le P0 audit (spécifier) est clos sur revue ; la capacité est gatée bêta via UNK-CLOUDTENANT-IMPL"
+    conditionDeCloture: "Obtenir la raison détaillée du refus (lot 57febeab), corriger, re-soumettre au relecteur"
     nextAction: "Implémentation minimale pour les apps publiées de la bêta"
     targetDate: "2026-08-31"
   - p0Id: P0-V3-05
@@ -169,13 +196,17 @@ p0s:
     source: "Audit v3 (2026-07-16), P0-08"
     priority: 8
     owner: platform
-    status: PROVEN
+    status: OPEN
+    refusalReason: "raison détaillée non transmise avec le verdict — à consigner verbatim dès réception du rapport du relecteur"
+    refusalType: A_PRECISER
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
     commit: "ec0ad6bd"
     reviewer: UNKNOWN
     evidenceId: docs/deploy-evidence/2026-07-17-rollback/
     proof: "PROUVÉ LIVE (E2E-VERTICAL-ROLLBACK) : rollback par digest APRÈS suppression de la révision (410→re-déploiement p-…@sha256:657271c5, sert v1) ; 2 négatifs 409 (ROLLBACK_NO_RETAINED_DIGEST, ROLLBACK_SECRET_POLICY_UNSATISFIABLE). Permanence du flag = D2 DECIDED, application Helm tracée UNK-ROLLBACK-FLAG-APPLIED."
     dependances: [UNK-ROLLBACK-FLAG-APPLIED]
-    conditionDeCloture: "Revue humaine + flag permanent dans values-prod.yaml (D2 appliqué)"
+    conditionDeCloture: "Obtenir la raison détaillée du refus (lot 57febeab), corriger, re-soumettre au relecteur"
     nextAction: "Appliquer D2 (Helm values + schéma + canary + test post-deploy)"
     targetDate: "2026-07-24"
   - p0Id: P0-V3-09
@@ -184,13 +215,17 @@ p0s:
     source: "Audit v3 (2026-07-16), P0-09"
     priority: 9
     owner: platform
-    status: PROVEN
+    status: OPEN
+    refusalReason: "raison détaillée non transmise avec le verdict — à consigner verbatim dès réception du rapport du relecteur"
+    refusalType: A_PRECISER
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
     commit: "b8186f2f"
     reviewer: UNKNOWN
     evidenceId: docs/parity/CHECKPOINT_CONTRACT.md
     proof: "SPEC UNIQUEMENT : protocole barrière 2 phases (BARRIER_ESTABLISHED avant SNAPSHOTTING), niveaux crash/application/transaction-consistent, quiesce avec dégel obligatoire ; transition CHECKPOINT_SNAPSHOT_BEFORE_BARRIER refusée par test. Implémentation non commencée — un contrat n'est pas une capacité."
     dependances: [UNK-CHECKPOINT-IMPL]
-    conditionDeCloture: "P0 audit (définir le protocole) clos sur revue ; capacité tracée UNK-CHECKPOINT-IMPL"
+    conditionDeCloture: "Obtenir la raison détaillée du refus (lot 57febeab), corriger, re-soumettre au relecteur"
     nextAction: "Implémentation volume+DB+manifest avec preuve de restore"
     targetDate: "2026-09-30"
   - p0Id: P0-V3-10
@@ -199,13 +234,17 @@ p0s:
     source: "Audit v3 (2026-07-16), P0-10"
     priority: 10
     owner: platform
-    status: PROVEN
+    status: OPEN
+    refusalReason: "raison détaillée non transmise avec le verdict — à consigner verbatim dès réception du rapport du relecteur"
+    refusalType: A_PRECISER
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
     commit: "9a21f56f"
     reviewer: UNKNOWN
     evidenceId: docs/parity/RUNTIME_NIX_CONTRACT.md
     proof: "Pin reclassé DÉCISION E-CODE ; v1=x86_64-linux ; contrat complété (clés/rotation/révocation, provenance builder, reprise corruption, réplication zonale, upgrade schéma DB Nix, E2E offline). Store v2 PROUVÉ live (Node 62s + Python 3.12.13). RESTE (capacité) : multi-zone D3 GO — tracé UNK-NIX-MULTIZONE-IMPL, préalable au Python zéro-manuel."
     dependances: [UNK-NIX-MULTIZONE-IMPL]
-    conditionDeCloture: "Revue humaine ; multi-zone gaté bêta via UNK-NIX-MULTIZONE-IMPL"
+    conditionDeCloture: "Obtenir la raison détaillée du refus (lot 57febeab), corriger, re-soumettre au relecteur"
     nextAction: "Exécuter D3 (clones zonaux signés par génération, test de perte de zone, coût mesuré)"
     targetDate: "2026-08-01"
   - p0Id: P0-V3-11
@@ -214,13 +253,17 @@ p0s:
     source: "Audit v3 (2026-07-16), P0-11"
     priority: 11
     owner: platform
-    status: PROVEN
+    status: OPEN
+    refusalReason: "raison détaillée non transmise avec le verdict — à consigner verbatim dès réception du rapport du relecteur"
+    refusalType: A_PRECISER
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
     commit: "57ab0a67"
     reviewer: UNKNOWN
     evidenceId: docs/parity/DATABASE_CONTRACT.md
     proof: "SPEC : DBMigrationExecution (PLANNED→…→COMMITTED, FAILED_SAFE/FORWARD_FIX_REQUIRED/MANUAL_RECOVERY), idempotencyKey, une migration active/env, aucune mutation PROD par l'Agent ; transition MIGRATION_APPLY_BEFORE_BACKUP refusée par test. Implémentation publish-migration non prouvée live — tracée UNK-DB-MIGRATION-PUBLISH-IMPL."
     dependances: [UNK-DB-MIGRATION-PUBLISH-IMPL]
-    conditionDeCloture: "Revue humaine ; capacité tracée par l'UNKNOWN dédié"
+    conditionDeCloture: "Obtenir la raison détaillée du refus (lot 57febeab), corriger, re-soumettre au relecteur"
     nextAction: "Prouver une migration au publish réelle (lock, backup, validation)"
     targetDate: "2026-09-30"
   - p0Id: P0-V3-12
@@ -229,13 +272,17 @@ p0s:
     source: "Audit v3 (2026-07-16), P0-12"
     priority: 12
     owner: platform
-    status: PROVEN
+    status: OPEN
+    refusalReason: "pas de vrai ledger double-entrée"
+    refusalType: DESACCORD
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
     commit: "07ced1c5"
     reviewer: UNKNOWN
     evidenceId: docs/parity/BILLING_LEDGER_CONTRACT.md
     proof: "SPEC : contrat ledger avec double entrée, corrections compensatoires, RateCardVersion, webhooks PSP idempotents, rapprochement GCP+PSP+ledger. Implémentation du minimum sûr (réservation+idempotence+compensation) = D4 étape 1, tracée UNK-BILLING-MINIMAL-IMPL."
     dependances: [UNK-BILLING-MINIMAL-IMPL]
-    conditionDeCloture: "Revue humaine ; minimum billing sûr implémenté avant tout connecteur payant"
+    conditionDeCloture: "Corriger le claim/la preuve : pas de vrai ledger double-entrée ; puis re-soumission au relecteur"
     nextAction: "Implémenter UsageReservation + compensation (D4 étape 1)"
     targetDate: "2026-08-15"
   - p0Id: P0-V3-13
@@ -244,13 +291,17 @@ p0s:
     source: "Audit v3 (2026-07-16), P0-13"
     priority: 13
     owner: platform
-    status: PROVEN
+    status: OPEN
+    refusalReason: "raison détaillée non transmise avec le verdict — à consigner verbatim dès réception du rapport du relecteur"
+    refusalType: A_PRECISER
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
     commit: "b8186f2f"
     reviewer: UNKNOWN
     evidenceId: docs/parity/SURFACE_REGISTRY.yaml
     proof: "SURFACE_REGISTRY schemaVersion 2 : availability ∈ {SUPPORTED|UNSUPPORTED|NOT_APPLICABLE|ROLLOUT|UNKNOWN}, clientKind, a11y (WCAG 2.2 AA), locale/RTL, performanceBudget ; test négatif availability:MAYBE ⇒ exit 1."
     dependances: []
-    conditionDeCloture: "Revue humaine"
+    conditionDeCloture: "Obtenir la raison détaillée du refus (lot 57febeab), corriger, re-soumettre au relecteur"
     nextAction: "Revue"
     targetDate: "2026-07-16"
   - p0Id: P0-V3-14
@@ -259,7 +310,9 @@ p0s:
     source: "Audit v3 (2026-07-16), P0-14"
     priority: 14
     owner: platform
-    status: PROVEN
+    status: CLOSED
+    reviewVerdict: SIGNED
+    reviewCommit: "57febeab"
     commit: "97759a77"
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/APPROVAL_STATUS.json
@@ -304,13 +357,17 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-01"
     priority: 1
     owner: platform
-    status: PROVEN
+    status: OPEN
+    refusalReason: "raison détaillée non transmise avec le verdict — à consigner verbatim dès réception du rapport du relecteur"
+    refusalType: A_PRECISER
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: UNKNOWN
     evidenceId: docs/parity/DOCUMENT_MANIFEST.yaml
     proof: "DOCUMENT_MANIFEST.yaml GÉNÉRÉ (hash+schemaVersion+repoCommit+reviewer+validation par fichier, drift-check CI). Reviewer humain encore UNKNOWN."
     dependances: []
-    conditionDeCloture: "Revue humaine du manifeste"
+    conditionDeCloture: "Obtenir la raison détaillée du refus (lot 57febeab), corriger, re-soumettre au relecteur"
     nextAction: "Revue humaine du manifeste"
     targetDate: "2026-07-20"
   - p0Id: P0-A2-02
@@ -319,7 +376,9 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-02"
     priority: 2
     owner: platform
-    status: PROVEN
+    status: CLOSED
+    reviewVerdict: SIGNED
+    reviewCommit: "57febeab"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/SURFACE_REGISTRY.yaml
@@ -334,13 +393,17 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-03"
     priority: 3
     owner: platform
-    status: PROVEN
+    status: OPEN
+    refusalReason: "raison détaillée non transmise avec le verdict — à consigner verbatim dès réception du rapport du relecteur"
+    refusalType: A_PRECISER
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: UNKNOWN
     evidenceId: docs/parity/PLAN_PARITE_REPLIT.md
     proof: "§3.0 normatif ajouté : Project/Artifact/Component/ProjectRevision/ArtifactRevision/ArtifactType/SharedBackendBinding/ProjectRelease, 7 max / 1 mobile = entitlements configurables, backend+data partagés, publication groupée (publicationMode: GROUPED)."
     dependances: []
-    conditionDeCloture: "Revue humaine + contrat de domaine schematisé"
+    conditionDeCloture: "Obtenir la raison détaillée du refus (lot 57febeab), corriger, re-soumettre au relecteur"
     nextAction: "Revue humaine + contrat de domaine schematisé"
     targetDate: "2026-07-20"
   - p0Id: P0-A2-04
@@ -349,7 +412,9 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-04"
     priority: 4
     owner: platform
-    status: PROVEN
+    status: CLOSED
+    reviewVerdict: SIGNED
+    reviewCommit: "57febeab"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/DEPLOYMENT_TYPES_CONTRACT.md
@@ -364,13 +429,17 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-05"
     priority: 5
     owner: platform
-    status: PROVEN
+    status: OPEN
+    refusalReason: "raison détaillée non transmise avec le verdict — à consigner verbatim dès réception du rapport du relecteur"
+    refusalType: A_PRECISER
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: UNKNOWN
     evidenceId: docs/parity/APPROVAL_STATUS.json
     proof: "Niveaux refondus : sourceBaselineReady (claims ancrés, unanchoredClaims=0) et registryUniverseReady (P0+P1+surfaces+claims+décisions+unknowns+work items en ensembles EXACTS) — les deux ÉCHOUENT aujourd'hui, plus aucun vert sur univers incomplet."
     dependances: []
-    conditionDeCloture: "sourceBaselineReady et registryUniverseReady PASS"
+    conditionDeCloture: "Obtenir la raison détaillée du refus (lot 57febeab), corriger, re-soumettre au relecteur"
     nextAction: "sourceBaselineReady et registryUniverseReady PASS"
     targetDate: "2026-08-15"
   - p0Id: P0-A2-06
@@ -379,7 +448,9 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-06"
     priority: 6
     owner: platform
-    status: PROVEN
+    status: CLOSED
+    reviewVerdict: SIGNED
+    reviewCommit: "57febeab"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/APPROVAL_STATUS.json
@@ -394,13 +465,17 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-07"
     priority: 7
     owner: platform
-    status: PROVEN
+    status: OPEN
+    refusalReason: "raison détaillée non transmise avec le verdict — à consigner verbatim dès réception du rapport du relecteur"
+    refusalType: A_PRECISER
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: UNKNOWN
     evidenceId: docs/parity/APPROVAL_STATUS.json
     proof: "Renommé contractsPresent + contractsValidated (P1-A2-12). contractsValidated exige sections requises + reviewer + refs — il ÉCHOUE aujourd'hui (reviewers absents), honnêtement."
     dependances: []
-    conditionDeCloture: "contractsValidated PASS avec reviewers réels"
+    conditionDeCloture: "Obtenir la raison détaillée du refus (lot 57febeab), corriger, re-soumettre au relecteur"
     nextAction: "contractsValidated PASS avec reviewers réels"
     targetDate: "2026-09-30"
   - p0Id: P0-A2-08
@@ -409,7 +484,9 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-08"
     priority: 8
     owner: platform
-    status: PROVEN
+    status: CLOSED
+    reviewVerdict: SIGNED
+    reviewCommit: "57febeab"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/baseline/sources/2026-07-20-replit-clerk-auth.md
@@ -424,13 +501,17 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-09"
     priority: 9
     owner: platform
-    status: PROVEN
+    status: OPEN
+    refusalReason: "WIF prouvé GKE seulement, pas les 3 chemins"
+    refusalType: PREUVE_INSUFFISANTE
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: UNKNOWN
     evidenceId: docs/parity/baseline/sources/2026-07-20-gke-workload-identity.html
     proof: "§4.4 REMPLACÉ, ancré GCP-13 (citation exacte « In GKE, Google Cloud manages the workload identity pool and provider for you and doesn't require an external identity provider ») : 3 chemins — GKE→WIF for GKE (recommandé, aucun IdP externe) ; hors GCP→IAM WIF externe ; Cloud Run→service identity + impersonation courte. Zéro clé persistante partout."
     dependances: []
-    conditionDeCloture: "Revue humaine"
+    conditionDeCloture: "Compléter l'évidence : WIF prouvé GKE seulement, pas les 3 chemins ; puis re-soumission au relecteur"
     nextAction: "Revue humaine"
     targetDate: "2026-07-20"
   - p0Id: P0-A2-10
@@ -439,13 +520,17 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-10"
     priority: 10
     owner: platform
-    status: PROVEN
+    status: OPEN
+    refusalReason: "Gallery est DECIDED, pas OPEN"
+    refusalType: DESACCORD
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: UNKNOWN
     evidenceId: docs/parity/DECISION_REGISTRY.yaml
     proof: "DEC-OWNER-GALLERY-OPTION-B repassée OPEN + captureState: CAPTURE_INCOMPLETE tant que le contenu exact n'est pas inscrit (UNK-GALLERY-OPTION-B-CONTENT) ; « aucune publication self-service OBSERVÉE » partout."
     dependances: []
-    conditionDeCloture: "Contenu exact inscrit puis décision refermée"
+    conditionDeCloture: "Corriger le claim/la preuve : Gallery est DECIDED, pas OPEN ; puis re-soumission au relecteur"
     nextAction: "Contenu exact inscrit puis décision refermée"
     targetDate: "2026-07-31"
   - p0Id: P0-A2-11
@@ -454,7 +539,9 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-11"
     priority: 11
     owner: platform
-    status: PROVEN
+    status: CLOSED
+    reviewVerdict: SIGNED
+    reviewCommit: "57febeab"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/APPROVAL_STATUS.json
@@ -484,13 +571,17 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-13"
     priority: 13
     owner: platform
-    status: PROVEN
+    status: OPEN
+    refusalReason: "raison détaillée non transmise avec le verdict — à consigner verbatim dès réception du rapport du relecteur"
+    refusalType: A_PRECISER
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: UNKNOWN
     evidenceId: docs/parity/PLAN_PARITE_REPLIT.md
     proof: "§0 : planCommit/measuredCodeCommit/registryCommit/statusCommit (backfill au commit suivant, même mécanique que P0-V3-15), generatedAt RÉEL (2026-07-20T04:20:00Z), mergedToMainAt: null (honnête — PR ouverte). Attestation CI = workflow parity-registries sur la branche."
     dependances: []
-    conditionDeCloture: "Recalcul du statut sur le commit mergé dans origin/main"
+    conditionDeCloture: "Obtenir la raison détaillée du refus (lot 57febeab), corriger, re-soumettre au relecteur"
     nextAction: "Recalcul du statut sur le commit mergé dans origin/main"
     targetDate: "2026-08-01"
   - p0Id: P0-A2-14
@@ -499,13 +590,17 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-14"
     priority: 14
     owner: platform
-    status: PROVEN
+    status: OPEN
+    refusalReason: "raison détaillée non transmise avec le verdict — à consigner verbatim dès réception du rapport du relecteur"
+    refusalType: A_PRECISER
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: UNKNOWN
     evidenceId: docs/parity/baseline/sources/2026-07-20-cloudrun-multitenant.html
     proof: "Ancré GCP-14 (doc du 17/07, snapshot hashé) + GCP-15 (quotas 1000 services/jobs/pools par projet+région) : §4.2–4.3 ajoutent pool de projets précréés, ReputationTier, BillingAccountBinding (billing account par tier), AbuseEventPolicy, quotas services/jobs/SA et seuils de sharding dans CapacityPolicy, folders first-party vs untrusted, LB global + Service Extensions."
     dependances: []
-    conditionDeCloture: "Implémentation CapacityPolicy étendue (capacité, pas contrat)"
+    conditionDeCloture: "Obtenir la raison détaillée du refus (lot 57febeab), corriger, re-soumettre au relecteur"
     nextAction: "Implémentation CapacityPolicy étendue (capacité, pas contrat)"
     targetDate: "2026-08-31"
   - p0Id: P0-A2-15
@@ -549,7 +644,9 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 1
     owner: platform
-    status: PROVEN
+    status: CLOSED
+    reviewVerdict: SIGNED
+    reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/ROUTE_OBSERVATION_REGISTRY.yaml
@@ -564,7 +661,9 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 2
     owner: platform
-    status: PROVEN
+    status: CLOSED
+    reviewVerdict: SIGNED
+    reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/ROUTE_OBSERVATION_REGISTRY.yaml
@@ -579,13 +678,17 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 3
     owner: platform
-    status: PROVEN
+    status: OPEN
+    refusalReason: "raison détaillée non transmise avec le verdict — à consigner verbatim dès réception du rapport du relecteur"
+    refusalType: A_PRECISER
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/livescan-2026-07-20/
     proof: "Paquet PRÉSENT dans le repo : docs/parity/livescan-2026-07-20/ = 69 fichiers + manifest.json (21 entrées) ; hashes du tableau = manifest."
     dependances: []
-    conditionDeCloture: "Revue humaine"
+    conditionDeCloture: "Obtenir la raison détaillée du refus (lot 57febeab), corriger, re-soumettre au relecteur"
     nextAction: "Revue"
     targetDate: "2026-07-20"
   - p0Id: P0-LS-04
@@ -594,13 +697,17 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 4
     owner: platform
-    status: PROVEN
+    status: OPEN
+    refusalReason: "raison détaillée non transmise avec le verdict — à consigner verbatim dès réception du rapport du relecteur"
+    refusalType: A_PRECISER
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/IMPORT_PROVIDER_REGISTRY.yaml
     proof: "§9.1 verbatim (« capacité Git confirmée par la documentation et le changelog, mais pas une tuile ») ; IMPORT_PROVIDER note + P141 builtState=PARTIEL (endpoint /import/gitlab existe) ; UNK-LS-GITLAB-GIT réduit à l entrée authentifiée."
     dependances: []
-    conditionDeCloture: "Revue humaine"
+    conditionDeCloture: "Obtenir la raison détaillée du refus (lot 57febeab), corriger, re-soumettre au relecteur"
     nextAction: "Revue"
     targetDate: "2026-07-20"
   - p0Id: P0-LS-05
@@ -609,7 +716,9 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 5
     owner: platform
-    status: PROVEN
+    status: CLOSED
+    reviewVerdict: SIGNED
+    reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/ARTIFACT_KIND_REGISTRY.yaml
@@ -624,13 +733,17 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 6
     owner: platform
-    status: PROVEN
+    status: OPEN
+    refusalReason: "raison détaillée non transmise avec le verdict — à consigner verbatim dès réception du rapport du relecteur"
+    refusalType: A_PRECISER
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/OBSERVATION_REGISTRY.yaml
     proof: "FAIT (20/07) : les 15 OBS-DELTA classifiées TRIAGED avec linkedRegistryIds vers leurs registres cibles (capacités, connecteurs, écosystème, offres, intentions, import providers, surface candidate ECO-COMMUNITY-PROFILES). La DÉDUPLICATION de l univers (§6.3 canonicalSurfaceCount) reste un travail distinct, tracé."
     dependances: []
-    conditionDeCloture: "Revue humaine + classification complète"
+    conditionDeCloture: "Obtenir la raison détaillée du refus (lot 57febeab), corriger, re-soumettre au relecteur"
     nextAction: "Passe de déduplication de l univers (canonicalSurfaceCount)"
     targetDate: "2026-07-27"
   - p0Id: P0-LS-07
@@ -639,7 +752,9 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 7
     owner: platform
-    status: PROVEN
+    status: CLOSED
+    reviewVerdict: SIGNED
+    reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/SURFACE_REGISTRY.yaml
@@ -654,7 +769,9 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 8
     owner: platform
-    status: PROVEN
+    status: CLOSED
+    reviewVerdict: SIGNED
+    reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/baseline/snapshots/2026-07-20/llms-full.txt
@@ -669,7 +786,9 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 9
     owner: platform
-    status: PROVEN
+    status: CLOSED
+    reviewVerdict: SIGNED
+    reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/CAPABILITY_REGISTRY.yaml
@@ -684,7 +803,9 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 10
     owner: platform
-    status: PROVEN
+    status: CLOSED
+    reviewVerdict: SIGNED
+    reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/PUBLIC_BASELINE_REPLIT_2026.yaml
@@ -699,7 +820,9 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 11
     owner: platform
-    status: PROVEN
+    status: CLOSED
+    reviewVerdict: SIGNED
+    reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/EXTERNAL_ECOSYSTEM_REGISTRY.yaml
@@ -714,7 +837,9 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 12
     owner: platform
-    status: PROVEN
+    status: CLOSED
+    reviewVerdict: SIGNED
+    reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/OFFERING_ENTITLEMENT_REGISTRY.yaml
@@ -729,13 +854,17 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 13
     owner: platform
-    status: PROVEN
+    status: OPEN
+    refusalReason: "prix sans contexte geo/locale/cohorte/hash"
+    refusalType: PREUVE_INSUFFISANTE
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/OFFERING_ENTITLEMENT_REGISTRY.yaml
     proof: "§3.4 verbatim (Core $25/$20 annuel effectif observé par l expert vs $20/$18 scan — divergence conservée) ; OFFERING avec PriceObservation schema."
     dependances: []
-    conditionDeCloture: "Revue humaine"
+    conditionDeCloture: "Compléter l'évidence : prix sans contexte geo/locale/cohorte/hash ; puis re-soumission au relecteur"
     nextAction: "Revue"
     targetDate: "2026-07-20"
   - p0Id: P0-LS-14
@@ -744,13 +873,17 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 14
     owner: platform
-    status: PROVEN
+    status: OPEN
+    refusalReason: "claim absolu « no model selector anywhere » encore présent"
+    refusalType: DESACCORD
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/PUBLIC_BASELINE_REPLIT_2026.yaml
     proof: "§7.2 verbatim (« pages publiques et docs courantes consultées ; interface authentifiée par plan reste à vérifier ») cohérent avec RPL-2026-004."
     dependances: []
-    conditionDeCloture: "Revue humaine"
+    conditionDeCloture: "Corriger le claim/la preuve : claim absolu « no model selector anywhere » encore présent ; puis re-soumission au relecteur"
     nextAction: "Revue"
     targetDate: "2026-07-20"
   - p0Id: P0-LS-15
@@ -759,7 +892,9 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 15
     owner: platform
-    status: PROVEN
+    status: CLOSED
+    reviewVerdict: SIGNED
+    reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/CAPABILITY_REGISTRY.yaml
@@ -774,13 +909,17 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 16
     owner: platform
-    status: PROVEN
+    status: OPEN
+    refusalReason: "raison détaillée non transmise avec le verdict — à consigner verbatim dès réception du rapport du relecteur"
+    refusalType: A_PRECISER
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/DOCUMENT_MANIFEST.yaml
     proof: "§0 verbatim (reviewGeneratedAt + manifeste post-merge non auto-référentiel) ; recalcul réel = annexe A.2 + DOCUMENT_MANIFEST."
     dependances: []
-    conditionDeCloture: "Revue humaine"
+    conditionDeCloture: "Obtenir la raison détaillée du refus (lot 57febeab), corriger, re-soumettre au relecteur"
     nextAction: "Revue"
     targetDate: "2026-07-20"
   - p0Id: P0-LS-17
@@ -789,7 +928,9 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 17
     owner: platform
-    status: PROVEN
+    status: CLOSED
+    reviewVerdict: SIGNED
+    reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/APPROVAL_STATUS.json
@@ -804,7 +945,9 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 18
     owner: platform
-    status: PROVEN
+    status: CLOSED
+    reviewVerdict: SIGNED
+    reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/CI_ATTESTATION.yaml
@@ -819,13 +962,17 @@ p0s:
     source: "Exigence Avi (20/07) ; annexe A.1 du plan"
     priority: 1
     owner: platform
-    status: PROVEN
+    status: OPEN
+    refusalReason: "raison détaillée non transmise avec le verdict — à consigner verbatim dès réception du rapport du relecteur"
+    refusalType: A_PRECISER
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/SURFACE_REGISTRY.yaml
     proof: "159/159 croisées par 6 agents (A–H) : 79 DEJA_CONSTRUIT / 43 PARTIEL / 37 NON_FAIT, builtState+codeRefs par entrée ; composant bolt non câblé = PARTIEL (BD-* respectés)."
     dependances: []
-    conditionDeCloture: "Revue humaine ; étendre aux registres capacités/connecteurs"
+    conditionDeCloture: "Obtenir la raison détaillée du refus (lot 57febeab), corriger, re-soumettre au relecteur"
     nextAction: "Revue"
     targetDate: "2026-07-20"
   - p0Id: P0-B-02
@@ -853,7 +1000,9 @@ p0s:
     source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
     priority: 1
     owner: platform
-    status: PROVEN
+    status: CLOSED
+    reviewVerdict: SIGNED
+    reviewCommit: "57febeab"
     commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/PLAN_PARITE_REPLIT.md
@@ -868,13 +1017,17 @@ p0s:
     source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
     priority: 2
     owner: platform
-    status: PROVEN
+    status: OPEN
+    refusalReason: "aucun générateur d'IMPLEMENTATION_STATUS dans scripts/CI"
+    refusalType: DESACCORD
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
     commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: UNKNOWN
     evidenceId: docs/parity/IMPLEMENTATION_STATUS.yaml
     proof: "Généré : 159 items SURFACE (68 CODED mergés main + 11 PROVEN avec evidenceIds hashés + 43 PARTIAL + 37 NOT_STARTED), codeCommit=origin/main mesuré, règles §23 appliquées (PARTIAL ne satisfait aucun gate)."
     dependances: []
-    conditionDeCloture: "Revue humaine"
+    conditionDeCloture: "Corriger le claim/la preuve : aucun générateur d'IMPLEMENTATION_STATUS dans scripts/CI ; puis re-soumission au relecteur"
     nextAction: "Revue"
     targetDate: "2026-07-20"
   - p0Id: P0-EX-03
@@ -883,7 +1036,9 @@ p0s:
     source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
     priority: 3
     owner: platform
-    status: PROVEN
+    status: CLOSED
+    reviewVerdict: SIGNED
+    reviewCommit: "57febeab"
     commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/PLAN_PARITE_REPLIT.md
@@ -898,13 +1053,17 @@ p0s:
     source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
     priority: 4
     owner: platform
-    status: PROVEN
+    status: OPEN
+    refusalReason: "le CODE suit encore l'ancienne machine Import (SCANNING→COMMITTING) malgré le contrat"
+    refusalType: DESACCORD
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
     commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: UNKNOWN
     evidenceId: docs/parity/IMPORT_REMIX_CONTRACT.md
     proof: "CONTRAT ALIGNÉ (20/07) sur §9.2 : branchement clean→READY_TO_COMMIT vs findings→QUARANTINED, 3 tests négatifs exigés listés. NUANCE HONNÊTE : le CODE (import-pipeline.ts) suit encore l ancienne machine — alignement du code = work item, un contrat n est pas une implémentation."
     dependances: []
-    conditionDeCloture: "Revue humaine + contrat aligné et testé négativement"
+    conditionDeCloture: "Corriger le claim/la preuve : le CODE suit encore l'ancienne machine Import (SCANNING→COMMITTING) malgré le contrat ; puis re-soumission au relecteur"
     nextAction: "Aligner le CODE import-pipeline sur la machine branchée + tests négatifs réels"
     targetDate: "2026-07-27"
   - p0Id: P0-EX-05
@@ -913,13 +1072,17 @@ p0s:
     source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
     priority: 5
     owner: platform
-    status: PROVEN
+    status: OPEN
+    refusalReason: "raison détaillée non transmise avec le verdict — à consigner verbatim dès réception du rapport du relecteur"
+    refusalType: A_PRECISER
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
     commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: UNKNOWN
     evidenceId: docs/parity/OFFERING_ENTITLEMENT_REGISTRY.yaml
     proof: "Adopté via plan §11.3 (verbatim) ; OFFERING sans montants, entitlements AUTHENTICATED_LIVE_REQUIRED avant reproduction exacte."
     dependances: []
-    conditionDeCloture: "Revue humaine"
+    conditionDeCloture: "Obtenir la raison détaillée du refus (lot 57febeab), corriger, re-soumettre au relecteur"
     nextAction: "Revue"
     targetDate: "2026-07-20"
   - p0Id: P0-EX-06
@@ -928,7 +1091,9 @@ p0s:
     source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
     priority: 6
     owner: platform
-    status: PROVEN
+    status: CLOSED
+    reviewVerdict: SIGNED
+    reviewCommit: "57febeab"
     commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/PRICE_OBSERVATION_REGISTRY.yaml
@@ -943,13 +1108,17 @@ p0s:
     source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
     priority: 7
     owner: platform
-    status: PROVEN
+    status: OPEN
+    refusalReason: "raison détaillée non transmise avec le verdict — à consigner verbatim dès réception du rapport du relecteur"
+    refusalType: A_PRECISER
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
     commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: UNKNOWN
     evidenceId: docs/parity/IDENTITY_COLLABORATION_CONTRACT.md
     proof: "IDENTITY_COLLABORATION_CONTRACT.md créé (entités + invariants + état mesuré + tests négatifs exigés). Reviewer UNKNOWN — contractsValidated reste FAIL, honnête."
     dependances: []
-    conditionDeCloture: "Revue humaine"
+    conditionDeCloture: "Obtenir la raison détaillée du refus (lot 57febeab), corriger, re-soumettre au relecteur"
     nextAction: "Revue"
     targetDate: "2026-07-20"
   - p0Id: P0-EX-08
@@ -958,13 +1127,17 @@ p0s:
     source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
     priority: 8
     owner: platform
-    status: PROVEN
+    status: OPEN
+    refusalReason: "raison détaillée non transmise avec le verdict — à consigner verbatim dès réception du rapport du relecteur"
+    refusalType: A_PRECISER
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
     commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: UNKNOWN
     evidenceId: docs/parity/PROJECT_MANIFEST_SCHEMA.json
     proof: "PROJECT_MANIFEST_SCHEMA.json créé (artifacts≤7, kinds verrouillés, components, bindings, scopes, entitlementsRef)."
     dependances: []
-    conditionDeCloture: "Revue humaine"
+    conditionDeCloture: "Obtenir la raison détaillée du refus (lot 57febeab), corriger, re-soumettre au relecteur"
     nextAction: "Revue"
     targetDate: "2026-07-20"
   - p0Id: P0-EX-09
@@ -973,7 +1146,9 @@ p0s:
     source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
     priority: 9
     owner: platform
-    status: PROVEN
+    status: CLOSED
+    reviewVerdict: SIGNED
+    reviewCommit: "57febeab"
     commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/DEPLOYMENT_TYPES_CONTRACT.md
@@ -988,12 +1163,16 @@ p0s:
     source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
     priority: 10
     owner: platform
-    status: PROVEN
+    status: OPEN
+    refusalReason: "la CI fait --check seulement, ne génère pas le statut"
+    refusalType: DESACCORD
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
     commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: UNKNOWN
     evidenceId: docs/parity/CI_ATTESTATION.yaml
     proof: "FAIT : activation §0 satisfaite — plan mergé sur main, manifeste généré au commit mergé, drift-checks CI verts (run 29733640863). La génération est entièrement pilotée par les scripts vérifiés en CI."
     dependances: []
-    conditionDeCloture: "Revue humaine + merge main (activation)"
+    conditionDeCloture: "Corriger le claim/la preuve : la CI fait --check seulement, ne génère pas le statut ; puis re-soumission au relecteur"
     nextAction: "Revue"
     targetDate: "2026-07-27"
