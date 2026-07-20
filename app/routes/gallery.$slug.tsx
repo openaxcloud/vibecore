@@ -1,4 +1,5 @@
-import { ArrowLeft, ExternalLink, Flag, GitFork, Eye, Loader2 } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Flag, GitFork, Eye, Loader2, Scale, ShieldCheck } from 'lucide-react';
+import { useState } from 'react';
 import type { MetaFunction } from 'react-router';
 import { Form, Link, useLoaderData, useNavigation } from 'react-router';
 import { useActionData } from 'react-router';
@@ -34,6 +35,13 @@ type GalleryDetail = {
   featured: boolean;
   author: string;
   appUrl: string | null;
+
+  /* License + fork rights (P0-V3-05): what a remixer accepts, versioned. */
+  remixAllowed: boolean;
+  license: { id: string; textSha256: string | null } | null;
+  licenseText: string | null;
+  piiHandling: { mode: 'MASKED' } | { mode: 'AUTHOR_CONSENT'; consentVersion: string };
+  remixConsentVersion: string;
   views: number;
   uses: number;
   publishedAt: string | null;
@@ -97,13 +105,21 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     return redirect(`/login?returnTo=${encodeURIComponent(safeReturnTo(returnTo) ?? '/gallery')}`);
   }
 
+  /*
+   * The consent is an explicit INPUT (I-RMX-3): the checkbox posts
+   * acceptLicense, and the API refuses the remix without it — the server is
+   * the enforcement point, the UI only makes the acceptance informed.
+   */
+  const form = await request.formData();
+  const acceptLicense = form.get('acceptLicense') === 'on' || form.get('acceptLicense') === 'true';
+
   try {
     const result = await apiRequest<{ project: { id: string; slug?: string } }>(
       request,
       `/gallery/${encodeURIComponent(slug)}/remix`,
       {
         method: 'POST',
-        body: JSON.stringify({ organizationId: organization.id }),
+        body: JSON.stringify({ organizationId: organization.id, acceptLicense }),
       },
     );
 
@@ -132,6 +148,7 @@ export default function GalleryDetailRoute() {
   const actionData = useActionData<typeof action>() as { error?: string } | undefined;
   const navigation = useNavigation();
   const remixing = navigation.state !== 'idle' && navigation.formMethod === 'POST';
+  const [licenseAccepted, setLicenseAccepted] = useState(false);
 
   return (
     <PublicShell>
@@ -200,21 +217,80 @@ export default function GalleryDetailRoute() {
                 </div>
               </dl>
 
-              <Form method="post" className="mt-6">
-                <button
-                  type="submit"
-                  disabled={remixing}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--ecode-accent)] px-5 py-3 text-[15px] font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-                  data-testid="gallery-remix"
+              {/* License + data-handling disclosure (P0-V3-05): what a remixer accepts. */}
+              <div
+                className="mt-6 rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-background)] p-4"
+                data-testid="gallery-license"
+              >
+                <p className="flex items-center gap-1.5 text-[12px] font-semibold text-[var(--ecode-text-secondary)]">
+                  <Scale className="h-4 w-4" aria-hidden />
+                  License
+                </p>
+                <p className="mt-1 text-[13px] text-[var(--ecode-text)]" data-testid="gallery-license-id">
+                  {listing.license ? listing.license.id : 'No license specified by the author'}
+                </p>
+                {listing.licenseText ? (
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-[12px] text-[var(--ecode-text-muted)] hover:text-[var(--ecode-text-secondary)]">
+                      Read the license text
+                    </summary>
+                    <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap rounded bg-[var(--ecode-surface)] p-3 text-[11px] leading-4 text-[var(--ecode-text-secondary)]">
+                      {listing.licenseText}
+                    </pre>
+                  </details>
+                ) : null}
+                <p
+                  className="mt-3 flex items-start gap-1.5 text-[12px] leading-5 text-[var(--ecode-text-muted)]"
+                  data-testid="gallery-pii-handling"
                 >
-                  {remixing ? (
-                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                  ) : (
-                    <GitFork className="h-4 w-4" aria-hidden />
-                  )}
-                  {remixing ? 'Remixing…' : 'Remix this app'}
-                </button>
-              </Form>
+                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                  {listing.piiHandling.mode === 'MASKED'
+                    ? 'Personal data (emails, phone numbers, payment identifiers) found in the source files is masked in your copy.'
+                    : 'The author explicitly consented to share the app data as-is (consent ' +
+                      listing.piiHandling.consentVersion +
+                      ').'}
+                </p>
+              </div>
+
+              {listing.remixAllowed ? (
+                <Form method="post" className="mt-4">
+                  <label className="flex cursor-pointer items-start gap-2 text-[12px] leading-5 text-[var(--ecode-text-secondary)]">
+                    <input
+                      type="checkbox"
+                      name="acceptLicense"
+                      checked={licenseAccepted}
+                      onChange={(event) => setLicenseAccepted(event.target.checked)}
+                      className="mt-0.5 h-4 w-4 accent-[var(--ecode-accent)]"
+                      data-testid="gallery-consent"
+                    />
+                    <span>
+                      I accept the license terms above and the data-handling policy (consent{' '}
+                      {listing.remixConsentVersion}
+                      ).
+                    </span>
+                  </label>
+                  <button
+                    type="submit"
+                    disabled={remixing || !licenseAccepted}
+                    className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--ecode-accent)] px-5 py-3 text-[15px] font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                    data-testid="gallery-remix"
+                  >
+                    {remixing ? (
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                    ) : (
+                      <GitFork className="h-4 w-4" aria-hidden />
+                    )}
+                    {remixing ? 'Remixing…' : 'Remix this app'}
+                  </button>
+                </Form>
+              ) : (
+                <p
+                  className="mt-4 rounded-md border border-[var(--ecode-border)] bg-[var(--ecode-background)] px-3 py-2 text-[13px] text-[var(--ecode-text-muted)]"
+                  data-testid="gallery-remix-disabled"
+                >
+                  The author has not allowed this app to be remixed.
+                </p>
+              )}
 
               {actionData?.error ? (
                 <p className="mt-3 rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-3 py-2 text-[13px] text-[var(--status-error-text)]">
@@ -236,7 +312,8 @@ export default function GalleryDetailRoute() {
               ) : null}
 
               <p className="mt-4 text-[12px] leading-5 text-[var(--ecode-text-muted)]">
-                Remixing creates a private copy in your workspace. Secrets from the original are never copied.
+                Remixing creates a private copy in your workspace. Secrets from the original are never copied, and
+                personal data is masked unless the author consented to share it.
               </p>
 
               <a

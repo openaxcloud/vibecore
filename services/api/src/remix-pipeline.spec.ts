@@ -6,7 +6,10 @@ import {
   RemixInvariantError,
   assertRemixTransition,
   detachCredentials,
+  luhnValid,
+  maskPiiInFiles,
   scanClonedFilesForSecrets,
+  scanFilesForPii,
   scrubSecretsFromFiles,
 } from './remix-pipeline.js';
 
@@ -121,5 +124,75 @@ describe('scrubSecretsFromFiles — CLONING strips materialized values', () => {
 describe('storage policies', () => {
   it('exposes exactly DETACH / CLONE / SHARE_WITH_CONSENT', () => {
     expect(REMIX_STORAGE_POLICIES).toEqual(['DETACH', 'CLONE', 'SHARE_WITH_CONSENT']);
+  });
+});
+
+describe('SOURCE_SANITIZED — PII masking (I-RMX-3, P0-V3-05)', () => {
+  it('sits between CREDENTIALS_DETACHED and CLONING in the normative order', () => {
+    const detachedIdx = REMIX_STATE_ORDER.indexOf('CREDENTIALS_DETACHED');
+    expect(REMIX_STATE_ORDER[detachedIdx + 1]).toBe('SOURCE_SANITIZED');
+    expect(REMIX_STATE_ORDER[detachedIdx + 2]).toBe('CLONING');
+    expect(() => assertRemixTransition('CREDENTIALS_DETACHED', 'SOURCE_SANITIZED')).not.toThrow();
+    expect(() => assertRemixTransition('SOURCE_SANITIZED', 'CLONING')).not.toThrow();
+    // Skipping sanitization is an illegal transition, like any skipped step.
+    expect(() => assertRemixTransition('CREDENTIALS_DETACHED', 'CLONING')).toThrow(RemixInvariantError);
+  });
+
+  it('masks a real email but keeps RFC 2606 fixture addresses', () => {
+    const { files, masked } = maskPiiInFiles([
+      { path: 'seed.csv', content: 'jane.doe@acme-corp.fr\nsupport@example.com\nbot@sub.example.org\n' },
+    ]);
+
+    expect(files[0].content).toContain('[PII:email masked on remix]');
+    expect(files[0].content).not.toContain('jane.doe@acme-corp.fr');
+    expect(files[0].content).toContain('support@example.com');
+    expect(files[0].content).toContain('bot@sub.example.org');
+    expect(masked).toEqual([{ path: 'seed.csv', kind: 'email', line: 1 }]);
+  });
+
+  it('masks international phone numbers but never bare digit runs (ids, ports)', () => {
+    const { files, masked } = maskPiiInFiles([
+      { path: 'contacts.txt', content: 'call +33 6 12 34 56 78\nport 5432 id 1720000000000\n' },
+    ]);
+
+    expect(files[0].content).toContain('[PII:phone masked on remix]');
+    expect(files[0].content).toContain('port 5432 id 1720000000000');
+    expect(masked.map((m) => m.kind)).toEqual(['phone']);
+  });
+
+  it('masks Luhn-valid card numbers only (the check is the guard against false positives)', () => {
+    expect(luhnValid('4242424242424242')).toBe(true);
+    expect(luhnValid('4242424242424241')).toBe(false);
+
+    const { files, masked } = maskPiiInFiles([
+      { path: 'cards.txt', content: 'ok 4242 4242 4242 4242\nnot-a-card 4242 4242 4242 4241\n' },
+    ]);
+
+    expect(files[0].content).toContain('[PII:card masked on remix]');
+    expect(files[0].content).toContain('4242 4242 4242 4241'); // fails Luhn — untouched
+    expect(masked.map((m) => m.kind)).toEqual(['card']);
+  });
+
+  it('masks IBANs and leaves binary files alone', () => {
+    const { files, masked } = maskPiiInFiles([
+      { path: 'pay.txt', content: 'FR76 3000 6000 0112 3456 7890 189\n' },
+      { path: 'img.png', content: 'FR76 3000 6000 0112 3456 7890 189', encoding: 'base64' },
+    ]);
+
+    expect(files[0].content).toContain('[PII:iban masked on remix]');
+    expect(files[1].content).toContain('FR76'); // binary blob — not text-maskable
+    expect(masked).toHaveLength(1);
+  });
+
+  it('masked output re-scans CLEAN — findings carry kind + location, never the value', () => {
+    const dirty = [
+      { path: 'seed.csv', content: 'jane@acme-corp.fr,+33612345678,4242424242424242\n' },
+    ];
+    const { files, masked } = maskPiiInFiles(dirty);
+
+    expect(masked.length).toBeGreaterThanOrEqual(3);
+    expect(scanFilesForPii(files)).toEqual([]); // the proof state
+    expect(JSON.stringify(masked)).not.toContain('jane@acme-corp.fr');
+    expect(JSON.stringify(masked)).not.toContain('4242');
   });
 });

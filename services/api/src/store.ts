@@ -159,6 +159,16 @@ export interface GalleryListingRecord {
   authorName: string;
   authorUserId?: string;
   appUrl?: string;
+  /** Curation gate: false = view-only listing, remix refused (P0-V3-05). */
+  remixAllowed: boolean;
+  /** Declared license id (e.g. SPDX "MIT"); undefined = none declared. */
+  licenseId?: string;
+  /** Versioned license text snapshot captured at curation. */
+  licenseText?: string;
+  /** sha256 pin of licenseText — what a RemixJob records as accepted. */
+  licenseTextSha256?: string;
+  /** Author's explicit versioned PII consent; undefined = PII masked on remix. */
+  piiConsentVersion?: string;
   viewCount: number;
   useCount: number;
   createdAt: string;
@@ -1295,6 +1305,10 @@ export interface ApiStore {
     sourceSnapshotId?: string;
     /** The gallery listing the remix was launched from (provenance). */
     sourceListingId?: string;
+    /** Versioned license captured at remix time (immutable on the job). */
+    licenseSnapshot?: unknown;
+    /** Consent-text version the remixer explicitly accepted. */
+    consentVersion?: string;
   }): Promise<{ id: string; state: string }>;
   /** Advance / annotate a remix job. Partial patch. */
   updateRemixJob(
@@ -1309,6 +1323,8 @@ export interface ApiStore {
       error?: string;
       sourceSnapshotId?: string;
       sourceListingId?: string;
+      piiFindings?: unknown;
+      piiMaskedCount?: number;
     },
   ): Promise<void>;
   getRemixJob(id: string): Promise<
@@ -1326,6 +1342,10 @@ export interface ApiStore {
         error?: string;
         sourceSnapshotId?: string;
         sourceListingId?: string;
+        licenseSnapshot?: unknown;
+        consentVersion?: string;
+        piiFindings?: unknown;
+        piiMaskedCount: number;
         createdAt: string;
       }
     | undefined
@@ -1344,6 +1364,11 @@ export interface ApiStore {
     authorName: string;
     authorUserId?: string;
     appUrl?: string;
+    remixAllowed?: boolean;
+    licenseId?: string;
+    licenseText?: string;
+    licenseTextSha256?: string;
+    piiConsentVersion?: string;
     publishedAt?: string;
   }): Promise<GalleryListingRecord>;
   /** Browse published listings, filtered by category / free-text / featured. */

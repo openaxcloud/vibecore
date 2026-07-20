@@ -26,7 +26,7 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: APPROVAL_STATUS.json
-    sha256: "af017d0ca5d4e809ad905d1670331e7f9c98c5ca6b5d227c0462f73abfcb9507"
+    sha256: "5f724c09b367f9101d15d1ac0c09b33d8cf335e210c1ca0440035b6986fa7cd9"
     schemaVersion: null
     repoCommit: null
     reviewer: UNKNOWN
@@ -61,7 +61,7 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: CHANGELOG_AUDIT.md
-    sha256: "33f621d8f81dd2b7f43767ef8708c899b213a4ef0b29ff2d10c765dfb4befa54"
+    sha256: "6529f5d64702b1eee80371819c93b57412628e3647f9883b0f7050f494c4023a"
     schemaVersion: 1
     repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
     reviewer: UNKNOWN
@@ -101,7 +101,7 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: DECISION_REGISTRY.yaml
-    sha256: "0b96c30144a6352fdf794409f25e901aa2affc403e53530aea03f60b5761a535"
+    sha256: "ee5dafbd767d5232d77de1039dc27c241303c6ab80e4cda4cc6ac18333294ba7"
     schemaVersion: 1
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN
@@ -116,7 +116,7 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: DOMAIN_MODEL.md
-    sha256: "f53e618456754d1e540bb74020f416988b5bfff3c9b1b5507cc26bd9a0a59798"
+    sha256: "d9e58eaacc8de64145660c94dc50b8f06019d7ac674b682118f21b62a9d818f6"
     schemaVersion: 1
     repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
     reviewer: UNKNOWN
@@ -206,7 +206,7 @@ documents:
     repoCommit: d1063912
     reviewer: UNKNOWN
   - file: P0_REGISTRY.yaml
-    sha256: "d498aa9661a23c6c7f8cf9e5886758b4b8fe2ebe43d0c3dc5bcff235bf000145"
+    sha256: "b82a3c5a7c9fe231035344d40bc43e6f76eb25559b6cbeba7acc7cb0d7caa205"
     schemaVersion: 1
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN
@@ -216,12 +216,12 @@ documents:
     repoCommit: af9e4e83
     reviewer: UNKNOWN
   - file: PARITY_STATUS.md
-    sha256: "cd1be68c185019db30dbea108276298a2fcf6cfdb541d2f61c3524f6293b69b2"
+    sha256: "6a04253d451c92e5e34b74625c32fb30aeeada5f538483c962a8d6a4a1112e58"
     schemaVersion: 2
     repoCommit: f1783993
     reviewer: UNKNOWN
   - file: PARITY_STATUS_NOTES.md
-    sha256: "cc72d2d18e80efb0b398832003c77521ea280286e7e3a4773ae455f2cc377cfd"
+    sha256: "a14ce6eade730143bea186e3e22042efd9a2b3300248fe80b0faeb32d75f58cd"
     schemaVersion: 1
     repoCommit: fed58e96
     reviewer: UNKNOWN

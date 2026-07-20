@@ -1882,6 +1882,10 @@ export class TestApiStore implements ApiStore {
       error?: string;
       sourceSnapshotId?: string;
       sourceListingId?: string;
+      licenseSnapshot?: unknown;
+      consentVersion?: string;
+      piiFindings?: unknown;
+      piiMaskedCount: number;
       createdAt: string;
     }
   >();
@@ -1893,6 +1897,8 @@ export class TestApiStore implements ApiStore {
     storagePolicy: string;
     sourceSnapshotId?: string;
     sourceListingId?: string;
+    licenseSnapshot?: unknown;
+    consentVersion?: string;
   }) {
     const row = {
       id: id('remix'),
@@ -1904,6 +1910,9 @@ export class TestApiStore implements ApiStore {
       dbForked: false,
       sourceSnapshotId: input.sourceSnapshotId,
       sourceListingId: input.sourceListingId,
+      licenseSnapshot: input.licenseSnapshot,
+      consentVersion: input.consentVersion,
+      piiMaskedCount: 0,
       createdAt: now(),
     };
     this.remixJobs.set(row.id, row);
@@ -1922,6 +1931,8 @@ export class TestApiStore implements ApiStore {
       error?: string;
       sourceSnapshotId?: string;
       sourceListingId?: string;
+      piiFindings?: unknown;
+      piiMaskedCount?: number;
     },
   ) {
     const row = this.remixJobs.get(id);
@@ -1950,6 +1961,11 @@ export class TestApiStore implements ApiStore {
     authorName: string;
     authorUserId?: string;
     appUrl?: string;
+    remixAllowed?: boolean;
+    licenseId?: string;
+    licenseText?: string;
+    licenseTextSha256?: string;
+    piiConsentVersion?: string;
     publishedAt?: string;
   }): Promise<GalleryListingRecord> {
     const status = input.status ?? 'PUBLISHED';
@@ -1967,6 +1983,11 @@ export class TestApiStore implements ApiStore {
       authorName: input.authorName,
       authorUserId: input.authorUserId,
       appUrl: input.appUrl,
+      remixAllowed: input.remixAllowed ?? true,
+      licenseId: input.licenseId,
+      licenseText: input.licenseText,
+      licenseTextSha256: input.licenseTextSha256,
+      piiConsentVersion: input.piiConsentVersion,
       viewCount: 0,
       useCount: 0,
       createdAt: now(),

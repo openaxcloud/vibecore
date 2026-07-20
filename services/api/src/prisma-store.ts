@@ -1166,6 +1166,8 @@ export class PrismaApiStore implements ApiStore {
     storagePolicy: string;
     sourceSnapshotId?: string;
     sourceListingId?: string;
+    licenseSnapshot?: unknown;
+    consentVersion?: string;
   }) {
     const row = await this.prisma.remixJob.create({
       data: {
@@ -1175,6 +1177,8 @@ export class PrismaApiStore implements ApiStore {
         storagePolicy: input.storagePolicy,
         sourceSnapshotId: input.sourceSnapshotId ?? null,
         sourceListingId: input.sourceListingId ?? null,
+        licenseSnapshot: (input.licenseSnapshot as object | undefined) ?? undefined,
+        consentVersion: input.consentVersion ?? null,
         state: 'SNAPSHOT_PINNED',
       },
     });
@@ -1194,6 +1198,8 @@ export class PrismaApiStore implements ApiStore {
       error?: string;
       sourceSnapshotId?: string;
       sourceListingId?: string;
+      piiFindings?: unknown;
+      piiMaskedCount?: number;
     },
   ) {
     await this.prisma.remixJob.update({
@@ -1208,6 +1214,8 @@ export class PrismaApiStore implements ApiStore {
         ...(patch.error !== undefined ? { error: patch.error } : {}),
         ...(patch.sourceSnapshotId !== undefined ? { sourceSnapshotId: patch.sourceSnapshotId } : {}),
         ...(patch.sourceListingId !== undefined ? { sourceListingId: patch.sourceListingId } : {}),
+        ...(patch.piiFindings !== undefined ? { piiFindings: patch.piiFindings as object } : {}),
+        ...(patch.piiMaskedCount !== undefined ? { piiMaskedCount: patch.piiMaskedCount } : {}),
       },
     });
   }
@@ -1233,6 +1241,10 @@ export class PrismaApiStore implements ApiStore {
       error: row.error ?? undefined,
       sourceSnapshotId: row.sourceSnapshotId ?? undefined,
       sourceListingId: row.sourceListingId ?? undefined,
+      licenseSnapshot: row.licenseSnapshot as unknown,
+      consentVersion: row.consentVersion ?? undefined,
+      piiFindings: row.piiFindings as unknown,
+      piiMaskedCount: row.piiMaskedCount,
       createdAt: row.createdAt.toISOString(),
     };
   }
@@ -1251,6 +1263,11 @@ export class PrismaApiStore implements ApiStore {
     authorName: string;
     authorUserId: string | null;
     appUrl: string | null;
+    remixAllowed: boolean;
+    licenseId: string | null;
+    licenseText: string | null;
+    licenseTextSha256: string | null;
+    piiConsentVersion: string | null;
     viewCount: number;
     useCount: number;
     createdAt: Date;
@@ -1270,6 +1287,11 @@ export class PrismaApiStore implements ApiStore {
       authorName: row.authorName,
       authorUserId: row.authorUserId ?? undefined,
       appUrl: row.appUrl ?? undefined,
+      remixAllowed: row.remixAllowed,
+      licenseId: row.licenseId ?? undefined,
+      licenseText: row.licenseText ?? undefined,
+      licenseTextSha256: row.licenseTextSha256 ?? undefined,
+      piiConsentVersion: row.piiConsentVersion ?? undefined,
       viewCount: row.viewCount,
       useCount: row.useCount,
       createdAt: row.createdAt.toISOString(),
@@ -1290,6 +1312,11 @@ export class PrismaApiStore implements ApiStore {
     authorName: string;
     authorUserId?: string;
     appUrl?: string;
+    remixAllowed?: boolean;
+    licenseId?: string;
+    licenseText?: string;
+    licenseTextSha256?: string;
+    piiConsentVersion?: string;
     publishedAt?: string;
   }) {
     const status = input.status ?? 'PUBLISHED';
@@ -1307,6 +1334,11 @@ export class PrismaApiStore implements ApiStore {
         authorName: input.authorName,
         authorUserId: input.authorUserId ?? null,
         appUrl: input.appUrl ?? null,
+        remixAllowed: input.remixAllowed ?? true,
+        licenseId: input.licenseId ?? null,
+        licenseText: input.licenseText ?? null,
+        licenseTextSha256: input.licenseTextSha256 ?? null,
+        piiConsentVersion: input.piiConsentVersion ?? null,
         // A row published at creation records publishedAt so the detail page
         // can show a real date; a PENDING_REVIEW row leaves it null.
         publishedAt: input.publishedAt
