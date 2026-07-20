@@ -49,7 +49,7 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: BILLING_LEDGER_CONTRACT.md
-    sha256: "217ee373f6bf22cefef25408a8ec443be878544fc99d5cd590d3e8d9fcc91611"
+    sha256: "499db0d210bb7aaa406d50b34105a05cf13e43302ae49724ef4175a16ce46beb"
     schemaVersion: 1
     repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
     reviewer: UNKNOWN
@@ -169,12 +169,12 @@ documents:
     repoCommit: d56931bd
     reviewer: UNKNOWN
   - file: IMPLEMENTATION_FACTS.yaml
-    sha256: "04e391e5c09958e1d98db478c070a303a79aaf87d48be3889b8cf76f9293db5e"
+    sha256: "2aae288d925879ae4952f9377b6dbc4641aa2e0a9e33fca670f6074497405c41"
     schemaVersion: 1
     repoCommit: af24d4fe
     reviewer: UNKNOWN
   - file: IMPLEMENTATION_STATUS.yaml
-    sha256: "c718f2fa53b51b276a2391ab9aac5c3e7820d64da2264e49c533c73a4eb4e222"
+    sha256: "3300735e5966ee6511d65c9e067bfcb337b3a1bfa1c863efa3d8c7a6f6a87f49"
     schemaVersion: 2
     repoCommit: null
     reviewer: UNKNOWN
@@ -219,7 +219,7 @@ documents:
     repoCommit: d1063912
     reviewer: UNKNOWN
   - file: P0_REGISTRY.yaml
-    sha256: "e211e46efb43d367cdae57366fea106d8b3018ad8240e7139108db96f99e413b"
+    sha256: "3799b7c923171bfa8d5e445b96b61ffb17bbc9003680f628c78dbf15ac3863a0"
     schemaVersion: 1
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN

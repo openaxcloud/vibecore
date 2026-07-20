@@ -42,3 +42,45 @@ runtime. Ne PAS retaper ces prix ailleurs.
 BILLING_CREDITS_ENABLED (débit réel) / BILLING_CREDITS_SHADOW (calcul sans
 débit — état prod actuel: SHADOW). MODEL_REGISTRY_DB=true rendrait le registre
 ModelConfig autoritatif (dormant).
+
+## Grand livre CANONIQUE à double entrée (C1 / P0-V3-12, 2026-07-20)
+
+Décision Avi : **nouveau ledger adopté, ancien porte-monnaie (`CreditWallet.
+balanceCents`) abandonné, AUCUNE migration de soldes**. Le grand livre canonique
+double-entrée devient la source de vérité des soldes.
+
+Modèles (migration `0078_double_entry_ledger`) : `LedgerAccount` (compte typé
+ASSET/LIABILITY/REVENUE/EXPENSE/EQUITY, par devise), `LedgerTransaction`
+(idempotente, `reversalOfId` pour la compensation, `rateCardVersion` stampée),
+`LedgerEntry` (DEBIT/CREDIT, `amountMinor` BigInt exact), `LedgerReservation`
+(durable, remplace la réservation en-mémoire de #27), `LedgerFxRate` (rationnel
+`num/den` + `cutoffAt`), `LedgerReconciliationRun`.
+
+Invariants :
+- **I-LED-1** double entrée stricte : Σ débits == Σ crédits **par devise**, validé
+  AVANT écriture (déséquilibre refusé, jamais posté).
+- **I-LED-2** décimal exact (`bigint` unités mineures, jamais de flottant) ; FX
+  rationnel exact + arrondi déterministe + **cutoff** honoré.
+- **I-LED-3** immutabilité : transactions/entrées postées append-only au niveau DB
+  (triggers `BEFORE UPDATE/DELETE` ET `BEFORE TRUNCATE`) ; correction = nouvelle
+  transaction **inverse** (`reversalOfId`), jamais une mutation.
+- **I-LED-4** hard limit aux frontières sûres : un mouvement qui dépasserait la
+  frontière est refusé en entier, rien de posté (jamais de corruption).
+
+Cycle réservation (durable) : `reserve` (transfert available→reserved) → `commit`
+= `settle` (recognition revenue ± taxe, remboursement du reliquat) → `compensate`
+(écriture inverse, remboursement au crédit disponible) OU `release` (annulation/
+timeout, retour intégral). **Débit = uniquement au settle** ; pas de commit ⇒ pas de
+débit.
+
+Rapprochement : `reconcile(ledger, external)` compare GCP/Stripe ↔ ledger et
+détecte tout écart (MISSING/AMOUNT_MISMATCH), persisté en `LedgerReconciliationRun`.
+
+Preuve (39 tests, dont 7 durables contre un vrai Postgres) :
+`docs/deploy-evidence/2026-07-20-double-entry-ledger/`.
+
+État : **PROVEN_REVIEW_PENDING** — implémenté + prouvé sur branche
+`feat/billing-double-entry-ledger` (PR ouverte, non mergée). Câblage de l'endpoint
+import sur `LedgerStore` = à la convergence avec #27. Budgets/taxes/refunds/
+chargebacks modélisés par les primitives ; proration calendaire + capture/void
+Stripe réels = follow-ups.
