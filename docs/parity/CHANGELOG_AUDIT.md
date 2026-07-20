@@ -234,3 +234,38 @@ Règle: append-only; chaque entrée = date UTC, acteur, événement, artefacts.
   DOCUMENT_MANIFEST.yaml généré (hash de chaque compagnon, drift-check CI) ;
   TRACEABILITY_MATRIX amorcée ; generatedAt réel (2026-07-20T04:20:00Z),
   mergedToMainAt: null (honnête).
+## 2026-07-19 (assainissement secret-scan des snapshots du 16/07 — porté sur main)
+
+- (triage sécurité) Les 3 détections du scan bloquant sur l'arbre (règle
+  generic-api-key, mêmes 3 depuis le 16/07) ont été examinées une à une :
+  (1)(2) `pricing.html` / `pricing.rendered.html` = jeton CLIENT public
+  Datadog (préfixe `pub…`) embarqué par replit.com dans sa propre page — public
+  par conception ; (3) `gallery-detail-journey-mapper.rendered.html` = valeur
+  `"_key"` interne du CMS de la page (identifiant aléatoire, pas un
+  credential). **Verdict : 3 faux positifs, aucun secret réel, aucun secret
+  E-Code — pas d'incident, pas de rotation.** Snapshots des 17/18/19-07
+  vérifiés : aucun motif présent.
+- (assainissement) Valeurs caviardées dans les 3 snapshots ; sha256 recalculés
+  dans `SOURCE_REGISTRY.yaml` (SRC-PRICING, SRC-GALLERY-DETAIL-JOURNEY-MAPPER,
+  annotés « snapshot assaini ») et `baseline/snapshots/2026-07-16/manifest.json`.
+- (prévention) `collect-baseline.mjs` caviarde AUTOMATIQUEMENT ces motifs
+  publics (AIza…, dd-api-key=pub…) avant écriture et hash. Aucun motif de
+  vrai secret n'est caviardé : un vrai secret doit faire échouer le scan.
+- (note) Même contenu que le commit 9eab2990 de la PR #3 (hashes identiques) —
+  porté sur main séparément pour débloquer le scan de toutes les PR ; le merge
+  ultérieur de la PR #3 sera sans divergence sur ces fichiers.
+
+## 2026-07-20 (merge origin/main dans la branche audit2)
+
+- (réconciliation) origin/main mergé (a7b69ab7) : la PR #10 (assainissement,
+  contenu identique) et le snapshot quotidien du 20/07 sont intégrés ; le
+  CHANGELOG conserve les deux entrées d'assainissement (17/07 branche,
+  19/07 main) — append-only, aucune supprimée.
+- (fait, non encore prouvé dans les registres) D2 (rollback permanent,
+  2f1fe1db) et D3 (Nix multi-zone, 0ea1211b) sont MERGÉS sur main avec
+  artefacts (`docs/deploy-evidence/2026-07-17-rollback-permanent/`,
+  `…-nix-multizone/COST_REPORT.md`) et la PR #6 sécurité est mergée.
+  Les UNKNOWNs de gate (`UNK-ROLLBACK-FLAG-APPLIED`,
+  `UNK-NIX-MULTIZONE-IMPL`) restent OUVERTS ici : leur clôture exige la
+  vérification des preuves live par leurs sessions — un merge n'est pas une
+  preuve.

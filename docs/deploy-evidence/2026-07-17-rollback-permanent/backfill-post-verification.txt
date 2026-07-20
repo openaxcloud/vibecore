@@ -1,0 +1,4 @@
+# list (candidats restants) après apply : []
+# idempotence (re-apply 1er id) : UNCHANGED (already has digest / not eligible) cmrnpxe33000m0n9jh7b88je6
+# compte final 2026-07-17 : {"ready":18,"withDigest":14,"noDigest":4}
+# re-vérifié 2026-07-20 (post-perte du worktree) : {"ready":18,"withDigest":14} — le backfill TIENT en DB

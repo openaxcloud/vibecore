@@ -164,6 +164,163 @@ export interface WorkspaceRuntimeInput {
    * pinned by generation in Helm values; evolving it = a new disk + re-point.
    */
   nixStorePvcName?: string;
+
+  /*
+   * D3 multi-zone (approved 2026-07-17): the store exists as an IDENTICAL zonal
+   * clone in every active zone (same generation snapshot). The pod must be
+   * pinned to the zone whose clone it mounts — a zonal PD can only attach in
+   * its own zone, and without the pin the scheduler could place the pod in a
+   * zone where the referenced PVC's disk does not exist (unschedulable pod).
+   */
+  nixStoreZone?: string;
+
+  /*
+   * Generation drift guard: `sha256:<64 hex>` of /nix/ecode/catalog.json for
+   * the generation this pod expects. When set (with nixStorePvcName), an
+   * initContainer verifies the mounted store's catalog hash BEFORE the
+   * workspace starts — a clone carrying a different generation BLOCKS the pod
+   * instead of silently serving drifted toolchains.
+   */
+  nixStoreGenerationHash?: string;
+}
+
+/* ---------------------------------------------------------------------------
+ * D3 — multi-zone shared Nix store placement (approved 2026-07-17).
+ *
+ * The store is replicated as one IDENTICAL zonal pd clone per active zone
+ * (same snapshot ⇒ same generationId/contentHash/signature). Since a PVC is
+ * bound 1:1 to a zonal PV, the zone choice must happen at pod-creation time:
+ * the caller picks a zone (topology-aware: the zone with live schedulable
+ * sandbox capacity), mounts THAT zone's PVC and pins the pod there.
+ * ------------------------------------------------------------------------- */
+
+export interface NixStoreZonePvc {
+  zone: string;
+  pvcName: string;
+}
+
+/**
+ * Parse the NIX_STORE_PVC_ZONES env format: `zone=pvcName[,zone=pvcName…]`,
+ * e.g. `europe-west9-a=nix-store-v2-pvc,europe-west9-b=nix-store-v2-b-pvc`.
+ * Order is the PREFERENCE order (first zone wins capacity ties). Malformed
+ * entries are dropped rather than guessed at.
+ */
+export function parseNixStorePvcZones(raw: string | undefined): NixStoreZonePvc[] {
+  if (!raw) {
+    return [];
+  }
+
+  return raw
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => {
+      const idx = entry.indexOf('=');
+
+      if (idx <= 0 || idx === entry.length - 1) {
+        return undefined;
+      }
+
+      return { zone: entry.slice(0, idx).trim(), pvcName: entry.slice(idx + 1).trim() };
+    })
+    .filter((entry): entry is NixStoreZonePvc => Boolean(entry?.zone && entry?.pvcName));
+}
+
+/**
+ * Pick the zone whose store clone a new pod should mount: the configured zone
+ * with the most Ready, uncordoned nodes (any capacity signal beats none — a
+ * cordoned/stocked-out zone counts 0 and loses). Ties resolve to CONFIGURED
+ * ORDER (first = preferred, warm zone). With no usable signal at all (empty
+ * node list, e.g. an RBAC failure upstream) it falls back to the first
+ * configured zone — the pre-multi-zone behaviour, never a refusal.
+ */
+export function chooseNixStoreZone(
+  zones: readonly NixStoreZonePvc[],
+  nodes: readonly K8sObject[],
+): NixStoreZonePvc | undefined {
+  if (zones.length === 0) {
+    return undefined;
+  }
+
+  const schedulable = new Map<string, number>();
+
+  for (const node of nodes) {
+    const raw = node as {
+      metadata?: { labels?: Record<string, string> };
+      spec?: { unschedulable?: boolean };
+      status?: { conditions?: Array<{ type?: string; status?: string }> };
+    };
+    const zone = raw.metadata?.labels?.['topology.kubernetes.io/zone'];
+
+    if (!zone || raw.spec?.unschedulable) {
+      continue;
+    }
+
+    const ready = (raw.status?.conditions ?? []).some((c) => c.type === 'Ready' && c.status === 'True');
+
+    if (!ready) {
+      continue;
+    }
+
+    schedulable.set(zone, (schedulable.get(zone) ?? 0) + 1);
+  }
+
+  let best: NixStoreZonePvc | undefined;
+  let bestCount = -1;
+
+  for (const candidate of zones) {
+    const count = schedulable.get(candidate.zone) ?? 0;
+
+    if (count > bestCount) {
+      best = candidate;
+      bestCount = count;
+    }
+  }
+
+  return bestCount > 0 ? best : zones[0];
+}
+
+const NIX_GENERATION_HASH = /^sha256:[a-f0-9]{64}$/;
+
+/**
+ * Generation drift guard (D3: "une dérive bloque le pod"). Verifies the
+ * mounted store's `/nix/ecode/catalog.json` — the ed25519-signed generation
+ * catalog every clone carries — hashes to the expected value BEFORE the main
+ * container starts. A clone restored from the wrong snapshot fails here and
+ * the pod never runs with a drifted toolchain. Runs the pod's own image (it
+ * is already pulled and provides sh + sha256sum).
+ */
+export function nixStoreGuardInitContainer(image: string, expectedCatalogHash: string) {
+  if (!NIX_GENERATION_HASH.test(expectedCatalogHash)) {
+    throw new Error(`nixStoreGenerationHash must be sha256:<64 hex>, got "${expectedCatalogHash}"`);
+  }
+
+  return {
+    name: 'nix-store-guard',
+    image,
+    command: [
+      'sh',
+      '-c',
+      'actual="sha256:$(sha256sum /nix/ecode/catalog.json | cut -c1-64)"; ' +
+        'if [ "$actual" != "$NIX_STORE_EXPECTED_CATALOG_SHA256" ]; then ' +
+        'echo "nix store generation drift: mounted $actual, expected $NIX_STORE_EXPECTED_CATALOG_SHA256 — refusing to start" >&2; exit 1; ' +
+        'fi; echo "nix store generation verified ($actual)"',
+    ],
+    env: [{ name: 'NIX_STORE_EXPECTED_CATALOG_SHA256', value: expectedCatalogHash }],
+    volumeMounts: [{ name: 'nix-store', mountPath: '/nix', readOnly: true }],
+    resources: {
+      requests: { cpu: '50m', memory: '32Mi' },
+      limits: { cpu: '200m', memory: '64Mi' },
+    },
+    securityContext: {
+      allowPrivilegeEscalation: false,
+      privileged: false,
+      runAsNonRoot: true,
+      runAsUser: 1000,
+      capabilities: { drop: ['ALL'] },
+      seccompProfile: { type: 'RuntimeDefault' },
+    },
+  };
 }
 
 export interface WorkspaceResourceLimits {
@@ -482,6 +639,14 @@ export function workspacePod(input: WorkspaceRuntimeInput): K8sObject {
   const resources = resolveWorkspaceResources(input);
   const sandboxSchedulingEnabled = process.env.WORKSPACE_DISABLE_SANDBOX_SCHEDULING !== '1';
 
+  /*
+   * D3 multi-zone: a pod mounting a zonal store clone must be pinned to that
+   * clone's zone (the PV's disk only attaches there). Present ONLY when the
+   * caller resolved a zone — otherwise the selector is byte-for-byte unchanged.
+   */
+  const nixZoneSelector: Record<string, string> =
+    input.nixStorePvcName && input.nixStoreZone ? { 'topology.kubernetes.io/zone': input.nixStoreZone } : {};
+
   return {
     apiVersion: 'v1',
     kind: 'Pod',
@@ -493,12 +658,19 @@ export function workspacePod(input: WorkspaceRuntimeInput): K8sObject {
       ...(sandboxSchedulingEnabled
         ? {
             runtimeClassName: 'gvisor',
-            nodeSelector: { 'vibecore.ai/node-pool': 'sandbox' },
+            nodeSelector: { 'vibecore.ai/node-pool': 'sandbox', ...nixZoneSelector },
             tolerations: [
               { key: 'vibecore.ai/sandbox', operator: 'Equal', value: 'true', effect: 'NoSchedule' },
               { key: 'sandbox.gke.io/runtime', operator: 'Equal', value: 'gvisor', effect: 'NoSchedule' },
             ],
           }
+        : Object.keys(nixZoneSelector).length > 0
+          ? { nodeSelector: nixZoneSelector }
+          : {}),
+      // Generation drift guard (D3): verify the mounted clone's catalog hash
+      // before the agent starts — a wrong-generation clone blocks the pod.
+      ...(input.nixStorePvcName && input.nixStoreGenerationHash
+        ? { initContainers: [nixStoreGuardInitContainer(input.image, input.nixStoreGenerationHash)] }
         : {}),
       automountServiceAccountToken: false,
       securityContext: {
@@ -699,6 +871,12 @@ export interface ServerRuntimeInput {
    * pod spec is byte-for-byte the pre-Nix shape (no volumes key at all).
    */
   nixStorePvcName?: string;
+
+  /** D3 multi-zone: pin the app pod to the zone of the store clone it mounts. */
+  nixStoreZone?: string;
+
+  /** D3 drift guard: expected sha256 of /nix/ecode/catalog.json (blocks the pod on mismatch). */
+  nixStoreGenerationHash?: string;
 }
 
 /** Stable resource name for a server deployment's Deployment/Service/Ingress. */
@@ -769,12 +947,24 @@ export function serverAppDeployment(input: ServerRuntimeInput): K8sObject {
           ...(sandbox
             ? {
                 runtimeClassName: 'gvisor',
-                nodeSelector: { 'vibecore.ai/node-pool': 'sandbox' },
+                nodeSelector: {
+                  'vibecore.ai/node-pool': 'sandbox',
+                  // D3 multi-zone: pin to the zone of the mounted store clone.
+                  ...(input.nixStorePvcName && input.nixStoreZone
+                    ? { 'topology.kubernetes.io/zone': input.nixStoreZone }
+                    : {}),
+                },
                 tolerations: [
                   { key: 'vibecore.ai/sandbox', operator: 'Equal', value: 'true', effect: 'NoSchedule' },
                   { key: 'sandbox.gke.io/runtime', operator: 'Equal', value: 'gvisor', effect: 'NoSchedule' },
                 ],
               }
+            : input.nixStorePvcName && input.nixStoreZone
+              ? { nodeSelector: { 'topology.kubernetes.io/zone': input.nixStoreZone } }
+              : {}),
+          // D3 drift guard: wrong-generation clone ⇒ init fails ⇒ pod blocked.
+          ...(input.nixStorePvcName && input.nixStoreGenerationHash
+            ? { initContainers: [nixStoreGuardInitContainer(input.image, input.nixStoreGenerationHash)] }
             : {}),
           automountServiceAccountToken: false,
           securityContext: {

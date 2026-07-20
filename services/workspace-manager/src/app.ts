@@ -285,9 +285,18 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
    * docker-context artifact out, disposable gVisor pod in between. Synchronous —
    * returns { exitCode, output, timedOut, phase } once the pod terminates.
    */
-  app.post('/app-builds/run', async (request) =>
-    runAppBuild(manager.k8s, { ...appBuildSchema.parse(request.body), namespace: runtimeNamespace() }),
-  );
+  app.post('/app-builds/run', async (request) => {
+    const body = appBuildSchema.parse(request.body);
+
+    /*
+     * D3 multi-zone: same placement resolution as workspaces/app pods — the
+     * build pod mounts the store clone of a zone with live capacity and is
+     * pinned there (plus the generation drift guard).
+     */
+    const nixPlacement = await manager.resolveNixStorePlacement(body.nixStorePvcName);
+
+    return runAppBuild(manager.k8s, { ...body, ...nixPlacement, namespace: runtimeNamespace() });
+  });
   app.get('/server-deployments/:deploymentId/status', async (request) =>
     manager.getServerDeploymentStatus(runtimeNamespace(), (request.params as any).deploymentId),
   );

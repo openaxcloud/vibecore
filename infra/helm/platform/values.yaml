@@ -86,6 +86,20 @@ platformEnv:
     # allowlist ('*' = all). Empty = off, pod specs unchanged.
     nixStorePvc: ''
     nixProjects: ''
+    # D3 multi-zone (approved 2026-07-17): per-zone store clones, same
+    # generation snapshot. Format `zone=pvc,zone=pvc` (order = preference);
+    # empty = legacy single-zone PVC behaviour. nixGenerationHash =
+    # `sha256:<hex>` of /nix/ecode/catalog.json — arms the drift guard
+    # (wrong-generation clone blocks the pod).
+    nixStorePvcZones: ''
+    nixGenerationHash: ''
+    # D2 (approved 2026-07-17): server-deploy rollback re-deploys the RETAINED
+    # image by digest (I-REL-1) — fail-closed. '1' = digest path (the default,
+    # also enforced by the configmap template's `default "1"`); '0' = explicit
+    # kill switch — the api then REFUSES server rollbacks (409) instead of
+    # reviving the silent URL-copy row this replaced. Required by
+    # values.schema.json so an upgrade can never drop it unnoticed.
+    serverDeployRollbackFromDigest: '1'
   email:
     httpEndpoint: ''
     from: ''

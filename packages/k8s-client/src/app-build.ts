@@ -24,7 +24,7 @@
  * The optional shared RO Nix store mounts at /nix (same kill-switch contract as
  * workspace + app pods): absent PVC ⇒ the pod spec carries no /nix at all.
  */
-import type { K8sObject } from './index.js';
+import { nixStoreGuardInitContainer, type K8sObject } from './index.js';
 import { sanitizeK8sName } from './scheduled-job.js';
 
 export function appBuildPodName(deploymentId: string): string {
@@ -65,6 +65,12 @@ export interface AppBuildInput {
 
   /** Shared RO Nix store PVC (kill-switch: absent ⇒ no /nix in the spec). */
   nixStorePvcName?: string;
+
+  /** D3 multi-zone: pin the build pod to the zone of the store clone it mounts. */
+  nixStoreZone?: string;
+
+  /** D3 drift guard: expected sha256 of /nix/ecode/catalog.json (blocks the pod on mismatch). */
+  nixStoreGenerationHash?: string;
   cpuRequest?: string;
   cpuLimit?: string;
   memoryRequest?: string;
@@ -150,12 +156,24 @@ export function appBuildPod(input: AppBuildInput): K8sObject {
       ...(sandboxSchedulingEnabled
         ? {
             runtimeClassName: 'gvisor',
-            nodeSelector: { 'vibecore.ai/node-pool': 'sandbox' },
+            nodeSelector: {
+              'vibecore.ai/node-pool': 'sandbox',
+              // D3 multi-zone: pin to the zone of the mounted store clone.
+              ...(input.nixStorePvcName && input.nixStoreZone
+                ? { 'topology.kubernetes.io/zone': input.nixStoreZone }
+                : {}),
+            },
             tolerations: [
               { key: 'vibecore.ai/sandbox', operator: 'Equal', value: 'true', effect: 'NoSchedule' },
               { key: 'sandbox.gke.io/runtime', operator: 'Equal', value: 'gvisor', effect: 'NoSchedule' },
             ],
           }
+        : input.nixStorePvcName && input.nixStoreZone
+          ? { nodeSelector: { 'topology.kubernetes.io/zone': input.nixStoreZone } }
+          : {}),
+      // D3 drift guard: wrong-generation clone ⇒ init fails ⇒ build never runs.
+      ...(input.nixStorePvcName && input.nixStoreGenerationHash
+        ? { initContainers: [nixStoreGuardInitContainer(input.image, input.nixStoreGenerationHash)] }
         : {}),
       automountServiceAccountToken: false,
       securityContext: {

@@ -42,7 +42,7 @@ class MemoryProjectStorage implements ProjectStorage {
   }
   async deleteFiles() {}
   async exportZip() {
-    return Buffer.from('');
+    return { storageKey: 'export', byteLength: 0, base64: '', createdAt: new Date().toISOString() };
   }
   async importZip() {
     return [];
@@ -53,7 +53,7 @@ class MemoryProjectStorage implements ProjectStorage {
   }
   async deleteObject() {}
   async createSnapshot() {
-    return { id: 'snap', createdAt: new Date().toISOString() };
+    return { storageKey: 'snap', byteLength: 0, createdAt: new Date().toISOString() };
   }
   async getSnapshotFiles() {
     return [];

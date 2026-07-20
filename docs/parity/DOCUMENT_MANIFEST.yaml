@@ -41,7 +41,7 @@ documents:
     repoCommit: 9eab2990
     reviewer: UNKNOWN
   - file: CHANGELOG_AUDIT.md
-    sha256: "7c9c57a3182e7904b1aee81f52395fe7da11e10d3c58e016d16ab1334537278b"
+    sha256: "89e8a2cb7d0342a8e00276bee3a3b7137dd310d7e3ef4029404eaafd68483505"
     schemaVersion: 1
     repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
     reviewer: UNKNOWN

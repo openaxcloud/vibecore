@@ -17289,7 +17289,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { orgId } = parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'members:manage');
 
-    return { invitations: await store.listOrganizationInvites(orgId) };
+    /*
+     * Strip the secret `tokenHash` from every row, exactly like the create /
+     * resend / expire / accept endpoints do. The invite token (and its hash)
+     * must never leave the server; listing invitees must not become a side
+     * channel that exposes it.
+     */
+    const invitations = await store.listOrganizationInvites(orgId);
+
+    return { invitations: invitations.map((invitation) => ({ ...invitation, tokenHash: undefined })) };
   });
   app.post(
     '/orgs/:orgId/invitations',
@@ -28244,6 +28252,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return reply.code(201).send({ pullRequest });
   });
 
+  /*
+   * D2 (approved 2026-07-17): surface WHY a deployment cannot be rolled back to,
+   * instead of letting the client discover it via a 409. A READY server release
+   * whose metadata retained no sha256 image digest (pre-digest builds whose AR
+   * artifact is gone, or rows the backfill could not resolve) is not a valid
+   * rollback target — the digest-only path would refuse it with
+   * ROLLBACK_NO_RETAINED_DIGEST.
+   */
+  const annotateRollbackAvailability = <T extends { provider?: string | null; status?: string | null; metadata?: unknown }>(
+    deployment: T,
+  ): T & { rollbackUnavailableReason?: 'NO_RETAINED_DIGEST' } => {
+    if (deployment.provider !== 'server' || deployment.status !== 'READY') {
+      return deployment;
+    }
+
+    const image = ((deployment.metadata as Record<string, unknown> | null)?.serverDeploy as
+      | { image?: { imageDigest?: string } }
+      | undefined)?.image;
+
+    if (image?.imageDigest && /^sha256:[a-f0-9]{64}$/.test(image.imageDigest)) {
+      return deployment;
+    }
+
+    return { ...deployment, rollbackUnavailableReason: 'NO_RETAINED_DIGEST' };
+  };
+
   app.get('/projects/:projectId/deployments', async (request) => {
     const project = await requireProject(
       request,
@@ -28262,7 +28296,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       deployments.map((deployment) => reconcileDeploymentStatus(store, deployment).catch(() => deployment)),
     );
 
-    return { deployments: reconciled };
+    return { deployments: reconciled.map(annotateRollbackAvailability) };
   });
 
   /*
@@ -28322,7 +28356,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: 'Deployment not found', code: 'DEPLOYMENT_NOT_FOUND' });
     }
 
-    return { deployment: await reconcileDeploymentStatus(store, deployment).catch(() => deployment) };
+    return {
+      deployment: annotateRollbackAvailability(await reconcileDeploymentStatus(store, deployment).catch(() => deployment)),
+    };
   });
 
   /*
@@ -31144,15 +31180,28 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     /*
+     * D2 (approved 2026-07-17): server rollbacks are digest-only and FAIL-CLOSED.
+     * The digest path is the DEFAULT — a lost env var (e.g. a helm upgrade wiping
+     * a `kubectl set env` flag) must not silently revive the URL-copy path, which
+     * re-deploys nothing and can present a dead URL as a READY "rollback".
+     * SERVER_DEPLOY_ROLLBACK_FROM_DIGEST=0 is an explicit kill switch: it REFUSES
+     * server rollbacks loudly instead of falling back to that URL-copy row.
+     */
+    if (target.provider === 'server' && process.env.SERVER_DEPLOY_ROLLBACK_FROM_DIGEST === '0') {
+      return reply.code(409).send({
+        error:
+          'Server rollback is disabled (SERVER_DEPLOY_ROLLBACK_FROM_DIGEST=0) — refusing a URL-only rollback that would re-deploy nothing.',
+        code: 'SERVER_ROLLBACK_DIGEST_DISABLED',
+      });
+    }
+
+    /*
      * Server digest-rollback re-deploys the retained image via the manager and
      * then promotes the row to READY. Create it NON-TERMINAL (QUEUED) too — the
      * monotonic updateDeployment guard refuses to mutate a row already at a
      * terminal READY, which would silently drop the re-deploy + its metadata.
      */
-    const willServerDigestRollback =
-      !willTriggerProviderRollback &&
-      target.provider === 'server' &&
-      process.env.SERVER_DEPLOY_ROLLBACK_FROM_DIGEST === '1';
+    const willServerDigestRollback = !willTriggerProviderRollback && target.provider === 'server';
 
     const rollback = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
       await ensureQuota(request, project.organizationId, 'deployments.count');

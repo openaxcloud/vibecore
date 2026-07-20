@@ -140,11 +140,27 @@ platformEnv:
     # Reproducible pipeline: per-project allowlist ('*' = all). Rolled out
     # project-by-project after live proof; empty = Phase-A snapshot path.
     serverDeployRevisionProjects: ''
-    # Shared RO Nix store (candidate E) rollout gate: PVC in ns `workspaces`
-    # (PV pinned to europe-west9-a — zonal disk). Allowlist starts empty;
-    # add project ids (or '*') to give workspaces + published apps /nix.
-    nixStorePvc: 'nix-store-spike-pvc'
+    # Shared RO Nix store (candidate E) rollout gate: PVC in ns `workspaces`.
+    # Resynced 2026-07-20 to the LIVE generation-2 PVC (the file said
+    # `nix-store-spike-pvc` while prod ran v2 via --set — a full-values manual
+    # deploy would have silently reverted the store). ⚠️ The per-project
+    # allowlist (`nixProjects`) is live-managed via --set; a full-values deploy
+    # must re-assert it or Nix turns off for the allowlisted projects.
+    nixStorePvc: 'nix-store-v2-pvc'
     nixProjects: ''
+    # D3 multi-zone (approved 2026-07-17): identical zonal clones of the v2
+    # store (snapshot nix-store-v2-gen2-20260717), preference order a → b.
+    # The drift guard hash is the sha256 of /nix/ecode/catalog.json, identical
+    # on both clones (proven at clone time). ⚠️ CD uses --reuse-values: these
+    # reach the release via a one-time --set (see D3 runbook/evidence).
+    nixStorePvcZones: 'europe-west9-a=nix-store-v2-pvc,europe-west9-b=nix-store-v2-b-pvc'
+    nixGenerationHash: 'sha256:3029b5810ba485844f1029132f3f00652075e1e2c0cbb454992d3a94aa8fd5d5'
+    # D2 (approved 2026-07-17): server rollback re-deploys the retained image
+    # BY DIGEST, permanently — previously `kubectl set env` only, which the
+    # next helm upgrade wiped, silently reviving the fake URL-copy rollback.
+    # ⚠️ CD upgrades with --reuse-values: deploy-main.yml also re-asserts this
+    # via --set on every run, and the configmap template defaults to "1".
+    serverDeployRollbackFromDigest: '1'
   email:
     httpEndpoint: 'https://api.resend.com/emails'
     from: 'no-reply@e-code.ai'
