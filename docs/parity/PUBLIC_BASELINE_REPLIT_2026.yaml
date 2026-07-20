@@ -164,13 +164,68 @@ claims:
     client: web
     status: VERIFIED
   - claimId: GCP-12
-    statement: "Artifact Registry attachments (métadonnées liées par referrers OCI) est en PREVIEW — bannière « Pre-GA Offerings Terms … available \"as is\" and might have limited support » présente dans le snapshot hashé. Dépendance production INTERDITE sans fallback (attestations Binary Authorization / Container Analysis, copie des referrers via ORAS) + exit strategy."
+    statement: "Artifact Registry attachments (métadonnées liées par referrers OCI) est en PREVIEW — bannière « Pre-GA Offerings Terms … available \"as is\" and might have limited support » présente dans le snapshot hashé. Dépendance production INTERDITE sans fallback (attestations Binary Authorization / Container Analysis, copie des referrers via ORAS) + exit strategy. COUPLAGE DE RÉTENTION (même snapshot) : « You can delete attachments indirectly by deleting the artifact it refers to » — supprimer l'image cible supprime ses attachments ; le graphe de rétention doit protéger l'image ET ses métadonnées, et le test de suppression/rollback doit le prouver."
     sourceId: SRC-AR-ATTACHMENTS
     observedAt: "2026-07-17T09:51:51Z"
     firstSeen: "2026-07-17"
     lastVerified: "2026-07-17"
     plan: all
     rollout: PREVIEW
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: GCP-13
+    statement: "Workload Identity Federation for GKE : « In GKE, Google Cloud manages the workload identity pool and provider for you and doesn't require an external identity provider » ; « the recommended way » pour les workloads GKE. REMPLACE le claim « WIF uniquement si source externe » (faux pour GKE). Trois chemins d'identité : GKE→WIF for GKE (aucun IdP externe) ; hors Google Cloud→IAM WIF avec fournisseur externe ; Cloud Run→service identity dédiée + impersonation courte durée. Zéro clé persistante partout."
+    sourceId: SRC-GKE-WORKLOAD-IDENTITY
+    observedAt: "2026-07-20T04:20:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: GCP-14
+    statement: "Cloud Run multi-tenant (doc mise à jour 2026-07-17) : 1 projet Google Cloud par tenant RECOMMANDÉ (multi-tenant par projet déconseillé) ; pool de projets PRÉCRÉÉS recommandé (latence de création/init) ; folders séparant code first-party et code tenant non fiable OBLIGATOIRES ; routage recommandé = Global External ALB + Service Extensions ; un billing account DIFFÉRENT par tier de réputation (abus) ; Cloud Armor pour DDoS."
+    sourceId: SRC-CLOUDRUN-MULTITENANT
+    observedAt: "2026-07-20T04:20:00Z"
+    firstSeen: "2026-07-17"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: GCP-15
+    statement: "Cloud Run quotas : maximum 1000 services par projet et par région (augmentable) ; 1000 jobs ; 1000 worker pools ; 1000 job executions en cours — dimensionne le sharding de CapacityPolicy."
+    sourceId: SRC-CLOUDRUN-QUOTAS
+    observedAt: "2026-07-20T04:20:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: RPL-25
+    statement: "Clerk Auth (Replit-managed) : tenant Clerk dédié par app, providers Google/GitHub/Apple/X, environnements DEV/PROD isolés, user management dans le Project Editor. « What's not supported » EXPLICITE : sign-in par SMS, MFA end-user, couverture SSO complète, Organization tenants. MFA/passkeys/orgs ne sont PAS de la parité courante — extension E-CODE si retenus."
+    sourceId: SRC-REPLIT-CLERK-AUTH
+    observedAt: "2026-07-20T04:20:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: RPL-26
+    statement: "Migration vers Clerk Auth : la doc couvre UNIQUEMENT la migration depuis une auth PERSONNALISÉE (import users + password digests, externalId→sessionClaims.userId). Citation : « It is not a guide for moving an app from Replit Auth to Clerk Auth — official guidance for that migration path is coming soon ». Le guide Replit Auth→Clerk est INCONNU/NON LIVRÉ."
+    sourceId: SRC-REPLIT-CLERK-MIGRATION
+    observedAt: "2026-07-20T04:20:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
     region: UNKNOWN
     client: web
     status: VERIFIED

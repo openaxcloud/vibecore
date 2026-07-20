@@ -289,6 +289,7 @@ function checkHeader(file, doc) {
     'APP_STORAGE_CONTRACT.md',
     'EVIDENCE_ARTIFACT_CONTRACT.md',
     'REGRESSION_RUN_CONTRACT.md',
+    'DEPLOYMENT_TYPES_CONTRACT.md',
   ];
 
   for (const relative of mdFiles) {
@@ -660,45 +661,47 @@ function checkHeader(file, doc) {
       if ('approvalReady' in status) {
         fail(
           'APPROVAL_STATUS.json',
-          'the "approvalReady" boolean is FORBIDDEN — APPROVED is only admissible with the exact level named (approved.level)',
+          'the "approvalReady" boolean is FORBIDDEN — un statut global booléen est un faux positif de couverture',
         );
       }
 
-      const LEVEL_ORDER = [
-        'documentReady',
-        'registryComplete',
-        'architectureContracted',
-        'implementationReady',
-        'verticalReady',
-        'betaReady',
-        'publicLaunchReady',
-        'parityBaselineReady',
-      ];
+      if ('approved' in status) {
+        fail(
+          'APPROVAL_STATUS.json',
+          'the "approved" key is FORBIDDEN (P0-A2-16) — « approved » est réservé à APPROVALS.yaml (périmètre + approbateur stockés); le statut porte overallStatus + highestPassedLevel',
+        );
+      }
+
+      if (status.overallStatus !== 'NOT_APPROVED' && status.overallStatus !== 'SCOPE_APPROVED') {
+        fail('APPROVAL_STATUS.json', `overallStatus "${status.overallStatus}" invalide`);
+      }
+
+      const { LEVEL_ORDER } = await import(genPath);
       const levels = status.levels ?? [];
 
       if (levels.map((l) => l.name).join(',') !== LEVEL_ORDER.join(',')) {
         fail('APPROVAL_STATUS.json', `levels[] must be exactly [${LEVEL_ORDER.join(', ')}] in order`);
       }
 
-      let expectedApproved = null;
+      let expectedHighest = null;
 
       for (const level of levels) {
         if (!level.passed) {
           break;
         }
 
-        expectedApproved = level.name;
+        expectedHighest = level.name;
       }
 
-      if ((status.approved?.level ?? null) !== expectedApproved) {
+      if ((status.highestPassedLevel ?? null) !== expectedHighest) {
         fail(
           'APPROVAL_STATUS.json',
-          `approved.level (${status.approved?.level}) ≠ highest contiguous passed level (${expectedApproved})`,
+          `highestPassedLevel (${status.highestPassedLevel}) ≠ highest contiguous passed level (${expectedHighest})`,
         );
       }
 
       checked.push(
-        `APPROVAL_STATUS.json is up to date (computed; named levels consistent, approved.level=${status.approved?.level ?? 'null'})`,
+        `APPROVAL_STATUS.json is up to date (computed; 11 levels consistent, overallStatus=${status.overallStatus}, highestPassedLevel=${status.highestPassedLevel ?? 'null'})`,
       );
     }
   }
@@ -716,6 +719,57 @@ function checkHeader(file, doc) {
   checked.push(
     `plan backlog completeness (${counts.total} points — NON FAIT: ${counts.nonFait}, DÉJÀ FAIT: ${counts.dejaFait}, PÉRIMÉ: ${counts.perime})`,
   );
+}
+
+/* ---- 12. DOCUMENT_MANIFEST is COMPUTED (P0-A2-01) ---------------------- */
+{
+  const genPath = join(here, 'generate-document-manifest.mjs');
+
+  if (!existsSync(genPath)) {
+    fail('DOCUMENT_MANIFEST', 'generator script missing');
+  } else {
+    const { computeDocumentManifest } = await import(genPath);
+    const computed = computeDocumentManifest();
+    const outPath = join(parityRoot, 'DOCUMENT_MANIFEST.yaml');
+    const current = existsSync(outPath) ? readFileSync(outPath, 'utf8') : '';
+
+    if (current !== computed) {
+      fail('DOCUMENT_MANIFEST.yaml', 'DRIFT — régénérer (un fichier compagnon a changé sans mise à jour du manifeste)');
+    } else {
+      checked.push('DOCUMENT_MANIFEST.yaml is up to date (computed; every companion file hashed)');
+    }
+  }
+}
+
+/* ---- 13. Nouveaux registres (audit de réanalyse) ----------------------- */
+{
+  for (const f of ['LEGACY_FINDING_REGISTRY.yaml', 'WORK_ITEM_REGISTRY.yaml', 'TRACEABILITY_MATRIX.yaml', 'OWNER_ROLES.yaml']) {
+    const p = join(parityRoot, f);
+
+    if (!existsSync(p)) {
+      fail(f, 'file missing');
+      continue;
+    }
+
+    const doc = loadYaml(p);
+
+    if (doc?.schemaVersion === undefined) {
+      fail(f, 'missing schemaVersion');
+    }
+  }
+
+  const legacy = loadYaml(join(parityRoot, 'LEGACY_FINDING_REGISTRY.yaml'));
+  const work = loadYaml(join(parityRoot, 'WORK_ITEM_REGISTRY.yaml'));
+
+  if ((legacy.findings ?? []).length !== legacy.sourceFindingCount) {
+    fail('LEGACY_FINDING_REGISTRY.yaml', `sourceFindingCount (${legacy.sourceFindingCount}) ≠ findings réels (${(legacy.findings ?? []).length})`);
+  }
+
+  if ((work.workItems ?? []).length !== work.canonicalWorkItemCount) {
+    fail('WORK_ITEM_REGISTRY.yaml', `canonicalWorkItemCount (${work.canonicalWorkItemCount}) ≠ items réels (${(work.workItems ?? []).length})`);
+  }
+
+  checked.push(`LEGACY/WORK_ITEM/TRACEABILITY/OWNER_ROLES présents (${(legacy.findings ?? []).length} constats → ${(work.workItems ?? []).length} work items canoniques)`);
 }
 
 /* ---- report ------------------------------------------------------------ */

@@ -175,3 +175,62 @@ Règle: append-only; chaque entrée = date UTC, acteur, événement, artefacts.
   standalone), PR-INFRA-01 (staging Terraform), PR-MISC-07 (surfaces admin) ;
   4 gates « deploy providers » re-mappées sur BD-22.
 - Version du plan : 2026-07-19.2 ; §7 régénéré (counts.backlog inclus).
+
+## 2026-07-20 (audit de réanalyse appliqué — 16 P0 + 14 P1)
+
+- (audit externe) Audit_reanalyse_PLAN_PARITE_REPLIT_LIVRAISON_2_2026.docx sur
+  le plan 2026-07-19.2 (sha256 af88c6c6…) : 16 P0 + 14 P1. TOUT appliqué par
+  remplacement dans le plan canonique (version 2026-07-20.1) + registres.
+- (correction factuelle VÉRIFIÉE, snapshot hashé) **WIF/GKE** : « WIF
+  uniquement si source externe » était FAUX — la doc GKE dit « In GKE, Google
+  Cloud manages the workload identity pool and provider for you and doesn't
+  require an external identity provider » + « recommended way »
+  (SRC-GKE-WORKLOAD-IDENTITY sha256 9d3f0f66…, claim GCP-13). §4.4 remplacé
+  par les trois chemins (GKE→WIF for GKE ; externe→IAM WIF ; Cloud Run→service
+  identity + impersonation courte). Zéro clé persistante partout.
+- (correction factuelle VÉRIFIÉE, snapshots hashés) **Auth Clerk** : la
+  migration documentée est custom-auth→Clerk ; le guide Replit Auth→Clerk est
+  « coming soon » (citation exacte, SRC-REPLIT-CLERK-MIGRATION sha256
+  daf309ee…, claim RPL-26) ; « What's not supported » : SMS, MFA end-user,
+  SSO complet, Organization tenants (SRC-REPLIT-CLERK-AUTH sha256 6f94c8fd…,
+  claim RPL-25). §3.9 remplacé ; MFA/passkeys/orgs = EXTENSIONS E-CODE, pas
+  parité courante.
+- (fait vérifié) **Cloud Run multi-tenant** (doc du 17/07, SRC-CLOUDRUN-
+  MULTITENANT sha256 86362e28…, claim GCP-14) : 1 projet/tenant recommandé,
+  pool de projets précréés, folders first-party vs untrusted, billing account
+  par tier de réputation, LB global + Service Extensions. **Quotas** (claim
+  GCP-15, sha256 604d5e5e…) : 1000 services/jobs/worker-pools par
+  projet+région. §4.2 : ReputationTier, BillingAccountBinding,
+  AbuseEventPolicy, CapacityPolicy étendue.
+- (structure) §3.0 Project→Artifacts (7 artifacts max / 1 mobile =
+  entitlements, backend+data partagés, ProjectRelease GROUPED) ;
+  DEPLOYMENT_TYPES_CONTRACT.md (Autoscale/Static/Reserved VM/Scheduled).
+- (univers) SURFACE_REGISTRY v3 : 159 surfaces P001–P159 + 56 services
+  S01–S56 importés de l'inventaire IDE (Plan_IDE_Complet docx sha256
+  0b232212…), ensembles EXACTS verrouillés CI. Évaluation honnête : 0/159
+  évalué → parityBaselineReady FAIL tant que UNKNOWN.
+- (backlog) Les 336 constats déplacés du §14 vers LEGACY_FINDING_REGISTRY
+  (provenance plan@af88c6c6 ligne à ligne + originRef ; limite déclarée : le
+  fichier/ligne des 29 documents d'ORIGINE n'a pas été capturé) ; 99 work
+  items canoniques dans WORK_ITEM_REGISTRY (regroupement par suivi + 6 paires
+  de l'audit, duplicateOf posés). check-plan-completeness certifie désormais
+  LE REGISTRE (mêmes constantes 336 + sha 121218ff…). Compteurs : source
+  unique = JSON généré (boltDebt=29, prodReadiness=50 — les « 26 »/« 48 »
+  manuels supprimés).
+- (registres) P0 : 19→35 (P0-A2-01…16, dont OPEN : A2-12 déduplication
+  sémantique/provenance, A2-15 ancrage des claims hérités). P1 : 8→40
+  (P1-V3-01…18 enfin individuels — la plupart APPLIED, P1-V3-07 SUPERSEDED
+  par GCP-11 ; P1-A2-01…14 — 4 OPEN). Ensembles EXACTS + preuve négative
+  rejouée (retrait de P0-A2-16/P1-A2-14 ⇒ exit 1 nommant les IDs).
+  DEC-OWNER-GALLERY-OPTION-B repassée OPEN/CAPTURE_INCOMPLETE (P0-A2-10).
+  Owners = RÔLES (platform/owner/security/billing) + mapping OWNER_ROLES.yaml
+  (P1-A2-08).
+- (statut) Échelle **11 niveaux** (documentCanonicalized → … →
+  parityBaselineReady) ; verticalReady SCINDÉ (backend PASS / userJourney
+  FAIL sur uiGaps publish+rollback) ; contractsPresent ≠ contractsValidated
+  (validated FAIL — aucun reviewer réel) ; approved.level SUPPRIMÉ et interdit
+  → **overallStatus=NOT_APPROVED + highestPassedLevel=documentCanonicalized** ;
+  unanchoredClaims calculé (18) et bloquant sourceBaselineReady ;
+  DOCUMENT_MANIFEST.yaml généré (hash de chaque compagnon, drift-check CI) ;
+  TRACEABILITY_MATRIX amorcée ; generatedAt réel (2026-07-20T04:20:00Z),
+  mergedToMainAt: null (honnête).

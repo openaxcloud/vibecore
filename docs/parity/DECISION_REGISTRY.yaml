@@ -14,7 +14,7 @@ decisions:
       Soit on l'assume comme décision E-CODE AVEC son coût de modération
       (Trust & Safety, revue humaine, anti-abus), soit on ne le fait pas. Ne pas
       le présenter comme « parité Replit ».
-    owner: avi
+    owner: owner
     priority: 2
     cost: "modération humaine + anti-abus (non chiffré)"
     status: OPEN
@@ -27,7 +27,7 @@ decisions:
       réservation idempotente (clé = importJobId) avant démarrage est une décision
       E-CODE anti-double-charge, pas de la parité.
     consequence: "Marqueur creditsReserved ; débit réel = follow-up."
-    owner: avi
+    owner: owner
     priority: 2
     cost: "néant (marqueur) ; débit réel à câbler"
     status: DECIDED
@@ -39,7 +39,7 @@ decisions:
       Création de folders = 0,1 req/s = 6/min (vérifié). 1000 tenants
       folder-per-tenant = 2,78 h de rate-limit pur. Sharding sous 300 enfants.
     consequence: "Folder dédié uniquement sur exigence contractuelle/policy mesurée."
-    owner: avi
+    owner: owner
     priority: 3
     cost: "néant (sharding) ; folder dédié = coût-temps mesuré"
     status: DECIDED
@@ -63,7 +63,7 @@ decisions:
       d'historique, CI complète et PR avant main ; fichiers de suivi régénérés
       après le merge. Aucun force-push.
     consequence: "Une seule pointe canonique ; le worktree local n'est plus jamais une source de vérité ; main protégée."
-    owner: avi
+    owner: owner
     priority: 1
     cost: "fenêtre courte de freeze des 4 fichiers de suivi"
     status: DECIDED
@@ -81,7 +81,7 @@ decisions:
       NO_RETAINED_DIGEST — aucun fallback vers une URL potentiellement morte.
       Canary + alerte si le flag manque après helm upgrade + test post-deploy.
     consequence: "Le faux rollback ne peut pas revenir au prochain helm upgrade ; un 409 franc remplace un faux succès."
-    owner: avi
+    owner: owner
     priority: 1
     cost: "backfill + canary ; migration puis suppression du fallback URL-only"
     status: DECIDED
@@ -101,7 +101,7 @@ decisions:
       « ~10 $/mois » reste une hypothèse jusqu'à mesure. Regional PD = option à
       benchmarker (2 zones, ~2× coût), pas le choix par défaut.
     consequence: "Python zéro-manuel débloqué sans SPOF zonal (SPOF-1, OPERATIONS_DR.md)."
-    owner: avi
+    owner: owner
     priority: 1
     cost: "clones zonaux par génération — chiffrage après mesure SKU réelle"
     status: DECIDED
@@ -123,7 +123,7 @@ decisions:
       données (Spreadsheet). Inventaire corrigé : 12 entrées dont Previous
       Agent export (RPL-24).
     consequence: "Aucun travail billable sans contrôle ; surface produit livrée par lots mutualisés."
-    owner: avi
+    owner: owner
     priority: 2
     cost: "décale les connecteurs derrière le minimum billing"
     status: DECIDED
@@ -141,7 +141,7 @@ decisions:
       (vidéo, captures, trace réseau, traceId, commit, environnement). Jamais
       les cookies du profil personnel. Ensuite : régression CI/staging.
     consequence: "Les preuves UI deviennent rejouables ; le navigateur personnel d'Avi n'est plus un goulot."
-    owner: avi
+    owner: owner
     priority: 2
     cost: "fixtures nettoyables + secrets de test"
     status: DECIDED
@@ -160,7 +160,7 @@ decisions:
       passage à ✅ TESTÉ LIVE sont bloqués tant que la preuve n'est pas
       approuvée (champ proofApproval : reviewer, timestamp, evidenceIds).
     consequence: "L'écart de processus TPL-02.PROOF est clos par gouvernance, pas par revert."
-    owner: avi
+    owner: owner
     priority: 3
     cost: "champ proofApproval + blocage CI merge/release pour les chantiers capture-required"
     status: DECIDED
@@ -178,7 +178,7 @@ decisions:
       des vérités concurrentes. Condition « sans risque » : aucune perte de
       contenu (sauvegarde des deux pointes, D1).
     consequence: "Un checkout local ne peut plus faire mentir les fichiers de suivi."
-    owner: avi
+    owner: owner
     priority: 2
     cost: "néant (procédure)"
     status: DECIDED
@@ -195,18 +195,19 @@ decisions:
       son contenu ; le contenu sera inscrit ici via UNK-GALLERY-OPTION-B-CONTENT
       SANS réinterprétation.
     consequence: "La session Gallery exécute l'option B ; DEC-GALLERY-NO-SELF-PUBLISH sera rapproché une fois le contenu inscrit."
-    owner: avi
+    owner: owner
     priority: 2
     cost: "UNKNOWN jusqu'à inscription du contenu"
-    status: DECIDED
-    decidedAt: "2026-07-17"
+    status: OPEN                     # P0-A2-10 : une décision dont le contenu exact est UNKNOWN ne peut pas rester DECIDED
+    captureState: CAPTURE_INCOMPLETE # confirmation owner enregistrée (17/07) ; contenu exact non capturé
+    ownerConfirmedAt: "2026-07-17"
     nextAction: "Inscrire le contenu exact (UNK-GALLERY-OPTION-B-CONTENT, 2026-07-24)"
     targetDate: "2026-07-24"
   # --- Audit de couverture 2026-07-19 (famille B) ---------------------------
   - decisionId: DEC-BILLING-LEGACY-VS-LEDGER
     title: "Ancien système de crédits (SHADOW) vs nouveau ledger (plan §3.7) : migration, remplacement ou go-live de l'un des deux"
     rationale: "L'audit de couverture (COVERAGE_GAP_AUDIT_2026-07-17.md famille B) montre que ~35 points « go-live billing legacy » n'apparaissent nulle part dans le plan, et que la relation entre le wallet existant (codé, testé, certifié SHADOW en prod : REPLIT_PARITY_MATRIX §1-19) et le ledger double-entrée du plan §3.7 n'est arbitrée nulle part. Sans décision, les deux chantiers avancent en aveugle l'un de l'autre."
-    owner: avi
+    owner: owner
     priority: 1
     status: OPEN
     options: "A) go-live du wallet existant maintenant, ledger ensuite en dessous ; B) attendre le ledger minimal (UNK-BILLING-MINIMAL-IMPL) et brancher le wallet dessus ; C) remplacer le wallet par le ledger avant tout go-live"

@@ -9,9 +9,10 @@ jamais par déduction ni « couvert par ailleurs ». Ce qui est codé mais pas
 prouvé reste 💻 avec ✅ ⬜. Sources de détail : `REPLIT_PARITY.md`,
 `PLAN_REMAINING_UNIFIED.md`, `DESIGN_PROGRAM_MASTER.md`, `BUG_INVENTORY_LIVE.md`.
 
-Plan canonique : `PLAN_PARITE_REPLIT.md` (supersède le v5 hors-repo). Statut
-global : `APPROVAL_STATUS.json` — **niveaux nommés** (`approved.level`), le
-booléen `approvalReady` est supprimé (interdit par le validateur).
+Plan canonique : `PLAN_PARITE_REPLIT.md` (v2026-07-20.1, audit de réanalyse
+appliqué). Statut global : `APPROVAL_STATUS.json` — **11 niveaux**,
+`overallStatus=NOT_APPROVED` + `highestPassedLevel` (`approvalReady` ET
+`approved.level` interdits par le validateur).
 
 ## Vue par chantier
 

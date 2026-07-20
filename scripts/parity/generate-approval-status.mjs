@@ -57,6 +57,10 @@ export const EXPECTED_P0_IDS = [
   'P0-V3-01', 'P0-V3-02', 'P0-V3-03', 'P0-V3-04', 'P0-V3-05',
   'P0-V3-06', 'P0-V3-07', 'P0-V3-08', 'P0-V3-09', 'P0-V3-10',
   'P0-V3-11', 'P0-V3-12', 'P0-V3-13', 'P0-V3-14', 'P0-V3-15',
+  // Audit de réanalyse (LIVRAISON 2, 2026-07-20) — 16 P0.
+  'P0-A2-01', 'P0-A2-02', 'P0-A2-03', 'P0-A2-04', 'P0-A2-05', 'P0-A2-06',
+  'P0-A2-07', 'P0-A2-08', 'P0-A2-09', 'P0-A2-10', 'P0-A2-11', 'P0-A2-12',
+  'P0-A2-13', 'P0-A2-14', 'P0-A2-15', 'P0-A2-16',
 ];
 
 /*
@@ -69,6 +73,15 @@ export const EXPECTED_P0_IDS = [
 export const EXPECTED_P1_IDS = [
   'P1-COV-01', 'P1-COV-02', 'P1-COV-03', 'P1-COV-04',
   'P1-COV-05', 'P1-COV-06', 'P1-COV-07', 'P1-COV-08',
+
+  // Les 18 P1 de l'audit externe v3 (16/07) — enfin individuels (P0-A2-05).
+  'P1-V3-01', 'P1-V3-02', 'P1-V3-03', 'P1-V3-04', 'P1-V3-05', 'P1-V3-06',
+  'P1-V3-07', 'P1-V3-08', 'P1-V3-09', 'P1-V3-10', 'P1-V3-11', 'P1-V3-12',
+  'P1-V3-13', 'P1-V3-14', 'P1-V3-15', 'P1-V3-16', 'P1-V3-17', 'P1-V3-18',
+  // Les 14 P1 de l'audit de réanalyse (20/07).
+  'P1-A2-01', 'P1-A2-02', 'P1-A2-03', 'P1-A2-04', 'P1-A2-05', 'P1-A2-06',
+  'P1-A2-07', 'P1-A2-08', 'P1-A2-09', 'P1-A2-10', 'P1-A2-11', 'P1-A2-12',
+  'P1-A2-13', 'P1-A2-14',
 ];
 
 export const EXPECTED_BOLT_DEBT_IDS = [
@@ -96,6 +109,30 @@ export const EXPECTED_PROD_READINESS_IDS = [
   'PR-RR7-01',
   'PR-QA-01', 'PR-QA-02',
   'PR-MISC-01', 'PR-MISC-02', 'PR-MISC-03', 'PR-MISC-04', 'PR-MISC-05', 'PR-MISC-06', 'PR-MISC-07',
+];
+
+/*
+ * Univers des surfaces (P0-A2-02) : l'inventaire IDE antérieur — 159 surfaces
+ * P001–P159 + 56 services S01–S56. Ensemble EXACT ; un ID absent casse le
+ * build. parityBaselineReady exige EN PLUS que chaque entrée soit ÉVALUÉE
+ * (availability ≠ UNKNOWN, justifiée).
+ */
+export const EXPECTED_SURFACE_UNIVERSE_IDS = Array.from({ length: 159 }, (_, i) => `P${String(i + 1).padStart(3, '0')}`);
+export const EXPECTED_SERVICE_UNIVERSE_IDS = Array.from({ length: 56 }, (_, i) => `S${String(i + 1).padStart(2, '0')}`);
+
+/** Niveaux nommés v2 (audit de réanalyse 2026-07-20) — ordre strict de l'échelle. */
+export const LEVEL_ORDER = [
+  'documentCanonicalized',
+  'sourceBaselineReady',
+  'registryUniverseReady',
+  'contractsPresent',
+  'contractsValidated',
+  'implementationReady',
+  'verticalBackendReady',
+  'verticalUserJourneyReady',
+  'betaReady',
+  'publicLaunchReady',
+  'parityBaselineReady',
 ];
 
 /** Contract files whose presence defines the architectureContracted level. */
@@ -228,7 +265,7 @@ function yaml(name) {
 /** Freshness SLA for a public source (days since lastVerified). */
 const SOURCE_FRESHNESS_SLA_DAYS = 30;
 
-export function computeApprovalStatus(now = '2026-07-17T12:00:00Z') {
+export function computeApprovalStatus(now = '2026-07-20T04:20:00Z') {
   const p0 = yaml('P0_REGISTRY.yaml');
   const decisions = yaml('DECISION_REGISTRY.yaml');
   const unknowns = yaml('UNKNOWN_REGISTRY.yaml');
@@ -502,14 +539,66 @@ export function computeApprovalStatus(now = '2026-07-17T12:00:00Z') {
 
   const planPath = join(parityRoot, 'PLAN_PARITE_REPLIT.md');
   const planText = existsSync(planPath) ? readFileSync(planPath, 'utf8') : '';
-  const planOk = /schemaVersion:\s*\d+/.test(planText) && /measuredRepoCommit:\s*[0-9a-f]{7,40}/.test(planText);
+  const planOk = /schemaVersion:\s*\d+/.test(planText) && /measuredCodeCommit:\s*[0-9a-f]{7,40}/.test(planText);
 
   /*
-   * Backlog complet (§14 du plan, audit de couverture 2026-07-19) : comptes
-   * dérivés du plan lui-même via le même parseur que le contrôle de
-   * complétude — la partie mesurée reflète le backlog, jamais l'inverse.
+   * unanchoredClaims (P0-A2-15 / P1-A2-06) : toute étiquette de claim citée
+   * par le plan ([RPL-xx], [GCP-xx], [NIX-xx]) et ABSENTE du baseline est un
+   * claim UNVERIFIED utilisé dans un document normatif. sourceBaselineReady
+   * échoue tant qu'il en reste.
    */
+  const anchoredClaimIds = new Set((baseline.claims ?? []).map((c) => c.claimId));
+  const citedClaimIds = [...new Set([...planText.matchAll(/\[((?:RPL|GCP|NIX)-[0-9A-Za-z…\-]+)\]/g)].map((m) => m[1]))]
+    .filter((id) => !id.includes('…'));
+  const unanchoredClaims = citedClaimIds.filter((id) => !anchoredClaimIds.has(id)).sort();
+
+  /* Backlog : source unique = LEGACY_FINDING_REGISTRY (le plan n'affiche qu'un résumé). */
   const backlogCounts = checkPlanCompleteness().counts;
+  const workItems = yaml('WORK_ITEM_REGISTRY.yaml');
+  const canonicalWorkItemCount = (workItems.workItems ?? []).length;
+
+  /* Univers des surfaces (P0-A2-02) : présence exacte + évaluation. */
+  const universe = surfaces.surfaceUniverse ?? [];
+  const presentUniverseIds = new Set(universe.map((s) => s.surfaceId));
+  const missingUniverseIds = EXPECTED_SURFACE_UNIVERSE_IDS.filter((id) => !presentUniverseIds.has(id));
+  const serviceUniverse = surfaces.serviceUniverse ?? [];
+  const presentServiceIds2 = new Set(serviceUniverse.map((s) => s.serviceId));
+  const missingServiceUniverseIds = EXPECTED_SERVICE_UNIVERSE_IDS.filter((id) => !presentServiceIds2.has(id));
+  const unevaluatedSurfaces = universe.filter((s) => !['SUPPORTED', 'UNSUPPORTED', 'NOT_APPLICABLE'].includes(s.availability));
+
+  /* Cross-check findings ↔ work items canoniques. */
+  const legacy = yaml('LEGACY_FINDING_REGISTRY.yaml');
+  const workItemIds = new Set((workItems.workItems ?? []).map((w) => w.workItemId));
+  const orphanFindings = (legacy.findings ?? [])
+    .filter((f) => !workItemIds.has(f.canonicalWorkItemId))
+    .map((f) => `${f.sourceFindingId} → canonicalWorkItemId ${f.canonicalWorkItemId} missing`);
+
+  /*
+   * contractsValidated (P0-A2-07 / P1-A2-12) : le contenu, pas la présence.
+   * Un contrat est validé s'il porte un reviewer humain réel, au moins 3
+   * sections, et aucun placeholder. Aujourd'hui aucun contrat n'a de reviewer
+   * → le niveau ÉCHOUE, honnêtement.
+   */
+  const contractValidationFailures = [];
+
+  for (const f of CONTRACT_FILES) {
+    const cp = join(parityRoot, f);
+
+    if (!existsSync(cp)) {
+      continue; // contractsPresent le signale déjà
+    }
+
+    const ct = readFileSync(cp, 'utf8');
+    const reviewerMatch = ct.match(/reviewer:\s*(\S+)/);
+
+    if (!reviewerMatch || reviewerMatch[1] === 'UNKNOWN') {
+      contractValidationFailures.push(`${f}: no real reviewer`);
+    } else if ((ct.match(/^#{2,3} /gm) ?? []).length < 3) {
+      contractValidationFailures.push(`${f}: fewer than 3 sections`);
+    } else if (/\bTODO\b|\bPLACEHOLDER\b/.test(ct)) {
+      contractValidationFailures.push(`${f}: contains TODO/PLACEHOLDER`);
+    }
+  }
 
   const gateUnknownsPresent = BETA_GATE_UNKNOWN_IDS.filter((id) =>
     (unknowns.unknowns ?? []).some((u) => u.unknownId === id),
@@ -520,53 +609,88 @@ export function computeApprovalStatus(now = '2026-07-17T12:00:00Z') {
   const missingContracts = CONTRACT_FILES.filter((f) => !existsSync(join(parityRoot, f)));
   const surfacesNotDone = surfaceRollup.filter((s) => !s.done).map((s) => s.surfaceId);
 
-  const lvlDocument = {
-    name: 'documentReady',
+  /* ===== L'échelle à 11 niveaux (audit de réanalyse 2026-07-20) ===== */
+
+  const lvlDocumentCanonicalized = {
+    name: 'documentCanonicalized',
     passed: cond2.passed && planOk,
-    reasons: [...cond2.reasons, ...(planOk ? [] : ['PLAN_PARITE_REPLIT.md missing or lacks schemaVersion/measuredRepoCommit'])],
+    reasons: [
+      ...cond2.reasons,
+      ...(planOk ? [] : ['PLAN_PARITE_REPLIT.md missing or lacks schemaVersion/measuredCodeCommit']),
+    ],
   };
-  const lvlRegistry = {
-    name: 'registryComplete',
+  const lvlSourceBaseline = {
+    name: 'sourceBaselineReady',
+    passed: unanchoredClaims.length === 0 && cond5.passed && triageBreaches.length === 0,
+    reasons: [
+      ...unanchoredClaims.map((id) => `claim ${id} cited by the plan but not anchored (UNVERIFIED)`),
+      ...cond5.reasons,
+      ...triageBreaches,
+    ],
+  };
+  const lvlRegistryUniverse = {
+    name: 'registryUniverseReady',
     passed:
       missingP0Ids.length === 0 &&
       missingP1Ids.length === 0 &&
       missingBoltDebtIds.length === 0 &&
       missingProdReadinessIds.length === 0 &&
+      missingUniverseIds.length === 0 &&
+      missingServiceUniverseIds.length === 0 &&
+      orphanFindings.length === 0 &&
       forbiddenTargetDates.length === 0 &&
-      cond3.passed &&
-      triageBreaches.length === 0,
+      cond3.passed,
     reasons: [
-      ...missingP0Ids.map((id) => `expected P0 missing from P0_REGISTRY: ${id}`),
-      ...missingP1Ids.map((id) => `expected P1 missing from P0_REGISTRY.p1s: ${id}`),
-      ...missingBoltDebtIds.map((id) => `expected item missing from BOLT_DEBT_REGISTRY: ${id}`),
-      ...missingProdReadinessIds.map((id) => `expected item missing from PRODUCTION_READINESS_REGISTRY: ${id}`),
+      ...missingP0Ids.map((id) => `expected P0 missing: ${id}`),
+      ...missingP1Ids.map((id) => `expected P1 missing: ${id}`),
+      ...missingBoltDebtIds.map((id) => `expected BOLT_DEBT missing: ${id}`),
+      ...missingProdReadinessIds.map((id) => `expected PROD_READINESS missing: ${id}`),
+      ...missingUniverseIds.map((id) => `expected surface universe id missing: ${id}`),
+      ...missingServiceUniverseIds.map((id) => `expected service universe id missing: ${id}`),
+      ...orphanFindings,
       ...forbiddenTargetDates,
       ...cond3.reasons,
-      ...triageBreaches,
     ],
   };
-  const lvlContracts = {
-    name: 'architectureContracted',
+  const lvlContractsPresent = {
+    name: 'contractsPresent',
     passed: missingContracts.length === 0,
     reasons: missingContracts.map((f) => `contract file missing: ${f}`),
+  };
+  const lvlContractsValidated = {
+    name: 'contractsValidated',
+    passed: contractValidationFailures.length === 0,
+    reasons: contractValidationFailures,
   };
   const lvlImplementation = {
     name: 'implementationReady',
     passed: cond1.passed,
     reasons: cond1.reasons,
   };
-  const lvlVertical = {
-    name: 'verticalReady',
+  const lvlVerticalBackend = {
+    name: 'verticalBackendReady',
     passed: cond4.passed,
     reasons: cond4.reasons,
+  };
+  const lvlVerticalUserJourney = {
+    name: 'verticalUserJourneyReady',
+    passed: cond4.passed && uiGaps.length === 0,
+    reasons: [
+      ...(cond4.passed ? [] : ['verticalBackendReady not passed']),
+      ...uiGaps.map((s) => `stage "${s}" has no UI proof (une preuve API n'est pas une preuve UI)`),
+    ],
   };
   const lvlBeta = {
     name: 'betaReady',
     passed:
-      lvlRegistry.passed && lvlVertical.passed && cond5.passed && cond6.passed && gateUnknownsPresent.length === 0,
+      lvlRegistryUniverse.passed &&
+      lvlVerticalBackend.passed &&
+      cond5.passed &&
+      cond6.passed &&
+      gateUnknownsPresent.length === 0,
     reasons: [
-      ...(lvlRegistry.passed ? [] : ['registryComplete not passed']),
-      ...(lvlVertical.passed ? [] : ['verticalReady not passed']),
+      ...(lvlRegistryUniverse.passed ? [] : ['registryUniverseReady not passed']),
+      ...(lvlVerticalBackend.passed ? [] : ['verticalBackendReady not passed']),
       ...cond5.reasons,
       ...cond6.reasons,
       ...gateUnknownsPresent.map((id) => `beta gate capability still unknown: ${id}`),
@@ -584,27 +708,57 @@ export function computeApprovalStatus(now = '2026-07-17T12:00:00Z') {
   };
   const lvlParity = {
     name: 'parityBaselineReady',
-    passed: surfacesNotDone.length === 0 && cond5.passed && pendingClaims.length === 0 && triageBreaches.length === 0,
+    passed:
+      surfacesNotDone.length === 0 &&
+      unevaluatedSurfaces.length === 0 &&
+      cond5.passed &&
+      pendingClaims.length === 0 &&
+      triageBreaches.length === 0,
     reasons: [
       ...surfacesNotDone.map((id) => `surface ${id} not done`),
+      ...(unevaluatedSurfaces.length > 0
+        ? [`${unevaluatedSurfaces.length} surface universe entries not evaluated (availability UNKNOWN)`]
+        : []),
       ...cond5.reasons,
       ...pendingClaims.map((id) => `claim ${id} triage PENDING`),
       ...triageBreaches,
     ],
   };
 
-  const levels = [lvlDocument, lvlRegistry, lvlContracts, lvlImplementation, lvlVertical, lvlBeta, lvlPublic, lvlParity];
+  const levels = [
+    lvlDocumentCanonicalized,
+    lvlSourceBaseline,
+    lvlRegistryUniverse,
+    lvlContractsPresent,
+    lvlContractsValidated,
+    lvlImplementation,
+    lvlVerticalBackend,
+    lvlVerticalUserJourney,
+    lvlBeta,
+    lvlPublic,
+    lvlParity,
+  ];
 
-  // Le niveau approuvé = le plus haut niveau CONTIGU atteint (échelle stricte).
-  let approvedLevel = null;
+  // highestPassedLevel = le plus haut niveau CONTIGU atteint (échelle stricte).
+  let highestPassedLevel = null;
 
   for (const level of levels) {
     if (!level.passed) {
       break;
     }
 
-    approvedLevel = level.name;
+    highestPassedLevel = level.name;
   }
+
+  /*
+   * P0-A2-16 : « approved » est RÉSERVÉ à une approbation de périmètre
+   * explicite, avec approbateur stocké (docs/parity/APPROVALS.yaml). Sans
+   * enregistrement d'approbation, overallStatus = NOT_APPROVED — toujours.
+   */
+  const approvalsPath = join(parityRoot, 'APPROVALS.yaml');
+  const approvals = existsSync(approvalsPath) ? (YAML.parse(readFileSync(approvalsPath, 'utf8'))?.approvals ?? []) : [];
+  const validApprovals = approvals.filter((a) => a.scope && a.approver && a.approver !== 'UNKNOWN' && a.date);
+  const overallStatus = validApprovals.length > 0 ? 'SCOPE_APPROVED' : 'NOT_APPROVED';
 
   const blocking = levels
     .filter((l) => !l.passed)
@@ -641,21 +795,33 @@ export function computeApprovalStatus(now = '2026-07-17T12:00:00Z') {
       faitProuve: (prodReadiness.items ?? []).filter((i) => i.status === 'FAIT_PROUVE').length,
     },
     backlog: backlogCounts,
+    canonicalWorkItems: canonicalWorkItemCount,
+    unanchoredClaims: unanchoredClaims.length,
   };
 
   return {
-    schemaVersion: 3,
-    generatedFrom: [...REQUIRED_REGISTRIES, 'PLAN_PARITE_REPLIT.md'],
+    schemaVersion: 4,
+    generatedFrom: [...REQUIRED_REGISTRIES, 'PLAN_PARITE_REPLIT.md', 'WORK_ITEM_REGISTRY.yaml', 'LEGACY_FINDING_REGISTRY.yaml'],
     note: 'COMPUTED by scripts/parity/generate-approval-status.mjs — never edit by hand. The validator fails the build on drift.',
     algorithm:
-      'NAMED LEVELS (évaluation v5, 2026-07-17): no global approvalReady boolean — APPROVED is only admissible with the exact level named. approved.level = highest CONTIGUOUS passed level in levels[]. The 6 audit-v4 conditions remain as sub-signals.',
+      "ÉCHELLE 11 NIVEAUX (audit de réanalyse 2026-07-20): overallStatus=NOT_APPROVED sauf approbation de périmètre explicite (APPROVALS.yaml, approbateur stocké). highestPassedLevel = plus haut niveau CONTIGU. Ni approvalReady ni approved.level n'existent (interdits). Les 6 conditions audit-v4 restent des sous-signaux.",
+    overallStatus,
+    highestPassedLevel,
+    generatedAt: now,
     levels,
-    approved: { level: approvedLevel },
     blocking,
     conditions,
     counts,
+    unanchoredClaims,
     p0: p0Rollup,
     surfaces: surfaceRollup,
+    surfaceUniverse: {
+      expected: EXPECTED_SURFACE_UNIVERSE_IDS.length,
+      present: universe.length,
+      evaluated: universe.length - unevaluatedSurfaces.length,
+      services: serviceUniverse.length,
+    },
+    workItems: { sourceFindingCount: backlogCounts.total, canonicalWorkItemCount },
     evidence,
     uiGaps,
     staleSources,

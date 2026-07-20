@@ -1,0 +1,3386 @@
+# LEGACY_FINDING_REGISTRY — les 336 constats sources de l'audit de couverture
+# du 19/07 (29 anciens plans/fichiers), déplacés HORS du plan (P1-A2-10) avec
+# provenance. sourceFindingCount = 336 — ce nombre est un compte de CONSTATS
+# SOURCES, pas de tâches uniques : la déduplication canonique vit dans
+# WORK_ITEM_REGISTRY.yaml (canonicalWorkItemId ci-dessous). Un constat peut
+# être DUPLICATE_OF sans disparaître de l'historique.
+# LIMITE DE PROVENANCE (honnête) : le fichier/ligne d'ORIGINE dans les 29
+# anciens documents n'a pas été capturé par l'audit de couverture ; la
+# provenance enregistrée est la version du plan qui les a matérialisés
+# (sourceFile@sourceHash + sourceLine), plus le pointeur de suivi (originRef).
+schemaVersion: 1
+repoCommit: 19e48513
+sourceFindingCount: 336
+sourceDocument: docs/parity/PLAN_PARITE_REPLIT.md
+sourceDocumentVersion: 2026-07-19.2
+sourceDocumentSha256: "af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+findings:
+  - sourceFindingId: ACT-01
+    text: "Remix : le clic « Remix » connecté jusqu'à l'IDE dans le navigateur reste à prouver à l'écran"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-01"
+    originRef: "REPLIT_PARITY.md TPL-02.2 + DEC-OWNER-D5-E2E-ACCOUNT"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 896
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0001
+  - sourceFindingId: ACT-02
+    text: "Hub Import : les 12 sources d'import documentées, avec validation et aperçu avant création"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    originRef: "REPLIT_PARITY.md TPL-02.3 + P0-V3-06"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 897
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0002
+  - sourceFindingId: ACT-03
+    text: "Créer un projet vide, sans Agent ni squelette (voie power-user)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    originRef: "REPLIT_PARITY.md TPL-02.4"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 898
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0003
+  - sourceFindingId: ACT-04
+    text: "Requalifier les 6 anciens starters en applications de démo publiées et remixables"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    originRef: "P1-COV-06"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 899
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0004
+  - sourceFindingId: ACT-05
+    text: "Prouver séparément que prompt, import et remix mènent chacun à un projet publiable"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    originRef: "REPLIT_PARITY.md TPL-02.PROOF + P1-COV-06"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 900
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0005
+  - sourceFindingId: ACT-06
+    text: "Historique de fichier automatique, indépendant de Git, avec rétention documentée"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-15"
+    originRef: "P1-COV-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 901
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0006
+  - sourceFindingId: ACT-07
+    text: "Bouton History + panneau autonome avec navigation au curseur, aux flèches et au clavier"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-15"
+    originRef: "P1-COV-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 902
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0006
+  - sourceFindingId: ACT-08
+    text: "Comparer avec la dernière version + restaurer sans jamais rien effacer"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-15"
+    originRef: "P1-COV-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 903
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0006
+  - sourceFindingId: ACT-09
+    text: "Rejouer les modifications d'un fichier comme un film (lecture/pause/vitesse)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-15"
+    originRef: "P1-COV-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 904
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0006
+  - sourceFindingId: ACT-10
+    text: "Compatibilité des skills d'agent au format ouvert (.agents/skills/…/SKILL.md)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-15"
+    originRef: "P1-COV-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 905
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0007
+  - sourceFindingId: ACT-11
+    text: "Chargement progressif des skills : titre d'abord, contenu à la demande"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-15"
+    originRef: "P1-COV-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 906
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0007
+  - sourceFindingId: ACT-12
+    text: "Filtre de sécurité anti-injection pour tout catalogue de skills externe (quarantaine, audit)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-15"
+    originRef: "P1-COV-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 907
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0007
+  - sourceFindingId: ACT-13
+    text: "Tests et validation live du lot File History + Skills sur les 3 formats d'écran"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-15"
+    originRef: "P1-COV-01 + P1-COV-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 908
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0008
+  - sourceFindingId: ACT-14
+    text: "Éditeur : inventaire de l'existant + captures avant, aux 3 formats"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "P1-COV-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 909
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0009
+  - sourceFindingId: ACT-15
+    text: "Éditeur : modèle persistant Fenêtre → Panneaux → Onglets"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "P1-COV-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 910
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0009
+  - sourceFindingId: ACT-16
+    text: "Éditeur : diviser l'écran, redimensionner, déplacer un onglet, panneau flottant"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "P1-COV-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 911
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0009
+  - sourceFindingId: ACT-17
+    text: "Éditeur : barre d'outils à gauche + fenêtre « Tous les outils » avec recherche"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "P1-COV-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 912
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0009
+  - sourceFindingId: ACT-18
+    text: "Éditeur : menu Options de l'onglet actif (actions fenêtre/panneau/onglet)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "P1-COV-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 913
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0009
+  - sourceFindingId: ACT-19
+    text: "Éditeur : panneau Ressources avec RAM/CPU/stockage réels"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "P1-COV-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 914
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0009
+  - sourceFindingId: ACT-20
+    text: "Éditeur : page Spotlight au clic sur le nom du projet"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "P1-COV-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 915
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0009
+  - sourceFindingId: ACT-21
+    text: "Terminologie : « Project Editor » pour l'IDE, « Workspace » réservé à l'organisation"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "P1-COV-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 916
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0009
+  - sourceFindingId: ACT-22
+    text: "Éditeur : responsive et accessible aux 3 formats, sans débordement"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "P1-COV-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 917
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0009
+  - sourceFindingId: ACT-23
+    text: "Éditeur : captures avant/après présentées à Avi avant tout push"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "P1-COV-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 918
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0009
+  - sourceFindingId: ACT-24
+    text: "Agent : raccourci ⌘⇧I et texte garde-fou du mode Lite jamais capturés à l'écran"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    originRef: "PARITY_STATUS.md (AGM-4)"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 919
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0010
+  - sourceFindingId: ACT-25
+    text: "Agent : popover Advanced, escalade sur tâche dure et mention « +0 credit » jamais capturés"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    originRef: "PARITY_STATUS.md (AGM-5)"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 920
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0011
+  - sourceFindingId: ACT-26
+    text: "Agent : publication réelle d'une v2 de la table de routage (historique avant/après) jamais exécutée"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    originRef: "PARITY_STATUS.md (AGM-9)"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 921
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0012
+  - sourceFindingId: ACT-27
+    text: "Agent : appel réel du classifieur jamais déclenché ni loggé (nécessite High effort)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    originRef: "PARITY_STATUS.md (AGM-10)"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 922
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0013
+  - sourceFindingId: ACT-28
+    text: "Agent : nudge « passe en Power » (max 1×/projet) jamais testé en vrai"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    originRef: "PARITY_STATUS.md (AGM-11)"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 923
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0014
+  - sourceFindingId: ACT-29
+    text: "Pipeline de publication : barrières de sécurité et scan de secrets (B6)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PARITY_STATUS.md (Phase B)"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 924
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0015
+  - sourceFindingId: ACT-30
+    text: "Pipeline de publication : signature des images (cosign, B7)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PARITY_STATUS.md (Phase B)"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 925
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0015
+  - sourceFindingId: ACT-31
+    text: "Offres de déploiement Reserved VM (4 tarifs) + changement de type sans recréer"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "P1-COV-04"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 926
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0016
+  - sourceFindingId: ACT-32
+    text: "Recréer le pool de serveurs en disques standard pour débloquer l'autoscale (GO Avi)"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-08-15"
+    originRef: "PR-MISC-05 + ACTIONS_AVI #2"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 927
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0017
+  - sourceFindingId: ACT-33
+    text: "Bug : pousser le correctif de la page /solutions/internal-ai (testé, jamais commité)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-15"
+    originRef: "BUG_INVENTORY_LIVE.md BUG-SOL-001"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 928
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0018
+  - sourceFindingId: ACT-34
+    text: "Bug : App Builder montre des démos salon à côté de promesses de génération — corriger le discours et prouver un vrai run"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    originRef: "BUG_INVENTORY_LIVE.md BUG-SOL-002"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 929
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0019
+  - sourceFindingId: ACT-35
+    text: "Bug : la page templates est une liste figée sans recherche ni catégories"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    originRef: "BUG_INVENTORY_LIVE.md BUG-TPL-001"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 930
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0020
+  - sourceFindingId: ACT-36
+    text: "Bug : la refonte Gallery modélise encore des starters par framework au lieu d'apps communautaires"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    originRef: "BUG_INVENTORY_LIVE.md BUG-TPL-002"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 931
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0021
+  - sourceFindingId: ACT-37
+    text: "Bug : vérifier en vrai le build séquentiel Cloud Build au prochain déploiement (BUG-CI-002)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-15"
+    originRef: "BUG_INVENTORY_LIVE.md BUG-CI-002"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 932
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0022
+  - sourceFindingId: ACT-38
+    text: "Page de vente App Builder : validation du gabarit par Avi (violet résiduel + limites du run signalées)"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-08-15"
+    originRef: "DESIGN_PROGRAM_MASTER SOL-01 + ACTIONS_AVI #9"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 933
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0023
+  - sourceFindingId: ACT-39
+    text: "Page de vente Website Builder (bloquée par la validation du gabarit)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "DESIGN_PROGRAM_MASTER SOL-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 934
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0024
+  - sourceFindingId: ACT-40
+    text: "Page de vente Game Builder"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "DESIGN_PROGRAM_MASTER SOL-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 935
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0025
+  - sourceFindingId: ACT-41
+    text: "Page de vente Dashboard Builder"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "DESIGN_PROGRAM_MASTER SOL-04"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 936
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0026
+  - sourceFindingId: ACT-42
+    text: "Page de vente Chatbot / AI Agent Builder"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "DESIGN_PROGRAM_MASTER SOL-05"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 937
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0027
+  - sourceFindingId: ACT-43
+    text: "Page de vente Internal AI Builder"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "DESIGN_PROGRAM_MASTER SOL-06"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 938
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0028
+  - sourceFindingId: ACT-44
+    text: "Page de vente Enterprise"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "DESIGN_PROGRAM_MASTER SOL-07"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 939
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0029
+  - sourceFindingId: ACT-45
+    text: "Page de vente Startups"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "DESIGN_PROGRAM_MASTER SOL-08"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 940
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0030
+  - sourceFindingId: ACT-46
+    text: "Page de vente Freelancers"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "DESIGN_PROGRAM_MASTER SOL-09"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 941
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0031
+  - sourceFindingId: ACT-47
+    text: "Sauvetage de la spec design Solutions hors du stash volatil (PR #8 en attente de merge)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-07-31"
+    originRef: "PR #8"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 942
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0032
+  - sourceFindingId: RPD-01
+    text: "Le système de crédits existant tourne « à blanc » : bascule réelle jamais faite (BILLING_CREDITS_ENABLED)"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-08-15"
+    originRef: "UNK-BILLING-LEGACY-GOLIVE"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 948
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0087
+  - sourceFindingId: RPD-02
+    text: "Stripe : créer les produits/prix des plans et remplacer la clé expirée (2 actions Avi)"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-08-15"
+    originRef: "UNK-BILLING-LEGACY-GOLIVE + ACTIONS_AVI #1"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 949
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0088
+  - sourceFindingId: RPD-03
+    text: "Basculer les anciens noms de plans vers les nouveaux (pro→core, team→pro, free→starter)"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-08-15"
+    originRef: "UNK-BILLING-LEGACY-GOLIVE"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 950
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0087
+  - sourceFindingId: RPD-04
+    text: "Facturer le calcul base de données aux heures réellement actives"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "UNK-DB-COMPUTE-METERING"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 951
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0089
+  - sourceFindingId: RPD-05
+    text: "Option de paiement à l'usage (PAYG) : interface prête, activation jamais faite"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-08-15"
+    originRef: "UNK-BILLING-LEGACY-GOLIVE"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 952
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0087
+  - sourceFindingId: RPD-06
+    text: "Choix facturation annuelle dans le formulaire d'upgrade : serveur prêt, bouton absent"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-15"
+    originRef: "UNK-BILLING-LEGACY-GOLIVE"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 953
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0087
+  - sourceFindingId: RPD-07
+    text: "Nettoyage automatique d'inactivité : encore en mode « répétition », jamais activé pour de vrai"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-15"
+    originRef: "UNK-BILLING-LEGACY-GOLIVE"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 954
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0087
+  - sourceFindingId: RPD-08
+    text: "Plafonds de dépense par utilisateur (Enterprise) réellement appliqués"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "P1-COV-05"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 955
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0090
+  - sourceFindingId: RPD-09
+    text: "Limite d'agents en parallèle selon le plan (1/2/10) réellement appliquée"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "P1-COV-05"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 956
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0090
+  - sourceFindingId: RPD-10
+    text: "Plan Starter : une seule app publiée, limite réellement appliquée"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "P1-COV-05"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 957
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0090
+  - sourceFindingId: RPD-11
+    text: "Plan Starter : 2 Go de stockage et liens publiés qui expirent à 30 jours"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "P1-COV-05"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 958
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0090
+  - sourceFindingId: RPD-12
+    text: "Badge « Made with » : le retrait payant n'existe pas encore"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "P1-COV-05"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 959
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0090
+  - sourceFindingId: RPD-13
+    text: "Régions de publication limitées selon le plan"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "P1-COV-05"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 960
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0090
+  - sourceFindingId: RPD-14
+    text: "Plan Pro : limite de 50 spectateurs réellement appliquée"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "P1-COV-05"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 961
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0090
+  - sourceFindingId: RPD-15
+    text: "Offre Enterprise avancée : instance dédiée, IP fixes, VPC, entrepôts de données, centre de sécurité"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "P1-COV-05"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 962
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0090
+  - sourceFindingId: RPD-16
+    text: "Quotas de bande passante sortante par plan (ex. 100 Go Core)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "P1-COV-05"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 963
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0090
+  - sourceFindingId: RPD-17
+    text: "Écran admin d'édition avancée des plans et quotas"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-MISC-07"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 964
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0091
+  - sourceFindingId: RPD-18
+    text: "Profil/Préférences/Données/MCP perso en vraies pages du Dashboard"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-MISC-07"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 965
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0091
+  - sourceFindingId: RPD-19
+    text: "Certification des écrans admin en prod + test d'impersonation (nécessite la connexion d'Avi)"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-10-31"
+    originRef: "PR-SEC-04 + ACTIONS_AVI #7"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 966
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0092
+  - sourceFindingId: RPD-20
+    text: "Appliquer les mesures pixel déjà prises (couleurs, panneaux Deploy et Git)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "P1-COV-07"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 967
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0093
+  - sourceFindingId: RPD-21
+    text: "Re-vérifier face à Replit les 3 éléments d'interface IDE marqués « à confirmer »"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "P1-COV-07"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 968
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0093
+  - sourceFindingId: RPD-22
+    text: "Finition du panneau Files (attend la capture de référence d'Avi)"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-09-30"
+    originRef: "P1-COV-07 + ACTIONS_AVI #10"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 969
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0094
+  - sourceFindingId: RPD-23
+    text: "Décision : thème clair copié de Replit, ou notre thème sombre+orange (Avi)"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-09-30"
+    originRef: "ACTIONS_AVI #8"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 970
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0095
+  - sourceFindingId: RPD-24
+    text: "Contenu juridique définitif des 5 pages légales relu par un juriste"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-10-31"
+    originRef: "PR-LEGAL-01 + ACTIONS_AVI #4"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 971
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0096
+  - sourceFindingId: RPD-25
+    text: "Confirmer les vraies boîtes mail appeals@ et le canal DMCA"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-10-31"
+    originRef: "ACTIONS_AVI #5"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 972
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0097
+  - sourceFindingId: RPD-26
+    text: "Fixer les délais de support (SLA) que l'entreprise s'engage à tenir"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-11-30"
+    originRef: "ACTIONS_AVI #6"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 973
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0098
+  - sourceFindingId: RPD-27
+    text: "Décision produit : proxy des services d'agent (phase 2 des intégrations) — faire ou abandonner"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-12-31"
+    originRef: "PR-MISC-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 974
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0099
+  - sourceFindingId: BD-01
+    text: "Le bouton « sync » des intégrations IDE ne fait rien ; le catalogue est figé dans le code"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "BOLT_DEBT_REGISTRY"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 980
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0033
+  - sourceFindingId: BD-02
+    text: "Le débogueur affiche des points d'arrêt décoratifs : rien ne s'arrête vraiment"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "BOLT_DEBT_REGISTRY"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 981
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0033
+  - sourceFindingId: BD-03
+    text: "Les tâches planifiées par l'utilisateur (panneau Workflows) ne se déclenchent jamais — feature morte"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-15"
+    originRef: "BOLT_DEBT_REGISTRY"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 982
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0033
+  - sourceFindingId: BD-04
+    text: "La page facturation n'affiche pas les factures, pourtant disponibles côté serveur"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    originRef: "BOLT_DEBT_REGISTRY"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 983
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0033
+  - sourceFindingId: BD-05
+    text: "Aucune cloche/badge de notifications dans l'interface"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "BOLT_DEBT_REGISTRY"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 984
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0033
+  - sourceFindingId: BD-06
+    text: "L'onglet Profil des réglages IDE stocke en local en se faisant passer pour le compte"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-15"
+    originRef: "BOLT_DEBT_REGISTRY"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 985
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0033
+  - sourceFindingId: BD-07
+    text: "Deux réglages contradictoires pour les clés IA personnelles (local vs admin) — sort du panneau à trancher"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "BOLT_DEBT_REGISTRY"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 986
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0033
+  - sourceFindingId: BD-08
+    text: "Cinq formulaires de jetons d'accès stockent en clair côté navigateur au lieu du coffre chiffré"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "BOLT_DEBT_REGISTRY"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 987
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0033
+  - sourceFindingId: BD-09
+    text: "L'onglet Notifications des réglages montre des logs techniques, pas les préférences"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "BOLT_DEBT_REGISTRY"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 988
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0033
+  - sourceFindingId: BD-10
+    text: "Les verrous de fichiers ne sont pas appliqués côté serveur (contournables, pas partagés entre appareils)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "BOLT_DEBT_REGISTRY"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 989
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0033
+  - sourceFindingId: BD-11
+    text: "Les outils de dev (console/réseau) ne capturent que les erreurs, pas tout le trafic"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "BOLT_DEBT_REGISTRY"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 990
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0033
+  - sourceFindingId: BD-12
+    text: "Douze compteurs de supervision définis mais jamais alimentés (« no data »)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "BOLT_DEBT_REGISTRY"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 991
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0033
+  - sourceFindingId: BD-13
+    text: "Des mesures collectées (Stripe, emails, restaurations) ne sont affichées nulle part"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "BOLT_DEBT_REGISTRY"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 992
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0033
+  - sourceFindingId: BD-14
+    text: "Trois fonctions admin existent côté serveur sans écran pour s'en servir"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "BOLT_DEBT_REGISTRY"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 993
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0033
+  - sourceFindingId: BD-15
+    text: "Le flux de logs des pods n'a pas d'écran admin"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-11-30"
+    originRef: "BOLT_DEBT_REGISTRY"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 994
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0033
+  - sourceFindingId: BD-16
+    text: "Des pages orphelines (/search, /help, /marketplace/templates…) ne mènent nulle part"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-11-30"
+    originRef: "BOLT_DEBT_REGISTRY"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 995
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0033
+  - sourceFindingId: BD-17
+    text: "Des pages marketing figées ignorent les données réelles disponibles côté serveur"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-11-30"
+    originRef: "BOLT_DEBT_REGISTRY"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 996
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0033
+  - sourceFindingId: BD-18
+    text: "Un menu marketing existe dans le code mais n'est jamais affiché (code mort)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-11-30"
+    originRef: "BOLT_DEBT_REGISTRY"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 997
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0033
+  - sourceFindingId: BD-19
+    text: "Parcours admin entreprise incomplet : rôles non modifiables, SSO sans relecture, ajout de membre par identifiant technique"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "BOLT_DEBT_REGISTRY"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 998
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0033
+  - sourceFindingId: BD-20
+    text: "La restauration de base « point dans le temps » n'a jamais été prouvée ; l'interrupteur est éteint en prod"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "BOLT_DEBT_REGISTRY"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 999
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0033
+  - sourceFindingId: BD-21
+    text: "Les connexions externes (GitHub, GitLab, Netlify, Vercel, Supabase) attendent les accès réels d'Avi"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-09-30"
+    originRef: "BOLT_DEBT_REGISTRY"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1000
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0033
+  - sourceFindingId: BD-22
+    text: "Publier chez un hébergeur externe (Netlify/Vercel) n'a jamais été prouvé, ni son retour arrière"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-10-31"
+    originRef: "BOLT_DEBT_REGISTRY"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1001
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0033
+  - sourceFindingId: BD-23
+    text: "Les serveurs MCP « stdio » sont coupés en prod ; construire le mode sécurisé ou acter l'abandon"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-11-30"
+    originRef: "BOLT_DEBT_REGISTRY"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1002
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0033
+  - sourceFindingId: BD-24
+    text: "Des erreurs de qualité de code anciennes bloquent des commits légitimes (à purger)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "BOLT_DEBT_REGISTRY"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1003
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0033
+  - sourceFindingId: BD-25
+    text: "Le nettoyage final de la migration depuis bolt n'a jamais été fait ni déclaré caduc"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-12-31"
+    originRef: "BOLT_DEBT_REGISTRY"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1004
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0033
+  - sourceFindingId: BD-26
+    text: "Acter par écrit que la facturation a été placée dans l'espace utilisateur, pas dans l'IDE"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    originRef: "BOLT_DEBT_REGISTRY"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1005
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0033
+  - sourceFindingId: BD-27
+    text: "Tableaux de bord de supervision avancés dans l'app : option jamais décidée"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-11-30"
+    originRef: "BOLT_DEBT_REGISTRY"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1006
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0033
+  - sourceFindingId: GLC-L030
+    text: "La validation de configuration production passe avec les vrais secrets (SSO, SIEM, Stripe, monitoring)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-CFG-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1012
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0060
+  - sourceFindingId: GLC-L037
+    text: "Ancienne gate « dernière image committée déployée » (sha-1116d9d) (preuve : CD auto sur main via .github/workflows/deploy-main.yml, cf. docs/DEPLOY_RUNBOOK.md)"
+    status: PERIME
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-RUN-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1013
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0034
+  - sourceFindingId: GLC-L039
+    text: "Rejouer la validation runtime Kubernetes contre l'API et le workspace-manager déployés"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-RUN-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1014
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0034
+  - sourceFindingId: GLC-L040
+    text: "Rejouer la validation complète du cycle de vie workspace contre le cluster GKE réel"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-RUN-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1015
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0034
+  - sourceFindingId: GLC-L042
+    text: "Drill réseau en réel : vérifier que le trafic interdit est bien bloqué"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-ISO-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1016
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0047
+  - sourceFindingId: GLC-L044
+    text: "Ancienne gate « run id de validation staging fourni au déploiement prod » (preuve : CD auto sur main via .github/workflows/deploy-main.yml, cf. docs/DEPLOY_RUNBOOK.md)"
+    status: PERIME
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "docs/DEPLOY_RUNBOOK.md (pipeline remplacé)"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1017
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0061
+  - sourceFindingId: GLC-L045
+    text: "Ancienne étape de validation production du workflow deploy-prod.yml (preuve : CD auto sur main via .github/workflows/deploy-main.yml, cf. docs/DEPLOY_RUNBOOK.md)"
+    status: PERIME
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "docs/DEPLOY_RUNBOOK.md (pipeline remplacé)"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1018
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0061
+  - sourceFindingId: GLC-L049
+    text: "Terraform appliqué sur un projet GCP staging dédié"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-11-30"
+    originRef: "PR-INFRA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1019
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0053
+  - sourceFindingId: GLC-L050
+    text: "Cluster GKE applicatif staging joignable en configuration privée"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-11-30"
+    originRef: "PR-INFRA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1020
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0053
+  - sourceFindingId: GLC-L051
+    text: "Cluster GKE workspaces staging joignable avec pool de nœuds gVisor"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-11-30"
+    originRef: "PR-INFRA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1021
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0053
+  - sourceFindingId: GLC-L052
+    text: "La classe d'exécution gVisor existe dans le cluster"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-ISO-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1022
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0046
+  - sourceFindingId: GLC-L053
+    text: "Kyverno (contrôleur de règles d'admission) installé"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-ISO-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1023
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0048
+    duplicateOf: CM-26
+  - sourceFindingId: GLC-L054
+    text: "La règle de sécurité workspace est en mode Enforce (blocage réel)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-ISO-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1024
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0048
+  - sourceFindingId: GLC-L055
+    text: "L'admission rejette tout pod workspace sans isolation gVisor"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-ISO-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1025
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0046
+  - sourceFindingId: GLC-L056
+    text: "L'admission rejette les pods privilégiés, avec accès hôte, tag latest ou sans limites"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-ISO-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1026
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0046
+  - sourceFindingId: GLC-L057
+    text: "Règles réseau (NetworkPolicies) plateforme et workspaces installées"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-ISO-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1027
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0047
+  - sourceFindingId: GLC-L058
+    text: "Accès au serveur de métadonnées bloqué depuis les pods workspace"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-ISO-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1028
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0047
+  - sourceFindingId: GLC-L059
+    text: "Accès Cloud SQL, Redis et réseaux internes bloqués depuis les workspaces"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-ISO-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1029
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0047
+  - sourceFindingId: GLC-L060
+    text: "Le sélecteur d'ingress dans Helm correspond au vrai contrôleur d'ingress"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-11-30"
+    originRef: "PR-INFRA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1030
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0053
+  - sourceFindingId: GLC-L061
+    text: "IP privée Cloud SQL et restauration à un instant donné vérifiées"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-11-30"
+    originRef: "PR-INFRA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1031
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0053
+  - sourceFindingId: GLC-L062
+    text: "Redis privé haute disponibilité vérifié"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-11-30"
+    originRef: "PR-INFRA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1032
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0053
+  - sourceFindingId: GLC-L063
+    text: "Intégration Secret Manager vérifiée"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-11-30"
+    originRef: "PR-INFRA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1033
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0053
+  - sourceFindingId: GLC-L064
+    text: "cert-manager et certificat TLS wildcard des previews vérifiés"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-11-30"
+    originRef: "PR-INFRA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1034
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0053
+  - sourceFindingId: GLC-L068
+    text: "Démarrer un workspace distant depuis l'API"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-RUN-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1035
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0034
+  - sourceFindingId: GLC-L069
+    text: "Démarrer un workspace distant depuis l'IDE"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-RUN-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1036
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0034
+  - sourceFindingId: GLC-L070
+    text: "Toutes les opérations fichiers (lire, écrire, renommer, supprimer, chercher, surveiller) fonctionnent"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-RUN-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1037
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0034
+  - sourceFindingId: GLC-L071
+    text: "Le terminal s'ouvre en WebSocket à travers l'ingress"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-RUN-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1038
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0034
+  - sourceFindingId: GLC-L072
+    text: "Reconnexion et redimensionnement du terminal fonctionnent"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-RUN-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1039
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0034
+  - sourceFindingId: GLC-L073
+    text: "Le streaming des commandes fonctionne"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-RUN-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1040
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0034
+  - sourceFindingId: GLC-L074
+    text: "Les logs remontent du workspace-manager jusqu'à l'IDE"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-RUN-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1041
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0034
+  - sourceFindingId: GLC-L075
+    text: "La détection des ports de preview fonctionne"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-RUN-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1042
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0034
+  - sourceFindingId: GLC-L076
+    text: "L'URL de preview fonctionne en HTTPS"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-RUN-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1043
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0034
+  - sourceFindingId: GLC-L077
+    text: "Arrêt, redémarrage et suppression du workspace fonctionnent"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-RUN-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1044
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0034
+  - sourceFindingId: GLC-L078
+    text: "Le disque du workspace survit à un redémarrage"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-RUN-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1045
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0034
+  - sourceFindingId: GLC-L079
+    text: "Mise en veille automatique et nettoyage des workspaces observés (preuve : BUG-CRON-001 testé live 16/07, BUG_INVENTORY_LIVE.md)"
+    status: DEJA_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-RUN-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1046
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0034
+  - sourceFindingId: GLC-L083
+    text: "Inscription, connexion et déconnexion testées de bout en bout"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-PROD-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1047
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0056
+  - sourceFindingId: GLC-L084
+    text: "Vérification d'email et réinitialisation de mot de passe via un vrai fournisseur d'email"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-PROD-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1048
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0056
+  - sourceFindingId: GLC-L085
+    text: "Double authentification : enrôlement, connexion et codes de secours testés"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-PROD-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1049
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0056
+  - sourceFindingId: GLC-L086
+    text: "Connexion Google et GitHub via les vraies applications OAuth"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-PROD-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1050
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0056
+  - sourceFindingId: GLC-L087
+    text: "Connexion OIDC via un vrai tenant avec vérification des clés"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-PROD-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1051
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0056
+  - sourceFindingId: GLC-L088
+    text: "Connexion SAML via un vrai fournisseur d'identité"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-PROD-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1052
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0056
+  - sourceFindingId: GLC-L089
+    text: "Provisionnement et désactivation SCIM via un vrai client"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-PROD-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1053
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0056
+  - sourceFindingId: GLC-L090
+    text: "Cycle de vie projet complet : créer, importer, exporter, snapshot, restaurer"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-PROD-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1054
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0062
+  - sourceFindingId: GLC-L091
+    text: "GitHub de bout en bout : import, branche, commit, push, pull request"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-PROD-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1055
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0062
+  - sourceFindingId: GLC-L092
+    text: "Tous les panneaux de l'IDE testés de bout en bout"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-PROD-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1056
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0062
+  - sourceFindingId: GLC-L093
+    text: "Collaboration à deux : présence, édition, commentaires, lien de partage"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-11-30"
+    originRef: "PR-PROD-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1057
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0043
+  - sourceFindingId: GLC-L094
+    text: "Déploiement testé de bout en bout pour chaque provider activé"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-10-31"
+    originRef: "BD-22"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1058
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0044
+  - sourceFindingId: GLC-L095
+    text: "Rollback testé de bout en bout pour chaque provider qui le permet"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-10-31"
+    originRef: "BD-22"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1059
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0044
+  - sourceFindingId: GLC-L096
+    text: "Domaine personnalisé testé de bout en bout"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-PROD-04"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1060
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0063
+  - sourceFindingId: GLC-L100
+    text: "Paiement Stripe (checkout) testé en mode test"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-15"
+    originRef: "PR-STRIPE-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1061
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0036
+  - sourceFindingId: GLC-L101
+    text: "Portail client Stripe testé en mode test"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-15"
+    originRef: "PR-STRIPE-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1062
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0036
+  - sourceFindingId: GLC-L102
+    text: "Rejet des webhooks Stripe à signature invalide testé"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-15"
+    originRef: "PR-STRIPE-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1063
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0036
+  - sourceFindingId: GLC-L103
+    text: "Idempotence des webhooks Stripe dupliqués testée"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-15"
+    originRef: "PR-STRIPE-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1064
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0036
+  - sourceFindingId: GLC-L104
+    text: "Événements facture payée/échouée, essai, upgrade, downgrade, annulation vérifiés"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-15"
+    originRef: "PR-STRIPE-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1065
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0036
+  - sourceFindingId: GLC-L105
+    text: "Un changement de plan est visible dès la requête backend suivante"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QUOTA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1066
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0037
+  - sourceFindingId: GLC-L106
+    text: "Quota dépassé : le backend renvoie 429 et enregistre audit et usage"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QUOTA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1067
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0037
+  - sourceFindingId: GLC-L107
+    text: "Le quota bloque les démarrages de workspaces simultanés au-delà de la limite"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QUOTA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1068
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0037
+  - sourceFindingId: GLC-L108
+    text: "Le dépassement accordé par un admin est audité et expire automatiquement"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QUOTA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1069
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0037
+  - sourceFindingId: GLC-L109
+    text: "Le tableau de bord facturation correspond à l'état backend et Stripe"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-STRIPE-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1070
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0064
+  - sourceFindingId: GLC-L118
+    text: "Protection CSRF vérifiée sur toutes les mutations, navigateur et API"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-SEC-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1071
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0065
+  - sourceFindingId: GLC-L120
+    text: "Secret canari introuvable dans logs API, runtime, sorties IA, vues admin, exports et logs de déploiement"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-SEC-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1072
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0066
+  - sourceFindingId: GLC-L121
+    text: "Test d'intrusion externe planifié avant le lancement payant"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-11-30"
+    originRef: "PR-SEC-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1073
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0045
+  - sourceFindingId: GLC-L122
+    text: "Audit navigateur des actions admin dangereuses réussi"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-SEC-04"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1074
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0038
+    duplicateOf: CM-15
+  - sourceFindingId: GLC-L123
+    text: "Livraison des alertes d'abus vers une vraie cible SIEM observée"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-SEC-05"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1075
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0049
+  - sourceFindingId: GLC-L127
+    text: "Métriques Prometheus collectées depuis staging"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-OPS-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1076
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0050
+  - sourceFindingId: GLC-L128
+    text: "Tableau de bord Grafana importé et alimenté"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-OPS-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1077
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0050
+  - sourceFindingId: GLC-L129
+    text: "Règles d'alerte chargées et routées vers l'astreinte"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-OPS-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1078
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0050
+  - sourceFindingId: GLC-L130
+    text: "Vérifications synthétiques (robots de surveillance) en fonctionnement"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-OPS-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1079
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0050
+  - sourceFindingId: GLC-L131
+    text: "Erreurs visibles dans Sentry/OTLP"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-OPS-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1080
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0050
+  - sourceFindingId: GLC-L132
+    text: "Exercice de restauration Cloud SQL exécuté"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-DR-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1081
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0051
+  - sourceFindingId: GLC-L133
+    text: "Exercice de restauration du stockage projets exécuté"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-DR-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1082
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0051
+  - sourceFindingId: GLC-L134
+    text: "Temps de reprise et perte maximale (RTO/RPO) mesurés et documentés"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-DR-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1083
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0051
+  - sourceFindingId: GLC-L135
+    text: "Runbook de reprise après sinistre exercé"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-DR-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1084
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0052
+  - sourceFindingId: GLC-L136
+    text: "Rollback Helm exercé"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-DR-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1085
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0052
+  - sourceFindingId: GLC-L137
+    text: "Retour arrière Terraform exercé"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-DR-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1086
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0052
+  - sourceFindingId: GLC-L138
+    text: "Processus de page de statut testé"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-DR-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1087
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0052
+  - sourceFindingId: GLC-L142
+    text: "Test de charge API exécuté contre staging"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-LOAD-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1088
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0054
+  - sourceFindingId: GLC-L143
+    text: "Test de charge du cycle de vie workspace exécuté contre staging"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-LOAD-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1089
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0067
+  - sourceFindingId: GLC-L144
+    text: "Test de charge des previews exécuté contre staging"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-LOAD-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1090
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0068
+  - sourceFindingId: GLC-L145
+    text: "Test de charge IA simulée exécuté contre staging"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-LOAD-04"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1091
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0069
+  - sourceFindingId: GLC-L146
+    text: "Test de charge des webhooks facturation exécuté contre staging"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-LOAD-05"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1092
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0070
+  - sourceFindingId: GLC-L147
+    text: "Objectif de capacité de la beta privée atteint"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-12-31"
+    originRef: "PR-SCALE-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1093
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0035
+  - sourceFindingId: GLC-L148
+    text: "Objectif de capacité 1 000 utilisateurs atteint"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-12-31"
+    originRef: "PR-SCALE-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1094
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0035
+  - sourceFindingId: GLC-L149
+    text: "Modèle de capacité 10 000 utilisateurs validé"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-12-31"
+    originRef: "PR-SCALE-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1095
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0035
+  - sourceFindingId: GLC-L150
+    text: "Modèle de coût mis à jour avec les mesures réelles"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-12-31"
+    originRef: "PR-SCALE-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1096
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0035
+  - sourceFindingId: GLC-L157
+    text: "Pipeline iOS signé (IPA/TestFlight) vérifié"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-12-31"
+    originRef: "PR-MOB-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1097
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0040
+  - sourceFindingId: GLC-L158
+    text: "Pipeline Android signé (AAB/piste interne Play) vérifié"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-12-31"
+    originRef: "PR-MOB-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1098
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0041
+  - sourceFindingId: GLC-L159
+    text: "Validation release mobile passe avec le vrai domaine de production"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-MOB-04"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1099
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0071
+  - sourceFindingId: GLC-L161
+    text: "Vérification des assets de release mobile passe avec les vraies métadonnées"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-MOB-04"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1100
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0071
+  - sourceFindingId: GLC-L164
+    text: "Notifications push APNs et FCM vérifiées"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-12-31"
+    originRef: "PR-MOB-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1101
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0072
+  - sourceFindingId: GLC-L165
+    text: "QA de l'éditeur sur vrais téléphones et tablettes effectuée"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-12-31"
+    originRef: "PR-MOB-05"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1102
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0042
+    duplicateOf: CM-19
+  - sourceFindingId: GLC-L166
+    text: "Build macOS signé vérifié"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-12-31"
+    originRef: "PR-DESK-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1103
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0039
+  - sourceFindingId: GLC-L167
+    text: "Build Windows signé vérifié"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-12-31"
+    originRef: "PR-DESK-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1104
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0039
+  - sourceFindingId: GLC-L168
+    text: "Paquet Linux vérifié"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-12-31"
+    originRef: "PR-DESK-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1105
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0039
+  - sourceFindingId: GLC-L169
+    text: "Exercice de mise à jour automatique desktop effectué"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-12-31"
+    originRef: "PR-DESK-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1106
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0039
+    duplicateOf: CM-16
+  - sourceFindingId: GLC-L173
+    text: "Conditions d'utilisation relues par un juriste"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-10-31"
+    originRef: "PR-LEGAL-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1107
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0055
+  - sourceFindingId: GLC-L174
+    text: "Politique de confidentialité relue par un juriste"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-10-31"
+    originRef: "PR-LEGAL-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1108
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0055
+  - sourceFindingId: GLC-L175
+    text: "Accord de traitement des données (DPA) rédigé et relu"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-10-31"
+    originRef: "PR-LEGAL-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1109
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0055
+  - sourceFindingId: GLC-L176
+    text: "Liste des sous-traitants publiée"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-10-31"
+    originRef: "PR-LEGAL-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1110
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0055
+  - sourceFindingId: GLC-L177
+    text: "Politique d'usage acceptable liée depuis l'inscription"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-10-31"
+    originRef: "PR-LEGAL-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1111
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0055
+  - sourceFindingId: GLC-L178
+    text: "Politique de rétention des données alignée avec le code"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-11-30"
+    originRef: "PR-LEGAL-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1112
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0073
+  - sourceFindingId: GLC-L179
+    text: "Responsables des contrôles SOC2 désignés"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-11-30"
+    originRef: "PR-LEGAL-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1113
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0073
+  - sourceFindingId: RB-L009
+    text: "Preuve E2E complète du runtime Kubernetes après déploiement (fichiers, terminal, logs, preview, snapshot)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-RUN-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1114
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0034
+  - sourceFindingId: RB-L015
+    text: "Isolation des workspaces prouvée en réel (gVisor, pods restreints, trafic interdit bloqué)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-ISO-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1115
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0046
+  - sourceFindingId: RB-L022
+    text: "Configuration production complète : renseigner les secrets externes manquants (SSO, SIEM, Stripe, monitoring, SOC2)"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-10-31"
+    originRef: "PR-CFG-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1116
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0057
+  - sourceFindingId: RB-L037
+    text: "Parcours Stripe en mode test vérifié (clé expirée à remplacer d'abord)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-15"
+    originRef: "PR-STRIPE-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1117
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0036
+  - sourceFindingId: RB-L042
+    text: "Restauration des sauvegardes prouvée en staging avec temps mesurés"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-DR-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1118
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0051
+  - sourceFindingId: RB-L047
+    text: "Les cinq tests de charge exécutés avec rapports chiffrés"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-LOAD-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1119
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0054
+  - sourceFindingId: RB-L052
+    text: "Audit navigateur complet des actions admin dangereuses"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-SEC-04"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1120
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0038
+    duplicateOf: CM-15
+  - sourceFindingId: RB-L059
+    text: "Secret canari prouvé absent de toutes les sorties en réel"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-SEC-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1121
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0066
+  - sourceFindingId: RB-L069
+    text: "Preuve Stripe mode test complète et documentée"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-15"
+    originRef: "PR-STRIPE-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1122
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0036
+  - sourceFindingId: RB-L070
+    text: "Application des quotas mesurée sous pression simultanée (workspaces, IA, facturation)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QUOTA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1123
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0037
+  - sourceFindingId: RB-L071
+    text: "Tableau de bord facturation rapproché de l'état Stripe"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-STRIPE-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1124
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0064
+  - sourceFindingId: RB-L072
+    text: "Déploiement et rollback prouvés en sandbox pour chaque provider activé au lancement"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-10-31"
+    originRef: "BD-22"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1125
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0044
+  - sourceFindingId: RB-L073
+    text: "Revue juridique : conditions, confidentialité, DPA, usage acceptable, sous-traitants"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-10-31"
+    originRef: "PR-LEGAL-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1126
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0055
+  - sourceFindingId: RB-L074
+    text: "Monitoring production, alertes, webhook incident et astreinte opérationnels"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-11-30"
+    originRef: "PR-OPS-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1127
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0085
+  - sourceFindingId: RB-L075
+    text: "Rollback exercé en staging"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-DR-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1128
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0052
+  - sourceFindingId: RB-L079
+    text: "Latence du scaling des nœuds workspace et de la création des disques mesurée"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-12-31"
+    originRef: "PR-SCALE-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1129
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0035
+  - sourceFindingId: RB-L080
+    text: "Concurrence des terminaux et débit des previews mesurés"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-12-31"
+    originRef: "PR-SCALE-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1130
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0035
+  - sourceFindingId: RB-L081
+    text: "Latence et pools de connexions Cloud SQL et Redis mesurés sous charge"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-12-31"
+    originRef: "PR-SCALE-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1131
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0035
+  - sourceFindingId: RB-L082
+    text: "Stratégie de limitation et de repli des fournisseurs IA testée"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-12-31"
+    originRef: "PR-SCALE-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1132
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0035
+  - sourceFindingId: RB-L083
+    text: "Exercices de détection d'abus exécutés et livraison SIEM observée"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-SEC-05"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1133
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0049
+  - sourceFindingId: RB-L084
+    text: "Processus support et réponse aux incidents staffé et répété"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-11-30"
+    originRef: "PR-OPS-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1134
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0085
+  - sourceFindingId: RB-L088
+    text: "Décision multi-région ou mono-région documentée et validée"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-12-31"
+    originRef: "PR-DR-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1135
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0086
+  - sourceFindingId: RB-L089
+    text: "Dimensionnement GKE, Cloud SQL et Redis basé sur des mesures réelles"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-12-31"
+    originRef: "PR-SCALE-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1136
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0035
+  - sourceFindingId: RB-L090
+    text: "Profondeur des files et scaling des workers testés"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-12-31"
+    originRef: "PR-SCALE-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1137
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0035
+  - sourceFindingId: RB-L091
+    text: "Modèle de coût du trafic preview et des déploiements validé"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-12-31"
+    originRef: "PR-SCALE-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1138
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0035
+  - sourceFindingId: RB-L092
+    text: "Modèle de quota, débit et coût des fournisseurs IA validé"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-12-31"
+    originRef: "PR-SCALE-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1139
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0035
+  - sourceFindingId: RB-L093
+    text: "Exercice de reprise après sinistre répété à l'échelle"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-12-31"
+    originRef: "PR-DR-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1140
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0086
+  - sourceFindingId: RB-L097
+    text: "Preuve iOS : IPA signé et TestFlight"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-12-31"
+    originRef: "PR-MOB-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1141
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0040
+  - sourceFindingId: RB-L098
+    text: "Preuve Android : AAB signé et piste interne Play"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-12-31"
+    originRef: "PR-MOB-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1142
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0041
+  - sourceFindingId: RB-L099
+    text: "Preuve notifications push APNs et FCM"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-12-31"
+    originRef: "PR-MOB-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1143
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0072
+    duplicateOf: GLC-L164
+  - sourceFindingId: RB-L100
+    text: "App links publiés avec les vrais domaines de production (encore app.example.com)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-MOB-04"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1144
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0071
+  - sourceFindingId: RB-L104
+    text: "QA de l'éditeur sur vrais téléphones et tablettes"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-12-31"
+    originRef: "PR-MOB-05"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1145
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0042
+    duplicateOf: CM-19
+  - sourceFindingId: RB-L105
+    text: "Artefacts desktop signés macOS, Windows et Linux"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-12-31"
+    originRef: "PR-DESK-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1146
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0039
+  - sourceFindingId: RB-L106
+    text: "Exercice de mise à jour automatique desktop"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-12-31"
+    originRef: "PR-DESK-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1147
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0039
+    duplicateOf: CM-16
+  - sourceFindingId: CM-2
+    text: "Adaptateur runtime : validation contre un vrai cluster Kubernetes encore manquante"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-RUN-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1148
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0034
+  - sourceFindingId: CM-4
+    text: "Mode Kubernetes distant : preuve sur le vrai cluster GKE manquante"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-RUN-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1149
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0034
+  - sourceFindingId: CM-5
+    text: "Authentification : preuve avec fournisseurs d'identité et email réels manquante"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-PROD-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1150
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0056
+  - sourceFindingId: CM-7
+    text: "SSO/SCIM entreprise : preuve avec un vrai fournisseur d'identité manquante"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-10-31"
+    originRef: "PR-CFG-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1151
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0057
+  - sourceFindingId: CM-8
+    text: "Projets : gros projets et restauration du stockage non prouvés en réel"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-RUN-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1152
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0034
+  - sourceFindingId: CM-9
+    text: "Opérations fichiers : non prouvées sur un workspace GKE réel"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-RUN-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1153
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0034
+  - sourceFindingId: CM-10
+    text: "Terminal : WebSocket à travers le vrai ingress non prouvé"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-RUN-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1154
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0034
+  - sourceFindingId: CM-11
+    text: "Preview : TLS wildcard, routage des ports et domaine custom non prouvés en réel"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-RUN-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1155
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0034
+  - sourceFindingId: CM-12
+    text: "Outils IA : limitation, repli, BYOK et registre de coûts non prouvés en réel"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-12-31"
+    originRef: "PR-SCALE-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1156
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0035
+  - sourceFindingId: CM-13
+    text: "Facturation : parcours Stripe réel non exercé"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-15"
+    originRef: "PR-STRIPE-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1157
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0036
+  - sourceFindingId: CM-14
+    text: "Quotas : comportement sous charge réelle non prouvé"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QUOTA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1158
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0037
+  - sourceFindingId: CM-15
+    text: "Admin : audit navigateur complet des routes et boutons dangereux manquant"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-SEC-04"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1159
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0038
+  - sourceFindingId: CM-16
+    text: "Application desktop : builds signés et mise à jour automatique non vérifiés"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-12-31"
+    originRef: "PR-DESK-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1160
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0039
+  - sourceFindingId: CM-17
+    text: "Application iOS : build signé et TestFlight non vérifiés"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-12-31"
+    originRef: "PR-MOB-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1161
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0040
+  - sourceFindingId: CM-18
+    text: "Application Android : build signé et piste Play non vérifiés"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-12-31"
+    originRef: "PR-MOB-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1162
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0041
+  - sourceFindingId: CM-19
+    text: "Expérience tablette : QA sur vrais appareils manquante"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-12-31"
+    originRef: "PR-MOB-05"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1163
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0042
+  - sourceFindingId: CM-20
+    text: "Éditeur mobile de secours : QA sur vrais téléphones manquante"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-12-31"
+    originRef: "PR-MOB-05"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1164
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0042
+  - sourceFindingId: CM-21
+    text: "Collaboration : pas de CRDT/OT pour une édition multi-auteurs sûre"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-11-30"
+    originRef: "PR-PROD-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1165
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0043
+  - sourceFindingId: CM-22
+    text: "Déploiements : exécution sandbox et rollback des providers non exercés en réel"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-10-31"
+    originRef: "BD-22"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1166
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0044
+  - sourceFindingId: CM-23
+    text: "Sécurité : durcissement CSP styles, pentest externe et canari live manquants"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-11-30"
+    originRef: "PR-SEC-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1167
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0045
+  - sourceFindingId: CM-24
+    text: "Isolation workspace : non prouvée dans le cluster réel"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-ISO-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1168
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0046
+  - sourceFindingId: CM-25
+    text: "Règles réseau : drill de trafic interdit non exécuté en réel"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-ISO-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1169
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0047
+  - sourceFindingId: CM-26
+    text: "Règles d'admission : Kyverno non installé ni prouvé en staging"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-ISO-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1170
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0048
+  - sourceFindingId: CM-27
+    text: "Détection d'abus : seuils et livraison SIEM non observés sous vrai trafic"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-SEC-05"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1171
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0049
+  - sourceFindingId: CM-28
+    text: "Observabilité : métriques, alertes et synthetics non déployés ni observés en réel"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-OPS-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1172
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0050
+  - sourceFindingId: CM-29
+    text: "Sauvegardes : aucun exercice de restauration réel, RTO/RPO non mesurés"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-DR-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1173
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0051
+  - sourceFindingId: CM-30
+    text: "CI/CD : pipeline complet et rollback non exercés avec les vrais environnements"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-DR-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1174
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0052
+  - sourceFindingId: CM-31
+    text: "Infra GCP : Terraform non appliqué sur un vrai projet dans cette revue"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-11-30"
+    originRef: "PR-INFRA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1175
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0053
+  - sourceFindingId: CM-32
+    text: "Tests de charge : aucun rapport k6 exécuté contre staging"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-LOAD-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1176
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0054
+  - sourceFindingId: CM-34
+    text: "Pages légales : versions approuvées par un juriste manquantes"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-10-31"
+    originRef: "PR-LEGAL-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1177
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0055
+  - sourceFindingId: DH-1
+    text: "Migration React Router 7 pour purger l'alerte sécurité turbo-stream (chantier 6-8 semaines)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-12-31"
+    originRef: "PR-RR7-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1178
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0058
+  - sourceFindingId: DH-2A
+    text: "Réduire les permissions OAuth des nœuds GKE (recréation supervisée du pool)"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-11-30"
+    originRef: "PR-ISO-04"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1179
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0059
+  - sourceFindingId: DH-2B
+    text: "Installer Kyverno en mode audit puis blocage, règle par règle"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-ISO-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1180
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0048
+  - sourceFindingId: OUT-EF-01
+    text: "Panneau Monitoring du projet : affichage partiel en lecture seule, sans vraies métriques dédiées"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "BD-28"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1186
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0076
+  - sourceFindingId: OUT-EF-02
+    text: "Historique des chats hors projet stocké seulement dans le navigateur, non synchronisé entre appareils"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-11-30"
+    originRef: "BD-29"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1187
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0077
+  - sourceFindingId: OUT-EF-03
+    text: "Instabilité récurrente des tests automatiques (timeout onTaskUpdate) qui fait échouer la chaîne CI"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-MISC-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1188
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0078
+  - sourceFindingId: OUT-EF-04
+    text: "Renseigner les identifiants OAuth des connecteurs (GitHub, GitLab, Netlify, Vercel, Supabase)"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-09-30"
+    originRef: "BD-21"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1189
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0079
+  - sourceFindingId: OUT-EF-05
+    text: "Fournir les vraies clés des fournisseurs d'IA pour prouver le cache et la latence"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    originRef: "PR-MISC-04"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1190
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0080
+  - sourceFindingId: OUT-EF-06
+    text: "Brancher un vrai fournisseur d'identité SSO/SCIM pour prouver la connexion entreprise de bout en bout"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-10-31"
+    originRef: "PR-CFG-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1191
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0057
+    duplicateOf: CM-7
+  - sourceFindingId: OUT-EF-07
+    text: "Rotation des secrets et purge de l'historique git (précaution, en attente du GO d'Avi)"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-11-30"
+    originRef: "PR-CFG-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1192
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0081
+  - sourceFindingId: OUT-M-01
+    text: "Fuite du tokenHash dans la liste des invitations d'organisation (correctif prêt : PR #6, en attente de merge)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    originRef: "PR #6"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1193
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0082
+  - sourceFindingId: OUT-M-02
+    text: "Compteurs de métriques IA comptés par serveur isolé : il faut un agrégateur Prometheus couvrant tous les pods"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-OPS-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1194
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0050
+  - sourceFindingId: OUT-M-03
+    text: "Preuve du cache IA incomplète : blocage par le quota de tokens de l'organisation de test"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    originRef: "PR-MISC-04"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1195
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0080
+  - sourceFindingId: OUT-M-04
+    text: "Cache IA non implémenté pour environ 13 fournisseurs restants (dont le mode explicite Gemini)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    originRef: "PR-MISC-04"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1196
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0080
+  - sourceFindingId: OUT-M-05
+    text: "Preuve réelle d'économie de cache faite seulement pour OpenAI ; autres fournisseurs en attente de clés"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    originRef: "PR-MISC-04"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1197
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0080
+  - sourceFindingId: OUT-M-06
+    text: "Rotation des jetons SCIM avec double validité 24 h : à prouver en conditions réelles"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1198
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0083
+  - sourceFindingId: OUT-BI-01
+    text: "Bug mineur différé : clé de liste des messages du chat basée sur la position (impact quasi nul)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-12-31"
+    originRef: "PR-MISC-06"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1199
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0074
+  - sourceFindingId: OUT-BI-02
+    text: "Bug mineur différé : code mort d'échelle d'affichage dans l'aperçu (aucun impact utilisateur)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-12-31"
+    originRef: "PR-MISC-06"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1200
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0074
+  - sourceFindingId: OUT-DAL-01
+    text: "A1 : derniers réglages de couleurs (teintes sombres marketing) jamais portés dans la palette réellement utilisée"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-MISC-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1201
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0075
+  - sourceFindingId: OUT-DAL-02
+    text: "E18 : page support, délais de réponse par offre encore provisoires, à valider par l'équipe support"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-MISC-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1202
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0075
+  - sourceFindingId: OUT-DAL-03
+    text: "E27 : admin support, délai de première réponse encore provisoire, à valider par les opérations"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-MISC-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1203
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0075
+  - sourceFindingId: OUT-DAL-04
+    text: "G13 : requêtes destructrices en base, simple relecture affichée au lieu d'une saisie de confirmation exigée"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-MISC-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1204
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0075
+  - sourceFindingId: OUT-DAL-05
+    text: "F15 : SSO, test de connexion, application forcée avec délai de grâce et exemption propriétaire côté serveur"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-MISC-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1205
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0075
+  - sourceFindingId: OUT-DAL-06
+    text: "F16 : SCIM, rotation en deux phases et liste des utilisateurs provisionnés à construire côté serveur"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-MISC-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1206
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0075
+  - sourceFindingId: OUT-DAL-07
+    text: "H23 : page paramètres de compte unifiée codée mais pas encore certifiée en réel à l'écran"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-MISC-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1207
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0075
+  - sourceFindingId: OUT-DAL-08
+    text: "I3 : pages légales, vraies dates de dernière mise à jour à fournir par Avi"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-MISC-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1208
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0075
+  - sourceFindingId: OUT-DAL-09
+    text: "I6 : SIEM, bouton « envoyer un événement de test » en attente d'un vrai point d'envoi serveur"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-MISC-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1209
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0075
+  - sourceFindingId: OUT-DAL-10
+    text: "I18 : onglet de mise à jour auto-hébergée, décider s'il faut le retirer du panneau SaaS"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-MISC-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1210
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0075
+  - sourceFindingId: OUT-DAL-11
+    text: "I20 : galerie publique d'exploration, décider entre vraie construction ou simple redirection"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-MISC-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1211
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0075
+  - sourceFindingId: OUT-DAL-12
+    text: "I21 : page /docs, décider entre vraie intégration du guide ou redirection"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-MISC-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1212
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0075
+  - sourceFindingId: OUT-DAL-13
+    text: "I25 : détail d'un ticket support, nécessite un accès aux messages du ticket, à confirmer"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    originRef: "PR-MISC-03"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1213
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0075
+  - sourceFindingId: OUT-QA-01
+    text: "Test navigateur du panneau Fichiers : créer, renommer et supprimer un fichier en réel"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1214
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0084
+  - sourceFindingId: OUT-QA-02
+    text: "Test navigateur de l'éditeur : modifier, sauvegarder, annuler et gérer plusieurs onglets"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1215
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0084
+  - sourceFindingId: OUT-QA-03
+    text: "Test navigateur de la recherche dans le projet (avec et sans expressions régulières)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1216
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0084
+  - sourceFindingId: OUT-QA-04
+    text: "Test navigateur de l'aperçu : l'application s'affiche et se recharge correctement"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1217
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0084
+  - sourceFindingId: OUT-QA-05
+    text: "Test navigateur de l'inspecteur : cliquer un élément ouvre le fichier source à la bonne ligne"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1218
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0084
+  - sourceFindingId: OUT-QA-06
+    text: "Test navigateur du terminal : commandes simples et bon dossier de travail"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1219
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0084
+  - sourceFindingId: OUT-QA-07
+    text: "Test navigateur du panneau Ports : le port 5173 est listé avec son lien d'aperçu"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1220
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0084
+  - sourceFindingId: OUT-QA-08
+    text: "Test navigateur du stockage d'objets : envoyer un fichier puis le relire"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1221
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0084
+  - sourceFindingId: OUT-QA-09
+    text: "Test navigateur de la base de données : créer, insérer et relire une ligne en SQL"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1222
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0084
+  - sourceFindingId: OUT-QA-10
+    text: "Test navigateur des packages : ajouter une dépendance et vérifier son installation"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1223
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0084
+  - sourceFindingId: OUT-QA-11
+    text: "Test navigateur des skills : installer une skill depuis le catalogue GitHub"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1224
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0084
+  - sourceFindingId: OUT-QA-12
+    text: "Test navigateur des logs : les journaux défilent en direct pendant une action"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1225
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0084
+  - sourceFindingId: OUT-QA-13
+    text: "Test navigateur des variables d'environnement : variable par environnement et différences visibles"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1226
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0084
+  - sourceFindingId: OUT-QA-14
+    text: "Test navigateur des secrets : ajouter un secret et le retrouver dans l'environnement du terminal"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1227
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0084
+  - sourceFindingId: OUT-QA-15
+    text: "Test navigateur du déploiement : publier et vérifier que l'URL en ligne répond"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1228
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0084
+  - sourceFindingId: OUT-QA-16
+    text: "Test navigateur des domaines : ajouter un domaine et voir les instructions DNS"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1229
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0084
+  - sourceFindingId: OUT-QA-17
+    text: "Test navigateur de l'activité : le fil montre les vrais événements du projet"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1230
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0084
+  - sourceFindingId: OUT-QA-18
+    text: "Test navigateur des réglages projet : un changement sauvegardé persiste au rechargement"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1231
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0084
+  - sourceFindingId: OUT-QA-19
+    text: "Test navigateur des snapshots : créer une sauvegarde puis la restaurer"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1232
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0084
+  - sourceFindingId: OUT-QA-20
+    text: "Test navigateur des collaborateurs : inviter quelqu'un par email crée bien l'invitation"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1233
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0084
+  - sourceFindingId: OUT-QA-21
+    text: "Test navigateur de l'Agent Studio : lancer un agent et voir ses sous-agents travailler"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1234
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0084
+  - sourceFindingId: OUT-QA-22
+    text: "Test navigateur de Git : créer un commit, une branche et voir les différences"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1235
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0084
+  - sourceFindingId: OUT-QA-23
+    text: "Test navigateur du panneau Monitoring : les métriques d'état du runtime s'affichent"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-01"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1236
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0084
+  - sourceFindingId: OUT-UI-01
+    text: "Vérifier à l'écran que fermer la page réglages ramène à la page précédente"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1237
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0083
+  - sourceFindingId: OUT-UI-02
+    text: "Vérifier à l'écran qu'une erreur console de l'aperçu ouvre le fichier à la bonne ligne"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1238
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0083
+  - sourceFindingId: OUT-UI-03
+    text: "Vérifier à l'écran les workflows : lancement manuel, statut, durée et journaux par étape"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1239
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0083
+  - sourceFindingId: OUT-UI-04
+    text: "Vérifier à l'écran l'export de mes données : téléchargement JSON complet sans aucun secret"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1240
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0083
+  - sourceFindingId: OUT-UI-05
+    text: "Vérifier tous les panneaux en thème clair et sombre : lisibilité et contrastes corrects"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1241
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0083
+  - sourceFindingId: OUT-UI-06
+    text: "Vérifier à l'écran l'ajustement d'un portefeuille de crédits avec motif obligatoire et journal"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1242
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0083
+  - sourceFindingId: OUT-UI-07
+    text: "Vérifier à l'écran les actions sur un événement d'abus : ignorer, avertir, suspendre"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1243
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0083
+  - sourceFindingId: OUT-UI-08
+    text: "Vérifier à l'écran les événements de sécurité : filtre par gravité et résolution avec note"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1244
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0083
+  - sourceFindingId: OUT-UI-09
+    text: "Vérifier à l'écran l'export admin des données d'un utilisateur (téléchargement JSON audité)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1245
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0083
+  - sourceFindingId: OUT-UI-10
+    text: "Vérifier à l'écran les aperçus admin : durée de vie restante, arrêt, réglage par défaut"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1246
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0083
+  - sourceFindingId: OUT-UI-11
+    text: "Vérifier à l'écran les coûts admin : barres sur 30 jours et budget mensuel avec alertes"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1247
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0083
+  - sourceFindingId: OUT-UI-12
+    text: "Vérifier à l'écran les métriques fournisseurs IA : latence p95 et taux d'erreur réels"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1248
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0083
+  - sourceFindingId: OUT-UI-13
+    text: "Prouver en réel qu'un tour avec le modèle Auto est bien routé automatiquement"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1249
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0083
+  - sourceFindingId: OUT-UI-14
+    text: "Prouver en réel que l'estimateur réduit le budget de tokens sur une toute petite modification"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1250
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0083
+  - sourceFindingId: OUT-UI-15
+    text: "Prouver en réel la récupération automatique quand une modification ciblée de fichier échoue"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    originRef: "PR-QA-02"
+    sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
+    sourceLine: 1251
+    sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
+    canonicalWorkItemId: WI-0083

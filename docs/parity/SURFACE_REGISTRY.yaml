@@ -3,7 +3,7 @@
 # porter des ids réels (routes/testids du code), jamais des inventions.
 # schemaVersion 2 (audit v4 G): champ SurfaceRegistryEntry complet. UNKNOWN est
 # une valeur de première classe partout où ce n'est PAS mesuré — jamais deviné.
-schemaVersion: 2
+schemaVersion: 3
 repoCommit: 06fabcf1
 surfaces:
   - surfaceId: SRF-LANDING
@@ -260,3 +260,1299 @@ surfaces:
     e2eProofIds: []
     observedAt: "2026-07-19"
     notes: "Tracé P1-COV-06 (TPL-02.5)."
+
+# ============================================================================
+# UNIVERS DES SURFACES (schemaVersion 3, audit de réanalyse 2026-07-20, P0-A2-02)
+# Source : inventaire IDE antérieur « Plan_IDE_Complet_Replit_2026_ECode.docx »
+# (sha256 0b232212985e953816bdd0d333b2230e972cb4724b7b4fba7938fc4c9ec7e02f) — 159 surfaces P001–P159 (8 familles) + 56 services S01–S56.
+# L'ensemble EXACT est verrouillé en CI (EXPECTED_SURFACE_UNIVERSE_IDS /
+# EXPECTED_SERVICE_UNIVERSE_IDS) : un ID qui disparaît casse le build.
+# ÉVALUATION HONNÊTE : availability=UNKNOWN par défaut — l'évaluation produit
+# (SUPPORTED/UNSUPPORTED/NOT_APPLICABLE justifié, par plan/client) n'a PAS été
+# faite ; un backlog n'est pas une évaluation. parityBaselineReady ÉCHOUE tant
+# qu'une entrée reste UNKNOWN. Rien n'est coché par déduction.
+# ============================================================================
+surfaceUniverse:
+  - surfaceId: P001
+    title: "Accueil / Projects"
+    family: "A. Accueil, navigation et shell IDE"
+    proofHeadline: "Filtrer 1 000 projets par type, tri et pin; aucun projet non autorisé ne doit apparaître."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P002
+    title: "Sélecteur de workspace"
+    family: "A. Accueil, navigation et shell IDE"
+    proofHeadline: "Changer de workspace actualise projets, budgets et intégrations sans état résiduel."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P003
+    title: "Cartes projet multi-artefacts"
+    family: "A. Accueil, navigation et shell IDE"
+    proofHeadline: "Une modification d’artefact renouvelle la miniature privée et invalide l’ancienne URL."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P004
+    title: "Spotlight / couverture"
+    family: "A. Accueil, navigation et shell IDE"
+    proofHeadline: "Un éditeur sans droit de partage ne peut rendre public ni modifier la policy."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P005
+    title: "Barre supérieure"
+    family: "A. Accueil, navigation et shell IDE"
+    proofHeadline: "Deux collaborateurs voient le même état Run/Publish en temps réel."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P006
+    title: "Windows, panes et tabs"
+    family: "A. Accueil, navigation et shell IDE"
+    proofHeadline: "Recharger et retrouver exactement le layout de cet utilisateur."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P007
+    title: "Tools Dock / All tools"
+    family: "A. Accueil, navigation et shell IDE"
+    proofHeadline: "Feature flag/entitlement modifie le registre sans casser les layouts."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P008
+    title: "Search / command palette"
+    family: "A. Accueil, navigation et shell IDE"
+    proofHeadline: "Résultats <300 ms et filtrage ACL sur tous les index."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P009
+    title: "Centre notifications / activité"
+    family: "A. Accueil, navigation et shell IDE"
+    proofHeadline: "Retirer l’utilisateur invalide aussi tous les deep links existants."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P010
+    title: "User Settings"
+    family: "A. Accueil, navigation et shell IDE"
+    proofHeadline: "Deux utilisateurs du même projet gardent des modes Agent différents."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P011
+    title: "Resources panel"
+    family: "A. Accueil, navigation et shell IDE"
+    proofHeadline: "Une charge synthétique est visible en moins de 10 secondes."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P012
+    title: "Help / docs / status"
+    family: "A. Accueil, navigation et shell IDE"
+    proofHeadline: "Le bundle de support est automatiquement vérifié sans secret."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P013
+    title: "File Tree"
+    family: "B. Fichiers, code, exécution et versionnement"
+    proofHeadline: "Deux utilisateurs déplacent le même fichier; résultat déterministe et historique."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P014
+    title: "Code Editor"
+    family: "B. Fichiers, code, exécution et versionnement"
+    proofHeadline: "Édition simultanée puis perte réseau converge sans caractère perdu."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P015
+    title: "Search & Replace"
+    family: "B. Fichiers, code, exécution et versionnement"
+    proofHeadline: "Remplacer 1 000 occurrences et restaurer par checkpoint."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P016
+    title: "Symbols / Outline"
+    family: "B. Fichiers, code, exécution et versionnement"
+    proofHeadline: "Python, TypeScript, Go et Rust naviguent après cold start."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P017
+    title: "Problems / Diagnostics"
+    family: "B. Fichiers, code, exécution et versionnement"
+    proofHeadline: "Un diagnostic pointe le bon fichier/range et disparaît après correction."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P018
+    title: "Formatter"
+    family: "B. Fichiers, code, exécution et versionnement"
+    proofHeadline: "Le formatter respecte le config projet et ne modifie pas hors scope."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P019
+    title: "Console"
+    family: "B. Fichiers, code, exécution et versionnement"
+    proofHeadline: "Un secret imprimé est masqué et déclenche un événement de sécurité."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P020
+    title: "Shell"
+    family: "B. Fichiers, code, exécution et versionnement"
+    proofHeadline: "Couper le réseau 30 s puis reprendre sans second processus fantôme."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P021
+    title: "SSH"
+    family: "B. Fichiers, code, exécution et versionnement"
+    proofHeadline: "Révoquer une session coupe l’accès et interdit la réutilisation."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P022
+    title: "Workflows"
+    family: "B. Fichiers, code, exécution et versionnement"
+    proofHeadline: "Frontend+backend démarrent, exposent deux ports puis s’arrêtent sans orphan."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P023
+    title: "Run / Stop"
+    family: "B. Fichiers, code, exécution et versionnement"
+    proofHeadline: "Dix clics rapides ne créent qu’une exécution."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P024
+    title: "Preview Web"
+    family: "B. Fichiers, code, exécution et versionnement"
+    proofHeadline: "Le vrai service détecté rend; second port sélectionnable sans collision."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P025
+    title: "Preview DevTools"
+    family: "B. Fichiers, code, exécution et versionnement"
+    proofHeadline: "Modifier localStorage n’affecte aucune autre origine projet."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P026
+    title: "Ports"
+    family: "B. Fichiers, code, exécution et versionnement"
+    proofHeadline: "Le port 8000 apparaît; un port interne interdit reste inaccessible."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P027
+    title: "Dependencies / Packages"
+    family: "B. Fichiers, code, exécution et versionnement"
+    proofHeadline: "Monorepo: Flask backend, Express frontend, ffmpeg système."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P028
+    title: "Advanced Project Settings"
+    family: "B. Fichiers, code, exécution et versionnement"
+    proofHeadline: "Config invalide refusée avant redémarrage; ancien env reste actif."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P029
+    title: "Git"
+    family: "B. Fichiers, code, exécution et versionnement"
+    proofHeadline: "Importer/pousser puis restaurer après perte locale sans token dans logs."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P030
+    title: "File History"
+    family: "B. Fichiers, code, exécution et versionnement"
+    proofHeadline: "Restaurer une ligne sans écraser les autres fichiers."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P031
+    title: "Checkpoints"
+    family: "B. Fichiers, code, exécution et versionnement"
+    proofHeadline: "Rollback restaure fichiers+DB dev, jamais production."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P032
+    title: "Disaster Recovery"
+    family: "B. Fichiers, code, exécution et versionnement"
+    proofHeadline: "Perdre le volume puis restaurer dans le RTO cible."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P033
+    title: "Secrets"
+    family: "B. Fichiers, code, exécution et versionnement"
+    proofHeadline: "Éditeur non-owner ne voit pas valeur; app l’utilise via proxy."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P034
+    title: "Agent Chat"
+    family: "C. Agent, tâches et automatisations"
+    proofHeadline: "Prompt → code → DB → preview, chaque tool call visible et annulable."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P035
+    title: "Agent Modes"
+    family: "C. Agent, tâches et automatisations"
+    proofHeadline: "Deux collaborateurs choisissent des modes personnels sans effet mutuel."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P036
+    title: "Plan Mode"
+    family: "C. Agent, tâches et automatisations"
+    proofHeadline: "Le hash du workspace reste inchangé avant approbation."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P037
+    title: "Task Board"
+    family: "C. Agent, tâches et automatisations"
+    proofHeadline: "Deux tâches isolées produisent previews et merge traçable."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P038
+    title: "Task lifecycle"
+    family: "C. Agent, tâches et automatisations"
+    proofHeadline: "Crash worker reprend sans appliquer deux fois."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P039
+    title: "Follow-up tasks"
+    family: "C. Agent, tâches et automatisations"
+    proofHeadline: "Cinq suivis sont ordonnés ou explicitement replanifiés."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P040
+    title: "Message queue"
+    family: "C. Agent, tâches et automatisations"
+    proofHeadline: "Annuler un message empêche tout tool call associé."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P041
+    title: "Agent activity"
+    family: "C. Agent, tâches et automatisations"
+    proofHeadline: "Chaque diff final est relié au tool call et checkpoint."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P042
+    title: "Diff review"
+    family: "C. Agent, tâches et automatisations"
+    proofHeadline: "Rejeter un fichier conserve les autres changements choisis."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P043
+    title: "App Testing"
+    family: "C. Agent, tâches et automatisations"
+    proofHeadline: "Agent reproduit un bug UI, corrige et montre avant/après."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P044
+    title: "Skills Directory"
+    family: "C. Agent, tâches et automatisations"
+    proofHeadline: "Une skill révoquée cesse de fonctionner dans un run existant."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P045
+    title: "replit.md / instructions projet"
+    family: "C. Agent, tâches et automatisations"
+    proofHeadline: "Règle testable respectée à travers plusieurs conversations."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P046
+    title: "Workspace Instructions"
+    family: "C. Agent, tâches et automatisations"
+    proofHeadline: "Nouveau projet hérite immédiatement de la policy workspace."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P047
+    title: "Web Search"
+    family: "C. Agent, tâches et automatisations"
+    proofHeadline: "URL metadata/SSRF bloquée; source actuelle et date visibles."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P048
+    title: "Voice Mode"
+    family: "C. Agent, tâches et automatisations"
+    proofHeadline: "Retrait permission micro arrête capture client et serveur."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P049
+    title: "Image Generation"
+    family: "C. Agent, tâches et automatisations"
+    proofHeadline: "Asset généré insérable, référencé et supprimable proprement."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P050
+    title: "Audio Generation"
+    family: "C. Agent, tâches et automatisations"
+    proofHeadline: "Job interrompu n’est pas facturé deux fois."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P051
+    title: "Video / 3D Generation"
+    family: "C. Agent, tâches et automatisations"
+    proofHeadline: "Résultat passe safety, preview et export."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P052
+    title: "Connectors in Agent"
+    family: "C. Agent, tâches et automatisations"
+    proofHeadline: "Révocation du compte rend le prochain appel immédiatement impossible."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P053
+    title: "MCP tools"
+    family: "C. Agent, tâches et automatisations"
+    proofHeadline: "Réponse contenant prompt injection est signalée et neutralisée."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P054
+    title: "Agent Inbox"
+    family: "C. Agent, tâches et automatisations"
+    proofHeadline: "Feedback lié à la bonne release devient task puis resolved après republish."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P055
+    title: "Code Review"
+    family: "C. Agent, tâches et automatisations"
+    proofHeadline: "Patch est testé, diffé et approuvé avant application."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P056
+    title: "Security Agent"
+    family: "C. Agent, tâches et automatisations"
+    proofHeadline: "CVE critique produit finding, tâche, test et blocage publish."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P057
+    title: "Automations"
+    family: "C. Agent, tâches et automatisations"
+    proofHeadline: "Run sous identité service, budget dur et historique complet."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P058
+    title: "Artifact Switcher"
+    family: "D. Artefacts, Library, Canvas et expériences visuelles"
+    proofHeadline: "Ajouter slides puis basculer web/slides sans perdre l’état."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P059
+    title: "Library"
+    family: "D. Artefacts, Library, Canvas et expériences visuelles"
+    proofHeadline: "Supprimer un asset référencé montre usages et propose résolution atomique."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P060
+    title: "Asset Browser"
+    family: "D. Artefacts, Library, Canvas et expériences visuelles"
+    proofHeadline: "Upload hostile est quarantiné avant preview."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P061
+    title: "Design Canvas"
+    family: "D. Artefacts, Library, Canvas et expériences visuelles"
+    proofHeadline: "Deux utilisateurs modifient une frame; Agent code uniquement la frame choisie."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P062
+    title: "Canvas media tools"
+    family: "D. Artefacts, Library, Canvas et expériences visuelles"
+    proofHeadline: "Asset et provenance restent liés à la frame."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P063
+    title: "Visual Editor"
+    family: "D. Artefacts, Library, Canvas et expériences visuelles"
+    proofHeadline: "Changement de padding produit diff minimal et rollback."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P064
+    title: "Web Artifact"
+    family: "D. Artefacts, Library, Canvas et expériences visuelles"
+    proofHeadline: "Web utilise backend partagé dans dev et release."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P065
+    title: "Mobile Artifact"
+    family: "D. Artefacts, Library, Canvas et expériences visuelles"
+    proofHeadline: "Preview deux plateformes puis build signé reproductible."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P066
+    title: "iOS Simulator"
+    family: "D. Artefacts, Library, Canvas et expériences visuelles"
+    proofHeadline: "Touch, logs et rotation fonctionnent dans session isolée."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P067
+    title: "Android Emulator"
+    family: "D. Artefacts, Library, Canvas et expériences visuelles"
+    proofHeadline: "APK/Expo démarre et logs correspondent à la revision."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P068
+    title: "Slides Editor"
+    family: "D. Artefacts, Library, Canvas et expériences visuelles"
+    proofHeadline: "Deck 200 slides reste éditable et exportable."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P069
+    title: "Presenter / Speaker Notes"
+    family: "D. Artefacts, Library, Canvas et expériences visuelles"
+    proofHeadline: "Audience ne voit pas notes; presenter privé fonctionne."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P070
+    title: "Slides Export"
+    family: "D. Artefacts, Library, Canvas et expériences visuelles"
+    proofHeadline: "Exports gardent texte, images et ordre dans tolérance."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P071
+    title: "Data Visualization Artifact"
+    family: "D. Artefacts, Library, Canvas et expériences visuelles"
+    proofHeadline: "Query read-only affiche dataset sans credential navigateur."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P072
+    title: "Animation / Video Artifact"
+    family: "D. Artefacts, Library, Canvas et expériences visuelles"
+    proofHeadline: "Render reprend ou échoue sans artifact partiel promu."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P073
+    title: "3D / Game Artifact"
+    family: "D. Artefacts, Library, Canvas et expériences visuelles"
+    proofHeadline: "Modèle 3D fonctionne en Preview et Publish."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P074
+    title: "Design Artifact"
+    family: "D. Artefacts, Library, Canvas et expériences visuelles"
+    proofHeadline: "URL respecte private/password policy."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P075
+    title: "Document Artifact"
+    family: "D. Artefacts, Library, Canvas et expériences visuelles"
+    proofHeadline: "Fichiers sont liés au checkpoint et téléchargés intacts."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P076
+    title: "Artifact Management"
+    family: "D. Artefacts, Library, Canvas et expériences visuelles"
+    proofHeadline: "Suppression artefact ne supprime pas backend partagé."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P077
+    title: "Shared backend/data view"
+    family: "D. Artefacts, Library, Canvas et expériences visuelles"
+    proofHeadline: "Web/mobile accèdent aux mêmes données avec scopes cohérents."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P078
+    title: "Grouped Publish"
+    family: "D. Artefacts, Library, Canvas et expériences visuelles"
+    proofHeadline: "Aucune release ne mélange deux revisions même en échec partiel."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P079
+    title: "Database Landing"
+    family: "E. Data, Cloud, auth et intégrations"
+    proofHeadline: "Éditeur voit dev mais pas credential prod."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P080
+    title: "Database Overview"
+    family: "E. Data, Cloud, auth et intégrations"
+    proofHeadline: "Schema introspection correspond au vrai DB."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P081
+    title: "Database My Data"
+    family: "E. Data, Cloud, auth et intégrations"
+    proofHeadline: "Mutation dev checkpointable; mutation prod interdite."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P082
+    title: "SQL Editor"
+    family: "E. Data, Cloud, auth et intégrations"
+    proofHeadline: "UPDATE prod échoue au rôle DB, pas seulement UI."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P083
+    title: "Database Settings"
+    family: "E. Data, Cloud, auth et intégrations"
+    proofHeadline: "Rotation invalide ancien secret sans downtime app."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P084
+    title: "Data Recovery"
+    family: "E. Data, Cloud, auth et intégrations"
+    proofHeadline: "Restore T-10 min vers copie, validation puis promotion."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P085
+    title: "Dev/Prod Separation"
+    family: "E. Data, Cloud, auth et intégrations"
+    proofHeadline: "Exfiltrer env dev ne révèle aucun endpoint prod."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P086
+    title: "Agent Prod Read-only"
+    family: "E. Data, Cloud, auth et intégrations"
+    proofHeadline: "Même une requête UPDATE générée échoue techniquement."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P087
+    title: "App Storage"
+    family: "E. Data, Cloud, auth et intégrations"
+    proofHeadline: "Cross-app échoue avant grant puis échoue après revoke."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P088
+    title: "Object Browser"
+    family: "E. Data, Cloud, auth et intégrations"
+    proofHeadline: "URL signée expire et objet privé ne fuit pas CDN."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P089
+    title: "Users & Auth"
+    family: "E. Data, Cloud, auth et intégrations"
+    proofHeadline: "Utilisateur final app n’obtient aucun accès IDE."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P090
+    title: "External Access Tokens"
+    family: "E. Data, Cloud, auth et intégrations"
+    proofHeadline: "GET-only token échoue sur POST puis après revoke partout."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P091
+    title: "Integrations Catalog"
+    family: "E. Data, Cloud, auth et intégrations"
+    proofHeadline: "Catalogue reflète plan/région et état réel."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P092
+    title: "OAuth Setup"
+    family: "E. Data, Cloud, auth et intégrations"
+    proofHeadline: "OAuth interrompu ne crée pas installation partielle."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P093
+    title: "Integration Health"
+    family: "E. Data, Cloud, auth et intégrations"
+    proofHeadline: "Token expiré produit état REAUTH_REQUIRED et aucune boucle."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P094
+    title: "MCP Management"
+    family: "E. Data, Cloud, auth et intégrations"
+    proofHeadline: "Serveur non fiable reste isolé et révocable."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P095
+    title: "Publishing Overview"
+    family: "F. Publish, production, domaines et croissance"
+    proofHeadline: "Clic UI crée vraie release et URL avec contenu attendu."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P096
+    title: "Deployment Type"
+    family: "F. Publish, production, domaines et croissance"
+    proofHeadline: "Changer type conserve domaine ou explique la rupture."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P097
+    title: "Machine Configuration"
+    family: "F. Publish, production, domaines et croissance"
+    proofHeadline: "Taille non autorisée refusée; taille choisie effective runtime."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P098
+    title: "Deployment Secrets"
+    family: "F. Publish, production, domaines et croissance"
+    proofHeadline: "Nouvelle revision reçoit nouvelle version sans fuite ancienne."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P099
+    title: "Publishing Geography"
+    family: "F. Publish, production, domaines et croissance"
+    proofHeadline: "App Europe prouve placement européen des trois ressources."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P100
+    title: "Connect Domain"
+    family: "F. Publish, production, domaines et croissance"
+    proofHeadline: "Domaine non vérifié ne route jamais; cert se renouvelle."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P101
+    title: "Buy Domain"
+    family: "F. Publish, production, domaines et croissance"
+    proofHeadline: "Achat test crée domaine et l’attache au bon deployment."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P102
+    title: "Access: Public"
+    family: "F. Publish, production, domaines et croissance"
+    proofHeadline: "Origine non accessible en contournant edge."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P103
+    title: "Access: Private"
+    family: "F. Publish, production, domaines et croissance"
+    proofHeadline: "Edge exige identité avant runtime."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P104
+    title: "Access: Password"
+    family: "F. Publish, production, domaines et croissance"
+    proofHeadline: "Cache ne sert jamais contenu privé à client public."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P105
+    title: "Production Database"
+    family: "F. Publish, production, domaines et croissance"
+    proofHeadline: "Migration de validation échoue avant promotion."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P106
+    title: "App Monitoring"
+    family: "F. Publish, production, domaines et croissance"
+    proofHeadline: "Downtime synthétique déclenche alerte puis résolution."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P107
+    title: "Production Logs"
+    family: "F. Publish, production, domaines et croissance"
+    proofHeadline: "Trace edge→runtime sans secret."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P108
+    title: "Application Analytics"
+    family: "F. Publish, production, domaines et croissance"
+    proofHeadline: "Trafic synthétique correspond au dashboard."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P109
+    title: "Production Resources"
+    family: "F. Publish, production, domaines et croissance"
+    proofHeadline: "Dashboard reconcile avec ledger."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P110
+    title: "Feedback Widget"
+    family: "F. Publish, production, domaines et croissance"
+    proofHeadline: "Feedback privé arrive uniquement au bon projet/release."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P111
+    title: "Security Gate"
+    family: "F. Publish, production, domaines et croissance"
+    proofHeadline: "CVE critique bloque; patch+rescan débloque."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P112
+    title: "Deployment History"
+    family: "F. Publish, production, domaines et croissance"
+    proofHeadline: "Chaque release est inspectable et immuable."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P113
+    title: "Rollback"
+    family: "F. Publish, production, domaines et croissance"
+    proofHeadline: "Rollback code/config sans prétendre inverser DB dangereuse."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P114
+    title: "Static Advanced"
+    family: "F. Publish, production, domaines et croissance"
+    proofHeadline: "Routes et headers réels correspondent au config."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P115
+    title: "Scheduled Deployments"
+    family: "F. Publish, production, domaines et croissance"
+    proofHeadline: "Succès/échec nettoient toute ressource."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P116
+    title: "SEO Rating"
+    family: "F. Publish, production, domaines et croissance"
+    proofHeadline: "Score correspond à crawl réel de la release."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P117
+    title: "SEO Agent"
+    family: "F. Publish, production, domaines et croissance"
+    proofHeadline: "HTML publié change et test synthétique s’améliore."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P118
+    title: "Monetization Hub"
+    family: "F. Publish, production, domaines et croissance"
+    proofHeadline: "Paiement test+webhook signé sans clé côté client."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P119
+    title: "Multiplayer Presence"
+    family: "G. Collaboration, sécurité, enterprise et billing"
+    proofHeadline: "Trois clients convergent après partition réseau."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P120
+    title: "Shared Agent Thread"
+    family: "G. Collaboration, sécurité, enterprise et billing"
+    proofHeadline: "Routine questions par editors, actions sensibles owner-only."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P121
+    title: "Project Access"
+    family: "G. Collaboration, sécurité, enterprise et billing"
+    proofHeadline: "Retrait coupe IDE, SSH, preview et tokens dans le SLO."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P122
+    title: "Workspace Members"
+    family: "G. Collaboration, sécurité, enterprise et billing"
+    proofHeadline: "Invitation expirée ne crée aucune session."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P123
+    title: "Groups"
+    family: "G. Collaboration, sécurité, enterprise et billing"
+    proofHeadline: "Changement groupe actualise edge et IDE."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P124
+    title: "Guests"
+    family: "G. Collaboration, sécurité, enterprise et billing"
+    proofHeadline: "Guest perd sessions actives à expiration."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P125
+    title: "Project Security Center"
+    family: "G. Collaboration, sécurité, enterprise et billing"
+    proofHeadline: "Fixtures multi-langages produisent findings reproductibles."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P126
+    title: "Workspace Security Center"
+    family: "G. Collaboration, sécurité, enterprise et billing"
+    proofHeadline: "Admin voit workspace; membre uniquement projets autorisés."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P127
+    title: "Package Firewall"
+    family: "G. Collaboration, sécurité, enterprise et billing"
+    proofHeadline: "Fixture hostile bloquée avant lifecycle script."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P128
+    title: "Workspace Policies"
+    family: "G. Collaboration, sécurité, enterprise et billing"
+    proofHeadline: "Policy nouvelle s’applique aux nouveaux projets et signale anciens."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P129
+    title: "SSO / SAML"
+    family: "G. Collaboration, sécurité, enterprise et billing"
+    proofHeadline: "Compte hors SSO refusé sauf break-glass audité."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P130
+    title: "SCIM Users"
+    family: "G. Collaboration, sécurité, enterprise et billing"
+    proofHeadline: "Suite SCIM sans doublons et session revoke."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P131
+    title: "SCIM Groups / Multi-workspaces"
+    family: "G. Collaboration, sécurité, enterprise et billing"
+    proofHeadline: "Mapping idempotent et erreurs actionnables."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P132
+    title: "Audit Logs"
+    family: "G. Collaboration, sécurité, enterprise et billing"
+    proofHeadline: "Secret/role/domain/policy donnent événements complets sans valeur."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P133
+    title: "SIEM"
+    family: "G. Collaboration, sécurité, enterprise et billing"
+    proofHeadline: "Outage puis replay sans perte ni duplication logique."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P134
+    title: "Budgets"
+    family: "G. Collaboration, sécurité, enterprise et billing"
+    proofHeadline: "Hard limit bloque nouveau travail mais respecte policy prod."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P135
+    title: "Spend Limits"
+    family: "G. Collaboration, sécurité, enterprise et billing"
+    proofHeadline: "Deux runs concurrents ne dépassent pas réservation atomique."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P136
+    title: "Plans / Entitlements"
+    family: "G. Collaboration, sécurité, enterprise et billing"
+    proofHeadline: "Entitlement UI et serveur restent cohérents."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P137
+    title: "Seats"
+    family: "G. Collaboration, sécurité, enterprise et billing"
+    proofHeadline: "Retrait seat suit contrat sans orphan de membership."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P138
+    title: "Invoices / Billing"
+    family: "G. Collaboration, sécurité, enterprise et billing"
+    proofHeadline: "Usage déterministe = ledger = invoice preview."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P139
+    title: "Enterprise Analytics"
+    family: "G. Collaboration, sécurité, enterprise et billing"
+    proofHeadline: "Export reconcile avec catalog+ledger."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P140
+    title: "Import GitHub"
+    family: "H. Imports, plateformes et écosystème externe"
+    proofHeadline: "Repo privé fonctionne sans token dans Git config/logs."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P141
+    title: "Import GitLab"
+    family: "H. Imports, plateformes et écosystème externe"
+    proofHeadline: "Branches et submodules conformes au plan."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P142
+    title: "Import Bitbucket"
+    family: "H. Imports, plateformes et écosystème externe"
+    proofHeadline: "OAuth revoke empêche nouveau fetch."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P143
+    title: "Import ZIP / Upload"
+    family: "H. Imports, plateformes et écosystème externe"
+    proofHeadline: "Archive traversal/virus est bloqué."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P144
+    title: "Import Figma"
+    family: "H. Imports, plateformes et écosystème externe"
+    proofHeadline: "Seule frame consentie est importée."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P145
+    title: "Recreate from Screenshot"
+    family: "H. Imports, plateformes et écosystème externe"
+    proofHeadline: "Résultat est previewable et diffé."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P146
+    title: "Export ZIP"
+    family: "H. Imports, plateformes et écosystème externe"
+    proofHeadline: "Aucun secret ou token absent du choix explicite."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P147
+    title: "Download Assets"
+    family: "H. Imports, plateformes et écosystème externe"
+    proofHeadline: "Hash téléchargé correspond à l’objet."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P148
+    title: "Remix / Fork Project"
+    family: "H. Imports, plateformes et écosystème externe"
+    proofHeadline: "Nouveaux IDs, DB/bucket distincts, secrets vides."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P149
+    title: "Desktop App"
+    family: "H. Imports, plateformes et écosystème externe"
+    proofHeadline: "Trois apps ouvertes et update signé sans perte."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P150
+    title: "Mobile App Client"
+    family: "H. Imports, plateformes et écosystème externe"
+    proofHeadline: "Rôle insuffisant bloque secret/intégration."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P151
+    title: "ChatGPT Entry"
+    family: "H. Imports, plateformes et écosystème externe"
+    proofHeadline: "Contexte transféré est affiché et scoped."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P152
+    title: "Claude Entry"
+    family: "H. Imports, plateformes et écosystème externe"
+    proofHeadline: "Tâche garde auteur, source et permissions."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P153
+    title: "Slack Entry"
+    family: "H. Imports, plateformes et écosystème externe"
+    proofHeadline: "Canal non autorisé ne révèle rien."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P154
+    title: "Open in Replit"
+    family: "H. Imports, plateformes et écosystème externe"
+    proofHeadline: "Payload altéré invalide la signature."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P155
+    title: "Linear Integration"
+    family: "H. Imports, plateformes et écosystème externe"
+    proofHeadline: "Issue reste liée au task et status."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P156
+    title: "CLI / replit ai"
+    family: "H. Imports, plateformes et écosystème externe"
+    proofHeadline: "Device token révoqué bloque immédiatement."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P157
+    title: "Public API"
+    family: "H. Imports, plateformes et écosystème externe"
+    proofHeadline: "Tests contractuels et idempotency passent."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P158
+    title: "Webhooks"
+    family: "H. Imports, plateformes et écosystème externe"
+    proofHeadline: "Replay attack refusée; retry ne duplique pas effet."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+  - surfaceId: P159
+    title: "Status Page"
+    family: "H. Imports, plateformes et écosystème externe"
+    proofHeadline: "Incident synthétique affiche bannière ciblée."
+    availability: UNKNOWN
+    evaluation: PENDING
+    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+
+serviceUniverse:
+  - serviceId: S01
+    title: "Edge CDN/WAF/DDoS"
+    responsibility: "TLS, cache, WAF, domaines et protection globale."
+  - serviceId: S02
+    title: "API Gateway / BFF"
+    responsibility: "API web, desktop, mobile et publique."
+  - serviceId: S03
+    title: "WebSocket Gateway"
+    responsibility: "Collaboration, terminal, Agent, logs et présence."
+  - serviceId: S04
+    title: "Identity"
+    responsibility: "Comptes, sessions, MFA, OAuth, SAML et device auth."
+  - serviceId: S05
+    title: "Workspace"
+    responsibility: "Tenants, workspaces, lifecycle et policies."
+  - serviceId: S06
+    title: "Authorization"
+    responsibility: "RBAC/ABAC pour toute action."
+  - serviceId: S07
+    title: "Project"
+    responsibility: "Projet canonique multi-artefacts."
+  - serviceId: S08
+    title: "Artifact Catalog"
+    responsibility: "Types, graph, URLs et config."
+  - serviceId: S09
+    title: "Tool Registry"
+    responsibility: "Panels, capabilities et entitlements."
+  - serviceId: S10
+    title: "Search Gateway"
+    responsibility: "Recherche projets, fichiers, symboles, outils et docs."
+  - serviceId: S11
+    title: "Collaboration"
+    responsibility: "CRDT/OT, presence et file sync."
+  - serviceId: S12
+    title: "Workspace Agent"
+    responsibility: "Fichiers, process, metrics et local operations."
+  - serviceId: S13
+    title: "LSP Gateway"
+    responsibility: "Serveurs de langage et diagnostics."
+  - serviceId: S14
+    title: "Workflow Orchestrator"
+    responsibility: "Run, stop et supervision processus."
+  - serviceId: S15
+    title: "Port Registry / Preview"
+    responsibility: "Découverte ports et routage dev."
+  - serviceId: S16
+    title: "Sandbox Scheduler"
+    responsibility: "Placement région/taille/capacité."
+  - serviceId: S17
+    title: "Sandbox Runtime Adapter"
+    responsibility: "Abstraction gVisor/microVM."
+  - serviceId: S18
+    title: "MicroVM Manager"
+    responsibility: "Lifecycle microVM et devices virtio."
+  - serviceId: S19
+    title: "Nix Environment"
+    responsibility: "Catalogue et bundles dev/build/runtime."
+  - serviceId: S20
+    title: "Snapshot Engine"
+    responsibility: "Checkpoint, clone, fork et restore."
+  - serviceId: S21
+    title: "Workspace Volume"
+    responsibility: "Présenter volume versionné à sandbox."
+  - serviceId: S22
+    title: "Git Backup"
+    responsibility: "Copie append-only et restore."
+  - serviceId: S23
+    title: "Asset / Library"
+    responsibility: "Médias, documents, metadata et references."
+  - serviceId: S24
+    title: "Render / Thumbnail"
+    responsibility: "Miniatures et exports visuels."
+  - serviceId: S25
+    title: "Agent Orchestrator"
+    responsibility: "Conversations, plans, runs et approvals."
+  - serviceId: S26
+    title: "Model Router"
+    responsibility: "Choix modèle/mode/coût/provider."
+  - serviceId: S27
+    title: "Context Service"
+    responsibility: "Assembler code, règles et historique."
+  - serviceId: S28
+    title: "Tool Broker"
+    responsibility: "Autoriser et exécuter outils Agent."
+  - serviceId: S29
+    title: "Task / Fork"
+    responsibility: "Copies isolées pour tâches Agent."
+  - serviceId: S30
+    title: "Diff / Merge"
+    responsibility: "Diff structuré et merge 3-way."
+  - serviceId: S31
+    title: "Browser / Device Farm"
+    responsibility: "Tests web/mobile réels."
+  - serviceId: S32
+    title: "Media Generation"
+    responsibility: "Image, audio, vidéo et 3D."
+  - serviceId: S33
+    title: "Skill Registry"
+    responsibility: "Skills, versions et permissions."
+  - serviceId: S34
+    title: "Integration Hub"
+    responsibility: "OAuth, connectors, MCP et health."
+  - serviceId: S35
+    title: "Secret Vault / Proxy"
+    responsibility: "Secrets et injection sans exposition."
+  - serviceId: S36
+    title: "Database Control"
+    responsibility: "Dev/prod, branches, snapshots et endpoints."
+  - serviceId: S37
+    title: "SQL Gateway"
+    responsibility: "UI query et Agent read-only."
+  - serviceId: S38
+    title: "App Storage"
+    responsibility: "Buckets, objects et grants."
+  - serviceId: S39
+    title: "App Auth"
+    responsibility: "Utilisateurs finaux et sessions."
+  - serviceId: S40
+    title: "Build Service"
+    responsibility: "Build hermétique par revision."
+  - serviceId: S41
+    title: "Artifact Registry"
+    responsibility: "Images et bundles publiables."
+  - serviceId: S42
+    title: "Release Orchestrator"
+    responsibility: "Publication multi-artefacts."
+  - serviceId: S43
+    title: "Deployment Control"
+    responsibility: "Static/Autoscale/Reserved/Scheduled."
+  - serviceId: S44
+    title: "Runtime Platforms"
+    responsibility: "Exécuter deployments et jobs."
+  - serviceId: S45
+    title: "Domain / TLS"
+    responsibility: "Achat, vérification et certificats."
+  - serviceId: S46
+    title: "Access Gateway"
+    responsibility: "Public/private/password/SSO/tokens."
+  - serviceId: S47
+    title: "Monitoring / Analytics"
+    responsibility: "Metrics, logs, traces, uptime et alerts."
+  - serviceId: S48
+    title: "Security Scanning"
+    responsibility: "SCA, SAST, LLM triage et SBOM."
+  - serviceId: S49
+    title: "Package Firewall"
+    responsibility: "Proxy registries et verdict supply-chain."
+  - serviceId: S50
+    title: "Audit Event Store"
+    responsibility: "Événements sensibles immuables."
+  - serviceId: S51
+    title: "Usage Metering"
+    responsibility: "Mesures dédupliquées."
+  - serviceId: S52
+    title: "Billing Ledger"
+    responsibility: "Tarification, crédits et factures."
+  - serviceId: S53
+    title: "Budgets / Entitlements"
+    responsibility: "Plans, caps, reservations et hard stops."
+  - serviceId: S54
+    title: "Notifications"
+    responsibility: "Email, push, in-app et webhooks."
+  - serviceId: S55
+    title: "Enterprise Identity"
+    responsibility: "SCIM, SSO et mappings workspace."
+  - serviceId: S56
+    title: "Status / Incident"
+    responsibility: "Incidents publics et bannières."

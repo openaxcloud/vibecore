@@ -1,0 +1,287 @@
+# DOCUMENT_MANIFEST — GÉNÉRÉ par scripts/parity/generate-document-manifest.mjs
+# (P0-A2-01). Ne jamais éditer à la main — drift-check en CI. Le champ
+# validation reflète le dernier run du validateur sur l'arbre.
+schemaVersion: 1
+fileCount: 56
+validation: see-ci-parity-registries   # le workflow CI est l'attestation d'exécution
+documents:
+  - file: ACTIONS_AVI.md
+    sha256: "948107b6cb35aadd6df88e88ad4d539c493a69fa8d4e33997699ea48f62a4c28"
+    schemaVersion: 1
+    repoCommit: 9eab2990
+    reviewer: UNKNOWN
+  - file: AGENT_TOOL_BROKER_CONTRACT.md
+    sha256: "f2293be4abb4c4e0ee38d3b001e837cf291943c7963c6b996d3fc885ae02b45a"
+    schemaVersion: 1
+    repoCommit: ca299f87
+    reviewer: UNKNOWN
+  - file: APPROVAL_STATUS.json
+    sha256: "86282a5e8537ed12a03678d816652bee49548486621312d3365b9c1fa5810a82"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: APP_STORAGE_CONTRACT.md
+    sha256: "b52a7725aa815392ec15d22ed4f17ee2f2b8cdfe490657f3174d3f3a47ae75c5"
+    schemaVersion: 1
+    repoCommit: ca299f87
+    reviewer: UNKNOWN
+  - file: AUTH_ACCESS_CONTRACT.md
+    sha256: "4e8339a8e06e67fba7465a1bf54c13aee73836e26a9c94e65b597867ff5391fb"
+    schemaVersion: 1
+    repoCommit: ca299f87
+    reviewer: UNKNOWN
+  - file: BILLING_LEDGER_CONTRACT.md
+    sha256: "4fab1d537034a3b46a5e6694fd2fbba134a76b298fbf732d49ca07231651dd95"
+    schemaVersion: 1
+    repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
+    reviewer: UNKNOWN
+  - file: BOLT_DEBT_REGISTRY.yaml
+    sha256: "fb5d2476f0a48c4021a864a4c2b83e09dc855429b7c985d035ccf819ebbbef27"
+    schemaVersion: 1
+    repoCommit: 9eab2990
+    reviewer: UNKNOWN
+  - file: CHANGELOG_AUDIT.md
+    sha256: "7c9c57a3182e7904b1aee81f52395fe7da11e10d3c58e016d16ab1334537278b"
+    schemaVersion: 1
+    repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
+    reviewer: UNKNOWN
+  - file: CHECKPOINT_CONTRACT.md
+    sha256: "6eff417273e45996c7733d8b66639951feadb8fdc9891c7370dc2f5c4e4aa724"
+    schemaVersion: 1
+    repoCommit: ca299f87
+    reviewer: UNKNOWN
+  - file: COVERAGE_GAP_AUDIT_2026-07-17.md
+    sha256: "3db24e4e12264e27e6e5a0d043cd99a1399a8bf5c16bc84f9da146f6ab24b81e"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: DATABASE_CONTRACT.md
+    sha256: "25d9404ccca14c2411d8fa568c879fb7edd7bdd91e8cda2f985100e6e5ac0b4e"
+    schemaVersion: 1
+    repoCommit: ca299f87
+    reviewer: UNKNOWN
+  - file: DECISION_REGISTRY.yaml
+    sha256: "3ab91a48f910df22aad8a161feb0e88833d9ebeb6a531e2d0eed0dca9c40a741"
+    schemaVersion: 1
+    repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
+    reviewer: UNKNOWN
+  - file: DEPLOYMENT_TYPES_CONTRACT.md
+    sha256: "41da2a73fdd5690fd07a07e1fb5d1913b4316aebbe903c32152c44c3a4412632"
+    schemaVersion: 1
+    repoCommit: 19e48513
+    reviewer: UNKNOWN
+  - file: DOMAIN_MODEL.md
+    sha256: "189a97707ed4a67db866aab53e62c3d6ea22365a5bf374705c7251f482d8b40e"
+    schemaVersion: 1
+    repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
+    reviewer: UNKNOWN
+  - file: E2E_PROOFS.yaml
+    sha256: "7a71b8fcfce5ec283cca257797f957495e27aad6242a978ecb03bf1ec8b6187c"
+    schemaVersion: 1
+    repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
+    reviewer: UNKNOWN
+  - file: EDGE_CONTRACT.md
+    sha256: "7250f80e5711f7ef4dce2b77ca856804125e7872716794159247a3276cc8226c"
+    schemaVersion: 1
+    repoCommit: ca299f87
+    reviewer: UNKNOWN
+  - file: EVIDENCE_ARTIFACT_CONTRACT.md
+    sha256: "c3bb9ed4b54d6b190c31c519200c841f430d1117cc89af3d1f08f880369b431f"
+    schemaVersion: 1
+    repoCommit: ca299f87
+    reviewer: UNKNOWN
+  - file: GALLERY_COMMUNITY_CONTRACT.md
+    sha256: "3d7638c566f8d19c10b6ce1ed11290aaf406164abf0b1f145db0d92eb9ced244"
+    schemaVersion: 1
+    repoCommit: 57ab0a67d068e5dad0faea5166ac4d18c1713f03
+    reviewer: UNKNOWN
+  - file: IAM_POLICY_BASELINE.md
+    sha256: "23a1076254345fbc1394f9363b2dfab3315ce7761fcd61a27614ccf097a27be6"
+    schemaVersion: 1
+    repoCommit: ca299f87
+    reviewer: UNKNOWN
+  - file: IMPORT_REMIX_CONTRACT.md
+    sha256: "ef5f5d1474860ab665c8b28389a92a19da841477fb4da5eb99791a173d686c2d"
+    schemaVersion: 1
+    repoCommit: ca299f87
+    reviewer: UNKNOWN
+  - file: LEGACY_FINDING_REGISTRY.yaml
+    sha256: "602be59b812e55a9de6ba370df52bd3d550967b5897b9caa3addbfaac40a11fa"
+    schemaVersion: 1
+    repoCommit: 19e48513
+    reviewer: UNKNOWN
+  - file: OBSERVATION_REGISTRY.yaml
+    sha256: "4734e2831f1bf521442d5a241b624db0b3585ba006f6d56e020bd2be664e124e"
+    schemaVersion: 1
+    repoCommit: fbaad79956096db0d66bcb6e894268438dfcb842
+    reviewer: UNKNOWN
+  - file: OPERATIONS_DR.md
+    sha256: "766b8fd44d4732f6bd8a4ec172a9a3686016c3463e93ceb10a0f973ef49c50e5"
+    schemaVersion: 1
+    repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
+    reviewer: UNKNOWN
+  - file: OWNER_ROLES.yaml
+    sha256: "359896f7f82e002d72c54f8d60cb41da17bffe67c73e88c01badc327c3012fd1"
+    schemaVersion: 1
+    repoCommit: 19e48513
+    reviewer: UNKNOWN
+  - file: P0_REGISTRY.yaml
+    sha256: "8e15a2a09bf110cea28d68f193c508888751a2c12554649ca0d11a59276f93d8"
+    schemaVersion: 1
+    repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
+    reviewer: UNKNOWN
+  - file: PARITY_STATUS.md
+    sha256: "57f5ca39384521ed9ba84116de1b0134c5920636ce844ed2a8bdb65ad16da9e4"
+    schemaVersion: 1
+    repoCommit: b774bfa38e881ebaa071fbf2c2fa9d72ab89efb5
+    reviewer: UNKNOWN
+  - file: PLAN_PARITE_REPLIT.md
+    sha256: "bc7a87c80a45bed9bb42a6165af232143fa2f7ee9ae9e1074a9480cc61bc545e"
+    schemaVersion: 1
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: PRODUCTION_READINESS_REGISTRY.yaml
+    sha256: "06f61edeb24fd4fe74a08f796d04a5735d9acf453b47a18910949e8369dc0a96"
+    schemaVersion: 1
+    repoCommit: 9eab2990
+    reviewer: UNKNOWN
+  - file: PROJECT_FACTORY_CONTRACT.md
+    sha256: "8a0703c7a4935623b059222e015bc563cd1d4a30c2d9a81c9b5f86430e41a74c"
+    schemaVersion: 1
+    repoCommit: ca299f87
+    reviewer: UNKNOWN
+  - file: PUBLIC_BASELINE_REPLIT_2026.yaml
+    sha256: "80a9b9dbc29e1fb668f9318c13718da462a755d72d1505a1873a666a44e0e3ff"
+    schemaVersion: 1
+    repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
+    reviewer: UNKNOWN
+  - file: RATE_CARD.json
+    sha256: "16b79c90d8cf13b8969905de1d254f6ffe66725e9ad1cdd7e103fe71a1910d43"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: REGRESSION_RUN_CONTRACT.md
+    sha256: "28e4de34359b828b7d3cef4cb2be75ef75eff65a4e79e476c36f1cfacafdf1e0"
+    schemaVersion: 1
+    repoCommit: ca299f87
+    reviewer: UNKNOWN
+  - file: RELEASE_PUBLISH_CONTRACT.md
+    sha256: "6fc44f96d331acafe77e62b6851651c6ae6304aa09c8ea0cff26866d40dd3af7"
+    schemaVersion: 1
+    repoCommit: ca299f87
+    reviewer: UNKNOWN
+  - file: RUNTIME_NIX_CONTRACT.md
+    sha256: "55576e5e0d600a24990871e859d21094f978fd2bfd973f7994820f44e5915a80"
+    schemaVersion: 1
+    repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
+    reviewer: UNKNOWN
+  - file: SECURITY_PRIVACY_COMPLIANCE.md
+    sha256: "af2f7e4df702f67cbcc7c15fb6da5bceda518394f2cb36292ccee95ab1d0a6ea"
+    schemaVersion: 1
+    repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
+    reviewer: UNKNOWN
+  - file: SERVICE_CONTRACTS/README.md
+    sha256: "89175a30ffd5a719cb30e66b348cb749c93aa7306ce1a5b3ed18c1ce766f2ed4"
+    schemaVersion: 1
+    repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
+    reviewer: UNKNOWN
+  - file: SERVICE_CONTRACTS/agent-routing.openapi.yaml
+    sha256: "994423403613738fccb4cbb67a4c6e8135c31367badb9d99a14af4e3fe2eedb7"
+    schemaVersion: 1
+    repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
+    reviewer: UNKNOWN
+  - file: SOURCE_REGISTRY.yaml
+    sha256: "1a6deb33212ef09d367f86be743d22291846bf0e017f3b9b4caef4b5a0fbae4f"
+    schemaVersion: 1
+    repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
+    reviewer: UNKNOWN
+  - file: SURFACE_REGISTRY.yaml
+    sha256: "a856d0b91f1c81c14880e68f0daae60e1891eefbced06682fcb3929634d0bf6d"
+    schemaVersion: 3
+    repoCommit: 06fabcf1
+    reviewer: UNKNOWN
+  - file: TRACEABILITY_MATRIX.yaml
+    sha256: "20964af97f7595f44fbeac517d6a01f0e3a6739e9cc8ed9d5709403911a1ba79"
+    schemaVersion: 1
+    repoCommit: 19e48513
+    reviewer: UNKNOWN
+  - file: UNKNOWN_REGISTRY.yaml
+    sha256: "6fe153e15ad842760a113c5a51974bd93f0d07ddf51d1def92fb5bd14eac0f22"
+    schemaVersion: 2
+    repoCommit: b774bfa38e881ebaa071fbf2c2fa9d72ab89efb5
+    reviewer: UNKNOWN
+  - file: WORKSPACE_STORAGE_CONTRACT.md
+    sha256: "8d2a3a5fe20ecfa399fafa37bd990991ab35455e9a562e97b68cd85d07a70c9e"
+    schemaVersion: 1
+    repoCommit: ca299f87
+    reviewer: UNKNOWN
+  - file: WORK_ITEM_REGISTRY.yaml
+    sha256: "fb86ca5286c61672f18f2885f999bf4c04af19ec9e0d1d4db0c2cfb78708a347"
+    schemaVersion: 1
+    repoCommit: 19e48513
+    reviewer: UNKNOWN
+  - file: schemas/approval-status.schema.json
+    sha256: "f618f42d944b721f91474be8347ff664c42d7a3e7c7c9b53a6c521a399018352"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: schemas/decision-registry.schema.json
+    sha256: "c52cd4ebf4897e02329852790ac0dcb536f31648af0d5b3ce06c0b80f3cf115d"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: schemas/domain/checkpoint-manifest.schema.json
+    sha256: "d3a9f4cf67669dda8757846569de91b97c0755a46d85a5c8ace43cad322536b8"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: schemas/domain/cloud-tenant.schema.json
+    sha256: "6b0574117e22b61cacfccabbd03e93517fae6a184d69a4483ee39881112fd6b0"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: schemas/domain/import-staging.schema.json
+    sha256: "bc9f9297e55e9adb9244dd88f2d0c3b2749bb4b5ccede35a2592b3b04a71c28d"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: schemas/domain/release-catalog-entry.schema.json
+    sha256: "57f53d1a46e53931ea7d3eab7cc9ee956af5e1b56855c0762e6fa813b8166aa2"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: schemas/domain/remix.schema.json
+    sha256: "e75a5637e65e11bfe9a36405a72edf80371bd03c59e3cab8625daa29dbe99efd"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: schemas/domain/runtime-identity.schema.json
+    sha256: "f88bb0450d519ac65133aeae7664bdd527682a1df2586c4e4d9e5a8b634e34f0"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: schemas/ecode.lock.schema.json
+    sha256: "0c4b918a11c2de70700bde975cbd7726bccb1b65f5dd06bfd259838d8fd71f9b"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: schemas/observation.schema.json
+    sha256: "2c6ee0a0064084c505a5e2ddbfbcd4bd4a77d4d095a87cb933f0b1a117a24554"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: schemas/p0-registry.schema.json
+    sha256: "9ac22c744146fc6f578a1e163912d33d483e5cfb39c580ff1d3422e7fdc8da25"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: schemas/surface-registry.schema.json
+    sha256: "27d424de1702af9670487359fd7594314ffb9afbda90a99dc812a353afdf680e"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: schemas/unknown-registry.schema.json
+    sha256: "5b43ea6ce405ad3acd73de7f62c6d381439c7a2c2d380cfa86c2b73dbfd5fdb8"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN

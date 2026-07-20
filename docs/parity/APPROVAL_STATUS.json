@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "generatedFrom": [
     "P0_REGISTRY.yaml",
     "DECISION_REGISTRY.yaml",
@@ -11,25 +11,79 @@
     "SOURCE_REGISTRY.yaml",
     "BOLT_DEBT_REGISTRY.yaml",
     "PRODUCTION_READINESS_REGISTRY.yaml",
-    "PLAN_PARITE_REPLIT.md"
+    "PLAN_PARITE_REPLIT.md",
+    "WORK_ITEM_REGISTRY.yaml",
+    "LEGACY_FINDING_REGISTRY.yaml"
   ],
   "note": "COMPUTED by scripts/parity/generate-approval-status.mjs — never edit by hand. The validator fails the build on drift.",
-  "algorithm": "NAMED LEVELS (évaluation v5, 2026-07-17): no global approvalReady boolean — APPROVED is only admissible with the exact level named. approved.level = highest CONTIGUOUS passed level in levels[]. The 6 audit-v4 conditions remain as sub-signals.",
+  "algorithm": "ÉCHELLE 11 NIVEAUX (audit de réanalyse 2026-07-20): overallStatus=NOT_APPROVED sauf approbation de périmètre explicite (APPROVALS.yaml, approbateur stocké). highestPassedLevel = plus haut niveau CONTIGU. Ni approvalReady ni approved.level n'existent (interdits). Les 6 conditions audit-v4 restent des sous-signaux.",
+  "overallStatus": "NOT_APPROVED",
+  "highestPassedLevel": "documentCanonicalized",
+  "generatedAt": "2026-07-20T04:20:00Z",
   "levels": [
     {
-      "name": "documentReady",
+      "name": "documentCanonicalized",
       "passed": true,
       "reasons": []
     },
     {
-      "name": "registryComplete",
+      "name": "sourceBaselineReady",
+      "passed": false,
+      "reasons": [
+        "claim GCP-01 cited by the plan but not anchored (UNVERIFIED)",
+        "claim GCP-02 cited by the plan but not anchored (UNVERIFIED)",
+        "claim GCP-03 cited by the plan but not anchored (UNVERIFIED)",
+        "claim GCP-04 cited by the plan but not anchored (UNVERIFIED)",
+        "claim GCP-06 cited by the plan but not anchored (UNVERIFIED)",
+        "claim GCP-07 cited by the plan but not anchored (UNVERIFIED)",
+        "claim GCP-08 cited by the plan but not anchored (UNVERIFIED)",
+        "claim GCP-09 cited by the plan but not anchored (UNVERIFIED)",
+        "claim GCP-10 cited by the plan but not anchored (UNVERIFIED)",
+        "claim NIX-01 cited by the plan but not anchored (UNVERIFIED)",
+        "claim RPL-01 cited by the plan but not anchored (UNVERIFIED)",
+        "claim RPL-02 cited by the plan but not anchored (UNVERIFIED)",
+        "claim RPL-03 cited by the plan but not anchored (UNVERIFIED)",
+        "claim RPL-05 cited by the plan but not anchored (UNVERIFIED)",
+        "claim RPL-06 cited by the plan but not anchored (UNVERIFIED)",
+        "claim RPL-09 cited by the plan but not anchored (UNVERIFIED)",
+        "claim RPL-10 cited by the plan but not anchored (UNVERIFIED)",
+        "claim RPL-13 cited by the plan but not anchored (UNVERIFIED)"
+      ]
+    },
+    {
+      "name": "registryUniverseReady",
       "passed": true,
       "reasons": []
     },
     {
-      "name": "architectureContracted",
+      "name": "contractsPresent",
       "passed": true,
       "reasons": []
+    },
+    {
+      "name": "contractsValidated",
+      "passed": false,
+      "reasons": [
+        "DOMAIN_MODEL.md: no real reviewer",
+        "AUTH_ACCESS_CONTRACT.md: no real reviewer",
+        "GALLERY_COMMUNITY_CONTRACT.md: no real reviewer",
+        "RELEASE_PUBLISH_CONTRACT.md: no real reviewer",
+        "PROJECT_FACTORY_CONTRACT.md: no real reviewer",
+        "IAM_POLICY_BASELINE.md: no real reviewer",
+        "EDGE_CONTRACT.md: no real reviewer",
+        "WORKSPACE_STORAGE_CONTRACT.md: no real reviewer",
+        "CHECKPOINT_CONTRACT.md: no real reviewer",
+        "IMPORT_REMIX_CONTRACT.md: no real reviewer",
+        "AGENT_TOOL_BROKER_CONTRACT.md: no real reviewer",
+        "DATABASE_CONTRACT.md: no real reviewer",
+        "APP_STORAGE_CONTRACT.md: no real reviewer",
+        "EVIDENCE_ARTIFACT_CONTRACT.md: no real reviewer",
+        "REGRESSION_RUN_CONTRACT.md: no real reviewer",
+        "BILLING_LEDGER_CONTRACT.md: no real reviewer",
+        "RUNTIME_NIX_CONTRACT.md: no real reviewer",
+        "OPERATIONS_DR.md: no real reviewer",
+        "SECURITY_PRIVACY_COMPLIANCE.md: no real reviewer"
+      ]
     },
     {
       "name": "implementationReady",
@@ -38,13 +92,23 @@
         "P0-V3-01 is OPEN",
         "P0-V3-05 is OPEN",
         "P0-V3-06 is OPEN",
-        "P0-V3-07 is OPEN"
+        "P0-V3-07 is OPEN",
+        "P0-A2-12 is OPEN",
+        "P0-A2-15 is OPEN"
       ]
     },
     {
-      "name": "verticalReady",
+      "name": "verticalBackendReady",
       "passed": true,
       "reasons": []
+    },
+    {
+      "name": "verticalUserJourneyReady",
+      "passed": false,
+      "reasons": [
+        "stage \"publish\" has no UI proof (une preuve API n'est pas une preuve UI)",
+        "stage \"rollback\" has no UI proof (une preuve API n'est pas une preuve UI)"
+      ]
     },
     {
       "name": "betaReady",
@@ -82,7 +146,24 @@
         "P0-V3-13 not CLOSED (needs a real reviewer)",
         "P0-V3-14 not CLOSED (needs a real reviewer)",
         "P0-V3-15 not CLOSED (needs a real reviewer)",
+        "P0-A2-01 not CLOSED (needs a real reviewer)",
+        "P0-A2-02 not CLOSED (needs a real reviewer)",
+        "P0-A2-03 not CLOSED (needs a real reviewer)",
+        "P0-A2-04 not CLOSED (needs a real reviewer)",
+        "P0-A2-05 not CLOSED (needs a real reviewer)",
+        "P0-A2-06 not CLOSED (needs a real reviewer)",
+        "P0-A2-07 not CLOSED (needs a real reviewer)",
+        "P0-A2-08 not CLOSED (needs a real reviewer)",
+        "P0-A2-09 not CLOSED (needs a real reviewer)",
+        "P0-A2-10 not CLOSED (needs a real reviewer)",
+        "P0-A2-11 not CLOSED (needs a real reviewer)",
+        "P0-A2-12 not CLOSED (needs a real reviewer)",
+        "P0-A2-13 not CLOSED (needs a real reviewer)",
+        "P0-A2-14 not CLOSED (needs a real reviewer)",
+        "P0-A2-15 not CLOSED (needs a real reviewer)",
+        "P0-A2-16 not CLOSED (needs a real reviewer)",
         "decision DEC-GALLERY-NO-SELF-PUBLISH still OPEN",
+        "decision DEC-OWNER-GALLERY-OPTION-B still OPEN",
         "decision DEC-BILLING-LEGACY-VS-LEDGER still OPEN",
         "claim RPL-20 triage PENDING",
         "claim RPL-21 triage PENDING",
@@ -100,6 +181,7 @@
         "surface SRF-DEPLOY-RESERVED-VM not done",
         "surface SRF-DEPLOY-SCHEDULED not done",
         "surface SRF-GALLERY-STARTER-DEMOS not done",
+        "159 surface universe entries not evaluated (availability UNKNOWN)",
         "claim RPL-20 triage PENDING",
         "claim RPL-21 triage PENDING",
         "claim RPL-22 triage PENDING",
@@ -107,14 +189,14 @@
       ]
     }
   ],
-  "approved": {
-    "level": "architectureContracted"
-  },
   "blocking": [
-    "level implementationReady FAILED: P0-V3-01 is OPEN; P0-V3-05 is OPEN; P0-V3-06 is OPEN; P0-V3-07 is OPEN",
+    "level sourceBaselineReady FAILED: claim GCP-01 cited by the plan but not anchored (UNVERIFIED); claim GCP-02 cited by the plan but not anchored (UNVERIFIED); claim GCP-03 cited by the plan but not anchored (UNVERIFIED); claim GCP-04 cited by the plan but not anchored (UNVERIFIED); claim GCP-06 cited by the plan but not anchored (UNVERIFIED); claim GCP-07 cited by the plan but not anchored (UNVERIFIED); claim GCP-08 cited by the plan but not anchored (UNVERIFIED); claim GCP-09 cited by the plan but not anchored (UNVERIFIED); claim GCP-10 cited by the plan but not anchored (UNVERIFIED); claim NIX-01 cited by the plan but not anchored (UNVERIFIED); claim RPL-01 cited by the plan but not anchored (UNVERIFIED); claim RPL-02 cited by the plan but not anchored (UNVERIFIED); claim RPL-03 cited by the plan but not anchored (UNVERIFIED); claim RPL-05 cited by the plan but not anchored (UNVERIFIED); claim RPL-06 cited by the plan but not anchored (UNVERIFIED); claim RPL-09 cited by the plan but not anchored (UNVERIFIED); claim RPL-10 cited by the plan but not anchored (UNVERIFIED); claim RPL-13 cited by the plan but not anchored (UNVERIFIED)",
+    "level contractsValidated FAILED: DOMAIN_MODEL.md: no real reviewer; AUTH_ACCESS_CONTRACT.md: no real reviewer; GALLERY_COMMUNITY_CONTRACT.md: no real reviewer; RELEASE_PUBLISH_CONTRACT.md: no real reviewer; PROJECT_FACTORY_CONTRACT.md: no real reviewer; IAM_POLICY_BASELINE.md: no real reviewer; EDGE_CONTRACT.md: no real reviewer; WORKSPACE_STORAGE_CONTRACT.md: no real reviewer; CHECKPOINT_CONTRACT.md: no real reviewer; IMPORT_REMIX_CONTRACT.md: no real reviewer; AGENT_TOOL_BROKER_CONTRACT.md: no real reviewer; DATABASE_CONTRACT.md: no real reviewer; APP_STORAGE_CONTRACT.md: no real reviewer; EVIDENCE_ARTIFACT_CONTRACT.md: no real reviewer; REGRESSION_RUN_CONTRACT.md: no real reviewer; BILLING_LEDGER_CONTRACT.md: no real reviewer; RUNTIME_NIX_CONTRACT.md: no real reviewer; OPERATIONS_DR.md: no real reviewer; SECURITY_PRIVACY_COMPLIANCE.md: no real reviewer",
+    "level implementationReady FAILED: P0-V3-01 is OPEN; P0-V3-05 is OPEN; P0-V3-06 is OPEN; P0-V3-07 is OPEN; P0-A2-12 is OPEN; P0-A2-15 is OPEN",
+    "level verticalUserJourneyReady FAILED: stage \"publish\" has no UI proof (une preuve API n'est pas une preuve UI); stage \"rollback\" has no UI proof (une preuve API n'est pas une preuve UI)",
     "level betaReady FAILED: beta gate capability still unknown: UNK-GIT-RECONCILE-DONE; beta gate capability still unknown: UNK-ROLLBACK-FLAG-APPLIED; beta gate capability still unknown: UNK-NIX-MULTIZONE-IMPL; beta gate capability still unknown: UNK-AR-LIVE-PROMOTION; beta gate capability still unknown: UNK-CLOUDTENANT-IMPL; beta gate capability still unknown: UNK-BILLING-MINIMAL-IMPL",
-    "level publicLaunchReady FAILED: betaReady not passed; P0-V4-1 not CLOSED (needs a real reviewer); P0-V4-2 not CLOSED (needs a real reviewer); P0-V4-3 not CLOSED (needs a real reviewer); P0-V4-4 not CLOSED (needs a real reviewer); P0-V3-01 not CLOSED (needs a real reviewer); P0-V3-02 not CLOSED (needs a real reviewer); P0-V3-03 not CLOSED (needs a real reviewer); P0-V3-04 not CLOSED (needs a real reviewer); P0-V3-05 not CLOSED (needs a real reviewer); P0-V3-06 not CLOSED (needs a real reviewer); P0-V3-07 not CLOSED (needs a real reviewer); P0-V3-08 not CLOSED (needs a real reviewer); P0-V3-09 not CLOSED (needs a real reviewer); P0-V3-10 not CLOSED (needs a real reviewer); P0-V3-11 not CLOSED (needs a real reviewer); P0-V3-12 not CLOSED (needs a real reviewer); P0-V3-13 not CLOSED (needs a real reviewer); P0-V3-14 not CLOSED (needs a real reviewer); P0-V3-15 not CLOSED (needs a real reviewer); decision DEC-GALLERY-NO-SELF-PUBLISH still OPEN; decision DEC-BILLING-LEGACY-VS-LEDGER still OPEN; claim RPL-20 triage PENDING; claim RPL-21 triage PENDING; claim RPL-22 triage PENDING; claim RPL-23 triage PENDING",
-    "level parityBaselineReady FAILED: surface SRF-IDE-FILE-HISTORY not done; surface SRF-IDE-AGENT-SKILLS not done; surface SRF-IDE-PANES-LAYOUT not done; surface SRF-DEPLOY-RESERVED-VM not done; surface SRF-DEPLOY-SCHEDULED not done; surface SRF-GALLERY-STARTER-DEMOS not done; claim RPL-20 triage PENDING; claim RPL-21 triage PENDING; claim RPL-22 triage PENDING; claim RPL-23 triage PENDING"
+    "level publicLaunchReady FAILED: betaReady not passed; P0-V4-1 not CLOSED (needs a real reviewer); P0-V4-2 not CLOSED (needs a real reviewer); P0-V4-3 not CLOSED (needs a real reviewer); P0-V4-4 not CLOSED (needs a real reviewer); P0-V3-01 not CLOSED (needs a real reviewer); P0-V3-02 not CLOSED (needs a real reviewer); P0-V3-03 not CLOSED (needs a real reviewer); P0-V3-04 not CLOSED (needs a real reviewer); P0-V3-05 not CLOSED (needs a real reviewer); P0-V3-06 not CLOSED (needs a real reviewer); P0-V3-07 not CLOSED (needs a real reviewer); P0-V3-08 not CLOSED (needs a real reviewer); P0-V3-09 not CLOSED (needs a real reviewer); P0-V3-10 not CLOSED (needs a real reviewer); P0-V3-11 not CLOSED (needs a real reviewer); P0-V3-12 not CLOSED (needs a real reviewer); P0-V3-13 not CLOSED (needs a real reviewer); P0-V3-14 not CLOSED (needs a real reviewer); P0-V3-15 not CLOSED (needs a real reviewer); P0-A2-01 not CLOSED (needs a real reviewer); P0-A2-02 not CLOSED (needs a real reviewer); P0-A2-03 not CLOSED (needs a real reviewer); P0-A2-04 not CLOSED (needs a real reviewer); P0-A2-05 not CLOSED (needs a real reviewer); P0-A2-06 not CLOSED (needs a real reviewer); P0-A2-07 not CLOSED (needs a real reviewer); P0-A2-08 not CLOSED (needs a real reviewer); P0-A2-09 not CLOSED (needs a real reviewer); P0-A2-10 not CLOSED (needs a real reviewer); P0-A2-11 not CLOSED (needs a real reviewer); P0-A2-12 not CLOSED (needs a real reviewer); P0-A2-13 not CLOSED (needs a real reviewer); P0-A2-14 not CLOSED (needs a real reviewer); P0-A2-15 not CLOSED (needs a real reviewer); P0-A2-16 not CLOSED (needs a real reviewer); decision DEC-GALLERY-NO-SELF-PUBLISH still OPEN; decision DEC-OWNER-GALLERY-OPTION-B still OPEN; decision DEC-BILLING-LEGACY-VS-LEDGER still OPEN; claim RPL-20 triage PENDING; claim RPL-21 triage PENDING; claim RPL-22 triage PENDING; claim RPL-23 triage PENDING",
+    "level parityBaselineReady FAILED: surface SRF-IDE-FILE-HISTORY not done; surface SRF-IDE-AGENT-SKILLS not done; surface SRF-IDE-PANES-LAYOUT not done; surface SRF-DEPLOY-RESERVED-VM not done; surface SRF-DEPLOY-SCHEDULED not done; surface SRF-GALLERY-STARTER-DEMOS not done; 159 surface universe entries not evaluated (availability UNKNOWN); claim RPL-20 triage PENDING; claim RPL-21 triage PENDING; claim RPL-22 triage PENDING; claim RPL-23 triage PENDING"
   ],
   "conditions": [
     {
@@ -125,7 +207,9 @@
         "P0-V3-01 is OPEN",
         "P0-V3-05 is OPEN",
         "P0-V3-06 is OPEN",
-        "P0-V3-07 is OPEN"
+        "P0-V3-07 is OPEN",
+        "P0-A2-12 is OPEN",
+        "P0-A2-15 is OPEN"
       ]
     },
     {
@@ -240,21 +324,21 @@
   ],
   "counts": {
     "p0": {
-      "total": 19,
+      "total": 35,
       "closed": 0,
-      "proven": 15,
-      "open": 4
+      "proven": 29,
+      "open": 6
     },
     "decisions": {
       "total": 12,
-      "open": 2
+      "open": 3
     },
     "unknowns": {
       "total": 21,
       "p0Linked": 0
     },
     "claims": {
-      "total": 15,
+      "total": 20,
       "stale": 0
     },
     "surfaces": {
@@ -266,8 +350,8 @@
       "proven": 12
     },
     "p1": {
-      "total": 8,
-      "open": 8
+      "total": 40,
+      "open": 12
     },
     "boltDebt": {
       "total": 29,
@@ -284,8 +368,30 @@
       "nonFait": 332,
       "dejaFait": 1,
       "perime": 3
-    }
+    },
+    "canonicalWorkItems": 99,
+    "unanchoredClaims": 18
   },
+  "unanchoredClaims": [
+    "GCP-01",
+    "GCP-02",
+    "GCP-03",
+    "GCP-04",
+    "GCP-06",
+    "GCP-07",
+    "GCP-08",
+    "GCP-09",
+    "GCP-10",
+    "NIX-01",
+    "RPL-01",
+    "RPL-02",
+    "RPL-03",
+    "RPL-05",
+    "RPL-06",
+    "RPL-09",
+    "RPL-10",
+    "RPL-13"
+  ],
   "p0": [
     {
       "p0Id": "P0-V4-1",
@@ -438,6 +544,134 @@
       "derived": "PROVEN",
       "hasProof": true,
       "reviewed": false
+    },
+    {
+      "p0Id": "P0-A2-01",
+      "priority": 1,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-A2-02",
+      "priority": 2,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-A2-03",
+      "priority": 3,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-A2-04",
+      "priority": 4,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-A2-05",
+      "priority": 5,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-A2-06",
+      "priority": 6,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-A2-07",
+      "priority": 7,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-A2-08",
+      "priority": 8,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-A2-09",
+      "priority": 9,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-A2-10",
+      "priority": 10,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-A2-11",
+      "priority": 11,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-A2-12",
+      "priority": 12,
+      "declared": "OPEN",
+      "derived": "OPEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-A2-13",
+      "priority": 13,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-A2-14",
+      "priority": 14,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-A2-15",
+      "priority": 15,
+      "declared": "OPEN",
+      "derived": "OPEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-A2-16",
+      "priority": 16,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
     }
   ],
   "surfaces": [
@@ -502,6 +736,16 @@
       "done": false
     }
   ],
+  "surfaceUniverse": {
+    "expected": 159,
+    "present": 159,
+    "evaluated": 0,
+    "services": 56
+  },
+  "workItems": {
+    "sourceFindingCount": 336,
+    "canonicalWorkItemCount": 99
+  },
   "evidence": [
     {
       "proofId": "E2E-PHASEB-NODE",

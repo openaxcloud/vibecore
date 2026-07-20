@@ -6,7 +6,7 @@ p0s:
   - p0Id: P0-V4-1
     title: "Collecteur aveugle : ajouter routes produit (rendu JS) + canal de lancement"
     priority: 1
-    owner: claude
+    owner: platform
     status: PROVEN
     commit: "07ced1c56bdbcb3ce77e883704342b71a2ad0961"
     reviewer: UNKNOWN
@@ -17,7 +17,7 @@ p0s:
   - p0Id: P0-V4-2
     title: "Gallery : requalifier la table (mesures réelles, archive rendue)"
     priority: 2
-    owner: claude
+    owner: platform
     status: PROVEN
     commit: "07ced1c56bdbcb3ce77e883704342b71a2ad0961"
     reviewer: UNKNOWN
@@ -28,7 +28,7 @@ p0s:
   - p0Id: P0-V4-3
     title: "Hiérarchie GCP : folder-per-tenant mort (300 cap + 0,1 req/s)"
     priority: 3
-    owner: claude
+    owner: platform
     status: PROVEN
     commit: "07ced1c5"
     reviewer: UNKNOWN
@@ -39,7 +39,7 @@ p0s:
   - p0Id: P0-V4-4
     title: "Promotion Artifact Registry : referrers/attachments non copiés par digest"
     priority: 4
-    owner: claude
+    owner: platform
     status: PROVEN
     commit: "07ced1c5"
     reviewer: UNKNOWN
@@ -63,7 +63,7 @@ p0s:
     description: "La baseline publique ne contenait ni Community Profiles ni Ramp for Agents ; le collecteur documentaire seul est aveugle aux routes produit rendues JS."
     source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (expert externe, 2026-07-16), P0-01"
     priority: 1
-    owner: claude
+    owner: platform
     status: OPEN
     commit: "07ced1c5"
     reviewer: UNKNOWN
@@ -78,7 +78,7 @@ p0s:
     description: "Des fonctions observables (Submit, auteurs, stats, View App, report) étaient classées inconnues."
     source: "Audit v3 (2026-07-16), P0-02"
     priority: 2
-    owner: claude
+    owner: platform
     status: PROVEN
     commit: "07ced1c56bdbcb3ce77e883704342b71a2ad0961"
     reviewer: UNKNOWN
@@ -93,7 +93,7 @@ p0s:
     description: "Un folder GCP par tenant est cassé par construction ; sharding explicite requis."
     source: "Audit v3 (2026-07-16), P0-03"
     priority: 3
-    owner: claude
+    owner: platform
     status: PROVEN
     commit: "07ced1c5"
     reviewer: UNKNOWN
@@ -108,7 +108,7 @@ p0s:
     description: "customerId seul ne définit pas le client ; transfert personnel→organisation = migration de sécurité non spécifiée."
     source: "Audit v3 (2026-07-16), P0-04"
     priority: 4
-    owner: claude
+    owner: platform
     status: PROVEN
     commit: "4a61800c"
     reviewer: UNKNOWN
@@ -123,7 +123,7 @@ p0s:
     description: "Détacher les credentials est nécessaire mais insuffisant ; licence/consentement + masking PII requis."
     source: "Audit v3 (2026-07-16), P0-05"
     priority: 5
-    owner: claude
+    owner: platform
     status: OPEN
     commit: "bd4c334e"
     reviewer: UNKNOWN
@@ -138,7 +138,7 @@ p0s:
     description: "Durée de quarantaine, procédure d'appel, reproductibilité des scans, LFS/submodules/OAuth non couverts."
     source: "Audit v3 (2026-07-16), P0-06"
     priority: 6
-    owner: claude
+    owner: platform
     status: OPEN
     commit: "7d45c2cb"
     reviewer: UNKNOWN
@@ -153,7 +153,7 @@ p0s:
     description: "Copier une image par digest ne copie ni signature ni SBOM ni provenance ; vérification dans le contexte tenant requise."
     source: "Audit v3 (2026-07-16), P0-07"
     priority: 7
-    owner: claude
+    owner: platform
     status: OPEN
     commit: "07ced1c5"
     reviewer: UNKNOWN
@@ -168,7 +168,7 @@ p0s:
     description: "Une ref vers latest rejoue une autre application ; le manifest doit pinner versions de secrets, accès, domaines, migrations."
     source: "Audit v3 (2026-07-16), P0-08"
     priority: 8
-    owner: claude
+    owner: platform
     status: PROVEN
     commit: "ec0ad6bd"
     reviewer: UNKNOWN
@@ -183,7 +183,7 @@ p0s:
     description: "Une séquence d'étapes ne crée pas un instant atomique ; le niveau de cohérence doit être déclaré et une barrière établie avant tout snapshot."
     source: "Audit v3 (2026-07-16), P0-09"
     priority: 9
-    owner: claude
+    owner: platform
     status: PROVEN
     commit: "b8186f2f"
     reviewer: UNKNOWN
@@ -198,7 +198,7 @@ p0s:
     description: "Nix 2.34.8 = décision E-Code (pas parité) ; system/arch, clés, révocation, réplication zonale, upgrade DB Nix à fixer."
     source: "Audit v3 (2026-07-16), P0-10"
     priority: 10
-    owner: claude
+    owner: platform
     status: PROVEN
     commit: "9a21f56f"
     reviewer: UNKNOWN
@@ -213,7 +213,7 @@ p0s:
     description: "Texte corrigé en « Agent peut modifier DEV » ; migration au publish sous concurrence/échec à spécifier."
     source: "Audit v3 (2026-07-16), P0-11"
     priority: 11
-    owner: claude
+    owner: platform
     status: PROVEN
     commit: "57ab0a67"
     reviewer: UNKNOWN
@@ -228,7 +228,7 @@ p0s:
     description: "Invariants comptables requis : double entrée, decimal exact, FX/cutoff, PaymentAuthorization distincte de UsageReservation."
     source: "Audit v3 (2026-07-16), P0-12"
     priority: 12
-    owner: claude
+    owner: platform
     status: PROVEN
     commit: "07ced1c5"
     reviewer: UNKNOWN
@@ -243,7 +243,7 @@ p0s:
     description: "Matrice infinie compte×plan×région×client remplacée par une matrice supportée déclarée."
     source: "Audit v3 (2026-07-16), P0-13"
     priority: 13
-    owner: claude
+    owner: platform
     status: PROVEN
     commit: "b8186f2f"
     reviewer: UNKNOWN
@@ -258,7 +258,7 @@ p0s:
     description: "17 groupes de livrables + APPROVAL_STATUS calculé par CI, jamais écrit à la main."
     source: "Audit v3 (2026-07-16), P0-14"
     priority: 14
-    owner: claude
+    owner: platform
     status: PROVEN
     commit: "97759a77"
     reviewer: UNKNOWN
@@ -273,7 +273,7 @@ p0s:
     description: "Le plan portait son historique d'audit et exigeait la clôture de 19 P0 sans les identifier."
     source: "Audit v3 (2026-07-16), P0-15"
     priority: 15
-    owner: claude
+    owner: platform
     status: PROVEN
     commit: "d1040286a4000c84372ca540943bee6eca6cace5"
     reviewer: UNKNOWN
@@ -292,12 +292,259 @@ p0s:
 # Mêmes règles que les P0 : la CI compare l'ensemble EXACT (EXPECTED_P1_IDS) ;
 # targetDate ISO ; rien n'est « fait » sans preuve. Statut OPEN par défaut.
 # ============================================================================
+
+  # ============================================================================
+  # Les 16 P0 de l'AUDIT DE RÉANALYSE (Audit_reanalyse_PLAN_PARITE_REPLIT_
+  # LIVRAISON_2_2026.docx, expert externe, 2026-07-20, fichier audité
+  # sha256 af88c6c6…). Ensemble EXACT verrouillé CI (EXPECTED_P0_IDS).
+  # ============================================================================
+  - p0Id: P0-A2-01
+    title: "Paquet de preuve absent — DOCUMENT_MANIFEST signé"
+    description: "Fournir un DOCUMENT_MANIFEST signé avec hash, repoCommit, schemaVersion et résultat de validation de chaque fichier"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-01"
+    priority: 1
+    owner: platform
+    status: PROVEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/DOCUMENT_MANIFEST.yaml
+    proof: "DOCUMENT_MANIFEST.yaml GÉNÉRÉ (hash+schemaVersion+repoCommit+reviewer+validation par fichier, drift-check CI). Reviewer humain encore UNKNOWN."
+    dependances: []
+    conditionDeCloture: "Revue humaine du manifeste"
+    nextAction: "Revue humaine du manifeste"
+    targetDate: "2026-07-20"
+  - p0Id: P0-A2-02
+    title: "Univers des surfaces incomplet (10 vs 159)"
+    description: "Créer EXPECTED_SURFACE_IDS et exiger l'égalité exacte avec SURFACE_REGISTRY"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-02"
+    priority: 2
+    owner: platform
+    status: PROVEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/SURFACE_REGISTRY.yaml
+    proof: "Univers importé : 159 surfaces P001–P159 + 56 services S01–S56 (source Plan_IDE docx sha256 0b232212…) en ensemble EXACT verrouillé CI (EXPECTED_SURFACE_UNIVERSE_IDS). Évaluation par surface = PENDING (honnête) : parityBaselineReady ÉCHOUE tant que availability=UNKNOWN."
+    dependances: []
+    conditionDeCloture: "Toutes les entrées évaluées SUPPORTED/UNSUPPORTED/NA justifié"
+    nextAction: "Toutes les entrées évaluées SUPPORTED/UNSUPPORTED/NA justifié"
+    targetDate: "2026-09-30"
+  - p0Id: P0-A2-03
+    title: "Modèle Project → Artifacts absent"
+    description: "Ajouter un §3.0 normatif"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-03"
+    priority: 3
+    owner: platform
+    status: PROVEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/PLAN_PARITE_REPLIT.md
+    proof: "§3.0 normatif ajouté : Project/Artifact/Component/ProjectRevision/ArtifactRevision/ArtifactType/SharedBackendBinding/ProjectRelease, 7 max / 1 mobile = entitlements configurables, backend+data partagés, publication groupée (publicationMode: GROUPED)."
+    dependances: []
+    conditionDeCloture: "Revue humaine + contrat de domaine schematisé"
+    nextAction: "Revue humaine + contrat de domaine schematisé"
+    targetDate: "2026-07-20"
+  - p0Id: P0-A2-04
+    title: "Types de déploiement non contractualisés"
+    description: "Ajouter un contrat produit des 4 types"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-04"
+    priority: 4
+    owner: platform
+    status: PROVEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/DEPLOYMENT_TYPES_CONTRACT.md
+    proof: "DEPLOYMENT_TYPES_CONTRACT.md créé : Autoscale/Static/Reserved VM/Scheduled — lifecycle, config, port, secrets, coûts, observabilité, changement de type sans recréer, preuve exigée par type."
+    dependances: []
+    conditionDeCloture: "Chaque type prouvé live (E2E) — capacité, pas contrat"
+    nextAction: "Chaque type prouvé live (E2E) — capacité, pas contrat"
+    targetDate: "2026-09-30"
+  - p0Id: P0-A2-05
+    title: "registryComplete vrai sur registre incomplet"
+    description: "Le gate doit couvrir l'ensemble exact P0+P1+surfaces+claims+décisions+unknowns+work items"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-05"
+    priority: 5
+    owner: platform
+    status: PROVEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/APPROVAL_STATUS.json
+    proof: "Niveaux refondus : sourceBaselineReady (claims ancrés, unanchoredClaims=0) et registryUniverseReady (P0+P1+surfaces+claims+décisions+unknowns+work items en ensembles EXACTS) — les deux ÉCHOUENT aujourd'hui, plus aucun vert sur univers incomplet."
+    dependances: []
+    conditionDeCloture: "sourceBaselineReady et registryUniverseReady PASS"
+    nextAction: "sourceBaselineReady et registryUniverseReady PASS"
+    targetDate: "2026-08-15"
+  - p0Id: P0-A2-06
+    title: "verticalReady = faux positif UI"
+    description: "Scinder verticalBackendReady et verticalUserJourneyReady"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-06"
+    priority: 6
+    owner: platform
+    status: PROVEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/APPROVAL_STATUS.json
+    proof: "Scindé : verticalBackendReady (7/7 backend) + verticalUserJourneyReady (ÉCHOUE tant que uiGaps non vide — publish, rollback aujourd'hui)."
+    dependances: []
+    conditionDeCloture: "verticalUserJourneyReady PASS depuis un vrai client UI"
+    nextAction: "verticalUserJourneyReady PASS depuis un vrai client UI"
+    targetDate: "2026-08-31"
+  - p0Id: P0-A2-07
+    title: "architectureContracted = présence seulement"
+    description: "Exiger schémas, requiredSections, reviewer, cross-references, tests négatifs"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-07"
+    priority: 7
+    owner: platform
+    status: PROVEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/APPROVAL_STATUS.json
+    proof: "Renommé contractsPresent + contractsValidated (P1-A2-12). contractsValidated exige sections requises + reviewer + refs — il ÉCHOUE aujourd'hui (reviewers absents), honnêtement."
+    dependances: []
+    conditionDeCloture: "contractsValidated PASS avec reviewers réels"
+    nextAction: "contractsValidated PASS avec reviewers réels"
+    targetDate: "2026-09-30"
+  - p0Id: P0-A2-08
+    title: "Erreur Auth (migration + MFA/orgs)"
+    description: "Séparer les 4 statuts Auth"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-08"
+    priority: 8
+    owner: platform
+    status: PROVEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/baseline/sources/2026-07-20-replit-clerk-auth.md
+    proof: "§3.9 REMPLACÉ, ancré RPL-25/RPL-26 (snapshots hashés) : deux produits confirmés ; migration custom-auth→Clerk documentée ; guide Replit Auth→Clerk « coming soon » = INCONNU ; MFA/SMS/orgs « What's not supported » ⇒ extensions E-CODE, PAS parité courante."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue humaine"
+    targetDate: "2026-07-20"
+  - p0Id: P0-A2-09
+    title: "Erreur Workload Identity"
+    description: "Définir trois chemins d'identité"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-09"
+    priority: 9
+    owner: platform
+    status: PROVEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/baseline/sources/2026-07-20-gke-workload-identity.html
+    proof: "§4.4 REMPLACÉ, ancré GCP-13 (citation exacte « In GKE, Google Cloud manages the workload identity pool and provider for you and doesn't require an external identity provider ») : 3 chemins — GKE→WIF for GKE (recommandé, aucun IdP externe) ; hors GCP→IAM WIF externe ; Cloud Run→service identity + impersonation courte. Zéro clé persistante partout."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue humaine"
+    targetDate: "2026-07-20"
+  - p0Id: P0-A2-10
+    title: "Décision Gallery incohérente"
+    description: "Reclasser CAPTURE_INCOMPLETE/OPEN"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-10"
+    priority: 10
+    owner: platform
+    status: PROVEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/DECISION_REGISTRY.yaml
+    proof: "DEC-OWNER-GALLERY-OPTION-B repassée OPEN + captureState: CAPTURE_INCOMPLETE tant que le contenu exact n'est pas inscrit (UNK-GALLERY-OPTION-B-CONTENT) ; « aucune publication self-service OBSERVÉE » partout."
+    dependances: []
+    conditionDeCloture: "Contenu exact inscrit puis décision refermée"
+    nextAction: "Contenu exact inscrit puis décision refermée"
+    targetDate: "2026-07-31"
+  - p0Id: P0-A2-11
+    title: "Compteurs contradictoires"
+    description: "Générer tous les compteurs depuis un registre unique"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-11"
+    priority: 11
+    owner: platform
+    status: PROVEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/APPROVAL_STATUS.json
+    proof: "Source unique = registres : boltDebt=29 (BOLT_DEBT_REGISTRY), prodReadiness=50 (PRODUCTION_READINESS_REGISTRY), sourceFindingCount=336, canonicalWorkItemCount=99 (calculé). Les « 26 » et « 48 » manuels du §13 sont supprimés du plan — tout compteur affiché vient du JSON généré."
+    dependances: []
+    conditionDeCloture: "Aucun compteur saisi à la main dans le plan"
+    nextAction: "Aucun compteur saisi à la main dans le plan"
+    targetDate: "2026-07-20"
+  - p0Id: P0-A2-12
+    title: "336 constats ≠ 336 tâches uniques"
+    description: "Ajouter sourceFindingId→canonicalWorkItemId, duplicateOf, supersedes, sourceFile, sourceLine, sourceHash"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-12"
+    priority: 12
+    owner: platform
+    status: OPEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/WORK_ITEM_REGISTRY.yaml
+    proof: "FAIT : LEGACY_FINDING_REGISTRY (336, provenance plan@af88c6c6 + originRef) + WORK_ITEM_REGISTRY (99 canoniques : regroupement par suivi + 6 paires de l'audit, duplicateOf posés). RESTE : déduplication SÉMANTIQUE complète au-delà des regroupements mécaniques + provenance fichier/ligne des 29 documents d'ORIGINE (non capturée par l'audit de couverture — limite déclarée)."
+    dependances: []
+    conditionDeCloture: "Passe de déduplication sémantique revue + provenance origine complétée ou ACCEPTED_RISK"
+    nextAction: "Passe de déduplication sémantique revue + provenance origine complétée ou ACCEPTED_RISK"
+    targetDate: "2026-08-15"
+  - p0Id: P0-A2-13
+    title: "Provenance du statut insuffisante"
+    description: "Ajouter planCommit, measuredCodeCommit, registryCommit, statusGeneratorCommit, mergedToMainAt"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-13"
+    priority: 13
+    owner: platform
+    status: PROVEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/PLAN_PARITE_REPLIT.md
+    proof: "§0 : planCommit/measuredCodeCommit/registryCommit/statusCommit (backfill au commit suivant, même mécanique que P0-V3-15), generatedAt RÉEL (2026-07-20T04:20:00Z), mergedToMainAt: null (honnête — PR ouverte). Attestation CI = workflow parity-registries sur la branche."
+    dependances: []
+    conditionDeCloture: "Recalcul du statut sur le commit mergé dans origin/main"
+    nextAction: "Recalcul du statut sur le commit mergé dans origin/main"
+    targetDate: "2026-08-01"
+  - p0Id: P0-A2-14
+    title: "Cloud Run multi-tenant incomplet"
+    description: "Ajouter CapacityPolicy, ReputationTier, BillingAccountBinding, quotas, seuils, anti-abus"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-14"
+    priority: 14
+    owner: platform
+    status: PROVEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/baseline/sources/2026-07-20-cloudrun-multitenant.html
+    proof: "Ancré GCP-14 (doc du 17/07, snapshot hashé) + GCP-15 (quotas 1000 services/jobs/pools par projet+région) : §4.2–4.3 ajoutent pool de projets précréés, ReputationTier, BillingAccountBinding (billing account par tier), AbuseEventPolicy, quotas services/jobs/SA et seuils de sharding dans CapacityPolicy, folders first-party vs untrusted, LB global + Service Extensions."
+    dependances: []
+    conditionDeCloture: "Implémentation CapacityPolicy étendue (capacité, pas contrat)"
+    nextAction: "Implémentation CapacityPolicy étendue (capacité, pas contrat)"
+    targetDate: "2026-08-31"
+  - p0Id: P0-A2-15
+    title: "Claims non ancrés mais utilisés"
+    description: "Ancrer toute claim utilisée dans un gate, sinon UNVERIFIED + gate FAIL"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-15"
+    priority: 15
+    owner: platform
+    status: OPEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/PLAN_PARITE_REPLIT.md
+    proof: "FAIT : compteur unanchoredClaims calculé (étiquettes citées par le plan absentes du baseline) + statut UNVERIFIED documenté §2.3 + sourceBaselineReady ÉCHOUE tant que >0. RESTE : ancrer réellement RPL-01…16 / GCP-01…10 / NIX-01 (URL+snapshot+hash chacun)."
+    dependances: []
+    conditionDeCloture: "unanchoredClaims == 0"
+    nextAction: "unanchoredClaims == 0"
+    targetDate: "2026-08-15"
+  - p0Id: P0-A2-16
+    title: "Sémantique approved.level trompeuse"
+    description: "Remplacer par highestPassedLevel + overallStatus=NOT_APPROVED"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-16"
+    priority: 16
+    owner: platform
+    status: PROVEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/APPROVAL_STATUS.json
+    proof: "REMPLACÉ : overallStatus: NOT_APPROVED + highestPassedLevel (échelle contiguë). « approved » réservé à une approbation de périmètre explicite avec approbateur stocké (APPROVALS.yaml, aujourd'hui vide). Interdits par le validateur : approvalReady ET approved.level."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue humaine"
+    targetDate: "2026-07-20"
+
 p1s:
   - p1Id: P1-COV-01
     title: "File History : historique par fichier indépendant de Git (bouton History, slider, Compare Latest, restore append-only, playback)"
     source: "COVERAGE_GAP_AUDIT famille A ; PLAN_REMAINING_UNIFIED TASK3-FH-1..4 ; DESIGN_PROGRAM_MASTER RPL-FH-001.1–.6 ; doc Replit features/version-control/file-history"
     priority: 1
-    owner: claude
+    owner: platform
     status: OPEN
     surfaceId: SRF-IDE-FILE-HISTORY
     nextAction: "Exécuter le lot TASK3-FH (déjà dispatché) et tracer les preuves dans E2E_PROOFS"
@@ -307,7 +554,7 @@ p1s:
     title: "Agent Skills : .agents/skills/<name>/SKILL.md, progressive disclosure, audit anti-prompt-injection du catalogue externe"
     source: "COVERAGE_GAP_AUDIT famille A ; PLAN_REMAINING_UNIFIED TASK3-SK-1..3+QA-1 ; DESIGN_PROGRAM_MASTER RPL-SK-001.1–.4 ; standard agentskills.io/specification"
     priority: 1
-    owner: claude
+    owner: platform
     status: OPEN
     surfaceId: SRF-IDE-AGENT-SKILLS
     nextAction: "Exécuter le lot TASK3-SK (déjà dispatché) avec le pipeline de quarantaine"
@@ -317,7 +564,7 @@ p1s:
     title: "Project Editor : layout Window→Panes→Tabs, Tools dock, Resources panel, Spotlight, terminologie"
     source: "COVERAGE_GAP_AUDIT famille A ; PLAN_REMAINING_UNIFIED IDE-LAYOUT-1..10 ; DESIGN_PROGRAM_MASTER RPL-IDE-001.1–.10 ; doc Replit editor-and-tools.md"
     priority: 1
-    owner: claude
+    owner: platform
     status: OPEN
     surfaceId: SRF-IDE-PANES-LAYOUT
     nextAction: "Exécuter le lot IDE-LAYOUT (déjà dispatché ; IDE Bolt préservé, captures avant/après à Avi avant push)"
@@ -327,7 +574,7 @@ p1s:
     title: "Types de déploiement Replit : tiers Reserved VM ($20/$40/$80/$160), changement de type en place, et traçabilité de Scheduled (preuve SCHEDULED-01 à inscrire dans E2E_PROOFS)"
     source: "COVERAGE_GAP_AUDIT famille A ; docs/REPLIT_PARITY_SPEC.md:618-624 ; PLAN_REMAINING_UNIFIED:76 (note « Reste hors Phase A »)"
     priority: 2
-    owner: claude
+    owner: platform
     status: OPEN
     surfaceId: SRF-DEPLOY-RESERVED-VM
     nextAction: "1) tracer la preuve scheduled existante ; 2) spécifier puis implémenter Reserved VM + changement de type"
@@ -337,7 +584,7 @@ p1s:
     title: "Entitlements par plan (enforcement) : Starter 1 app publiée / 2 GB / liens 30 j, retrait badge « Made with », publish regions, Pro 50 viewers, parallel agents 1/2/10, allowances egress, per-user caps + single-tenant/static-IP/VPC/data-warehouse/Security-Center Enterprise"
     source: "COVERAGE_GAP_AUDIT famille A ; docs/REPLIT_PARITY_SPEC.md:555,562,563,569,575,638,658,662 ; docs/REPLIT_PARITY_MATRIX.md:112,123"
     priority: 2
-    owner: claude
+    owner: platform
     status: OPEN
     nextAction: "Inventorier l'existant (cap 20 apps fait) puis implémenter chaque enforcement avec test négatif"
     conditionDeCloture: "Chaque limite listée a un enforcement serveur prouvé par test négatif (ou une décision hors-scope tracée)"
@@ -346,7 +593,7 @@ p1s:
     title: "Starters → démos publiées/remixables (TPL-02.5) + branche import→IDE→publish de TPL-02.PROOF (D5 ne couvre que remix + Python neuf)"
     source: "COVERAGE_GAP_AUDIT famille A ; REPLIT_PARITY.md TPL-02.5/TPL-02.PROOF ; DESIGN_PROGRAM_MASTER TPL-02.5"
     priority: 2
-    owner: claude
+    owner: platform
     status: OPEN
     surfaceId: SRF-GALLERY-STARTER-DEMOS
     nextAction: "Publier les 6 démos via le pipeline Gallery réel ; ajouter la preuve import→publish au harness D5"
@@ -356,7 +603,7 @@ p1s:
     title: "Parité pixel avec périmètre : appliquer les mesures live (tokens, panneaux Deploy+Git), re-vérifier REPLIT #1-4 (chrome IDE), décision light-theme (Avi)"
     source: "COVERAGE_GAP_AUDIT famille A ; .vibecore-audit/replit-measurements.md ; outputs/ETAT_FINAL_100.md:23-26 ; outputs/REPLIT_PARITY.md:48-67"
     priority: 2
-    owner: claude
+    owner: platform
     status: OPEN
     nextAction: "Décision thème (ACTIONS_AVI #8) puis application des mesures + captures comparatives"
     conditionDeCloture: "Mesures appliquées avec captures avant/après ; REPLIT #1-4 re-vérifiés contre Replit"
@@ -365,8 +612,300 @@ p1s:
     title: "Réconciliation billing : ancien système crédits (SHADOW, codé+certifié) vs nouveau ledger (plan §3.7) — migration, remplacement ou go-live, à arbitrer puis exécuter"
     source: "COVERAGE_GAP_AUDIT famille B ; docs/REPLIT_PARITY_MATRIX.md:61-124 ; docs/REPLIT_BILLING_PARITY.md:203-228 ; docs/REPLIT_PARITY_DELIVERY.md:61,381-389"
     priority: 1
-    owner: claude
+    owner: platform
     status: OPEN
     nextAction: "Faire trancher DEC-BILLING-LEGACY-VS-LEDGER (Avi) puis exécuter UNK-BILLING-LEGACY-GOLIVE"
     conditionDeCloture: "Décision DECIDED + chemin choisi exécuté avec preuve (facturation réelle OU migration prouvée)"
     targetDate: "2026-08-15"
+
+  # --- Les 18 P1 de l'audit externe v3 (16/07) — enfin tracés individuellement (P0-A2-05).
+  # La plupart APPLIED au niveau documentaire (un contrat n'est pas une capacité).
+  - p1Id: P1-V3-01
+    title: "Sélecteur de modèle : affirmation universelle"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-01"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§3.8 : « non observé dans la doc/UI courante », jamais « aucun plan, à aucun moment »"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-02
+    title: "Libellé Gallery (Use Template)"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-02"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§3.1 : sémantique clone/remix modélisée, libellé UI non pinné"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-03
+    title: "Collecteur et archivage (WARC, authenticité, robots/ToS, SLA)"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-03"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§2.2 + OBSERVATION_REGISTRY (triageSla) ; tests de panne du collecteur = P1-A2-13 (OPEN)"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-04
+    title: "Community Profiles : privacy et entitlement"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-04"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§3.2 : visibilité/opt-in/retrait/modération/entitlement spécifiés ; capture détaillée = UNK"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-05
+    title: "Project Factory : contrôles cloud"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-05"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§4.3 : Org Policy, KMS/CMEK, Asset Inventory, log sinks, billing export, VPC-SC/PSC"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-06
+    title: "Edge : lifecycle et bypass interne"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-06"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§4.6 : run.app désactivé testé activement, fail-closed, domain mappings"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-07
+    title: "Multi-région / failover"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-07"
+    priority: 2
+    owner: platform
+    status: SUPERSEDED
+    nextAction: "Fait périmé : Cloud Run service health automatise failover/failback (GA 29/06/2026) — remplacé par GCP-11 ; l'exigence stratégie de données/sessions demeure (§4.6)"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-08
+    title: "Rétention des releases"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-08"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§4.7 : coût, fenêtre, legal hold, reference graph, pin, GC vérifiable"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-09
+    title: "IAM runtime"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-09"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§4.4 : frontières de privilège, rotation, revocation SLO, audit impersonations (+ correction WIF GCP-13)"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-10
+    title: "App Storage"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-10"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§3.6 : versioning, holds, rétention, CMEK, résidence, quotas, egress, antivirus"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-11
+    title: "Auth"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-11"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§3.9 corrigé (P0-A2-08) : MFA/passkeys/orgs = extension E-CODE, pas parité courante (RPL-25)"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-12
+    title: "Secret proxy"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-12"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§3.10 : contrat séparé lease/scope/revocation/redaction/audit/circuit breaker"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-13
+    title: "Trace Agent"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-13"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§3.8 : rétention, accès, chiffrement, résidence, sampling, interdiction contenu prompt/secret"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-14
+    title: "Database provider non figé"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-14"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§3.5 : provider abstraction, fournisseur production non figé"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-15
+    title: "Licence à l'import"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-15"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§3.3 : provenance + attestation owner + obligations de licence"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-16
+    title: "Schéma des preuves"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-16"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§6 : OS/browser/client version, traceId, horloge, stockage immuable, rétention"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-17
+    title: "Accessibilité et i18n"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-17"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§6 : WCAG 2.2 AA, clavier, screen reader, RTL, timezone IANA, locales"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  - p1Id: P1-V3-18
+    title: "Registre des inconnues"
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (2026-07-16), P1-18"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "UNKNOWN_REGISTRY v2 : owner, priority, nextAction, targetDate ISO obligatoire, expiration"
+    conditionDeCloture: "Revue humaine de l'application documentaire ; capacité tracée par les UNKNOWNs de domaine"
+    targetDate: "2026-08-31"
+  # --- Les 14 P1 de l'audit de réanalyse (20/07).
+  - p1Id: P1-A2-01
+    title: "Gallery : « aucune publication self-service OBSERVÉE »"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P1-01"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§3.1 + DEC-GALLERY-NO-SELF-PUBLISH reformulée — une absence d'observation ne prouve pas l'absence"
+    conditionDeCloture: "Revue humaine ; les OPEN exigent leur passe dédiée"
+    targetDate: "2026-08-31"
+  - p1Id: P1-A2-02
+    title: "Community : « première observation enregistrée », pas « lancé le »"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P1-02"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§2.2/§3.2 : eventDate estimé remplacé par première observation (OBS-COMMUNITY-PROFILES)"
+    conditionDeCloture: "Revue humaine ; les OPEN exigent leur passe dédiée"
+    targetDate: "2026-08-31"
+  - p1Id: P1-A2-03
+    title: "AR : suppression de l'image cible supprime ses attachments"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P1-03"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§4.5 + claim GCP-12 étendu (citation « delete attachments indirectly by deleting the artifact it refers to », snapshot déjà hashé) — le graphe de rétention protège image ET métadonnées"
+    conditionDeCloture: "Revue humaine ; les OPEN exigent leur passe dédiée"
+    targetDate: "2026-08-31"
+  - p1Id: P1-A2-04
+    title: "Multi-région : GA ≠ stratégie données/sessions ; min instances + trafic synthétique + coût"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P1-04"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§4.6 complété"
+    conditionDeCloture: "Revue humaine ; les OPEN exigent leur passe dédiée"
+    targetDate: "2026-08-31"
+  - p1Id: P1-A2-05
+    title: "evidenceId obligatoire par PREUVE LIVE"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P1-05"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§5 : chaque invariant PREUVE LIVE porte ses proofIds E2E explicites, pas un chemin seul"
+    conditionDeCloture: "Revue humaine ; les OPEN exigent leur passe dédiée"
+    targetDate: "2026-08-31"
+  - p1Id: P1-A2-06
+    title: "Claims non ancrés = UNVERIFIED, exclus des gates"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P1-06"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§2.3 + unanchoredClaims calculé + sourceBaselineReady FAIL (P0-A2-15 reste OPEN pour l'ancrage réel)"
+    conditionDeCloture: "Revue humaine ; les OPEN exigent leur passe dédiée"
+    targetDate: "2026-08-31"
+  - p1Id: P1-A2-07
+    title: "Dates décoratives → dépendances + critère de sortie"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P1-07"
+    priority: 2
+    owner: platform
+    status: OPEN
+    nextAction: "conditionDeCloture existe partout ; remplacement des targetDate par dépendances/capacité = passe dédiée"
+    conditionDeCloture: "Revue humaine ; les OPEN exigent leur passe dédiée"
+    targetDate: "2026-08-31"
+  - p1Id: P1-A2-08
+    title: "Owners = rôles, personnes dans un mapping versionné"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P1-08"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "OWNER_ROLES.yaml + owner: platform/owner/security/billing dans les registres"
+    conditionDeCloture: "Revue humaine ; les OPEN exigent leur passe dédiée"
+    targetDate: "2026-08-31"
+  - p1Id: P1-A2-09
+    title: "Hiérarchie documentaire explicite"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P1-09"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "§1 : plan normatif / registres source d'état / vues générées / documents historiques — aucun état dupliqué"
+    conditionDeCloture: "Revue humaine ; les OPEN exigent leur passe dédiée"
+    targetDate: "2026-08-31"
+  - p1Id: P1-A2-10
+    title: "336 constats déplacés hors du plan"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P1-10"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "LEGACY_FINDING_REGISTRY.yaml ; le plan n'affiche qu'un résumé (§14)"
+    conditionDeCloture: "Revue humaine ; les OPEN exigent leur passe dédiée"
+    targetDate: "2026-08-31"
+  - p1Id: P1-A2-11
+    title: "Lifecycle items complet (ACTIVE…EXPIRED + lineage)"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P1-11"
+    priority: 2
+    owner: platform
+    status: OPEN
+    nextAction: "Statuts actuels conservés ; extension ACTIVE/DONE/ACCEPTED_RISK/SUPERSEDED/DUPLICATE/CANCELLED/EXPIRED + lineage = passe dédiée"
+    conditionDeCloture: "Revue humaine ; les OPEN exigent leur passe dédiée"
+    targetDate: "2026-08-31"
+  - p1Id: P1-A2-12
+    title: "contractsPresent + contractsValidated"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P1-12"
+    priority: 2
+    owner: platform
+    status: APPLIED
+    nextAction: "Niveaux renommés ; contractsValidated exige contenu+reviewer et ÉCHOUE honnêtement"
+    conditionDeCloture: "Revue humaine ; les OPEN exigent leur passe dédiée"
+    targetDate: "2026-08-31"
+  - p1Id: P1-A2-13
+    title: "Tests de panne du collecteur"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P1-13"
+    priority: 2
+    owner: platform
+    status: OPEN
+    nextAction: "bot blocking, rendu JS incomplet, changement d'auth, route supprimée, WARC invalide — tests à écrire"
+    conditionDeCloture: "Revue humaine ; les OPEN exigent leur passe dédiée"
+    targetDate: "2026-08-31"
+  - p1Id: P1-A2-14
+    title: "Contrats des domaines cœur manquants"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P1-14"
+    priority: 2
+    owner: platform
+    status: OPEN
+    nextAction: "collaboration, Git/File History/Checkpoints, Agent tasks/skills, Canvas, Security Center, Enterprise, clients natifs — un backlog ne remplace pas leur contrat"
+    conditionDeCloture: "Revue humaine ; les OPEN exigent leur passe dédiée"
+    targetDate: "2026-08-31"

@@ -1,0 +1,705 @@
+# WORK_ITEM_REGISTRY — work items CANONIQUES dédupliqués depuis les 336
+# constats sources (LEGACY_FINDING_REGISTRY.yaml). canonicalWorkItemCount est
+# CALCULÉ (jamais confondu avec sourceFindingCount=336). Déduplication :
+# regroupement par pointeur de suivi normalisé + les 6 paires identifiées par
+# l'audit de réanalyse du 20/07 (GLC-L165/RB-L104, GLC-L169/RB-L106,
+# GLC-L164/RB-L099, GLC-L122/RB-L052, GLC-L053/CM-26, CM-7/OUT-EF-06).
+# La déduplication SÉMANTIQUE complète est un travail continu (P0-A2-12) —
+# ce registre en est l'état courant, pas une promesse d'exhaustivité.
+schemaVersion: 1
+repoCommit: 19e48513
+canonicalWorkItemCount: 99
+workItems:
+  - workItemId: WI-0001
+    title: "Remix : le clic « Remix » connecté jusqu'à l'IDE dans le navigateur reste à prouver à l'écran"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-01"
+    trackedBy: "REPLIT_PARITY.md TPL-02.2 + DEC-OWNER-D5-E2E-ACCOUNT"
+    sourceFindingIds: [ACT-01]
+  - workItemId: WI-0002
+    title: "Hub Import : les 12 sources d'import documentées, avec validation et aperçu avant création"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    trackedBy: "REPLIT_PARITY.md TPL-02.3 + P0-V3-06"
+    sourceFindingIds: [ACT-02]
+  - workItemId: WI-0003
+    title: "Créer un projet vide, sans Agent ni squelette (voie power-user)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    trackedBy: "REPLIT_PARITY.md TPL-02.4"
+    sourceFindingIds: [ACT-03]
+  - workItemId: WI-0004
+    title: "Requalifier les 6 anciens starters en applications de démo publiées et remixables"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    trackedBy: "P1-COV-06"
+    sourceFindingIds: [ACT-04]
+  - workItemId: WI-0005
+    title: "Prouver séparément que prompt, import et remix mènent chacun à un projet publiable"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    trackedBy: "REPLIT_PARITY.md TPL-02.PROOF + P1-COV-06"
+    sourceFindingIds: [ACT-05]
+  - workItemId: WI-0006
+    title: "Historique de fichier automatique, indépendant de Git, avec rétention documentée"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-15"
+    trackedBy: "P1-COV-01"
+    sourceFindingIds: [ACT-06, ACT-07, ACT-08, ACT-09]
+  - workItemId: WI-0007
+    title: "Compatibilité des skills d'agent au format ouvert (.agents/skills/…/SKILL.md)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-15"
+    trackedBy: "P1-COV-02"
+    sourceFindingIds: [ACT-10, ACT-11, ACT-12]
+  - workItemId: WI-0008
+    title: "Tests et validation live du lot File History + Skills sur les 3 formats d'écran"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-15"
+    trackedBy: "P1-COV-01 + P1-COV-02"
+    sourceFindingIds: [ACT-13]
+  - workItemId: WI-0009
+    title: "Éditeur : inventaire de l'existant + captures avant, aux 3 formats"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    trackedBy: "P1-COV-03"
+    sourceFindingIds: [ACT-14, ACT-15, ACT-16, ACT-17, ACT-18, ACT-19, ACT-20, ACT-21, ACT-22, ACT-23]
+  - workItemId: WI-0010
+    title: "Agent : raccourci ⌘⇧I et texte garde-fou du mode Lite jamais capturés à l'écran"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    trackedBy: "PARITY_STATUS.md (AGM-4)"
+    sourceFindingIds: [ACT-24]
+  - workItemId: WI-0011
+    title: "Agent : popover Advanced, escalade sur tâche dure et mention « +0 credit » jamais capturés"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    trackedBy: "PARITY_STATUS.md (AGM-5)"
+    sourceFindingIds: [ACT-25]
+  - workItemId: WI-0012
+    title: "Agent : publication réelle d'une v2 de la table de routage (historique avant/après) jamais exécutée"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    trackedBy: "PARITY_STATUS.md (AGM-9)"
+    sourceFindingIds: [ACT-26]
+  - workItemId: WI-0013
+    title: "Agent : appel réel du classifieur jamais déclenché ni loggé (nécessite High effort)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    trackedBy: "PARITY_STATUS.md (AGM-10)"
+    sourceFindingIds: [ACT-27]
+  - workItemId: WI-0014
+    title: "Agent : nudge « passe en Power » (max 1×/projet) jamais testé en vrai"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    trackedBy: "PARITY_STATUS.md (AGM-11)"
+    sourceFindingIds: [ACT-28]
+  - workItemId: WI-0015
+    title: "Pipeline de publication : barrières de sécurité et scan de secrets (B6)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    trackedBy: "PARITY_STATUS.md (Phase B)"
+    sourceFindingIds: [ACT-29, ACT-30]
+  - workItemId: WI-0016
+    title: "Offres de déploiement Reserved VM (4 tarifs) + changement de type sans recréer"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    trackedBy: "P1-COV-04"
+    sourceFindingIds: [ACT-31]
+  - workItemId: WI-0017
+    title: "Recréer le pool de serveurs en disques standard pour débloquer l'autoscale (GO Avi)"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-08-15"
+    trackedBy: "PR-MISC-05 + ACTIONS_AVI #2"
+    sourceFindingIds: [ACT-32]
+  - workItemId: WI-0018
+    title: "Bug : pousser le correctif de la page /solutions/internal-ai (testé, jamais commité)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-15"
+    trackedBy: "BUG_INVENTORY_LIVE.md BUG-SOL-001"
+    sourceFindingIds: [ACT-33]
+  - workItemId: WI-0019
+    title: "Bug : App Builder montre des démos salon à côté de promesses de génération — corriger le discours et prouver un vrai run"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    trackedBy: "BUG_INVENTORY_LIVE.md BUG-SOL-002"
+    sourceFindingIds: [ACT-34]
+  - workItemId: WI-0020
+    title: "Bug : la page templates est une liste figée sans recherche ni catégories"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    trackedBy: "BUG_INVENTORY_LIVE.md BUG-TPL-001"
+    sourceFindingIds: [ACT-35]
+  - workItemId: WI-0021
+    title: "Bug : la refonte Gallery modélise encore des starters par framework au lieu d'apps communautaires"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    trackedBy: "BUG_INVENTORY_LIVE.md BUG-TPL-002"
+    sourceFindingIds: [ACT-36]
+  - workItemId: WI-0022
+    title: "Bug : vérifier en vrai le build séquentiel Cloud Build au prochain déploiement (BUG-CI-002)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-15"
+    trackedBy: "BUG_INVENTORY_LIVE.md BUG-CI-002"
+    sourceFindingIds: [ACT-37]
+  - workItemId: WI-0023
+    title: "Page de vente App Builder : validation du gabarit par Avi (violet résiduel + limites du run signalées)"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-08-15"
+    trackedBy: "DESIGN_PROGRAM_MASTER SOL-01 + ACTIONS_AVI #9"
+    sourceFindingIds: [ACT-38]
+  - workItemId: WI-0024
+    title: "Page de vente Website Builder (bloquée par la validation du gabarit)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    trackedBy: "DESIGN_PROGRAM_MASTER SOL-02"
+    sourceFindingIds: [ACT-39]
+  - workItemId: WI-0025
+    title: "Page de vente Game Builder"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    trackedBy: "DESIGN_PROGRAM_MASTER SOL-03"
+    sourceFindingIds: [ACT-40]
+  - workItemId: WI-0026
+    title: "Page de vente Dashboard Builder"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    trackedBy: "DESIGN_PROGRAM_MASTER SOL-04"
+    sourceFindingIds: [ACT-41]
+  - workItemId: WI-0027
+    title: "Page de vente Chatbot / AI Agent Builder"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    trackedBy: "DESIGN_PROGRAM_MASTER SOL-05"
+    sourceFindingIds: [ACT-42]
+  - workItemId: WI-0028
+    title: "Page de vente Internal AI Builder"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    trackedBy: "DESIGN_PROGRAM_MASTER SOL-06"
+    sourceFindingIds: [ACT-43]
+  - workItemId: WI-0029
+    title: "Page de vente Enterprise"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    trackedBy: "DESIGN_PROGRAM_MASTER SOL-07"
+    sourceFindingIds: [ACT-44]
+  - workItemId: WI-0030
+    title: "Page de vente Startups"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    trackedBy: "DESIGN_PROGRAM_MASTER SOL-08"
+    sourceFindingIds: [ACT-45]
+  - workItemId: WI-0031
+    title: "Page de vente Freelancers"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    trackedBy: "DESIGN_PROGRAM_MASTER SOL-09"
+    sourceFindingIds: [ACT-46]
+  - workItemId: WI-0032
+    title: "Sauvetage de la spec design Solutions hors du stash volatil (PR #8 en attente de merge)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-07-31"
+    trackedBy: "PR #8"
+    sourceFindingIds: [ACT-47]
+  - workItemId: WI-0033
+    title: "Le bouton « sync » des intégrations IDE ne fait rien ; le catalogue est figé dans le code"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    trackedBy: "BOLT_DEBT_REGISTRY"
+    sourceFindingIds: [BD-01, BD-02, BD-03, BD-04, BD-05, BD-06, BD-07, BD-08, BD-09, BD-10, BD-11, BD-12, BD-13, BD-14, BD-15, BD-16, BD-17, BD-18, BD-19, BD-20, BD-21, BD-22, BD-23, BD-24, BD-25, BD-26, BD-27]
+  - workItemId: WI-0034
+    title: "Terminal : WebSocket à travers le vrai ingress non prouvé"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    trackedBy: "PR-RUN-01"
+    sourceFindingIds: [CM-10, CM-11, CM-2, CM-4, CM-8, CM-9, GLC-L037, GLC-L039, GLC-L040, GLC-L068, GLC-L069, GLC-L070, GLC-L071, GLC-L072, GLC-L073, GLC-L074, GLC-L075, GLC-L076, GLC-L077, GLC-L078, GLC-L079, RB-L009]
+  - workItemId: WI-0035
+    title: "Outils IA : limitation, repli, BYOK et registre de coûts non prouvés en réel"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-12-31"
+    trackedBy: "PR-SCALE-01"
+    sourceFindingIds: [CM-12, GLC-L147, GLC-L148, GLC-L149, GLC-L150, RB-L079, RB-L080, RB-L081, RB-L082, RB-L089, RB-L090, RB-L091, RB-L092]
+  - workItemId: WI-0036
+    title: "Facturation : parcours Stripe réel non exercé"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-15"
+    trackedBy: "PR-STRIPE-01"
+    sourceFindingIds: [CM-13, GLC-L100, GLC-L101, GLC-L102, GLC-L103, GLC-L104, RB-L037, RB-L069]
+  - workItemId: WI-0037
+    title: "Quotas : comportement sous charge réelle non prouvé"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    trackedBy: "PR-QUOTA-01"
+    sourceFindingIds: [CM-14, GLC-L105, GLC-L106, GLC-L107, GLC-L108, RB-L070]
+  - workItemId: WI-0038
+    title: "Admin : audit navigateur complet des routes et boutons dangereux manquant"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    trackedBy: "PR-SEC-04"
+    sourceFindingIds: [CM-15, GLC-L122, RB-L052]
+  - workItemId: WI-0039
+    title: "Application desktop : builds signés et mise à jour automatique non vérifiés"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-12-31"
+    trackedBy: "PR-DESK-01"
+    sourceFindingIds: [CM-16, GLC-L166, GLC-L167, GLC-L168, GLC-L169, RB-L105, RB-L106]
+  - workItemId: WI-0040
+    title: "Application iOS : build signé et TestFlight non vérifiés"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-12-31"
+    trackedBy: "PR-MOB-01"
+    sourceFindingIds: [CM-17, GLC-L157, RB-L097]
+  - workItemId: WI-0041
+    title: "Application Android : build signé et piste Play non vérifiés"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-12-31"
+    trackedBy: "PR-MOB-02"
+    sourceFindingIds: [CM-18, GLC-L158, RB-L098]
+  - workItemId: WI-0042
+    title: "Expérience tablette : QA sur vrais appareils manquante"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-12-31"
+    trackedBy: "PR-MOB-05"
+    sourceFindingIds: [CM-19, CM-20, GLC-L165, RB-L104]
+  - workItemId: WI-0043
+    title: "Collaboration : pas de CRDT/OT pour une édition multi-auteurs sûre"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-11-30"
+    trackedBy: "PR-PROD-03"
+    sourceFindingIds: [CM-21, GLC-L093]
+  - workItemId: WI-0044
+    title: "Déploiements : exécution sandbox et rollback des providers non exercés en réel"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-10-31"
+    trackedBy: "BD-22"
+    sourceFindingIds: [CM-22, GLC-L094, GLC-L095, RB-L072]
+  - workItemId: WI-0045
+    title: "Sécurité : durcissement CSP styles, pentest externe et canari live manquants"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-11-30"
+    trackedBy: "PR-SEC-01"
+    sourceFindingIds: [CM-23, GLC-L121]
+  - workItemId: WI-0046
+    title: "Isolation workspace : non prouvée dans le cluster réel"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    trackedBy: "PR-ISO-01"
+    sourceFindingIds: [CM-24, GLC-L052, GLC-L055, GLC-L056, RB-L015]
+  - workItemId: WI-0047
+    title: "Règles réseau : drill de trafic interdit non exécuté en réel"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    trackedBy: "PR-ISO-02"
+    sourceFindingIds: [CM-25, GLC-L042, GLC-L057, GLC-L058, GLC-L059]
+  - workItemId: WI-0048
+    title: "Règles d'admission : Kyverno non installé ni prouvé en staging"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    trackedBy: "PR-ISO-03"
+    sourceFindingIds: [CM-26, DH-2B, GLC-L053, GLC-L054]
+  - workItemId: WI-0049
+    title: "Détection d'abus : seuils et livraison SIEM non observés sous vrai trafic"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    trackedBy: "PR-SEC-05"
+    sourceFindingIds: [CM-27, GLC-L123, RB-L083]
+  - workItemId: WI-0050
+    title: "Observabilité : métriques, alertes et synthetics non déployés ni observés en réel"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    trackedBy: "PR-OPS-01"
+    sourceFindingIds: [CM-28, GLC-L127, GLC-L128, GLC-L129, GLC-L130, GLC-L131, OUT-M-02]
+  - workItemId: WI-0051
+    title: "Sauvegardes : aucun exercice de restauration réel, RTO/RPO non mesurés"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    trackedBy: "PR-DR-01"
+    sourceFindingIds: [CM-29, GLC-L132, GLC-L133, GLC-L134, RB-L042]
+  - workItemId: WI-0052
+    title: "CI/CD : pipeline complet et rollback non exercés avec les vrais environnements"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    trackedBy: "PR-DR-02"
+    sourceFindingIds: [CM-30, GLC-L135, GLC-L136, GLC-L137, GLC-L138, RB-L075]
+  - workItemId: WI-0053
+    title: "Infra GCP : Terraform non appliqué sur un vrai projet dans cette revue"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-11-30"
+    trackedBy: "PR-INFRA-01"
+    sourceFindingIds: [CM-31, GLC-L049, GLC-L050, GLC-L051, GLC-L060, GLC-L061, GLC-L062, GLC-L063, GLC-L064]
+  - workItemId: WI-0054
+    title: "Tests de charge : aucun rapport k6 exécuté contre staging"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    trackedBy: "PR-LOAD-01"
+    sourceFindingIds: [CM-32, GLC-L142, RB-L047]
+  - workItemId: WI-0055
+    title: "Pages légales : versions approuvées par un juriste manquantes"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-10-31"
+    trackedBy: "PR-LEGAL-01"
+    sourceFindingIds: [CM-34, GLC-L173, GLC-L174, GLC-L175, GLC-L176, GLC-L177, RB-L073]
+  - workItemId: WI-0056
+    title: "Authentification : preuve avec fournisseurs d'identité et email réels manquante"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    trackedBy: "PR-PROD-01"
+    sourceFindingIds: [CM-5, GLC-L083, GLC-L084, GLC-L085, GLC-L086, GLC-L087, GLC-L088, GLC-L089]
+  - workItemId: WI-0057
+    title: "SSO/SCIM entreprise : preuve avec un vrai fournisseur d'identité manquante"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-10-31"
+    trackedBy: "PR-CFG-01"
+    sourceFindingIds: [CM-7, OUT-EF-06, RB-L022]
+  - workItemId: WI-0058
+    title: "Migration React Router 7 pour purger l'alerte sécurité turbo-stream (chantier 6-8 semaines)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-12-31"
+    trackedBy: "PR-RR7-01"
+    sourceFindingIds: [DH-1]
+  - workItemId: WI-0059
+    title: "Réduire les permissions OAuth des nœuds GKE (recréation supervisée du pool)"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-11-30"
+    trackedBy: "PR-ISO-04"
+    sourceFindingIds: [DH-2A]
+  - workItemId: WI-0060
+    title: "La validation de configuration production passe avec les vrais secrets (SSO, SIEM, Stripe, monitoring)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    trackedBy: "PR-CFG-02"
+    sourceFindingIds: [GLC-L030]
+  - workItemId: WI-0061
+    title: "Ancienne gate « run id de validation staging fourni au déploiement prod » (preuve : CD auto sur main via .github/workflows/deploy-main.yml, cf. docs/DEPLOY_RUNBOOK.md)"
+    status: PERIME
+    owner: platform
+    targetDate: "2026-10-31"
+    trackedBy: "docs/DEPLOY_RUNBOOK.md (pipeline remplacé)"
+    sourceFindingIds: [GLC-L044, GLC-L045]
+  - workItemId: WI-0062
+    title: "Cycle de vie projet complet : créer, importer, exporter, snapshot, restaurer"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    trackedBy: "PR-PROD-02"
+    sourceFindingIds: [GLC-L090, GLC-L091, GLC-L092]
+  - workItemId: WI-0063
+    title: "Domaine personnalisé testé de bout en bout"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    trackedBy: "PR-PROD-04"
+    sourceFindingIds: [GLC-L096]
+  - workItemId: WI-0064
+    title: "Le tableau de bord facturation correspond à l'état backend et Stripe"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    trackedBy: "PR-STRIPE-02"
+    sourceFindingIds: [GLC-L109, RB-L071]
+  - workItemId: WI-0065
+    title: "Protection CSRF vérifiée sur toutes les mutations, navigateur et API"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    trackedBy: "PR-SEC-03"
+    sourceFindingIds: [GLC-L118]
+  - workItemId: WI-0066
+    title: "Secret canari introuvable dans logs API, runtime, sorties IA, vues admin, exports et logs de déploiement"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    trackedBy: "PR-SEC-02"
+    sourceFindingIds: [GLC-L120, RB-L059]
+  - workItemId: WI-0067
+    title: "Test de charge du cycle de vie workspace exécuté contre staging"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    trackedBy: "PR-LOAD-02"
+    sourceFindingIds: [GLC-L143]
+  - workItemId: WI-0068
+    title: "Test de charge des previews exécuté contre staging"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    trackedBy: "PR-LOAD-03"
+    sourceFindingIds: [GLC-L144]
+  - workItemId: WI-0069
+    title: "Test de charge IA simulée exécuté contre staging"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    trackedBy: "PR-LOAD-04"
+    sourceFindingIds: [GLC-L145]
+  - workItemId: WI-0070
+    title: "Test de charge des webhooks facturation exécuté contre staging"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    trackedBy: "PR-LOAD-05"
+    sourceFindingIds: [GLC-L146]
+  - workItemId: WI-0071
+    title: "Validation release mobile passe avec le vrai domaine de production"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    trackedBy: "PR-MOB-04"
+    sourceFindingIds: [GLC-L159, GLC-L161, RB-L100]
+  - workItemId: WI-0072
+    title: "Notifications push APNs et FCM vérifiées"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-12-31"
+    trackedBy: "PR-MOB-03"
+    sourceFindingIds: [GLC-L164, RB-L099]
+  - workItemId: WI-0073
+    title: "Politique de rétention des données alignée avec le code"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-11-30"
+    trackedBy: "PR-LEGAL-02"
+    sourceFindingIds: [GLC-L178, GLC-L179]
+  - workItemId: WI-0074
+    title: "Bug mineur différé : clé de liste des messages du chat basée sur la position (impact quasi nul)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-12-31"
+    trackedBy: "PR-MISC-06"
+    sourceFindingIds: [OUT-BI-01, OUT-BI-02]
+  - workItemId: WI-0075
+    title: "A1 : derniers réglages de couleurs (teintes sombres marketing) jamais portés dans la palette réellement utilisée"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    trackedBy: "PR-MISC-03"
+    sourceFindingIds: [OUT-DAL-01, OUT-DAL-02, OUT-DAL-03, OUT-DAL-04, OUT-DAL-05, OUT-DAL-06, OUT-DAL-07, OUT-DAL-08, OUT-DAL-09, OUT-DAL-10, OUT-DAL-11, OUT-DAL-12, OUT-DAL-13]
+  - workItemId: WI-0076
+    title: "Panneau Monitoring du projet : affichage partiel en lecture seule, sans vraies métriques dédiées"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    trackedBy: "BD-28"
+    sourceFindingIds: [OUT-EF-01]
+  - workItemId: WI-0077
+    title: "Historique des chats hors projet stocké seulement dans le navigateur, non synchronisé entre appareils"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-11-30"
+    trackedBy: "BD-29"
+    sourceFindingIds: [OUT-EF-02]
+  - workItemId: WI-0078
+    title: "Instabilité récurrente des tests automatiques (timeout onTaskUpdate) qui fait échouer la chaîne CI"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    trackedBy: "PR-MISC-01"
+    sourceFindingIds: [OUT-EF-03]
+  - workItemId: WI-0079
+    title: "Renseigner les identifiants OAuth des connecteurs (GitHub, GitLab, Netlify, Vercel, Supabase)"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-09-30"
+    trackedBy: "BD-21"
+    sourceFindingIds: [OUT-EF-04]
+  - workItemId: WI-0080
+    title: "Fournir les vraies clés des fournisseurs d'IA pour prouver le cache et la latence"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    trackedBy: "PR-MISC-04"
+    sourceFindingIds: [OUT-EF-05, OUT-M-03, OUT-M-04, OUT-M-05]
+  - workItemId: WI-0081
+    title: "Rotation des secrets et purge de l'historique git (précaution, en attente du GO d'Avi)"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-11-30"
+    trackedBy: "PR-CFG-03"
+    sourceFindingIds: [OUT-EF-07]
+  - workItemId: WI-0082
+    title: "Fuite du tokenHash dans la liste des invitations d'organisation (correctif prêt : PR #6, en attente de merge)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    trackedBy: "PR #6"
+    sourceFindingIds: [OUT-M-01]
+  - workItemId: WI-0083
+    title: "Rotation des jetons SCIM avec double validité 24 h : à prouver en conditions réelles"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    trackedBy: "PR-QA-02"
+    sourceFindingIds: [OUT-M-06, OUT-UI-01, OUT-UI-02, OUT-UI-03, OUT-UI-04, OUT-UI-05, OUT-UI-06, OUT-UI-07, OUT-UI-08, OUT-UI-09, OUT-UI-10, OUT-UI-11, OUT-UI-12, OUT-UI-13, OUT-UI-14, OUT-UI-15]
+  - workItemId: WI-0084
+    title: "Test navigateur du panneau Fichiers : créer, renommer et supprimer un fichier en réel"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    trackedBy: "PR-QA-01"
+    sourceFindingIds: [OUT-QA-01, OUT-QA-02, OUT-QA-03, OUT-QA-04, OUT-QA-05, OUT-QA-06, OUT-QA-07, OUT-QA-08, OUT-QA-09, OUT-QA-10, OUT-QA-11, OUT-QA-12, OUT-QA-13, OUT-QA-14, OUT-QA-15, OUT-QA-16, OUT-QA-17, OUT-QA-18, OUT-QA-19, OUT-QA-20, OUT-QA-21, OUT-QA-22, OUT-QA-23]
+  - workItemId: WI-0085
+    title: "Monitoring production, alertes, webhook incident et astreinte opérationnels"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-11-30"
+    trackedBy: "PR-OPS-02"
+    sourceFindingIds: [RB-L074, RB-L084]
+  - workItemId: WI-0086
+    title: "Décision multi-région ou mono-région documentée et validée"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-12-31"
+    trackedBy: "PR-DR-03"
+    sourceFindingIds: [RB-L088, RB-L093]
+  - workItemId: WI-0087
+    title: "Le système de crédits existant tourne « à blanc » : bascule réelle jamais faite (BILLING_CREDITS_ENABLED)"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-08-15"
+    trackedBy: "UNK-BILLING-LEGACY-GOLIVE"
+    sourceFindingIds: [RPD-01, RPD-03, RPD-05, RPD-06, RPD-07]
+  - workItemId: WI-0088
+    title: "Stripe : créer les produits/prix des plans et remplacer la clé expirée (2 actions Avi)"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-08-15"
+    trackedBy: "UNK-BILLING-LEGACY-GOLIVE + ACTIONS_AVI #1"
+    sourceFindingIds: [RPD-02]
+  - workItemId: WI-0089
+    title: "Facturer le calcul base de données aux heures réellement actives"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    trackedBy: "UNK-DB-COMPUTE-METERING"
+    sourceFindingIds: [RPD-04]
+  - workItemId: WI-0090
+    title: "Plafonds de dépense par utilisateur (Enterprise) réellement appliqués"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    trackedBy: "P1-COV-05"
+    sourceFindingIds: [RPD-08, RPD-09, RPD-10, RPD-11, RPD-12, RPD-13, RPD-14, RPD-15, RPD-16]
+  - workItemId: WI-0091
+    title: "Écran admin d'édition avancée des plans et quotas"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    trackedBy: "PR-MISC-07"
+    sourceFindingIds: [RPD-17, RPD-18]
+  - workItemId: WI-0092
+    title: "Certification des écrans admin en prod + test d'impersonation (nécessite la connexion d'Avi)"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-10-31"
+    trackedBy: "PR-SEC-04 + ACTIONS_AVI #7"
+    sourceFindingIds: [RPD-19]
+  - workItemId: WI-0093
+    title: "Appliquer les mesures pixel déjà prises (couleurs, panneaux Deploy et Git)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    trackedBy: "P1-COV-07"
+    sourceFindingIds: [RPD-20, RPD-21]
+  - workItemId: WI-0094
+    title: "Finition du panneau Files (attend la capture de référence d'Avi)"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-09-30"
+    trackedBy: "P1-COV-07 + ACTIONS_AVI #10"
+    sourceFindingIds: [RPD-22]
+  - workItemId: WI-0095
+    title: "Décision : thème clair copié de Replit, ou notre thème sombre+orange (Avi)"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-09-30"
+    trackedBy: "ACTIONS_AVI #8"
+    sourceFindingIds: [RPD-23]
+  - workItemId: WI-0096
+    title: "Contenu juridique définitif des 5 pages légales relu par un juriste"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-10-31"
+    trackedBy: "PR-LEGAL-01 + ACTIONS_AVI #4"
+    sourceFindingIds: [RPD-24]
+  - workItemId: WI-0097
+    title: "Confirmer les vraies boîtes mail appeals@ et le canal DMCA"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-10-31"
+    trackedBy: "ACTIONS_AVI #5"
+    sourceFindingIds: [RPD-25]
+  - workItemId: WI-0098
+    title: "Fixer les délais de support (SLA) que l'entreprise s'engage à tenir"
+    status: NON_FAIT
+    owner: owner
+    targetDate: "2026-11-30"
+    trackedBy: "ACTIONS_AVI #6"
+    sourceFindingIds: [RPD-26]
+  - workItemId: WI-0099
+    title: "Décision produit : proxy des services d'agent (phase 2 des intégrations) — faire ou abandonner"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-12-31"
+    trackedBy: "PR-MISC-02"
+    sourceFindingIds: [RPD-27]

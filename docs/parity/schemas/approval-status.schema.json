@@ -1,78 +1,81 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "ecode/parity/approval-status",
-  "x-schemaVersion": 3,
-  "x-repoCommit": "b774bfa38e881ebaa071fbf2c2fa9d72ab89efb5",
+  "x-schemaVersion": 4,
+  "x-repoCommit": "19e48513",
   "title": "APPROVAL_STATUS",
-  "description": "v3 (2026-07-17, évaluation v5) : le booléen global `approvalReady` est SUPPRIMÉ (faux positif de couverture). Le statut = des NIVEAUX NOMMÉS calculés (levels[]) + le plus haut niveau contigu atteint (approved.level). « APPROVED » n'est admis que si le niveau exact est nommé.",
+  "description": "v4 (audit de réanalyse 2026-07-20) : échelle à 11 niveaux ; overallStatus ∈ {NOT_APPROVED, SCOPE_APPROVED} + highestPassedLevel (contigu) ; « approvalReady » ET « approved » interdits — une approbation vit dans APPROVALS.yaml avec périmètre + approbateur.",
   "type": "object",
   "additionalProperties": true,
   "required": [
     "schemaVersion",
     "generatedFrom",
     "algorithm",
+    "overallStatus",
+    "highestPassedLevel",
     "levels",
-    "approved",
     "blocking",
     "conditions",
     "counts",
     "p0"
   ],
   "not": {
-    "required": ["approvalReady"]
+    "anyOf": [
+      {
+        "required": [
+          "approvalReady"
+        ]
+      },
+      {
+        "required": [
+          "approved"
+        ]
+      }
+    ]
   },
   "properties": {
     "schemaVersion": {
-      "const": 3
+      "const": 4
     },
     "algorithm": {
       "type": "string"
     },
     "levels": {
       "type": "array",
-      "minItems": 8,
-      "maxItems": 8,
+      "minItems": 11,
+      "maxItems": 11,
       "items": {
         "type": "object",
-        "required": ["name", "passed", "reasons"],
+        "required": [
+          "name",
+          "passed",
+          "reasons"
+        ],
         "properties": {
           "name": {
             "enum": [
-              "documentReady",
-              "registryComplete",
-              "architectureContracted",
+              "documentCanonicalized",
+              "sourceBaselineReady",
+              "registryUniverseReady",
+              "contractsPresent",
+              "contractsValidated",
               "implementationReady",
-              "verticalReady",
+              "verticalBackendReady",
+              "verticalUserJourneyReady",
               "betaReady",
               "publicLaunchReady",
               "parityBaselineReady"
             ]
           },
-          "passed": { "type": "boolean" },
-          "reasons": { "type": "array", "items": { "type": "string" } }
-        }
-      }
-    },
-    "approved": {
-      "type": "object",
-      "required": ["level"],
-      "properties": {
-        "level": {
-          "oneOf": [
-            { "type": "null" },
-            {
-              "enum": [
-                "documentReady",
-                "registryComplete",
-                "architectureContracted",
-                "implementationReady",
-                "verticalReady",
-                "betaReady",
-                "publicLaunchReady",
-                "parityBaselineReady"
-              ]
+          "passed": {
+            "type": "boolean"
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
             }
-          ]
+          }
         }
       }
     },
@@ -89,12 +92,30 @@
       "maxItems": 6,
       "items": {
         "type": "object",
-        "required": ["id", "description", "passed", "reasons"],
+        "required": [
+          "id",
+          "description",
+          "passed",
+          "reasons"
+        ],
         "properties": {
-          "id": { "type": "integer", "minimum": 1, "maximum": 6 },
-          "description": { "type": "string" },
-          "passed": { "type": "boolean" },
-          "reasons": { "type": "array", "items": { "type": "string" } }
+          "id": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6
+          },
+          "description": {
+            "type": "string"
+          },
+          "passed": {
+            "type": "boolean"
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         }
       }
     },
@@ -119,6 +140,34 @@
           }
         }
       }
+    },
+    "overallStatus": {
+      "enum": [
+        "NOT_APPROVED",
+        "SCOPE_APPROVED"
+      ]
+    },
+    "highestPassedLevel": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "enum": [
+            "documentCanonicalized",
+            "sourceBaselineReady",
+            "registryUniverseReady",
+            "contractsPresent",
+            "contractsValidated",
+            "implementationReady",
+            "verticalBackendReady",
+            "verticalUserJourneyReady",
+            "betaReady",
+            "publicLaunchReady",
+            "parityBaselineReady"
+          ]
+        }
+      ]
     }
   }
 }

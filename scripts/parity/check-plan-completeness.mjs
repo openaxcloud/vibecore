@@ -53,8 +53,14 @@ const TRACE_ID_RE = /\b(P0-V\d-\d+|P1-COV-\d+|BD-\d+|PR-[A-Z]+-\d+|UNK-[A-Z0-9-]
 
 export function checkPlanCompleteness() {
   const errors = [];
-  const planPath = join(parityRoot, 'PLAN_PARITE_REPLIT.md');
-  const plan = readFileSync(planPath, 'utf8');
+  /*
+   * P1-A2-10 (audit de réanalyse 2026-07-20) : les 336 constats vivent
+   * désormais dans LEGACY_FINDING_REGISTRY.yaml — le plan n'affiche qu'un
+   * résumé. Ce contrôle certifie le REGISTRE (mêmes constantes count+sha :
+   * les IDs sont inchangés) + le mapping vers les work items canoniques.
+   */
+  const legacy = YAML.parse(readFileSync(join(parityRoot, 'LEGACY_FINDING_REGISTRY.yaml'), 'utf8'));
+  const workItemsDoc = YAML.parse(readFileSync(join(parityRoot, 'WORK_ITEM_REGISTRY.yaml'), 'utf8'));
 
   /* Registres pour la résolution des références « suivi par ». */
   const knownIds = new Set();
@@ -83,21 +89,27 @@ export function checkPlanCompleteness() {
     }
   }
 
-  /* Extraction des lignes du backlog (section « Backlog complet »). */
-  const rows = [];
+  /* Extraction depuis le registre (une entrée = un constat source). */
+  const STATUT_LABEL = { NON_FAIT: 'NON FAIT', DEJA_FAIT: 'DÉJÀ FAIT', PERIME: 'PÉRIMÉ' };
+  const workItemIds = new Set((workItemsDoc.workItems ?? []).map((w) => w.workItemId));
+  const rows = (legacy.findings ?? []).map((f) => ({
+    id: f.sourceFindingId,
+    description: f.text ?? '',
+    statut: STATUT_LABEL[f.status] ?? f.status,
+    owner: f.owner,
+    date: f.targetDate,
+    suivi: f.originRef ?? '',
+    canonicalWorkItemId: f.canonicalWorkItemId,
+  }));
 
-  for (const line of plan.split('\n')) {
-    if (!line.startsWith('| ')) {
-      continue;
+  for (const row of rows) {
+    if (!ID_RE.test(row.id)) {
+      errors.push(`backlog: ID inattendu "${row.id}"`);
     }
 
-    const cells = line.split('|').map((c) => c.trim());
-    // ['', id, description, statut, owner, date, suivi, '']
-    if (cells.length !== 8 || !ID_RE.test(cells[1])) {
-      continue;
+    if (!workItemIds.has(row.canonicalWorkItemId)) {
+      errors.push(`${row.id}: canonicalWorkItemId "${row.canonicalWorkItemId}" absent de WORK_ITEM_REGISTRY`);
     }
-
-    rows.push({ id: cells[1], description: cells[2], statut: cells[3], owner: cells[4], date: cells[5], suivi: cells[6] });
   }
 
   const ids = rows.map((r) => r.id);
@@ -111,7 +123,7 @@ export function checkPlanCompleteness() {
   const sha = createHash('sha256').update([...ids].sort().join('\n')).digest('hex');
 
   if (ids.length !== EXPECTED_BACKLOG_COUNT) {
-    errors.push(`backlog: ${ids.length} points trouvés dans le plan, ${EXPECTED_BACKLOG_COUNT} attendus — le backlog ne peut pas rétrécir (ni gonfler) silencieusement`);
+    errors.push(`backlog: ${ids.length} points trouvés dans le registre, ${EXPECTED_BACKLOG_COUNT} attendus — le backlog ne peut pas rétrécir (ni gonfler) silencieusement`);
   }
 
   if (sha !== EXPECTED_BACKLOG_SHA256) {
@@ -170,7 +182,7 @@ if (isDirectRun) {
   }
 
   console.log(
-    `[check-plan-completeness] ${counts.total} points dans le plan — NON FAIT: ${counts.nonFait}, DÉJÀ FAIT: ${counts.dejaFait}, PÉRIMÉ: ${counts.perime}`,
+    `[check-plan-completeness] ${counts.total} constats dans LEGACY_FINDING_REGISTRY — NON FAIT: ${counts.nonFait}, DÉJÀ FAIT: ${counts.dejaFait}, PÉRIMÉ: ${counts.perime}`,
   );
 
   if (errors.length > 0) {
@@ -183,5 +195,5 @@ if (isDirectRun) {
     process.exit(1);
   }
 
-  console.log('[check-plan-completeness] CERTIFIÉ : chaque point de l’audit est dans le plan, aucun ne peut disparaître sans casser le build');
+  console.log('[check-plan-completeness] CERTIFIÉ : les 336 constats sources sont dans le registre avec mapping canonique — aucun ne peut disparaître sans casser le build');
 }
