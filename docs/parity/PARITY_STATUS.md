@@ -21,7 +21,7 @@ généréPar: scripts/parity/generate-parity-status.mjs (drift-check CI)
 | publicLaunchReady | ❌ FAIL (betaReady not passed … +42) |
 | parityBaselineReady | ❌ FAIL (surface SRF-IDE-FILE-HISTORY not done … +10) |
 
-**Compteurs (source unique)** : P0 35 (6 OPEN · 29 PROVEN · 0 CLOSED) · P1 40 · surfaces déclarées 10 (univers 159/159 importé, 0 évaluées, 56 services) · e2e 12/12 · constats 336 → 99 work items · claims non ancrées 18 · uiGaps [publish, rollback]
+**Compteurs (source unique)** : P0 35 (6 OPEN · 29 PROVEN · 0 CLOSED) · P1 40 · surfaces déclarées 10 (univers 174/174 importé, 16 évaluées, 56 services) · e2e 12/12 · constats 336 → 114 work items · claims non ancrées 18 · uiGaps [publish, rollback]
 
 ---
 

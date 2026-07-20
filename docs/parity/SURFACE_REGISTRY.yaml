@@ -1257,9 +1257,9 @@ surfaceUniverse:
     title: "Import GitLab"
     family: "H. Imports, plateformes et écosystème externe"
     proofHeadline: "Branches et submodules conformes au plan."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    availability: NOT_APPLICABLE
+    evaluation: EVALUATED
+    justification: "HORS PÉRIMÈTRE — Replit ne le fait plus : import GitLab absent de la table officielle des sources d'import du jour (RPL-29, scan 20/07 sha256 396b07e2520d1171…) — ne pas construire"
   - surfaceId: P142
     title: "Import Bitbucket"
     family: "H. Imports, plateformes et écosystème externe"
@@ -1386,6 +1386,117 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+
+
+  # --- +15 nouveautés Replit ABSENTES des 159 (REPLIT_LIVE_SCAN_2026-07-20.md
+  # sha256 396b07e2520d1171…, feu vert Avi). availability=UNSUPPORTED = NOUS ne
+  # l'avons pas construit (absence déclarée, évaluée) ; le chantier NON FAIT
+  # vit dans WORK_ITEM_REGISTRY (WI-LS-*). Ensemble EXACT étendu à P001–P174.
+  - surfaceId: P160
+    title: "Artefact Spreadsheet (chip de création landing)"
+    family: "Livescan 2026-07-20 (nouveautés)"
+    proofHeadline: "✅ LIVE home.png eaff011fa23b0cda"
+    availability: UNSUPPORTED
+    evaluation: EVALUATED
+    justification: "Nouveauté Replit N1 observée au scan du 20/07 (preuve : ✅ LIVE home.png eaff011fa23b0cda) — E-Code ne l'a pas ; chantier WI-LS-01 NON FAIT"
+  - surfaceId: P161
+    title: "Gallery publique + Use Template (/gallery ex-/templates, Submit your App)"
+    family: "Livescan 2026-07-20 (nouveautés)"
+    proofHeadline: "✅ LIVE gallery.png 5e0cb9bbf4794ce6"
+    availability: UNSUPPORTED
+    evaluation: EVALUATED
+    justification: "Nouveauté Replit N2 observée au scan du 20/07 (preuve : ✅ LIVE gallery.png 5e0cb9bbf4794ce6) — E-Code ne l'a pas ; chantier WI-LS-02 NON FAIT"
+  - surfaceId: P162
+    title: "Community Profiles (Claim your profile, community-hub.replit.app)"
+    family: "Livescan 2026-07-20 (nouveautés)"
+    proofHeadline: "✅ LIVE community.png a2e281d5d30c0193"
+    availability: UNSUPPORTED
+    evaluation: EVALUATED
+    justification: "Nouveauté Replit N3 observée au scan du 20/07 (preuve : ✅ LIVE community.png a2e281d5d30c0193) — E-Code ne l'a pas ; chantier WI-LS-03 NON FAIT"
+  - surfaceId: P163
+    title: "Replit Experts (ex-Bounties : Hire an Expert / Post a job)"
+    family: "Livescan 2026-07-20 (nouveautés)"
+    proofHeadline: "✅ LIVE bounties.png 6beff99f6657f38a"
+    availability: UNSUPPORTED
+    evaluation: EVALUATED
+    justification: "Nouveauté Replit N4 observée au scan du 20/07 (preuve : ✅ LIVE bounties.png 6beff99f6657f38a) — E-Code ne l'a pas ; chantier WI-LS-04 NON FAIT"
+  - surfaceId: P164
+    title: "Agent 4 + Parallel Agents (tâches parallèles, micro-VMs)"
+    family: "Livescan 2026-07-20 (nouveautés)"
+    proofHeadline: "✅ LIVE landing+enterprise (IDE 🔒)"
+    availability: UNSUPPORTED
+    evaluation: EVALUATED
+    justification: "Nouveauté Replit N5 observée au scan du 20/07 (preuve : ✅ LIVE landing+enterprise (IDE 🔒)) — E-Code ne l'a pas ; chantier WI-LS-05 NON FAIT"
+  - surfaceId: P165
+    title: "General Agent (tout output, tout framework, services connectés)"
+    family: "Livescan 2026-07-20 (nouveautés)"
+    proofHeadline: "📘 DOC-JOUR features/agent/general-agent"
+    availability: UNSUPPORTED
+    evaluation: EVALUATED
+    justification: "Nouveauté Replit N6 observée au scan du 20/07 (preuve : 📘 DOC-JOUR features/agent/general-agent) — E-Code ne l'a pas ; chantier WI-LS-06 NON FAIT"
+  - surfaceId: P166
+    title: "Clerk Auth pour les apps construites (2e système d auth)"
+    family: "Livescan 2026-07-20 (nouveautés)"
+    proofHeadline: "📘 DOC-JOUR 3 pages dédiées"
+    availability: UNSUPPORTED
+    evaluation: EVALUATED
+    justification: "Nouveauté Replit N7 observée au scan du 20/07 (preuve : 📘 DOC-JOUR 3 pages dédiées) — E-Code ne l'a pas ; chantier WI-LS-07 NON FAIT"
+  - surfaceId: P167
+    title: "Warehouse Connectors (BigQuery, Databricks, Snowflake, Fabric)"
+    family: "Livescan 2026-07-20 (nouveautés)"
+    proofHeadline: "✅ LIVE pricing Enterprise + 📘"
+    availability: UNSUPPORTED
+    evaluation: EVALUATED
+    justification: "Nouveauté Replit N8 observée au scan du 20/07 (preuve : ✅ LIVE pricing Enterprise + 📘) — E-Code ne l'a pas ; chantier WI-LS-08 NON FAIT"
+  - surfaceId: P168
+    title: "Replit MCP Server (pilotage programmatique, remplace l API publique)"
+    family: "Livescan 2026-07-20 (nouveautés)"
+    proofHeadline: "📘 DOC-JOUR platforms/mcp-server"
+    availability: UNSUPPORTED
+    evaluation: EVALUATED
+    justification: "Nouveauté Replit N9 observée au scan du 20/07 (preuve : 📘 DOC-JOUR platforms/mcp-server) — E-Code ne l'a pas ; chantier WI-LS-09 NON FAIT"
+  - surfaceId: P169
+    title: "Design System d organisation (Enterprise, Agent applique la charte)"
+    family: "Livescan 2026-07-20 (nouveautés)"
+    proofHeadline: "✅ LIVE pricing + 📘"
+    availability: UNSUPPORTED
+    evaluation: EVALUATED
+    justification: "Nouveauté Replit N10 observée au scan du 20/07 (preuve : ✅ LIVE pricing + 📘) — E-Code ne l'a pas ; chantier WI-LS-10 NON FAIT"
+  - surfaceId: P170
+    title: "Custom Templates d organisation (Enterprise)"
+    family: "Livescan 2026-07-20 (nouveautés)"
+    proofHeadline: "📘 DOC-JOUR teams/custom-templates"
+    availability: UNSUPPORTED
+    evaluation: EVALUATED
+    justification: "Nouveauté Replit N11 observée au scan du 20/07 (preuve : 📘 DOC-JOUR teams/custom-templates) — E-Code ne l'a pas ; chantier WI-LS-11 NON FAIT"
+  - surfaceId: P171
+    title: "Écosystème communautaire opéré (Buildathons, Ambassadors, meetups)"
+    family: "Livescan 2026-07-20 (nouveautés)"
+    proofHeadline: "✅ LIVE community.png"
+    availability: UNSUPPORTED
+    evaluation: EVALUATED
+    justification: "Nouveauté Replit N12 observée au scan du 20/07 (preuve : ✅ LIVE community.png) — E-Code ne l'a pas ; chantier WI-LS-12 NON FAIT"
+  - surfaceId: P172
+    title: "Effort-Based Pricing + crédits quotidiens gratuits + expiration 30j"
+    family: "Livescan 2026-07-20 (nouveautés)"
+    proofHeadline: "✅ LIVE pricing + 📘 starter-plan"
+    availability: UNSUPPORTED
+    evaluation: EVALUATED
+    justification: "Nouveauté Replit N13 observée au scan du 20/07 (preuve : ✅ LIVE pricing + 📘 starter-plan) — E-Code ne l'a pas ; chantier WI-LS-13 NON FAIT"
+  - surfaceId: P173
+    title: "Import Vercel / Bolt / Lovable / Base44 (table officielle du jour)"
+    family: "Livescan 2026-07-20 (nouveautés)"
+    proofHeadline: "📘 DOC-JOUR (doc-import 56b145555f6d82a4)"
+    availability: UNSUPPORTED
+    evaluation: EVALUATED
+    justification: "Nouveauté Replit N14 observée au scan du 20/07 (preuve : 📘 DOC-JOUR (doc-import 56b145555f6d82a4)) — E-Code ne l'a pas ; chantier WI-LS-14 NON FAIT"
+  - surfaceId: P174
+    title: "Vibe Coding 101 / Learn (parcours grand public, footer)"
+    family: "Livescan 2026-07-20 (nouveautés)"
+    proofHeadline: "✅ LIVE footer toutes pages"
+    availability: UNSUPPORTED
+    evaluation: EVALUATED
+    justification: "Nouveauté Replit N15 observée au scan du 20/07 (preuve : ✅ LIVE footer toutes pages) — E-Code ne l'a pas ; chantier WI-LS-15 NON FAIT"
 
 serviceUniverse:
   - serviceId: S01

@@ -168,3 +168,232 @@ unknowns:
     nextAction: "Implémenter l'émetteur sur la base de l'idle-tracking CNPG, prouver un événement facturé exact (modèle Z3)"
     targetDate: "2026-09-30"
     expiration: "2026-10-31"
+
+  # --- 28 points « SANS TRACE » au live scan du 20/07 (ni présents ni absents :
+  # une absence de doc n'est PAS une preuve de retrait). Méthode de
+  # vérification commune : nécessite un VRAI compte Replit connecté
+  # (compte E2E légitime, DEC-OWNER-D5). Source : scan sha256 396b07e2520d1171… §6.
+  - unknownId: UNK-LS-P004
+    question: "P004 Spotlight / couverture projet : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P009
+    question: "P009 Centre de notifications : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P011
+    question: "P011 Resources panel : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P015
+    question: "P015 Search & Replace : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P016
+    question: "P016 Symbols / Outline : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P017
+    question: "P017 Problems / Diagnostics : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P018
+    question: "P018 Formatter : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P025
+    question: "P025 Preview DevTools : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P041
+    question: "P041 Agent activity : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P042
+    question: "P042 Diff review : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P054
+    question: "P054 Agent Inbox : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P055
+    question: "P055 Code Review : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P056
+    question: "P056 Security Agent (probable renommage → Security Center) : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P059
+    question: "P059 Library : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P060
+    question: "P060 Asset Browser : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P067
+    question: "P067 Android Emulator : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P069
+    question: "P069 Speaker Notes : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P070
+    question: "P070 Slides Export : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P078
+    question: "P078 Grouped Publish : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P086
+    question: "P086 Agent Prod Read-only : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P093
+    question: "P093 Integration Health : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P108
+    question: "P108 Application Analytics (sous ce nom) : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P112
+    question: "P112 Deployment History : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P146
+    question: "P146 Export ZIP : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P147
+    question: "P147 Download Assets : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P156
+    question: "P156 CLI / replit ai : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P157
+    question: "P157 Public API (probablement remplacée par MCP Server, RPL-30) : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-P158
+    question: "P158 Webhooks (comme produit) : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
+    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"

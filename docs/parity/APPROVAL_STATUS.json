@@ -181,7 +181,7 @@
         "surface SRF-DEPLOY-RESERVED-VM not done",
         "surface SRF-DEPLOY-SCHEDULED not done",
         "surface SRF-GALLERY-STARTER-DEMOS not done",
-        "159 surface universe entries not evaluated (availability UNKNOWN)",
+        "158 surface universe entries not evaluated (availability UNKNOWN)",
         "claim RPL-20 triage PENDING",
         "claim RPL-21 triage PENDING",
         "claim RPL-22 triage PENDING",
@@ -196,7 +196,7 @@
     "level verticalUserJourneyReady FAILED: stage \"publish\" has no UI proof (une preuve API n'est pas une preuve UI); stage \"rollback\" has no UI proof (une preuve API n'est pas une preuve UI)",
     "level betaReady FAILED: beta gate capability still unknown: UNK-GIT-RECONCILE-DONE; beta gate capability still unknown: UNK-ROLLBACK-FLAG-APPLIED; beta gate capability still unknown: UNK-NIX-MULTIZONE-IMPL; beta gate capability still unknown: UNK-AR-LIVE-PROMOTION; beta gate capability still unknown: UNK-CLOUDTENANT-IMPL; beta gate capability still unknown: UNK-BILLING-MINIMAL-IMPL",
     "level publicLaunchReady FAILED: betaReady not passed; P0-V4-1 not CLOSED (needs a real reviewer); P0-V4-2 not CLOSED (needs a real reviewer); P0-V4-3 not CLOSED (needs a real reviewer); P0-V4-4 not CLOSED (needs a real reviewer); P0-V3-01 not CLOSED (needs a real reviewer); P0-V3-02 not CLOSED (needs a real reviewer); P0-V3-03 not CLOSED (needs a real reviewer); P0-V3-04 not CLOSED (needs a real reviewer); P0-V3-05 not CLOSED (needs a real reviewer); P0-V3-06 not CLOSED (needs a real reviewer); P0-V3-07 not CLOSED (needs a real reviewer); P0-V3-08 not CLOSED (needs a real reviewer); P0-V3-09 not CLOSED (needs a real reviewer); P0-V3-10 not CLOSED (needs a real reviewer); P0-V3-11 not CLOSED (needs a real reviewer); P0-V3-12 not CLOSED (needs a real reviewer); P0-V3-13 not CLOSED (needs a real reviewer); P0-V3-14 not CLOSED (needs a real reviewer); P0-V3-15 not CLOSED (needs a real reviewer); P0-A2-01 not CLOSED (needs a real reviewer); P0-A2-02 not CLOSED (needs a real reviewer); P0-A2-03 not CLOSED (needs a real reviewer); P0-A2-04 not CLOSED (needs a real reviewer); P0-A2-05 not CLOSED (needs a real reviewer); P0-A2-06 not CLOSED (needs a real reviewer); P0-A2-07 not CLOSED (needs a real reviewer); P0-A2-08 not CLOSED (needs a real reviewer); P0-A2-09 not CLOSED (needs a real reviewer); P0-A2-10 not CLOSED (needs a real reviewer); P0-A2-11 not CLOSED (needs a real reviewer); P0-A2-12 not CLOSED (needs a real reviewer); P0-A2-13 not CLOSED (needs a real reviewer); P0-A2-14 not CLOSED (needs a real reviewer); P0-A2-15 not CLOSED (needs a real reviewer); P0-A2-16 not CLOSED (needs a real reviewer); decision DEC-GALLERY-NO-SELF-PUBLISH still OPEN; decision DEC-OWNER-GALLERY-OPTION-B still OPEN; decision DEC-BILLING-LEGACY-VS-LEDGER still OPEN; claim RPL-20 triage PENDING; claim RPL-21 triage PENDING; claim RPL-22 triage PENDING; claim RPL-23 triage PENDING",
-    "level parityBaselineReady FAILED: surface SRF-IDE-FILE-HISTORY not done; surface SRF-IDE-AGENT-SKILLS not done; surface SRF-IDE-PANES-LAYOUT not done; surface SRF-DEPLOY-RESERVED-VM not done; surface SRF-DEPLOY-SCHEDULED not done; surface SRF-GALLERY-STARTER-DEMOS not done; 159 surface universe entries not evaluated (availability UNKNOWN); claim RPL-20 triage PENDING; claim RPL-21 triage PENDING; claim RPL-22 triage PENDING; claim RPL-23 triage PENDING"
+    "level parityBaselineReady FAILED: surface SRF-IDE-FILE-HISTORY not done; surface SRF-IDE-AGENT-SKILLS not done; surface SRF-IDE-PANES-LAYOUT not done; surface SRF-DEPLOY-RESERVED-VM not done; surface SRF-DEPLOY-SCHEDULED not done; surface SRF-GALLERY-STARTER-DEMOS not done; 158 surface universe entries not evaluated (availability UNKNOWN); claim RPL-20 triage PENDING; claim RPL-21 triage PENDING; claim RPL-22 triage PENDING; claim RPL-23 triage PENDING"
   ],
   "conditions": [
     {
@@ -334,11 +334,11 @@
       "open": 3
     },
     "unknowns": {
-      "total": 21,
+      "total": 49,
       "p0Linked": 0
     },
     "claims": {
-      "total": 20,
+      "total": 24,
       "stale": 0
     },
     "surfaces": {
@@ -369,7 +369,7 @@
       "dejaFait": 1,
       "perime": 3
     },
-    "canonicalWorkItems": 99,
+    "canonicalWorkItems": 114,
     "unanchoredClaims": 18
   },
   "unanchoredClaims": [
@@ -737,14 +737,14 @@
     }
   ],
   "surfaceUniverse": {
-    "expected": 159,
-    "present": 159,
-    "evaluated": 0,
+    "expected": 174,
+    "present": 174,
+    "evaluated": 16,
     "services": 56
   },
   "workItems": {
     "sourceFindingCount": 336,
-    "canonicalWorkItemCount": 99
+    "canonicalWorkItemCount": 114
   },
   "evidence": [
     {

@@ -303,3 +303,28 @@ Règle: append-only; chaque entrée = date UTC, acteur, événement, artefacts.
      VARIANTE MAINTENUE — la donnée fichier/ligne d'origine n'a jamais été
      capturée ; l'inventer serait une falsification. Limite déclarée,
      P0-A2-12 OPEN, échéance 2026-08-15 (complétion ou ACCEPTED_RISK).
+
+## 2026-07-20 (live scan Replit intégré — feu vert Avi)
+
+- (source) REPLIT_LIVE_SCAN_2026-07-20.md (sha256 396b07e2…) + captures
+  hashées livescan-2026-07-20/ ancrés (SRC-REPLIT-LIVESCAN-2026-07-20,
+  claims RPL-27/28/29/30).
+- (univers) +15 surfaces P160–P174 (nouveautés N1–N15 du scan), ensemble
+  EXACT étendu 159→174 ; chacune UNSUPPORTED déclaré (observée chez Replit,
+  pas construite chez nous) + 15 chantiers WI-LS-01…15 NON FAIT
+  (canonicalWorkItemCount 99→114, garde CI EXPECTED_LIVESCAN_WI_IDS).
+- (retraits) 6 retraits PROUVÉS (RPL-29) → HORS PÉRIMÈTRE : P141 Import
+  GitLab reclassé NOT_APPLICABLE « Replit ne le fait plus ». Vérifié : GitLab
+  n'était en « à faire » NULLE PART dans le backlog (les 2 mentions GLC
+  concernent les identifiants OAuth de connexion git — autre sujet, conservées)
+  et le plan §3.3 le disait déjà hors table d'import. Max mode / starter
+  templates / Teams / Bounties / profils anonymes : absents du backlog en
+  « à faire » — rien d'autre à reclasser. ACT-04/ACT-36 (starters→démos)
+  restent alignés avec le retrait des starter templates.
+- (faits) §3.12 : prix mesurés (Starter gratuit / Core $20 / Pro $100 /
+  Enterprise ; Teams n'existe plus) + limites du gratuit (1 app, 30 jours,
+  Lite seul). Note : la doc d'import téléchargée par le scan est OCTET POUR
+  OCTET identique au snapshot RPL-24 du 17/07 (56b14555…) — les 12 entrées
+  d'import tiennent, aucune correction.
+- (inconnues) 28 points « sans trace » → UNK-LS-P004…P158 (owner, date,
+  méthode = vrai compte Replit connecté D5) — ni présents ni absents.

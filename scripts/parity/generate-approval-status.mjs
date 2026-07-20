@@ -117,7 +117,9 @@ export const EXPECTED_PROD_READINESS_IDS = [
  * build. parityBaselineReady exige EN PLUS que chaque entrée soit ÉVALUÉE
  * (availability ≠ UNKNOWN, justifiée).
  */
-export const EXPECTED_SURFACE_UNIVERSE_IDS = Array.from({ length: 159 }, (_, i) => `P${String(i + 1).padStart(3, '0')}`);
+// 159 (inventaire IDE) + 15 nouveautés du live scan 2026-07-20 (P160–P174, feu vert Avi).
+export const EXPECTED_SURFACE_UNIVERSE_IDS = Array.from({ length: 174 }, (_, i) => `P${String(i + 1).padStart(3, '0')}`);
+export const EXPECTED_LIVESCAN_WI_IDS = Array.from({ length: 15 }, (_, i) => `WI-LS-${String(i + 1).padStart(2, '0')}`);
 export const EXPECTED_SERVICE_UNIVERSE_IDS = Array.from({ length: 56 }, (_, i) => `S${String(i + 1).padStart(2, '0')}`);
 
 /** Niveaux nommés v2 (audit de réanalyse 2026-07-20) — ordre strict de l'échelle. */
@@ -569,6 +571,7 @@ export function computeApprovalStatus(now = '2026-07-20T04:20:00Z') {
   /* Cross-check findings ↔ work items canoniques. */
   const legacy = yaml('LEGACY_FINDING_REGISTRY.yaml');
   const workItemIds = new Set((workItems.workItems ?? []).map((w) => w.workItemId));
+  const missingLivescanWi = EXPECTED_LIVESCAN_WI_IDS.filter((id) => !workItemIds.has(id));
   const orphanFindings = (legacy.findings ?? [])
     .filter((f) => !workItemIds.has(f.canonicalWorkItemId))
     .map((f) => `${f.sourceFindingId} → canonicalWorkItemId ${f.canonicalWorkItemId} missing`);
@@ -637,6 +640,7 @@ export function computeApprovalStatus(now = '2026-07-20T04:20:00Z') {
       missingProdReadinessIds.length === 0 &&
       missingUniverseIds.length === 0 &&
       missingServiceUniverseIds.length === 0 &&
+      missingLivescanWi.length === 0 &&
       orphanFindings.length === 0 &&
       forbiddenTargetDates.length === 0 &&
       cond3.passed,
@@ -647,6 +651,7 @@ export function computeApprovalStatus(now = '2026-07-20T04:20:00Z') {
       ...missingProdReadinessIds.map((id) => `expected PROD_READINESS missing: ${id}`),
       ...missingUniverseIds.map((id) => `expected surface universe id missing: ${id}`),
       ...missingServiceUniverseIds.map((id) => `expected service universe id missing: ${id}`),
+      ...missingLivescanWi.map((id) => `expected livescan work item missing: ${id}`),
       ...orphanFindings,
       ...forbiddenTargetDates,
       ...cond3.reasons,

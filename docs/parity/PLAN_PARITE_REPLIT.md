@@ -668,15 +668,18 @@ SurfaceRegistryEntry { surfaceId, route, clientKind, clientVersion, plan,
 ```
 
 **Univers des surfaces (P0-A2-02)** — le registre porte désormais l'**univers
-EXACT attendu** : **159 surfaces `P001–P159`** (8 familles) + **56 services
+EXACT attendu** : **174 surfaces `P001–P174`** (8 familles + les 15
+nouveautés du live scan 20/07, `P160–P174`) + **56 services
 logiques `S01–S56`**, importés de l'inventaire IDE antérieur
 (`Plan_IDE_Complet_Replit_2026_ECode.docx`, sha256 `0b232212…`), verrouillés
 en CI (`EXPECTED_SURFACE_UNIVERSE_IDS` / `EXPECTED_SERVICE_UNIVERSE_IDS` — un
 ID qui disparaît casse le build). Chaque entrée doit être **évaluée**
 SUPPORTED / UNSUPPORTED / NOT_APPLICABLE **avec justification** ;
 `availability: UNKNOWN` = non évaluée, et **`parityBaselineReady` ÉCHOUE tant
-qu'une entrée reste UNKNOWN**. État mesuré : l'évaluation n'a PAS été faite
-(159/159 UNKNOWN) — un backlog n'est pas une évaluation. La matrice
+qu'une entrée reste UNKNOWN**. État mesuré : 16/174 évaluées
+(les 15 nouveautés = UNSUPPORTED déclaré ; P141 = NOT_APPLICABLE « Replit ne
+le fait plus » `[RPL-29]`) ; 158 restent NON évaluées, dont 28 « sans trace »
+au scan (`UNK-LS-*`) — un backlog n'est pas une évaluation. La matrice
 source→surface→service→contrat→work item→preuve est amorcée dans
 `TRACEABILITY_MATRIX.yaml`.
 
@@ -834,14 +837,14 @@ présents (et hashés, §11).
     "RPL-13"
   ],
   "surfaceUniverse": {
-    "expected": 159,
-    "present": 159,
-    "evaluated": 0,
+    "expected": 174,
+    "present": 174,
+    "evaluated": 16,
     "services": 56
   },
   "workItems": {
     "sourceFindingCount": 336,
-    "canonicalWorkItemCount": 99
+    "canonicalWorkItemCount": 114
   },
   "counts": {
     "p0": {
@@ -855,11 +858,11 @@ présents (et hashés, §11).
       "open": 3
     },
     "unknowns": {
-      "total": 21,
+      "total": 49,
       "p0Linked": 0
     },
     "claims": {
-      "total": 20,
+      "total": 24,
       "stale": 0
     },
     "surfaces": {
@@ -890,7 +893,7 @@ présents (et hashés, §11).
       "dejaFait": 1,
       "perime": 3
     },
-    "canonicalWorkItems": 99,
+    "canonicalWorkItems": 114,
     "unanchoredClaims": 18
   }
 }

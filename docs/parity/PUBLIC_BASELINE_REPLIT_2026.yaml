@@ -229,3 +229,47 @@ claims:
     region: UNKNOWN
     client: web
     status: VERIFIED
+  - claimId: RPL-27
+    statement: "Pricing affiché le 2026-07-20 (capture pricing.png sha256 0dea38e82de4c246…) : Starter GRATUIT · Replit Core $20/mois ($18 annuel, $20 crédits, 5 collaborateurs, 2 agents parallèles) · Replit Pro $100/mois ($90 annuel, $100 crédits paliers jusqu'à $2000, 15 collaborateurs + 50 viewers, 10 agents parallèles) · Enterprise sur devis (SSO/SAML, groupes, design system, data warehouse, single-tenant, IP statiques, VPC). LE PLAN TEAMS N'EXISTE PLUS À LA VENTE (doc du jour : « migration from the former Teams plan »)."
+    sourceId: SRC-REPLIT-LIVESCAN-2026-07-20
+    observedAt: "2026-07-20T05:43:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: RPL-28
+    statement: "Plan gratuit (Starter) mesuré le 2026-07-20 (pricing.png + doc-starter-plan.md sha256 019962efcfbe8b66…) : crédits Agent quotidiens gratuits, Lite build UNIQUEMENT (Full build = Core/Pro), 1 SEULE app publiée qui EXPIRE À 30 JOURS, badge « Made with Replit » avec lien de parrainage, déploiements privés/mot de passe, 2 GB stockage, 20 apps simultanées max. Core requis pour : Plan Mode, connecteurs tiers, Replit AI Integrations, conversion Canvas→artefact, artefacts autres que web+mobile, retrait du badge."
+    sourceId: SRC-REPLIT-LIVESCAN-2026-07-20
+    observedAt: "2026-07-20T05:43:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: starter
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: RPL-29
+    statement: "Retraits PROUVÉS au 2026-07-20 (preuves positives, scan hashé) : Max mode (« Max mode is no longer available », doc du jour) · starter templates par langage (« have been removed », /templates sert la Gallery — hash identique à /gallery 5e0cb9bbf4794ce6…) · import GitLab (absent de la table officielle des sources d'import) · plan Teams (« former Teams plan ») · Bounties (la route /bounties sert « Replit Experts », marketplace d'embauche — bounties.png 6beff99f6657f38a…) · profils publics /@user anonymes (redirigent vers Log In, hash pixel-identique 0fa5718b881fb29d…)."
+    sourceId: SRC-REPLIT-LIVESCAN-2026-07-20
+    observedAt: "2026-07-20T05:43:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: RPL-30
+    statement: "Replit MCP Server (doc du jour platforms/mcp-server) : pilotage programmatique des apps via client MCP — remplace de fait une API publique (aucune « Public API » sous ce nom dans la doc du jour). Source secondaire (derrière login, non observé à l'écran)."
+    sourceId: SRC-REPLIT-LIVESCAN-2026-07-20
+    observedAt: "2026-07-20T05:43:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: CONFIRMED
