@@ -1,12 +1,20 @@
 /**
- * Secure project import pipeline (DOMAIN_MODEL §2).
+ * Secure project import pipeline (DOMAIN_MODEL §2, plan §9.2, IMPORT_REMIX_CONTRACT).
  *
- * NORMATIVE state machine:
+ * NORMATIVE state machine (P0-EX-04 — aligned on the contract, no longer the old
+ * linear SCANNING→COMMITTING shortcut):
  *
  *   RECEIVED → STAGING_ISOLATED → SCANNING
- *     → QUARANTINED → AWAITING_USER_ACTION → COMMITTING → COMMITTED
- *   (no findings: SCANNING → COMMITTING → COMMITTED)
- *   branches out at any point: ROLLING_BACK · EXPIRED · CANCELLED
+ *      ├─ clean ─────────────────→ READY_TO_COMMIT
+ *      └─ blocking findings ────→ QUARANTINED → AWAITING_USER_ACTION → RESCANNING → READY_TO_COMMIT
+ *   READY_TO_COMMIT → COMMITTING → COMMITTED
+ *   side states (from any non-terminal): ROLLING_BACK · CLEANUP_PENDING · EXPIRED · CANCELLED · FAILED
+ *
+ * The atomic COMMIT departs ONLY from READY_TO_COMMIT. A clean payload does NOT
+ * pass through quarantine; a payload with blocking findings CANNOT reach
+ * READY_TO_COMMIT without going AWAITING_USER_ACTION → RESCANNING (explicit
+ * consent). RESCANNING re-checks the (consented) staged copy: resolved → READY,
+ * still-blocking → back to QUARANTINED.
  *
  * Two NON-NEGOTIABLE invariants:
  *  - I-IMP-1 (no silent deletion): scanning NEVER modifies content. Findings are
@@ -14,8 +22,8 @@
  *    per-finding consent. "Detected and stripped before write" is forbidden —
  *    editing the user's code without consent is data loss.
  *  - I-IMP-2 (disposable staging, no target mount): the import touches the target
- *    workspace ONLY at the final atomic COMMIT — or not at all (full
- *    ROLLING_BACK). Staging is disposable and separate from any target project.
+ *    workspace ONLY at the final atomic COMMIT — or not at all (cleanup). Staging
+ *    is disposable and separate from any target project.
  *
  * This module is PURE (no DB, no I/O). The scanner detects secret-SHAPED content
  * without any prior knowledge of values (an imported repo's secrets are unknown),
@@ -28,35 +36,54 @@ export type ImportState =
   | 'SCANNING'
   | 'QUARANTINED'
   | 'AWAITING_USER_ACTION'
+  | 'RESCANNING'
+  | 'READY_TO_COMMIT'
   | 'COMMITTING'
   | 'COMMITTED'
   | 'ROLLING_BACK'
+  | 'CLEANUP_PENDING'
   | 'EXPIRED'
-  | 'CANCELLED';
+  | 'CANCELLED'
+  | 'FAILED';
 
 /** Terminal states — no transition leaves them. */
-export const IMPORT_TERMINAL_STATES: ImportState[] = ['COMMITTED', 'ROLLING_BACK', 'EXPIRED', 'CANCELLED'];
+export const IMPORT_TERMINAL_STATES: ImportState[] = ['COMMITTED', 'ROLLING_BACK', 'EXPIRED', 'CANCELLED', 'FAILED'];
 
 /**
- * Legal forward transitions. QUARANTINED/AWAITING_USER_ACTION only follow
- * SCANNING when there are findings; a clean scan goes SCANNING→COMMITTING. Any
- * non-terminal state may branch to ROLLING_BACK / EXPIRED / CANCELLED (the
- * cleanup paths), so those are allowed from everywhere below.
+ * Legal forward (happy / quarantine) transitions. The contract machine:
+ *  - SCANNING branches to READY_TO_COMMIT (clean) OR QUARANTINED (blocking findings)
+ *    — NEVER straight to COMMITTING (the old shortcut, removed by P0-EX-04).
+ *  - the quarantine path goes QUARANTINED → AWAITING_USER_ACTION → RESCANNING,
+ *    and RESCANNING resolves to READY_TO_COMMIT (consent applied) or loops back to
+ *    QUARANTINED (findings still unresolved).
+ *  - COMMITTING departs ONLY from READY_TO_COMMIT.
+ * Cleanup targets are handled separately (reachable from any non-terminal).
  */
 const IMPORT_FORWARD: Record<ImportState, ImportState[]> = {
   RECEIVED: ['STAGING_ISOLATED'],
   STAGING_ISOLATED: ['SCANNING'],
-  SCANNING: ['QUARANTINED', 'COMMITTING'],
+  SCANNING: ['READY_TO_COMMIT', 'QUARANTINED'],
   QUARANTINED: ['AWAITING_USER_ACTION'],
-  AWAITING_USER_ACTION: ['COMMITTING'],
+  AWAITING_USER_ACTION: ['RESCANNING'],
+  RESCANNING: ['READY_TO_COMMIT', 'QUARANTINED'],
+  READY_TO_COMMIT: ['COMMITTING'],
   COMMITTING: ['COMMITTED'],
   COMMITTED: [],
   ROLLING_BACK: [],
+  // CLEANUP_PENDING is a transient marker ("cleanup in flight") that resolves to a
+  // terminal cleanup state; it never touches a target.
+  CLEANUP_PENDING: ['ROLLING_BACK', 'EXPIRED', 'CANCELLED', 'FAILED'],
   EXPIRED: [],
   CANCELLED: [],
+  FAILED: [],
 };
 
-const CLEANUP_STATES: ImportState[] = ['ROLLING_BACK', 'EXPIRED', 'CANCELLED'];
+/**
+ * Cleanup states — reachable from ANY non-terminal state (the sad path must
+ * always be reachable). CLEANUP_PENDING is the transient marker; the rest are
+ * terminal. None of these ever writes a target project.
+ */
+const CLEANUP_STATES: ImportState[] = ['ROLLING_BACK', 'CLEANUP_PENDING', 'EXPIRED', 'CANCELLED', 'FAILED'];
 
 export class ImportInvariantError extends Error {
   readonly statusCode = 409;
@@ -71,9 +98,10 @@ export class ImportInvariantError extends Error {
 }
 
 /**
- * Validate a single transition. A cleanup transition (→ ROLLING_BACK / EXPIRED /
- * CANCELLED) is legal from any non-terminal state — cleanup must always be
- * reachable, on the sad path as much as the happy path. Throws on illegal moves.
+ * Validate a single transition. A cleanup transition (→ ROLLING_BACK /
+ * CLEANUP_PENDING / EXPIRED / CANCELLED / FAILED) is legal from any non-terminal
+ * state — cleanup must always be reachable, on the sad path as much as the happy
+ * path. Throws on illegal moves.
  */
 export function assertImportTransition(from: ImportState, to: ImportState): void {
   if (IMPORT_TERMINAL_STATES.includes(from)) {
@@ -85,16 +113,46 @@ export function assertImportTransition(from: ImportState, to: ImportState): void
   }
 
   if (!IMPORT_FORWARD[from].includes(to)) {
-    // The security-critical case gets its own loud error.
-    if (to === 'COMMITTING' && from !== 'AWAITING_USER_ACTION' && from !== 'SCANNING') {
+    // The security-critical case gets its own loud error: the atomic commit may
+    // ONLY depart from READY_TO_COMMIT (never the old SCANNING→COMMITTING shortcut,
+    // never a findings state that skipped AWAITING_USER_ACTION→RESCANNING).
+    if (to === 'COMMITTING' && from !== 'READY_TO_COMMIT') {
       throw new ImportInvariantError(
-        'COMMITTING requires a clean SCANNING or explicit consent via AWAITING_USER_ACTION.',
-        'IMPORT_COMMIT_WITHOUT_CONSENT',
+        `COMMITTING may only depart from READY_TO_COMMIT (was ${from}). Resolve findings via AWAITING_USER_ACTION → RESCANNING first.`,
+        'IMPORT_COMMIT_NOT_READY',
       );
     }
 
     throw new ImportInvariantError(`Illegal import transition ${from}→${to}`, 'IMPORT_BAD_TRANSITION');
   }
+}
+
+/**
+ * Guard the SCANNING (and RESCANNING) branch so a CLEAN payload never lands in
+ * quarantine and a payload WITH blocking findings never shortcuts to
+ * READY_TO_COMMIT. This is the "un import propre ne passe pas artificiellement
+ * par la quarantaine" invariant, enforced in the pure layer so the endpoint
+ * cannot get it wrong.
+ */
+export function assertScanBranch(to: 'READY_TO_COMMIT' | 'QUARANTINED', hasBlockingFindings: boolean): void {
+  if (to === 'QUARANTINED' && !hasBlockingFindings) {
+    throw new ImportInvariantError(
+      'A clean import must not be forced through QUARANTINED — SCANNING branches to READY_TO_COMMIT when there is no blocking finding.',
+      'IMPORT_CLEAN_FORCED_QUARANTINE',
+    );
+  }
+
+  if (to === 'READY_TO_COMMIT' && hasBlockingFindings) {
+    throw new ImportInvariantError(
+      'An import with blocking findings must not skip to READY_TO_COMMIT — it must go QUARANTINED → AWAITING_USER_ACTION → RESCANNING first.',
+      'IMPORT_FINDINGS_SKIP_QUARANTINE',
+    );
+  }
+}
+
+/** The scan outcome for a given finding set: where SCANNING/RESCANNING branches to. */
+export function scanBranchTarget(hasBlockingFindings: boolean): 'READY_TO_COMMIT' | 'QUARANTINED' {
+  return hasBlockingFindings ? 'QUARANTINED' : 'READY_TO_COMMIT';
 }
 
 /*

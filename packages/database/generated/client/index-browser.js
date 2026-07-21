@@ -1587,6 +1587,81 @@ exports.Prisma.PlatformIamImpersonationAuditScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.LedgerAccountScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  key: 'key',
+  type: 'type',
+  currency: 'currency',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.LedgerTransactionScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  reason: 'reason',
+  idempotencyKey: 'idempotencyKey',
+  reversalOfId: 'reversalOfId',
+  rateCardVersion: 'rateCardVersion',
+  postedAt: 'postedAt',
+  metadata: 'metadata'
+};
+
+exports.Prisma.LedgerEntryScalarFieldEnum = {
+  id: 'id',
+  transactionId: 'transactionId',
+  accountId: 'accountId',
+  direction: 'direction',
+  amountMinor: 'amountMinor',
+  currency: 'currency'
+};
+
+exports.Prisma.LedgerReservationScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  userId: 'userId',
+  idempotencyKey: 'idempotencyKey',
+  operation: 'operation',
+  status: 'status',
+  currency: 'currency',
+  maxAmountMinor: 'maxAmountMinor',
+  committedMinor: 'committedMinor',
+  rateCardVersion: 'rateCardVersion',
+  importJobId: 'importJobId',
+  reserveTxId: 'reserveTxId',
+  settleTxId: 'settleTxId',
+  compensateTxId: 'compensateTxId',
+  expiresAt: 'expiresAt',
+  committedAt: 'committedAt',
+  releasedAt: 'releasedAt',
+  releaseReason: 'releaseReason',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.LedgerFxRateScalarFieldEnum = {
+  id: 'id',
+  fromCurrency: 'fromCurrency',
+  toCurrency: 'toCurrency',
+  rateNum: 'rateNum',
+  rateDen: 'rateDen',
+  effectiveAt: 'effectiveAt',
+  cutoffAt: 'cutoffAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.LedgerReconciliationRunScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  source: 'source',
+  status: 'status',
+  discrepancyCount: 'discrepancyCount',
+  discrepancies: 'discrepancies',
+  runAt: 'runAt',
+  metadata: 'metadata'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1804,6 +1879,32 @@ exports.PlatformIamIdentityKind = exports.$Enums.PlatformIamIdentityKind = {
   RUNTIME: 'RUNTIME'
 };
 
+exports.LedgerAccountType = exports.$Enums.LedgerAccountType = {
+  ASSET: 'ASSET',
+  LIABILITY: 'LIABILITY',
+  REVENUE: 'REVENUE',
+  EXPENSE: 'EXPENSE',
+  EQUITY: 'EQUITY'
+};
+
+exports.LedgerEntryDirection = exports.$Enums.LedgerEntryDirection = {
+  DEBIT: 'DEBIT',
+  CREDIT: 'CREDIT'
+};
+
+exports.LedgerReservationStatus = exports.$Enums.LedgerReservationStatus = {
+  ACTIVE: 'ACTIVE',
+  COMMITTED: 'COMMITTED',
+  COMPENSATED: 'COMPENSATED',
+  RELEASED: 'RELEASED',
+  EXPIRED: 'EXPIRED'
+};
+
+exports.LedgerReconciliationStatus = exports.$Enums.LedgerReconciliationStatus = {
+  OK: 'OK',
+  DISCREPANCY: 'DISCREPANCY'
+};
+
 exports.Prisma.ModelName = {
   User: 'User',
   Account: 'Account',
@@ -1922,7 +2023,13 @@ exports.Prisma.ModelName = {
   CloudTenantTransfer: 'CloudTenantTransfer',
   CloudTeardownRecord: 'CloudTeardownRecord',
   PlatformIamIdentity: 'PlatformIamIdentity',
-  PlatformIamImpersonationAudit: 'PlatformIamImpersonationAudit'
+  PlatformIamImpersonationAudit: 'PlatformIamImpersonationAudit',
+  LedgerAccount: 'LedgerAccount',
+  LedgerTransaction: 'LedgerTransaction',
+  LedgerEntry: 'LedgerEntry',
+  LedgerReservation: 'LedgerReservation',
+  LedgerFxRate: 'LedgerFxRate',
+  LedgerReconciliationRun: 'LedgerReconciliationRun'
 };
 
 /**

@@ -154,12 +154,15 @@ import {
   ImportInvariantError,
   applyConsentedRedactions,
   assertImportTransition,
+  assertScanBranch,
+  scanBranchTarget,
   scanStagedFilesForSecrets,
   unresolvedFindings,
   type ConsentDecision,
   type ImportFile,
   type ImportState,
 } from './import-pipeline.js';
+import { ImportCreditLedger, estimateImportReservation } from './import-billing.js';
 import {
   REMIX_CONSENT_VERSION,
   RemixInvariantError,
@@ -7885,6 +7888,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * mount until commit — holds regardless of the backing store.)
    */
   const importStaging = new Map<string, ImportFile[]>();
+
+  /*
+   * SAFETY billing ledger (in-process, mirrors importStaging): idempotent credit
+   * reservation reserved BEFORE any paid work, settled ONLY on COMMITTED, and
+   * compensated on every non-committed exit (cancel/timeout/rollback/failure).
+   * `importIdemIndex` maps a client idempotency key → jobId so a retried create
+   * replays the same import instead of double-creating + double-reserving.
+   */
+  const importLedger = new ImportCreditLedger();
+  const importIdemIndex = new Map<string, string>();
 
   const app = Fastify({
     bodyLimit: Number(process.env.API_BODY_LIMIT_BYTES ?? 25 * 1024 * 1024),
@@ -18273,6 +18286,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const importCreateSchema = z.object({
     provider: z.enum(IMPORT_HUB_PROVIDERS as [string, ...string[]]),
     sourceRef: z.string().optional(),
+    /*
+     * Mandatory idempotency key (safety billing): a retried create with the same
+     * key replays the same import and never double-reserves credits.
+     */
+    idempotencyKey: z.string().trim().min(1).max(200),
     files: z
       .array(z.object({ path: z.string().min(1), content: z.string(), encoding: z.string().optional() }))
       .max(5000)
@@ -18283,9 +18301,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     consent: z.record(z.string(), z.enum(['keep', 'redact'])).default({}),
   });
 
-  /** Cleanup is reachable on EVERY exit — cancel, timeout, and failure alike. */
+  /*
+   * Cleanup is reachable on EVERY non-committed exit — cancel, timeout, rollback
+   * and failure alike. It disposes the disposable staging (the target is NEVER
+   * mounted before COMMITTED) and COMPENSATES the credit reservation to zero
+   * debit — so an import that never committed is never charged (safety rule 3).
+   */
   const cleanupImport = async (importJobId: string, terminal: ImportState, error?: string) => {
     importStaging.delete(importJobId); // dispose the staging — target never mounted
+    importLedger.compensateByJob(importJobId); // release the reservation, zero debit
     await store.updateImportJob(importJobId, { state: terminal, ...(error ? { error } : {}) }).catch(() => undefined);
   };
 
@@ -18302,6 +18326,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     for (const id of expired) {
       importStaging.delete(id);
+      importLedger.compensateByJob(id); // timeout is a non-committed exit → release, zero debit
     }
 
     return expired;
@@ -18311,6 +18336,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     void reapExpiredImports().catch(() => undefined);
   }, 60_000);
   importReaper.unref();
+
+  /*
+   * Expose the app-level reaper (store sweep + staging dispose + reservation
+   * compensation) so operational tooling and tests can drive the SAME timeout
+   * path the periodic timer runs — never a partial store-only sweep.
+   */
+  app.decorate('reapExpiredImports', reapExpiredImports);
 
   /*
    * Secure import (DOMAIN_MODEL §2): RECEIVED → STAGING_ISOLATED → SCANNING →
@@ -18325,6 +18357,34 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const body = parse(importCreateSchema, request.body);
 
+    /*
+     * IDEMPOTENT CREATE: a retried POST with the same key replays the SAME import
+     * (re-fetched current status) instead of creating a second job + a second
+     * reservation. In-process index; durable idempotency = UsageReservation follow-up.
+     */
+    const idemMapKey = `${orgId}:${body.idempotencyKey}`;
+    const existingJobId = importIdemIndex.get(idemMapKey);
+
+    if (existingJobId) {
+      const existing = await store.getImportJob(existingJobId);
+
+      if (existing && existing.organizationId === orgId) {
+        const requiresConsent = existing.state === 'QUARANTINED' || existing.state === 'AWAITING_USER_ACTION';
+
+        return reply.code(existing.state === 'AWAITING_USER_ACTION' ? 202 : 200).send({
+          import: {
+            importJobId: existing.id,
+            state: existing.state,
+            provider: existing.provider,
+            findings: (existing.findings as unknown[]) ?? [],
+            stagedFileCount: existing.stagedFileCount,
+            requiresConsent,
+            replayed: true,
+          },
+        });
+      }
+    }
+
     // Staging expires (idle) — the sweeper / timeout path uses this.
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
     const job = await store.createImportJob({
@@ -18334,6 +18394,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       sourceRef: body.sourceRef,
       expiresAt,
     });
+    importIdemIndex.set(idemMapKey, job.id);
 
     let state: ImportState = 'RECEIVED';
     const advance = async (to: ImportState, patch: Record<string, unknown> = {}) => {
@@ -18344,14 +18405,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     try {
       /*
-       * E-CODE DECISION (not Replit parity): reserve Agent credits idempotently
-       * (keyed by importJobId) BEFORE staging, so a retried import never double-
-       * charges. Recorded as a marker here; wiring the real debit is a follow-up.
+       * SAFETY BILLING: RESERVE credits idempotently (keyed by the client
+       * idempotency key) BEFORE any paid work (staging / scan). A retried import
+       * with the same key never double-reserves. The debit is recorded ONLY if
+       * the import reaches COMMITTED (settle); every other exit compensates.
        */
+      const stagedFiles: ImportFile[] = body.files ?? [];
+      importLedger.reserve({
+        key: body.idempotencyKey,
+        organizationId: orgId,
+        importJobId: job.id,
+        reservedCredits: estimateImportReservation(stagedFiles.length),
+      });
       await store.updateImportJob(job.id, { creditsReserved: true });
 
       // STAGING_ISOLATED — files into the disposable staging, NOT the target.
-      const stagedFiles: ImportFile[] = body.files ?? [];
       importStaging.set(job.id, stagedFiles);
       await advance('STAGING_ISOLATED', { stagedFileCount: stagedFiles.length });
 
@@ -18365,7 +18433,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         'import scan complete',
       );
 
-      if (findings.length > 0) {
+      /*
+       * SCANNING branches on the contract machine (P0-EX-04): blocking findings →
+       * QUARANTINED (never straight to COMMITTING); a CLEAN payload → READY_TO_COMMIT
+       * (never artificially through quarantine). assertScanBranch enforces both.
+       */
+      const hasBlockingFindings = findings.length > 0;
+      const branch = scanBranchTarget(hasBlockingFindings);
+      assertScanBranch(branch, hasBlockingFindings);
+
+      if (branch === 'QUARANTINED') {
         await advance('QUARANTINED', { findings });
         await advance('AWAITING_USER_ACTION');
 
@@ -18381,8 +18458,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         });
       }
 
-      // Clean scan — ready to commit (no findings), but still awaits the explicit
-      // commit call. State stays at SCANNING; the commit endpoint drives the rest.
+      // Clean scan → READY_TO_COMMIT. The commit endpoint drives COMMITTING→COMMITTED.
+      await advance('READY_TO_COMMIT');
+
       return reply.code(201).send({
         import: {
           importJobId: job.id,
@@ -18395,7 +18473,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      await cleanupImport(job.id, 'ROLLING_BACK', message);
+      await cleanupImport(job.id, 'FAILED', message);
 
       if (error instanceof ImportInvariantError) {
         return reply.status(error.statusCode).send({ error: message, code: error.code, importJobId: job.id });
@@ -18457,6 +18535,37 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       // Apply ONLY consented redactions (never silent).
       const { files: finalFiles, redacted } = applyConsentedRedactions(staged, findings, consent);
 
+      /*
+       * Quarantine path (P0-EX-04): a job AWAITING_USER_ACTION does NOT jump to
+       * COMMITTING. It goes AWAITING_USER_ACTION → RESCANNING, re-scans the
+       * CONSENTED copy, then branches: fully resolved → READY_TO_COMMIT; a still-
+       * unresolved finding → back to QUARANTINED (409). Only READY_TO_COMMIT may
+       * then advance to COMMITTING.
+       */
+      if (state === 'AWAITING_USER_ACTION') {
+        await advance('RESCANNING');
+
+        const rescanFindings = scanStagedFilesForSecrets(finalFiles);
+        const stillUnresolved = unresolvedFindings(rescanFindings, consent);
+        const hasBlocking = stillUnresolved.length > 0;
+        const rescanBranch = scanBranchTarget(hasBlocking);
+        assertScanBranch(rescanBranch, hasBlocking);
+
+        if (rescanBranch === 'QUARANTINED') {
+          await advance('QUARANTINED', { findings: rescanFindings });
+
+          return reply.status(409).send({
+            error: 'Import blocked after rescan: resolve every remaining finding before committing.',
+            code: 'IMPORT_RESCAN_STILL_BLOCKED',
+            findings: stillUnresolved,
+            importJobId,
+          });
+        }
+
+        await advance('READY_TO_COMMIT', { consent, redactedCount: redacted.length });
+      }
+
+      // COMMITTING may ONLY depart from READY_TO_COMMIT (assertImportTransition).
       await advance('COMMITTING', { consent, redactedCount: redacted.length });
 
       // Atomic target write — the first and only touch of a target project.
@@ -18491,6 +18600,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       importStaging.delete(importJobId); // staging disposed after successful commit
       await advance('COMMITTED', { targetProjectId: project.id });
 
+      /*
+       * SAFETY BILLING: settle the reservation — the ONLY place a debit is
+       * recorded, and only now that the import actually COMMITTED. `settleByJob`
+       * enforces "committed === true" and the no-debit-without-commit invariant.
+       */
+      const settled = importLedger.settleByJob(importJobId, true, estimateImportReservation(finalFiles.length));
+      request.log?.info?.(
+        { event: 'import.billing.settle', importJobId, debitedCredits: settled.debitedCredits },
+        'import reservation settled',
+      );
+
       await audit(request, store, {
         organizationId: orgId,
         action: 'project.import.commit',
@@ -18510,7 +18630,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         import: { importJobId, state, redactedCount: redacted.length, targetProjectId: project.id },
       });
     } catch (error) {
-      // Failure path: full rollback — no partial target, staging disposed.
+      /*
+       * Failure path: full rollback — no partial target, staging disposed, and the
+       * reservation COMPENSATED (zero debit) via cleanupImport. A failure after
+       * reservation therefore never charges. ROLLING_BACK is the terminal here.
+       */
       const message = error instanceof Error ? error.message : String(error);
       await cleanupImport(importJobId, 'ROLLING_BACK', message);
       throw error;
@@ -18541,7 +18665,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       throw Object.assign(new Error('Import job not found'), { statusCode: 404, code: 'IMPORT_JOB_NOT_FOUND' });
     }
 
-    return { import: job };
+    /*
+     * Surface the safety-billing reservation state (in-process ledger) so the
+     * reservation lifecycle is observable: RESERVED before commit, SETTLED with a
+     * positive debit only on COMMITTED, COMPENSATED (zero debit) on any cleanup.
+     */
+    const reservation = importLedger.getByJob(importJobId);
+
+    return {
+      import: {
+        ...job,
+        reservation: reservation
+          ? {
+              state: reservation.state,
+              reservedCredits: reservation.reservedCredits,
+              debitedCredits: reservation.debitedCredits,
+            }
+          : null,
+      },
+    };
   });
 
   app.post('/orgs/:orgId/projects/import/github', async (request, reply) => {

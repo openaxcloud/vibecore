@@ -322,7 +322,7 @@ ou 🔒. **Rien de 📘/🔒 n'est certifié live** ; c'est le meilleur constat 
 
 ## 4. LA colonne importante — NOUVEAU chez Replit, ABSENT de nos 159
 
-Ce qu'un nouveau compte voit aujourd'hui et que notre univers P001–P159 **n'a nulle part** :
+Ce qu'un nouveau compte voit aujourd'hui et que notre univers P001–P159 **ne couvre pas encore** :
 
 | # | Surface nouvelle | Preuve | Statut |
 |---|---|---|---|

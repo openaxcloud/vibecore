@@ -2677,3 +2677,152 @@ model PlatformIamImpersonationAudit {
 
   @@index([identityId, createdAt])
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CANONICAL DOUBLE-ENTRY LEDGER (C1 / P0-V3-12)
+// Supersedes the single-entry CreditWallet.balanceCents "porte-monnaie". Every
+// posted transaction balances per currency (Σ debits == Σ credits); posted
+// transactions + entries are IMMUTABLE (DB triggers in migration 0078) — a
+// correction is a NEW reversing transaction, never a mutation. Amounts are exact
+// integer minor units (BigInt); FX is exact rational (num/den). No relation to
+// Organization is declared (plain organizationId, like UsageReservation) to keep
+// the migration self-contained.
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum LedgerAccountType {
+  ASSET
+  LIABILITY
+  REVENUE
+  EXPENSE
+  EQUITY
+}
+
+enum LedgerEntryDirection {
+  DEBIT
+  CREDIT
+}
+
+enum LedgerReservationStatus {
+  ACTIVE
+  COMMITTED
+  COMPENSATED
+  RELEASED
+  EXPIRED
+}
+
+enum LedgerReconciliationStatus {
+  OK
+  DISCREPANCY
+}
+
+model LedgerAccount {
+  id             String            @id @default(cuid())
+  organizationId String
+  /// Stable account key: user_credits | reserved | revenue | provider_cost |
+  /// fx_clearing | fx_rounding | tax_payable | refunds | budget_hold ...
+  key            String
+  type           LedgerAccountType
+  currency       String
+  createdAt      DateTime          @default(now())
+  entries        LedgerEntry[]
+
+  @@unique([organizationId, key, currency])
+  @@index([organizationId])
+}
+
+model LedgerTransaction {
+  id              String              @id @default(cuid())
+  organizationId  String
+  reason          String
+  /// Idempotency key (unique per org when set). NULL rows are not deduped.
+  idempotencyKey  String?
+  /// Compensation: points at the original transaction this one reverses.
+  reversalOfId    String?
+  rateCardVersion Int?
+  postedAt        DateTime            @default(now())
+  metadata        Json?
+  entries         LedgerEntry[]
+  reversalOf      LedgerTransaction?  @relation("LedgerReversal", fields: [reversalOfId], references: [id], onDelete: SetNull)
+  reversals       LedgerTransaction[] @relation("LedgerReversal")
+
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, postedAt])
+  @@index([reversalOfId])
+}
+
+model LedgerEntry {
+  id            String               @id @default(cuid())
+  transactionId String
+  accountId     String
+  direction     LedgerEntryDirection
+  /// Exact positive integer minor units (e.g. USD cents / micro-credits).
+  amountMinor   BigInt
+  currency      String
+  transaction   LedgerTransaction    @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  account       LedgerAccount        @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([transactionId])
+  @@index([accountId, currency])
+}
+
+model LedgerReservation {
+  id              String                  @id @default(cuid())
+  organizationId  String
+  userId          String?
+  /// Idempotency key, unique per org: a replay returns the SAME reservation.
+  idempotencyKey  String
+  operation       String
+  status          LedgerReservationStatus @default(ACTIVE)
+  currency        String                  @default("usd")
+  /// Authorized ceiling (hold, not a debit).
+  maxAmountMinor  BigInt
+  /// Actually settled at COMMIT (≤ maxAmountMinor).
+  committedMinor  BigInt?
+  rateCardVersion Int?
+  importJobId     String?
+  /// Correlated ledger transactions across the lifecycle.
+  reserveTxId     String?
+  settleTxId      String?
+  compensateTxId  String?
+  expiresAt       DateTime
+  committedAt     DateTime?
+  releasedAt      DateTime?
+  releaseReason   String?
+  metadata        Json?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, status])
+  @@index([status, expiresAt])
+  @@index([importJobId])
+}
+
+model LedgerFxRate {
+  id           String    @id @default(cuid())
+  fromCurrency String
+  toCurrency   String
+  /// Exact rational rate = rateNum / rateDen (no float).
+  rateNum      BigInt
+  rateDen      BigInt
+  effectiveAt  DateTime
+  /// Exclusive upper bound this rate is valid for (cutoff).
+  cutoffAt     DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([fromCurrency, toCurrency, effectiveAt])
+}
+
+model LedgerReconciliationRun {
+  id               String                     @id @default(cuid())
+  organizationId   String?
+  /// GCP | STRIPE | LEDGER — the external source compared against the ledger.
+  source           String
+  status           LedgerReconciliationStatus
+  discrepancyCount Int                        @default(0)
+  discrepancies    Json?
+  runAt            DateTime                   @default(now())
+  metadata         Json?
+
+  @@index([source, runAt])
+}
