@@ -49,7 +49,7 @@ Chaque ligne est adossée à un fait rendu/hashé, pas à une déduction.
 | Ouvrir l'app (View App) | lien sortant vers l'app déployée | RPL-17 |
 | Utiliser comme template / Remix | CTA « Use Template » / Remix | RPL-17 |
 | Auteurs / Community Profiles | profils publics liés, page community rendue | RPL-19 |
-| Signaler (Report) | lien GÉNÉRIQUE de footer « Report abuse » → docs.replit.com/legal-and-security-info/abuse-report — report PAR APP ABSENT du rendu public (vérifié live 21/07, scan des <a> de la page) | RPL-18 |
+| Signaler (Report) | **NOT_OBSERVED_IN_PUBLIC_RENDER** (P0-V3-02 requalifié, reçu RR-20260721-CODEX-04) : dans le DOM COMPLET archivé (2026-07-21-gallery-pricing-v4/replit-gallery-dom.html, sha256 4e5380a8…), seules 2 occurrences « Report abuse » (footer) → docs.replit.com/legal-and-security-info/abuse-report — aucun report AU NIVEAU APP ; preuve authentifiée = UNK-GALLERY-REPORT-FLOW | RPL-18 |
 | Soumettre une app = **formulaire EXTERNE** | « Submit your App » → `form.typeform.com/to/yVYAWg79` | RPL-17 |
 
 **Fait structurant** : la soumission passe par un **Typeform externe** =

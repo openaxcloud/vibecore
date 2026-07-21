@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "ecode/parity/project-manifest",
   "x-schemaVersion": 3,
-  "x-repoCommit": "1692f981",
+  "x-repoCommit": "0f668026",
   "title": "ProjectManifest",
   "description": "Source versionnée des composants, artifacts, bindings et scopes d'un Project (plan §5, P0-EX-08). Consommé par ProjectRevision (manifestDigest).",
   "type": "object",

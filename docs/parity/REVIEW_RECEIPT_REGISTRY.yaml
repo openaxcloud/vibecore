@@ -76,3 +76,28 @@ receipts:
       refused: [P0-V4-1, P0-V4-2, P0-V3-02, P0-LS-13, P0-LS-16]
     refusalReasonsLocation: "REVIEW_RESPONSE_RR-20260721-CODEX-03.md + P0_REGISTRY.refusalReason"
     completeness: COMPLETE
+
+  - reviewReceiptId: RR-20260721-CODEX-04
+    reviewerType: AUTOMATED_LLM
+    reviewerIdentity: "OpenAI-Codex"
+    reviewerModelVersion: "GPT-5 (Codex)"
+    reviewedAt: "2026-07-21"
+    auditedCommit: "6ca7d701fdb5c2308bfac8715a966c5aa09d32df"   # tête de la PR #37 examinée
+    inputDocuments:
+      - path: docs/parity/DOSSIER_EXPERT_CONSOLIDE_20260721.md
+        note: "dossier consolidé soumis (état à 6ca7d701)"
+    responsePath: docs/parity/incoming/REPONSE_EXPERT_PR37_20260721.md
+    responseHash: "sha256:6d91bcfbb4bbd3f515e48f9b6c6a9e89338a7676b440d65a674242e3b7965b27"
+    checksPath: docs/parity/incoming/PR37_REVIEW_CHECKS_20260721.txt
+    summary: "PR #37 REFUSÉE ; 16 P0 re-confirmés SIGNÉS / 11 P0 refusés (5 v3 + 6 lot B) ; 0/11 contrats signés ; lots code #27 et #28 refusés dans leur état mergé"
+    decisions:
+      accepted: [P0-A2-04, P0-A2-06, P0-A2-08, P0-EX-01, P0-EX-03, P0-EX-06,
+                 P0-EX-09, P0-LS-01, P0-LS-02, P0-LS-07, P0-LS-08, P0-LS-09,
+                 P0-LS-10, P0-LS-11, P0-LS-12, P0-LS-15]
+      refused: [P0-V4-1, P0-V4-2, P0-V3-02, P0-LS-13, P0-LS-16,
+                P0-A2-02, P0-A2-11, P0-LS-05, P0-LS-17, P0-LS-18, P0-V3-14]
+      contractsRefused: 11   # les 11 contrats v2 soumis — raisons verbatim reportées dans CONTRACT_REGISTRY
+      codeLotsRefused: 2     # PR #27 (idempotence non durable/scopée org) + PR #28 (atomicité/hard-limit/orga-devise/reversal) — remédiation = autre session (directive Avi)
+    factualCorrectionsOrdered: "état des merges à aligner (réalité vérifiée gh au 21/07 08h UTC : #27 MERGED 04:42, #28 MERGED 04:46, #29 MERGED 04:29, #30 MERGED 04:36 — le verdict disait #29/#30 OUVERTES, périmé au moment de sa lecture) ; compteur 65 P0 avec les 5 PROVEN ; synchronisation conditionDeCloture/refusalReason/nextAction/reviewVerdict des 5 v3"
+    refusalReasonsLocation: "docs/parity/incoming/REPONSE_EXPERT_PR37_20260721.md (verbatim) + P0_REGISTRY.refusalReason + CONTRACT_REGISTRY"
+    completeness: COMPLETE

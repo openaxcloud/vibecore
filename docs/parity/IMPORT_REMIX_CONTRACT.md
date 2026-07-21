@@ -6,8 +6,8 @@ schemaVersion: 2
 repoCommit: 1692f981
 reviewer: UNKNOWN
 expectedReviewer: OpenAI-Codex
-signatureResult: PENDING_REVIEW   # v1 REFUSED (lot 57febeab : « 2 machines contradictoires, l'implémentation suit l'ancienne ») — v2 : UNE seule machine, code aligné (PR #27), re-soumission requise
-implementationAnchor: "Import : PR #27 (branche feat/import-state-machine-p0ex04) — NON MERGÉE ; import-pipeline.ts réécrit sur LA machine normative + import-billing.ts (réservation idempotente/compensation) + import-state-machine-e2e.spec.ts (256 lignes). Remix : MERGÉ en prod (7bd91bcf) — remix-pipeline.ts + licence fail-closed (#25)."
+signatureResult: REFUSED_V2   # v1 REFUSED (« 2 machines contradictoires ») ; v2 REFUSED au reçu RR-20260721-CODEX-04 — machine mieux alignée mais billing de sûreté non signable (voir §7)
+implementationAnchor: "Import : PR #27 MERGÉE (merge c0fd65de, 2026-07-21T04:42Z) ; import-pipeline.ts réécrit sur LA machine normative + import-billing.ts (réservation idempotente/compensation) + import-state-machine-e2e.spec.ts (256 lignes). Remix : MERGÉ en prod (7bd91bcf) — remix-pipeline.ts + licence fail-closed (#25)."
 
 ## 1. Machine à états Import — LA machine (unique, normative = implémentée)
 
@@ -55,7 +55,7 @@ bloquant → retour QUARANTINED. Le commit atomique ne part QUE de READY_TO_COMM
 - **I-IMP-4 (consentement tracé)** : chaque décision keep/redact est enregistrée
   (`consent` sur ImportJob) ; RESCANNING vérifie la copie consentie.
 
-## 4. Tests négatifs (exigés, existants — branche #27)
+## 4. Tests négatifs (exigés, existants — mergés via #27)
 
 - COMMITTING depuis SCANNING (saut d'état) → refusé ;
 - payload PROPRE forcé en QUARANTINED → violation refusée ;
@@ -97,6 +97,13 @@ SNAPSHOT_PINNED → CREDENTIALS_DETACHED → SOURCE_SANITIZED → CLONING
 
 - v1 : REFUSED (RR-20260720-CODEX-01) — « 2 machines contradictoires ; le code
   + 15 tests prouvent encore l'ancienne (SCANNING→COMMITTING) ».
-- v2 (ce document) : **PENDING_REVIEW** — UNE machine, code aligné (PR #27,
-  e2e machine dédié) ; la partie Import N'EST PAS MERGÉE ; signature = merge +
-  reçu de revue COMPLET. Rien d'auto-clôturé.
+- v2 (ce document) : **REFUSED_V2** (reçu RR-20260721-CODEX-04, verbatim) —
+  la machine Import unique est « substantiellement mieux alignée » et la PR #27
+  est MERGÉE (c0fd65de), mais le lot reste non signable : mini-ledger indexé
+  par clé brute SANS namespace organisation (2 orgs peuvent partager une
+  réservation) ; création idempotente non sérialisée (2 retries concurrents →
+  2 jobs) ; réservation in-process qui ne survit pas au redémarrage.
+  Correction minimale exigée : contrainte unique durable
+  (organizationId, idempotencyKey), transaction/upsert ou verrou par clé,
+  contrôle d'ownership, stockage durable, tests concurrents multi-orgs.
+  **Remédiation = autre session (directive owner).**

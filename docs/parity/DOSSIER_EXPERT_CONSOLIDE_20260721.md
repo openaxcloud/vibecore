@@ -1,5 +1,15 @@
 # DOSSIER_EXPERT_CONSOLIDE_20260721 — dossier UNIQUE pour le relecteur (OpenAI-Codex)
 
+> ⚠️ **SUPERSEDÉ** — ce dossier est la pièce EXAMINÉE par le reçu
+> `RR-20260721-CODEX-04` (réponse brute :
+> `docs/parity/incoming/REPONSE_EXPERT_PR37_20260721.md`, sha256 `6d91bcfb…`).
+> Il est conservé TEL QUEL (immutabilité des pièces revues). Le dossier courant
+> de re-soumission est **`DOSSIER_EXPERT_CONSOLIDE_20260721_V2.md`** — les
+> erreurs factuelles relevées (compteur 60 au lieu de 65 avec les 5 PROVEN,
+> ancres « NON MERGÉE » périmées) y sont corrigées. Vérité des merges au
+> 21/07 08h UTC (gh, rejouable) : #29 MERGED 04:29, #30 MERGED 04:36,
+> #27 MERGED 04:42, #28 MERGED 04:46 — les quatre.
+
 État RÉEL du dépôt : les PR #27/#28/#29/#30 SONT mergées sur main (décision
 owner, option 2) — leur statut reste PROVEN_REVIEW_PENDING : RIEN n'est
 CLOSED/SIGNED sans ton reçu COMPLET (garde machine). Reçus :

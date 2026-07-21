@@ -949,6 +949,11 @@ export function computeApprovalStatus(now = '2026-07-20T12:30:00Z') {
       present: universe.length,
       evaluated: universe.length - unevaluatedSurfaces.length,
       services: serviceUniverse.length,
+      // P0-LS-17 (reçu RR-20260721-CODEX-04) : les DEUX notions sont nommées
+      // séparément — 159 candidats IDE (P001–P159) ≠ univers canonique 164
+      // (159 + surfaces hors-IDE, dérivation verrouillée par la garde
+      // supersession). Jamais présentées comme un compteur unique.
+      ideCandidateSurfaceCount: EXPECTED_SURFACE_UNIVERSE_IDS.length,
       canonicalSurfaceCount: canon.canonicalSurfaceCount ?? null,
       classificationComplete: canon.classificationComplete ?? false,
       deduplicationComplete: canon.deduplicationComplete ?? false,

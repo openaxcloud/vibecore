@@ -1007,6 +1007,52 @@ function checkHeader(file, doc) {
     if (kinds !== expected) {
       fail('ARTIFACT_KIND_REGISTRY.yaml', `kinds [${kinds}] ≠ taxonomie exacte P0-LS-02 [${expected}] — SERVICE/JOB/STATIC_SITE/DOCUMENT/SPREADSHEET interdits ici`);
     }
+  }
+
+  // P0-LS-05 (reçu RR-20260721-CODEX-04) : les QUATRE taxonomies sont des
+  // ensembles EXACTS verrouillés, pas des renvois au plan.
+  {
+    const ga = loadYaml(join(parityRoot, 'GENERATED_ASSET_KIND_REGISTRY.yaml'));
+    const gaKinds = (ga.kinds ?? []).map((k) => k.kind).sort().join(',');
+    const gaExpected = ['CSV', 'DOCUMENT', 'IMAGE', 'MARKDOWN', 'OTHER_FILE', 'PDF', 'PRESENTATION_FILE', 'SPREADSHEET'].join(',');
+
+    if (gaKinds !== gaExpected) {
+      fail('GENERATED_ASSET_KIND_REGISTRY.yaml', `kinds [${gaKinds}] ≠ les 8 GeneratedAssetKind exacts [${gaExpected}]`);
+    }
+
+    const ck = loadYaml(join(parityRoot, 'COMPONENT_KIND_REGISTRY.yaml'));
+    const ckKinds = (ck.kinds ?? []).map((k) => k.kind).sort().join(',');
+    const ckExpected = ['API', 'JOB', 'SERVICE', 'SHARED_PACKAGE', 'STATIC_SITE_COMPONENT', 'WEB_FRONTEND', 'WORKER'].join(',');
+
+    if (ckKinds !== ckExpected) {
+      fail('COMPONENT_KIND_REGISTRY.yaml', `kinds [${ckKinds}] ≠ les 7 ComponentKind exacts [${ckExpected}]`);
+    }
+
+    const dt = loadYaml(join(parityRoot, 'DEPLOYMENT_TYPE_REGISTRY.yaml'));
+    const dtTypes = (dt.types ?? []).map((t) => t.type).sort().join(',');
+    const dtExpected = ['AUTOSCALE', 'RESERVED_VM', 'SCHEDULED', 'STATIC'].join(',');
+
+    if (dtTypes !== dtExpected) {
+      fail('DEPLOYMENT_TYPE_REGISTRY.yaml', `types [${dtTypes}] ≠ taxonomie Deployment exacte [${dtExpected}]`);
+    }
+  }
+
+  // P0-A2-02 (reçu RR-20260721-CODEX-04) : l'univers des services est un
+  // ensemble RÉEL et EXACT S01–S56 — verrouillé, pas un commentaire.
+  {
+    const svc = loadYaml(join(parityRoot, 'SERVICE_REGISTRY.yaml'));
+    const ids = (svc.serviceUniverse ?? []).map((s) => s.serviceId);
+    const expectedSvc = Array.from({ length: 56 }, (_, i) => `S${String(i + 1).padStart(2, '0')}`);
+
+    if (ids.join(',') !== expectedSvc.join(',')) {
+      fail('SERVICE_REGISTRY.yaml', `serviceUniverse ≠ ensemble exact S01–S56 (${ids.length} ids, premier écart: ${ids.find((x, i) => x !== expectedSvc[i]) ?? 'manquant'})`);
+    }
+
+    for (const s of svc.serviceUniverse ?? []) {
+      if (!s.title || !s.responsibility) {
+        fail('SERVICE_REGISTRY.yaml', `${s.serviceId}: title/responsibility manquant — un id sans contenu n'est pas un service`);
+      }
+    }
 
     const ip = loadYaml(join(parityRoot, 'IMPORT_PROVIDER_REGISTRY.yaml'));
 

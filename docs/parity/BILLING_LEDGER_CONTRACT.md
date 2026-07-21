@@ -6,8 +6,8 @@ schemaVersion: 2
 repoCommit: 1692f981
 reviewer: UNKNOWN
 expectedReviewer: OpenAI-Codex
-signatureResult: PENDING_REVIEW   # v1 REFUSED (lot 57febeab : « shadow wallet pas ledger double-entrée ») — v2 réécrit sur l'implémentation réelle, re-soumission requise
-implementationAnchor: "PR #28 (branche feat/billing-double-entry-ledger, commit edb35f6e) — NON MERGÉE ; migration 0078 (enums + triggers d'immutabilité), moteur pur ledger-core.ts, store durable ledger-store.ts, réservation ledger-reservation.ts, rapprochement ledger-reconciliation.ts ; 39 tests dont 7 contre vrai Postgres"
+signatureResult: REFUSED_V2   # v1 REFUSED (« shadow wallet pas ledger double-entrée ») ; v2 REFUSED au reçu RR-20260721-CODEX-04 — 4 défauts bloquants dans le code MERGÉ (voir §7)
+implementationAnchor: "PR #28 MERGÉE (merge 790eef17, 2026-07-21T04:46Z) ; migration 0078 (enums + triggers d'immutabilité), moteur pur ledger-core.ts, store durable ledger-store.ts, réservation ledger-reservation.ts, rapprochement ledger-reconciliation.ts ; 39 tests dont 7 contre vrai Postgres"
 
 ## 1. Objet
 
@@ -98,6 +98,14 @@ prod actuel : SHADOW). MODEL_REGISTRY_DB dormant.
 ## 7. Résultat de signature
 
 - v1 : REFUSED (RR-20260720-CODEX-01) — « shadow wallet pas ledger double-entrée ».
-- v2 (ce document) : **PENDING_REVIEW** — l'implémentation existe (PR #28,
-  39 tests dont 7 Postgres réels) mais N'EST PAS MERGÉE ; la signature exige
-  merge + reçu de revue COMPLET. Rien d'auto-clôturé.
+- v2 (ce document) : **REFUSED_V2** (reçu RR-20260721-CODEX-04, verbatim) —
+  la PR #28 est MERGÉE (790eef17) mais le code mergé porte 4 défauts
+  bloquants : (1) réservation passée à COMMITTED avant le post atomique du
+  settlement (pas de transaction DB commune) ; (2) hard limit lu/contrôlé hors
+  transaction — deux réservations concurrentes percent la limite (contredit
+  I-LED-4) ; (3) postTransaction ne valide ni l'appartenance organisation ni
+  la devise des comptes fournis ; (4) compensation fiscale re-fournie par
+  l'appelant au lieu d'être dérivée de la ventilation persistée. Correction
+  minimale exigée : transaction DB unique état+écritures, verrou/compteur
+  atomique du plafond, validation orga/devise, reversal dérivé des écritures
+  persistées. **Remédiation = autre session (directive owner).**

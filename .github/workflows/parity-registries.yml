@@ -23,6 +23,10 @@ on:
 
 permissions:
   contents: write
+  # LS-16 (verdict -04) : verify-attestation-run.mjs appelle « Get a workflow
+  # run » — sans actions:read, l'API répond « Resource not accessible by
+  # integration » et le contrôle est cassable.
+  actions: read
 
 concurrency:
   group: parity-registries-${{ github.ref }}
@@ -67,6 +71,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: PARITY_DEPS=/tmp/parity-deps node scripts/parity/verify-attestation-run.mjs
+      # LS-16 (verdict -04) : test négatif de SUBSTITUTION — un run vert réel
+      # d'un AUTRE workflow, présenté comme attestation, doit être REJETÉ
+      # (identité workflow + événement vérifiés). Échec du test = build rouge.
+      - name: Negative test — foreign-run substitution must be rejected
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: PARITY_DEPS=/tmp/parity-deps node scripts/parity/verify-attestation-substitution-test.mjs
       # P0-EX-10: PUBLISH the generated status set as a build artifact.
       - name: Publish generated status views
         if: always()
