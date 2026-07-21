@@ -69,9 +69,9 @@ documents:
     repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
     reviewer: UNKNOWN
   - file: CHECKPOINT_CONTRACT.md
-    sha256: "8f58bee1d37647aaa61f3e0f24d91a740bdec53da4b05b7f39c61282b71a4144"
-    schemaVersion: 1
-    repoCommit: ca299f87
+    sha256: "d134ba7803fb30de059eb4ebee43392ee7a5cc48e436fefbae15697f6c068e18"
+    schemaVersion: 2
+    repoCommit: 1692f981
     reviewer: UNKNOWN
   - file: CI_ATTESTATION.yaml
     sha256: "41db0e521ca73b837522d4a51a72e4a7f32f0847afb15424bbac569d8e4df6aa"
@@ -94,7 +94,7 @@ documents:
     repoCommit: 1692f981
     reviewer: UNKNOWN
   - file: COUNTER_RECONCILIATION_20260720.md
-    sha256: "389b4964a8428317420319f55af9fc7d6578f96038ab03f954f3b786a6e4efc9"
+    sha256: "1180a5a00874ac455fe553effad6f1871d19b030c43fef10cbc689585bbea4ca"
     schemaVersion: 1
     repoCommit: null
     reviewer: UNKNOWN
