@@ -46,7 +46,8 @@ p0s:
     priority: 3
     owner: platform
     status: OPEN
-    remediationTrack: A_TRIER
+    remediationTrack: QUICK
+    remediationPlan: "ancrer les constantes 300 et 0,1 sur la doc GCP hashée déjà en repo (snapshots iam-quotas/resource-manager)"
     conditionDeCloture: "Compléter l'évidence : tests recopient constantes 300 et 0,1 sans source GCP autoritative ; puis re-soumission au relecteur"
     refusalReason: "tests recopient constantes 300 et 0,1 sans source GCP autoritative"
     refusalType: PREUVE_INSUFFISANTE
@@ -124,7 +125,8 @@ p0s:
     priority: 3
     owner: platform
     status: OPEN
-    remediationTrack: A_TRIER
+    remediationTrack: CHANTIER
+    remediationPlan: "ancrage GCP vérifiable (projets de test dédiés — chantier D avec WIF)"
     refusalReason: "tests auto-référentiels, sans ancrage GCP vérifiable"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
@@ -144,7 +146,8 @@ p0s:
     priority: 4
     owner: platform
     status: OPEN
-    remediationTrack: A_TRIER
+    remediationTrack: CHANTIER
+    remediationPlan: "CloudTenant complet : champs + machines transfert/merge/split/suspension/restauration (CT-10/11)"
     refusalReason: "champs CloudTenant + machines transfert/merge/split/suspension/restauration absents"
     refusalType: DESACCORD
     reviewVerdict: REFUSED
@@ -209,7 +212,8 @@ p0s:
     priority: 8
     owner: platform
     status: OPEN
-    remediationTrack: A_TRIER
+    remediationTrack: CHANTIER
+    remediationPlan: "rejouer le run live avec RUN.log + rollback vérifiable (artefacts rejouables)"
     refusalReason: "RUN.log absent, rollback vide/404, JSON antérieur 400, script incomplet"
     refusalType: NON_REPRODUCTIBLE
     reviewVerdict: REFUSED
@@ -229,7 +233,8 @@ p0s:
     priority: 9
     owner: platform
     status: OPEN
-    remediationTrack: A_TRIER
+    remediationTrack: QUICK
+    remediationPlan: "requalifier le claim au niveau PROUVÉ (barrière 2 phases) — retirer « transaction-consistent » non démontré"
     refusalReason: "barrière 2 phases prouvée mais pas le niveau « transaction-consistent » revendiqué"
     refusalType: DESACCORD
     reviewVerdict: REFUSED
@@ -249,7 +254,8 @@ p0s:
     priority: 10
     owner: platform
     status: OPEN
-    remediationTrack: A_TRIER
+    remediationTrack: CHANTIER
+    remediationPlan: "écrire et prouver rotation/rétention/révocation/récupération"
     refusalReason: "rotation/rétention UNKNOWN ; révocation, provenance, récupération manquent"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
@@ -269,7 +275,8 @@ p0s:
     priority: 11
     owner: platform
     status: OPEN
-    remediationTrack: A_TRIER
+    remediationTrack: CHANTIER
+    remediationPlan: "contrat DBMigrationExecution + clé idempotence + protocole mutation PROD"
     refusalReason: "contrat sans DBMigrationExecution, clé idempotence ni protocole complet mutation PROD"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
@@ -309,7 +316,8 @@ p0s:
     priority: 13
     owner: platform
     status: OPEN
-    remediationTrack: A_TRIER
+    remediationTrack: CHANTIER
+    remediationPlan: "contrat WCAG 2.2 AA + registre accessibilité"
     refusalReason: "registre schemaVersion 3, accessibilité UNKNOWN, aucun contrat WCAG 2.2 AA"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
@@ -378,7 +386,8 @@ p0s:
     priority: 1
     owner: platform
     status: OPEN
-    remediationTrack: A_TRIER
+    remediationTrack: QUICK
+    remediationPlan: "provenance/manifeste largement traités depuis (generatedAt/receipts) — re-ancrer + compléter la validation par fichier"
     refusalReason: "manifeste non signé, provenance/validation par fichier incomplètes, reviewers UNKNOWN"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
@@ -417,7 +426,8 @@ p0s:
     priority: 3
     owner: platform
     status: OPEN
-    remediationTrack: A_TRIER
+    remediationTrack: CHANTIER
+    remediationPlan: "écrire le schéma complet Project→Artifacts (modèle §5 partiel)"
     refusalReason: "modèle partiel au §5 (ArtifactKind), aucun schéma complet Project→Artifacts"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
@@ -456,7 +466,8 @@ p0s:
     priority: 5
     owner: platform
     status: OPEN
-    remediationTrack: A_TRIER
+    remediationTrack: QUICK
+    remediationPlan: "corriger la logique de cohérence des niveaux dans le générateur"
     refusalReason: "sourceBaselineReady=false mais registryUniverseReady=true ; la preuve dit que les deux échouent"
     refusalType: DESACCORD
     reviewVerdict: REFUSED
@@ -495,7 +506,8 @@ p0s:
     priority: 7
     owner: platform
     status: OPEN
-    remediationTrack: A_TRIER
+    remediationTrack: CHANTIER
+    remediationPlan: "durcir le gate contractsValidated (schémas/références/tests/compatibilité réellement vérifiés)"
     refusalReason: "le gate ne valide pas schémas/références/tests/compatibilité annoncés"
     refusalType: DESACCORD
     reviewVerdict: REFUSED
@@ -609,7 +621,8 @@ p0s:
     priority: 13
     owner: platform
     status: OPEN
-    remediationTrack: A_TRIER
+    remediationTrack: QUICK
+    remediationPlan: "re-ancrer : attestation désormais roulée AUTOMATIQUEMENT au commit mergé (job roll-attestation, PR #30)"
     refusalReason: "champs provenance absents, attestation sur un autre commit, generatedAt incohérent"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
@@ -629,7 +642,8 @@ p0s:
     priority: 14
     owner: platform
     status: OPEN
-    remediationTrack: A_TRIER
+    remediationTrack: CHANTIER
+    remediationPlan: "écrire les contrats/seuils multi-tenant nommés"
     refusalReason: "contrats et seuils multi-tenant nommés inexistants"
     refusalType: DESACCORD
     reviewVerdict: REFUSED
@@ -722,7 +736,8 @@ p0s:
     priority: 3
     owner: platform
     status: OPEN
-    remediationTrack: A_TRIER
+    remediationTrack: QUICK
+    remediationPlan: "hasher les 21 fichiers de liens + compter manifeste inclus (69) honnêtement"
     refusalReason: "69 éléments au total (manifeste inclus) et 21 fichiers de liens non hashés"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
@@ -782,7 +797,8 @@ p0s:
     priority: 6
     owner: platform
     status: OPEN
-    remediationTrack: A_TRIER
+    remediationTrack: QUICK
+    remediationPlan: "re-trier les observations aux liens cassés/non sémantiques"
     refusalReason: "observations TRIAGED malgré liens cassés/non sémantiques"
     refusalType: DESACCORD
     reviewVerdict: REFUSED
@@ -1039,7 +1055,8 @@ p0s:
     priority: 1
     owner: platform
     status: OPEN
-    remediationTrack: A_TRIER
+    remediationTrack: QUICK
+    remediationPlan: "re-ancrer : builtState/codeRefs existent maintenant par item (IMPLEMENTATION_FACTS, mergé #24)"
     refusalReason: "159 candidats mais aucun builtState/codeRefs ; tous pending/unknown"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
@@ -1156,7 +1173,8 @@ p0s:
     priority: 5
     owner: platform
     status: OPEN
-    remediationTrack: A_TRIER
+    remediationTrack: QUICK
+    remediationPlan: "re-ancrer sur le schéma manifeste v2 durci + ARTIFACT_KIND_REGISTRY"
     refusalReason: "l'artefact ne distingue pas apps supplémentaires et types d'Artifact"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
@@ -1195,7 +1213,8 @@ p0s:
     priority: 7
     owner: platform
     status: OPEN
-    remediationTrack: A_TRIER
+    remediationTrack: CHANTIER
+    remediationPlan: "implémenter Guest + réconcilier P124 (identity — lié CTR-IDENTITY bloqué)"
     refusalReason: "contrat annonce P124 CODED, réel PARTIAL, sans entité Guest"
     refusalType: DESACCORD
     reviewVerdict: REFUSED
@@ -1215,7 +1234,8 @@ p0s:
     priority: 8
     owner: platform
     status: OPEN
-    remediationTrack: A_TRIER
+    remediationTrack: QUICK
+    remediationPlan: "résolu par le durcissement réel du schéma (PR #29 : additionalProperties false, allOf exécutable) — re-soumettre"
     refusalReason: "schéma accepte 2 artefacts mobile + manifeste minimal invalide ; allOf n'est qu'une description"
     refusalType: DESACCORD
     reviewVerdict: REFUSED

@@ -89,7 +89,7 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: COUNTER_RECONCILIATION_20260720.md
-    sha256: "e5768ad72b26830b71571e6f0ccb0dbd0e1b265f9c80678544f46ed719e1d177"
+    sha256: "587bc92555866c935e4f2e0561b4431e6a45a9dc9af96314fddaf213d07d7016"
     schemaVersion: 1
     repoCommit: null
     reviewer: UNKNOWN
@@ -219,7 +219,7 @@ documents:
     repoCommit: d1063912
     reviewer: UNKNOWN
   - file: P0_REGISTRY.yaml
-    sha256: "e211e46efb43d367cdae57366fea106d8b3018ad8240e7139108db96f99e413b"
+    sha256: "874be9c0d2d42f0eb935c612aba92a31b9d02ece134eba2b66e77b1a0c273b91"
     schemaVersion: 1
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN
