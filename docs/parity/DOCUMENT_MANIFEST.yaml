@@ -2,7 +2,7 @@
 # (P0-A2-01 / P0-LS-16). Ne jamais éditer à la main — drift-check en CI. Le
 # champ validation reflète le dernier run du validateur sur l'arbre.
 schemaVersion: 1
-fileCount: 164
+fileCount: 166
 generatedAt: "2026-07-21T04:52:01Z"
 generatedFromCommit: 790eef1786d282104707dc95be075706c39764ae
 mergedCommit: 790eef1786d282104707dc95be075706c39764ae
@@ -29,7 +29,7 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: APPROVAL_STATUS.json
-    sha256: "ee5aaa4b1c7852ca2759d706a1b989fe27dd770e07da3b54a1442a9b070f0e3b"
+    sha256: "3284f32b0604af8df5e40db0cdddb30da30869b738f6e557beda9e11b1fe2db1"
     schemaVersion: null
     repoCommit: null
     reviewer: UNKNOWN
@@ -64,7 +64,7 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: CHANGELOG_AUDIT.md
-    sha256: "31781ab6a7ece985ed5ab068f0486ca472b02ba59b5b4280d8755d880737fecc"
+    sha256: "ce62089dbd5d886877242b09fb15159cfbe18af2aa23563a8c0a508ea489fe9e"
     schemaVersion: 1
     repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
     reviewer: UNKNOWN
@@ -94,7 +94,7 @@ documents:
     repoCommit: 1692f981
     reviewer: UNKNOWN
   - file: COUNTER_RECONCILIATION_20260720.md
-    sha256: "196cad5535254188237cf85c74e4d71403babb7e369e496ccc58bbd62cfcd20c"
+    sha256: "31c4c22860f3531f2941dc87ffeeeb60b0e49dcbf40dc51eaae17f4304e865b2"
     schemaVersion: 1
     repoCommit: null
     reviewer: UNKNOWN
@@ -133,6 +133,11 @@ documents:
     schemaVersion: 2
     repoCommit: 1692f981
     reviewer: UNKNOWN
+  - file: DOSSIER_EXPERT_CONSOLIDE_20260721.md
+    sha256: "9be676259018bba2f892484ad23dc1e79c18089e2fb6857601406bca8446f8b3"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
   - file: E2E_PROOFS.yaml
     sha256: "7a71b8fcfce5ec283cca257797f957495e27aad6242a978ecb03bf1ec8b6187c"
     schemaVersion: 1
@@ -154,7 +159,7 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: GALLERY_COMMUNITY_CONTRACT.md
-    sha256: "ebdee81d5a3d9fd5e8cd684d4c058b90b24be17972d3558e821fcb5050a7734f"
+    sha256: "17ca2cad1509dbb4eaf255066bcce9a9885e66c343a359fe0fd1112dd68cf18d"
     schemaVersion: 2
     repoCommit: 1692f981
     reviewer: UNKNOWN
@@ -224,7 +229,7 @@ documents:
     repoCommit: d1063912
     reviewer: UNKNOWN
   - file: P0_REGISTRY.yaml
-    sha256: "21b964dae6ed20a068ccfff51efc610227750eef96f86c01efe181c2887e8229"
+    sha256: "61f024009b8e88efb450d6c5f62d3910e7dce0a165b4f9130c8d9833a89d2d8d"
     schemaVersion: 1
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN
@@ -234,7 +239,7 @@ documents:
     repoCommit: af9e4e83
     reviewer: UNKNOWN
   - file: PARITY_STATUS.md
-    sha256: "e94f2c0a283c4cf4c7abc96347c83d9be5861813f2c230d49647063b8b4695ce"
+    sha256: "702c19aa711960c2f6c7d88c533a631ce37a1408af34fa80111c661930c3d458"
     schemaVersion: 2
     repoCommit: 790eef17
     reviewer: UNKNOWN
@@ -249,7 +254,7 @@ documents:
     repoCommit: null
     reviewer: UNKNOWN
   - file: PRICE_OBSERVATION_REGISTRY.yaml
-    sha256: "b004519fe2ec29a083b6ac6c2cc5dde8e59fb9c8b320a236d563d079e921b96d"
+    sha256: "36710260f1704b45710c44aaa7cffc8ef2dd7f4bad8ce1d14aeb6a09d5d2caf9"
     schemaVersion: 1
     repoCommit: d56931bd
     reviewer: UNKNOWN
@@ -269,7 +274,7 @@ documents:
     repoCommit: null
     reviewer: UNKNOWN
   - file: PUBLIC_BASELINE_REPLIT_2026.yaml
-    sha256: "bfae67f9d8c8be7f709f4f598f34ce8d2e3c043f11f792958e70bd4502b1e5f1"
+    sha256: "41ece91f0ac8e6e72b27bdee52b1e737e21890aabcd369ea9acdf70245163674"
     schemaVersion: 1
     repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
     reviewer: UNKNOWN
@@ -324,12 +329,17 @@ documents:
     repoCommit: null
     reviewer: UNKNOWN
   - file: REVIEW_RECEIPT_REGISTRY.yaml
-    sha256: "6c50709b88542dfaf21363ce11436c8ad377b516b786fb807b423a1be879152e"
+    sha256: "3e266622284fe4599c85f6f867cb9fbbf7ab9f5559e070751f22bc41a0d670c2"
     schemaVersion: 1
     repoCommit: a4a9f71c
     reviewer: UNKNOWN
   - file: REVIEW_RESPONSE_RR-20260720-CODEX-02.md
     sha256: "e2563a96c7e2acfa474ab285dfebee193dea08d2ed56302b1e9af10a6f5c3fd9"
+    schemaVersion: 1
+    repoCommit: null
+    reviewer: OpenAI-Codex
+  - file: REVIEW_RESPONSE_RR-20260721-CODEX-03.md
+    sha256: "6acd422d31d2c9a1c91d33cc9248eb5aa738e021a1c19ff9df051ebbd641caa2"
     schemaVersion: 1
     repoCommit: null
     reviewer: OpenAI-Codex

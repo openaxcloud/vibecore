@@ -684,3 +684,20 @@ Règle: append-only; chaque entrée = date UTC, acteur, événement, artefacts.
   « PENDING_COMMIT »), DOMAIN_MODEL (§2 Import aligné sur LA machine),
   RUNTIME_NIX, IAM_POLICY_BASELINE, SECURITY_PRIVACY_COMPLIANCE.
 - Total : 10/14 durcis PENDING_REVIEW, 4/14 BLOCKED_ON_CHANTIER motivés.
+
+## 2026-07-21 (verdict B appliqué + corrections v3)
+
+- Reçu RR-20260721-CODEX-03 COMPLET (réponse brute hashée, audité 70eb30a0) :
+  P0-LS-14 SIGNÉ → 3e CLOSED ; 5 refusés avec raisons verbatim.
+- Corrections v3 RÉELLES : paquet d'évidence RÉGÉNÉRÉ par capture fraîche live
+  (2026-07-21-gallery-pricing-v3 : DOM sha256 calculé en page, innerText
+  complet) — VÉRITÉ RÉTABLIE : « 82 Results » EXISTE (la v2 le niait à tort),
+  Views = compteur vivant daté par capture (20,650→20,653→20,768) ; report
+  niveau app ABSENT vérifié par scan des liens ; observation prix LIÉE unique
+  (prix+locale fr-FR+cookies gating_id/_dd_s+géo IL/Netanya+horodatage+hash
+  DOM) + garde qui RECALCULE le sha256 des artefacts (preuve négative
+  rejouée) ; workflow sans filtre paths (chaque push main) + AUTHENTIFICATION
+  du run d'attestation contre l'API GitHub (verify-attestation-run.mjs) ;
+  3 exécutions vivantes du bot déjà en historique.
+- DOSSIER_EXPERT_CONSOLIDE_20260721.md : LS-14 info / 5 v3 / 22 à confirmer /
+  11 contrats / facturation #27+#28 / 3 bloqués.

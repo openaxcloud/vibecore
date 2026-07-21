@@ -17,6 +17,7 @@
  * n'est pas une donnée, c'est une échappatoire.
  */
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -825,7 +826,7 @@ function checkHeader(file, doc) {
 
   for (const [i, o] of (po.observations ?? []).entries()) {
     const label = `${o.planId ?? '?'}#${i}`;
-    const hasHash = Boolean(o.screenshotHash || o.textHash);
+    const hasHash = Boolean(o.screenshotHash || o.textHash || o.artifactSha256);
     const geoKnown = o.countryOrGeo && !String(o.countryOrGeo).startsWith('UNKNOWN');
     const localeKnown = o.locale && o.locale !== 'UNKNOWN';
     const cohortKnown = o.cookieCohort && o.cookieCohort !== 'UNKNOWN';
@@ -845,6 +846,16 @@ function checkHeader(file, doc) {
 
     if (o.artifactPath && !existsSync(join(repoRoot, o.artifactPath))) {
       fail('PRICE_OBSERVATION_REGISTRY.yaml', `${label}: artifactPath absent du disque (${o.artifactPath})`);
+    }
+
+    // LS-13 (verdict -03) : le SHA-256 de l'artefact est RECALCULÉ et comparé
+    // au registre — une vérification de présence déclarative ne suffit pas.
+    if (o.artifactPath && o.artifactSha256 && existsSync(join(repoRoot, o.artifactPath))) {
+      const actual = createHash('sha256').update(readFileSync(join(repoRoot, o.artifactPath))).digest('hex');
+
+      if (actual !== o.artifactSha256) {
+        fail('PRICE_OBSERVATION_REGISTRY.yaml', `${label}: sha256 RECALCULÉ (${actual.slice(0, 12)}…) ≠ déclaré (${String(o.artifactSha256).slice(0, 12)}…) — artefact modifié ou registre menteur`);
+      }
     }
   }
 

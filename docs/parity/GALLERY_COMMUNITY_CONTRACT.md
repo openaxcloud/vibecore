@@ -42,14 +42,14 @@ Chaque ligne est adossée à un fait rendu/hashé, pas à une déduction.
 | capacité | preuve rendue | claimId |
 |---|---|---|
 | Parcourir la galerie (grille d'apps + auteurs) | `/gallery` rendu, cartes + auteurs | RPL-17 |
-| Recherche | champ de recherche (le compteur « 82 Results » de la capture antérieure n'apparaît plus dans le rendu conservé — non revendiqué) | RPL-17 |
+| Recherche | champ de recherche + compteur de résultats RÉEL (« 82 Results » — présent, vérifié live 21/07 ; éclaté en nœuds DOM dans l'archive) | RPL-17 |
 | Catégories (~22) | liste de catégories rendue | RPL-17 |
 | Page détail d'une app | `/gallery/work/…` rendu | RPL-17 |
 | Stats publiques par app | « 20,653 » vues (liste) / « 20,649 » vues + « Used 79 times » (détail) — compteurs vivants | RPL-17 |
 | Ouvrir l'app (View App) | lien sortant vers l'app déployée | RPL-17 |
 | Utiliser comme template / Remix | CTA « Use Template » / Remix | RPL-17 |
 | Auteurs / Community Profiles | profils publics liés, page community rendue | RPL-19 |
-| Signaler (Report) | lien GÉNÉRIQUE de footer « Report abuse » — un report PAR APP n'est PAS prouvé par l'artefact (requalifié, refus V3-02) | RPL-18 |
+| Signaler (Report) | lien GÉNÉRIQUE de footer « Report abuse » → docs.replit.com/legal-and-security-info/abuse-report — report PAR APP ABSENT du rendu public (vérifié live 21/07, scan des <a> de la page) | RPL-18 |
 | Soumettre une app = **formulaire EXTERNE** | « Submit your App » → `form.typeform.com/to/yVYAWg79` | RPL-17 |
 
 **Fait structurant** : la soumission passe par un **Typeform externe** =

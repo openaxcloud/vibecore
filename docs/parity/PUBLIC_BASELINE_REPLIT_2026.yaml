@@ -61,11 +61,11 @@ claims:
     client: web
     status: INTERNAL_AUDIT           # repéré à l'audit; l'extrait exact reste à ancrer sur une URL+hash
   - claimId: RPL-17
-    statement: "Replit Gallery (replit.com/gallery) : auteurs affichés (ex. Mark Mathson, Manny Bernabe), stats par app RÉELLES au rendu du 16/07 (sha256 1f5f27bc…) : « 20,653 » vues sur la liste / « 20,649 » vues + « Used 79 times » sur la page détail Journey Mapper (compteurs vivants — valeurs différentes entre pages d'un même rendu), pages détail (/gallery/work/product-and-design/journey-mapper), et « Submit your App » → form.typeform.com/to/yVYAWg79 (Typeform EXTERNE = intake humaine curée, PAS un self-service in-product). Le libellé « 82 Results » de la capture antérieure n'apparaît plus dans ce rendu — retiré du claim."
+    statement: "Replit Gallery (replit.com/gallery) : auteurs affichés (Mark Mathson, Manny Bernabe…), compteur « 82 Results » PRÉSENT (élément réel de la page, éclaté en nœuds DOM — vérifié live 21/07), stats par app à compteur VIVANT datées PAR CAPTURE : Journey Mapper Views 20,650 (capture 16/07 matin) → 20,653 (rendu 16/07 16:58) → 20,768 (live 21/07, DOM sha256 a5f6e4f9…), « Used 79 times » stable, pages détail (/gallery/work/…), « Submit your App » → form.typeform.com/to/yVYAWg79 (Typeform EXTERNE = intake humaine curée). Report : UNIQUEMENT le lien footer générique « Report abuse » (docs.replit.com/legal-and-security-info/abuse-report) — aucun report AU NIVEAU APP sur le rendu public."
     sourceId: SRC-GALLERY-RENDERED
     observedAt: "2026-07-16T16:58:20Z"
     firstSeen: "2026-07-16"
-    lastVerified: "2026-07-20"
+    lastVerified: "2026-07-21"
     plan: all
     rollout: GA
     region: UNKNOWN

@@ -59,3 +59,20 @@ receipts:
       contractsRefused: 0
     refusalReasonsLocation: "REVIEW_RESPONSE_RR-20260720-CODEX-02.md + P0_REGISTRY.yaml (champ refusalReason)"
     completeness: COMPLETE
+  - reviewReceiptId: RR-20260721-CODEX-03
+    reviewerType: AUTOMATED_LLM
+    reviewerIdentity: "OpenAI-Codex"
+    reviewerModelVersion: "GPT-5 (Codex)"
+    reviewedAt: "2026-07-21"
+    auditedCommit: "70eb30a0"
+    inputDocuments:
+      - path: docs/parity/REVIEWER_RESUBMISSION_B_20260721.md
+        note: "état à la tête de la branche docs/remediation-lot-b (70eb30a0)"
+    responsePath: docs/parity/REVIEW_RESPONSE_RR-20260721-CODEX-03.md
+    responseHash: "sha256:6acd422d31d2c9a1c91d33cc9248eb5aa738e021a1c19ff9df051ebbd641caa2"
+    summary: "1 accepté (LS-14) / 5 refusés / #29 non couvert / aucun feu vert facturation"
+    decisions:
+      accepted: [P0-LS-14]
+      refused: [P0-V4-1, P0-V4-2, P0-V3-02, P0-LS-13, P0-LS-16]
+    refusalReasonsLocation: "REVIEW_RESPONSE_RR-20260721-CODEX-03.md + P0_REGISTRY.refusalReason"
+    completeness: COMPLETE

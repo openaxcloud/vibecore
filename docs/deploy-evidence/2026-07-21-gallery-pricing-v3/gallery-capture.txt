@@ -1,0 +1,26 @@
+Capture RENDUE replit.com/gallery — 2026-07-21T05:47:00.440Z (navigateur réel, locale fr-FR)
+DOM outerHTML : 1 538 288 octets, sha256 (calculé DANS la page, SubtleCrypto) :
+a5f6e4f9173330b4ed56ac053a97c83fe387583fbb06b806622c60a8284fd8de
+--- innerText COMPLET (4 479 caractères) ---
+Replit Gallery
+Get inspired—simplify your work life and boost productivity.
+Submit your App
+All / Work / Personal — Productivity, Businesses, Entertainment, Education,
+Marketing & Sales, Finance, Operations, Sales, Health & Fitness,
+Product & Design, Landing Page, Human Resources, Developer Tools, Product,
+Utility, Travel, Community, Platform, Customer Support, Sports
+Gallery / All
+82 Results          ← LE COMPTEUR EXISTE (élément réel de la page — la
+                      correction v2 qui le déclarait « disparu » était FAUSSE ;
+                      il est éclaté en nœuds DOM « 82 Result s »)
+All Types
+Journey Mapper — Mark Mathson — Views 20,768 — Used 79 times   ← compteur VIVANT
+  (20,650 capture ~16/07 matin · 20,653 rendu 16/07 16:58 · 20,768 ce jour)
+Product Manager CRM — Manny Bernabe — Views 14,658 — Used 36 times
+CRM — Michael Emling — Views 8,828 — Used 176 times
+Solar System Visualization — Matt Palmer — Views 7,876 — Used 6 times
+[… liste complète conservée dans metadata.json …]
+Submit your App → https://form.typeform.com/to/yVYAWg79 (Typeform EXTERNE)
+Report : UNIQUEMENT le lien générique de footer « Report abuse »
+  → https://docs.replit.com/legal-and-security-info/abuse-report
+  (AUCUNE affordance de report AU NIVEAU APP sur le rendu public)

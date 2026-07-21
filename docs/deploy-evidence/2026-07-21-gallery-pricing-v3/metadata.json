@@ -1,0 +1,66 @@
+{
+  "packet": "2026-07-21-gallery-pricing-v3",
+  "gallery": {
+    "url": "https://replit.com/gallery",
+    "capturedAt": "2026-07-21T05:47:00.440Z",
+    "domSha256": "a5f6e4f9173330b4ed56ac053a97c83fe387583fbb06b806622c60a8284fd8de",
+    "domLen": 1538288,
+    "locale": "fr-FR",
+    "resultsCounter": "82 Results (présent — nœuds DOM séparés)",
+    "topCard": {
+      "title": "Journey Mapper",
+      "author": "Mark Mathson",
+      "views": "20,768",
+      "used": "79 times"
+    },
+    "viewsHistory": {
+      "2026-07-16-morning": "20,650",
+      "2026-07-16T16:58": "20,653",
+      "2026-07-21T05:47": "20,768"
+    },
+    "submitYourApp": "https://form.typeform.com/to/yVYAWg79",
+    "appLevelReport": "ABSENT — seul le lien footer générique Report abuse (docs.replit.com/legal-and-security-info/abuse-report)"
+  },
+  "pricing_single_bound_observation": {
+    "url": "https://replit.com/pricing",
+    "capturedAt": "2026-07-21T05:48:12.681Z",
+    "domSha256": "4157fdb7ea1a5dbfd4513fb51f47fbeae7801f28a95a25a4d0a41e166895df80",
+    "domLen": 266037,
+    "locale": "fr-FR",
+    "languages": [
+      "fr-FR"
+    ],
+    "cookies": {
+      "present": true,
+      "names": [
+        "gating_id",
+        "_dd_s"
+      ],
+      "note": "gating_id = marqueur de cohorte A/B"
+    },
+    "geoIp": {
+      "ip": "5.29.12.100",
+      "city": "Netanya",
+      "region": "Central District",
+      "country": "IL",
+      "loc": "32.3329,34.8599",
+      "org": "AS12849 Hot-Net internet services Ltd.",
+      "timezone": "Asia/Jerusalem",
+      "readme": "https://ipinfo.io/missingauth"
+    },
+    "prices": {
+      "CORE": {
+        "monthly": "$25",
+        "annualEffective": "$20"
+      },
+      "PRO": {
+        "monthly": "$100",
+        "annualEffective": "$95"
+      }
+    },
+    "verbatim": {
+      "core": "Replit Core / Save 20% / $25 / $20 per month billed annually",
+      "pro": "Replit Pro / Save 5% / $100 / $95 per month billed annually"
+    }
+  }
+}

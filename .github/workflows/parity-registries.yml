@@ -13,11 +13,9 @@ on:
       - 'scripts/parity/**'
       - '.github/workflows/parity-registries.yml'
   push:
+    # LS-16 (verdict -03) : le job d'attestation doit partir À CHAQUE push sur
+    # main — le filtre paths excluait les push code-only. Retiré.
     branches: [main]
-    paths:
-      - 'docs/parity/**'
-      - 'scripts/parity/**'
-      - '.github/workflows/parity-registries.yml'
   schedule:
     # DAILY at 05:17 UTC — deliberately not Friday-anything.
     - cron: '17 5 * * *'
@@ -63,6 +61,12 @@ jobs:
       # Full registry validation (cross-refs, freshness SLA, no CLOSED-without-review,
       # no surface DONE without evidence, computed-view drift).
       - run: PARITY_DEPS=/tmp/parity-deps node scripts/parity/validate-registries.mjs
+      # LS-16 (verdict -03) : AUTHENTIFIER l'attestation contre l'API GitHub —
+      # runId/commit/date/conclusion doivent correspondre à une VRAIE exécution.
+      - name: Authenticate attestation run against GitHub API
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: PARITY_DEPS=/tmp/parity-deps node scripts/parity/verify-attestation-run.mjs
       # P0-EX-10: PUBLISH the generated status set as a build artifact.
       - name: Publish generated status views
         if: always()

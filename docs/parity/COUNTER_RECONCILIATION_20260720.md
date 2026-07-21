@@ -8,12 +8,12 @@ Chaque ligne : valeur DÉRIVÉE du registre indiqué, avec la formule et les IDs
 | metric | valeur | formule | IDs inclus | source |
 |---|---|---|---|---|
 | P0 total | **65** | len(p0s) | — | P0_REGISTRY.yaml |
-| P0 refusés (état courant) | **31** | count(reviewVerdict=REFUSED) | P0-V4-1, P0-V4-2, P0-V4-3, P0-V3-02, P0-V3-03, P0-V3-04, P0-V3-08, P0-V3-09, P0-V3-10, P0-V3-11, P0-V3-12, P0-V3-13, P0-A2-01, P0-A2-03, P0-A2-05, P0-A2-07, P0-A2-09, P0-A2-13, P0-A2-14, P0-LS-03, P0-LS-06, P0-LS-13, P0-LS-14, P0-LS-16, P0-B-01, P0-EX-02, P0-EX-04, P0-EX-05, P0-EX-07, P0-EX-08, P0-EX-10 | P0_REGISTRY.yaml |
-| P0 signés (tous reçus) | **24** | count(reviewVerdict=SIGNED) | P0-V3-14, P0-A2-02, P0-A2-04, P0-A2-06, P0-A2-08, P0-A2-10, P0-A2-11, P0-LS-01, P0-LS-02, P0-LS-04, P0-LS-05, P0-LS-07, P0-LS-08, P0-LS-09, P0-LS-10, P0-LS-11, P0-LS-12, P0-LS-15, P0-LS-17, P0-LS-18, P0-EX-01, P0-EX-03, P0-EX-06, P0-EX-09 | P0_REGISTRY.yaml |
+| P0 refusés (état courant) | **30** | count(reviewVerdict=REFUSED) | P0-V4-1, P0-V4-2, P0-V4-3, P0-V3-02, P0-V3-03, P0-V3-04, P0-V3-08, P0-V3-09, P0-V3-10, P0-V3-11, P0-V3-12, P0-V3-13, P0-A2-01, P0-A2-03, P0-A2-05, P0-A2-07, P0-A2-09, P0-A2-13, P0-A2-14, P0-LS-03, P0-LS-06, P0-LS-13, P0-LS-16, P0-B-01, P0-EX-02, P0-EX-04, P0-EX-05, P0-EX-07, P0-EX-08, P0-EX-10 | P0_REGISTRY.yaml |
+| P0 signés (tous reçus) | **25** | count(reviewVerdict=SIGNED) | P0-V3-14, P0-A2-02, P0-A2-04, P0-A2-06, P0-A2-08, P0-A2-10, P0-A2-11, P0-LS-01, P0-LS-02, P0-LS-04, P0-LS-05, P0-LS-07, P0-LS-08, P0-LS-09, P0-LS-10, P0-LS-11, P0-LS-12, P0-LS-14, P0-LS-15, P0-LS-17, P0-LS-18, P0-EX-01, P0-EX-03, P0-EX-06, P0-EX-09 | P0_REGISTRY.yaml |
 | P0 OPEN | **30** | count(status=OPEN) | P0-V4-3, P0-V3-01, P0-V3-03, P0-V3-04, P0-V3-05, P0-V3-06, P0-V3-07, P0-V3-08, P0-V3-09, P0-V3-10, P0-V3-11, P0-V3-12, P0-V3-13, P0-A2-01, P0-A2-03, P0-A2-05, P0-A2-07, P0-A2-09, P0-A2-13, P0-A2-14, P0-LS-03, P0-LS-06, P0-B-01, P0-B-02, P0-EX-02, P0-EX-04, P0-EX-05, P0-EX-07, P0-EX-08, P0-EX-10 | P0_REGISTRY.yaml |
-| P0 PROVEN_REVIEW_PENDING | **28** | count(status=PROVEN_REVIEW_PENDING) | P0-V4-1, P0-V4-2, P0-V3-02, P0-V3-14, P0-A2-02, P0-A2-04, P0-A2-06, P0-A2-08, P0-A2-11, P0-LS-01, P0-LS-02, P0-LS-05, P0-LS-07, P0-LS-08, P0-LS-09, P0-LS-10, P0-LS-11, P0-LS-12, P0-LS-13, P0-LS-14, P0-LS-15, P0-LS-16, P0-LS-17, P0-LS-18, P0-EX-01, P0-EX-03, P0-EX-06, P0-EX-09 | P0_REGISTRY.yaml |
+| P0 PROVEN_REVIEW_PENDING | **27** | count(status=PROVEN_REVIEW_PENDING) | P0-V4-1, P0-V4-2, P0-V3-02, P0-V3-14, P0-A2-02, P0-A2-04, P0-A2-06, P0-A2-08, P0-A2-11, P0-LS-01, P0-LS-02, P0-LS-05, P0-LS-07, P0-LS-08, P0-LS-09, P0-LS-10, P0-LS-11, P0-LS-12, P0-LS-13, P0-LS-15, P0-LS-16, P0-LS-17, P0-LS-18, P0-EX-01, P0-EX-03, P0-EX-06, P0-EX-09 | P0_REGISTRY.yaml |
 | P0 PROVEN (hors lot) | **5** | count(status=PROVEN) | P0-V4-4, P0-V3-15, P0-A2-12, P0-A2-15, P0-A2-16 | P0_REGISTRY.yaml |
-| P0 CLOSED | **2** | count(status=CLOSED) — exige un ReviewReceipt COMPLET | P0-A2-10, P0-LS-04 | P0_REGISTRY + REVIEW_RECEIPT_REGISTRY |
+| P0 CLOSED | **3** | count(status=CLOSED) — exige un ReviewReceipt COMPLET | P0-A2-10, P0-LS-04, P0-LS-14 | P0_REGISTRY + REVIEW_RECEIPT_REGISTRY |
 | Lot A (corrections rapides) | **8** | count(remediationTrack=QUICK) | P0-V4-1, P0-V4-2, P0-V3-02, P0-A2-10, P0-LS-04, P0-LS-13, P0-LS-14, P0-LS-16 | P0_REGISTRY.yaml |
 | Lot B (chantiers P0) | **5** | count(remediationTrack=CHANTIER) | P0-V3-12, P0-A2-09, P0-EX-02, P0-EX-04, P0-EX-10 | P0_REGISTRY.yaml |
 | Refus à trier (raisons reçues 20/07 soir) | **20** | count(remediationTrack=A_TRIER) | P0-V4-3, P0-V3-03, P0-V3-04, P0-V3-08, P0-V3-09, P0-V3-10, P0-V3-11, P0-V3-13, P0-A2-01, P0-A2-03, P0-A2-05, P0-A2-07, P0-A2-13, P0-A2-14, P0-LS-03, P0-LS-06, P0-B-01, P0-EX-05, P0-EX-07, P0-EX-08 | P0_REGISTRY.yaml |
@@ -24,7 +24,7 @@ Chaque ligne : valeur DÉRIVÉE du registre indiqué, avec la formule et les IDs
 
 ## Réponses aux 4 questions (dérivées ci-dessus)
 
-1. **Refus → ouverts** : **31** P0 portent actuellement `reviewVerdict: REFUSED`.
+1. **Refus → ouverts** : **30** P0 portent actuellement `reviewVerdict: REFUSED`.
    **30** P0 sont déclarés OPEN, dont **25** refusés
    et **5** ouverts sans refus (P0-V3-01, P0-V3-05, P0-V3-06, P0-V3-07, P0-B-02).
 
