@@ -819,6 +819,122 @@ function checkHeader(file, doc) {
   checked.push(`SUPERSESSION_REGISTRY (couverture aliases 100%, 164 et 122 dérivés des tables)`);
 }
 
+/* ---- 12quinquies. PRICE_OBSERVATION — complétude PAR OBSERVATION (LS-13) - */
+{
+  const po = loadYaml(join(parityRoot, 'PRICE_OBSERVATION_REGISTRY.yaml'));
+
+  for (const [i, o] of (po.observations ?? []).entries()) {
+    const label = `${o.planId ?? '?'}#${i}`;
+    const hasHash = Boolean(o.screenshotHash || o.textHash);
+    const geoKnown = o.countryOrGeo && !String(o.countryOrGeo).startsWith('UNKNOWN');
+    const localeKnown = o.locale && o.locale !== 'UNKNOWN';
+    const cohortKnown = o.cookieCohort && o.cookieCohort !== 'UNKNOWN';
+    const complete = hasHash && geoKnown && localeKnown && cohortKnown && o.artifactPath;
+
+    if (!complete && o.nonReplayable !== true && o.contextIncomplete !== true) {
+      fail('PRICE_OBSERVATION_REGISTRY.yaml', `${label}: observation incomplète (geo/locale/cohorte/hash/artifactPath) sans justification déclarée (LS-13)`);
+    }
+
+    if (o.contextIncomplete === true && !o.contextIncompleteReason) {
+      fail('PRICE_OBSERVATION_REGISTRY.yaml', `${label}: contextIncomplete sans raison`);
+    }
+
+    if (o.nonReplayable === true && !o.nonReplayableReason) {
+      fail('PRICE_OBSERVATION_REGISTRY.yaml', `${label}: nonReplayable sans raison`);
+    }
+
+    if (o.artifactPath && !existsSync(join(repoRoot, o.artifactPath))) {
+      fail('PRICE_OBSERVATION_REGISTRY.yaml', `${label}: artifactPath absent du disque (${o.artifactPath})`);
+    }
+  }
+
+  checked.push('PRICE_OBSERVATION (complétude par observation ou nonReplayable justifié — LS-13)');
+}
+
+/* ---- 12sexies. CI_ATTESTATION — commits RÉELS du repo (anti-fictif, LS-16) */
+{
+  const { execSync } = await import('node:child_process');
+  const att = loadYaml(join(parityRoot, 'CI_ATTESTATION.yaml'));
+  const a = att.attestation ?? {};
+
+  let shallow = false;
+
+  try {
+    shallow = execSync('git rev-parse --is-shallow-repository', { cwd: repoRoot }).toString().trim() === 'true';
+  } catch {
+    shallow = true; // pas un repo git utilisable → ne pas prétendre vérifier
+  }
+
+  for (const field of shallow ? [] : ['runCommit', 'mergedCommit']) {
+    const sha = a[field];
+
+    if (sha && /^[0-9a-f]{7,40}$/.test(String(sha))) {
+      try {
+        execSync(`git cat-file -e ${sha}^{commit}`, { cwd: repoRoot, stdio: 'ignore' });
+      } catch {
+        fail('CI_ATTESTATION.yaml', `${field} ${String(sha).slice(0, 12)} n'existe pas dans l'historique git — une attestation fictive est refusée (LS-16)`);
+      }
+    }
+  }
+
+  checked.push(shallow
+    ? 'CI_ATTESTATION anti-fictif SAUTÉ (clone shallow — le job CI validate tourne en fetch-depth 0 où le contrôle est réel)'
+    : 'CI_ATTESTATION commits vérifiés dans l\'historique git (anti-fictif — LS-16)');
+}
+
+/* ---- 12quater. CONTRACT_REGISTRY — 14 contrats UN PAR UN (C5) ----------- */
+{
+  const cr = loadYaml(join(parityRoot, 'CONTRACT_REGISTRY.yaml'));
+  const reviewReceiptsForContracts = existsSync(join(parityRoot, 'REVIEW_RECEIPT_REGISTRY.yaml')) ? loadYaml(join(parityRoot, 'REVIEW_RECEIPT_REGISTRY.yaml')) : { receipts: [] };
+  const entries = cr.contracts ?? [];
+
+  if (entries.length !== 14) {
+    fail('CONTRACT_REGISTRY.yaml', `${entries.length} contrats ≠ 14 (§2.3)`);
+  }
+
+  const HSTATES = ['HARDENED_PENDING_REVIEW', 'TO_HARDEN', 'BLOCKED_ON_CHANTIER'];
+
+  for (const c of entries) {
+    requireFields('CONTRACT_REGISTRY.yaml', c,
+      ['contractId', 'file', 'contractVersion', 'refusalReasonV1', 'hardeningStatus', 'expectedReviewer', 'signatureResult'],
+      c?.contractId ?? 'contract');
+
+    if (!HSTATES.includes(c.hardeningStatus)) {
+      fail('CONTRACT_REGISTRY.yaml', `${c.contractId}: hardeningStatus "${c.hardeningStatus}" invalide`);
+    }
+
+    if (c.hardeningStatus === 'BLOCKED_ON_CHANTIER' && !c.blockedBy) {
+      fail('CONTRACT_REGISTRY.yaml', `${c.contractId}: BLOCKED_ON_CHANTIER sans blockedBy — un blocage sans cause n'est pas honnête`);
+    }
+
+    const cp = join(parityRoot, c.file);
+
+    if (!existsSync(cp)) {
+      fail('CONTRACT_REGISTRY.yaml', `${c.contractId}: fichier absent (${c.file})`);
+    } else if (c.hardeningStatus === 'HARDENED_PENDING_REVIEW') {
+      const ct = readFileSync(cp, 'utf8');
+
+      const hasId = ct.includes(`contractId: ${c.contractId}`) || ct.includes(`"x-contractId": "${c.contractId}"`);
+      const hasV2 = /contractVersion:\s*2/.test(ct) || /"x-contractVersion":\s*2/.test(ct);
+
+      if (!hasId || !hasV2) {
+        fail('CONTRACT_REGISTRY.yaml', `${c.contractId}: durci déclaré mais le fichier ne porte pas contractId + contractVersion 2`);
+      }
+    }
+
+    // RÈGLE MAÎTRESSE : SIGNED exige un reçu de revue COMPLET.
+    if (c.signatureResult === 'SIGNED') {
+      const receipt = (reviewReceiptsForContracts.receipts ?? []).find((r) => r.reviewReceiptId === c.reviewReceiptId);
+
+      if (!receipt || receipt.completeness !== 'COMPLETE') {
+        fail('CONTRACT_REGISTRY.yaml', `${c.contractId}: SIGNED sans reçu COMPLET`);
+      }
+    }
+  }
+
+  checked.push(`CONTRACT_REGISTRY (14 contrats individuels, ${entries.filter((c) => c.hardeningStatus === 'HARDENED_PENDING_REVIEW').length} durcis, ${entries.filter((c) => c.hardeningStatus === 'BLOCKED_ON_CHANTIER').length} bloqués motivés)`);
+}
+
 /* ---- 12bis. COUNTER_RECONCILIATION est CALCULÉ (directive 20/07) ------- */
 {
   const genPath = join(here, 'generate-counter-reconciliation.mjs');
