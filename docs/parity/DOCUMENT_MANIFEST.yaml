@@ -2,7 +2,7 @@
 # (P0-A2-01 / P0-LS-16). Ne jamais éditer à la main — drift-check en CI. Le
 # champ validation reflète le dernier run du validateur sur l'arbre.
 schemaVersion: 1
-fileCount: 161
+fileCount: 163
 generatedAt: "2026-07-20T17:23:45Z"
 generatedFromCommit: 9cdee15266482971723efbece1865d9007f36ac3
 mergedCommit: 9cdee15266482971723efbece1865d9007f36ac3
@@ -29,7 +29,7 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: APPROVAL_STATUS.json
-    sha256: "f6509e6e5a36e5a67e019064c1911822bae0b0662d1a82a0c94e941e2869f3d8"
+    sha256: "ee5aaa4b1c7852ca2759d706a1b989fe27dd770e07da3b54a1442a9b070f0e3b"
     schemaVersion: null
     repoCommit: null
     reviewer: UNKNOWN
@@ -64,7 +64,7 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: CHANGELOG_AUDIT.md
-    sha256: "f4e0dcaea83e8758e72d8611b36184fedd45b6a7c642ba3c5b55836a3e3938bc"
+    sha256: "31781ab6a7ece985ed5ab068f0486ca472b02ba59b5b4280d8755d880737fecc"
     schemaVersion: 1
     repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
     reviewer: UNKNOWN
@@ -94,7 +94,7 @@ documents:
     repoCommit: 1692f981
     reviewer: UNKNOWN
   - file: COUNTER_RECONCILIATION_20260720.md
-    sha256: "1180a5a00874ac455fe553effad6f1871d19b030c43fef10cbc689585bbea4ca"
+    sha256: "196cad5535254188237cf85c74e4d71403babb7e369e496ccc58bbd62cfcd20c"
     schemaVersion: 1
     repoCommit: null
     reviewer: UNKNOWN
@@ -154,7 +154,7 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: GALLERY_COMMUNITY_CONTRACT.md
-    sha256: "d63fbd4340b31889fcb8b40a698f637784cdb609ee59f8bdb84df9b2af2cfa11"
+    sha256: "ebdee81d5a3d9fd5e8cd684d4c058b90b24be17972d3558e821fcb5050a7734f"
     schemaVersion: 2
     repoCommit: 1692f981
     reviewer: UNKNOWN
@@ -224,7 +224,7 @@ documents:
     repoCommit: d1063912
     reviewer: UNKNOWN
   - file: P0_REGISTRY.yaml
-    sha256: "e211e46efb43d367cdae57366fea106d8b3018ad8240e7139108db96f99e413b"
+    sha256: "6e5558cfc1b956d3028e307a376bb4e009237286288c71a71e5eda67c4194aa1"
     schemaVersion: 1
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN
@@ -234,7 +234,7 @@ documents:
     repoCommit: af9e4e83
     reviewer: UNKNOWN
   - file: PARITY_STATUS.md
-    sha256: "87ce49520712ae5b87e8f88a2b69a86065a48e284c5f98cc33fc9c254d843fdf"
+    sha256: "f71bd3684b01bd933f51b6aed3c69b58eff6b2eb7a5f8d35adc69f99e964ee3a"
     schemaVersion: 2
     repoCommit: 9cdee152
     reviewer: UNKNOWN
@@ -249,7 +249,7 @@ documents:
     repoCommit: null
     reviewer: UNKNOWN
   - file: PRICE_OBSERVATION_REGISTRY.yaml
-    sha256: "d6e94f069418b2650f215356f6a12e92bf09bc1172ecd959261744444639ec73"
+    sha256: "b004519fe2ec29a083b6ac6c2cc5dde8e59fb9c8b320a236d563d079e921b96d"
     schemaVersion: 1
     repoCommit: d56931bd
     reviewer: UNKNOWN
@@ -269,7 +269,7 @@ documents:
     repoCommit: null
     reviewer: UNKNOWN
   - file: PUBLIC_BASELINE_REPLIT_2026.yaml
-    sha256: "128312018953f0ef364069eb06e33bfdf4e648249935f650ff39f0ac994f3b7b"
+    sha256: "bfae67f9d8c8be7f709f4f598f34ce8d2e3c043f11f792958e70bd4502b1e5f1"
     schemaVersion: 1
     repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
     reviewer: UNKNOWN
@@ -294,7 +294,7 @@ documents:
     repoCommit: 57febeab
     reviewer: UNKNOWN
   - file: REPLIT_LIVE_SCAN_2026-07-20.md
-    sha256: "b4e712c6245247eed347cac14e100d86d20210deacbd21c77e67292c3b8530db"
+    sha256: "82e38dbc62aa2b2ae6d7d5d1eed521b018253d0c31f5535cb2334462c4ba46b2"
     schemaVersion: null
     repoCommit: null
     reviewer: UNKNOWN
@@ -310,6 +310,11 @@ documents:
     reviewer: UNKNOWN
   - file: REVIEWER_RESUBMISSION_A_20260720.md
     sha256: "98700dfc5ffd7e8249bc3dfa84561b7a140ee91711f43b90bd2971de97787cf4"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: REVIEWER_RESUBMISSION_B_20260721.md
+    sha256: "0a5e14933c8ec2ee98b2a8345c8150e60848de94d0b2118b243e6d48dc70729e"
     schemaVersion: null
     repoCommit: null
     reviewer: UNKNOWN
@@ -555,6 +560,11 @@ documents:
     reviewer: UNKNOWN
   - file: livescan-2026-07-20/gallery.txt
     sha256: "583e7ca67b00b0358cf2e3eb215dcaeeae59fe4661ede2cac5e6cb493c203999"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: livescan-2026-07-20/geoip-proof-20260721.json
+    sha256: "b325e31ee4491a5cbbfa079a46b89ce14451beb742b45dc4f1c4f0e0b0b73140"
     schemaVersion: null
     repoCommit: null
     reviewer: UNKNOWN
