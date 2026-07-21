@@ -247,6 +247,7 @@ import {
   createDefaultMcpMarketplaceService,
 } from './mcp-marketplace.js';
 import { registerIdentityCollaborationRoutes } from './identity-collaboration-routes.js';
+import { accessGrantRoles, resourceAccessRole, strongestProjectRole } from './resource-access.js';
 import {
   meterAllDatabaseStorage,
   meterAllObjectStorage,
@@ -3535,6 +3536,86 @@ function isWriteProjectPermission(permission: PermissionKey) {
 }
 
 /*
+ * P0-EX-07 — enforcement des AccessGrants sur les ressources NON-projet
+ * (ARTIFACT = ProjectSnapshot, DEPLOYMENT = Deployment, DATASET = instance de
+ * base managée). requireProject reste le chemin normal ; quand il refuse pour
+ * "pas membre de l'org" (ORG_NOT_FOUND) ou "rôle sans la permission"
+ * (RBAC_FORBIDDEN), un grant ACTIF visant EXACTEMENT cette ressource peut
+ * ouvrir l'accès — à cette ressource seule, jamais au projet parent ni aux
+ * ressources sœurs (la liaison ressource↔projet est re-vérifiée par la route
+ * elle-même : getDeployment(project.id, id), snapshot.projectId, etc.).
+ *
+ * Bornes, dans l'ordre :
+ *  - 401 / suspension / projet supprimé / cap read-only par-projet
+ *    (PROJECT_ROLE_READ_ONLY) se propagent tels quels — un grant de ressource
+ *    n'outrepasse JAMAIS un plafond read-only posé au niveau projet ;
+ *  - grant d'une autre org ⇒ ignoré (garde cross-tenant) ;
+ *  - pas de grant actif ⇒ l'erreur d'origine reste : 404 anti-énumération pour
+ *    un outsider, 403 pour un membre sans permission ;
+ *  - rôle accordé read-only (viewer/guest) + permission d'écriture ⇒
+ *    403 PROJECT_ROLE_READ_ONLY (même code que le chemin projet) ;
+ *  - sinon l'élévation est bornée aux permissions réellement portées par le
+ *    rôle accordé (rolePermissions), et l'org suspendue bloque l'écriture,
+ *    comme dans requireProject.
+ */
+async function requireProjectResource(
+  request: any,
+  store: ApiStore,
+  projectId: string,
+  permission: PermissionKey,
+  resource: { kind: 'ARTIFACT' | 'DEPLOYMENT' | 'DATASET'; id: string | (() => Promise<string | undefined>) },
+): Promise<ProjectRecord> {
+  try {
+    return await requireProject(request, store, projectId, permission);
+  } catch (error: any) {
+    if (error?.code !== 'ORG_NOT_FOUND' && error?.code !== 'RBAC_FORBIDDEN') {
+      throw error;
+    }
+
+    const userId = request.currentUser?.id as string | undefined;
+
+    // Résolu tardivement (DATASET : l'instance est dérivée du projet) et
+    // seulement dans le fallback — le chemin nominal ne paie rien.
+    const resourceId = typeof resource.id === 'function' ? await resource.id() : resource.id;
+
+    if (!userId || !resourceId) {
+      throw error;
+    }
+
+    const project = await store.getProject(projectId);
+
+    if (!project || project.deletedAt) {
+      throw error;
+    }
+
+    const role = await resourceAccessRole(store, resource.kind, resourceId, userId, {
+      organizationId: project.organizationId,
+    });
+
+    if (!role) {
+      throw error;
+    }
+
+    if (isWriteProjectPermission(permission) && isReadOnlyProjectRole(role)) {
+      throw Object.assign(new Error('Read-only access grant cannot modify this resource'), {
+        statusCode: 403,
+        code: 'PROJECT_ROLE_READ_ONLY',
+      });
+    }
+
+    if (!(rolePermissions[role]?.includes(permission) ?? false)) {
+      throw error;
+    }
+
+    if (isWriteProjectPermission(permission)) {
+      await requireOrganizationNotSuspended(store, project.organizationId);
+    }
+
+    return project;
+  }
+}
+
+/*
  * Reconcile a BUILDING deployment against the real provider build status. The
  * deploy hook only queues a build, so a non-static deployment stays BUILDING
  * until the provider reports READY/FAILED. This is invoked lazily whenever a
@@ -3745,21 +3826,6 @@ async function reconcileDeploymentStatus(store: ApiStore, deployment: Deployment
   });
 }
 
-/*
- * Strongest-first ordering used when a user reaches a project through several
- * paths (collaborator row, direct AccessGrant, group AccessGrant). Guests sit
- * at the bottom: their scope never widens whatever else grants them access.
- */
-const PROJECT_ROLE_PRIORITY = ['owner', 'admin', 'member', 'editor', 'viewer', 'guest'];
-
-function strongestProjectRole(roles: string[]): string | undefined {
-  return [...roles].sort(
-    (a, b) =>
-      (PROJECT_ROLE_PRIORITY.indexOf(a) + 1 || PROJECT_ROLE_PRIORITY.length + 1) -
-      (PROJECT_ROLE_PRIORITY.indexOf(b) + 1 || PROJECT_ROLE_PRIORITY.length + 1),
-  )[0];
-}
-
 async function projectCollaborationRole(store: ApiStore, projectId: string, userId?: string) {
   if (!userId) {
     return undefined;
@@ -3776,33 +3842,11 @@ async function projectCollaborationRole(store: ApiStore, projectId: string, user
   /*
    * Generic AccessGrants (P0-EX-07): subject = this user directly, or a group
    * the user belongs to. Revoked or expired grants confer NOTHING — that is
-   * the contract's negative ("une permission retirée = 403"), enforced here,
-   * server-side, for every project route that goes through requireProject.
+   * the contract's negative ("une permission retirée = 403"), enforced by the
+   * shared resolver (resource-access.ts), server-side, for every project route
+   * that goes through requireProject.
    */
-  const grants = await store.listAccessGrantsForResource('PROJECT', projectId);
-  const activeGrants = grants.filter(
-    (grant) => !grant.revokedAt && !(grant.expiresAt && new Date(grant.expiresAt).getTime() <= Date.now()),
-  );
-
-  if (activeGrants.length > 0) {
-    for (const grant of activeGrants) {
-      if (grant.subjectType === 'USER' && grant.subjectUserId === userId) {
-        roles.push(grant.roleKey);
-      }
-    }
-
-    const groupGrants = activeGrants.filter((grant) => grant.subjectType === 'GROUP' && grant.subjectGroupId);
-
-    if (groupGrants.length > 0) {
-      const userGroupIds = new Set(await store.listUserGroupIds(userId));
-
-      for (const grant of groupGrants) {
-        if (userGroupIds.has(grant.subjectGroupId!)) {
-          roles.push(grant.roleKey);
-        }
-      }
-    }
-  }
+  roles.push(...(await accessGrantRoles(store, 'PROJECT', projectId, userId)));
 
   return strongestProjectRole(roles);
 }
@@ -22398,14 +22442,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * not reported as changed; only capped path lists leave the server.
    */
   app.get('/projects/:projectId/snapshots/:snapshotId/restore-preview', async (request) => {
-    const project = await requireProject(
+    const { snapshotId } = parse(snapshotParams, request.params);
+
+    // Un AccessGrant ARTIFACT ouvre CE snapshot seul (P0-EX-07).
+    const project = await requireProjectResource(
       request,
       store,
       parse(projectParams, request.params).projectId,
       'projects:read',
+      { kind: 'ARTIFACT', id: snapshotId },
     );
 
-    const { snapshotId } = parse(snapshotParams, request.params);
     const snapshot = await store.getSnapshot(snapshotId);
 
     if (!snapshot || snapshot.projectId !== project.id) {
@@ -22461,14 +22508,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     };
   });
   app.post('/projects/:projectId/snapshots/:snapshotId/restore', async (request) => {
-    const project = await requireProject(
+    const { snapshotId } = parse(snapshotParams, request.params);
+
+    // Un AccessGrant ARTIFACT écrit-capable n'agit que sur CE snapshot (P0-EX-07).
+    const project = await requireProjectResource(
       request,
       store,
       parse(projectParams, request.params).projectId,
       'projects:write',
+      { kind: 'ARTIFACT', id: snapshotId },
     );
 
-    const { snapshotId } = parse(snapshotParams, request.params);
     const snapshot = await store.getSnapshot(snapshotId);
 
     if (!snapshot || snapshot.projectId !== project.id) {
@@ -28587,7 +28637,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
   app.get('/projects/:projectId/deployments/:deploymentId', async (request, reply) => {
     const { projectId, deploymentId } = parse(deploymentActionParams, request.params);
-    const project = await requireProject(request, store, projectId, 'projects:read');
+
+    // Un AccessGrant DEPLOYMENT ouvre CE deployment seul (P0-EX-07).
+    const project = await requireProjectResource(request, store, projectId, 'projects:read', {
+      kind: 'DEPLOYMENT',
+      id: deploymentId,
+    });
     const deployment = await store.getDeployment(project.id, deploymentId);
 
     if (!deployment) {
@@ -28613,14 +28668,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: 'Database rollback is not enabled', code: 'FEATURE_NOT_ENABLED' });
     }
 
-    const project = await requireProject(
-      request,
-      store,
-      parse(projectParams, request.params).projectId,
-      'projects:read',
-    );
-
+    const { projectId } = parse(projectParams, request.params);
     const environment = parse(databaseEnvironmentQuery, request.query ?? {}).environment;
+
+    // Un AccessGrant DATASET ouvre l'instance managée de CE projet/env seule (P0-EX-07).
+    const project = await requireProjectResource(request, store, projectId, 'projects:read', {
+      kind: 'DATASET',
+      id: async () => (await store.getDatabaseInstanceByProject(projectId, environment))?.id,
+    });
+
     const state = await billingState(project.organizationId).catch(() => undefined);
     const entitlement = databaseRollbackEntitlement(toCreditPlanKey(state?.plan.key));
 
@@ -28673,12 +28729,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: 'Database rollback is not enabled', code: 'FEATURE_NOT_ENABLED' });
     }
 
-    const project = await requireProject(
-      request,
-      store,
-      parse(projectParams, request.params).projectId,
-      'projects:write',
-    );
+    const { projectId } = parse(projectParams, request.params);
+
+    // Un AccessGrant DATASET écrit-capable n'agit que sur l'instance de CE projet (P0-EX-07).
+    const project = await requireProjectResource(request, store, projectId, 'projects:write', {
+      kind: 'DATASET',
+      id: async () => (await store.getDatabaseInstanceByProject(projectId))?.id,
+    });
 
     const body = parse(
       z
@@ -28819,12 +28876,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: 'Database rollback is not enabled', code: 'FEATURE_NOT_ENABLED' });
     }
 
-    const project = await requireProject(
-      request,
-      store,
-      parse(projectParams, request.params).projectId,
-      'projects:write',
-    );
+    const { projectId } = parse(projectParams, request.params);
+
+    // Un AccessGrant DATASET écrit-capable n'agit que sur l'instance de CE projet (P0-EX-07).
+    const project = await requireProjectResource(request, store, projectId, 'projects:write', {
+      kind: 'DATASET',
+      id: async () => (await store.getDatabaseInstanceByProject(projectId))?.id,
+    });
 
     const instance = await store.getDatabaseInstanceByProject(project.id);
 
@@ -28870,14 +28928,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: 'Database rollback is not enabled', code: 'FEATURE_NOT_ENABLED' });
     }
 
-    const project = await requireProject(
-      request,
-      store,
-      parse(projectParams, request.params).projectId,
-      'projects:read',
-    );
-
+    const { projectId } = parse(projectParams, request.params);
     const environment = parse(databaseEnvironmentQuery, request.query ?? {}).environment;
+
+    // Un AccessGrant DATASET ouvre l'instance managée de CE projet/env seule (P0-EX-07).
+    const project = await requireProjectResource(request, store, projectId, 'projects:read', {
+      kind: 'DATASET',
+      id: async () => (await store.getDatabaseInstanceByProject(projectId, environment))?.id,
+    });
+
     const state = await billingState(project.organizationId).catch(() => undefined);
     const entitlement = databaseRollbackEntitlement(toCreditPlanKey(state?.plan.key));
 
@@ -28939,12 +28998,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: 'Database rollback is not enabled', code: 'FEATURE_NOT_ENABLED' });
     }
 
-    const project = await requireProject(
-      request,
-      store,
-      parse(projectParams, request.params).projectId,
-      'projects:write',
-    );
+    const { projectId } = parse(projectParams, request.params);
 
     const body = parse(
       z
@@ -28958,6 +29012,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }),
       request.body ?? {},
     );
+
+    // Un AccessGrant DATASET écrit-capable n'agit que sur l'instance de CE projet/env (P0-EX-07).
+    const project = await requireProjectResource(request, store, projectId, 'projects:write', {
+      kind: 'DATASET',
+      id: async () => (await store.getDatabaseInstanceByProject(projectId, body.environment))?.id,
+    });
 
     const instance = await store.getDatabaseInstanceByProject(project.id, body.environment);
 
@@ -30779,7 +30839,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/projects/:projectId/deployments/:deploymentId/logs', async (request, reply) => {
     const { projectId, deploymentId } = parse(deploymentActionParams, request.params);
-    const project = await requireProject(request, store, projectId, 'projects:read');
+
+    // Un AccessGrant DEPLOYMENT ouvre CE deployment seul (P0-EX-07).
+    const project = await requireProjectResource(request, store, projectId, 'projects:read', {
+      kind: 'DEPLOYMENT',
+      id: deploymentId,
+    });
     const deployment = await store.getDeployment(project.id, deploymentId);
 
     if (!deployment) {
@@ -30799,7 +30864,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   app.get('/projects/:projectId/deployments/:deploymentId/logs/stream', async (request, reply) => {
     const { projectId, deploymentId } = parse(deploymentActionParams, request.params);
-    const project = await requireProject(request, store, projectId, 'projects:read');
+
+    // Un AccessGrant DEPLOYMENT ouvre CE deployment seul (P0-EX-07).
+    const project = await requireProjectResource(request, store, projectId, 'projects:read', {
+      kind: 'DEPLOYMENT',
+      id: deploymentId,
+    });
     const initial = await store.getDeployment(project.id, deploymentId);
 
     if (!initial) {
@@ -30912,7 +30982,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
   app.post('/projects/:projectId/deployments/:deploymentId/cancel', async (request, reply) => {
     const { projectId, deploymentId } = parse(deploymentActionParams, request.params);
-    const project = await requireProject(request, store, projectId, 'projects:write');
+
+    // Un AccessGrant DEPLOYMENT écrit-capable n'agit que sur CE deployment (P0-EX-07).
+    const project = await requireProjectResource(request, store, projectId, 'projects:write', {
+      kind: 'DEPLOYMENT',
+      id: deploymentId,
+    });
     const deployment = await store.getDeployment(project.id, deploymentId);
 
     if (!deployment) {
@@ -30965,7 +31040,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   app.post('/projects/:projectId/deployments/:deploymentId/publish', async (request, reply) => {
     const { projectId, deploymentId } = parse(deploymentActionParams, request.params);
-    const project = await requireProject(request, store, projectId, 'projects:write');
+
+    // Un AccessGrant DEPLOYMENT écrit-capable n'agit que sur CE deployment (P0-EX-07).
+    const project = await requireProjectResource(request, store, projectId, 'projects:write', {
+      kind: 'DEPLOYMENT',
+      id: deploymentId,
+    });
     const source = await store.getDeployment(project.id, deploymentId);
 
     if (!source) {
@@ -31081,7 +31161,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.post('/projects/:projectId/deployments/:deploymentId/redeploy', async (request, reply) => {
     const { projectId, deploymentId } = parse(deploymentActionParams, request.params);
-    const project = await requireProject(request, store, projectId, 'projects:write');
+
+    // Un AccessGrant DEPLOYMENT écrit-capable n'agit que sur CE deployment (P0-EX-07).
+    const project = await requireProjectResource(request, store, projectId, 'projects:write', {
+      kind: 'DEPLOYMENT',
+      id: deploymentId,
+    });
     const source = await store.getDeployment(project.id, deploymentId);
 
     if (!source) {
@@ -31381,7 +31466,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
   app.post('/projects/:projectId/deployments/:deploymentId/rollback', async (request, reply) => {
     const { projectId, deploymentId } = parse(deploymentActionParams, request.params);
-    const project = await requireProject(request, store, projectId, 'projects:write');
+
+    // Un AccessGrant DEPLOYMENT écrit-capable n'agit que sur CE deployment (P0-EX-07).
+    const project = await requireProjectResource(request, store, projectId, 'projects:write', {
+      kind: 'DEPLOYMENT',
+      id: deploymentId,
+    });
     const target = await store.getDeployment(project.id, deploymentId);
 
     if (!target) {

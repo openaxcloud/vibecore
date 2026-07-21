@@ -43,6 +43,8 @@ const createGroupSchema = z.object({
 
 const groupMemberSchema = z.object({ userId: z.string().min(1) });
 
+const grantResourceTypeSchema = z.enum(['PROJECT', 'ARTIFACT', 'DEPLOYMENT', 'DATASET']);
+
 const createGrantSchema = z
   .object({
     subjectType: z.enum(['USER', 'GROUP']),
@@ -51,9 +53,29 @@ const createGrantSchema = z
     roleKey: z.string().min(1),
     /** ISO date; omitted = no expiry. */
     expiresAt: z.string().datetime().optional(),
+
+    /*
+     * Ressource visée (P0-EX-07). Défaut : le projet lui-même. ARTIFACT
+     * (snapshot), DEPLOYMENT et DATASET (instance de base managée) exigent un
+     * resourceId qui appartient à CE projet — vérifié serveur-side.
+     */
+    resourceType: grantResourceTypeSchema.optional(),
+    resourceId: z.string().min(1).optional(),
   })
   .refine((value) => (value.subjectType === 'USER' ? !!value.subjectUserId : !!value.subjectGroupId), {
     message: 'subjectUserId is required for USER grants, subjectGroupId for GROUP grants',
+  })
+  .refine((value) => !value.resourceType || value.resourceType === 'PROJECT' || !!value.resourceId, {
+    message: 'resourceId is required for ARTIFACT/DEPLOYMENT/DATASET grants',
+  });
+
+const listGrantsQuerySchema = z
+  .object({
+    resourceType: grantResourceTypeSchema.optional(),
+    resourceId: z.string().min(1).optional(),
+  })
+  .refine((value) => !value.resourceType || value.resourceType === 'PROJECT' || !!value.resourceId, {
+    message: 'resourceId is required to list ARTIFACT/DEPLOYMENT/DATASET grants',
   });
 
 function parseBody<T>(schema: ZodSchema<T>, value: unknown): T {
@@ -254,6 +276,38 @@ export function registerIdentityCollaborationRoutes(
     return project;
   };
 
+  /*
+   * Liaison ressource↔projet (P0-EX-07) : un grant ARTIFACT/DEPLOYMENT/DATASET
+   * ne peut viser qu'une ressource qui appartient à CE projet — sinon 404
+   * (anti-énumération, comme le reste de la surface projet). ARTIFACT =
+   * ProjectSnapshot, DEPLOYMENT = Deployment, DATASET = instance de base
+   * managée du projet.
+   */
+  const mustBindResourceToProject = async (
+    projectId: string,
+    resourceType: 'PROJECT' | 'ARTIFACT' | 'DEPLOYMENT' | 'DATASET',
+    resourceId: string,
+  ) => {
+    const bound =
+      resourceType === 'PROJECT'
+        ? resourceId === projectId
+        : resourceType === 'ARTIFACT'
+          ? (await store.getSnapshot(resourceId))?.projectId === projectId
+          : resourceType === 'DEPLOYMENT'
+            ? !!(await store.getDeployment(projectId, resourceId))
+            : (
+                await Promise.all(
+                  ['development', 'production'].map((environment) =>
+                    store.getDatabaseInstanceByProject(projectId, environment).catch(() => undefined),
+                  ),
+                )
+              ).some((instance) => instance?.id === resourceId);
+
+    if (!bound) {
+      throw new IdentityCollaborationError('RESOURCE_NOT_FOUND', 'Resource not found in this project', 404);
+    }
+  };
+
   app.post(
     '/projects/:projectId/access-grants',
     wrap(async (request, reply) => {
@@ -296,13 +350,17 @@ export function registerIdentityCollaborationRoutes(
         }
       }
 
+      const resourceType = body.resourceType ?? 'PROJECT';
+      const resourceId = resourceType === 'PROJECT' ? projectId : body.resourceId!;
+      await mustBindResourceToProject(projectId, resourceType, resourceId);
+
       const grant = await store.createAccessGrant({
         organizationId: project.organizationId,
         subjectType: body.subjectType,
         subjectUserId: body.subjectUserId,
         subjectGroupId: body.subjectGroupId,
-        resourceType: 'PROJECT',
-        resourceId: projectId,
+        resourceType,
+        resourceId,
         roleKey: body.roleKey,
         expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
         grantedByUserId: (request as { currentUser?: { id?: string } }).currentUser?.id,
@@ -318,6 +376,8 @@ export function registerIdentityCollaborationRoutes(
           subjectType: grant.subjectType,
           subjectUserId: grant.subjectUserId,
           subjectGroupId: grant.subjectGroupId,
+          grantResourceType: grant.resourceType,
+          grantResourceId: grant.resourceId,
           roleKey: grant.roleKey,
           expiresAt: grant.expiresAt,
         },
@@ -334,7 +394,12 @@ export function registerIdentityCollaborationRoutes(
       const project = await mustGetProject(projectId);
       await deps.guardOrg(request, project.organizationId, 'members:manage');
 
-      return reply.send({ grants: await store.listAccessGrantsForResource('PROJECT', projectId) });
+      const query = parseBody(listGrantsQuerySchema, request.query ?? {});
+      const resourceType = query.resourceType ?? 'PROJECT';
+      const resourceId = resourceType === 'PROJECT' ? projectId : query.resourceId!;
+      await mustBindResourceToProject(projectId, resourceType, resourceId);
+
+      return reply.send({ grants: await store.listAccessGrantsForResource(resourceType, resourceId) });
     }),
   );
 
@@ -347,7 +412,19 @@ export function registerIdentityCollaborationRoutes(
 
       const existing = await store.getAccessGrant(grantId);
 
-      if (!existing || existing.resourceId !== projectId) {
+      /*
+       * Le grant doit appartenir à CE projet : PROJECT ⇒ resourceId = projectId ;
+       * ARTIFACT/DEPLOYMENT/DATASET ⇒ la ressource visée appartient au projet
+       * (et l'org du grant est celle du projet) — sinon 404, pas de révocation
+       * cross-projet ni cross-tenant.
+       */
+      if (!existing || existing.organizationId !== project.organizationId) {
+        throw new IdentityCollaborationError('GRANT_NOT_FOUND', 'Access grant not found', 404);
+      }
+
+      try {
+        await mustBindResourceToProject(projectId, existing.resourceType, existing.resourceId);
+      } catch {
         throw new IdentityCollaborationError('GRANT_NOT_FOUND', 'Access grant not found', 404);
       }
 
