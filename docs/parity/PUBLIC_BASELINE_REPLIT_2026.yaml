@@ -39,7 +39,7 @@ claims:
     client: web
     status: VERIFIED
   - claimId: RPL-2026-004
-    statement: "AUCUN sélecteur de modèle observé dans le CORPUS EXAMINÉ (audit humain du 16/07 : landing, création de projet, IDE, pages Enterprise + les 83 changelogs lus, où Lite/Economy ne sont jamais nommés, et le scan rendu du 20/07 sur les pages publiques). Observation BORNÉE à ce corpus et à ces dates — pas une affirmation sur tout le produit ni sur les surfaces derrière login non visitées."
+    statement: "AUCUN sélecteur de MODÈLE BRUT (liste de modèles) observé dans le CORPUS EXAMINÉ (audit humain 16/07 : landing, création de projet, IDE, pages Enterprise ; scan rendu 20/07 : pages publiques). Le sélecteur de MODE Lite/Economy/Power, lui, EXISTE et est documenté (RPL-2026-002, changelog du 2026-04-17 — snapshot hashé) : ces noms SONT donc nommés dans le corpus des changelogs ; la présente observation porte uniquement sur l'absence d'un sélecteur de modèle brut, bornée à ce corpus et à ces dates."
     sourceId: SRC-CHANGELOG-INDEX
     observedAt: "2026-07-16T00:00:00Z"
     firstSeen: UNKNOWN
