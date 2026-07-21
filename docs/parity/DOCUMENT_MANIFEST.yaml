@@ -89,7 +89,7 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: CONTRACT_REGISTRY.yaml
-    sha256: "351626a10f0ad5fdcca94f4b42d1c758e34ff593bb595fa009d3f9ef3cea3926"
+    sha256: "cbfbeadcd095860744a75f5ce1e9b74b5de1fc6c4ca8b1a1fb0dafd6236a451a"
     schemaVersion: 1
     repoCommit: 1692f981
     reviewer: UNKNOWN

@@ -100,12 +100,13 @@ contracts:
     openDependencies: "inventaire exhaustif + négatif PAR identité + WIF 3 chemins (chantier D)"
   - contractId: CTR-CHECKPOINT
     file: CHECKPOINT_CONTRACT.md
-    contractVersion: 1
+    contractVersion: 2
     refusalReasonV1: "tests unitaires mais aucun câblage réel"
-    hardeningStatus: BLOCKED_ON_CHANTIER
-    blockedBy: "câblage réel des checkpoints (machine testée unitairement, pas branchée bout en bout)"
+    hardeningStatus: HARDENED_PENDING_REVIEW
+    anchor: "CÂBLÉ (PR #32, NON MERGÉE) : endpoints réels + barrière 423/dégel garanti + restore vérifié en projet jetable — 18 tests"
     expectedReviewer: OpenAI-Codex
-    signatureResult: REFUSED_V1
+    signatureResult: PENDING_REVIEW
+    openDependencies: "snapshot DB physique CNPG dormant (DB_ROLLBACK_ENABLED) + preuve PITR live (PR-DR)"
   - contractId: CTR-SECURITY-PRIVACY
     file: SECURITY_PRIVACY_COMPLIANCE.md
     contractVersion: 2
