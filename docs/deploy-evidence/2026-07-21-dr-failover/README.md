@@ -43,3 +43,13 @@ gcloud sql instances failover vibecore-prod-postgres   # bascule
 ```
 
 Table de drill `_dr_failover_drill` supprimée après le drill.
+
+## Addendum honnêteté (log complet de la sonde /health)
+
+La sonde /health locale a tourné jusqu'à 08:17:21 (900 échantillons) :
+897×200 et 3×`000` (curl code 000 = échec côté CLIENT) à 08:13:27, 08:15:45,
+08:16:18 — soit 13+ min APRÈS la fin du drill, échantillons isolés non
+consécutifs. Contre-vérification par la source d'autorité (uptime check GCP,
+6 régions de sonde) sur 08:10→08:20 : **276/276 True**. Conclusion : blips
+réseau du poste d'observation, pas de l'API. La fenêtre du drill lui-même
+(07:55→08:00) est à 100 % de 200 sur les DEUX sources.
