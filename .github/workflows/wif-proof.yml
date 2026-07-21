@@ -1,0 +1,53 @@
+# WIF three-paths proof (P0-A2-09) — path 2: GitHub OIDC → GCP Workload Identity
+# Federation, impersonation WITHOUT any service-account key.
+name: wif-proof
+on:
+  workflow_dispatch: {}   # preuve manuelle (le run live a été joué ; cf evidence)
+permissions:
+  contents: read
+  id-token: write   # mint a GitHub OIDC token — no stored key anywhere
+env:
+  WIP: projects/565936196546/locations/global/workloadIdentityPools/github-pool/providers/github
+  BUCKET: ecode-wif-proof-619021-secret-data
+jobs:
+  authorized:
+    runs-on: ubuntu-latest
+    steps:
+      - id: auth
+        name: Federate GitHub OIDC -> impersonate AUTHORIZED SA (eager token, no key)
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ecode-wif-proof-619021
+          workload_identity_provider: ${{ env.WIP }}
+          service_account: wif-authorized@ecode-wif-proof-619021.iam.gserviceaccount.com
+          token_format: access_token
+      - name: Read the secret bucket with the WIF-obtained token (no key)
+        env:
+          TOKEN: ${{ steps.auth.outputs.access_token }}
+        run: |
+          echo "CREDENTIAL_FILE=$GOOGLE_APPLICATION_CREDENTIALS (external_account/federated, NOT a key)"
+          echo "TOKEN_ACQUIRED_VIA=WIF_impersonation length=${#TOKEN}"
+          CODE=$(curl -s -o /tmp/body -w "%{http_code}" -H "Authorization: Bearer $TOKEN" \
+            "https://storage.googleapis.com/storage/v1/b/${BUCKET}/o/secret.txt?alt=media")
+          echo "READ_HTTP=$CODE"
+          echo "SECRET_CONTENT=$(cat /tmp/body)"
+  negative:
+    runs-on: ubuntu-latest
+    steps:
+      - id: auth
+        name: NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)
+        continue-on-error: true
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ecode-wif-proof-619021
+          workload_identity_provider: ${{ env.WIP }}
+          service_account: wif-wrong@ecode-wif-proof-619021.iam.gserviceaccount.com
+          token_format: access_token
+      - name: Report negative outcome
+        run: |
+          echo "AUTH_STEP_OUTCOME=${{ steps.auth.outcome }}"
+          if [ "${{ steps.auth.outcome }}" = "failure" ]; then
+            echo "NEGATIVE_OK: impersonation of the un-granted SA was DENIED (no workloadIdentityUser binding)"
+          else
+            echo "NEGATIVE_UNEXPECTED: auth did not fail"; exit 1
+          fi

@@ -541,14 +541,16 @@ p0s:
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
     reviewCommit: "57febeab"
+    resolutionBranch: "feat/wif-three-paths-live"
+    resolutionStatus: "PROVEN_REVIEW_PENDING"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: UNKNOWN
-    evidenceId: docs/parity/baseline/sources/2026-07-20-gke-workload-identity.html
-    proof: "§4.4 REMPLACÉ, ancré GCP-13 (citation exacte « In GKE, Google Cloud manages the workload identity pool and provider for you and doesn't require an external identity provider ») : 3 chemins — GKE→WIF for GKE (recommandé, aucun IdP externe) ; hors GCP→IAM WIF externe ; Cloud Run→service identity + impersonation courte. Zéro clé persistante partout."
+    evidenceId: docs/deploy-evidence/2026-07-21-wif-three-paths/
+    proof: "3 CHEMINS PROUVÉS LIVE sur GCP (branche feat/wif-three-paths-live, PR ouverte non mergée), ZÉRO clé de service. Projet de test dédié ecode-wif-proof-619021 sous folder test 780512954993 (jamais la prod), teardown complet joué (projet DELETE_REQUESTED, coût ~0$). (1) GKE WIF re-cité, lecture-seule sur vibecore-prod-app : pool géré .svc.id.goog (aucun IdP externe), KSA platform-api liée à GSA via workloadIdentityUser (autorisé, 0 clé user), KSA non liée = refus (négatif). (2) WIF externe GitHub OIDC : run GitHub Actions réel (openaxcloud/vibecore) — credential = token fédéré external_account (pas une clé), READ_HTTP=200 secret lu (autorisé), impersonation SA non autorisée = AUTH_STEP failure (négatif). (3) Cloud Run metadata : identity=wif-authorized keyUsed=false read_status=200 (autorisé), SA wif-wrong read_status=403 (négatif). Evidence + repro + teardown-trace : docs/deploy-evidence/2026-07-21-wif-three-paths/."
     dependances: []
-    conditionDeCloture: "Compléter l'évidence : WIF prouvé GKE seulement, pas les 3 chemins ; puis re-soumission au relecteur"
-    nextAction: "Revue humaine"
-    targetDate: "2026-07-20"
+    conditionDeCloture: "Merge de la PR feat/wif-three-paths-live + re-signature humaine (3 chemins désormais prouvés live)"
+    nextAction: "Re-soumettre au relecteur ; NE PAS clôturer avant re-signature (PROVEN_REVIEW_PENDING)"
+    targetDate: "2026-07-27"
   - p0Id: P0-A2-10
     title: "Décision Gallery incohérente"
     description: "Reclasser CAPTURE_INCOMPLETE/OPEN"
