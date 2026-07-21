@@ -1426,6 +1426,20 @@ exports.Prisma.AgentCallLogScalarFieldEnum = {
   source: 'source'
 };
 
+exports.Prisma.ProjectCheckpointScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  state: 'state',
+  logicalBarrierId: 'logicalBarrierId',
+  consistencyLevel: 'consistencyLevel',
+  manifest: 'manifest',
+  error: 'error',
+  expiresAt: 'expiresAt',
+  createdByUserId: 'createdByUserId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.RemixJobScalarFieldEnum = {
   id: 'id',
   sourceProjectId: 'sourceProjectId',
@@ -1763,6 +1777,7 @@ exports.Prisma.ModelName = {
   ScheduledTaskRun: 'ScheduledTaskRun',
   AgentRoutingCard: 'AgentRoutingCard',
   AgentCallLog: 'AgentCallLog',
+  ProjectCheckpoint: 'ProjectCheckpoint',
   RemixJob: 'RemixJob',
   ImportJob: 'ImportJob',
   GalleryListing: 'GalleryListing'

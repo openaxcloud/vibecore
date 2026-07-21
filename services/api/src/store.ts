@@ -1295,6 +1295,37 @@ export interface ApiStore {
   upsertProjectSecret(input: { projectId: string; key: string; valueEncrypted: string }): Promise<ProjectSecretRecord>;
   listProjectSecrets(projectId: string): Promise<Array<Omit<ProjectSecretRecord, 'valueEncrypted'>>>;
   getProjectSecret(projectId: string, key: string): Promise<ProjectSecretRecord | undefined>;
+  /** Checkpoint PROJET coordonné (plan §15). */
+  createProjectCheckpoint(input: {
+    projectId: string;
+    createdByUserId?: string;
+  }): Promise<{ id: string; state: string }>;
+  updateProjectCheckpoint(
+    id: string,
+    patch: {
+      state?: string;
+      logicalBarrierId?: string;
+      consistencyLevel?: string;
+      manifest?: unknown;
+      error?: string;
+      expiresAt?: string;
+    },
+  ): Promise<void>;
+  getProjectCheckpoint(id: string): Promise<
+    | {
+        id: string;
+        projectId: string;
+        state: string;
+        logicalBarrierId?: string;
+        consistencyLevel?: string;
+        manifest?: unknown;
+        error?: string;
+        expiresAt?: string;
+        createdAt: string;
+      }
+    | undefined
+  >;
+
   /** Create a remix-job row (state machine + audit of the secure fork pipeline). */
   createRemixJob(input: {
     sourceProjectId: string;

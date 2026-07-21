@@ -1159,6 +1159,58 @@ export class PrismaApiStore implements ApiStore {
     return secret ? mapSecret(secret) : undefined;
   }
 
+  async createProjectCheckpoint(input: { projectId: string; createdByUserId?: string }) {
+    const row = await this.prisma.projectCheckpoint.create({
+      data: { projectId: input.projectId, createdByUserId: input.createdByUserId ?? null, state: 'PREPARING' },
+    });
+
+    return { id: row.id, state: row.state };
+  }
+
+  async updateProjectCheckpoint(
+    id: string,
+    patch: {
+      state?: string;
+      logicalBarrierId?: string;
+      consistencyLevel?: string;
+      manifest?: unknown;
+      error?: string;
+      expiresAt?: string;
+    },
+  ) {
+    await this.prisma.projectCheckpoint.update({
+      where: { id },
+      data: {
+        ...(patch.state !== undefined ? { state: patch.state } : {}),
+        ...(patch.logicalBarrierId !== undefined ? { logicalBarrierId: patch.logicalBarrierId } : {}),
+        ...(patch.consistencyLevel !== undefined ? { consistencyLevel: patch.consistencyLevel } : {}),
+        ...(patch.manifest !== undefined ? { manifest: patch.manifest as object } : {}),
+        ...(patch.error !== undefined ? { error: patch.error } : {}),
+        ...(patch.expiresAt !== undefined ? { expiresAt: new Date(patch.expiresAt) } : {}),
+      },
+    });
+  }
+
+  async getProjectCheckpoint(id: string) {
+    const row = await this.prisma.projectCheckpoint.findUnique({ where: { id } });
+
+    if (!row) {
+      return undefined;
+    }
+
+    return {
+      id: row.id,
+      projectId: row.projectId,
+      state: row.state,
+      logicalBarrierId: row.logicalBarrierId ?? undefined,
+      consistencyLevel: row.consistencyLevel ?? undefined,
+      manifest: row.manifest as unknown,
+      error: row.error ?? undefined,
+      expiresAt: row.expiresAt?.toISOString(),
+      createdAt: row.createdAt.toISOString(),
+    };
+  }
+
   async createRemixJob(input: {
     sourceProjectId: string;
     organizationId: string;

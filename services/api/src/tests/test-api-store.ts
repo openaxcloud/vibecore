@@ -1866,6 +1866,36 @@ export class TestApiStore implements ApiStore {
     return active ? { version: active.version, data: active.data } : undefined;
   }
 
+  projectCheckpoints = new Map<
+    string,
+    {
+      id: string;
+      projectId: string;
+      state: string;
+      logicalBarrierId?: string;
+      consistencyLevel?: string;
+      manifest?: unknown;
+      error?: string;
+      expiresAt?: string;
+      createdAt: string;
+    }
+  >();
+
+  async createProjectCheckpoint(input: { projectId: string; createdByUserId?: string }) {
+    const row = { id: id('ckpt'), projectId: input.projectId, state: 'PREPARING', createdAt: now() };
+    this.projectCheckpoints.set(row.id, row);
+    return { id: row.id, state: row.state };
+  }
+
+  async updateProjectCheckpoint(idv: string, patch: Record<string, unknown>) {
+    const row = this.projectCheckpoints.get(idv);
+    if (row) Object.assign(row, patch);
+  }
+
+  async getProjectCheckpoint(idv: string) {
+    return this.projectCheckpoints.get(idv);
+  }
+
   remixJobs = new Map<
     string,
     {

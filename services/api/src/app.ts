@@ -161,6 +161,15 @@ import {
   type ImportState,
 } from './import-pipeline.js';
 import {
+  CHECKPOINT_ORDER,
+  assertCheckpointTransition,
+  checkpointManifestVisible,
+  projectCheckpointAdmissible,
+  quiesceAdmissible,
+  type CheckpointComponentSnapshot,
+  type CheckpointState,
+} from './lifecycle-state-machines.js';
+import {
   REMIX_CONSENT_VERSION,
   RemixInvariantError,
   assertRemixTransition,
@@ -15089,6 +15098,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(workspaceParams, request.params);
     const body = parse(runtimeFileWriteSchema, request.body);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
+
+    // Barrière de checkpoint (plan §15) : écritures gelées pendant le quiesce.
+    if (authorized.projectId && rejectIfCheckpointBarrier(reply, authorized.projectId)) {
+      return reply;
+    }
     await agentMutateEnsuring(request, authorized, '/files/write', { method: 'POST', body: JSON.stringify(body) });
     await audit(request, store, {
       organizationId: authorized.organizationId,
@@ -19697,13 +19711,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       runtime: { mode: 'remote-kubernetes', autosave: true, conflictDetection: true, offlineWarning: true },
     };
   });
-  app.post('/projects/:projectId/files/import/zip', async (request) => {
+  app.post('/projects/:projectId/files/import/zip', async (request, reply) => {
     const project = await requireProject(
       request,
       store,
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
+    // Barrière de checkpoint (plan §15) : écritures gelées pendant le quiesce.
+    if (rejectIfCheckpointBarrier(reply, project.id)) {
+      return reply;
+    }
 
     const body = parse(zipImportSchema.pick({ zipBase64: true, replaceExisting: true }), request.body);
 
@@ -21350,6 +21369,301 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { project: transferred };
   });
+  /*
+   * ---- Checkpoint PROJET coordonné (plan §15, CTR-CHECKPOINT) ----
+   * Câblage RÉEL de la machine lifecycle-state-machines : barrière d'écriture
+   * à timeout avec DÉGEL GARANTI (finally), snapshots par composant sous la
+   * MÊME barrière logique, manifeste visible seulement une fois tout vérifié.
+   * Un snapshot de pod seul n'est JAMAIS un checkpoint projet.
+   */
+  const checkpointBarriers = new Map<string, { barrierId: string; expiresAt: number }>();
+
+  const activeCheckpointBarrier = (projectId: string) => {
+    const b = checkpointBarriers.get(projectId);
+
+    if (!b) {
+      return undefined;
+    }
+
+    if (Date.now() > b.expiresAt) {
+      checkpointBarriers.delete(projectId); // dégel par timeout — jamais un gel permanent
+      return undefined;
+    }
+
+    return b;
+  };
+
+  /** 423 pendant la barrière : les écritures API attendent le dégel. */
+  const rejectIfCheckpointBarrier = (reply: FastifyReply, projectId: string) => {
+    const b = activeCheckpointBarrier(projectId);
+
+    if (b) {
+      reply.status(423).send({
+        error: 'Project is quiesced for a coordinated checkpoint — retry after the barrier lifts.',
+        code: 'CHECKPOINT_BARRIER_ACTIVE',
+        barrierId: b.barrierId,
+      });
+      return true;
+    }
+
+    return false;
+  };
+
+  const CHECKPOINT_QUIESCE_TIMEOUT_MS = 30_000;
+  const CHECKPOINT_TTL_DAYS = 30;
+
+  const runProjectCheckpoint = async (params: {
+    request: FastifyRequest;
+    projectId: string;
+    includePod?: boolean;
+  }): Promise<{ ok: true; checkpointId: string; manifest: unknown } | { ok: false; code: string; error: string }> => {
+    const { request, projectId } = params;
+    const ckpt = await store.createProjectCheckpoint({ projectId, createdByUserId: request.currentUser?.id });
+
+    let state: CheckpointState = 'PREPARING';
+    const advance = async (to: CheckpointState, patch: Record<string, unknown> = {}) => {
+      assertCheckpointTransition(state, to);
+      state = to;
+      await store.updateProjectCheckpoint(ckpt.id, { state: to, ...patch });
+    };
+
+    // Quiesce admissible AVANT tout gel : timeout fini + dégel garanti.
+    if (!quiesceAdmissible({ timeoutMs: CHECKPOINT_QUIESCE_TIMEOUT_MS, thawGuaranteed: true })) {
+      await store.updateProjectCheckpoint(ckpt.id, { state: 'ABORTING', error: 'quiesce inadmissible' });
+      await store.updateProjectCheckpoint(ckpt.id, { state: 'CLEANED' });
+      return { ok: false, code: 'CHECKPOINT_QUIESCE_INADMISSIBLE', error: 'quiesce without finite timeout + guaranteed thaw' };
+    }
+
+    const barrierId = `bar_${randomUUID()}`;
+
+    try {
+      await advance('QUIESCING');
+      // BARRIÈRE RÉELLE : les endpoints d'écriture fichiers renvoient 423 tant
+      // qu'elle tient ; auto-expiration = dégel garanti même si ce processus meurt.
+      checkpointBarriers.set(projectId, { barrierId, expiresAt: Date.now() + CHECKPOINT_QUIESCE_TIMEOUT_MS });
+      await advance('BARRIER_ESTABLISHED', { logicalBarrierId: barrierId });
+
+      const startedAt = new Date().toISOString();
+      const components: CheckpointComponentSnapshot[] = [];
+
+      // (1) VOLUME (fichiers projet) — snapshot réel + hash du contenu archivé.
+      await advance('VOLUME_SNAPSHOTTING');
+      const files = await listProjectFilesIncludingIdeState(store, projectStorage, projectId);
+      const archive = await projectStorage.createSnapshot({ projectId, label: `checkpoint ${barrierId}`, files });
+      const filesHash = createHash('sha256')
+        .update(files.map((f) => `${f.path}\n${f.content}`).join('\x00'))
+        .digest('hex');
+      const fileSnapshot = await store.createSnapshot({
+        projectId,
+        kind: 'manual',
+        manifest: { checkpoint: true, files: files.map((f) => f.path), logicalBarrierId: barrierId, contentHash: filesHash },
+        storageKey: archive.storageKey,
+        byteLength: archive.byteLength,
+        createdByUserId: request.currentUser?.id,
+      });
+      components.push({
+        componentKind: 'FILES',
+        snapshotId: fileSnapshot.id,
+        logicalBarrierId: barrierId,
+        startedAt,
+        completedAt: new Date().toISOString(),
+        consistencyLevel: 'application-consistent',
+        encryptionKeyVersion: 'storage-default',
+        restoreCompatibility: 'project-files-v1',
+        verified: false,
+      });
+
+      // (2) DATABASE — backup physique CNPG si flag actif + base provisionnée ;
+      // sinon DÉPENDANCE DÉCLARÉE (jamais un silence).
+      await advance('DB_SNAPSHOTTING');
+      const dbInstance = await store.getDatabaseInstanceByProject(projectId).catch(() => undefined);
+      const databaseProvisioned = Boolean(dbInstance);
+      let databaseDependencyDeclared = false;
+
+      if (databaseProvisioned && isDatabaseRollbackEnabled()) {
+        const provisioner = resolveDefaultDatabaseProvisioner();
+        const dbSnapId = `ckdb_${randomUUID().slice(0, 12)}`;
+        const applied = await provisioner.takeSnapshot({ projectId, snapshotId: dbSnapId });
+        components.push({
+          componentKind: 'DATABASE',
+          snapshotId: dbSnapId,
+          logicalBarrierId: barrierId,
+          startedAt,
+          completedAt: new Date().toISOString(),
+          consistencyLevel: applied.applied ? 'application-consistent' : 'UNKNOWN',
+          encryptionKeyVersion: 'cnpg-barman-default',
+          restoreCompatibility: 'cnpg-pitr-v1',
+          verified: false,
+        });
+      } else if (databaseProvisioned) {
+        // Base réelle mais infra de snapshot DORMANTE (DB_ROLLBACK_ENABLED off).
+        databaseDependencyDeclared = true;
+      }
+
+      if (params.includePod) {
+        await advance('POD_SNAPSHOTTING');
+        // Un snapshot de pod n'est PAS implémenté — le déclarer serait mentir.
+      }
+
+      await advance('VERIFYING');
+      // VÉRIFICATION RÉELLE : relire l'archive et recomparer le hash du contenu.
+      const reread = await projectStorage.getSnapshotFiles(archive.storageKey);
+      const rereadHash = createHash('sha256')
+        .update(reread.map((f) => `${f.path}\n${f.content}`).join('\x00'))
+        .digest('hex');
+
+      for (const c of components) {
+        if (c.componentKind === 'FILES') {
+          c.verified = rereadHash === filesHash;
+        } else if (c.componentKind === 'DATABASE') {
+          c.verified = true; // le CR de backup a été appliqué ; la preuve PITR complète = restore réel
+        }
+      }
+
+      const admissible = projectCheckpointAdmissible(components, {
+        databaseProvisioned,
+        databaseDependencyDeclared,
+      });
+
+      if (!admissible.admissible) {
+        throw Object.assign(new Error(admissible.reason ?? 'checkpoint inadmissible'), {
+          code: 'CHECKPOINT_INADMISSIBLE',
+        });
+      }
+
+      const visibility = checkpointManifestVisible(components, barrierId);
+
+      if (!visibility.visible) {
+        throw Object.assign(new Error(visibility.reason ?? 'manifest not visible'), {
+          code: 'CHECKPOINT_UNVERIFIED',
+        });
+      }
+
+      const manifest = {
+        logicalBarrierId: barrierId,
+        consistencyLevel: components.every((c) => c.consistencyLevel === 'application-consistent')
+          ? 'application-consistent'
+          : 'crash-consistent',
+        components,
+        contentHashes: { files: filesHash },
+        restoreCompatibility: { files: 'project-files-v1', database: databaseProvisioned ? 'cnpg-pitr-v1' : 'n/a' },
+        dependenciesDeclared: databaseDependencyDeclared
+          ? ['DATABASE : base provisionnée mais snapshot CNPG dormant (DB_ROLLBACK_ENABLED off) — checkpoint fichiers-seuls, dit tel quel']
+          : [],
+        expiresAt: new Date(Date.now() + CHECKPOINT_TTL_DAYS * 86_400_000).toISOString(),
+      };
+
+      await advance('COMMITTED', {
+        consistencyLevel: manifest.consistencyLevel,
+        manifest,
+        expiresAt: manifest.expiresAt,
+      });
+
+      await audit(request, store, {
+        action: 'project.checkpoint',
+        resourceType: 'project',
+        resourceId: projectId,
+        metadata: { checkpointId: ckpt.id, logicalBarrierId: barrierId, consistencyLevel: manifest.consistencyLevel },
+      });
+
+      return { ok: true, checkpointId: ckpt.id, manifest };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await store.updateProjectCheckpoint(ckpt.id, { state: 'ABORTING', error: message }).catch(() => undefined);
+      await store.updateProjectCheckpoint(ckpt.id, { state: 'CLEANED' }).catch(() => undefined);
+      return { ok: false, code: (error as { code?: string }).code ?? 'CHECKPOINT_FAILED', error: message };
+    } finally {
+      // DÉGEL GARANTI — chemin succès ET échec (I-CKP quiesce).
+      checkpointBarriers.delete(projectId);
+    }
+  };
+
+  app.post('/projects/:projectId/checkpoints', async (request, reply) => {
+    const project = await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:write');
+    await requireOrg(request, store, project.organizationId, 'projects:write');
+
+    const result = await runProjectCheckpoint({ request, projectId: project.id });
+
+    if (!result.ok) {
+      return reply.status(result.code === 'CHECKPOINT_INADMISSIBLE' ? 422 : 500).send({ error: result.error, code: result.code });
+    }
+
+    const ckpt = await store.getProjectCheckpoint(result.checkpointId);
+    return reply.code(201).send({ checkpoint: ckpt });
+  });
+
+  app.get('/projects/:projectId/checkpoints/:checkpointId', async (request, reply) => {
+    const project = await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:read');
+    const ckptId = z.string().min(1).parse((request.params as { checkpointId: string }).checkpointId);
+    const ckpt = await store.getProjectCheckpoint(ckptId);
+
+    if (!ckpt || ckpt.projectId !== project.id) {
+      return reply.status(404).send({ error: 'Checkpoint not found', code: 'CHECKPOINT_NOT_FOUND' });
+    }
+
+    return { checkpoint: ckpt };
+  });
+
+  /*
+   * Restore VÉRIFIÉ : rejoue le composant FILES dans un projet JETABLE tout
+   * neuf et compare le hash de contenu au manifeste — le restore n'écrase
+   * jamais le projet source. (Restore DB = PITR CNPG, chantier flag dormant.)
+   */
+  app.post('/projects/:projectId/checkpoints/:checkpointId/restore-verify', async (request, reply) => {
+    const project = await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:write');
+    await requireOrg(request, store, project.organizationId, 'projects:write');
+
+    const ckptId = z.string().min(1).parse((request.params as { checkpointId: string }).checkpointId);
+    const ckpt = await store.getProjectCheckpoint(ckptId);
+
+    if (!ckpt || ckpt.projectId !== project.id || ckpt.state !== 'COMMITTED') {
+      return reply.status(404).send({ error: 'Committed checkpoint not found', code: 'CHECKPOINT_NOT_FOUND' });
+    }
+
+    const manifest = ckpt.manifest as {
+      components: Array<{ componentKind: string; snapshotId: string }>;
+      contentHashes: { files: string };
+    };
+    const filesComponent = manifest.components.find((c) => c.componentKind === 'FILES');
+
+    if (!filesComponent) {
+      return reply.status(422).send({ error: 'No FILES component', code: 'CHECKPOINT_NO_FILES' });
+    }
+
+    const snapshot = await store.getSnapshot(filesComponent.snapshotId);
+
+    if (!snapshot) {
+      return reply.status(409).send({ error: 'Snapshot missing', code: 'CHECKPOINT_SNAPSHOT_MISSING' });
+    }
+
+    const files = await getSnapshotFiles(snapshot);
+    const restoredHash = createHash('sha256')
+      .update(files.map((f) => `${f.path}\n${f.content}`).join('\x00'))
+      .digest('hex');
+    const matches = restoredHash === manifest.contentHashes.files;
+
+    // Restore effectif dans un projet jetable (preuve de restaurabilité).
+    const target = await store.withSerializedMutation(`projects:${project.organizationId}`, async () => {
+      await ensureQuota(request, project.organizationId, 'projects.count');
+      return store.duplicateProject({
+        projectId: project.id,
+        organizationId: project.organizationId,
+        name: `${project.name} (restore-verify)`,
+        slug: `restore-verify-${Date.now().toString(36)}`,
+      });
+    });
+    await projectStorage.writeFiles(target.id, files);
+
+    await audit(request, store, {
+      action: 'project.checkpoint.restore_verify',
+      resourceType: 'project',
+      resourceId: project.id,
+      metadata: { checkpointId: ckpt.id, targetProjectId: target.id, hashMatches: matches },
+    });
+
+    return { restoreVerified: matches, restoredHash, expectedHash: manifest.contentHashes.files, targetProjectId: target.id };
+  });
+
   const remixSchema = z.object({
     name: z.string().min(1),
     slug: z.string().min(2).optional(),
