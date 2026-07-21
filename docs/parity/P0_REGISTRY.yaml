@@ -86,14 +86,24 @@ p0s:
     source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (expert externe, 2026-07-16), P0-01"
     priority: 1
     owner: platform
-    status: OPEN
-    commit: "07ced1c5"
+    status: PROVEN_REVIEW_PENDING
+    remediationTrack: A_TRIER
+    commit: "0bfdb8a2"
     reviewer: UNKNOWN
-    evidenceId: docs/parity/baseline/snapshots/2026-07-16/
-    proof: "PARTIEL : collecteur 5 familles + rendu JS + hash (community.rendered.html capturé, OBS-COMMUNITY-PROFILES TRIAGED). RESTE : rendu JS prouvé en CI (UNK-COLLECTOR-CI-RENDER) + triage Ramp for Agents."
+    evidenceId: docs/deploy-evidence/2026-07-20-collector-ci-render/
+    proof: >-
+      Les 2 conditions de clôture sont posées : (1) run CI réel vert — job
+      « JS render smoke » (run 29740552799, job 88346070527, gate pipefail
+      réel exit 2 prouvé négativement) : chromium sur runner GitHub rend 6/6
+      sources gated, hashes vérifiés artefact↔manifest (community-hub
+      2da79fbd… porte Power Ranking + streak), WARC f953e1fa…, triage daté
+      dans le ledger ; exception mesurée status.replit.com 403 runners
+      (renderGateExempt, BLOCKED enregistré). (2) Ramp for Agents trié :
+      OBS-RAMP-FOR-AGENTS (absence mesurée dans TOUTES les familles capturées,
+      watchTermsNeverSeen du manifest CI). En attente de revue.
     dependances: [UNK-COLLECTOR-CI-RENDER]
     conditionDeCloture: "Run CI réel du collecteur avec rendu JS (chromium) vert + Ramp for Agents trié dans OBSERVATION_REGISTRY"
-    nextAction: "Prouver le rendu JS en CI GitHub ; trier Ramp for Agents"
+    nextAction: "Revue humaine du run CI + du triage OBS-RAMP-FOR-AGENTS ; merge PR #14"
     targetDate: "2026-08-01"
   - p0Id: P0-V3-02
     title: "Table Gallery factuellement dépassée"
