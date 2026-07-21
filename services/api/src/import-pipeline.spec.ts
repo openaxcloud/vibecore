@@ -8,12 +8,25 @@ import {
   ImportInvariantError,
   applyConsentedRedactions,
   assertImportTransition,
+  assertScanBranch,
   findingKey,
   redactSecretLine,
   redactValue,
+  scanBranchTarget,
   scanStagedFilesForSecrets,
   unresolvedFindings,
 } from './import-pipeline.js';
+
+/** Assert a thunk throws an ImportInvariantError with the given code. */
+function expectInvariant(fn: () => unknown, code: string) {
+  try {
+    fn();
+    throw new Error(`expected ImportInvariantError ${code}`);
+  } catch (error) {
+    expect(error).toBeInstanceOf(ImportInvariantError);
+    expect((error as ImportInvariantError).code).toBe(code);
+  }
+}
 
 /*
  * A secret-SHAPED fixture that trips the generic env-secret detector but is NOT
@@ -21,14 +34,13 @@ import {
  */
 const IMPORTED_SECRET = 'Zx9Q7wE3rT5yU8iO1pA6sD2fG4hJ0kL0mN';
 
-describe('import state machine', () => {
-  it('accepts the happy path with quarantine + consent', () => {
+describe('import state machine — aligned on the contract (P0-EX-04)', () => {
+  it('accepts the CLEAN happy path: SCANNING → READY_TO_COMMIT → COMMITTING → COMMITTED', () => {
     const path = [
       ['RECEIVED', 'STAGING_ISOLATED'],
       ['STAGING_ISOLATED', 'SCANNING'],
-      ['SCANNING', 'QUARANTINED'],
-      ['QUARANTINED', 'AWAITING_USER_ACTION'],
-      ['AWAITING_USER_ACTION', 'COMMITTING'],
+      ['SCANNING', 'READY_TO_COMMIT'],
+      ['READY_TO_COMMIT', 'COMMITTING'],
       ['COMMITTING', 'COMMITTED'],
     ] as const;
 
@@ -37,38 +49,74 @@ describe('import state machine', () => {
     }
   });
 
-  it('accepts the clean path (no findings) SCANNING → COMMITTING', () => {
-    expect(() => assertImportTransition('SCANNING', 'COMMITTING')).not.toThrow();
-  });
+  it('accepts the QUARANTINE path with the RESCANNING step before READY_TO_COMMIT', () => {
+    const path = [
+      ['SCANNING', 'QUARANTINED'],
+      ['QUARANTINED', 'AWAITING_USER_ACTION'],
+      ['AWAITING_USER_ACTION', 'RESCANNING'],
+      ['RESCANNING', 'READY_TO_COMMIT'],
+      ['READY_TO_COMMIT', 'COMMITTING'],
+      ['COMMITTING', 'COMMITTED'],
+    ] as const;
 
-  it('REJECTS committing without a clean scan or consent (I-IMP-1)', () => {
-    try {
-      assertImportTransition('STAGING_ISOLATED', 'COMMITTING');
-      throw new Error('should have thrown');
-    } catch (error) {
-      expect(error).toBeInstanceOf(ImportInvariantError);
-      expect((error as ImportInvariantError).code).toBe('IMPORT_COMMIT_WITHOUT_CONSENT');
+    for (const [from, to] of path) {
+      expect(() => assertImportTransition(from, to)).not.toThrow();
     }
   });
 
-  it('allows cleanup (ROLLING_BACK / CANCELLED / EXPIRED) from ANY non-terminal state', () => {
+  it('RESCANNING may loop back to QUARANTINED when findings are still unresolved', () => {
+    expect(() => assertImportTransition('RESCANNING', 'QUARANTINED')).not.toThrow();
+  });
+
+  // Negative test (1): the old SCANNING→COMMITTING shortcut is REMOVED.
+  it('REJECTS the old shortcut SCANNING → COMMITTING (IMPORT_COMMIT_NOT_READY)', () => {
+    expectInvariant(() => assertImportTransition('SCANNING', 'COMMITTING'), 'IMPORT_COMMIT_NOT_READY');
+  });
+
+  it('REJECTS COMMITTING from any state other than READY_TO_COMMIT', () => {
+    for (const from of ['STAGING_ISOLATED', 'AWAITING_USER_ACTION', 'QUARANTINED', 'RESCANNING'] as const) {
+      expectInvariant(() => assertImportTransition(from, 'COMMITTING'), 'IMPORT_COMMIT_NOT_READY');
+    }
+  });
+
+  // Negative test (2): a clean payload must not be forced through quarantine.
+  it('REJECTS forcing a CLEAN payload into QUARANTINED (IMPORT_CLEAN_FORCED_QUARANTINE)', () => {
+    expectInvariant(() => assertScanBranch('QUARANTINED', false), 'IMPORT_CLEAN_FORCED_QUARANTINE');
+    expect(scanBranchTarget(false)).toBe('READY_TO_COMMIT');
+  });
+
+  // Negative test (3): a payload with blocking findings must not skip to READY.
+  it('REJECTS skipping to READY_TO_COMMIT with blocking findings (IMPORT_FINDINGS_SKIP_QUARANTINE)', () => {
+    expectInvariant(() => assertScanBranch('READY_TO_COMMIT', true), 'IMPORT_FINDINGS_SKIP_QUARANTINE');
+    expect(scanBranchTarget(true)).toBe('QUARANTINED');
+  });
+
+  it('assertScanBranch accepts the correct branches', () => {
+    expect(() => assertScanBranch('READY_TO_COMMIT', false)).not.toThrow();
+    expect(() => assertScanBranch('QUARANTINED', true)).not.toThrow();
+  });
+
+  it('allows cleanup (ROLLING_BACK / CLEANUP_PENDING / CANCELLED / EXPIRED / FAILED) from ANY non-terminal state', () => {
     for (const from of [
       'RECEIVED',
       'STAGING_ISOLATED',
       'SCANNING',
       'QUARANTINED',
       'AWAITING_USER_ACTION',
+      'RESCANNING',
+      'READY_TO_COMMIT',
       'COMMITTING',
+      'CLEANUP_PENDING',
     ] as const) {
-      expect(() => assertImportTransition(from, 'ROLLING_BACK')).not.toThrow();
-      expect(() => assertImportTransition(from, 'CANCELLED')).not.toThrow();
-      expect(() => assertImportTransition(from, 'EXPIRED')).not.toThrow();
+      for (const to of ['ROLLING_BACK', 'CLEANUP_PENDING', 'CANCELLED', 'EXPIRED', 'FAILED'] as const) {
+        expect(() => assertImportTransition(from, to)).not.toThrow();
+      }
     }
   });
 
-  it('refuses to leave a terminal state', () => {
-    for (const from of ['COMMITTED', 'ROLLING_BACK', 'EXPIRED', 'CANCELLED'] as const) {
-      expect(() => assertImportTransition(from, 'SCANNING')).toThrowError(/terminal/);
+  it('refuses to leave a terminal state (incl. the new FAILED terminal)', () => {
+    for (const from of ['COMMITTED', 'ROLLING_BACK', 'EXPIRED', 'CANCELLED', 'FAILED'] as const) {
+      expectInvariant(() => assertImportTransition(from, 'SCANNING'), 'IMPORT_TERMINAL_STATE');
     }
   });
 });

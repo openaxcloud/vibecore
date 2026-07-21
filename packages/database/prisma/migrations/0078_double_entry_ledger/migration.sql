@@ -1,6 +1,9 @@
 -- 0078_double_entry_ledger — canonical double-entry ledger (C1 / P0-V3-12)
--- Tables generated via 'prisma migrate diff'; immutability triggers appended by hand
--- (house style, cf 0010 pgvector / 0076 usage_event trigger).
+-- NETTOYEE le 21/07 avant merge : la version issue de prisma migrate diff
+-- embarquait des artefacts de derive de schema etrangers au ledger
+-- (suppressions d'index memoire agent, 2 cles etrangeres, 18 alterations) ;
+-- retires. Cette migration est PUREMENT ADDITIVE : enums + tables Ledger*
+-- + index + cles internes + triggers d'immutabilite.
 
 -- CreateEnum
 CREATE TYPE "LedgerAccountType" AS ENUM ('ASSET', 'LIABILITY', 'REVENUE', 'EXPENSE', 'EQUITY');
@@ -13,83 +16,6 @@ CREATE TYPE "LedgerReservationStatus" AS ENUM ('ACTIVE', 'COMMITTED', 'COMPENSAT
 
 -- CreateEnum
 CREATE TYPE "LedgerReconciliationStatus" AS ENUM ('OK', 'DISCREPANCY');
-
--- DropForeignKey
-ALTER TABLE "OrganizationOAuthAppOverride" DROP CONSTRAINT "OrganizationOAuthAppOverride_configuredByUserId_fkey";
-
--- DropForeignKey
-ALTER TABLE "ProjectConnectionLink" DROP CONSTRAINT "ProjectConnectionLink_linkedByUserId_fkey";
-
--- DropIndex
-DROP INDEX "AgentMemory_active_idx";
-
--- DropIndex
-DROP INDEX "AgentMemory_embedding_hnsw";
-
--- DropIndex
-DROP INDEX "AgentMemory_tags_idx";
-
--- AlterTable
-ALTER TABLE "AgentMemory" ALTER COLUMN "updatedAt" DROP DEFAULT;
-
--- AlterTable
-ALTER TABLE "AgentMemoryPreference" ALTER COLUMN "updatedAt" DROP DEFAULT;
-
--- AlterTable
-ALTER TABLE "AgentPatchProposal" ALTER COLUMN "updatedAt" DROP DEFAULT;
-
--- AlterTable
-ALTER TABLE "ConnectorCatalog" ALTER COLUMN "defaultScopes" DROP DEFAULT,
-ALTER COLUMN "availableScopes" DROP DEFAULT,
-ALTER COLUMN "triggersSupported" DROP DEFAULT,
-ALTER COLUMN "updatedAt" DROP DEFAULT;
-
--- AlterTable
-ALTER TABLE "ImportJob" ALTER COLUMN "updatedAt" DROP DEFAULT;
-
--- AlterTable
-ALTER TABLE "LoginProviderConfig" ALTER COLUMN "updatedAt" DROP DEFAULT;
-
--- AlterTable
-ALTER TABLE "McpCatalogEntry" ALTER COLUMN "tags" DROP DEFAULT,
-ALTER COLUMN "updatedAt" DROP DEFAULT;
-
--- AlterTable
-ALTER TABLE "McpInstall" ALTER COLUMN "updatedAt" DROP DEFAULT;
-
--- AlterTable
-ALTER TABLE "OrganizationConnectorPolicy" ALTER COLUMN "allowedRoleKeys" DROP DEFAULT,
-ALTER COLUMN "updatedAt" DROP DEFAULT;
-
--- AlterTable
-ALTER TABLE "OrganizationOAuthAppOverride" ALTER COLUMN "scopes" DROP DEFAULT,
-ALTER COLUMN "updatedAt" DROP DEFAULT;
-
--- AlterTable
-ALTER TABLE "ProjectSecret" ALTER COLUMN "updatedAt" DROP DEFAULT;
-
--- AlterTable
-ALTER TABLE "ProjectSkill" ALTER COLUMN "updatedAt" DROP DEFAULT;
-
--- AlterTable
-ALTER TABLE "RemixJob" ALTER COLUMN "updatedAt" DROP DEFAULT;
-
--- AlterTable
-ALTER TABLE "SiemWebhook" ALTER COLUMN "secretCiphertext" DROP DEFAULT;
-
--- AlterTable
-ALTER TABLE "StripeConfig" ALTER COLUMN "id" SET DEFAULT 'singleton',
-ALTER COLUMN "updatedAt" DROP DEFAULT;
-
--- AlterTable
-ALTER TABLE "Subscription" ALTER COLUMN "updatedAt" DROP DEFAULT;
-
--- AlterTable
-ALTER TABLE "UserConnection" ALTER COLUMN "scopes" DROP DEFAULT,
-ALTER COLUMN "updatedAt" DROP DEFAULT;
-
--- AlterTable
-ALTER TABLE "WorkspaceRuntime" ALTER COLUMN "updatedAt" DROP DEFAULT;
 
 -- CreateTable
 CREATE TABLE "LedgerAccount" (
@@ -224,12 +150,6 @@ CREATE INDEX "LedgerFxRate_fromCurrency_toCurrency_effectiveAt_idx" ON "LedgerFx
 CREATE INDEX "LedgerReconciliationRun_source_runAt_idx" ON "LedgerReconciliationRun"("source", "runAt");
 
 -- AddForeignKey
-ALTER TABLE "ProjectConnectionLink" ADD CONSTRAINT "ProjectConnectionLink_linkedByUserId_fkey" FOREIGN KEY ("linkedByUserId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "OrganizationOAuthAppOverride" ADD CONSTRAINT "OrganizationOAuthAppOverride_configuredByUserId_fkey" FOREIGN KEY ("configuredByUserId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "LedgerTransaction" ADD CONSTRAINT "LedgerTransaction_reversalOfId_fkey" FOREIGN KEY ("reversalOfId") REFERENCES "LedgerTransaction"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -238,35 +158,6 @@ ALTER TABLE "LedgerEntry" ADD CONSTRAINT "LedgerEntry_transactionId_fkey" FOREIG
 -- AddForeignKey
 ALTER TABLE "LedgerEntry" ADD CONSTRAINT "LedgerEntry_accountId_fkey" FOREIGN KEY ("accountId") REFERENCES "LedgerAccount"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- RenameIndex
-ALTER INDEX "AgentMemory_org_idx" RENAME TO "AgentMemory_organizationId_updatedAt_idx";
-
--- RenameIndex
-ALTER INDEX "AgentMemory_project_idx" RENAME TO "AgentMemory_projectId_updatedAt_idx";
-
--- RenameIndex
-ALTER INDEX "AgentMemory_session_idx" RENAME TO "AgentMemory_sessionId_updatedAt_idx";
-
--- RenameIndex
-ALTER INDEX "AgentMemory_user_scope_idx" RENAME TO "AgentMemory_userId_scope_updatedAt_idx";
-
--- RenameIndex
-ALTER INDEX "AgentMemoryPreference_organization_updated_idx" RENAME TO "AgentMemoryPreference_organizationId_updatedAt_idx";
-
--- RenameIndex
-ALTER INDEX "AgentMemoryPreference_project_updated_idx" RENAME TO "AgentMemoryPreference_projectId_updatedAt_idx";
-
--- RenameIndex
-ALTER INDEX "AgentMemoryPreference_user_updated_idx" RENAME TO "AgentMemoryPreference_userId_updatedAt_idx";
-
-
--- ─────────────────────────────────────────────────────────────────────────────
--- IMMUTABILITY (I-LED-3): a posted ledger transaction and its entries are
--- append-only. Any UPDATE / DELETE / TRUNCATE is refused by the database itself.
--- A correction is a NEW reversing transaction, never a mutation of history.
--- Covers the row-level UPDATE/DELETE AND the statement-level TRUNCATE (the latter
--- bypasses FOR EACH ROW triggers).
--- ─────────────────────────────────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION ledger_block_mutation() RETURNS trigger AS $$
 BEGIN
   RAISE EXCEPTION 'Ledger % is append-only: % refused. Correct with a reversing transaction, never by mutating a posted event.', TG_TABLE_NAME, TG_OP;
@@ -292,3 +183,4 @@ DROP TRIGGER IF EXISTS ledger_entry_no_truncate ON "LedgerEntry";
 CREATE TRIGGER ledger_entry_no_truncate
   BEFORE TRUNCATE ON "LedgerEntry"
   FOR EACH STATEMENT EXECUTE FUNCTION ledger_block_mutation();
+

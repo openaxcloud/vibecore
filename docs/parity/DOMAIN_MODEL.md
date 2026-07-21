@@ -1,11 +1,13 @@
 # DOMAIN_MODEL — entités, invariants, machines à états
 
-schemaVersion: 1
-repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
+contractId: CTR-DOMAIN-MODEL
+contractVersion: 2
+schemaVersion: 2
+repoCommit: 1692f981
 reviewer: UNKNOWN
-reviewVerdict: REFUSED — 0/14 contrats signés (lot 57febeab, OpenAI-Codex, 2026-07-20)
-refusalReason: modèle Import ancien + CloudTenant incomplet + Checkpoint/Release faibles (verbatim relecteur, transmis 20/07)
-reviewCloseCriterion: corriger — modèle Import ancien + CloudTenant incomplet + Checkpoint/Release faibles — puis re-soumettre à signature
+expectedReviewer: OpenAI-Codex
+signatureResult: PENDING_REVIEW   # v1 REFUSED : « modèle Import ancien + CloudTenant incomplet + Checkpoint/Release faibles » — v2 : §2 aligné sur LA machine (PR #27) ; CloudTenant/Checkpoint = dépendances OUVERTES déclarées (pas gonflées)
+implementationAnchor: "Remix : prod (7bd91bcf + fail-closed 7e001f3d). Import : machine alignée PR #27 (NON MERGÉE). CloudTenant : contrat + preuves LIVE partielles (CT-10/CT-11 restants). Checkpoint : machine testée unitairement, câblage réel = chantier." 
 Schémas JSON exécutables: `docs/parity/schemas/domain/*.schema.json`.
 Règle: ce document reflète les domaines TRANCHÉS (décisions Avi). Ce qui n'est
 pas tranché est marqué UNKNOWN. Rien ici n'est une promesse d'implémentation:
@@ -42,7 +44,18 @@ Invariants:
 
 ## 2. Import (staging jetable)
 
-États: `QUARANTINED`, `AWAITING_USER_ACTION`, `COMMITTING`, `ROLLING_BACK`, `EXPIRED`.
+Machine à états (LA machine — unique, normative = implémentée, PR #27) :
+
+```
+RECEIVED → STAGING_ISOLATED → SCANNING
+   ├─ clean ───────────────→ READY_TO_COMMIT
+   └─ blocking findings ──→ QUARANTINED → AWAITING_USER_ACTION → RESCANNING → READY_TO_COMMIT
+READY_TO_COMMIT → COMMITTING → COMMITTED
+latéraux : ROLLING_BACK · CLEANUP_PENDING · EXPIRED · CANCELLED · FAILED
+```
+
+Le commit atomique ne part QUE de READY_TO_COMMIT ; un payload propre ne passe
+pas par la quarantaine ; détail : IMPORT_REMIX_CONTRACT (CTR-IMPORT-REMIX v2).
 
 Invariants:
 - I-IMP-1: le staging est JETABLE et ne monte **jamais** le workspace cible.

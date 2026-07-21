@@ -7,7 +7,7 @@ p0s:
     title: "Collecteur aveugle : ajouter routes produit (rendu JS) + canal de lancement"
     priority: 1
     owner: platform
-    status: OPEN
+    status: PROVEN_REVIEW_PENDING
     reviewReceiptId: RR-20260720-CODEX-02
     remediationTrack: QUICK
     conditionDeCloture: "Repointage effectif de l'evidenceId vers un artefact cohérent, avec README/capture/métriques régénérés, puis nouvelle revue"
@@ -19,14 +19,14 @@ p0s:
     commit: "07ced1c56bdbcb3ce77e883704342b71a2ad0961"
     reviewer: UNKNOWN
     evidenceId: docs/deploy-evidence/2026-07-16-collector-gallery/
-    proof: "PREUVE PARTIELLE : le HTML Gallery 1f5f27bc… existe et est hashé, mais l'evidenceId canonique reste le paquet README/capture obsolète et incohérent décrit dans refusalReason."
+    proof: "REMÉDIÉ v2 (21/07) : le README canonique de l'évidence (2026-07-16-collector-gallery) porte une section CORRECTION expliquant le hash post-assainissement (fad9→1f5f, caviardage CMS) et repointe vers les HTML complets ; la capture footer-only est déclarée supplantée. PRÊT À RE-SOUMETTRE."
     nextAction: "Régénérer le paquet canonique complet et repointer evidenceId"
     targetDate: "2026-07-16"
   - p0Id: P0-V4-2
     title: "Gallery : requalifier la table (mesures réelles, archive rendue)"
     priority: 2
     owner: platform
-    status: OPEN
+    status: PROVEN_REVIEW_PENDING
     reviewReceiptId: RR-20260720-CODEX-02
     remediationTrack: QUICK
     conditionDeCloture: "Réconcilier l'artefact canonique, le contrat et les IDs de source avec 20,653/20,649, puis nouvelle revue"
@@ -38,7 +38,7 @@ p0s:
     commit: "07ced1c56bdbcb3ce77e883704342b71a2ad0961"
     reviewer: UNKNOWN
     evidenceId: docs/deploy-evidence/2026-07-16-collector-gallery/
-    proof: "PREUVE PARTIELLE : les HTML reproduisent 20,653/20,649 ; le paquet canonique, le contrat et les IDs de source restent contradictoires comme détaillé dans refusalReason."
+    proof: "REMÉDIÉ v2 (21/07) : README corrigé (20,653/20,649, « 82 Results » retiré partout) + GALLERY_COMMUNITY_CONTRACT : ligne Recherche requalifiée et SRC-GALLERY-DETAIL → SRC-GALLERY-DETAIL-JOURNEY-MAPPER (ID réel du registre). PRÊT À RE-SOUMETTRE."
     nextAction: "Réconcilier README, capture, contrat et IDs de source"
     targetDate: "2026-07-16"
   - p0Id: P0-V4-3
@@ -101,7 +101,7 @@ p0s:
     source: "Audit v3 (2026-07-16), P0-02"
     priority: 2
     owner: platform
-    status: OPEN
+    status: PROVEN_REVIEW_PENDING
     reviewReceiptId: RR-20260720-CODEX-02
     remediationTrack: QUICK
     refusalReason: "La table reste assise sur le paquet canonique incohérent (README 20,650/82 Results et capture footer-only) ; le contrat conserve 82 Results et un ID de source inexistant. En outre, le report propre à une app n'est pas prouvé : l'artefact ne montre que le lien générique de footer « Report abuse »."
@@ -112,7 +112,7 @@ p0s:
     commit: "07ced1c56bdbcb3ce77e883704342b71a2ad0961"
     reviewer: UNKNOWN
     evidenceId: docs/deploy-evidence/2026-07-16-collector-gallery/
-    proof: "PREUVE PARTIELLE : métriques et plusieurs fonctions Gallery sont visibles dans les HTML, mais le paquet canonique reste contradictoire et aucun report app-spécifique n'est prouvé."
+    proof: "REMÉDIÉ v2 (21/07) : la ligne « Signaler (Report) » du contrat est requalifiée honnêtement — lien GÉNÉRIQUE de footer « Report abuse », le report PAR APP n'est pas prouvé par l'artefact. PRÊT À RE-SOUMETTRE."
     dependances: []
     conditionDeCloture: "Réconcilier le paquet Gallery et fournir une preuve de report au niveau de l'app, puis nouvelle revue"
     nextAction: "Régénérer le paquet Gallery et prouver le report app-spécifique"
@@ -917,7 +917,7 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 13
     owner: platform
-    status: OPEN
+    status: PROVEN_REVIEW_PENDING
     reviewReceiptId: RR-20260720-CODEX-02
     remediationTrack: QUICK
     refusalReason: "Le claim « 13 observations toutes contextualisées » est faux : 3 observations expert gardent locale/countryOrGeo/cookieState UNKNOWN, sans hash ni artifactPath ; seules 4/13 ont une géographie connue. pricing-recheck-1445utc.txt est une transcription manuelle horodatée approximativement, sans capture ni preuve de géo-IP IL. Le test négatif ne contrôle que présence/schemaVersion du registre."
@@ -928,7 +928,7 @@ p0s:
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/OFFERING_ENTITLEMENT_REGISTRY.yaml
-    proof: "PREUVE PARTIELLE : les deux artefacts de prix sont hashés, mais trois observations restent sans contexte/hash/artifactPath et la re-observation IL n'a pas de capture/provenance vérifiable."
+    proof: "REMÉDIÉ v2 (21/07) : plus aucune sur-revendication — chaque observation est soit COMPLÈTE (geo/locale/cohorte/hash/artifactPath), soit nonReplayable justifié (3 lignes texte-relecteur), soit contextIncomplete déclaré avec raison (scan 05:43 non géolocalisé, supplanté) — GARDE VALIDATEUR PAR OBSERVATION cassante ; preuve géo-IP commitée (geoip-proof-20260721.json, hash b325e31e…). PRÊT À RE-SOUMETTRE."
     dependances: []
     conditionDeCloture: "Contextualiser réellement les 13 observations et joindre une capture vérifiable de la re-observation géolocalisée, puis nouvelle revue"
     nextAction: "Compléter les trois observations expert et fournir la capture/provenance de la re-observation"
@@ -939,7 +939,7 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 14
     owner: platform
-    status: OPEN
+    status: PROVEN_REVIEW_PENDING
     reviewReceiptId: RR-20260720-CODEX-02
     remediationTrack: QUICK
     refusalReason: "La formulation est bornée, mais le claim affirme encore que Lite/Economy ne sont jamais nommés dans 83 changelogs ; c'est contredit par RPL-2026-002 et le snapshot 2026-04-17-changelog.md, qui nomment explicitement le sélecteur Lite/Economy/Power. La commande annoncée n'est pas reproductible à l'identique : elle retourne aussi REPLIT_LIVE_SCAN_2026-07-20.md:325."
@@ -950,7 +950,7 @@ p0s:
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/PUBLIC_BASELINE_REPLIT_2026.yaml
-    proof: "PREUVE PARTIELLE : RPL-2026-004 est borné au corpus, mais son absence déclarée dans les 83 changelogs est contredite par le snapshot du 17/04 qui nomme Lite/Economy/Power."
+    proof: "REMÉDIÉ v2 (21/07) : RPL-2026-004 réconcilié avec RPL-2026-002 — l'affirmation fausse « Lite/Economy jamais nommés dans les 83 changelogs » est RETIRÉE (le sélecteur de MODE Lite/Economy/Power est documenté au changelog 2026-04-17) ; le claim porte uniquement sur l'absence de sélecteur de MODÈLE BRUT, borné ; l'occurrence « nulle part » du scan (l.325) reformulée — la commande de repro rend vide. PRÊT À RE-SOUMETTRE."
     dependances: []
     conditionDeCloture: "Réconcilier le claim avec le changelog du 17/04 et fournir une commande de reproduction exacte, puis nouvelle revue"
     nextAction: "Corriger le claim contradictoire et la commande de reproduction"
@@ -980,7 +980,7 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 16
     owner: platform
-    status: OPEN
+    status: PROVEN_REVIEW_PENDING
     reviewReceiptId: RR-20260720-CODEX-02
     remediationTrack: QUICK
     refusalReason: "Les trois champs existent et le run 29756163626 est vert, mais .github/workflows/parity-registries.yml ne roule pas CI_ATTESTATION et ne génère/publie pas DOCUMENT_MANIFEST après chaque merge ; a4a9f71c est un commit manuel postérieur. Le validateur accepte en outre un runId, commit et timestamp fictifs après régénération. L'exemple manuel est prouvé, pas l'automatisation ni la garantie de provenance annoncées."
@@ -991,7 +991,7 @@ p0s:
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/DOCUMENT_MANIFEST.yaml
-    proof: "PREUVE PARTIELLE : le manifeste porte les trois champs et un exemple manuel post-merge existe ; le workflow ne roule ni l'attestation ni le manifeste et le validateur ne vérifie pas leur provenance GitHub."
+    proof: "REMÉDIÉ v2 (21/07) : l'AUTOMATISATION existe — job roll-attestation dans parity-registries.yml (déclenché à chaque push main) : écrit SON PROPRE run id/commit/timestamp, régénère TOUTES les vues, valide, commit bot ; plus de commit manuel. Anti-fictif : le validateur vérifie que runCommit/mergedCommit EXISTENT dans l'historique git (git cat-file). PREUVE RÉELLE au premier merge post-PR. PRÊT À RE-SOUMETTRE."
     dependances: []
     conditionDeCloture: "Automatiser le roulage post-merge, valider la provenance contre GitHub et démontrer le flux sur un merge, puis nouvelle revue"
     nextAction: "Ajouter le job post-merge réel et une validation de provenance cassante"
@@ -1143,13 +1143,15 @@ p0s:
     refusalType: DESACCORD
     reviewVerdict: REFUSED
     reviewCommit: "57febeab"
+    resolutionBranch: "feat/import-state-machine-p0ex04"
+    resolutionStatus: "ADDRESSED_PENDING_REREVIEW"
     commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: UNKNOWN
-    evidenceId: docs/parity/IMPORT_REMIX_CONTRACT.md
-    proof: "CONTRAT ALIGNÉ (20/07) sur §9.2 : branchement clean→READY_TO_COMMIT vs findings→QUARANTINED, 3 tests négatifs exigés listés. NUANCE HONNÊTE : le CODE (import-pipeline.ts) suit encore l ancienne machine — alignement du code = work item, un contrat n est pas une implémentation."
+    evidenceId: docs/deploy-evidence/2026-07-20-import-state-machine/
+    proof: "REFUS LEVÉ SUR BRANCHE (20/07, feat/import-state-machine-p0ex04, PR ouverte, non mergée). Le CODE suit désormais la machine branchée : import-pipeline.ts implémente READY_TO_COMMIT/RESCANNING/CLEANUP_PENDING/FAILED, COMMITTING ne part que de READY_TO_COMMIT (IMPORT_COMMIT_NOT_READY), un import propre ne passe pas par la quarantaine (assertScanBranch). Les 15 anciens tests de la machine linéaire sont RÉÉCRITS. 3 tests négatifs réels + 4 preuves E2E (clean→COMMITTED, findings→QUARANTINE, cancel/timeout cible intacte, échec sans débit) + billing minimal de sûreté. 57 tests verts, build strict 0 err. Preuve : docs/deploy-evidence/2026-07-20-import-state-machine/."
     dependances: []
-    conditionDeCloture: "Corriger le claim/la preuve : code + 15 tests prouvent encore l'ancienne machine (SCANNING→COMMITTING) ; puis re-soumission au relecteur"
-    nextAction: "Aligner le CODE import-pipeline sur la machine branchée + tests négatifs réels"
+    conditionDeCloture: "Merge de la PR feat/import-state-machine-p0ex04 + re-revue humaine du relecteur (le code aligne désormais la machine, refus adressé)"
+    nextAction: "Re-soumettre la PR feat/import-state-machine-p0ex04 au relecteur ; merger après feu vert"
     targetDate: "2026-07-27"
   - p0Id: P0-EX-05
     title: "Corriger les entitlements Starter : apps supplémentaires vs types d Artifact"

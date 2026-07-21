@@ -1748,10 +1748,11 @@ items:
   - P140
   evidenceIds:
   - docs/deploy-evidence/2026-07-16-import/
-  codeRefs: app/routes/import-github.tsx; services/api/src/import-pipeline.ts
-  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  - docs/deploy-evidence/2026-07-20-import-state-machine/
+  codeRefs: app/routes/import-github.tsx; services/api/src/import-pipeline.ts; services/api/src/import-billing.ts
+  lastMeasuredAt: '2026-07-20T20:30:00Z'
   measuredBy: agent-overlay-2026-07-20
-  notes: Import GitHub exécuté + staging sécurisé + preuve e2e
+  notes: 'Import GitHub exécuté + staging sécurisé + preuve e2e. Machine à états ALIGNÉE sur le contrat §9.2 (READY_TO_COMMIT/RESCANNING, commit atomique depuis READY_TO_COMMIT seul) + billing minimal de sûreté (réservation idempotente, débit si commit seul) — branche feat/import-state-machine-p0ex04 (P0-EX-04), PR non mergée.'
 - itemId: P141
   itemType: SURFACE
   codeCommit: f69a4b313e2e
