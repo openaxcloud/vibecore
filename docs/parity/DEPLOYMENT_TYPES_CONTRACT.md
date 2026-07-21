@@ -1,11 +1,13 @@
 # DEPLOYMENT_TYPES_CONTRACT — les 4 types de déploiement (P0-A2-04)
 
-schemaVersion: 1
-repoCommit: d1063912
+contractId: CTR-DEPLOYMENT-TYPES
+contractVersion: 2
+schemaVersion: 2
+repoCommit: 1692f981
 reviewer: UNKNOWN
-reviewVerdict: REFUSED — 0/14 contrats signés (lot 57febeab, OpenAI-Codex, 2026-07-20)
-refusalReason: preuve Static absente / Reserved non commencé / Scheduled hors E2E (verbatim relecteur, transmis 20/07)
-reviewCloseCriterion: corriger — preuve Static absente / Reserved non commencé / Scheduled hors E2E — puis re-soumettre à signature
+expectedReviewer: OpenAI-Codex
+signatureResult: PENDING_REVIEW   # v1 REFUSED : « preuve Static absente / Reserved non commencé / Scheduled hors E2E » — v2 structuré + ancré, re-soumission requise
+implementationAnchor: "Autoscale PROUVÉ live (E2E-PHASEB-NODE, metering E2E-AUTOSCALE-Z) ; Scheduled PROUVÉ (SCHEDULED-01, cron+volume réel) ; Static = pipeline prod historique SANS preuve E2E dédiée (à produire) ; Reserved VM = NON COMMENCÉ (ACT-31)"
 
 Exigence de parité centrale (audit de réanalyse 2026-07-20) : Autoscale,
 Static, Reserved VM et Scheduled sont des **produits contractualisés**, pas des
@@ -62,3 +64,15 @@ Lifecycle `SCHEDULED→TRIGGERED→RUNNING→{COMPLETE|FAILED}→retry policy` �
 
 Invariant commun : le changement de type re-déploie le même ProjectRevision — l'URL et l'historique de releases survivent ; jamais de recréation destructrice.
 
+## Préconditions
+- P-DEP-1 : tout déploiement naît d'un ProjectRevision épinglé par digests — jamais d'un pointeur mutable.
+- P-DEP-2 : changement de type = opération de release auditable et réversible (jamais une recréation destructrice).
+
+## Tests négatifs (exigés)
+- publier depuis un pointeur non épinglé → refus ; rollback re-déploie l'IMAGE PAR DIGEST même après suppression de révision (PROUVÉ live, I-REL-1) ; cron mal formé (« vendredi » implicite) → refus ; type inconnu → refus (le contrat est fermé).
+
+## Compatibilité
+- Les 4 modes d'accès (RPL-23) s'appliquent uniformément ; ajouter un type = réviser CE contrat (version++).
+
+## Résultat de signature
+- v1 : REFUSED (« preuve Static absente / Reserved non commencé / Scheduled hors E2E »). v2 : PENDING_REVIEW — l'état par type est déclaré HONNÊTEMENT dans la matrice §2 (Static : preuve E2E dédiée À PRODUIRE ; Reserved : NON COMMENCÉ — aucune promesse) ; dépendances ouvertes tracées, pas gonflées.

@@ -1,11 +1,31 @@
 # GALLERY_COMMUNITY_CONTRACT — Gallery & Community (audit v4 F)
 
-schemaVersion: 1
-repoCommit: 57ab0a67d068e5dad0faea5166ac4d18c1713f03
+contractId: CTR-GALLERY-COMMUNITY
+contractVersion: 2
+schemaVersion: 2
+repoCommit: 1692f981
 reviewer: UNKNOWN
-reviewVerdict: REFUSED — 0/14 contrats signés (lot 57febeab, OpenAI-Codex, 2026-07-20)
-refusalReason: hash obsolète + décision ouverte (verbatim relecteur, transmis 20/07)
-reviewCloseCriterion: corriger — hash obsolète + décision ouverte — puis re-soumettre à signature
+expectedReviewer: OpenAI-Codex
+signatureResult: PENDING_REVIEW   # v1 REFUSED (« hash obsolète + décision ouverte ») — les DEUX motifs sont levés et SIGNÉS en resoumission (P0-LS-04/A2-10 CLOSED, reçu RR-20260720-CODEX-02) ; hash 1f5f27bc… rejoué ; re-soumission du contrat requise
+implementationAnchor: "Curation admin + remix sécurisé MERGÉS en prod (7bd91bcf) ; licence FAIL-CLOSED en prod (#25, 7e001f3d) ; preuve écran CI run 29747404378"
+
+## Préconditions
+- P-GAL-1 : un listing n'existe QUE par curation admin (aucun self-publish in-product — DEC-GALLERY-NO-SELF-PUBLISH, DECIDED) ; il épingle un snapshot IMMUABLE.
+- P-GAL-2 : FAIL-CLOSED — non-remixable par défaut ; remixable = licence explicite + confirmation des droits + politique PII acceptée (codes 400 REMIX_LICENSE_REQUIRED / REMIX_RIGHTS_CONFIRMATION_REQUIRED).
+
+## Invariants
+- I-GAL-1 : le remix clone le SNAPSHOT épinglé, jamais la source vivante.
+- I-GAL-2 : lecture publique, remix authentifié, consentement explicite versionné (checkbox + 400 serveur sans acceptation).
+- I-GAL-3 : toute stat publique citée provient d'un artefact rendu HASHÉ présent en repo (plus jamais une valeur périmée — leçon V4-1/V4-2).
+
+## Tests négatifs (existants)
+- non-admin crée un listing → refus ; snapshot d'un autre projet → 400 ; remix sans consentement → 400 ; remixAllowed=false → 403 ; sans licence en base → 403 (défense en profondeur) ; slug dupliqué → 409.
+
+## Compatibilité
+- Aucune migration de listings réels (curation naissante) ; rétroactif fail-closed appliqué (mig 0077).
+
+## Résultat de signature
+- v1 : REFUSED (RR-20260720-CODEX-01). v2 : PENDING_REVIEW — motifs de refus levés et signés par ailleurs (reçu -02) ; signature du CONTRAT à re-obtenir.
 
 Ce contrat sépare STRICTEMENT ce qui est **CONFIRMÉ** (observé+rendu+hashé sur
 replit.com le 2026-07-16) de ce qui est **UNKNOWN** (non observable de
