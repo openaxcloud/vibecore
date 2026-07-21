@@ -27,7 +27,12 @@ export interface ReservationAccounts {
   taxPayableAccountId?: string;
 }
 
-function entry(accountId: string, direction: 'DEBIT' | 'CREDIT', amountMinor: bigint, currency: string): LedgerEntryInput {
+function entry(
+  accountId: string,
+  direction: 'DEBIT' | 'CREDIT',
+  amountMinor: bigint,
+  currency: string,
+): LedgerEntryInput {
   return { accountId, direction, amountMinor, currency: normalizeCurrency(currency) };
 }
 
@@ -155,3 +160,51 @@ export function compensateEntries(
  * re-exported at the reservation layer so call sites read intent.
  */
 export const reverseTransactionEntries = reverseEntries;
+
+/**
+ * Derive the compensation for a committed reservation from the PERSISTED settle
+ * entries (I-LED-4): the revenue and tax legs actually booked are flipped to
+ * DEBITs, and the user is refunded exactly their sum. Nothing — in particular
+ * not the tax split — is re-supplied by the caller: the ledger itself is the
+ * only source of truth the reversal trusts. The refund-of-unused leg of the
+ * settle (CREDIT user_credits max−committed) is deliberately NOT reversed — it
+ * already returned money to the user and stays theirs.
+ *
+ * Returns [] when the settle recognised nothing (committed = 0): there is
+ * nothing to unwind.
+ */
+export function deriveCompensationEntries(
+  persistedSettleEntries: Array<{
+    accountId: string;
+    direction: 'DEBIT' | 'CREDIT';
+    amountMinor: bigint;
+    currency: string;
+  }>,
+  accounts: ReservationAccounts,
+): LedgerEntryInput[] {
+  const entries: LedgerEntryInput[] = [];
+
+  let refundMinor = 0n;
+  let currency: string | undefined;
+
+  for (const e of persistedSettleEntries) {
+    const isRevenueLeg = e.accountId === accounts.revenueAccountId && e.direction === 'CREDIT';
+
+    const isTaxLeg =
+      accounts.taxPayableAccountId !== undefined &&
+      e.accountId === accounts.taxPayableAccountId &&
+      e.direction === 'CREDIT';
+
+    if (isRevenueLeg || isTaxLeg) {
+      entries.push(entry(e.accountId, 'DEBIT', e.amountMinor, e.currency));
+      refundMinor += e.amountMinor;
+      currency = e.currency;
+    }
+  }
+
+  if (refundMinor > 0n && currency) {
+    entries.push(entry(accounts.userCreditsAccountId, 'CREDIT', refundMinor, currency));
+  }
+
+  return entries;
+}

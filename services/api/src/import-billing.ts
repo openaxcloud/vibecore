@@ -24,8 +24,10 @@ export interface ImportReservation {
   key: string;
   organizationId: string;
   importJobId: string;
+
   /** Credits held up-front (estimate). */
   reservedCredits: number;
+
   /** Credits actually charged. > 0 ONLY once SETTLED (i.e. the import committed). */
   debitedCredits: number;
   state: ReservationState;
@@ -108,7 +110,10 @@ export function settleReservation(
   }
 
   if (reservation.state === 'COMPENSATED') {
-    throw new ImportBillingError('Cannot settle a compensated (released) reservation', 'BILLING_SETTLE_AFTER_COMPENSATE');
+    throw new ImportBillingError(
+      'Cannot settle a compensated (released) reservation',
+      'BILLING_SETTLE_AFTER_COMPENSATE',
+    );
   }
 
   if (reservation.state === 'SETTLED') {
@@ -161,96 +166,162 @@ export function assertNoDebitWithoutCommit(reservation: ImportReservation): void
 }
 
 /**
- * In-process idempotent ledger, keyed by idempotency key. Mirrors the existing
- * in-process `importStaging` map: it lives for the API process lifetime and is
- * the authority for the reservation lifecycle across the create/commit/cancel
- * requests of a single import. Durable persistence is a follow-up; the safety
- * invariants above hold either way.
+ * The async surface both reservation backends expose — the DURABLE Postgres
+ * one (`DurableImportCreditLedger`, production) and this file's in-memory one
+ * (tests without a database). `reserve` is the atomic idempotency point:
+ * exactly ONE concurrent caller per (organizationId, key) sees
+ * `created: true`, and only that winner may create the import job.
  */
-export class ImportCreditLedger {
-  private readonly byKey = new Map<string, ImportReservation>();
+export interface ImportBillingLedger {
+  reserve(input: {
+    organizationId: string;
+    key: string;
+    reservedCredits: number;
+  }): Promise<{ reservation: ImportReservation; created: boolean }>;
+  attachJob(organizationId: string, key: string, importJobId: string): Promise<'attached' | 'conflict'>;
+  findByKey(organizationId: string, key: string): Promise<ImportReservation | undefined>;
+  settleByJob(
+    organizationId: string,
+    importJobId: string,
+    committed: boolean,
+    actualCredits: number,
+  ): Promise<ImportReservation>;
+  compensateByJob(
+    importJobId: string,
+    reason: 'cancel' | 'failure' | 'timeout',
+  ): Promise<ImportReservation | undefined>;
+  getByJob(organizationId: string, importJobId: string): Promise<ImportReservation | undefined>;
+  reapExpired(nowIso: string): Promise<string[]>;
+}
+
+/**
+ * In-process reservation ledger for DB-less tests (production uses the durable
+ * `DurableImportCreditLedger` over Postgres — see the app wiring). Fix-forward
+ * of the expert's #27 refusal even here:
+ *  - keys are NAMESPACED BY ORGANIZATION (`org \x00 key` composite) — two orgs
+ *    using the same key never share a reservation;
+ *  - `reserve` is a single synchronous check-and-insert on the JS event loop —
+ *    of two concurrent requests exactly one observes `created: true`;
+ *  - by-job operations verify OWNERSHIP against the calling organization.
+ */
+export class ImportCreditLedger implements ImportBillingLedger {
+  private readonly byOrgKey = new Map<string, ImportReservation>();
+
   /** Secondary index so the endpoint can settle/compensate with only the jobId. */
-  private readonly keyByJob = new Map<string, string>();
+  private readonly byJob = new Map<string, string>();
 
-  /** Idempotent reserve. Returns the reservation (existing one on key replay). */
-  reserve(input: { key: string; organizationId: string; importJobId: string; reservedCredits: number }): ImportReservation {
-    const existing = this.byKey.get(input.key);
-    const next = reserveReservation(existing, input);
-    this.byKey.set(next.key, next);
-    this.keyByJob.set(input.importJobId, next.key);
-    return next;
+  private static composite(organizationId: string, key: string): string {
+    return `${organizationId}\u0000${key}`;
   }
 
-  get(key: string): ImportReservation | undefined {
-    return this.byKey.get(key);
-  }
+  async reserve(input: { organizationId: string; key: string; reservedCredits: number }) {
+    const composite = ImportCreditLedger.composite(input.organizationId, input.key);
+    const existing = this.byOrgKey.get(composite);
 
-  getByJob(importJobId: string): ImportReservation | undefined {
-    const key = this.keyByJob.get(importJobId);
-    return key ? this.byKey.get(key) : undefined;
-  }
-
-  /** Settle a reservation by key (records the debit). Throws if it did not commit. */
-  settle(key: string, committed: boolean, actualCredits: number): ImportReservation {
-    const reservation = this.require(key);
-    const next = settleReservation(reservation, committed, actualCredits);
-    assertNoDebitWithoutCommit(next);
-    this.byKey.set(key, next);
-    return next;
-  }
-
-  /** Settle by jobId. Throws if no reservation exists for the job. */
-  settleByJob(importJobId: string, committed: boolean, actualCredits: number): ImportReservation {
-    const key = this.keyByJob.get(importJobId);
-
-    if (!key) {
-      throw new ImportBillingError(`No reservation found for import ${importJobId}`, 'BILLING_RESERVATION_MISSING');
+    if (existing) {
+      return { reservation: existing, created: false };
     }
 
-    return this.settle(key, committed, actualCredits);
+    const next = reserveReservation(undefined, {
+      key: input.key,
+      organizationId: input.organizationId,
+      importJobId: '',
+      reservedCredits: input.reservedCredits,
+    });
+    this.byOrgKey.set(composite, next);
+
+    return { reservation: next, created: true };
   }
 
-  /** Compensate by key (release, zero debit). Idempotent; safe on any cleanup. */
-  compensate(key: string): ImportReservation {
-    const reservation = this.byKey.get(key);
+  async attachJob(organizationId: string, key: string, importJobId: string): Promise<'attached' | 'conflict'> {
+    const composite = ImportCreditLedger.composite(organizationId, key);
+    const reservation = this.byOrgKey.get(composite);
 
     if (!reservation) {
-      // Nothing reserved (e.g. failure before reserve) — compensation is a no-op.
-      return {
-        key,
-        organizationId: '',
-        importJobId: '',
-        reservedCredits: 0,
-        debitedCredits: 0,
-        state: 'COMPENSATED',
-      };
+      throw new ImportBillingError(`No reservation found for key ${key}`, 'BILLING_RESERVATION_MISSING');
+    }
+
+    if (reservation.importJobId && reservation.importJobId !== importJobId) {
+      return 'conflict';
+    }
+
+    this.byOrgKey.set(composite, { ...reservation, importJobId });
+    this.byJob.set(importJobId, composite);
+
+    return 'attached';
+  }
+
+  async findByKey(organizationId: string, key: string): Promise<ImportReservation | undefined> {
+    return this.byOrgKey.get(ImportCreditLedger.composite(organizationId, key));
+  }
+
+  async settleByJob(
+    organizationId: string,
+    importJobId: string,
+    committed: boolean,
+    actualCredits: number,
+  ): Promise<ImportReservation> {
+    const reservation = this.requireByJob(importJobId);
+
+    // OWNERSHIP (expert #27-4): another org's reservation is untouchable.
+    if (reservation.organizationId !== organizationId) {
+      throw new ImportBillingError(
+        `Reservation for import ${importJobId} belongs to another organization`,
+        'BILLING_RESERVATION_FOREIGN',
+      );
+    }
+
+    const next = settleReservation(reservation, committed, actualCredits);
+    assertNoDebitWithoutCommit(next);
+    this.byOrgKey.set(ImportCreditLedger.composite(next.organizationId, next.key), next);
+
+    return next;
+  }
+
+  async compensateByJob(
+    importJobId: string,
+    _reason: 'cancel' | 'failure' | 'timeout',
+  ): Promise<ImportReservation | undefined> {
+    const composite = this.byJob.get(importJobId);
+
+    if (!composite) {
+      return undefined; // failure before reserve — nothing to release
+    }
+
+    const reservation = this.byOrgKey.get(composite);
+
+    if (!reservation) {
+      return undefined;
     }
 
     const next = compensateReservation(reservation);
     assertNoDebitWithoutCommit(next);
-    this.byKey.set(key, next);
+    this.byOrgKey.set(composite, next);
+
     return next;
   }
 
-  /**
-   * Compensate by jobId. A no-op (returns undefined) when nothing was reserved —
-   * so cleanup on a job that failed BEFORE reserving is always safe to call.
-   */
-  compensateByJob(importJobId: string): ImportReservation | undefined {
-    const key = this.keyByJob.get(importJobId);
+  async getByJob(organizationId: string, importJobId: string): Promise<ImportReservation | undefined> {
+    const composite = this.byJob.get(importJobId);
+    const reservation = composite ? this.byOrgKey.get(composite) : undefined;
 
-    if (!key) {
+    if (!reservation || reservation.organizationId !== organizationId) {
       return undefined;
     }
 
-    return this.compensate(key);
+    return reservation;
   }
 
-  private require(key: string): ImportReservation {
-    const reservation = this.byKey.get(key);
+  async reapExpired(_nowIso: string): Promise<string[]> {
+    return []; // in-memory backend has no TTL — the durable one does
+  }
+
+  private requireByJob(importJobId: string): ImportReservation {
+    const composite = this.byJob.get(importJobId);
+    const reservation = composite ? this.byOrgKey.get(composite) : undefined;
 
     if (!reservation) {
-      throw new ImportBillingError(`No reservation found for key ${key}`, 'BILLING_RESERVATION_MISSING');
+      throw new ImportBillingError(`No reservation found for import ${importJobId}`, 'BILLING_RESERVATION_MISSING');
     }
 
     return reservation;

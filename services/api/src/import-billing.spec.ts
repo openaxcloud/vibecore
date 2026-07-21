@@ -50,7 +50,12 @@ describe('reserveReservation — idempotent, before any paid work', () => {
 });
 
 describe('settleReservation — the ONLY debit, only when committed', () => {
-  const reserved = reserveReservation(undefined, { key: 'k', organizationId: 'o', importJobId: 'j', reservedCredits: 5 });
+  const reserved = reserveReservation(undefined, {
+    key: 'k',
+    organizationId: 'o',
+    importJobId: 'j',
+    reservedCredits: 5,
+  });
 
   it('records the debit when committed === true', () => {
     const s = settleReservation(reserved, true, 3);
@@ -79,7 +84,12 @@ describe('settleReservation — the ONLY debit, only when committed', () => {
 });
 
 describe('compensateReservation — release with zero debit', () => {
-  const reserved = reserveReservation(undefined, { key: 'k', organizationId: 'o', importJobId: 'j', reservedCredits: 5 });
+  const reserved = reserveReservation(undefined, {
+    key: 'k',
+    organizationId: 'o',
+    importJobId: 'j',
+    reservedCredits: 5,
+  });
 
   it('releases to COMPENSATED with zero debit', () => {
     expect(compensateReservation(reserved)).toMatchObject({ state: 'COMPENSATED', debitedCredits: 0 });
@@ -98,51 +108,104 @@ describe('compensateReservation — release with zero debit', () => {
 
 describe('assertNoDebitWithoutCommit — the core safety invariant', () => {
   it('passes for RESERVED/COMPENSATED with zero debit and SETTLED with a debit', () => {
-    const reserved = reserveReservation(undefined, { key: 'k', organizationId: 'o', importJobId: 'j', reservedCredits: 5 });
+    const reserved = reserveReservation(undefined, {
+      key: 'k',
+      organizationId: 'o',
+      importJobId: 'j',
+      reservedCredits: 5,
+    });
     expect(() => assertNoDebitWithoutCommit(reserved)).not.toThrow();
     expect(() => assertNoDebitWithoutCommit(compensateReservation(reserved))).not.toThrow();
     expect(() => assertNoDebitWithoutCommit(settleReservation(reserved, true, 2))).not.toThrow();
   });
 
   it('throws if a positive debit exists outside SETTLED', () => {
-    const bogus = { key: 'k', organizationId: 'o', importJobId: 'j', reservedCredits: 5, debitedCredits: 2, state: 'RESERVED' as const };
+    const bogus = {
+      key: 'k',
+      organizationId: 'o',
+      importJobId: 'j',
+      reservedCredits: 5,
+      debitedCredits: 2,
+      state: 'RESERVED' as const,
+    };
     expectCode(() => assertNoDebitWithoutCommit(bogus), 'BILLING_DEBIT_WITHOUT_COMMIT');
   });
 });
 
-describe('ImportCreditLedger — in-process, keyed by job + idempotency key', () => {
-  it('reserve → settle on commit records the debit', () => {
+describe('ImportCreditLedger — in-memory backend (org-scoped keys, ownership, atomic reserve)', () => {
+  it('reserve → attach → settle on commit records the debit', async () => {
     const ledger = new ImportCreditLedger();
-    ledger.reserve({ key: 'k', organizationId: 'o', importJobId: 'job1', reservedCredits: 4 });
-    const settled = ledger.settleByJob('job1', true, 4);
+    await ledger.reserve({ organizationId: 'o', key: 'k', reservedCredits: 4 });
+    await ledger.attachJob('o', 'k', 'job1');
+
+    const settled = await ledger.settleByJob('o', 'job1', true, 4);
     expect(settled.state).toBe('SETTLED');
     expect(settled.debitedCredits).toBe(4);
-    expect(ledger.getByJob('job1')?.debitedCredits).toBe(4);
+    expect((await ledger.getByJob('o', 'job1'))?.debitedCredits).toBe(4);
   });
 
-  it('reserve → compensate on cleanup leaves zero debit', () => {
+  it('reserve → compensate on cleanup leaves zero debit', async () => {
     const ledger = new ImportCreditLedger();
-    ledger.reserve({ key: 'k', organizationId: 'o', importJobId: 'job2', reservedCredits: 4 });
-    const comp = ledger.compensateByJob('job2');
+    await ledger.reserve({ organizationId: 'o', key: 'k', reservedCredits: 4 });
+    await ledger.attachJob('o', 'k', 'job2');
+
+    const comp = await ledger.compensateByJob('job2', 'cancel');
     expect(comp?.state).toBe('COMPENSATED');
     expect(comp?.debitedCredits).toBe(0);
   });
 
-  it('compensateByJob is a safe no-op when nothing was reserved', () => {
+  it('compensateByJob is a safe no-op when nothing was reserved', async () => {
     const ledger = new ImportCreditLedger();
-    expect(ledger.compensateByJob('never-reserved')).toBeUndefined();
+    expect(await ledger.compensateByJob('never-reserved', 'failure')).toBeUndefined();
   });
 
-  it('double reserve with the same key never double-charges', () => {
+  it('replaying the same key never double-reserves: exactly one created', async () => {
     const ledger = new ImportCreditLedger();
-    const a = ledger.reserve({ key: 'same', organizationId: 'o', importJobId: 'job3', reservedCredits: 4 });
-    const b = ledger.reserve({ key: 'same', organizationId: 'o', importJobId: 'job3', reservedCredits: 4 });
-    expect(b).toBe(a);
+    const a = await ledger.reserve({ organizationId: 'o', key: 'same', reservedCredits: 4 });
+    const b = await ledger.reserve({ organizationId: 'o', key: 'same', reservedCredits: 4 });
+
+    expect(a.created).toBe(true);
+    expect(b.created).toBe(false);
+    expect(b.reservation.key).toBe(a.reservation.key);
   });
 
-  it('settleByJob throws when no reservation exists', () => {
+  it('EXPERT #27-1 — the same key in two organizations gives two INDEPENDENT reservations', async () => {
     const ledger = new ImportCreditLedger();
-    expectCode(() => ledger.settleByJob('missing', true, 1), 'BILLING_RESERVATION_MISSING');
+    const orgA = await ledger.reserve({ organizationId: 'org-a', key: 'shared-key', reservedCredits: 3 });
+    const orgB = await ledger.reserve({ organizationId: 'org-b', key: 'shared-key', reservedCredits: 7 });
+
+    // BOTH are fresh creations — no cross-org sharing via the raw key.
+    expect(orgA.created).toBe(true);
+    expect(orgB.created).toBe(true);
+    expect(orgA.reservation.organizationId).toBe('org-a');
+    expect(orgB.reservation.organizationId).toBe('org-b');
+    expect(orgA.reservation.reservedCredits).toBe(3);
+    expect(orgB.reservation.reservedCredits).toBe(7);
+
+    // Settling org-a's import never touches org-b's reservation.
+    await ledger.attachJob('org-a', 'shared-key', 'job-a');
+    await ledger.attachJob('org-b', 'shared-key', 'job-b');
+    await ledger.settleByJob('org-a', 'job-a', true, 3);
+    expect((await ledger.findByKey('org-b', 'shared-key'))?.state).toBe('RESERVED');
+  });
+
+  it('EXPERT #27-4 — ownership: another organization cannot settle or read the reservation', async () => {
+    const ledger = new ImportCreditLedger();
+    await ledger.reserve({ organizationId: 'org-owner', key: 'k', reservedCredits: 2 });
+    await ledger.attachJob('org-owner', 'k', 'job-x');
+
+    await expect(ledger.settleByJob('org-intruder', 'job-x', true, 2)).rejects.toMatchObject({
+      code: 'BILLING_RESERVATION_FOREIGN',
+    });
+    expect(await ledger.getByJob('org-intruder', 'job-x')).toBeUndefined();
+    expect((await ledger.getByJob('org-owner', 'job-x'))?.state).toBe('RESERVED');
+  });
+
+  it('settleByJob throws when no reservation exists', async () => {
+    const ledger = new ImportCreditLedger();
+    await expect(ledger.settleByJob('o', 'missing', true, 1)).rejects.toMatchObject({
+      code: 'BILLING_RESERVATION_MISSING',
+    });
   });
 });
 

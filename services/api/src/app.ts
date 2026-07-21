@@ -162,7 +162,8 @@ import {
   type ImportFile,
   type ImportState,
 } from './import-pipeline.js';
-import { ImportCreditLedger, estimateImportReservation } from './import-billing.js';
+import { ImportCreditLedger, estimateImportReservation, type ImportBillingLedger } from './import-billing.js';
+import { DurableImportCreditLedger } from './import-billing-durable.js';
 import {
   REMIX_CONSENT_VERSION,
   RemixInvariantError,
@@ -7887,14 +7888,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const importStaging = new Map<string, ImportFile[]>();
 
   /*
-   * SAFETY billing ledger (in-process, mirrors importStaging): idempotent credit
-   * reservation reserved BEFORE any paid work, settled ONLY on COMMITTED, and
-   * compensated on every non-committed exit (cancel/timeout/rollback/failure).
-   * `importIdemIndex` maps a client idempotency key → jobId so a retried create
-   * replays the same import instead of double-creating + double-reserving.
+   * SAFETY billing ledger: idempotent credit reservation reserved BEFORE any
+   * paid work, settled ONLY on COMMITTED, compensated on every non-committed
+   * exit (cancel/timeout/rollback/failure). DURABLE when the store is
+   * Prisma-backed (fix-forward of the expert's #27 refusal): reservations live
+   * in the double-entry ledger's `LedgerReservation` rows — org-scoped unique
+   * idempotency key, DB-serialized creation, survives a process restart. The
+   * in-memory backend (same interface, org-scoped, ownership-checked) serves
+   * the DB-less test store only.
    */
-  const importLedger = new ImportCreditLedger();
-  const importIdemIndex = new Map<string, string>();
+  const importLedger: ImportBillingLedger =
+    store instanceof PrismaApiStore ? new DurableImportCreditLedger(store.prisma) : new ImportCreditLedger();
 
   const app = Fastify({
     bodyLimit: Number(process.env.API_BODY_LIMIT_BYTES ?? 25 * 1024 * 1024),
@@ -18306,7 +18310,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   const cleanupImport = async (importJobId: string, terminal: ImportState, error?: string) => {
     importStaging.delete(importJobId); // dispose the staging — target never mounted
-    importLedger.compensateByJob(importJobId); // release the reservation, zero debit
+    // Release the reservation, zero debit (durable ledger; reason mirrors the exit).
+    await importLedger.compensateByJob(importJobId, terminal === 'CANCELLED' ? 'cancel' : 'failure');
     await store.updateImportJob(importJobId, { state: terminal, ...(error ? { error } : {}) }).catch(() => undefined);
   };
 
@@ -18323,8 +18328,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     for (const id of expired) {
       importStaging.delete(id);
-      importLedger.compensateByJob(id); // timeout is a non-committed exit → release, zero debit
+      // Timeout is a non-committed exit → release, zero debit.
+      await importLedger.compensateByJob(id, 'timeout').catch(() => undefined);
     }
+
+    // Also sweep reservations never attached to a job (crash between reserve
+    // and job creation) — durable holds must not linger past their TTL.
+    await importLedger.reapExpired(nowIso).catch((): string[] => []);
 
     return expired;
   };
@@ -18355,31 +18365,57 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(importCreateSchema, request.body);
 
     /*
-     * IDEMPOTENT CREATE: a retried POST with the same key replays the SAME import
-     * (re-fetched current status) instead of creating a second job + a second
-     * reservation. In-process index; durable idempotency = UsageReservation follow-up.
+     * IDEMPOTENT CREATE, SERIALIZED (expert #27-2): the DURABLE reservation is
+     * the lock. `reserve` is atomic on the DB unique
+     * (organizationId, idempotencyKey) — of two concurrent POSTs with the same
+     * key, exactly ONE observes `created: true` and creates the job; the other
+     * replays the winner's import. The reservation is also acquired BEFORE any
+     * paid work (staging/scan) and BEFORE the job row even exists, so a
+     * replayed key can never spawn a second job. Org-scoped (expert #27-1):
+     * two organizations using the same key hold two independent reservations.
      */
-    const idemMapKey = `${orgId}:${body.idempotencyKey}`;
-    const existingJobId = importIdemIndex.get(idemMapKey);
+    const stagedFiles: ImportFile[] = body.files ?? [];
+    const held = await importLedger.reserve({
+      organizationId: orgId,
+      key: body.idempotencyKey,
+      reservedCredits: estimateImportReservation(stagedFiles.length),
+    });
 
-    if (existingJobId) {
-      const existing = await store.getImportJob(existingJobId);
+    if (!held.created) {
+      /*
+       * Replay: serve the winner's import. Right after the winner reserved but
+       * before it attached its job there is a brief window with no jobId —
+       * poll briefly, then tell the client to retry rather than fork a job.
+       */
+      let replayJobId = held.reservation.importJobId || undefined;
 
-      if (existing && existing.organizationId === orgId) {
-        const requiresConsent = existing.state === 'QUARANTINED' || existing.state === 'AWAITING_USER_ACTION';
+      for (let attempt = 0; !replayJobId && attempt < 10; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        replayJobId = (await importLedger.findByKey(orgId, body.idempotencyKey))?.importJobId || undefined;
+      }
 
-        return reply.code(existing.state === 'AWAITING_USER_ACTION' ? 202 : 200).send({
-          import: {
-            importJobId: existing.id,
-            state: existing.state,
-            provider: existing.provider,
-            findings: (existing.findings as unknown[]) ?? [],
-            stagedFileCount: existing.stagedFileCount,
-            requiresConsent,
-            replayed: true,
-          },
+      const existing = replayJobId ? await store.getImportJob(replayJobId) : undefined;
+
+      if (!existing || existing.organizationId !== orgId) {
+        return reply.status(409).send({
+          error: 'An import with this idempotency key is being created — retry to replay it.',
+          code: 'IMPORT_CREATE_IN_PROGRESS',
         });
       }
+
+      const requiresConsent = existing.state === 'QUARANTINED' || existing.state === 'AWAITING_USER_ACTION';
+
+      return reply.code(existing.state === 'AWAITING_USER_ACTION' ? 202 : 200).send({
+        import: {
+          importJobId: existing.id,
+          state: existing.state,
+          provider: existing.provider,
+          findings: (existing.findings as unknown[]) ?? [],
+          stagedFileCount: existing.stagedFileCount,
+          requiresConsent,
+          replayed: true,
+        },
+      });
     }
 
     // Staging expires (idle) — the sweeper / timeout path uses this.
@@ -18391,7 +18427,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       sourceRef: body.sourceRef,
       expiresAt,
     });
-    importIdemIndex.set(idemMapKey, job.id);
 
     let state: ImportState = 'RECEIVED';
     const advance = async (to: ImportState, patch: Record<string, unknown> = {}) => {
@@ -18401,19 +18436,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     };
 
     try {
-      /*
-       * SAFETY BILLING: RESERVE credits idempotently (keyed by the client
-       * idempotency key) BEFORE any paid work (staging / scan). A retried import
-       * with the same key never double-reserves. The debit is recorded ONLY if
-       * the import reaches COMMITTED (settle); every other exit compensates.
-       */
-      const stagedFiles: ImportFile[] = body.files ?? [];
-      importLedger.reserve({
-        key: body.idempotencyKey,
-        organizationId: orgId,
-        importJobId: job.id,
-        reservedCredits: estimateImportReservation(stagedFiles.length),
-      });
+      // Bind the reservation (already held, pre-paid-work) to the created job.
+      await importLedger.attachJob(orgId, body.idempotencyKey, job.id);
       await store.updateImportJob(job.id, { creditsReserved: true });
 
       // STAGING_ISOLATED — files into the disposable staging, NOT the target.
@@ -18602,7 +18626,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * recorded, and only now that the import actually COMMITTED. `settleByJob`
        * enforces "committed === true" and the no-debit-without-commit invariant.
        */
-      const settled = importLedger.settleByJob(importJobId, true, estimateImportReservation(finalFiles.length));
+      const settled = await importLedger.settleByJob(orgId, importJobId, true, estimateImportReservation(finalFiles.length));
       request.log?.info?.(
         { event: 'import.billing.settle', importJobId, debitedCredits: settled.debitedCredits },
         'import reservation settled',
@@ -18667,7 +18691,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * reservation lifecycle is observable: RESERVED before commit, SETTLED with a
      * positive debit only on COMMITTED, COMPENSATED (zero debit) on any cleanup.
      */
-    const reservation = importLedger.getByJob(importJobId);
+    const reservation = await importLedger.getByJob(orgId, importJobId);
 
     return {
       import: {

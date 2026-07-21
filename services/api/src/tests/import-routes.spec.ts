@@ -102,7 +102,12 @@ describe('POST /orgs/:orgId/imports — secure import, no silent deletion, dispo
       method: 'POST',
       url: `/orgs/${org.id}/imports`,
       headers: auth('imp-token'),
-      payload: { idempotencyKey: 'idem-r-1', provider: 'github', sourceRef: 'https://github.com/acme/app.git', files: stagedFiles() },
+      payload: {
+        idempotencyKey: 'idem-r-1',
+        provider: 'github',
+        sourceRef: 'https://github.com/acme/app.git',
+        files: stagedFiles(),
+      },
     });
 
     expect(res.statusCode).toBe(202); // quarantined, awaiting consent
@@ -165,6 +170,7 @@ describe('POST /orgs/:orgId/imports — secure import, no silent deletion, dispo
       headers: auth('imp-token'),
       payload: { idempotencyKey: 'idem-r-3', provider: 'github', files: stagedFiles() },
     });
+
     const importJobId = created.json().import.importJobId;
     expect(created.json().import.state).toBe('AWAITING_USER_ACTION'); // staged, never resolved
 
@@ -200,6 +206,7 @@ describe('POST /orgs/:orgId/imports — secure import, no silent deletion, dispo
       headers: auth('imp-token'),
       payload: { idempotencyKey: 'idem-r-4', provider: 'github', files: stagedFiles() },
     });
+
     const freshId = created.json().import.importJobId;
 
     const reapedNow = await store.reapExpiredImportJobs(new Date().toISOString());
@@ -362,5 +369,65 @@ describe('POST /orgs/:orgId/imports — secure import, no silent deletion, dispo
     const allLogs = logLines.join('\n');
     expect(allLogs).toContain('import.scan'); // the scan WAS logged
     expect(allLogs).not.toContain(IMPORTED_SECRET); // …but never the value
+  });
+});
+
+describe('EXPERT #27-2/#27-5 — concurrent idempotent create is SERIALIZED', () => {
+  it('two CONCURRENT POSTs with the same key → exactly ONE import job', async () => {
+    const { app, store, org } = await setup();
+
+    const payload = {
+      idempotencyKey: 'idem-concurrent-1',
+      provider: 'github',
+      files: [{ path: 'a.js', content: 'x' }], // clean — no quarantine detour
+    };
+
+    const [first, second] = await Promise.all([
+      app.inject({ method: 'POST', url: `/orgs/${org.id}/imports`, headers: auth('imp-token'), payload }),
+      app.inject({ method: 'POST', url: `/orgs/${org.id}/imports`, headers: auth('imp-token'), payload }),
+    ]);
+
+    const codes = [first.statusCode, second.statusCode].sort();
+
+    /*
+     * The durable reservation is the lock: exactly ONE request creates (201);
+     * the other replays the winner's import (200) or is told to retry (409) —
+     * it NEVER creates a second job.
+     */
+    expect(codes[0]).toBe(200);
+    expect(codes[1]).toBe(201);
+
+    const jobs = [...store.importJobs.values()].filter((job) => job.organizationId === org.id);
+    expect(jobs).toHaveLength(1);
+
+    const replay = first.statusCode === 200 ? first.json() : second.json();
+    const fresh = first.statusCode === 201 ? first.json() : second.json();
+    expect(replay.import.replayed).toBe(true);
+    expect(replay.import.importJobId).toBe(fresh.import.importJobId);
+  });
+
+  it('a sequential retry with the same key replays the SAME import (no second job, no second hold)', async () => {
+    const { app, store, org } = await setup();
+
+    const payload = { idempotencyKey: 'idem-retry-1', provider: 'github', files: [{ path: 'a.js', content: 'x' }] };
+
+    const created = await app.inject({
+      method: 'POST',
+      url: `/orgs/${org.id}/imports`,
+      headers: auth('imp-token'),
+      payload,
+    });
+    const retried = await app.inject({
+      method: 'POST',
+      url: `/orgs/${org.id}/imports`,
+      headers: auth('imp-token'),
+      payload,
+    });
+
+    expect(created.statusCode).toBe(201);
+    expect(retried.statusCode).toBe(200);
+    expect(retried.json().import.replayed).toBe(true);
+    expect(retried.json().import.importJobId).toBe(created.json().import.importJobId);
+    expect([...store.importJobs.values()].filter((job) => job.organizationId === org.id)).toHaveLength(1);
   });
 });

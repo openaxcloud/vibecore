@@ -7,7 +7,7 @@ repoCommit: 1692f981
 reviewer: UNKNOWN
 expectedReviewer: OpenAI-Codex
 signatureResult: PENDING_REVIEW   # v1 REFUSED (lot 57febeab : « shadow wallet pas ledger double-entrée ») — v2 réécrit sur l'implémentation réelle, re-soumission requise
-implementationAnchor: "PR #28 (branche feat/billing-double-entry-ledger, commit edb35f6e) — NON MERGÉE ; migration 0078 (enums + triggers d'immutabilité), moteur pur ledger-core.ts, store durable ledger-store.ts, réservation ledger-reservation.ts, rapprochement ledger-reconciliation.ts ; 39 tests dont 7 contre vrai Postgres"
+implementationAnchor: "PR #28 MERGÉE sur main ; migration 0078 (enums + triggers d'immutabilité), moteur pur ledger-core.ts, store durable ledger-store.ts, réservation ledger-reservation.ts, rapprochement ledger-reconciliation.ts. FIX-FORWARD (réponse expert 2026-07-21 §D, PR de correction fix/billing-ledger-concurrency) : (1) transition d'état + écritures postées dans UNE SEULE transaction DB (postEntriesInTrx, commit/release/compensate/reserve) ; (2) hard limit SÉRIALISÉ (verrou FOR UPDATE sur le compte reserved, check-and-post atomique) ; (3) postTransaction VALIDE que chaque compte appartient à l'organisation et que sa devise correspond (LEDGER_ACCOUNT_ORG_MISMATCH / LEDGER_ACCOUNT_CURRENCY_MISMATCH, rien de persisté au refus) ; (4) compensation DÉRIVÉE des écritures de settlement persistées (deriveCompensationEntries — le taxMinor n'est plus refourni par l'appelant, I-LED-4). Preuves vrai Postgres : ledger-store-db.spec.ts (7) + import-billing-db.spec.ts B1-B4 (double-commit concurrent → 1 seul settlement ; plafond concurrent → 1 refus LEDGER_HARD_LIMIT ; comptes hors-org/devise refusés atomiquement ; compensation dérivée 51/9/60 et tous les comptes à zéro)."
 
 ## 1. Objet
 
@@ -98,6 +98,13 @@ prod actuel : SHADOW). MODEL_REGISTRY_DB dormant.
 ## 7. Résultat de signature
 
 - v1 : REFUSED (RR-20260720-CODEX-01) — « shadow wallet pas ledger double-entrée ».
-- v2 (ce document) : **PENDING_REVIEW** — l'implémentation existe (PR #28,
-  39 tests dont 7 Postgres réels) mais N'EST PAS MERGÉE ; la signature exige
-  merge + reçu de revue COMPLET. Rien d'auto-clôturé.
+- v2 : REFUSED (réponse expert 2026-07-21) — 5 motifs : ancre disant la PR #28
+  non mergée (elle l'est) ; COMMITTED avant le post du settlement ; hard limit
+  non sérialisé ; pas de validation organisation/devise des comptes ; taxMinor
+  de compensation refourni par l'appelant.
+- v3 (ce document) : **PENDING_REVIEW** — les 5 motifs sont traités : ancre à
+  jour (PR #28 mergée + PR de correction fix/billing-ledger-concurrency), les 4
+  défauts de code corrigés avec preuves contre vrai Postgres rejouables
+  (`ledger-store-db.spec.ts`, `import-billing-db.spec.ts` B1-B4). La signature
+  exige le merge de la PR de correction + un reçu de revue COMPLET. Rien
+  d'auto-clôturé (PROVEN_REVIEW_PENDING).

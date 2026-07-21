@@ -7,7 +7,7 @@ repoCommit: 1692f981
 reviewer: UNKNOWN
 expectedReviewer: OpenAI-Codex
 signatureResult: PENDING_REVIEW   # v1 REFUSED (lot 57febeab : « 2 machines contradictoires, l'implémentation suit l'ancienne ») — v2 : UNE seule machine, code aligné (PR #27), re-soumission requise
-implementationAnchor: "Import : PR #27 (branche feat/import-state-machine-p0ex04) — NON MERGÉE ; import-pipeline.ts réécrit sur LA machine normative + import-billing.ts (réservation idempotente/compensation) + import-state-machine-e2e.spec.ts (256 lignes). Remix : MERGÉ en prod (7bd91bcf) — remix-pipeline.ts + licence fail-closed (#25)."
+implementationAnchor: "Import : PR #27 MERGÉE sur main — import-pipeline.ts sur LA machine normative + import-billing.ts + import-state-machine-e2e.spec.ts. FIX-FORWARD (réponse expert 2026-07-21 §D, PR de correction fix/billing-ledger-concurrency) : réservation DURABLE dans le grand livre double-entrée (DurableImportCreditLedger sur LedgerReservation, migration 0078) — contrainte unique DB (organizationId, idempotencyKey) (plus de clé brute partageable entre orgs), création SÉRIALISÉE par la base (create/catch-P2002 : de 2 POST concurrents même clé, exactement 1 crée le job, l'autre rejoue), survit au redémarrage du process, contrôle d'OWNERSHIP sur settle/get (BILLING_RESERVATION_FOREIGN). Le backend in-memory (tests sans DB uniquement) applique les mêmes règles org-scoped. Preuves vrai Postgres : import-billing-db.spec.ts A1-A4 ; preuve route concurrente : import-routes.spec.ts (2 POST simultanés → 1 seul ImportJob). Remix : MERGÉ en prod (7bd91bcf) — remix-pipeline.ts + licence fail-closed (#25)."
 
 ## 1. Machine à états Import — LA machine (unique, normative = implémentée)
 
@@ -97,6 +97,15 @@ SNAPSHOT_PINNED → CREDENTIALS_DETACHED → SOURCE_SANITIZED → CLONING
 
 - v1 : REFUSED (RR-20260720-CODEX-01) — « 2 machines contradictoires ; le code
   + 15 tests prouvent encore l'ancienne (SCANNING→COMMITTING) ».
-- v2 (ce document) : **PENDING_REVIEW** — UNE machine, code aligné (PR #27,
-  e2e machine dédié) ; la partie Import N'EST PAS MERGÉE ; signature = merge +
-  reçu de revue COMPLET. Rien d'auto-clôturé.
+- v2 : REFUSED (réponse expert 2026-07-21) — machine mieux alignée mais lot non
+  signable : ancre disant la PR #27 non mergée (elle l'est) ; mini-ledger indexé
+  par clé brute sans namespace organisation ; création idempotente non
+  sérialisée (2 retries concurrents → 2 jobs possibles) ; réservation
+  in-process perdue au redémarrage.
+- v3 (ce document) : **PENDING_REVIEW** — les motifs sont traités : ancre à
+  jour (PR #27 mergée + PR de correction fix/billing-ledger-concurrency),
+  réservation durable org-scoped sérialisée + ownership, preuves vrai Postgres
+  (`import-billing-db.spec.ts` A1-A4) et preuve route concurrente
+  (2 POST simultanés → 1 seul job). La signature exige le merge de la PR de
+  correction + un reçu de revue COMPLET. Rien d'auto-clôturé
+  (PROVEN_REVIEW_PENDING).
