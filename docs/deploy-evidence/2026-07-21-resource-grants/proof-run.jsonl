@@ -1,0 +1,10 @@
+{"at":"2026-07-21T12:36:20.296Z","step":"setup","projectId":"cmrun0n3000247nlnbxj4q6hk","otherProjectId":"cmrun0neo00287nln2ukpaipi","grantedDeploymentId":"cmrun0nnd002c7nlngrzc65bo","siblingDeploymentId":"cmrun0nnl002d7nlnabwph7j2","db":"real Prisma/Postgres (resource_grants_proof)"}
+{"at":"2026-07-21T12:36:20.358Z","step":"r1.single_resource.proven","granted":200,"sibling":404,"parentProject":404,"list":404}
+{"at":"2026-07-21T12:36:20.373Z","step":"r2.expired.proven","readRefused":404}
+{"at":"2026-07-21T12:36:20.390Z","step":"r3.revocation.proven","before":200,"after":404,"dbRow":{"revokedAt":"2026-07-21T12:36:20.381Z","revokedByUserId":"cmrun0mso001f7nlnffbpqscd"}}
+{"at":"2026-07-21T12:36:20.397Z","step":"r4.cross_tenant.proven","readRefused":404}
+{"at":"2026-07-21T12:36:20.417Z","step":"r5.guest_readonly.proven","read":200,"write":403,"writeCode":"PROJECT_ROLE_READ_ONLY"}
+{"at":"2026-07-21T12:36:20.451Z","step":"r6.bounded_elevation.proven","granted":200,"sibling":403}
+{"at":"2026-07-21T12:36:20.454Z","step":"r7.binding.proven","statusCode":404,"code":"RESOURCE_NOT_FOUND"}
+{"at":"2026-07-21T12:36:20.485Z","step":"r8.dataset.proven","withoutGrant":404,"read":200,"write":403,"instanceId":"cmrun0ns7002w7nlndb5qw48x"}
+{"at":"2026-07-21T12:36:20.485Z","step":"done","summary":{"r1_singleResourceOnly":true,"r2_expiredGrantRefused":true,"r3_revocationCutsAccess":true,"r4_crossTenantForgedGrantRefused":true,"r5_guestGrantReadOnly":true,"r6_boundedElevation":true,"r7_resourceProjectBindingEnforced":true,"r8_datasetGrantScoped":true,"store":"PrismaApiStore (real Postgres)"}}
