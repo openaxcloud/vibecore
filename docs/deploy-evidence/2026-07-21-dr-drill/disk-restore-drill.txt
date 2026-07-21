@@ -1,0 +1,13 @@
+# Drill restauration disque workspace — 2026-07-21 (EVID-DR-DISK-001)
+# Disque : pvc-118a0224-8032-4b55-be10-51ed29d06634 (PVC du workspace de test
+# ws-78616a4f6f85bf0a, projet jetable cmrsrzixn000f0nbfltqpabf4 — zéro utilisateur réel).
+
+1. marqueur daté écrit DANS le workspace live avant snapshot :
+   "DR-DRILL-MARKER 2026-07-21T04:45:04Z"
+   sha256 = 65bb515a0a8b03112b99962f15a1469587c492abc15c3bdbf680723e4219cfcc
+2. T0=04:45:20Z snapshot gcloud (dr-drill-ws-20260721)         : 27 s
+3. restauration snapshot → disque neuf (dr-drill-ws-restored)  : 23 s
+4. PV/PVC statiques + pod de vérification, montage RO          : 27 s
+5. sha256(/restored/.dr-drill-marker) = 65bb515a…  == IDENTIQUE (bit-à-bit)
+==> DURÉE TOTALE snapshot→restauré→vérifié : 77 s
+teardown complet (pod, PVC, PV, disque, snapshot) : vérifié vide.

@@ -1,0 +1,20 @@
+# Réparation de la chaîne d'alerte — 2026-07-21 (EVID-DR-MON-001)
+# CONSTAT (avant) : l'uptime check "vibecore-prod API health" surveillait
+#   host=replace-me.example.com  → check_passed=False à 100 % (mesuré : fraction
+#   28 jours = 0.0 ; points bruts False sur 6 régions de sonde), pendant que
+#   https://api.e-code.ai/health répondait 200.
+#   ET le canal de notification était email=ops@example.invalid (placeholder).
+#   => Alerting doublement factice : la policy "uptime failed" sonnait dans le vide
+#      depuis sa création.
+# ACTIONS (réel, 2026-07-21 ~04:52Z) :
+#   - check placeholder SUPPRIMÉ (id vibecore-prod-api-health-3o809nkYoCo)
+#   - check RÉEL créé : vibecore-prod-api-health-api-e-code-ai-UBigUqgiGrg
+#     (host=api.e-code.ai, path=/health, 60s, timeout 10s, SSL validé)
+#   - canal réel créé : email avi@snatchbot.me
+#     (projects/vibecore-495216/notificationChannels/16784247357547337289)
+#   - policy 13490189321125093325 re-câblée sur ce canal (l'invalide retiré)
+# NOTE : GCP peut exiger une confirmation email du canal (verificationStatus) —
+# à confirmer par Avi dans sa boîte.
+# PREUVE POST-FIX (2026-07-21 ~05:10Z) : sur les ~15 premières minutes du
+# nouveau check, 6 séries (régions de sonde), points check_passed :
+#   True=131  False=0
