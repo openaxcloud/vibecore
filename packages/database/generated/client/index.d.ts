@@ -679,6 +679,36 @@ export type ImportJob = $Result.DefaultSelection<Prisma.$ImportJobPayload>
  * listing regardless of later edits to the source project.
  */
 export type GalleryListing = $Result.DefaultSelection<Prisma.$GalleryListingPayload>
+/**
+ * Model LedgerAccount
+ * 
+ */
+export type LedgerAccount = $Result.DefaultSelection<Prisma.$LedgerAccountPayload>
+/**
+ * Model LedgerTransaction
+ * 
+ */
+export type LedgerTransaction = $Result.DefaultSelection<Prisma.$LedgerTransactionPayload>
+/**
+ * Model LedgerEntry
+ * 
+ */
+export type LedgerEntry = $Result.DefaultSelection<Prisma.$LedgerEntryPayload>
+/**
+ * Model LedgerReservation
+ * 
+ */
+export type LedgerReservation = $Result.DefaultSelection<Prisma.$LedgerReservationPayload>
+/**
+ * Model LedgerFxRate
+ * 
+ */
+export type LedgerFxRate = $Result.DefaultSelection<Prisma.$LedgerFxRatePayload>
+/**
+ * Model LedgerReconciliationRun
+ * 
+ */
+export type LedgerReconciliationRun = $Result.DefaultSelection<Prisma.$LedgerReconciliationRunPayload>
 
 /**
  * Enums
@@ -866,6 +896,44 @@ export const ScheduledTaskRunStatus: {
 
 export type ScheduledTaskRunStatus = (typeof ScheduledTaskRunStatus)[keyof typeof ScheduledTaskRunStatus]
 
+
+export const LedgerAccountType: {
+  ASSET: 'ASSET',
+  LIABILITY: 'LIABILITY',
+  REVENUE: 'REVENUE',
+  EXPENSE: 'EXPENSE',
+  EQUITY: 'EQUITY'
+};
+
+export type LedgerAccountType = (typeof LedgerAccountType)[keyof typeof LedgerAccountType]
+
+
+export const LedgerEntryDirection: {
+  DEBIT: 'DEBIT',
+  CREDIT: 'CREDIT'
+};
+
+export type LedgerEntryDirection = (typeof LedgerEntryDirection)[keyof typeof LedgerEntryDirection]
+
+
+export const LedgerReservationStatus: {
+  ACTIVE: 'ACTIVE',
+  COMMITTED: 'COMMITTED',
+  COMPENSATED: 'COMPENSATED',
+  RELEASED: 'RELEASED',
+  EXPIRED: 'EXPIRED'
+};
+
+export type LedgerReservationStatus = (typeof LedgerReservationStatus)[keyof typeof LedgerReservationStatus]
+
+
+export const LedgerReconciliationStatus: {
+  OK: 'OK',
+  DISCREPANCY: 'DISCREPANCY'
+};
+
+export type LedgerReconciliationStatus = (typeof LedgerReconciliationStatus)[keyof typeof LedgerReconciliationStatus]
+
 }
 
 export type WorkspaceStatus = $Enums.WorkspaceStatus
@@ -935,6 +1003,22 @@ export const ScheduledTaskKind: typeof $Enums.ScheduledTaskKind
 export type ScheduledTaskRunStatus = $Enums.ScheduledTaskRunStatus
 
 export const ScheduledTaskRunStatus: typeof $Enums.ScheduledTaskRunStatus
+
+export type LedgerAccountType = $Enums.LedgerAccountType
+
+export const LedgerAccountType: typeof $Enums.LedgerAccountType
+
+export type LedgerEntryDirection = $Enums.LedgerEntryDirection
+
+export const LedgerEntryDirection: typeof $Enums.LedgerEntryDirection
+
+export type LedgerReservationStatus = $Enums.LedgerReservationStatus
+
+export const LedgerReservationStatus: typeof $Enums.LedgerReservationStatus
+
+export type LedgerReconciliationStatus = $Enums.LedgerReconciliationStatus
+
+export const LedgerReconciliationStatus: typeof $Enums.LedgerReconciliationStatus
 
 /**
  * ##  Prisma Client ʲˢ
@@ -2176,6 +2260,66 @@ export class PrismaClient<
     * ```
     */
   get galleryListing(): Prisma.GalleryListingDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.ledgerAccount`: Exposes CRUD operations for the **LedgerAccount** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more LedgerAccounts
+    * const ledgerAccounts = await prisma.ledgerAccount.findMany()
+    * ```
+    */
+  get ledgerAccount(): Prisma.LedgerAccountDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.ledgerTransaction`: Exposes CRUD operations for the **LedgerTransaction** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more LedgerTransactions
+    * const ledgerTransactions = await prisma.ledgerTransaction.findMany()
+    * ```
+    */
+  get ledgerTransaction(): Prisma.LedgerTransactionDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.ledgerEntry`: Exposes CRUD operations for the **LedgerEntry** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more LedgerEntries
+    * const ledgerEntries = await prisma.ledgerEntry.findMany()
+    * ```
+    */
+  get ledgerEntry(): Prisma.LedgerEntryDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.ledgerReservation`: Exposes CRUD operations for the **LedgerReservation** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more LedgerReservations
+    * const ledgerReservations = await prisma.ledgerReservation.findMany()
+    * ```
+    */
+  get ledgerReservation(): Prisma.LedgerReservationDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.ledgerFxRate`: Exposes CRUD operations for the **LedgerFxRate** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more LedgerFxRates
+    * const ledgerFxRates = await prisma.ledgerFxRate.findMany()
+    * ```
+    */
+  get ledgerFxRate(): Prisma.LedgerFxRateDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.ledgerReconciliationRun`: Exposes CRUD operations for the **LedgerReconciliationRun** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more LedgerReconciliationRuns
+    * const ledgerReconciliationRuns = await prisma.ledgerReconciliationRun.findMany()
+    * ```
+    */
+  get ledgerReconciliationRun(): Prisma.LedgerReconciliationRunDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -2721,7 +2865,13 @@ export namespace Prisma {
     ProjectCheckpoint: 'ProjectCheckpoint',
     RemixJob: 'RemixJob',
     ImportJob: 'ImportJob',
-    GalleryListing: 'GalleryListing'
+    GalleryListing: 'GalleryListing',
+    LedgerAccount: 'LedgerAccount',
+    LedgerTransaction: 'LedgerTransaction',
+    LedgerEntry: 'LedgerEntry',
+    LedgerReservation: 'LedgerReservation',
+    LedgerFxRate: 'LedgerFxRate',
+    LedgerReconciliationRun: 'LedgerReconciliationRun'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -2737,7 +2887,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "importJob" | "galleryListing"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "importJob" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -11013,6 +11163,450 @@ export namespace Prisma {
           }
         }
       }
+      LedgerAccount: {
+        payload: Prisma.$LedgerAccountPayload<ExtArgs>
+        fields: Prisma.LedgerAccountFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.LedgerAccountFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerAccountPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.LedgerAccountFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerAccountPayload>
+          }
+          findFirst: {
+            args: Prisma.LedgerAccountFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerAccountPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.LedgerAccountFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerAccountPayload>
+          }
+          findMany: {
+            args: Prisma.LedgerAccountFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerAccountPayload>[]
+          }
+          create: {
+            args: Prisma.LedgerAccountCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerAccountPayload>
+          }
+          createMany: {
+            args: Prisma.LedgerAccountCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.LedgerAccountCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerAccountPayload>[]
+          }
+          delete: {
+            args: Prisma.LedgerAccountDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerAccountPayload>
+          }
+          update: {
+            args: Prisma.LedgerAccountUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerAccountPayload>
+          }
+          deleteMany: {
+            args: Prisma.LedgerAccountDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.LedgerAccountUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.LedgerAccountUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerAccountPayload>[]
+          }
+          upsert: {
+            args: Prisma.LedgerAccountUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerAccountPayload>
+          }
+          aggregate: {
+            args: Prisma.LedgerAccountAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateLedgerAccount>
+          }
+          groupBy: {
+            args: Prisma.LedgerAccountGroupByArgs<ExtArgs>
+            result: $Utils.Optional<LedgerAccountGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.LedgerAccountCountArgs<ExtArgs>
+            result: $Utils.Optional<LedgerAccountCountAggregateOutputType> | number
+          }
+        }
+      }
+      LedgerTransaction: {
+        payload: Prisma.$LedgerTransactionPayload<ExtArgs>
+        fields: Prisma.LedgerTransactionFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.LedgerTransactionFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerTransactionPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.LedgerTransactionFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerTransactionPayload>
+          }
+          findFirst: {
+            args: Prisma.LedgerTransactionFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerTransactionPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.LedgerTransactionFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerTransactionPayload>
+          }
+          findMany: {
+            args: Prisma.LedgerTransactionFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerTransactionPayload>[]
+          }
+          create: {
+            args: Prisma.LedgerTransactionCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerTransactionPayload>
+          }
+          createMany: {
+            args: Prisma.LedgerTransactionCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.LedgerTransactionCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerTransactionPayload>[]
+          }
+          delete: {
+            args: Prisma.LedgerTransactionDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerTransactionPayload>
+          }
+          update: {
+            args: Prisma.LedgerTransactionUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerTransactionPayload>
+          }
+          deleteMany: {
+            args: Prisma.LedgerTransactionDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.LedgerTransactionUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.LedgerTransactionUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerTransactionPayload>[]
+          }
+          upsert: {
+            args: Prisma.LedgerTransactionUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerTransactionPayload>
+          }
+          aggregate: {
+            args: Prisma.LedgerTransactionAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateLedgerTransaction>
+          }
+          groupBy: {
+            args: Prisma.LedgerTransactionGroupByArgs<ExtArgs>
+            result: $Utils.Optional<LedgerTransactionGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.LedgerTransactionCountArgs<ExtArgs>
+            result: $Utils.Optional<LedgerTransactionCountAggregateOutputType> | number
+          }
+        }
+      }
+      LedgerEntry: {
+        payload: Prisma.$LedgerEntryPayload<ExtArgs>
+        fields: Prisma.LedgerEntryFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.LedgerEntryFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerEntryPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.LedgerEntryFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerEntryPayload>
+          }
+          findFirst: {
+            args: Prisma.LedgerEntryFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerEntryPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.LedgerEntryFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerEntryPayload>
+          }
+          findMany: {
+            args: Prisma.LedgerEntryFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerEntryPayload>[]
+          }
+          create: {
+            args: Prisma.LedgerEntryCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerEntryPayload>
+          }
+          createMany: {
+            args: Prisma.LedgerEntryCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.LedgerEntryCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerEntryPayload>[]
+          }
+          delete: {
+            args: Prisma.LedgerEntryDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerEntryPayload>
+          }
+          update: {
+            args: Prisma.LedgerEntryUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerEntryPayload>
+          }
+          deleteMany: {
+            args: Prisma.LedgerEntryDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.LedgerEntryUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.LedgerEntryUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerEntryPayload>[]
+          }
+          upsert: {
+            args: Prisma.LedgerEntryUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerEntryPayload>
+          }
+          aggregate: {
+            args: Prisma.LedgerEntryAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateLedgerEntry>
+          }
+          groupBy: {
+            args: Prisma.LedgerEntryGroupByArgs<ExtArgs>
+            result: $Utils.Optional<LedgerEntryGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.LedgerEntryCountArgs<ExtArgs>
+            result: $Utils.Optional<LedgerEntryCountAggregateOutputType> | number
+          }
+        }
+      }
+      LedgerReservation: {
+        payload: Prisma.$LedgerReservationPayload<ExtArgs>
+        fields: Prisma.LedgerReservationFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.LedgerReservationFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerReservationPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.LedgerReservationFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerReservationPayload>
+          }
+          findFirst: {
+            args: Prisma.LedgerReservationFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerReservationPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.LedgerReservationFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerReservationPayload>
+          }
+          findMany: {
+            args: Prisma.LedgerReservationFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerReservationPayload>[]
+          }
+          create: {
+            args: Prisma.LedgerReservationCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerReservationPayload>
+          }
+          createMany: {
+            args: Prisma.LedgerReservationCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.LedgerReservationCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerReservationPayload>[]
+          }
+          delete: {
+            args: Prisma.LedgerReservationDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerReservationPayload>
+          }
+          update: {
+            args: Prisma.LedgerReservationUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerReservationPayload>
+          }
+          deleteMany: {
+            args: Prisma.LedgerReservationDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.LedgerReservationUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.LedgerReservationUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerReservationPayload>[]
+          }
+          upsert: {
+            args: Prisma.LedgerReservationUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerReservationPayload>
+          }
+          aggregate: {
+            args: Prisma.LedgerReservationAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateLedgerReservation>
+          }
+          groupBy: {
+            args: Prisma.LedgerReservationGroupByArgs<ExtArgs>
+            result: $Utils.Optional<LedgerReservationGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.LedgerReservationCountArgs<ExtArgs>
+            result: $Utils.Optional<LedgerReservationCountAggregateOutputType> | number
+          }
+        }
+      }
+      LedgerFxRate: {
+        payload: Prisma.$LedgerFxRatePayload<ExtArgs>
+        fields: Prisma.LedgerFxRateFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.LedgerFxRateFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerFxRatePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.LedgerFxRateFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerFxRatePayload>
+          }
+          findFirst: {
+            args: Prisma.LedgerFxRateFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerFxRatePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.LedgerFxRateFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerFxRatePayload>
+          }
+          findMany: {
+            args: Prisma.LedgerFxRateFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerFxRatePayload>[]
+          }
+          create: {
+            args: Prisma.LedgerFxRateCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerFxRatePayload>
+          }
+          createMany: {
+            args: Prisma.LedgerFxRateCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.LedgerFxRateCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerFxRatePayload>[]
+          }
+          delete: {
+            args: Prisma.LedgerFxRateDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerFxRatePayload>
+          }
+          update: {
+            args: Prisma.LedgerFxRateUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerFxRatePayload>
+          }
+          deleteMany: {
+            args: Prisma.LedgerFxRateDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.LedgerFxRateUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.LedgerFxRateUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerFxRatePayload>[]
+          }
+          upsert: {
+            args: Prisma.LedgerFxRateUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerFxRatePayload>
+          }
+          aggregate: {
+            args: Prisma.LedgerFxRateAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateLedgerFxRate>
+          }
+          groupBy: {
+            args: Prisma.LedgerFxRateGroupByArgs<ExtArgs>
+            result: $Utils.Optional<LedgerFxRateGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.LedgerFxRateCountArgs<ExtArgs>
+            result: $Utils.Optional<LedgerFxRateCountAggregateOutputType> | number
+          }
+        }
+      }
+      LedgerReconciliationRun: {
+        payload: Prisma.$LedgerReconciliationRunPayload<ExtArgs>
+        fields: Prisma.LedgerReconciliationRunFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.LedgerReconciliationRunFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerReconciliationRunPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.LedgerReconciliationRunFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerReconciliationRunPayload>
+          }
+          findFirst: {
+            args: Prisma.LedgerReconciliationRunFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerReconciliationRunPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.LedgerReconciliationRunFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerReconciliationRunPayload>
+          }
+          findMany: {
+            args: Prisma.LedgerReconciliationRunFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerReconciliationRunPayload>[]
+          }
+          create: {
+            args: Prisma.LedgerReconciliationRunCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerReconciliationRunPayload>
+          }
+          createMany: {
+            args: Prisma.LedgerReconciliationRunCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.LedgerReconciliationRunCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerReconciliationRunPayload>[]
+          }
+          delete: {
+            args: Prisma.LedgerReconciliationRunDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerReconciliationRunPayload>
+          }
+          update: {
+            args: Prisma.LedgerReconciliationRunUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerReconciliationRunPayload>
+          }
+          deleteMany: {
+            args: Prisma.LedgerReconciliationRunDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.LedgerReconciliationRunUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.LedgerReconciliationRunUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerReconciliationRunPayload>[]
+          }
+          upsert: {
+            args: Prisma.LedgerReconciliationRunUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerReconciliationRunPayload>
+          }
+          aggregate: {
+            args: Prisma.LedgerReconciliationRunAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateLedgerReconciliationRun>
+          }
+          groupBy: {
+            args: Prisma.LedgerReconciliationRunGroupByArgs<ExtArgs>
+            result: $Utils.Optional<LedgerReconciliationRunGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.LedgerReconciliationRunCountArgs<ExtArgs>
+            result: $Utils.Optional<LedgerReconciliationRunCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -11233,6 +11827,12 @@ export namespace Prisma {
     remixJob?: RemixJobOmit
     importJob?: ImportJobOmit
     galleryListing?: GalleryListingOmit
+    ledgerAccount?: LedgerAccountOmit
+    ledgerTransaction?: LedgerTransactionOmit
+    ledgerEntry?: LedgerEntryOmit
+    ledgerReservation?: LedgerReservationOmit
+    ledgerFxRate?: LedgerFxRateOmit
+    ledgerReconciliationRun?: LedgerReconciliationRunOmit
   }
 
   /* Types for Logging */
@@ -12704,6 +13304,77 @@ export namespace Prisma {
    */
   export type ScheduledTaskCountOutputTypeCountRunsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ScheduledTaskRunWhereInput
+  }
+
+
+  /**
+   * Count Type LedgerAccountCountOutputType
+   */
+
+  export type LedgerAccountCountOutputType = {
+    entries: number
+  }
+
+  export type LedgerAccountCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    entries?: boolean | LedgerAccountCountOutputTypeCountEntriesArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * LedgerAccountCountOutputType without action
+   */
+  export type LedgerAccountCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerAccountCountOutputType
+     */
+    select?: LedgerAccountCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * LedgerAccountCountOutputType without action
+   */
+  export type LedgerAccountCountOutputTypeCountEntriesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: LedgerEntryWhereInput
+  }
+
+
+  /**
+   * Count Type LedgerTransactionCountOutputType
+   */
+
+  export type LedgerTransactionCountOutputType = {
+    entries: number
+    reversals: number
+  }
+
+  export type LedgerTransactionCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    entries?: boolean | LedgerTransactionCountOutputTypeCountEntriesArgs
+    reversals?: boolean | LedgerTransactionCountOutputTypeCountReversalsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * LedgerTransactionCountOutputType without action
+   */
+  export type LedgerTransactionCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerTransactionCountOutputType
+     */
+    select?: LedgerTransactionCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * LedgerTransactionCountOutputType without action
+   */
+  export type LedgerTransactionCountOutputTypeCountEntriesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: LedgerEntryWhereInput
+  }
+
+  /**
+   * LedgerTransactionCountOutputType without action
+   */
+  export type LedgerTransactionCountOutputTypeCountReversalsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: LedgerTransactionWhereInput
   }
 
 
@@ -142040,6 +142711,6843 @@ export namespace Prisma {
 
 
   /**
+   * Model LedgerAccount
+   */
+
+  export type AggregateLedgerAccount = {
+    _count: LedgerAccountCountAggregateOutputType | null
+    _min: LedgerAccountMinAggregateOutputType | null
+    _max: LedgerAccountMaxAggregateOutputType | null
+  }
+
+  export type LedgerAccountMinAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    key: string | null
+    type: $Enums.LedgerAccountType | null
+    currency: string | null
+    createdAt: Date | null
+  }
+
+  export type LedgerAccountMaxAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    key: string | null
+    type: $Enums.LedgerAccountType | null
+    currency: string | null
+    createdAt: Date | null
+  }
+
+  export type LedgerAccountCountAggregateOutputType = {
+    id: number
+    organizationId: number
+    key: number
+    type: number
+    currency: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type LedgerAccountMinAggregateInputType = {
+    id?: true
+    organizationId?: true
+    key?: true
+    type?: true
+    currency?: true
+    createdAt?: true
+  }
+
+  export type LedgerAccountMaxAggregateInputType = {
+    id?: true
+    organizationId?: true
+    key?: true
+    type?: true
+    currency?: true
+    createdAt?: true
+  }
+
+  export type LedgerAccountCountAggregateInputType = {
+    id?: true
+    organizationId?: true
+    key?: true
+    type?: true
+    currency?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type LedgerAccountAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which LedgerAccount to aggregate.
+     */
+    where?: LedgerAccountWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LedgerAccounts to fetch.
+     */
+    orderBy?: LedgerAccountOrderByWithRelationInput | LedgerAccountOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: LedgerAccountWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LedgerAccounts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LedgerAccounts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned LedgerAccounts
+    **/
+    _count?: true | LedgerAccountCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: LedgerAccountMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: LedgerAccountMaxAggregateInputType
+  }
+
+  export type GetLedgerAccountAggregateType<T extends LedgerAccountAggregateArgs> = {
+        [P in keyof T & keyof AggregateLedgerAccount]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateLedgerAccount[P]>
+      : GetScalarType<T[P], AggregateLedgerAccount[P]>
+  }
+
+
+
+
+  export type LedgerAccountGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: LedgerAccountWhereInput
+    orderBy?: LedgerAccountOrderByWithAggregationInput | LedgerAccountOrderByWithAggregationInput[]
+    by: LedgerAccountScalarFieldEnum[] | LedgerAccountScalarFieldEnum
+    having?: LedgerAccountScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: LedgerAccountCountAggregateInputType | true
+    _min?: LedgerAccountMinAggregateInputType
+    _max?: LedgerAccountMaxAggregateInputType
+  }
+
+  export type LedgerAccountGroupByOutputType = {
+    id: string
+    organizationId: string
+    key: string
+    type: $Enums.LedgerAccountType
+    currency: string
+    createdAt: Date
+    _count: LedgerAccountCountAggregateOutputType | null
+    _min: LedgerAccountMinAggregateOutputType | null
+    _max: LedgerAccountMaxAggregateOutputType | null
+  }
+
+  type GetLedgerAccountGroupByPayload<T extends LedgerAccountGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<LedgerAccountGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof LedgerAccountGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], LedgerAccountGroupByOutputType[P]>
+            : GetScalarType<T[P], LedgerAccountGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type LedgerAccountSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    key?: boolean
+    type?: boolean
+    currency?: boolean
+    createdAt?: boolean
+    entries?: boolean | LedgerAccount$entriesArgs<ExtArgs>
+    _count?: boolean | LedgerAccountCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["ledgerAccount"]>
+
+  export type LedgerAccountSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    key?: boolean
+    type?: boolean
+    currency?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["ledgerAccount"]>
+
+  export type LedgerAccountSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    key?: boolean
+    type?: boolean
+    currency?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["ledgerAccount"]>
+
+  export type LedgerAccountSelectScalar = {
+    id?: boolean
+    organizationId?: boolean
+    key?: boolean
+    type?: boolean
+    currency?: boolean
+    createdAt?: boolean
+  }
+
+  export type LedgerAccountOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "key" | "type" | "currency" | "createdAt", ExtArgs["result"]["ledgerAccount"]>
+  export type LedgerAccountInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    entries?: boolean | LedgerAccount$entriesArgs<ExtArgs>
+    _count?: boolean | LedgerAccountCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type LedgerAccountIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+  export type LedgerAccountIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+
+  export type $LedgerAccountPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "LedgerAccount"
+    objects: {
+      entries: Prisma.$LedgerEntryPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      organizationId: string
+      /**
+       * Stable account key: user_credits | reserved | revenue | provider_cost |
+       * fx_clearing | fx_rounding | tax_payable | refunds | budget_hold ...
+       */
+      key: string
+      type: $Enums.LedgerAccountType
+      currency: string
+      createdAt: Date
+    }, ExtArgs["result"]["ledgerAccount"]>
+    composites: {}
+  }
+
+  type LedgerAccountGetPayload<S extends boolean | null | undefined | LedgerAccountDefaultArgs> = $Result.GetResult<Prisma.$LedgerAccountPayload, S>
+
+  type LedgerAccountCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<LedgerAccountFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: LedgerAccountCountAggregateInputType | true
+    }
+
+  export interface LedgerAccountDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['LedgerAccount'], meta: { name: 'LedgerAccount' } }
+    /**
+     * Find zero or one LedgerAccount that matches the filter.
+     * @param {LedgerAccountFindUniqueArgs} args - Arguments to find a LedgerAccount
+     * @example
+     * // Get one LedgerAccount
+     * const ledgerAccount = await prisma.ledgerAccount.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends LedgerAccountFindUniqueArgs>(args: SelectSubset<T, LedgerAccountFindUniqueArgs<ExtArgs>>): Prisma__LedgerAccountClient<$Result.GetResult<Prisma.$LedgerAccountPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one LedgerAccount that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {LedgerAccountFindUniqueOrThrowArgs} args - Arguments to find a LedgerAccount
+     * @example
+     * // Get one LedgerAccount
+     * const ledgerAccount = await prisma.ledgerAccount.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends LedgerAccountFindUniqueOrThrowArgs>(args: SelectSubset<T, LedgerAccountFindUniqueOrThrowArgs<ExtArgs>>): Prisma__LedgerAccountClient<$Result.GetResult<Prisma.$LedgerAccountPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first LedgerAccount that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerAccountFindFirstArgs} args - Arguments to find a LedgerAccount
+     * @example
+     * // Get one LedgerAccount
+     * const ledgerAccount = await prisma.ledgerAccount.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends LedgerAccountFindFirstArgs>(args?: SelectSubset<T, LedgerAccountFindFirstArgs<ExtArgs>>): Prisma__LedgerAccountClient<$Result.GetResult<Prisma.$LedgerAccountPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first LedgerAccount that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerAccountFindFirstOrThrowArgs} args - Arguments to find a LedgerAccount
+     * @example
+     * // Get one LedgerAccount
+     * const ledgerAccount = await prisma.ledgerAccount.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends LedgerAccountFindFirstOrThrowArgs>(args?: SelectSubset<T, LedgerAccountFindFirstOrThrowArgs<ExtArgs>>): Prisma__LedgerAccountClient<$Result.GetResult<Prisma.$LedgerAccountPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more LedgerAccounts that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerAccountFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all LedgerAccounts
+     * const ledgerAccounts = await prisma.ledgerAccount.findMany()
+     * 
+     * // Get first 10 LedgerAccounts
+     * const ledgerAccounts = await prisma.ledgerAccount.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const ledgerAccountWithIdOnly = await prisma.ledgerAccount.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends LedgerAccountFindManyArgs>(args?: SelectSubset<T, LedgerAccountFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LedgerAccountPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a LedgerAccount.
+     * @param {LedgerAccountCreateArgs} args - Arguments to create a LedgerAccount.
+     * @example
+     * // Create one LedgerAccount
+     * const LedgerAccount = await prisma.ledgerAccount.create({
+     *   data: {
+     *     // ... data to create a LedgerAccount
+     *   }
+     * })
+     * 
+     */
+    create<T extends LedgerAccountCreateArgs>(args: SelectSubset<T, LedgerAccountCreateArgs<ExtArgs>>): Prisma__LedgerAccountClient<$Result.GetResult<Prisma.$LedgerAccountPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many LedgerAccounts.
+     * @param {LedgerAccountCreateManyArgs} args - Arguments to create many LedgerAccounts.
+     * @example
+     * // Create many LedgerAccounts
+     * const ledgerAccount = await prisma.ledgerAccount.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends LedgerAccountCreateManyArgs>(args?: SelectSubset<T, LedgerAccountCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many LedgerAccounts and returns the data saved in the database.
+     * @param {LedgerAccountCreateManyAndReturnArgs} args - Arguments to create many LedgerAccounts.
+     * @example
+     * // Create many LedgerAccounts
+     * const ledgerAccount = await prisma.ledgerAccount.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many LedgerAccounts and only return the `id`
+     * const ledgerAccountWithIdOnly = await prisma.ledgerAccount.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends LedgerAccountCreateManyAndReturnArgs>(args?: SelectSubset<T, LedgerAccountCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LedgerAccountPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a LedgerAccount.
+     * @param {LedgerAccountDeleteArgs} args - Arguments to delete one LedgerAccount.
+     * @example
+     * // Delete one LedgerAccount
+     * const LedgerAccount = await prisma.ledgerAccount.delete({
+     *   where: {
+     *     // ... filter to delete one LedgerAccount
+     *   }
+     * })
+     * 
+     */
+    delete<T extends LedgerAccountDeleteArgs>(args: SelectSubset<T, LedgerAccountDeleteArgs<ExtArgs>>): Prisma__LedgerAccountClient<$Result.GetResult<Prisma.$LedgerAccountPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one LedgerAccount.
+     * @param {LedgerAccountUpdateArgs} args - Arguments to update one LedgerAccount.
+     * @example
+     * // Update one LedgerAccount
+     * const ledgerAccount = await prisma.ledgerAccount.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends LedgerAccountUpdateArgs>(args: SelectSubset<T, LedgerAccountUpdateArgs<ExtArgs>>): Prisma__LedgerAccountClient<$Result.GetResult<Prisma.$LedgerAccountPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more LedgerAccounts.
+     * @param {LedgerAccountDeleteManyArgs} args - Arguments to filter LedgerAccounts to delete.
+     * @example
+     * // Delete a few LedgerAccounts
+     * const { count } = await prisma.ledgerAccount.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends LedgerAccountDeleteManyArgs>(args?: SelectSubset<T, LedgerAccountDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more LedgerAccounts.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerAccountUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many LedgerAccounts
+     * const ledgerAccount = await prisma.ledgerAccount.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends LedgerAccountUpdateManyArgs>(args: SelectSubset<T, LedgerAccountUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more LedgerAccounts and returns the data updated in the database.
+     * @param {LedgerAccountUpdateManyAndReturnArgs} args - Arguments to update many LedgerAccounts.
+     * @example
+     * // Update many LedgerAccounts
+     * const ledgerAccount = await prisma.ledgerAccount.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more LedgerAccounts and only return the `id`
+     * const ledgerAccountWithIdOnly = await prisma.ledgerAccount.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends LedgerAccountUpdateManyAndReturnArgs>(args: SelectSubset<T, LedgerAccountUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LedgerAccountPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one LedgerAccount.
+     * @param {LedgerAccountUpsertArgs} args - Arguments to update or create a LedgerAccount.
+     * @example
+     * // Update or create a LedgerAccount
+     * const ledgerAccount = await prisma.ledgerAccount.upsert({
+     *   create: {
+     *     // ... data to create a LedgerAccount
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the LedgerAccount we want to update
+     *   }
+     * })
+     */
+    upsert<T extends LedgerAccountUpsertArgs>(args: SelectSubset<T, LedgerAccountUpsertArgs<ExtArgs>>): Prisma__LedgerAccountClient<$Result.GetResult<Prisma.$LedgerAccountPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of LedgerAccounts.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerAccountCountArgs} args - Arguments to filter LedgerAccounts to count.
+     * @example
+     * // Count the number of LedgerAccounts
+     * const count = await prisma.ledgerAccount.count({
+     *   where: {
+     *     // ... the filter for the LedgerAccounts we want to count
+     *   }
+     * })
+    **/
+    count<T extends LedgerAccountCountArgs>(
+      args?: Subset<T, LedgerAccountCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], LedgerAccountCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a LedgerAccount.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerAccountAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends LedgerAccountAggregateArgs>(args: Subset<T, LedgerAccountAggregateArgs>): Prisma.PrismaPromise<GetLedgerAccountAggregateType<T>>
+
+    /**
+     * Group by LedgerAccount.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerAccountGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends LedgerAccountGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: LedgerAccountGroupByArgs['orderBy'] }
+        : { orderBy?: LedgerAccountGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, LedgerAccountGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetLedgerAccountGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the LedgerAccount model
+   */
+  readonly fields: LedgerAccountFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for LedgerAccount.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__LedgerAccountClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    entries<T extends LedgerAccount$entriesArgs<ExtArgs> = {}>(args?: Subset<T, LedgerAccount$entriesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LedgerEntryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the LedgerAccount model
+   */
+  interface LedgerAccountFieldRefs {
+    readonly id: FieldRef<"LedgerAccount", 'String'>
+    readonly organizationId: FieldRef<"LedgerAccount", 'String'>
+    readonly key: FieldRef<"LedgerAccount", 'String'>
+    readonly type: FieldRef<"LedgerAccount", 'LedgerAccountType'>
+    readonly currency: FieldRef<"LedgerAccount", 'String'>
+    readonly createdAt: FieldRef<"LedgerAccount", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * LedgerAccount findUnique
+   */
+  export type LedgerAccountFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerAccount
+     */
+    select?: LedgerAccountSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerAccount
+     */
+    omit?: LedgerAccountOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerAccountInclude<ExtArgs> | null
+    /**
+     * Filter, which LedgerAccount to fetch.
+     */
+    where: LedgerAccountWhereUniqueInput
+  }
+
+  /**
+   * LedgerAccount findUniqueOrThrow
+   */
+  export type LedgerAccountFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerAccount
+     */
+    select?: LedgerAccountSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerAccount
+     */
+    omit?: LedgerAccountOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerAccountInclude<ExtArgs> | null
+    /**
+     * Filter, which LedgerAccount to fetch.
+     */
+    where: LedgerAccountWhereUniqueInput
+  }
+
+  /**
+   * LedgerAccount findFirst
+   */
+  export type LedgerAccountFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerAccount
+     */
+    select?: LedgerAccountSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerAccount
+     */
+    omit?: LedgerAccountOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerAccountInclude<ExtArgs> | null
+    /**
+     * Filter, which LedgerAccount to fetch.
+     */
+    where?: LedgerAccountWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LedgerAccounts to fetch.
+     */
+    orderBy?: LedgerAccountOrderByWithRelationInput | LedgerAccountOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for LedgerAccounts.
+     */
+    cursor?: LedgerAccountWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LedgerAccounts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LedgerAccounts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LedgerAccounts.
+     */
+    distinct?: LedgerAccountScalarFieldEnum | LedgerAccountScalarFieldEnum[]
+  }
+
+  /**
+   * LedgerAccount findFirstOrThrow
+   */
+  export type LedgerAccountFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerAccount
+     */
+    select?: LedgerAccountSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerAccount
+     */
+    omit?: LedgerAccountOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerAccountInclude<ExtArgs> | null
+    /**
+     * Filter, which LedgerAccount to fetch.
+     */
+    where?: LedgerAccountWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LedgerAccounts to fetch.
+     */
+    orderBy?: LedgerAccountOrderByWithRelationInput | LedgerAccountOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for LedgerAccounts.
+     */
+    cursor?: LedgerAccountWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LedgerAccounts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LedgerAccounts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LedgerAccounts.
+     */
+    distinct?: LedgerAccountScalarFieldEnum | LedgerAccountScalarFieldEnum[]
+  }
+
+  /**
+   * LedgerAccount findMany
+   */
+  export type LedgerAccountFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerAccount
+     */
+    select?: LedgerAccountSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerAccount
+     */
+    omit?: LedgerAccountOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerAccountInclude<ExtArgs> | null
+    /**
+     * Filter, which LedgerAccounts to fetch.
+     */
+    where?: LedgerAccountWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LedgerAccounts to fetch.
+     */
+    orderBy?: LedgerAccountOrderByWithRelationInput | LedgerAccountOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing LedgerAccounts.
+     */
+    cursor?: LedgerAccountWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LedgerAccounts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LedgerAccounts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LedgerAccounts.
+     */
+    distinct?: LedgerAccountScalarFieldEnum | LedgerAccountScalarFieldEnum[]
+  }
+
+  /**
+   * LedgerAccount create
+   */
+  export type LedgerAccountCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerAccount
+     */
+    select?: LedgerAccountSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerAccount
+     */
+    omit?: LedgerAccountOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerAccountInclude<ExtArgs> | null
+    /**
+     * The data needed to create a LedgerAccount.
+     */
+    data: XOR<LedgerAccountCreateInput, LedgerAccountUncheckedCreateInput>
+  }
+
+  /**
+   * LedgerAccount createMany
+   */
+  export type LedgerAccountCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many LedgerAccounts.
+     */
+    data: LedgerAccountCreateManyInput | LedgerAccountCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * LedgerAccount createManyAndReturn
+   */
+  export type LedgerAccountCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerAccount
+     */
+    select?: LedgerAccountSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerAccount
+     */
+    omit?: LedgerAccountOmit<ExtArgs> | null
+    /**
+     * The data used to create many LedgerAccounts.
+     */
+    data: LedgerAccountCreateManyInput | LedgerAccountCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * LedgerAccount update
+   */
+  export type LedgerAccountUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerAccount
+     */
+    select?: LedgerAccountSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerAccount
+     */
+    omit?: LedgerAccountOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerAccountInclude<ExtArgs> | null
+    /**
+     * The data needed to update a LedgerAccount.
+     */
+    data: XOR<LedgerAccountUpdateInput, LedgerAccountUncheckedUpdateInput>
+    /**
+     * Choose, which LedgerAccount to update.
+     */
+    where: LedgerAccountWhereUniqueInput
+  }
+
+  /**
+   * LedgerAccount updateMany
+   */
+  export type LedgerAccountUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update LedgerAccounts.
+     */
+    data: XOR<LedgerAccountUpdateManyMutationInput, LedgerAccountUncheckedUpdateManyInput>
+    /**
+     * Filter which LedgerAccounts to update
+     */
+    where?: LedgerAccountWhereInput
+    /**
+     * Limit how many LedgerAccounts to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * LedgerAccount updateManyAndReturn
+   */
+  export type LedgerAccountUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerAccount
+     */
+    select?: LedgerAccountSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerAccount
+     */
+    omit?: LedgerAccountOmit<ExtArgs> | null
+    /**
+     * The data used to update LedgerAccounts.
+     */
+    data: XOR<LedgerAccountUpdateManyMutationInput, LedgerAccountUncheckedUpdateManyInput>
+    /**
+     * Filter which LedgerAccounts to update
+     */
+    where?: LedgerAccountWhereInput
+    /**
+     * Limit how many LedgerAccounts to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * LedgerAccount upsert
+   */
+  export type LedgerAccountUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerAccount
+     */
+    select?: LedgerAccountSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerAccount
+     */
+    omit?: LedgerAccountOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerAccountInclude<ExtArgs> | null
+    /**
+     * The filter to search for the LedgerAccount to update in case it exists.
+     */
+    where: LedgerAccountWhereUniqueInput
+    /**
+     * In case the LedgerAccount found by the `where` argument doesn't exist, create a new LedgerAccount with this data.
+     */
+    create: XOR<LedgerAccountCreateInput, LedgerAccountUncheckedCreateInput>
+    /**
+     * In case the LedgerAccount was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<LedgerAccountUpdateInput, LedgerAccountUncheckedUpdateInput>
+  }
+
+  /**
+   * LedgerAccount delete
+   */
+  export type LedgerAccountDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerAccount
+     */
+    select?: LedgerAccountSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerAccount
+     */
+    omit?: LedgerAccountOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerAccountInclude<ExtArgs> | null
+    /**
+     * Filter which LedgerAccount to delete.
+     */
+    where: LedgerAccountWhereUniqueInput
+  }
+
+  /**
+   * LedgerAccount deleteMany
+   */
+  export type LedgerAccountDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which LedgerAccounts to delete
+     */
+    where?: LedgerAccountWhereInput
+    /**
+     * Limit how many LedgerAccounts to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * LedgerAccount.entries
+   */
+  export type LedgerAccount$entriesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerEntry
+     */
+    select?: LedgerEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerEntry
+     */
+    omit?: LedgerEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerEntryInclude<ExtArgs> | null
+    where?: LedgerEntryWhereInput
+    orderBy?: LedgerEntryOrderByWithRelationInput | LedgerEntryOrderByWithRelationInput[]
+    cursor?: LedgerEntryWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: LedgerEntryScalarFieldEnum | LedgerEntryScalarFieldEnum[]
+  }
+
+  /**
+   * LedgerAccount without action
+   */
+  export type LedgerAccountDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerAccount
+     */
+    select?: LedgerAccountSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerAccount
+     */
+    omit?: LedgerAccountOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerAccountInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model LedgerTransaction
+   */
+
+  export type AggregateLedgerTransaction = {
+    _count: LedgerTransactionCountAggregateOutputType | null
+    _avg: LedgerTransactionAvgAggregateOutputType | null
+    _sum: LedgerTransactionSumAggregateOutputType | null
+    _min: LedgerTransactionMinAggregateOutputType | null
+    _max: LedgerTransactionMaxAggregateOutputType | null
+  }
+
+  export type LedgerTransactionAvgAggregateOutputType = {
+    rateCardVersion: number | null
+  }
+
+  export type LedgerTransactionSumAggregateOutputType = {
+    rateCardVersion: number | null
+  }
+
+  export type LedgerTransactionMinAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    reason: string | null
+    idempotencyKey: string | null
+    reversalOfId: string | null
+    rateCardVersion: number | null
+    postedAt: Date | null
+  }
+
+  export type LedgerTransactionMaxAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    reason: string | null
+    idempotencyKey: string | null
+    reversalOfId: string | null
+    rateCardVersion: number | null
+    postedAt: Date | null
+  }
+
+  export type LedgerTransactionCountAggregateOutputType = {
+    id: number
+    organizationId: number
+    reason: number
+    idempotencyKey: number
+    reversalOfId: number
+    rateCardVersion: number
+    postedAt: number
+    metadata: number
+    _all: number
+  }
+
+
+  export type LedgerTransactionAvgAggregateInputType = {
+    rateCardVersion?: true
+  }
+
+  export type LedgerTransactionSumAggregateInputType = {
+    rateCardVersion?: true
+  }
+
+  export type LedgerTransactionMinAggregateInputType = {
+    id?: true
+    organizationId?: true
+    reason?: true
+    idempotencyKey?: true
+    reversalOfId?: true
+    rateCardVersion?: true
+    postedAt?: true
+  }
+
+  export type LedgerTransactionMaxAggregateInputType = {
+    id?: true
+    organizationId?: true
+    reason?: true
+    idempotencyKey?: true
+    reversalOfId?: true
+    rateCardVersion?: true
+    postedAt?: true
+  }
+
+  export type LedgerTransactionCountAggregateInputType = {
+    id?: true
+    organizationId?: true
+    reason?: true
+    idempotencyKey?: true
+    reversalOfId?: true
+    rateCardVersion?: true
+    postedAt?: true
+    metadata?: true
+    _all?: true
+  }
+
+  export type LedgerTransactionAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which LedgerTransaction to aggregate.
+     */
+    where?: LedgerTransactionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LedgerTransactions to fetch.
+     */
+    orderBy?: LedgerTransactionOrderByWithRelationInput | LedgerTransactionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: LedgerTransactionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LedgerTransactions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LedgerTransactions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned LedgerTransactions
+    **/
+    _count?: true | LedgerTransactionCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: LedgerTransactionAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: LedgerTransactionSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: LedgerTransactionMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: LedgerTransactionMaxAggregateInputType
+  }
+
+  export type GetLedgerTransactionAggregateType<T extends LedgerTransactionAggregateArgs> = {
+        [P in keyof T & keyof AggregateLedgerTransaction]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateLedgerTransaction[P]>
+      : GetScalarType<T[P], AggregateLedgerTransaction[P]>
+  }
+
+
+
+
+  export type LedgerTransactionGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: LedgerTransactionWhereInput
+    orderBy?: LedgerTransactionOrderByWithAggregationInput | LedgerTransactionOrderByWithAggregationInput[]
+    by: LedgerTransactionScalarFieldEnum[] | LedgerTransactionScalarFieldEnum
+    having?: LedgerTransactionScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: LedgerTransactionCountAggregateInputType | true
+    _avg?: LedgerTransactionAvgAggregateInputType
+    _sum?: LedgerTransactionSumAggregateInputType
+    _min?: LedgerTransactionMinAggregateInputType
+    _max?: LedgerTransactionMaxAggregateInputType
+  }
+
+  export type LedgerTransactionGroupByOutputType = {
+    id: string
+    organizationId: string
+    reason: string
+    idempotencyKey: string | null
+    reversalOfId: string | null
+    rateCardVersion: number | null
+    postedAt: Date
+    metadata: JsonValue | null
+    _count: LedgerTransactionCountAggregateOutputType | null
+    _avg: LedgerTransactionAvgAggregateOutputType | null
+    _sum: LedgerTransactionSumAggregateOutputType | null
+    _min: LedgerTransactionMinAggregateOutputType | null
+    _max: LedgerTransactionMaxAggregateOutputType | null
+  }
+
+  type GetLedgerTransactionGroupByPayload<T extends LedgerTransactionGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<LedgerTransactionGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof LedgerTransactionGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], LedgerTransactionGroupByOutputType[P]>
+            : GetScalarType<T[P], LedgerTransactionGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type LedgerTransactionSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    reason?: boolean
+    idempotencyKey?: boolean
+    reversalOfId?: boolean
+    rateCardVersion?: boolean
+    postedAt?: boolean
+    metadata?: boolean
+    entries?: boolean | LedgerTransaction$entriesArgs<ExtArgs>
+    reversalOf?: boolean | LedgerTransaction$reversalOfArgs<ExtArgs>
+    reversals?: boolean | LedgerTransaction$reversalsArgs<ExtArgs>
+    _count?: boolean | LedgerTransactionCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["ledgerTransaction"]>
+
+  export type LedgerTransactionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    reason?: boolean
+    idempotencyKey?: boolean
+    reversalOfId?: boolean
+    rateCardVersion?: boolean
+    postedAt?: boolean
+    metadata?: boolean
+    reversalOf?: boolean | LedgerTransaction$reversalOfArgs<ExtArgs>
+  }, ExtArgs["result"]["ledgerTransaction"]>
+
+  export type LedgerTransactionSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    reason?: boolean
+    idempotencyKey?: boolean
+    reversalOfId?: boolean
+    rateCardVersion?: boolean
+    postedAt?: boolean
+    metadata?: boolean
+    reversalOf?: boolean | LedgerTransaction$reversalOfArgs<ExtArgs>
+  }, ExtArgs["result"]["ledgerTransaction"]>
+
+  export type LedgerTransactionSelectScalar = {
+    id?: boolean
+    organizationId?: boolean
+    reason?: boolean
+    idempotencyKey?: boolean
+    reversalOfId?: boolean
+    rateCardVersion?: boolean
+    postedAt?: boolean
+    metadata?: boolean
+  }
+
+  export type LedgerTransactionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "reason" | "idempotencyKey" | "reversalOfId" | "rateCardVersion" | "postedAt" | "metadata", ExtArgs["result"]["ledgerTransaction"]>
+  export type LedgerTransactionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    entries?: boolean | LedgerTransaction$entriesArgs<ExtArgs>
+    reversalOf?: boolean | LedgerTransaction$reversalOfArgs<ExtArgs>
+    reversals?: boolean | LedgerTransaction$reversalsArgs<ExtArgs>
+    _count?: boolean | LedgerTransactionCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type LedgerTransactionIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    reversalOf?: boolean | LedgerTransaction$reversalOfArgs<ExtArgs>
+  }
+  export type LedgerTransactionIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    reversalOf?: boolean | LedgerTransaction$reversalOfArgs<ExtArgs>
+  }
+
+  export type $LedgerTransactionPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "LedgerTransaction"
+    objects: {
+      entries: Prisma.$LedgerEntryPayload<ExtArgs>[]
+      reversalOf: Prisma.$LedgerTransactionPayload<ExtArgs> | null
+      reversals: Prisma.$LedgerTransactionPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      organizationId: string
+      reason: string
+      /**
+       * Idempotency key (unique per org when set). NULL rows are not deduped.
+       */
+      idempotencyKey: string | null
+      /**
+       * Compensation: points at the original transaction this one reverses.
+       */
+      reversalOfId: string | null
+      rateCardVersion: number | null
+      postedAt: Date
+      metadata: Prisma.JsonValue | null
+    }, ExtArgs["result"]["ledgerTransaction"]>
+    composites: {}
+  }
+
+  type LedgerTransactionGetPayload<S extends boolean | null | undefined | LedgerTransactionDefaultArgs> = $Result.GetResult<Prisma.$LedgerTransactionPayload, S>
+
+  type LedgerTransactionCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<LedgerTransactionFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: LedgerTransactionCountAggregateInputType | true
+    }
+
+  export interface LedgerTransactionDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['LedgerTransaction'], meta: { name: 'LedgerTransaction' } }
+    /**
+     * Find zero or one LedgerTransaction that matches the filter.
+     * @param {LedgerTransactionFindUniqueArgs} args - Arguments to find a LedgerTransaction
+     * @example
+     * // Get one LedgerTransaction
+     * const ledgerTransaction = await prisma.ledgerTransaction.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends LedgerTransactionFindUniqueArgs>(args: SelectSubset<T, LedgerTransactionFindUniqueArgs<ExtArgs>>): Prisma__LedgerTransactionClient<$Result.GetResult<Prisma.$LedgerTransactionPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one LedgerTransaction that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {LedgerTransactionFindUniqueOrThrowArgs} args - Arguments to find a LedgerTransaction
+     * @example
+     * // Get one LedgerTransaction
+     * const ledgerTransaction = await prisma.ledgerTransaction.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends LedgerTransactionFindUniqueOrThrowArgs>(args: SelectSubset<T, LedgerTransactionFindUniqueOrThrowArgs<ExtArgs>>): Prisma__LedgerTransactionClient<$Result.GetResult<Prisma.$LedgerTransactionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first LedgerTransaction that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerTransactionFindFirstArgs} args - Arguments to find a LedgerTransaction
+     * @example
+     * // Get one LedgerTransaction
+     * const ledgerTransaction = await prisma.ledgerTransaction.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends LedgerTransactionFindFirstArgs>(args?: SelectSubset<T, LedgerTransactionFindFirstArgs<ExtArgs>>): Prisma__LedgerTransactionClient<$Result.GetResult<Prisma.$LedgerTransactionPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first LedgerTransaction that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerTransactionFindFirstOrThrowArgs} args - Arguments to find a LedgerTransaction
+     * @example
+     * // Get one LedgerTransaction
+     * const ledgerTransaction = await prisma.ledgerTransaction.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends LedgerTransactionFindFirstOrThrowArgs>(args?: SelectSubset<T, LedgerTransactionFindFirstOrThrowArgs<ExtArgs>>): Prisma__LedgerTransactionClient<$Result.GetResult<Prisma.$LedgerTransactionPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more LedgerTransactions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerTransactionFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all LedgerTransactions
+     * const ledgerTransactions = await prisma.ledgerTransaction.findMany()
+     * 
+     * // Get first 10 LedgerTransactions
+     * const ledgerTransactions = await prisma.ledgerTransaction.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const ledgerTransactionWithIdOnly = await prisma.ledgerTransaction.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends LedgerTransactionFindManyArgs>(args?: SelectSubset<T, LedgerTransactionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LedgerTransactionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a LedgerTransaction.
+     * @param {LedgerTransactionCreateArgs} args - Arguments to create a LedgerTransaction.
+     * @example
+     * // Create one LedgerTransaction
+     * const LedgerTransaction = await prisma.ledgerTransaction.create({
+     *   data: {
+     *     // ... data to create a LedgerTransaction
+     *   }
+     * })
+     * 
+     */
+    create<T extends LedgerTransactionCreateArgs>(args: SelectSubset<T, LedgerTransactionCreateArgs<ExtArgs>>): Prisma__LedgerTransactionClient<$Result.GetResult<Prisma.$LedgerTransactionPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many LedgerTransactions.
+     * @param {LedgerTransactionCreateManyArgs} args - Arguments to create many LedgerTransactions.
+     * @example
+     * // Create many LedgerTransactions
+     * const ledgerTransaction = await prisma.ledgerTransaction.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends LedgerTransactionCreateManyArgs>(args?: SelectSubset<T, LedgerTransactionCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many LedgerTransactions and returns the data saved in the database.
+     * @param {LedgerTransactionCreateManyAndReturnArgs} args - Arguments to create many LedgerTransactions.
+     * @example
+     * // Create many LedgerTransactions
+     * const ledgerTransaction = await prisma.ledgerTransaction.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many LedgerTransactions and only return the `id`
+     * const ledgerTransactionWithIdOnly = await prisma.ledgerTransaction.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends LedgerTransactionCreateManyAndReturnArgs>(args?: SelectSubset<T, LedgerTransactionCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LedgerTransactionPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a LedgerTransaction.
+     * @param {LedgerTransactionDeleteArgs} args - Arguments to delete one LedgerTransaction.
+     * @example
+     * // Delete one LedgerTransaction
+     * const LedgerTransaction = await prisma.ledgerTransaction.delete({
+     *   where: {
+     *     // ... filter to delete one LedgerTransaction
+     *   }
+     * })
+     * 
+     */
+    delete<T extends LedgerTransactionDeleteArgs>(args: SelectSubset<T, LedgerTransactionDeleteArgs<ExtArgs>>): Prisma__LedgerTransactionClient<$Result.GetResult<Prisma.$LedgerTransactionPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one LedgerTransaction.
+     * @param {LedgerTransactionUpdateArgs} args - Arguments to update one LedgerTransaction.
+     * @example
+     * // Update one LedgerTransaction
+     * const ledgerTransaction = await prisma.ledgerTransaction.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends LedgerTransactionUpdateArgs>(args: SelectSubset<T, LedgerTransactionUpdateArgs<ExtArgs>>): Prisma__LedgerTransactionClient<$Result.GetResult<Prisma.$LedgerTransactionPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more LedgerTransactions.
+     * @param {LedgerTransactionDeleteManyArgs} args - Arguments to filter LedgerTransactions to delete.
+     * @example
+     * // Delete a few LedgerTransactions
+     * const { count } = await prisma.ledgerTransaction.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends LedgerTransactionDeleteManyArgs>(args?: SelectSubset<T, LedgerTransactionDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more LedgerTransactions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerTransactionUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many LedgerTransactions
+     * const ledgerTransaction = await prisma.ledgerTransaction.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends LedgerTransactionUpdateManyArgs>(args: SelectSubset<T, LedgerTransactionUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more LedgerTransactions and returns the data updated in the database.
+     * @param {LedgerTransactionUpdateManyAndReturnArgs} args - Arguments to update many LedgerTransactions.
+     * @example
+     * // Update many LedgerTransactions
+     * const ledgerTransaction = await prisma.ledgerTransaction.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more LedgerTransactions and only return the `id`
+     * const ledgerTransactionWithIdOnly = await prisma.ledgerTransaction.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends LedgerTransactionUpdateManyAndReturnArgs>(args: SelectSubset<T, LedgerTransactionUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LedgerTransactionPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one LedgerTransaction.
+     * @param {LedgerTransactionUpsertArgs} args - Arguments to update or create a LedgerTransaction.
+     * @example
+     * // Update or create a LedgerTransaction
+     * const ledgerTransaction = await prisma.ledgerTransaction.upsert({
+     *   create: {
+     *     // ... data to create a LedgerTransaction
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the LedgerTransaction we want to update
+     *   }
+     * })
+     */
+    upsert<T extends LedgerTransactionUpsertArgs>(args: SelectSubset<T, LedgerTransactionUpsertArgs<ExtArgs>>): Prisma__LedgerTransactionClient<$Result.GetResult<Prisma.$LedgerTransactionPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of LedgerTransactions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerTransactionCountArgs} args - Arguments to filter LedgerTransactions to count.
+     * @example
+     * // Count the number of LedgerTransactions
+     * const count = await prisma.ledgerTransaction.count({
+     *   where: {
+     *     // ... the filter for the LedgerTransactions we want to count
+     *   }
+     * })
+    **/
+    count<T extends LedgerTransactionCountArgs>(
+      args?: Subset<T, LedgerTransactionCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], LedgerTransactionCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a LedgerTransaction.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerTransactionAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends LedgerTransactionAggregateArgs>(args: Subset<T, LedgerTransactionAggregateArgs>): Prisma.PrismaPromise<GetLedgerTransactionAggregateType<T>>
+
+    /**
+     * Group by LedgerTransaction.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerTransactionGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends LedgerTransactionGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: LedgerTransactionGroupByArgs['orderBy'] }
+        : { orderBy?: LedgerTransactionGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, LedgerTransactionGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetLedgerTransactionGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the LedgerTransaction model
+   */
+  readonly fields: LedgerTransactionFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for LedgerTransaction.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__LedgerTransactionClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    entries<T extends LedgerTransaction$entriesArgs<ExtArgs> = {}>(args?: Subset<T, LedgerTransaction$entriesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LedgerEntryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    reversalOf<T extends LedgerTransaction$reversalOfArgs<ExtArgs> = {}>(args?: Subset<T, LedgerTransaction$reversalOfArgs<ExtArgs>>): Prisma__LedgerTransactionClient<$Result.GetResult<Prisma.$LedgerTransactionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    reversals<T extends LedgerTransaction$reversalsArgs<ExtArgs> = {}>(args?: Subset<T, LedgerTransaction$reversalsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LedgerTransactionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the LedgerTransaction model
+   */
+  interface LedgerTransactionFieldRefs {
+    readonly id: FieldRef<"LedgerTransaction", 'String'>
+    readonly organizationId: FieldRef<"LedgerTransaction", 'String'>
+    readonly reason: FieldRef<"LedgerTransaction", 'String'>
+    readonly idempotencyKey: FieldRef<"LedgerTransaction", 'String'>
+    readonly reversalOfId: FieldRef<"LedgerTransaction", 'String'>
+    readonly rateCardVersion: FieldRef<"LedgerTransaction", 'Int'>
+    readonly postedAt: FieldRef<"LedgerTransaction", 'DateTime'>
+    readonly metadata: FieldRef<"LedgerTransaction", 'Json'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * LedgerTransaction findUnique
+   */
+  export type LedgerTransactionFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerTransaction
+     */
+    select?: LedgerTransactionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerTransaction
+     */
+    omit?: LedgerTransactionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerTransactionInclude<ExtArgs> | null
+    /**
+     * Filter, which LedgerTransaction to fetch.
+     */
+    where: LedgerTransactionWhereUniqueInput
+  }
+
+  /**
+   * LedgerTransaction findUniqueOrThrow
+   */
+  export type LedgerTransactionFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerTransaction
+     */
+    select?: LedgerTransactionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerTransaction
+     */
+    omit?: LedgerTransactionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerTransactionInclude<ExtArgs> | null
+    /**
+     * Filter, which LedgerTransaction to fetch.
+     */
+    where: LedgerTransactionWhereUniqueInput
+  }
+
+  /**
+   * LedgerTransaction findFirst
+   */
+  export type LedgerTransactionFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerTransaction
+     */
+    select?: LedgerTransactionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerTransaction
+     */
+    omit?: LedgerTransactionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerTransactionInclude<ExtArgs> | null
+    /**
+     * Filter, which LedgerTransaction to fetch.
+     */
+    where?: LedgerTransactionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LedgerTransactions to fetch.
+     */
+    orderBy?: LedgerTransactionOrderByWithRelationInput | LedgerTransactionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for LedgerTransactions.
+     */
+    cursor?: LedgerTransactionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LedgerTransactions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LedgerTransactions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LedgerTransactions.
+     */
+    distinct?: LedgerTransactionScalarFieldEnum | LedgerTransactionScalarFieldEnum[]
+  }
+
+  /**
+   * LedgerTransaction findFirstOrThrow
+   */
+  export type LedgerTransactionFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerTransaction
+     */
+    select?: LedgerTransactionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerTransaction
+     */
+    omit?: LedgerTransactionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerTransactionInclude<ExtArgs> | null
+    /**
+     * Filter, which LedgerTransaction to fetch.
+     */
+    where?: LedgerTransactionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LedgerTransactions to fetch.
+     */
+    orderBy?: LedgerTransactionOrderByWithRelationInput | LedgerTransactionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for LedgerTransactions.
+     */
+    cursor?: LedgerTransactionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LedgerTransactions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LedgerTransactions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LedgerTransactions.
+     */
+    distinct?: LedgerTransactionScalarFieldEnum | LedgerTransactionScalarFieldEnum[]
+  }
+
+  /**
+   * LedgerTransaction findMany
+   */
+  export type LedgerTransactionFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerTransaction
+     */
+    select?: LedgerTransactionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerTransaction
+     */
+    omit?: LedgerTransactionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerTransactionInclude<ExtArgs> | null
+    /**
+     * Filter, which LedgerTransactions to fetch.
+     */
+    where?: LedgerTransactionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LedgerTransactions to fetch.
+     */
+    orderBy?: LedgerTransactionOrderByWithRelationInput | LedgerTransactionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing LedgerTransactions.
+     */
+    cursor?: LedgerTransactionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LedgerTransactions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LedgerTransactions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LedgerTransactions.
+     */
+    distinct?: LedgerTransactionScalarFieldEnum | LedgerTransactionScalarFieldEnum[]
+  }
+
+  /**
+   * LedgerTransaction create
+   */
+  export type LedgerTransactionCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerTransaction
+     */
+    select?: LedgerTransactionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerTransaction
+     */
+    omit?: LedgerTransactionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerTransactionInclude<ExtArgs> | null
+    /**
+     * The data needed to create a LedgerTransaction.
+     */
+    data: XOR<LedgerTransactionCreateInput, LedgerTransactionUncheckedCreateInput>
+  }
+
+  /**
+   * LedgerTransaction createMany
+   */
+  export type LedgerTransactionCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many LedgerTransactions.
+     */
+    data: LedgerTransactionCreateManyInput | LedgerTransactionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * LedgerTransaction createManyAndReturn
+   */
+  export type LedgerTransactionCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerTransaction
+     */
+    select?: LedgerTransactionSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerTransaction
+     */
+    omit?: LedgerTransactionOmit<ExtArgs> | null
+    /**
+     * The data used to create many LedgerTransactions.
+     */
+    data: LedgerTransactionCreateManyInput | LedgerTransactionCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerTransactionIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * LedgerTransaction update
+   */
+  export type LedgerTransactionUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerTransaction
+     */
+    select?: LedgerTransactionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerTransaction
+     */
+    omit?: LedgerTransactionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerTransactionInclude<ExtArgs> | null
+    /**
+     * The data needed to update a LedgerTransaction.
+     */
+    data: XOR<LedgerTransactionUpdateInput, LedgerTransactionUncheckedUpdateInput>
+    /**
+     * Choose, which LedgerTransaction to update.
+     */
+    where: LedgerTransactionWhereUniqueInput
+  }
+
+  /**
+   * LedgerTransaction updateMany
+   */
+  export type LedgerTransactionUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update LedgerTransactions.
+     */
+    data: XOR<LedgerTransactionUpdateManyMutationInput, LedgerTransactionUncheckedUpdateManyInput>
+    /**
+     * Filter which LedgerTransactions to update
+     */
+    where?: LedgerTransactionWhereInput
+    /**
+     * Limit how many LedgerTransactions to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * LedgerTransaction updateManyAndReturn
+   */
+  export type LedgerTransactionUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerTransaction
+     */
+    select?: LedgerTransactionSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerTransaction
+     */
+    omit?: LedgerTransactionOmit<ExtArgs> | null
+    /**
+     * The data used to update LedgerTransactions.
+     */
+    data: XOR<LedgerTransactionUpdateManyMutationInput, LedgerTransactionUncheckedUpdateManyInput>
+    /**
+     * Filter which LedgerTransactions to update
+     */
+    where?: LedgerTransactionWhereInput
+    /**
+     * Limit how many LedgerTransactions to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerTransactionIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * LedgerTransaction upsert
+   */
+  export type LedgerTransactionUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerTransaction
+     */
+    select?: LedgerTransactionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerTransaction
+     */
+    omit?: LedgerTransactionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerTransactionInclude<ExtArgs> | null
+    /**
+     * The filter to search for the LedgerTransaction to update in case it exists.
+     */
+    where: LedgerTransactionWhereUniqueInput
+    /**
+     * In case the LedgerTransaction found by the `where` argument doesn't exist, create a new LedgerTransaction with this data.
+     */
+    create: XOR<LedgerTransactionCreateInput, LedgerTransactionUncheckedCreateInput>
+    /**
+     * In case the LedgerTransaction was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<LedgerTransactionUpdateInput, LedgerTransactionUncheckedUpdateInput>
+  }
+
+  /**
+   * LedgerTransaction delete
+   */
+  export type LedgerTransactionDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerTransaction
+     */
+    select?: LedgerTransactionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerTransaction
+     */
+    omit?: LedgerTransactionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerTransactionInclude<ExtArgs> | null
+    /**
+     * Filter which LedgerTransaction to delete.
+     */
+    where: LedgerTransactionWhereUniqueInput
+  }
+
+  /**
+   * LedgerTransaction deleteMany
+   */
+  export type LedgerTransactionDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which LedgerTransactions to delete
+     */
+    where?: LedgerTransactionWhereInput
+    /**
+     * Limit how many LedgerTransactions to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * LedgerTransaction.entries
+   */
+  export type LedgerTransaction$entriesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerEntry
+     */
+    select?: LedgerEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerEntry
+     */
+    omit?: LedgerEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerEntryInclude<ExtArgs> | null
+    where?: LedgerEntryWhereInput
+    orderBy?: LedgerEntryOrderByWithRelationInput | LedgerEntryOrderByWithRelationInput[]
+    cursor?: LedgerEntryWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: LedgerEntryScalarFieldEnum | LedgerEntryScalarFieldEnum[]
+  }
+
+  /**
+   * LedgerTransaction.reversalOf
+   */
+  export type LedgerTransaction$reversalOfArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerTransaction
+     */
+    select?: LedgerTransactionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerTransaction
+     */
+    omit?: LedgerTransactionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerTransactionInclude<ExtArgs> | null
+    where?: LedgerTransactionWhereInput
+  }
+
+  /**
+   * LedgerTransaction.reversals
+   */
+  export type LedgerTransaction$reversalsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerTransaction
+     */
+    select?: LedgerTransactionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerTransaction
+     */
+    omit?: LedgerTransactionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerTransactionInclude<ExtArgs> | null
+    where?: LedgerTransactionWhereInput
+    orderBy?: LedgerTransactionOrderByWithRelationInput | LedgerTransactionOrderByWithRelationInput[]
+    cursor?: LedgerTransactionWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: LedgerTransactionScalarFieldEnum | LedgerTransactionScalarFieldEnum[]
+  }
+
+  /**
+   * LedgerTransaction without action
+   */
+  export type LedgerTransactionDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerTransaction
+     */
+    select?: LedgerTransactionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerTransaction
+     */
+    omit?: LedgerTransactionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerTransactionInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model LedgerEntry
+   */
+
+  export type AggregateLedgerEntry = {
+    _count: LedgerEntryCountAggregateOutputType | null
+    _avg: LedgerEntryAvgAggregateOutputType | null
+    _sum: LedgerEntrySumAggregateOutputType | null
+    _min: LedgerEntryMinAggregateOutputType | null
+    _max: LedgerEntryMaxAggregateOutputType | null
+  }
+
+  export type LedgerEntryAvgAggregateOutputType = {
+    amountMinor: number | null
+  }
+
+  export type LedgerEntrySumAggregateOutputType = {
+    amountMinor: bigint | null
+  }
+
+  export type LedgerEntryMinAggregateOutputType = {
+    id: string | null
+    transactionId: string | null
+    accountId: string | null
+    direction: $Enums.LedgerEntryDirection | null
+    amountMinor: bigint | null
+    currency: string | null
+  }
+
+  export type LedgerEntryMaxAggregateOutputType = {
+    id: string | null
+    transactionId: string | null
+    accountId: string | null
+    direction: $Enums.LedgerEntryDirection | null
+    amountMinor: bigint | null
+    currency: string | null
+  }
+
+  export type LedgerEntryCountAggregateOutputType = {
+    id: number
+    transactionId: number
+    accountId: number
+    direction: number
+    amountMinor: number
+    currency: number
+    _all: number
+  }
+
+
+  export type LedgerEntryAvgAggregateInputType = {
+    amountMinor?: true
+  }
+
+  export type LedgerEntrySumAggregateInputType = {
+    amountMinor?: true
+  }
+
+  export type LedgerEntryMinAggregateInputType = {
+    id?: true
+    transactionId?: true
+    accountId?: true
+    direction?: true
+    amountMinor?: true
+    currency?: true
+  }
+
+  export type LedgerEntryMaxAggregateInputType = {
+    id?: true
+    transactionId?: true
+    accountId?: true
+    direction?: true
+    amountMinor?: true
+    currency?: true
+  }
+
+  export type LedgerEntryCountAggregateInputType = {
+    id?: true
+    transactionId?: true
+    accountId?: true
+    direction?: true
+    amountMinor?: true
+    currency?: true
+    _all?: true
+  }
+
+  export type LedgerEntryAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which LedgerEntry to aggregate.
+     */
+    where?: LedgerEntryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LedgerEntries to fetch.
+     */
+    orderBy?: LedgerEntryOrderByWithRelationInput | LedgerEntryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: LedgerEntryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LedgerEntries from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LedgerEntries.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned LedgerEntries
+    **/
+    _count?: true | LedgerEntryCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: LedgerEntryAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: LedgerEntrySumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: LedgerEntryMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: LedgerEntryMaxAggregateInputType
+  }
+
+  export type GetLedgerEntryAggregateType<T extends LedgerEntryAggregateArgs> = {
+        [P in keyof T & keyof AggregateLedgerEntry]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateLedgerEntry[P]>
+      : GetScalarType<T[P], AggregateLedgerEntry[P]>
+  }
+
+
+
+
+  export type LedgerEntryGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: LedgerEntryWhereInput
+    orderBy?: LedgerEntryOrderByWithAggregationInput | LedgerEntryOrderByWithAggregationInput[]
+    by: LedgerEntryScalarFieldEnum[] | LedgerEntryScalarFieldEnum
+    having?: LedgerEntryScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: LedgerEntryCountAggregateInputType | true
+    _avg?: LedgerEntryAvgAggregateInputType
+    _sum?: LedgerEntrySumAggregateInputType
+    _min?: LedgerEntryMinAggregateInputType
+    _max?: LedgerEntryMaxAggregateInputType
+  }
+
+  export type LedgerEntryGroupByOutputType = {
+    id: string
+    transactionId: string
+    accountId: string
+    direction: $Enums.LedgerEntryDirection
+    amountMinor: bigint
+    currency: string
+    _count: LedgerEntryCountAggregateOutputType | null
+    _avg: LedgerEntryAvgAggregateOutputType | null
+    _sum: LedgerEntrySumAggregateOutputType | null
+    _min: LedgerEntryMinAggregateOutputType | null
+    _max: LedgerEntryMaxAggregateOutputType | null
+  }
+
+  type GetLedgerEntryGroupByPayload<T extends LedgerEntryGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<LedgerEntryGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof LedgerEntryGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], LedgerEntryGroupByOutputType[P]>
+            : GetScalarType<T[P], LedgerEntryGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type LedgerEntrySelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    transactionId?: boolean
+    accountId?: boolean
+    direction?: boolean
+    amountMinor?: boolean
+    currency?: boolean
+    transaction?: boolean | LedgerTransactionDefaultArgs<ExtArgs>
+    account?: boolean | LedgerAccountDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["ledgerEntry"]>
+
+  export type LedgerEntrySelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    transactionId?: boolean
+    accountId?: boolean
+    direction?: boolean
+    amountMinor?: boolean
+    currency?: boolean
+    transaction?: boolean | LedgerTransactionDefaultArgs<ExtArgs>
+    account?: boolean | LedgerAccountDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["ledgerEntry"]>
+
+  export type LedgerEntrySelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    transactionId?: boolean
+    accountId?: boolean
+    direction?: boolean
+    amountMinor?: boolean
+    currency?: boolean
+    transaction?: boolean | LedgerTransactionDefaultArgs<ExtArgs>
+    account?: boolean | LedgerAccountDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["ledgerEntry"]>
+
+  export type LedgerEntrySelectScalar = {
+    id?: boolean
+    transactionId?: boolean
+    accountId?: boolean
+    direction?: boolean
+    amountMinor?: boolean
+    currency?: boolean
+  }
+
+  export type LedgerEntryOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "transactionId" | "accountId" | "direction" | "amountMinor" | "currency", ExtArgs["result"]["ledgerEntry"]>
+  export type LedgerEntryInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    transaction?: boolean | LedgerTransactionDefaultArgs<ExtArgs>
+    account?: boolean | LedgerAccountDefaultArgs<ExtArgs>
+  }
+  export type LedgerEntryIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    transaction?: boolean | LedgerTransactionDefaultArgs<ExtArgs>
+    account?: boolean | LedgerAccountDefaultArgs<ExtArgs>
+  }
+  export type LedgerEntryIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    transaction?: boolean | LedgerTransactionDefaultArgs<ExtArgs>
+    account?: boolean | LedgerAccountDefaultArgs<ExtArgs>
+  }
+
+  export type $LedgerEntryPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "LedgerEntry"
+    objects: {
+      transaction: Prisma.$LedgerTransactionPayload<ExtArgs>
+      account: Prisma.$LedgerAccountPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      transactionId: string
+      accountId: string
+      direction: $Enums.LedgerEntryDirection
+      /**
+       * Exact positive integer minor units (e.g. USD cents / micro-credits).
+       */
+      amountMinor: bigint
+      currency: string
+    }, ExtArgs["result"]["ledgerEntry"]>
+    composites: {}
+  }
+
+  type LedgerEntryGetPayload<S extends boolean | null | undefined | LedgerEntryDefaultArgs> = $Result.GetResult<Prisma.$LedgerEntryPayload, S>
+
+  type LedgerEntryCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<LedgerEntryFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: LedgerEntryCountAggregateInputType | true
+    }
+
+  export interface LedgerEntryDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['LedgerEntry'], meta: { name: 'LedgerEntry' } }
+    /**
+     * Find zero or one LedgerEntry that matches the filter.
+     * @param {LedgerEntryFindUniqueArgs} args - Arguments to find a LedgerEntry
+     * @example
+     * // Get one LedgerEntry
+     * const ledgerEntry = await prisma.ledgerEntry.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends LedgerEntryFindUniqueArgs>(args: SelectSubset<T, LedgerEntryFindUniqueArgs<ExtArgs>>): Prisma__LedgerEntryClient<$Result.GetResult<Prisma.$LedgerEntryPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one LedgerEntry that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {LedgerEntryFindUniqueOrThrowArgs} args - Arguments to find a LedgerEntry
+     * @example
+     * // Get one LedgerEntry
+     * const ledgerEntry = await prisma.ledgerEntry.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends LedgerEntryFindUniqueOrThrowArgs>(args: SelectSubset<T, LedgerEntryFindUniqueOrThrowArgs<ExtArgs>>): Prisma__LedgerEntryClient<$Result.GetResult<Prisma.$LedgerEntryPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first LedgerEntry that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerEntryFindFirstArgs} args - Arguments to find a LedgerEntry
+     * @example
+     * // Get one LedgerEntry
+     * const ledgerEntry = await prisma.ledgerEntry.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends LedgerEntryFindFirstArgs>(args?: SelectSubset<T, LedgerEntryFindFirstArgs<ExtArgs>>): Prisma__LedgerEntryClient<$Result.GetResult<Prisma.$LedgerEntryPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first LedgerEntry that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerEntryFindFirstOrThrowArgs} args - Arguments to find a LedgerEntry
+     * @example
+     * // Get one LedgerEntry
+     * const ledgerEntry = await prisma.ledgerEntry.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends LedgerEntryFindFirstOrThrowArgs>(args?: SelectSubset<T, LedgerEntryFindFirstOrThrowArgs<ExtArgs>>): Prisma__LedgerEntryClient<$Result.GetResult<Prisma.$LedgerEntryPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more LedgerEntries that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerEntryFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all LedgerEntries
+     * const ledgerEntries = await prisma.ledgerEntry.findMany()
+     * 
+     * // Get first 10 LedgerEntries
+     * const ledgerEntries = await prisma.ledgerEntry.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const ledgerEntryWithIdOnly = await prisma.ledgerEntry.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends LedgerEntryFindManyArgs>(args?: SelectSubset<T, LedgerEntryFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LedgerEntryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a LedgerEntry.
+     * @param {LedgerEntryCreateArgs} args - Arguments to create a LedgerEntry.
+     * @example
+     * // Create one LedgerEntry
+     * const LedgerEntry = await prisma.ledgerEntry.create({
+     *   data: {
+     *     // ... data to create a LedgerEntry
+     *   }
+     * })
+     * 
+     */
+    create<T extends LedgerEntryCreateArgs>(args: SelectSubset<T, LedgerEntryCreateArgs<ExtArgs>>): Prisma__LedgerEntryClient<$Result.GetResult<Prisma.$LedgerEntryPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many LedgerEntries.
+     * @param {LedgerEntryCreateManyArgs} args - Arguments to create many LedgerEntries.
+     * @example
+     * // Create many LedgerEntries
+     * const ledgerEntry = await prisma.ledgerEntry.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends LedgerEntryCreateManyArgs>(args?: SelectSubset<T, LedgerEntryCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many LedgerEntries and returns the data saved in the database.
+     * @param {LedgerEntryCreateManyAndReturnArgs} args - Arguments to create many LedgerEntries.
+     * @example
+     * // Create many LedgerEntries
+     * const ledgerEntry = await prisma.ledgerEntry.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many LedgerEntries and only return the `id`
+     * const ledgerEntryWithIdOnly = await prisma.ledgerEntry.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends LedgerEntryCreateManyAndReturnArgs>(args?: SelectSubset<T, LedgerEntryCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LedgerEntryPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a LedgerEntry.
+     * @param {LedgerEntryDeleteArgs} args - Arguments to delete one LedgerEntry.
+     * @example
+     * // Delete one LedgerEntry
+     * const LedgerEntry = await prisma.ledgerEntry.delete({
+     *   where: {
+     *     // ... filter to delete one LedgerEntry
+     *   }
+     * })
+     * 
+     */
+    delete<T extends LedgerEntryDeleteArgs>(args: SelectSubset<T, LedgerEntryDeleteArgs<ExtArgs>>): Prisma__LedgerEntryClient<$Result.GetResult<Prisma.$LedgerEntryPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one LedgerEntry.
+     * @param {LedgerEntryUpdateArgs} args - Arguments to update one LedgerEntry.
+     * @example
+     * // Update one LedgerEntry
+     * const ledgerEntry = await prisma.ledgerEntry.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends LedgerEntryUpdateArgs>(args: SelectSubset<T, LedgerEntryUpdateArgs<ExtArgs>>): Prisma__LedgerEntryClient<$Result.GetResult<Prisma.$LedgerEntryPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more LedgerEntries.
+     * @param {LedgerEntryDeleteManyArgs} args - Arguments to filter LedgerEntries to delete.
+     * @example
+     * // Delete a few LedgerEntries
+     * const { count } = await prisma.ledgerEntry.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends LedgerEntryDeleteManyArgs>(args?: SelectSubset<T, LedgerEntryDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more LedgerEntries.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerEntryUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many LedgerEntries
+     * const ledgerEntry = await prisma.ledgerEntry.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends LedgerEntryUpdateManyArgs>(args: SelectSubset<T, LedgerEntryUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more LedgerEntries and returns the data updated in the database.
+     * @param {LedgerEntryUpdateManyAndReturnArgs} args - Arguments to update many LedgerEntries.
+     * @example
+     * // Update many LedgerEntries
+     * const ledgerEntry = await prisma.ledgerEntry.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more LedgerEntries and only return the `id`
+     * const ledgerEntryWithIdOnly = await prisma.ledgerEntry.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends LedgerEntryUpdateManyAndReturnArgs>(args: SelectSubset<T, LedgerEntryUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LedgerEntryPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one LedgerEntry.
+     * @param {LedgerEntryUpsertArgs} args - Arguments to update or create a LedgerEntry.
+     * @example
+     * // Update or create a LedgerEntry
+     * const ledgerEntry = await prisma.ledgerEntry.upsert({
+     *   create: {
+     *     // ... data to create a LedgerEntry
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the LedgerEntry we want to update
+     *   }
+     * })
+     */
+    upsert<T extends LedgerEntryUpsertArgs>(args: SelectSubset<T, LedgerEntryUpsertArgs<ExtArgs>>): Prisma__LedgerEntryClient<$Result.GetResult<Prisma.$LedgerEntryPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of LedgerEntries.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerEntryCountArgs} args - Arguments to filter LedgerEntries to count.
+     * @example
+     * // Count the number of LedgerEntries
+     * const count = await prisma.ledgerEntry.count({
+     *   where: {
+     *     // ... the filter for the LedgerEntries we want to count
+     *   }
+     * })
+    **/
+    count<T extends LedgerEntryCountArgs>(
+      args?: Subset<T, LedgerEntryCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], LedgerEntryCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a LedgerEntry.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerEntryAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends LedgerEntryAggregateArgs>(args: Subset<T, LedgerEntryAggregateArgs>): Prisma.PrismaPromise<GetLedgerEntryAggregateType<T>>
+
+    /**
+     * Group by LedgerEntry.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerEntryGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends LedgerEntryGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: LedgerEntryGroupByArgs['orderBy'] }
+        : { orderBy?: LedgerEntryGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, LedgerEntryGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetLedgerEntryGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the LedgerEntry model
+   */
+  readonly fields: LedgerEntryFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for LedgerEntry.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__LedgerEntryClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    transaction<T extends LedgerTransactionDefaultArgs<ExtArgs> = {}>(args?: Subset<T, LedgerTransactionDefaultArgs<ExtArgs>>): Prisma__LedgerTransactionClient<$Result.GetResult<Prisma.$LedgerTransactionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    account<T extends LedgerAccountDefaultArgs<ExtArgs> = {}>(args?: Subset<T, LedgerAccountDefaultArgs<ExtArgs>>): Prisma__LedgerAccountClient<$Result.GetResult<Prisma.$LedgerAccountPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the LedgerEntry model
+   */
+  interface LedgerEntryFieldRefs {
+    readonly id: FieldRef<"LedgerEntry", 'String'>
+    readonly transactionId: FieldRef<"LedgerEntry", 'String'>
+    readonly accountId: FieldRef<"LedgerEntry", 'String'>
+    readonly direction: FieldRef<"LedgerEntry", 'LedgerEntryDirection'>
+    readonly amountMinor: FieldRef<"LedgerEntry", 'BigInt'>
+    readonly currency: FieldRef<"LedgerEntry", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * LedgerEntry findUnique
+   */
+  export type LedgerEntryFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerEntry
+     */
+    select?: LedgerEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerEntry
+     */
+    omit?: LedgerEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerEntryInclude<ExtArgs> | null
+    /**
+     * Filter, which LedgerEntry to fetch.
+     */
+    where: LedgerEntryWhereUniqueInput
+  }
+
+  /**
+   * LedgerEntry findUniqueOrThrow
+   */
+  export type LedgerEntryFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerEntry
+     */
+    select?: LedgerEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerEntry
+     */
+    omit?: LedgerEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerEntryInclude<ExtArgs> | null
+    /**
+     * Filter, which LedgerEntry to fetch.
+     */
+    where: LedgerEntryWhereUniqueInput
+  }
+
+  /**
+   * LedgerEntry findFirst
+   */
+  export type LedgerEntryFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerEntry
+     */
+    select?: LedgerEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerEntry
+     */
+    omit?: LedgerEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerEntryInclude<ExtArgs> | null
+    /**
+     * Filter, which LedgerEntry to fetch.
+     */
+    where?: LedgerEntryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LedgerEntries to fetch.
+     */
+    orderBy?: LedgerEntryOrderByWithRelationInput | LedgerEntryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for LedgerEntries.
+     */
+    cursor?: LedgerEntryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LedgerEntries from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LedgerEntries.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LedgerEntries.
+     */
+    distinct?: LedgerEntryScalarFieldEnum | LedgerEntryScalarFieldEnum[]
+  }
+
+  /**
+   * LedgerEntry findFirstOrThrow
+   */
+  export type LedgerEntryFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerEntry
+     */
+    select?: LedgerEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerEntry
+     */
+    omit?: LedgerEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerEntryInclude<ExtArgs> | null
+    /**
+     * Filter, which LedgerEntry to fetch.
+     */
+    where?: LedgerEntryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LedgerEntries to fetch.
+     */
+    orderBy?: LedgerEntryOrderByWithRelationInput | LedgerEntryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for LedgerEntries.
+     */
+    cursor?: LedgerEntryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LedgerEntries from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LedgerEntries.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LedgerEntries.
+     */
+    distinct?: LedgerEntryScalarFieldEnum | LedgerEntryScalarFieldEnum[]
+  }
+
+  /**
+   * LedgerEntry findMany
+   */
+  export type LedgerEntryFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerEntry
+     */
+    select?: LedgerEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerEntry
+     */
+    omit?: LedgerEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerEntryInclude<ExtArgs> | null
+    /**
+     * Filter, which LedgerEntries to fetch.
+     */
+    where?: LedgerEntryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LedgerEntries to fetch.
+     */
+    orderBy?: LedgerEntryOrderByWithRelationInput | LedgerEntryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing LedgerEntries.
+     */
+    cursor?: LedgerEntryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LedgerEntries from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LedgerEntries.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LedgerEntries.
+     */
+    distinct?: LedgerEntryScalarFieldEnum | LedgerEntryScalarFieldEnum[]
+  }
+
+  /**
+   * LedgerEntry create
+   */
+  export type LedgerEntryCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerEntry
+     */
+    select?: LedgerEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerEntry
+     */
+    omit?: LedgerEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerEntryInclude<ExtArgs> | null
+    /**
+     * The data needed to create a LedgerEntry.
+     */
+    data: XOR<LedgerEntryCreateInput, LedgerEntryUncheckedCreateInput>
+  }
+
+  /**
+   * LedgerEntry createMany
+   */
+  export type LedgerEntryCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many LedgerEntries.
+     */
+    data: LedgerEntryCreateManyInput | LedgerEntryCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * LedgerEntry createManyAndReturn
+   */
+  export type LedgerEntryCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerEntry
+     */
+    select?: LedgerEntrySelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerEntry
+     */
+    omit?: LedgerEntryOmit<ExtArgs> | null
+    /**
+     * The data used to create many LedgerEntries.
+     */
+    data: LedgerEntryCreateManyInput | LedgerEntryCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerEntryIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * LedgerEntry update
+   */
+  export type LedgerEntryUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerEntry
+     */
+    select?: LedgerEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerEntry
+     */
+    omit?: LedgerEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerEntryInclude<ExtArgs> | null
+    /**
+     * The data needed to update a LedgerEntry.
+     */
+    data: XOR<LedgerEntryUpdateInput, LedgerEntryUncheckedUpdateInput>
+    /**
+     * Choose, which LedgerEntry to update.
+     */
+    where: LedgerEntryWhereUniqueInput
+  }
+
+  /**
+   * LedgerEntry updateMany
+   */
+  export type LedgerEntryUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update LedgerEntries.
+     */
+    data: XOR<LedgerEntryUpdateManyMutationInput, LedgerEntryUncheckedUpdateManyInput>
+    /**
+     * Filter which LedgerEntries to update
+     */
+    where?: LedgerEntryWhereInput
+    /**
+     * Limit how many LedgerEntries to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * LedgerEntry updateManyAndReturn
+   */
+  export type LedgerEntryUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerEntry
+     */
+    select?: LedgerEntrySelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerEntry
+     */
+    omit?: LedgerEntryOmit<ExtArgs> | null
+    /**
+     * The data used to update LedgerEntries.
+     */
+    data: XOR<LedgerEntryUpdateManyMutationInput, LedgerEntryUncheckedUpdateManyInput>
+    /**
+     * Filter which LedgerEntries to update
+     */
+    where?: LedgerEntryWhereInput
+    /**
+     * Limit how many LedgerEntries to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerEntryIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * LedgerEntry upsert
+   */
+  export type LedgerEntryUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerEntry
+     */
+    select?: LedgerEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerEntry
+     */
+    omit?: LedgerEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerEntryInclude<ExtArgs> | null
+    /**
+     * The filter to search for the LedgerEntry to update in case it exists.
+     */
+    where: LedgerEntryWhereUniqueInput
+    /**
+     * In case the LedgerEntry found by the `where` argument doesn't exist, create a new LedgerEntry with this data.
+     */
+    create: XOR<LedgerEntryCreateInput, LedgerEntryUncheckedCreateInput>
+    /**
+     * In case the LedgerEntry was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<LedgerEntryUpdateInput, LedgerEntryUncheckedUpdateInput>
+  }
+
+  /**
+   * LedgerEntry delete
+   */
+  export type LedgerEntryDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerEntry
+     */
+    select?: LedgerEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerEntry
+     */
+    omit?: LedgerEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerEntryInclude<ExtArgs> | null
+    /**
+     * Filter which LedgerEntry to delete.
+     */
+    where: LedgerEntryWhereUniqueInput
+  }
+
+  /**
+   * LedgerEntry deleteMany
+   */
+  export type LedgerEntryDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which LedgerEntries to delete
+     */
+    where?: LedgerEntryWhereInput
+    /**
+     * Limit how many LedgerEntries to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * LedgerEntry without action
+   */
+  export type LedgerEntryDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerEntry
+     */
+    select?: LedgerEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerEntry
+     */
+    omit?: LedgerEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LedgerEntryInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model LedgerReservation
+   */
+
+  export type AggregateLedgerReservation = {
+    _count: LedgerReservationCountAggregateOutputType | null
+    _avg: LedgerReservationAvgAggregateOutputType | null
+    _sum: LedgerReservationSumAggregateOutputType | null
+    _min: LedgerReservationMinAggregateOutputType | null
+    _max: LedgerReservationMaxAggregateOutputType | null
+  }
+
+  export type LedgerReservationAvgAggregateOutputType = {
+    maxAmountMinor: number | null
+    committedMinor: number | null
+    rateCardVersion: number | null
+  }
+
+  export type LedgerReservationSumAggregateOutputType = {
+    maxAmountMinor: bigint | null
+    committedMinor: bigint | null
+    rateCardVersion: number | null
+  }
+
+  export type LedgerReservationMinAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    userId: string | null
+    idempotencyKey: string | null
+    operation: string | null
+    status: $Enums.LedgerReservationStatus | null
+    currency: string | null
+    maxAmountMinor: bigint | null
+    committedMinor: bigint | null
+    rateCardVersion: number | null
+    importJobId: string | null
+    reserveTxId: string | null
+    settleTxId: string | null
+    compensateTxId: string | null
+    expiresAt: Date | null
+    committedAt: Date | null
+    releasedAt: Date | null
+    releaseReason: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type LedgerReservationMaxAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    userId: string | null
+    idempotencyKey: string | null
+    operation: string | null
+    status: $Enums.LedgerReservationStatus | null
+    currency: string | null
+    maxAmountMinor: bigint | null
+    committedMinor: bigint | null
+    rateCardVersion: number | null
+    importJobId: string | null
+    reserveTxId: string | null
+    settleTxId: string | null
+    compensateTxId: string | null
+    expiresAt: Date | null
+    committedAt: Date | null
+    releasedAt: Date | null
+    releaseReason: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type LedgerReservationCountAggregateOutputType = {
+    id: number
+    organizationId: number
+    userId: number
+    idempotencyKey: number
+    operation: number
+    status: number
+    currency: number
+    maxAmountMinor: number
+    committedMinor: number
+    rateCardVersion: number
+    importJobId: number
+    reserveTxId: number
+    settleTxId: number
+    compensateTxId: number
+    expiresAt: number
+    committedAt: number
+    releasedAt: number
+    releaseReason: number
+    metadata: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type LedgerReservationAvgAggregateInputType = {
+    maxAmountMinor?: true
+    committedMinor?: true
+    rateCardVersion?: true
+  }
+
+  export type LedgerReservationSumAggregateInputType = {
+    maxAmountMinor?: true
+    committedMinor?: true
+    rateCardVersion?: true
+  }
+
+  export type LedgerReservationMinAggregateInputType = {
+    id?: true
+    organizationId?: true
+    userId?: true
+    idempotencyKey?: true
+    operation?: true
+    status?: true
+    currency?: true
+    maxAmountMinor?: true
+    committedMinor?: true
+    rateCardVersion?: true
+    importJobId?: true
+    reserveTxId?: true
+    settleTxId?: true
+    compensateTxId?: true
+    expiresAt?: true
+    committedAt?: true
+    releasedAt?: true
+    releaseReason?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type LedgerReservationMaxAggregateInputType = {
+    id?: true
+    organizationId?: true
+    userId?: true
+    idempotencyKey?: true
+    operation?: true
+    status?: true
+    currency?: true
+    maxAmountMinor?: true
+    committedMinor?: true
+    rateCardVersion?: true
+    importJobId?: true
+    reserveTxId?: true
+    settleTxId?: true
+    compensateTxId?: true
+    expiresAt?: true
+    committedAt?: true
+    releasedAt?: true
+    releaseReason?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type LedgerReservationCountAggregateInputType = {
+    id?: true
+    organizationId?: true
+    userId?: true
+    idempotencyKey?: true
+    operation?: true
+    status?: true
+    currency?: true
+    maxAmountMinor?: true
+    committedMinor?: true
+    rateCardVersion?: true
+    importJobId?: true
+    reserveTxId?: true
+    settleTxId?: true
+    compensateTxId?: true
+    expiresAt?: true
+    committedAt?: true
+    releasedAt?: true
+    releaseReason?: true
+    metadata?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type LedgerReservationAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which LedgerReservation to aggregate.
+     */
+    where?: LedgerReservationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LedgerReservations to fetch.
+     */
+    orderBy?: LedgerReservationOrderByWithRelationInput | LedgerReservationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: LedgerReservationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LedgerReservations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LedgerReservations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned LedgerReservations
+    **/
+    _count?: true | LedgerReservationCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: LedgerReservationAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: LedgerReservationSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: LedgerReservationMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: LedgerReservationMaxAggregateInputType
+  }
+
+  export type GetLedgerReservationAggregateType<T extends LedgerReservationAggregateArgs> = {
+        [P in keyof T & keyof AggregateLedgerReservation]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateLedgerReservation[P]>
+      : GetScalarType<T[P], AggregateLedgerReservation[P]>
+  }
+
+
+
+
+  export type LedgerReservationGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: LedgerReservationWhereInput
+    orderBy?: LedgerReservationOrderByWithAggregationInput | LedgerReservationOrderByWithAggregationInput[]
+    by: LedgerReservationScalarFieldEnum[] | LedgerReservationScalarFieldEnum
+    having?: LedgerReservationScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: LedgerReservationCountAggregateInputType | true
+    _avg?: LedgerReservationAvgAggregateInputType
+    _sum?: LedgerReservationSumAggregateInputType
+    _min?: LedgerReservationMinAggregateInputType
+    _max?: LedgerReservationMaxAggregateInputType
+  }
+
+  export type LedgerReservationGroupByOutputType = {
+    id: string
+    organizationId: string
+    userId: string | null
+    idempotencyKey: string
+    operation: string
+    status: $Enums.LedgerReservationStatus
+    currency: string
+    maxAmountMinor: bigint
+    committedMinor: bigint | null
+    rateCardVersion: number | null
+    importJobId: string | null
+    reserveTxId: string | null
+    settleTxId: string | null
+    compensateTxId: string | null
+    expiresAt: Date
+    committedAt: Date | null
+    releasedAt: Date | null
+    releaseReason: string | null
+    metadata: JsonValue | null
+    createdAt: Date
+    updatedAt: Date
+    _count: LedgerReservationCountAggregateOutputType | null
+    _avg: LedgerReservationAvgAggregateOutputType | null
+    _sum: LedgerReservationSumAggregateOutputType | null
+    _min: LedgerReservationMinAggregateOutputType | null
+    _max: LedgerReservationMaxAggregateOutputType | null
+  }
+
+  type GetLedgerReservationGroupByPayload<T extends LedgerReservationGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<LedgerReservationGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof LedgerReservationGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], LedgerReservationGroupByOutputType[P]>
+            : GetScalarType<T[P], LedgerReservationGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type LedgerReservationSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    userId?: boolean
+    idempotencyKey?: boolean
+    operation?: boolean
+    status?: boolean
+    currency?: boolean
+    maxAmountMinor?: boolean
+    committedMinor?: boolean
+    rateCardVersion?: boolean
+    importJobId?: boolean
+    reserveTxId?: boolean
+    settleTxId?: boolean
+    compensateTxId?: boolean
+    expiresAt?: boolean
+    committedAt?: boolean
+    releasedAt?: boolean
+    releaseReason?: boolean
+    metadata?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["ledgerReservation"]>
+
+  export type LedgerReservationSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    userId?: boolean
+    idempotencyKey?: boolean
+    operation?: boolean
+    status?: boolean
+    currency?: boolean
+    maxAmountMinor?: boolean
+    committedMinor?: boolean
+    rateCardVersion?: boolean
+    importJobId?: boolean
+    reserveTxId?: boolean
+    settleTxId?: boolean
+    compensateTxId?: boolean
+    expiresAt?: boolean
+    committedAt?: boolean
+    releasedAt?: boolean
+    releaseReason?: boolean
+    metadata?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["ledgerReservation"]>
+
+  export type LedgerReservationSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    userId?: boolean
+    idempotencyKey?: boolean
+    operation?: boolean
+    status?: boolean
+    currency?: boolean
+    maxAmountMinor?: boolean
+    committedMinor?: boolean
+    rateCardVersion?: boolean
+    importJobId?: boolean
+    reserveTxId?: boolean
+    settleTxId?: boolean
+    compensateTxId?: boolean
+    expiresAt?: boolean
+    committedAt?: boolean
+    releasedAt?: boolean
+    releaseReason?: boolean
+    metadata?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["ledgerReservation"]>
+
+  export type LedgerReservationSelectScalar = {
+    id?: boolean
+    organizationId?: boolean
+    userId?: boolean
+    idempotencyKey?: boolean
+    operation?: boolean
+    status?: boolean
+    currency?: boolean
+    maxAmountMinor?: boolean
+    committedMinor?: boolean
+    rateCardVersion?: boolean
+    importJobId?: boolean
+    reserveTxId?: boolean
+    settleTxId?: boolean
+    compensateTxId?: boolean
+    expiresAt?: boolean
+    committedAt?: boolean
+    releasedAt?: boolean
+    releaseReason?: boolean
+    metadata?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type LedgerReservationOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "userId" | "idempotencyKey" | "operation" | "status" | "currency" | "maxAmountMinor" | "committedMinor" | "rateCardVersion" | "importJobId" | "reserveTxId" | "settleTxId" | "compensateTxId" | "expiresAt" | "committedAt" | "releasedAt" | "releaseReason" | "metadata" | "createdAt" | "updatedAt", ExtArgs["result"]["ledgerReservation"]>
+
+  export type $LedgerReservationPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "LedgerReservation"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      organizationId: string
+      userId: string | null
+      /**
+       * Idempotency key, unique per org: a replay returns the SAME reservation.
+       */
+      idempotencyKey: string
+      operation: string
+      status: $Enums.LedgerReservationStatus
+      currency: string
+      /**
+       * Authorized ceiling (hold, not a debit).
+       */
+      maxAmountMinor: bigint
+      /**
+       * Actually settled at COMMIT (≤ maxAmountMinor).
+       */
+      committedMinor: bigint | null
+      rateCardVersion: number | null
+      importJobId: string | null
+      /**
+       * Correlated ledger transactions across the lifecycle.
+       */
+      reserveTxId: string | null
+      settleTxId: string | null
+      compensateTxId: string | null
+      expiresAt: Date
+      committedAt: Date | null
+      releasedAt: Date | null
+      releaseReason: string | null
+      metadata: Prisma.JsonValue | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["ledgerReservation"]>
+    composites: {}
+  }
+
+  type LedgerReservationGetPayload<S extends boolean | null | undefined | LedgerReservationDefaultArgs> = $Result.GetResult<Prisma.$LedgerReservationPayload, S>
+
+  type LedgerReservationCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<LedgerReservationFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: LedgerReservationCountAggregateInputType | true
+    }
+
+  export interface LedgerReservationDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['LedgerReservation'], meta: { name: 'LedgerReservation' } }
+    /**
+     * Find zero or one LedgerReservation that matches the filter.
+     * @param {LedgerReservationFindUniqueArgs} args - Arguments to find a LedgerReservation
+     * @example
+     * // Get one LedgerReservation
+     * const ledgerReservation = await prisma.ledgerReservation.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends LedgerReservationFindUniqueArgs>(args: SelectSubset<T, LedgerReservationFindUniqueArgs<ExtArgs>>): Prisma__LedgerReservationClient<$Result.GetResult<Prisma.$LedgerReservationPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one LedgerReservation that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {LedgerReservationFindUniqueOrThrowArgs} args - Arguments to find a LedgerReservation
+     * @example
+     * // Get one LedgerReservation
+     * const ledgerReservation = await prisma.ledgerReservation.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends LedgerReservationFindUniqueOrThrowArgs>(args: SelectSubset<T, LedgerReservationFindUniqueOrThrowArgs<ExtArgs>>): Prisma__LedgerReservationClient<$Result.GetResult<Prisma.$LedgerReservationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first LedgerReservation that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerReservationFindFirstArgs} args - Arguments to find a LedgerReservation
+     * @example
+     * // Get one LedgerReservation
+     * const ledgerReservation = await prisma.ledgerReservation.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends LedgerReservationFindFirstArgs>(args?: SelectSubset<T, LedgerReservationFindFirstArgs<ExtArgs>>): Prisma__LedgerReservationClient<$Result.GetResult<Prisma.$LedgerReservationPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first LedgerReservation that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerReservationFindFirstOrThrowArgs} args - Arguments to find a LedgerReservation
+     * @example
+     * // Get one LedgerReservation
+     * const ledgerReservation = await prisma.ledgerReservation.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends LedgerReservationFindFirstOrThrowArgs>(args?: SelectSubset<T, LedgerReservationFindFirstOrThrowArgs<ExtArgs>>): Prisma__LedgerReservationClient<$Result.GetResult<Prisma.$LedgerReservationPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more LedgerReservations that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerReservationFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all LedgerReservations
+     * const ledgerReservations = await prisma.ledgerReservation.findMany()
+     * 
+     * // Get first 10 LedgerReservations
+     * const ledgerReservations = await prisma.ledgerReservation.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const ledgerReservationWithIdOnly = await prisma.ledgerReservation.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends LedgerReservationFindManyArgs>(args?: SelectSubset<T, LedgerReservationFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LedgerReservationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a LedgerReservation.
+     * @param {LedgerReservationCreateArgs} args - Arguments to create a LedgerReservation.
+     * @example
+     * // Create one LedgerReservation
+     * const LedgerReservation = await prisma.ledgerReservation.create({
+     *   data: {
+     *     // ... data to create a LedgerReservation
+     *   }
+     * })
+     * 
+     */
+    create<T extends LedgerReservationCreateArgs>(args: SelectSubset<T, LedgerReservationCreateArgs<ExtArgs>>): Prisma__LedgerReservationClient<$Result.GetResult<Prisma.$LedgerReservationPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many LedgerReservations.
+     * @param {LedgerReservationCreateManyArgs} args - Arguments to create many LedgerReservations.
+     * @example
+     * // Create many LedgerReservations
+     * const ledgerReservation = await prisma.ledgerReservation.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends LedgerReservationCreateManyArgs>(args?: SelectSubset<T, LedgerReservationCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many LedgerReservations and returns the data saved in the database.
+     * @param {LedgerReservationCreateManyAndReturnArgs} args - Arguments to create many LedgerReservations.
+     * @example
+     * // Create many LedgerReservations
+     * const ledgerReservation = await prisma.ledgerReservation.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many LedgerReservations and only return the `id`
+     * const ledgerReservationWithIdOnly = await prisma.ledgerReservation.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends LedgerReservationCreateManyAndReturnArgs>(args?: SelectSubset<T, LedgerReservationCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LedgerReservationPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a LedgerReservation.
+     * @param {LedgerReservationDeleteArgs} args - Arguments to delete one LedgerReservation.
+     * @example
+     * // Delete one LedgerReservation
+     * const LedgerReservation = await prisma.ledgerReservation.delete({
+     *   where: {
+     *     // ... filter to delete one LedgerReservation
+     *   }
+     * })
+     * 
+     */
+    delete<T extends LedgerReservationDeleteArgs>(args: SelectSubset<T, LedgerReservationDeleteArgs<ExtArgs>>): Prisma__LedgerReservationClient<$Result.GetResult<Prisma.$LedgerReservationPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one LedgerReservation.
+     * @param {LedgerReservationUpdateArgs} args - Arguments to update one LedgerReservation.
+     * @example
+     * // Update one LedgerReservation
+     * const ledgerReservation = await prisma.ledgerReservation.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends LedgerReservationUpdateArgs>(args: SelectSubset<T, LedgerReservationUpdateArgs<ExtArgs>>): Prisma__LedgerReservationClient<$Result.GetResult<Prisma.$LedgerReservationPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more LedgerReservations.
+     * @param {LedgerReservationDeleteManyArgs} args - Arguments to filter LedgerReservations to delete.
+     * @example
+     * // Delete a few LedgerReservations
+     * const { count } = await prisma.ledgerReservation.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends LedgerReservationDeleteManyArgs>(args?: SelectSubset<T, LedgerReservationDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more LedgerReservations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerReservationUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many LedgerReservations
+     * const ledgerReservation = await prisma.ledgerReservation.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends LedgerReservationUpdateManyArgs>(args: SelectSubset<T, LedgerReservationUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more LedgerReservations and returns the data updated in the database.
+     * @param {LedgerReservationUpdateManyAndReturnArgs} args - Arguments to update many LedgerReservations.
+     * @example
+     * // Update many LedgerReservations
+     * const ledgerReservation = await prisma.ledgerReservation.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more LedgerReservations and only return the `id`
+     * const ledgerReservationWithIdOnly = await prisma.ledgerReservation.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends LedgerReservationUpdateManyAndReturnArgs>(args: SelectSubset<T, LedgerReservationUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LedgerReservationPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one LedgerReservation.
+     * @param {LedgerReservationUpsertArgs} args - Arguments to update or create a LedgerReservation.
+     * @example
+     * // Update or create a LedgerReservation
+     * const ledgerReservation = await prisma.ledgerReservation.upsert({
+     *   create: {
+     *     // ... data to create a LedgerReservation
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the LedgerReservation we want to update
+     *   }
+     * })
+     */
+    upsert<T extends LedgerReservationUpsertArgs>(args: SelectSubset<T, LedgerReservationUpsertArgs<ExtArgs>>): Prisma__LedgerReservationClient<$Result.GetResult<Prisma.$LedgerReservationPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of LedgerReservations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerReservationCountArgs} args - Arguments to filter LedgerReservations to count.
+     * @example
+     * // Count the number of LedgerReservations
+     * const count = await prisma.ledgerReservation.count({
+     *   where: {
+     *     // ... the filter for the LedgerReservations we want to count
+     *   }
+     * })
+    **/
+    count<T extends LedgerReservationCountArgs>(
+      args?: Subset<T, LedgerReservationCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], LedgerReservationCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a LedgerReservation.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerReservationAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends LedgerReservationAggregateArgs>(args: Subset<T, LedgerReservationAggregateArgs>): Prisma.PrismaPromise<GetLedgerReservationAggregateType<T>>
+
+    /**
+     * Group by LedgerReservation.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerReservationGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends LedgerReservationGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: LedgerReservationGroupByArgs['orderBy'] }
+        : { orderBy?: LedgerReservationGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, LedgerReservationGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetLedgerReservationGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the LedgerReservation model
+   */
+  readonly fields: LedgerReservationFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for LedgerReservation.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__LedgerReservationClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the LedgerReservation model
+   */
+  interface LedgerReservationFieldRefs {
+    readonly id: FieldRef<"LedgerReservation", 'String'>
+    readonly organizationId: FieldRef<"LedgerReservation", 'String'>
+    readonly userId: FieldRef<"LedgerReservation", 'String'>
+    readonly idempotencyKey: FieldRef<"LedgerReservation", 'String'>
+    readonly operation: FieldRef<"LedgerReservation", 'String'>
+    readonly status: FieldRef<"LedgerReservation", 'LedgerReservationStatus'>
+    readonly currency: FieldRef<"LedgerReservation", 'String'>
+    readonly maxAmountMinor: FieldRef<"LedgerReservation", 'BigInt'>
+    readonly committedMinor: FieldRef<"LedgerReservation", 'BigInt'>
+    readonly rateCardVersion: FieldRef<"LedgerReservation", 'Int'>
+    readonly importJobId: FieldRef<"LedgerReservation", 'String'>
+    readonly reserveTxId: FieldRef<"LedgerReservation", 'String'>
+    readonly settleTxId: FieldRef<"LedgerReservation", 'String'>
+    readonly compensateTxId: FieldRef<"LedgerReservation", 'String'>
+    readonly expiresAt: FieldRef<"LedgerReservation", 'DateTime'>
+    readonly committedAt: FieldRef<"LedgerReservation", 'DateTime'>
+    readonly releasedAt: FieldRef<"LedgerReservation", 'DateTime'>
+    readonly releaseReason: FieldRef<"LedgerReservation", 'String'>
+    readonly metadata: FieldRef<"LedgerReservation", 'Json'>
+    readonly createdAt: FieldRef<"LedgerReservation", 'DateTime'>
+    readonly updatedAt: FieldRef<"LedgerReservation", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * LedgerReservation findUnique
+   */
+  export type LedgerReservationFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerReservation
+     */
+    select?: LedgerReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerReservation
+     */
+    omit?: LedgerReservationOmit<ExtArgs> | null
+    /**
+     * Filter, which LedgerReservation to fetch.
+     */
+    where: LedgerReservationWhereUniqueInput
+  }
+
+  /**
+   * LedgerReservation findUniqueOrThrow
+   */
+  export type LedgerReservationFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerReservation
+     */
+    select?: LedgerReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerReservation
+     */
+    omit?: LedgerReservationOmit<ExtArgs> | null
+    /**
+     * Filter, which LedgerReservation to fetch.
+     */
+    where: LedgerReservationWhereUniqueInput
+  }
+
+  /**
+   * LedgerReservation findFirst
+   */
+  export type LedgerReservationFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerReservation
+     */
+    select?: LedgerReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerReservation
+     */
+    omit?: LedgerReservationOmit<ExtArgs> | null
+    /**
+     * Filter, which LedgerReservation to fetch.
+     */
+    where?: LedgerReservationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LedgerReservations to fetch.
+     */
+    orderBy?: LedgerReservationOrderByWithRelationInput | LedgerReservationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for LedgerReservations.
+     */
+    cursor?: LedgerReservationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LedgerReservations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LedgerReservations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LedgerReservations.
+     */
+    distinct?: LedgerReservationScalarFieldEnum | LedgerReservationScalarFieldEnum[]
+  }
+
+  /**
+   * LedgerReservation findFirstOrThrow
+   */
+  export type LedgerReservationFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerReservation
+     */
+    select?: LedgerReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerReservation
+     */
+    omit?: LedgerReservationOmit<ExtArgs> | null
+    /**
+     * Filter, which LedgerReservation to fetch.
+     */
+    where?: LedgerReservationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LedgerReservations to fetch.
+     */
+    orderBy?: LedgerReservationOrderByWithRelationInput | LedgerReservationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for LedgerReservations.
+     */
+    cursor?: LedgerReservationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LedgerReservations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LedgerReservations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LedgerReservations.
+     */
+    distinct?: LedgerReservationScalarFieldEnum | LedgerReservationScalarFieldEnum[]
+  }
+
+  /**
+   * LedgerReservation findMany
+   */
+  export type LedgerReservationFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerReservation
+     */
+    select?: LedgerReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerReservation
+     */
+    omit?: LedgerReservationOmit<ExtArgs> | null
+    /**
+     * Filter, which LedgerReservations to fetch.
+     */
+    where?: LedgerReservationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LedgerReservations to fetch.
+     */
+    orderBy?: LedgerReservationOrderByWithRelationInput | LedgerReservationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing LedgerReservations.
+     */
+    cursor?: LedgerReservationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LedgerReservations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LedgerReservations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LedgerReservations.
+     */
+    distinct?: LedgerReservationScalarFieldEnum | LedgerReservationScalarFieldEnum[]
+  }
+
+  /**
+   * LedgerReservation create
+   */
+  export type LedgerReservationCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerReservation
+     */
+    select?: LedgerReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerReservation
+     */
+    omit?: LedgerReservationOmit<ExtArgs> | null
+    /**
+     * The data needed to create a LedgerReservation.
+     */
+    data: XOR<LedgerReservationCreateInput, LedgerReservationUncheckedCreateInput>
+  }
+
+  /**
+   * LedgerReservation createMany
+   */
+  export type LedgerReservationCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many LedgerReservations.
+     */
+    data: LedgerReservationCreateManyInput | LedgerReservationCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * LedgerReservation createManyAndReturn
+   */
+  export type LedgerReservationCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerReservation
+     */
+    select?: LedgerReservationSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerReservation
+     */
+    omit?: LedgerReservationOmit<ExtArgs> | null
+    /**
+     * The data used to create many LedgerReservations.
+     */
+    data: LedgerReservationCreateManyInput | LedgerReservationCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * LedgerReservation update
+   */
+  export type LedgerReservationUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerReservation
+     */
+    select?: LedgerReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerReservation
+     */
+    omit?: LedgerReservationOmit<ExtArgs> | null
+    /**
+     * The data needed to update a LedgerReservation.
+     */
+    data: XOR<LedgerReservationUpdateInput, LedgerReservationUncheckedUpdateInput>
+    /**
+     * Choose, which LedgerReservation to update.
+     */
+    where: LedgerReservationWhereUniqueInput
+  }
+
+  /**
+   * LedgerReservation updateMany
+   */
+  export type LedgerReservationUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update LedgerReservations.
+     */
+    data: XOR<LedgerReservationUpdateManyMutationInput, LedgerReservationUncheckedUpdateManyInput>
+    /**
+     * Filter which LedgerReservations to update
+     */
+    where?: LedgerReservationWhereInput
+    /**
+     * Limit how many LedgerReservations to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * LedgerReservation updateManyAndReturn
+   */
+  export type LedgerReservationUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerReservation
+     */
+    select?: LedgerReservationSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerReservation
+     */
+    omit?: LedgerReservationOmit<ExtArgs> | null
+    /**
+     * The data used to update LedgerReservations.
+     */
+    data: XOR<LedgerReservationUpdateManyMutationInput, LedgerReservationUncheckedUpdateManyInput>
+    /**
+     * Filter which LedgerReservations to update
+     */
+    where?: LedgerReservationWhereInput
+    /**
+     * Limit how many LedgerReservations to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * LedgerReservation upsert
+   */
+  export type LedgerReservationUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerReservation
+     */
+    select?: LedgerReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerReservation
+     */
+    omit?: LedgerReservationOmit<ExtArgs> | null
+    /**
+     * The filter to search for the LedgerReservation to update in case it exists.
+     */
+    where: LedgerReservationWhereUniqueInput
+    /**
+     * In case the LedgerReservation found by the `where` argument doesn't exist, create a new LedgerReservation with this data.
+     */
+    create: XOR<LedgerReservationCreateInput, LedgerReservationUncheckedCreateInput>
+    /**
+     * In case the LedgerReservation was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<LedgerReservationUpdateInput, LedgerReservationUncheckedUpdateInput>
+  }
+
+  /**
+   * LedgerReservation delete
+   */
+  export type LedgerReservationDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerReservation
+     */
+    select?: LedgerReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerReservation
+     */
+    omit?: LedgerReservationOmit<ExtArgs> | null
+    /**
+     * Filter which LedgerReservation to delete.
+     */
+    where: LedgerReservationWhereUniqueInput
+  }
+
+  /**
+   * LedgerReservation deleteMany
+   */
+  export type LedgerReservationDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which LedgerReservations to delete
+     */
+    where?: LedgerReservationWhereInput
+    /**
+     * Limit how many LedgerReservations to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * LedgerReservation without action
+   */
+  export type LedgerReservationDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerReservation
+     */
+    select?: LedgerReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerReservation
+     */
+    omit?: LedgerReservationOmit<ExtArgs> | null
+  }
+
+
+  /**
+   * Model LedgerFxRate
+   */
+
+  export type AggregateLedgerFxRate = {
+    _count: LedgerFxRateCountAggregateOutputType | null
+    _avg: LedgerFxRateAvgAggregateOutputType | null
+    _sum: LedgerFxRateSumAggregateOutputType | null
+    _min: LedgerFxRateMinAggregateOutputType | null
+    _max: LedgerFxRateMaxAggregateOutputType | null
+  }
+
+  export type LedgerFxRateAvgAggregateOutputType = {
+    rateNum: number | null
+    rateDen: number | null
+  }
+
+  export type LedgerFxRateSumAggregateOutputType = {
+    rateNum: bigint | null
+    rateDen: bigint | null
+  }
+
+  export type LedgerFxRateMinAggregateOutputType = {
+    id: string | null
+    fromCurrency: string | null
+    toCurrency: string | null
+    rateNum: bigint | null
+    rateDen: bigint | null
+    effectiveAt: Date | null
+    cutoffAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type LedgerFxRateMaxAggregateOutputType = {
+    id: string | null
+    fromCurrency: string | null
+    toCurrency: string | null
+    rateNum: bigint | null
+    rateDen: bigint | null
+    effectiveAt: Date | null
+    cutoffAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type LedgerFxRateCountAggregateOutputType = {
+    id: number
+    fromCurrency: number
+    toCurrency: number
+    rateNum: number
+    rateDen: number
+    effectiveAt: number
+    cutoffAt: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type LedgerFxRateAvgAggregateInputType = {
+    rateNum?: true
+    rateDen?: true
+  }
+
+  export type LedgerFxRateSumAggregateInputType = {
+    rateNum?: true
+    rateDen?: true
+  }
+
+  export type LedgerFxRateMinAggregateInputType = {
+    id?: true
+    fromCurrency?: true
+    toCurrency?: true
+    rateNum?: true
+    rateDen?: true
+    effectiveAt?: true
+    cutoffAt?: true
+    createdAt?: true
+  }
+
+  export type LedgerFxRateMaxAggregateInputType = {
+    id?: true
+    fromCurrency?: true
+    toCurrency?: true
+    rateNum?: true
+    rateDen?: true
+    effectiveAt?: true
+    cutoffAt?: true
+    createdAt?: true
+  }
+
+  export type LedgerFxRateCountAggregateInputType = {
+    id?: true
+    fromCurrency?: true
+    toCurrency?: true
+    rateNum?: true
+    rateDen?: true
+    effectiveAt?: true
+    cutoffAt?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type LedgerFxRateAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which LedgerFxRate to aggregate.
+     */
+    where?: LedgerFxRateWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LedgerFxRates to fetch.
+     */
+    orderBy?: LedgerFxRateOrderByWithRelationInput | LedgerFxRateOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: LedgerFxRateWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LedgerFxRates from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LedgerFxRates.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned LedgerFxRates
+    **/
+    _count?: true | LedgerFxRateCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: LedgerFxRateAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: LedgerFxRateSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: LedgerFxRateMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: LedgerFxRateMaxAggregateInputType
+  }
+
+  export type GetLedgerFxRateAggregateType<T extends LedgerFxRateAggregateArgs> = {
+        [P in keyof T & keyof AggregateLedgerFxRate]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateLedgerFxRate[P]>
+      : GetScalarType<T[P], AggregateLedgerFxRate[P]>
+  }
+
+
+
+
+  export type LedgerFxRateGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: LedgerFxRateWhereInput
+    orderBy?: LedgerFxRateOrderByWithAggregationInput | LedgerFxRateOrderByWithAggregationInput[]
+    by: LedgerFxRateScalarFieldEnum[] | LedgerFxRateScalarFieldEnum
+    having?: LedgerFxRateScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: LedgerFxRateCountAggregateInputType | true
+    _avg?: LedgerFxRateAvgAggregateInputType
+    _sum?: LedgerFxRateSumAggregateInputType
+    _min?: LedgerFxRateMinAggregateInputType
+    _max?: LedgerFxRateMaxAggregateInputType
+  }
+
+  export type LedgerFxRateGroupByOutputType = {
+    id: string
+    fromCurrency: string
+    toCurrency: string
+    rateNum: bigint
+    rateDen: bigint
+    effectiveAt: Date
+    cutoffAt: Date | null
+    createdAt: Date
+    _count: LedgerFxRateCountAggregateOutputType | null
+    _avg: LedgerFxRateAvgAggregateOutputType | null
+    _sum: LedgerFxRateSumAggregateOutputType | null
+    _min: LedgerFxRateMinAggregateOutputType | null
+    _max: LedgerFxRateMaxAggregateOutputType | null
+  }
+
+  type GetLedgerFxRateGroupByPayload<T extends LedgerFxRateGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<LedgerFxRateGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof LedgerFxRateGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], LedgerFxRateGroupByOutputType[P]>
+            : GetScalarType<T[P], LedgerFxRateGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type LedgerFxRateSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    fromCurrency?: boolean
+    toCurrency?: boolean
+    rateNum?: boolean
+    rateDen?: boolean
+    effectiveAt?: boolean
+    cutoffAt?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["ledgerFxRate"]>
+
+  export type LedgerFxRateSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    fromCurrency?: boolean
+    toCurrency?: boolean
+    rateNum?: boolean
+    rateDen?: boolean
+    effectiveAt?: boolean
+    cutoffAt?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["ledgerFxRate"]>
+
+  export type LedgerFxRateSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    fromCurrency?: boolean
+    toCurrency?: boolean
+    rateNum?: boolean
+    rateDen?: boolean
+    effectiveAt?: boolean
+    cutoffAt?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["ledgerFxRate"]>
+
+  export type LedgerFxRateSelectScalar = {
+    id?: boolean
+    fromCurrency?: boolean
+    toCurrency?: boolean
+    rateNum?: boolean
+    rateDen?: boolean
+    effectiveAt?: boolean
+    cutoffAt?: boolean
+    createdAt?: boolean
+  }
+
+  export type LedgerFxRateOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "fromCurrency" | "toCurrency" | "rateNum" | "rateDen" | "effectiveAt" | "cutoffAt" | "createdAt", ExtArgs["result"]["ledgerFxRate"]>
+
+  export type $LedgerFxRatePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "LedgerFxRate"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      fromCurrency: string
+      toCurrency: string
+      /**
+       * Exact rational rate = rateNum / rateDen (no float).
+       */
+      rateNum: bigint
+      rateDen: bigint
+      effectiveAt: Date
+      /**
+       * Exclusive upper bound this rate is valid for (cutoff).
+       */
+      cutoffAt: Date | null
+      createdAt: Date
+    }, ExtArgs["result"]["ledgerFxRate"]>
+    composites: {}
+  }
+
+  type LedgerFxRateGetPayload<S extends boolean | null | undefined | LedgerFxRateDefaultArgs> = $Result.GetResult<Prisma.$LedgerFxRatePayload, S>
+
+  type LedgerFxRateCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<LedgerFxRateFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: LedgerFxRateCountAggregateInputType | true
+    }
+
+  export interface LedgerFxRateDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['LedgerFxRate'], meta: { name: 'LedgerFxRate' } }
+    /**
+     * Find zero or one LedgerFxRate that matches the filter.
+     * @param {LedgerFxRateFindUniqueArgs} args - Arguments to find a LedgerFxRate
+     * @example
+     * // Get one LedgerFxRate
+     * const ledgerFxRate = await prisma.ledgerFxRate.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends LedgerFxRateFindUniqueArgs>(args: SelectSubset<T, LedgerFxRateFindUniqueArgs<ExtArgs>>): Prisma__LedgerFxRateClient<$Result.GetResult<Prisma.$LedgerFxRatePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one LedgerFxRate that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {LedgerFxRateFindUniqueOrThrowArgs} args - Arguments to find a LedgerFxRate
+     * @example
+     * // Get one LedgerFxRate
+     * const ledgerFxRate = await prisma.ledgerFxRate.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends LedgerFxRateFindUniqueOrThrowArgs>(args: SelectSubset<T, LedgerFxRateFindUniqueOrThrowArgs<ExtArgs>>): Prisma__LedgerFxRateClient<$Result.GetResult<Prisma.$LedgerFxRatePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first LedgerFxRate that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerFxRateFindFirstArgs} args - Arguments to find a LedgerFxRate
+     * @example
+     * // Get one LedgerFxRate
+     * const ledgerFxRate = await prisma.ledgerFxRate.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends LedgerFxRateFindFirstArgs>(args?: SelectSubset<T, LedgerFxRateFindFirstArgs<ExtArgs>>): Prisma__LedgerFxRateClient<$Result.GetResult<Prisma.$LedgerFxRatePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first LedgerFxRate that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerFxRateFindFirstOrThrowArgs} args - Arguments to find a LedgerFxRate
+     * @example
+     * // Get one LedgerFxRate
+     * const ledgerFxRate = await prisma.ledgerFxRate.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends LedgerFxRateFindFirstOrThrowArgs>(args?: SelectSubset<T, LedgerFxRateFindFirstOrThrowArgs<ExtArgs>>): Prisma__LedgerFxRateClient<$Result.GetResult<Prisma.$LedgerFxRatePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more LedgerFxRates that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerFxRateFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all LedgerFxRates
+     * const ledgerFxRates = await prisma.ledgerFxRate.findMany()
+     * 
+     * // Get first 10 LedgerFxRates
+     * const ledgerFxRates = await prisma.ledgerFxRate.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const ledgerFxRateWithIdOnly = await prisma.ledgerFxRate.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends LedgerFxRateFindManyArgs>(args?: SelectSubset<T, LedgerFxRateFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LedgerFxRatePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a LedgerFxRate.
+     * @param {LedgerFxRateCreateArgs} args - Arguments to create a LedgerFxRate.
+     * @example
+     * // Create one LedgerFxRate
+     * const LedgerFxRate = await prisma.ledgerFxRate.create({
+     *   data: {
+     *     // ... data to create a LedgerFxRate
+     *   }
+     * })
+     * 
+     */
+    create<T extends LedgerFxRateCreateArgs>(args: SelectSubset<T, LedgerFxRateCreateArgs<ExtArgs>>): Prisma__LedgerFxRateClient<$Result.GetResult<Prisma.$LedgerFxRatePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many LedgerFxRates.
+     * @param {LedgerFxRateCreateManyArgs} args - Arguments to create many LedgerFxRates.
+     * @example
+     * // Create many LedgerFxRates
+     * const ledgerFxRate = await prisma.ledgerFxRate.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends LedgerFxRateCreateManyArgs>(args?: SelectSubset<T, LedgerFxRateCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many LedgerFxRates and returns the data saved in the database.
+     * @param {LedgerFxRateCreateManyAndReturnArgs} args - Arguments to create many LedgerFxRates.
+     * @example
+     * // Create many LedgerFxRates
+     * const ledgerFxRate = await prisma.ledgerFxRate.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many LedgerFxRates and only return the `id`
+     * const ledgerFxRateWithIdOnly = await prisma.ledgerFxRate.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends LedgerFxRateCreateManyAndReturnArgs>(args?: SelectSubset<T, LedgerFxRateCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LedgerFxRatePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a LedgerFxRate.
+     * @param {LedgerFxRateDeleteArgs} args - Arguments to delete one LedgerFxRate.
+     * @example
+     * // Delete one LedgerFxRate
+     * const LedgerFxRate = await prisma.ledgerFxRate.delete({
+     *   where: {
+     *     // ... filter to delete one LedgerFxRate
+     *   }
+     * })
+     * 
+     */
+    delete<T extends LedgerFxRateDeleteArgs>(args: SelectSubset<T, LedgerFxRateDeleteArgs<ExtArgs>>): Prisma__LedgerFxRateClient<$Result.GetResult<Prisma.$LedgerFxRatePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one LedgerFxRate.
+     * @param {LedgerFxRateUpdateArgs} args - Arguments to update one LedgerFxRate.
+     * @example
+     * // Update one LedgerFxRate
+     * const ledgerFxRate = await prisma.ledgerFxRate.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends LedgerFxRateUpdateArgs>(args: SelectSubset<T, LedgerFxRateUpdateArgs<ExtArgs>>): Prisma__LedgerFxRateClient<$Result.GetResult<Prisma.$LedgerFxRatePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more LedgerFxRates.
+     * @param {LedgerFxRateDeleteManyArgs} args - Arguments to filter LedgerFxRates to delete.
+     * @example
+     * // Delete a few LedgerFxRates
+     * const { count } = await prisma.ledgerFxRate.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends LedgerFxRateDeleteManyArgs>(args?: SelectSubset<T, LedgerFxRateDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more LedgerFxRates.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerFxRateUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many LedgerFxRates
+     * const ledgerFxRate = await prisma.ledgerFxRate.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends LedgerFxRateUpdateManyArgs>(args: SelectSubset<T, LedgerFxRateUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more LedgerFxRates and returns the data updated in the database.
+     * @param {LedgerFxRateUpdateManyAndReturnArgs} args - Arguments to update many LedgerFxRates.
+     * @example
+     * // Update many LedgerFxRates
+     * const ledgerFxRate = await prisma.ledgerFxRate.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more LedgerFxRates and only return the `id`
+     * const ledgerFxRateWithIdOnly = await prisma.ledgerFxRate.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends LedgerFxRateUpdateManyAndReturnArgs>(args: SelectSubset<T, LedgerFxRateUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LedgerFxRatePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one LedgerFxRate.
+     * @param {LedgerFxRateUpsertArgs} args - Arguments to update or create a LedgerFxRate.
+     * @example
+     * // Update or create a LedgerFxRate
+     * const ledgerFxRate = await prisma.ledgerFxRate.upsert({
+     *   create: {
+     *     // ... data to create a LedgerFxRate
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the LedgerFxRate we want to update
+     *   }
+     * })
+     */
+    upsert<T extends LedgerFxRateUpsertArgs>(args: SelectSubset<T, LedgerFxRateUpsertArgs<ExtArgs>>): Prisma__LedgerFxRateClient<$Result.GetResult<Prisma.$LedgerFxRatePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of LedgerFxRates.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerFxRateCountArgs} args - Arguments to filter LedgerFxRates to count.
+     * @example
+     * // Count the number of LedgerFxRates
+     * const count = await prisma.ledgerFxRate.count({
+     *   where: {
+     *     // ... the filter for the LedgerFxRates we want to count
+     *   }
+     * })
+    **/
+    count<T extends LedgerFxRateCountArgs>(
+      args?: Subset<T, LedgerFxRateCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], LedgerFxRateCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a LedgerFxRate.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerFxRateAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends LedgerFxRateAggregateArgs>(args: Subset<T, LedgerFxRateAggregateArgs>): Prisma.PrismaPromise<GetLedgerFxRateAggregateType<T>>
+
+    /**
+     * Group by LedgerFxRate.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerFxRateGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends LedgerFxRateGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: LedgerFxRateGroupByArgs['orderBy'] }
+        : { orderBy?: LedgerFxRateGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, LedgerFxRateGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetLedgerFxRateGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the LedgerFxRate model
+   */
+  readonly fields: LedgerFxRateFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for LedgerFxRate.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__LedgerFxRateClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the LedgerFxRate model
+   */
+  interface LedgerFxRateFieldRefs {
+    readonly id: FieldRef<"LedgerFxRate", 'String'>
+    readonly fromCurrency: FieldRef<"LedgerFxRate", 'String'>
+    readonly toCurrency: FieldRef<"LedgerFxRate", 'String'>
+    readonly rateNum: FieldRef<"LedgerFxRate", 'BigInt'>
+    readonly rateDen: FieldRef<"LedgerFxRate", 'BigInt'>
+    readonly effectiveAt: FieldRef<"LedgerFxRate", 'DateTime'>
+    readonly cutoffAt: FieldRef<"LedgerFxRate", 'DateTime'>
+    readonly createdAt: FieldRef<"LedgerFxRate", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * LedgerFxRate findUnique
+   */
+  export type LedgerFxRateFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerFxRate
+     */
+    select?: LedgerFxRateSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerFxRate
+     */
+    omit?: LedgerFxRateOmit<ExtArgs> | null
+    /**
+     * Filter, which LedgerFxRate to fetch.
+     */
+    where: LedgerFxRateWhereUniqueInput
+  }
+
+  /**
+   * LedgerFxRate findUniqueOrThrow
+   */
+  export type LedgerFxRateFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerFxRate
+     */
+    select?: LedgerFxRateSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerFxRate
+     */
+    omit?: LedgerFxRateOmit<ExtArgs> | null
+    /**
+     * Filter, which LedgerFxRate to fetch.
+     */
+    where: LedgerFxRateWhereUniqueInput
+  }
+
+  /**
+   * LedgerFxRate findFirst
+   */
+  export type LedgerFxRateFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerFxRate
+     */
+    select?: LedgerFxRateSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerFxRate
+     */
+    omit?: LedgerFxRateOmit<ExtArgs> | null
+    /**
+     * Filter, which LedgerFxRate to fetch.
+     */
+    where?: LedgerFxRateWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LedgerFxRates to fetch.
+     */
+    orderBy?: LedgerFxRateOrderByWithRelationInput | LedgerFxRateOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for LedgerFxRates.
+     */
+    cursor?: LedgerFxRateWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LedgerFxRates from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LedgerFxRates.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LedgerFxRates.
+     */
+    distinct?: LedgerFxRateScalarFieldEnum | LedgerFxRateScalarFieldEnum[]
+  }
+
+  /**
+   * LedgerFxRate findFirstOrThrow
+   */
+  export type LedgerFxRateFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerFxRate
+     */
+    select?: LedgerFxRateSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerFxRate
+     */
+    omit?: LedgerFxRateOmit<ExtArgs> | null
+    /**
+     * Filter, which LedgerFxRate to fetch.
+     */
+    where?: LedgerFxRateWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LedgerFxRates to fetch.
+     */
+    orderBy?: LedgerFxRateOrderByWithRelationInput | LedgerFxRateOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for LedgerFxRates.
+     */
+    cursor?: LedgerFxRateWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LedgerFxRates from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LedgerFxRates.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LedgerFxRates.
+     */
+    distinct?: LedgerFxRateScalarFieldEnum | LedgerFxRateScalarFieldEnum[]
+  }
+
+  /**
+   * LedgerFxRate findMany
+   */
+  export type LedgerFxRateFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerFxRate
+     */
+    select?: LedgerFxRateSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerFxRate
+     */
+    omit?: LedgerFxRateOmit<ExtArgs> | null
+    /**
+     * Filter, which LedgerFxRates to fetch.
+     */
+    where?: LedgerFxRateWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LedgerFxRates to fetch.
+     */
+    orderBy?: LedgerFxRateOrderByWithRelationInput | LedgerFxRateOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing LedgerFxRates.
+     */
+    cursor?: LedgerFxRateWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LedgerFxRates from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LedgerFxRates.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LedgerFxRates.
+     */
+    distinct?: LedgerFxRateScalarFieldEnum | LedgerFxRateScalarFieldEnum[]
+  }
+
+  /**
+   * LedgerFxRate create
+   */
+  export type LedgerFxRateCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerFxRate
+     */
+    select?: LedgerFxRateSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerFxRate
+     */
+    omit?: LedgerFxRateOmit<ExtArgs> | null
+    /**
+     * The data needed to create a LedgerFxRate.
+     */
+    data: XOR<LedgerFxRateCreateInput, LedgerFxRateUncheckedCreateInput>
+  }
+
+  /**
+   * LedgerFxRate createMany
+   */
+  export type LedgerFxRateCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many LedgerFxRates.
+     */
+    data: LedgerFxRateCreateManyInput | LedgerFxRateCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * LedgerFxRate createManyAndReturn
+   */
+  export type LedgerFxRateCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerFxRate
+     */
+    select?: LedgerFxRateSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerFxRate
+     */
+    omit?: LedgerFxRateOmit<ExtArgs> | null
+    /**
+     * The data used to create many LedgerFxRates.
+     */
+    data: LedgerFxRateCreateManyInput | LedgerFxRateCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * LedgerFxRate update
+   */
+  export type LedgerFxRateUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerFxRate
+     */
+    select?: LedgerFxRateSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerFxRate
+     */
+    omit?: LedgerFxRateOmit<ExtArgs> | null
+    /**
+     * The data needed to update a LedgerFxRate.
+     */
+    data: XOR<LedgerFxRateUpdateInput, LedgerFxRateUncheckedUpdateInput>
+    /**
+     * Choose, which LedgerFxRate to update.
+     */
+    where: LedgerFxRateWhereUniqueInput
+  }
+
+  /**
+   * LedgerFxRate updateMany
+   */
+  export type LedgerFxRateUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update LedgerFxRates.
+     */
+    data: XOR<LedgerFxRateUpdateManyMutationInput, LedgerFxRateUncheckedUpdateManyInput>
+    /**
+     * Filter which LedgerFxRates to update
+     */
+    where?: LedgerFxRateWhereInput
+    /**
+     * Limit how many LedgerFxRates to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * LedgerFxRate updateManyAndReturn
+   */
+  export type LedgerFxRateUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerFxRate
+     */
+    select?: LedgerFxRateSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerFxRate
+     */
+    omit?: LedgerFxRateOmit<ExtArgs> | null
+    /**
+     * The data used to update LedgerFxRates.
+     */
+    data: XOR<LedgerFxRateUpdateManyMutationInput, LedgerFxRateUncheckedUpdateManyInput>
+    /**
+     * Filter which LedgerFxRates to update
+     */
+    where?: LedgerFxRateWhereInput
+    /**
+     * Limit how many LedgerFxRates to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * LedgerFxRate upsert
+   */
+  export type LedgerFxRateUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerFxRate
+     */
+    select?: LedgerFxRateSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerFxRate
+     */
+    omit?: LedgerFxRateOmit<ExtArgs> | null
+    /**
+     * The filter to search for the LedgerFxRate to update in case it exists.
+     */
+    where: LedgerFxRateWhereUniqueInput
+    /**
+     * In case the LedgerFxRate found by the `where` argument doesn't exist, create a new LedgerFxRate with this data.
+     */
+    create: XOR<LedgerFxRateCreateInput, LedgerFxRateUncheckedCreateInput>
+    /**
+     * In case the LedgerFxRate was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<LedgerFxRateUpdateInput, LedgerFxRateUncheckedUpdateInput>
+  }
+
+  /**
+   * LedgerFxRate delete
+   */
+  export type LedgerFxRateDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerFxRate
+     */
+    select?: LedgerFxRateSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerFxRate
+     */
+    omit?: LedgerFxRateOmit<ExtArgs> | null
+    /**
+     * Filter which LedgerFxRate to delete.
+     */
+    where: LedgerFxRateWhereUniqueInput
+  }
+
+  /**
+   * LedgerFxRate deleteMany
+   */
+  export type LedgerFxRateDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which LedgerFxRates to delete
+     */
+    where?: LedgerFxRateWhereInput
+    /**
+     * Limit how many LedgerFxRates to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * LedgerFxRate without action
+   */
+  export type LedgerFxRateDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerFxRate
+     */
+    select?: LedgerFxRateSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerFxRate
+     */
+    omit?: LedgerFxRateOmit<ExtArgs> | null
+  }
+
+
+  /**
+   * Model LedgerReconciliationRun
+   */
+
+  export type AggregateLedgerReconciliationRun = {
+    _count: LedgerReconciliationRunCountAggregateOutputType | null
+    _avg: LedgerReconciliationRunAvgAggregateOutputType | null
+    _sum: LedgerReconciliationRunSumAggregateOutputType | null
+    _min: LedgerReconciliationRunMinAggregateOutputType | null
+    _max: LedgerReconciliationRunMaxAggregateOutputType | null
+  }
+
+  export type LedgerReconciliationRunAvgAggregateOutputType = {
+    discrepancyCount: number | null
+  }
+
+  export type LedgerReconciliationRunSumAggregateOutputType = {
+    discrepancyCount: number | null
+  }
+
+  export type LedgerReconciliationRunMinAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    source: string | null
+    status: $Enums.LedgerReconciliationStatus | null
+    discrepancyCount: number | null
+    runAt: Date | null
+  }
+
+  export type LedgerReconciliationRunMaxAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    source: string | null
+    status: $Enums.LedgerReconciliationStatus | null
+    discrepancyCount: number | null
+    runAt: Date | null
+  }
+
+  export type LedgerReconciliationRunCountAggregateOutputType = {
+    id: number
+    organizationId: number
+    source: number
+    status: number
+    discrepancyCount: number
+    discrepancies: number
+    runAt: number
+    metadata: number
+    _all: number
+  }
+
+
+  export type LedgerReconciliationRunAvgAggregateInputType = {
+    discrepancyCount?: true
+  }
+
+  export type LedgerReconciliationRunSumAggregateInputType = {
+    discrepancyCount?: true
+  }
+
+  export type LedgerReconciliationRunMinAggregateInputType = {
+    id?: true
+    organizationId?: true
+    source?: true
+    status?: true
+    discrepancyCount?: true
+    runAt?: true
+  }
+
+  export type LedgerReconciliationRunMaxAggregateInputType = {
+    id?: true
+    organizationId?: true
+    source?: true
+    status?: true
+    discrepancyCount?: true
+    runAt?: true
+  }
+
+  export type LedgerReconciliationRunCountAggregateInputType = {
+    id?: true
+    organizationId?: true
+    source?: true
+    status?: true
+    discrepancyCount?: true
+    discrepancies?: true
+    runAt?: true
+    metadata?: true
+    _all?: true
+  }
+
+  export type LedgerReconciliationRunAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which LedgerReconciliationRun to aggregate.
+     */
+    where?: LedgerReconciliationRunWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LedgerReconciliationRuns to fetch.
+     */
+    orderBy?: LedgerReconciliationRunOrderByWithRelationInput | LedgerReconciliationRunOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: LedgerReconciliationRunWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LedgerReconciliationRuns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LedgerReconciliationRuns.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned LedgerReconciliationRuns
+    **/
+    _count?: true | LedgerReconciliationRunCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: LedgerReconciliationRunAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: LedgerReconciliationRunSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: LedgerReconciliationRunMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: LedgerReconciliationRunMaxAggregateInputType
+  }
+
+  export type GetLedgerReconciliationRunAggregateType<T extends LedgerReconciliationRunAggregateArgs> = {
+        [P in keyof T & keyof AggregateLedgerReconciliationRun]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateLedgerReconciliationRun[P]>
+      : GetScalarType<T[P], AggregateLedgerReconciliationRun[P]>
+  }
+
+
+
+
+  export type LedgerReconciliationRunGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: LedgerReconciliationRunWhereInput
+    orderBy?: LedgerReconciliationRunOrderByWithAggregationInput | LedgerReconciliationRunOrderByWithAggregationInput[]
+    by: LedgerReconciliationRunScalarFieldEnum[] | LedgerReconciliationRunScalarFieldEnum
+    having?: LedgerReconciliationRunScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: LedgerReconciliationRunCountAggregateInputType | true
+    _avg?: LedgerReconciliationRunAvgAggregateInputType
+    _sum?: LedgerReconciliationRunSumAggregateInputType
+    _min?: LedgerReconciliationRunMinAggregateInputType
+    _max?: LedgerReconciliationRunMaxAggregateInputType
+  }
+
+  export type LedgerReconciliationRunGroupByOutputType = {
+    id: string
+    organizationId: string | null
+    source: string
+    status: $Enums.LedgerReconciliationStatus
+    discrepancyCount: number
+    discrepancies: JsonValue | null
+    runAt: Date
+    metadata: JsonValue | null
+    _count: LedgerReconciliationRunCountAggregateOutputType | null
+    _avg: LedgerReconciliationRunAvgAggregateOutputType | null
+    _sum: LedgerReconciliationRunSumAggregateOutputType | null
+    _min: LedgerReconciliationRunMinAggregateOutputType | null
+    _max: LedgerReconciliationRunMaxAggregateOutputType | null
+  }
+
+  type GetLedgerReconciliationRunGroupByPayload<T extends LedgerReconciliationRunGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<LedgerReconciliationRunGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof LedgerReconciliationRunGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], LedgerReconciliationRunGroupByOutputType[P]>
+            : GetScalarType<T[P], LedgerReconciliationRunGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type LedgerReconciliationRunSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    source?: boolean
+    status?: boolean
+    discrepancyCount?: boolean
+    discrepancies?: boolean
+    runAt?: boolean
+    metadata?: boolean
+  }, ExtArgs["result"]["ledgerReconciliationRun"]>
+
+  export type LedgerReconciliationRunSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    source?: boolean
+    status?: boolean
+    discrepancyCount?: boolean
+    discrepancies?: boolean
+    runAt?: boolean
+    metadata?: boolean
+  }, ExtArgs["result"]["ledgerReconciliationRun"]>
+
+  export type LedgerReconciliationRunSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    source?: boolean
+    status?: boolean
+    discrepancyCount?: boolean
+    discrepancies?: boolean
+    runAt?: boolean
+    metadata?: boolean
+  }, ExtArgs["result"]["ledgerReconciliationRun"]>
+
+  export type LedgerReconciliationRunSelectScalar = {
+    id?: boolean
+    organizationId?: boolean
+    source?: boolean
+    status?: boolean
+    discrepancyCount?: boolean
+    discrepancies?: boolean
+    runAt?: boolean
+    metadata?: boolean
+  }
+
+  export type LedgerReconciliationRunOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "source" | "status" | "discrepancyCount" | "discrepancies" | "runAt" | "metadata", ExtArgs["result"]["ledgerReconciliationRun"]>
+
+  export type $LedgerReconciliationRunPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "LedgerReconciliationRun"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      organizationId: string | null
+      /**
+       * GCP | STRIPE | LEDGER — the external source compared against the ledger.
+       */
+      source: string
+      status: $Enums.LedgerReconciliationStatus
+      discrepancyCount: number
+      discrepancies: Prisma.JsonValue | null
+      runAt: Date
+      metadata: Prisma.JsonValue | null
+    }, ExtArgs["result"]["ledgerReconciliationRun"]>
+    composites: {}
+  }
+
+  type LedgerReconciliationRunGetPayload<S extends boolean | null | undefined | LedgerReconciliationRunDefaultArgs> = $Result.GetResult<Prisma.$LedgerReconciliationRunPayload, S>
+
+  type LedgerReconciliationRunCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<LedgerReconciliationRunFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: LedgerReconciliationRunCountAggregateInputType | true
+    }
+
+  export interface LedgerReconciliationRunDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['LedgerReconciliationRun'], meta: { name: 'LedgerReconciliationRun' } }
+    /**
+     * Find zero or one LedgerReconciliationRun that matches the filter.
+     * @param {LedgerReconciliationRunFindUniqueArgs} args - Arguments to find a LedgerReconciliationRun
+     * @example
+     * // Get one LedgerReconciliationRun
+     * const ledgerReconciliationRun = await prisma.ledgerReconciliationRun.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends LedgerReconciliationRunFindUniqueArgs>(args: SelectSubset<T, LedgerReconciliationRunFindUniqueArgs<ExtArgs>>): Prisma__LedgerReconciliationRunClient<$Result.GetResult<Prisma.$LedgerReconciliationRunPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one LedgerReconciliationRun that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {LedgerReconciliationRunFindUniqueOrThrowArgs} args - Arguments to find a LedgerReconciliationRun
+     * @example
+     * // Get one LedgerReconciliationRun
+     * const ledgerReconciliationRun = await prisma.ledgerReconciliationRun.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends LedgerReconciliationRunFindUniqueOrThrowArgs>(args: SelectSubset<T, LedgerReconciliationRunFindUniqueOrThrowArgs<ExtArgs>>): Prisma__LedgerReconciliationRunClient<$Result.GetResult<Prisma.$LedgerReconciliationRunPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first LedgerReconciliationRun that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerReconciliationRunFindFirstArgs} args - Arguments to find a LedgerReconciliationRun
+     * @example
+     * // Get one LedgerReconciliationRun
+     * const ledgerReconciliationRun = await prisma.ledgerReconciliationRun.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends LedgerReconciliationRunFindFirstArgs>(args?: SelectSubset<T, LedgerReconciliationRunFindFirstArgs<ExtArgs>>): Prisma__LedgerReconciliationRunClient<$Result.GetResult<Prisma.$LedgerReconciliationRunPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first LedgerReconciliationRun that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerReconciliationRunFindFirstOrThrowArgs} args - Arguments to find a LedgerReconciliationRun
+     * @example
+     * // Get one LedgerReconciliationRun
+     * const ledgerReconciliationRun = await prisma.ledgerReconciliationRun.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends LedgerReconciliationRunFindFirstOrThrowArgs>(args?: SelectSubset<T, LedgerReconciliationRunFindFirstOrThrowArgs<ExtArgs>>): Prisma__LedgerReconciliationRunClient<$Result.GetResult<Prisma.$LedgerReconciliationRunPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more LedgerReconciliationRuns that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerReconciliationRunFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all LedgerReconciliationRuns
+     * const ledgerReconciliationRuns = await prisma.ledgerReconciliationRun.findMany()
+     * 
+     * // Get first 10 LedgerReconciliationRuns
+     * const ledgerReconciliationRuns = await prisma.ledgerReconciliationRun.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const ledgerReconciliationRunWithIdOnly = await prisma.ledgerReconciliationRun.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends LedgerReconciliationRunFindManyArgs>(args?: SelectSubset<T, LedgerReconciliationRunFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LedgerReconciliationRunPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a LedgerReconciliationRun.
+     * @param {LedgerReconciliationRunCreateArgs} args - Arguments to create a LedgerReconciliationRun.
+     * @example
+     * // Create one LedgerReconciliationRun
+     * const LedgerReconciliationRun = await prisma.ledgerReconciliationRun.create({
+     *   data: {
+     *     // ... data to create a LedgerReconciliationRun
+     *   }
+     * })
+     * 
+     */
+    create<T extends LedgerReconciliationRunCreateArgs>(args: SelectSubset<T, LedgerReconciliationRunCreateArgs<ExtArgs>>): Prisma__LedgerReconciliationRunClient<$Result.GetResult<Prisma.$LedgerReconciliationRunPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many LedgerReconciliationRuns.
+     * @param {LedgerReconciliationRunCreateManyArgs} args - Arguments to create many LedgerReconciliationRuns.
+     * @example
+     * // Create many LedgerReconciliationRuns
+     * const ledgerReconciliationRun = await prisma.ledgerReconciliationRun.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends LedgerReconciliationRunCreateManyArgs>(args?: SelectSubset<T, LedgerReconciliationRunCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many LedgerReconciliationRuns and returns the data saved in the database.
+     * @param {LedgerReconciliationRunCreateManyAndReturnArgs} args - Arguments to create many LedgerReconciliationRuns.
+     * @example
+     * // Create many LedgerReconciliationRuns
+     * const ledgerReconciliationRun = await prisma.ledgerReconciliationRun.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many LedgerReconciliationRuns and only return the `id`
+     * const ledgerReconciliationRunWithIdOnly = await prisma.ledgerReconciliationRun.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends LedgerReconciliationRunCreateManyAndReturnArgs>(args?: SelectSubset<T, LedgerReconciliationRunCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LedgerReconciliationRunPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a LedgerReconciliationRun.
+     * @param {LedgerReconciliationRunDeleteArgs} args - Arguments to delete one LedgerReconciliationRun.
+     * @example
+     * // Delete one LedgerReconciliationRun
+     * const LedgerReconciliationRun = await prisma.ledgerReconciliationRun.delete({
+     *   where: {
+     *     // ... filter to delete one LedgerReconciliationRun
+     *   }
+     * })
+     * 
+     */
+    delete<T extends LedgerReconciliationRunDeleteArgs>(args: SelectSubset<T, LedgerReconciliationRunDeleteArgs<ExtArgs>>): Prisma__LedgerReconciliationRunClient<$Result.GetResult<Prisma.$LedgerReconciliationRunPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one LedgerReconciliationRun.
+     * @param {LedgerReconciliationRunUpdateArgs} args - Arguments to update one LedgerReconciliationRun.
+     * @example
+     * // Update one LedgerReconciliationRun
+     * const ledgerReconciliationRun = await prisma.ledgerReconciliationRun.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends LedgerReconciliationRunUpdateArgs>(args: SelectSubset<T, LedgerReconciliationRunUpdateArgs<ExtArgs>>): Prisma__LedgerReconciliationRunClient<$Result.GetResult<Prisma.$LedgerReconciliationRunPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more LedgerReconciliationRuns.
+     * @param {LedgerReconciliationRunDeleteManyArgs} args - Arguments to filter LedgerReconciliationRuns to delete.
+     * @example
+     * // Delete a few LedgerReconciliationRuns
+     * const { count } = await prisma.ledgerReconciliationRun.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends LedgerReconciliationRunDeleteManyArgs>(args?: SelectSubset<T, LedgerReconciliationRunDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more LedgerReconciliationRuns.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerReconciliationRunUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many LedgerReconciliationRuns
+     * const ledgerReconciliationRun = await prisma.ledgerReconciliationRun.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends LedgerReconciliationRunUpdateManyArgs>(args: SelectSubset<T, LedgerReconciliationRunUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more LedgerReconciliationRuns and returns the data updated in the database.
+     * @param {LedgerReconciliationRunUpdateManyAndReturnArgs} args - Arguments to update many LedgerReconciliationRuns.
+     * @example
+     * // Update many LedgerReconciliationRuns
+     * const ledgerReconciliationRun = await prisma.ledgerReconciliationRun.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more LedgerReconciliationRuns and only return the `id`
+     * const ledgerReconciliationRunWithIdOnly = await prisma.ledgerReconciliationRun.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends LedgerReconciliationRunUpdateManyAndReturnArgs>(args: SelectSubset<T, LedgerReconciliationRunUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LedgerReconciliationRunPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one LedgerReconciliationRun.
+     * @param {LedgerReconciliationRunUpsertArgs} args - Arguments to update or create a LedgerReconciliationRun.
+     * @example
+     * // Update or create a LedgerReconciliationRun
+     * const ledgerReconciliationRun = await prisma.ledgerReconciliationRun.upsert({
+     *   create: {
+     *     // ... data to create a LedgerReconciliationRun
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the LedgerReconciliationRun we want to update
+     *   }
+     * })
+     */
+    upsert<T extends LedgerReconciliationRunUpsertArgs>(args: SelectSubset<T, LedgerReconciliationRunUpsertArgs<ExtArgs>>): Prisma__LedgerReconciliationRunClient<$Result.GetResult<Prisma.$LedgerReconciliationRunPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of LedgerReconciliationRuns.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerReconciliationRunCountArgs} args - Arguments to filter LedgerReconciliationRuns to count.
+     * @example
+     * // Count the number of LedgerReconciliationRuns
+     * const count = await prisma.ledgerReconciliationRun.count({
+     *   where: {
+     *     // ... the filter for the LedgerReconciliationRuns we want to count
+     *   }
+     * })
+    **/
+    count<T extends LedgerReconciliationRunCountArgs>(
+      args?: Subset<T, LedgerReconciliationRunCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], LedgerReconciliationRunCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a LedgerReconciliationRun.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerReconciliationRunAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends LedgerReconciliationRunAggregateArgs>(args: Subset<T, LedgerReconciliationRunAggregateArgs>): Prisma.PrismaPromise<GetLedgerReconciliationRunAggregateType<T>>
+
+    /**
+     * Group by LedgerReconciliationRun.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerReconciliationRunGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends LedgerReconciliationRunGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: LedgerReconciliationRunGroupByArgs['orderBy'] }
+        : { orderBy?: LedgerReconciliationRunGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, LedgerReconciliationRunGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetLedgerReconciliationRunGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the LedgerReconciliationRun model
+   */
+  readonly fields: LedgerReconciliationRunFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for LedgerReconciliationRun.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__LedgerReconciliationRunClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the LedgerReconciliationRun model
+   */
+  interface LedgerReconciliationRunFieldRefs {
+    readonly id: FieldRef<"LedgerReconciliationRun", 'String'>
+    readonly organizationId: FieldRef<"LedgerReconciliationRun", 'String'>
+    readonly source: FieldRef<"LedgerReconciliationRun", 'String'>
+    readonly status: FieldRef<"LedgerReconciliationRun", 'LedgerReconciliationStatus'>
+    readonly discrepancyCount: FieldRef<"LedgerReconciliationRun", 'Int'>
+    readonly discrepancies: FieldRef<"LedgerReconciliationRun", 'Json'>
+    readonly runAt: FieldRef<"LedgerReconciliationRun", 'DateTime'>
+    readonly metadata: FieldRef<"LedgerReconciliationRun", 'Json'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * LedgerReconciliationRun findUnique
+   */
+  export type LedgerReconciliationRunFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerReconciliationRun
+     */
+    select?: LedgerReconciliationRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerReconciliationRun
+     */
+    omit?: LedgerReconciliationRunOmit<ExtArgs> | null
+    /**
+     * Filter, which LedgerReconciliationRun to fetch.
+     */
+    where: LedgerReconciliationRunWhereUniqueInput
+  }
+
+  /**
+   * LedgerReconciliationRun findUniqueOrThrow
+   */
+  export type LedgerReconciliationRunFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerReconciliationRun
+     */
+    select?: LedgerReconciliationRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerReconciliationRun
+     */
+    omit?: LedgerReconciliationRunOmit<ExtArgs> | null
+    /**
+     * Filter, which LedgerReconciliationRun to fetch.
+     */
+    where: LedgerReconciliationRunWhereUniqueInput
+  }
+
+  /**
+   * LedgerReconciliationRun findFirst
+   */
+  export type LedgerReconciliationRunFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerReconciliationRun
+     */
+    select?: LedgerReconciliationRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerReconciliationRun
+     */
+    omit?: LedgerReconciliationRunOmit<ExtArgs> | null
+    /**
+     * Filter, which LedgerReconciliationRun to fetch.
+     */
+    where?: LedgerReconciliationRunWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LedgerReconciliationRuns to fetch.
+     */
+    orderBy?: LedgerReconciliationRunOrderByWithRelationInput | LedgerReconciliationRunOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for LedgerReconciliationRuns.
+     */
+    cursor?: LedgerReconciliationRunWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LedgerReconciliationRuns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LedgerReconciliationRuns.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LedgerReconciliationRuns.
+     */
+    distinct?: LedgerReconciliationRunScalarFieldEnum | LedgerReconciliationRunScalarFieldEnum[]
+  }
+
+  /**
+   * LedgerReconciliationRun findFirstOrThrow
+   */
+  export type LedgerReconciliationRunFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerReconciliationRun
+     */
+    select?: LedgerReconciliationRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerReconciliationRun
+     */
+    omit?: LedgerReconciliationRunOmit<ExtArgs> | null
+    /**
+     * Filter, which LedgerReconciliationRun to fetch.
+     */
+    where?: LedgerReconciliationRunWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LedgerReconciliationRuns to fetch.
+     */
+    orderBy?: LedgerReconciliationRunOrderByWithRelationInput | LedgerReconciliationRunOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for LedgerReconciliationRuns.
+     */
+    cursor?: LedgerReconciliationRunWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LedgerReconciliationRuns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LedgerReconciliationRuns.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LedgerReconciliationRuns.
+     */
+    distinct?: LedgerReconciliationRunScalarFieldEnum | LedgerReconciliationRunScalarFieldEnum[]
+  }
+
+  /**
+   * LedgerReconciliationRun findMany
+   */
+  export type LedgerReconciliationRunFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerReconciliationRun
+     */
+    select?: LedgerReconciliationRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerReconciliationRun
+     */
+    omit?: LedgerReconciliationRunOmit<ExtArgs> | null
+    /**
+     * Filter, which LedgerReconciliationRuns to fetch.
+     */
+    where?: LedgerReconciliationRunWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LedgerReconciliationRuns to fetch.
+     */
+    orderBy?: LedgerReconciliationRunOrderByWithRelationInput | LedgerReconciliationRunOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing LedgerReconciliationRuns.
+     */
+    cursor?: LedgerReconciliationRunWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LedgerReconciliationRuns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LedgerReconciliationRuns.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LedgerReconciliationRuns.
+     */
+    distinct?: LedgerReconciliationRunScalarFieldEnum | LedgerReconciliationRunScalarFieldEnum[]
+  }
+
+  /**
+   * LedgerReconciliationRun create
+   */
+  export type LedgerReconciliationRunCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerReconciliationRun
+     */
+    select?: LedgerReconciliationRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerReconciliationRun
+     */
+    omit?: LedgerReconciliationRunOmit<ExtArgs> | null
+    /**
+     * The data needed to create a LedgerReconciliationRun.
+     */
+    data: XOR<LedgerReconciliationRunCreateInput, LedgerReconciliationRunUncheckedCreateInput>
+  }
+
+  /**
+   * LedgerReconciliationRun createMany
+   */
+  export type LedgerReconciliationRunCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many LedgerReconciliationRuns.
+     */
+    data: LedgerReconciliationRunCreateManyInput | LedgerReconciliationRunCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * LedgerReconciliationRun createManyAndReturn
+   */
+  export type LedgerReconciliationRunCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerReconciliationRun
+     */
+    select?: LedgerReconciliationRunSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerReconciliationRun
+     */
+    omit?: LedgerReconciliationRunOmit<ExtArgs> | null
+    /**
+     * The data used to create many LedgerReconciliationRuns.
+     */
+    data: LedgerReconciliationRunCreateManyInput | LedgerReconciliationRunCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * LedgerReconciliationRun update
+   */
+  export type LedgerReconciliationRunUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerReconciliationRun
+     */
+    select?: LedgerReconciliationRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerReconciliationRun
+     */
+    omit?: LedgerReconciliationRunOmit<ExtArgs> | null
+    /**
+     * The data needed to update a LedgerReconciliationRun.
+     */
+    data: XOR<LedgerReconciliationRunUpdateInput, LedgerReconciliationRunUncheckedUpdateInput>
+    /**
+     * Choose, which LedgerReconciliationRun to update.
+     */
+    where: LedgerReconciliationRunWhereUniqueInput
+  }
+
+  /**
+   * LedgerReconciliationRun updateMany
+   */
+  export type LedgerReconciliationRunUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update LedgerReconciliationRuns.
+     */
+    data: XOR<LedgerReconciliationRunUpdateManyMutationInput, LedgerReconciliationRunUncheckedUpdateManyInput>
+    /**
+     * Filter which LedgerReconciliationRuns to update
+     */
+    where?: LedgerReconciliationRunWhereInput
+    /**
+     * Limit how many LedgerReconciliationRuns to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * LedgerReconciliationRun updateManyAndReturn
+   */
+  export type LedgerReconciliationRunUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerReconciliationRun
+     */
+    select?: LedgerReconciliationRunSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerReconciliationRun
+     */
+    omit?: LedgerReconciliationRunOmit<ExtArgs> | null
+    /**
+     * The data used to update LedgerReconciliationRuns.
+     */
+    data: XOR<LedgerReconciliationRunUpdateManyMutationInput, LedgerReconciliationRunUncheckedUpdateManyInput>
+    /**
+     * Filter which LedgerReconciliationRuns to update
+     */
+    where?: LedgerReconciliationRunWhereInput
+    /**
+     * Limit how many LedgerReconciliationRuns to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * LedgerReconciliationRun upsert
+   */
+  export type LedgerReconciliationRunUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerReconciliationRun
+     */
+    select?: LedgerReconciliationRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerReconciliationRun
+     */
+    omit?: LedgerReconciliationRunOmit<ExtArgs> | null
+    /**
+     * The filter to search for the LedgerReconciliationRun to update in case it exists.
+     */
+    where: LedgerReconciliationRunWhereUniqueInput
+    /**
+     * In case the LedgerReconciliationRun found by the `where` argument doesn't exist, create a new LedgerReconciliationRun with this data.
+     */
+    create: XOR<LedgerReconciliationRunCreateInput, LedgerReconciliationRunUncheckedCreateInput>
+    /**
+     * In case the LedgerReconciliationRun was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<LedgerReconciliationRunUpdateInput, LedgerReconciliationRunUncheckedUpdateInput>
+  }
+
+  /**
+   * LedgerReconciliationRun delete
+   */
+  export type LedgerReconciliationRunDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerReconciliationRun
+     */
+    select?: LedgerReconciliationRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerReconciliationRun
+     */
+    omit?: LedgerReconciliationRunOmit<ExtArgs> | null
+    /**
+     * Filter which LedgerReconciliationRun to delete.
+     */
+    where: LedgerReconciliationRunWhereUniqueInput
+  }
+
+  /**
+   * LedgerReconciliationRun deleteMany
+   */
+  export type LedgerReconciliationRunDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which LedgerReconciliationRuns to delete
+     */
+    where?: LedgerReconciliationRunWhereInput
+    /**
+     * Limit how many LedgerReconciliationRuns to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * LedgerReconciliationRun without action
+   */
+  export type LedgerReconciliationRunDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerReconciliationRun
+     */
+    select?: LedgerReconciliationRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LedgerReconciliationRun
+     */
+    omit?: LedgerReconciliationRunOmit<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -143776,6 +151284,99 @@ export namespace Prisma {
   export type GalleryListingScalarFieldEnum = (typeof GalleryListingScalarFieldEnum)[keyof typeof GalleryListingScalarFieldEnum]
 
 
+  export const LedgerAccountScalarFieldEnum: {
+    id: 'id',
+    organizationId: 'organizationId',
+    key: 'key',
+    type: 'type',
+    currency: 'currency',
+    createdAt: 'createdAt'
+  };
+
+  export type LedgerAccountScalarFieldEnum = (typeof LedgerAccountScalarFieldEnum)[keyof typeof LedgerAccountScalarFieldEnum]
+
+
+  export const LedgerTransactionScalarFieldEnum: {
+    id: 'id',
+    organizationId: 'organizationId',
+    reason: 'reason',
+    idempotencyKey: 'idempotencyKey',
+    reversalOfId: 'reversalOfId',
+    rateCardVersion: 'rateCardVersion',
+    postedAt: 'postedAt',
+    metadata: 'metadata'
+  };
+
+  export type LedgerTransactionScalarFieldEnum = (typeof LedgerTransactionScalarFieldEnum)[keyof typeof LedgerTransactionScalarFieldEnum]
+
+
+  export const LedgerEntryScalarFieldEnum: {
+    id: 'id',
+    transactionId: 'transactionId',
+    accountId: 'accountId',
+    direction: 'direction',
+    amountMinor: 'amountMinor',
+    currency: 'currency'
+  };
+
+  export type LedgerEntryScalarFieldEnum = (typeof LedgerEntryScalarFieldEnum)[keyof typeof LedgerEntryScalarFieldEnum]
+
+
+  export const LedgerReservationScalarFieldEnum: {
+    id: 'id',
+    organizationId: 'organizationId',
+    userId: 'userId',
+    idempotencyKey: 'idempotencyKey',
+    operation: 'operation',
+    status: 'status',
+    currency: 'currency',
+    maxAmountMinor: 'maxAmountMinor',
+    committedMinor: 'committedMinor',
+    rateCardVersion: 'rateCardVersion',
+    importJobId: 'importJobId',
+    reserveTxId: 'reserveTxId',
+    settleTxId: 'settleTxId',
+    compensateTxId: 'compensateTxId',
+    expiresAt: 'expiresAt',
+    committedAt: 'committedAt',
+    releasedAt: 'releasedAt',
+    releaseReason: 'releaseReason',
+    metadata: 'metadata',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type LedgerReservationScalarFieldEnum = (typeof LedgerReservationScalarFieldEnum)[keyof typeof LedgerReservationScalarFieldEnum]
+
+
+  export const LedgerFxRateScalarFieldEnum: {
+    id: 'id',
+    fromCurrency: 'fromCurrency',
+    toCurrency: 'toCurrency',
+    rateNum: 'rateNum',
+    rateDen: 'rateDen',
+    effectiveAt: 'effectiveAt',
+    cutoffAt: 'cutoffAt',
+    createdAt: 'createdAt'
+  };
+
+  export type LedgerFxRateScalarFieldEnum = (typeof LedgerFxRateScalarFieldEnum)[keyof typeof LedgerFxRateScalarFieldEnum]
+
+
+  export const LedgerReconciliationRunScalarFieldEnum: {
+    id: 'id',
+    organizationId: 'organizationId',
+    source: 'source',
+    status: 'status',
+    discrepancyCount: 'discrepancyCount',
+    discrepancies: 'discrepancies',
+    runAt: 'runAt',
+    metadata: 'metadata'
+  };
+
+  export type LedgerReconciliationRunScalarFieldEnum = (typeof LedgerReconciliationRunScalarFieldEnum)[keyof typeof LedgerReconciliationRunScalarFieldEnum]
+
+
   export const SortOrder: {
     asc: 'asc',
     desc: 'desc'
@@ -144155,6 +151756,62 @@ export namespace Prisma {
    * Reference to a field of type 'ScheduledTaskRunStatus[]'
    */
   export type ListEnumScheduledTaskRunStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ScheduledTaskRunStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'LedgerAccountType'
+   */
+  export type EnumLedgerAccountTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LedgerAccountType'>
+    
+
+
+  /**
+   * Reference to a field of type 'LedgerAccountType[]'
+   */
+  export type ListEnumLedgerAccountTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LedgerAccountType[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'LedgerEntryDirection'
+   */
+  export type EnumLedgerEntryDirectionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LedgerEntryDirection'>
+    
+
+
+  /**
+   * Reference to a field of type 'LedgerEntryDirection[]'
+   */
+  export type ListEnumLedgerEntryDirectionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LedgerEntryDirection[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'LedgerReservationStatus'
+   */
+  export type EnumLedgerReservationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LedgerReservationStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'LedgerReservationStatus[]'
+   */
+  export type ListEnumLedgerReservationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LedgerReservationStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'LedgerReconciliationStatus'
+   */
+  export type EnumLedgerReconciliationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LedgerReconciliationStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'LedgerReconciliationStatus[]'
+   */
+  export type ListEnumLedgerReconciliationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LedgerReconciliationStatus[]'>
     
   /**
    * Deep Input Types
@@ -153251,6 +160908,484 @@ export namespace Prisma {
     useCount?: IntWithAggregatesFilter<"GalleryListing"> | number
     createdAt?: DateTimeWithAggregatesFilter<"GalleryListing"> | Date | string
     publishedAt?: DateTimeNullableWithAggregatesFilter<"GalleryListing"> | Date | string | null
+  }
+
+  export type LedgerAccountWhereInput = {
+    AND?: LedgerAccountWhereInput | LedgerAccountWhereInput[]
+    OR?: LedgerAccountWhereInput[]
+    NOT?: LedgerAccountWhereInput | LedgerAccountWhereInput[]
+    id?: StringFilter<"LedgerAccount"> | string
+    organizationId?: StringFilter<"LedgerAccount"> | string
+    key?: StringFilter<"LedgerAccount"> | string
+    type?: EnumLedgerAccountTypeFilter<"LedgerAccount"> | $Enums.LedgerAccountType
+    currency?: StringFilter<"LedgerAccount"> | string
+    createdAt?: DateTimeFilter<"LedgerAccount"> | Date | string
+    entries?: LedgerEntryListRelationFilter
+  }
+
+  export type LedgerAccountOrderByWithRelationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    key?: SortOrder
+    type?: SortOrder
+    currency?: SortOrder
+    createdAt?: SortOrder
+    entries?: LedgerEntryOrderByRelationAggregateInput
+  }
+
+  export type LedgerAccountWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    organizationId_key_currency?: LedgerAccountOrganizationIdKeyCurrencyCompoundUniqueInput
+    AND?: LedgerAccountWhereInput | LedgerAccountWhereInput[]
+    OR?: LedgerAccountWhereInput[]
+    NOT?: LedgerAccountWhereInput | LedgerAccountWhereInput[]
+    organizationId?: StringFilter<"LedgerAccount"> | string
+    key?: StringFilter<"LedgerAccount"> | string
+    type?: EnumLedgerAccountTypeFilter<"LedgerAccount"> | $Enums.LedgerAccountType
+    currency?: StringFilter<"LedgerAccount"> | string
+    createdAt?: DateTimeFilter<"LedgerAccount"> | Date | string
+    entries?: LedgerEntryListRelationFilter
+  }, "id" | "organizationId_key_currency">
+
+  export type LedgerAccountOrderByWithAggregationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    key?: SortOrder
+    type?: SortOrder
+    currency?: SortOrder
+    createdAt?: SortOrder
+    _count?: LedgerAccountCountOrderByAggregateInput
+    _max?: LedgerAccountMaxOrderByAggregateInput
+    _min?: LedgerAccountMinOrderByAggregateInput
+  }
+
+  export type LedgerAccountScalarWhereWithAggregatesInput = {
+    AND?: LedgerAccountScalarWhereWithAggregatesInput | LedgerAccountScalarWhereWithAggregatesInput[]
+    OR?: LedgerAccountScalarWhereWithAggregatesInput[]
+    NOT?: LedgerAccountScalarWhereWithAggregatesInput | LedgerAccountScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"LedgerAccount"> | string
+    organizationId?: StringWithAggregatesFilter<"LedgerAccount"> | string
+    key?: StringWithAggregatesFilter<"LedgerAccount"> | string
+    type?: EnumLedgerAccountTypeWithAggregatesFilter<"LedgerAccount"> | $Enums.LedgerAccountType
+    currency?: StringWithAggregatesFilter<"LedgerAccount"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"LedgerAccount"> | Date | string
+  }
+
+  export type LedgerTransactionWhereInput = {
+    AND?: LedgerTransactionWhereInput | LedgerTransactionWhereInput[]
+    OR?: LedgerTransactionWhereInput[]
+    NOT?: LedgerTransactionWhereInput | LedgerTransactionWhereInput[]
+    id?: StringFilter<"LedgerTransaction"> | string
+    organizationId?: StringFilter<"LedgerTransaction"> | string
+    reason?: StringFilter<"LedgerTransaction"> | string
+    idempotencyKey?: StringNullableFilter<"LedgerTransaction"> | string | null
+    reversalOfId?: StringNullableFilter<"LedgerTransaction"> | string | null
+    rateCardVersion?: IntNullableFilter<"LedgerTransaction"> | number | null
+    postedAt?: DateTimeFilter<"LedgerTransaction"> | Date | string
+    metadata?: JsonNullableFilter<"LedgerTransaction">
+    entries?: LedgerEntryListRelationFilter
+    reversalOf?: XOR<LedgerTransactionNullableScalarRelationFilter, LedgerTransactionWhereInput> | null
+    reversals?: LedgerTransactionListRelationFilter
+  }
+
+  export type LedgerTransactionOrderByWithRelationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    reason?: SortOrder
+    idempotencyKey?: SortOrderInput | SortOrder
+    reversalOfId?: SortOrderInput | SortOrder
+    rateCardVersion?: SortOrderInput | SortOrder
+    postedAt?: SortOrder
+    metadata?: SortOrderInput | SortOrder
+    entries?: LedgerEntryOrderByRelationAggregateInput
+    reversalOf?: LedgerTransactionOrderByWithRelationInput
+    reversals?: LedgerTransactionOrderByRelationAggregateInput
+  }
+
+  export type LedgerTransactionWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    organizationId_idempotencyKey?: LedgerTransactionOrganizationIdIdempotencyKeyCompoundUniqueInput
+    AND?: LedgerTransactionWhereInput | LedgerTransactionWhereInput[]
+    OR?: LedgerTransactionWhereInput[]
+    NOT?: LedgerTransactionWhereInput | LedgerTransactionWhereInput[]
+    organizationId?: StringFilter<"LedgerTransaction"> | string
+    reason?: StringFilter<"LedgerTransaction"> | string
+    idempotencyKey?: StringNullableFilter<"LedgerTransaction"> | string | null
+    reversalOfId?: StringNullableFilter<"LedgerTransaction"> | string | null
+    rateCardVersion?: IntNullableFilter<"LedgerTransaction"> | number | null
+    postedAt?: DateTimeFilter<"LedgerTransaction"> | Date | string
+    metadata?: JsonNullableFilter<"LedgerTransaction">
+    entries?: LedgerEntryListRelationFilter
+    reversalOf?: XOR<LedgerTransactionNullableScalarRelationFilter, LedgerTransactionWhereInput> | null
+    reversals?: LedgerTransactionListRelationFilter
+  }, "id" | "organizationId_idempotencyKey">
+
+  export type LedgerTransactionOrderByWithAggregationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    reason?: SortOrder
+    idempotencyKey?: SortOrderInput | SortOrder
+    reversalOfId?: SortOrderInput | SortOrder
+    rateCardVersion?: SortOrderInput | SortOrder
+    postedAt?: SortOrder
+    metadata?: SortOrderInput | SortOrder
+    _count?: LedgerTransactionCountOrderByAggregateInput
+    _avg?: LedgerTransactionAvgOrderByAggregateInput
+    _max?: LedgerTransactionMaxOrderByAggregateInput
+    _min?: LedgerTransactionMinOrderByAggregateInput
+    _sum?: LedgerTransactionSumOrderByAggregateInput
+  }
+
+  export type LedgerTransactionScalarWhereWithAggregatesInput = {
+    AND?: LedgerTransactionScalarWhereWithAggregatesInput | LedgerTransactionScalarWhereWithAggregatesInput[]
+    OR?: LedgerTransactionScalarWhereWithAggregatesInput[]
+    NOT?: LedgerTransactionScalarWhereWithAggregatesInput | LedgerTransactionScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"LedgerTransaction"> | string
+    organizationId?: StringWithAggregatesFilter<"LedgerTransaction"> | string
+    reason?: StringWithAggregatesFilter<"LedgerTransaction"> | string
+    idempotencyKey?: StringNullableWithAggregatesFilter<"LedgerTransaction"> | string | null
+    reversalOfId?: StringNullableWithAggregatesFilter<"LedgerTransaction"> | string | null
+    rateCardVersion?: IntNullableWithAggregatesFilter<"LedgerTransaction"> | number | null
+    postedAt?: DateTimeWithAggregatesFilter<"LedgerTransaction"> | Date | string
+    metadata?: JsonNullableWithAggregatesFilter<"LedgerTransaction">
+  }
+
+  export type LedgerEntryWhereInput = {
+    AND?: LedgerEntryWhereInput | LedgerEntryWhereInput[]
+    OR?: LedgerEntryWhereInput[]
+    NOT?: LedgerEntryWhereInput | LedgerEntryWhereInput[]
+    id?: StringFilter<"LedgerEntry"> | string
+    transactionId?: StringFilter<"LedgerEntry"> | string
+    accountId?: StringFilter<"LedgerEntry"> | string
+    direction?: EnumLedgerEntryDirectionFilter<"LedgerEntry"> | $Enums.LedgerEntryDirection
+    amountMinor?: BigIntFilter<"LedgerEntry"> | bigint | number
+    currency?: StringFilter<"LedgerEntry"> | string
+    transaction?: XOR<LedgerTransactionScalarRelationFilter, LedgerTransactionWhereInput>
+    account?: XOR<LedgerAccountScalarRelationFilter, LedgerAccountWhereInput>
+  }
+
+  export type LedgerEntryOrderByWithRelationInput = {
+    id?: SortOrder
+    transactionId?: SortOrder
+    accountId?: SortOrder
+    direction?: SortOrder
+    amountMinor?: SortOrder
+    currency?: SortOrder
+    transaction?: LedgerTransactionOrderByWithRelationInput
+    account?: LedgerAccountOrderByWithRelationInput
+  }
+
+  export type LedgerEntryWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: LedgerEntryWhereInput | LedgerEntryWhereInput[]
+    OR?: LedgerEntryWhereInput[]
+    NOT?: LedgerEntryWhereInput | LedgerEntryWhereInput[]
+    transactionId?: StringFilter<"LedgerEntry"> | string
+    accountId?: StringFilter<"LedgerEntry"> | string
+    direction?: EnumLedgerEntryDirectionFilter<"LedgerEntry"> | $Enums.LedgerEntryDirection
+    amountMinor?: BigIntFilter<"LedgerEntry"> | bigint | number
+    currency?: StringFilter<"LedgerEntry"> | string
+    transaction?: XOR<LedgerTransactionScalarRelationFilter, LedgerTransactionWhereInput>
+    account?: XOR<LedgerAccountScalarRelationFilter, LedgerAccountWhereInput>
+  }, "id">
+
+  export type LedgerEntryOrderByWithAggregationInput = {
+    id?: SortOrder
+    transactionId?: SortOrder
+    accountId?: SortOrder
+    direction?: SortOrder
+    amountMinor?: SortOrder
+    currency?: SortOrder
+    _count?: LedgerEntryCountOrderByAggregateInput
+    _avg?: LedgerEntryAvgOrderByAggregateInput
+    _max?: LedgerEntryMaxOrderByAggregateInput
+    _min?: LedgerEntryMinOrderByAggregateInput
+    _sum?: LedgerEntrySumOrderByAggregateInput
+  }
+
+  export type LedgerEntryScalarWhereWithAggregatesInput = {
+    AND?: LedgerEntryScalarWhereWithAggregatesInput | LedgerEntryScalarWhereWithAggregatesInput[]
+    OR?: LedgerEntryScalarWhereWithAggregatesInput[]
+    NOT?: LedgerEntryScalarWhereWithAggregatesInput | LedgerEntryScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"LedgerEntry"> | string
+    transactionId?: StringWithAggregatesFilter<"LedgerEntry"> | string
+    accountId?: StringWithAggregatesFilter<"LedgerEntry"> | string
+    direction?: EnumLedgerEntryDirectionWithAggregatesFilter<"LedgerEntry"> | $Enums.LedgerEntryDirection
+    amountMinor?: BigIntWithAggregatesFilter<"LedgerEntry"> | bigint | number
+    currency?: StringWithAggregatesFilter<"LedgerEntry"> | string
+  }
+
+  export type LedgerReservationWhereInput = {
+    AND?: LedgerReservationWhereInput | LedgerReservationWhereInput[]
+    OR?: LedgerReservationWhereInput[]
+    NOT?: LedgerReservationWhereInput | LedgerReservationWhereInput[]
+    id?: StringFilter<"LedgerReservation"> | string
+    organizationId?: StringFilter<"LedgerReservation"> | string
+    userId?: StringNullableFilter<"LedgerReservation"> | string | null
+    idempotencyKey?: StringFilter<"LedgerReservation"> | string
+    operation?: StringFilter<"LedgerReservation"> | string
+    status?: EnumLedgerReservationStatusFilter<"LedgerReservation"> | $Enums.LedgerReservationStatus
+    currency?: StringFilter<"LedgerReservation"> | string
+    maxAmountMinor?: BigIntFilter<"LedgerReservation"> | bigint | number
+    committedMinor?: BigIntNullableFilter<"LedgerReservation"> | bigint | number | null
+    rateCardVersion?: IntNullableFilter<"LedgerReservation"> | number | null
+    importJobId?: StringNullableFilter<"LedgerReservation"> | string | null
+    reserveTxId?: StringNullableFilter<"LedgerReservation"> | string | null
+    settleTxId?: StringNullableFilter<"LedgerReservation"> | string | null
+    compensateTxId?: StringNullableFilter<"LedgerReservation"> | string | null
+    expiresAt?: DateTimeFilter<"LedgerReservation"> | Date | string
+    committedAt?: DateTimeNullableFilter<"LedgerReservation"> | Date | string | null
+    releasedAt?: DateTimeNullableFilter<"LedgerReservation"> | Date | string | null
+    releaseReason?: StringNullableFilter<"LedgerReservation"> | string | null
+    metadata?: JsonNullableFilter<"LedgerReservation">
+    createdAt?: DateTimeFilter<"LedgerReservation"> | Date | string
+    updatedAt?: DateTimeFilter<"LedgerReservation"> | Date | string
+  }
+
+  export type LedgerReservationOrderByWithRelationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    userId?: SortOrderInput | SortOrder
+    idempotencyKey?: SortOrder
+    operation?: SortOrder
+    status?: SortOrder
+    currency?: SortOrder
+    maxAmountMinor?: SortOrder
+    committedMinor?: SortOrderInput | SortOrder
+    rateCardVersion?: SortOrderInput | SortOrder
+    importJobId?: SortOrderInput | SortOrder
+    reserveTxId?: SortOrderInput | SortOrder
+    settleTxId?: SortOrderInput | SortOrder
+    compensateTxId?: SortOrderInput | SortOrder
+    expiresAt?: SortOrder
+    committedAt?: SortOrderInput | SortOrder
+    releasedAt?: SortOrderInput | SortOrder
+    releaseReason?: SortOrderInput | SortOrder
+    metadata?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type LedgerReservationWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    organizationId_idempotencyKey?: LedgerReservationOrganizationIdIdempotencyKeyCompoundUniqueInput
+    AND?: LedgerReservationWhereInput | LedgerReservationWhereInput[]
+    OR?: LedgerReservationWhereInput[]
+    NOT?: LedgerReservationWhereInput | LedgerReservationWhereInput[]
+    organizationId?: StringFilter<"LedgerReservation"> | string
+    userId?: StringNullableFilter<"LedgerReservation"> | string | null
+    idempotencyKey?: StringFilter<"LedgerReservation"> | string
+    operation?: StringFilter<"LedgerReservation"> | string
+    status?: EnumLedgerReservationStatusFilter<"LedgerReservation"> | $Enums.LedgerReservationStatus
+    currency?: StringFilter<"LedgerReservation"> | string
+    maxAmountMinor?: BigIntFilter<"LedgerReservation"> | bigint | number
+    committedMinor?: BigIntNullableFilter<"LedgerReservation"> | bigint | number | null
+    rateCardVersion?: IntNullableFilter<"LedgerReservation"> | number | null
+    importJobId?: StringNullableFilter<"LedgerReservation"> | string | null
+    reserveTxId?: StringNullableFilter<"LedgerReservation"> | string | null
+    settleTxId?: StringNullableFilter<"LedgerReservation"> | string | null
+    compensateTxId?: StringNullableFilter<"LedgerReservation"> | string | null
+    expiresAt?: DateTimeFilter<"LedgerReservation"> | Date | string
+    committedAt?: DateTimeNullableFilter<"LedgerReservation"> | Date | string | null
+    releasedAt?: DateTimeNullableFilter<"LedgerReservation"> | Date | string | null
+    releaseReason?: StringNullableFilter<"LedgerReservation"> | string | null
+    metadata?: JsonNullableFilter<"LedgerReservation">
+    createdAt?: DateTimeFilter<"LedgerReservation"> | Date | string
+    updatedAt?: DateTimeFilter<"LedgerReservation"> | Date | string
+  }, "id" | "organizationId_idempotencyKey">
+
+  export type LedgerReservationOrderByWithAggregationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    userId?: SortOrderInput | SortOrder
+    idempotencyKey?: SortOrder
+    operation?: SortOrder
+    status?: SortOrder
+    currency?: SortOrder
+    maxAmountMinor?: SortOrder
+    committedMinor?: SortOrderInput | SortOrder
+    rateCardVersion?: SortOrderInput | SortOrder
+    importJobId?: SortOrderInput | SortOrder
+    reserveTxId?: SortOrderInput | SortOrder
+    settleTxId?: SortOrderInput | SortOrder
+    compensateTxId?: SortOrderInput | SortOrder
+    expiresAt?: SortOrder
+    committedAt?: SortOrderInput | SortOrder
+    releasedAt?: SortOrderInput | SortOrder
+    releaseReason?: SortOrderInput | SortOrder
+    metadata?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: LedgerReservationCountOrderByAggregateInput
+    _avg?: LedgerReservationAvgOrderByAggregateInput
+    _max?: LedgerReservationMaxOrderByAggregateInput
+    _min?: LedgerReservationMinOrderByAggregateInput
+    _sum?: LedgerReservationSumOrderByAggregateInput
+  }
+
+  export type LedgerReservationScalarWhereWithAggregatesInput = {
+    AND?: LedgerReservationScalarWhereWithAggregatesInput | LedgerReservationScalarWhereWithAggregatesInput[]
+    OR?: LedgerReservationScalarWhereWithAggregatesInput[]
+    NOT?: LedgerReservationScalarWhereWithAggregatesInput | LedgerReservationScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"LedgerReservation"> | string
+    organizationId?: StringWithAggregatesFilter<"LedgerReservation"> | string
+    userId?: StringNullableWithAggregatesFilter<"LedgerReservation"> | string | null
+    idempotencyKey?: StringWithAggregatesFilter<"LedgerReservation"> | string
+    operation?: StringWithAggregatesFilter<"LedgerReservation"> | string
+    status?: EnumLedgerReservationStatusWithAggregatesFilter<"LedgerReservation"> | $Enums.LedgerReservationStatus
+    currency?: StringWithAggregatesFilter<"LedgerReservation"> | string
+    maxAmountMinor?: BigIntWithAggregatesFilter<"LedgerReservation"> | bigint | number
+    committedMinor?: BigIntNullableWithAggregatesFilter<"LedgerReservation"> | bigint | number | null
+    rateCardVersion?: IntNullableWithAggregatesFilter<"LedgerReservation"> | number | null
+    importJobId?: StringNullableWithAggregatesFilter<"LedgerReservation"> | string | null
+    reserveTxId?: StringNullableWithAggregatesFilter<"LedgerReservation"> | string | null
+    settleTxId?: StringNullableWithAggregatesFilter<"LedgerReservation"> | string | null
+    compensateTxId?: StringNullableWithAggregatesFilter<"LedgerReservation"> | string | null
+    expiresAt?: DateTimeWithAggregatesFilter<"LedgerReservation"> | Date | string
+    committedAt?: DateTimeNullableWithAggregatesFilter<"LedgerReservation"> | Date | string | null
+    releasedAt?: DateTimeNullableWithAggregatesFilter<"LedgerReservation"> | Date | string | null
+    releaseReason?: StringNullableWithAggregatesFilter<"LedgerReservation"> | string | null
+    metadata?: JsonNullableWithAggregatesFilter<"LedgerReservation">
+    createdAt?: DateTimeWithAggregatesFilter<"LedgerReservation"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"LedgerReservation"> | Date | string
+  }
+
+  export type LedgerFxRateWhereInput = {
+    AND?: LedgerFxRateWhereInput | LedgerFxRateWhereInput[]
+    OR?: LedgerFxRateWhereInput[]
+    NOT?: LedgerFxRateWhereInput | LedgerFxRateWhereInput[]
+    id?: StringFilter<"LedgerFxRate"> | string
+    fromCurrency?: StringFilter<"LedgerFxRate"> | string
+    toCurrency?: StringFilter<"LedgerFxRate"> | string
+    rateNum?: BigIntFilter<"LedgerFxRate"> | bigint | number
+    rateDen?: BigIntFilter<"LedgerFxRate"> | bigint | number
+    effectiveAt?: DateTimeFilter<"LedgerFxRate"> | Date | string
+    cutoffAt?: DateTimeNullableFilter<"LedgerFxRate"> | Date | string | null
+    createdAt?: DateTimeFilter<"LedgerFxRate"> | Date | string
+  }
+
+  export type LedgerFxRateOrderByWithRelationInput = {
+    id?: SortOrder
+    fromCurrency?: SortOrder
+    toCurrency?: SortOrder
+    rateNum?: SortOrder
+    rateDen?: SortOrder
+    effectiveAt?: SortOrder
+    cutoffAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type LedgerFxRateWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: LedgerFxRateWhereInput | LedgerFxRateWhereInput[]
+    OR?: LedgerFxRateWhereInput[]
+    NOT?: LedgerFxRateWhereInput | LedgerFxRateWhereInput[]
+    fromCurrency?: StringFilter<"LedgerFxRate"> | string
+    toCurrency?: StringFilter<"LedgerFxRate"> | string
+    rateNum?: BigIntFilter<"LedgerFxRate"> | bigint | number
+    rateDen?: BigIntFilter<"LedgerFxRate"> | bigint | number
+    effectiveAt?: DateTimeFilter<"LedgerFxRate"> | Date | string
+    cutoffAt?: DateTimeNullableFilter<"LedgerFxRate"> | Date | string | null
+    createdAt?: DateTimeFilter<"LedgerFxRate"> | Date | string
+  }, "id">
+
+  export type LedgerFxRateOrderByWithAggregationInput = {
+    id?: SortOrder
+    fromCurrency?: SortOrder
+    toCurrency?: SortOrder
+    rateNum?: SortOrder
+    rateDen?: SortOrder
+    effectiveAt?: SortOrder
+    cutoffAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: LedgerFxRateCountOrderByAggregateInput
+    _avg?: LedgerFxRateAvgOrderByAggregateInput
+    _max?: LedgerFxRateMaxOrderByAggregateInput
+    _min?: LedgerFxRateMinOrderByAggregateInput
+    _sum?: LedgerFxRateSumOrderByAggregateInput
+  }
+
+  export type LedgerFxRateScalarWhereWithAggregatesInput = {
+    AND?: LedgerFxRateScalarWhereWithAggregatesInput | LedgerFxRateScalarWhereWithAggregatesInput[]
+    OR?: LedgerFxRateScalarWhereWithAggregatesInput[]
+    NOT?: LedgerFxRateScalarWhereWithAggregatesInput | LedgerFxRateScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"LedgerFxRate"> | string
+    fromCurrency?: StringWithAggregatesFilter<"LedgerFxRate"> | string
+    toCurrency?: StringWithAggregatesFilter<"LedgerFxRate"> | string
+    rateNum?: BigIntWithAggregatesFilter<"LedgerFxRate"> | bigint | number
+    rateDen?: BigIntWithAggregatesFilter<"LedgerFxRate"> | bigint | number
+    effectiveAt?: DateTimeWithAggregatesFilter<"LedgerFxRate"> | Date | string
+    cutoffAt?: DateTimeNullableWithAggregatesFilter<"LedgerFxRate"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"LedgerFxRate"> | Date | string
+  }
+
+  export type LedgerReconciliationRunWhereInput = {
+    AND?: LedgerReconciliationRunWhereInput | LedgerReconciliationRunWhereInput[]
+    OR?: LedgerReconciliationRunWhereInput[]
+    NOT?: LedgerReconciliationRunWhereInput | LedgerReconciliationRunWhereInput[]
+    id?: StringFilter<"LedgerReconciliationRun"> | string
+    organizationId?: StringNullableFilter<"LedgerReconciliationRun"> | string | null
+    source?: StringFilter<"LedgerReconciliationRun"> | string
+    status?: EnumLedgerReconciliationStatusFilter<"LedgerReconciliationRun"> | $Enums.LedgerReconciliationStatus
+    discrepancyCount?: IntFilter<"LedgerReconciliationRun"> | number
+    discrepancies?: JsonNullableFilter<"LedgerReconciliationRun">
+    runAt?: DateTimeFilter<"LedgerReconciliationRun"> | Date | string
+    metadata?: JsonNullableFilter<"LedgerReconciliationRun">
+  }
+
+  export type LedgerReconciliationRunOrderByWithRelationInput = {
+    id?: SortOrder
+    organizationId?: SortOrderInput | SortOrder
+    source?: SortOrder
+    status?: SortOrder
+    discrepancyCount?: SortOrder
+    discrepancies?: SortOrderInput | SortOrder
+    runAt?: SortOrder
+    metadata?: SortOrderInput | SortOrder
+  }
+
+  export type LedgerReconciliationRunWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: LedgerReconciliationRunWhereInput | LedgerReconciliationRunWhereInput[]
+    OR?: LedgerReconciliationRunWhereInput[]
+    NOT?: LedgerReconciliationRunWhereInput | LedgerReconciliationRunWhereInput[]
+    organizationId?: StringNullableFilter<"LedgerReconciliationRun"> | string | null
+    source?: StringFilter<"LedgerReconciliationRun"> | string
+    status?: EnumLedgerReconciliationStatusFilter<"LedgerReconciliationRun"> | $Enums.LedgerReconciliationStatus
+    discrepancyCount?: IntFilter<"LedgerReconciliationRun"> | number
+    discrepancies?: JsonNullableFilter<"LedgerReconciliationRun">
+    runAt?: DateTimeFilter<"LedgerReconciliationRun"> | Date | string
+    metadata?: JsonNullableFilter<"LedgerReconciliationRun">
+  }, "id">
+
+  export type LedgerReconciliationRunOrderByWithAggregationInput = {
+    id?: SortOrder
+    organizationId?: SortOrderInput | SortOrder
+    source?: SortOrder
+    status?: SortOrder
+    discrepancyCount?: SortOrder
+    discrepancies?: SortOrderInput | SortOrder
+    runAt?: SortOrder
+    metadata?: SortOrderInput | SortOrder
+    _count?: LedgerReconciliationRunCountOrderByAggregateInput
+    _avg?: LedgerReconciliationRunAvgOrderByAggregateInput
+    _max?: LedgerReconciliationRunMaxOrderByAggregateInput
+    _min?: LedgerReconciliationRunMinOrderByAggregateInput
+    _sum?: LedgerReconciliationRunSumOrderByAggregateInput
+  }
+
+  export type LedgerReconciliationRunScalarWhereWithAggregatesInput = {
+    AND?: LedgerReconciliationRunScalarWhereWithAggregatesInput | LedgerReconciliationRunScalarWhereWithAggregatesInput[]
+    OR?: LedgerReconciliationRunScalarWhereWithAggregatesInput[]
+    NOT?: LedgerReconciliationRunScalarWhereWithAggregatesInput | LedgerReconciliationRunScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"LedgerReconciliationRun"> | string
+    organizationId?: StringNullableWithAggregatesFilter<"LedgerReconciliationRun"> | string | null
+    source?: StringWithAggregatesFilter<"LedgerReconciliationRun"> | string
+    status?: EnumLedgerReconciliationStatusWithAggregatesFilter<"LedgerReconciliationRun"> | $Enums.LedgerReconciliationStatus
+    discrepancyCount?: IntWithAggregatesFilter<"LedgerReconciliationRun"> | number
+    discrepancies?: JsonNullableWithAggregatesFilter<"LedgerReconciliationRun">
+    runAt?: DateTimeWithAggregatesFilter<"LedgerReconciliationRun"> | Date | string
+    metadata?: JsonNullableWithAggregatesFilter<"LedgerReconciliationRun">
   }
 
   export type UserCreateInput = {
@@ -163239,6 +171374,540 @@ export namespace Prisma {
     publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
+  export type LedgerAccountCreateInput = {
+    id?: string
+    organizationId: string
+    key: string
+    type: $Enums.LedgerAccountType
+    currency: string
+    createdAt?: Date | string
+    entries?: LedgerEntryCreateNestedManyWithoutAccountInput
+  }
+
+  export type LedgerAccountUncheckedCreateInput = {
+    id?: string
+    organizationId: string
+    key: string
+    type: $Enums.LedgerAccountType
+    currency: string
+    createdAt?: Date | string
+    entries?: LedgerEntryUncheckedCreateNestedManyWithoutAccountInput
+  }
+
+  export type LedgerAccountUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    type?: EnumLedgerAccountTypeFieldUpdateOperationsInput | $Enums.LedgerAccountType
+    currency?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    entries?: LedgerEntryUpdateManyWithoutAccountNestedInput
+  }
+
+  export type LedgerAccountUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    type?: EnumLedgerAccountTypeFieldUpdateOperationsInput | $Enums.LedgerAccountType
+    currency?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    entries?: LedgerEntryUncheckedUpdateManyWithoutAccountNestedInput
+  }
+
+  export type LedgerAccountCreateManyInput = {
+    id?: string
+    organizationId: string
+    key: string
+    type: $Enums.LedgerAccountType
+    currency: string
+    createdAt?: Date | string
+  }
+
+  export type LedgerAccountUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    type?: EnumLedgerAccountTypeFieldUpdateOperationsInput | $Enums.LedgerAccountType
+    currency?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LedgerAccountUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    type?: EnumLedgerAccountTypeFieldUpdateOperationsInput | $Enums.LedgerAccountType
+    currency?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LedgerTransactionCreateInput = {
+    id?: string
+    organizationId: string
+    reason: string
+    idempotencyKey?: string | null
+    rateCardVersion?: number | null
+    postedAt?: Date | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    entries?: LedgerEntryCreateNestedManyWithoutTransactionInput
+    reversalOf?: LedgerTransactionCreateNestedOneWithoutReversalsInput
+    reversals?: LedgerTransactionCreateNestedManyWithoutReversalOfInput
+  }
+
+  export type LedgerTransactionUncheckedCreateInput = {
+    id?: string
+    organizationId: string
+    reason: string
+    idempotencyKey?: string | null
+    reversalOfId?: string | null
+    rateCardVersion?: number | null
+    postedAt?: Date | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    entries?: LedgerEntryUncheckedCreateNestedManyWithoutTransactionInput
+    reversals?: LedgerTransactionUncheckedCreateNestedManyWithoutReversalOfInput
+  }
+
+  export type LedgerTransactionUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    rateCardVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    postedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    entries?: LedgerEntryUpdateManyWithoutTransactionNestedInput
+    reversalOf?: LedgerTransactionUpdateOneWithoutReversalsNestedInput
+    reversals?: LedgerTransactionUpdateManyWithoutReversalOfNestedInput
+  }
+
+  export type LedgerTransactionUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    reversalOfId?: NullableStringFieldUpdateOperationsInput | string | null
+    rateCardVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    postedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    entries?: LedgerEntryUncheckedUpdateManyWithoutTransactionNestedInput
+    reversals?: LedgerTransactionUncheckedUpdateManyWithoutReversalOfNestedInput
+  }
+
+  export type LedgerTransactionCreateManyInput = {
+    id?: string
+    organizationId: string
+    reason: string
+    idempotencyKey?: string | null
+    reversalOfId?: string | null
+    rateCardVersion?: number | null
+    postedAt?: Date | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type LedgerTransactionUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    rateCardVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    postedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type LedgerTransactionUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    reversalOfId?: NullableStringFieldUpdateOperationsInput | string | null
+    rateCardVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    postedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type LedgerEntryCreateInput = {
+    id?: string
+    direction: $Enums.LedgerEntryDirection
+    amountMinor: bigint | number
+    currency: string
+    transaction: LedgerTransactionCreateNestedOneWithoutEntriesInput
+    account: LedgerAccountCreateNestedOneWithoutEntriesInput
+  }
+
+  export type LedgerEntryUncheckedCreateInput = {
+    id?: string
+    transactionId: string
+    accountId: string
+    direction: $Enums.LedgerEntryDirection
+    amountMinor: bigint | number
+    currency: string
+  }
+
+  export type LedgerEntryUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    direction?: EnumLedgerEntryDirectionFieldUpdateOperationsInput | $Enums.LedgerEntryDirection
+    amountMinor?: BigIntFieldUpdateOperationsInput | bigint | number
+    currency?: StringFieldUpdateOperationsInput | string
+    transaction?: LedgerTransactionUpdateOneRequiredWithoutEntriesNestedInput
+    account?: LedgerAccountUpdateOneRequiredWithoutEntriesNestedInput
+  }
+
+  export type LedgerEntryUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    transactionId?: StringFieldUpdateOperationsInput | string
+    accountId?: StringFieldUpdateOperationsInput | string
+    direction?: EnumLedgerEntryDirectionFieldUpdateOperationsInput | $Enums.LedgerEntryDirection
+    amountMinor?: BigIntFieldUpdateOperationsInput | bigint | number
+    currency?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type LedgerEntryCreateManyInput = {
+    id?: string
+    transactionId: string
+    accountId: string
+    direction: $Enums.LedgerEntryDirection
+    amountMinor: bigint | number
+    currency: string
+  }
+
+  export type LedgerEntryUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    direction?: EnumLedgerEntryDirectionFieldUpdateOperationsInput | $Enums.LedgerEntryDirection
+    amountMinor?: BigIntFieldUpdateOperationsInput | bigint | number
+    currency?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type LedgerEntryUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    transactionId?: StringFieldUpdateOperationsInput | string
+    accountId?: StringFieldUpdateOperationsInput | string
+    direction?: EnumLedgerEntryDirectionFieldUpdateOperationsInput | $Enums.LedgerEntryDirection
+    amountMinor?: BigIntFieldUpdateOperationsInput | bigint | number
+    currency?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type LedgerReservationCreateInput = {
+    id?: string
+    organizationId: string
+    userId?: string | null
+    idempotencyKey: string
+    operation: string
+    status?: $Enums.LedgerReservationStatus
+    currency?: string
+    maxAmountMinor: bigint | number
+    committedMinor?: bigint | number | null
+    rateCardVersion?: number | null
+    importJobId?: string | null
+    reserveTxId?: string | null
+    settleTxId?: string | null
+    compensateTxId?: string | null
+    expiresAt: Date | string
+    committedAt?: Date | string | null
+    releasedAt?: Date | string | null
+    releaseReason?: string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type LedgerReservationUncheckedCreateInput = {
+    id?: string
+    organizationId: string
+    userId?: string | null
+    idempotencyKey: string
+    operation: string
+    status?: $Enums.LedgerReservationStatus
+    currency?: string
+    maxAmountMinor: bigint | number
+    committedMinor?: bigint | number | null
+    rateCardVersion?: number | null
+    importJobId?: string | null
+    reserveTxId?: string | null
+    settleTxId?: string | null
+    compensateTxId?: string | null
+    expiresAt: Date | string
+    committedAt?: Date | string | null
+    releasedAt?: Date | string | null
+    releaseReason?: string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type LedgerReservationUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    userId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    operation?: StringFieldUpdateOperationsInput | string
+    status?: EnumLedgerReservationStatusFieldUpdateOperationsInput | $Enums.LedgerReservationStatus
+    currency?: StringFieldUpdateOperationsInput | string
+    maxAmountMinor?: BigIntFieldUpdateOperationsInput | bigint | number
+    committedMinor?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    rateCardVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    importJobId?: NullableStringFieldUpdateOperationsInput | string | null
+    reserveTxId?: NullableStringFieldUpdateOperationsInput | string | null
+    settleTxId?: NullableStringFieldUpdateOperationsInput | string | null
+    compensateTxId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    committedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releaseReason?: NullableStringFieldUpdateOperationsInput | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LedgerReservationUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    userId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    operation?: StringFieldUpdateOperationsInput | string
+    status?: EnumLedgerReservationStatusFieldUpdateOperationsInput | $Enums.LedgerReservationStatus
+    currency?: StringFieldUpdateOperationsInput | string
+    maxAmountMinor?: BigIntFieldUpdateOperationsInput | bigint | number
+    committedMinor?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    rateCardVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    importJobId?: NullableStringFieldUpdateOperationsInput | string | null
+    reserveTxId?: NullableStringFieldUpdateOperationsInput | string | null
+    settleTxId?: NullableStringFieldUpdateOperationsInput | string | null
+    compensateTxId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    committedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releaseReason?: NullableStringFieldUpdateOperationsInput | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LedgerReservationCreateManyInput = {
+    id?: string
+    organizationId: string
+    userId?: string | null
+    idempotencyKey: string
+    operation: string
+    status?: $Enums.LedgerReservationStatus
+    currency?: string
+    maxAmountMinor: bigint | number
+    committedMinor?: bigint | number | null
+    rateCardVersion?: number | null
+    importJobId?: string | null
+    reserveTxId?: string | null
+    settleTxId?: string | null
+    compensateTxId?: string | null
+    expiresAt: Date | string
+    committedAt?: Date | string | null
+    releasedAt?: Date | string | null
+    releaseReason?: string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type LedgerReservationUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    userId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    operation?: StringFieldUpdateOperationsInput | string
+    status?: EnumLedgerReservationStatusFieldUpdateOperationsInput | $Enums.LedgerReservationStatus
+    currency?: StringFieldUpdateOperationsInput | string
+    maxAmountMinor?: BigIntFieldUpdateOperationsInput | bigint | number
+    committedMinor?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    rateCardVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    importJobId?: NullableStringFieldUpdateOperationsInput | string | null
+    reserveTxId?: NullableStringFieldUpdateOperationsInput | string | null
+    settleTxId?: NullableStringFieldUpdateOperationsInput | string | null
+    compensateTxId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    committedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releaseReason?: NullableStringFieldUpdateOperationsInput | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LedgerReservationUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    userId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    operation?: StringFieldUpdateOperationsInput | string
+    status?: EnumLedgerReservationStatusFieldUpdateOperationsInput | $Enums.LedgerReservationStatus
+    currency?: StringFieldUpdateOperationsInput | string
+    maxAmountMinor?: BigIntFieldUpdateOperationsInput | bigint | number
+    committedMinor?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    rateCardVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    importJobId?: NullableStringFieldUpdateOperationsInput | string | null
+    reserveTxId?: NullableStringFieldUpdateOperationsInput | string | null
+    settleTxId?: NullableStringFieldUpdateOperationsInput | string | null
+    compensateTxId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    committedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releaseReason?: NullableStringFieldUpdateOperationsInput | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LedgerFxRateCreateInput = {
+    id?: string
+    fromCurrency: string
+    toCurrency: string
+    rateNum: bigint | number
+    rateDen: bigint | number
+    effectiveAt: Date | string
+    cutoffAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type LedgerFxRateUncheckedCreateInput = {
+    id?: string
+    fromCurrency: string
+    toCurrency: string
+    rateNum: bigint | number
+    rateDen: bigint | number
+    effectiveAt: Date | string
+    cutoffAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type LedgerFxRateUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fromCurrency?: StringFieldUpdateOperationsInput | string
+    toCurrency?: StringFieldUpdateOperationsInput | string
+    rateNum?: BigIntFieldUpdateOperationsInput | bigint | number
+    rateDen?: BigIntFieldUpdateOperationsInput | bigint | number
+    effectiveAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    cutoffAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LedgerFxRateUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fromCurrency?: StringFieldUpdateOperationsInput | string
+    toCurrency?: StringFieldUpdateOperationsInput | string
+    rateNum?: BigIntFieldUpdateOperationsInput | bigint | number
+    rateDen?: BigIntFieldUpdateOperationsInput | bigint | number
+    effectiveAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    cutoffAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LedgerFxRateCreateManyInput = {
+    id?: string
+    fromCurrency: string
+    toCurrency: string
+    rateNum: bigint | number
+    rateDen: bigint | number
+    effectiveAt: Date | string
+    cutoffAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type LedgerFxRateUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fromCurrency?: StringFieldUpdateOperationsInput | string
+    toCurrency?: StringFieldUpdateOperationsInput | string
+    rateNum?: BigIntFieldUpdateOperationsInput | bigint | number
+    rateDen?: BigIntFieldUpdateOperationsInput | bigint | number
+    effectiveAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    cutoffAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LedgerFxRateUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fromCurrency?: StringFieldUpdateOperationsInput | string
+    toCurrency?: StringFieldUpdateOperationsInput | string
+    rateNum?: BigIntFieldUpdateOperationsInput | bigint | number
+    rateDen?: BigIntFieldUpdateOperationsInput | bigint | number
+    effectiveAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    cutoffAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LedgerReconciliationRunCreateInput = {
+    id?: string
+    organizationId?: string | null
+    source: string
+    status: $Enums.LedgerReconciliationStatus
+    discrepancyCount?: number
+    discrepancies?: NullableJsonNullValueInput | InputJsonValue
+    runAt?: Date | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type LedgerReconciliationRunUncheckedCreateInput = {
+    id?: string
+    organizationId?: string | null
+    source: string
+    status: $Enums.LedgerReconciliationStatus
+    discrepancyCount?: number
+    discrepancies?: NullableJsonNullValueInput | InputJsonValue
+    runAt?: Date | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type LedgerReconciliationRunUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: StringFieldUpdateOperationsInput | string
+    status?: EnumLedgerReconciliationStatusFieldUpdateOperationsInput | $Enums.LedgerReconciliationStatus
+    discrepancyCount?: IntFieldUpdateOperationsInput | number
+    discrepancies?: NullableJsonNullValueInput | InputJsonValue
+    runAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type LedgerReconciliationRunUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: StringFieldUpdateOperationsInput | string
+    status?: EnumLedgerReconciliationStatusFieldUpdateOperationsInput | $Enums.LedgerReconciliationStatus
+    discrepancyCount?: IntFieldUpdateOperationsInput | number
+    discrepancies?: NullableJsonNullValueInput | InputJsonValue
+    runAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type LedgerReconciliationRunCreateManyInput = {
+    id?: string
+    organizationId?: string | null
+    source: string
+    status: $Enums.LedgerReconciliationStatus
+    discrepancyCount?: number
+    discrepancies?: NullableJsonNullValueInput | InputJsonValue
+    runAt?: Date | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type LedgerReconciliationRunUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: StringFieldUpdateOperationsInput | string
+    status?: EnumLedgerReconciliationStatusFieldUpdateOperationsInput | $Enums.LedgerReconciliationStatus
+    discrepancyCount?: IntFieldUpdateOperationsInput | number
+    discrepancies?: NullableJsonNullValueInput | InputJsonValue
+    runAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type LedgerReconciliationRunUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: StringFieldUpdateOperationsInput | string
+    status?: EnumLedgerReconciliationStatusFieldUpdateOperationsInput | $Enums.LedgerReconciliationStatus
+    discrepancyCount?: IntFieldUpdateOperationsInput | number
+    discrepancies?: NullableJsonNullValueInput | InputJsonValue
+    runAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -169402,6 +178071,415 @@ export namespace Prisma {
   export type GalleryListingSumOrderByAggregateInput = {
     viewCount?: SortOrder
     useCount?: SortOrder
+  }
+
+  export type EnumLedgerAccountTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.LedgerAccountType | EnumLedgerAccountTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.LedgerAccountType[] | ListEnumLedgerAccountTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LedgerAccountType[] | ListEnumLedgerAccountTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumLedgerAccountTypeFilter<$PrismaModel> | $Enums.LedgerAccountType
+  }
+
+  export type LedgerEntryListRelationFilter = {
+    every?: LedgerEntryWhereInput
+    some?: LedgerEntryWhereInput
+    none?: LedgerEntryWhereInput
+  }
+
+  export type LedgerEntryOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type LedgerAccountOrganizationIdKeyCurrencyCompoundUniqueInput = {
+    organizationId: string
+    key: string
+    currency: string
+  }
+
+  export type LedgerAccountCountOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    key?: SortOrder
+    type?: SortOrder
+    currency?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type LedgerAccountMaxOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    key?: SortOrder
+    type?: SortOrder
+    currency?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type LedgerAccountMinOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    key?: SortOrder
+    type?: SortOrder
+    currency?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type EnumLedgerAccountTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.LedgerAccountType | EnumLedgerAccountTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.LedgerAccountType[] | ListEnumLedgerAccountTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LedgerAccountType[] | ListEnumLedgerAccountTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumLedgerAccountTypeWithAggregatesFilter<$PrismaModel> | $Enums.LedgerAccountType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumLedgerAccountTypeFilter<$PrismaModel>
+    _max?: NestedEnumLedgerAccountTypeFilter<$PrismaModel>
+  }
+
+  export type LedgerTransactionNullableScalarRelationFilter = {
+    is?: LedgerTransactionWhereInput | null
+    isNot?: LedgerTransactionWhereInput | null
+  }
+
+  export type LedgerTransactionListRelationFilter = {
+    every?: LedgerTransactionWhereInput
+    some?: LedgerTransactionWhereInput
+    none?: LedgerTransactionWhereInput
+  }
+
+  export type LedgerTransactionOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type LedgerTransactionOrganizationIdIdempotencyKeyCompoundUniqueInput = {
+    organizationId: string
+    idempotencyKey: string
+  }
+
+  export type LedgerTransactionCountOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    reason?: SortOrder
+    idempotencyKey?: SortOrder
+    reversalOfId?: SortOrder
+    rateCardVersion?: SortOrder
+    postedAt?: SortOrder
+    metadata?: SortOrder
+  }
+
+  export type LedgerTransactionAvgOrderByAggregateInput = {
+    rateCardVersion?: SortOrder
+  }
+
+  export type LedgerTransactionMaxOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    reason?: SortOrder
+    idempotencyKey?: SortOrder
+    reversalOfId?: SortOrder
+    rateCardVersion?: SortOrder
+    postedAt?: SortOrder
+  }
+
+  export type LedgerTransactionMinOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    reason?: SortOrder
+    idempotencyKey?: SortOrder
+    reversalOfId?: SortOrder
+    rateCardVersion?: SortOrder
+    postedAt?: SortOrder
+  }
+
+  export type LedgerTransactionSumOrderByAggregateInput = {
+    rateCardVersion?: SortOrder
+  }
+
+  export type EnumLedgerEntryDirectionFilter<$PrismaModel = never> = {
+    equals?: $Enums.LedgerEntryDirection | EnumLedgerEntryDirectionFieldRefInput<$PrismaModel>
+    in?: $Enums.LedgerEntryDirection[] | ListEnumLedgerEntryDirectionFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LedgerEntryDirection[] | ListEnumLedgerEntryDirectionFieldRefInput<$PrismaModel>
+    not?: NestedEnumLedgerEntryDirectionFilter<$PrismaModel> | $Enums.LedgerEntryDirection
+  }
+
+  export type LedgerTransactionScalarRelationFilter = {
+    is?: LedgerTransactionWhereInput
+    isNot?: LedgerTransactionWhereInput
+  }
+
+  export type LedgerAccountScalarRelationFilter = {
+    is?: LedgerAccountWhereInput
+    isNot?: LedgerAccountWhereInput
+  }
+
+  export type LedgerEntryCountOrderByAggregateInput = {
+    id?: SortOrder
+    transactionId?: SortOrder
+    accountId?: SortOrder
+    direction?: SortOrder
+    amountMinor?: SortOrder
+    currency?: SortOrder
+  }
+
+  export type LedgerEntryAvgOrderByAggregateInput = {
+    amountMinor?: SortOrder
+  }
+
+  export type LedgerEntryMaxOrderByAggregateInput = {
+    id?: SortOrder
+    transactionId?: SortOrder
+    accountId?: SortOrder
+    direction?: SortOrder
+    amountMinor?: SortOrder
+    currency?: SortOrder
+  }
+
+  export type LedgerEntryMinOrderByAggregateInput = {
+    id?: SortOrder
+    transactionId?: SortOrder
+    accountId?: SortOrder
+    direction?: SortOrder
+    amountMinor?: SortOrder
+    currency?: SortOrder
+  }
+
+  export type LedgerEntrySumOrderByAggregateInput = {
+    amountMinor?: SortOrder
+  }
+
+  export type EnumLedgerEntryDirectionWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.LedgerEntryDirection | EnumLedgerEntryDirectionFieldRefInput<$PrismaModel>
+    in?: $Enums.LedgerEntryDirection[] | ListEnumLedgerEntryDirectionFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LedgerEntryDirection[] | ListEnumLedgerEntryDirectionFieldRefInput<$PrismaModel>
+    not?: NestedEnumLedgerEntryDirectionWithAggregatesFilter<$PrismaModel> | $Enums.LedgerEntryDirection
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumLedgerEntryDirectionFilter<$PrismaModel>
+    _max?: NestedEnumLedgerEntryDirectionFilter<$PrismaModel>
+  }
+
+  export type EnumLedgerReservationStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.LedgerReservationStatus | EnumLedgerReservationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.LedgerReservationStatus[] | ListEnumLedgerReservationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LedgerReservationStatus[] | ListEnumLedgerReservationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumLedgerReservationStatusFilter<$PrismaModel> | $Enums.LedgerReservationStatus
+  }
+
+  export type BigIntNullableFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel> | null
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntNullableFilter<$PrismaModel> | bigint | number | null
+  }
+
+  export type LedgerReservationOrganizationIdIdempotencyKeyCompoundUniqueInput = {
+    organizationId: string
+    idempotencyKey: string
+  }
+
+  export type LedgerReservationCountOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    userId?: SortOrder
+    idempotencyKey?: SortOrder
+    operation?: SortOrder
+    status?: SortOrder
+    currency?: SortOrder
+    maxAmountMinor?: SortOrder
+    committedMinor?: SortOrder
+    rateCardVersion?: SortOrder
+    importJobId?: SortOrder
+    reserveTxId?: SortOrder
+    settleTxId?: SortOrder
+    compensateTxId?: SortOrder
+    expiresAt?: SortOrder
+    committedAt?: SortOrder
+    releasedAt?: SortOrder
+    releaseReason?: SortOrder
+    metadata?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type LedgerReservationAvgOrderByAggregateInput = {
+    maxAmountMinor?: SortOrder
+    committedMinor?: SortOrder
+    rateCardVersion?: SortOrder
+  }
+
+  export type LedgerReservationMaxOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    userId?: SortOrder
+    idempotencyKey?: SortOrder
+    operation?: SortOrder
+    status?: SortOrder
+    currency?: SortOrder
+    maxAmountMinor?: SortOrder
+    committedMinor?: SortOrder
+    rateCardVersion?: SortOrder
+    importJobId?: SortOrder
+    reserveTxId?: SortOrder
+    settleTxId?: SortOrder
+    compensateTxId?: SortOrder
+    expiresAt?: SortOrder
+    committedAt?: SortOrder
+    releasedAt?: SortOrder
+    releaseReason?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type LedgerReservationMinOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    userId?: SortOrder
+    idempotencyKey?: SortOrder
+    operation?: SortOrder
+    status?: SortOrder
+    currency?: SortOrder
+    maxAmountMinor?: SortOrder
+    committedMinor?: SortOrder
+    rateCardVersion?: SortOrder
+    importJobId?: SortOrder
+    reserveTxId?: SortOrder
+    settleTxId?: SortOrder
+    compensateTxId?: SortOrder
+    expiresAt?: SortOrder
+    committedAt?: SortOrder
+    releasedAt?: SortOrder
+    releaseReason?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type LedgerReservationSumOrderByAggregateInput = {
+    maxAmountMinor?: SortOrder
+    committedMinor?: SortOrder
+    rateCardVersion?: SortOrder
+  }
+
+  export type EnumLedgerReservationStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.LedgerReservationStatus | EnumLedgerReservationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.LedgerReservationStatus[] | ListEnumLedgerReservationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LedgerReservationStatus[] | ListEnumLedgerReservationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumLedgerReservationStatusWithAggregatesFilter<$PrismaModel> | $Enums.LedgerReservationStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumLedgerReservationStatusFilter<$PrismaModel>
+    _max?: NestedEnumLedgerReservationStatusFilter<$PrismaModel>
+  }
+
+  export type BigIntNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel> | null
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntNullableWithAggregatesFilter<$PrismaModel> | bigint | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedBigIntNullableFilter<$PrismaModel>
+    _min?: NestedBigIntNullableFilter<$PrismaModel>
+    _max?: NestedBigIntNullableFilter<$PrismaModel>
+  }
+
+  export type LedgerFxRateCountOrderByAggregateInput = {
+    id?: SortOrder
+    fromCurrency?: SortOrder
+    toCurrency?: SortOrder
+    rateNum?: SortOrder
+    rateDen?: SortOrder
+    effectiveAt?: SortOrder
+    cutoffAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type LedgerFxRateAvgOrderByAggregateInput = {
+    rateNum?: SortOrder
+    rateDen?: SortOrder
+  }
+
+  export type LedgerFxRateMaxOrderByAggregateInput = {
+    id?: SortOrder
+    fromCurrency?: SortOrder
+    toCurrency?: SortOrder
+    rateNum?: SortOrder
+    rateDen?: SortOrder
+    effectiveAt?: SortOrder
+    cutoffAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type LedgerFxRateMinOrderByAggregateInput = {
+    id?: SortOrder
+    fromCurrency?: SortOrder
+    toCurrency?: SortOrder
+    rateNum?: SortOrder
+    rateDen?: SortOrder
+    effectiveAt?: SortOrder
+    cutoffAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type LedgerFxRateSumOrderByAggregateInput = {
+    rateNum?: SortOrder
+    rateDen?: SortOrder
+  }
+
+  export type EnumLedgerReconciliationStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.LedgerReconciliationStatus | EnumLedgerReconciliationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.LedgerReconciliationStatus[] | ListEnumLedgerReconciliationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LedgerReconciliationStatus[] | ListEnumLedgerReconciliationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumLedgerReconciliationStatusFilter<$PrismaModel> | $Enums.LedgerReconciliationStatus
+  }
+
+  export type LedgerReconciliationRunCountOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    source?: SortOrder
+    status?: SortOrder
+    discrepancyCount?: SortOrder
+    discrepancies?: SortOrder
+    runAt?: SortOrder
+    metadata?: SortOrder
+  }
+
+  export type LedgerReconciliationRunAvgOrderByAggregateInput = {
+    discrepancyCount?: SortOrder
+  }
+
+  export type LedgerReconciliationRunMaxOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    source?: SortOrder
+    status?: SortOrder
+    discrepancyCount?: SortOrder
+    runAt?: SortOrder
+  }
+
+  export type LedgerReconciliationRunMinOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    source?: SortOrder
+    status?: SortOrder
+    discrepancyCount?: SortOrder
+    runAt?: SortOrder
+  }
+
+  export type LedgerReconciliationRunSumOrderByAggregateInput = {
+    discrepancyCount?: SortOrder
+  }
+
+  export type EnumLedgerReconciliationStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.LedgerReconciliationStatus | EnumLedgerReconciliationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.LedgerReconciliationStatus[] | ListEnumLedgerReconciliationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LedgerReconciliationStatus[] | ListEnumLedgerReconciliationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumLedgerReconciliationStatusWithAggregatesFilter<$PrismaModel> | $Enums.LedgerReconciliationStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumLedgerReconciliationStatusFilter<$PrismaModel>
+    _max?: NestedEnumLedgerReconciliationStatusFilter<$PrismaModel>
   }
 
   export type AccountCreateNestedManyWithoutUserInput = {
@@ -176120,6 +185198,200 @@ export namespace Prisma {
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutGalleryListingsInput, UserUpdateWithoutGalleryListingsInput>, UserUncheckedUpdateWithoutGalleryListingsInput>
   }
 
+  export type LedgerEntryCreateNestedManyWithoutAccountInput = {
+    create?: XOR<LedgerEntryCreateWithoutAccountInput, LedgerEntryUncheckedCreateWithoutAccountInput> | LedgerEntryCreateWithoutAccountInput[] | LedgerEntryUncheckedCreateWithoutAccountInput[]
+    connectOrCreate?: LedgerEntryCreateOrConnectWithoutAccountInput | LedgerEntryCreateOrConnectWithoutAccountInput[]
+    createMany?: LedgerEntryCreateManyAccountInputEnvelope
+    connect?: LedgerEntryWhereUniqueInput | LedgerEntryWhereUniqueInput[]
+  }
+
+  export type LedgerEntryUncheckedCreateNestedManyWithoutAccountInput = {
+    create?: XOR<LedgerEntryCreateWithoutAccountInput, LedgerEntryUncheckedCreateWithoutAccountInput> | LedgerEntryCreateWithoutAccountInput[] | LedgerEntryUncheckedCreateWithoutAccountInput[]
+    connectOrCreate?: LedgerEntryCreateOrConnectWithoutAccountInput | LedgerEntryCreateOrConnectWithoutAccountInput[]
+    createMany?: LedgerEntryCreateManyAccountInputEnvelope
+    connect?: LedgerEntryWhereUniqueInput | LedgerEntryWhereUniqueInput[]
+  }
+
+  export type EnumLedgerAccountTypeFieldUpdateOperationsInput = {
+    set?: $Enums.LedgerAccountType
+  }
+
+  export type LedgerEntryUpdateManyWithoutAccountNestedInput = {
+    create?: XOR<LedgerEntryCreateWithoutAccountInput, LedgerEntryUncheckedCreateWithoutAccountInput> | LedgerEntryCreateWithoutAccountInput[] | LedgerEntryUncheckedCreateWithoutAccountInput[]
+    connectOrCreate?: LedgerEntryCreateOrConnectWithoutAccountInput | LedgerEntryCreateOrConnectWithoutAccountInput[]
+    upsert?: LedgerEntryUpsertWithWhereUniqueWithoutAccountInput | LedgerEntryUpsertWithWhereUniqueWithoutAccountInput[]
+    createMany?: LedgerEntryCreateManyAccountInputEnvelope
+    set?: LedgerEntryWhereUniqueInput | LedgerEntryWhereUniqueInput[]
+    disconnect?: LedgerEntryWhereUniqueInput | LedgerEntryWhereUniqueInput[]
+    delete?: LedgerEntryWhereUniqueInput | LedgerEntryWhereUniqueInput[]
+    connect?: LedgerEntryWhereUniqueInput | LedgerEntryWhereUniqueInput[]
+    update?: LedgerEntryUpdateWithWhereUniqueWithoutAccountInput | LedgerEntryUpdateWithWhereUniqueWithoutAccountInput[]
+    updateMany?: LedgerEntryUpdateManyWithWhereWithoutAccountInput | LedgerEntryUpdateManyWithWhereWithoutAccountInput[]
+    deleteMany?: LedgerEntryScalarWhereInput | LedgerEntryScalarWhereInput[]
+  }
+
+  export type LedgerEntryUncheckedUpdateManyWithoutAccountNestedInput = {
+    create?: XOR<LedgerEntryCreateWithoutAccountInput, LedgerEntryUncheckedCreateWithoutAccountInput> | LedgerEntryCreateWithoutAccountInput[] | LedgerEntryUncheckedCreateWithoutAccountInput[]
+    connectOrCreate?: LedgerEntryCreateOrConnectWithoutAccountInput | LedgerEntryCreateOrConnectWithoutAccountInput[]
+    upsert?: LedgerEntryUpsertWithWhereUniqueWithoutAccountInput | LedgerEntryUpsertWithWhereUniqueWithoutAccountInput[]
+    createMany?: LedgerEntryCreateManyAccountInputEnvelope
+    set?: LedgerEntryWhereUniqueInput | LedgerEntryWhereUniqueInput[]
+    disconnect?: LedgerEntryWhereUniqueInput | LedgerEntryWhereUniqueInput[]
+    delete?: LedgerEntryWhereUniqueInput | LedgerEntryWhereUniqueInput[]
+    connect?: LedgerEntryWhereUniqueInput | LedgerEntryWhereUniqueInput[]
+    update?: LedgerEntryUpdateWithWhereUniqueWithoutAccountInput | LedgerEntryUpdateWithWhereUniqueWithoutAccountInput[]
+    updateMany?: LedgerEntryUpdateManyWithWhereWithoutAccountInput | LedgerEntryUpdateManyWithWhereWithoutAccountInput[]
+    deleteMany?: LedgerEntryScalarWhereInput | LedgerEntryScalarWhereInput[]
+  }
+
+  export type LedgerEntryCreateNestedManyWithoutTransactionInput = {
+    create?: XOR<LedgerEntryCreateWithoutTransactionInput, LedgerEntryUncheckedCreateWithoutTransactionInput> | LedgerEntryCreateWithoutTransactionInput[] | LedgerEntryUncheckedCreateWithoutTransactionInput[]
+    connectOrCreate?: LedgerEntryCreateOrConnectWithoutTransactionInput | LedgerEntryCreateOrConnectWithoutTransactionInput[]
+    createMany?: LedgerEntryCreateManyTransactionInputEnvelope
+    connect?: LedgerEntryWhereUniqueInput | LedgerEntryWhereUniqueInput[]
+  }
+
+  export type LedgerTransactionCreateNestedOneWithoutReversalsInput = {
+    create?: XOR<LedgerTransactionCreateWithoutReversalsInput, LedgerTransactionUncheckedCreateWithoutReversalsInput>
+    connectOrCreate?: LedgerTransactionCreateOrConnectWithoutReversalsInput
+    connect?: LedgerTransactionWhereUniqueInput
+  }
+
+  export type LedgerTransactionCreateNestedManyWithoutReversalOfInput = {
+    create?: XOR<LedgerTransactionCreateWithoutReversalOfInput, LedgerTransactionUncheckedCreateWithoutReversalOfInput> | LedgerTransactionCreateWithoutReversalOfInput[] | LedgerTransactionUncheckedCreateWithoutReversalOfInput[]
+    connectOrCreate?: LedgerTransactionCreateOrConnectWithoutReversalOfInput | LedgerTransactionCreateOrConnectWithoutReversalOfInput[]
+    createMany?: LedgerTransactionCreateManyReversalOfInputEnvelope
+    connect?: LedgerTransactionWhereUniqueInput | LedgerTransactionWhereUniqueInput[]
+  }
+
+  export type LedgerEntryUncheckedCreateNestedManyWithoutTransactionInput = {
+    create?: XOR<LedgerEntryCreateWithoutTransactionInput, LedgerEntryUncheckedCreateWithoutTransactionInput> | LedgerEntryCreateWithoutTransactionInput[] | LedgerEntryUncheckedCreateWithoutTransactionInput[]
+    connectOrCreate?: LedgerEntryCreateOrConnectWithoutTransactionInput | LedgerEntryCreateOrConnectWithoutTransactionInput[]
+    createMany?: LedgerEntryCreateManyTransactionInputEnvelope
+    connect?: LedgerEntryWhereUniqueInput | LedgerEntryWhereUniqueInput[]
+  }
+
+  export type LedgerTransactionUncheckedCreateNestedManyWithoutReversalOfInput = {
+    create?: XOR<LedgerTransactionCreateWithoutReversalOfInput, LedgerTransactionUncheckedCreateWithoutReversalOfInput> | LedgerTransactionCreateWithoutReversalOfInput[] | LedgerTransactionUncheckedCreateWithoutReversalOfInput[]
+    connectOrCreate?: LedgerTransactionCreateOrConnectWithoutReversalOfInput | LedgerTransactionCreateOrConnectWithoutReversalOfInput[]
+    createMany?: LedgerTransactionCreateManyReversalOfInputEnvelope
+    connect?: LedgerTransactionWhereUniqueInput | LedgerTransactionWhereUniqueInput[]
+  }
+
+  export type LedgerEntryUpdateManyWithoutTransactionNestedInput = {
+    create?: XOR<LedgerEntryCreateWithoutTransactionInput, LedgerEntryUncheckedCreateWithoutTransactionInput> | LedgerEntryCreateWithoutTransactionInput[] | LedgerEntryUncheckedCreateWithoutTransactionInput[]
+    connectOrCreate?: LedgerEntryCreateOrConnectWithoutTransactionInput | LedgerEntryCreateOrConnectWithoutTransactionInput[]
+    upsert?: LedgerEntryUpsertWithWhereUniqueWithoutTransactionInput | LedgerEntryUpsertWithWhereUniqueWithoutTransactionInput[]
+    createMany?: LedgerEntryCreateManyTransactionInputEnvelope
+    set?: LedgerEntryWhereUniqueInput | LedgerEntryWhereUniqueInput[]
+    disconnect?: LedgerEntryWhereUniqueInput | LedgerEntryWhereUniqueInput[]
+    delete?: LedgerEntryWhereUniqueInput | LedgerEntryWhereUniqueInput[]
+    connect?: LedgerEntryWhereUniqueInput | LedgerEntryWhereUniqueInput[]
+    update?: LedgerEntryUpdateWithWhereUniqueWithoutTransactionInput | LedgerEntryUpdateWithWhereUniqueWithoutTransactionInput[]
+    updateMany?: LedgerEntryUpdateManyWithWhereWithoutTransactionInput | LedgerEntryUpdateManyWithWhereWithoutTransactionInput[]
+    deleteMany?: LedgerEntryScalarWhereInput | LedgerEntryScalarWhereInput[]
+  }
+
+  export type LedgerTransactionUpdateOneWithoutReversalsNestedInput = {
+    create?: XOR<LedgerTransactionCreateWithoutReversalsInput, LedgerTransactionUncheckedCreateWithoutReversalsInput>
+    connectOrCreate?: LedgerTransactionCreateOrConnectWithoutReversalsInput
+    upsert?: LedgerTransactionUpsertWithoutReversalsInput
+    disconnect?: LedgerTransactionWhereInput | boolean
+    delete?: LedgerTransactionWhereInput | boolean
+    connect?: LedgerTransactionWhereUniqueInput
+    update?: XOR<XOR<LedgerTransactionUpdateToOneWithWhereWithoutReversalsInput, LedgerTransactionUpdateWithoutReversalsInput>, LedgerTransactionUncheckedUpdateWithoutReversalsInput>
+  }
+
+  export type LedgerTransactionUpdateManyWithoutReversalOfNestedInput = {
+    create?: XOR<LedgerTransactionCreateWithoutReversalOfInput, LedgerTransactionUncheckedCreateWithoutReversalOfInput> | LedgerTransactionCreateWithoutReversalOfInput[] | LedgerTransactionUncheckedCreateWithoutReversalOfInput[]
+    connectOrCreate?: LedgerTransactionCreateOrConnectWithoutReversalOfInput | LedgerTransactionCreateOrConnectWithoutReversalOfInput[]
+    upsert?: LedgerTransactionUpsertWithWhereUniqueWithoutReversalOfInput | LedgerTransactionUpsertWithWhereUniqueWithoutReversalOfInput[]
+    createMany?: LedgerTransactionCreateManyReversalOfInputEnvelope
+    set?: LedgerTransactionWhereUniqueInput | LedgerTransactionWhereUniqueInput[]
+    disconnect?: LedgerTransactionWhereUniqueInput | LedgerTransactionWhereUniqueInput[]
+    delete?: LedgerTransactionWhereUniqueInput | LedgerTransactionWhereUniqueInput[]
+    connect?: LedgerTransactionWhereUniqueInput | LedgerTransactionWhereUniqueInput[]
+    update?: LedgerTransactionUpdateWithWhereUniqueWithoutReversalOfInput | LedgerTransactionUpdateWithWhereUniqueWithoutReversalOfInput[]
+    updateMany?: LedgerTransactionUpdateManyWithWhereWithoutReversalOfInput | LedgerTransactionUpdateManyWithWhereWithoutReversalOfInput[]
+    deleteMany?: LedgerTransactionScalarWhereInput | LedgerTransactionScalarWhereInput[]
+  }
+
+  export type LedgerEntryUncheckedUpdateManyWithoutTransactionNestedInput = {
+    create?: XOR<LedgerEntryCreateWithoutTransactionInput, LedgerEntryUncheckedCreateWithoutTransactionInput> | LedgerEntryCreateWithoutTransactionInput[] | LedgerEntryUncheckedCreateWithoutTransactionInput[]
+    connectOrCreate?: LedgerEntryCreateOrConnectWithoutTransactionInput | LedgerEntryCreateOrConnectWithoutTransactionInput[]
+    upsert?: LedgerEntryUpsertWithWhereUniqueWithoutTransactionInput | LedgerEntryUpsertWithWhereUniqueWithoutTransactionInput[]
+    createMany?: LedgerEntryCreateManyTransactionInputEnvelope
+    set?: LedgerEntryWhereUniqueInput | LedgerEntryWhereUniqueInput[]
+    disconnect?: LedgerEntryWhereUniqueInput | LedgerEntryWhereUniqueInput[]
+    delete?: LedgerEntryWhereUniqueInput | LedgerEntryWhereUniqueInput[]
+    connect?: LedgerEntryWhereUniqueInput | LedgerEntryWhereUniqueInput[]
+    update?: LedgerEntryUpdateWithWhereUniqueWithoutTransactionInput | LedgerEntryUpdateWithWhereUniqueWithoutTransactionInput[]
+    updateMany?: LedgerEntryUpdateManyWithWhereWithoutTransactionInput | LedgerEntryUpdateManyWithWhereWithoutTransactionInput[]
+    deleteMany?: LedgerEntryScalarWhereInput | LedgerEntryScalarWhereInput[]
+  }
+
+  export type LedgerTransactionUncheckedUpdateManyWithoutReversalOfNestedInput = {
+    create?: XOR<LedgerTransactionCreateWithoutReversalOfInput, LedgerTransactionUncheckedCreateWithoutReversalOfInput> | LedgerTransactionCreateWithoutReversalOfInput[] | LedgerTransactionUncheckedCreateWithoutReversalOfInput[]
+    connectOrCreate?: LedgerTransactionCreateOrConnectWithoutReversalOfInput | LedgerTransactionCreateOrConnectWithoutReversalOfInput[]
+    upsert?: LedgerTransactionUpsertWithWhereUniqueWithoutReversalOfInput | LedgerTransactionUpsertWithWhereUniqueWithoutReversalOfInput[]
+    createMany?: LedgerTransactionCreateManyReversalOfInputEnvelope
+    set?: LedgerTransactionWhereUniqueInput | LedgerTransactionWhereUniqueInput[]
+    disconnect?: LedgerTransactionWhereUniqueInput | LedgerTransactionWhereUniqueInput[]
+    delete?: LedgerTransactionWhereUniqueInput | LedgerTransactionWhereUniqueInput[]
+    connect?: LedgerTransactionWhereUniqueInput | LedgerTransactionWhereUniqueInput[]
+    update?: LedgerTransactionUpdateWithWhereUniqueWithoutReversalOfInput | LedgerTransactionUpdateWithWhereUniqueWithoutReversalOfInput[]
+    updateMany?: LedgerTransactionUpdateManyWithWhereWithoutReversalOfInput | LedgerTransactionUpdateManyWithWhereWithoutReversalOfInput[]
+    deleteMany?: LedgerTransactionScalarWhereInput | LedgerTransactionScalarWhereInput[]
+  }
+
+  export type LedgerTransactionCreateNestedOneWithoutEntriesInput = {
+    create?: XOR<LedgerTransactionCreateWithoutEntriesInput, LedgerTransactionUncheckedCreateWithoutEntriesInput>
+    connectOrCreate?: LedgerTransactionCreateOrConnectWithoutEntriesInput
+    connect?: LedgerTransactionWhereUniqueInput
+  }
+
+  export type LedgerAccountCreateNestedOneWithoutEntriesInput = {
+    create?: XOR<LedgerAccountCreateWithoutEntriesInput, LedgerAccountUncheckedCreateWithoutEntriesInput>
+    connectOrCreate?: LedgerAccountCreateOrConnectWithoutEntriesInput
+    connect?: LedgerAccountWhereUniqueInput
+  }
+
+  export type EnumLedgerEntryDirectionFieldUpdateOperationsInput = {
+    set?: $Enums.LedgerEntryDirection
+  }
+
+  export type LedgerTransactionUpdateOneRequiredWithoutEntriesNestedInput = {
+    create?: XOR<LedgerTransactionCreateWithoutEntriesInput, LedgerTransactionUncheckedCreateWithoutEntriesInput>
+    connectOrCreate?: LedgerTransactionCreateOrConnectWithoutEntriesInput
+    upsert?: LedgerTransactionUpsertWithoutEntriesInput
+    connect?: LedgerTransactionWhereUniqueInput
+    update?: XOR<XOR<LedgerTransactionUpdateToOneWithWhereWithoutEntriesInput, LedgerTransactionUpdateWithoutEntriesInput>, LedgerTransactionUncheckedUpdateWithoutEntriesInput>
+  }
+
+  export type LedgerAccountUpdateOneRequiredWithoutEntriesNestedInput = {
+    create?: XOR<LedgerAccountCreateWithoutEntriesInput, LedgerAccountUncheckedCreateWithoutEntriesInput>
+    connectOrCreate?: LedgerAccountCreateOrConnectWithoutEntriesInput
+    upsert?: LedgerAccountUpsertWithoutEntriesInput
+    connect?: LedgerAccountWhereUniqueInput
+    update?: XOR<XOR<LedgerAccountUpdateToOneWithWhereWithoutEntriesInput, LedgerAccountUpdateWithoutEntriesInput>, LedgerAccountUncheckedUpdateWithoutEntriesInput>
+  }
+
+  export type EnumLedgerReservationStatusFieldUpdateOperationsInput = {
+    set?: $Enums.LedgerReservationStatus
+  }
+
+  export type NullableBigIntFieldUpdateOperationsInput = {
+    set?: bigint | number | null
+    increment?: bigint | number
+    decrement?: bigint | number
+    multiply?: bigint | number
+    divide?: bigint | number
+  }
+
+  export type EnumLedgerReconciliationStatusFieldUpdateOperationsInput = {
+    set?: $Enums.LedgerReconciliationStatus
+  }
+
   export type NestedStringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -176713,6 +185985,101 @@ export namespace Prisma {
     _sum?: NestedFloatNullableFilter<$PrismaModel>
     _min?: NestedFloatNullableFilter<$PrismaModel>
     _max?: NestedFloatNullableFilter<$PrismaModel>
+  }
+
+  export type NestedEnumLedgerAccountTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.LedgerAccountType | EnumLedgerAccountTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.LedgerAccountType[] | ListEnumLedgerAccountTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LedgerAccountType[] | ListEnumLedgerAccountTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumLedgerAccountTypeFilter<$PrismaModel> | $Enums.LedgerAccountType
+  }
+
+  export type NestedEnumLedgerAccountTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.LedgerAccountType | EnumLedgerAccountTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.LedgerAccountType[] | ListEnumLedgerAccountTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LedgerAccountType[] | ListEnumLedgerAccountTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumLedgerAccountTypeWithAggregatesFilter<$PrismaModel> | $Enums.LedgerAccountType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumLedgerAccountTypeFilter<$PrismaModel>
+    _max?: NestedEnumLedgerAccountTypeFilter<$PrismaModel>
+  }
+
+  export type NestedEnumLedgerEntryDirectionFilter<$PrismaModel = never> = {
+    equals?: $Enums.LedgerEntryDirection | EnumLedgerEntryDirectionFieldRefInput<$PrismaModel>
+    in?: $Enums.LedgerEntryDirection[] | ListEnumLedgerEntryDirectionFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LedgerEntryDirection[] | ListEnumLedgerEntryDirectionFieldRefInput<$PrismaModel>
+    not?: NestedEnumLedgerEntryDirectionFilter<$PrismaModel> | $Enums.LedgerEntryDirection
+  }
+
+  export type NestedEnumLedgerEntryDirectionWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.LedgerEntryDirection | EnumLedgerEntryDirectionFieldRefInput<$PrismaModel>
+    in?: $Enums.LedgerEntryDirection[] | ListEnumLedgerEntryDirectionFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LedgerEntryDirection[] | ListEnumLedgerEntryDirectionFieldRefInput<$PrismaModel>
+    not?: NestedEnumLedgerEntryDirectionWithAggregatesFilter<$PrismaModel> | $Enums.LedgerEntryDirection
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumLedgerEntryDirectionFilter<$PrismaModel>
+    _max?: NestedEnumLedgerEntryDirectionFilter<$PrismaModel>
+  }
+
+  export type NestedEnumLedgerReservationStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.LedgerReservationStatus | EnumLedgerReservationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.LedgerReservationStatus[] | ListEnumLedgerReservationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LedgerReservationStatus[] | ListEnumLedgerReservationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumLedgerReservationStatusFilter<$PrismaModel> | $Enums.LedgerReservationStatus
+  }
+
+  export type NestedBigIntNullableFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel> | null
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntNullableFilter<$PrismaModel> | bigint | number | null
+  }
+
+  export type NestedEnumLedgerReservationStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.LedgerReservationStatus | EnumLedgerReservationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.LedgerReservationStatus[] | ListEnumLedgerReservationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LedgerReservationStatus[] | ListEnumLedgerReservationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumLedgerReservationStatusWithAggregatesFilter<$PrismaModel> | $Enums.LedgerReservationStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumLedgerReservationStatusFilter<$PrismaModel>
+    _max?: NestedEnumLedgerReservationStatusFilter<$PrismaModel>
+  }
+
+  export type NestedBigIntNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel> | null
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntNullableWithAggregatesFilter<$PrismaModel> | bigint | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedBigIntNullableFilter<$PrismaModel>
+    _min?: NestedBigIntNullableFilter<$PrismaModel>
+    _max?: NestedBigIntNullableFilter<$PrismaModel>
+  }
+
+  export type NestedEnumLedgerReconciliationStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.LedgerReconciliationStatus | EnumLedgerReconciliationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.LedgerReconciliationStatus[] | ListEnumLedgerReconciliationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LedgerReconciliationStatus[] | ListEnumLedgerReconciliationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumLedgerReconciliationStatusFilter<$PrismaModel> | $Enums.LedgerReconciliationStatus
+  }
+
+  export type NestedEnumLedgerReconciliationStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.LedgerReconciliationStatus | EnumLedgerReconciliationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.LedgerReconciliationStatus[] | ListEnumLedgerReconciliationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LedgerReconciliationStatus[] | ListEnumLedgerReconciliationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumLedgerReconciliationStatusWithAggregatesFilter<$PrismaModel> | $Enums.LedgerReconciliationStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumLedgerReconciliationStatusFilter<$PrismaModel>
+    _max?: NestedEnumLedgerReconciliationStatusFilter<$PrismaModel>
   }
 
   export type AccountCreateWithoutUserInput = {
@@ -203188,6 +212555,346 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
+  export type LedgerEntryCreateWithoutAccountInput = {
+    id?: string
+    direction: $Enums.LedgerEntryDirection
+    amountMinor: bigint | number
+    currency: string
+    transaction: LedgerTransactionCreateNestedOneWithoutEntriesInput
+  }
+
+  export type LedgerEntryUncheckedCreateWithoutAccountInput = {
+    id?: string
+    transactionId: string
+    direction: $Enums.LedgerEntryDirection
+    amountMinor: bigint | number
+    currency: string
+  }
+
+  export type LedgerEntryCreateOrConnectWithoutAccountInput = {
+    where: LedgerEntryWhereUniqueInput
+    create: XOR<LedgerEntryCreateWithoutAccountInput, LedgerEntryUncheckedCreateWithoutAccountInput>
+  }
+
+  export type LedgerEntryCreateManyAccountInputEnvelope = {
+    data: LedgerEntryCreateManyAccountInput | LedgerEntryCreateManyAccountInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type LedgerEntryUpsertWithWhereUniqueWithoutAccountInput = {
+    where: LedgerEntryWhereUniqueInput
+    update: XOR<LedgerEntryUpdateWithoutAccountInput, LedgerEntryUncheckedUpdateWithoutAccountInput>
+    create: XOR<LedgerEntryCreateWithoutAccountInput, LedgerEntryUncheckedCreateWithoutAccountInput>
+  }
+
+  export type LedgerEntryUpdateWithWhereUniqueWithoutAccountInput = {
+    where: LedgerEntryWhereUniqueInput
+    data: XOR<LedgerEntryUpdateWithoutAccountInput, LedgerEntryUncheckedUpdateWithoutAccountInput>
+  }
+
+  export type LedgerEntryUpdateManyWithWhereWithoutAccountInput = {
+    where: LedgerEntryScalarWhereInput
+    data: XOR<LedgerEntryUpdateManyMutationInput, LedgerEntryUncheckedUpdateManyWithoutAccountInput>
+  }
+
+  export type LedgerEntryScalarWhereInput = {
+    AND?: LedgerEntryScalarWhereInput | LedgerEntryScalarWhereInput[]
+    OR?: LedgerEntryScalarWhereInput[]
+    NOT?: LedgerEntryScalarWhereInput | LedgerEntryScalarWhereInput[]
+    id?: StringFilter<"LedgerEntry"> | string
+    transactionId?: StringFilter<"LedgerEntry"> | string
+    accountId?: StringFilter<"LedgerEntry"> | string
+    direction?: EnumLedgerEntryDirectionFilter<"LedgerEntry"> | $Enums.LedgerEntryDirection
+    amountMinor?: BigIntFilter<"LedgerEntry"> | bigint | number
+    currency?: StringFilter<"LedgerEntry"> | string
+  }
+
+  export type LedgerEntryCreateWithoutTransactionInput = {
+    id?: string
+    direction: $Enums.LedgerEntryDirection
+    amountMinor: bigint | number
+    currency: string
+    account: LedgerAccountCreateNestedOneWithoutEntriesInput
+  }
+
+  export type LedgerEntryUncheckedCreateWithoutTransactionInput = {
+    id?: string
+    accountId: string
+    direction: $Enums.LedgerEntryDirection
+    amountMinor: bigint | number
+    currency: string
+  }
+
+  export type LedgerEntryCreateOrConnectWithoutTransactionInput = {
+    where: LedgerEntryWhereUniqueInput
+    create: XOR<LedgerEntryCreateWithoutTransactionInput, LedgerEntryUncheckedCreateWithoutTransactionInput>
+  }
+
+  export type LedgerEntryCreateManyTransactionInputEnvelope = {
+    data: LedgerEntryCreateManyTransactionInput | LedgerEntryCreateManyTransactionInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type LedgerTransactionCreateWithoutReversalsInput = {
+    id?: string
+    organizationId: string
+    reason: string
+    idempotencyKey?: string | null
+    rateCardVersion?: number | null
+    postedAt?: Date | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    entries?: LedgerEntryCreateNestedManyWithoutTransactionInput
+    reversalOf?: LedgerTransactionCreateNestedOneWithoutReversalsInput
+  }
+
+  export type LedgerTransactionUncheckedCreateWithoutReversalsInput = {
+    id?: string
+    organizationId: string
+    reason: string
+    idempotencyKey?: string | null
+    reversalOfId?: string | null
+    rateCardVersion?: number | null
+    postedAt?: Date | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    entries?: LedgerEntryUncheckedCreateNestedManyWithoutTransactionInput
+  }
+
+  export type LedgerTransactionCreateOrConnectWithoutReversalsInput = {
+    where: LedgerTransactionWhereUniqueInput
+    create: XOR<LedgerTransactionCreateWithoutReversalsInput, LedgerTransactionUncheckedCreateWithoutReversalsInput>
+  }
+
+  export type LedgerTransactionCreateWithoutReversalOfInput = {
+    id?: string
+    organizationId: string
+    reason: string
+    idempotencyKey?: string | null
+    rateCardVersion?: number | null
+    postedAt?: Date | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    entries?: LedgerEntryCreateNestedManyWithoutTransactionInput
+    reversals?: LedgerTransactionCreateNestedManyWithoutReversalOfInput
+  }
+
+  export type LedgerTransactionUncheckedCreateWithoutReversalOfInput = {
+    id?: string
+    organizationId: string
+    reason: string
+    idempotencyKey?: string | null
+    rateCardVersion?: number | null
+    postedAt?: Date | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    entries?: LedgerEntryUncheckedCreateNestedManyWithoutTransactionInput
+    reversals?: LedgerTransactionUncheckedCreateNestedManyWithoutReversalOfInput
+  }
+
+  export type LedgerTransactionCreateOrConnectWithoutReversalOfInput = {
+    where: LedgerTransactionWhereUniqueInput
+    create: XOR<LedgerTransactionCreateWithoutReversalOfInput, LedgerTransactionUncheckedCreateWithoutReversalOfInput>
+  }
+
+  export type LedgerTransactionCreateManyReversalOfInputEnvelope = {
+    data: LedgerTransactionCreateManyReversalOfInput | LedgerTransactionCreateManyReversalOfInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type LedgerEntryUpsertWithWhereUniqueWithoutTransactionInput = {
+    where: LedgerEntryWhereUniqueInput
+    update: XOR<LedgerEntryUpdateWithoutTransactionInput, LedgerEntryUncheckedUpdateWithoutTransactionInput>
+    create: XOR<LedgerEntryCreateWithoutTransactionInput, LedgerEntryUncheckedCreateWithoutTransactionInput>
+  }
+
+  export type LedgerEntryUpdateWithWhereUniqueWithoutTransactionInput = {
+    where: LedgerEntryWhereUniqueInput
+    data: XOR<LedgerEntryUpdateWithoutTransactionInput, LedgerEntryUncheckedUpdateWithoutTransactionInput>
+  }
+
+  export type LedgerEntryUpdateManyWithWhereWithoutTransactionInput = {
+    where: LedgerEntryScalarWhereInput
+    data: XOR<LedgerEntryUpdateManyMutationInput, LedgerEntryUncheckedUpdateManyWithoutTransactionInput>
+  }
+
+  export type LedgerTransactionUpsertWithoutReversalsInput = {
+    update: XOR<LedgerTransactionUpdateWithoutReversalsInput, LedgerTransactionUncheckedUpdateWithoutReversalsInput>
+    create: XOR<LedgerTransactionCreateWithoutReversalsInput, LedgerTransactionUncheckedCreateWithoutReversalsInput>
+    where?: LedgerTransactionWhereInput
+  }
+
+  export type LedgerTransactionUpdateToOneWithWhereWithoutReversalsInput = {
+    where?: LedgerTransactionWhereInput
+    data: XOR<LedgerTransactionUpdateWithoutReversalsInput, LedgerTransactionUncheckedUpdateWithoutReversalsInput>
+  }
+
+  export type LedgerTransactionUpdateWithoutReversalsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    rateCardVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    postedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    entries?: LedgerEntryUpdateManyWithoutTransactionNestedInput
+    reversalOf?: LedgerTransactionUpdateOneWithoutReversalsNestedInput
+  }
+
+  export type LedgerTransactionUncheckedUpdateWithoutReversalsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    reversalOfId?: NullableStringFieldUpdateOperationsInput | string | null
+    rateCardVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    postedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    entries?: LedgerEntryUncheckedUpdateManyWithoutTransactionNestedInput
+  }
+
+  export type LedgerTransactionUpsertWithWhereUniqueWithoutReversalOfInput = {
+    where: LedgerTransactionWhereUniqueInput
+    update: XOR<LedgerTransactionUpdateWithoutReversalOfInput, LedgerTransactionUncheckedUpdateWithoutReversalOfInput>
+    create: XOR<LedgerTransactionCreateWithoutReversalOfInput, LedgerTransactionUncheckedCreateWithoutReversalOfInput>
+  }
+
+  export type LedgerTransactionUpdateWithWhereUniqueWithoutReversalOfInput = {
+    where: LedgerTransactionWhereUniqueInput
+    data: XOR<LedgerTransactionUpdateWithoutReversalOfInput, LedgerTransactionUncheckedUpdateWithoutReversalOfInput>
+  }
+
+  export type LedgerTransactionUpdateManyWithWhereWithoutReversalOfInput = {
+    where: LedgerTransactionScalarWhereInput
+    data: XOR<LedgerTransactionUpdateManyMutationInput, LedgerTransactionUncheckedUpdateManyWithoutReversalOfInput>
+  }
+
+  export type LedgerTransactionScalarWhereInput = {
+    AND?: LedgerTransactionScalarWhereInput | LedgerTransactionScalarWhereInput[]
+    OR?: LedgerTransactionScalarWhereInput[]
+    NOT?: LedgerTransactionScalarWhereInput | LedgerTransactionScalarWhereInput[]
+    id?: StringFilter<"LedgerTransaction"> | string
+    organizationId?: StringFilter<"LedgerTransaction"> | string
+    reason?: StringFilter<"LedgerTransaction"> | string
+    idempotencyKey?: StringNullableFilter<"LedgerTransaction"> | string | null
+    reversalOfId?: StringNullableFilter<"LedgerTransaction"> | string | null
+    rateCardVersion?: IntNullableFilter<"LedgerTransaction"> | number | null
+    postedAt?: DateTimeFilter<"LedgerTransaction"> | Date | string
+    metadata?: JsonNullableFilter<"LedgerTransaction">
+  }
+
+  export type LedgerTransactionCreateWithoutEntriesInput = {
+    id?: string
+    organizationId: string
+    reason: string
+    idempotencyKey?: string | null
+    rateCardVersion?: number | null
+    postedAt?: Date | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    reversalOf?: LedgerTransactionCreateNestedOneWithoutReversalsInput
+    reversals?: LedgerTransactionCreateNestedManyWithoutReversalOfInput
+  }
+
+  export type LedgerTransactionUncheckedCreateWithoutEntriesInput = {
+    id?: string
+    organizationId: string
+    reason: string
+    idempotencyKey?: string | null
+    reversalOfId?: string | null
+    rateCardVersion?: number | null
+    postedAt?: Date | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    reversals?: LedgerTransactionUncheckedCreateNestedManyWithoutReversalOfInput
+  }
+
+  export type LedgerTransactionCreateOrConnectWithoutEntriesInput = {
+    where: LedgerTransactionWhereUniqueInput
+    create: XOR<LedgerTransactionCreateWithoutEntriesInput, LedgerTransactionUncheckedCreateWithoutEntriesInput>
+  }
+
+  export type LedgerAccountCreateWithoutEntriesInput = {
+    id?: string
+    organizationId: string
+    key: string
+    type: $Enums.LedgerAccountType
+    currency: string
+    createdAt?: Date | string
+  }
+
+  export type LedgerAccountUncheckedCreateWithoutEntriesInput = {
+    id?: string
+    organizationId: string
+    key: string
+    type: $Enums.LedgerAccountType
+    currency: string
+    createdAt?: Date | string
+  }
+
+  export type LedgerAccountCreateOrConnectWithoutEntriesInput = {
+    where: LedgerAccountWhereUniqueInput
+    create: XOR<LedgerAccountCreateWithoutEntriesInput, LedgerAccountUncheckedCreateWithoutEntriesInput>
+  }
+
+  export type LedgerTransactionUpsertWithoutEntriesInput = {
+    update: XOR<LedgerTransactionUpdateWithoutEntriesInput, LedgerTransactionUncheckedUpdateWithoutEntriesInput>
+    create: XOR<LedgerTransactionCreateWithoutEntriesInput, LedgerTransactionUncheckedCreateWithoutEntriesInput>
+    where?: LedgerTransactionWhereInput
+  }
+
+  export type LedgerTransactionUpdateToOneWithWhereWithoutEntriesInput = {
+    where?: LedgerTransactionWhereInput
+    data: XOR<LedgerTransactionUpdateWithoutEntriesInput, LedgerTransactionUncheckedUpdateWithoutEntriesInput>
+  }
+
+  export type LedgerTransactionUpdateWithoutEntriesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    rateCardVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    postedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    reversalOf?: LedgerTransactionUpdateOneWithoutReversalsNestedInput
+    reversals?: LedgerTransactionUpdateManyWithoutReversalOfNestedInput
+  }
+
+  export type LedgerTransactionUncheckedUpdateWithoutEntriesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    reversalOfId?: NullableStringFieldUpdateOperationsInput | string | null
+    rateCardVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    postedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    reversals?: LedgerTransactionUncheckedUpdateManyWithoutReversalOfNestedInput
+  }
+
+  export type LedgerAccountUpsertWithoutEntriesInput = {
+    update: XOR<LedgerAccountUpdateWithoutEntriesInput, LedgerAccountUncheckedUpdateWithoutEntriesInput>
+    create: XOR<LedgerAccountCreateWithoutEntriesInput, LedgerAccountUncheckedCreateWithoutEntriesInput>
+    where?: LedgerAccountWhereInput
+  }
+
+  export type LedgerAccountUpdateToOneWithWhereWithoutEntriesInput = {
+    where?: LedgerAccountWhereInput
+    data: XOR<LedgerAccountUpdateWithoutEntriesInput, LedgerAccountUncheckedUpdateWithoutEntriesInput>
+  }
+
+  export type LedgerAccountUpdateWithoutEntriesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    type?: EnumLedgerAccountTypeFieldUpdateOperationsInput | $Enums.LedgerAccountType
+    currency?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LedgerAccountUncheckedUpdateWithoutEntriesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    type?: EnumLedgerAccountTypeFieldUpdateOperationsInput | $Enums.LedgerAccountType
+    currency?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type AccountCreateManyUserInput = {
     id?: string
     provider: string
@@ -208164,6 +217871,114 @@ export namespace Prisma {
     computeUnits?: NullableFloatFieldUpdateOperationsInput | number | null
     costCents?: NullableFloatFieldUpdateOperationsInput | number | null
     meteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type LedgerEntryCreateManyAccountInput = {
+    id?: string
+    transactionId: string
+    direction: $Enums.LedgerEntryDirection
+    amountMinor: bigint | number
+    currency: string
+  }
+
+  export type LedgerEntryUpdateWithoutAccountInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    direction?: EnumLedgerEntryDirectionFieldUpdateOperationsInput | $Enums.LedgerEntryDirection
+    amountMinor?: BigIntFieldUpdateOperationsInput | bigint | number
+    currency?: StringFieldUpdateOperationsInput | string
+    transaction?: LedgerTransactionUpdateOneRequiredWithoutEntriesNestedInput
+  }
+
+  export type LedgerEntryUncheckedUpdateWithoutAccountInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    transactionId?: StringFieldUpdateOperationsInput | string
+    direction?: EnumLedgerEntryDirectionFieldUpdateOperationsInput | $Enums.LedgerEntryDirection
+    amountMinor?: BigIntFieldUpdateOperationsInput | bigint | number
+    currency?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type LedgerEntryUncheckedUpdateManyWithoutAccountInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    transactionId?: StringFieldUpdateOperationsInput | string
+    direction?: EnumLedgerEntryDirectionFieldUpdateOperationsInput | $Enums.LedgerEntryDirection
+    amountMinor?: BigIntFieldUpdateOperationsInput | bigint | number
+    currency?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type LedgerEntryCreateManyTransactionInput = {
+    id?: string
+    accountId: string
+    direction: $Enums.LedgerEntryDirection
+    amountMinor: bigint | number
+    currency: string
+  }
+
+  export type LedgerTransactionCreateManyReversalOfInput = {
+    id?: string
+    organizationId: string
+    reason: string
+    idempotencyKey?: string | null
+    rateCardVersion?: number | null
+    postedAt?: Date | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type LedgerEntryUpdateWithoutTransactionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    direction?: EnumLedgerEntryDirectionFieldUpdateOperationsInput | $Enums.LedgerEntryDirection
+    amountMinor?: BigIntFieldUpdateOperationsInput | bigint | number
+    currency?: StringFieldUpdateOperationsInput | string
+    account?: LedgerAccountUpdateOneRequiredWithoutEntriesNestedInput
+  }
+
+  export type LedgerEntryUncheckedUpdateWithoutTransactionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    accountId?: StringFieldUpdateOperationsInput | string
+    direction?: EnumLedgerEntryDirectionFieldUpdateOperationsInput | $Enums.LedgerEntryDirection
+    amountMinor?: BigIntFieldUpdateOperationsInput | bigint | number
+    currency?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type LedgerEntryUncheckedUpdateManyWithoutTransactionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    accountId?: StringFieldUpdateOperationsInput | string
+    direction?: EnumLedgerEntryDirectionFieldUpdateOperationsInput | $Enums.LedgerEntryDirection
+    amountMinor?: BigIntFieldUpdateOperationsInput | bigint | number
+    currency?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type LedgerTransactionUpdateWithoutReversalOfInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    rateCardVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    postedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    entries?: LedgerEntryUpdateManyWithoutTransactionNestedInput
+    reversals?: LedgerTransactionUpdateManyWithoutReversalOfNestedInput
+  }
+
+  export type LedgerTransactionUncheckedUpdateWithoutReversalOfInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    rateCardVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    postedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    entries?: LedgerEntryUncheckedUpdateManyWithoutTransactionNestedInput
+    reversals?: LedgerTransactionUncheckedUpdateManyWithoutReversalOfNestedInput
+  }
+
+  export type LedgerTransactionUncheckedUpdateManyWithoutReversalOfInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    rateCardVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    postedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
   }
 
 

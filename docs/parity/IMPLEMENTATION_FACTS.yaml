@@ -1672,10 +1672,10 @@ items:
   surfaceIds:
   - P134
   evidenceIds: []
-  codeRefs: app/routes/billing.tsx
-  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  codeRefs: app/routes/billing.tsx; services/api/src/ledger-core.ts; services/api/src/ledger-store.ts
+  lastMeasuredAt: '2026-07-20T21:30:00Z'
   measuredBy: agent-overlay-2026-07-20
-  notes: Caps budget UI ; adossés au crédit SHADOW non activé
+  notes: 'Caps budget UI ; adossés au crédit SHADOW non activé. Grand livre CANONIQUE à double entrée durable implémenté + prouvé en réel (Postgres) — double entrée stricte, décimal exact/FX/cutoff, compensation par écriture inverse, réservation durable, rapprochement, hard limits (P0-V3-12) — branche feat/billing-double-entry-ledger, PR non mergée, PROVEN_REVIEW_PENDING.'
   partialReason: Caps budget UI ; adossés au crédit SHADOW non activé
 - itemId: P135
   itemType: SURFACE
@@ -1748,10 +1748,11 @@ items:
   - P140
   evidenceIds:
   - docs/deploy-evidence/2026-07-16-import/
-  codeRefs: app/routes/import-github.tsx; services/api/src/import-pipeline.ts
-  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  - docs/deploy-evidence/2026-07-20-import-state-machine/
+  codeRefs: app/routes/import-github.tsx; services/api/src/import-pipeline.ts; services/api/src/import-billing.ts
+  lastMeasuredAt: '2026-07-20T20:30:00Z'
   measuredBy: agent-overlay-2026-07-20
-  notes: Import GitHub exécuté + staging sécurisé + preuve e2e
+  notes: 'Import GitHub exécuté + staging sécurisé + preuve e2e. Machine à états ALIGNÉE sur le contrat §9.2 (READY_TO_COMMIT/RESCANNING, commit atomique depuis READY_TO_COMMIT seul) + billing minimal de sûreté (réservation idempotente, débit si commit seul) — branche feat/import-state-machine-p0ex04 (P0-EX-04), PR non mergée.'
 - itemId: P141
   itemType: SURFACE
   codeCommit: f69a4b313e2e

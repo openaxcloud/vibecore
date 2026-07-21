@@ -3,14 +3,14 @@
 # champ validation reflète le dernier run du validateur sur l'arbre.
 schemaVersion: 1
 fileCount: 164
-generatedAt: "2026-07-20T17:23:45Z"
-generatedFromCommit: 9cdee15266482971723efbece1865d9007f36ac3
-mergedCommit: 9cdee15266482971723efbece1865d9007f36ac3
+generatedAt: "2026-07-21T04:52:01Z"
+generatedFromCommit: 790eef1786d282104707dc95be075706c39764ae
+mergedCommit: 790eef1786d282104707dc95be075706c39764ae
 validation:
   workflow: Parity registries
-  runId: 29763506531
-  runDate: "2026-07-20T17:23:45Z"
-  runCommit: 9cdee15266482971723efbece1865d9007f36ac3
+  runId: 29802136737
+  runDate: "2026-07-21T04:52:01Z"
+  runCommit: 790eef1786d282104707dc95be075706c39764ae
   source: docs/parity/CI_ATTESTATION.yaml
 documents:
   - file: A2_12_DEDUP_SEMANTIQUE_20260720.md
@@ -74,9 +74,9 @@ documents:
     repoCommit: 1692f981
     reviewer: UNKNOWN
   - file: CI_ATTESTATION.yaml
-    sha256: "41db0e521ca73b837522d4a51a72e4a7f32f0847afb15424bbac569d8e4df6aa"
+    sha256: "cc6a6bde41b87e110fcb0eb7ebb17d825df7df2628a2341733af7a1ba734e36a"
     schemaVersion: 1
-    repoCommit: 9cdee152
+    repoCommit: 790eef17
     reviewer: UNKNOWN
   - file: COMPONENT_KIND_REGISTRY.yaml
     sha256: "8c7c016fb581d5ecfecc6b054f834a3b099c32c361229ffdaf84f86b54dc0891"
@@ -174,12 +174,12 @@ documents:
     repoCommit: d56931bd
     reviewer: UNKNOWN
   - file: IMPLEMENTATION_FACTS.yaml
-    sha256: "04e391e5c09958e1d98db478c070a303a79aaf87d48be3889b8cf76f9293db5e"
+    sha256: "ff9d85b660d4a095f851ff995f66e32987254f5c6ec285f077554920943424f6"
     schemaVersion: 1
     repoCommit: af24d4fe
     reviewer: UNKNOWN
   - file: IMPLEMENTATION_STATUS.yaml
-    sha256: "c718f2fa53b51b276a2391ab9aac5c3e7820d64da2264e49c533c73a4eb4e222"
+    sha256: "e5567db14cba7568b988f2835671ecfef06533ad935f3cf83bd2a6eb235aada5"
     schemaVersion: 2
     repoCommit: null
     reviewer: UNKNOWN
@@ -224,7 +224,7 @@ documents:
     repoCommit: d1063912
     reviewer: UNKNOWN
   - file: P0_REGISTRY.yaml
-    sha256: "6e5558cfc1b956d3028e307a376bb4e009237286288c71a71e5eda67c4194aa1"
+    sha256: "21b964dae6ed20a068ccfff51efc610227750eef96f86c01efe181c2887e8229"
     schemaVersion: 1
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN
@@ -234,9 +234,9 @@ documents:
     repoCommit: af9e4e83
     reviewer: UNKNOWN
   - file: PARITY_STATUS.md
-    sha256: "f71bd3684b01bd933f51b6aed3c69b58eff6b2eb7a5f8d35adc69f99e964ee3a"
+    sha256: "e94f2c0a283c4cf4c7abc96347c83d9be5861813f2c230d49647063b8b4695ce"
     schemaVersion: 2
-    repoCommit: 9cdee152
+    repoCommit: 790eef17
     reviewer: UNKNOWN
   - file: PARITY_STATUS_NOTES.md
     sha256: "a14ce6eade730143bea186e3e22042efd9a2b3300248fe80b0faeb32d75f58cd"
