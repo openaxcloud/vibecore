@@ -294,13 +294,15 @@ p0s:
     refusalType: DESACCORD
     reviewVerdict: REFUSED
     reviewCommit: "57febeab"
+    resolutionBranch: "feat/billing-double-entry-ledger"
+    resolutionStatus: "PROVEN_REVIEW_PENDING"
     commit: "07ced1c5"
     reviewer: UNKNOWN
-    evidenceId: docs/parity/BILLING_LEDGER_CONTRACT.md
-    proof: "SPEC : contrat ledger avec double entrée, corrections compensatoires, RateCardVersion, webhooks PSP idempotents, rapprochement GCP+PSP+ledger. Implémentation du minimum sûr (réservation+idempotence+compensation) = D4 étape 1, tracée UNK-BILLING-MINIMAL-IMPL."
+    evidenceId: docs/deploy-evidence/2026-07-20-double-entry-ledger/
+    proof: "GRAND LIVRE DOUBLE-ENTRÉE DURABLE IMPLÉMENTÉ + PROUVÉ EN RÉEL (branche feat/billing-double-entry-ledger, PR ouverte non mergée). ledger-core.ts (double entrée stricte Σdébits=Σcrédits/devise validée avant écriture, écriture inverse, FX rationnel exact + cutoff, décimal bigint jamais flottant, hard limit) + ledger-store.ts (durable, migration 0078 : LedgerAccount/Transaction/Entry/Reservation/FxRate/ReconciliationRun + triggers immutabilité BEFORE UPDATE/DELETE/TRUNCATE) + ledger-reservation.ts (reserve/settle/compensate/release) + ledger-reconciliation.ts. 39 tests dont 7 DURABLES contre un vrai Postgres : transaction débit=crédit, compensation qui remet chaque compte à zéro (settle intact, reversalOfId), réservation qui SURVIT à un redémarrage (2 clients indépendants), mutation d'événement passé refusée par la DB, rapprochement détecte un écart, hard limit refusé ; négatifs : débit≠crédit refusé, idempotence. Build strict 0 err. Décision Avi : ancien wallet abandonné, aucune migration de soldes."
     dependances: [UNK-BILLING-MINIMAL-IMPL]
-    conditionDeCloture: "Corriger le claim/la preuve : pas de double entrée canonique, décimales/FX/cutoff, compensations ni rapprochement PSP/GCP ; puis re-soumission au relecteur"
-    nextAction: "Implémenter UsageReservation + compensation (D4 étape 1)"
+    conditionDeCloture: "Merge de la PR feat/billing-double-entry-ledger + re-signature humaine du relecteur (double entrée + décimal/FX/cutoff + compensation + rapprochement désormais implémentés et prouvés)"
+    nextAction: "Re-soumettre la PR feat/billing-double-entry-ledger au relecteur ; NE PAS clôturer avant re-signature (PROVEN_REVIEW_PENDING)"
     targetDate: "2026-08-15"
   - p0Id: P0-V3-13
     title: "Matrice des surfaces inexploitable"

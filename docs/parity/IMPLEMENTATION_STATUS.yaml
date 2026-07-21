@@ -1985,10 +1985,16 @@ items:
     surfaceIds:
       - P134
     evidenceIds: []
-    codeRefs: app/routes/billing.tsx
-    lastMeasuredAt: 2026-07-20T12:30:00Z
+    codeRefs: app/routes/billing.tsx; services/api/src/ledger-core.ts;
+      services/api/src/ledger-store.ts
+    lastMeasuredAt: 2026-07-20T21:30:00Z
     measuredBy: agent-overlay-2026-07-20
-    notes: Caps budget UI ; adossés au crédit SHADOW non activé
+    notes: Caps budget UI ; adossés au crédit SHADOW non activé. Grand livre
+      CANONIQUE à double entrée durable implémenté + prouvé en réel (Postgres) —
+      double entrée stricte, décimal exact/FX/cutoff, compensation par écriture
+      inverse, réservation durable, rapprochement, hard limits (P0-V3-12) —
+      branche feat/billing-double-entry-ledger, PR non mergée,
+      PROVEN_REVIEW_PENDING.
     partialReason: Caps budget UI ; adossés au crédit SHADOW non activé
     status: PARTIAL
   - itemId: P135

@@ -1,0 +1,34 @@
+ ✓ src/ledger-reconciliation.spec.ts > reconcile — ledger vs external > reports OK when every key matches per currency 2ms
+ ✓ src/ledger-reconciliation.spec.ts > reconcile — ledger vs external > DETECTS an amount mismatch (the required proof) 1ms
+ ✓ src/ledger-reconciliation.spec.ts > reconcile — ledger vs external > detects a line missing on either side 0ms
+ ✓ src/ledger-reconciliation.spec.ts > reconcile — ledger vs external > honours a tolerance (rounding slack) 0ms
+ ✓ src/ledger-reconciliation.spec.ts > reconcile — ledger vs external > treats different currencies on the same key as separate lines 0ms
+ ✓ src/ledger-core.spec.ts > validateBalanced — I-LED-1 double-entry > accepts a balanced transaction and returns per-currency totals 1ms
+ ✓ src/ledger-core.spec.ts > validateBalanced — I-LED-1 double-entry > accepts a multi-leg balanced transaction 0ms
+ ✓ src/ledger-core.spec.ts > validateBalanced — I-LED-1 double-entry > balances per-currency independently 0ms
+ ✓ src/ledger-core.spec.ts > validateBalanced — I-LED-1 double-entry > REFUSES an unbalanced transaction (debit ≠ credit) 0ms
+ ✓ src/ledger-core.spec.ts > validateBalanced — I-LED-1 double-entry > REFUSES a single-sided (fewer than two entries) transaction 0ms
+ ✓ src/ledger-core.spec.ts > validateBalanced — I-LED-1 double-entry > REFUSES a non-positive amount 0ms
+ ✓ src/ledger-core.spec.ts > validateBalanced — I-LED-1 double-entry > REFUSES an imbalance hidden across currencies 0ms
+ ✓ src/ledger-core.spec.ts > reverseEntries + netByAccount — compensation nets to zero (I-LED-3) > reversal flips direction and original ⊕ reversal nets to zero per account 1ms
+ ✓ src/ledger-core.spec.ts > convertFx — exact rational, deterministic rounding > converts with an exact rational rate (no float) 0ms
+ ✓ src/ledger-core.spec.ts > convertFx — exact rational, deterministic rounding > rounds HALF_UP deterministically on a fractional result 0ms
+ ✓ src/ledger-core.spec.ts > convertFx — exact rational, deterministic rounding > rejects a non-positive rate 0ms
+ ✓ src/ledger-core.spec.ts > pickFxRate — cutoff honoured > picks the rate valid at the booking date (before cutoff) 0ms
+ ✓ src/ledger-core.spec.ts > pickFxRate — cutoff honoured > a booking at/after the cutoff must use the next rate 0ms
+ ✓ src/ledger-core.spec.ts > pickFxRate — cutoff honoured > refuses when no rate applies (never guesses) 0ms
+ ✓ src/ledger-core.spec.ts > hard limits + ceil (I-LED-4, I-BIL-2) > allows a move within the limit and refuses one that breaches it 0ms
+ ✓ src/ledger-core.spec.ts > hard limits + ceil (I-LED-4, I-BIL-2) > no limit set ⇒ always allowed 0ms
+ ✓ src/ledger-core.spec.ts > hard limits + ceil (I-LED-4, I-BIL-2) > ceilToMinor rounds up with a floor of 1 0ms
+ ✓ src/ledger-core.spec.ts > normalizeCurrency > lowercases + validates 0ms
+ ✓ src/ledger-reservation.spec.ts > reservation lifecycle entries — every step balances > reserve balances (user_credits → reserved) 1ms
+ ✓ src/ledger-reservation.spec.ts > reservation lifecycle entries — every step balances > settle balances and recognises revenue + refunds the remainder 0ms
+ ✓ src/ledger-reservation.spec.ts > reservation lifecycle entries — every step balances > settle with tax splits revenue and tax_payable 0ms
+ ✓ src/ledger-reservation.spec.ts > reservation lifecycle entries — every step balances > release returns the whole hold to available credits 0ms
+ ✓ src/ledger-reservation.spec.ts > reservation lifecycle entries — every step balances > rejects committed > max 1ms
+ ✓ src/ledger-reservation.spec.ts > MONEY CONSERVATION — reserve → settle → compensate nets to ZERO > every account returns to zero after compensation (the user is made whole) 0ms
+ ✓ src/ledger-reservation.spec.ts > MONEY CONSERVATION — reserve → settle → compensate nets to ZERO > reserve → settle (no compensation): user is charged exactly committed, remainder refunded 0ms
+ ✓ src/ledger-reservation.spec.ts > MONEY CONSERVATION — reserve → settle → compensate nets to ZERO > reserve → release (no commit): user is charged NOTHING 0ms
+ ✓ src/ledger-reservation.spec.ts > MONEY CONSERVATION — reserve → settle → compensate nets to ZERO > reserve → settle-with-tax → compensate-with-tax nets to zero incl. tax_payable 0ms
+ Test Files  3 passed (3)
+      Tests  32 passed (32)
