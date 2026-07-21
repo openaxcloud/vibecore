@@ -1,0 +1,16 @@
+# Captured 2026-07-21T05:15:30Z — project ecode-proof-b906ss, europe-west9
+# Positive promoted image digest: sha256:1f9d3d43556b8f8ccd80c9a8aff909506722a9d7fd54909d203a891b392171c9
+
+## Versions in promo-tenant/app (image + 3 attestation referrers + AR internal indexes):
+ - sha256:0fbaffa003a66b9982d744c8d197e40544090c528ccc1b5a3ea1f9c969677d79
+ - sha256:1f9d3d43556b8f8ccd80c9a8aff909506722a9d7fd54909d203a891b392171c9
+ - sha256:3815e0f6cb1393525dcd765f17db840cc0a45e7862578109e4d2eeff9503bd6b
+ - sha256:64a12f1ce961a5fe710f234d26ed02aba5a1dec1b26969dfc0db8bc75e25b03f
+ - sha256:acbf624ee4ca5ab033b02eacea87210825c24b7ac0a4d6683991df800788d430
+ - sha256:c006f9c0d11915d8229bd20f344da81ee736682381da4f5935cdc3f038cf3987
+ - sha256:c9857305fc79b2db36b990254a2815c612150efe567f7075924f81efefecce58
+
+## OCI Referrers API for the promoted image in the TENANT:
+ - application/vnd.dev.cosign.simplesigning.v1+json sha256:c9857305fc79b2db3
+ - application/vnd.in-toto+json sha256:acbf624ee4ca5ab03
+ - application/vnd.cyclonedx+json sha256:3815e0f6cb1393525

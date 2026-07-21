@@ -21,7 +21,7 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: APPROVAL_STATUS.json
-    sha256: "41fb2e2d2bea840341c0c75c34912ae6725101767d587e6c57ba27ee2b2cfe2c"
+    sha256: "795c00bf0deda2c92c3b128704af7c8cd968d50dcf4490cdb44593c5c6e61552"
     schemaVersion: null
     repoCommit: null
     reviewer: UNKNOWN
@@ -116,7 +116,7 @@ documents:
     repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
     reviewer: UNKNOWN
   - file: E2E_PROOFS.yaml
-    sha256: "99b3a06fc435ca75eeb63b854bd027b9114107825115114e11a65e26c8d71b9c"
+    sha256: "b2be3a31fe90811d040cc6d638314bb69ef30360e3d7d32ae8ad4080cf36831b"
     schemaVersion: 1
     repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
     reviewer: UNKNOWN
@@ -201,7 +201,7 @@ documents:
     repoCommit: d1063912
     reviewer: UNKNOWN
   - file: P0_REGISTRY.yaml
-    sha256: "d450721cb2e352d829fe35fe830c757227c028447ed306da95d728b8a489c221"
+    sha256: "a1931646683a697ac0424268b84093619b9eaa56081fcc8651e1b9511664305d"
     schemaVersion: 1
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN
@@ -211,7 +211,7 @@ documents:
     repoCommit: af9e4e83
     reviewer: UNKNOWN
   - file: PARITY_STATUS.md
-    sha256: "2bff99ced67d91ed25bd0424cb0bfcdb2ecb712fa57b7a9357b13b6b53cd24f6"
+    sha256: "f5cde34d9d8e1ed298c621b62674e5319817b8ba09e731f732363513a3668050"
     schemaVersion: 2
     repoCommit: c4484b48
     reviewer: UNKNOWN
@@ -321,7 +321,7 @@ documents:
     repoCommit: d1063912
     reviewer: UNKNOWN
   - file: UNKNOWN_REGISTRY.yaml
-    sha256: "33320b1ec636a62721f57effe5fb7d85ea05f8802f8bf0eac15149bf38c98878"
+    sha256: "56660f630fca4789b658980bd99be2385bc7507730b7388d7ee464da0acb09dc"
     schemaVersion: 2
     repoCommit: b774bfa38e881ebaa071fbf2c2fa9d72ab89efb5
     reviewer: UNKNOWN

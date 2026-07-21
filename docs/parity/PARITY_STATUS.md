@@ -4,24 +4,24 @@ schemaVersion: 2
 repoCommit: c4484b48
 généréPar: scripts/parity/generate-parity-status.mjs (drift-check CI)
 
-**Statut global** : `overallStatus: NOT_APPROVED` · `highestPassedLevel: contractsPresent`
+**Statut global** : `overallStatus: NOT_APPROVED` · `highestPassedLevel: sourceBaselineReady`
 **Attestation CI** : run 29739384301 (2026-07-20T11:40:39Z, commit c4484b48) — verte.
 
 | Niveau | État |
 |---|---|
 | documentReconciled | ✅ PASS |
 | sourceBaselineReady | ✅ PASS |
-| registryUniverseReady | ✅ PASS |
+| registryUniverseReady | ❌ FAIL (E2E-AR-LIVE-PROMOTION-GCP → evidenceId path missing or empty on disk (docs/deplo) |
 | contractsPresent | ✅ PASS |
 | contractsValidated | ❌ FAIL (DOMAIN_MODEL.md: no real reviewer … +18) |
-| implementationReady | ❌ FAIL (P0-V3-01 is OPEN … +5) |
+| implementationReady | ❌ FAIL (P0-V3-01 is OPEN … +4) |
 | verticalBackendReady | ✅ PASS |
 | verticalUserJourneyReady | ❌ FAIL (stage "publish" has no UI proof (une preuve API n'est pas une preuve UI) … +1) |
-| betaReady | ❌ FAIL (beta gate capability still unknown: UNK-GIT-RECONCILE-DONE … +5) |
+| betaReady | ❌ FAIL (registryUniverseReady not passed … +6) |
 | publicLaunchReady | ❌ FAIL (betaReady not passed … +70) |
 | parityBaselineReady | ❌ FAIL (surface SRF-IDE-FILE-HISTORY not done … +10) |
 
-**Compteurs (source unique)** : P0 65 (6 OPEN · 59 PROVEN · 0 CLOSED) · P1 40 · surfaces déclarées 10 (univers 159/159 importé, 1 évaluées, 56 services) · e2e 13/13 · constats 336 → 99 work items · claims non ancrées 0 · uiGaps [publish, rollback]
+**Compteurs (source unique)** : P0 65 (5 OPEN · 60 PROVEN · 0 CLOSED) · P1 40 · surfaces déclarées 10 (univers 159/159 importé, 1 évaluées, 56 services) · e2e 14/14 · constats 336 → 99 work items · claims non ancrées 0 · uiGaps [publish, rollback]
 
 ---
 

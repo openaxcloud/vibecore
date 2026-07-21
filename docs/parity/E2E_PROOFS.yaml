@@ -28,6 +28,19 @@ proofs:
     status: PROVEN
     provenAt: "2026-07-20"
     vertical: publish
+  - proofId: E2E-AR-LIVE-PROMOTION-GCP
+    title: "Promotion par digest + referrers contre le VRAI Google Artifact Registry (projet de test dédié)"
+    fixtures: { account: ecode-proof-b906ss, plan: n/a, region: europe-west9, client: tsx+gcloud+AR }
+    steps: ["créer dépôts AR promo-src/promo-tenant (europe-west9)", "seed image+3 attestations dans promo-src/app", "promoteArtifact via OciDistributionAdapter (staticBearerAuth gcloud) → promo-tenant/app", "re-découverte referrers dans le tenant via l'API Referrers d'AR (+ brute)", "fallback tag-schema source+tenant", "NÉG signature invalide → refus+rollback", "NÉG signataire hors policy → refus+rollback", "supprimer les dépôts AR"]
+    expected: "arReferrersApiSupported=true ; PROMOTION_COMMITTED (image+sig+SBOM+prov re-liés/vérifiés dans le tenant AR) ; 2 négatifs → PROMOTION_BINAUTHZ_DENIED + image tenant 404 + 0 résidu (rétention couplée enforced par AR via cascade package)"
+    evidenceId: docs/deploy-evidence/2026-07-21-artifact-promotion-gcp-ar/
+    screenshots: n/a
+    logs: yes
+    traceIds: "EV-AR-LIVE-PROMOTION-GCP-2026-07-21 ; image promue sha256:1f9d3d43… + 3 attestations vues dans le vrai AR (ar-state-snapshot.txt) ; coût < 0,01 $ ; dépôts supprimés"
+    status: PROVEN
+    provenAt: "2026-07-21"
+    reviewStatus: PROVEN_REVIEW_PENDING
+    vertical: publish
   - proofId: E2E-AUTOSCALE-Z
     title: "Machine sizes + metering runtime + cron (zone autoscale Z2–Z5)"
     fixtures: { account: qa, plan: pro-override, region: europe-west9, client: api+kubectl }

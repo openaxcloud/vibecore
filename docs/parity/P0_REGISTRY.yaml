@@ -154,14 +154,15 @@ p0s:
     source: "Audit v3 (2026-07-16), P0-07"
     priority: 7
     owner: platform
-    status: OPEN
+    status: PROVEN
+    reviewStatus: PROVEN_REVIEW_PENDING
     commit: "07ced1c5"
     reviewer: UNKNOWN
-    evidenceId: docs/deploy-evidence/2026-07-20-artifact-promotion/
-    proof: "AVANCE MAJEURE : adapter AR live implémenté (artifact-registry-live-adapter.ts) + promotion réelle PROUVÉE contre un vrai registre OCI-1.1 (zot, API referrers = protocole AR) — copie image par digest + referrers re-liés + vérif signature/policy DANS LE CONTEXTE CIBLE + fallback tag-schema + rétention couplée, 2 négatifs live. EV-AR-LIVE-PROMOTION-2026-07-20 (hashé). RESTE OUVERT car la clôture exige le run + déploiement contre le GCP AR RÉEL — BLOCKED : nécessite d'Avi un dépôt tenant AR + PromotionIdentity, et confirmation du launch stage attachments AR (Preview/GA)."
+    evidenceId: docs/deploy-evidence/2026-07-21-artifact-promotion-gcp-ar/
+    proof: "PROUVÉ CONTRE LE VRAI GOOGLE ARTIFACT REGISTRY (refus expert levé). Adapter AR-aware (artifact-registry-live-adapter.ts) + promotion réelle par digest dans un projet GCP de TEST dédié (ecode-proof-b906ss, europe-west9, dépôts supprimés après ; coût < 0,01 $) : image + signature/SBOM/provenance copiés/re-liés/vérifiés DANS LE TENANT via l'API Referrers d'AR (arReferrersApiSupported=true, confirmé par snapshot REST), signature ECDSA + policy vérifiées cible, fallback tag-schema, 2 NÉGATIFS live (signature invalide, signataire hors policy → refus + rollback). Rétention couplée ENFORCED par AR (refus DANGLING_PARENT/REFERRING_MANIFEST des suppressions morceau-par-morceau) → rollback via cascade package AR, 0 résidu. EV-AR-LIVE-PROMOTION-GCP-2026-07-21 (hashé). Preuve OCI-1.1 antérieure (zot) : EV-AR-LIVE-PROMOTION-2026-07-20."
     dependances: [UNK-AR-LIVE-PROMOTION]
-    conditionDeCloture: "Promotion réelle : copie image + referrers + vérif signatures + policy tenant + déploiement, avec fallback prouvé"
-    nextAction: "BLOCKED (Avi) : mêmes assertions rejouées contre le GCP AR réel + câblage server-deploy-revision"
+    conditionDeCloture: "Promotion réelle : copie image + referrers + vérif signatures + policy tenant, avec fallback prouvé — FAIT. Clôture administrative (CLOSED) en attente de relecture experte + câblage server-deploy-revision."
+    nextAction: "PROVEN_REVIEW_PENDING — relecture experte, puis câblage promoteArtifact dans server-deploy-revision (staticBearerAuth gcloud + PromotionIdentity) pour un déploiement tenant complet."
     targetDate: "2026-08-15"
   - p0Id: P0-V3-08
     title: "Rollback non reproductible avec de simples refs secrets"

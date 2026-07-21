@@ -1,0 +1,34 @@
+[402ms] registry: {"registry":"europe-west9-docker.pkg.dev","project":"ecode-proof-b906ss","srcRepo":"promo-src","tenantRepo":"promo-tenant"}
+[10993ms] positive.seeded: {"source":"europe-west9-docker.pkg.dev/ecode-proof-b906ss/promo-src/app","imageDigest":"sha256:1f9d3d43556b8f8ccd80c9a8aff909506722a9d7fd54909d203a891b392171c9"}
+[11367ms] positive.AR_referrers_API_supported: true
+[11698ms] positive.source.referrers: ["application/vnd.in-toto+json","application/vnd.cyclonedx+json","application/vnd.dev.cosign.simplesigning.v1+json"]
+[11698ms] assert.ok: "source has 3 attestations (via adapter: AR Referrers API or tag fallback)"
+[25858ms] positive.promoted: {"ok":true,"promoted":["signature","sbom","provenance"],"gate":["signature verified AND signer policy satisfied in target"]}
+[25862ms] assert.ok: "promotion committed in real AR"
+[26196ms] assert.ok: "tenant AR image present after promotion"
+[26758ms] positive.tenant.referrers: ["application/vnd.cyclonedx+json","application/vnd.dev.cosign.simplesigning.v1+json","application/vnd.in-toto+json"]
+[26758ms] assert.ok: "tenant AR has all 3 attestations re-linked (verified in TARGET)"
+[26758ms] assert.ok: "every tenant attestation subject === target image digest"
+[27094ms] fallback.source.referrers: ["application/vnd.cyclonedx+json","application/vnd.dev.cosign.simplesigning.v1+json","application/vnd.in-toto+json"]
+[27094ms] assert.ok: "tag-schema FALLBACK discovers all 3 attestations at SOURCE (AR)"
+[27436ms] fallback.tenant.referrers: ["application/vnd.cyclonedx+json","application/vnd.dev.cosign.simplesigning.v1+json","application/vnd.in-toto+json"]
+[27436ms] assert.ok: "tag-schema FALLBACK discovers all 3 attestations at TENANT (adapter-maintained)"
+[ar-delete-package] app-badsig (image + 3 referrers) → 200 
+[47473ms] neg1.invalid_signature: {"code":"PROMOTION_BINAUTHZ_DENIED","reasons":["TARGET_SIGNATURE_VERIFIED failed: signature does not verify for target image digest"]}
+[47474ms] assert.ok: "NEG-1 invalid signature ⇒ PROMOTION_BINAUTHZ_DENIED"
+[47474ms] assert.ok: "NEG-1 refused specifically on signature verification"
+[48643ms] NEG-1.rollback: {"imageStatus":404,"fallbackTagStatus":404,"residualOrphanAttestations":0}
+[48643ms] assert.ok: "NEG-1 tenant image ROLLED BACK — no pullable image (404)"
+[48643ms] assert.ok: "NEG-1 tag-schema discovery pointer removed (404)"
+[48643ms] assert.ok: "NEG-1 residual attestations (if any) orphaned to a deleted subject — nothing verifiable remains (coupled retention)"
+[ar-delete-package] app-untrusted (image + 3 referrers) → 200 
+[69318ms] neg2.untrusted_signer: {"code":"PROMOTION_BINAUTHZ_DENIED","reasons":["TARGET_POLICY_VERIFIED failed: signer not in allowed-signers policy"]}
+[69318ms] assert.ok: "NEG-2 policy not satisfied ⇒ PROMOTION_BINAUTHZ_DENIED"
+[69318ms] assert.ok: "NEG-2 refused specifically on signer policy"
+[70749ms] NEG-2.rollback: {"imageStatus":404,"fallbackTagStatus":404,"residualOrphanAttestations":0}
+[70749ms] assert.ok: "NEG-2 tenant image ROLLED BACK — no pullable image (404)"
+[70749ms] assert.ok: "NEG-2 tag-schema discovery pointer removed (404)"
+[70749ms] assert.ok: "NEG-2 residual attestations (if any) orphaned to a deleted subject — nothing verifiable remains (coupled retention)"
+[70751ms] evidence.written: "/private/tmp/claude-501/-Users-hb-dev-vibecore/37fc46d0-7c6d-431c-821c-dbb37fbf65ec/scratchpad/wt-ar-live-gcp/docs/deploy-evidence/2026-07-21-artifact-promotion-gcp-ar"
+
+✅ ALL REAL-AR PROMOTION ASSERTIONS PASSED — evidence: /private/tmp/claude-501/-Users-hb-dev-vibecore/37fc46d0-7c6d-431c-821c-dbb37fbf65ec/scratchpad/wt-ar-live-gcp/docs/deploy-evidence/2026-07-21-artifact-promotion-gcp-ar

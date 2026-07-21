@@ -558,30 +558,135 @@ export class OciDistributionAdapter implements RegistryAdapter {
 
   /**
    * Delete the image AND its attachments (coupled retention, §13.5) so a
-   * rollback never orphans an attestation pointing at nothing. Best-effort — a
-   * missing target is a no-op.
+   * rollback never orphans an attestation — nor leaves a pullable-but-unverified
+   * image. Best-effort — a missing target is a no-op.
    *
-   * Ordered for registries that enforce referential integrity (e.g. zot returns
-   * 405/DENIED when deleting a manifest still referenced by a tagged index):
-   *   1. the tag-schema fallback index (releases its references),
-   *   2. every attachment/attestation (now unreferenced; Artifact Registry
-   *      permits this — zot defers to GC of the orphaned danglers),
-   *   3. the subject image itself.
+   * Registries enforce referential integrity in BOTH directions and refuse a
+   * delete whose target is still referenced:
+   *   - zot returns 405/DENIED for a manifest referenced by a tagged index;
+   *   - Artifact Registry returns 400 GOOGLE_MANIFEST_DANGLING_PARENT_IMAGE /
+   *     GOOGLE_MANIFEST_REFERRING_MANIFEST — it treats each referrer as a
+   *     "parent" of the subject image, so the image cannot be deleted until its
+   *     referrers are gone, and a referrer cannot be deleted until the indexes
+   *     referencing it are gone.
+   *
+   * So we delete to a FIXPOINT: repeatedly sweep {tag-schema index, referrers,
+   * image}, dropping whatever now deletes (202) or is already absent (404), until
+   * a full pass makes no progress. Each removed reference unblocks the next
+   * layer — the tag index frees the referrers, the referrers free the image.
    */
   async deleteImageAndReferrers(repo: string, digest: string): Promise<void> {
     const parsed = parseRepo(repo);
     const referrers = await this.listReferrers(repo, digest).catch(() => [] as OciAttachment[]);
 
-    await this.deleteManifest(parsed, digestToFallbackTag(digest)).catch(() => undefined);
-
-    for (const ref of referrers) {
-      await this.deleteManifest(parsed, ref.digest).catch(() => undefined);
+    // Artifact Registry enforces coupled retention so strictly that piecemeal
+    // OCI DELETE cannot untangle it (each referrer is "parented" by AR-internal
+    // index manifests that are not OCI-addressable). AR's own primitive —
+    // versions.delete?force=true — removes a version together with its tags and
+    // referrers atomically. Use it (same Bearer token, HTTPS) on AR.
+    if (this.isArtifactRegistry(parsed.registry)) {
+      // AR enforces coupled retention server-side: it treats each referrer as a
+      // "PARENT" of the subject image and refuses any piecemeal delete (even
+      // OCI DELETE, and version-level force-delete only completes eventually).
+      // The reliable, atomic primitive is a PACKAGE delete, which cascades the
+      // image + every referrer + AR's internal referrers-index manifests + tags
+      // in one operation — precisely "image and metadata retained/removed
+      // together" (§12.4/§13.5). A promotion targets a per-(tenant,app) package,
+      // so removing that package rolls back exactly what the promotion produced.
+      await this.arDeletePackage(parsed, referrers.length);
+      return;
     }
 
-    await this.deleteManifest(parsed, digest).catch(() => undefined);
+    // Order matters only as a hint; the fixpoint corrects any wrong guess.
+    const pending = new Set<string>([
+      digestToFallbackTag(digest),
+      ...referrers.map((r) => r.digest),
+      digest,
+    ]);
+
+    // At most one pass per element is ever needed (each pass frees ≥1 layer),
+    // plus a guard to never loop unboundedly.
+    for (let pass = 0; pass < pending.size + 2 && pending.size > 0; pass++) {
+      let progressed = false;
+
+      for (const ref of [...pending]) {
+        const status = await this.deleteManifest(parsed, ref);
+
+        if (status === 202 || status === 200 || status === 404) {
+          pending.delete(ref);
+          progressed = true;
+        }
+      }
+
+      if (!progressed) {
+        break; // nothing deletable this pass — remaining are blocked by a non-OCI reference
+      }
+    }
   }
 
-  private async deleteManifest(parsed: ParsedRepo, digest: string): Promise<void> {
+  /** True for a Google Artifact Registry host (`*-docker.pkg.dev`). */
+  private isArtifactRegistry(registry: string): boolean {
+    return registry.endsWith('-docker.pkg.dev');
+  }
+
+  /**
+   * Cascade-delete the whole AR package (image name) that this ref points at, via
+   * the Artifact Registry REST API — the atomic, coupled-retention-safe way to
+   * remove an image together with all its referrers, AR-internal referrers
+   * indexes and tags. Uses the same Bearer token as the docker endpoint (one
+   * gcloud OAuth scope covers both). Waits until the package is actually gone.
+   */
+  private async arDeletePackage(parsed: ParsedRepo, referrerCount: number): Promise<void> {
+    const location = parsed.registry.replace(/-docker\.pkg\.dev$/, '');
+    const parts = parsed.repository.split('/');
+    const [project, repository, ...pkgParts] = parts;
+    const pkg = pkgParts.join('/');
+
+    if (!project || !repository || !pkg) {
+      throw new Error(`Cannot derive AR package name from ${parsed.registry}/${parsed.repository}`);
+    }
+
+    const name = `projects/${project}/locations/${location}/repositories/${repository}/packages/${encodeURIComponent(pkg)}`;
+    const url = `https://artifactregistry.googleapis.com/v1/${name}`;
+
+    const authz = await this.auth.authorization({ registry: parsed.registry, repository: parsed.repository, action: 'delete' });
+    const headers: Record<string, string> = {};
+
+    if (authz) {
+      headers.Authorization = authz;
+    }
+
+    const res = await this.fetchImpl(url, { method: 'DELETE', headers });
+
+    if (process.env.PROMOTION_DEBUG) {
+      const body = res.status >= 400 ? await res.text().catch(() => '') : '';
+      console.error(`[ar-delete-package] ${pkg} (image + ${referrerCount} referrers) → ${res.status} ${body}`);
+    }
+
+    // The delete is a long-running operation; wait until the package is gone.
+    const versionsUrl = `${url}/versions?pageSize=1`;
+
+    for (let i = 0; i < 20; i++) {
+      const check = await this.fetchImpl(versionsUrl, { headers });
+
+      if (check.status === 404) {
+        return; // package removed
+      }
+
+      if (check.status === 200) {
+        const body = (await check.json()) as { versions?: unknown[] };
+
+        if (!body.versions || body.versions.length === 0) {
+          return; // all versions gone
+        }
+      }
+
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+  }
+
+  /** DELETE a manifest by digest or tag; returns the HTTP status. */
+  private async deleteManifest(parsed: ParsedRepo, digest: string): Promise<number> {
     const url = `${this.base(parsed.registry)}/v2/${parsed.repository}/manifests/${digest}`;
     const res = await this.req('delete', parsed, url, { method: 'DELETE' });
 
@@ -589,5 +694,7 @@ export class OciDistributionAdapter implements RegistryAdapter {
       const body = res.status >= 400 ? await res.text().catch(() => '') : '';
       console.error(`[delete] ${parsed.repository}@${digest} → ${res.status} ${body}`);
     }
+
+    return res.status;
   }
 }

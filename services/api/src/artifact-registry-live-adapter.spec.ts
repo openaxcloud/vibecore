@@ -329,3 +329,66 @@ describe('OciDistributionAdapter — against an in-memory OCI registry', () => {
     expect(await adapter.imageExists(TENANT, imageDigest)).toBe(false);
   });
 });
+
+describe('OciDistributionAdapter — Artifact Registry coupled-retention delete', () => {
+  // Real AR refuses piecemeal OCI deletes (GOOGLE_MANIFEST_DANGLING_PARENT_IMAGE)
+  // and requires a package-level cascade via its REST API. This mock asserts the
+  // adapter takes that AR-specific path for `*-docker.pkg.dev` hosts.
+  it('deletes via the AR REST package cascade, not per-manifest OCI DELETE', async () => {
+    const AR = 'europe-west9-docker.pkg.dev';
+    const REPO = `${AR}/proj/tenant/app`;
+    const digest = 'sha256:deadbeef';
+    let packageDeleted = false;
+    const ociDeletes: string[] = [];
+    let arRestDelete: string | undefined;
+
+    const fetchImpl = (async (url: string | URL, init: RequestInit = {}) => {
+      const u = String(url);
+      const method = (init.method ?? 'GET').toUpperCase();
+
+      // AR REST endpoint
+      if (u.startsWith('https://artifactregistry.googleapis.com/')) {
+        if (method === 'DELETE') {
+          arRestDelete = u;
+          packageDeleted = true;
+          return new Response('{}', { status: 200 });
+        }
+
+        // versions poll → empty once the package is deleted
+        return new Response(JSON.stringify({ versions: packageDeleted ? [] : [{ name: 'v' }] }), { status: 200 });
+      }
+
+      // OCI registry endpoint
+      if (u.includes('/referrers/')) {
+        const manifests = packageDeleted
+          ? []
+          : [SIG, SBOM, PROV].map((at, i) => ({ mediaType: MT_MANIFEST, digest: `sha256:ref${i}`, size: 1, artifactType: at }));
+        return new Response(JSON.stringify({ manifests }), { status: 200, headers: { 'content-type': MT_INDEX } });
+      }
+
+      if (u.includes('/manifests/')) {
+        if (method === 'DELETE') {
+          ociDeletes.push(u);
+          return new Response(null, { status: 202 });
+        }
+
+        // HEAD image → gone after the cascade
+        return new Response(null, { status: packageDeleted ? 404 : 200 });
+      }
+
+      return new Response(null, { status: 404 });
+    }) as unknown as typeof fetch;
+
+    const adapter = new OciDistributionAdapter({ fetchImpl });
+
+    expect(await adapter.imageExists(REPO, digest)).toBe(true);
+    await adapter.deleteImageAndReferrers(REPO, digest);
+
+    // Went through the AR REST package cascade…
+    expect(arRestDelete).toContain('/packages/app');
+    // …and NOT through per-manifest OCI DELETEs of image/referrers.
+    expect(ociDeletes.some((u) => u.includes(`/manifests/${digest}`))).toBe(false);
+    // Image is gone afterwards.
+    expect(await adapter.imageExists(REPO, digest)).toBe(false);
+  });
+});

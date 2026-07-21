@@ -10,15 +10,19 @@ unknowns:
     question: "La promotion réelle contre un Artifact Registry live copie-t-elle bien signature+SBOM+provenance (avec fallback ORAS/BinAuthz vu GCP-12 Preview) ?"
     owner: platform
     priority: 4
-    partialResolution: >
-      RÉPONDU pour un vrai registre OCI-1.1 (protocole OCI Distribution + API
-      referrers, identique à AR sauf l'auth) : adapter live implémenté
-      (services/api/src/artifact-registry-live-adapter.ts) + promotion réelle par
-      digest prouvée (image + signature + SBOM + provenance re-liés et vérifiés
-      dans la cible), fallback tag-schema prouvé, 2 négatifs (signature invalide,
-      signataire hors policy) → refus + rollback. Preuve hashée :
-      docs/deploy-evidence/2026-07-20-artifact-promotion/ (EV-AR-LIVE-PROMOTION-2026-07-20).
-    nextAction: "BLOCKED (accès GCP requis d'Avi) : rejouer le MÊME adapter contre le Google Artifact Registry réel via staticBearerAuth(gcloud) + PromotionIdentity + dépôt tenant, et confirmer le launch stage des attachments AR (Preview vs GA)."
+    resolution: >
+      RÉSOLU contre le VRAI Google Artifact Registry (projet de test dédié
+      ecode-proof-b906ss, europe-west9, dépôts supprimés après). L'adapter live
+      (artifact-registry-live-adapter.ts) exécute la promotion réelle par digest :
+      image + signature + SBOM + provenance copiés/re-liés/vérifiés dans le tenant
+      via l'API Referrers d'AR (arReferrersApiSupported=true, mesuré), signature
+      ECDSA + policy vérifiées cible, fallback tag-schema, 2 négatifs (signature
+      invalide, signataire hors policy) → refus + rollback. Attachments AR : API
+      Referrers SUPPORTÉE en réel ; rétention couplée ENFORCED par AR lui-même
+      (refus DANGLING_PARENT/REFERRING_MANIFEST). Preuves hashées :
+      docs/deploy-evidence/2026-07-21-artifact-promotion-gcp-ar/ (réel AR,
+      EV-AR-LIVE-PROMOTION-GCP-2026-07-21) + 2026-07-20-artifact-promotion/ (zot).
+    nextAction: "PROVEN_REVIEW_PENDING : relecture experte, puis câblage promoteArtifact dans server-deploy-revision pour un déploiement tenant complet."
     targetDate: "2026-08-15"
     expiration: "2026-08-31"
   - unknownId: UNK-GALLERY-REPORT-FLOW
