@@ -1,0 +1,43 @@
+ ✓ src/import-pipeline.spec.ts > import state machine — aligned on the contract (P0-EX-04) > accepts the CLEAN happy path: SCANNING → READY_TO_COMMIT → COMMITTING → COMMITTED 8ms
+ ✓ src/import-pipeline.spec.ts > import state machine — aligned on the contract (P0-EX-04) > accepts the QUARANTINE path with the RESCANNING step before READY_TO_COMMIT 1ms
+ ✓ src/import-pipeline.spec.ts > import state machine — aligned on the contract (P0-EX-04) > RESCANNING may loop back to QUARANTINED when findings are still unresolved 1ms
+ ✓ src/import-pipeline.spec.ts > import state machine — aligned on the contract (P0-EX-04) > REJECTS the old shortcut SCANNING → COMMITTING (IMPORT_COMMIT_NOT_READY) 1ms
+ ✓ src/import-pipeline.spec.ts > import state machine — aligned on the contract (P0-EX-04) > REJECTS COMMITTING from any state other than READY_TO_COMMIT 1ms
+ ✓ src/import-pipeline.spec.ts > import state machine — aligned on the contract (P0-EX-04) > REJECTS forcing a CLEAN payload into QUARANTINED (IMPORT_CLEAN_FORCED_QUARANTINE) 2ms
+ ✓ src/import-pipeline.spec.ts > import state machine — aligned on the contract (P0-EX-04) > REJECTS skipping to READY_TO_COMMIT with blocking findings (IMPORT_FINDINGS_SKIP_QUARANTINE) 0ms
+ ✓ src/import-pipeline.spec.ts > import state machine — aligned on the contract (P0-EX-04) > assertScanBranch accepts the correct branches 1ms
+ ✓ src/import-pipeline.spec.ts > import state machine — aligned on the contract (P0-EX-04) > allows cleanup (ROLLING_BACK / CLEANUP_PENDING / CANCELLED / EXPIRED / FAILED) from ANY non-terminal state 2ms
+ ✓ src/import-pipeline.spec.ts > import state machine — aligned on the contract (P0-EX-04) > refuses to leave a terminal state (incl. the new FAILED terminal) 1ms
+ ✓ src/import-pipeline.spec.ts > scanStagedFilesForSecrets — read-only detection, redacted findings > finds an env secret and a private-key block, presenting redacted previews 1ms
+ ✓ src/import-pipeline.spec.ts > scanStagedFilesForSecrets — read-only detection, redacted findings > detects provider token SHAPES without hardcoding a real secret 0ms
+ ✓ src/import-pipeline.spec.ts > scanStagedFilesForSecrets — read-only detection, redacted findings > does NOT flag ordinary code (no false positive on a normal repo) 0ms
+ ✓ src/import-pipeline.spec.ts > scanStagedFilesForSecrets — read-only detection, redacted findings > never mutates the input (I-IMP-1: scanning is read-only) 0ms
+ ✓ src/import-pipeline.spec.ts > consent gate — no silent deletion (I-IMP-1) > BLOCKS commit while any finding is unresolved (no consent) 0ms
+ ✓ src/import-pipeline.spec.ts > consent gate — no silent deletion (I-IMP-1) > keeps content byte-for-byte on a 'keep' decision (user owns the call) 1ms
+ ✓ src/import-pipeline.spec.ts > consent gate — no silent deletion (I-IMP-1) > redacts ONLY on an explicit 'redact' decision, keeping the key as a reference 1ms
+ ✓ src/import-pipeline.spec.ts > redaction helpers > redacts a value to head…tail and an env line to KEY=head…tail 0ms
+ ✓ src/import-pipeline.spec.ts > import hub inventory (CONFIRMED — 12 entries) > lists exactly the 12 hub tiles (Empty included; GitLab/Screenshot excluded) 1ms
+ ✓ src/import-pipeline.spec.ts > import hub inventory (CONFIRMED — 12 entries) > marks which providers actually execute today vs modeled-only 0ms
+ ✓ src/import-billing.spec.ts > reserveReservation — idempotent, before any paid work > creates a RESERVED reservation with zero debit 4ms
+ ✓ src/import-billing.spec.ts > reserveReservation — idempotent, before any paid work > is idempotent on the same key (no double reserve) 1ms
+ ✓ src/import-billing.spec.ts > reserveReservation — idempotent, before any paid work > rejects a missing idempotency key (mandatory) 1ms
+ ✓ src/import-billing.spec.ts > reserveReservation — idempotent, before any paid work > rejects a different key for an already-reserved job 0ms
+ ✓ src/import-billing.spec.ts > reserveReservation — idempotent, before any paid work > rejects a negative / non-integer amount 1ms
+ ✓ src/import-billing.spec.ts > settleReservation — the ONLY debit, only when committed > records the debit when committed === true 1ms
+ ✓ src/import-billing.spec.ts > settleReservation — the ONLY debit, only when committed > REFUSES to settle when the import did not commit (no commit, no debit) 2ms
+ ✓ src/import-billing.spec.ts > settleReservation — the ONLY debit, only when committed > is idempotent when re-settled with the same amount 0ms
+ ✓ src/import-billing.spec.ts > settleReservation — the ONLY debit, only when committed > rejects re-settling at a different amount 0ms
+ ✓ src/import-billing.spec.ts > settleReservation — the ONLY debit, only when committed > cannot settle a compensated reservation 2ms
+ ✓ src/import-billing.spec.ts > compensateReservation — release with zero debit > releases to COMPENSATED with zero debit 1ms
+ ✓ src/import-billing.spec.ts > compensateReservation — release with zero debit > is idempotent 1ms
+ ✓ src/import-billing.spec.ts > compensateReservation — release with zero debit > cannot compensate a settled (already committed + debited) reservation 1ms
+ ✓ src/import-billing.spec.ts > assertNoDebitWithoutCommit — the core safety invariant > passes for RESERVED/COMPENSATED with zero debit and SETTLED with a debit 2ms
+ ✓ src/import-billing.spec.ts > assertNoDebitWithoutCommit — the core safety invariant > throws if a positive debit exists outside SETTLED 2ms
+ ✓ src/import-billing.spec.ts > ImportCreditLedger — in-process, keyed by job + idempotency key > reserve → settle on commit records the debit 1ms
+ ✓ src/import-billing.spec.ts > ImportCreditLedger — in-process, keyed by job + idempotency key > reserve → compensate on cleanup leaves zero debit 1ms
+ ✓ src/import-billing.spec.ts > ImportCreditLedger — in-process, keyed by job + idempotency key > compensateByJob is a safe no-op when nothing was reserved 0ms
+ ✓ src/import-billing.spec.ts > ImportCreditLedger — in-process, keyed by job + idempotency key > double reserve with the same key never double-charges 0ms
+ ✓ src/import-billing.spec.ts > ImportCreditLedger — in-process, keyed by job + idempotency key > settleByJob throws when no reservation exists 0ms
+ ✓ src/import-billing.spec.ts > estimateImportReservation > is at least 1 credit and scales with staged file count 0ms
+ Test Files  2 passed (2)
+      Tests  41 passed (41)

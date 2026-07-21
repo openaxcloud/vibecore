@@ -1141,13 +1141,15 @@ p0s:
     refusalType: DESACCORD
     reviewVerdict: REFUSED
     reviewCommit: "57febeab"
+    resolutionBranch: "feat/import-state-machine-p0ex04"
+    resolutionStatus: "ADDRESSED_PENDING_REREVIEW"
     commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: UNKNOWN
-    evidenceId: docs/parity/IMPORT_REMIX_CONTRACT.md
-    proof: "CONTRAT ALIGNÉ (20/07) sur §9.2 : branchement clean→READY_TO_COMMIT vs findings→QUARANTINED, 3 tests négatifs exigés listés. NUANCE HONNÊTE : le CODE (import-pipeline.ts) suit encore l ancienne machine — alignement du code = work item, un contrat n est pas une implémentation."
+    evidenceId: docs/deploy-evidence/2026-07-20-import-state-machine/
+    proof: "REFUS LEVÉ SUR BRANCHE (20/07, feat/import-state-machine-p0ex04, PR ouverte, non mergée). Le CODE suit désormais la machine branchée : import-pipeline.ts implémente READY_TO_COMMIT/RESCANNING/CLEANUP_PENDING/FAILED, COMMITTING ne part que de READY_TO_COMMIT (IMPORT_COMMIT_NOT_READY), un import propre ne passe pas par la quarantaine (assertScanBranch). Les 15 anciens tests de la machine linéaire sont RÉÉCRITS. 3 tests négatifs réels + 4 preuves E2E (clean→COMMITTED, findings→QUARANTINE, cancel/timeout cible intacte, échec sans débit) + billing minimal de sûreté. 57 tests verts, build strict 0 err. Preuve : docs/deploy-evidence/2026-07-20-import-state-machine/."
     dependances: []
-    conditionDeCloture: "Corriger le claim/la preuve : code + 15 tests prouvent encore l'ancienne machine (SCANNING→COMMITTING) ; puis re-soumission au relecteur"
-    nextAction: "Aligner le CODE import-pipeline sur la machine branchée + tests négatifs réels"
+    conditionDeCloture: "Merge de la PR feat/import-state-machine-p0ex04 + re-revue humaine du relecteur (le code aligne désormais la machine, refus adressé)"
+    nextAction: "Re-soumettre la PR feat/import-state-machine-p0ex04 au relecteur ; merger après feu vert"
     targetDate: "2026-07-27"
   - p0Id: P0-EX-05
     title: "Corriger les entitlements Starter : apps supplémentaires vs types d Artifact"

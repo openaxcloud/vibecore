@@ -174,12 +174,12 @@ documents:
     repoCommit: d56931bd
     reviewer: UNKNOWN
   - file: IMPLEMENTATION_FACTS.yaml
-    sha256: "04e391e5c09958e1d98db478c070a303a79aaf87d48be3889b8cf76f9293db5e"
+    sha256: "a4edef33507941bcd14b884315a389a1bd29f9be4f8543f32991df67f399614f"
     schemaVersion: 1
     repoCommit: af24d4fe
     reviewer: UNKNOWN
   - file: IMPLEMENTATION_STATUS.yaml
-    sha256: "d70daa3d55ef12008b2bf60dbe08fda961764e64fb3aa3539a8adceeb546d2cf"
+    sha256: "cc29dfe877624351d1384ff56ddc4237e9b2bf888d3a58ab95f22e2c2e41c92b"
     schemaVersion: 2
     repoCommit: null
     reviewer: UNKNOWN
@@ -224,7 +224,7 @@ documents:
     repoCommit: d1063912
     reviewer: UNKNOWN
   - file: P0_REGISTRY.yaml
-    sha256: "6e5558cfc1b956d3028e307a376bb4e009237286288c71a71e5eda67c4194aa1"
+    sha256: "311ffb43866caef9f71d3e020bbcb30fb069b28f2620982b34dabb60ad4ac780"
     schemaVersion: 1
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN
