@@ -1,0 +1,337 @@
+[
+  {
+    "insertId": "1xnmyted4sv4",
+    "logName": "folders/780512954993/logs/cloudaudit.googleapis.com%2Factivity",
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "authenticationInfo": {
+        "principalEmail": "groupequaliwatt@gmail.com",
+        "principalSubject": "user:groupequaliwatt@gmail.com"
+      },
+      "authorizationInfo": [
+        {
+          "granted": true,
+          "permission": "resourcemanager.projects.create",
+          "permissionType": "ADMIN_WRITE",
+          "resource": "folders/780512954993",
+          "resourceAttributes": {
+            "service": "cloudresourcemanager.googleapis.com",
+            "type": "cloudresourcemanager.googleapis.com/Project"
+          }
+        }
+      ],
+      "methodName": "google.cloud.resourcemanager.v3.Projects.CreateProject",
+      "request": {
+        "@type": "type.googleapis.com/google.cloud.resourcemanager.v3.CreateProjectRequest",
+        "project": {
+          "parent": "folders/780512954993"
+        }
+      },
+      "requestMetadata": {
+        "callerIp": "77.137.70.220",
+        "callerSuppliedUserAgent": "curl/8.7.1,gzip(gfe)",
+        "destinationAttributes": {},
+        "requestAttributes": {
+          "auth": {},
+          "time": "2026-07-17T12:19:39.176528Z"
+        }
+      },
+      "resourceName": "folders/780512954993",
+      "serviceName": "cloudresourcemanager.googleapis.com",
+      "status": {
+        "code": 6,
+        "message": "Requested entity already exists"
+      }
+    },
+    "receiveTimestamp": "2026-07-17T12:19:39.483664822Z",
+    "resource": {
+      "labels": {
+        "method": "google.cloud.resourcemanager.v3.Projects.CreateProject",
+        "service": "cloudresourcemanager.googleapis.com"
+      },
+      "type": "audited_resource"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-07-17T12:19:39.101756954Z"
+  },
+  {
+    "insertId": "eppoi2e5larb",
+    "logName": "folders/780512954993/logs/cloudaudit.googleapis.com%2Factivity",
+    "operation": {
+      "first": true,
+      "id": "operations/up.5248040276950215574",
+      "producer": "cloudresourcemanager.googleapis.com"
+    },
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "authenticationInfo": {
+        "principalEmail": "groupequaliwatt@gmail.com",
+        "principalSubject": "user:groupequaliwatt@gmail.com"
+      },
+      "authorizationInfo": [
+        {
+          "granted": true,
+          "permission": "resourcemanager.projects.undelete",
+          "permissionType": "ADMIN_WRITE",
+          "resource": "projects/ecode-proof-b906ss",
+          "resourceAttributes": {
+            "name": "projects/ecode-proof-b906ss",
+            "service": "cloudresourcemanager.googleapis.com",
+            "type": "cloudresourcemanager.googleapis.com/Project"
+          }
+        }
+      ],
+      "methodName": "google.cloud.resourcemanager.v3.Projects.UndeleteProject",
+      "request": {
+        "@type": "type.googleapis.com/google.cloud.resourcemanager.v3.UndeleteProjectRequest",
+        "name": "projects/ecode-proof-b906ss"
+      },
+      "requestMetadata": {
+        "callerIp": "77.137.70.220",
+        "callerSuppliedUserAgent": "node,gzip(gfe)",
+        "destinationAttributes": {},
+        "requestAttributes": {
+          "auth": {},
+          "time": "2026-07-17T12:13:17.288301Z"
+        }
+      },
+      "resourceName": "projects/ecode-proof-b906ss",
+      "serviceName": "cloudresourcemanager.googleapis.com",
+      "status": {}
+    },
+    "receiveTimestamp": "2026-07-17T12:13:17.371481221Z",
+    "resource": {
+      "labels": {
+        "method": "google.cloud.resourcemanager.v3.Projects.UndeleteProject",
+        "service": "cloudresourcemanager.googleapis.com"
+      },
+      "type": "audited_resource"
+    },
+    "severity": "NOTICE",
+    "timestamp": "2026-07-17T12:13:17.066437576Z"
+  },
+  {
+    "insertId": "x0q853e38vba",
+    "logName": "folders/780512954993/logs/cloudaudit.googleapis.com%2Factivity",
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "authenticationInfo": {
+        "principalEmail": "groupequaliwatt@gmail.com",
+        "principalSubject": "user:groupequaliwatt@gmail.com"
+      },
+      "authorizationInfo": [
+        {
+          "granted": true,
+          "permission": "resourcemanager.projects.create",
+          "permissionType": "ADMIN_WRITE",
+          "resource": "folders/780512954993",
+          "resourceAttributes": {
+            "service": "cloudresourcemanager.googleapis.com",
+            "type": "cloudresourcemanager.googleapis.com/Project"
+          }
+        }
+      ],
+      "methodName": "google.cloud.resourcemanager.v3.Projects.CreateProject",
+      "request": {
+        "@type": "type.googleapis.com/google.cloud.resourcemanager.v3.CreateProjectRequest",
+        "project": {
+          "parent": "folders/780512954993"
+        }
+      },
+      "requestMetadata": {
+        "callerIp": "77.137.70.220",
+        "callerSuppliedUserAgent": "curl/8.7.1,gzip(gfe)",
+        "destinationAttributes": {},
+        "requestAttributes": {
+          "auth": {},
+          "time": "2026-07-17T12:11:29.198190Z"
+        }
+      },
+      "resourceName": "folders/780512954993",
+      "serviceName": "cloudresourcemanager.googleapis.com",
+      "status": {
+        "code": 6,
+        "message": "Requested entity already exists"
+      }
+    },
+    "receiveTimestamp": "2026-07-17T12:11:29.225366259Z",
+    "resource": {
+      "labels": {
+        "method": "google.cloud.resourcemanager.v3.Projects.CreateProject",
+        "service": "cloudresourcemanager.googleapis.com"
+      },
+      "type": "audited_resource"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-07-17T12:11:29.136433466Z"
+  },
+  {
+    "insertId": "abgji0dnx72",
+    "logName": "folders/780512954993/logs/cloudaudit.googleapis.com%2Factivity",
+    "operation": {
+      "first": true,
+      "id": "operations/dp.5519299424896818480",
+      "producer": "cloudresourcemanager.googleapis.com"
+    },
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "authenticationInfo": {
+        "principalEmail": "groupequaliwatt@gmail.com",
+        "principalSubject": "user:groupequaliwatt@gmail.com"
+      },
+      "authorizationInfo": [
+        {
+          "granted": true,
+          "permission": "resourcemanager.projects.delete",
+          "permissionType": "ADMIN_WRITE",
+          "resource": "projects/ecode-proof-b906ss",
+          "resourceAttributes": {
+            "name": "projects/ecode-proof-b906ss",
+            "service": "cloudresourcemanager.googleapis.com",
+            "type": "cloudresourcemanager.googleapis.com/Project"
+          }
+        }
+      ],
+      "methodName": "google.cloud.resourcemanager.v3.Projects.DeleteProject",
+      "request": {
+        "@type": "type.googleapis.com/google.cloud.resourcemanager.v3.DeleteProjectRequest",
+        "name": "projects/ecode-proof-b906ss"
+      },
+      "requestMetadata": {
+        "callerIp": "77.137.70.220",
+        "callerSuppliedUserAgent": "node,gzip(gfe)",
+        "destinationAttributes": {},
+        "requestAttributes": {
+          "auth": {},
+          "time": "2026-07-17T11:32:05.298722Z"
+        }
+      },
+      "resourceName": "projects/ecode-proof-b906ss",
+      "serviceName": "cloudresourcemanager.googleapis.com",
+      "status": {}
+    },
+    "receiveTimestamp": "2026-07-17T11:32:05.693286911Z",
+    "resource": {
+      "labels": {
+        "method": "google.cloud.resourcemanager.v3.Projects.DeleteProject",
+        "service": "cloudresourcemanager.googleapis.com"
+      },
+      "type": "audited_resource"
+    },
+    "severity": "NOTICE",
+    "timestamp": "2026-07-17T11:32:05.096908055Z"
+  },
+  {
+    "insertId": "-z7g9jod7rws",
+    "logName": "folders/780512954993/logs/cloudaudit.googleapis.com%2Factivity",
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "authenticationInfo": {
+        "principalEmail": "groupequaliwatt@gmail.com",
+        "principalSubject": "user:groupequaliwatt@gmail.com"
+      },
+      "authorizationInfo": [
+        {
+          "permissionType": "ADMIN_WRITE",
+          "resourceAttributes": {}
+        },
+        {
+          "resourceAttributes": {}
+        }
+      ],
+      "methodName": "CreateProject",
+      "request": {
+        "@type": "type.googleapis.com/google.cloud.resourcemanager.v3.CreateProjectRequest",
+        "project": {
+          "createTime": "2026-07-17T11:07:15.478Z",
+          "displayName": "ecode-proof-b906ss",
+          "etag": "W/\"9591019647a51ae1\"",
+          "labels": {
+            "ecode-role": "primary",
+            "ecode-tenant": "cmrou1vey00000slnkmtvlvsf"
+          },
+          "name": "projects/859076086179",
+          "parent": "folders/780512954993",
+          "projectId": "ecode-proof-b906ss",
+          "state": "ACTIVE",
+          "updateTime": "2026-07-17T11:07:16.774673Z"
+        }
+      },
+      "requestMetadata": {
+        "callerIp": "77.137.70.220",
+        "callerSuppliedUserAgent": "node,gzip(gfe)",
+        "destinationAttributes": {},
+        "requestAttributes": {}
+      },
+      "resourceName": "projects/ecode-proof-b906ss",
+      "serviceName": "cloudresourcemanager.googleapis.com",
+      "status": {}
+    },
+    "receiveTimestamp": "2026-07-17T11:07:18.719050563Z",
+    "resource": {
+      "labels": {
+        "project_id": "ecode-proof-b906ss"
+      },
+      "type": "project"
+    },
+    "severity": "NOTICE",
+    "timestamp": "2026-07-17T11:07:17.742089Z"
+  },
+  {
+    "insertId": "3dzjqpe64u20",
+    "logName": "folders/780512954993/logs/cloudaudit.googleapis.com%2Factivity",
+    "operation": {
+      "first": true,
+      "id": "operations/create_project.global.6660276075475755857",
+      "producer": "cloudresourcemanager.googleapis.com"
+    },
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "authenticationInfo": {
+        "principalEmail": "groupequaliwatt@gmail.com",
+        "principalSubject": "user:groupequaliwatt@gmail.com"
+      },
+      "authorizationInfo": [
+        {
+          "granted": true,
+          "permission": "resourcemanager.projects.create",
+          "permissionType": "ADMIN_WRITE",
+          "resource": "folders/780512954993",
+          "resourceAttributes": {
+            "service": "cloudresourcemanager.googleapis.com",
+            "type": "cloudresourcemanager.googleapis.com/Project"
+          }
+        }
+      ],
+      "methodName": "google.cloud.resourcemanager.v3.Projects.CreateProject",
+      "request": {
+        "@type": "type.googleapis.com/google.cloud.resourcemanager.v3.CreateProjectRequest",
+        "project": {
+          "parent": "folders/780512954993"
+        }
+      },
+      "requestMetadata": {
+        "callerIp": "77.137.70.220",
+        "callerSuppliedUserAgent": "node,gzip(gfe)",
+        "destinationAttributes": {},
+        "requestAttributes": {
+          "auth": {},
+          "time": "2026-07-17T11:07:15.565374Z"
+        }
+      },
+      "resourceName": "folders/780512954993",
+      "serviceName": "cloudresourcemanager.googleapis.com",
+      "status": {}
+    },
+    "receiveTimestamp": "2026-07-17T11:07:15.655687839Z",
+    "resource": {
+      "labels": {
+        "method": "google.cloud.resourcemanager.v3.Projects.CreateProject",
+        "service": "cloudresourcemanager.googleapis.com"
+      },
+      "type": "audited_resource"
+    },
+    "severity": "NOTICE",
+    "timestamp": "2026-07-17T11:07:15.436349188Z"
+  }
+]

@@ -1,0 +1,15 @@
+{
+  "createTime": "2026-07-17T11:07:15.478Z",
+  "labels": {
+    "ecode-role": "primary",
+    "ecode-tenant": "cmrou1vey00000slnkmtvlvsf"
+  },
+  "lifecycleState": "ACTIVE",
+  "name": "ecode-proof-b906ss",
+  "parent": {
+    "id": "780512954993",
+    "type": "folder"
+  },
+  "projectId": "ecode-proof-b906ss",
+  "projectNumber": "859076086179"
+}

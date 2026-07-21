@@ -1493,6 +1493,100 @@ exports.Prisma.GalleryListingScalarFieldEnum = {
   publishedAt: 'publishedAt'
 };
 
+exports.Prisma.CloudTenantScalarFieldEnum = {
+  id: 'id',
+  customerBoundaryType: 'customerBoundaryType',
+  ownerPrincipalId: 'ownerPrincipalId',
+  billingPrincipalId: 'billingPrincipalId',
+  legalEntityId: 'legalEntityId',
+  ownershipVersion: 'ownershipVersion',
+  residencyPolicy: 'residencyPolicy',
+  lifecycle: 'lifecycle',
+  mergedIntoTenantId: 'mergedIntoTenantId',
+  splitFromTenantId: 'splitFromTenantId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.CloudProjectBindingScalarFieldEnum = {
+  id: 'id',
+  cloudTenantId: 'cloudTenantId',
+  gcpProjectId: 'gcpProjectId',
+  gcpProjectNumber: 'gcpProjectNumber',
+  role: 'role',
+  region: 'region',
+  state: 'state',
+  parentFolderId: 'parentFolderId',
+  quotas: 'quotas',
+  billingLabels: 'billingLabels',
+  capacityPolicy: 'capacityPolicy',
+  reconciliationStatus: 'reconciliationStatus',
+  recoveryWindowEndsAt: 'recoveryWindowEndsAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.CloudProjectFactoryEventScalarFieldEnum = {
+  id: 'id',
+  bindingId: 'bindingId',
+  fromState: 'fromState',
+  toState: 'toState',
+  actor: 'actor',
+  detail: 'detail',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.CloudTenantTransferScalarFieldEnum = {
+  id: 'id',
+  cloudTenantId: 'cloudTenantId',
+  fromPrincipalId: 'fromPrincipalId',
+  toPrincipalId: 'toPrincipalId',
+  state: 'state',
+  revokeEvidence: 'revokeEvidence',
+  revokeVerifiedAt: 'revokeVerifiedAt',
+  regrantEvidence: 'regrantEvidence',
+  error: 'error',
+  completedAt: 'completedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.CloudTeardownRecordScalarFieldEnum = {
+  id: 'id',
+  bindingId: 'bindingId',
+  status: 'status',
+  resourceInventory: 'resourceInventory',
+  erasureProof: 'erasureProof',
+  orphans: 'orphans',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt'
+};
+
+exports.Prisma.PlatformIamIdentityScalarFieldEnum = {
+  id: 'id',
+  kind: 'kind',
+  app: 'app',
+  environment: 'environment',
+  privilegeBoundary: 'privilegeBoundary',
+  gcpProjectId: 'gcpProjectId',
+  gcpServiceAccountEmail: 'gcpServiceAccountEmail',
+  persistentKeys: 'persistentKeys',
+  revisionsServed: 'revisionsServed',
+  lastRotatedAt: 'lastRotatedAt',
+  lastUsedAt: 'lastUsedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PlatformIamImpersonationAuditScalarFieldEnum = {
+  id: 'id',
+  identityId: 'identityId',
+  actorPrincipal: 'actorPrincipal',
+  purpose: 'purpose',
+  tokenLifetimeSeconds: 'tokenLifetimeSeconds',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1654,6 +1748,62 @@ exports.ScheduledTaskRunStatus = exports.$Enums.ScheduledTaskRunStatus = {
   CANCELED: 'CANCELED'
 };
 
+exports.CloudTenantBoundaryType = exports.$Enums.CloudTenantBoundaryType = {
+  PERSON: 'PERSON',
+  WORKSPACE: 'WORKSPACE',
+  LEGAL_ENTITY: 'LEGAL_ENTITY',
+  BILLING_ACCOUNT: 'BILLING_ACCOUNT'
+};
+
+exports.CloudTenantLifecycle = exports.$Enums.CloudTenantLifecycle = {
+  ACTIVE: 'ACTIVE',
+  SUSPENDED: 'SUSPENDED',
+  MERGED: 'MERGED',
+  SPLIT: 'SPLIT',
+  CLOSED: 'CLOSED'
+};
+
+exports.CloudProjectBindingRole = exports.$Enums.CloudProjectBindingRole = {
+  PRIMARY: 'PRIMARY',
+  REGION_SHARD: 'REGION_SHARD',
+  QUOTA_SHARD: 'QUOTA_SHARD',
+  MIGRATION_TARGET: 'MIGRATION_TARGET'
+};
+
+exports.CloudProjectBindingState = exports.$Enums.CloudProjectBindingState = {
+  REQUESTED: 'REQUESTED',
+  CREATING: 'CREATING',
+  BILLING_LINKED: 'BILLING_LINKED',
+  APIS_ENABLING: 'APIS_ENABLING',
+  SERVICE_AGENTS_READY: 'SERVICE_AGENTS_READY',
+  IAM_BOUND: 'IAM_BOUND',
+  EDGE_READY: 'EDGE_READY',
+  ACTIVE: 'ACTIVE',
+  BILLING_SUSPENDED: 'BILLING_SUSPENDED',
+  QUOTA_EXHAUSTED: 'QUOTA_EXHAUSTED',
+  DRIFT_DETECTED: 'DRIFT_DETECTED',
+  DELETE_REQUESTED: 'DELETE_REQUESTED',
+  RECOVERY_WINDOW: 'RECOVERY_WINDOW',
+  RESTORING: 'RESTORING',
+  PURGING: 'PURGING',
+  PURGED: 'PURGED'
+};
+
+exports.CloudTenantTransferState = exports.$Enums.CloudTenantTransferState = {
+  REQUESTED: 'REQUESTED',
+  REVOKING: 'REVOKING',
+  REVOKED: 'REVOKED',
+  REGRANTING: 'REGRANTING',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED'
+};
+
+exports.PlatformIamIdentityKind = exports.$Enums.PlatformIamIdentityKind = {
+  BUILD: 'BUILD',
+  PROMOTION: 'PROMOTION',
+  RUNTIME: 'RUNTIME'
+};
+
 exports.Prisma.ModelName = {
   User: 'User',
   Account: 'Account',
@@ -1765,7 +1915,14 @@ exports.Prisma.ModelName = {
   AgentCallLog: 'AgentCallLog',
   RemixJob: 'RemixJob',
   ImportJob: 'ImportJob',
-  GalleryListing: 'GalleryListing'
+  GalleryListing: 'GalleryListing',
+  CloudTenant: 'CloudTenant',
+  CloudProjectBinding: 'CloudProjectBinding',
+  CloudProjectFactoryEvent: 'CloudProjectFactoryEvent',
+  CloudTenantTransfer: 'CloudTenantTransfer',
+  CloudTeardownRecord: 'CloudTeardownRecord',
+  PlatformIamIdentity: 'PlatformIamIdentity',
+  PlatformIamImpersonationAudit: 'PlatformIamImpersonationAudit'
 };
 
 /**

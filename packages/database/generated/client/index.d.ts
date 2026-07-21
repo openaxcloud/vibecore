@@ -671,6 +671,53 @@ export type ImportJob = $Result.DefaultSelection<Prisma.$ImportJobPayload>
  * listing regardless of later edits to the source project.
  */
 export type GalleryListing = $Result.DefaultSelection<Prisma.$GalleryListingPayload>
+/**
+ * Model CloudTenant
+ * 
+ */
+export type CloudTenant = $Result.DefaultSelection<Prisma.$CloudTenantPayload>
+/**
+ * Model CloudProjectBinding
+ * 
+ */
+export type CloudProjectBinding = $Result.DefaultSelection<Prisma.$CloudProjectBindingPayload>
+/**
+ * Model CloudProjectFactoryEvent
+ * Append-only audit of factory state transitions (one row per transition).
+ */
+export type CloudProjectFactoryEvent = $Result.DefaultSelection<Prisma.$CloudProjectFactoryEventPayload>
+/**
+ * Model CloudTenantTransfer
+ * Ownership transfer. INVARIANT: the new owner's grants can only be applied
+ * after the old owner's grants were revoked AND the revocation was verified
+ * against the live IAM policy (revokeVerifiedAt). Re-granting is a fresh
+ * grant of an explicit role set — never a copy of the old bindings.
+ */
+export type CloudTenantTransfer = $Result.DefaultSelection<Prisma.$CloudTenantTransferPayload>
+/**
+ * Model CloudTeardownRecord
+ * Teardown record: resource inventory BEFORE deletion, erasure proof AFTER,
+ * and any orphans (inventoried resources that survived) — a teardown with
+ * orphans is ORPHANS_DETECTED, never silently COMPLETE.
+ */
+export type CloudTeardownRecord = $Result.DefaultSelection<Prisma.$CloudTeardownRecordPayload>
+/**
+ * Model PlatformIamIdentity
+ * Platform execution identities (DOMAIN_MODEL §4). THREE kinds, not one per
+ * revision:
+ * - BUILD: platform-build, isolated, no runtime access (I-IAM-3).
+ * - PROMOTION: control plane, promotes by digest, short-lived impersonation.
+ * - RUNTIME: per app × environment × privilege boundary, REUSED by every
+ * revision of that app (I-IAM-1) — the UNIQUE below makes a per-revision
+ * identity structurally impossible to record.
+ * I-IAM-2: zero persistent keys — persistentKeys must stay 0 forever.
+ */
+export type PlatformIamIdentity = $Result.DefaultSelection<Prisma.$PlatformIamIdentityPayload>
+/**
+ * Model PlatformIamImpersonationAudit
+ * Audit trail of short-lived impersonations (I-IAM-2: tokens, never keys).
+ */
+export type PlatformIamImpersonationAudit = $Result.DefaultSelection<Prisma.$PlatformIamImpersonationAuditPayload>
 
 /**
  * Enums
@@ -858,6 +905,80 @@ export const ScheduledTaskRunStatus: {
 
 export type ScheduledTaskRunStatus = (typeof ScheduledTaskRunStatus)[keyof typeof ScheduledTaskRunStatus]
 
+
+export const CloudTenantBoundaryType: {
+  PERSON: 'PERSON',
+  WORKSPACE: 'WORKSPACE',
+  LEGAL_ENTITY: 'LEGAL_ENTITY',
+  BILLING_ACCOUNT: 'BILLING_ACCOUNT'
+};
+
+export type CloudTenantBoundaryType = (typeof CloudTenantBoundaryType)[keyof typeof CloudTenantBoundaryType]
+
+
+export const CloudTenantLifecycle: {
+  ACTIVE: 'ACTIVE',
+  SUSPENDED: 'SUSPENDED',
+  MERGED: 'MERGED',
+  SPLIT: 'SPLIT',
+  CLOSED: 'CLOSED'
+};
+
+export type CloudTenantLifecycle = (typeof CloudTenantLifecycle)[keyof typeof CloudTenantLifecycle]
+
+
+export const CloudProjectBindingRole: {
+  PRIMARY: 'PRIMARY',
+  REGION_SHARD: 'REGION_SHARD',
+  QUOTA_SHARD: 'QUOTA_SHARD',
+  MIGRATION_TARGET: 'MIGRATION_TARGET'
+};
+
+export type CloudProjectBindingRole = (typeof CloudProjectBindingRole)[keyof typeof CloudProjectBindingRole]
+
+
+export const CloudProjectBindingState: {
+  REQUESTED: 'REQUESTED',
+  CREATING: 'CREATING',
+  BILLING_LINKED: 'BILLING_LINKED',
+  APIS_ENABLING: 'APIS_ENABLING',
+  SERVICE_AGENTS_READY: 'SERVICE_AGENTS_READY',
+  IAM_BOUND: 'IAM_BOUND',
+  EDGE_READY: 'EDGE_READY',
+  ACTIVE: 'ACTIVE',
+  BILLING_SUSPENDED: 'BILLING_SUSPENDED',
+  QUOTA_EXHAUSTED: 'QUOTA_EXHAUSTED',
+  DRIFT_DETECTED: 'DRIFT_DETECTED',
+  DELETE_REQUESTED: 'DELETE_REQUESTED',
+  RECOVERY_WINDOW: 'RECOVERY_WINDOW',
+  RESTORING: 'RESTORING',
+  PURGING: 'PURGING',
+  PURGED: 'PURGED'
+};
+
+export type CloudProjectBindingState = (typeof CloudProjectBindingState)[keyof typeof CloudProjectBindingState]
+
+
+export const CloudTenantTransferState: {
+  REQUESTED: 'REQUESTED',
+  REVOKING: 'REVOKING',
+  REVOKED: 'REVOKED',
+  REGRANTING: 'REGRANTING',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED'
+};
+
+export type CloudTenantTransferState = (typeof CloudTenantTransferState)[keyof typeof CloudTenantTransferState]
+
+
+export const PlatformIamIdentityKind: {
+  BUILD: 'BUILD',
+  PROMOTION: 'PROMOTION',
+  RUNTIME: 'RUNTIME'
+};
+
+export type PlatformIamIdentityKind = (typeof PlatformIamIdentityKind)[keyof typeof PlatformIamIdentityKind]
+
 }
 
 export type WorkspaceStatus = $Enums.WorkspaceStatus
@@ -927,6 +1048,30 @@ export const ScheduledTaskKind: typeof $Enums.ScheduledTaskKind
 export type ScheduledTaskRunStatus = $Enums.ScheduledTaskRunStatus
 
 export const ScheduledTaskRunStatus: typeof $Enums.ScheduledTaskRunStatus
+
+export type CloudTenantBoundaryType = $Enums.CloudTenantBoundaryType
+
+export const CloudTenantBoundaryType: typeof $Enums.CloudTenantBoundaryType
+
+export type CloudTenantLifecycle = $Enums.CloudTenantLifecycle
+
+export const CloudTenantLifecycle: typeof $Enums.CloudTenantLifecycle
+
+export type CloudProjectBindingRole = $Enums.CloudProjectBindingRole
+
+export const CloudProjectBindingRole: typeof $Enums.CloudProjectBindingRole
+
+export type CloudProjectBindingState = $Enums.CloudProjectBindingState
+
+export const CloudProjectBindingState: typeof $Enums.CloudProjectBindingState
+
+export type CloudTenantTransferState = $Enums.CloudTenantTransferState
+
+export const CloudTenantTransferState: typeof $Enums.CloudTenantTransferState
+
+export type PlatformIamIdentityKind = $Enums.PlatformIamIdentityKind
+
+export const PlatformIamIdentityKind: typeof $Enums.PlatformIamIdentityKind
 
 /**
  * ##  Prisma Client ʲˢ
@@ -2158,6 +2303,76 @@ export class PrismaClient<
     * ```
     */
   get galleryListing(): Prisma.GalleryListingDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.cloudTenant`: Exposes CRUD operations for the **CloudTenant** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more CloudTenants
+    * const cloudTenants = await prisma.cloudTenant.findMany()
+    * ```
+    */
+  get cloudTenant(): Prisma.CloudTenantDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.cloudProjectBinding`: Exposes CRUD operations for the **CloudProjectBinding** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more CloudProjectBindings
+    * const cloudProjectBindings = await prisma.cloudProjectBinding.findMany()
+    * ```
+    */
+  get cloudProjectBinding(): Prisma.CloudProjectBindingDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.cloudProjectFactoryEvent`: Exposes CRUD operations for the **CloudProjectFactoryEvent** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more CloudProjectFactoryEvents
+    * const cloudProjectFactoryEvents = await prisma.cloudProjectFactoryEvent.findMany()
+    * ```
+    */
+  get cloudProjectFactoryEvent(): Prisma.CloudProjectFactoryEventDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.cloudTenantTransfer`: Exposes CRUD operations for the **CloudTenantTransfer** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more CloudTenantTransfers
+    * const cloudTenantTransfers = await prisma.cloudTenantTransfer.findMany()
+    * ```
+    */
+  get cloudTenantTransfer(): Prisma.CloudTenantTransferDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.cloudTeardownRecord`: Exposes CRUD operations for the **CloudTeardownRecord** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more CloudTeardownRecords
+    * const cloudTeardownRecords = await prisma.cloudTeardownRecord.findMany()
+    * ```
+    */
+  get cloudTeardownRecord(): Prisma.CloudTeardownRecordDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.platformIamIdentity`: Exposes CRUD operations for the **PlatformIamIdentity** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PlatformIamIdentities
+    * const platformIamIdentities = await prisma.platformIamIdentity.findMany()
+    * ```
+    */
+  get platformIamIdentity(): Prisma.PlatformIamIdentityDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.platformIamImpersonationAudit`: Exposes CRUD operations for the **PlatformIamImpersonationAudit** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PlatformIamImpersonationAudits
+    * const platformIamImpersonationAudits = await prisma.platformIamImpersonationAudit.findMany()
+    * ```
+    */
+  get platformIamImpersonationAudit(): Prisma.PlatformIamImpersonationAuditDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -2702,7 +2917,14 @@ export namespace Prisma {
     AgentCallLog: 'AgentCallLog',
     RemixJob: 'RemixJob',
     ImportJob: 'ImportJob',
-    GalleryListing: 'GalleryListing'
+    GalleryListing: 'GalleryListing',
+    CloudTenant: 'CloudTenant',
+    CloudProjectBinding: 'CloudProjectBinding',
+    CloudProjectFactoryEvent: 'CloudProjectFactoryEvent',
+    CloudTenantTransfer: 'CloudTenantTransfer',
+    CloudTeardownRecord: 'CloudTeardownRecord',
+    PlatformIamIdentity: 'PlatformIamIdentity',
+    PlatformIamImpersonationAudit: 'PlatformIamImpersonationAudit'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -2718,7 +2940,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "remixJob" | "importJob" | "galleryListing"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "remixJob" | "importJob" | "galleryListing" | "cloudTenant" | "cloudProjectBinding" | "cloudProjectFactoryEvent" | "cloudTenantTransfer" | "cloudTeardownRecord" | "platformIamIdentity" | "platformIamImpersonationAudit"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -10920,6 +11142,524 @@ export namespace Prisma {
           }
         }
       }
+      CloudTenant: {
+        payload: Prisma.$CloudTenantPayload<ExtArgs>
+        fields: Prisma.CloudTenantFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.CloudTenantFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudTenantPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.CloudTenantFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudTenantPayload>
+          }
+          findFirst: {
+            args: Prisma.CloudTenantFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudTenantPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.CloudTenantFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudTenantPayload>
+          }
+          findMany: {
+            args: Prisma.CloudTenantFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudTenantPayload>[]
+          }
+          create: {
+            args: Prisma.CloudTenantCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudTenantPayload>
+          }
+          createMany: {
+            args: Prisma.CloudTenantCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.CloudTenantCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudTenantPayload>[]
+          }
+          delete: {
+            args: Prisma.CloudTenantDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudTenantPayload>
+          }
+          update: {
+            args: Prisma.CloudTenantUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudTenantPayload>
+          }
+          deleteMany: {
+            args: Prisma.CloudTenantDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.CloudTenantUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.CloudTenantUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudTenantPayload>[]
+          }
+          upsert: {
+            args: Prisma.CloudTenantUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudTenantPayload>
+          }
+          aggregate: {
+            args: Prisma.CloudTenantAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateCloudTenant>
+          }
+          groupBy: {
+            args: Prisma.CloudTenantGroupByArgs<ExtArgs>
+            result: $Utils.Optional<CloudTenantGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.CloudTenantCountArgs<ExtArgs>
+            result: $Utils.Optional<CloudTenantCountAggregateOutputType> | number
+          }
+        }
+      }
+      CloudProjectBinding: {
+        payload: Prisma.$CloudProjectBindingPayload<ExtArgs>
+        fields: Prisma.CloudProjectBindingFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.CloudProjectBindingFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudProjectBindingPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.CloudProjectBindingFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudProjectBindingPayload>
+          }
+          findFirst: {
+            args: Prisma.CloudProjectBindingFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudProjectBindingPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.CloudProjectBindingFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudProjectBindingPayload>
+          }
+          findMany: {
+            args: Prisma.CloudProjectBindingFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudProjectBindingPayload>[]
+          }
+          create: {
+            args: Prisma.CloudProjectBindingCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudProjectBindingPayload>
+          }
+          createMany: {
+            args: Prisma.CloudProjectBindingCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.CloudProjectBindingCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudProjectBindingPayload>[]
+          }
+          delete: {
+            args: Prisma.CloudProjectBindingDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudProjectBindingPayload>
+          }
+          update: {
+            args: Prisma.CloudProjectBindingUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudProjectBindingPayload>
+          }
+          deleteMany: {
+            args: Prisma.CloudProjectBindingDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.CloudProjectBindingUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.CloudProjectBindingUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudProjectBindingPayload>[]
+          }
+          upsert: {
+            args: Prisma.CloudProjectBindingUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudProjectBindingPayload>
+          }
+          aggregate: {
+            args: Prisma.CloudProjectBindingAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateCloudProjectBinding>
+          }
+          groupBy: {
+            args: Prisma.CloudProjectBindingGroupByArgs<ExtArgs>
+            result: $Utils.Optional<CloudProjectBindingGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.CloudProjectBindingCountArgs<ExtArgs>
+            result: $Utils.Optional<CloudProjectBindingCountAggregateOutputType> | number
+          }
+        }
+      }
+      CloudProjectFactoryEvent: {
+        payload: Prisma.$CloudProjectFactoryEventPayload<ExtArgs>
+        fields: Prisma.CloudProjectFactoryEventFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.CloudProjectFactoryEventFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudProjectFactoryEventPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.CloudProjectFactoryEventFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudProjectFactoryEventPayload>
+          }
+          findFirst: {
+            args: Prisma.CloudProjectFactoryEventFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudProjectFactoryEventPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.CloudProjectFactoryEventFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudProjectFactoryEventPayload>
+          }
+          findMany: {
+            args: Prisma.CloudProjectFactoryEventFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudProjectFactoryEventPayload>[]
+          }
+          create: {
+            args: Prisma.CloudProjectFactoryEventCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudProjectFactoryEventPayload>
+          }
+          createMany: {
+            args: Prisma.CloudProjectFactoryEventCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.CloudProjectFactoryEventCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudProjectFactoryEventPayload>[]
+          }
+          delete: {
+            args: Prisma.CloudProjectFactoryEventDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudProjectFactoryEventPayload>
+          }
+          update: {
+            args: Prisma.CloudProjectFactoryEventUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudProjectFactoryEventPayload>
+          }
+          deleteMany: {
+            args: Prisma.CloudProjectFactoryEventDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.CloudProjectFactoryEventUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.CloudProjectFactoryEventUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudProjectFactoryEventPayload>[]
+          }
+          upsert: {
+            args: Prisma.CloudProjectFactoryEventUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudProjectFactoryEventPayload>
+          }
+          aggregate: {
+            args: Prisma.CloudProjectFactoryEventAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateCloudProjectFactoryEvent>
+          }
+          groupBy: {
+            args: Prisma.CloudProjectFactoryEventGroupByArgs<ExtArgs>
+            result: $Utils.Optional<CloudProjectFactoryEventGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.CloudProjectFactoryEventCountArgs<ExtArgs>
+            result: $Utils.Optional<CloudProjectFactoryEventCountAggregateOutputType> | number
+          }
+        }
+      }
+      CloudTenantTransfer: {
+        payload: Prisma.$CloudTenantTransferPayload<ExtArgs>
+        fields: Prisma.CloudTenantTransferFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.CloudTenantTransferFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudTenantTransferPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.CloudTenantTransferFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudTenantTransferPayload>
+          }
+          findFirst: {
+            args: Prisma.CloudTenantTransferFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudTenantTransferPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.CloudTenantTransferFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudTenantTransferPayload>
+          }
+          findMany: {
+            args: Prisma.CloudTenantTransferFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudTenantTransferPayload>[]
+          }
+          create: {
+            args: Prisma.CloudTenantTransferCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudTenantTransferPayload>
+          }
+          createMany: {
+            args: Prisma.CloudTenantTransferCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.CloudTenantTransferCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudTenantTransferPayload>[]
+          }
+          delete: {
+            args: Prisma.CloudTenantTransferDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudTenantTransferPayload>
+          }
+          update: {
+            args: Prisma.CloudTenantTransferUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudTenantTransferPayload>
+          }
+          deleteMany: {
+            args: Prisma.CloudTenantTransferDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.CloudTenantTransferUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.CloudTenantTransferUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudTenantTransferPayload>[]
+          }
+          upsert: {
+            args: Prisma.CloudTenantTransferUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudTenantTransferPayload>
+          }
+          aggregate: {
+            args: Prisma.CloudTenantTransferAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateCloudTenantTransfer>
+          }
+          groupBy: {
+            args: Prisma.CloudTenantTransferGroupByArgs<ExtArgs>
+            result: $Utils.Optional<CloudTenantTransferGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.CloudTenantTransferCountArgs<ExtArgs>
+            result: $Utils.Optional<CloudTenantTransferCountAggregateOutputType> | number
+          }
+        }
+      }
+      CloudTeardownRecord: {
+        payload: Prisma.$CloudTeardownRecordPayload<ExtArgs>
+        fields: Prisma.CloudTeardownRecordFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.CloudTeardownRecordFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudTeardownRecordPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.CloudTeardownRecordFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudTeardownRecordPayload>
+          }
+          findFirst: {
+            args: Prisma.CloudTeardownRecordFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudTeardownRecordPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.CloudTeardownRecordFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudTeardownRecordPayload>
+          }
+          findMany: {
+            args: Prisma.CloudTeardownRecordFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudTeardownRecordPayload>[]
+          }
+          create: {
+            args: Prisma.CloudTeardownRecordCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudTeardownRecordPayload>
+          }
+          createMany: {
+            args: Prisma.CloudTeardownRecordCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.CloudTeardownRecordCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudTeardownRecordPayload>[]
+          }
+          delete: {
+            args: Prisma.CloudTeardownRecordDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudTeardownRecordPayload>
+          }
+          update: {
+            args: Prisma.CloudTeardownRecordUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudTeardownRecordPayload>
+          }
+          deleteMany: {
+            args: Prisma.CloudTeardownRecordDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.CloudTeardownRecordUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.CloudTeardownRecordUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudTeardownRecordPayload>[]
+          }
+          upsert: {
+            args: Prisma.CloudTeardownRecordUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CloudTeardownRecordPayload>
+          }
+          aggregate: {
+            args: Prisma.CloudTeardownRecordAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateCloudTeardownRecord>
+          }
+          groupBy: {
+            args: Prisma.CloudTeardownRecordGroupByArgs<ExtArgs>
+            result: $Utils.Optional<CloudTeardownRecordGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.CloudTeardownRecordCountArgs<ExtArgs>
+            result: $Utils.Optional<CloudTeardownRecordCountAggregateOutputType> | number
+          }
+        }
+      }
+      PlatformIamIdentity: {
+        payload: Prisma.$PlatformIamIdentityPayload<ExtArgs>
+        fields: Prisma.PlatformIamIdentityFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PlatformIamIdentityFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlatformIamIdentityPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PlatformIamIdentityFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlatformIamIdentityPayload>
+          }
+          findFirst: {
+            args: Prisma.PlatformIamIdentityFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlatformIamIdentityPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PlatformIamIdentityFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlatformIamIdentityPayload>
+          }
+          findMany: {
+            args: Prisma.PlatformIamIdentityFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlatformIamIdentityPayload>[]
+          }
+          create: {
+            args: Prisma.PlatformIamIdentityCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlatformIamIdentityPayload>
+          }
+          createMany: {
+            args: Prisma.PlatformIamIdentityCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PlatformIamIdentityCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlatformIamIdentityPayload>[]
+          }
+          delete: {
+            args: Prisma.PlatformIamIdentityDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlatformIamIdentityPayload>
+          }
+          update: {
+            args: Prisma.PlatformIamIdentityUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlatformIamIdentityPayload>
+          }
+          deleteMany: {
+            args: Prisma.PlatformIamIdentityDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PlatformIamIdentityUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.PlatformIamIdentityUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlatformIamIdentityPayload>[]
+          }
+          upsert: {
+            args: Prisma.PlatformIamIdentityUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlatformIamIdentityPayload>
+          }
+          aggregate: {
+            args: Prisma.PlatformIamIdentityAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePlatformIamIdentity>
+          }
+          groupBy: {
+            args: Prisma.PlatformIamIdentityGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PlatformIamIdentityGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PlatformIamIdentityCountArgs<ExtArgs>
+            result: $Utils.Optional<PlatformIamIdentityCountAggregateOutputType> | number
+          }
+        }
+      }
+      PlatformIamImpersonationAudit: {
+        payload: Prisma.$PlatformIamImpersonationAuditPayload<ExtArgs>
+        fields: Prisma.PlatformIamImpersonationAuditFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PlatformIamImpersonationAuditFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlatformIamImpersonationAuditPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PlatformIamImpersonationAuditFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlatformIamImpersonationAuditPayload>
+          }
+          findFirst: {
+            args: Prisma.PlatformIamImpersonationAuditFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlatformIamImpersonationAuditPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PlatformIamImpersonationAuditFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlatformIamImpersonationAuditPayload>
+          }
+          findMany: {
+            args: Prisma.PlatformIamImpersonationAuditFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlatformIamImpersonationAuditPayload>[]
+          }
+          create: {
+            args: Prisma.PlatformIamImpersonationAuditCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlatformIamImpersonationAuditPayload>
+          }
+          createMany: {
+            args: Prisma.PlatformIamImpersonationAuditCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PlatformIamImpersonationAuditCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlatformIamImpersonationAuditPayload>[]
+          }
+          delete: {
+            args: Prisma.PlatformIamImpersonationAuditDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlatformIamImpersonationAuditPayload>
+          }
+          update: {
+            args: Prisma.PlatformIamImpersonationAuditUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlatformIamImpersonationAuditPayload>
+          }
+          deleteMany: {
+            args: Prisma.PlatformIamImpersonationAuditDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PlatformIamImpersonationAuditUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.PlatformIamImpersonationAuditUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlatformIamImpersonationAuditPayload>[]
+          }
+          upsert: {
+            args: Prisma.PlatformIamImpersonationAuditUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlatformIamImpersonationAuditPayload>
+          }
+          aggregate: {
+            args: Prisma.PlatformIamImpersonationAuditAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePlatformIamImpersonationAudit>
+          }
+          groupBy: {
+            args: Prisma.PlatformIamImpersonationAuditGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PlatformIamImpersonationAuditGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PlatformIamImpersonationAuditCountArgs<ExtArgs>
+            result: $Utils.Optional<PlatformIamImpersonationAuditCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -11139,6 +11879,13 @@ export namespace Prisma {
     remixJob?: RemixJobOmit
     importJob?: ImportJobOmit
     galleryListing?: GalleryListingOmit
+    cloudTenant?: CloudTenantOmit
+    cloudProjectBinding?: CloudProjectBindingOmit
+    cloudProjectFactoryEvent?: CloudProjectFactoryEventOmit
+    cloudTenantTransfer?: CloudTenantTransferOmit
+    cloudTeardownRecord?: CloudTeardownRecordOmit
+    platformIamIdentity?: PlatformIamIdentityOmit
+    platformIamImpersonationAudit?: PlatformIamImpersonationAuditOmit
   }
 
   /* Types for Logging */
@@ -12610,6 +13357,117 @@ export namespace Prisma {
    */
   export type ScheduledTaskCountOutputTypeCountRunsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ScheduledTaskRunWhereInput
+  }
+
+
+  /**
+   * Count Type CloudTenantCountOutputType
+   */
+
+  export type CloudTenantCountOutputType = {
+    bindings: number
+    transfers: number
+  }
+
+  export type CloudTenantCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    bindings?: boolean | CloudTenantCountOutputTypeCountBindingsArgs
+    transfers?: boolean | CloudTenantCountOutputTypeCountTransfersArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * CloudTenantCountOutputType without action
+   */
+  export type CloudTenantCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTenantCountOutputType
+     */
+    select?: CloudTenantCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * CloudTenantCountOutputType without action
+   */
+  export type CloudTenantCountOutputTypeCountBindingsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CloudProjectBindingWhereInput
+  }
+
+  /**
+   * CloudTenantCountOutputType without action
+   */
+  export type CloudTenantCountOutputTypeCountTransfersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CloudTenantTransferWhereInput
+  }
+
+
+  /**
+   * Count Type CloudProjectBindingCountOutputType
+   */
+
+  export type CloudProjectBindingCountOutputType = {
+    events: number
+    teardowns: number
+  }
+
+  export type CloudProjectBindingCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    events?: boolean | CloudProjectBindingCountOutputTypeCountEventsArgs
+    teardowns?: boolean | CloudProjectBindingCountOutputTypeCountTeardownsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * CloudProjectBindingCountOutputType without action
+   */
+  export type CloudProjectBindingCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudProjectBindingCountOutputType
+     */
+    select?: CloudProjectBindingCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * CloudProjectBindingCountOutputType without action
+   */
+  export type CloudProjectBindingCountOutputTypeCountEventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CloudProjectFactoryEventWhereInput
+  }
+
+  /**
+   * CloudProjectBindingCountOutputType without action
+   */
+  export type CloudProjectBindingCountOutputTypeCountTeardownsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CloudTeardownRecordWhereInput
+  }
+
+
+  /**
+   * Count Type PlatformIamIdentityCountOutputType
+   */
+
+  export type PlatformIamIdentityCountOutputType = {
+    impersonations: number
+  }
+
+  export type PlatformIamIdentityCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    impersonations?: boolean | PlatformIamIdentityCountOutputTypeCountImpersonationsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * PlatformIamIdentityCountOutputType without action
+   */
+  export type PlatformIamIdentityCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlatformIamIdentityCountOutputType
+     */
+    select?: PlatformIamIdentityCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * PlatformIamIdentityCountOutputType without action
+   */
+  export type PlatformIamIdentityCountOutputTypeCountImpersonationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PlatformIamImpersonationAuditWhereInput
   }
 
 
@@ -140866,6 +141724,8179 @@ export namespace Prisma {
 
 
   /**
+   * Model CloudTenant
+   */
+
+  export type AggregateCloudTenant = {
+    _count: CloudTenantCountAggregateOutputType | null
+    _avg: CloudTenantAvgAggregateOutputType | null
+    _sum: CloudTenantSumAggregateOutputType | null
+    _min: CloudTenantMinAggregateOutputType | null
+    _max: CloudTenantMaxAggregateOutputType | null
+  }
+
+  export type CloudTenantAvgAggregateOutputType = {
+    ownershipVersion: number | null
+  }
+
+  export type CloudTenantSumAggregateOutputType = {
+    ownershipVersion: number | null
+  }
+
+  export type CloudTenantMinAggregateOutputType = {
+    id: string | null
+    customerBoundaryType: $Enums.CloudTenantBoundaryType | null
+    ownerPrincipalId: string | null
+    billingPrincipalId: string | null
+    legalEntityId: string | null
+    ownershipVersion: number | null
+    residencyPolicy: string | null
+    lifecycle: $Enums.CloudTenantLifecycle | null
+    mergedIntoTenantId: string | null
+    splitFromTenantId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type CloudTenantMaxAggregateOutputType = {
+    id: string | null
+    customerBoundaryType: $Enums.CloudTenantBoundaryType | null
+    ownerPrincipalId: string | null
+    billingPrincipalId: string | null
+    legalEntityId: string | null
+    ownershipVersion: number | null
+    residencyPolicy: string | null
+    lifecycle: $Enums.CloudTenantLifecycle | null
+    mergedIntoTenantId: string | null
+    splitFromTenantId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type CloudTenantCountAggregateOutputType = {
+    id: number
+    customerBoundaryType: number
+    ownerPrincipalId: number
+    billingPrincipalId: number
+    legalEntityId: number
+    ownershipVersion: number
+    residencyPolicy: number
+    lifecycle: number
+    mergedIntoTenantId: number
+    splitFromTenantId: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type CloudTenantAvgAggregateInputType = {
+    ownershipVersion?: true
+  }
+
+  export type CloudTenantSumAggregateInputType = {
+    ownershipVersion?: true
+  }
+
+  export type CloudTenantMinAggregateInputType = {
+    id?: true
+    customerBoundaryType?: true
+    ownerPrincipalId?: true
+    billingPrincipalId?: true
+    legalEntityId?: true
+    ownershipVersion?: true
+    residencyPolicy?: true
+    lifecycle?: true
+    mergedIntoTenantId?: true
+    splitFromTenantId?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type CloudTenantMaxAggregateInputType = {
+    id?: true
+    customerBoundaryType?: true
+    ownerPrincipalId?: true
+    billingPrincipalId?: true
+    legalEntityId?: true
+    ownershipVersion?: true
+    residencyPolicy?: true
+    lifecycle?: true
+    mergedIntoTenantId?: true
+    splitFromTenantId?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type CloudTenantCountAggregateInputType = {
+    id?: true
+    customerBoundaryType?: true
+    ownerPrincipalId?: true
+    billingPrincipalId?: true
+    legalEntityId?: true
+    ownershipVersion?: true
+    residencyPolicy?: true
+    lifecycle?: true
+    mergedIntoTenantId?: true
+    splitFromTenantId?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type CloudTenantAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CloudTenant to aggregate.
+     */
+    where?: CloudTenantWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CloudTenants to fetch.
+     */
+    orderBy?: CloudTenantOrderByWithRelationInput | CloudTenantOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: CloudTenantWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CloudTenants from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CloudTenants.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned CloudTenants
+    **/
+    _count?: true | CloudTenantCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: CloudTenantAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: CloudTenantSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: CloudTenantMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: CloudTenantMaxAggregateInputType
+  }
+
+  export type GetCloudTenantAggregateType<T extends CloudTenantAggregateArgs> = {
+        [P in keyof T & keyof AggregateCloudTenant]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateCloudTenant[P]>
+      : GetScalarType<T[P], AggregateCloudTenant[P]>
+  }
+
+
+
+
+  export type CloudTenantGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CloudTenantWhereInput
+    orderBy?: CloudTenantOrderByWithAggregationInput | CloudTenantOrderByWithAggregationInput[]
+    by: CloudTenantScalarFieldEnum[] | CloudTenantScalarFieldEnum
+    having?: CloudTenantScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: CloudTenantCountAggregateInputType | true
+    _avg?: CloudTenantAvgAggregateInputType
+    _sum?: CloudTenantSumAggregateInputType
+    _min?: CloudTenantMinAggregateInputType
+    _max?: CloudTenantMaxAggregateInputType
+  }
+
+  export type CloudTenantGroupByOutputType = {
+    id: string
+    customerBoundaryType: $Enums.CloudTenantBoundaryType
+    ownerPrincipalId: string
+    billingPrincipalId: string
+    legalEntityId: string | null
+    ownershipVersion: number
+    residencyPolicy: string
+    lifecycle: $Enums.CloudTenantLifecycle
+    mergedIntoTenantId: string | null
+    splitFromTenantId: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: CloudTenantCountAggregateOutputType | null
+    _avg: CloudTenantAvgAggregateOutputType | null
+    _sum: CloudTenantSumAggregateOutputType | null
+    _min: CloudTenantMinAggregateOutputType | null
+    _max: CloudTenantMaxAggregateOutputType | null
+  }
+
+  type GetCloudTenantGroupByPayload<T extends CloudTenantGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<CloudTenantGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof CloudTenantGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], CloudTenantGroupByOutputType[P]>
+            : GetScalarType<T[P], CloudTenantGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type CloudTenantSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    customerBoundaryType?: boolean
+    ownerPrincipalId?: boolean
+    billingPrincipalId?: boolean
+    legalEntityId?: boolean
+    ownershipVersion?: boolean
+    residencyPolicy?: boolean
+    lifecycle?: boolean
+    mergedIntoTenantId?: boolean
+    splitFromTenantId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    bindings?: boolean | CloudTenant$bindingsArgs<ExtArgs>
+    transfers?: boolean | CloudTenant$transfersArgs<ExtArgs>
+    _count?: boolean | CloudTenantCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["cloudTenant"]>
+
+  export type CloudTenantSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    customerBoundaryType?: boolean
+    ownerPrincipalId?: boolean
+    billingPrincipalId?: boolean
+    legalEntityId?: boolean
+    ownershipVersion?: boolean
+    residencyPolicy?: boolean
+    lifecycle?: boolean
+    mergedIntoTenantId?: boolean
+    splitFromTenantId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["cloudTenant"]>
+
+  export type CloudTenantSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    customerBoundaryType?: boolean
+    ownerPrincipalId?: boolean
+    billingPrincipalId?: boolean
+    legalEntityId?: boolean
+    ownershipVersion?: boolean
+    residencyPolicy?: boolean
+    lifecycle?: boolean
+    mergedIntoTenantId?: boolean
+    splitFromTenantId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["cloudTenant"]>
+
+  export type CloudTenantSelectScalar = {
+    id?: boolean
+    customerBoundaryType?: boolean
+    ownerPrincipalId?: boolean
+    billingPrincipalId?: boolean
+    legalEntityId?: boolean
+    ownershipVersion?: boolean
+    residencyPolicy?: boolean
+    lifecycle?: boolean
+    mergedIntoTenantId?: boolean
+    splitFromTenantId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type CloudTenantOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "customerBoundaryType" | "ownerPrincipalId" | "billingPrincipalId" | "legalEntityId" | "ownershipVersion" | "residencyPolicy" | "lifecycle" | "mergedIntoTenantId" | "splitFromTenantId" | "createdAt" | "updatedAt", ExtArgs["result"]["cloudTenant"]>
+  export type CloudTenantInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    bindings?: boolean | CloudTenant$bindingsArgs<ExtArgs>
+    transfers?: boolean | CloudTenant$transfersArgs<ExtArgs>
+    _count?: boolean | CloudTenantCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type CloudTenantIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+  export type CloudTenantIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+
+  export type $CloudTenantPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "CloudTenant"
+    objects: {
+      bindings: Prisma.$CloudProjectBindingPayload<ExtArgs>[]
+      transfers: Prisma.$CloudTenantTransferPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      /**
+       * Who the customer IS. `customerId` alone is insufficient: an app moving
+       * from a personal account to an organization is an ownership migration.
+       */
+      customerBoundaryType: $Enums.CloudTenantBoundaryType
+      /**
+       * IAM member string of the CURRENT owner (e.g. "user:x@y.z",
+       * "serviceAccount:sa@p.iam.gserviceaccount.com").
+       */
+      ownerPrincipalId: string
+      /**
+       * Principal that pays. May differ from the owner (org pays, user owns).
+       */
+      billingPrincipalId: string
+      legalEntityId: string | null
+      /**
+       * Bumped on every completed ownership transfer / merge / split.
+       */
+      ownershipVersion: number
+      residencyPolicy: string
+      lifecycle: $Enums.CloudTenantLifecycle
+      /**
+       * Set when lifecycle=MERGED: the surviving tenant.
+       */
+      mergedIntoTenantId: string | null
+      /**
+       * Set when this tenant was created by splitting another one.
+       */
+      splitFromTenantId: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["cloudTenant"]>
+    composites: {}
+  }
+
+  type CloudTenantGetPayload<S extends boolean | null | undefined | CloudTenantDefaultArgs> = $Result.GetResult<Prisma.$CloudTenantPayload, S>
+
+  type CloudTenantCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<CloudTenantFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: CloudTenantCountAggregateInputType | true
+    }
+
+  export interface CloudTenantDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['CloudTenant'], meta: { name: 'CloudTenant' } }
+    /**
+     * Find zero or one CloudTenant that matches the filter.
+     * @param {CloudTenantFindUniqueArgs} args - Arguments to find a CloudTenant
+     * @example
+     * // Get one CloudTenant
+     * const cloudTenant = await prisma.cloudTenant.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends CloudTenantFindUniqueArgs>(args: SelectSubset<T, CloudTenantFindUniqueArgs<ExtArgs>>): Prisma__CloudTenantClient<$Result.GetResult<Prisma.$CloudTenantPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one CloudTenant that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {CloudTenantFindUniqueOrThrowArgs} args - Arguments to find a CloudTenant
+     * @example
+     * // Get one CloudTenant
+     * const cloudTenant = await prisma.cloudTenant.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends CloudTenantFindUniqueOrThrowArgs>(args: SelectSubset<T, CloudTenantFindUniqueOrThrowArgs<ExtArgs>>): Prisma__CloudTenantClient<$Result.GetResult<Prisma.$CloudTenantPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first CloudTenant that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudTenantFindFirstArgs} args - Arguments to find a CloudTenant
+     * @example
+     * // Get one CloudTenant
+     * const cloudTenant = await prisma.cloudTenant.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends CloudTenantFindFirstArgs>(args?: SelectSubset<T, CloudTenantFindFirstArgs<ExtArgs>>): Prisma__CloudTenantClient<$Result.GetResult<Prisma.$CloudTenantPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first CloudTenant that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudTenantFindFirstOrThrowArgs} args - Arguments to find a CloudTenant
+     * @example
+     * // Get one CloudTenant
+     * const cloudTenant = await prisma.cloudTenant.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends CloudTenantFindFirstOrThrowArgs>(args?: SelectSubset<T, CloudTenantFindFirstOrThrowArgs<ExtArgs>>): Prisma__CloudTenantClient<$Result.GetResult<Prisma.$CloudTenantPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more CloudTenants that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudTenantFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all CloudTenants
+     * const cloudTenants = await prisma.cloudTenant.findMany()
+     * 
+     * // Get first 10 CloudTenants
+     * const cloudTenants = await prisma.cloudTenant.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const cloudTenantWithIdOnly = await prisma.cloudTenant.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends CloudTenantFindManyArgs>(args?: SelectSubset<T, CloudTenantFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CloudTenantPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a CloudTenant.
+     * @param {CloudTenantCreateArgs} args - Arguments to create a CloudTenant.
+     * @example
+     * // Create one CloudTenant
+     * const CloudTenant = await prisma.cloudTenant.create({
+     *   data: {
+     *     // ... data to create a CloudTenant
+     *   }
+     * })
+     * 
+     */
+    create<T extends CloudTenantCreateArgs>(args: SelectSubset<T, CloudTenantCreateArgs<ExtArgs>>): Prisma__CloudTenantClient<$Result.GetResult<Prisma.$CloudTenantPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many CloudTenants.
+     * @param {CloudTenantCreateManyArgs} args - Arguments to create many CloudTenants.
+     * @example
+     * // Create many CloudTenants
+     * const cloudTenant = await prisma.cloudTenant.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends CloudTenantCreateManyArgs>(args?: SelectSubset<T, CloudTenantCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many CloudTenants and returns the data saved in the database.
+     * @param {CloudTenantCreateManyAndReturnArgs} args - Arguments to create many CloudTenants.
+     * @example
+     * // Create many CloudTenants
+     * const cloudTenant = await prisma.cloudTenant.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many CloudTenants and only return the `id`
+     * const cloudTenantWithIdOnly = await prisma.cloudTenant.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends CloudTenantCreateManyAndReturnArgs>(args?: SelectSubset<T, CloudTenantCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CloudTenantPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a CloudTenant.
+     * @param {CloudTenantDeleteArgs} args - Arguments to delete one CloudTenant.
+     * @example
+     * // Delete one CloudTenant
+     * const CloudTenant = await prisma.cloudTenant.delete({
+     *   where: {
+     *     // ... filter to delete one CloudTenant
+     *   }
+     * })
+     * 
+     */
+    delete<T extends CloudTenantDeleteArgs>(args: SelectSubset<T, CloudTenantDeleteArgs<ExtArgs>>): Prisma__CloudTenantClient<$Result.GetResult<Prisma.$CloudTenantPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one CloudTenant.
+     * @param {CloudTenantUpdateArgs} args - Arguments to update one CloudTenant.
+     * @example
+     * // Update one CloudTenant
+     * const cloudTenant = await prisma.cloudTenant.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends CloudTenantUpdateArgs>(args: SelectSubset<T, CloudTenantUpdateArgs<ExtArgs>>): Prisma__CloudTenantClient<$Result.GetResult<Prisma.$CloudTenantPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more CloudTenants.
+     * @param {CloudTenantDeleteManyArgs} args - Arguments to filter CloudTenants to delete.
+     * @example
+     * // Delete a few CloudTenants
+     * const { count } = await prisma.cloudTenant.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends CloudTenantDeleteManyArgs>(args?: SelectSubset<T, CloudTenantDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more CloudTenants.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudTenantUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many CloudTenants
+     * const cloudTenant = await prisma.cloudTenant.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends CloudTenantUpdateManyArgs>(args: SelectSubset<T, CloudTenantUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more CloudTenants and returns the data updated in the database.
+     * @param {CloudTenantUpdateManyAndReturnArgs} args - Arguments to update many CloudTenants.
+     * @example
+     * // Update many CloudTenants
+     * const cloudTenant = await prisma.cloudTenant.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more CloudTenants and only return the `id`
+     * const cloudTenantWithIdOnly = await prisma.cloudTenant.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends CloudTenantUpdateManyAndReturnArgs>(args: SelectSubset<T, CloudTenantUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CloudTenantPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one CloudTenant.
+     * @param {CloudTenantUpsertArgs} args - Arguments to update or create a CloudTenant.
+     * @example
+     * // Update or create a CloudTenant
+     * const cloudTenant = await prisma.cloudTenant.upsert({
+     *   create: {
+     *     // ... data to create a CloudTenant
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the CloudTenant we want to update
+     *   }
+     * })
+     */
+    upsert<T extends CloudTenantUpsertArgs>(args: SelectSubset<T, CloudTenantUpsertArgs<ExtArgs>>): Prisma__CloudTenantClient<$Result.GetResult<Prisma.$CloudTenantPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of CloudTenants.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudTenantCountArgs} args - Arguments to filter CloudTenants to count.
+     * @example
+     * // Count the number of CloudTenants
+     * const count = await prisma.cloudTenant.count({
+     *   where: {
+     *     // ... the filter for the CloudTenants we want to count
+     *   }
+     * })
+    **/
+    count<T extends CloudTenantCountArgs>(
+      args?: Subset<T, CloudTenantCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], CloudTenantCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a CloudTenant.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudTenantAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends CloudTenantAggregateArgs>(args: Subset<T, CloudTenantAggregateArgs>): Prisma.PrismaPromise<GetCloudTenantAggregateType<T>>
+
+    /**
+     * Group by CloudTenant.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudTenantGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends CloudTenantGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: CloudTenantGroupByArgs['orderBy'] }
+        : { orderBy?: CloudTenantGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, CloudTenantGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetCloudTenantGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the CloudTenant model
+   */
+  readonly fields: CloudTenantFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for CloudTenant.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__CloudTenantClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    bindings<T extends CloudTenant$bindingsArgs<ExtArgs> = {}>(args?: Subset<T, CloudTenant$bindingsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CloudProjectBindingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    transfers<T extends CloudTenant$transfersArgs<ExtArgs> = {}>(args?: Subset<T, CloudTenant$transfersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CloudTenantTransferPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the CloudTenant model
+   */
+  interface CloudTenantFieldRefs {
+    readonly id: FieldRef<"CloudTenant", 'String'>
+    readonly customerBoundaryType: FieldRef<"CloudTenant", 'CloudTenantBoundaryType'>
+    readonly ownerPrincipalId: FieldRef<"CloudTenant", 'String'>
+    readonly billingPrincipalId: FieldRef<"CloudTenant", 'String'>
+    readonly legalEntityId: FieldRef<"CloudTenant", 'String'>
+    readonly ownershipVersion: FieldRef<"CloudTenant", 'Int'>
+    readonly residencyPolicy: FieldRef<"CloudTenant", 'String'>
+    readonly lifecycle: FieldRef<"CloudTenant", 'CloudTenantLifecycle'>
+    readonly mergedIntoTenantId: FieldRef<"CloudTenant", 'String'>
+    readonly splitFromTenantId: FieldRef<"CloudTenant", 'String'>
+    readonly createdAt: FieldRef<"CloudTenant", 'DateTime'>
+    readonly updatedAt: FieldRef<"CloudTenant", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * CloudTenant findUnique
+   */
+  export type CloudTenantFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTenant
+     */
+    select?: CloudTenantSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTenant
+     */
+    omit?: CloudTenantOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTenantInclude<ExtArgs> | null
+    /**
+     * Filter, which CloudTenant to fetch.
+     */
+    where: CloudTenantWhereUniqueInput
+  }
+
+  /**
+   * CloudTenant findUniqueOrThrow
+   */
+  export type CloudTenantFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTenant
+     */
+    select?: CloudTenantSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTenant
+     */
+    omit?: CloudTenantOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTenantInclude<ExtArgs> | null
+    /**
+     * Filter, which CloudTenant to fetch.
+     */
+    where: CloudTenantWhereUniqueInput
+  }
+
+  /**
+   * CloudTenant findFirst
+   */
+  export type CloudTenantFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTenant
+     */
+    select?: CloudTenantSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTenant
+     */
+    omit?: CloudTenantOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTenantInclude<ExtArgs> | null
+    /**
+     * Filter, which CloudTenant to fetch.
+     */
+    where?: CloudTenantWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CloudTenants to fetch.
+     */
+    orderBy?: CloudTenantOrderByWithRelationInput | CloudTenantOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CloudTenants.
+     */
+    cursor?: CloudTenantWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CloudTenants from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CloudTenants.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CloudTenants.
+     */
+    distinct?: CloudTenantScalarFieldEnum | CloudTenantScalarFieldEnum[]
+  }
+
+  /**
+   * CloudTenant findFirstOrThrow
+   */
+  export type CloudTenantFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTenant
+     */
+    select?: CloudTenantSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTenant
+     */
+    omit?: CloudTenantOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTenantInclude<ExtArgs> | null
+    /**
+     * Filter, which CloudTenant to fetch.
+     */
+    where?: CloudTenantWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CloudTenants to fetch.
+     */
+    orderBy?: CloudTenantOrderByWithRelationInput | CloudTenantOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CloudTenants.
+     */
+    cursor?: CloudTenantWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CloudTenants from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CloudTenants.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CloudTenants.
+     */
+    distinct?: CloudTenantScalarFieldEnum | CloudTenantScalarFieldEnum[]
+  }
+
+  /**
+   * CloudTenant findMany
+   */
+  export type CloudTenantFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTenant
+     */
+    select?: CloudTenantSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTenant
+     */
+    omit?: CloudTenantOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTenantInclude<ExtArgs> | null
+    /**
+     * Filter, which CloudTenants to fetch.
+     */
+    where?: CloudTenantWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CloudTenants to fetch.
+     */
+    orderBy?: CloudTenantOrderByWithRelationInput | CloudTenantOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing CloudTenants.
+     */
+    cursor?: CloudTenantWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CloudTenants from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CloudTenants.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CloudTenants.
+     */
+    distinct?: CloudTenantScalarFieldEnum | CloudTenantScalarFieldEnum[]
+  }
+
+  /**
+   * CloudTenant create
+   */
+  export type CloudTenantCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTenant
+     */
+    select?: CloudTenantSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTenant
+     */
+    omit?: CloudTenantOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTenantInclude<ExtArgs> | null
+    /**
+     * The data needed to create a CloudTenant.
+     */
+    data: XOR<CloudTenantCreateInput, CloudTenantUncheckedCreateInput>
+  }
+
+  /**
+   * CloudTenant createMany
+   */
+  export type CloudTenantCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many CloudTenants.
+     */
+    data: CloudTenantCreateManyInput | CloudTenantCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * CloudTenant createManyAndReturn
+   */
+  export type CloudTenantCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTenant
+     */
+    select?: CloudTenantSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTenant
+     */
+    omit?: CloudTenantOmit<ExtArgs> | null
+    /**
+     * The data used to create many CloudTenants.
+     */
+    data: CloudTenantCreateManyInput | CloudTenantCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * CloudTenant update
+   */
+  export type CloudTenantUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTenant
+     */
+    select?: CloudTenantSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTenant
+     */
+    omit?: CloudTenantOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTenantInclude<ExtArgs> | null
+    /**
+     * The data needed to update a CloudTenant.
+     */
+    data: XOR<CloudTenantUpdateInput, CloudTenantUncheckedUpdateInput>
+    /**
+     * Choose, which CloudTenant to update.
+     */
+    where: CloudTenantWhereUniqueInput
+  }
+
+  /**
+   * CloudTenant updateMany
+   */
+  export type CloudTenantUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update CloudTenants.
+     */
+    data: XOR<CloudTenantUpdateManyMutationInput, CloudTenantUncheckedUpdateManyInput>
+    /**
+     * Filter which CloudTenants to update
+     */
+    where?: CloudTenantWhereInput
+    /**
+     * Limit how many CloudTenants to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * CloudTenant updateManyAndReturn
+   */
+  export type CloudTenantUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTenant
+     */
+    select?: CloudTenantSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTenant
+     */
+    omit?: CloudTenantOmit<ExtArgs> | null
+    /**
+     * The data used to update CloudTenants.
+     */
+    data: XOR<CloudTenantUpdateManyMutationInput, CloudTenantUncheckedUpdateManyInput>
+    /**
+     * Filter which CloudTenants to update
+     */
+    where?: CloudTenantWhereInput
+    /**
+     * Limit how many CloudTenants to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * CloudTenant upsert
+   */
+  export type CloudTenantUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTenant
+     */
+    select?: CloudTenantSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTenant
+     */
+    omit?: CloudTenantOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTenantInclude<ExtArgs> | null
+    /**
+     * The filter to search for the CloudTenant to update in case it exists.
+     */
+    where: CloudTenantWhereUniqueInput
+    /**
+     * In case the CloudTenant found by the `where` argument doesn't exist, create a new CloudTenant with this data.
+     */
+    create: XOR<CloudTenantCreateInput, CloudTenantUncheckedCreateInput>
+    /**
+     * In case the CloudTenant was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<CloudTenantUpdateInput, CloudTenantUncheckedUpdateInput>
+  }
+
+  /**
+   * CloudTenant delete
+   */
+  export type CloudTenantDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTenant
+     */
+    select?: CloudTenantSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTenant
+     */
+    omit?: CloudTenantOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTenantInclude<ExtArgs> | null
+    /**
+     * Filter which CloudTenant to delete.
+     */
+    where: CloudTenantWhereUniqueInput
+  }
+
+  /**
+   * CloudTenant deleteMany
+   */
+  export type CloudTenantDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CloudTenants to delete
+     */
+    where?: CloudTenantWhereInput
+    /**
+     * Limit how many CloudTenants to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * CloudTenant.bindings
+   */
+  export type CloudTenant$bindingsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudProjectBinding
+     */
+    select?: CloudProjectBindingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudProjectBinding
+     */
+    omit?: CloudProjectBindingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudProjectBindingInclude<ExtArgs> | null
+    where?: CloudProjectBindingWhereInput
+    orderBy?: CloudProjectBindingOrderByWithRelationInput | CloudProjectBindingOrderByWithRelationInput[]
+    cursor?: CloudProjectBindingWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: CloudProjectBindingScalarFieldEnum | CloudProjectBindingScalarFieldEnum[]
+  }
+
+  /**
+   * CloudTenant.transfers
+   */
+  export type CloudTenant$transfersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTenantTransfer
+     */
+    select?: CloudTenantTransferSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTenantTransfer
+     */
+    omit?: CloudTenantTransferOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTenantTransferInclude<ExtArgs> | null
+    where?: CloudTenantTransferWhereInput
+    orderBy?: CloudTenantTransferOrderByWithRelationInput | CloudTenantTransferOrderByWithRelationInput[]
+    cursor?: CloudTenantTransferWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: CloudTenantTransferScalarFieldEnum | CloudTenantTransferScalarFieldEnum[]
+  }
+
+  /**
+   * CloudTenant without action
+   */
+  export type CloudTenantDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTenant
+     */
+    select?: CloudTenantSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTenant
+     */
+    omit?: CloudTenantOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTenantInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model CloudProjectBinding
+   */
+
+  export type AggregateCloudProjectBinding = {
+    _count: CloudProjectBindingCountAggregateOutputType | null
+    _min: CloudProjectBindingMinAggregateOutputType | null
+    _max: CloudProjectBindingMaxAggregateOutputType | null
+  }
+
+  export type CloudProjectBindingMinAggregateOutputType = {
+    id: string | null
+    cloudTenantId: string | null
+    gcpProjectId: string | null
+    gcpProjectNumber: string | null
+    role: $Enums.CloudProjectBindingRole | null
+    region: string | null
+    state: $Enums.CloudProjectBindingState | null
+    parentFolderId: string | null
+    reconciliationStatus: string | null
+    recoveryWindowEndsAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type CloudProjectBindingMaxAggregateOutputType = {
+    id: string | null
+    cloudTenantId: string | null
+    gcpProjectId: string | null
+    gcpProjectNumber: string | null
+    role: $Enums.CloudProjectBindingRole | null
+    region: string | null
+    state: $Enums.CloudProjectBindingState | null
+    parentFolderId: string | null
+    reconciliationStatus: string | null
+    recoveryWindowEndsAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type CloudProjectBindingCountAggregateOutputType = {
+    id: number
+    cloudTenantId: number
+    gcpProjectId: number
+    gcpProjectNumber: number
+    role: number
+    region: number
+    state: number
+    parentFolderId: number
+    quotas: number
+    billingLabels: number
+    capacityPolicy: number
+    reconciliationStatus: number
+    recoveryWindowEndsAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type CloudProjectBindingMinAggregateInputType = {
+    id?: true
+    cloudTenantId?: true
+    gcpProjectId?: true
+    gcpProjectNumber?: true
+    role?: true
+    region?: true
+    state?: true
+    parentFolderId?: true
+    reconciliationStatus?: true
+    recoveryWindowEndsAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type CloudProjectBindingMaxAggregateInputType = {
+    id?: true
+    cloudTenantId?: true
+    gcpProjectId?: true
+    gcpProjectNumber?: true
+    role?: true
+    region?: true
+    state?: true
+    parentFolderId?: true
+    reconciliationStatus?: true
+    recoveryWindowEndsAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type CloudProjectBindingCountAggregateInputType = {
+    id?: true
+    cloudTenantId?: true
+    gcpProjectId?: true
+    gcpProjectNumber?: true
+    role?: true
+    region?: true
+    state?: true
+    parentFolderId?: true
+    quotas?: true
+    billingLabels?: true
+    capacityPolicy?: true
+    reconciliationStatus?: true
+    recoveryWindowEndsAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type CloudProjectBindingAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CloudProjectBinding to aggregate.
+     */
+    where?: CloudProjectBindingWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CloudProjectBindings to fetch.
+     */
+    orderBy?: CloudProjectBindingOrderByWithRelationInput | CloudProjectBindingOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: CloudProjectBindingWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CloudProjectBindings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CloudProjectBindings.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned CloudProjectBindings
+    **/
+    _count?: true | CloudProjectBindingCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: CloudProjectBindingMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: CloudProjectBindingMaxAggregateInputType
+  }
+
+  export type GetCloudProjectBindingAggregateType<T extends CloudProjectBindingAggregateArgs> = {
+        [P in keyof T & keyof AggregateCloudProjectBinding]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateCloudProjectBinding[P]>
+      : GetScalarType<T[P], AggregateCloudProjectBinding[P]>
+  }
+
+
+
+
+  export type CloudProjectBindingGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CloudProjectBindingWhereInput
+    orderBy?: CloudProjectBindingOrderByWithAggregationInput | CloudProjectBindingOrderByWithAggregationInput[]
+    by: CloudProjectBindingScalarFieldEnum[] | CloudProjectBindingScalarFieldEnum
+    having?: CloudProjectBindingScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: CloudProjectBindingCountAggregateInputType | true
+    _min?: CloudProjectBindingMinAggregateInputType
+    _max?: CloudProjectBindingMaxAggregateInputType
+  }
+
+  export type CloudProjectBindingGroupByOutputType = {
+    id: string
+    cloudTenantId: string
+    gcpProjectId: string
+    gcpProjectNumber: string | null
+    role: $Enums.CloudProjectBindingRole
+    region: string
+    state: $Enums.CloudProjectBindingState
+    parentFolderId: string | null
+    quotas: JsonValue | null
+    billingLabels: JsonValue | null
+    capacityPolicy: JsonValue | null
+    reconciliationStatus: string
+    recoveryWindowEndsAt: Date | null
+    createdAt: Date
+    updatedAt: Date
+    _count: CloudProjectBindingCountAggregateOutputType | null
+    _min: CloudProjectBindingMinAggregateOutputType | null
+    _max: CloudProjectBindingMaxAggregateOutputType | null
+  }
+
+  type GetCloudProjectBindingGroupByPayload<T extends CloudProjectBindingGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<CloudProjectBindingGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof CloudProjectBindingGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], CloudProjectBindingGroupByOutputType[P]>
+            : GetScalarType<T[P], CloudProjectBindingGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type CloudProjectBindingSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    cloudTenantId?: boolean
+    gcpProjectId?: boolean
+    gcpProjectNumber?: boolean
+    role?: boolean
+    region?: boolean
+    state?: boolean
+    parentFolderId?: boolean
+    quotas?: boolean
+    billingLabels?: boolean
+    capacityPolicy?: boolean
+    reconciliationStatus?: boolean
+    recoveryWindowEndsAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    tenant?: boolean | CloudTenantDefaultArgs<ExtArgs>
+    events?: boolean | CloudProjectBinding$eventsArgs<ExtArgs>
+    teardowns?: boolean | CloudProjectBinding$teardownsArgs<ExtArgs>
+    _count?: boolean | CloudProjectBindingCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["cloudProjectBinding"]>
+
+  export type CloudProjectBindingSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    cloudTenantId?: boolean
+    gcpProjectId?: boolean
+    gcpProjectNumber?: boolean
+    role?: boolean
+    region?: boolean
+    state?: boolean
+    parentFolderId?: boolean
+    quotas?: boolean
+    billingLabels?: boolean
+    capacityPolicy?: boolean
+    reconciliationStatus?: boolean
+    recoveryWindowEndsAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    tenant?: boolean | CloudTenantDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["cloudProjectBinding"]>
+
+  export type CloudProjectBindingSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    cloudTenantId?: boolean
+    gcpProjectId?: boolean
+    gcpProjectNumber?: boolean
+    role?: boolean
+    region?: boolean
+    state?: boolean
+    parentFolderId?: boolean
+    quotas?: boolean
+    billingLabels?: boolean
+    capacityPolicy?: boolean
+    reconciliationStatus?: boolean
+    recoveryWindowEndsAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    tenant?: boolean | CloudTenantDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["cloudProjectBinding"]>
+
+  export type CloudProjectBindingSelectScalar = {
+    id?: boolean
+    cloudTenantId?: boolean
+    gcpProjectId?: boolean
+    gcpProjectNumber?: boolean
+    role?: boolean
+    region?: boolean
+    state?: boolean
+    parentFolderId?: boolean
+    quotas?: boolean
+    billingLabels?: boolean
+    capacityPolicy?: boolean
+    reconciliationStatus?: boolean
+    recoveryWindowEndsAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type CloudProjectBindingOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "cloudTenantId" | "gcpProjectId" | "gcpProjectNumber" | "role" | "region" | "state" | "parentFolderId" | "quotas" | "billingLabels" | "capacityPolicy" | "reconciliationStatus" | "recoveryWindowEndsAt" | "createdAt" | "updatedAt", ExtArgs["result"]["cloudProjectBinding"]>
+  export type CloudProjectBindingInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    tenant?: boolean | CloudTenantDefaultArgs<ExtArgs>
+    events?: boolean | CloudProjectBinding$eventsArgs<ExtArgs>
+    teardowns?: boolean | CloudProjectBinding$teardownsArgs<ExtArgs>
+    _count?: boolean | CloudProjectBindingCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type CloudProjectBindingIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    tenant?: boolean | CloudTenantDefaultArgs<ExtArgs>
+  }
+  export type CloudProjectBindingIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    tenant?: boolean | CloudTenantDefaultArgs<ExtArgs>
+  }
+
+  export type $CloudProjectBindingPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "CloudProjectBinding"
+    objects: {
+      tenant: Prisma.$CloudTenantPayload<ExtArgs>
+      events: Prisma.$CloudProjectFactoryEventPayload<ExtArgs>[]
+      teardowns: Prisma.$CloudTeardownRecordPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      cloudTenantId: string
+      /**
+       * I-TEN-1: a GCP project can NEVER be shared between two tenants.
+       * The UNIQUE constraint is the invariant, not application code.
+       */
+      gcpProjectId: string
+      gcpProjectNumber: string | null
+      role: $Enums.CloudProjectBindingRole
+      region: string
+      state: $Enums.CloudProjectBindingState
+      /**
+       * Shard folder (customers/shard-<n>) the project lives under. Tenants do
+       * NOT get a dedicated folder: folder creation is hard-limited by GCP
+       * (measured 2026-07-17: 5.8 creations/min sustained, burst ~10, then 429
+       * "Folder V3 create requests per minute") and capped at 300 children.
+       */
+      parentFolderId: string | null
+      quotas: Prisma.JsonValue | null
+      billingLabels: Prisma.JsonValue | null
+      /**
+       * Per-binding CapacityPolicy: resource quotas AND creation rate limits.
+       */
+      capacityPolicy: Prisma.JsonValue | null
+      reconciliationStatus: string
+      /**
+       * End of the reversible-deletion window (GCP soft-deletes ~30 days; some
+       * services may purge earlier — the window is a maximum, not a promise).
+       */
+      recoveryWindowEndsAt: Date | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["cloudProjectBinding"]>
+    composites: {}
+  }
+
+  type CloudProjectBindingGetPayload<S extends boolean | null | undefined | CloudProjectBindingDefaultArgs> = $Result.GetResult<Prisma.$CloudProjectBindingPayload, S>
+
+  type CloudProjectBindingCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<CloudProjectBindingFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: CloudProjectBindingCountAggregateInputType | true
+    }
+
+  export interface CloudProjectBindingDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['CloudProjectBinding'], meta: { name: 'CloudProjectBinding' } }
+    /**
+     * Find zero or one CloudProjectBinding that matches the filter.
+     * @param {CloudProjectBindingFindUniqueArgs} args - Arguments to find a CloudProjectBinding
+     * @example
+     * // Get one CloudProjectBinding
+     * const cloudProjectBinding = await prisma.cloudProjectBinding.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends CloudProjectBindingFindUniqueArgs>(args: SelectSubset<T, CloudProjectBindingFindUniqueArgs<ExtArgs>>): Prisma__CloudProjectBindingClient<$Result.GetResult<Prisma.$CloudProjectBindingPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one CloudProjectBinding that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {CloudProjectBindingFindUniqueOrThrowArgs} args - Arguments to find a CloudProjectBinding
+     * @example
+     * // Get one CloudProjectBinding
+     * const cloudProjectBinding = await prisma.cloudProjectBinding.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends CloudProjectBindingFindUniqueOrThrowArgs>(args: SelectSubset<T, CloudProjectBindingFindUniqueOrThrowArgs<ExtArgs>>): Prisma__CloudProjectBindingClient<$Result.GetResult<Prisma.$CloudProjectBindingPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first CloudProjectBinding that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudProjectBindingFindFirstArgs} args - Arguments to find a CloudProjectBinding
+     * @example
+     * // Get one CloudProjectBinding
+     * const cloudProjectBinding = await prisma.cloudProjectBinding.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends CloudProjectBindingFindFirstArgs>(args?: SelectSubset<T, CloudProjectBindingFindFirstArgs<ExtArgs>>): Prisma__CloudProjectBindingClient<$Result.GetResult<Prisma.$CloudProjectBindingPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first CloudProjectBinding that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudProjectBindingFindFirstOrThrowArgs} args - Arguments to find a CloudProjectBinding
+     * @example
+     * // Get one CloudProjectBinding
+     * const cloudProjectBinding = await prisma.cloudProjectBinding.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends CloudProjectBindingFindFirstOrThrowArgs>(args?: SelectSubset<T, CloudProjectBindingFindFirstOrThrowArgs<ExtArgs>>): Prisma__CloudProjectBindingClient<$Result.GetResult<Prisma.$CloudProjectBindingPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more CloudProjectBindings that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudProjectBindingFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all CloudProjectBindings
+     * const cloudProjectBindings = await prisma.cloudProjectBinding.findMany()
+     * 
+     * // Get first 10 CloudProjectBindings
+     * const cloudProjectBindings = await prisma.cloudProjectBinding.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const cloudProjectBindingWithIdOnly = await prisma.cloudProjectBinding.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends CloudProjectBindingFindManyArgs>(args?: SelectSubset<T, CloudProjectBindingFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CloudProjectBindingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a CloudProjectBinding.
+     * @param {CloudProjectBindingCreateArgs} args - Arguments to create a CloudProjectBinding.
+     * @example
+     * // Create one CloudProjectBinding
+     * const CloudProjectBinding = await prisma.cloudProjectBinding.create({
+     *   data: {
+     *     // ... data to create a CloudProjectBinding
+     *   }
+     * })
+     * 
+     */
+    create<T extends CloudProjectBindingCreateArgs>(args: SelectSubset<T, CloudProjectBindingCreateArgs<ExtArgs>>): Prisma__CloudProjectBindingClient<$Result.GetResult<Prisma.$CloudProjectBindingPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many CloudProjectBindings.
+     * @param {CloudProjectBindingCreateManyArgs} args - Arguments to create many CloudProjectBindings.
+     * @example
+     * // Create many CloudProjectBindings
+     * const cloudProjectBinding = await prisma.cloudProjectBinding.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends CloudProjectBindingCreateManyArgs>(args?: SelectSubset<T, CloudProjectBindingCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many CloudProjectBindings and returns the data saved in the database.
+     * @param {CloudProjectBindingCreateManyAndReturnArgs} args - Arguments to create many CloudProjectBindings.
+     * @example
+     * // Create many CloudProjectBindings
+     * const cloudProjectBinding = await prisma.cloudProjectBinding.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many CloudProjectBindings and only return the `id`
+     * const cloudProjectBindingWithIdOnly = await prisma.cloudProjectBinding.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends CloudProjectBindingCreateManyAndReturnArgs>(args?: SelectSubset<T, CloudProjectBindingCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CloudProjectBindingPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a CloudProjectBinding.
+     * @param {CloudProjectBindingDeleteArgs} args - Arguments to delete one CloudProjectBinding.
+     * @example
+     * // Delete one CloudProjectBinding
+     * const CloudProjectBinding = await prisma.cloudProjectBinding.delete({
+     *   where: {
+     *     // ... filter to delete one CloudProjectBinding
+     *   }
+     * })
+     * 
+     */
+    delete<T extends CloudProjectBindingDeleteArgs>(args: SelectSubset<T, CloudProjectBindingDeleteArgs<ExtArgs>>): Prisma__CloudProjectBindingClient<$Result.GetResult<Prisma.$CloudProjectBindingPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one CloudProjectBinding.
+     * @param {CloudProjectBindingUpdateArgs} args - Arguments to update one CloudProjectBinding.
+     * @example
+     * // Update one CloudProjectBinding
+     * const cloudProjectBinding = await prisma.cloudProjectBinding.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends CloudProjectBindingUpdateArgs>(args: SelectSubset<T, CloudProjectBindingUpdateArgs<ExtArgs>>): Prisma__CloudProjectBindingClient<$Result.GetResult<Prisma.$CloudProjectBindingPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more CloudProjectBindings.
+     * @param {CloudProjectBindingDeleteManyArgs} args - Arguments to filter CloudProjectBindings to delete.
+     * @example
+     * // Delete a few CloudProjectBindings
+     * const { count } = await prisma.cloudProjectBinding.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends CloudProjectBindingDeleteManyArgs>(args?: SelectSubset<T, CloudProjectBindingDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more CloudProjectBindings.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudProjectBindingUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many CloudProjectBindings
+     * const cloudProjectBinding = await prisma.cloudProjectBinding.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends CloudProjectBindingUpdateManyArgs>(args: SelectSubset<T, CloudProjectBindingUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more CloudProjectBindings and returns the data updated in the database.
+     * @param {CloudProjectBindingUpdateManyAndReturnArgs} args - Arguments to update many CloudProjectBindings.
+     * @example
+     * // Update many CloudProjectBindings
+     * const cloudProjectBinding = await prisma.cloudProjectBinding.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more CloudProjectBindings and only return the `id`
+     * const cloudProjectBindingWithIdOnly = await prisma.cloudProjectBinding.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends CloudProjectBindingUpdateManyAndReturnArgs>(args: SelectSubset<T, CloudProjectBindingUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CloudProjectBindingPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one CloudProjectBinding.
+     * @param {CloudProjectBindingUpsertArgs} args - Arguments to update or create a CloudProjectBinding.
+     * @example
+     * // Update or create a CloudProjectBinding
+     * const cloudProjectBinding = await prisma.cloudProjectBinding.upsert({
+     *   create: {
+     *     // ... data to create a CloudProjectBinding
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the CloudProjectBinding we want to update
+     *   }
+     * })
+     */
+    upsert<T extends CloudProjectBindingUpsertArgs>(args: SelectSubset<T, CloudProjectBindingUpsertArgs<ExtArgs>>): Prisma__CloudProjectBindingClient<$Result.GetResult<Prisma.$CloudProjectBindingPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of CloudProjectBindings.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudProjectBindingCountArgs} args - Arguments to filter CloudProjectBindings to count.
+     * @example
+     * // Count the number of CloudProjectBindings
+     * const count = await prisma.cloudProjectBinding.count({
+     *   where: {
+     *     // ... the filter for the CloudProjectBindings we want to count
+     *   }
+     * })
+    **/
+    count<T extends CloudProjectBindingCountArgs>(
+      args?: Subset<T, CloudProjectBindingCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], CloudProjectBindingCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a CloudProjectBinding.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudProjectBindingAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends CloudProjectBindingAggregateArgs>(args: Subset<T, CloudProjectBindingAggregateArgs>): Prisma.PrismaPromise<GetCloudProjectBindingAggregateType<T>>
+
+    /**
+     * Group by CloudProjectBinding.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudProjectBindingGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends CloudProjectBindingGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: CloudProjectBindingGroupByArgs['orderBy'] }
+        : { orderBy?: CloudProjectBindingGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, CloudProjectBindingGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetCloudProjectBindingGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the CloudProjectBinding model
+   */
+  readonly fields: CloudProjectBindingFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for CloudProjectBinding.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__CloudProjectBindingClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    tenant<T extends CloudTenantDefaultArgs<ExtArgs> = {}>(args?: Subset<T, CloudTenantDefaultArgs<ExtArgs>>): Prisma__CloudTenantClient<$Result.GetResult<Prisma.$CloudTenantPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    events<T extends CloudProjectBinding$eventsArgs<ExtArgs> = {}>(args?: Subset<T, CloudProjectBinding$eventsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CloudProjectFactoryEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    teardowns<T extends CloudProjectBinding$teardownsArgs<ExtArgs> = {}>(args?: Subset<T, CloudProjectBinding$teardownsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CloudTeardownRecordPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the CloudProjectBinding model
+   */
+  interface CloudProjectBindingFieldRefs {
+    readonly id: FieldRef<"CloudProjectBinding", 'String'>
+    readonly cloudTenantId: FieldRef<"CloudProjectBinding", 'String'>
+    readonly gcpProjectId: FieldRef<"CloudProjectBinding", 'String'>
+    readonly gcpProjectNumber: FieldRef<"CloudProjectBinding", 'String'>
+    readonly role: FieldRef<"CloudProjectBinding", 'CloudProjectBindingRole'>
+    readonly region: FieldRef<"CloudProjectBinding", 'String'>
+    readonly state: FieldRef<"CloudProjectBinding", 'CloudProjectBindingState'>
+    readonly parentFolderId: FieldRef<"CloudProjectBinding", 'String'>
+    readonly quotas: FieldRef<"CloudProjectBinding", 'Json'>
+    readonly billingLabels: FieldRef<"CloudProjectBinding", 'Json'>
+    readonly capacityPolicy: FieldRef<"CloudProjectBinding", 'Json'>
+    readonly reconciliationStatus: FieldRef<"CloudProjectBinding", 'String'>
+    readonly recoveryWindowEndsAt: FieldRef<"CloudProjectBinding", 'DateTime'>
+    readonly createdAt: FieldRef<"CloudProjectBinding", 'DateTime'>
+    readonly updatedAt: FieldRef<"CloudProjectBinding", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * CloudProjectBinding findUnique
+   */
+  export type CloudProjectBindingFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudProjectBinding
+     */
+    select?: CloudProjectBindingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudProjectBinding
+     */
+    omit?: CloudProjectBindingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudProjectBindingInclude<ExtArgs> | null
+    /**
+     * Filter, which CloudProjectBinding to fetch.
+     */
+    where: CloudProjectBindingWhereUniqueInput
+  }
+
+  /**
+   * CloudProjectBinding findUniqueOrThrow
+   */
+  export type CloudProjectBindingFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudProjectBinding
+     */
+    select?: CloudProjectBindingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudProjectBinding
+     */
+    omit?: CloudProjectBindingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudProjectBindingInclude<ExtArgs> | null
+    /**
+     * Filter, which CloudProjectBinding to fetch.
+     */
+    where: CloudProjectBindingWhereUniqueInput
+  }
+
+  /**
+   * CloudProjectBinding findFirst
+   */
+  export type CloudProjectBindingFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudProjectBinding
+     */
+    select?: CloudProjectBindingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudProjectBinding
+     */
+    omit?: CloudProjectBindingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudProjectBindingInclude<ExtArgs> | null
+    /**
+     * Filter, which CloudProjectBinding to fetch.
+     */
+    where?: CloudProjectBindingWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CloudProjectBindings to fetch.
+     */
+    orderBy?: CloudProjectBindingOrderByWithRelationInput | CloudProjectBindingOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CloudProjectBindings.
+     */
+    cursor?: CloudProjectBindingWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CloudProjectBindings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CloudProjectBindings.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CloudProjectBindings.
+     */
+    distinct?: CloudProjectBindingScalarFieldEnum | CloudProjectBindingScalarFieldEnum[]
+  }
+
+  /**
+   * CloudProjectBinding findFirstOrThrow
+   */
+  export type CloudProjectBindingFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudProjectBinding
+     */
+    select?: CloudProjectBindingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudProjectBinding
+     */
+    omit?: CloudProjectBindingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudProjectBindingInclude<ExtArgs> | null
+    /**
+     * Filter, which CloudProjectBinding to fetch.
+     */
+    where?: CloudProjectBindingWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CloudProjectBindings to fetch.
+     */
+    orderBy?: CloudProjectBindingOrderByWithRelationInput | CloudProjectBindingOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CloudProjectBindings.
+     */
+    cursor?: CloudProjectBindingWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CloudProjectBindings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CloudProjectBindings.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CloudProjectBindings.
+     */
+    distinct?: CloudProjectBindingScalarFieldEnum | CloudProjectBindingScalarFieldEnum[]
+  }
+
+  /**
+   * CloudProjectBinding findMany
+   */
+  export type CloudProjectBindingFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudProjectBinding
+     */
+    select?: CloudProjectBindingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudProjectBinding
+     */
+    omit?: CloudProjectBindingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudProjectBindingInclude<ExtArgs> | null
+    /**
+     * Filter, which CloudProjectBindings to fetch.
+     */
+    where?: CloudProjectBindingWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CloudProjectBindings to fetch.
+     */
+    orderBy?: CloudProjectBindingOrderByWithRelationInput | CloudProjectBindingOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing CloudProjectBindings.
+     */
+    cursor?: CloudProjectBindingWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CloudProjectBindings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CloudProjectBindings.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CloudProjectBindings.
+     */
+    distinct?: CloudProjectBindingScalarFieldEnum | CloudProjectBindingScalarFieldEnum[]
+  }
+
+  /**
+   * CloudProjectBinding create
+   */
+  export type CloudProjectBindingCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudProjectBinding
+     */
+    select?: CloudProjectBindingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudProjectBinding
+     */
+    omit?: CloudProjectBindingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudProjectBindingInclude<ExtArgs> | null
+    /**
+     * The data needed to create a CloudProjectBinding.
+     */
+    data: XOR<CloudProjectBindingCreateInput, CloudProjectBindingUncheckedCreateInput>
+  }
+
+  /**
+   * CloudProjectBinding createMany
+   */
+  export type CloudProjectBindingCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many CloudProjectBindings.
+     */
+    data: CloudProjectBindingCreateManyInput | CloudProjectBindingCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * CloudProjectBinding createManyAndReturn
+   */
+  export type CloudProjectBindingCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudProjectBinding
+     */
+    select?: CloudProjectBindingSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudProjectBinding
+     */
+    omit?: CloudProjectBindingOmit<ExtArgs> | null
+    /**
+     * The data used to create many CloudProjectBindings.
+     */
+    data: CloudProjectBindingCreateManyInput | CloudProjectBindingCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudProjectBindingIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * CloudProjectBinding update
+   */
+  export type CloudProjectBindingUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudProjectBinding
+     */
+    select?: CloudProjectBindingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudProjectBinding
+     */
+    omit?: CloudProjectBindingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudProjectBindingInclude<ExtArgs> | null
+    /**
+     * The data needed to update a CloudProjectBinding.
+     */
+    data: XOR<CloudProjectBindingUpdateInput, CloudProjectBindingUncheckedUpdateInput>
+    /**
+     * Choose, which CloudProjectBinding to update.
+     */
+    where: CloudProjectBindingWhereUniqueInput
+  }
+
+  /**
+   * CloudProjectBinding updateMany
+   */
+  export type CloudProjectBindingUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update CloudProjectBindings.
+     */
+    data: XOR<CloudProjectBindingUpdateManyMutationInput, CloudProjectBindingUncheckedUpdateManyInput>
+    /**
+     * Filter which CloudProjectBindings to update
+     */
+    where?: CloudProjectBindingWhereInput
+    /**
+     * Limit how many CloudProjectBindings to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * CloudProjectBinding updateManyAndReturn
+   */
+  export type CloudProjectBindingUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudProjectBinding
+     */
+    select?: CloudProjectBindingSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudProjectBinding
+     */
+    omit?: CloudProjectBindingOmit<ExtArgs> | null
+    /**
+     * The data used to update CloudProjectBindings.
+     */
+    data: XOR<CloudProjectBindingUpdateManyMutationInput, CloudProjectBindingUncheckedUpdateManyInput>
+    /**
+     * Filter which CloudProjectBindings to update
+     */
+    where?: CloudProjectBindingWhereInput
+    /**
+     * Limit how many CloudProjectBindings to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudProjectBindingIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * CloudProjectBinding upsert
+   */
+  export type CloudProjectBindingUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudProjectBinding
+     */
+    select?: CloudProjectBindingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudProjectBinding
+     */
+    omit?: CloudProjectBindingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudProjectBindingInclude<ExtArgs> | null
+    /**
+     * The filter to search for the CloudProjectBinding to update in case it exists.
+     */
+    where: CloudProjectBindingWhereUniqueInput
+    /**
+     * In case the CloudProjectBinding found by the `where` argument doesn't exist, create a new CloudProjectBinding with this data.
+     */
+    create: XOR<CloudProjectBindingCreateInput, CloudProjectBindingUncheckedCreateInput>
+    /**
+     * In case the CloudProjectBinding was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<CloudProjectBindingUpdateInput, CloudProjectBindingUncheckedUpdateInput>
+  }
+
+  /**
+   * CloudProjectBinding delete
+   */
+  export type CloudProjectBindingDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudProjectBinding
+     */
+    select?: CloudProjectBindingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudProjectBinding
+     */
+    omit?: CloudProjectBindingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudProjectBindingInclude<ExtArgs> | null
+    /**
+     * Filter which CloudProjectBinding to delete.
+     */
+    where: CloudProjectBindingWhereUniqueInput
+  }
+
+  /**
+   * CloudProjectBinding deleteMany
+   */
+  export type CloudProjectBindingDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CloudProjectBindings to delete
+     */
+    where?: CloudProjectBindingWhereInput
+    /**
+     * Limit how many CloudProjectBindings to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * CloudProjectBinding.events
+   */
+  export type CloudProjectBinding$eventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudProjectFactoryEvent
+     */
+    select?: CloudProjectFactoryEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudProjectFactoryEvent
+     */
+    omit?: CloudProjectFactoryEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudProjectFactoryEventInclude<ExtArgs> | null
+    where?: CloudProjectFactoryEventWhereInput
+    orderBy?: CloudProjectFactoryEventOrderByWithRelationInput | CloudProjectFactoryEventOrderByWithRelationInput[]
+    cursor?: CloudProjectFactoryEventWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: CloudProjectFactoryEventScalarFieldEnum | CloudProjectFactoryEventScalarFieldEnum[]
+  }
+
+  /**
+   * CloudProjectBinding.teardowns
+   */
+  export type CloudProjectBinding$teardownsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTeardownRecord
+     */
+    select?: CloudTeardownRecordSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTeardownRecord
+     */
+    omit?: CloudTeardownRecordOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTeardownRecordInclude<ExtArgs> | null
+    where?: CloudTeardownRecordWhereInput
+    orderBy?: CloudTeardownRecordOrderByWithRelationInput | CloudTeardownRecordOrderByWithRelationInput[]
+    cursor?: CloudTeardownRecordWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: CloudTeardownRecordScalarFieldEnum | CloudTeardownRecordScalarFieldEnum[]
+  }
+
+  /**
+   * CloudProjectBinding without action
+   */
+  export type CloudProjectBindingDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudProjectBinding
+     */
+    select?: CloudProjectBindingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudProjectBinding
+     */
+    omit?: CloudProjectBindingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudProjectBindingInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model CloudProjectFactoryEvent
+   */
+
+  export type AggregateCloudProjectFactoryEvent = {
+    _count: CloudProjectFactoryEventCountAggregateOutputType | null
+    _min: CloudProjectFactoryEventMinAggregateOutputType | null
+    _max: CloudProjectFactoryEventMaxAggregateOutputType | null
+  }
+
+  export type CloudProjectFactoryEventMinAggregateOutputType = {
+    id: string | null
+    bindingId: string | null
+    fromState: string | null
+    toState: string | null
+    actor: string | null
+    createdAt: Date | null
+  }
+
+  export type CloudProjectFactoryEventMaxAggregateOutputType = {
+    id: string | null
+    bindingId: string | null
+    fromState: string | null
+    toState: string | null
+    actor: string | null
+    createdAt: Date | null
+  }
+
+  export type CloudProjectFactoryEventCountAggregateOutputType = {
+    id: number
+    bindingId: number
+    fromState: number
+    toState: number
+    actor: number
+    detail: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type CloudProjectFactoryEventMinAggregateInputType = {
+    id?: true
+    bindingId?: true
+    fromState?: true
+    toState?: true
+    actor?: true
+    createdAt?: true
+  }
+
+  export type CloudProjectFactoryEventMaxAggregateInputType = {
+    id?: true
+    bindingId?: true
+    fromState?: true
+    toState?: true
+    actor?: true
+    createdAt?: true
+  }
+
+  export type CloudProjectFactoryEventCountAggregateInputType = {
+    id?: true
+    bindingId?: true
+    fromState?: true
+    toState?: true
+    actor?: true
+    detail?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type CloudProjectFactoryEventAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CloudProjectFactoryEvent to aggregate.
+     */
+    where?: CloudProjectFactoryEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CloudProjectFactoryEvents to fetch.
+     */
+    orderBy?: CloudProjectFactoryEventOrderByWithRelationInput | CloudProjectFactoryEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: CloudProjectFactoryEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CloudProjectFactoryEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CloudProjectFactoryEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned CloudProjectFactoryEvents
+    **/
+    _count?: true | CloudProjectFactoryEventCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: CloudProjectFactoryEventMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: CloudProjectFactoryEventMaxAggregateInputType
+  }
+
+  export type GetCloudProjectFactoryEventAggregateType<T extends CloudProjectFactoryEventAggregateArgs> = {
+        [P in keyof T & keyof AggregateCloudProjectFactoryEvent]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateCloudProjectFactoryEvent[P]>
+      : GetScalarType<T[P], AggregateCloudProjectFactoryEvent[P]>
+  }
+
+
+
+
+  export type CloudProjectFactoryEventGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CloudProjectFactoryEventWhereInput
+    orderBy?: CloudProjectFactoryEventOrderByWithAggregationInput | CloudProjectFactoryEventOrderByWithAggregationInput[]
+    by: CloudProjectFactoryEventScalarFieldEnum[] | CloudProjectFactoryEventScalarFieldEnum
+    having?: CloudProjectFactoryEventScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: CloudProjectFactoryEventCountAggregateInputType | true
+    _min?: CloudProjectFactoryEventMinAggregateInputType
+    _max?: CloudProjectFactoryEventMaxAggregateInputType
+  }
+
+  export type CloudProjectFactoryEventGroupByOutputType = {
+    id: string
+    bindingId: string
+    fromState: string | null
+    toState: string
+    actor: string | null
+    detail: JsonValue | null
+    createdAt: Date
+    _count: CloudProjectFactoryEventCountAggregateOutputType | null
+    _min: CloudProjectFactoryEventMinAggregateOutputType | null
+    _max: CloudProjectFactoryEventMaxAggregateOutputType | null
+  }
+
+  type GetCloudProjectFactoryEventGroupByPayload<T extends CloudProjectFactoryEventGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<CloudProjectFactoryEventGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof CloudProjectFactoryEventGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], CloudProjectFactoryEventGroupByOutputType[P]>
+            : GetScalarType<T[P], CloudProjectFactoryEventGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type CloudProjectFactoryEventSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    bindingId?: boolean
+    fromState?: boolean
+    toState?: boolean
+    actor?: boolean
+    detail?: boolean
+    createdAt?: boolean
+    binding?: boolean | CloudProjectBindingDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["cloudProjectFactoryEvent"]>
+
+  export type CloudProjectFactoryEventSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    bindingId?: boolean
+    fromState?: boolean
+    toState?: boolean
+    actor?: boolean
+    detail?: boolean
+    createdAt?: boolean
+    binding?: boolean | CloudProjectBindingDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["cloudProjectFactoryEvent"]>
+
+  export type CloudProjectFactoryEventSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    bindingId?: boolean
+    fromState?: boolean
+    toState?: boolean
+    actor?: boolean
+    detail?: boolean
+    createdAt?: boolean
+    binding?: boolean | CloudProjectBindingDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["cloudProjectFactoryEvent"]>
+
+  export type CloudProjectFactoryEventSelectScalar = {
+    id?: boolean
+    bindingId?: boolean
+    fromState?: boolean
+    toState?: boolean
+    actor?: boolean
+    detail?: boolean
+    createdAt?: boolean
+  }
+
+  export type CloudProjectFactoryEventOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "bindingId" | "fromState" | "toState" | "actor" | "detail" | "createdAt", ExtArgs["result"]["cloudProjectFactoryEvent"]>
+  export type CloudProjectFactoryEventInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    binding?: boolean | CloudProjectBindingDefaultArgs<ExtArgs>
+  }
+  export type CloudProjectFactoryEventIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    binding?: boolean | CloudProjectBindingDefaultArgs<ExtArgs>
+  }
+  export type CloudProjectFactoryEventIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    binding?: boolean | CloudProjectBindingDefaultArgs<ExtArgs>
+  }
+
+  export type $CloudProjectFactoryEventPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "CloudProjectFactoryEvent"
+    objects: {
+      binding: Prisma.$CloudProjectBindingPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      bindingId: string
+      fromState: string | null
+      toState: string
+      actor: string | null
+      detail: Prisma.JsonValue | null
+      createdAt: Date
+    }, ExtArgs["result"]["cloudProjectFactoryEvent"]>
+    composites: {}
+  }
+
+  type CloudProjectFactoryEventGetPayload<S extends boolean | null | undefined | CloudProjectFactoryEventDefaultArgs> = $Result.GetResult<Prisma.$CloudProjectFactoryEventPayload, S>
+
+  type CloudProjectFactoryEventCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<CloudProjectFactoryEventFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: CloudProjectFactoryEventCountAggregateInputType | true
+    }
+
+  export interface CloudProjectFactoryEventDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['CloudProjectFactoryEvent'], meta: { name: 'CloudProjectFactoryEvent' } }
+    /**
+     * Find zero or one CloudProjectFactoryEvent that matches the filter.
+     * @param {CloudProjectFactoryEventFindUniqueArgs} args - Arguments to find a CloudProjectFactoryEvent
+     * @example
+     * // Get one CloudProjectFactoryEvent
+     * const cloudProjectFactoryEvent = await prisma.cloudProjectFactoryEvent.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends CloudProjectFactoryEventFindUniqueArgs>(args: SelectSubset<T, CloudProjectFactoryEventFindUniqueArgs<ExtArgs>>): Prisma__CloudProjectFactoryEventClient<$Result.GetResult<Prisma.$CloudProjectFactoryEventPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one CloudProjectFactoryEvent that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {CloudProjectFactoryEventFindUniqueOrThrowArgs} args - Arguments to find a CloudProjectFactoryEvent
+     * @example
+     * // Get one CloudProjectFactoryEvent
+     * const cloudProjectFactoryEvent = await prisma.cloudProjectFactoryEvent.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends CloudProjectFactoryEventFindUniqueOrThrowArgs>(args: SelectSubset<T, CloudProjectFactoryEventFindUniqueOrThrowArgs<ExtArgs>>): Prisma__CloudProjectFactoryEventClient<$Result.GetResult<Prisma.$CloudProjectFactoryEventPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first CloudProjectFactoryEvent that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudProjectFactoryEventFindFirstArgs} args - Arguments to find a CloudProjectFactoryEvent
+     * @example
+     * // Get one CloudProjectFactoryEvent
+     * const cloudProjectFactoryEvent = await prisma.cloudProjectFactoryEvent.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends CloudProjectFactoryEventFindFirstArgs>(args?: SelectSubset<T, CloudProjectFactoryEventFindFirstArgs<ExtArgs>>): Prisma__CloudProjectFactoryEventClient<$Result.GetResult<Prisma.$CloudProjectFactoryEventPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first CloudProjectFactoryEvent that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudProjectFactoryEventFindFirstOrThrowArgs} args - Arguments to find a CloudProjectFactoryEvent
+     * @example
+     * // Get one CloudProjectFactoryEvent
+     * const cloudProjectFactoryEvent = await prisma.cloudProjectFactoryEvent.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends CloudProjectFactoryEventFindFirstOrThrowArgs>(args?: SelectSubset<T, CloudProjectFactoryEventFindFirstOrThrowArgs<ExtArgs>>): Prisma__CloudProjectFactoryEventClient<$Result.GetResult<Prisma.$CloudProjectFactoryEventPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more CloudProjectFactoryEvents that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudProjectFactoryEventFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all CloudProjectFactoryEvents
+     * const cloudProjectFactoryEvents = await prisma.cloudProjectFactoryEvent.findMany()
+     * 
+     * // Get first 10 CloudProjectFactoryEvents
+     * const cloudProjectFactoryEvents = await prisma.cloudProjectFactoryEvent.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const cloudProjectFactoryEventWithIdOnly = await prisma.cloudProjectFactoryEvent.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends CloudProjectFactoryEventFindManyArgs>(args?: SelectSubset<T, CloudProjectFactoryEventFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CloudProjectFactoryEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a CloudProjectFactoryEvent.
+     * @param {CloudProjectFactoryEventCreateArgs} args - Arguments to create a CloudProjectFactoryEvent.
+     * @example
+     * // Create one CloudProjectFactoryEvent
+     * const CloudProjectFactoryEvent = await prisma.cloudProjectFactoryEvent.create({
+     *   data: {
+     *     // ... data to create a CloudProjectFactoryEvent
+     *   }
+     * })
+     * 
+     */
+    create<T extends CloudProjectFactoryEventCreateArgs>(args: SelectSubset<T, CloudProjectFactoryEventCreateArgs<ExtArgs>>): Prisma__CloudProjectFactoryEventClient<$Result.GetResult<Prisma.$CloudProjectFactoryEventPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many CloudProjectFactoryEvents.
+     * @param {CloudProjectFactoryEventCreateManyArgs} args - Arguments to create many CloudProjectFactoryEvents.
+     * @example
+     * // Create many CloudProjectFactoryEvents
+     * const cloudProjectFactoryEvent = await prisma.cloudProjectFactoryEvent.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends CloudProjectFactoryEventCreateManyArgs>(args?: SelectSubset<T, CloudProjectFactoryEventCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many CloudProjectFactoryEvents and returns the data saved in the database.
+     * @param {CloudProjectFactoryEventCreateManyAndReturnArgs} args - Arguments to create many CloudProjectFactoryEvents.
+     * @example
+     * // Create many CloudProjectFactoryEvents
+     * const cloudProjectFactoryEvent = await prisma.cloudProjectFactoryEvent.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many CloudProjectFactoryEvents and only return the `id`
+     * const cloudProjectFactoryEventWithIdOnly = await prisma.cloudProjectFactoryEvent.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends CloudProjectFactoryEventCreateManyAndReturnArgs>(args?: SelectSubset<T, CloudProjectFactoryEventCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CloudProjectFactoryEventPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a CloudProjectFactoryEvent.
+     * @param {CloudProjectFactoryEventDeleteArgs} args - Arguments to delete one CloudProjectFactoryEvent.
+     * @example
+     * // Delete one CloudProjectFactoryEvent
+     * const CloudProjectFactoryEvent = await prisma.cloudProjectFactoryEvent.delete({
+     *   where: {
+     *     // ... filter to delete one CloudProjectFactoryEvent
+     *   }
+     * })
+     * 
+     */
+    delete<T extends CloudProjectFactoryEventDeleteArgs>(args: SelectSubset<T, CloudProjectFactoryEventDeleteArgs<ExtArgs>>): Prisma__CloudProjectFactoryEventClient<$Result.GetResult<Prisma.$CloudProjectFactoryEventPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one CloudProjectFactoryEvent.
+     * @param {CloudProjectFactoryEventUpdateArgs} args - Arguments to update one CloudProjectFactoryEvent.
+     * @example
+     * // Update one CloudProjectFactoryEvent
+     * const cloudProjectFactoryEvent = await prisma.cloudProjectFactoryEvent.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends CloudProjectFactoryEventUpdateArgs>(args: SelectSubset<T, CloudProjectFactoryEventUpdateArgs<ExtArgs>>): Prisma__CloudProjectFactoryEventClient<$Result.GetResult<Prisma.$CloudProjectFactoryEventPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more CloudProjectFactoryEvents.
+     * @param {CloudProjectFactoryEventDeleteManyArgs} args - Arguments to filter CloudProjectFactoryEvents to delete.
+     * @example
+     * // Delete a few CloudProjectFactoryEvents
+     * const { count } = await prisma.cloudProjectFactoryEvent.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends CloudProjectFactoryEventDeleteManyArgs>(args?: SelectSubset<T, CloudProjectFactoryEventDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more CloudProjectFactoryEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudProjectFactoryEventUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many CloudProjectFactoryEvents
+     * const cloudProjectFactoryEvent = await prisma.cloudProjectFactoryEvent.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends CloudProjectFactoryEventUpdateManyArgs>(args: SelectSubset<T, CloudProjectFactoryEventUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more CloudProjectFactoryEvents and returns the data updated in the database.
+     * @param {CloudProjectFactoryEventUpdateManyAndReturnArgs} args - Arguments to update many CloudProjectFactoryEvents.
+     * @example
+     * // Update many CloudProjectFactoryEvents
+     * const cloudProjectFactoryEvent = await prisma.cloudProjectFactoryEvent.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more CloudProjectFactoryEvents and only return the `id`
+     * const cloudProjectFactoryEventWithIdOnly = await prisma.cloudProjectFactoryEvent.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends CloudProjectFactoryEventUpdateManyAndReturnArgs>(args: SelectSubset<T, CloudProjectFactoryEventUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CloudProjectFactoryEventPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one CloudProjectFactoryEvent.
+     * @param {CloudProjectFactoryEventUpsertArgs} args - Arguments to update or create a CloudProjectFactoryEvent.
+     * @example
+     * // Update or create a CloudProjectFactoryEvent
+     * const cloudProjectFactoryEvent = await prisma.cloudProjectFactoryEvent.upsert({
+     *   create: {
+     *     // ... data to create a CloudProjectFactoryEvent
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the CloudProjectFactoryEvent we want to update
+     *   }
+     * })
+     */
+    upsert<T extends CloudProjectFactoryEventUpsertArgs>(args: SelectSubset<T, CloudProjectFactoryEventUpsertArgs<ExtArgs>>): Prisma__CloudProjectFactoryEventClient<$Result.GetResult<Prisma.$CloudProjectFactoryEventPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of CloudProjectFactoryEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudProjectFactoryEventCountArgs} args - Arguments to filter CloudProjectFactoryEvents to count.
+     * @example
+     * // Count the number of CloudProjectFactoryEvents
+     * const count = await prisma.cloudProjectFactoryEvent.count({
+     *   where: {
+     *     // ... the filter for the CloudProjectFactoryEvents we want to count
+     *   }
+     * })
+    **/
+    count<T extends CloudProjectFactoryEventCountArgs>(
+      args?: Subset<T, CloudProjectFactoryEventCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], CloudProjectFactoryEventCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a CloudProjectFactoryEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudProjectFactoryEventAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends CloudProjectFactoryEventAggregateArgs>(args: Subset<T, CloudProjectFactoryEventAggregateArgs>): Prisma.PrismaPromise<GetCloudProjectFactoryEventAggregateType<T>>
+
+    /**
+     * Group by CloudProjectFactoryEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudProjectFactoryEventGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends CloudProjectFactoryEventGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: CloudProjectFactoryEventGroupByArgs['orderBy'] }
+        : { orderBy?: CloudProjectFactoryEventGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, CloudProjectFactoryEventGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetCloudProjectFactoryEventGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the CloudProjectFactoryEvent model
+   */
+  readonly fields: CloudProjectFactoryEventFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for CloudProjectFactoryEvent.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__CloudProjectFactoryEventClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    binding<T extends CloudProjectBindingDefaultArgs<ExtArgs> = {}>(args?: Subset<T, CloudProjectBindingDefaultArgs<ExtArgs>>): Prisma__CloudProjectBindingClient<$Result.GetResult<Prisma.$CloudProjectBindingPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the CloudProjectFactoryEvent model
+   */
+  interface CloudProjectFactoryEventFieldRefs {
+    readonly id: FieldRef<"CloudProjectFactoryEvent", 'String'>
+    readonly bindingId: FieldRef<"CloudProjectFactoryEvent", 'String'>
+    readonly fromState: FieldRef<"CloudProjectFactoryEvent", 'String'>
+    readonly toState: FieldRef<"CloudProjectFactoryEvent", 'String'>
+    readonly actor: FieldRef<"CloudProjectFactoryEvent", 'String'>
+    readonly detail: FieldRef<"CloudProjectFactoryEvent", 'Json'>
+    readonly createdAt: FieldRef<"CloudProjectFactoryEvent", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * CloudProjectFactoryEvent findUnique
+   */
+  export type CloudProjectFactoryEventFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudProjectFactoryEvent
+     */
+    select?: CloudProjectFactoryEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudProjectFactoryEvent
+     */
+    omit?: CloudProjectFactoryEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudProjectFactoryEventInclude<ExtArgs> | null
+    /**
+     * Filter, which CloudProjectFactoryEvent to fetch.
+     */
+    where: CloudProjectFactoryEventWhereUniqueInput
+  }
+
+  /**
+   * CloudProjectFactoryEvent findUniqueOrThrow
+   */
+  export type CloudProjectFactoryEventFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudProjectFactoryEvent
+     */
+    select?: CloudProjectFactoryEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudProjectFactoryEvent
+     */
+    omit?: CloudProjectFactoryEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudProjectFactoryEventInclude<ExtArgs> | null
+    /**
+     * Filter, which CloudProjectFactoryEvent to fetch.
+     */
+    where: CloudProjectFactoryEventWhereUniqueInput
+  }
+
+  /**
+   * CloudProjectFactoryEvent findFirst
+   */
+  export type CloudProjectFactoryEventFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudProjectFactoryEvent
+     */
+    select?: CloudProjectFactoryEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudProjectFactoryEvent
+     */
+    omit?: CloudProjectFactoryEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudProjectFactoryEventInclude<ExtArgs> | null
+    /**
+     * Filter, which CloudProjectFactoryEvent to fetch.
+     */
+    where?: CloudProjectFactoryEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CloudProjectFactoryEvents to fetch.
+     */
+    orderBy?: CloudProjectFactoryEventOrderByWithRelationInput | CloudProjectFactoryEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CloudProjectFactoryEvents.
+     */
+    cursor?: CloudProjectFactoryEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CloudProjectFactoryEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CloudProjectFactoryEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CloudProjectFactoryEvents.
+     */
+    distinct?: CloudProjectFactoryEventScalarFieldEnum | CloudProjectFactoryEventScalarFieldEnum[]
+  }
+
+  /**
+   * CloudProjectFactoryEvent findFirstOrThrow
+   */
+  export type CloudProjectFactoryEventFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudProjectFactoryEvent
+     */
+    select?: CloudProjectFactoryEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudProjectFactoryEvent
+     */
+    omit?: CloudProjectFactoryEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudProjectFactoryEventInclude<ExtArgs> | null
+    /**
+     * Filter, which CloudProjectFactoryEvent to fetch.
+     */
+    where?: CloudProjectFactoryEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CloudProjectFactoryEvents to fetch.
+     */
+    orderBy?: CloudProjectFactoryEventOrderByWithRelationInput | CloudProjectFactoryEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CloudProjectFactoryEvents.
+     */
+    cursor?: CloudProjectFactoryEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CloudProjectFactoryEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CloudProjectFactoryEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CloudProjectFactoryEvents.
+     */
+    distinct?: CloudProjectFactoryEventScalarFieldEnum | CloudProjectFactoryEventScalarFieldEnum[]
+  }
+
+  /**
+   * CloudProjectFactoryEvent findMany
+   */
+  export type CloudProjectFactoryEventFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudProjectFactoryEvent
+     */
+    select?: CloudProjectFactoryEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudProjectFactoryEvent
+     */
+    omit?: CloudProjectFactoryEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudProjectFactoryEventInclude<ExtArgs> | null
+    /**
+     * Filter, which CloudProjectFactoryEvents to fetch.
+     */
+    where?: CloudProjectFactoryEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CloudProjectFactoryEvents to fetch.
+     */
+    orderBy?: CloudProjectFactoryEventOrderByWithRelationInput | CloudProjectFactoryEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing CloudProjectFactoryEvents.
+     */
+    cursor?: CloudProjectFactoryEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CloudProjectFactoryEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CloudProjectFactoryEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CloudProjectFactoryEvents.
+     */
+    distinct?: CloudProjectFactoryEventScalarFieldEnum | CloudProjectFactoryEventScalarFieldEnum[]
+  }
+
+  /**
+   * CloudProjectFactoryEvent create
+   */
+  export type CloudProjectFactoryEventCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudProjectFactoryEvent
+     */
+    select?: CloudProjectFactoryEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudProjectFactoryEvent
+     */
+    omit?: CloudProjectFactoryEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudProjectFactoryEventInclude<ExtArgs> | null
+    /**
+     * The data needed to create a CloudProjectFactoryEvent.
+     */
+    data: XOR<CloudProjectFactoryEventCreateInput, CloudProjectFactoryEventUncheckedCreateInput>
+  }
+
+  /**
+   * CloudProjectFactoryEvent createMany
+   */
+  export type CloudProjectFactoryEventCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many CloudProjectFactoryEvents.
+     */
+    data: CloudProjectFactoryEventCreateManyInput | CloudProjectFactoryEventCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * CloudProjectFactoryEvent createManyAndReturn
+   */
+  export type CloudProjectFactoryEventCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudProjectFactoryEvent
+     */
+    select?: CloudProjectFactoryEventSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudProjectFactoryEvent
+     */
+    omit?: CloudProjectFactoryEventOmit<ExtArgs> | null
+    /**
+     * The data used to create many CloudProjectFactoryEvents.
+     */
+    data: CloudProjectFactoryEventCreateManyInput | CloudProjectFactoryEventCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudProjectFactoryEventIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * CloudProjectFactoryEvent update
+   */
+  export type CloudProjectFactoryEventUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudProjectFactoryEvent
+     */
+    select?: CloudProjectFactoryEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudProjectFactoryEvent
+     */
+    omit?: CloudProjectFactoryEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudProjectFactoryEventInclude<ExtArgs> | null
+    /**
+     * The data needed to update a CloudProjectFactoryEvent.
+     */
+    data: XOR<CloudProjectFactoryEventUpdateInput, CloudProjectFactoryEventUncheckedUpdateInput>
+    /**
+     * Choose, which CloudProjectFactoryEvent to update.
+     */
+    where: CloudProjectFactoryEventWhereUniqueInput
+  }
+
+  /**
+   * CloudProjectFactoryEvent updateMany
+   */
+  export type CloudProjectFactoryEventUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update CloudProjectFactoryEvents.
+     */
+    data: XOR<CloudProjectFactoryEventUpdateManyMutationInput, CloudProjectFactoryEventUncheckedUpdateManyInput>
+    /**
+     * Filter which CloudProjectFactoryEvents to update
+     */
+    where?: CloudProjectFactoryEventWhereInput
+    /**
+     * Limit how many CloudProjectFactoryEvents to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * CloudProjectFactoryEvent updateManyAndReturn
+   */
+  export type CloudProjectFactoryEventUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudProjectFactoryEvent
+     */
+    select?: CloudProjectFactoryEventSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudProjectFactoryEvent
+     */
+    omit?: CloudProjectFactoryEventOmit<ExtArgs> | null
+    /**
+     * The data used to update CloudProjectFactoryEvents.
+     */
+    data: XOR<CloudProjectFactoryEventUpdateManyMutationInput, CloudProjectFactoryEventUncheckedUpdateManyInput>
+    /**
+     * Filter which CloudProjectFactoryEvents to update
+     */
+    where?: CloudProjectFactoryEventWhereInput
+    /**
+     * Limit how many CloudProjectFactoryEvents to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudProjectFactoryEventIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * CloudProjectFactoryEvent upsert
+   */
+  export type CloudProjectFactoryEventUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudProjectFactoryEvent
+     */
+    select?: CloudProjectFactoryEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudProjectFactoryEvent
+     */
+    omit?: CloudProjectFactoryEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudProjectFactoryEventInclude<ExtArgs> | null
+    /**
+     * The filter to search for the CloudProjectFactoryEvent to update in case it exists.
+     */
+    where: CloudProjectFactoryEventWhereUniqueInput
+    /**
+     * In case the CloudProjectFactoryEvent found by the `where` argument doesn't exist, create a new CloudProjectFactoryEvent with this data.
+     */
+    create: XOR<CloudProjectFactoryEventCreateInput, CloudProjectFactoryEventUncheckedCreateInput>
+    /**
+     * In case the CloudProjectFactoryEvent was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<CloudProjectFactoryEventUpdateInput, CloudProjectFactoryEventUncheckedUpdateInput>
+  }
+
+  /**
+   * CloudProjectFactoryEvent delete
+   */
+  export type CloudProjectFactoryEventDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudProjectFactoryEvent
+     */
+    select?: CloudProjectFactoryEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudProjectFactoryEvent
+     */
+    omit?: CloudProjectFactoryEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudProjectFactoryEventInclude<ExtArgs> | null
+    /**
+     * Filter which CloudProjectFactoryEvent to delete.
+     */
+    where: CloudProjectFactoryEventWhereUniqueInput
+  }
+
+  /**
+   * CloudProjectFactoryEvent deleteMany
+   */
+  export type CloudProjectFactoryEventDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CloudProjectFactoryEvents to delete
+     */
+    where?: CloudProjectFactoryEventWhereInput
+    /**
+     * Limit how many CloudProjectFactoryEvents to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * CloudProjectFactoryEvent without action
+   */
+  export type CloudProjectFactoryEventDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudProjectFactoryEvent
+     */
+    select?: CloudProjectFactoryEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudProjectFactoryEvent
+     */
+    omit?: CloudProjectFactoryEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudProjectFactoryEventInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model CloudTenantTransfer
+   */
+
+  export type AggregateCloudTenantTransfer = {
+    _count: CloudTenantTransferCountAggregateOutputType | null
+    _min: CloudTenantTransferMinAggregateOutputType | null
+    _max: CloudTenantTransferMaxAggregateOutputType | null
+  }
+
+  export type CloudTenantTransferMinAggregateOutputType = {
+    id: string | null
+    cloudTenantId: string | null
+    fromPrincipalId: string | null
+    toPrincipalId: string | null
+    state: $Enums.CloudTenantTransferState | null
+    revokeVerifiedAt: Date | null
+    error: string | null
+    completedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type CloudTenantTransferMaxAggregateOutputType = {
+    id: string | null
+    cloudTenantId: string | null
+    fromPrincipalId: string | null
+    toPrincipalId: string | null
+    state: $Enums.CloudTenantTransferState | null
+    revokeVerifiedAt: Date | null
+    error: string | null
+    completedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type CloudTenantTransferCountAggregateOutputType = {
+    id: number
+    cloudTenantId: number
+    fromPrincipalId: number
+    toPrincipalId: number
+    state: number
+    revokeEvidence: number
+    revokeVerifiedAt: number
+    regrantEvidence: number
+    error: number
+    completedAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type CloudTenantTransferMinAggregateInputType = {
+    id?: true
+    cloudTenantId?: true
+    fromPrincipalId?: true
+    toPrincipalId?: true
+    state?: true
+    revokeVerifiedAt?: true
+    error?: true
+    completedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type CloudTenantTransferMaxAggregateInputType = {
+    id?: true
+    cloudTenantId?: true
+    fromPrincipalId?: true
+    toPrincipalId?: true
+    state?: true
+    revokeVerifiedAt?: true
+    error?: true
+    completedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type CloudTenantTransferCountAggregateInputType = {
+    id?: true
+    cloudTenantId?: true
+    fromPrincipalId?: true
+    toPrincipalId?: true
+    state?: true
+    revokeEvidence?: true
+    revokeVerifiedAt?: true
+    regrantEvidence?: true
+    error?: true
+    completedAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type CloudTenantTransferAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CloudTenantTransfer to aggregate.
+     */
+    where?: CloudTenantTransferWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CloudTenantTransfers to fetch.
+     */
+    orderBy?: CloudTenantTransferOrderByWithRelationInput | CloudTenantTransferOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: CloudTenantTransferWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CloudTenantTransfers from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CloudTenantTransfers.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned CloudTenantTransfers
+    **/
+    _count?: true | CloudTenantTransferCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: CloudTenantTransferMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: CloudTenantTransferMaxAggregateInputType
+  }
+
+  export type GetCloudTenantTransferAggregateType<T extends CloudTenantTransferAggregateArgs> = {
+        [P in keyof T & keyof AggregateCloudTenantTransfer]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateCloudTenantTransfer[P]>
+      : GetScalarType<T[P], AggregateCloudTenantTransfer[P]>
+  }
+
+
+
+
+  export type CloudTenantTransferGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CloudTenantTransferWhereInput
+    orderBy?: CloudTenantTransferOrderByWithAggregationInput | CloudTenantTransferOrderByWithAggregationInput[]
+    by: CloudTenantTransferScalarFieldEnum[] | CloudTenantTransferScalarFieldEnum
+    having?: CloudTenantTransferScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: CloudTenantTransferCountAggregateInputType | true
+    _min?: CloudTenantTransferMinAggregateInputType
+    _max?: CloudTenantTransferMaxAggregateInputType
+  }
+
+  export type CloudTenantTransferGroupByOutputType = {
+    id: string
+    cloudTenantId: string
+    fromPrincipalId: string
+    toPrincipalId: string
+    state: $Enums.CloudTenantTransferState
+    revokeEvidence: JsonValue | null
+    revokeVerifiedAt: Date | null
+    regrantEvidence: JsonValue | null
+    error: string | null
+    completedAt: Date | null
+    createdAt: Date
+    updatedAt: Date
+    _count: CloudTenantTransferCountAggregateOutputType | null
+    _min: CloudTenantTransferMinAggregateOutputType | null
+    _max: CloudTenantTransferMaxAggregateOutputType | null
+  }
+
+  type GetCloudTenantTransferGroupByPayload<T extends CloudTenantTransferGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<CloudTenantTransferGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof CloudTenantTransferGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], CloudTenantTransferGroupByOutputType[P]>
+            : GetScalarType<T[P], CloudTenantTransferGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type CloudTenantTransferSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    cloudTenantId?: boolean
+    fromPrincipalId?: boolean
+    toPrincipalId?: boolean
+    state?: boolean
+    revokeEvidence?: boolean
+    revokeVerifiedAt?: boolean
+    regrantEvidence?: boolean
+    error?: boolean
+    completedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    tenant?: boolean | CloudTenantDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["cloudTenantTransfer"]>
+
+  export type CloudTenantTransferSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    cloudTenantId?: boolean
+    fromPrincipalId?: boolean
+    toPrincipalId?: boolean
+    state?: boolean
+    revokeEvidence?: boolean
+    revokeVerifiedAt?: boolean
+    regrantEvidence?: boolean
+    error?: boolean
+    completedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    tenant?: boolean | CloudTenantDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["cloudTenantTransfer"]>
+
+  export type CloudTenantTransferSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    cloudTenantId?: boolean
+    fromPrincipalId?: boolean
+    toPrincipalId?: boolean
+    state?: boolean
+    revokeEvidence?: boolean
+    revokeVerifiedAt?: boolean
+    regrantEvidence?: boolean
+    error?: boolean
+    completedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    tenant?: boolean | CloudTenantDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["cloudTenantTransfer"]>
+
+  export type CloudTenantTransferSelectScalar = {
+    id?: boolean
+    cloudTenantId?: boolean
+    fromPrincipalId?: boolean
+    toPrincipalId?: boolean
+    state?: boolean
+    revokeEvidence?: boolean
+    revokeVerifiedAt?: boolean
+    regrantEvidence?: boolean
+    error?: boolean
+    completedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type CloudTenantTransferOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "cloudTenantId" | "fromPrincipalId" | "toPrincipalId" | "state" | "revokeEvidence" | "revokeVerifiedAt" | "regrantEvidence" | "error" | "completedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["cloudTenantTransfer"]>
+  export type CloudTenantTransferInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    tenant?: boolean | CloudTenantDefaultArgs<ExtArgs>
+  }
+  export type CloudTenantTransferIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    tenant?: boolean | CloudTenantDefaultArgs<ExtArgs>
+  }
+  export type CloudTenantTransferIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    tenant?: boolean | CloudTenantDefaultArgs<ExtArgs>
+  }
+
+  export type $CloudTenantTransferPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "CloudTenantTransfer"
+    objects: {
+      tenant: Prisma.$CloudTenantPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      cloudTenantId: string
+      fromPrincipalId: string
+      toPrincipalId: string
+      state: $Enums.CloudTenantTransferState
+      /**
+       * Per-project list of {gcpProjectId, removedRoles[]} captured at revoke time.
+       */
+      revokeEvidence: Prisma.JsonValue | null
+      /**
+       * Live-policy check proving the old principal holds NO role post-revoke.
+       */
+      revokeVerifiedAt: Date | null
+      /**
+       * Per-project list of {gcpProjectId, grantedRoles[]} for the new owner.
+       */
+      regrantEvidence: Prisma.JsonValue | null
+      error: string | null
+      completedAt: Date | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["cloudTenantTransfer"]>
+    composites: {}
+  }
+
+  type CloudTenantTransferGetPayload<S extends boolean | null | undefined | CloudTenantTransferDefaultArgs> = $Result.GetResult<Prisma.$CloudTenantTransferPayload, S>
+
+  type CloudTenantTransferCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<CloudTenantTransferFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: CloudTenantTransferCountAggregateInputType | true
+    }
+
+  export interface CloudTenantTransferDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['CloudTenantTransfer'], meta: { name: 'CloudTenantTransfer' } }
+    /**
+     * Find zero or one CloudTenantTransfer that matches the filter.
+     * @param {CloudTenantTransferFindUniqueArgs} args - Arguments to find a CloudTenantTransfer
+     * @example
+     * // Get one CloudTenantTransfer
+     * const cloudTenantTransfer = await prisma.cloudTenantTransfer.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends CloudTenantTransferFindUniqueArgs>(args: SelectSubset<T, CloudTenantTransferFindUniqueArgs<ExtArgs>>): Prisma__CloudTenantTransferClient<$Result.GetResult<Prisma.$CloudTenantTransferPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one CloudTenantTransfer that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {CloudTenantTransferFindUniqueOrThrowArgs} args - Arguments to find a CloudTenantTransfer
+     * @example
+     * // Get one CloudTenantTransfer
+     * const cloudTenantTransfer = await prisma.cloudTenantTransfer.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends CloudTenantTransferFindUniqueOrThrowArgs>(args: SelectSubset<T, CloudTenantTransferFindUniqueOrThrowArgs<ExtArgs>>): Prisma__CloudTenantTransferClient<$Result.GetResult<Prisma.$CloudTenantTransferPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first CloudTenantTransfer that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudTenantTransferFindFirstArgs} args - Arguments to find a CloudTenantTransfer
+     * @example
+     * // Get one CloudTenantTransfer
+     * const cloudTenantTransfer = await prisma.cloudTenantTransfer.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends CloudTenantTransferFindFirstArgs>(args?: SelectSubset<T, CloudTenantTransferFindFirstArgs<ExtArgs>>): Prisma__CloudTenantTransferClient<$Result.GetResult<Prisma.$CloudTenantTransferPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first CloudTenantTransfer that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudTenantTransferFindFirstOrThrowArgs} args - Arguments to find a CloudTenantTransfer
+     * @example
+     * // Get one CloudTenantTransfer
+     * const cloudTenantTransfer = await prisma.cloudTenantTransfer.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends CloudTenantTransferFindFirstOrThrowArgs>(args?: SelectSubset<T, CloudTenantTransferFindFirstOrThrowArgs<ExtArgs>>): Prisma__CloudTenantTransferClient<$Result.GetResult<Prisma.$CloudTenantTransferPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more CloudTenantTransfers that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudTenantTransferFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all CloudTenantTransfers
+     * const cloudTenantTransfers = await prisma.cloudTenantTransfer.findMany()
+     * 
+     * // Get first 10 CloudTenantTransfers
+     * const cloudTenantTransfers = await prisma.cloudTenantTransfer.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const cloudTenantTransferWithIdOnly = await prisma.cloudTenantTransfer.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends CloudTenantTransferFindManyArgs>(args?: SelectSubset<T, CloudTenantTransferFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CloudTenantTransferPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a CloudTenantTransfer.
+     * @param {CloudTenantTransferCreateArgs} args - Arguments to create a CloudTenantTransfer.
+     * @example
+     * // Create one CloudTenantTransfer
+     * const CloudTenantTransfer = await prisma.cloudTenantTransfer.create({
+     *   data: {
+     *     // ... data to create a CloudTenantTransfer
+     *   }
+     * })
+     * 
+     */
+    create<T extends CloudTenantTransferCreateArgs>(args: SelectSubset<T, CloudTenantTransferCreateArgs<ExtArgs>>): Prisma__CloudTenantTransferClient<$Result.GetResult<Prisma.$CloudTenantTransferPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many CloudTenantTransfers.
+     * @param {CloudTenantTransferCreateManyArgs} args - Arguments to create many CloudTenantTransfers.
+     * @example
+     * // Create many CloudTenantTransfers
+     * const cloudTenantTransfer = await prisma.cloudTenantTransfer.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends CloudTenantTransferCreateManyArgs>(args?: SelectSubset<T, CloudTenantTransferCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many CloudTenantTransfers and returns the data saved in the database.
+     * @param {CloudTenantTransferCreateManyAndReturnArgs} args - Arguments to create many CloudTenantTransfers.
+     * @example
+     * // Create many CloudTenantTransfers
+     * const cloudTenantTransfer = await prisma.cloudTenantTransfer.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many CloudTenantTransfers and only return the `id`
+     * const cloudTenantTransferWithIdOnly = await prisma.cloudTenantTransfer.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends CloudTenantTransferCreateManyAndReturnArgs>(args?: SelectSubset<T, CloudTenantTransferCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CloudTenantTransferPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a CloudTenantTransfer.
+     * @param {CloudTenantTransferDeleteArgs} args - Arguments to delete one CloudTenantTransfer.
+     * @example
+     * // Delete one CloudTenantTransfer
+     * const CloudTenantTransfer = await prisma.cloudTenantTransfer.delete({
+     *   where: {
+     *     // ... filter to delete one CloudTenantTransfer
+     *   }
+     * })
+     * 
+     */
+    delete<T extends CloudTenantTransferDeleteArgs>(args: SelectSubset<T, CloudTenantTransferDeleteArgs<ExtArgs>>): Prisma__CloudTenantTransferClient<$Result.GetResult<Prisma.$CloudTenantTransferPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one CloudTenantTransfer.
+     * @param {CloudTenantTransferUpdateArgs} args - Arguments to update one CloudTenantTransfer.
+     * @example
+     * // Update one CloudTenantTransfer
+     * const cloudTenantTransfer = await prisma.cloudTenantTransfer.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends CloudTenantTransferUpdateArgs>(args: SelectSubset<T, CloudTenantTransferUpdateArgs<ExtArgs>>): Prisma__CloudTenantTransferClient<$Result.GetResult<Prisma.$CloudTenantTransferPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more CloudTenantTransfers.
+     * @param {CloudTenantTransferDeleteManyArgs} args - Arguments to filter CloudTenantTransfers to delete.
+     * @example
+     * // Delete a few CloudTenantTransfers
+     * const { count } = await prisma.cloudTenantTransfer.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends CloudTenantTransferDeleteManyArgs>(args?: SelectSubset<T, CloudTenantTransferDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more CloudTenantTransfers.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudTenantTransferUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many CloudTenantTransfers
+     * const cloudTenantTransfer = await prisma.cloudTenantTransfer.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends CloudTenantTransferUpdateManyArgs>(args: SelectSubset<T, CloudTenantTransferUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more CloudTenantTransfers and returns the data updated in the database.
+     * @param {CloudTenantTransferUpdateManyAndReturnArgs} args - Arguments to update many CloudTenantTransfers.
+     * @example
+     * // Update many CloudTenantTransfers
+     * const cloudTenantTransfer = await prisma.cloudTenantTransfer.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more CloudTenantTransfers and only return the `id`
+     * const cloudTenantTransferWithIdOnly = await prisma.cloudTenantTransfer.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends CloudTenantTransferUpdateManyAndReturnArgs>(args: SelectSubset<T, CloudTenantTransferUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CloudTenantTransferPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one CloudTenantTransfer.
+     * @param {CloudTenantTransferUpsertArgs} args - Arguments to update or create a CloudTenantTransfer.
+     * @example
+     * // Update or create a CloudTenantTransfer
+     * const cloudTenantTransfer = await prisma.cloudTenantTransfer.upsert({
+     *   create: {
+     *     // ... data to create a CloudTenantTransfer
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the CloudTenantTransfer we want to update
+     *   }
+     * })
+     */
+    upsert<T extends CloudTenantTransferUpsertArgs>(args: SelectSubset<T, CloudTenantTransferUpsertArgs<ExtArgs>>): Prisma__CloudTenantTransferClient<$Result.GetResult<Prisma.$CloudTenantTransferPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of CloudTenantTransfers.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudTenantTransferCountArgs} args - Arguments to filter CloudTenantTransfers to count.
+     * @example
+     * // Count the number of CloudTenantTransfers
+     * const count = await prisma.cloudTenantTransfer.count({
+     *   where: {
+     *     // ... the filter for the CloudTenantTransfers we want to count
+     *   }
+     * })
+    **/
+    count<T extends CloudTenantTransferCountArgs>(
+      args?: Subset<T, CloudTenantTransferCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], CloudTenantTransferCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a CloudTenantTransfer.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudTenantTransferAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends CloudTenantTransferAggregateArgs>(args: Subset<T, CloudTenantTransferAggregateArgs>): Prisma.PrismaPromise<GetCloudTenantTransferAggregateType<T>>
+
+    /**
+     * Group by CloudTenantTransfer.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudTenantTransferGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends CloudTenantTransferGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: CloudTenantTransferGroupByArgs['orderBy'] }
+        : { orderBy?: CloudTenantTransferGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, CloudTenantTransferGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetCloudTenantTransferGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the CloudTenantTransfer model
+   */
+  readonly fields: CloudTenantTransferFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for CloudTenantTransfer.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__CloudTenantTransferClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    tenant<T extends CloudTenantDefaultArgs<ExtArgs> = {}>(args?: Subset<T, CloudTenantDefaultArgs<ExtArgs>>): Prisma__CloudTenantClient<$Result.GetResult<Prisma.$CloudTenantPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the CloudTenantTransfer model
+   */
+  interface CloudTenantTransferFieldRefs {
+    readonly id: FieldRef<"CloudTenantTransfer", 'String'>
+    readonly cloudTenantId: FieldRef<"CloudTenantTransfer", 'String'>
+    readonly fromPrincipalId: FieldRef<"CloudTenantTransfer", 'String'>
+    readonly toPrincipalId: FieldRef<"CloudTenantTransfer", 'String'>
+    readonly state: FieldRef<"CloudTenantTransfer", 'CloudTenantTransferState'>
+    readonly revokeEvidence: FieldRef<"CloudTenantTransfer", 'Json'>
+    readonly revokeVerifiedAt: FieldRef<"CloudTenantTransfer", 'DateTime'>
+    readonly regrantEvidence: FieldRef<"CloudTenantTransfer", 'Json'>
+    readonly error: FieldRef<"CloudTenantTransfer", 'String'>
+    readonly completedAt: FieldRef<"CloudTenantTransfer", 'DateTime'>
+    readonly createdAt: FieldRef<"CloudTenantTransfer", 'DateTime'>
+    readonly updatedAt: FieldRef<"CloudTenantTransfer", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * CloudTenantTransfer findUnique
+   */
+  export type CloudTenantTransferFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTenantTransfer
+     */
+    select?: CloudTenantTransferSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTenantTransfer
+     */
+    omit?: CloudTenantTransferOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTenantTransferInclude<ExtArgs> | null
+    /**
+     * Filter, which CloudTenantTransfer to fetch.
+     */
+    where: CloudTenantTransferWhereUniqueInput
+  }
+
+  /**
+   * CloudTenantTransfer findUniqueOrThrow
+   */
+  export type CloudTenantTransferFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTenantTransfer
+     */
+    select?: CloudTenantTransferSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTenantTransfer
+     */
+    omit?: CloudTenantTransferOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTenantTransferInclude<ExtArgs> | null
+    /**
+     * Filter, which CloudTenantTransfer to fetch.
+     */
+    where: CloudTenantTransferWhereUniqueInput
+  }
+
+  /**
+   * CloudTenantTransfer findFirst
+   */
+  export type CloudTenantTransferFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTenantTransfer
+     */
+    select?: CloudTenantTransferSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTenantTransfer
+     */
+    omit?: CloudTenantTransferOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTenantTransferInclude<ExtArgs> | null
+    /**
+     * Filter, which CloudTenantTransfer to fetch.
+     */
+    where?: CloudTenantTransferWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CloudTenantTransfers to fetch.
+     */
+    orderBy?: CloudTenantTransferOrderByWithRelationInput | CloudTenantTransferOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CloudTenantTransfers.
+     */
+    cursor?: CloudTenantTransferWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CloudTenantTransfers from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CloudTenantTransfers.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CloudTenantTransfers.
+     */
+    distinct?: CloudTenantTransferScalarFieldEnum | CloudTenantTransferScalarFieldEnum[]
+  }
+
+  /**
+   * CloudTenantTransfer findFirstOrThrow
+   */
+  export type CloudTenantTransferFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTenantTransfer
+     */
+    select?: CloudTenantTransferSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTenantTransfer
+     */
+    omit?: CloudTenantTransferOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTenantTransferInclude<ExtArgs> | null
+    /**
+     * Filter, which CloudTenantTransfer to fetch.
+     */
+    where?: CloudTenantTransferWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CloudTenantTransfers to fetch.
+     */
+    orderBy?: CloudTenantTransferOrderByWithRelationInput | CloudTenantTransferOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CloudTenantTransfers.
+     */
+    cursor?: CloudTenantTransferWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CloudTenantTransfers from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CloudTenantTransfers.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CloudTenantTransfers.
+     */
+    distinct?: CloudTenantTransferScalarFieldEnum | CloudTenantTransferScalarFieldEnum[]
+  }
+
+  /**
+   * CloudTenantTransfer findMany
+   */
+  export type CloudTenantTransferFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTenantTransfer
+     */
+    select?: CloudTenantTransferSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTenantTransfer
+     */
+    omit?: CloudTenantTransferOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTenantTransferInclude<ExtArgs> | null
+    /**
+     * Filter, which CloudTenantTransfers to fetch.
+     */
+    where?: CloudTenantTransferWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CloudTenantTransfers to fetch.
+     */
+    orderBy?: CloudTenantTransferOrderByWithRelationInput | CloudTenantTransferOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing CloudTenantTransfers.
+     */
+    cursor?: CloudTenantTransferWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CloudTenantTransfers from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CloudTenantTransfers.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CloudTenantTransfers.
+     */
+    distinct?: CloudTenantTransferScalarFieldEnum | CloudTenantTransferScalarFieldEnum[]
+  }
+
+  /**
+   * CloudTenantTransfer create
+   */
+  export type CloudTenantTransferCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTenantTransfer
+     */
+    select?: CloudTenantTransferSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTenantTransfer
+     */
+    omit?: CloudTenantTransferOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTenantTransferInclude<ExtArgs> | null
+    /**
+     * The data needed to create a CloudTenantTransfer.
+     */
+    data: XOR<CloudTenantTransferCreateInput, CloudTenantTransferUncheckedCreateInput>
+  }
+
+  /**
+   * CloudTenantTransfer createMany
+   */
+  export type CloudTenantTransferCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many CloudTenantTransfers.
+     */
+    data: CloudTenantTransferCreateManyInput | CloudTenantTransferCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * CloudTenantTransfer createManyAndReturn
+   */
+  export type CloudTenantTransferCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTenantTransfer
+     */
+    select?: CloudTenantTransferSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTenantTransfer
+     */
+    omit?: CloudTenantTransferOmit<ExtArgs> | null
+    /**
+     * The data used to create many CloudTenantTransfers.
+     */
+    data: CloudTenantTransferCreateManyInput | CloudTenantTransferCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTenantTransferIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * CloudTenantTransfer update
+   */
+  export type CloudTenantTransferUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTenantTransfer
+     */
+    select?: CloudTenantTransferSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTenantTransfer
+     */
+    omit?: CloudTenantTransferOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTenantTransferInclude<ExtArgs> | null
+    /**
+     * The data needed to update a CloudTenantTransfer.
+     */
+    data: XOR<CloudTenantTransferUpdateInput, CloudTenantTransferUncheckedUpdateInput>
+    /**
+     * Choose, which CloudTenantTransfer to update.
+     */
+    where: CloudTenantTransferWhereUniqueInput
+  }
+
+  /**
+   * CloudTenantTransfer updateMany
+   */
+  export type CloudTenantTransferUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update CloudTenantTransfers.
+     */
+    data: XOR<CloudTenantTransferUpdateManyMutationInput, CloudTenantTransferUncheckedUpdateManyInput>
+    /**
+     * Filter which CloudTenantTransfers to update
+     */
+    where?: CloudTenantTransferWhereInput
+    /**
+     * Limit how many CloudTenantTransfers to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * CloudTenantTransfer updateManyAndReturn
+   */
+  export type CloudTenantTransferUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTenantTransfer
+     */
+    select?: CloudTenantTransferSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTenantTransfer
+     */
+    omit?: CloudTenantTransferOmit<ExtArgs> | null
+    /**
+     * The data used to update CloudTenantTransfers.
+     */
+    data: XOR<CloudTenantTransferUpdateManyMutationInput, CloudTenantTransferUncheckedUpdateManyInput>
+    /**
+     * Filter which CloudTenantTransfers to update
+     */
+    where?: CloudTenantTransferWhereInput
+    /**
+     * Limit how many CloudTenantTransfers to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTenantTransferIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * CloudTenantTransfer upsert
+   */
+  export type CloudTenantTransferUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTenantTransfer
+     */
+    select?: CloudTenantTransferSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTenantTransfer
+     */
+    omit?: CloudTenantTransferOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTenantTransferInclude<ExtArgs> | null
+    /**
+     * The filter to search for the CloudTenantTransfer to update in case it exists.
+     */
+    where: CloudTenantTransferWhereUniqueInput
+    /**
+     * In case the CloudTenantTransfer found by the `where` argument doesn't exist, create a new CloudTenantTransfer with this data.
+     */
+    create: XOR<CloudTenantTransferCreateInput, CloudTenantTransferUncheckedCreateInput>
+    /**
+     * In case the CloudTenantTransfer was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<CloudTenantTransferUpdateInput, CloudTenantTransferUncheckedUpdateInput>
+  }
+
+  /**
+   * CloudTenantTransfer delete
+   */
+  export type CloudTenantTransferDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTenantTransfer
+     */
+    select?: CloudTenantTransferSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTenantTransfer
+     */
+    omit?: CloudTenantTransferOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTenantTransferInclude<ExtArgs> | null
+    /**
+     * Filter which CloudTenantTransfer to delete.
+     */
+    where: CloudTenantTransferWhereUniqueInput
+  }
+
+  /**
+   * CloudTenantTransfer deleteMany
+   */
+  export type CloudTenantTransferDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CloudTenantTransfers to delete
+     */
+    where?: CloudTenantTransferWhereInput
+    /**
+     * Limit how many CloudTenantTransfers to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * CloudTenantTransfer without action
+   */
+  export type CloudTenantTransferDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTenantTransfer
+     */
+    select?: CloudTenantTransferSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTenantTransfer
+     */
+    omit?: CloudTenantTransferOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTenantTransferInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model CloudTeardownRecord
+   */
+
+  export type AggregateCloudTeardownRecord = {
+    _count: CloudTeardownRecordCountAggregateOutputType | null
+    _min: CloudTeardownRecordMinAggregateOutputType | null
+    _max: CloudTeardownRecordMaxAggregateOutputType | null
+  }
+
+  export type CloudTeardownRecordMinAggregateOutputType = {
+    id: string | null
+    bindingId: string | null
+    status: string | null
+    startedAt: Date | null
+    completedAt: Date | null
+  }
+
+  export type CloudTeardownRecordMaxAggregateOutputType = {
+    id: string | null
+    bindingId: string | null
+    status: string | null
+    startedAt: Date | null
+    completedAt: Date | null
+  }
+
+  export type CloudTeardownRecordCountAggregateOutputType = {
+    id: number
+    bindingId: number
+    status: number
+    resourceInventory: number
+    erasureProof: number
+    orphans: number
+    startedAt: number
+    completedAt: number
+    _all: number
+  }
+
+
+  export type CloudTeardownRecordMinAggregateInputType = {
+    id?: true
+    bindingId?: true
+    status?: true
+    startedAt?: true
+    completedAt?: true
+  }
+
+  export type CloudTeardownRecordMaxAggregateInputType = {
+    id?: true
+    bindingId?: true
+    status?: true
+    startedAt?: true
+    completedAt?: true
+  }
+
+  export type CloudTeardownRecordCountAggregateInputType = {
+    id?: true
+    bindingId?: true
+    status?: true
+    resourceInventory?: true
+    erasureProof?: true
+    orphans?: true
+    startedAt?: true
+    completedAt?: true
+    _all?: true
+  }
+
+  export type CloudTeardownRecordAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CloudTeardownRecord to aggregate.
+     */
+    where?: CloudTeardownRecordWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CloudTeardownRecords to fetch.
+     */
+    orderBy?: CloudTeardownRecordOrderByWithRelationInput | CloudTeardownRecordOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: CloudTeardownRecordWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CloudTeardownRecords from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CloudTeardownRecords.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned CloudTeardownRecords
+    **/
+    _count?: true | CloudTeardownRecordCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: CloudTeardownRecordMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: CloudTeardownRecordMaxAggregateInputType
+  }
+
+  export type GetCloudTeardownRecordAggregateType<T extends CloudTeardownRecordAggregateArgs> = {
+        [P in keyof T & keyof AggregateCloudTeardownRecord]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateCloudTeardownRecord[P]>
+      : GetScalarType<T[P], AggregateCloudTeardownRecord[P]>
+  }
+
+
+
+
+  export type CloudTeardownRecordGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CloudTeardownRecordWhereInput
+    orderBy?: CloudTeardownRecordOrderByWithAggregationInput | CloudTeardownRecordOrderByWithAggregationInput[]
+    by: CloudTeardownRecordScalarFieldEnum[] | CloudTeardownRecordScalarFieldEnum
+    having?: CloudTeardownRecordScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: CloudTeardownRecordCountAggregateInputType | true
+    _min?: CloudTeardownRecordMinAggregateInputType
+    _max?: CloudTeardownRecordMaxAggregateInputType
+  }
+
+  export type CloudTeardownRecordGroupByOutputType = {
+    id: string
+    bindingId: string
+    status: string
+    resourceInventory: JsonValue | null
+    erasureProof: JsonValue | null
+    orphans: JsonValue | null
+    startedAt: Date
+    completedAt: Date | null
+    _count: CloudTeardownRecordCountAggregateOutputType | null
+    _min: CloudTeardownRecordMinAggregateOutputType | null
+    _max: CloudTeardownRecordMaxAggregateOutputType | null
+  }
+
+  type GetCloudTeardownRecordGroupByPayload<T extends CloudTeardownRecordGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<CloudTeardownRecordGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof CloudTeardownRecordGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], CloudTeardownRecordGroupByOutputType[P]>
+            : GetScalarType<T[P], CloudTeardownRecordGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type CloudTeardownRecordSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    bindingId?: boolean
+    status?: boolean
+    resourceInventory?: boolean
+    erasureProof?: boolean
+    orphans?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+    binding?: boolean | CloudProjectBindingDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["cloudTeardownRecord"]>
+
+  export type CloudTeardownRecordSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    bindingId?: boolean
+    status?: boolean
+    resourceInventory?: boolean
+    erasureProof?: boolean
+    orphans?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+    binding?: boolean | CloudProjectBindingDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["cloudTeardownRecord"]>
+
+  export type CloudTeardownRecordSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    bindingId?: boolean
+    status?: boolean
+    resourceInventory?: boolean
+    erasureProof?: boolean
+    orphans?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+    binding?: boolean | CloudProjectBindingDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["cloudTeardownRecord"]>
+
+  export type CloudTeardownRecordSelectScalar = {
+    id?: boolean
+    bindingId?: boolean
+    status?: boolean
+    resourceInventory?: boolean
+    erasureProof?: boolean
+    orphans?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+  }
+
+  export type CloudTeardownRecordOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "bindingId" | "status" | "resourceInventory" | "erasureProof" | "orphans" | "startedAt" | "completedAt", ExtArgs["result"]["cloudTeardownRecord"]>
+  export type CloudTeardownRecordInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    binding?: boolean | CloudProjectBindingDefaultArgs<ExtArgs>
+  }
+  export type CloudTeardownRecordIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    binding?: boolean | CloudProjectBindingDefaultArgs<ExtArgs>
+  }
+  export type CloudTeardownRecordIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    binding?: boolean | CloudProjectBindingDefaultArgs<ExtArgs>
+  }
+
+  export type $CloudTeardownRecordPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "CloudTeardownRecord"
+    objects: {
+      binding: Prisma.$CloudProjectBindingPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      bindingId: string
+      /**
+       * INVENTORYING | DELETING | VERIFYING | COMPLETE | ORPHANS_DETECTED | FAILED
+       */
+      status: string
+      resourceInventory: Prisma.JsonValue | null
+      erasureProof: Prisma.JsonValue | null
+      orphans: Prisma.JsonValue | null
+      startedAt: Date
+      completedAt: Date | null
+    }, ExtArgs["result"]["cloudTeardownRecord"]>
+    composites: {}
+  }
+
+  type CloudTeardownRecordGetPayload<S extends boolean | null | undefined | CloudTeardownRecordDefaultArgs> = $Result.GetResult<Prisma.$CloudTeardownRecordPayload, S>
+
+  type CloudTeardownRecordCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<CloudTeardownRecordFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: CloudTeardownRecordCountAggregateInputType | true
+    }
+
+  export interface CloudTeardownRecordDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['CloudTeardownRecord'], meta: { name: 'CloudTeardownRecord' } }
+    /**
+     * Find zero or one CloudTeardownRecord that matches the filter.
+     * @param {CloudTeardownRecordFindUniqueArgs} args - Arguments to find a CloudTeardownRecord
+     * @example
+     * // Get one CloudTeardownRecord
+     * const cloudTeardownRecord = await prisma.cloudTeardownRecord.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends CloudTeardownRecordFindUniqueArgs>(args: SelectSubset<T, CloudTeardownRecordFindUniqueArgs<ExtArgs>>): Prisma__CloudTeardownRecordClient<$Result.GetResult<Prisma.$CloudTeardownRecordPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one CloudTeardownRecord that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {CloudTeardownRecordFindUniqueOrThrowArgs} args - Arguments to find a CloudTeardownRecord
+     * @example
+     * // Get one CloudTeardownRecord
+     * const cloudTeardownRecord = await prisma.cloudTeardownRecord.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends CloudTeardownRecordFindUniqueOrThrowArgs>(args: SelectSubset<T, CloudTeardownRecordFindUniqueOrThrowArgs<ExtArgs>>): Prisma__CloudTeardownRecordClient<$Result.GetResult<Prisma.$CloudTeardownRecordPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first CloudTeardownRecord that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudTeardownRecordFindFirstArgs} args - Arguments to find a CloudTeardownRecord
+     * @example
+     * // Get one CloudTeardownRecord
+     * const cloudTeardownRecord = await prisma.cloudTeardownRecord.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends CloudTeardownRecordFindFirstArgs>(args?: SelectSubset<T, CloudTeardownRecordFindFirstArgs<ExtArgs>>): Prisma__CloudTeardownRecordClient<$Result.GetResult<Prisma.$CloudTeardownRecordPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first CloudTeardownRecord that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudTeardownRecordFindFirstOrThrowArgs} args - Arguments to find a CloudTeardownRecord
+     * @example
+     * // Get one CloudTeardownRecord
+     * const cloudTeardownRecord = await prisma.cloudTeardownRecord.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends CloudTeardownRecordFindFirstOrThrowArgs>(args?: SelectSubset<T, CloudTeardownRecordFindFirstOrThrowArgs<ExtArgs>>): Prisma__CloudTeardownRecordClient<$Result.GetResult<Prisma.$CloudTeardownRecordPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more CloudTeardownRecords that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudTeardownRecordFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all CloudTeardownRecords
+     * const cloudTeardownRecords = await prisma.cloudTeardownRecord.findMany()
+     * 
+     * // Get first 10 CloudTeardownRecords
+     * const cloudTeardownRecords = await prisma.cloudTeardownRecord.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const cloudTeardownRecordWithIdOnly = await prisma.cloudTeardownRecord.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends CloudTeardownRecordFindManyArgs>(args?: SelectSubset<T, CloudTeardownRecordFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CloudTeardownRecordPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a CloudTeardownRecord.
+     * @param {CloudTeardownRecordCreateArgs} args - Arguments to create a CloudTeardownRecord.
+     * @example
+     * // Create one CloudTeardownRecord
+     * const CloudTeardownRecord = await prisma.cloudTeardownRecord.create({
+     *   data: {
+     *     // ... data to create a CloudTeardownRecord
+     *   }
+     * })
+     * 
+     */
+    create<T extends CloudTeardownRecordCreateArgs>(args: SelectSubset<T, CloudTeardownRecordCreateArgs<ExtArgs>>): Prisma__CloudTeardownRecordClient<$Result.GetResult<Prisma.$CloudTeardownRecordPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many CloudTeardownRecords.
+     * @param {CloudTeardownRecordCreateManyArgs} args - Arguments to create many CloudTeardownRecords.
+     * @example
+     * // Create many CloudTeardownRecords
+     * const cloudTeardownRecord = await prisma.cloudTeardownRecord.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends CloudTeardownRecordCreateManyArgs>(args?: SelectSubset<T, CloudTeardownRecordCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many CloudTeardownRecords and returns the data saved in the database.
+     * @param {CloudTeardownRecordCreateManyAndReturnArgs} args - Arguments to create many CloudTeardownRecords.
+     * @example
+     * // Create many CloudTeardownRecords
+     * const cloudTeardownRecord = await prisma.cloudTeardownRecord.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many CloudTeardownRecords and only return the `id`
+     * const cloudTeardownRecordWithIdOnly = await prisma.cloudTeardownRecord.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends CloudTeardownRecordCreateManyAndReturnArgs>(args?: SelectSubset<T, CloudTeardownRecordCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CloudTeardownRecordPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a CloudTeardownRecord.
+     * @param {CloudTeardownRecordDeleteArgs} args - Arguments to delete one CloudTeardownRecord.
+     * @example
+     * // Delete one CloudTeardownRecord
+     * const CloudTeardownRecord = await prisma.cloudTeardownRecord.delete({
+     *   where: {
+     *     // ... filter to delete one CloudTeardownRecord
+     *   }
+     * })
+     * 
+     */
+    delete<T extends CloudTeardownRecordDeleteArgs>(args: SelectSubset<T, CloudTeardownRecordDeleteArgs<ExtArgs>>): Prisma__CloudTeardownRecordClient<$Result.GetResult<Prisma.$CloudTeardownRecordPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one CloudTeardownRecord.
+     * @param {CloudTeardownRecordUpdateArgs} args - Arguments to update one CloudTeardownRecord.
+     * @example
+     * // Update one CloudTeardownRecord
+     * const cloudTeardownRecord = await prisma.cloudTeardownRecord.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends CloudTeardownRecordUpdateArgs>(args: SelectSubset<T, CloudTeardownRecordUpdateArgs<ExtArgs>>): Prisma__CloudTeardownRecordClient<$Result.GetResult<Prisma.$CloudTeardownRecordPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more CloudTeardownRecords.
+     * @param {CloudTeardownRecordDeleteManyArgs} args - Arguments to filter CloudTeardownRecords to delete.
+     * @example
+     * // Delete a few CloudTeardownRecords
+     * const { count } = await prisma.cloudTeardownRecord.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends CloudTeardownRecordDeleteManyArgs>(args?: SelectSubset<T, CloudTeardownRecordDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more CloudTeardownRecords.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudTeardownRecordUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many CloudTeardownRecords
+     * const cloudTeardownRecord = await prisma.cloudTeardownRecord.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends CloudTeardownRecordUpdateManyArgs>(args: SelectSubset<T, CloudTeardownRecordUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more CloudTeardownRecords and returns the data updated in the database.
+     * @param {CloudTeardownRecordUpdateManyAndReturnArgs} args - Arguments to update many CloudTeardownRecords.
+     * @example
+     * // Update many CloudTeardownRecords
+     * const cloudTeardownRecord = await prisma.cloudTeardownRecord.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more CloudTeardownRecords and only return the `id`
+     * const cloudTeardownRecordWithIdOnly = await prisma.cloudTeardownRecord.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends CloudTeardownRecordUpdateManyAndReturnArgs>(args: SelectSubset<T, CloudTeardownRecordUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CloudTeardownRecordPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one CloudTeardownRecord.
+     * @param {CloudTeardownRecordUpsertArgs} args - Arguments to update or create a CloudTeardownRecord.
+     * @example
+     * // Update or create a CloudTeardownRecord
+     * const cloudTeardownRecord = await prisma.cloudTeardownRecord.upsert({
+     *   create: {
+     *     // ... data to create a CloudTeardownRecord
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the CloudTeardownRecord we want to update
+     *   }
+     * })
+     */
+    upsert<T extends CloudTeardownRecordUpsertArgs>(args: SelectSubset<T, CloudTeardownRecordUpsertArgs<ExtArgs>>): Prisma__CloudTeardownRecordClient<$Result.GetResult<Prisma.$CloudTeardownRecordPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of CloudTeardownRecords.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudTeardownRecordCountArgs} args - Arguments to filter CloudTeardownRecords to count.
+     * @example
+     * // Count the number of CloudTeardownRecords
+     * const count = await prisma.cloudTeardownRecord.count({
+     *   where: {
+     *     // ... the filter for the CloudTeardownRecords we want to count
+     *   }
+     * })
+    **/
+    count<T extends CloudTeardownRecordCountArgs>(
+      args?: Subset<T, CloudTeardownRecordCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], CloudTeardownRecordCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a CloudTeardownRecord.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudTeardownRecordAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends CloudTeardownRecordAggregateArgs>(args: Subset<T, CloudTeardownRecordAggregateArgs>): Prisma.PrismaPromise<GetCloudTeardownRecordAggregateType<T>>
+
+    /**
+     * Group by CloudTeardownRecord.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CloudTeardownRecordGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends CloudTeardownRecordGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: CloudTeardownRecordGroupByArgs['orderBy'] }
+        : { orderBy?: CloudTeardownRecordGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, CloudTeardownRecordGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetCloudTeardownRecordGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the CloudTeardownRecord model
+   */
+  readonly fields: CloudTeardownRecordFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for CloudTeardownRecord.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__CloudTeardownRecordClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    binding<T extends CloudProjectBindingDefaultArgs<ExtArgs> = {}>(args?: Subset<T, CloudProjectBindingDefaultArgs<ExtArgs>>): Prisma__CloudProjectBindingClient<$Result.GetResult<Prisma.$CloudProjectBindingPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the CloudTeardownRecord model
+   */
+  interface CloudTeardownRecordFieldRefs {
+    readonly id: FieldRef<"CloudTeardownRecord", 'String'>
+    readonly bindingId: FieldRef<"CloudTeardownRecord", 'String'>
+    readonly status: FieldRef<"CloudTeardownRecord", 'String'>
+    readonly resourceInventory: FieldRef<"CloudTeardownRecord", 'Json'>
+    readonly erasureProof: FieldRef<"CloudTeardownRecord", 'Json'>
+    readonly orphans: FieldRef<"CloudTeardownRecord", 'Json'>
+    readonly startedAt: FieldRef<"CloudTeardownRecord", 'DateTime'>
+    readonly completedAt: FieldRef<"CloudTeardownRecord", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * CloudTeardownRecord findUnique
+   */
+  export type CloudTeardownRecordFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTeardownRecord
+     */
+    select?: CloudTeardownRecordSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTeardownRecord
+     */
+    omit?: CloudTeardownRecordOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTeardownRecordInclude<ExtArgs> | null
+    /**
+     * Filter, which CloudTeardownRecord to fetch.
+     */
+    where: CloudTeardownRecordWhereUniqueInput
+  }
+
+  /**
+   * CloudTeardownRecord findUniqueOrThrow
+   */
+  export type CloudTeardownRecordFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTeardownRecord
+     */
+    select?: CloudTeardownRecordSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTeardownRecord
+     */
+    omit?: CloudTeardownRecordOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTeardownRecordInclude<ExtArgs> | null
+    /**
+     * Filter, which CloudTeardownRecord to fetch.
+     */
+    where: CloudTeardownRecordWhereUniqueInput
+  }
+
+  /**
+   * CloudTeardownRecord findFirst
+   */
+  export type CloudTeardownRecordFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTeardownRecord
+     */
+    select?: CloudTeardownRecordSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTeardownRecord
+     */
+    omit?: CloudTeardownRecordOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTeardownRecordInclude<ExtArgs> | null
+    /**
+     * Filter, which CloudTeardownRecord to fetch.
+     */
+    where?: CloudTeardownRecordWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CloudTeardownRecords to fetch.
+     */
+    orderBy?: CloudTeardownRecordOrderByWithRelationInput | CloudTeardownRecordOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CloudTeardownRecords.
+     */
+    cursor?: CloudTeardownRecordWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CloudTeardownRecords from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CloudTeardownRecords.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CloudTeardownRecords.
+     */
+    distinct?: CloudTeardownRecordScalarFieldEnum | CloudTeardownRecordScalarFieldEnum[]
+  }
+
+  /**
+   * CloudTeardownRecord findFirstOrThrow
+   */
+  export type CloudTeardownRecordFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTeardownRecord
+     */
+    select?: CloudTeardownRecordSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTeardownRecord
+     */
+    omit?: CloudTeardownRecordOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTeardownRecordInclude<ExtArgs> | null
+    /**
+     * Filter, which CloudTeardownRecord to fetch.
+     */
+    where?: CloudTeardownRecordWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CloudTeardownRecords to fetch.
+     */
+    orderBy?: CloudTeardownRecordOrderByWithRelationInput | CloudTeardownRecordOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CloudTeardownRecords.
+     */
+    cursor?: CloudTeardownRecordWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CloudTeardownRecords from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CloudTeardownRecords.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CloudTeardownRecords.
+     */
+    distinct?: CloudTeardownRecordScalarFieldEnum | CloudTeardownRecordScalarFieldEnum[]
+  }
+
+  /**
+   * CloudTeardownRecord findMany
+   */
+  export type CloudTeardownRecordFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTeardownRecord
+     */
+    select?: CloudTeardownRecordSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTeardownRecord
+     */
+    omit?: CloudTeardownRecordOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTeardownRecordInclude<ExtArgs> | null
+    /**
+     * Filter, which CloudTeardownRecords to fetch.
+     */
+    where?: CloudTeardownRecordWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CloudTeardownRecords to fetch.
+     */
+    orderBy?: CloudTeardownRecordOrderByWithRelationInput | CloudTeardownRecordOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing CloudTeardownRecords.
+     */
+    cursor?: CloudTeardownRecordWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CloudTeardownRecords from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CloudTeardownRecords.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CloudTeardownRecords.
+     */
+    distinct?: CloudTeardownRecordScalarFieldEnum | CloudTeardownRecordScalarFieldEnum[]
+  }
+
+  /**
+   * CloudTeardownRecord create
+   */
+  export type CloudTeardownRecordCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTeardownRecord
+     */
+    select?: CloudTeardownRecordSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTeardownRecord
+     */
+    omit?: CloudTeardownRecordOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTeardownRecordInclude<ExtArgs> | null
+    /**
+     * The data needed to create a CloudTeardownRecord.
+     */
+    data: XOR<CloudTeardownRecordCreateInput, CloudTeardownRecordUncheckedCreateInput>
+  }
+
+  /**
+   * CloudTeardownRecord createMany
+   */
+  export type CloudTeardownRecordCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many CloudTeardownRecords.
+     */
+    data: CloudTeardownRecordCreateManyInput | CloudTeardownRecordCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * CloudTeardownRecord createManyAndReturn
+   */
+  export type CloudTeardownRecordCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTeardownRecord
+     */
+    select?: CloudTeardownRecordSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTeardownRecord
+     */
+    omit?: CloudTeardownRecordOmit<ExtArgs> | null
+    /**
+     * The data used to create many CloudTeardownRecords.
+     */
+    data: CloudTeardownRecordCreateManyInput | CloudTeardownRecordCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTeardownRecordIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * CloudTeardownRecord update
+   */
+  export type CloudTeardownRecordUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTeardownRecord
+     */
+    select?: CloudTeardownRecordSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTeardownRecord
+     */
+    omit?: CloudTeardownRecordOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTeardownRecordInclude<ExtArgs> | null
+    /**
+     * The data needed to update a CloudTeardownRecord.
+     */
+    data: XOR<CloudTeardownRecordUpdateInput, CloudTeardownRecordUncheckedUpdateInput>
+    /**
+     * Choose, which CloudTeardownRecord to update.
+     */
+    where: CloudTeardownRecordWhereUniqueInput
+  }
+
+  /**
+   * CloudTeardownRecord updateMany
+   */
+  export type CloudTeardownRecordUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update CloudTeardownRecords.
+     */
+    data: XOR<CloudTeardownRecordUpdateManyMutationInput, CloudTeardownRecordUncheckedUpdateManyInput>
+    /**
+     * Filter which CloudTeardownRecords to update
+     */
+    where?: CloudTeardownRecordWhereInput
+    /**
+     * Limit how many CloudTeardownRecords to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * CloudTeardownRecord updateManyAndReturn
+   */
+  export type CloudTeardownRecordUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTeardownRecord
+     */
+    select?: CloudTeardownRecordSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTeardownRecord
+     */
+    omit?: CloudTeardownRecordOmit<ExtArgs> | null
+    /**
+     * The data used to update CloudTeardownRecords.
+     */
+    data: XOR<CloudTeardownRecordUpdateManyMutationInput, CloudTeardownRecordUncheckedUpdateManyInput>
+    /**
+     * Filter which CloudTeardownRecords to update
+     */
+    where?: CloudTeardownRecordWhereInput
+    /**
+     * Limit how many CloudTeardownRecords to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTeardownRecordIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * CloudTeardownRecord upsert
+   */
+  export type CloudTeardownRecordUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTeardownRecord
+     */
+    select?: CloudTeardownRecordSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTeardownRecord
+     */
+    omit?: CloudTeardownRecordOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTeardownRecordInclude<ExtArgs> | null
+    /**
+     * The filter to search for the CloudTeardownRecord to update in case it exists.
+     */
+    where: CloudTeardownRecordWhereUniqueInput
+    /**
+     * In case the CloudTeardownRecord found by the `where` argument doesn't exist, create a new CloudTeardownRecord with this data.
+     */
+    create: XOR<CloudTeardownRecordCreateInput, CloudTeardownRecordUncheckedCreateInput>
+    /**
+     * In case the CloudTeardownRecord was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<CloudTeardownRecordUpdateInput, CloudTeardownRecordUncheckedUpdateInput>
+  }
+
+  /**
+   * CloudTeardownRecord delete
+   */
+  export type CloudTeardownRecordDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTeardownRecord
+     */
+    select?: CloudTeardownRecordSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTeardownRecord
+     */
+    omit?: CloudTeardownRecordOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTeardownRecordInclude<ExtArgs> | null
+    /**
+     * Filter which CloudTeardownRecord to delete.
+     */
+    where: CloudTeardownRecordWhereUniqueInput
+  }
+
+  /**
+   * CloudTeardownRecord deleteMany
+   */
+  export type CloudTeardownRecordDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CloudTeardownRecords to delete
+     */
+    where?: CloudTeardownRecordWhereInput
+    /**
+     * Limit how many CloudTeardownRecords to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * CloudTeardownRecord without action
+   */
+  export type CloudTeardownRecordDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CloudTeardownRecord
+     */
+    select?: CloudTeardownRecordSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CloudTeardownRecord
+     */
+    omit?: CloudTeardownRecordOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CloudTeardownRecordInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PlatformIamIdentity
+   */
+
+  export type AggregatePlatformIamIdentity = {
+    _count: PlatformIamIdentityCountAggregateOutputType | null
+    _avg: PlatformIamIdentityAvgAggregateOutputType | null
+    _sum: PlatformIamIdentitySumAggregateOutputType | null
+    _min: PlatformIamIdentityMinAggregateOutputType | null
+    _max: PlatformIamIdentityMaxAggregateOutputType | null
+  }
+
+  export type PlatformIamIdentityAvgAggregateOutputType = {
+    persistentKeys: number | null
+    revisionsServed: number | null
+  }
+
+  export type PlatformIamIdentitySumAggregateOutputType = {
+    persistentKeys: number | null
+    revisionsServed: number | null
+  }
+
+  export type PlatformIamIdentityMinAggregateOutputType = {
+    id: string | null
+    kind: $Enums.PlatformIamIdentityKind | null
+    app: string | null
+    environment: string | null
+    privilegeBoundary: string | null
+    gcpProjectId: string | null
+    gcpServiceAccountEmail: string | null
+    persistentKeys: number | null
+    revisionsServed: number | null
+    lastRotatedAt: Date | null
+    lastUsedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type PlatformIamIdentityMaxAggregateOutputType = {
+    id: string | null
+    kind: $Enums.PlatformIamIdentityKind | null
+    app: string | null
+    environment: string | null
+    privilegeBoundary: string | null
+    gcpProjectId: string | null
+    gcpServiceAccountEmail: string | null
+    persistentKeys: number | null
+    revisionsServed: number | null
+    lastRotatedAt: Date | null
+    lastUsedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type PlatformIamIdentityCountAggregateOutputType = {
+    id: number
+    kind: number
+    app: number
+    environment: number
+    privilegeBoundary: number
+    gcpProjectId: number
+    gcpServiceAccountEmail: number
+    persistentKeys: number
+    revisionsServed: number
+    lastRotatedAt: number
+    lastUsedAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type PlatformIamIdentityAvgAggregateInputType = {
+    persistentKeys?: true
+    revisionsServed?: true
+  }
+
+  export type PlatformIamIdentitySumAggregateInputType = {
+    persistentKeys?: true
+    revisionsServed?: true
+  }
+
+  export type PlatformIamIdentityMinAggregateInputType = {
+    id?: true
+    kind?: true
+    app?: true
+    environment?: true
+    privilegeBoundary?: true
+    gcpProjectId?: true
+    gcpServiceAccountEmail?: true
+    persistentKeys?: true
+    revisionsServed?: true
+    lastRotatedAt?: true
+    lastUsedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type PlatformIamIdentityMaxAggregateInputType = {
+    id?: true
+    kind?: true
+    app?: true
+    environment?: true
+    privilegeBoundary?: true
+    gcpProjectId?: true
+    gcpServiceAccountEmail?: true
+    persistentKeys?: true
+    revisionsServed?: true
+    lastRotatedAt?: true
+    lastUsedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type PlatformIamIdentityCountAggregateInputType = {
+    id?: true
+    kind?: true
+    app?: true
+    environment?: true
+    privilegeBoundary?: true
+    gcpProjectId?: true
+    gcpServiceAccountEmail?: true
+    persistentKeys?: true
+    revisionsServed?: true
+    lastRotatedAt?: true
+    lastUsedAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type PlatformIamIdentityAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PlatformIamIdentity to aggregate.
+     */
+    where?: PlatformIamIdentityWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PlatformIamIdentities to fetch.
+     */
+    orderBy?: PlatformIamIdentityOrderByWithRelationInput | PlatformIamIdentityOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PlatformIamIdentityWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PlatformIamIdentities from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PlatformIamIdentities.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PlatformIamIdentities
+    **/
+    _count?: true | PlatformIamIdentityCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: PlatformIamIdentityAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PlatformIamIdentitySumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PlatformIamIdentityMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PlatformIamIdentityMaxAggregateInputType
+  }
+
+  export type GetPlatformIamIdentityAggregateType<T extends PlatformIamIdentityAggregateArgs> = {
+        [P in keyof T & keyof AggregatePlatformIamIdentity]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePlatformIamIdentity[P]>
+      : GetScalarType<T[P], AggregatePlatformIamIdentity[P]>
+  }
+
+
+
+
+  export type PlatformIamIdentityGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PlatformIamIdentityWhereInput
+    orderBy?: PlatformIamIdentityOrderByWithAggregationInput | PlatformIamIdentityOrderByWithAggregationInput[]
+    by: PlatformIamIdentityScalarFieldEnum[] | PlatformIamIdentityScalarFieldEnum
+    having?: PlatformIamIdentityScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PlatformIamIdentityCountAggregateInputType | true
+    _avg?: PlatformIamIdentityAvgAggregateInputType
+    _sum?: PlatformIamIdentitySumAggregateInputType
+    _min?: PlatformIamIdentityMinAggregateInputType
+    _max?: PlatformIamIdentityMaxAggregateInputType
+  }
+
+  export type PlatformIamIdentityGroupByOutputType = {
+    id: string
+    kind: $Enums.PlatformIamIdentityKind
+    app: string
+    environment: string
+    privilegeBoundary: string
+    gcpProjectId: string
+    gcpServiceAccountEmail: string
+    persistentKeys: number
+    revisionsServed: number
+    lastRotatedAt: Date | null
+    lastUsedAt: Date | null
+    createdAt: Date
+    updatedAt: Date
+    _count: PlatformIamIdentityCountAggregateOutputType | null
+    _avg: PlatformIamIdentityAvgAggregateOutputType | null
+    _sum: PlatformIamIdentitySumAggregateOutputType | null
+    _min: PlatformIamIdentityMinAggregateOutputType | null
+    _max: PlatformIamIdentityMaxAggregateOutputType | null
+  }
+
+  type GetPlatformIamIdentityGroupByPayload<T extends PlatformIamIdentityGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PlatformIamIdentityGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PlatformIamIdentityGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PlatformIamIdentityGroupByOutputType[P]>
+            : GetScalarType<T[P], PlatformIamIdentityGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PlatformIamIdentitySelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    kind?: boolean
+    app?: boolean
+    environment?: boolean
+    privilegeBoundary?: boolean
+    gcpProjectId?: boolean
+    gcpServiceAccountEmail?: boolean
+    persistentKeys?: boolean
+    revisionsServed?: boolean
+    lastRotatedAt?: boolean
+    lastUsedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    impersonations?: boolean | PlatformIamIdentity$impersonationsArgs<ExtArgs>
+    _count?: boolean | PlatformIamIdentityCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["platformIamIdentity"]>
+
+  export type PlatformIamIdentitySelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    kind?: boolean
+    app?: boolean
+    environment?: boolean
+    privilegeBoundary?: boolean
+    gcpProjectId?: boolean
+    gcpServiceAccountEmail?: boolean
+    persistentKeys?: boolean
+    revisionsServed?: boolean
+    lastRotatedAt?: boolean
+    lastUsedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["platformIamIdentity"]>
+
+  export type PlatformIamIdentitySelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    kind?: boolean
+    app?: boolean
+    environment?: boolean
+    privilegeBoundary?: boolean
+    gcpProjectId?: boolean
+    gcpServiceAccountEmail?: boolean
+    persistentKeys?: boolean
+    revisionsServed?: boolean
+    lastRotatedAt?: boolean
+    lastUsedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["platformIamIdentity"]>
+
+  export type PlatformIamIdentitySelectScalar = {
+    id?: boolean
+    kind?: boolean
+    app?: boolean
+    environment?: boolean
+    privilegeBoundary?: boolean
+    gcpProjectId?: boolean
+    gcpServiceAccountEmail?: boolean
+    persistentKeys?: boolean
+    revisionsServed?: boolean
+    lastRotatedAt?: boolean
+    lastUsedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type PlatformIamIdentityOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "kind" | "app" | "environment" | "privilegeBoundary" | "gcpProjectId" | "gcpServiceAccountEmail" | "persistentKeys" | "revisionsServed" | "lastRotatedAt" | "lastUsedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["platformIamIdentity"]>
+  export type PlatformIamIdentityInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    impersonations?: boolean | PlatformIamIdentity$impersonationsArgs<ExtArgs>
+    _count?: boolean | PlatformIamIdentityCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type PlatformIamIdentityIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+  export type PlatformIamIdentityIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+
+  export type $PlatformIamIdentityPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PlatformIamIdentity"
+    objects: {
+      impersonations: Prisma.$PlatformIamImpersonationAuditPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      kind: $Enums.PlatformIamIdentityKind
+      /**
+       * Empty string (not NULL) for non-RUNTIME kinds so the UNIQUE applies.
+       */
+      app: string
+      environment: string
+      privilegeBoundary: string
+      gcpProjectId: string
+      gcpServiceAccountEmail: string
+      /**
+       * Count of user-managed keys. MUST be 0 (I-IAM-2); >0 is a violation.
+       */
+      persistentKeys: number
+      /**
+       * How many revisions/deployments have reused this identity (proof metric).
+       */
+      revisionsServed: number
+      lastRotatedAt: Date | null
+      lastUsedAt: Date | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["platformIamIdentity"]>
+    composites: {}
+  }
+
+  type PlatformIamIdentityGetPayload<S extends boolean | null | undefined | PlatformIamIdentityDefaultArgs> = $Result.GetResult<Prisma.$PlatformIamIdentityPayload, S>
+
+  type PlatformIamIdentityCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<PlatformIamIdentityFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: PlatformIamIdentityCountAggregateInputType | true
+    }
+
+  export interface PlatformIamIdentityDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PlatformIamIdentity'], meta: { name: 'PlatformIamIdentity' } }
+    /**
+     * Find zero or one PlatformIamIdentity that matches the filter.
+     * @param {PlatformIamIdentityFindUniqueArgs} args - Arguments to find a PlatformIamIdentity
+     * @example
+     * // Get one PlatformIamIdentity
+     * const platformIamIdentity = await prisma.platformIamIdentity.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PlatformIamIdentityFindUniqueArgs>(args: SelectSubset<T, PlatformIamIdentityFindUniqueArgs<ExtArgs>>): Prisma__PlatformIamIdentityClient<$Result.GetResult<Prisma.$PlatformIamIdentityPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one PlatformIamIdentity that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {PlatformIamIdentityFindUniqueOrThrowArgs} args - Arguments to find a PlatformIamIdentity
+     * @example
+     * // Get one PlatformIamIdentity
+     * const platformIamIdentity = await prisma.platformIamIdentity.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PlatformIamIdentityFindUniqueOrThrowArgs>(args: SelectSubset<T, PlatformIamIdentityFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PlatformIamIdentityClient<$Result.GetResult<Prisma.$PlatformIamIdentityPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first PlatformIamIdentity that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlatformIamIdentityFindFirstArgs} args - Arguments to find a PlatformIamIdentity
+     * @example
+     * // Get one PlatformIamIdentity
+     * const platformIamIdentity = await prisma.platformIamIdentity.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PlatformIamIdentityFindFirstArgs>(args?: SelectSubset<T, PlatformIamIdentityFindFirstArgs<ExtArgs>>): Prisma__PlatformIamIdentityClient<$Result.GetResult<Prisma.$PlatformIamIdentityPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first PlatformIamIdentity that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlatformIamIdentityFindFirstOrThrowArgs} args - Arguments to find a PlatformIamIdentity
+     * @example
+     * // Get one PlatformIamIdentity
+     * const platformIamIdentity = await prisma.platformIamIdentity.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PlatformIamIdentityFindFirstOrThrowArgs>(args?: SelectSubset<T, PlatformIamIdentityFindFirstOrThrowArgs<ExtArgs>>): Prisma__PlatformIamIdentityClient<$Result.GetResult<Prisma.$PlatformIamIdentityPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more PlatformIamIdentities that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlatformIamIdentityFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PlatformIamIdentities
+     * const platformIamIdentities = await prisma.platformIamIdentity.findMany()
+     * 
+     * // Get first 10 PlatformIamIdentities
+     * const platformIamIdentities = await prisma.platformIamIdentity.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const platformIamIdentityWithIdOnly = await prisma.platformIamIdentity.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PlatformIamIdentityFindManyArgs>(args?: SelectSubset<T, PlatformIamIdentityFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlatformIamIdentityPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a PlatformIamIdentity.
+     * @param {PlatformIamIdentityCreateArgs} args - Arguments to create a PlatformIamIdentity.
+     * @example
+     * // Create one PlatformIamIdentity
+     * const PlatformIamIdentity = await prisma.platformIamIdentity.create({
+     *   data: {
+     *     // ... data to create a PlatformIamIdentity
+     *   }
+     * })
+     * 
+     */
+    create<T extends PlatformIamIdentityCreateArgs>(args: SelectSubset<T, PlatformIamIdentityCreateArgs<ExtArgs>>): Prisma__PlatformIamIdentityClient<$Result.GetResult<Prisma.$PlatformIamIdentityPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many PlatformIamIdentities.
+     * @param {PlatformIamIdentityCreateManyArgs} args - Arguments to create many PlatformIamIdentities.
+     * @example
+     * // Create many PlatformIamIdentities
+     * const platformIamIdentity = await prisma.platformIamIdentity.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PlatformIamIdentityCreateManyArgs>(args?: SelectSubset<T, PlatformIamIdentityCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PlatformIamIdentities and returns the data saved in the database.
+     * @param {PlatformIamIdentityCreateManyAndReturnArgs} args - Arguments to create many PlatformIamIdentities.
+     * @example
+     * // Create many PlatformIamIdentities
+     * const platformIamIdentity = await prisma.platformIamIdentity.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PlatformIamIdentities and only return the `id`
+     * const platformIamIdentityWithIdOnly = await prisma.platformIamIdentity.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PlatformIamIdentityCreateManyAndReturnArgs>(args?: SelectSubset<T, PlatformIamIdentityCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlatformIamIdentityPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a PlatformIamIdentity.
+     * @param {PlatformIamIdentityDeleteArgs} args - Arguments to delete one PlatformIamIdentity.
+     * @example
+     * // Delete one PlatformIamIdentity
+     * const PlatformIamIdentity = await prisma.platformIamIdentity.delete({
+     *   where: {
+     *     // ... filter to delete one PlatformIamIdentity
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PlatformIamIdentityDeleteArgs>(args: SelectSubset<T, PlatformIamIdentityDeleteArgs<ExtArgs>>): Prisma__PlatformIamIdentityClient<$Result.GetResult<Prisma.$PlatformIamIdentityPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one PlatformIamIdentity.
+     * @param {PlatformIamIdentityUpdateArgs} args - Arguments to update one PlatformIamIdentity.
+     * @example
+     * // Update one PlatformIamIdentity
+     * const platformIamIdentity = await prisma.platformIamIdentity.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PlatformIamIdentityUpdateArgs>(args: SelectSubset<T, PlatformIamIdentityUpdateArgs<ExtArgs>>): Prisma__PlatformIamIdentityClient<$Result.GetResult<Prisma.$PlatformIamIdentityPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more PlatformIamIdentities.
+     * @param {PlatformIamIdentityDeleteManyArgs} args - Arguments to filter PlatformIamIdentities to delete.
+     * @example
+     * // Delete a few PlatformIamIdentities
+     * const { count } = await prisma.platformIamIdentity.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PlatformIamIdentityDeleteManyArgs>(args?: SelectSubset<T, PlatformIamIdentityDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PlatformIamIdentities.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlatformIamIdentityUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PlatformIamIdentities
+     * const platformIamIdentity = await prisma.platformIamIdentity.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PlatformIamIdentityUpdateManyArgs>(args: SelectSubset<T, PlatformIamIdentityUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PlatformIamIdentities and returns the data updated in the database.
+     * @param {PlatformIamIdentityUpdateManyAndReturnArgs} args - Arguments to update many PlatformIamIdentities.
+     * @example
+     * // Update many PlatformIamIdentities
+     * const platformIamIdentity = await prisma.platformIamIdentity.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more PlatformIamIdentities and only return the `id`
+     * const platformIamIdentityWithIdOnly = await prisma.platformIamIdentity.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends PlatformIamIdentityUpdateManyAndReturnArgs>(args: SelectSubset<T, PlatformIamIdentityUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlatformIamIdentityPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one PlatformIamIdentity.
+     * @param {PlatformIamIdentityUpsertArgs} args - Arguments to update or create a PlatformIamIdentity.
+     * @example
+     * // Update or create a PlatformIamIdentity
+     * const platformIamIdentity = await prisma.platformIamIdentity.upsert({
+     *   create: {
+     *     // ... data to create a PlatformIamIdentity
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PlatformIamIdentity we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PlatformIamIdentityUpsertArgs>(args: SelectSubset<T, PlatformIamIdentityUpsertArgs<ExtArgs>>): Prisma__PlatformIamIdentityClient<$Result.GetResult<Prisma.$PlatformIamIdentityPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of PlatformIamIdentities.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlatformIamIdentityCountArgs} args - Arguments to filter PlatformIamIdentities to count.
+     * @example
+     * // Count the number of PlatformIamIdentities
+     * const count = await prisma.platformIamIdentity.count({
+     *   where: {
+     *     // ... the filter for the PlatformIamIdentities we want to count
+     *   }
+     * })
+    **/
+    count<T extends PlatformIamIdentityCountArgs>(
+      args?: Subset<T, PlatformIamIdentityCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PlatformIamIdentityCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PlatformIamIdentity.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlatformIamIdentityAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PlatformIamIdentityAggregateArgs>(args: Subset<T, PlatformIamIdentityAggregateArgs>): Prisma.PrismaPromise<GetPlatformIamIdentityAggregateType<T>>
+
+    /**
+     * Group by PlatformIamIdentity.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlatformIamIdentityGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PlatformIamIdentityGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PlatformIamIdentityGroupByArgs['orderBy'] }
+        : { orderBy?: PlatformIamIdentityGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PlatformIamIdentityGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPlatformIamIdentityGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PlatformIamIdentity model
+   */
+  readonly fields: PlatformIamIdentityFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PlatformIamIdentity.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PlatformIamIdentityClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    impersonations<T extends PlatformIamIdentity$impersonationsArgs<ExtArgs> = {}>(args?: Subset<T, PlatformIamIdentity$impersonationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlatformIamImpersonationAuditPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PlatformIamIdentity model
+   */
+  interface PlatformIamIdentityFieldRefs {
+    readonly id: FieldRef<"PlatformIamIdentity", 'String'>
+    readonly kind: FieldRef<"PlatformIamIdentity", 'PlatformIamIdentityKind'>
+    readonly app: FieldRef<"PlatformIamIdentity", 'String'>
+    readonly environment: FieldRef<"PlatformIamIdentity", 'String'>
+    readonly privilegeBoundary: FieldRef<"PlatformIamIdentity", 'String'>
+    readonly gcpProjectId: FieldRef<"PlatformIamIdentity", 'String'>
+    readonly gcpServiceAccountEmail: FieldRef<"PlatformIamIdentity", 'String'>
+    readonly persistentKeys: FieldRef<"PlatformIamIdentity", 'Int'>
+    readonly revisionsServed: FieldRef<"PlatformIamIdentity", 'Int'>
+    readonly lastRotatedAt: FieldRef<"PlatformIamIdentity", 'DateTime'>
+    readonly lastUsedAt: FieldRef<"PlatformIamIdentity", 'DateTime'>
+    readonly createdAt: FieldRef<"PlatformIamIdentity", 'DateTime'>
+    readonly updatedAt: FieldRef<"PlatformIamIdentity", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PlatformIamIdentity findUnique
+   */
+  export type PlatformIamIdentityFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlatformIamIdentity
+     */
+    select?: PlatformIamIdentitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlatformIamIdentity
+     */
+    omit?: PlatformIamIdentityOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlatformIamIdentityInclude<ExtArgs> | null
+    /**
+     * Filter, which PlatformIamIdentity to fetch.
+     */
+    where: PlatformIamIdentityWhereUniqueInput
+  }
+
+  /**
+   * PlatformIamIdentity findUniqueOrThrow
+   */
+  export type PlatformIamIdentityFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlatformIamIdentity
+     */
+    select?: PlatformIamIdentitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlatformIamIdentity
+     */
+    omit?: PlatformIamIdentityOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlatformIamIdentityInclude<ExtArgs> | null
+    /**
+     * Filter, which PlatformIamIdentity to fetch.
+     */
+    where: PlatformIamIdentityWhereUniqueInput
+  }
+
+  /**
+   * PlatformIamIdentity findFirst
+   */
+  export type PlatformIamIdentityFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlatformIamIdentity
+     */
+    select?: PlatformIamIdentitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlatformIamIdentity
+     */
+    omit?: PlatformIamIdentityOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlatformIamIdentityInclude<ExtArgs> | null
+    /**
+     * Filter, which PlatformIamIdentity to fetch.
+     */
+    where?: PlatformIamIdentityWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PlatformIamIdentities to fetch.
+     */
+    orderBy?: PlatformIamIdentityOrderByWithRelationInput | PlatformIamIdentityOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PlatformIamIdentities.
+     */
+    cursor?: PlatformIamIdentityWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PlatformIamIdentities from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PlatformIamIdentities.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PlatformIamIdentities.
+     */
+    distinct?: PlatformIamIdentityScalarFieldEnum | PlatformIamIdentityScalarFieldEnum[]
+  }
+
+  /**
+   * PlatformIamIdentity findFirstOrThrow
+   */
+  export type PlatformIamIdentityFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlatformIamIdentity
+     */
+    select?: PlatformIamIdentitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlatformIamIdentity
+     */
+    omit?: PlatformIamIdentityOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlatformIamIdentityInclude<ExtArgs> | null
+    /**
+     * Filter, which PlatformIamIdentity to fetch.
+     */
+    where?: PlatformIamIdentityWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PlatformIamIdentities to fetch.
+     */
+    orderBy?: PlatformIamIdentityOrderByWithRelationInput | PlatformIamIdentityOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PlatformIamIdentities.
+     */
+    cursor?: PlatformIamIdentityWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PlatformIamIdentities from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PlatformIamIdentities.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PlatformIamIdentities.
+     */
+    distinct?: PlatformIamIdentityScalarFieldEnum | PlatformIamIdentityScalarFieldEnum[]
+  }
+
+  /**
+   * PlatformIamIdentity findMany
+   */
+  export type PlatformIamIdentityFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlatformIamIdentity
+     */
+    select?: PlatformIamIdentitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlatformIamIdentity
+     */
+    omit?: PlatformIamIdentityOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlatformIamIdentityInclude<ExtArgs> | null
+    /**
+     * Filter, which PlatformIamIdentities to fetch.
+     */
+    where?: PlatformIamIdentityWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PlatformIamIdentities to fetch.
+     */
+    orderBy?: PlatformIamIdentityOrderByWithRelationInput | PlatformIamIdentityOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PlatformIamIdentities.
+     */
+    cursor?: PlatformIamIdentityWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PlatformIamIdentities from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PlatformIamIdentities.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PlatformIamIdentities.
+     */
+    distinct?: PlatformIamIdentityScalarFieldEnum | PlatformIamIdentityScalarFieldEnum[]
+  }
+
+  /**
+   * PlatformIamIdentity create
+   */
+  export type PlatformIamIdentityCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlatformIamIdentity
+     */
+    select?: PlatformIamIdentitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlatformIamIdentity
+     */
+    omit?: PlatformIamIdentityOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlatformIamIdentityInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PlatformIamIdentity.
+     */
+    data: XOR<PlatformIamIdentityCreateInput, PlatformIamIdentityUncheckedCreateInput>
+  }
+
+  /**
+   * PlatformIamIdentity createMany
+   */
+  export type PlatformIamIdentityCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PlatformIamIdentities.
+     */
+    data: PlatformIamIdentityCreateManyInput | PlatformIamIdentityCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PlatformIamIdentity createManyAndReturn
+   */
+  export type PlatformIamIdentityCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlatformIamIdentity
+     */
+    select?: PlatformIamIdentitySelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlatformIamIdentity
+     */
+    omit?: PlatformIamIdentityOmit<ExtArgs> | null
+    /**
+     * The data used to create many PlatformIamIdentities.
+     */
+    data: PlatformIamIdentityCreateManyInput | PlatformIamIdentityCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PlatformIamIdentity update
+   */
+  export type PlatformIamIdentityUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlatformIamIdentity
+     */
+    select?: PlatformIamIdentitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlatformIamIdentity
+     */
+    omit?: PlatformIamIdentityOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlatformIamIdentityInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PlatformIamIdentity.
+     */
+    data: XOR<PlatformIamIdentityUpdateInput, PlatformIamIdentityUncheckedUpdateInput>
+    /**
+     * Choose, which PlatformIamIdentity to update.
+     */
+    where: PlatformIamIdentityWhereUniqueInput
+  }
+
+  /**
+   * PlatformIamIdentity updateMany
+   */
+  export type PlatformIamIdentityUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PlatformIamIdentities.
+     */
+    data: XOR<PlatformIamIdentityUpdateManyMutationInput, PlatformIamIdentityUncheckedUpdateManyInput>
+    /**
+     * Filter which PlatformIamIdentities to update
+     */
+    where?: PlatformIamIdentityWhereInput
+    /**
+     * Limit how many PlatformIamIdentities to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * PlatformIamIdentity updateManyAndReturn
+   */
+  export type PlatformIamIdentityUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlatformIamIdentity
+     */
+    select?: PlatformIamIdentitySelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlatformIamIdentity
+     */
+    omit?: PlatformIamIdentityOmit<ExtArgs> | null
+    /**
+     * The data used to update PlatformIamIdentities.
+     */
+    data: XOR<PlatformIamIdentityUpdateManyMutationInput, PlatformIamIdentityUncheckedUpdateManyInput>
+    /**
+     * Filter which PlatformIamIdentities to update
+     */
+    where?: PlatformIamIdentityWhereInput
+    /**
+     * Limit how many PlatformIamIdentities to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * PlatformIamIdentity upsert
+   */
+  export type PlatformIamIdentityUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlatformIamIdentity
+     */
+    select?: PlatformIamIdentitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlatformIamIdentity
+     */
+    omit?: PlatformIamIdentityOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlatformIamIdentityInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PlatformIamIdentity to update in case it exists.
+     */
+    where: PlatformIamIdentityWhereUniqueInput
+    /**
+     * In case the PlatformIamIdentity found by the `where` argument doesn't exist, create a new PlatformIamIdentity with this data.
+     */
+    create: XOR<PlatformIamIdentityCreateInput, PlatformIamIdentityUncheckedCreateInput>
+    /**
+     * In case the PlatformIamIdentity was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PlatformIamIdentityUpdateInput, PlatformIamIdentityUncheckedUpdateInput>
+  }
+
+  /**
+   * PlatformIamIdentity delete
+   */
+  export type PlatformIamIdentityDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlatformIamIdentity
+     */
+    select?: PlatformIamIdentitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlatformIamIdentity
+     */
+    omit?: PlatformIamIdentityOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlatformIamIdentityInclude<ExtArgs> | null
+    /**
+     * Filter which PlatformIamIdentity to delete.
+     */
+    where: PlatformIamIdentityWhereUniqueInput
+  }
+
+  /**
+   * PlatformIamIdentity deleteMany
+   */
+  export type PlatformIamIdentityDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PlatformIamIdentities to delete
+     */
+    where?: PlatformIamIdentityWhereInput
+    /**
+     * Limit how many PlatformIamIdentities to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * PlatformIamIdentity.impersonations
+   */
+  export type PlatformIamIdentity$impersonationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlatformIamImpersonationAudit
+     */
+    select?: PlatformIamImpersonationAuditSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlatformIamImpersonationAudit
+     */
+    omit?: PlatformIamImpersonationAuditOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlatformIamImpersonationAuditInclude<ExtArgs> | null
+    where?: PlatformIamImpersonationAuditWhereInput
+    orderBy?: PlatformIamImpersonationAuditOrderByWithRelationInput | PlatformIamImpersonationAuditOrderByWithRelationInput[]
+    cursor?: PlatformIamImpersonationAuditWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PlatformIamImpersonationAuditScalarFieldEnum | PlatformIamImpersonationAuditScalarFieldEnum[]
+  }
+
+  /**
+   * PlatformIamIdentity without action
+   */
+  export type PlatformIamIdentityDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlatformIamIdentity
+     */
+    select?: PlatformIamIdentitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlatformIamIdentity
+     */
+    omit?: PlatformIamIdentityOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlatformIamIdentityInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PlatformIamImpersonationAudit
+   */
+
+  export type AggregatePlatformIamImpersonationAudit = {
+    _count: PlatformIamImpersonationAuditCountAggregateOutputType | null
+    _avg: PlatformIamImpersonationAuditAvgAggregateOutputType | null
+    _sum: PlatformIamImpersonationAuditSumAggregateOutputType | null
+    _min: PlatformIamImpersonationAuditMinAggregateOutputType | null
+    _max: PlatformIamImpersonationAuditMaxAggregateOutputType | null
+  }
+
+  export type PlatformIamImpersonationAuditAvgAggregateOutputType = {
+    tokenLifetimeSeconds: number | null
+  }
+
+  export type PlatformIamImpersonationAuditSumAggregateOutputType = {
+    tokenLifetimeSeconds: number | null
+  }
+
+  export type PlatformIamImpersonationAuditMinAggregateOutputType = {
+    id: string | null
+    identityId: string | null
+    actorPrincipal: string | null
+    purpose: string | null
+    tokenLifetimeSeconds: number | null
+    createdAt: Date | null
+  }
+
+  export type PlatformIamImpersonationAuditMaxAggregateOutputType = {
+    id: string | null
+    identityId: string | null
+    actorPrincipal: string | null
+    purpose: string | null
+    tokenLifetimeSeconds: number | null
+    createdAt: Date | null
+  }
+
+  export type PlatformIamImpersonationAuditCountAggregateOutputType = {
+    id: number
+    identityId: number
+    actorPrincipal: number
+    purpose: number
+    tokenLifetimeSeconds: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type PlatformIamImpersonationAuditAvgAggregateInputType = {
+    tokenLifetimeSeconds?: true
+  }
+
+  export type PlatformIamImpersonationAuditSumAggregateInputType = {
+    tokenLifetimeSeconds?: true
+  }
+
+  export type PlatformIamImpersonationAuditMinAggregateInputType = {
+    id?: true
+    identityId?: true
+    actorPrincipal?: true
+    purpose?: true
+    tokenLifetimeSeconds?: true
+    createdAt?: true
+  }
+
+  export type PlatformIamImpersonationAuditMaxAggregateInputType = {
+    id?: true
+    identityId?: true
+    actorPrincipal?: true
+    purpose?: true
+    tokenLifetimeSeconds?: true
+    createdAt?: true
+  }
+
+  export type PlatformIamImpersonationAuditCountAggregateInputType = {
+    id?: true
+    identityId?: true
+    actorPrincipal?: true
+    purpose?: true
+    tokenLifetimeSeconds?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type PlatformIamImpersonationAuditAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PlatformIamImpersonationAudit to aggregate.
+     */
+    where?: PlatformIamImpersonationAuditWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PlatformIamImpersonationAudits to fetch.
+     */
+    orderBy?: PlatformIamImpersonationAuditOrderByWithRelationInput | PlatformIamImpersonationAuditOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PlatformIamImpersonationAuditWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PlatformIamImpersonationAudits from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PlatformIamImpersonationAudits.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PlatformIamImpersonationAudits
+    **/
+    _count?: true | PlatformIamImpersonationAuditCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: PlatformIamImpersonationAuditAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PlatformIamImpersonationAuditSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PlatformIamImpersonationAuditMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PlatformIamImpersonationAuditMaxAggregateInputType
+  }
+
+  export type GetPlatformIamImpersonationAuditAggregateType<T extends PlatformIamImpersonationAuditAggregateArgs> = {
+        [P in keyof T & keyof AggregatePlatformIamImpersonationAudit]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePlatformIamImpersonationAudit[P]>
+      : GetScalarType<T[P], AggregatePlatformIamImpersonationAudit[P]>
+  }
+
+
+
+
+  export type PlatformIamImpersonationAuditGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PlatformIamImpersonationAuditWhereInput
+    orderBy?: PlatformIamImpersonationAuditOrderByWithAggregationInput | PlatformIamImpersonationAuditOrderByWithAggregationInput[]
+    by: PlatformIamImpersonationAuditScalarFieldEnum[] | PlatformIamImpersonationAuditScalarFieldEnum
+    having?: PlatformIamImpersonationAuditScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PlatformIamImpersonationAuditCountAggregateInputType | true
+    _avg?: PlatformIamImpersonationAuditAvgAggregateInputType
+    _sum?: PlatformIamImpersonationAuditSumAggregateInputType
+    _min?: PlatformIamImpersonationAuditMinAggregateInputType
+    _max?: PlatformIamImpersonationAuditMaxAggregateInputType
+  }
+
+  export type PlatformIamImpersonationAuditGroupByOutputType = {
+    id: string
+    identityId: string
+    actorPrincipal: string
+    purpose: string
+    tokenLifetimeSeconds: number
+    createdAt: Date
+    _count: PlatformIamImpersonationAuditCountAggregateOutputType | null
+    _avg: PlatformIamImpersonationAuditAvgAggregateOutputType | null
+    _sum: PlatformIamImpersonationAuditSumAggregateOutputType | null
+    _min: PlatformIamImpersonationAuditMinAggregateOutputType | null
+    _max: PlatformIamImpersonationAuditMaxAggregateOutputType | null
+  }
+
+  type GetPlatformIamImpersonationAuditGroupByPayload<T extends PlatformIamImpersonationAuditGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PlatformIamImpersonationAuditGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PlatformIamImpersonationAuditGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PlatformIamImpersonationAuditGroupByOutputType[P]>
+            : GetScalarType<T[P], PlatformIamImpersonationAuditGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PlatformIamImpersonationAuditSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    identityId?: boolean
+    actorPrincipal?: boolean
+    purpose?: boolean
+    tokenLifetimeSeconds?: boolean
+    createdAt?: boolean
+    identity?: boolean | PlatformIamIdentityDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["platformIamImpersonationAudit"]>
+
+  export type PlatformIamImpersonationAuditSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    identityId?: boolean
+    actorPrincipal?: boolean
+    purpose?: boolean
+    tokenLifetimeSeconds?: boolean
+    createdAt?: boolean
+    identity?: boolean | PlatformIamIdentityDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["platformIamImpersonationAudit"]>
+
+  export type PlatformIamImpersonationAuditSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    identityId?: boolean
+    actorPrincipal?: boolean
+    purpose?: boolean
+    tokenLifetimeSeconds?: boolean
+    createdAt?: boolean
+    identity?: boolean | PlatformIamIdentityDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["platformIamImpersonationAudit"]>
+
+  export type PlatformIamImpersonationAuditSelectScalar = {
+    id?: boolean
+    identityId?: boolean
+    actorPrincipal?: boolean
+    purpose?: boolean
+    tokenLifetimeSeconds?: boolean
+    createdAt?: boolean
+  }
+
+  export type PlatformIamImpersonationAuditOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "identityId" | "actorPrincipal" | "purpose" | "tokenLifetimeSeconds" | "createdAt", ExtArgs["result"]["platformIamImpersonationAudit"]>
+  export type PlatformIamImpersonationAuditInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    identity?: boolean | PlatformIamIdentityDefaultArgs<ExtArgs>
+  }
+  export type PlatformIamImpersonationAuditIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    identity?: boolean | PlatformIamIdentityDefaultArgs<ExtArgs>
+  }
+  export type PlatformIamImpersonationAuditIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    identity?: boolean | PlatformIamIdentityDefaultArgs<ExtArgs>
+  }
+
+  export type $PlatformIamImpersonationAuditPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PlatformIamImpersonationAudit"
+    objects: {
+      identity: Prisma.$PlatformIamIdentityPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      identityId: string
+      actorPrincipal: string
+      purpose: string
+      tokenLifetimeSeconds: number
+      createdAt: Date
+    }, ExtArgs["result"]["platformIamImpersonationAudit"]>
+    composites: {}
+  }
+
+  type PlatformIamImpersonationAuditGetPayload<S extends boolean | null | undefined | PlatformIamImpersonationAuditDefaultArgs> = $Result.GetResult<Prisma.$PlatformIamImpersonationAuditPayload, S>
+
+  type PlatformIamImpersonationAuditCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<PlatformIamImpersonationAuditFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: PlatformIamImpersonationAuditCountAggregateInputType | true
+    }
+
+  export interface PlatformIamImpersonationAuditDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PlatformIamImpersonationAudit'], meta: { name: 'PlatformIamImpersonationAudit' } }
+    /**
+     * Find zero or one PlatformIamImpersonationAudit that matches the filter.
+     * @param {PlatformIamImpersonationAuditFindUniqueArgs} args - Arguments to find a PlatformIamImpersonationAudit
+     * @example
+     * // Get one PlatformIamImpersonationAudit
+     * const platformIamImpersonationAudit = await prisma.platformIamImpersonationAudit.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PlatformIamImpersonationAuditFindUniqueArgs>(args: SelectSubset<T, PlatformIamImpersonationAuditFindUniqueArgs<ExtArgs>>): Prisma__PlatformIamImpersonationAuditClient<$Result.GetResult<Prisma.$PlatformIamImpersonationAuditPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one PlatformIamImpersonationAudit that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {PlatformIamImpersonationAuditFindUniqueOrThrowArgs} args - Arguments to find a PlatformIamImpersonationAudit
+     * @example
+     * // Get one PlatformIamImpersonationAudit
+     * const platformIamImpersonationAudit = await prisma.platformIamImpersonationAudit.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PlatformIamImpersonationAuditFindUniqueOrThrowArgs>(args: SelectSubset<T, PlatformIamImpersonationAuditFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PlatformIamImpersonationAuditClient<$Result.GetResult<Prisma.$PlatformIamImpersonationAuditPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first PlatformIamImpersonationAudit that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlatformIamImpersonationAuditFindFirstArgs} args - Arguments to find a PlatformIamImpersonationAudit
+     * @example
+     * // Get one PlatformIamImpersonationAudit
+     * const platformIamImpersonationAudit = await prisma.platformIamImpersonationAudit.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PlatformIamImpersonationAuditFindFirstArgs>(args?: SelectSubset<T, PlatformIamImpersonationAuditFindFirstArgs<ExtArgs>>): Prisma__PlatformIamImpersonationAuditClient<$Result.GetResult<Prisma.$PlatformIamImpersonationAuditPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first PlatformIamImpersonationAudit that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlatformIamImpersonationAuditFindFirstOrThrowArgs} args - Arguments to find a PlatformIamImpersonationAudit
+     * @example
+     * // Get one PlatformIamImpersonationAudit
+     * const platformIamImpersonationAudit = await prisma.platformIamImpersonationAudit.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PlatformIamImpersonationAuditFindFirstOrThrowArgs>(args?: SelectSubset<T, PlatformIamImpersonationAuditFindFirstOrThrowArgs<ExtArgs>>): Prisma__PlatformIamImpersonationAuditClient<$Result.GetResult<Prisma.$PlatformIamImpersonationAuditPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more PlatformIamImpersonationAudits that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlatformIamImpersonationAuditFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PlatformIamImpersonationAudits
+     * const platformIamImpersonationAudits = await prisma.platformIamImpersonationAudit.findMany()
+     * 
+     * // Get first 10 PlatformIamImpersonationAudits
+     * const platformIamImpersonationAudits = await prisma.platformIamImpersonationAudit.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const platformIamImpersonationAuditWithIdOnly = await prisma.platformIamImpersonationAudit.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PlatformIamImpersonationAuditFindManyArgs>(args?: SelectSubset<T, PlatformIamImpersonationAuditFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlatformIamImpersonationAuditPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a PlatformIamImpersonationAudit.
+     * @param {PlatformIamImpersonationAuditCreateArgs} args - Arguments to create a PlatformIamImpersonationAudit.
+     * @example
+     * // Create one PlatformIamImpersonationAudit
+     * const PlatformIamImpersonationAudit = await prisma.platformIamImpersonationAudit.create({
+     *   data: {
+     *     // ... data to create a PlatformIamImpersonationAudit
+     *   }
+     * })
+     * 
+     */
+    create<T extends PlatformIamImpersonationAuditCreateArgs>(args: SelectSubset<T, PlatformIamImpersonationAuditCreateArgs<ExtArgs>>): Prisma__PlatformIamImpersonationAuditClient<$Result.GetResult<Prisma.$PlatformIamImpersonationAuditPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many PlatformIamImpersonationAudits.
+     * @param {PlatformIamImpersonationAuditCreateManyArgs} args - Arguments to create many PlatformIamImpersonationAudits.
+     * @example
+     * // Create many PlatformIamImpersonationAudits
+     * const platformIamImpersonationAudit = await prisma.platformIamImpersonationAudit.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PlatformIamImpersonationAuditCreateManyArgs>(args?: SelectSubset<T, PlatformIamImpersonationAuditCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PlatformIamImpersonationAudits and returns the data saved in the database.
+     * @param {PlatformIamImpersonationAuditCreateManyAndReturnArgs} args - Arguments to create many PlatformIamImpersonationAudits.
+     * @example
+     * // Create many PlatformIamImpersonationAudits
+     * const platformIamImpersonationAudit = await prisma.platformIamImpersonationAudit.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PlatformIamImpersonationAudits and only return the `id`
+     * const platformIamImpersonationAuditWithIdOnly = await prisma.platformIamImpersonationAudit.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PlatformIamImpersonationAuditCreateManyAndReturnArgs>(args?: SelectSubset<T, PlatformIamImpersonationAuditCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlatformIamImpersonationAuditPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a PlatformIamImpersonationAudit.
+     * @param {PlatformIamImpersonationAuditDeleteArgs} args - Arguments to delete one PlatformIamImpersonationAudit.
+     * @example
+     * // Delete one PlatformIamImpersonationAudit
+     * const PlatformIamImpersonationAudit = await prisma.platformIamImpersonationAudit.delete({
+     *   where: {
+     *     // ... filter to delete one PlatformIamImpersonationAudit
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PlatformIamImpersonationAuditDeleteArgs>(args: SelectSubset<T, PlatformIamImpersonationAuditDeleteArgs<ExtArgs>>): Prisma__PlatformIamImpersonationAuditClient<$Result.GetResult<Prisma.$PlatformIamImpersonationAuditPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one PlatformIamImpersonationAudit.
+     * @param {PlatformIamImpersonationAuditUpdateArgs} args - Arguments to update one PlatformIamImpersonationAudit.
+     * @example
+     * // Update one PlatformIamImpersonationAudit
+     * const platformIamImpersonationAudit = await prisma.platformIamImpersonationAudit.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PlatformIamImpersonationAuditUpdateArgs>(args: SelectSubset<T, PlatformIamImpersonationAuditUpdateArgs<ExtArgs>>): Prisma__PlatformIamImpersonationAuditClient<$Result.GetResult<Prisma.$PlatformIamImpersonationAuditPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more PlatformIamImpersonationAudits.
+     * @param {PlatformIamImpersonationAuditDeleteManyArgs} args - Arguments to filter PlatformIamImpersonationAudits to delete.
+     * @example
+     * // Delete a few PlatformIamImpersonationAudits
+     * const { count } = await prisma.platformIamImpersonationAudit.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PlatformIamImpersonationAuditDeleteManyArgs>(args?: SelectSubset<T, PlatformIamImpersonationAuditDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PlatformIamImpersonationAudits.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlatformIamImpersonationAuditUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PlatformIamImpersonationAudits
+     * const platformIamImpersonationAudit = await prisma.platformIamImpersonationAudit.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PlatformIamImpersonationAuditUpdateManyArgs>(args: SelectSubset<T, PlatformIamImpersonationAuditUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PlatformIamImpersonationAudits and returns the data updated in the database.
+     * @param {PlatformIamImpersonationAuditUpdateManyAndReturnArgs} args - Arguments to update many PlatformIamImpersonationAudits.
+     * @example
+     * // Update many PlatformIamImpersonationAudits
+     * const platformIamImpersonationAudit = await prisma.platformIamImpersonationAudit.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more PlatformIamImpersonationAudits and only return the `id`
+     * const platformIamImpersonationAuditWithIdOnly = await prisma.platformIamImpersonationAudit.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends PlatformIamImpersonationAuditUpdateManyAndReturnArgs>(args: SelectSubset<T, PlatformIamImpersonationAuditUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlatformIamImpersonationAuditPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one PlatformIamImpersonationAudit.
+     * @param {PlatformIamImpersonationAuditUpsertArgs} args - Arguments to update or create a PlatformIamImpersonationAudit.
+     * @example
+     * // Update or create a PlatformIamImpersonationAudit
+     * const platformIamImpersonationAudit = await prisma.platformIamImpersonationAudit.upsert({
+     *   create: {
+     *     // ... data to create a PlatformIamImpersonationAudit
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PlatformIamImpersonationAudit we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PlatformIamImpersonationAuditUpsertArgs>(args: SelectSubset<T, PlatformIamImpersonationAuditUpsertArgs<ExtArgs>>): Prisma__PlatformIamImpersonationAuditClient<$Result.GetResult<Prisma.$PlatformIamImpersonationAuditPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of PlatformIamImpersonationAudits.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlatformIamImpersonationAuditCountArgs} args - Arguments to filter PlatformIamImpersonationAudits to count.
+     * @example
+     * // Count the number of PlatformIamImpersonationAudits
+     * const count = await prisma.platformIamImpersonationAudit.count({
+     *   where: {
+     *     // ... the filter for the PlatformIamImpersonationAudits we want to count
+     *   }
+     * })
+    **/
+    count<T extends PlatformIamImpersonationAuditCountArgs>(
+      args?: Subset<T, PlatformIamImpersonationAuditCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PlatformIamImpersonationAuditCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PlatformIamImpersonationAudit.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlatformIamImpersonationAuditAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PlatformIamImpersonationAuditAggregateArgs>(args: Subset<T, PlatformIamImpersonationAuditAggregateArgs>): Prisma.PrismaPromise<GetPlatformIamImpersonationAuditAggregateType<T>>
+
+    /**
+     * Group by PlatformIamImpersonationAudit.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlatformIamImpersonationAuditGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PlatformIamImpersonationAuditGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PlatformIamImpersonationAuditGroupByArgs['orderBy'] }
+        : { orderBy?: PlatformIamImpersonationAuditGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PlatformIamImpersonationAuditGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPlatformIamImpersonationAuditGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PlatformIamImpersonationAudit model
+   */
+  readonly fields: PlatformIamImpersonationAuditFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PlatformIamImpersonationAudit.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PlatformIamImpersonationAuditClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    identity<T extends PlatformIamIdentityDefaultArgs<ExtArgs> = {}>(args?: Subset<T, PlatformIamIdentityDefaultArgs<ExtArgs>>): Prisma__PlatformIamIdentityClient<$Result.GetResult<Prisma.$PlatformIamIdentityPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PlatformIamImpersonationAudit model
+   */
+  interface PlatformIamImpersonationAuditFieldRefs {
+    readonly id: FieldRef<"PlatformIamImpersonationAudit", 'String'>
+    readonly identityId: FieldRef<"PlatformIamImpersonationAudit", 'String'>
+    readonly actorPrincipal: FieldRef<"PlatformIamImpersonationAudit", 'String'>
+    readonly purpose: FieldRef<"PlatformIamImpersonationAudit", 'String'>
+    readonly tokenLifetimeSeconds: FieldRef<"PlatformIamImpersonationAudit", 'Int'>
+    readonly createdAt: FieldRef<"PlatformIamImpersonationAudit", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PlatformIamImpersonationAudit findUnique
+   */
+  export type PlatformIamImpersonationAuditFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlatformIamImpersonationAudit
+     */
+    select?: PlatformIamImpersonationAuditSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlatformIamImpersonationAudit
+     */
+    omit?: PlatformIamImpersonationAuditOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlatformIamImpersonationAuditInclude<ExtArgs> | null
+    /**
+     * Filter, which PlatformIamImpersonationAudit to fetch.
+     */
+    where: PlatformIamImpersonationAuditWhereUniqueInput
+  }
+
+  /**
+   * PlatformIamImpersonationAudit findUniqueOrThrow
+   */
+  export type PlatformIamImpersonationAuditFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlatformIamImpersonationAudit
+     */
+    select?: PlatformIamImpersonationAuditSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlatformIamImpersonationAudit
+     */
+    omit?: PlatformIamImpersonationAuditOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlatformIamImpersonationAuditInclude<ExtArgs> | null
+    /**
+     * Filter, which PlatformIamImpersonationAudit to fetch.
+     */
+    where: PlatformIamImpersonationAuditWhereUniqueInput
+  }
+
+  /**
+   * PlatformIamImpersonationAudit findFirst
+   */
+  export type PlatformIamImpersonationAuditFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlatformIamImpersonationAudit
+     */
+    select?: PlatformIamImpersonationAuditSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlatformIamImpersonationAudit
+     */
+    omit?: PlatformIamImpersonationAuditOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlatformIamImpersonationAuditInclude<ExtArgs> | null
+    /**
+     * Filter, which PlatformIamImpersonationAudit to fetch.
+     */
+    where?: PlatformIamImpersonationAuditWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PlatformIamImpersonationAudits to fetch.
+     */
+    orderBy?: PlatformIamImpersonationAuditOrderByWithRelationInput | PlatformIamImpersonationAuditOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PlatformIamImpersonationAudits.
+     */
+    cursor?: PlatformIamImpersonationAuditWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PlatformIamImpersonationAudits from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PlatformIamImpersonationAudits.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PlatformIamImpersonationAudits.
+     */
+    distinct?: PlatformIamImpersonationAuditScalarFieldEnum | PlatformIamImpersonationAuditScalarFieldEnum[]
+  }
+
+  /**
+   * PlatformIamImpersonationAudit findFirstOrThrow
+   */
+  export type PlatformIamImpersonationAuditFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlatformIamImpersonationAudit
+     */
+    select?: PlatformIamImpersonationAuditSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlatformIamImpersonationAudit
+     */
+    omit?: PlatformIamImpersonationAuditOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlatformIamImpersonationAuditInclude<ExtArgs> | null
+    /**
+     * Filter, which PlatformIamImpersonationAudit to fetch.
+     */
+    where?: PlatformIamImpersonationAuditWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PlatformIamImpersonationAudits to fetch.
+     */
+    orderBy?: PlatformIamImpersonationAuditOrderByWithRelationInput | PlatformIamImpersonationAuditOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PlatformIamImpersonationAudits.
+     */
+    cursor?: PlatformIamImpersonationAuditWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PlatformIamImpersonationAudits from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PlatformIamImpersonationAudits.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PlatformIamImpersonationAudits.
+     */
+    distinct?: PlatformIamImpersonationAuditScalarFieldEnum | PlatformIamImpersonationAuditScalarFieldEnum[]
+  }
+
+  /**
+   * PlatformIamImpersonationAudit findMany
+   */
+  export type PlatformIamImpersonationAuditFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlatformIamImpersonationAudit
+     */
+    select?: PlatformIamImpersonationAuditSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlatformIamImpersonationAudit
+     */
+    omit?: PlatformIamImpersonationAuditOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlatformIamImpersonationAuditInclude<ExtArgs> | null
+    /**
+     * Filter, which PlatformIamImpersonationAudits to fetch.
+     */
+    where?: PlatformIamImpersonationAuditWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PlatformIamImpersonationAudits to fetch.
+     */
+    orderBy?: PlatformIamImpersonationAuditOrderByWithRelationInput | PlatformIamImpersonationAuditOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PlatformIamImpersonationAudits.
+     */
+    cursor?: PlatformIamImpersonationAuditWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PlatformIamImpersonationAudits from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PlatformIamImpersonationAudits.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PlatformIamImpersonationAudits.
+     */
+    distinct?: PlatformIamImpersonationAuditScalarFieldEnum | PlatformIamImpersonationAuditScalarFieldEnum[]
+  }
+
+  /**
+   * PlatformIamImpersonationAudit create
+   */
+  export type PlatformIamImpersonationAuditCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlatformIamImpersonationAudit
+     */
+    select?: PlatformIamImpersonationAuditSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlatformIamImpersonationAudit
+     */
+    omit?: PlatformIamImpersonationAuditOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlatformIamImpersonationAuditInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PlatformIamImpersonationAudit.
+     */
+    data: XOR<PlatformIamImpersonationAuditCreateInput, PlatformIamImpersonationAuditUncheckedCreateInput>
+  }
+
+  /**
+   * PlatformIamImpersonationAudit createMany
+   */
+  export type PlatformIamImpersonationAuditCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PlatformIamImpersonationAudits.
+     */
+    data: PlatformIamImpersonationAuditCreateManyInput | PlatformIamImpersonationAuditCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PlatformIamImpersonationAudit createManyAndReturn
+   */
+  export type PlatformIamImpersonationAuditCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlatformIamImpersonationAudit
+     */
+    select?: PlatformIamImpersonationAuditSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlatformIamImpersonationAudit
+     */
+    omit?: PlatformIamImpersonationAuditOmit<ExtArgs> | null
+    /**
+     * The data used to create many PlatformIamImpersonationAudits.
+     */
+    data: PlatformIamImpersonationAuditCreateManyInput | PlatformIamImpersonationAuditCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlatformIamImpersonationAuditIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PlatformIamImpersonationAudit update
+   */
+  export type PlatformIamImpersonationAuditUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlatformIamImpersonationAudit
+     */
+    select?: PlatformIamImpersonationAuditSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlatformIamImpersonationAudit
+     */
+    omit?: PlatformIamImpersonationAuditOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlatformIamImpersonationAuditInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PlatformIamImpersonationAudit.
+     */
+    data: XOR<PlatformIamImpersonationAuditUpdateInput, PlatformIamImpersonationAuditUncheckedUpdateInput>
+    /**
+     * Choose, which PlatformIamImpersonationAudit to update.
+     */
+    where: PlatformIamImpersonationAuditWhereUniqueInput
+  }
+
+  /**
+   * PlatformIamImpersonationAudit updateMany
+   */
+  export type PlatformIamImpersonationAuditUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PlatformIamImpersonationAudits.
+     */
+    data: XOR<PlatformIamImpersonationAuditUpdateManyMutationInput, PlatformIamImpersonationAuditUncheckedUpdateManyInput>
+    /**
+     * Filter which PlatformIamImpersonationAudits to update
+     */
+    where?: PlatformIamImpersonationAuditWhereInput
+    /**
+     * Limit how many PlatformIamImpersonationAudits to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * PlatformIamImpersonationAudit updateManyAndReturn
+   */
+  export type PlatformIamImpersonationAuditUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlatformIamImpersonationAudit
+     */
+    select?: PlatformIamImpersonationAuditSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlatformIamImpersonationAudit
+     */
+    omit?: PlatformIamImpersonationAuditOmit<ExtArgs> | null
+    /**
+     * The data used to update PlatformIamImpersonationAudits.
+     */
+    data: XOR<PlatformIamImpersonationAuditUpdateManyMutationInput, PlatformIamImpersonationAuditUncheckedUpdateManyInput>
+    /**
+     * Filter which PlatformIamImpersonationAudits to update
+     */
+    where?: PlatformIamImpersonationAuditWhereInput
+    /**
+     * Limit how many PlatformIamImpersonationAudits to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlatformIamImpersonationAuditIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PlatformIamImpersonationAudit upsert
+   */
+  export type PlatformIamImpersonationAuditUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlatformIamImpersonationAudit
+     */
+    select?: PlatformIamImpersonationAuditSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlatformIamImpersonationAudit
+     */
+    omit?: PlatformIamImpersonationAuditOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlatformIamImpersonationAuditInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PlatformIamImpersonationAudit to update in case it exists.
+     */
+    where: PlatformIamImpersonationAuditWhereUniqueInput
+    /**
+     * In case the PlatformIamImpersonationAudit found by the `where` argument doesn't exist, create a new PlatformIamImpersonationAudit with this data.
+     */
+    create: XOR<PlatformIamImpersonationAuditCreateInput, PlatformIamImpersonationAuditUncheckedCreateInput>
+    /**
+     * In case the PlatformIamImpersonationAudit was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PlatformIamImpersonationAuditUpdateInput, PlatformIamImpersonationAuditUncheckedUpdateInput>
+  }
+
+  /**
+   * PlatformIamImpersonationAudit delete
+   */
+  export type PlatformIamImpersonationAuditDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlatformIamImpersonationAudit
+     */
+    select?: PlatformIamImpersonationAuditSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlatformIamImpersonationAudit
+     */
+    omit?: PlatformIamImpersonationAuditOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlatformIamImpersonationAuditInclude<ExtArgs> | null
+    /**
+     * Filter which PlatformIamImpersonationAudit to delete.
+     */
+    where: PlatformIamImpersonationAuditWhereUniqueInput
+  }
+
+  /**
+   * PlatformIamImpersonationAudit deleteMany
+   */
+  export type PlatformIamImpersonationAuditDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PlatformIamImpersonationAudits to delete
+     */
+    where?: PlatformIamImpersonationAuditWhereInput
+    /**
+     * Limit how many PlatformIamImpersonationAudits to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * PlatformIamImpersonationAudit without action
+   */
+  export type PlatformIamImpersonationAuditDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlatformIamImpersonationAudit
+     */
+    select?: PlatformIamImpersonationAuditSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PlatformIamImpersonationAudit
+     */
+    omit?: PlatformIamImpersonationAuditOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlatformIamImpersonationAuditInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -142585,6 +151616,121 @@ export namespace Prisma {
   export type GalleryListingScalarFieldEnum = (typeof GalleryListingScalarFieldEnum)[keyof typeof GalleryListingScalarFieldEnum]
 
 
+  export const CloudTenantScalarFieldEnum: {
+    id: 'id',
+    customerBoundaryType: 'customerBoundaryType',
+    ownerPrincipalId: 'ownerPrincipalId',
+    billingPrincipalId: 'billingPrincipalId',
+    legalEntityId: 'legalEntityId',
+    ownershipVersion: 'ownershipVersion',
+    residencyPolicy: 'residencyPolicy',
+    lifecycle: 'lifecycle',
+    mergedIntoTenantId: 'mergedIntoTenantId',
+    splitFromTenantId: 'splitFromTenantId',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type CloudTenantScalarFieldEnum = (typeof CloudTenantScalarFieldEnum)[keyof typeof CloudTenantScalarFieldEnum]
+
+
+  export const CloudProjectBindingScalarFieldEnum: {
+    id: 'id',
+    cloudTenantId: 'cloudTenantId',
+    gcpProjectId: 'gcpProjectId',
+    gcpProjectNumber: 'gcpProjectNumber',
+    role: 'role',
+    region: 'region',
+    state: 'state',
+    parentFolderId: 'parentFolderId',
+    quotas: 'quotas',
+    billingLabels: 'billingLabels',
+    capacityPolicy: 'capacityPolicy',
+    reconciliationStatus: 'reconciliationStatus',
+    recoveryWindowEndsAt: 'recoveryWindowEndsAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type CloudProjectBindingScalarFieldEnum = (typeof CloudProjectBindingScalarFieldEnum)[keyof typeof CloudProjectBindingScalarFieldEnum]
+
+
+  export const CloudProjectFactoryEventScalarFieldEnum: {
+    id: 'id',
+    bindingId: 'bindingId',
+    fromState: 'fromState',
+    toState: 'toState',
+    actor: 'actor',
+    detail: 'detail',
+    createdAt: 'createdAt'
+  };
+
+  export type CloudProjectFactoryEventScalarFieldEnum = (typeof CloudProjectFactoryEventScalarFieldEnum)[keyof typeof CloudProjectFactoryEventScalarFieldEnum]
+
+
+  export const CloudTenantTransferScalarFieldEnum: {
+    id: 'id',
+    cloudTenantId: 'cloudTenantId',
+    fromPrincipalId: 'fromPrincipalId',
+    toPrincipalId: 'toPrincipalId',
+    state: 'state',
+    revokeEvidence: 'revokeEvidence',
+    revokeVerifiedAt: 'revokeVerifiedAt',
+    regrantEvidence: 'regrantEvidence',
+    error: 'error',
+    completedAt: 'completedAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type CloudTenantTransferScalarFieldEnum = (typeof CloudTenantTransferScalarFieldEnum)[keyof typeof CloudTenantTransferScalarFieldEnum]
+
+
+  export const CloudTeardownRecordScalarFieldEnum: {
+    id: 'id',
+    bindingId: 'bindingId',
+    status: 'status',
+    resourceInventory: 'resourceInventory',
+    erasureProof: 'erasureProof',
+    orphans: 'orphans',
+    startedAt: 'startedAt',
+    completedAt: 'completedAt'
+  };
+
+  export type CloudTeardownRecordScalarFieldEnum = (typeof CloudTeardownRecordScalarFieldEnum)[keyof typeof CloudTeardownRecordScalarFieldEnum]
+
+
+  export const PlatformIamIdentityScalarFieldEnum: {
+    id: 'id',
+    kind: 'kind',
+    app: 'app',
+    environment: 'environment',
+    privilegeBoundary: 'privilegeBoundary',
+    gcpProjectId: 'gcpProjectId',
+    gcpServiceAccountEmail: 'gcpServiceAccountEmail',
+    persistentKeys: 'persistentKeys',
+    revisionsServed: 'revisionsServed',
+    lastRotatedAt: 'lastRotatedAt',
+    lastUsedAt: 'lastUsedAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type PlatformIamIdentityScalarFieldEnum = (typeof PlatformIamIdentityScalarFieldEnum)[keyof typeof PlatformIamIdentityScalarFieldEnum]
+
+
+  export const PlatformIamImpersonationAuditScalarFieldEnum: {
+    id: 'id',
+    identityId: 'identityId',
+    actorPrincipal: 'actorPrincipal',
+    purpose: 'purpose',
+    tokenLifetimeSeconds: 'tokenLifetimeSeconds',
+    createdAt: 'createdAt'
+  };
+
+  export type PlatformIamImpersonationAuditScalarFieldEnum = (typeof PlatformIamImpersonationAuditScalarFieldEnum)[keyof typeof PlatformIamImpersonationAuditScalarFieldEnum]
+
+
   export const SortOrder: {
     asc: 'asc',
     desc: 'desc'
@@ -142964,6 +152110,90 @@ export namespace Prisma {
    * Reference to a field of type 'ScheduledTaskRunStatus[]'
    */
   export type ListEnumScheduledTaskRunStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ScheduledTaskRunStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'CloudTenantBoundaryType'
+   */
+  export type EnumCloudTenantBoundaryTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CloudTenantBoundaryType'>
+    
+
+
+  /**
+   * Reference to a field of type 'CloudTenantBoundaryType[]'
+   */
+  export type ListEnumCloudTenantBoundaryTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CloudTenantBoundaryType[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'CloudTenantLifecycle'
+   */
+  export type EnumCloudTenantLifecycleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CloudTenantLifecycle'>
+    
+
+
+  /**
+   * Reference to a field of type 'CloudTenantLifecycle[]'
+   */
+  export type ListEnumCloudTenantLifecycleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CloudTenantLifecycle[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'CloudProjectBindingRole'
+   */
+  export type EnumCloudProjectBindingRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CloudProjectBindingRole'>
+    
+
+
+  /**
+   * Reference to a field of type 'CloudProjectBindingRole[]'
+   */
+  export type ListEnumCloudProjectBindingRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CloudProjectBindingRole[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'CloudProjectBindingState'
+   */
+  export type EnumCloudProjectBindingStateFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CloudProjectBindingState'>
+    
+
+
+  /**
+   * Reference to a field of type 'CloudProjectBindingState[]'
+   */
+  export type ListEnumCloudProjectBindingStateFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CloudProjectBindingState[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'CloudTenantTransferState'
+   */
+  export type EnumCloudTenantTransferStateFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CloudTenantTransferState'>
+    
+
+
+  /**
+   * Reference to a field of type 'CloudTenantTransferState[]'
+   */
+  export type ListEnumCloudTenantTransferStateFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CloudTenantTransferState[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'PlatformIamIdentityKind'
+   */
+  export type EnumPlatformIamIdentityKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PlatformIamIdentityKind'>
+    
+
+
+  /**
+   * Reference to a field of type 'PlatformIamIdentityKind[]'
+   */
+  export type ListEnumPlatformIamIdentityKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PlatformIamIdentityKind[]'>
     
   /**
    * Deep Input Types
@@ -151978,6 +161208,597 @@ export namespace Prisma {
     useCount?: IntWithAggregatesFilter<"GalleryListing"> | number
     createdAt?: DateTimeWithAggregatesFilter<"GalleryListing"> | Date | string
     publishedAt?: DateTimeNullableWithAggregatesFilter<"GalleryListing"> | Date | string | null
+  }
+
+  export type CloudTenantWhereInput = {
+    AND?: CloudTenantWhereInput | CloudTenantWhereInput[]
+    OR?: CloudTenantWhereInput[]
+    NOT?: CloudTenantWhereInput | CloudTenantWhereInput[]
+    id?: StringFilter<"CloudTenant"> | string
+    customerBoundaryType?: EnumCloudTenantBoundaryTypeFilter<"CloudTenant"> | $Enums.CloudTenantBoundaryType
+    ownerPrincipalId?: StringFilter<"CloudTenant"> | string
+    billingPrincipalId?: StringFilter<"CloudTenant"> | string
+    legalEntityId?: StringNullableFilter<"CloudTenant"> | string | null
+    ownershipVersion?: IntFilter<"CloudTenant"> | number
+    residencyPolicy?: StringFilter<"CloudTenant"> | string
+    lifecycle?: EnumCloudTenantLifecycleFilter<"CloudTenant"> | $Enums.CloudTenantLifecycle
+    mergedIntoTenantId?: StringNullableFilter<"CloudTenant"> | string | null
+    splitFromTenantId?: StringNullableFilter<"CloudTenant"> | string | null
+    createdAt?: DateTimeFilter<"CloudTenant"> | Date | string
+    updatedAt?: DateTimeFilter<"CloudTenant"> | Date | string
+    bindings?: CloudProjectBindingListRelationFilter
+    transfers?: CloudTenantTransferListRelationFilter
+  }
+
+  export type CloudTenantOrderByWithRelationInput = {
+    id?: SortOrder
+    customerBoundaryType?: SortOrder
+    ownerPrincipalId?: SortOrder
+    billingPrincipalId?: SortOrder
+    legalEntityId?: SortOrderInput | SortOrder
+    ownershipVersion?: SortOrder
+    residencyPolicy?: SortOrder
+    lifecycle?: SortOrder
+    mergedIntoTenantId?: SortOrderInput | SortOrder
+    splitFromTenantId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    bindings?: CloudProjectBindingOrderByRelationAggregateInput
+    transfers?: CloudTenantTransferOrderByRelationAggregateInput
+  }
+
+  export type CloudTenantWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: CloudTenantWhereInput | CloudTenantWhereInput[]
+    OR?: CloudTenantWhereInput[]
+    NOT?: CloudTenantWhereInput | CloudTenantWhereInput[]
+    customerBoundaryType?: EnumCloudTenantBoundaryTypeFilter<"CloudTenant"> | $Enums.CloudTenantBoundaryType
+    ownerPrincipalId?: StringFilter<"CloudTenant"> | string
+    billingPrincipalId?: StringFilter<"CloudTenant"> | string
+    legalEntityId?: StringNullableFilter<"CloudTenant"> | string | null
+    ownershipVersion?: IntFilter<"CloudTenant"> | number
+    residencyPolicy?: StringFilter<"CloudTenant"> | string
+    lifecycle?: EnumCloudTenantLifecycleFilter<"CloudTenant"> | $Enums.CloudTenantLifecycle
+    mergedIntoTenantId?: StringNullableFilter<"CloudTenant"> | string | null
+    splitFromTenantId?: StringNullableFilter<"CloudTenant"> | string | null
+    createdAt?: DateTimeFilter<"CloudTenant"> | Date | string
+    updatedAt?: DateTimeFilter<"CloudTenant"> | Date | string
+    bindings?: CloudProjectBindingListRelationFilter
+    transfers?: CloudTenantTransferListRelationFilter
+  }, "id">
+
+  export type CloudTenantOrderByWithAggregationInput = {
+    id?: SortOrder
+    customerBoundaryType?: SortOrder
+    ownerPrincipalId?: SortOrder
+    billingPrincipalId?: SortOrder
+    legalEntityId?: SortOrderInput | SortOrder
+    ownershipVersion?: SortOrder
+    residencyPolicy?: SortOrder
+    lifecycle?: SortOrder
+    mergedIntoTenantId?: SortOrderInput | SortOrder
+    splitFromTenantId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: CloudTenantCountOrderByAggregateInput
+    _avg?: CloudTenantAvgOrderByAggregateInput
+    _max?: CloudTenantMaxOrderByAggregateInput
+    _min?: CloudTenantMinOrderByAggregateInput
+    _sum?: CloudTenantSumOrderByAggregateInput
+  }
+
+  export type CloudTenantScalarWhereWithAggregatesInput = {
+    AND?: CloudTenantScalarWhereWithAggregatesInput | CloudTenantScalarWhereWithAggregatesInput[]
+    OR?: CloudTenantScalarWhereWithAggregatesInput[]
+    NOT?: CloudTenantScalarWhereWithAggregatesInput | CloudTenantScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"CloudTenant"> | string
+    customerBoundaryType?: EnumCloudTenantBoundaryTypeWithAggregatesFilter<"CloudTenant"> | $Enums.CloudTenantBoundaryType
+    ownerPrincipalId?: StringWithAggregatesFilter<"CloudTenant"> | string
+    billingPrincipalId?: StringWithAggregatesFilter<"CloudTenant"> | string
+    legalEntityId?: StringNullableWithAggregatesFilter<"CloudTenant"> | string | null
+    ownershipVersion?: IntWithAggregatesFilter<"CloudTenant"> | number
+    residencyPolicy?: StringWithAggregatesFilter<"CloudTenant"> | string
+    lifecycle?: EnumCloudTenantLifecycleWithAggregatesFilter<"CloudTenant"> | $Enums.CloudTenantLifecycle
+    mergedIntoTenantId?: StringNullableWithAggregatesFilter<"CloudTenant"> | string | null
+    splitFromTenantId?: StringNullableWithAggregatesFilter<"CloudTenant"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"CloudTenant"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"CloudTenant"> | Date | string
+  }
+
+  export type CloudProjectBindingWhereInput = {
+    AND?: CloudProjectBindingWhereInput | CloudProjectBindingWhereInput[]
+    OR?: CloudProjectBindingWhereInput[]
+    NOT?: CloudProjectBindingWhereInput | CloudProjectBindingWhereInput[]
+    id?: StringFilter<"CloudProjectBinding"> | string
+    cloudTenantId?: StringFilter<"CloudProjectBinding"> | string
+    gcpProjectId?: StringFilter<"CloudProjectBinding"> | string
+    gcpProjectNumber?: StringNullableFilter<"CloudProjectBinding"> | string | null
+    role?: EnumCloudProjectBindingRoleFilter<"CloudProjectBinding"> | $Enums.CloudProjectBindingRole
+    region?: StringFilter<"CloudProjectBinding"> | string
+    state?: EnumCloudProjectBindingStateFilter<"CloudProjectBinding"> | $Enums.CloudProjectBindingState
+    parentFolderId?: StringNullableFilter<"CloudProjectBinding"> | string | null
+    quotas?: JsonNullableFilter<"CloudProjectBinding">
+    billingLabels?: JsonNullableFilter<"CloudProjectBinding">
+    capacityPolicy?: JsonNullableFilter<"CloudProjectBinding">
+    reconciliationStatus?: StringFilter<"CloudProjectBinding"> | string
+    recoveryWindowEndsAt?: DateTimeNullableFilter<"CloudProjectBinding"> | Date | string | null
+    createdAt?: DateTimeFilter<"CloudProjectBinding"> | Date | string
+    updatedAt?: DateTimeFilter<"CloudProjectBinding"> | Date | string
+    tenant?: XOR<CloudTenantScalarRelationFilter, CloudTenantWhereInput>
+    events?: CloudProjectFactoryEventListRelationFilter
+    teardowns?: CloudTeardownRecordListRelationFilter
+  }
+
+  export type CloudProjectBindingOrderByWithRelationInput = {
+    id?: SortOrder
+    cloudTenantId?: SortOrder
+    gcpProjectId?: SortOrder
+    gcpProjectNumber?: SortOrderInput | SortOrder
+    role?: SortOrder
+    region?: SortOrder
+    state?: SortOrder
+    parentFolderId?: SortOrderInput | SortOrder
+    quotas?: SortOrderInput | SortOrder
+    billingLabels?: SortOrderInput | SortOrder
+    capacityPolicy?: SortOrderInput | SortOrder
+    reconciliationStatus?: SortOrder
+    recoveryWindowEndsAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    tenant?: CloudTenantOrderByWithRelationInput
+    events?: CloudProjectFactoryEventOrderByRelationAggregateInput
+    teardowns?: CloudTeardownRecordOrderByRelationAggregateInput
+  }
+
+  export type CloudProjectBindingWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    gcpProjectId?: string
+    gcpProjectNumber?: string
+    AND?: CloudProjectBindingWhereInput | CloudProjectBindingWhereInput[]
+    OR?: CloudProjectBindingWhereInput[]
+    NOT?: CloudProjectBindingWhereInput | CloudProjectBindingWhereInput[]
+    cloudTenantId?: StringFilter<"CloudProjectBinding"> | string
+    role?: EnumCloudProjectBindingRoleFilter<"CloudProjectBinding"> | $Enums.CloudProjectBindingRole
+    region?: StringFilter<"CloudProjectBinding"> | string
+    state?: EnumCloudProjectBindingStateFilter<"CloudProjectBinding"> | $Enums.CloudProjectBindingState
+    parentFolderId?: StringNullableFilter<"CloudProjectBinding"> | string | null
+    quotas?: JsonNullableFilter<"CloudProjectBinding">
+    billingLabels?: JsonNullableFilter<"CloudProjectBinding">
+    capacityPolicy?: JsonNullableFilter<"CloudProjectBinding">
+    reconciliationStatus?: StringFilter<"CloudProjectBinding"> | string
+    recoveryWindowEndsAt?: DateTimeNullableFilter<"CloudProjectBinding"> | Date | string | null
+    createdAt?: DateTimeFilter<"CloudProjectBinding"> | Date | string
+    updatedAt?: DateTimeFilter<"CloudProjectBinding"> | Date | string
+    tenant?: XOR<CloudTenantScalarRelationFilter, CloudTenantWhereInput>
+    events?: CloudProjectFactoryEventListRelationFilter
+    teardowns?: CloudTeardownRecordListRelationFilter
+  }, "id" | "gcpProjectId" | "gcpProjectNumber">
+
+  export type CloudProjectBindingOrderByWithAggregationInput = {
+    id?: SortOrder
+    cloudTenantId?: SortOrder
+    gcpProjectId?: SortOrder
+    gcpProjectNumber?: SortOrderInput | SortOrder
+    role?: SortOrder
+    region?: SortOrder
+    state?: SortOrder
+    parentFolderId?: SortOrderInput | SortOrder
+    quotas?: SortOrderInput | SortOrder
+    billingLabels?: SortOrderInput | SortOrder
+    capacityPolicy?: SortOrderInput | SortOrder
+    reconciliationStatus?: SortOrder
+    recoveryWindowEndsAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: CloudProjectBindingCountOrderByAggregateInput
+    _max?: CloudProjectBindingMaxOrderByAggregateInput
+    _min?: CloudProjectBindingMinOrderByAggregateInput
+  }
+
+  export type CloudProjectBindingScalarWhereWithAggregatesInput = {
+    AND?: CloudProjectBindingScalarWhereWithAggregatesInput | CloudProjectBindingScalarWhereWithAggregatesInput[]
+    OR?: CloudProjectBindingScalarWhereWithAggregatesInput[]
+    NOT?: CloudProjectBindingScalarWhereWithAggregatesInput | CloudProjectBindingScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"CloudProjectBinding"> | string
+    cloudTenantId?: StringWithAggregatesFilter<"CloudProjectBinding"> | string
+    gcpProjectId?: StringWithAggregatesFilter<"CloudProjectBinding"> | string
+    gcpProjectNumber?: StringNullableWithAggregatesFilter<"CloudProjectBinding"> | string | null
+    role?: EnumCloudProjectBindingRoleWithAggregatesFilter<"CloudProjectBinding"> | $Enums.CloudProjectBindingRole
+    region?: StringWithAggregatesFilter<"CloudProjectBinding"> | string
+    state?: EnumCloudProjectBindingStateWithAggregatesFilter<"CloudProjectBinding"> | $Enums.CloudProjectBindingState
+    parentFolderId?: StringNullableWithAggregatesFilter<"CloudProjectBinding"> | string | null
+    quotas?: JsonNullableWithAggregatesFilter<"CloudProjectBinding">
+    billingLabels?: JsonNullableWithAggregatesFilter<"CloudProjectBinding">
+    capacityPolicy?: JsonNullableWithAggregatesFilter<"CloudProjectBinding">
+    reconciliationStatus?: StringWithAggregatesFilter<"CloudProjectBinding"> | string
+    recoveryWindowEndsAt?: DateTimeNullableWithAggregatesFilter<"CloudProjectBinding"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"CloudProjectBinding"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"CloudProjectBinding"> | Date | string
+  }
+
+  export type CloudProjectFactoryEventWhereInput = {
+    AND?: CloudProjectFactoryEventWhereInput | CloudProjectFactoryEventWhereInput[]
+    OR?: CloudProjectFactoryEventWhereInput[]
+    NOT?: CloudProjectFactoryEventWhereInput | CloudProjectFactoryEventWhereInput[]
+    id?: StringFilter<"CloudProjectFactoryEvent"> | string
+    bindingId?: StringFilter<"CloudProjectFactoryEvent"> | string
+    fromState?: StringNullableFilter<"CloudProjectFactoryEvent"> | string | null
+    toState?: StringFilter<"CloudProjectFactoryEvent"> | string
+    actor?: StringNullableFilter<"CloudProjectFactoryEvent"> | string | null
+    detail?: JsonNullableFilter<"CloudProjectFactoryEvent">
+    createdAt?: DateTimeFilter<"CloudProjectFactoryEvent"> | Date | string
+    binding?: XOR<CloudProjectBindingScalarRelationFilter, CloudProjectBindingWhereInput>
+  }
+
+  export type CloudProjectFactoryEventOrderByWithRelationInput = {
+    id?: SortOrder
+    bindingId?: SortOrder
+    fromState?: SortOrderInput | SortOrder
+    toState?: SortOrder
+    actor?: SortOrderInput | SortOrder
+    detail?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    binding?: CloudProjectBindingOrderByWithRelationInput
+  }
+
+  export type CloudProjectFactoryEventWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: CloudProjectFactoryEventWhereInput | CloudProjectFactoryEventWhereInput[]
+    OR?: CloudProjectFactoryEventWhereInput[]
+    NOT?: CloudProjectFactoryEventWhereInput | CloudProjectFactoryEventWhereInput[]
+    bindingId?: StringFilter<"CloudProjectFactoryEvent"> | string
+    fromState?: StringNullableFilter<"CloudProjectFactoryEvent"> | string | null
+    toState?: StringFilter<"CloudProjectFactoryEvent"> | string
+    actor?: StringNullableFilter<"CloudProjectFactoryEvent"> | string | null
+    detail?: JsonNullableFilter<"CloudProjectFactoryEvent">
+    createdAt?: DateTimeFilter<"CloudProjectFactoryEvent"> | Date | string
+    binding?: XOR<CloudProjectBindingScalarRelationFilter, CloudProjectBindingWhereInput>
+  }, "id">
+
+  export type CloudProjectFactoryEventOrderByWithAggregationInput = {
+    id?: SortOrder
+    bindingId?: SortOrder
+    fromState?: SortOrderInput | SortOrder
+    toState?: SortOrder
+    actor?: SortOrderInput | SortOrder
+    detail?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: CloudProjectFactoryEventCountOrderByAggregateInput
+    _max?: CloudProjectFactoryEventMaxOrderByAggregateInput
+    _min?: CloudProjectFactoryEventMinOrderByAggregateInput
+  }
+
+  export type CloudProjectFactoryEventScalarWhereWithAggregatesInput = {
+    AND?: CloudProjectFactoryEventScalarWhereWithAggregatesInput | CloudProjectFactoryEventScalarWhereWithAggregatesInput[]
+    OR?: CloudProjectFactoryEventScalarWhereWithAggregatesInput[]
+    NOT?: CloudProjectFactoryEventScalarWhereWithAggregatesInput | CloudProjectFactoryEventScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"CloudProjectFactoryEvent"> | string
+    bindingId?: StringWithAggregatesFilter<"CloudProjectFactoryEvent"> | string
+    fromState?: StringNullableWithAggregatesFilter<"CloudProjectFactoryEvent"> | string | null
+    toState?: StringWithAggregatesFilter<"CloudProjectFactoryEvent"> | string
+    actor?: StringNullableWithAggregatesFilter<"CloudProjectFactoryEvent"> | string | null
+    detail?: JsonNullableWithAggregatesFilter<"CloudProjectFactoryEvent">
+    createdAt?: DateTimeWithAggregatesFilter<"CloudProjectFactoryEvent"> | Date | string
+  }
+
+  export type CloudTenantTransferWhereInput = {
+    AND?: CloudTenantTransferWhereInput | CloudTenantTransferWhereInput[]
+    OR?: CloudTenantTransferWhereInput[]
+    NOT?: CloudTenantTransferWhereInput | CloudTenantTransferWhereInput[]
+    id?: StringFilter<"CloudTenantTransfer"> | string
+    cloudTenantId?: StringFilter<"CloudTenantTransfer"> | string
+    fromPrincipalId?: StringFilter<"CloudTenantTransfer"> | string
+    toPrincipalId?: StringFilter<"CloudTenantTransfer"> | string
+    state?: EnumCloudTenantTransferStateFilter<"CloudTenantTransfer"> | $Enums.CloudTenantTransferState
+    revokeEvidence?: JsonNullableFilter<"CloudTenantTransfer">
+    revokeVerifiedAt?: DateTimeNullableFilter<"CloudTenantTransfer"> | Date | string | null
+    regrantEvidence?: JsonNullableFilter<"CloudTenantTransfer">
+    error?: StringNullableFilter<"CloudTenantTransfer"> | string | null
+    completedAt?: DateTimeNullableFilter<"CloudTenantTransfer"> | Date | string | null
+    createdAt?: DateTimeFilter<"CloudTenantTransfer"> | Date | string
+    updatedAt?: DateTimeFilter<"CloudTenantTransfer"> | Date | string
+    tenant?: XOR<CloudTenantScalarRelationFilter, CloudTenantWhereInput>
+  }
+
+  export type CloudTenantTransferOrderByWithRelationInput = {
+    id?: SortOrder
+    cloudTenantId?: SortOrder
+    fromPrincipalId?: SortOrder
+    toPrincipalId?: SortOrder
+    state?: SortOrder
+    revokeEvidence?: SortOrderInput | SortOrder
+    revokeVerifiedAt?: SortOrderInput | SortOrder
+    regrantEvidence?: SortOrderInput | SortOrder
+    error?: SortOrderInput | SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    tenant?: CloudTenantOrderByWithRelationInput
+  }
+
+  export type CloudTenantTransferWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: CloudTenantTransferWhereInput | CloudTenantTransferWhereInput[]
+    OR?: CloudTenantTransferWhereInput[]
+    NOT?: CloudTenantTransferWhereInput | CloudTenantTransferWhereInput[]
+    cloudTenantId?: StringFilter<"CloudTenantTransfer"> | string
+    fromPrincipalId?: StringFilter<"CloudTenantTransfer"> | string
+    toPrincipalId?: StringFilter<"CloudTenantTransfer"> | string
+    state?: EnumCloudTenantTransferStateFilter<"CloudTenantTransfer"> | $Enums.CloudTenantTransferState
+    revokeEvidence?: JsonNullableFilter<"CloudTenantTransfer">
+    revokeVerifiedAt?: DateTimeNullableFilter<"CloudTenantTransfer"> | Date | string | null
+    regrantEvidence?: JsonNullableFilter<"CloudTenantTransfer">
+    error?: StringNullableFilter<"CloudTenantTransfer"> | string | null
+    completedAt?: DateTimeNullableFilter<"CloudTenantTransfer"> | Date | string | null
+    createdAt?: DateTimeFilter<"CloudTenantTransfer"> | Date | string
+    updatedAt?: DateTimeFilter<"CloudTenantTransfer"> | Date | string
+    tenant?: XOR<CloudTenantScalarRelationFilter, CloudTenantWhereInput>
+  }, "id">
+
+  export type CloudTenantTransferOrderByWithAggregationInput = {
+    id?: SortOrder
+    cloudTenantId?: SortOrder
+    fromPrincipalId?: SortOrder
+    toPrincipalId?: SortOrder
+    state?: SortOrder
+    revokeEvidence?: SortOrderInput | SortOrder
+    revokeVerifiedAt?: SortOrderInput | SortOrder
+    regrantEvidence?: SortOrderInput | SortOrder
+    error?: SortOrderInput | SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: CloudTenantTransferCountOrderByAggregateInput
+    _max?: CloudTenantTransferMaxOrderByAggregateInput
+    _min?: CloudTenantTransferMinOrderByAggregateInput
+  }
+
+  export type CloudTenantTransferScalarWhereWithAggregatesInput = {
+    AND?: CloudTenantTransferScalarWhereWithAggregatesInput | CloudTenantTransferScalarWhereWithAggregatesInput[]
+    OR?: CloudTenantTransferScalarWhereWithAggregatesInput[]
+    NOT?: CloudTenantTransferScalarWhereWithAggregatesInput | CloudTenantTransferScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"CloudTenantTransfer"> | string
+    cloudTenantId?: StringWithAggregatesFilter<"CloudTenantTransfer"> | string
+    fromPrincipalId?: StringWithAggregatesFilter<"CloudTenantTransfer"> | string
+    toPrincipalId?: StringWithAggregatesFilter<"CloudTenantTransfer"> | string
+    state?: EnumCloudTenantTransferStateWithAggregatesFilter<"CloudTenantTransfer"> | $Enums.CloudTenantTransferState
+    revokeEvidence?: JsonNullableWithAggregatesFilter<"CloudTenantTransfer">
+    revokeVerifiedAt?: DateTimeNullableWithAggregatesFilter<"CloudTenantTransfer"> | Date | string | null
+    regrantEvidence?: JsonNullableWithAggregatesFilter<"CloudTenantTransfer">
+    error?: StringNullableWithAggregatesFilter<"CloudTenantTransfer"> | string | null
+    completedAt?: DateTimeNullableWithAggregatesFilter<"CloudTenantTransfer"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"CloudTenantTransfer"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"CloudTenantTransfer"> | Date | string
+  }
+
+  export type CloudTeardownRecordWhereInput = {
+    AND?: CloudTeardownRecordWhereInput | CloudTeardownRecordWhereInput[]
+    OR?: CloudTeardownRecordWhereInput[]
+    NOT?: CloudTeardownRecordWhereInput | CloudTeardownRecordWhereInput[]
+    id?: StringFilter<"CloudTeardownRecord"> | string
+    bindingId?: StringFilter<"CloudTeardownRecord"> | string
+    status?: StringFilter<"CloudTeardownRecord"> | string
+    resourceInventory?: JsonNullableFilter<"CloudTeardownRecord">
+    erasureProof?: JsonNullableFilter<"CloudTeardownRecord">
+    orphans?: JsonNullableFilter<"CloudTeardownRecord">
+    startedAt?: DateTimeFilter<"CloudTeardownRecord"> | Date | string
+    completedAt?: DateTimeNullableFilter<"CloudTeardownRecord"> | Date | string | null
+    binding?: XOR<CloudProjectBindingScalarRelationFilter, CloudProjectBindingWhereInput>
+  }
+
+  export type CloudTeardownRecordOrderByWithRelationInput = {
+    id?: SortOrder
+    bindingId?: SortOrder
+    status?: SortOrder
+    resourceInventory?: SortOrderInput | SortOrder
+    erasureProof?: SortOrderInput | SortOrder
+    orphans?: SortOrderInput | SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    binding?: CloudProjectBindingOrderByWithRelationInput
+  }
+
+  export type CloudTeardownRecordWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: CloudTeardownRecordWhereInput | CloudTeardownRecordWhereInput[]
+    OR?: CloudTeardownRecordWhereInput[]
+    NOT?: CloudTeardownRecordWhereInput | CloudTeardownRecordWhereInput[]
+    bindingId?: StringFilter<"CloudTeardownRecord"> | string
+    status?: StringFilter<"CloudTeardownRecord"> | string
+    resourceInventory?: JsonNullableFilter<"CloudTeardownRecord">
+    erasureProof?: JsonNullableFilter<"CloudTeardownRecord">
+    orphans?: JsonNullableFilter<"CloudTeardownRecord">
+    startedAt?: DateTimeFilter<"CloudTeardownRecord"> | Date | string
+    completedAt?: DateTimeNullableFilter<"CloudTeardownRecord"> | Date | string | null
+    binding?: XOR<CloudProjectBindingScalarRelationFilter, CloudProjectBindingWhereInput>
+  }, "id">
+
+  export type CloudTeardownRecordOrderByWithAggregationInput = {
+    id?: SortOrder
+    bindingId?: SortOrder
+    status?: SortOrder
+    resourceInventory?: SortOrderInput | SortOrder
+    erasureProof?: SortOrderInput | SortOrder
+    orphans?: SortOrderInput | SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    _count?: CloudTeardownRecordCountOrderByAggregateInput
+    _max?: CloudTeardownRecordMaxOrderByAggregateInput
+    _min?: CloudTeardownRecordMinOrderByAggregateInput
+  }
+
+  export type CloudTeardownRecordScalarWhereWithAggregatesInput = {
+    AND?: CloudTeardownRecordScalarWhereWithAggregatesInput | CloudTeardownRecordScalarWhereWithAggregatesInput[]
+    OR?: CloudTeardownRecordScalarWhereWithAggregatesInput[]
+    NOT?: CloudTeardownRecordScalarWhereWithAggregatesInput | CloudTeardownRecordScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"CloudTeardownRecord"> | string
+    bindingId?: StringWithAggregatesFilter<"CloudTeardownRecord"> | string
+    status?: StringWithAggregatesFilter<"CloudTeardownRecord"> | string
+    resourceInventory?: JsonNullableWithAggregatesFilter<"CloudTeardownRecord">
+    erasureProof?: JsonNullableWithAggregatesFilter<"CloudTeardownRecord">
+    orphans?: JsonNullableWithAggregatesFilter<"CloudTeardownRecord">
+    startedAt?: DateTimeWithAggregatesFilter<"CloudTeardownRecord"> | Date | string
+    completedAt?: DateTimeNullableWithAggregatesFilter<"CloudTeardownRecord"> | Date | string | null
+  }
+
+  export type PlatformIamIdentityWhereInput = {
+    AND?: PlatformIamIdentityWhereInput | PlatformIamIdentityWhereInput[]
+    OR?: PlatformIamIdentityWhereInput[]
+    NOT?: PlatformIamIdentityWhereInput | PlatformIamIdentityWhereInput[]
+    id?: StringFilter<"PlatformIamIdentity"> | string
+    kind?: EnumPlatformIamIdentityKindFilter<"PlatformIamIdentity"> | $Enums.PlatformIamIdentityKind
+    app?: StringFilter<"PlatformIamIdentity"> | string
+    environment?: StringFilter<"PlatformIamIdentity"> | string
+    privilegeBoundary?: StringFilter<"PlatformIamIdentity"> | string
+    gcpProjectId?: StringFilter<"PlatformIamIdentity"> | string
+    gcpServiceAccountEmail?: StringFilter<"PlatformIamIdentity"> | string
+    persistentKeys?: IntFilter<"PlatformIamIdentity"> | number
+    revisionsServed?: IntFilter<"PlatformIamIdentity"> | number
+    lastRotatedAt?: DateTimeNullableFilter<"PlatformIamIdentity"> | Date | string | null
+    lastUsedAt?: DateTimeNullableFilter<"PlatformIamIdentity"> | Date | string | null
+    createdAt?: DateTimeFilter<"PlatformIamIdentity"> | Date | string
+    updatedAt?: DateTimeFilter<"PlatformIamIdentity"> | Date | string
+    impersonations?: PlatformIamImpersonationAuditListRelationFilter
+  }
+
+  export type PlatformIamIdentityOrderByWithRelationInput = {
+    id?: SortOrder
+    kind?: SortOrder
+    app?: SortOrder
+    environment?: SortOrder
+    privilegeBoundary?: SortOrder
+    gcpProjectId?: SortOrder
+    gcpServiceAccountEmail?: SortOrder
+    persistentKeys?: SortOrder
+    revisionsServed?: SortOrder
+    lastRotatedAt?: SortOrderInput | SortOrder
+    lastUsedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    impersonations?: PlatformIamImpersonationAuditOrderByRelationAggregateInput
+  }
+
+  export type PlatformIamIdentityWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    gcpServiceAccountEmail?: string
+    kind_app_environment_privilegeBoundary_gcpProjectId?: PlatformIamIdentityKindAppEnvironmentPrivilegeBoundaryGcpProjectIdCompoundUniqueInput
+    AND?: PlatformIamIdentityWhereInput | PlatformIamIdentityWhereInput[]
+    OR?: PlatformIamIdentityWhereInput[]
+    NOT?: PlatformIamIdentityWhereInput | PlatformIamIdentityWhereInput[]
+    kind?: EnumPlatformIamIdentityKindFilter<"PlatformIamIdentity"> | $Enums.PlatformIamIdentityKind
+    app?: StringFilter<"PlatformIamIdentity"> | string
+    environment?: StringFilter<"PlatformIamIdentity"> | string
+    privilegeBoundary?: StringFilter<"PlatformIamIdentity"> | string
+    gcpProjectId?: StringFilter<"PlatformIamIdentity"> | string
+    persistentKeys?: IntFilter<"PlatformIamIdentity"> | number
+    revisionsServed?: IntFilter<"PlatformIamIdentity"> | number
+    lastRotatedAt?: DateTimeNullableFilter<"PlatformIamIdentity"> | Date | string | null
+    lastUsedAt?: DateTimeNullableFilter<"PlatformIamIdentity"> | Date | string | null
+    createdAt?: DateTimeFilter<"PlatformIamIdentity"> | Date | string
+    updatedAt?: DateTimeFilter<"PlatformIamIdentity"> | Date | string
+    impersonations?: PlatformIamImpersonationAuditListRelationFilter
+  }, "id" | "gcpServiceAccountEmail" | "kind_app_environment_privilegeBoundary_gcpProjectId">
+
+  export type PlatformIamIdentityOrderByWithAggregationInput = {
+    id?: SortOrder
+    kind?: SortOrder
+    app?: SortOrder
+    environment?: SortOrder
+    privilegeBoundary?: SortOrder
+    gcpProjectId?: SortOrder
+    gcpServiceAccountEmail?: SortOrder
+    persistentKeys?: SortOrder
+    revisionsServed?: SortOrder
+    lastRotatedAt?: SortOrderInput | SortOrder
+    lastUsedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: PlatformIamIdentityCountOrderByAggregateInput
+    _avg?: PlatformIamIdentityAvgOrderByAggregateInput
+    _max?: PlatformIamIdentityMaxOrderByAggregateInput
+    _min?: PlatformIamIdentityMinOrderByAggregateInput
+    _sum?: PlatformIamIdentitySumOrderByAggregateInput
+  }
+
+  export type PlatformIamIdentityScalarWhereWithAggregatesInput = {
+    AND?: PlatformIamIdentityScalarWhereWithAggregatesInput | PlatformIamIdentityScalarWhereWithAggregatesInput[]
+    OR?: PlatformIamIdentityScalarWhereWithAggregatesInput[]
+    NOT?: PlatformIamIdentityScalarWhereWithAggregatesInput | PlatformIamIdentityScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PlatformIamIdentity"> | string
+    kind?: EnumPlatformIamIdentityKindWithAggregatesFilter<"PlatformIamIdentity"> | $Enums.PlatformIamIdentityKind
+    app?: StringWithAggregatesFilter<"PlatformIamIdentity"> | string
+    environment?: StringWithAggregatesFilter<"PlatformIamIdentity"> | string
+    privilegeBoundary?: StringWithAggregatesFilter<"PlatformIamIdentity"> | string
+    gcpProjectId?: StringWithAggregatesFilter<"PlatformIamIdentity"> | string
+    gcpServiceAccountEmail?: StringWithAggregatesFilter<"PlatformIamIdentity"> | string
+    persistentKeys?: IntWithAggregatesFilter<"PlatformIamIdentity"> | number
+    revisionsServed?: IntWithAggregatesFilter<"PlatformIamIdentity"> | number
+    lastRotatedAt?: DateTimeNullableWithAggregatesFilter<"PlatformIamIdentity"> | Date | string | null
+    lastUsedAt?: DateTimeNullableWithAggregatesFilter<"PlatformIamIdentity"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"PlatformIamIdentity"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"PlatformIamIdentity"> | Date | string
+  }
+
+  export type PlatformIamImpersonationAuditWhereInput = {
+    AND?: PlatformIamImpersonationAuditWhereInput | PlatformIamImpersonationAuditWhereInput[]
+    OR?: PlatformIamImpersonationAuditWhereInput[]
+    NOT?: PlatformIamImpersonationAuditWhereInput | PlatformIamImpersonationAuditWhereInput[]
+    id?: StringFilter<"PlatformIamImpersonationAudit"> | string
+    identityId?: StringFilter<"PlatformIamImpersonationAudit"> | string
+    actorPrincipal?: StringFilter<"PlatformIamImpersonationAudit"> | string
+    purpose?: StringFilter<"PlatformIamImpersonationAudit"> | string
+    tokenLifetimeSeconds?: IntFilter<"PlatformIamImpersonationAudit"> | number
+    createdAt?: DateTimeFilter<"PlatformIamImpersonationAudit"> | Date | string
+    identity?: XOR<PlatformIamIdentityScalarRelationFilter, PlatformIamIdentityWhereInput>
+  }
+
+  export type PlatformIamImpersonationAuditOrderByWithRelationInput = {
+    id?: SortOrder
+    identityId?: SortOrder
+    actorPrincipal?: SortOrder
+    purpose?: SortOrder
+    tokenLifetimeSeconds?: SortOrder
+    createdAt?: SortOrder
+    identity?: PlatformIamIdentityOrderByWithRelationInput
+  }
+
+  export type PlatformIamImpersonationAuditWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: PlatformIamImpersonationAuditWhereInput | PlatformIamImpersonationAuditWhereInput[]
+    OR?: PlatformIamImpersonationAuditWhereInput[]
+    NOT?: PlatformIamImpersonationAuditWhereInput | PlatformIamImpersonationAuditWhereInput[]
+    identityId?: StringFilter<"PlatformIamImpersonationAudit"> | string
+    actorPrincipal?: StringFilter<"PlatformIamImpersonationAudit"> | string
+    purpose?: StringFilter<"PlatformIamImpersonationAudit"> | string
+    tokenLifetimeSeconds?: IntFilter<"PlatformIamImpersonationAudit"> | number
+    createdAt?: DateTimeFilter<"PlatformIamImpersonationAudit"> | Date | string
+    identity?: XOR<PlatformIamIdentityScalarRelationFilter, PlatformIamIdentityWhereInput>
+  }, "id">
+
+  export type PlatformIamImpersonationAuditOrderByWithAggregationInput = {
+    id?: SortOrder
+    identityId?: SortOrder
+    actorPrincipal?: SortOrder
+    purpose?: SortOrder
+    tokenLifetimeSeconds?: SortOrder
+    createdAt?: SortOrder
+    _count?: PlatformIamImpersonationAuditCountOrderByAggregateInput
+    _avg?: PlatformIamImpersonationAuditAvgOrderByAggregateInput
+    _max?: PlatformIamImpersonationAuditMaxOrderByAggregateInput
+    _min?: PlatformIamImpersonationAuditMinOrderByAggregateInput
+    _sum?: PlatformIamImpersonationAuditSumOrderByAggregateInput
+  }
+
+  export type PlatformIamImpersonationAuditScalarWhereWithAggregatesInput = {
+    AND?: PlatformIamImpersonationAuditScalarWhereWithAggregatesInput | PlatformIamImpersonationAuditScalarWhereWithAggregatesInput[]
+    OR?: PlatformIamImpersonationAuditScalarWhereWithAggregatesInput[]
+    NOT?: PlatformIamImpersonationAuditScalarWhereWithAggregatesInput | PlatformIamImpersonationAuditScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PlatformIamImpersonationAudit"> | string
+    identityId?: StringWithAggregatesFilter<"PlatformIamImpersonationAudit"> | string
+    actorPrincipal?: StringWithAggregatesFilter<"PlatformIamImpersonationAudit"> | string
+    purpose?: StringWithAggregatesFilter<"PlatformIamImpersonationAudit"> | string
+    tokenLifetimeSeconds?: IntWithAggregatesFilter<"PlatformIamImpersonationAudit"> | number
+    createdAt?: DateTimeWithAggregatesFilter<"PlatformIamImpersonationAudit"> | Date | string
   }
 
   export type UserCreateInput = {
@@ -161868,6 +171689,679 @@ export namespace Prisma {
     publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
+  export type CloudTenantCreateInput = {
+    id?: string
+    customerBoundaryType: $Enums.CloudTenantBoundaryType
+    ownerPrincipalId: string
+    billingPrincipalId: string
+    legalEntityId?: string | null
+    ownershipVersion?: number
+    residencyPolicy?: string
+    lifecycle?: $Enums.CloudTenantLifecycle
+    mergedIntoTenantId?: string | null
+    splitFromTenantId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    bindings?: CloudProjectBindingCreateNestedManyWithoutTenantInput
+    transfers?: CloudTenantTransferCreateNestedManyWithoutTenantInput
+  }
+
+  export type CloudTenantUncheckedCreateInput = {
+    id?: string
+    customerBoundaryType: $Enums.CloudTenantBoundaryType
+    ownerPrincipalId: string
+    billingPrincipalId: string
+    legalEntityId?: string | null
+    ownershipVersion?: number
+    residencyPolicy?: string
+    lifecycle?: $Enums.CloudTenantLifecycle
+    mergedIntoTenantId?: string | null
+    splitFromTenantId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    bindings?: CloudProjectBindingUncheckedCreateNestedManyWithoutTenantInput
+    transfers?: CloudTenantTransferUncheckedCreateNestedManyWithoutTenantInput
+  }
+
+  export type CloudTenantUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    customerBoundaryType?: EnumCloudTenantBoundaryTypeFieldUpdateOperationsInput | $Enums.CloudTenantBoundaryType
+    ownerPrincipalId?: StringFieldUpdateOperationsInput | string
+    billingPrincipalId?: StringFieldUpdateOperationsInput | string
+    legalEntityId?: NullableStringFieldUpdateOperationsInput | string | null
+    ownershipVersion?: IntFieldUpdateOperationsInput | number
+    residencyPolicy?: StringFieldUpdateOperationsInput | string
+    lifecycle?: EnumCloudTenantLifecycleFieldUpdateOperationsInput | $Enums.CloudTenantLifecycle
+    mergedIntoTenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    splitFromTenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    bindings?: CloudProjectBindingUpdateManyWithoutTenantNestedInput
+    transfers?: CloudTenantTransferUpdateManyWithoutTenantNestedInput
+  }
+
+  export type CloudTenantUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    customerBoundaryType?: EnumCloudTenantBoundaryTypeFieldUpdateOperationsInput | $Enums.CloudTenantBoundaryType
+    ownerPrincipalId?: StringFieldUpdateOperationsInput | string
+    billingPrincipalId?: StringFieldUpdateOperationsInput | string
+    legalEntityId?: NullableStringFieldUpdateOperationsInput | string | null
+    ownershipVersion?: IntFieldUpdateOperationsInput | number
+    residencyPolicy?: StringFieldUpdateOperationsInput | string
+    lifecycle?: EnumCloudTenantLifecycleFieldUpdateOperationsInput | $Enums.CloudTenantLifecycle
+    mergedIntoTenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    splitFromTenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    bindings?: CloudProjectBindingUncheckedUpdateManyWithoutTenantNestedInput
+    transfers?: CloudTenantTransferUncheckedUpdateManyWithoutTenantNestedInput
+  }
+
+  export type CloudTenantCreateManyInput = {
+    id?: string
+    customerBoundaryType: $Enums.CloudTenantBoundaryType
+    ownerPrincipalId: string
+    billingPrincipalId: string
+    legalEntityId?: string | null
+    ownershipVersion?: number
+    residencyPolicy?: string
+    lifecycle?: $Enums.CloudTenantLifecycle
+    mergedIntoTenantId?: string | null
+    splitFromTenantId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type CloudTenantUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    customerBoundaryType?: EnumCloudTenantBoundaryTypeFieldUpdateOperationsInput | $Enums.CloudTenantBoundaryType
+    ownerPrincipalId?: StringFieldUpdateOperationsInput | string
+    billingPrincipalId?: StringFieldUpdateOperationsInput | string
+    legalEntityId?: NullableStringFieldUpdateOperationsInput | string | null
+    ownershipVersion?: IntFieldUpdateOperationsInput | number
+    residencyPolicy?: StringFieldUpdateOperationsInput | string
+    lifecycle?: EnumCloudTenantLifecycleFieldUpdateOperationsInput | $Enums.CloudTenantLifecycle
+    mergedIntoTenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    splitFromTenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CloudTenantUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    customerBoundaryType?: EnumCloudTenantBoundaryTypeFieldUpdateOperationsInput | $Enums.CloudTenantBoundaryType
+    ownerPrincipalId?: StringFieldUpdateOperationsInput | string
+    billingPrincipalId?: StringFieldUpdateOperationsInput | string
+    legalEntityId?: NullableStringFieldUpdateOperationsInput | string | null
+    ownershipVersion?: IntFieldUpdateOperationsInput | number
+    residencyPolicy?: StringFieldUpdateOperationsInput | string
+    lifecycle?: EnumCloudTenantLifecycleFieldUpdateOperationsInput | $Enums.CloudTenantLifecycle
+    mergedIntoTenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    splitFromTenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CloudProjectBindingCreateInput = {
+    id?: string
+    gcpProjectId: string
+    gcpProjectNumber?: string | null
+    role: $Enums.CloudProjectBindingRole
+    region: string
+    state?: $Enums.CloudProjectBindingState
+    parentFolderId?: string | null
+    quotas?: NullableJsonNullValueInput | InputJsonValue
+    billingLabels?: NullableJsonNullValueInput | InputJsonValue
+    capacityPolicy?: NullableJsonNullValueInput | InputJsonValue
+    reconciliationStatus?: string
+    recoveryWindowEndsAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    tenant: CloudTenantCreateNestedOneWithoutBindingsInput
+    events?: CloudProjectFactoryEventCreateNestedManyWithoutBindingInput
+    teardowns?: CloudTeardownRecordCreateNestedManyWithoutBindingInput
+  }
+
+  export type CloudProjectBindingUncheckedCreateInput = {
+    id?: string
+    cloudTenantId: string
+    gcpProjectId: string
+    gcpProjectNumber?: string | null
+    role: $Enums.CloudProjectBindingRole
+    region: string
+    state?: $Enums.CloudProjectBindingState
+    parentFolderId?: string | null
+    quotas?: NullableJsonNullValueInput | InputJsonValue
+    billingLabels?: NullableJsonNullValueInput | InputJsonValue
+    capacityPolicy?: NullableJsonNullValueInput | InputJsonValue
+    reconciliationStatus?: string
+    recoveryWindowEndsAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    events?: CloudProjectFactoryEventUncheckedCreateNestedManyWithoutBindingInput
+    teardowns?: CloudTeardownRecordUncheckedCreateNestedManyWithoutBindingInput
+  }
+
+  export type CloudProjectBindingUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gcpProjectId?: StringFieldUpdateOperationsInput | string
+    gcpProjectNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    role?: EnumCloudProjectBindingRoleFieldUpdateOperationsInput | $Enums.CloudProjectBindingRole
+    region?: StringFieldUpdateOperationsInput | string
+    state?: EnumCloudProjectBindingStateFieldUpdateOperationsInput | $Enums.CloudProjectBindingState
+    parentFolderId?: NullableStringFieldUpdateOperationsInput | string | null
+    quotas?: NullableJsonNullValueInput | InputJsonValue
+    billingLabels?: NullableJsonNullValueInput | InputJsonValue
+    capacityPolicy?: NullableJsonNullValueInput | InputJsonValue
+    reconciliationStatus?: StringFieldUpdateOperationsInput | string
+    recoveryWindowEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tenant?: CloudTenantUpdateOneRequiredWithoutBindingsNestedInput
+    events?: CloudProjectFactoryEventUpdateManyWithoutBindingNestedInput
+    teardowns?: CloudTeardownRecordUpdateManyWithoutBindingNestedInput
+  }
+
+  export type CloudProjectBindingUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    cloudTenantId?: StringFieldUpdateOperationsInput | string
+    gcpProjectId?: StringFieldUpdateOperationsInput | string
+    gcpProjectNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    role?: EnumCloudProjectBindingRoleFieldUpdateOperationsInput | $Enums.CloudProjectBindingRole
+    region?: StringFieldUpdateOperationsInput | string
+    state?: EnumCloudProjectBindingStateFieldUpdateOperationsInput | $Enums.CloudProjectBindingState
+    parentFolderId?: NullableStringFieldUpdateOperationsInput | string | null
+    quotas?: NullableJsonNullValueInput | InputJsonValue
+    billingLabels?: NullableJsonNullValueInput | InputJsonValue
+    capacityPolicy?: NullableJsonNullValueInput | InputJsonValue
+    reconciliationStatus?: StringFieldUpdateOperationsInput | string
+    recoveryWindowEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    events?: CloudProjectFactoryEventUncheckedUpdateManyWithoutBindingNestedInput
+    teardowns?: CloudTeardownRecordUncheckedUpdateManyWithoutBindingNestedInput
+  }
+
+  export type CloudProjectBindingCreateManyInput = {
+    id?: string
+    cloudTenantId: string
+    gcpProjectId: string
+    gcpProjectNumber?: string | null
+    role: $Enums.CloudProjectBindingRole
+    region: string
+    state?: $Enums.CloudProjectBindingState
+    parentFolderId?: string | null
+    quotas?: NullableJsonNullValueInput | InputJsonValue
+    billingLabels?: NullableJsonNullValueInput | InputJsonValue
+    capacityPolicy?: NullableJsonNullValueInput | InputJsonValue
+    reconciliationStatus?: string
+    recoveryWindowEndsAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type CloudProjectBindingUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gcpProjectId?: StringFieldUpdateOperationsInput | string
+    gcpProjectNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    role?: EnumCloudProjectBindingRoleFieldUpdateOperationsInput | $Enums.CloudProjectBindingRole
+    region?: StringFieldUpdateOperationsInput | string
+    state?: EnumCloudProjectBindingStateFieldUpdateOperationsInput | $Enums.CloudProjectBindingState
+    parentFolderId?: NullableStringFieldUpdateOperationsInput | string | null
+    quotas?: NullableJsonNullValueInput | InputJsonValue
+    billingLabels?: NullableJsonNullValueInput | InputJsonValue
+    capacityPolicy?: NullableJsonNullValueInput | InputJsonValue
+    reconciliationStatus?: StringFieldUpdateOperationsInput | string
+    recoveryWindowEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CloudProjectBindingUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    cloudTenantId?: StringFieldUpdateOperationsInput | string
+    gcpProjectId?: StringFieldUpdateOperationsInput | string
+    gcpProjectNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    role?: EnumCloudProjectBindingRoleFieldUpdateOperationsInput | $Enums.CloudProjectBindingRole
+    region?: StringFieldUpdateOperationsInput | string
+    state?: EnumCloudProjectBindingStateFieldUpdateOperationsInput | $Enums.CloudProjectBindingState
+    parentFolderId?: NullableStringFieldUpdateOperationsInput | string | null
+    quotas?: NullableJsonNullValueInput | InputJsonValue
+    billingLabels?: NullableJsonNullValueInput | InputJsonValue
+    capacityPolicy?: NullableJsonNullValueInput | InputJsonValue
+    reconciliationStatus?: StringFieldUpdateOperationsInput | string
+    recoveryWindowEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CloudProjectFactoryEventCreateInput = {
+    id?: string
+    fromState?: string | null
+    toState: string
+    actor?: string | null
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    binding: CloudProjectBindingCreateNestedOneWithoutEventsInput
+  }
+
+  export type CloudProjectFactoryEventUncheckedCreateInput = {
+    id?: string
+    bindingId: string
+    fromState?: string | null
+    toState: string
+    actor?: string | null
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type CloudProjectFactoryEventUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fromState?: NullableStringFieldUpdateOperationsInput | string | null
+    toState?: StringFieldUpdateOperationsInput | string
+    actor?: NullableStringFieldUpdateOperationsInput | string | null
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    binding?: CloudProjectBindingUpdateOneRequiredWithoutEventsNestedInput
+  }
+
+  export type CloudProjectFactoryEventUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    bindingId?: StringFieldUpdateOperationsInput | string
+    fromState?: NullableStringFieldUpdateOperationsInput | string | null
+    toState?: StringFieldUpdateOperationsInput | string
+    actor?: NullableStringFieldUpdateOperationsInput | string | null
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CloudProjectFactoryEventCreateManyInput = {
+    id?: string
+    bindingId: string
+    fromState?: string | null
+    toState: string
+    actor?: string | null
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type CloudProjectFactoryEventUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fromState?: NullableStringFieldUpdateOperationsInput | string | null
+    toState?: StringFieldUpdateOperationsInput | string
+    actor?: NullableStringFieldUpdateOperationsInput | string | null
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CloudProjectFactoryEventUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    bindingId?: StringFieldUpdateOperationsInput | string
+    fromState?: NullableStringFieldUpdateOperationsInput | string | null
+    toState?: StringFieldUpdateOperationsInput | string
+    actor?: NullableStringFieldUpdateOperationsInput | string | null
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CloudTenantTransferCreateInput = {
+    id?: string
+    fromPrincipalId: string
+    toPrincipalId: string
+    state?: $Enums.CloudTenantTransferState
+    revokeEvidence?: NullableJsonNullValueInput | InputJsonValue
+    revokeVerifiedAt?: Date | string | null
+    regrantEvidence?: NullableJsonNullValueInput | InputJsonValue
+    error?: string | null
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    tenant: CloudTenantCreateNestedOneWithoutTransfersInput
+  }
+
+  export type CloudTenantTransferUncheckedCreateInput = {
+    id?: string
+    cloudTenantId: string
+    fromPrincipalId: string
+    toPrincipalId: string
+    state?: $Enums.CloudTenantTransferState
+    revokeEvidence?: NullableJsonNullValueInput | InputJsonValue
+    revokeVerifiedAt?: Date | string | null
+    regrantEvidence?: NullableJsonNullValueInput | InputJsonValue
+    error?: string | null
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type CloudTenantTransferUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fromPrincipalId?: StringFieldUpdateOperationsInput | string
+    toPrincipalId?: StringFieldUpdateOperationsInput | string
+    state?: EnumCloudTenantTransferStateFieldUpdateOperationsInput | $Enums.CloudTenantTransferState
+    revokeEvidence?: NullableJsonNullValueInput | InputJsonValue
+    revokeVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    regrantEvidence?: NullableJsonNullValueInput | InputJsonValue
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tenant?: CloudTenantUpdateOneRequiredWithoutTransfersNestedInput
+  }
+
+  export type CloudTenantTransferUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    cloudTenantId?: StringFieldUpdateOperationsInput | string
+    fromPrincipalId?: StringFieldUpdateOperationsInput | string
+    toPrincipalId?: StringFieldUpdateOperationsInput | string
+    state?: EnumCloudTenantTransferStateFieldUpdateOperationsInput | $Enums.CloudTenantTransferState
+    revokeEvidence?: NullableJsonNullValueInput | InputJsonValue
+    revokeVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    regrantEvidence?: NullableJsonNullValueInput | InputJsonValue
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CloudTenantTransferCreateManyInput = {
+    id?: string
+    cloudTenantId: string
+    fromPrincipalId: string
+    toPrincipalId: string
+    state?: $Enums.CloudTenantTransferState
+    revokeEvidence?: NullableJsonNullValueInput | InputJsonValue
+    revokeVerifiedAt?: Date | string | null
+    regrantEvidence?: NullableJsonNullValueInput | InputJsonValue
+    error?: string | null
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type CloudTenantTransferUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fromPrincipalId?: StringFieldUpdateOperationsInput | string
+    toPrincipalId?: StringFieldUpdateOperationsInput | string
+    state?: EnumCloudTenantTransferStateFieldUpdateOperationsInput | $Enums.CloudTenantTransferState
+    revokeEvidence?: NullableJsonNullValueInput | InputJsonValue
+    revokeVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    regrantEvidence?: NullableJsonNullValueInput | InputJsonValue
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CloudTenantTransferUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    cloudTenantId?: StringFieldUpdateOperationsInput | string
+    fromPrincipalId?: StringFieldUpdateOperationsInput | string
+    toPrincipalId?: StringFieldUpdateOperationsInput | string
+    state?: EnumCloudTenantTransferStateFieldUpdateOperationsInput | $Enums.CloudTenantTransferState
+    revokeEvidence?: NullableJsonNullValueInput | InputJsonValue
+    revokeVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    regrantEvidence?: NullableJsonNullValueInput | InputJsonValue
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CloudTeardownRecordCreateInput = {
+    id?: string
+    status?: string
+    resourceInventory?: NullableJsonNullValueInput | InputJsonValue
+    erasureProof?: NullableJsonNullValueInput | InputJsonValue
+    orphans?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    binding: CloudProjectBindingCreateNestedOneWithoutTeardownsInput
+  }
+
+  export type CloudTeardownRecordUncheckedCreateInput = {
+    id?: string
+    bindingId: string
+    status?: string
+    resourceInventory?: NullableJsonNullValueInput | InputJsonValue
+    erasureProof?: NullableJsonNullValueInput | InputJsonValue
+    orphans?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+  }
+
+  export type CloudTeardownRecordUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    resourceInventory?: NullableJsonNullValueInput | InputJsonValue
+    erasureProof?: NullableJsonNullValueInput | InputJsonValue
+    orphans?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    binding?: CloudProjectBindingUpdateOneRequiredWithoutTeardownsNestedInput
+  }
+
+  export type CloudTeardownRecordUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    bindingId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    resourceInventory?: NullableJsonNullValueInput | InputJsonValue
+    erasureProof?: NullableJsonNullValueInput | InputJsonValue
+    orphans?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type CloudTeardownRecordCreateManyInput = {
+    id?: string
+    bindingId: string
+    status?: string
+    resourceInventory?: NullableJsonNullValueInput | InputJsonValue
+    erasureProof?: NullableJsonNullValueInput | InputJsonValue
+    orphans?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+  }
+
+  export type CloudTeardownRecordUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    resourceInventory?: NullableJsonNullValueInput | InputJsonValue
+    erasureProof?: NullableJsonNullValueInput | InputJsonValue
+    orphans?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type CloudTeardownRecordUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    bindingId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    resourceInventory?: NullableJsonNullValueInput | InputJsonValue
+    erasureProof?: NullableJsonNullValueInput | InputJsonValue
+    orphans?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type PlatformIamIdentityCreateInput = {
+    id?: string
+    kind: $Enums.PlatformIamIdentityKind
+    app?: string
+    environment?: string
+    privilegeBoundary: string
+    gcpProjectId: string
+    gcpServiceAccountEmail: string
+    persistentKeys?: number
+    revisionsServed?: number
+    lastRotatedAt?: Date | string | null
+    lastUsedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    impersonations?: PlatformIamImpersonationAuditCreateNestedManyWithoutIdentityInput
+  }
+
+  export type PlatformIamIdentityUncheckedCreateInput = {
+    id?: string
+    kind: $Enums.PlatformIamIdentityKind
+    app?: string
+    environment?: string
+    privilegeBoundary: string
+    gcpProjectId: string
+    gcpServiceAccountEmail: string
+    persistentKeys?: number
+    revisionsServed?: number
+    lastRotatedAt?: Date | string | null
+    lastUsedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    impersonations?: PlatformIamImpersonationAuditUncheckedCreateNestedManyWithoutIdentityInput
+  }
+
+  export type PlatformIamIdentityUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumPlatformIamIdentityKindFieldUpdateOperationsInput | $Enums.PlatformIamIdentityKind
+    app?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    privilegeBoundary?: StringFieldUpdateOperationsInput | string
+    gcpProjectId?: StringFieldUpdateOperationsInput | string
+    gcpServiceAccountEmail?: StringFieldUpdateOperationsInput | string
+    persistentKeys?: IntFieldUpdateOperationsInput | number
+    revisionsServed?: IntFieldUpdateOperationsInput | number
+    lastRotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    impersonations?: PlatformIamImpersonationAuditUpdateManyWithoutIdentityNestedInput
+  }
+
+  export type PlatformIamIdentityUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumPlatformIamIdentityKindFieldUpdateOperationsInput | $Enums.PlatformIamIdentityKind
+    app?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    privilegeBoundary?: StringFieldUpdateOperationsInput | string
+    gcpProjectId?: StringFieldUpdateOperationsInput | string
+    gcpServiceAccountEmail?: StringFieldUpdateOperationsInput | string
+    persistentKeys?: IntFieldUpdateOperationsInput | number
+    revisionsServed?: IntFieldUpdateOperationsInput | number
+    lastRotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    impersonations?: PlatformIamImpersonationAuditUncheckedUpdateManyWithoutIdentityNestedInput
+  }
+
+  export type PlatformIamIdentityCreateManyInput = {
+    id?: string
+    kind: $Enums.PlatformIamIdentityKind
+    app?: string
+    environment?: string
+    privilegeBoundary: string
+    gcpProjectId: string
+    gcpServiceAccountEmail: string
+    persistentKeys?: number
+    revisionsServed?: number
+    lastRotatedAt?: Date | string | null
+    lastUsedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PlatformIamIdentityUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumPlatformIamIdentityKindFieldUpdateOperationsInput | $Enums.PlatformIamIdentityKind
+    app?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    privilegeBoundary?: StringFieldUpdateOperationsInput | string
+    gcpProjectId?: StringFieldUpdateOperationsInput | string
+    gcpServiceAccountEmail?: StringFieldUpdateOperationsInput | string
+    persistentKeys?: IntFieldUpdateOperationsInput | number
+    revisionsServed?: IntFieldUpdateOperationsInput | number
+    lastRotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlatformIamIdentityUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumPlatformIamIdentityKindFieldUpdateOperationsInput | $Enums.PlatformIamIdentityKind
+    app?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    privilegeBoundary?: StringFieldUpdateOperationsInput | string
+    gcpProjectId?: StringFieldUpdateOperationsInput | string
+    gcpServiceAccountEmail?: StringFieldUpdateOperationsInput | string
+    persistentKeys?: IntFieldUpdateOperationsInput | number
+    revisionsServed?: IntFieldUpdateOperationsInput | number
+    lastRotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlatformIamImpersonationAuditCreateInput = {
+    id?: string
+    actorPrincipal: string
+    purpose: string
+    tokenLifetimeSeconds: number
+    createdAt?: Date | string
+    identity: PlatformIamIdentityCreateNestedOneWithoutImpersonationsInput
+  }
+
+  export type PlatformIamImpersonationAuditUncheckedCreateInput = {
+    id?: string
+    identityId: string
+    actorPrincipal: string
+    purpose: string
+    tokenLifetimeSeconds: number
+    createdAt?: Date | string
+  }
+
+  export type PlatformIamImpersonationAuditUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    actorPrincipal?: StringFieldUpdateOperationsInput | string
+    purpose?: StringFieldUpdateOperationsInput | string
+    tokenLifetimeSeconds?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    identity?: PlatformIamIdentityUpdateOneRequiredWithoutImpersonationsNestedInput
+  }
+
+  export type PlatformIamImpersonationAuditUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    identityId?: StringFieldUpdateOperationsInput | string
+    actorPrincipal?: StringFieldUpdateOperationsInput | string
+    purpose?: StringFieldUpdateOperationsInput | string
+    tokenLifetimeSeconds?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlatformIamImpersonationAuditCreateManyInput = {
+    id?: string
+    identityId: string
+    actorPrincipal: string
+    purpose: string
+    tokenLifetimeSeconds: number
+    createdAt?: Date | string
+  }
+
+  export type PlatformIamImpersonationAuditUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    actorPrincipal?: StringFieldUpdateOperationsInput | string
+    purpose?: StringFieldUpdateOperationsInput | string
+    tokenLifetimeSeconds?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlatformIamImpersonationAuditUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    identityId?: StringFieldUpdateOperationsInput | string
+    actorPrincipal?: StringFieldUpdateOperationsInput | string
+    purpose?: StringFieldUpdateOperationsInput | string
+    tokenLifetimeSeconds?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -167991,6 +178485,471 @@ export namespace Prisma {
   export type GalleryListingSumOrderByAggregateInput = {
     viewCount?: SortOrder
     useCount?: SortOrder
+  }
+
+  export type EnumCloudTenantBoundaryTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.CloudTenantBoundaryType | EnumCloudTenantBoundaryTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.CloudTenantBoundaryType[] | ListEnumCloudTenantBoundaryTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CloudTenantBoundaryType[] | ListEnumCloudTenantBoundaryTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumCloudTenantBoundaryTypeFilter<$PrismaModel> | $Enums.CloudTenantBoundaryType
+  }
+
+  export type EnumCloudTenantLifecycleFilter<$PrismaModel = never> = {
+    equals?: $Enums.CloudTenantLifecycle | EnumCloudTenantLifecycleFieldRefInput<$PrismaModel>
+    in?: $Enums.CloudTenantLifecycle[] | ListEnumCloudTenantLifecycleFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CloudTenantLifecycle[] | ListEnumCloudTenantLifecycleFieldRefInput<$PrismaModel>
+    not?: NestedEnumCloudTenantLifecycleFilter<$PrismaModel> | $Enums.CloudTenantLifecycle
+  }
+
+  export type CloudProjectBindingListRelationFilter = {
+    every?: CloudProjectBindingWhereInput
+    some?: CloudProjectBindingWhereInput
+    none?: CloudProjectBindingWhereInput
+  }
+
+  export type CloudTenantTransferListRelationFilter = {
+    every?: CloudTenantTransferWhereInput
+    some?: CloudTenantTransferWhereInput
+    none?: CloudTenantTransferWhereInput
+  }
+
+  export type CloudProjectBindingOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type CloudTenantTransferOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type CloudTenantCountOrderByAggregateInput = {
+    id?: SortOrder
+    customerBoundaryType?: SortOrder
+    ownerPrincipalId?: SortOrder
+    billingPrincipalId?: SortOrder
+    legalEntityId?: SortOrder
+    ownershipVersion?: SortOrder
+    residencyPolicy?: SortOrder
+    lifecycle?: SortOrder
+    mergedIntoTenantId?: SortOrder
+    splitFromTenantId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type CloudTenantAvgOrderByAggregateInput = {
+    ownershipVersion?: SortOrder
+  }
+
+  export type CloudTenantMaxOrderByAggregateInput = {
+    id?: SortOrder
+    customerBoundaryType?: SortOrder
+    ownerPrincipalId?: SortOrder
+    billingPrincipalId?: SortOrder
+    legalEntityId?: SortOrder
+    ownershipVersion?: SortOrder
+    residencyPolicy?: SortOrder
+    lifecycle?: SortOrder
+    mergedIntoTenantId?: SortOrder
+    splitFromTenantId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type CloudTenantMinOrderByAggregateInput = {
+    id?: SortOrder
+    customerBoundaryType?: SortOrder
+    ownerPrincipalId?: SortOrder
+    billingPrincipalId?: SortOrder
+    legalEntityId?: SortOrder
+    ownershipVersion?: SortOrder
+    residencyPolicy?: SortOrder
+    lifecycle?: SortOrder
+    mergedIntoTenantId?: SortOrder
+    splitFromTenantId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type CloudTenantSumOrderByAggregateInput = {
+    ownershipVersion?: SortOrder
+  }
+
+  export type EnumCloudTenantBoundaryTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.CloudTenantBoundaryType | EnumCloudTenantBoundaryTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.CloudTenantBoundaryType[] | ListEnumCloudTenantBoundaryTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CloudTenantBoundaryType[] | ListEnumCloudTenantBoundaryTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumCloudTenantBoundaryTypeWithAggregatesFilter<$PrismaModel> | $Enums.CloudTenantBoundaryType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumCloudTenantBoundaryTypeFilter<$PrismaModel>
+    _max?: NestedEnumCloudTenantBoundaryTypeFilter<$PrismaModel>
+  }
+
+  export type EnumCloudTenantLifecycleWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.CloudTenantLifecycle | EnumCloudTenantLifecycleFieldRefInput<$PrismaModel>
+    in?: $Enums.CloudTenantLifecycle[] | ListEnumCloudTenantLifecycleFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CloudTenantLifecycle[] | ListEnumCloudTenantLifecycleFieldRefInput<$PrismaModel>
+    not?: NestedEnumCloudTenantLifecycleWithAggregatesFilter<$PrismaModel> | $Enums.CloudTenantLifecycle
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumCloudTenantLifecycleFilter<$PrismaModel>
+    _max?: NestedEnumCloudTenantLifecycleFilter<$PrismaModel>
+  }
+
+  export type EnumCloudProjectBindingRoleFilter<$PrismaModel = never> = {
+    equals?: $Enums.CloudProjectBindingRole | EnumCloudProjectBindingRoleFieldRefInput<$PrismaModel>
+    in?: $Enums.CloudProjectBindingRole[] | ListEnumCloudProjectBindingRoleFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CloudProjectBindingRole[] | ListEnumCloudProjectBindingRoleFieldRefInput<$PrismaModel>
+    not?: NestedEnumCloudProjectBindingRoleFilter<$PrismaModel> | $Enums.CloudProjectBindingRole
+  }
+
+  export type EnumCloudProjectBindingStateFilter<$PrismaModel = never> = {
+    equals?: $Enums.CloudProjectBindingState | EnumCloudProjectBindingStateFieldRefInput<$PrismaModel>
+    in?: $Enums.CloudProjectBindingState[] | ListEnumCloudProjectBindingStateFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CloudProjectBindingState[] | ListEnumCloudProjectBindingStateFieldRefInput<$PrismaModel>
+    not?: NestedEnumCloudProjectBindingStateFilter<$PrismaModel> | $Enums.CloudProjectBindingState
+  }
+
+  export type CloudTenantScalarRelationFilter = {
+    is?: CloudTenantWhereInput
+    isNot?: CloudTenantWhereInput
+  }
+
+  export type CloudProjectFactoryEventListRelationFilter = {
+    every?: CloudProjectFactoryEventWhereInput
+    some?: CloudProjectFactoryEventWhereInput
+    none?: CloudProjectFactoryEventWhereInput
+  }
+
+  export type CloudTeardownRecordListRelationFilter = {
+    every?: CloudTeardownRecordWhereInput
+    some?: CloudTeardownRecordWhereInput
+    none?: CloudTeardownRecordWhereInput
+  }
+
+  export type CloudProjectFactoryEventOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type CloudTeardownRecordOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type CloudProjectBindingCountOrderByAggregateInput = {
+    id?: SortOrder
+    cloudTenantId?: SortOrder
+    gcpProjectId?: SortOrder
+    gcpProjectNumber?: SortOrder
+    role?: SortOrder
+    region?: SortOrder
+    state?: SortOrder
+    parentFolderId?: SortOrder
+    quotas?: SortOrder
+    billingLabels?: SortOrder
+    capacityPolicy?: SortOrder
+    reconciliationStatus?: SortOrder
+    recoveryWindowEndsAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type CloudProjectBindingMaxOrderByAggregateInput = {
+    id?: SortOrder
+    cloudTenantId?: SortOrder
+    gcpProjectId?: SortOrder
+    gcpProjectNumber?: SortOrder
+    role?: SortOrder
+    region?: SortOrder
+    state?: SortOrder
+    parentFolderId?: SortOrder
+    reconciliationStatus?: SortOrder
+    recoveryWindowEndsAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type CloudProjectBindingMinOrderByAggregateInput = {
+    id?: SortOrder
+    cloudTenantId?: SortOrder
+    gcpProjectId?: SortOrder
+    gcpProjectNumber?: SortOrder
+    role?: SortOrder
+    region?: SortOrder
+    state?: SortOrder
+    parentFolderId?: SortOrder
+    reconciliationStatus?: SortOrder
+    recoveryWindowEndsAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type EnumCloudProjectBindingRoleWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.CloudProjectBindingRole | EnumCloudProjectBindingRoleFieldRefInput<$PrismaModel>
+    in?: $Enums.CloudProjectBindingRole[] | ListEnumCloudProjectBindingRoleFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CloudProjectBindingRole[] | ListEnumCloudProjectBindingRoleFieldRefInput<$PrismaModel>
+    not?: NestedEnumCloudProjectBindingRoleWithAggregatesFilter<$PrismaModel> | $Enums.CloudProjectBindingRole
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumCloudProjectBindingRoleFilter<$PrismaModel>
+    _max?: NestedEnumCloudProjectBindingRoleFilter<$PrismaModel>
+  }
+
+  export type EnumCloudProjectBindingStateWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.CloudProjectBindingState | EnumCloudProjectBindingStateFieldRefInput<$PrismaModel>
+    in?: $Enums.CloudProjectBindingState[] | ListEnumCloudProjectBindingStateFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CloudProjectBindingState[] | ListEnumCloudProjectBindingStateFieldRefInput<$PrismaModel>
+    not?: NestedEnumCloudProjectBindingStateWithAggregatesFilter<$PrismaModel> | $Enums.CloudProjectBindingState
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumCloudProjectBindingStateFilter<$PrismaModel>
+    _max?: NestedEnumCloudProjectBindingStateFilter<$PrismaModel>
+  }
+
+  export type CloudProjectBindingScalarRelationFilter = {
+    is?: CloudProjectBindingWhereInput
+    isNot?: CloudProjectBindingWhereInput
+  }
+
+  export type CloudProjectFactoryEventCountOrderByAggregateInput = {
+    id?: SortOrder
+    bindingId?: SortOrder
+    fromState?: SortOrder
+    toState?: SortOrder
+    actor?: SortOrder
+    detail?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type CloudProjectFactoryEventMaxOrderByAggregateInput = {
+    id?: SortOrder
+    bindingId?: SortOrder
+    fromState?: SortOrder
+    toState?: SortOrder
+    actor?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type CloudProjectFactoryEventMinOrderByAggregateInput = {
+    id?: SortOrder
+    bindingId?: SortOrder
+    fromState?: SortOrder
+    toState?: SortOrder
+    actor?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type EnumCloudTenantTransferStateFilter<$PrismaModel = never> = {
+    equals?: $Enums.CloudTenantTransferState | EnumCloudTenantTransferStateFieldRefInput<$PrismaModel>
+    in?: $Enums.CloudTenantTransferState[] | ListEnumCloudTenantTransferStateFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CloudTenantTransferState[] | ListEnumCloudTenantTransferStateFieldRefInput<$PrismaModel>
+    not?: NestedEnumCloudTenantTransferStateFilter<$PrismaModel> | $Enums.CloudTenantTransferState
+  }
+
+  export type CloudTenantTransferCountOrderByAggregateInput = {
+    id?: SortOrder
+    cloudTenantId?: SortOrder
+    fromPrincipalId?: SortOrder
+    toPrincipalId?: SortOrder
+    state?: SortOrder
+    revokeEvidence?: SortOrder
+    revokeVerifiedAt?: SortOrder
+    regrantEvidence?: SortOrder
+    error?: SortOrder
+    completedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type CloudTenantTransferMaxOrderByAggregateInput = {
+    id?: SortOrder
+    cloudTenantId?: SortOrder
+    fromPrincipalId?: SortOrder
+    toPrincipalId?: SortOrder
+    state?: SortOrder
+    revokeVerifiedAt?: SortOrder
+    error?: SortOrder
+    completedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type CloudTenantTransferMinOrderByAggregateInput = {
+    id?: SortOrder
+    cloudTenantId?: SortOrder
+    fromPrincipalId?: SortOrder
+    toPrincipalId?: SortOrder
+    state?: SortOrder
+    revokeVerifiedAt?: SortOrder
+    error?: SortOrder
+    completedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type EnumCloudTenantTransferStateWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.CloudTenantTransferState | EnumCloudTenantTransferStateFieldRefInput<$PrismaModel>
+    in?: $Enums.CloudTenantTransferState[] | ListEnumCloudTenantTransferStateFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CloudTenantTransferState[] | ListEnumCloudTenantTransferStateFieldRefInput<$PrismaModel>
+    not?: NestedEnumCloudTenantTransferStateWithAggregatesFilter<$PrismaModel> | $Enums.CloudTenantTransferState
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumCloudTenantTransferStateFilter<$PrismaModel>
+    _max?: NestedEnumCloudTenantTransferStateFilter<$PrismaModel>
+  }
+
+  export type CloudTeardownRecordCountOrderByAggregateInput = {
+    id?: SortOrder
+    bindingId?: SortOrder
+    status?: SortOrder
+    resourceInventory?: SortOrder
+    erasureProof?: SortOrder
+    orphans?: SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrder
+  }
+
+  export type CloudTeardownRecordMaxOrderByAggregateInput = {
+    id?: SortOrder
+    bindingId?: SortOrder
+    status?: SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrder
+  }
+
+  export type CloudTeardownRecordMinOrderByAggregateInput = {
+    id?: SortOrder
+    bindingId?: SortOrder
+    status?: SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrder
+  }
+
+  export type EnumPlatformIamIdentityKindFilter<$PrismaModel = never> = {
+    equals?: $Enums.PlatformIamIdentityKind | EnumPlatformIamIdentityKindFieldRefInput<$PrismaModel>
+    in?: $Enums.PlatformIamIdentityKind[] | ListEnumPlatformIamIdentityKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PlatformIamIdentityKind[] | ListEnumPlatformIamIdentityKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumPlatformIamIdentityKindFilter<$PrismaModel> | $Enums.PlatformIamIdentityKind
+  }
+
+  export type PlatformIamImpersonationAuditListRelationFilter = {
+    every?: PlatformIamImpersonationAuditWhereInput
+    some?: PlatformIamImpersonationAuditWhereInput
+    none?: PlatformIamImpersonationAuditWhereInput
+  }
+
+  export type PlatformIamImpersonationAuditOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type PlatformIamIdentityKindAppEnvironmentPrivilegeBoundaryGcpProjectIdCompoundUniqueInput = {
+    kind: $Enums.PlatformIamIdentityKind
+    app: string
+    environment: string
+    privilegeBoundary: string
+    gcpProjectId: string
+  }
+
+  export type PlatformIamIdentityCountOrderByAggregateInput = {
+    id?: SortOrder
+    kind?: SortOrder
+    app?: SortOrder
+    environment?: SortOrder
+    privilegeBoundary?: SortOrder
+    gcpProjectId?: SortOrder
+    gcpServiceAccountEmail?: SortOrder
+    persistentKeys?: SortOrder
+    revisionsServed?: SortOrder
+    lastRotatedAt?: SortOrder
+    lastUsedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PlatformIamIdentityAvgOrderByAggregateInput = {
+    persistentKeys?: SortOrder
+    revisionsServed?: SortOrder
+  }
+
+  export type PlatformIamIdentityMaxOrderByAggregateInput = {
+    id?: SortOrder
+    kind?: SortOrder
+    app?: SortOrder
+    environment?: SortOrder
+    privilegeBoundary?: SortOrder
+    gcpProjectId?: SortOrder
+    gcpServiceAccountEmail?: SortOrder
+    persistentKeys?: SortOrder
+    revisionsServed?: SortOrder
+    lastRotatedAt?: SortOrder
+    lastUsedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PlatformIamIdentityMinOrderByAggregateInput = {
+    id?: SortOrder
+    kind?: SortOrder
+    app?: SortOrder
+    environment?: SortOrder
+    privilegeBoundary?: SortOrder
+    gcpProjectId?: SortOrder
+    gcpServiceAccountEmail?: SortOrder
+    persistentKeys?: SortOrder
+    revisionsServed?: SortOrder
+    lastRotatedAt?: SortOrder
+    lastUsedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PlatformIamIdentitySumOrderByAggregateInput = {
+    persistentKeys?: SortOrder
+    revisionsServed?: SortOrder
+  }
+
+  export type EnumPlatformIamIdentityKindWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PlatformIamIdentityKind | EnumPlatformIamIdentityKindFieldRefInput<$PrismaModel>
+    in?: $Enums.PlatformIamIdentityKind[] | ListEnumPlatformIamIdentityKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PlatformIamIdentityKind[] | ListEnumPlatformIamIdentityKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumPlatformIamIdentityKindWithAggregatesFilter<$PrismaModel> | $Enums.PlatformIamIdentityKind
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPlatformIamIdentityKindFilter<$PrismaModel>
+    _max?: NestedEnumPlatformIamIdentityKindFilter<$PrismaModel>
+  }
+
+  export type PlatformIamIdentityScalarRelationFilter = {
+    is?: PlatformIamIdentityWhereInput
+    isNot?: PlatformIamIdentityWhereInput
+  }
+
+  export type PlatformIamImpersonationAuditCountOrderByAggregateInput = {
+    id?: SortOrder
+    identityId?: SortOrder
+    actorPrincipal?: SortOrder
+    purpose?: SortOrder
+    tokenLifetimeSeconds?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PlatformIamImpersonationAuditAvgOrderByAggregateInput = {
+    tokenLifetimeSeconds?: SortOrder
+  }
+
+  export type PlatformIamImpersonationAuditMaxOrderByAggregateInput = {
+    id?: SortOrder
+    identityId?: SortOrder
+    actorPrincipal?: SortOrder
+    purpose?: SortOrder
+    tokenLifetimeSeconds?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PlatformIamImpersonationAuditMinOrderByAggregateInput = {
+    id?: SortOrder
+    identityId?: SortOrder
+    actorPrincipal?: SortOrder
+    purpose?: SortOrder
+    tokenLifetimeSeconds?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PlatformIamImpersonationAuditSumOrderByAggregateInput = {
+    tokenLifetimeSeconds?: SortOrder
   }
 
   export type AccountCreateNestedManyWithoutUserInput = {
@@ -174709,6 +185668,310 @@ export namespace Prisma {
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutGalleryListingsInput, UserUpdateWithoutGalleryListingsInput>, UserUncheckedUpdateWithoutGalleryListingsInput>
   }
 
+  export type CloudProjectBindingCreateNestedManyWithoutTenantInput = {
+    create?: XOR<CloudProjectBindingCreateWithoutTenantInput, CloudProjectBindingUncheckedCreateWithoutTenantInput> | CloudProjectBindingCreateWithoutTenantInput[] | CloudProjectBindingUncheckedCreateWithoutTenantInput[]
+    connectOrCreate?: CloudProjectBindingCreateOrConnectWithoutTenantInput | CloudProjectBindingCreateOrConnectWithoutTenantInput[]
+    createMany?: CloudProjectBindingCreateManyTenantInputEnvelope
+    connect?: CloudProjectBindingWhereUniqueInput | CloudProjectBindingWhereUniqueInput[]
+  }
+
+  export type CloudTenantTransferCreateNestedManyWithoutTenantInput = {
+    create?: XOR<CloudTenantTransferCreateWithoutTenantInput, CloudTenantTransferUncheckedCreateWithoutTenantInput> | CloudTenantTransferCreateWithoutTenantInput[] | CloudTenantTransferUncheckedCreateWithoutTenantInput[]
+    connectOrCreate?: CloudTenantTransferCreateOrConnectWithoutTenantInput | CloudTenantTransferCreateOrConnectWithoutTenantInput[]
+    createMany?: CloudTenantTransferCreateManyTenantInputEnvelope
+    connect?: CloudTenantTransferWhereUniqueInput | CloudTenantTransferWhereUniqueInput[]
+  }
+
+  export type CloudProjectBindingUncheckedCreateNestedManyWithoutTenantInput = {
+    create?: XOR<CloudProjectBindingCreateWithoutTenantInput, CloudProjectBindingUncheckedCreateWithoutTenantInput> | CloudProjectBindingCreateWithoutTenantInput[] | CloudProjectBindingUncheckedCreateWithoutTenantInput[]
+    connectOrCreate?: CloudProjectBindingCreateOrConnectWithoutTenantInput | CloudProjectBindingCreateOrConnectWithoutTenantInput[]
+    createMany?: CloudProjectBindingCreateManyTenantInputEnvelope
+    connect?: CloudProjectBindingWhereUniqueInput | CloudProjectBindingWhereUniqueInput[]
+  }
+
+  export type CloudTenantTransferUncheckedCreateNestedManyWithoutTenantInput = {
+    create?: XOR<CloudTenantTransferCreateWithoutTenantInput, CloudTenantTransferUncheckedCreateWithoutTenantInput> | CloudTenantTransferCreateWithoutTenantInput[] | CloudTenantTransferUncheckedCreateWithoutTenantInput[]
+    connectOrCreate?: CloudTenantTransferCreateOrConnectWithoutTenantInput | CloudTenantTransferCreateOrConnectWithoutTenantInput[]
+    createMany?: CloudTenantTransferCreateManyTenantInputEnvelope
+    connect?: CloudTenantTransferWhereUniqueInput | CloudTenantTransferWhereUniqueInput[]
+  }
+
+  export type EnumCloudTenantBoundaryTypeFieldUpdateOperationsInput = {
+    set?: $Enums.CloudTenantBoundaryType
+  }
+
+  export type EnumCloudTenantLifecycleFieldUpdateOperationsInput = {
+    set?: $Enums.CloudTenantLifecycle
+  }
+
+  export type CloudProjectBindingUpdateManyWithoutTenantNestedInput = {
+    create?: XOR<CloudProjectBindingCreateWithoutTenantInput, CloudProjectBindingUncheckedCreateWithoutTenantInput> | CloudProjectBindingCreateWithoutTenantInput[] | CloudProjectBindingUncheckedCreateWithoutTenantInput[]
+    connectOrCreate?: CloudProjectBindingCreateOrConnectWithoutTenantInput | CloudProjectBindingCreateOrConnectWithoutTenantInput[]
+    upsert?: CloudProjectBindingUpsertWithWhereUniqueWithoutTenantInput | CloudProjectBindingUpsertWithWhereUniqueWithoutTenantInput[]
+    createMany?: CloudProjectBindingCreateManyTenantInputEnvelope
+    set?: CloudProjectBindingWhereUniqueInput | CloudProjectBindingWhereUniqueInput[]
+    disconnect?: CloudProjectBindingWhereUniqueInput | CloudProjectBindingWhereUniqueInput[]
+    delete?: CloudProjectBindingWhereUniqueInput | CloudProjectBindingWhereUniqueInput[]
+    connect?: CloudProjectBindingWhereUniqueInput | CloudProjectBindingWhereUniqueInput[]
+    update?: CloudProjectBindingUpdateWithWhereUniqueWithoutTenantInput | CloudProjectBindingUpdateWithWhereUniqueWithoutTenantInput[]
+    updateMany?: CloudProjectBindingUpdateManyWithWhereWithoutTenantInput | CloudProjectBindingUpdateManyWithWhereWithoutTenantInput[]
+    deleteMany?: CloudProjectBindingScalarWhereInput | CloudProjectBindingScalarWhereInput[]
+  }
+
+  export type CloudTenantTransferUpdateManyWithoutTenantNestedInput = {
+    create?: XOR<CloudTenantTransferCreateWithoutTenantInput, CloudTenantTransferUncheckedCreateWithoutTenantInput> | CloudTenantTransferCreateWithoutTenantInput[] | CloudTenantTransferUncheckedCreateWithoutTenantInput[]
+    connectOrCreate?: CloudTenantTransferCreateOrConnectWithoutTenantInput | CloudTenantTransferCreateOrConnectWithoutTenantInput[]
+    upsert?: CloudTenantTransferUpsertWithWhereUniqueWithoutTenantInput | CloudTenantTransferUpsertWithWhereUniqueWithoutTenantInput[]
+    createMany?: CloudTenantTransferCreateManyTenantInputEnvelope
+    set?: CloudTenantTransferWhereUniqueInput | CloudTenantTransferWhereUniqueInput[]
+    disconnect?: CloudTenantTransferWhereUniqueInput | CloudTenantTransferWhereUniqueInput[]
+    delete?: CloudTenantTransferWhereUniqueInput | CloudTenantTransferWhereUniqueInput[]
+    connect?: CloudTenantTransferWhereUniqueInput | CloudTenantTransferWhereUniqueInput[]
+    update?: CloudTenantTransferUpdateWithWhereUniqueWithoutTenantInput | CloudTenantTransferUpdateWithWhereUniqueWithoutTenantInput[]
+    updateMany?: CloudTenantTransferUpdateManyWithWhereWithoutTenantInput | CloudTenantTransferUpdateManyWithWhereWithoutTenantInput[]
+    deleteMany?: CloudTenantTransferScalarWhereInput | CloudTenantTransferScalarWhereInput[]
+  }
+
+  export type CloudProjectBindingUncheckedUpdateManyWithoutTenantNestedInput = {
+    create?: XOR<CloudProjectBindingCreateWithoutTenantInput, CloudProjectBindingUncheckedCreateWithoutTenantInput> | CloudProjectBindingCreateWithoutTenantInput[] | CloudProjectBindingUncheckedCreateWithoutTenantInput[]
+    connectOrCreate?: CloudProjectBindingCreateOrConnectWithoutTenantInput | CloudProjectBindingCreateOrConnectWithoutTenantInput[]
+    upsert?: CloudProjectBindingUpsertWithWhereUniqueWithoutTenantInput | CloudProjectBindingUpsertWithWhereUniqueWithoutTenantInput[]
+    createMany?: CloudProjectBindingCreateManyTenantInputEnvelope
+    set?: CloudProjectBindingWhereUniqueInput | CloudProjectBindingWhereUniqueInput[]
+    disconnect?: CloudProjectBindingWhereUniqueInput | CloudProjectBindingWhereUniqueInput[]
+    delete?: CloudProjectBindingWhereUniqueInput | CloudProjectBindingWhereUniqueInput[]
+    connect?: CloudProjectBindingWhereUniqueInput | CloudProjectBindingWhereUniqueInput[]
+    update?: CloudProjectBindingUpdateWithWhereUniqueWithoutTenantInput | CloudProjectBindingUpdateWithWhereUniqueWithoutTenantInput[]
+    updateMany?: CloudProjectBindingUpdateManyWithWhereWithoutTenantInput | CloudProjectBindingUpdateManyWithWhereWithoutTenantInput[]
+    deleteMany?: CloudProjectBindingScalarWhereInput | CloudProjectBindingScalarWhereInput[]
+  }
+
+  export type CloudTenantTransferUncheckedUpdateManyWithoutTenantNestedInput = {
+    create?: XOR<CloudTenantTransferCreateWithoutTenantInput, CloudTenantTransferUncheckedCreateWithoutTenantInput> | CloudTenantTransferCreateWithoutTenantInput[] | CloudTenantTransferUncheckedCreateWithoutTenantInput[]
+    connectOrCreate?: CloudTenantTransferCreateOrConnectWithoutTenantInput | CloudTenantTransferCreateOrConnectWithoutTenantInput[]
+    upsert?: CloudTenantTransferUpsertWithWhereUniqueWithoutTenantInput | CloudTenantTransferUpsertWithWhereUniqueWithoutTenantInput[]
+    createMany?: CloudTenantTransferCreateManyTenantInputEnvelope
+    set?: CloudTenantTransferWhereUniqueInput | CloudTenantTransferWhereUniqueInput[]
+    disconnect?: CloudTenantTransferWhereUniqueInput | CloudTenantTransferWhereUniqueInput[]
+    delete?: CloudTenantTransferWhereUniqueInput | CloudTenantTransferWhereUniqueInput[]
+    connect?: CloudTenantTransferWhereUniqueInput | CloudTenantTransferWhereUniqueInput[]
+    update?: CloudTenantTransferUpdateWithWhereUniqueWithoutTenantInput | CloudTenantTransferUpdateWithWhereUniqueWithoutTenantInput[]
+    updateMany?: CloudTenantTransferUpdateManyWithWhereWithoutTenantInput | CloudTenantTransferUpdateManyWithWhereWithoutTenantInput[]
+    deleteMany?: CloudTenantTransferScalarWhereInput | CloudTenantTransferScalarWhereInput[]
+  }
+
+  export type CloudTenantCreateNestedOneWithoutBindingsInput = {
+    create?: XOR<CloudTenantCreateWithoutBindingsInput, CloudTenantUncheckedCreateWithoutBindingsInput>
+    connectOrCreate?: CloudTenantCreateOrConnectWithoutBindingsInput
+    connect?: CloudTenantWhereUniqueInput
+  }
+
+  export type CloudProjectFactoryEventCreateNestedManyWithoutBindingInput = {
+    create?: XOR<CloudProjectFactoryEventCreateWithoutBindingInput, CloudProjectFactoryEventUncheckedCreateWithoutBindingInput> | CloudProjectFactoryEventCreateWithoutBindingInput[] | CloudProjectFactoryEventUncheckedCreateWithoutBindingInput[]
+    connectOrCreate?: CloudProjectFactoryEventCreateOrConnectWithoutBindingInput | CloudProjectFactoryEventCreateOrConnectWithoutBindingInput[]
+    createMany?: CloudProjectFactoryEventCreateManyBindingInputEnvelope
+    connect?: CloudProjectFactoryEventWhereUniqueInput | CloudProjectFactoryEventWhereUniqueInput[]
+  }
+
+  export type CloudTeardownRecordCreateNestedManyWithoutBindingInput = {
+    create?: XOR<CloudTeardownRecordCreateWithoutBindingInput, CloudTeardownRecordUncheckedCreateWithoutBindingInput> | CloudTeardownRecordCreateWithoutBindingInput[] | CloudTeardownRecordUncheckedCreateWithoutBindingInput[]
+    connectOrCreate?: CloudTeardownRecordCreateOrConnectWithoutBindingInput | CloudTeardownRecordCreateOrConnectWithoutBindingInput[]
+    createMany?: CloudTeardownRecordCreateManyBindingInputEnvelope
+    connect?: CloudTeardownRecordWhereUniqueInput | CloudTeardownRecordWhereUniqueInput[]
+  }
+
+  export type CloudProjectFactoryEventUncheckedCreateNestedManyWithoutBindingInput = {
+    create?: XOR<CloudProjectFactoryEventCreateWithoutBindingInput, CloudProjectFactoryEventUncheckedCreateWithoutBindingInput> | CloudProjectFactoryEventCreateWithoutBindingInput[] | CloudProjectFactoryEventUncheckedCreateWithoutBindingInput[]
+    connectOrCreate?: CloudProjectFactoryEventCreateOrConnectWithoutBindingInput | CloudProjectFactoryEventCreateOrConnectWithoutBindingInput[]
+    createMany?: CloudProjectFactoryEventCreateManyBindingInputEnvelope
+    connect?: CloudProjectFactoryEventWhereUniqueInput | CloudProjectFactoryEventWhereUniqueInput[]
+  }
+
+  export type CloudTeardownRecordUncheckedCreateNestedManyWithoutBindingInput = {
+    create?: XOR<CloudTeardownRecordCreateWithoutBindingInput, CloudTeardownRecordUncheckedCreateWithoutBindingInput> | CloudTeardownRecordCreateWithoutBindingInput[] | CloudTeardownRecordUncheckedCreateWithoutBindingInput[]
+    connectOrCreate?: CloudTeardownRecordCreateOrConnectWithoutBindingInput | CloudTeardownRecordCreateOrConnectWithoutBindingInput[]
+    createMany?: CloudTeardownRecordCreateManyBindingInputEnvelope
+    connect?: CloudTeardownRecordWhereUniqueInput | CloudTeardownRecordWhereUniqueInput[]
+  }
+
+  export type EnumCloudProjectBindingRoleFieldUpdateOperationsInput = {
+    set?: $Enums.CloudProjectBindingRole
+  }
+
+  export type EnumCloudProjectBindingStateFieldUpdateOperationsInput = {
+    set?: $Enums.CloudProjectBindingState
+  }
+
+  export type CloudTenantUpdateOneRequiredWithoutBindingsNestedInput = {
+    create?: XOR<CloudTenantCreateWithoutBindingsInput, CloudTenantUncheckedCreateWithoutBindingsInput>
+    connectOrCreate?: CloudTenantCreateOrConnectWithoutBindingsInput
+    upsert?: CloudTenantUpsertWithoutBindingsInput
+    connect?: CloudTenantWhereUniqueInput
+    update?: XOR<XOR<CloudTenantUpdateToOneWithWhereWithoutBindingsInput, CloudTenantUpdateWithoutBindingsInput>, CloudTenantUncheckedUpdateWithoutBindingsInput>
+  }
+
+  export type CloudProjectFactoryEventUpdateManyWithoutBindingNestedInput = {
+    create?: XOR<CloudProjectFactoryEventCreateWithoutBindingInput, CloudProjectFactoryEventUncheckedCreateWithoutBindingInput> | CloudProjectFactoryEventCreateWithoutBindingInput[] | CloudProjectFactoryEventUncheckedCreateWithoutBindingInput[]
+    connectOrCreate?: CloudProjectFactoryEventCreateOrConnectWithoutBindingInput | CloudProjectFactoryEventCreateOrConnectWithoutBindingInput[]
+    upsert?: CloudProjectFactoryEventUpsertWithWhereUniqueWithoutBindingInput | CloudProjectFactoryEventUpsertWithWhereUniqueWithoutBindingInput[]
+    createMany?: CloudProjectFactoryEventCreateManyBindingInputEnvelope
+    set?: CloudProjectFactoryEventWhereUniqueInput | CloudProjectFactoryEventWhereUniqueInput[]
+    disconnect?: CloudProjectFactoryEventWhereUniqueInput | CloudProjectFactoryEventWhereUniqueInput[]
+    delete?: CloudProjectFactoryEventWhereUniqueInput | CloudProjectFactoryEventWhereUniqueInput[]
+    connect?: CloudProjectFactoryEventWhereUniqueInput | CloudProjectFactoryEventWhereUniqueInput[]
+    update?: CloudProjectFactoryEventUpdateWithWhereUniqueWithoutBindingInput | CloudProjectFactoryEventUpdateWithWhereUniqueWithoutBindingInput[]
+    updateMany?: CloudProjectFactoryEventUpdateManyWithWhereWithoutBindingInput | CloudProjectFactoryEventUpdateManyWithWhereWithoutBindingInput[]
+    deleteMany?: CloudProjectFactoryEventScalarWhereInput | CloudProjectFactoryEventScalarWhereInput[]
+  }
+
+  export type CloudTeardownRecordUpdateManyWithoutBindingNestedInput = {
+    create?: XOR<CloudTeardownRecordCreateWithoutBindingInput, CloudTeardownRecordUncheckedCreateWithoutBindingInput> | CloudTeardownRecordCreateWithoutBindingInput[] | CloudTeardownRecordUncheckedCreateWithoutBindingInput[]
+    connectOrCreate?: CloudTeardownRecordCreateOrConnectWithoutBindingInput | CloudTeardownRecordCreateOrConnectWithoutBindingInput[]
+    upsert?: CloudTeardownRecordUpsertWithWhereUniqueWithoutBindingInput | CloudTeardownRecordUpsertWithWhereUniqueWithoutBindingInput[]
+    createMany?: CloudTeardownRecordCreateManyBindingInputEnvelope
+    set?: CloudTeardownRecordWhereUniqueInput | CloudTeardownRecordWhereUniqueInput[]
+    disconnect?: CloudTeardownRecordWhereUniqueInput | CloudTeardownRecordWhereUniqueInput[]
+    delete?: CloudTeardownRecordWhereUniqueInput | CloudTeardownRecordWhereUniqueInput[]
+    connect?: CloudTeardownRecordWhereUniqueInput | CloudTeardownRecordWhereUniqueInput[]
+    update?: CloudTeardownRecordUpdateWithWhereUniqueWithoutBindingInput | CloudTeardownRecordUpdateWithWhereUniqueWithoutBindingInput[]
+    updateMany?: CloudTeardownRecordUpdateManyWithWhereWithoutBindingInput | CloudTeardownRecordUpdateManyWithWhereWithoutBindingInput[]
+    deleteMany?: CloudTeardownRecordScalarWhereInput | CloudTeardownRecordScalarWhereInput[]
+  }
+
+  export type CloudProjectFactoryEventUncheckedUpdateManyWithoutBindingNestedInput = {
+    create?: XOR<CloudProjectFactoryEventCreateWithoutBindingInput, CloudProjectFactoryEventUncheckedCreateWithoutBindingInput> | CloudProjectFactoryEventCreateWithoutBindingInput[] | CloudProjectFactoryEventUncheckedCreateWithoutBindingInput[]
+    connectOrCreate?: CloudProjectFactoryEventCreateOrConnectWithoutBindingInput | CloudProjectFactoryEventCreateOrConnectWithoutBindingInput[]
+    upsert?: CloudProjectFactoryEventUpsertWithWhereUniqueWithoutBindingInput | CloudProjectFactoryEventUpsertWithWhereUniqueWithoutBindingInput[]
+    createMany?: CloudProjectFactoryEventCreateManyBindingInputEnvelope
+    set?: CloudProjectFactoryEventWhereUniqueInput | CloudProjectFactoryEventWhereUniqueInput[]
+    disconnect?: CloudProjectFactoryEventWhereUniqueInput | CloudProjectFactoryEventWhereUniqueInput[]
+    delete?: CloudProjectFactoryEventWhereUniqueInput | CloudProjectFactoryEventWhereUniqueInput[]
+    connect?: CloudProjectFactoryEventWhereUniqueInput | CloudProjectFactoryEventWhereUniqueInput[]
+    update?: CloudProjectFactoryEventUpdateWithWhereUniqueWithoutBindingInput | CloudProjectFactoryEventUpdateWithWhereUniqueWithoutBindingInput[]
+    updateMany?: CloudProjectFactoryEventUpdateManyWithWhereWithoutBindingInput | CloudProjectFactoryEventUpdateManyWithWhereWithoutBindingInput[]
+    deleteMany?: CloudProjectFactoryEventScalarWhereInput | CloudProjectFactoryEventScalarWhereInput[]
+  }
+
+  export type CloudTeardownRecordUncheckedUpdateManyWithoutBindingNestedInput = {
+    create?: XOR<CloudTeardownRecordCreateWithoutBindingInput, CloudTeardownRecordUncheckedCreateWithoutBindingInput> | CloudTeardownRecordCreateWithoutBindingInput[] | CloudTeardownRecordUncheckedCreateWithoutBindingInput[]
+    connectOrCreate?: CloudTeardownRecordCreateOrConnectWithoutBindingInput | CloudTeardownRecordCreateOrConnectWithoutBindingInput[]
+    upsert?: CloudTeardownRecordUpsertWithWhereUniqueWithoutBindingInput | CloudTeardownRecordUpsertWithWhereUniqueWithoutBindingInput[]
+    createMany?: CloudTeardownRecordCreateManyBindingInputEnvelope
+    set?: CloudTeardownRecordWhereUniqueInput | CloudTeardownRecordWhereUniqueInput[]
+    disconnect?: CloudTeardownRecordWhereUniqueInput | CloudTeardownRecordWhereUniqueInput[]
+    delete?: CloudTeardownRecordWhereUniqueInput | CloudTeardownRecordWhereUniqueInput[]
+    connect?: CloudTeardownRecordWhereUniqueInput | CloudTeardownRecordWhereUniqueInput[]
+    update?: CloudTeardownRecordUpdateWithWhereUniqueWithoutBindingInput | CloudTeardownRecordUpdateWithWhereUniqueWithoutBindingInput[]
+    updateMany?: CloudTeardownRecordUpdateManyWithWhereWithoutBindingInput | CloudTeardownRecordUpdateManyWithWhereWithoutBindingInput[]
+    deleteMany?: CloudTeardownRecordScalarWhereInput | CloudTeardownRecordScalarWhereInput[]
+  }
+
+  export type CloudProjectBindingCreateNestedOneWithoutEventsInput = {
+    create?: XOR<CloudProjectBindingCreateWithoutEventsInput, CloudProjectBindingUncheckedCreateWithoutEventsInput>
+    connectOrCreate?: CloudProjectBindingCreateOrConnectWithoutEventsInput
+    connect?: CloudProjectBindingWhereUniqueInput
+  }
+
+  export type CloudProjectBindingUpdateOneRequiredWithoutEventsNestedInput = {
+    create?: XOR<CloudProjectBindingCreateWithoutEventsInput, CloudProjectBindingUncheckedCreateWithoutEventsInput>
+    connectOrCreate?: CloudProjectBindingCreateOrConnectWithoutEventsInput
+    upsert?: CloudProjectBindingUpsertWithoutEventsInput
+    connect?: CloudProjectBindingWhereUniqueInput
+    update?: XOR<XOR<CloudProjectBindingUpdateToOneWithWhereWithoutEventsInput, CloudProjectBindingUpdateWithoutEventsInput>, CloudProjectBindingUncheckedUpdateWithoutEventsInput>
+  }
+
+  export type CloudTenantCreateNestedOneWithoutTransfersInput = {
+    create?: XOR<CloudTenantCreateWithoutTransfersInput, CloudTenantUncheckedCreateWithoutTransfersInput>
+    connectOrCreate?: CloudTenantCreateOrConnectWithoutTransfersInput
+    connect?: CloudTenantWhereUniqueInput
+  }
+
+  export type EnumCloudTenantTransferStateFieldUpdateOperationsInput = {
+    set?: $Enums.CloudTenantTransferState
+  }
+
+  export type CloudTenantUpdateOneRequiredWithoutTransfersNestedInput = {
+    create?: XOR<CloudTenantCreateWithoutTransfersInput, CloudTenantUncheckedCreateWithoutTransfersInput>
+    connectOrCreate?: CloudTenantCreateOrConnectWithoutTransfersInput
+    upsert?: CloudTenantUpsertWithoutTransfersInput
+    connect?: CloudTenantWhereUniqueInput
+    update?: XOR<XOR<CloudTenantUpdateToOneWithWhereWithoutTransfersInput, CloudTenantUpdateWithoutTransfersInput>, CloudTenantUncheckedUpdateWithoutTransfersInput>
+  }
+
+  export type CloudProjectBindingCreateNestedOneWithoutTeardownsInput = {
+    create?: XOR<CloudProjectBindingCreateWithoutTeardownsInput, CloudProjectBindingUncheckedCreateWithoutTeardownsInput>
+    connectOrCreate?: CloudProjectBindingCreateOrConnectWithoutTeardownsInput
+    connect?: CloudProjectBindingWhereUniqueInput
+  }
+
+  export type CloudProjectBindingUpdateOneRequiredWithoutTeardownsNestedInput = {
+    create?: XOR<CloudProjectBindingCreateWithoutTeardownsInput, CloudProjectBindingUncheckedCreateWithoutTeardownsInput>
+    connectOrCreate?: CloudProjectBindingCreateOrConnectWithoutTeardownsInput
+    upsert?: CloudProjectBindingUpsertWithoutTeardownsInput
+    connect?: CloudProjectBindingWhereUniqueInput
+    update?: XOR<XOR<CloudProjectBindingUpdateToOneWithWhereWithoutTeardownsInput, CloudProjectBindingUpdateWithoutTeardownsInput>, CloudProjectBindingUncheckedUpdateWithoutTeardownsInput>
+  }
+
+  export type PlatformIamImpersonationAuditCreateNestedManyWithoutIdentityInput = {
+    create?: XOR<PlatformIamImpersonationAuditCreateWithoutIdentityInput, PlatformIamImpersonationAuditUncheckedCreateWithoutIdentityInput> | PlatformIamImpersonationAuditCreateWithoutIdentityInput[] | PlatformIamImpersonationAuditUncheckedCreateWithoutIdentityInput[]
+    connectOrCreate?: PlatformIamImpersonationAuditCreateOrConnectWithoutIdentityInput | PlatformIamImpersonationAuditCreateOrConnectWithoutIdentityInput[]
+    createMany?: PlatformIamImpersonationAuditCreateManyIdentityInputEnvelope
+    connect?: PlatformIamImpersonationAuditWhereUniqueInput | PlatformIamImpersonationAuditWhereUniqueInput[]
+  }
+
+  export type PlatformIamImpersonationAuditUncheckedCreateNestedManyWithoutIdentityInput = {
+    create?: XOR<PlatformIamImpersonationAuditCreateWithoutIdentityInput, PlatformIamImpersonationAuditUncheckedCreateWithoutIdentityInput> | PlatformIamImpersonationAuditCreateWithoutIdentityInput[] | PlatformIamImpersonationAuditUncheckedCreateWithoutIdentityInput[]
+    connectOrCreate?: PlatformIamImpersonationAuditCreateOrConnectWithoutIdentityInput | PlatformIamImpersonationAuditCreateOrConnectWithoutIdentityInput[]
+    createMany?: PlatformIamImpersonationAuditCreateManyIdentityInputEnvelope
+    connect?: PlatformIamImpersonationAuditWhereUniqueInput | PlatformIamImpersonationAuditWhereUniqueInput[]
+  }
+
+  export type EnumPlatformIamIdentityKindFieldUpdateOperationsInput = {
+    set?: $Enums.PlatformIamIdentityKind
+  }
+
+  export type PlatformIamImpersonationAuditUpdateManyWithoutIdentityNestedInput = {
+    create?: XOR<PlatformIamImpersonationAuditCreateWithoutIdentityInput, PlatformIamImpersonationAuditUncheckedCreateWithoutIdentityInput> | PlatformIamImpersonationAuditCreateWithoutIdentityInput[] | PlatformIamImpersonationAuditUncheckedCreateWithoutIdentityInput[]
+    connectOrCreate?: PlatformIamImpersonationAuditCreateOrConnectWithoutIdentityInput | PlatformIamImpersonationAuditCreateOrConnectWithoutIdentityInput[]
+    upsert?: PlatformIamImpersonationAuditUpsertWithWhereUniqueWithoutIdentityInput | PlatformIamImpersonationAuditUpsertWithWhereUniqueWithoutIdentityInput[]
+    createMany?: PlatformIamImpersonationAuditCreateManyIdentityInputEnvelope
+    set?: PlatformIamImpersonationAuditWhereUniqueInput | PlatformIamImpersonationAuditWhereUniqueInput[]
+    disconnect?: PlatformIamImpersonationAuditWhereUniqueInput | PlatformIamImpersonationAuditWhereUniqueInput[]
+    delete?: PlatformIamImpersonationAuditWhereUniqueInput | PlatformIamImpersonationAuditWhereUniqueInput[]
+    connect?: PlatformIamImpersonationAuditWhereUniqueInput | PlatformIamImpersonationAuditWhereUniqueInput[]
+    update?: PlatformIamImpersonationAuditUpdateWithWhereUniqueWithoutIdentityInput | PlatformIamImpersonationAuditUpdateWithWhereUniqueWithoutIdentityInput[]
+    updateMany?: PlatformIamImpersonationAuditUpdateManyWithWhereWithoutIdentityInput | PlatformIamImpersonationAuditUpdateManyWithWhereWithoutIdentityInput[]
+    deleteMany?: PlatformIamImpersonationAuditScalarWhereInput | PlatformIamImpersonationAuditScalarWhereInput[]
+  }
+
+  export type PlatformIamImpersonationAuditUncheckedUpdateManyWithoutIdentityNestedInput = {
+    create?: XOR<PlatformIamImpersonationAuditCreateWithoutIdentityInput, PlatformIamImpersonationAuditUncheckedCreateWithoutIdentityInput> | PlatformIamImpersonationAuditCreateWithoutIdentityInput[] | PlatformIamImpersonationAuditUncheckedCreateWithoutIdentityInput[]
+    connectOrCreate?: PlatformIamImpersonationAuditCreateOrConnectWithoutIdentityInput | PlatformIamImpersonationAuditCreateOrConnectWithoutIdentityInput[]
+    upsert?: PlatformIamImpersonationAuditUpsertWithWhereUniqueWithoutIdentityInput | PlatformIamImpersonationAuditUpsertWithWhereUniqueWithoutIdentityInput[]
+    createMany?: PlatformIamImpersonationAuditCreateManyIdentityInputEnvelope
+    set?: PlatformIamImpersonationAuditWhereUniqueInput | PlatformIamImpersonationAuditWhereUniqueInput[]
+    disconnect?: PlatformIamImpersonationAuditWhereUniqueInput | PlatformIamImpersonationAuditWhereUniqueInput[]
+    delete?: PlatformIamImpersonationAuditWhereUniqueInput | PlatformIamImpersonationAuditWhereUniqueInput[]
+    connect?: PlatformIamImpersonationAuditWhereUniqueInput | PlatformIamImpersonationAuditWhereUniqueInput[]
+    update?: PlatformIamImpersonationAuditUpdateWithWhereUniqueWithoutIdentityInput | PlatformIamImpersonationAuditUpdateWithWhereUniqueWithoutIdentityInput[]
+    updateMany?: PlatformIamImpersonationAuditUpdateManyWithWhereWithoutIdentityInput | PlatformIamImpersonationAuditUpdateManyWithWhereWithoutIdentityInput[]
+    deleteMany?: PlatformIamImpersonationAuditScalarWhereInput | PlatformIamImpersonationAuditScalarWhereInput[]
+  }
+
+  export type PlatformIamIdentityCreateNestedOneWithoutImpersonationsInput = {
+    create?: XOR<PlatformIamIdentityCreateWithoutImpersonationsInput, PlatformIamIdentityUncheckedCreateWithoutImpersonationsInput>
+    connectOrCreate?: PlatformIamIdentityCreateOrConnectWithoutImpersonationsInput
+    connect?: PlatformIamIdentityWhereUniqueInput
+  }
+
+  export type PlatformIamIdentityUpdateOneRequiredWithoutImpersonationsNestedInput = {
+    create?: XOR<PlatformIamIdentityCreateWithoutImpersonationsInput, PlatformIamIdentityUncheckedCreateWithoutImpersonationsInput>
+    connectOrCreate?: PlatformIamIdentityCreateOrConnectWithoutImpersonationsInput
+    upsert?: PlatformIamIdentityUpsertWithoutImpersonationsInput
+    connect?: PlatformIamIdentityWhereUniqueInput
+    update?: XOR<XOR<PlatformIamIdentityUpdateToOneWithWhereWithoutImpersonationsInput, PlatformIamIdentityUpdateWithoutImpersonationsInput>, PlatformIamIdentityUncheckedUpdateWithoutImpersonationsInput>
+  }
+
   export type NestedStringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -175302,6 +186565,108 @@ export namespace Prisma {
     _sum?: NestedFloatNullableFilter<$PrismaModel>
     _min?: NestedFloatNullableFilter<$PrismaModel>
     _max?: NestedFloatNullableFilter<$PrismaModel>
+  }
+
+  export type NestedEnumCloudTenantBoundaryTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.CloudTenantBoundaryType | EnumCloudTenantBoundaryTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.CloudTenantBoundaryType[] | ListEnumCloudTenantBoundaryTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CloudTenantBoundaryType[] | ListEnumCloudTenantBoundaryTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumCloudTenantBoundaryTypeFilter<$PrismaModel> | $Enums.CloudTenantBoundaryType
+  }
+
+  export type NestedEnumCloudTenantLifecycleFilter<$PrismaModel = never> = {
+    equals?: $Enums.CloudTenantLifecycle | EnumCloudTenantLifecycleFieldRefInput<$PrismaModel>
+    in?: $Enums.CloudTenantLifecycle[] | ListEnumCloudTenantLifecycleFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CloudTenantLifecycle[] | ListEnumCloudTenantLifecycleFieldRefInput<$PrismaModel>
+    not?: NestedEnumCloudTenantLifecycleFilter<$PrismaModel> | $Enums.CloudTenantLifecycle
+  }
+
+  export type NestedEnumCloudTenantBoundaryTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.CloudTenantBoundaryType | EnumCloudTenantBoundaryTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.CloudTenantBoundaryType[] | ListEnumCloudTenantBoundaryTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CloudTenantBoundaryType[] | ListEnumCloudTenantBoundaryTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumCloudTenantBoundaryTypeWithAggregatesFilter<$PrismaModel> | $Enums.CloudTenantBoundaryType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumCloudTenantBoundaryTypeFilter<$PrismaModel>
+    _max?: NestedEnumCloudTenantBoundaryTypeFilter<$PrismaModel>
+  }
+
+  export type NestedEnumCloudTenantLifecycleWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.CloudTenantLifecycle | EnumCloudTenantLifecycleFieldRefInput<$PrismaModel>
+    in?: $Enums.CloudTenantLifecycle[] | ListEnumCloudTenantLifecycleFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CloudTenantLifecycle[] | ListEnumCloudTenantLifecycleFieldRefInput<$PrismaModel>
+    not?: NestedEnumCloudTenantLifecycleWithAggregatesFilter<$PrismaModel> | $Enums.CloudTenantLifecycle
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumCloudTenantLifecycleFilter<$PrismaModel>
+    _max?: NestedEnumCloudTenantLifecycleFilter<$PrismaModel>
+  }
+
+  export type NestedEnumCloudProjectBindingRoleFilter<$PrismaModel = never> = {
+    equals?: $Enums.CloudProjectBindingRole | EnumCloudProjectBindingRoleFieldRefInput<$PrismaModel>
+    in?: $Enums.CloudProjectBindingRole[] | ListEnumCloudProjectBindingRoleFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CloudProjectBindingRole[] | ListEnumCloudProjectBindingRoleFieldRefInput<$PrismaModel>
+    not?: NestedEnumCloudProjectBindingRoleFilter<$PrismaModel> | $Enums.CloudProjectBindingRole
+  }
+
+  export type NestedEnumCloudProjectBindingStateFilter<$PrismaModel = never> = {
+    equals?: $Enums.CloudProjectBindingState | EnumCloudProjectBindingStateFieldRefInput<$PrismaModel>
+    in?: $Enums.CloudProjectBindingState[] | ListEnumCloudProjectBindingStateFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CloudProjectBindingState[] | ListEnumCloudProjectBindingStateFieldRefInput<$PrismaModel>
+    not?: NestedEnumCloudProjectBindingStateFilter<$PrismaModel> | $Enums.CloudProjectBindingState
+  }
+
+  export type NestedEnumCloudProjectBindingRoleWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.CloudProjectBindingRole | EnumCloudProjectBindingRoleFieldRefInput<$PrismaModel>
+    in?: $Enums.CloudProjectBindingRole[] | ListEnumCloudProjectBindingRoleFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CloudProjectBindingRole[] | ListEnumCloudProjectBindingRoleFieldRefInput<$PrismaModel>
+    not?: NestedEnumCloudProjectBindingRoleWithAggregatesFilter<$PrismaModel> | $Enums.CloudProjectBindingRole
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumCloudProjectBindingRoleFilter<$PrismaModel>
+    _max?: NestedEnumCloudProjectBindingRoleFilter<$PrismaModel>
+  }
+
+  export type NestedEnumCloudProjectBindingStateWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.CloudProjectBindingState | EnumCloudProjectBindingStateFieldRefInput<$PrismaModel>
+    in?: $Enums.CloudProjectBindingState[] | ListEnumCloudProjectBindingStateFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CloudProjectBindingState[] | ListEnumCloudProjectBindingStateFieldRefInput<$PrismaModel>
+    not?: NestedEnumCloudProjectBindingStateWithAggregatesFilter<$PrismaModel> | $Enums.CloudProjectBindingState
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumCloudProjectBindingStateFilter<$PrismaModel>
+    _max?: NestedEnumCloudProjectBindingStateFilter<$PrismaModel>
+  }
+
+  export type NestedEnumCloudTenantTransferStateFilter<$PrismaModel = never> = {
+    equals?: $Enums.CloudTenantTransferState | EnumCloudTenantTransferStateFieldRefInput<$PrismaModel>
+    in?: $Enums.CloudTenantTransferState[] | ListEnumCloudTenantTransferStateFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CloudTenantTransferState[] | ListEnumCloudTenantTransferStateFieldRefInput<$PrismaModel>
+    not?: NestedEnumCloudTenantTransferStateFilter<$PrismaModel> | $Enums.CloudTenantTransferState
+  }
+
+  export type NestedEnumCloudTenantTransferStateWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.CloudTenantTransferState | EnumCloudTenantTransferStateFieldRefInput<$PrismaModel>
+    in?: $Enums.CloudTenantTransferState[] | ListEnumCloudTenantTransferStateFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CloudTenantTransferState[] | ListEnumCloudTenantTransferStateFieldRefInput<$PrismaModel>
+    not?: NestedEnumCloudTenantTransferStateWithAggregatesFilter<$PrismaModel> | $Enums.CloudTenantTransferState
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumCloudTenantTransferStateFilter<$PrismaModel>
+    _max?: NestedEnumCloudTenantTransferStateFilter<$PrismaModel>
+  }
+
+  export type NestedEnumPlatformIamIdentityKindFilter<$PrismaModel = never> = {
+    equals?: $Enums.PlatformIamIdentityKind | EnumPlatformIamIdentityKindFieldRefInput<$PrismaModel>
+    in?: $Enums.PlatformIamIdentityKind[] | ListEnumPlatformIamIdentityKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PlatformIamIdentityKind[] | ListEnumPlatformIamIdentityKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumPlatformIamIdentityKindFilter<$PrismaModel> | $Enums.PlatformIamIdentityKind
+  }
+
+  export type NestedEnumPlatformIamIdentityKindWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PlatformIamIdentityKind | EnumPlatformIamIdentityKindFieldRefInput<$PrismaModel>
+    in?: $Enums.PlatformIamIdentityKind[] | ListEnumPlatformIamIdentityKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PlatformIamIdentityKind[] | ListEnumPlatformIamIdentityKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumPlatformIamIdentityKindWithAggregatesFilter<$PrismaModel> | $Enums.PlatformIamIdentityKind
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPlatformIamIdentityKindFilter<$PrismaModel>
+    _max?: NestedEnumPlatformIamIdentityKindFilter<$PrismaModel>
   }
 
   export type AccountCreateWithoutUserInput = {
@@ -201777,6 +213142,758 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
+  export type CloudProjectBindingCreateWithoutTenantInput = {
+    id?: string
+    gcpProjectId: string
+    gcpProjectNumber?: string | null
+    role: $Enums.CloudProjectBindingRole
+    region: string
+    state?: $Enums.CloudProjectBindingState
+    parentFolderId?: string | null
+    quotas?: NullableJsonNullValueInput | InputJsonValue
+    billingLabels?: NullableJsonNullValueInput | InputJsonValue
+    capacityPolicy?: NullableJsonNullValueInput | InputJsonValue
+    reconciliationStatus?: string
+    recoveryWindowEndsAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    events?: CloudProjectFactoryEventCreateNestedManyWithoutBindingInput
+    teardowns?: CloudTeardownRecordCreateNestedManyWithoutBindingInput
+  }
+
+  export type CloudProjectBindingUncheckedCreateWithoutTenantInput = {
+    id?: string
+    gcpProjectId: string
+    gcpProjectNumber?: string | null
+    role: $Enums.CloudProjectBindingRole
+    region: string
+    state?: $Enums.CloudProjectBindingState
+    parentFolderId?: string | null
+    quotas?: NullableJsonNullValueInput | InputJsonValue
+    billingLabels?: NullableJsonNullValueInput | InputJsonValue
+    capacityPolicy?: NullableJsonNullValueInput | InputJsonValue
+    reconciliationStatus?: string
+    recoveryWindowEndsAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    events?: CloudProjectFactoryEventUncheckedCreateNestedManyWithoutBindingInput
+    teardowns?: CloudTeardownRecordUncheckedCreateNestedManyWithoutBindingInput
+  }
+
+  export type CloudProjectBindingCreateOrConnectWithoutTenantInput = {
+    where: CloudProjectBindingWhereUniqueInput
+    create: XOR<CloudProjectBindingCreateWithoutTenantInput, CloudProjectBindingUncheckedCreateWithoutTenantInput>
+  }
+
+  export type CloudProjectBindingCreateManyTenantInputEnvelope = {
+    data: CloudProjectBindingCreateManyTenantInput | CloudProjectBindingCreateManyTenantInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type CloudTenantTransferCreateWithoutTenantInput = {
+    id?: string
+    fromPrincipalId: string
+    toPrincipalId: string
+    state?: $Enums.CloudTenantTransferState
+    revokeEvidence?: NullableJsonNullValueInput | InputJsonValue
+    revokeVerifiedAt?: Date | string | null
+    regrantEvidence?: NullableJsonNullValueInput | InputJsonValue
+    error?: string | null
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type CloudTenantTransferUncheckedCreateWithoutTenantInput = {
+    id?: string
+    fromPrincipalId: string
+    toPrincipalId: string
+    state?: $Enums.CloudTenantTransferState
+    revokeEvidence?: NullableJsonNullValueInput | InputJsonValue
+    revokeVerifiedAt?: Date | string | null
+    regrantEvidence?: NullableJsonNullValueInput | InputJsonValue
+    error?: string | null
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type CloudTenantTransferCreateOrConnectWithoutTenantInput = {
+    where: CloudTenantTransferWhereUniqueInput
+    create: XOR<CloudTenantTransferCreateWithoutTenantInput, CloudTenantTransferUncheckedCreateWithoutTenantInput>
+  }
+
+  export type CloudTenantTransferCreateManyTenantInputEnvelope = {
+    data: CloudTenantTransferCreateManyTenantInput | CloudTenantTransferCreateManyTenantInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type CloudProjectBindingUpsertWithWhereUniqueWithoutTenantInput = {
+    where: CloudProjectBindingWhereUniqueInput
+    update: XOR<CloudProjectBindingUpdateWithoutTenantInput, CloudProjectBindingUncheckedUpdateWithoutTenantInput>
+    create: XOR<CloudProjectBindingCreateWithoutTenantInput, CloudProjectBindingUncheckedCreateWithoutTenantInput>
+  }
+
+  export type CloudProjectBindingUpdateWithWhereUniqueWithoutTenantInput = {
+    where: CloudProjectBindingWhereUniqueInput
+    data: XOR<CloudProjectBindingUpdateWithoutTenantInput, CloudProjectBindingUncheckedUpdateWithoutTenantInput>
+  }
+
+  export type CloudProjectBindingUpdateManyWithWhereWithoutTenantInput = {
+    where: CloudProjectBindingScalarWhereInput
+    data: XOR<CloudProjectBindingUpdateManyMutationInput, CloudProjectBindingUncheckedUpdateManyWithoutTenantInput>
+  }
+
+  export type CloudProjectBindingScalarWhereInput = {
+    AND?: CloudProjectBindingScalarWhereInput | CloudProjectBindingScalarWhereInput[]
+    OR?: CloudProjectBindingScalarWhereInput[]
+    NOT?: CloudProjectBindingScalarWhereInput | CloudProjectBindingScalarWhereInput[]
+    id?: StringFilter<"CloudProjectBinding"> | string
+    cloudTenantId?: StringFilter<"CloudProjectBinding"> | string
+    gcpProjectId?: StringFilter<"CloudProjectBinding"> | string
+    gcpProjectNumber?: StringNullableFilter<"CloudProjectBinding"> | string | null
+    role?: EnumCloudProjectBindingRoleFilter<"CloudProjectBinding"> | $Enums.CloudProjectBindingRole
+    region?: StringFilter<"CloudProjectBinding"> | string
+    state?: EnumCloudProjectBindingStateFilter<"CloudProjectBinding"> | $Enums.CloudProjectBindingState
+    parentFolderId?: StringNullableFilter<"CloudProjectBinding"> | string | null
+    quotas?: JsonNullableFilter<"CloudProjectBinding">
+    billingLabels?: JsonNullableFilter<"CloudProjectBinding">
+    capacityPolicy?: JsonNullableFilter<"CloudProjectBinding">
+    reconciliationStatus?: StringFilter<"CloudProjectBinding"> | string
+    recoveryWindowEndsAt?: DateTimeNullableFilter<"CloudProjectBinding"> | Date | string | null
+    createdAt?: DateTimeFilter<"CloudProjectBinding"> | Date | string
+    updatedAt?: DateTimeFilter<"CloudProjectBinding"> | Date | string
+  }
+
+  export type CloudTenantTransferUpsertWithWhereUniqueWithoutTenantInput = {
+    where: CloudTenantTransferWhereUniqueInput
+    update: XOR<CloudTenantTransferUpdateWithoutTenantInput, CloudTenantTransferUncheckedUpdateWithoutTenantInput>
+    create: XOR<CloudTenantTransferCreateWithoutTenantInput, CloudTenantTransferUncheckedCreateWithoutTenantInput>
+  }
+
+  export type CloudTenantTransferUpdateWithWhereUniqueWithoutTenantInput = {
+    where: CloudTenantTransferWhereUniqueInput
+    data: XOR<CloudTenantTransferUpdateWithoutTenantInput, CloudTenantTransferUncheckedUpdateWithoutTenantInput>
+  }
+
+  export type CloudTenantTransferUpdateManyWithWhereWithoutTenantInput = {
+    where: CloudTenantTransferScalarWhereInput
+    data: XOR<CloudTenantTransferUpdateManyMutationInput, CloudTenantTransferUncheckedUpdateManyWithoutTenantInput>
+  }
+
+  export type CloudTenantTransferScalarWhereInput = {
+    AND?: CloudTenantTransferScalarWhereInput | CloudTenantTransferScalarWhereInput[]
+    OR?: CloudTenantTransferScalarWhereInput[]
+    NOT?: CloudTenantTransferScalarWhereInput | CloudTenantTransferScalarWhereInput[]
+    id?: StringFilter<"CloudTenantTransfer"> | string
+    cloudTenantId?: StringFilter<"CloudTenantTransfer"> | string
+    fromPrincipalId?: StringFilter<"CloudTenantTransfer"> | string
+    toPrincipalId?: StringFilter<"CloudTenantTransfer"> | string
+    state?: EnumCloudTenantTransferStateFilter<"CloudTenantTransfer"> | $Enums.CloudTenantTransferState
+    revokeEvidence?: JsonNullableFilter<"CloudTenantTransfer">
+    revokeVerifiedAt?: DateTimeNullableFilter<"CloudTenantTransfer"> | Date | string | null
+    regrantEvidence?: JsonNullableFilter<"CloudTenantTransfer">
+    error?: StringNullableFilter<"CloudTenantTransfer"> | string | null
+    completedAt?: DateTimeNullableFilter<"CloudTenantTransfer"> | Date | string | null
+    createdAt?: DateTimeFilter<"CloudTenantTransfer"> | Date | string
+    updatedAt?: DateTimeFilter<"CloudTenantTransfer"> | Date | string
+  }
+
+  export type CloudTenantCreateWithoutBindingsInput = {
+    id?: string
+    customerBoundaryType: $Enums.CloudTenantBoundaryType
+    ownerPrincipalId: string
+    billingPrincipalId: string
+    legalEntityId?: string | null
+    ownershipVersion?: number
+    residencyPolicy?: string
+    lifecycle?: $Enums.CloudTenantLifecycle
+    mergedIntoTenantId?: string | null
+    splitFromTenantId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    transfers?: CloudTenantTransferCreateNestedManyWithoutTenantInput
+  }
+
+  export type CloudTenantUncheckedCreateWithoutBindingsInput = {
+    id?: string
+    customerBoundaryType: $Enums.CloudTenantBoundaryType
+    ownerPrincipalId: string
+    billingPrincipalId: string
+    legalEntityId?: string | null
+    ownershipVersion?: number
+    residencyPolicy?: string
+    lifecycle?: $Enums.CloudTenantLifecycle
+    mergedIntoTenantId?: string | null
+    splitFromTenantId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    transfers?: CloudTenantTransferUncheckedCreateNestedManyWithoutTenantInput
+  }
+
+  export type CloudTenantCreateOrConnectWithoutBindingsInput = {
+    where: CloudTenantWhereUniqueInput
+    create: XOR<CloudTenantCreateWithoutBindingsInput, CloudTenantUncheckedCreateWithoutBindingsInput>
+  }
+
+  export type CloudProjectFactoryEventCreateWithoutBindingInput = {
+    id?: string
+    fromState?: string | null
+    toState: string
+    actor?: string | null
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type CloudProjectFactoryEventUncheckedCreateWithoutBindingInput = {
+    id?: string
+    fromState?: string | null
+    toState: string
+    actor?: string | null
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type CloudProjectFactoryEventCreateOrConnectWithoutBindingInput = {
+    where: CloudProjectFactoryEventWhereUniqueInput
+    create: XOR<CloudProjectFactoryEventCreateWithoutBindingInput, CloudProjectFactoryEventUncheckedCreateWithoutBindingInput>
+  }
+
+  export type CloudProjectFactoryEventCreateManyBindingInputEnvelope = {
+    data: CloudProjectFactoryEventCreateManyBindingInput | CloudProjectFactoryEventCreateManyBindingInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type CloudTeardownRecordCreateWithoutBindingInput = {
+    id?: string
+    status?: string
+    resourceInventory?: NullableJsonNullValueInput | InputJsonValue
+    erasureProof?: NullableJsonNullValueInput | InputJsonValue
+    orphans?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+  }
+
+  export type CloudTeardownRecordUncheckedCreateWithoutBindingInput = {
+    id?: string
+    status?: string
+    resourceInventory?: NullableJsonNullValueInput | InputJsonValue
+    erasureProof?: NullableJsonNullValueInput | InputJsonValue
+    orphans?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+  }
+
+  export type CloudTeardownRecordCreateOrConnectWithoutBindingInput = {
+    where: CloudTeardownRecordWhereUniqueInput
+    create: XOR<CloudTeardownRecordCreateWithoutBindingInput, CloudTeardownRecordUncheckedCreateWithoutBindingInput>
+  }
+
+  export type CloudTeardownRecordCreateManyBindingInputEnvelope = {
+    data: CloudTeardownRecordCreateManyBindingInput | CloudTeardownRecordCreateManyBindingInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type CloudTenantUpsertWithoutBindingsInput = {
+    update: XOR<CloudTenantUpdateWithoutBindingsInput, CloudTenantUncheckedUpdateWithoutBindingsInput>
+    create: XOR<CloudTenantCreateWithoutBindingsInput, CloudTenantUncheckedCreateWithoutBindingsInput>
+    where?: CloudTenantWhereInput
+  }
+
+  export type CloudTenantUpdateToOneWithWhereWithoutBindingsInput = {
+    where?: CloudTenantWhereInput
+    data: XOR<CloudTenantUpdateWithoutBindingsInput, CloudTenantUncheckedUpdateWithoutBindingsInput>
+  }
+
+  export type CloudTenantUpdateWithoutBindingsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    customerBoundaryType?: EnumCloudTenantBoundaryTypeFieldUpdateOperationsInput | $Enums.CloudTenantBoundaryType
+    ownerPrincipalId?: StringFieldUpdateOperationsInput | string
+    billingPrincipalId?: StringFieldUpdateOperationsInput | string
+    legalEntityId?: NullableStringFieldUpdateOperationsInput | string | null
+    ownershipVersion?: IntFieldUpdateOperationsInput | number
+    residencyPolicy?: StringFieldUpdateOperationsInput | string
+    lifecycle?: EnumCloudTenantLifecycleFieldUpdateOperationsInput | $Enums.CloudTenantLifecycle
+    mergedIntoTenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    splitFromTenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    transfers?: CloudTenantTransferUpdateManyWithoutTenantNestedInput
+  }
+
+  export type CloudTenantUncheckedUpdateWithoutBindingsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    customerBoundaryType?: EnumCloudTenantBoundaryTypeFieldUpdateOperationsInput | $Enums.CloudTenantBoundaryType
+    ownerPrincipalId?: StringFieldUpdateOperationsInput | string
+    billingPrincipalId?: StringFieldUpdateOperationsInput | string
+    legalEntityId?: NullableStringFieldUpdateOperationsInput | string | null
+    ownershipVersion?: IntFieldUpdateOperationsInput | number
+    residencyPolicy?: StringFieldUpdateOperationsInput | string
+    lifecycle?: EnumCloudTenantLifecycleFieldUpdateOperationsInput | $Enums.CloudTenantLifecycle
+    mergedIntoTenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    splitFromTenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    transfers?: CloudTenantTransferUncheckedUpdateManyWithoutTenantNestedInput
+  }
+
+  export type CloudProjectFactoryEventUpsertWithWhereUniqueWithoutBindingInput = {
+    where: CloudProjectFactoryEventWhereUniqueInput
+    update: XOR<CloudProjectFactoryEventUpdateWithoutBindingInput, CloudProjectFactoryEventUncheckedUpdateWithoutBindingInput>
+    create: XOR<CloudProjectFactoryEventCreateWithoutBindingInput, CloudProjectFactoryEventUncheckedCreateWithoutBindingInput>
+  }
+
+  export type CloudProjectFactoryEventUpdateWithWhereUniqueWithoutBindingInput = {
+    where: CloudProjectFactoryEventWhereUniqueInput
+    data: XOR<CloudProjectFactoryEventUpdateWithoutBindingInput, CloudProjectFactoryEventUncheckedUpdateWithoutBindingInput>
+  }
+
+  export type CloudProjectFactoryEventUpdateManyWithWhereWithoutBindingInput = {
+    where: CloudProjectFactoryEventScalarWhereInput
+    data: XOR<CloudProjectFactoryEventUpdateManyMutationInput, CloudProjectFactoryEventUncheckedUpdateManyWithoutBindingInput>
+  }
+
+  export type CloudProjectFactoryEventScalarWhereInput = {
+    AND?: CloudProjectFactoryEventScalarWhereInput | CloudProjectFactoryEventScalarWhereInput[]
+    OR?: CloudProjectFactoryEventScalarWhereInput[]
+    NOT?: CloudProjectFactoryEventScalarWhereInput | CloudProjectFactoryEventScalarWhereInput[]
+    id?: StringFilter<"CloudProjectFactoryEvent"> | string
+    bindingId?: StringFilter<"CloudProjectFactoryEvent"> | string
+    fromState?: StringNullableFilter<"CloudProjectFactoryEvent"> | string | null
+    toState?: StringFilter<"CloudProjectFactoryEvent"> | string
+    actor?: StringNullableFilter<"CloudProjectFactoryEvent"> | string | null
+    detail?: JsonNullableFilter<"CloudProjectFactoryEvent">
+    createdAt?: DateTimeFilter<"CloudProjectFactoryEvent"> | Date | string
+  }
+
+  export type CloudTeardownRecordUpsertWithWhereUniqueWithoutBindingInput = {
+    where: CloudTeardownRecordWhereUniqueInput
+    update: XOR<CloudTeardownRecordUpdateWithoutBindingInput, CloudTeardownRecordUncheckedUpdateWithoutBindingInput>
+    create: XOR<CloudTeardownRecordCreateWithoutBindingInput, CloudTeardownRecordUncheckedCreateWithoutBindingInput>
+  }
+
+  export type CloudTeardownRecordUpdateWithWhereUniqueWithoutBindingInput = {
+    where: CloudTeardownRecordWhereUniqueInput
+    data: XOR<CloudTeardownRecordUpdateWithoutBindingInput, CloudTeardownRecordUncheckedUpdateWithoutBindingInput>
+  }
+
+  export type CloudTeardownRecordUpdateManyWithWhereWithoutBindingInput = {
+    where: CloudTeardownRecordScalarWhereInput
+    data: XOR<CloudTeardownRecordUpdateManyMutationInput, CloudTeardownRecordUncheckedUpdateManyWithoutBindingInput>
+  }
+
+  export type CloudTeardownRecordScalarWhereInput = {
+    AND?: CloudTeardownRecordScalarWhereInput | CloudTeardownRecordScalarWhereInput[]
+    OR?: CloudTeardownRecordScalarWhereInput[]
+    NOT?: CloudTeardownRecordScalarWhereInput | CloudTeardownRecordScalarWhereInput[]
+    id?: StringFilter<"CloudTeardownRecord"> | string
+    bindingId?: StringFilter<"CloudTeardownRecord"> | string
+    status?: StringFilter<"CloudTeardownRecord"> | string
+    resourceInventory?: JsonNullableFilter<"CloudTeardownRecord">
+    erasureProof?: JsonNullableFilter<"CloudTeardownRecord">
+    orphans?: JsonNullableFilter<"CloudTeardownRecord">
+    startedAt?: DateTimeFilter<"CloudTeardownRecord"> | Date | string
+    completedAt?: DateTimeNullableFilter<"CloudTeardownRecord"> | Date | string | null
+  }
+
+  export type CloudProjectBindingCreateWithoutEventsInput = {
+    id?: string
+    gcpProjectId: string
+    gcpProjectNumber?: string | null
+    role: $Enums.CloudProjectBindingRole
+    region: string
+    state?: $Enums.CloudProjectBindingState
+    parentFolderId?: string | null
+    quotas?: NullableJsonNullValueInput | InputJsonValue
+    billingLabels?: NullableJsonNullValueInput | InputJsonValue
+    capacityPolicy?: NullableJsonNullValueInput | InputJsonValue
+    reconciliationStatus?: string
+    recoveryWindowEndsAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    tenant: CloudTenantCreateNestedOneWithoutBindingsInput
+    teardowns?: CloudTeardownRecordCreateNestedManyWithoutBindingInput
+  }
+
+  export type CloudProjectBindingUncheckedCreateWithoutEventsInput = {
+    id?: string
+    cloudTenantId: string
+    gcpProjectId: string
+    gcpProjectNumber?: string | null
+    role: $Enums.CloudProjectBindingRole
+    region: string
+    state?: $Enums.CloudProjectBindingState
+    parentFolderId?: string | null
+    quotas?: NullableJsonNullValueInput | InputJsonValue
+    billingLabels?: NullableJsonNullValueInput | InputJsonValue
+    capacityPolicy?: NullableJsonNullValueInput | InputJsonValue
+    reconciliationStatus?: string
+    recoveryWindowEndsAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    teardowns?: CloudTeardownRecordUncheckedCreateNestedManyWithoutBindingInput
+  }
+
+  export type CloudProjectBindingCreateOrConnectWithoutEventsInput = {
+    where: CloudProjectBindingWhereUniqueInput
+    create: XOR<CloudProjectBindingCreateWithoutEventsInput, CloudProjectBindingUncheckedCreateWithoutEventsInput>
+  }
+
+  export type CloudProjectBindingUpsertWithoutEventsInput = {
+    update: XOR<CloudProjectBindingUpdateWithoutEventsInput, CloudProjectBindingUncheckedUpdateWithoutEventsInput>
+    create: XOR<CloudProjectBindingCreateWithoutEventsInput, CloudProjectBindingUncheckedCreateWithoutEventsInput>
+    where?: CloudProjectBindingWhereInput
+  }
+
+  export type CloudProjectBindingUpdateToOneWithWhereWithoutEventsInput = {
+    where?: CloudProjectBindingWhereInput
+    data: XOR<CloudProjectBindingUpdateWithoutEventsInput, CloudProjectBindingUncheckedUpdateWithoutEventsInput>
+  }
+
+  export type CloudProjectBindingUpdateWithoutEventsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gcpProjectId?: StringFieldUpdateOperationsInput | string
+    gcpProjectNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    role?: EnumCloudProjectBindingRoleFieldUpdateOperationsInput | $Enums.CloudProjectBindingRole
+    region?: StringFieldUpdateOperationsInput | string
+    state?: EnumCloudProjectBindingStateFieldUpdateOperationsInput | $Enums.CloudProjectBindingState
+    parentFolderId?: NullableStringFieldUpdateOperationsInput | string | null
+    quotas?: NullableJsonNullValueInput | InputJsonValue
+    billingLabels?: NullableJsonNullValueInput | InputJsonValue
+    capacityPolicy?: NullableJsonNullValueInput | InputJsonValue
+    reconciliationStatus?: StringFieldUpdateOperationsInput | string
+    recoveryWindowEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tenant?: CloudTenantUpdateOneRequiredWithoutBindingsNestedInput
+    teardowns?: CloudTeardownRecordUpdateManyWithoutBindingNestedInput
+  }
+
+  export type CloudProjectBindingUncheckedUpdateWithoutEventsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    cloudTenantId?: StringFieldUpdateOperationsInput | string
+    gcpProjectId?: StringFieldUpdateOperationsInput | string
+    gcpProjectNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    role?: EnumCloudProjectBindingRoleFieldUpdateOperationsInput | $Enums.CloudProjectBindingRole
+    region?: StringFieldUpdateOperationsInput | string
+    state?: EnumCloudProjectBindingStateFieldUpdateOperationsInput | $Enums.CloudProjectBindingState
+    parentFolderId?: NullableStringFieldUpdateOperationsInput | string | null
+    quotas?: NullableJsonNullValueInput | InputJsonValue
+    billingLabels?: NullableJsonNullValueInput | InputJsonValue
+    capacityPolicy?: NullableJsonNullValueInput | InputJsonValue
+    reconciliationStatus?: StringFieldUpdateOperationsInput | string
+    recoveryWindowEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    teardowns?: CloudTeardownRecordUncheckedUpdateManyWithoutBindingNestedInput
+  }
+
+  export type CloudTenantCreateWithoutTransfersInput = {
+    id?: string
+    customerBoundaryType: $Enums.CloudTenantBoundaryType
+    ownerPrincipalId: string
+    billingPrincipalId: string
+    legalEntityId?: string | null
+    ownershipVersion?: number
+    residencyPolicy?: string
+    lifecycle?: $Enums.CloudTenantLifecycle
+    mergedIntoTenantId?: string | null
+    splitFromTenantId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    bindings?: CloudProjectBindingCreateNestedManyWithoutTenantInput
+  }
+
+  export type CloudTenantUncheckedCreateWithoutTransfersInput = {
+    id?: string
+    customerBoundaryType: $Enums.CloudTenantBoundaryType
+    ownerPrincipalId: string
+    billingPrincipalId: string
+    legalEntityId?: string | null
+    ownershipVersion?: number
+    residencyPolicy?: string
+    lifecycle?: $Enums.CloudTenantLifecycle
+    mergedIntoTenantId?: string | null
+    splitFromTenantId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    bindings?: CloudProjectBindingUncheckedCreateNestedManyWithoutTenantInput
+  }
+
+  export type CloudTenantCreateOrConnectWithoutTransfersInput = {
+    where: CloudTenantWhereUniqueInput
+    create: XOR<CloudTenantCreateWithoutTransfersInput, CloudTenantUncheckedCreateWithoutTransfersInput>
+  }
+
+  export type CloudTenantUpsertWithoutTransfersInput = {
+    update: XOR<CloudTenantUpdateWithoutTransfersInput, CloudTenantUncheckedUpdateWithoutTransfersInput>
+    create: XOR<CloudTenantCreateWithoutTransfersInput, CloudTenantUncheckedCreateWithoutTransfersInput>
+    where?: CloudTenantWhereInput
+  }
+
+  export type CloudTenantUpdateToOneWithWhereWithoutTransfersInput = {
+    where?: CloudTenantWhereInput
+    data: XOR<CloudTenantUpdateWithoutTransfersInput, CloudTenantUncheckedUpdateWithoutTransfersInput>
+  }
+
+  export type CloudTenantUpdateWithoutTransfersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    customerBoundaryType?: EnumCloudTenantBoundaryTypeFieldUpdateOperationsInput | $Enums.CloudTenantBoundaryType
+    ownerPrincipalId?: StringFieldUpdateOperationsInput | string
+    billingPrincipalId?: StringFieldUpdateOperationsInput | string
+    legalEntityId?: NullableStringFieldUpdateOperationsInput | string | null
+    ownershipVersion?: IntFieldUpdateOperationsInput | number
+    residencyPolicy?: StringFieldUpdateOperationsInput | string
+    lifecycle?: EnumCloudTenantLifecycleFieldUpdateOperationsInput | $Enums.CloudTenantLifecycle
+    mergedIntoTenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    splitFromTenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    bindings?: CloudProjectBindingUpdateManyWithoutTenantNestedInput
+  }
+
+  export type CloudTenantUncheckedUpdateWithoutTransfersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    customerBoundaryType?: EnumCloudTenantBoundaryTypeFieldUpdateOperationsInput | $Enums.CloudTenantBoundaryType
+    ownerPrincipalId?: StringFieldUpdateOperationsInput | string
+    billingPrincipalId?: StringFieldUpdateOperationsInput | string
+    legalEntityId?: NullableStringFieldUpdateOperationsInput | string | null
+    ownershipVersion?: IntFieldUpdateOperationsInput | number
+    residencyPolicy?: StringFieldUpdateOperationsInput | string
+    lifecycle?: EnumCloudTenantLifecycleFieldUpdateOperationsInput | $Enums.CloudTenantLifecycle
+    mergedIntoTenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    splitFromTenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    bindings?: CloudProjectBindingUncheckedUpdateManyWithoutTenantNestedInput
+  }
+
+  export type CloudProjectBindingCreateWithoutTeardownsInput = {
+    id?: string
+    gcpProjectId: string
+    gcpProjectNumber?: string | null
+    role: $Enums.CloudProjectBindingRole
+    region: string
+    state?: $Enums.CloudProjectBindingState
+    parentFolderId?: string | null
+    quotas?: NullableJsonNullValueInput | InputJsonValue
+    billingLabels?: NullableJsonNullValueInput | InputJsonValue
+    capacityPolicy?: NullableJsonNullValueInput | InputJsonValue
+    reconciliationStatus?: string
+    recoveryWindowEndsAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    tenant: CloudTenantCreateNestedOneWithoutBindingsInput
+    events?: CloudProjectFactoryEventCreateNestedManyWithoutBindingInput
+  }
+
+  export type CloudProjectBindingUncheckedCreateWithoutTeardownsInput = {
+    id?: string
+    cloudTenantId: string
+    gcpProjectId: string
+    gcpProjectNumber?: string | null
+    role: $Enums.CloudProjectBindingRole
+    region: string
+    state?: $Enums.CloudProjectBindingState
+    parentFolderId?: string | null
+    quotas?: NullableJsonNullValueInput | InputJsonValue
+    billingLabels?: NullableJsonNullValueInput | InputJsonValue
+    capacityPolicy?: NullableJsonNullValueInput | InputJsonValue
+    reconciliationStatus?: string
+    recoveryWindowEndsAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    events?: CloudProjectFactoryEventUncheckedCreateNestedManyWithoutBindingInput
+  }
+
+  export type CloudProjectBindingCreateOrConnectWithoutTeardownsInput = {
+    where: CloudProjectBindingWhereUniqueInput
+    create: XOR<CloudProjectBindingCreateWithoutTeardownsInput, CloudProjectBindingUncheckedCreateWithoutTeardownsInput>
+  }
+
+  export type CloudProjectBindingUpsertWithoutTeardownsInput = {
+    update: XOR<CloudProjectBindingUpdateWithoutTeardownsInput, CloudProjectBindingUncheckedUpdateWithoutTeardownsInput>
+    create: XOR<CloudProjectBindingCreateWithoutTeardownsInput, CloudProjectBindingUncheckedCreateWithoutTeardownsInput>
+    where?: CloudProjectBindingWhereInput
+  }
+
+  export type CloudProjectBindingUpdateToOneWithWhereWithoutTeardownsInput = {
+    where?: CloudProjectBindingWhereInput
+    data: XOR<CloudProjectBindingUpdateWithoutTeardownsInput, CloudProjectBindingUncheckedUpdateWithoutTeardownsInput>
+  }
+
+  export type CloudProjectBindingUpdateWithoutTeardownsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gcpProjectId?: StringFieldUpdateOperationsInput | string
+    gcpProjectNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    role?: EnumCloudProjectBindingRoleFieldUpdateOperationsInput | $Enums.CloudProjectBindingRole
+    region?: StringFieldUpdateOperationsInput | string
+    state?: EnumCloudProjectBindingStateFieldUpdateOperationsInput | $Enums.CloudProjectBindingState
+    parentFolderId?: NullableStringFieldUpdateOperationsInput | string | null
+    quotas?: NullableJsonNullValueInput | InputJsonValue
+    billingLabels?: NullableJsonNullValueInput | InputJsonValue
+    capacityPolicy?: NullableJsonNullValueInput | InputJsonValue
+    reconciliationStatus?: StringFieldUpdateOperationsInput | string
+    recoveryWindowEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tenant?: CloudTenantUpdateOneRequiredWithoutBindingsNestedInput
+    events?: CloudProjectFactoryEventUpdateManyWithoutBindingNestedInput
+  }
+
+  export type CloudProjectBindingUncheckedUpdateWithoutTeardownsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    cloudTenantId?: StringFieldUpdateOperationsInput | string
+    gcpProjectId?: StringFieldUpdateOperationsInput | string
+    gcpProjectNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    role?: EnumCloudProjectBindingRoleFieldUpdateOperationsInput | $Enums.CloudProjectBindingRole
+    region?: StringFieldUpdateOperationsInput | string
+    state?: EnumCloudProjectBindingStateFieldUpdateOperationsInput | $Enums.CloudProjectBindingState
+    parentFolderId?: NullableStringFieldUpdateOperationsInput | string | null
+    quotas?: NullableJsonNullValueInput | InputJsonValue
+    billingLabels?: NullableJsonNullValueInput | InputJsonValue
+    capacityPolicy?: NullableJsonNullValueInput | InputJsonValue
+    reconciliationStatus?: StringFieldUpdateOperationsInput | string
+    recoveryWindowEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    events?: CloudProjectFactoryEventUncheckedUpdateManyWithoutBindingNestedInput
+  }
+
+  export type PlatformIamImpersonationAuditCreateWithoutIdentityInput = {
+    id?: string
+    actorPrincipal: string
+    purpose: string
+    tokenLifetimeSeconds: number
+    createdAt?: Date | string
+  }
+
+  export type PlatformIamImpersonationAuditUncheckedCreateWithoutIdentityInput = {
+    id?: string
+    actorPrincipal: string
+    purpose: string
+    tokenLifetimeSeconds: number
+    createdAt?: Date | string
+  }
+
+  export type PlatformIamImpersonationAuditCreateOrConnectWithoutIdentityInput = {
+    where: PlatformIamImpersonationAuditWhereUniqueInput
+    create: XOR<PlatformIamImpersonationAuditCreateWithoutIdentityInput, PlatformIamImpersonationAuditUncheckedCreateWithoutIdentityInput>
+  }
+
+  export type PlatformIamImpersonationAuditCreateManyIdentityInputEnvelope = {
+    data: PlatformIamImpersonationAuditCreateManyIdentityInput | PlatformIamImpersonationAuditCreateManyIdentityInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type PlatformIamImpersonationAuditUpsertWithWhereUniqueWithoutIdentityInput = {
+    where: PlatformIamImpersonationAuditWhereUniqueInput
+    update: XOR<PlatformIamImpersonationAuditUpdateWithoutIdentityInput, PlatformIamImpersonationAuditUncheckedUpdateWithoutIdentityInput>
+    create: XOR<PlatformIamImpersonationAuditCreateWithoutIdentityInput, PlatformIamImpersonationAuditUncheckedCreateWithoutIdentityInput>
+  }
+
+  export type PlatformIamImpersonationAuditUpdateWithWhereUniqueWithoutIdentityInput = {
+    where: PlatformIamImpersonationAuditWhereUniqueInput
+    data: XOR<PlatformIamImpersonationAuditUpdateWithoutIdentityInput, PlatformIamImpersonationAuditUncheckedUpdateWithoutIdentityInput>
+  }
+
+  export type PlatformIamImpersonationAuditUpdateManyWithWhereWithoutIdentityInput = {
+    where: PlatformIamImpersonationAuditScalarWhereInput
+    data: XOR<PlatformIamImpersonationAuditUpdateManyMutationInput, PlatformIamImpersonationAuditUncheckedUpdateManyWithoutIdentityInput>
+  }
+
+  export type PlatformIamImpersonationAuditScalarWhereInput = {
+    AND?: PlatformIamImpersonationAuditScalarWhereInput | PlatformIamImpersonationAuditScalarWhereInput[]
+    OR?: PlatformIamImpersonationAuditScalarWhereInput[]
+    NOT?: PlatformIamImpersonationAuditScalarWhereInput | PlatformIamImpersonationAuditScalarWhereInput[]
+    id?: StringFilter<"PlatformIamImpersonationAudit"> | string
+    identityId?: StringFilter<"PlatformIamImpersonationAudit"> | string
+    actorPrincipal?: StringFilter<"PlatformIamImpersonationAudit"> | string
+    purpose?: StringFilter<"PlatformIamImpersonationAudit"> | string
+    tokenLifetimeSeconds?: IntFilter<"PlatformIamImpersonationAudit"> | number
+    createdAt?: DateTimeFilter<"PlatformIamImpersonationAudit"> | Date | string
+  }
+
+  export type PlatformIamIdentityCreateWithoutImpersonationsInput = {
+    id?: string
+    kind: $Enums.PlatformIamIdentityKind
+    app?: string
+    environment?: string
+    privilegeBoundary: string
+    gcpProjectId: string
+    gcpServiceAccountEmail: string
+    persistentKeys?: number
+    revisionsServed?: number
+    lastRotatedAt?: Date | string | null
+    lastUsedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PlatformIamIdentityUncheckedCreateWithoutImpersonationsInput = {
+    id?: string
+    kind: $Enums.PlatformIamIdentityKind
+    app?: string
+    environment?: string
+    privilegeBoundary: string
+    gcpProjectId: string
+    gcpServiceAccountEmail: string
+    persistentKeys?: number
+    revisionsServed?: number
+    lastRotatedAt?: Date | string | null
+    lastUsedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PlatformIamIdentityCreateOrConnectWithoutImpersonationsInput = {
+    where: PlatformIamIdentityWhereUniqueInput
+    create: XOR<PlatformIamIdentityCreateWithoutImpersonationsInput, PlatformIamIdentityUncheckedCreateWithoutImpersonationsInput>
+  }
+
+  export type PlatformIamIdentityUpsertWithoutImpersonationsInput = {
+    update: XOR<PlatformIamIdentityUpdateWithoutImpersonationsInput, PlatformIamIdentityUncheckedUpdateWithoutImpersonationsInput>
+    create: XOR<PlatformIamIdentityCreateWithoutImpersonationsInput, PlatformIamIdentityUncheckedCreateWithoutImpersonationsInput>
+    where?: PlatformIamIdentityWhereInput
+  }
+
+  export type PlatformIamIdentityUpdateToOneWithWhereWithoutImpersonationsInput = {
+    where?: PlatformIamIdentityWhereInput
+    data: XOR<PlatformIamIdentityUpdateWithoutImpersonationsInput, PlatformIamIdentityUncheckedUpdateWithoutImpersonationsInput>
+  }
+
+  export type PlatformIamIdentityUpdateWithoutImpersonationsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumPlatformIamIdentityKindFieldUpdateOperationsInput | $Enums.PlatformIamIdentityKind
+    app?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    privilegeBoundary?: StringFieldUpdateOperationsInput | string
+    gcpProjectId?: StringFieldUpdateOperationsInput | string
+    gcpServiceAccountEmail?: StringFieldUpdateOperationsInput | string
+    persistentKeys?: IntFieldUpdateOperationsInput | number
+    revisionsServed?: IntFieldUpdateOperationsInput | number
+    lastRotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlatformIamIdentityUncheckedUpdateWithoutImpersonationsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumPlatformIamIdentityKindFieldUpdateOperationsInput | $Enums.PlatformIamIdentityKind
+    app?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    privilegeBoundary?: StringFieldUpdateOperationsInput | string
+    gcpProjectId?: StringFieldUpdateOperationsInput | string
+    gcpServiceAccountEmail?: StringFieldUpdateOperationsInput | string
+    persistentKeys?: IntFieldUpdateOperationsInput | number
+    revisionsServed?: IntFieldUpdateOperationsInput | number
+    lastRotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type AccountCreateManyUserInput = {
     id?: string
     provider: string
@@ -206753,6 +218870,242 @@ export namespace Prisma {
     computeUnits?: NullableFloatFieldUpdateOperationsInput | number | null
     costCents?: NullableFloatFieldUpdateOperationsInput | number | null
     meteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type CloudProjectBindingCreateManyTenantInput = {
+    id?: string
+    gcpProjectId: string
+    gcpProjectNumber?: string | null
+    role: $Enums.CloudProjectBindingRole
+    region: string
+    state?: $Enums.CloudProjectBindingState
+    parentFolderId?: string | null
+    quotas?: NullableJsonNullValueInput | InputJsonValue
+    billingLabels?: NullableJsonNullValueInput | InputJsonValue
+    capacityPolicy?: NullableJsonNullValueInput | InputJsonValue
+    reconciliationStatus?: string
+    recoveryWindowEndsAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type CloudTenantTransferCreateManyTenantInput = {
+    id?: string
+    fromPrincipalId: string
+    toPrincipalId: string
+    state?: $Enums.CloudTenantTransferState
+    revokeEvidence?: NullableJsonNullValueInput | InputJsonValue
+    revokeVerifiedAt?: Date | string | null
+    regrantEvidence?: NullableJsonNullValueInput | InputJsonValue
+    error?: string | null
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type CloudProjectBindingUpdateWithoutTenantInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gcpProjectId?: StringFieldUpdateOperationsInput | string
+    gcpProjectNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    role?: EnumCloudProjectBindingRoleFieldUpdateOperationsInput | $Enums.CloudProjectBindingRole
+    region?: StringFieldUpdateOperationsInput | string
+    state?: EnumCloudProjectBindingStateFieldUpdateOperationsInput | $Enums.CloudProjectBindingState
+    parentFolderId?: NullableStringFieldUpdateOperationsInput | string | null
+    quotas?: NullableJsonNullValueInput | InputJsonValue
+    billingLabels?: NullableJsonNullValueInput | InputJsonValue
+    capacityPolicy?: NullableJsonNullValueInput | InputJsonValue
+    reconciliationStatus?: StringFieldUpdateOperationsInput | string
+    recoveryWindowEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    events?: CloudProjectFactoryEventUpdateManyWithoutBindingNestedInput
+    teardowns?: CloudTeardownRecordUpdateManyWithoutBindingNestedInput
+  }
+
+  export type CloudProjectBindingUncheckedUpdateWithoutTenantInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gcpProjectId?: StringFieldUpdateOperationsInput | string
+    gcpProjectNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    role?: EnumCloudProjectBindingRoleFieldUpdateOperationsInput | $Enums.CloudProjectBindingRole
+    region?: StringFieldUpdateOperationsInput | string
+    state?: EnumCloudProjectBindingStateFieldUpdateOperationsInput | $Enums.CloudProjectBindingState
+    parentFolderId?: NullableStringFieldUpdateOperationsInput | string | null
+    quotas?: NullableJsonNullValueInput | InputJsonValue
+    billingLabels?: NullableJsonNullValueInput | InputJsonValue
+    capacityPolicy?: NullableJsonNullValueInput | InputJsonValue
+    reconciliationStatus?: StringFieldUpdateOperationsInput | string
+    recoveryWindowEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    events?: CloudProjectFactoryEventUncheckedUpdateManyWithoutBindingNestedInput
+    teardowns?: CloudTeardownRecordUncheckedUpdateManyWithoutBindingNestedInput
+  }
+
+  export type CloudProjectBindingUncheckedUpdateManyWithoutTenantInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gcpProjectId?: StringFieldUpdateOperationsInput | string
+    gcpProjectNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    role?: EnumCloudProjectBindingRoleFieldUpdateOperationsInput | $Enums.CloudProjectBindingRole
+    region?: StringFieldUpdateOperationsInput | string
+    state?: EnumCloudProjectBindingStateFieldUpdateOperationsInput | $Enums.CloudProjectBindingState
+    parentFolderId?: NullableStringFieldUpdateOperationsInput | string | null
+    quotas?: NullableJsonNullValueInput | InputJsonValue
+    billingLabels?: NullableJsonNullValueInput | InputJsonValue
+    capacityPolicy?: NullableJsonNullValueInput | InputJsonValue
+    reconciliationStatus?: StringFieldUpdateOperationsInput | string
+    recoveryWindowEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CloudTenantTransferUpdateWithoutTenantInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fromPrincipalId?: StringFieldUpdateOperationsInput | string
+    toPrincipalId?: StringFieldUpdateOperationsInput | string
+    state?: EnumCloudTenantTransferStateFieldUpdateOperationsInput | $Enums.CloudTenantTransferState
+    revokeEvidence?: NullableJsonNullValueInput | InputJsonValue
+    revokeVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    regrantEvidence?: NullableJsonNullValueInput | InputJsonValue
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CloudTenantTransferUncheckedUpdateWithoutTenantInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fromPrincipalId?: StringFieldUpdateOperationsInput | string
+    toPrincipalId?: StringFieldUpdateOperationsInput | string
+    state?: EnumCloudTenantTransferStateFieldUpdateOperationsInput | $Enums.CloudTenantTransferState
+    revokeEvidence?: NullableJsonNullValueInput | InputJsonValue
+    revokeVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    regrantEvidence?: NullableJsonNullValueInput | InputJsonValue
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CloudTenantTransferUncheckedUpdateManyWithoutTenantInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fromPrincipalId?: StringFieldUpdateOperationsInput | string
+    toPrincipalId?: StringFieldUpdateOperationsInput | string
+    state?: EnumCloudTenantTransferStateFieldUpdateOperationsInput | $Enums.CloudTenantTransferState
+    revokeEvidence?: NullableJsonNullValueInput | InputJsonValue
+    revokeVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    regrantEvidence?: NullableJsonNullValueInput | InputJsonValue
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CloudProjectFactoryEventCreateManyBindingInput = {
+    id?: string
+    fromState?: string | null
+    toState: string
+    actor?: string | null
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type CloudTeardownRecordCreateManyBindingInput = {
+    id?: string
+    status?: string
+    resourceInventory?: NullableJsonNullValueInput | InputJsonValue
+    erasureProof?: NullableJsonNullValueInput | InputJsonValue
+    orphans?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+  }
+
+  export type CloudProjectFactoryEventUpdateWithoutBindingInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fromState?: NullableStringFieldUpdateOperationsInput | string | null
+    toState?: StringFieldUpdateOperationsInput | string
+    actor?: NullableStringFieldUpdateOperationsInput | string | null
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CloudProjectFactoryEventUncheckedUpdateWithoutBindingInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fromState?: NullableStringFieldUpdateOperationsInput | string | null
+    toState?: StringFieldUpdateOperationsInput | string
+    actor?: NullableStringFieldUpdateOperationsInput | string | null
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CloudProjectFactoryEventUncheckedUpdateManyWithoutBindingInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fromState?: NullableStringFieldUpdateOperationsInput | string | null
+    toState?: StringFieldUpdateOperationsInput | string
+    actor?: NullableStringFieldUpdateOperationsInput | string | null
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CloudTeardownRecordUpdateWithoutBindingInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    resourceInventory?: NullableJsonNullValueInput | InputJsonValue
+    erasureProof?: NullableJsonNullValueInput | InputJsonValue
+    orphans?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type CloudTeardownRecordUncheckedUpdateWithoutBindingInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    resourceInventory?: NullableJsonNullValueInput | InputJsonValue
+    erasureProof?: NullableJsonNullValueInput | InputJsonValue
+    orphans?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type CloudTeardownRecordUncheckedUpdateManyWithoutBindingInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    resourceInventory?: NullableJsonNullValueInput | InputJsonValue
+    erasureProof?: NullableJsonNullValueInput | InputJsonValue
+    orphans?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type PlatformIamImpersonationAuditCreateManyIdentityInput = {
+    id?: string
+    actorPrincipal: string
+    purpose: string
+    tokenLifetimeSeconds: number
+    createdAt?: Date | string
+  }
+
+  export type PlatformIamImpersonationAuditUpdateWithoutIdentityInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    actorPrincipal?: StringFieldUpdateOperationsInput | string
+    purpose?: StringFieldUpdateOperationsInput | string
+    tokenLifetimeSeconds?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlatformIamImpersonationAuditUncheckedUpdateWithoutIdentityInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    actorPrincipal?: StringFieldUpdateOperationsInput | string
+    purpose?: StringFieldUpdateOperationsInput | string
+    tokenLifetimeSeconds?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlatformIamImpersonationAuditUncheckedUpdateManyWithoutIdentityInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    actorPrincipal?: StringFieldUpdateOperationsInput | string
+    purpose?: StringFieldUpdateOperationsInput | string
+    tokenLifetimeSeconds?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
 

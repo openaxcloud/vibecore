@@ -2438,3 +2438,242 @@ model GalleryListing {
   @@index([status, featured])
   @@index([status, createdAt])
 }
+
+// ─── CloudTenant / Project Factory / Platform IAM ────────────────────────────
+// Contract: docs/parity/DOMAIN_MODEL.md §3-4 + schemas/domain/cloud-tenant.schema.json.
+// A CloudTenant is the billing/quota/isolation boundary. A GCP project belongs
+// to AT MOST one tenant (I-TEN-1) — enforced by the UNIQUE on
+// CloudProjectBinding.gcpProjectId, not by convention.
+
+enum CloudTenantBoundaryType {
+  PERSON
+  WORKSPACE
+  LEGAL_ENTITY
+  BILLING_ACCOUNT
+}
+
+enum CloudTenantLifecycle {
+  ACTIVE
+  SUSPENDED
+  MERGED
+  SPLIT
+  CLOSED
+}
+
+enum CloudProjectBindingRole {
+  PRIMARY
+  REGION_SHARD
+  QUOTA_SHARD
+  MIGRATION_TARGET
+}
+
+/// Project Factory state machine (DOMAIN_MODEL §"Project Factory").
+/// Forward pipeline REQUESTED→…→ACTIVE, operational excursions
+/// (BILLING_SUSPENDED/QUOTA_EXHAUSTED/DRIFT_DETECTED ⇄ ACTIVE) and the
+/// reversible deletion path with a recovery window.
+enum CloudProjectBindingState {
+  REQUESTED
+  CREATING
+  BILLING_LINKED
+  APIS_ENABLING
+  SERVICE_AGENTS_READY
+  IAM_BOUND
+  EDGE_READY
+  ACTIVE
+  BILLING_SUSPENDED
+  QUOTA_EXHAUSTED
+  DRIFT_DETECTED
+  DELETE_REQUESTED
+  RECOVERY_WINDOW
+  RESTORING
+  PURGING
+  PURGED
+}
+
+/// Owner transfer REVOKES then RE-GRANTS — it never renames. REGRANTING is
+/// unreachable unless the revocation evidence has been recorded (REVOKED).
+enum CloudTenantTransferState {
+  REQUESTED
+  REVOKING
+  REVOKED
+  REGRANTING
+  COMPLETED
+  FAILED
+}
+
+enum PlatformIamIdentityKind {
+  BUILD
+  PROMOTION
+  RUNTIME
+}
+
+model CloudTenant {
+  id                   String                  @id @default(cuid())
+  /// Who the customer IS. `customerId` alone is insufficient: an app moving
+  /// from a personal account to an organization is an ownership migration.
+  customerBoundaryType CloudTenantBoundaryType
+  /// IAM member string of the CURRENT owner (e.g. "user:x@y.z",
+  /// "serviceAccount:sa@p.iam.gserviceaccount.com").
+  ownerPrincipalId     String
+  /// Principal that pays. May differ from the owner (org pays, user owns).
+  billingPrincipalId   String
+  legalEntityId        String?
+  /// Bumped on every completed ownership transfer / merge / split.
+  ownershipVersion     Int                     @default(1)
+  residencyPolicy      String                  @default("eu")
+  lifecycle            CloudTenantLifecycle    @default(ACTIVE)
+  /// Set when lifecycle=MERGED: the surviving tenant.
+  mergedIntoTenantId   String?
+  /// Set when this tenant was created by splitting another one.
+  splitFromTenantId    String?
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+
+  bindings  CloudProjectBinding[]
+  transfers CloudTenantTransfer[]
+
+  @@index([lifecycle])
+  @@index([ownerPrincipalId])
+}
+
+model CloudProjectBinding {
+  id                   String                   @id @default(cuid())
+  cloudTenantId        String
+  /// I-TEN-1: a GCP project can NEVER be shared between two tenants.
+  /// The UNIQUE constraint is the invariant, not application code.
+  gcpProjectId         String                   @unique
+  gcpProjectNumber     String?                  @unique
+  role                 CloudProjectBindingRole
+  region               String
+  state                CloudProjectBindingState @default(REQUESTED)
+  /// Shard folder (customers/shard-<n>) the project lives under. Tenants do
+  /// NOT get a dedicated folder: folder creation is hard-limited by GCP
+  /// (measured 2026-07-17: 5.8 creations/min sustained, burst ~10, then 429
+  /// "Folder V3 create requests per minute") and capped at 300 children.
+  parentFolderId       String?
+  quotas               Json?
+  billingLabels        Json?
+  /// Per-binding CapacityPolicy: resource quotas AND creation rate limits.
+  capacityPolicy       Json?
+  reconciliationStatus String                   @default("UNKNOWN")
+  /// End of the reversible-deletion window (GCP soft-deletes ~30 days; some
+  /// services may purge earlier — the window is a maximum, not a promise).
+  recoveryWindowEndsAt DateTime?
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+
+  tenant    CloudTenant                @relation(fields: [cloudTenantId], references: [id], onDelete: Restrict)
+  events    CloudProjectFactoryEvent[]
+  teardowns CloudTeardownRecord[]
+
+  @@index([cloudTenantId, role])
+  @@index([state])
+  @@index([parentFolderId])
+}
+
+/// Append-only audit of factory state transitions (one row per transition).
+model CloudProjectFactoryEvent {
+  id        String   @id @default(cuid())
+  bindingId String
+  fromState String?
+  toState   String
+  actor     String?
+  detail    Json?
+  createdAt DateTime @default(now())
+
+  binding CloudProjectBinding @relation(fields: [bindingId], references: [id], onDelete: Cascade)
+
+  @@index([bindingId, createdAt])
+}
+
+/// Ownership transfer. INVARIANT: the new owner's grants can only be applied
+/// after the old owner's grants were revoked AND the revocation was verified
+/// against the live IAM policy (revokeVerifiedAt). Re-granting is a fresh
+/// grant of an explicit role set — never a copy of the old bindings.
+model CloudTenantTransfer {
+  id               String                   @id @default(cuid())
+  cloudTenantId    String
+  fromPrincipalId  String
+  toPrincipalId    String
+  state            CloudTenantTransferState @default(REQUESTED)
+  /// Per-project list of {gcpProjectId, removedRoles[]} captured at revoke time.
+  revokeEvidence   Json?
+  /// Live-policy check proving the old principal holds NO role post-revoke.
+  revokeVerifiedAt DateTime?
+  /// Per-project list of {gcpProjectId, grantedRoles[]} for the new owner.
+  regrantEvidence  Json?
+  error            String?
+  completedAt      DateTime?
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+
+  tenant CloudTenant @relation(fields: [cloudTenantId], references: [id], onDelete: Restrict)
+
+  @@index([cloudTenantId, createdAt])
+  @@index([state])
+}
+
+/// Teardown record: resource inventory BEFORE deletion, erasure proof AFTER,
+/// and any orphans (inventoried resources that survived) — a teardown with
+/// orphans is ORPHANS_DETECTED, never silently COMPLETE.
+model CloudTeardownRecord {
+  id                String    @id @default(cuid())
+  bindingId         String
+  /// INVENTORYING | DELETING | VERIFYING | COMPLETE | ORPHANS_DETECTED | FAILED
+  status            String    @default("INVENTORYING")
+  resourceInventory Json?
+  erasureProof      Json?
+  orphans           Json?
+  startedAt         DateTime  @default(now())
+  completedAt       DateTime?
+
+  binding CloudProjectBinding @relation(fields: [bindingId], references: [id], onDelete: Cascade)
+
+  @@index([bindingId, startedAt])
+}
+
+/// Platform execution identities (DOMAIN_MODEL §4). THREE kinds, not one per
+/// revision:
+///  - BUILD: platform-build, isolated, no runtime access (I-IAM-3).
+///  - PROMOTION: control plane, promotes by digest, short-lived impersonation.
+///  - RUNTIME: per app × environment × privilege boundary, REUSED by every
+///    revision of that app (I-IAM-1) — the UNIQUE below makes a per-revision
+///    identity structurally impossible to record.
+/// I-IAM-2: zero persistent keys — persistentKeys must stay 0 forever.
+model PlatformIamIdentity {
+  id                     String                  @id @default(cuid())
+  kind                   PlatformIamIdentityKind
+  /// Empty string (not NULL) for non-RUNTIME kinds so the UNIQUE applies.
+  app                    String                  @default("")
+  environment            String                  @default("")
+  privilegeBoundary      String
+  gcpProjectId           String
+  gcpServiceAccountEmail String                  @unique
+  /// Count of user-managed keys. MUST be 0 (I-IAM-2); >0 is a violation.
+  persistentKeys         Int                     @default(0)
+  /// How many revisions/deployments have reused this identity (proof metric).
+  revisionsServed        Int                     @default(0)
+  lastRotatedAt          DateTime?
+  lastUsedAt             DateTime?
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+
+  impersonations PlatformIamImpersonationAudit[]
+
+  @@unique([kind, app, environment, privilegeBoundary, gcpProjectId])
+  @@index([gcpProjectId, kind])
+}
+
+/// Audit trail of short-lived impersonations (I-IAM-2: tokens, never keys).
+model PlatformIamImpersonationAudit {
+  id                   String   @id @default(cuid())
+  identityId           String
+  actorPrincipal       String
+  purpose              String
+  tokenLifetimeSeconds Int
+  createdAt            DateTime @default(now())
+
+  identity PlatformIamIdentity @relation(fields: [identityId], references: [id], onDelete: Cascade)
+
+  @@index([identityId, createdAt])
+}

@@ -246,6 +246,9 @@ import {
   adminGlobalPolicyClearSchema,
   createDefaultMcpMarketplaceService,
 } from './mcp-marketplace.js';
+import { registerCloudGovernanceRoutes } from './cloud-governance-routes.js';
+import { PrismaCloudGovernanceStore } from './cloud-governance-store.js';
+import { RestGcpCloudClient } from './gcp-cloud-client.js';
 import {
   meterAllDatabaseStorage,
   meterAllObjectStorage,
@@ -31994,6 +31997,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       scheduler.stop();
     });
   }
+
+  /*
+   * CloudTenant / Project Factory / Platform IAM (admin-only, kill-switch
+   * CLOUD_TENANT_FACTORY_ENABLED). Prisma-backed store + real GCP REST client
+   * under ADC; tests exercise the services directly with fakes.
+   */
+  registerCloudGovernanceRoutes(app, {
+    governance: store instanceof PrismaApiStore ? new PrismaCloudGovernanceStore(store.prisma) : undefined,
+    gcp: new RestGcpCloudClient(),
+    guardAdmin: async (request, opts) => {
+      await requirePlatformAdmin(request);
+
+      if (opts?.reauth) {
+        await requireRecentAdminReauth(request);
+      }
+    },
+    audit: (request, entry) => audit(request, store, entry),
+  });
 
   return app;
 }
