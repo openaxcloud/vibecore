@@ -29,7 +29,7 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: APPROVAL_STATUS.json
-    sha256: "ee5aaa4b1c7852ca2759d706a1b989fe27dd770e07da3b54a1442a9b070f0e3b"
+    sha256: "69e117d798e4cff19085af7110dc9e04b79c565d84e87ce72d6b40c8e35e533a"
     schemaVersion: null
     repoCommit: null
     reviewer: UNKNOWN
@@ -94,7 +94,7 @@ documents:
     repoCommit: 1692f981
     reviewer: UNKNOWN
   - file: COUNTER_RECONCILIATION_20260720.md
-    sha256: "196cad5535254188237cf85c74e4d71403babb7e369e496ccc58bbd62cfcd20c"
+    sha256: "d83afc437258d47a506c00e3a458804fee04e8561c56d699f13fbd6a92f6cf6d"
     schemaVersion: 1
     repoCommit: null
     reviewer: UNKNOWN
@@ -204,7 +204,7 @@ documents:
     repoCommit: d56931bd
     reviewer: UNKNOWN
   - file: OBSERVATION_REGISTRY.yaml
-    sha256: "ad945a0972dc6c630fc5e83bd6776d5819a911fa1eccedc5beb355edf440e3ff"
+    sha256: "a095a062ff391f60df84e9445c8ec932f4cee81d840159a20a48c1b45b17dbfa"
     schemaVersion: 1
     repoCommit: fbaad79956096db0d66bcb6e894268438dfcb842
     reviewer: UNKNOWN
@@ -224,7 +224,7 @@ documents:
     repoCommit: d1063912
     reviewer: UNKNOWN
   - file: P0_REGISTRY.yaml
-    sha256: "21b964dae6ed20a068ccfff51efc610227750eef96f86c01efe181c2887e8229"
+    sha256: "30c2c0f93014cbffe105c50cb56837c66fa1a4b17b10ef062aafcd34cc3b882f"
     schemaVersion: 1
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN
@@ -234,7 +234,7 @@ documents:
     repoCommit: af9e4e83
     reviewer: UNKNOWN
   - file: PARITY_STATUS.md
-    sha256: "e94f2c0a283c4cf4c7abc96347c83d9be5861813f2c230d49647063b8b4695ce"
+    sha256: "a5b481cb4c6f14fae76279c6755889decba129c83e3fc4a88c45c2d8858eda3d"
     schemaVersion: 2
     repoCommit: 790eef17
     reviewer: UNKNOWN
@@ -384,7 +384,7 @@ documents:
     repoCommit: d1063912
     reviewer: UNKNOWN
   - file: UNKNOWN_REGISTRY.yaml
-    sha256: "a650fa35cd707cb218c5a223ca7ac36512d5ed2457e3fe5aada7ca41b6b1260e"
+    sha256: "e5d76b5faca90dac20fa7848e1be088220143f0e0833bcd4006eaa97df205c5c"
     schemaVersion: 2
     repoCommit: b774bfa38e881ebaa071fbf2c2fa9d72ab89efb5
     reviewer: UNKNOWN
