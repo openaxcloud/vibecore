@@ -1,0 +1,23 @@
+# Drill restauration Cloud SQL — 2026-07-21 (EVID-DR-DB-001)
+# Méthode : clone PITR de vibecore-prod-postgres vers une instance jetable
+# (la prod n'est jamais touchée — clone = lecture seule côté source).
+
+point-in-time cible : 2026-07-21T04:38:21.000Z
+clone lancé         : 2026-07-21T04:43:21Z  (gcloud sql instances clone --point-in-time)
+instance RUNNABLE + données VÉRIFIÉES : 2026-07-21T04:56:27Z
+==> DURÉE TOTALE restore→vérifié : 13 min 06 s
+
+# Vérification d'intégrité (depuis un pod api, node pg, même requête sur les 2 bases,
+# lignes antérieures au point-in-time — doivent être STRICTEMENT égales) :
+PROD  {"users":"114","projects":"193","deployments":"55","orgs":"120","last_deployment":"2026-07-20T05:27:33.804Z"}
+CLONE {"users":"114","projects":"193","deployments":"55","orgs":"120","last_deployment":"2026-07-20T05:27:33.804Z"}
+==> 4 compteurs identiques + même dernier deployment : restauration INTÈGRE.
+
+teardown : gcloud sql instances delete vibecore-dr-drill-20260721 (fait, --async, 05:57Z)
+
+# Repro :
+#  PIT=$(date -u -v-5M +%Y-%m-%dT%H:%M:%S.000Z)   # (GNU: date -u -d '-5 min' …)
+#  gcloud sql instances clone vibecore-prod-postgres vibecore-dr-drill-$(date +%Y%m%d) \
+#    --point-in-time="$PIT" --project=vibecore-495216
+#  # vérifier depuis un pod api : node pg, DATABASE_URL avec host remplacé par l'IP privée du clone
+#  gcloud sql instances delete vibecore-dr-drill-<date> --quiet
