@@ -2,6 +2,10 @@
 
 ## Règles
 
+**Ne jamais rester bloqué en attendant une décision d'Avi** : dès qu'un
+livrable attend son feu vert, avancer immédiatement sur un autre point/chantier
+qui ne dépend pas de lui ; regrouper les feux verts en attente sans s'arrêter.
+
 ## Suivi (règle permanente)
 Fichiers de suivi : `DESIGN_PROGRAM_MASTER.md` (points design — source de vérité unique ; specs détaillées dans `DESIGN_BATCH_*_SPEC.md`, état par point dans `DESIGN_AUDIT_LIVE.md`), `BUG_INVENTORY_LIVE.md` (bugs), `PLAN_REMAINING_UNIFIED.md` (plan), `REPLIT_PARITY.md` (parité Replit, fonctionnelle ET pixel).
 
