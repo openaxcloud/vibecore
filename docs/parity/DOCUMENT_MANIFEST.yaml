@@ -69,7 +69,7 @@ documents:
     repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
     reviewer: UNKNOWN
   - file: CHECKPOINT_CONTRACT.md
-    sha256: "d134ba7803fb30de059eb4ebee43392ee7a5cc48e436fefbae15697f6c068e18"
+    sha256: "d357a225d481d9c18af463da0f636a90bd3d769f5ea17253f3de16d10947dec4"
     schemaVersion: 2
     repoCommit: 1692f981
     reviewer: UNKNOWN
