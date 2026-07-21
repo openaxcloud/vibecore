@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createInMemoryCloudGovernanceStore, FakeGcpCloudClient } from './cloud-governance-fakes.js';
+import { createInMemoryCloudGovernanceStore, FakeGcpCloudClient } from './tests/cloud-governance-fakes.js';
 import {
   auditPersistentKeys,
   ensureBuildIdentity,

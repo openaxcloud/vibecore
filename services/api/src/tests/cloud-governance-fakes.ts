@@ -18,9 +18,9 @@ import type {
   PlatformIamIdentity,
   PlatformIamIdentityBoundary,
   PlatformIamImpersonationAudit,
-} from './cloud-governance-store.js';
-import type { GcpCloudClient, GcpIamPolicy, GcpProjectInfo, GcpServiceAccountKeyInfo } from './gcp-cloud-client.js';
-import { GcpApiError } from './gcp-cloud-client.js';
+} from '../cloud-governance-store.js';
+import type { GcpCloudClient, GcpIamPolicy, GcpProjectInfo, GcpServiceAccountKeyInfo } from '../gcp-cloud-client.js';
+import { GcpApiError } from '../gcp-cloud-client.js';
 
 let seq = 0;
 
