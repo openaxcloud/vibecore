@@ -271,6 +271,37 @@ export interface ProjectCollaboratorRecord {
   createdAt: string;
 }
 
+export interface GroupRecord {
+  id: string;
+  organizationId: string;
+  name: string;
+  scimManaged: boolean;
+  createdAt: string;
+}
+
+export interface GroupMemberRecord {
+  id: string;
+  groupId: string;
+  userId: string;
+  createdAt: string;
+}
+
+export interface AccessGrantRecord {
+  id: string;
+  organizationId: string;
+  subjectType: 'USER' | 'GROUP';
+  subjectUserId?: string;
+  subjectGroupId?: string;
+  resourceType: 'PROJECT' | 'ARTIFACT' | 'DEPLOYMENT' | 'DATASET';
+  resourceId: string;
+  roleKey: string;
+  expiresAt?: string;
+  grantedByUserId?: string;
+  revokedAt?: string;
+  revokedByUserId?: string;
+  createdAt: string;
+}
+
 export interface ProjectActivityRecord {
   id: string;
   projectId: string;
@@ -1440,6 +1471,37 @@ export interface ApiStore {
   }): Promise<ProjectCollaboratorRecord>;
   listProjectCollaborators(projectId: string): Promise<ProjectCollaboratorRecord[]>;
   removeProjectCollaborator(input: { projectId: string; userId: string }): Promise<boolean>;
+
+  /*
+   * Identity & collaboration (P0-EX-07): Groups (SCIM-manageable) and generic
+   * resource access grants (subject = user | group). Enforcement lives in
+   * requireProject's role resolution — the store only persists.
+   */
+  createGroup(input: { organizationId: string; name: string; scimManaged?: boolean }): Promise<GroupRecord>;
+  getGroup(groupId: string): Promise<GroupRecord | undefined>;
+  listGroups(organizationId: string): Promise<GroupRecord[]>;
+  deleteGroup(groupId: string): Promise<boolean>;
+  addGroupMember(input: { groupId: string; userId: string }): Promise<GroupMemberRecord>;
+  removeGroupMember(input: { groupId: string; userId: string }): Promise<boolean>;
+  listGroupMembers(groupId: string): Promise<GroupMemberRecord[]>;
+  listUserGroupIds(userId: string, organizationId?: string): Promise<string[]>;
+  createAccessGrant(input: {
+    organizationId: string;
+    subjectType: 'USER' | 'GROUP';
+    subjectUserId?: string;
+    subjectGroupId?: string;
+    resourceType: 'PROJECT' | 'ARTIFACT' | 'DEPLOYMENT' | 'DATASET';
+    resourceId: string;
+    roleKey: string;
+    expiresAt?: Date | null;
+    grantedByUserId?: string;
+  }): Promise<AccessGrantRecord>;
+  listAccessGrantsForResource(
+    resourceType: 'PROJECT' | 'ARTIFACT' | 'DEPLOYMENT' | 'DATASET',
+    resourceId: string,
+  ): Promise<AccessGrantRecord[]>;
+  getAccessGrant(grantId: string): Promise<AccessGrantRecord | undefined>;
+  revokeAccessGrant(input: { grantId: string; revokedByUserId?: string }): Promise<AccessGrantRecord | undefined>;
   recordProjectActivity(input: {
     projectId: string;
     actorUserId?: string;

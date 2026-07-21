@@ -246,6 +246,7 @@ import {
   adminGlobalPolicyClearSchema,
   createDefaultMcpMarketplaceService,
 } from './mcp-marketplace.js';
+import { registerIdentityCollaborationRoutes } from './identity-collaboration-routes.js';
 import {
   meterAllDatabaseStorage,
   meterAllObjectStorage,
@@ -3476,12 +3477,25 @@ async function requireProject(
     await requireOrg(request, store, project.organizationId, permission);
   } catch (error: any) {
     /*
-     * Fall back to collaborator-based authorization only when the sole problem
-     * is that the user isn't an org member but holds a collaborator grant on
-     * this project. Any other failure (401 unauth, 403 for an actual member
-     * lacking the permission) propagates unchanged.
+     * Fall back to collaborator/grant-based authorization in exactly two
+     * cases:
+     *  - the user isn't an org member at all (ORG_NOT_FOUND) but holds a
+     *    collaborator row or an AccessGrant on this project (share-link
+     *    guests, external collaborators);
+     *  - the user IS a member whose org role lacks the permission
+     *    (RBAC_FORBIDDEN) but an EXPLICIT per-project grant confers it —
+     *    an AccessGrant elevates on ITS resource only, and only as far as
+     *    the granted role actually carries the permission (P0-EX-07).
+     * Anything else (401 unauth, suspended, …) propagates unchanged.
      */
-    if (error?.code !== 'ORG_NOT_FOUND' || !collaboratorRole) {
+    const grantCarriesPermission =
+      collaboratorRole !== undefined && (rolePermissions[collaboratorRole]?.includes(permission) ?? false);
+
+    const fallbackEligible =
+      (error?.code === 'ORG_NOT_FOUND' && collaboratorRole !== undefined) ||
+      (error?.code === 'RBAC_FORBIDDEN' && grantCarriesPermission);
+
+    if (!fallbackEligible) {
       throw error;
     }
   }
@@ -3731,27 +3745,71 @@ async function reconcileDeploymentStatus(store: ApiStore, deployment: Deployment
   });
 }
 
+/*
+ * Strongest-first ordering used when a user reaches a project through several
+ * paths (collaborator row, direct AccessGrant, group AccessGrant). Guests sit
+ * at the bottom: their scope never widens whatever else grants them access.
+ */
+const PROJECT_ROLE_PRIORITY = ['owner', 'admin', 'member', 'editor', 'viewer', 'guest'];
+
+function strongestProjectRole(roles: string[]): string | undefined {
+  return [...roles].sort(
+    (a, b) =>
+      (PROJECT_ROLE_PRIORITY.indexOf(a) + 1 || PROJECT_ROLE_PRIORITY.length + 1) -
+      (PROJECT_ROLE_PRIORITY.indexOf(b) + 1 || PROJECT_ROLE_PRIORITY.length + 1),
+  )[0];
+}
+
 async function projectCollaborationRole(store: ApiStore, projectId: string, userId?: string) {
   if (!userId) {
     return undefined;
   }
 
+  const roles: string[] = [];
   const collaborator = (await store.listProjectCollaborators(projectId)).find((entry) => entry.userId === userId);
 
-  if (!collaborator) {
-    return undefined;
-  }
-
   // An expired grant (e.g. redeemed from a time-limited share link) confers no role.
-  if (collaborator.expiresAt && new Date(collaborator.expiresAt).getTime() <= Date.now()) {
-    return undefined;
+  if (collaborator && !(collaborator.expiresAt && new Date(collaborator.expiresAt).getTime() <= Date.now())) {
+    roles.push(collaborator.roleKey);
   }
 
-  return collaborator.roleKey;
+  /*
+   * Generic AccessGrants (P0-EX-07): subject = this user directly, or a group
+   * the user belongs to. Revoked or expired grants confer NOTHING — that is
+   * the contract's negative ("une permission retirée = 403"), enforced here,
+   * server-side, for every project route that goes through requireProject.
+   */
+  const grants = await store.listAccessGrantsForResource('PROJECT', projectId);
+  const activeGrants = grants.filter(
+    (grant) => !grant.revokedAt && !(grant.expiresAt && new Date(grant.expiresAt).getTime() <= Date.now()),
+  );
+
+  if (activeGrants.length > 0) {
+    for (const grant of activeGrants) {
+      if (grant.subjectType === 'USER' && grant.subjectUserId === userId) {
+        roles.push(grant.roleKey);
+      }
+    }
+
+    const groupGrants = activeGrants.filter((grant) => grant.subjectType === 'GROUP' && grant.subjectGroupId);
+
+    if (groupGrants.length > 0) {
+      const userGroupIds = new Set(await store.listUserGroupIds(userId));
+
+      for (const grant of groupGrants) {
+        if (userGroupIds.has(grant.subjectGroupId!)) {
+          roles.push(grant.roleKey);
+        }
+      }
+    }
+  }
+
+  return strongestProjectRole(roles);
 }
 
 function isReadOnlyProjectRole(role?: string) {
-  return role === 'viewer';
+  // Guests are read-only BY CONSTRUCTION, whatever roleKey math says.
+  return role === 'viewer' || role === 'guest';
 }
 
 function normalizeProjectPath(path?: string) {
@@ -31994,6 +32052,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       scheduler.stop();
     });
   }
+
+  /*
+   * Identity & collaboration (P0-EX-07): groups (SCIM-manageable) and generic
+   * access grants. Server-side enforcement is in requireProject; these routes
+   * only manage the rows, guarded by org RBAC (members:manage).
+   */
+  registerIdentityCollaborationRoutes(app, {
+    store,
+    guardOrg: (request, organizationId, permission) => requireOrg(request, store, organizationId, permission),
+    audit: (request, entry) => audit(request, store, entry),
+  });
 
   return app;
 }

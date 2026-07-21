@@ -1546,6 +1546,120 @@ export class PrismaApiStore implements ApiStore {
     return result.count > 0;
   }
 
+  async createGroup(input: { organizationId: string; name: string; scimManaged?: boolean }) {
+    const group = await this.prisma.group.create({
+      data: { organizationId: input.organizationId, name: input.name, scimManaged: input.scimManaged ?? false },
+    });
+
+    return mapGroup(group);
+  }
+
+  async getGroup(groupId: string) {
+    const group = await this.prisma.group.findUnique({ where: { id: groupId } });
+
+    return group ? mapGroup(group) : undefined;
+  }
+
+  async listGroups(organizationId: string) {
+    return (await this.prisma.group.findMany({ where: { organizationId }, orderBy: { createdAt: 'asc' } })).map(
+      mapGroup,
+    );
+  }
+
+  async deleteGroup(groupId: string) {
+    const result = await this.prisma.group.deleteMany({ where: { id: groupId } });
+
+    return result.count > 0;
+  }
+
+  async addGroupMember(input: { groupId: string; userId: string }) {
+    const member = await this.prisma.groupMember.create({ data: input });
+
+    return { id: member.id, groupId: member.groupId, userId: member.userId, createdAt: member.createdAt.toISOString() };
+  }
+
+  async removeGroupMember(input: { groupId: string; userId: string }) {
+    const result = await this.prisma.groupMember.deleteMany({ where: input });
+
+    return result.count > 0;
+  }
+
+  async listGroupMembers(groupId: string) {
+    return (await this.prisma.groupMember.findMany({ where: { groupId }, orderBy: { createdAt: 'asc' } })).map(
+      (m) => ({ id: m.id, groupId: m.groupId, userId: m.userId, createdAt: m.createdAt.toISOString() }),
+    );
+  }
+
+  async listUserGroupIds(userId: string, organizationId?: string) {
+    const memberships = await this.prisma.groupMember.findMany({
+      where: { userId, ...(organizationId ? { group: { organizationId } } : {}) },
+      select: { groupId: true },
+    });
+
+    return memberships.map((m) => m.groupId);
+  }
+
+  async createAccessGrant(input: {
+    organizationId: string;
+    subjectType: 'USER' | 'GROUP';
+    subjectUserId?: string;
+    subjectGroupId?: string;
+    resourceType: 'PROJECT' | 'ARTIFACT' | 'DEPLOYMENT' | 'DATASET';
+    resourceId: string;
+    roleKey: string;
+    expiresAt?: Date | null;
+    grantedByUserId?: string;
+  }) {
+    const grant = await this.prisma.resourceAccessGrant.create({
+      data: {
+        organizationId: input.organizationId,
+        subjectType: input.subjectType,
+        subjectUserId: input.subjectUserId ?? null,
+        subjectGroupId: input.subjectGroupId ?? null,
+        resourceType: input.resourceType,
+        resourceId: input.resourceId,
+        roleKey: input.roleKey,
+        expiresAt: input.expiresAt ?? null,
+        grantedByUserId: input.grantedByUserId ?? null,
+      },
+    });
+
+    return mapAccessGrant(grant);
+  }
+
+  async listAccessGrantsForResource(
+    resourceType: 'PROJECT' | 'ARTIFACT' | 'DEPLOYMENT' | 'DATASET',
+    resourceId: string,
+  ) {
+    return (
+      await this.prisma.resourceAccessGrant.findMany({
+        where: { resourceType, resourceId },
+        orderBy: { createdAt: 'asc' },
+      })
+    ).map(mapAccessGrant);
+  }
+
+  async getAccessGrant(grantId: string) {
+    const grant = await this.prisma.resourceAccessGrant.findUnique({ where: { id: grantId } });
+
+    return grant ? mapAccessGrant(grant) : undefined;
+  }
+
+  async revokeAccessGrant(input: { grantId: string; revokedByUserId?: string }) {
+    const existing = await this.prisma.resourceAccessGrant.findUnique({ where: { id: input.grantId } });
+
+    if (!existing) {
+      return undefined;
+    }
+
+    const grant = await this.prisma.resourceAccessGrant.update({
+      where: { id: input.grantId },
+      data: { revokedAt: new Date(), revokedByUserId: input.revokedByUserId ?? null },
+    });
+
+    return mapAccessGrant(grant);
+  }
+
   async recordProjectActivity(input: {
     projectId: string;
     actorUserId?: string;
@@ -5808,6 +5922,48 @@ function mapSecret(secret: any): ProjectSecretRecord {
     valueEncrypted: secret.valueEncrypted ?? '',
     createdAt: toIso(secret.createdAt)!,
     updatedAt: toIso(secret.updatedAt)!,
+  };
+}
+
+function mapGroup(group: { id: string; organizationId: string; name: string; scimManaged: boolean; createdAt: Date }) {
+  return {
+    id: group.id,
+    organizationId: group.organizationId,
+    name: group.name,
+    scimManaged: group.scimManaged,
+    createdAt: group.createdAt.toISOString(),
+  };
+}
+
+function mapAccessGrant(grant: {
+  id: string;
+  organizationId: string;
+  subjectType: string;
+  subjectUserId: string | null;
+  subjectGroupId: string | null;
+  resourceType: string;
+  resourceId: string;
+  roleKey: string;
+  expiresAt: Date | null;
+  grantedByUserId: string | null;
+  revokedAt: Date | null;
+  revokedByUserId: string | null;
+  createdAt: Date;
+}) {
+  return {
+    id: grant.id,
+    organizationId: grant.organizationId,
+    subjectType: grant.subjectType as 'USER' | 'GROUP',
+    subjectUserId: grant.subjectUserId ?? undefined,
+    subjectGroupId: grant.subjectGroupId ?? undefined,
+    resourceType: grant.resourceType as 'PROJECT' | 'ARTIFACT' | 'DEPLOYMENT' | 'DATASET',
+    resourceId: grant.resourceId,
+    roleKey: grant.roleKey,
+    expiresAt: grant.expiresAt?.toISOString(),
+    grantedByUserId: grant.grantedByUserId ?? undefined,
+    revokedAt: grant.revokedAt?.toISOString(),
+    revokedByUserId: grant.revokedByUserId ?? undefined,
+    createdAt: grant.createdAt.toISOString(),
   };
 }
 

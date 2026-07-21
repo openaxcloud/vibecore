@@ -59,6 +59,9 @@ import type {
   ProjectActivityListOptions,
   ProjectActivityRecord,
   ProjectCollaboratorRecord,
+  GroupRecord,
+  GroupMemberRecord,
+  AccessGrantRecord,
   ProjectEnvironmentRecord,
   ProjectIdeStateRecord,
   ProjectRecord,
@@ -903,6 +906,124 @@ export class TestApiStore implements ApiStore {
     this.projectCollaborators.delete(existing.id);
 
     return true;
+  }
+
+  groups = new Map<string, GroupRecord>();
+  groupMembers = new Map<string, GroupMemberRecord>();
+  accessGrants = new Map<string, AccessGrantRecord>();
+
+  async createGroup(input: { organizationId: string; name: string; scimManaged?: boolean }) {
+    const group: GroupRecord = {
+      id: id('group'),
+      organizationId: input.organizationId,
+      name: input.name,
+      scimManaged: input.scimManaged ?? false,
+      createdAt: now(),
+    };
+    this.groups.set(group.id, group);
+
+    return group;
+  }
+
+  async getGroup(groupId: string) {
+    return this.groups.get(groupId);
+  }
+
+  async listGroups(organizationId: string) {
+    return [...this.groups.values()].filter((group) => group.organizationId === organizationId);
+  }
+
+  async deleteGroup(groupId: string) {
+    return this.groups.delete(groupId);
+  }
+
+  async addGroupMember(input: { groupId: string; userId: string }) {
+    const member: GroupMemberRecord = { id: id('gmember'), ...input, createdAt: now() };
+    this.groupMembers.set(member.id, member);
+
+    return member;
+  }
+
+  async removeGroupMember(input: { groupId: string; userId: string }) {
+    const existing = [...this.groupMembers.values()].find(
+      (member) => member.groupId === input.groupId && member.userId === input.userId,
+    );
+
+    if (!existing) {
+      return false;
+    }
+
+    this.groupMembers.delete(existing.id);
+
+    return true;
+  }
+
+  async listGroupMembers(groupId: string) {
+    return [...this.groupMembers.values()].filter((member) => member.groupId === groupId);
+  }
+
+  async listUserGroupIds(userId: string, organizationId?: string) {
+    return [...this.groupMembers.values()]
+      .filter((member) => member.userId === userId)
+      .filter((member) =>
+        organizationId ? this.groups.get(member.groupId)?.organizationId === organizationId : true,
+      )
+      .map((member) => member.groupId);
+  }
+
+  async createAccessGrant(input: {
+    organizationId: string;
+    subjectType: 'USER' | 'GROUP';
+    subjectUserId?: string;
+    subjectGroupId?: string;
+    resourceType: 'PROJECT' | 'ARTIFACT' | 'DEPLOYMENT' | 'DATASET';
+    resourceId: string;
+    roleKey: string;
+    expiresAt?: Date | null;
+    grantedByUserId?: string;
+  }) {
+    const grant: AccessGrantRecord = {
+      id: id('grant'),
+      organizationId: input.organizationId,
+      subjectType: input.subjectType,
+      subjectUserId: input.subjectUserId,
+      subjectGroupId: input.subjectGroupId,
+      resourceType: input.resourceType,
+      resourceId: input.resourceId,
+      roleKey: input.roleKey,
+      expiresAt: input.expiresAt ? input.expiresAt.toISOString() : undefined,
+      grantedByUserId: input.grantedByUserId,
+      createdAt: now(),
+    };
+    this.accessGrants.set(grant.id, grant);
+
+    return grant;
+  }
+
+  async listAccessGrantsForResource(
+    resourceType: 'PROJECT' | 'ARTIFACT' | 'DEPLOYMENT' | 'DATASET',
+    resourceId: string,
+  ) {
+    return [...this.accessGrants.values()].filter(
+      (grant) => grant.resourceType === resourceType && grant.resourceId === resourceId,
+    );
+  }
+
+  async getAccessGrant(grantId: string) {
+    return this.accessGrants.get(grantId);
+  }
+
+  async revokeAccessGrant(input: { grantId: string; revokedByUserId?: string }) {
+    const grant = this.accessGrants.get(input.grantId);
+
+    if (!grant) {
+      return undefined;
+    }
+
+    const revoked: AccessGrantRecord = { ...grant, revokedAt: now(), revokedByUserId: input.revokedByUserId };
+    this.accessGrants.set(grant.id, revoked);
+
+    return revoked;
   }
 
   async recordProjectActivity(input: {

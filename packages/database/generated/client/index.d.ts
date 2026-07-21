@@ -671,6 +671,27 @@ export type ImportJob = $Result.DefaultSelection<Prisma.$ImportJobPayload>
  * listing regardless of later edits to the source project.
  */
 export type GalleryListing = $Result.DefaultSelection<Prisma.$GalleryListingPayload>
+/**
+ * Model Group
+ * A named set of members inside an organization. When scimManaged=true the
+ * SCIM connector is the ONLY writer — manual member edits are refused
+ * (GROUP_SCIM_MANAGED), per the contract's invariant 4.
+ */
+export type Group = $Result.DefaultSelection<Prisma.$GroupPayload>
+/**
+ * Model GroupMember
+ * 
+ */
+export type GroupMember = $Result.DefaultSelection<Prisma.$GroupMemberPayload>
+/**
+ * Model ResourceAccessGrant
+ * Generic access grant (contract entity "AccessGrant"): subject is a user or
+ * a group, resource is typed, scope is a role key. Carries expiry, explicit
+ * revocation (revokedAt/by) and grantedBy — all three are contract-required.
+ * Enforcement happens in requireProject's role resolution: expired or revoked
+ * grants confer NOTHING.
+ */
+export type ResourceAccessGrant = $Result.DefaultSelection<Prisma.$ResourceAccessGrantPayload>
 
 /**
  * Enums
@@ -858,6 +879,24 @@ export const ScheduledTaskRunStatus: {
 
 export type ScheduledTaskRunStatus = (typeof ScheduledTaskRunStatus)[keyof typeof ScheduledTaskRunStatus]
 
+
+export const AccessGrantSubjectType: {
+  USER: 'USER',
+  GROUP: 'GROUP'
+};
+
+export type AccessGrantSubjectType = (typeof AccessGrantSubjectType)[keyof typeof AccessGrantSubjectType]
+
+
+export const AccessGrantResourceType: {
+  PROJECT: 'PROJECT',
+  ARTIFACT: 'ARTIFACT',
+  DEPLOYMENT: 'DEPLOYMENT',
+  DATASET: 'DATASET'
+};
+
+export type AccessGrantResourceType = (typeof AccessGrantResourceType)[keyof typeof AccessGrantResourceType]
+
 }
 
 export type WorkspaceStatus = $Enums.WorkspaceStatus
@@ -927,6 +966,14 @@ export const ScheduledTaskKind: typeof $Enums.ScheduledTaskKind
 export type ScheduledTaskRunStatus = $Enums.ScheduledTaskRunStatus
 
 export const ScheduledTaskRunStatus: typeof $Enums.ScheduledTaskRunStatus
+
+export type AccessGrantSubjectType = $Enums.AccessGrantSubjectType
+
+export const AccessGrantSubjectType: typeof $Enums.AccessGrantSubjectType
+
+export type AccessGrantResourceType = $Enums.AccessGrantResourceType
+
+export const AccessGrantResourceType: typeof $Enums.AccessGrantResourceType
 
 /**
  * ##  Prisma Client ʲˢ
@@ -2158,6 +2205,36 @@ export class PrismaClient<
     * ```
     */
   get galleryListing(): Prisma.GalleryListingDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.group`: Exposes CRUD operations for the **Group** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Groups
+    * const groups = await prisma.group.findMany()
+    * ```
+    */
+  get group(): Prisma.GroupDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.groupMember`: Exposes CRUD operations for the **GroupMember** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more GroupMembers
+    * const groupMembers = await prisma.groupMember.findMany()
+    * ```
+    */
+  get groupMember(): Prisma.GroupMemberDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.resourceAccessGrant`: Exposes CRUD operations for the **ResourceAccessGrant** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ResourceAccessGrants
+    * const resourceAccessGrants = await prisma.resourceAccessGrant.findMany()
+    * ```
+    */
+  get resourceAccessGrant(): Prisma.ResourceAccessGrantDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -2702,7 +2779,10 @@ export namespace Prisma {
     AgentCallLog: 'AgentCallLog',
     RemixJob: 'RemixJob',
     ImportJob: 'ImportJob',
-    GalleryListing: 'GalleryListing'
+    GalleryListing: 'GalleryListing',
+    Group: 'Group',
+    GroupMember: 'GroupMember',
+    ResourceAccessGrant: 'ResourceAccessGrant'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -2718,7 +2798,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "remixJob" | "importJob" | "galleryListing"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "remixJob" | "importJob" | "galleryListing" | "group" | "groupMember" | "resourceAccessGrant"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -10920,6 +11000,228 @@ export namespace Prisma {
           }
         }
       }
+      Group: {
+        payload: Prisma.$GroupPayload<ExtArgs>
+        fields: Prisma.GroupFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.GroupFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GroupPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.GroupFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GroupPayload>
+          }
+          findFirst: {
+            args: Prisma.GroupFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GroupPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.GroupFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GroupPayload>
+          }
+          findMany: {
+            args: Prisma.GroupFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GroupPayload>[]
+          }
+          create: {
+            args: Prisma.GroupCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GroupPayload>
+          }
+          createMany: {
+            args: Prisma.GroupCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.GroupCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GroupPayload>[]
+          }
+          delete: {
+            args: Prisma.GroupDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GroupPayload>
+          }
+          update: {
+            args: Prisma.GroupUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GroupPayload>
+          }
+          deleteMany: {
+            args: Prisma.GroupDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.GroupUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.GroupUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GroupPayload>[]
+          }
+          upsert: {
+            args: Prisma.GroupUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GroupPayload>
+          }
+          aggregate: {
+            args: Prisma.GroupAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateGroup>
+          }
+          groupBy: {
+            args: Prisma.GroupGroupByArgs<ExtArgs>
+            result: $Utils.Optional<GroupGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.GroupCountArgs<ExtArgs>
+            result: $Utils.Optional<GroupCountAggregateOutputType> | number
+          }
+        }
+      }
+      GroupMember: {
+        payload: Prisma.$GroupMemberPayload<ExtArgs>
+        fields: Prisma.GroupMemberFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.GroupMemberFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GroupMemberPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.GroupMemberFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GroupMemberPayload>
+          }
+          findFirst: {
+            args: Prisma.GroupMemberFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GroupMemberPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.GroupMemberFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GroupMemberPayload>
+          }
+          findMany: {
+            args: Prisma.GroupMemberFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GroupMemberPayload>[]
+          }
+          create: {
+            args: Prisma.GroupMemberCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GroupMemberPayload>
+          }
+          createMany: {
+            args: Prisma.GroupMemberCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.GroupMemberCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GroupMemberPayload>[]
+          }
+          delete: {
+            args: Prisma.GroupMemberDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GroupMemberPayload>
+          }
+          update: {
+            args: Prisma.GroupMemberUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GroupMemberPayload>
+          }
+          deleteMany: {
+            args: Prisma.GroupMemberDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.GroupMemberUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.GroupMemberUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GroupMemberPayload>[]
+          }
+          upsert: {
+            args: Prisma.GroupMemberUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GroupMemberPayload>
+          }
+          aggregate: {
+            args: Prisma.GroupMemberAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateGroupMember>
+          }
+          groupBy: {
+            args: Prisma.GroupMemberGroupByArgs<ExtArgs>
+            result: $Utils.Optional<GroupMemberGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.GroupMemberCountArgs<ExtArgs>
+            result: $Utils.Optional<GroupMemberCountAggregateOutputType> | number
+          }
+        }
+      }
+      ResourceAccessGrant: {
+        payload: Prisma.$ResourceAccessGrantPayload<ExtArgs>
+        fields: Prisma.ResourceAccessGrantFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ResourceAccessGrantFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ResourceAccessGrantPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ResourceAccessGrantFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ResourceAccessGrantPayload>
+          }
+          findFirst: {
+            args: Prisma.ResourceAccessGrantFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ResourceAccessGrantPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ResourceAccessGrantFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ResourceAccessGrantPayload>
+          }
+          findMany: {
+            args: Prisma.ResourceAccessGrantFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ResourceAccessGrantPayload>[]
+          }
+          create: {
+            args: Prisma.ResourceAccessGrantCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ResourceAccessGrantPayload>
+          }
+          createMany: {
+            args: Prisma.ResourceAccessGrantCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ResourceAccessGrantCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ResourceAccessGrantPayload>[]
+          }
+          delete: {
+            args: Prisma.ResourceAccessGrantDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ResourceAccessGrantPayload>
+          }
+          update: {
+            args: Prisma.ResourceAccessGrantUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ResourceAccessGrantPayload>
+          }
+          deleteMany: {
+            args: Prisma.ResourceAccessGrantDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ResourceAccessGrantUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ResourceAccessGrantUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ResourceAccessGrantPayload>[]
+          }
+          upsert: {
+            args: Prisma.ResourceAccessGrantUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ResourceAccessGrantPayload>
+          }
+          aggregate: {
+            args: Prisma.ResourceAccessGrantAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateResourceAccessGrant>
+          }
+          groupBy: {
+            args: Prisma.ResourceAccessGrantGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ResourceAccessGrantGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ResourceAccessGrantCountArgs<ExtArgs>
+            result: $Utils.Optional<ResourceAccessGrantCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -11139,6 +11441,9 @@ export namespace Prisma {
     remixJob?: RemixJobOmit
     importJob?: ImportJobOmit
     galleryListing?: GalleryListingOmit
+    group?: GroupOmit
+    groupMember?: GroupMemberOmit
+    resourceAccessGrant?: ResourceAccessGrantOmit
   }
 
   /* Types for Logging */
@@ -11239,6 +11544,9 @@ export namespace Prisma {
     collaborationPresence: number
     collaborationComments: number
     collaborationShareLinks: number
+    groupMemberships: number
+    accessGrantsAsSubject: number
+    accessGrantsGranted: number
     agentMemories: number
     agentMemoryPreferences: number
     mcpInstalls: number
@@ -11274,6 +11582,9 @@ export namespace Prisma {
     collaborationPresence?: boolean | UserCountOutputTypeCountCollaborationPresenceArgs
     collaborationComments?: boolean | UserCountOutputTypeCountCollaborationCommentsArgs
     collaborationShareLinks?: boolean | UserCountOutputTypeCountCollaborationShareLinksArgs
+    groupMemberships?: boolean | UserCountOutputTypeCountGroupMembershipsArgs
+    accessGrantsAsSubject?: boolean | UserCountOutputTypeCountAccessGrantsAsSubjectArgs
+    accessGrantsGranted?: boolean | UserCountOutputTypeCountAccessGrantsGrantedArgs
     agentMemories?: boolean | UserCountOutputTypeCountAgentMemoriesArgs
     agentMemoryPreferences?: boolean | UserCountOutputTypeCountAgentMemoryPreferencesArgs
     mcpInstalls?: boolean | UserCountOutputTypeCountMcpInstallsArgs
@@ -11442,6 +11753,27 @@ export namespace Prisma {
   /**
    * UserCountOutputType without action
    */
+  export type UserCountOutputTypeCountGroupMembershipsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GroupMemberWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountAccessGrantsAsSubjectArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ResourceAccessGrantWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountAccessGrantsGrantedArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ResourceAccessGrantWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
   export type UserCountOutputTypeCountAgentMemoriesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: AgentMemoryWhereInput
   }
@@ -11547,6 +11879,8 @@ export namespace Prisma {
     ssoConfigurations: number
     scimTokens: number
     customRoles: number
+    groups: number
+    resourceAccessGrants: number
     siemWebhooks: number
     projectTemplates: number
     agentMemories: number
@@ -11581,6 +11915,8 @@ export namespace Prisma {
     ssoConfigurations?: boolean | OrganizationCountOutputTypeCountSsoConfigurationsArgs
     scimTokens?: boolean | OrganizationCountOutputTypeCountScimTokensArgs
     customRoles?: boolean | OrganizationCountOutputTypeCountCustomRolesArgs
+    groups?: boolean | OrganizationCountOutputTypeCountGroupsArgs
+    resourceAccessGrants?: boolean | OrganizationCountOutputTypeCountResourceAccessGrantsArgs
     siemWebhooks?: boolean | OrganizationCountOutputTypeCountSiemWebhooksArgs
     projectTemplates?: boolean | OrganizationCountOutputTypeCountProjectTemplatesArgs
     agentMemories?: boolean | OrganizationCountOutputTypeCountAgentMemoriesArgs
@@ -11731,6 +12067,20 @@ export namespace Prisma {
    */
   export type OrganizationCountOutputTypeCountCustomRolesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: CustomRoleWhereInput
+  }
+
+  /**
+   * OrganizationCountOutputType without action
+   */
+  export type OrganizationCountOutputTypeCountGroupsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GroupWhereInput
+  }
+
+  /**
+   * OrganizationCountOutputType without action
+   */
+  export type OrganizationCountOutputTypeCountResourceAccessGrantsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ResourceAccessGrantWhereInput
   }
 
   /**
@@ -12614,6 +12964,46 @@ export namespace Prisma {
 
 
   /**
+   * Count Type GroupCountOutputType
+   */
+
+  export type GroupCountOutputType = {
+    members: number
+    accessGrants: number
+  }
+
+  export type GroupCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    members?: boolean | GroupCountOutputTypeCountMembersArgs
+    accessGrants?: boolean | GroupCountOutputTypeCountAccessGrantsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * GroupCountOutputType without action
+   */
+  export type GroupCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GroupCountOutputType
+     */
+    select?: GroupCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * GroupCountOutputType without action
+   */
+  export type GroupCountOutputTypeCountMembersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GroupMemberWhereInput
+  }
+
+  /**
+   * GroupCountOutputType without action
+   */
+  export type GroupCountOutputTypeCountAccessGrantsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ResourceAccessGrantWhereInput
+  }
+
+
+  /**
    * Models
    */
 
@@ -12869,6 +13259,9 @@ export namespace Prisma {
     collaborationPresence?: boolean | User$collaborationPresenceArgs<ExtArgs>
     collaborationComments?: boolean | User$collaborationCommentsArgs<ExtArgs>
     collaborationShareLinks?: boolean | User$collaborationShareLinksArgs<ExtArgs>
+    groupMemberships?: boolean | User$groupMembershipsArgs<ExtArgs>
+    accessGrantsAsSubject?: boolean | User$accessGrantsAsSubjectArgs<ExtArgs>
+    accessGrantsGranted?: boolean | User$accessGrantsGrantedArgs<ExtArgs>
     agentMemories?: boolean | User$agentMemoriesArgs<ExtArgs>
     agentMemoryPreferences?: boolean | User$agentMemoryPreferencesArgs<ExtArgs>
     mcpInstalls?: boolean | User$mcpInstallsArgs<ExtArgs>
@@ -12958,6 +13351,9 @@ export namespace Prisma {
     collaborationPresence?: boolean | User$collaborationPresenceArgs<ExtArgs>
     collaborationComments?: boolean | User$collaborationCommentsArgs<ExtArgs>
     collaborationShareLinks?: boolean | User$collaborationShareLinksArgs<ExtArgs>
+    groupMemberships?: boolean | User$groupMembershipsArgs<ExtArgs>
+    accessGrantsAsSubject?: boolean | User$accessGrantsAsSubjectArgs<ExtArgs>
+    accessGrantsGranted?: boolean | User$accessGrantsGrantedArgs<ExtArgs>
     agentMemories?: boolean | User$agentMemoriesArgs<ExtArgs>
     agentMemoryPreferences?: boolean | User$agentMemoryPreferencesArgs<ExtArgs>
     mcpInstalls?: boolean | User$mcpInstallsArgs<ExtArgs>
@@ -12999,6 +13395,9 @@ export namespace Prisma {
       collaborationPresence: Prisma.$CollaborationPresencePayload<ExtArgs>[]
       collaborationComments: Prisma.$CollaborationCommentPayload<ExtArgs>[]
       collaborationShareLinks: Prisma.$ProjectShareLinkPayload<ExtArgs>[]
+      groupMemberships: Prisma.$GroupMemberPayload<ExtArgs>[]
+      accessGrantsAsSubject: Prisma.$ResourceAccessGrantPayload<ExtArgs>[]
+      accessGrantsGranted: Prisma.$ResourceAccessGrantPayload<ExtArgs>[]
       agentMemories: Prisma.$AgentMemoryPayload<ExtArgs>[]
       agentMemoryPreferences: Prisma.$AgentMemoryPreferencePayload<ExtArgs>[]
       mcpInstalls: Prisma.$McpInstallPayload<ExtArgs>[]
@@ -13442,6 +13841,9 @@ export namespace Prisma {
     collaborationPresence<T extends User$collaborationPresenceArgs<ExtArgs> = {}>(args?: Subset<T, User$collaborationPresenceArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CollaborationPresencePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     collaborationComments<T extends User$collaborationCommentsArgs<ExtArgs> = {}>(args?: Subset<T, User$collaborationCommentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CollaborationCommentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     collaborationShareLinks<T extends User$collaborationShareLinksArgs<ExtArgs> = {}>(args?: Subset<T, User$collaborationShareLinksArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectShareLinkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    groupMemberships<T extends User$groupMembershipsArgs<ExtArgs> = {}>(args?: Subset<T, User$groupMembershipsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GroupMemberPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    accessGrantsAsSubject<T extends User$accessGrantsAsSubjectArgs<ExtArgs> = {}>(args?: Subset<T, User$accessGrantsAsSubjectArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ResourceAccessGrantPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    accessGrantsGranted<T extends User$accessGrantsGrantedArgs<ExtArgs> = {}>(args?: Subset<T, User$accessGrantsGrantedArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ResourceAccessGrantPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     agentMemories<T extends User$agentMemoriesArgs<ExtArgs> = {}>(args?: Subset<T, User$agentMemoriesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentMemoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     agentMemoryPreferences<T extends User$agentMemoryPreferencesArgs<ExtArgs> = {}>(args?: Subset<T, User$agentMemoryPreferencesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentMemoryPreferencePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     mcpInstalls<T extends User$mcpInstallsArgs<ExtArgs> = {}>(args?: Subset<T, User$mcpInstallsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$McpInstallPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -14368,6 +14770,78 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: ProjectShareLinkScalarFieldEnum | ProjectShareLinkScalarFieldEnum[]
+  }
+
+  /**
+   * User.groupMemberships
+   */
+  export type User$groupMembershipsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GroupMember
+     */
+    select?: GroupMemberSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the GroupMember
+     */
+    omit?: GroupMemberOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GroupMemberInclude<ExtArgs> | null
+    where?: GroupMemberWhereInput
+    orderBy?: GroupMemberOrderByWithRelationInput | GroupMemberOrderByWithRelationInput[]
+    cursor?: GroupMemberWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: GroupMemberScalarFieldEnum | GroupMemberScalarFieldEnum[]
+  }
+
+  /**
+   * User.accessGrantsAsSubject
+   */
+  export type User$accessGrantsAsSubjectArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ResourceAccessGrant
+     */
+    select?: ResourceAccessGrantSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ResourceAccessGrant
+     */
+    omit?: ResourceAccessGrantOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ResourceAccessGrantInclude<ExtArgs> | null
+    where?: ResourceAccessGrantWhereInput
+    orderBy?: ResourceAccessGrantOrderByWithRelationInput | ResourceAccessGrantOrderByWithRelationInput[]
+    cursor?: ResourceAccessGrantWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ResourceAccessGrantScalarFieldEnum | ResourceAccessGrantScalarFieldEnum[]
+  }
+
+  /**
+   * User.accessGrantsGranted
+   */
+  export type User$accessGrantsGrantedArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ResourceAccessGrant
+     */
+    select?: ResourceAccessGrantSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ResourceAccessGrant
+     */
+    omit?: ResourceAccessGrantOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ResourceAccessGrantInclude<ExtArgs> | null
+    where?: ResourceAccessGrantWhereInput
+    orderBy?: ResourceAccessGrantOrderByWithRelationInput | ResourceAccessGrantOrderByWithRelationInput[]
+    cursor?: ResourceAccessGrantWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ResourceAccessGrantScalarFieldEnum | ResourceAccessGrantScalarFieldEnum[]
   }
 
   /**
@@ -17105,6 +17579,8 @@ export namespace Prisma {
     ssoConfigurations?: boolean | Organization$ssoConfigurationsArgs<ExtArgs>
     scimTokens?: boolean | Organization$scimTokensArgs<ExtArgs>
     customRoles?: boolean | Organization$customRolesArgs<ExtArgs>
+    groups?: boolean | Organization$groupsArgs<ExtArgs>
+    resourceAccessGrants?: boolean | Organization$resourceAccessGrantsArgs<ExtArgs>
     siemWebhooks?: boolean | Organization$siemWebhooksArgs<ExtArgs>
     projectTemplates?: boolean | Organization$projectTemplatesArgs<ExtArgs>
     agentMemories?: boolean | Organization$agentMemoriesArgs<ExtArgs>
@@ -17171,6 +17647,8 @@ export namespace Prisma {
     ssoConfigurations?: boolean | Organization$ssoConfigurationsArgs<ExtArgs>
     scimTokens?: boolean | Organization$scimTokensArgs<ExtArgs>
     customRoles?: boolean | Organization$customRolesArgs<ExtArgs>
+    groups?: boolean | Organization$groupsArgs<ExtArgs>
+    resourceAccessGrants?: boolean | Organization$resourceAccessGrantsArgs<ExtArgs>
     siemWebhooks?: boolean | Organization$siemWebhooksArgs<ExtArgs>
     projectTemplates?: boolean | Organization$projectTemplatesArgs<ExtArgs>
     agentMemories?: boolean | Organization$agentMemoriesArgs<ExtArgs>
@@ -17213,6 +17691,8 @@ export namespace Prisma {
       ssoConfigurations: Prisma.$SsoConfigurationPayload<ExtArgs>[]
       scimTokens: Prisma.$ScimTokenPayload<ExtArgs>[]
       customRoles: Prisma.$CustomRolePayload<ExtArgs>[]
+      groups: Prisma.$GroupPayload<ExtArgs>[]
+      resourceAccessGrants: Prisma.$ResourceAccessGrantPayload<ExtArgs>[]
       siemWebhooks: Prisma.$SiemWebhookPayload<ExtArgs>[]
       projectTemplates: Prisma.$ProjectTemplatePayload<ExtArgs>[]
       agentMemories: Prisma.$AgentMemoryPayload<ExtArgs>[]
@@ -17652,6 +18132,8 @@ export namespace Prisma {
     ssoConfigurations<T extends Organization$ssoConfigurationsArgs<ExtArgs> = {}>(args?: Subset<T, Organization$ssoConfigurationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SsoConfigurationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     scimTokens<T extends Organization$scimTokensArgs<ExtArgs> = {}>(args?: Subset<T, Organization$scimTokensArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ScimTokenPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     customRoles<T extends Organization$customRolesArgs<ExtArgs> = {}>(args?: Subset<T, Organization$customRolesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CustomRolePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    groups<T extends Organization$groupsArgs<ExtArgs> = {}>(args?: Subset<T, Organization$groupsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GroupPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    resourceAccessGrants<T extends Organization$resourceAccessGrantsArgs<ExtArgs> = {}>(args?: Subset<T, Organization$resourceAccessGrantsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ResourceAccessGrantPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     siemWebhooks<T extends Organization$siemWebhooksArgs<ExtArgs> = {}>(args?: Subset<T, Organization$siemWebhooksArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SiemWebhookPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     projectTemplates<T extends Organization$projectTemplatesArgs<ExtArgs> = {}>(args?: Subset<T, Organization$projectTemplatesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectTemplatePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     agentMemories<T extends Organization$agentMemoriesArgs<ExtArgs> = {}>(args?: Subset<T, Organization$agentMemoriesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentMemoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -18564,6 +19046,54 @@ export namespace Prisma {
   }
 
   /**
+   * Organization.groups
+   */
+  export type Organization$groupsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Group
+     */
+    select?: GroupSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Group
+     */
+    omit?: GroupOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GroupInclude<ExtArgs> | null
+    where?: GroupWhereInput
+    orderBy?: GroupOrderByWithRelationInput | GroupOrderByWithRelationInput[]
+    cursor?: GroupWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: GroupScalarFieldEnum | GroupScalarFieldEnum[]
+  }
+
+  /**
+   * Organization.resourceAccessGrants
+   */
+  export type Organization$resourceAccessGrantsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ResourceAccessGrant
+     */
+    select?: ResourceAccessGrantSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ResourceAccessGrant
+     */
+    omit?: ResourceAccessGrantOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ResourceAccessGrantInclude<ExtArgs> | null
+    where?: ResourceAccessGrantWhereInput
+    orderBy?: ResourceAccessGrantOrderByWithRelationInput | ResourceAccessGrantOrderByWithRelationInput[]
+    cursor?: ResourceAccessGrantWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ResourceAccessGrantScalarFieldEnum | ResourceAccessGrantScalarFieldEnum[]
+  }
+
+  /**
    * Organization.siemWebhooks
    */
   export type Organization$siemWebhooksArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -18928,6 +19458,9 @@ export namespace Prisma {
     organizationId: string | null
     userId: string | null
     roleId: string | null
+    state: string | null
+    invitedByUserId: string | null
+    joinedAt: Date | null
     createdAt: Date | null
   }
 
@@ -18936,6 +19469,9 @@ export namespace Prisma {
     organizationId: string | null
     userId: string | null
     roleId: string | null
+    state: string | null
+    invitedByUserId: string | null
+    joinedAt: Date | null
     createdAt: Date | null
   }
 
@@ -18944,6 +19480,9 @@ export namespace Prisma {
     organizationId: number
     userId: number
     roleId: number
+    state: number
+    invitedByUserId: number
+    joinedAt: number
     createdAt: number
     _all: number
   }
@@ -18954,6 +19493,9 @@ export namespace Prisma {
     organizationId?: true
     userId?: true
     roleId?: true
+    state?: true
+    invitedByUserId?: true
+    joinedAt?: true
     createdAt?: true
   }
 
@@ -18962,6 +19504,9 @@ export namespace Prisma {
     organizationId?: true
     userId?: true
     roleId?: true
+    state?: true
+    invitedByUserId?: true
+    joinedAt?: true
     createdAt?: true
   }
 
@@ -18970,6 +19515,9 @@ export namespace Prisma {
     organizationId?: true
     userId?: true
     roleId?: true
+    state?: true
+    invitedByUserId?: true
+    joinedAt?: true
     createdAt?: true
     _all?: true
   }
@@ -19051,6 +19599,9 @@ export namespace Prisma {
     organizationId: string
     userId: string
     roleId: string
+    state: string
+    invitedByUserId: string | null
+    joinedAt: Date
     createdAt: Date
     _count: OrganizationMemberCountAggregateOutputType | null
     _min: OrganizationMemberMinAggregateOutputType | null
@@ -19076,6 +19627,9 @@ export namespace Prisma {
     organizationId?: boolean
     userId?: boolean
     roleId?: boolean
+    state?: boolean
+    invitedByUserId?: boolean
+    joinedAt?: boolean
     createdAt?: boolean
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
     user?: boolean | UserDefaultArgs<ExtArgs>
@@ -19087,6 +19641,9 @@ export namespace Prisma {
     organizationId?: boolean
     userId?: boolean
     roleId?: boolean
+    state?: boolean
+    invitedByUserId?: boolean
+    joinedAt?: boolean
     createdAt?: boolean
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
     user?: boolean | UserDefaultArgs<ExtArgs>
@@ -19098,6 +19655,9 @@ export namespace Prisma {
     organizationId?: boolean
     userId?: boolean
     roleId?: boolean
+    state?: boolean
+    invitedByUserId?: boolean
+    joinedAt?: boolean
     createdAt?: boolean
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
     user?: boolean | UserDefaultArgs<ExtArgs>
@@ -19109,10 +19669,13 @@ export namespace Prisma {
     organizationId?: boolean
     userId?: boolean
     roleId?: boolean
+    state?: boolean
+    invitedByUserId?: boolean
+    joinedAt?: boolean
     createdAt?: boolean
   }
 
-  export type OrganizationMemberOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "userId" | "roleId" | "createdAt", ExtArgs["result"]["organizationMember"]>
+  export type OrganizationMemberOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "userId" | "roleId" | "state" | "invitedByUserId" | "joinedAt" | "createdAt", ExtArgs["result"]["organizationMember"]>
   export type OrganizationMemberInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
     user?: boolean | UserDefaultArgs<ExtArgs>
@@ -19141,6 +19704,16 @@ export namespace Prisma {
       organizationId: string
       userId: string
       roleId: string
+      /**
+       * Membership state (contract): ACTIVE | SUSPENDED. Suspended members keep
+       * the row but confer no access.
+       */
+      state: string
+      /**
+       * Who invited this member (contract: invitedBy). Null for founders/seeds.
+       */
+      invitedByUserId: string | null
+      joinedAt: Date
       createdAt: Date
     }, ExtArgs["result"]["organizationMember"]>
     composites: {}
@@ -19572,6 +20145,9 @@ export namespace Prisma {
     readonly organizationId: FieldRef<"OrganizationMember", 'String'>
     readonly userId: FieldRef<"OrganizationMember", 'String'>
     readonly roleId: FieldRef<"OrganizationMember", 'String'>
+    readonly state: FieldRef<"OrganizationMember", 'String'>
+    readonly invitedByUserId: FieldRef<"OrganizationMember", 'String'>
+    readonly joinedAt: FieldRef<"OrganizationMember", 'DateTime'>
     readonly createdAt: FieldRef<"OrganizationMember", 'DateTime'>
   }
     
@@ -140866,6 +141442,3462 @@ export namespace Prisma {
 
 
   /**
+   * Model Group
+   */
+
+  export type AggregateGroup = {
+    _count: GroupCountAggregateOutputType | null
+    _min: GroupMinAggregateOutputType | null
+    _max: GroupMaxAggregateOutputType | null
+  }
+
+  export type GroupMinAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    name: string | null
+    scimManaged: boolean | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type GroupMaxAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    name: string | null
+    scimManaged: boolean | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type GroupCountAggregateOutputType = {
+    id: number
+    organizationId: number
+    name: number
+    scimManaged: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type GroupMinAggregateInputType = {
+    id?: true
+    organizationId?: true
+    name?: true
+    scimManaged?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type GroupMaxAggregateInputType = {
+    id?: true
+    organizationId?: true
+    name?: true
+    scimManaged?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type GroupCountAggregateInputType = {
+    id?: true
+    organizationId?: true
+    name?: true
+    scimManaged?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type GroupAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Group to aggregate.
+     */
+    where?: GroupWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Groups to fetch.
+     */
+    orderBy?: GroupOrderByWithRelationInput | GroupOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: GroupWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Groups from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Groups.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned Groups
+    **/
+    _count?: true | GroupCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: GroupMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: GroupMaxAggregateInputType
+  }
+
+  export type GetGroupAggregateType<T extends GroupAggregateArgs> = {
+        [P in keyof T & keyof AggregateGroup]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateGroup[P]>
+      : GetScalarType<T[P], AggregateGroup[P]>
+  }
+
+
+
+
+  export type GroupGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GroupWhereInput
+    orderBy?: GroupOrderByWithAggregationInput | GroupOrderByWithAggregationInput[]
+    by: GroupScalarFieldEnum[] | GroupScalarFieldEnum
+    having?: GroupScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: GroupCountAggregateInputType | true
+    _min?: GroupMinAggregateInputType
+    _max?: GroupMaxAggregateInputType
+  }
+
+  export type GroupGroupByOutputType = {
+    id: string
+    organizationId: string
+    name: string
+    scimManaged: boolean
+    createdAt: Date
+    updatedAt: Date
+    _count: GroupCountAggregateOutputType | null
+    _min: GroupMinAggregateOutputType | null
+    _max: GroupMaxAggregateOutputType | null
+  }
+
+  type GetGroupGroupByPayload<T extends GroupGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<GroupGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof GroupGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], GroupGroupByOutputType[P]>
+            : GetScalarType<T[P], GroupGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type GroupSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    name?: boolean
+    scimManaged?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    members?: boolean | Group$membersArgs<ExtArgs>
+    accessGrants?: boolean | Group$accessGrantsArgs<ExtArgs>
+    _count?: boolean | GroupCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["group"]>
+
+  export type GroupSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    name?: boolean
+    scimManaged?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["group"]>
+
+  export type GroupSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    name?: boolean
+    scimManaged?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["group"]>
+
+  export type GroupSelectScalar = {
+    id?: boolean
+    organizationId?: boolean
+    name?: boolean
+    scimManaged?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type GroupOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "name" | "scimManaged" | "createdAt" | "updatedAt", ExtArgs["result"]["group"]>
+  export type GroupInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    members?: boolean | Group$membersArgs<ExtArgs>
+    accessGrants?: boolean | Group$accessGrantsArgs<ExtArgs>
+    _count?: boolean | GroupCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type GroupIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+  }
+  export type GroupIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+  }
+
+  export type $GroupPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "Group"
+    objects: {
+      organization: Prisma.$OrganizationPayload<ExtArgs>
+      members: Prisma.$GroupMemberPayload<ExtArgs>[]
+      accessGrants: Prisma.$ResourceAccessGrantPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      organizationId: string
+      name: string
+      scimManaged: boolean
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["group"]>
+    composites: {}
+  }
+
+  type GroupGetPayload<S extends boolean | null | undefined | GroupDefaultArgs> = $Result.GetResult<Prisma.$GroupPayload, S>
+
+  type GroupCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<GroupFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: GroupCountAggregateInputType | true
+    }
+
+  export interface GroupDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['Group'], meta: { name: 'Group' } }
+    /**
+     * Find zero or one Group that matches the filter.
+     * @param {GroupFindUniqueArgs} args - Arguments to find a Group
+     * @example
+     * // Get one Group
+     * const group = await prisma.group.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends GroupFindUniqueArgs>(args: SelectSubset<T, GroupFindUniqueArgs<ExtArgs>>): Prisma__GroupClient<$Result.GetResult<Prisma.$GroupPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Group that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {GroupFindUniqueOrThrowArgs} args - Arguments to find a Group
+     * @example
+     * // Get one Group
+     * const group = await prisma.group.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends GroupFindUniqueOrThrowArgs>(args: SelectSubset<T, GroupFindUniqueOrThrowArgs<ExtArgs>>): Prisma__GroupClient<$Result.GetResult<Prisma.$GroupPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Group that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GroupFindFirstArgs} args - Arguments to find a Group
+     * @example
+     * // Get one Group
+     * const group = await prisma.group.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends GroupFindFirstArgs>(args?: SelectSubset<T, GroupFindFirstArgs<ExtArgs>>): Prisma__GroupClient<$Result.GetResult<Prisma.$GroupPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Group that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GroupFindFirstOrThrowArgs} args - Arguments to find a Group
+     * @example
+     * // Get one Group
+     * const group = await prisma.group.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends GroupFindFirstOrThrowArgs>(args?: SelectSubset<T, GroupFindFirstOrThrowArgs<ExtArgs>>): Prisma__GroupClient<$Result.GetResult<Prisma.$GroupPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Groups that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GroupFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Groups
+     * const groups = await prisma.group.findMany()
+     * 
+     * // Get first 10 Groups
+     * const groups = await prisma.group.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const groupWithIdOnly = await prisma.group.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends GroupFindManyArgs>(args?: SelectSubset<T, GroupFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GroupPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Group.
+     * @param {GroupCreateArgs} args - Arguments to create a Group.
+     * @example
+     * // Create one Group
+     * const Group = await prisma.group.create({
+     *   data: {
+     *     // ... data to create a Group
+     *   }
+     * })
+     * 
+     */
+    create<T extends GroupCreateArgs>(args: SelectSubset<T, GroupCreateArgs<ExtArgs>>): Prisma__GroupClient<$Result.GetResult<Prisma.$GroupPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Groups.
+     * @param {GroupCreateManyArgs} args - Arguments to create many Groups.
+     * @example
+     * // Create many Groups
+     * const group = await prisma.group.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends GroupCreateManyArgs>(args?: SelectSubset<T, GroupCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Groups and returns the data saved in the database.
+     * @param {GroupCreateManyAndReturnArgs} args - Arguments to create many Groups.
+     * @example
+     * // Create many Groups
+     * const group = await prisma.group.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Groups and only return the `id`
+     * const groupWithIdOnly = await prisma.group.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends GroupCreateManyAndReturnArgs>(args?: SelectSubset<T, GroupCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GroupPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Group.
+     * @param {GroupDeleteArgs} args - Arguments to delete one Group.
+     * @example
+     * // Delete one Group
+     * const Group = await prisma.group.delete({
+     *   where: {
+     *     // ... filter to delete one Group
+     *   }
+     * })
+     * 
+     */
+    delete<T extends GroupDeleteArgs>(args: SelectSubset<T, GroupDeleteArgs<ExtArgs>>): Prisma__GroupClient<$Result.GetResult<Prisma.$GroupPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Group.
+     * @param {GroupUpdateArgs} args - Arguments to update one Group.
+     * @example
+     * // Update one Group
+     * const group = await prisma.group.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends GroupUpdateArgs>(args: SelectSubset<T, GroupUpdateArgs<ExtArgs>>): Prisma__GroupClient<$Result.GetResult<Prisma.$GroupPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Groups.
+     * @param {GroupDeleteManyArgs} args - Arguments to filter Groups to delete.
+     * @example
+     * // Delete a few Groups
+     * const { count } = await prisma.group.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends GroupDeleteManyArgs>(args?: SelectSubset<T, GroupDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Groups.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GroupUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Groups
+     * const group = await prisma.group.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends GroupUpdateManyArgs>(args: SelectSubset<T, GroupUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Groups and returns the data updated in the database.
+     * @param {GroupUpdateManyAndReturnArgs} args - Arguments to update many Groups.
+     * @example
+     * // Update many Groups
+     * const group = await prisma.group.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Groups and only return the `id`
+     * const groupWithIdOnly = await prisma.group.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends GroupUpdateManyAndReturnArgs>(args: SelectSubset<T, GroupUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GroupPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Group.
+     * @param {GroupUpsertArgs} args - Arguments to update or create a Group.
+     * @example
+     * // Update or create a Group
+     * const group = await prisma.group.upsert({
+     *   create: {
+     *     // ... data to create a Group
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Group we want to update
+     *   }
+     * })
+     */
+    upsert<T extends GroupUpsertArgs>(args: SelectSubset<T, GroupUpsertArgs<ExtArgs>>): Prisma__GroupClient<$Result.GetResult<Prisma.$GroupPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Groups.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GroupCountArgs} args - Arguments to filter Groups to count.
+     * @example
+     * // Count the number of Groups
+     * const count = await prisma.group.count({
+     *   where: {
+     *     // ... the filter for the Groups we want to count
+     *   }
+     * })
+    **/
+    count<T extends GroupCountArgs>(
+      args?: Subset<T, GroupCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], GroupCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Group.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GroupAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends GroupAggregateArgs>(args: Subset<T, GroupAggregateArgs>): Prisma.PrismaPromise<GetGroupAggregateType<T>>
+
+    /**
+     * Group by Group.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GroupGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends GroupGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: GroupGroupByArgs['orderBy'] }
+        : { orderBy?: GroupGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, GroupGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetGroupGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the Group model
+   */
+  readonly fields: GroupFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for Group.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__GroupClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    organization<T extends OrganizationDefaultArgs<ExtArgs> = {}>(args?: Subset<T, OrganizationDefaultArgs<ExtArgs>>): Prisma__OrganizationClient<$Result.GetResult<Prisma.$OrganizationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    members<T extends Group$membersArgs<ExtArgs> = {}>(args?: Subset<T, Group$membersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GroupMemberPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    accessGrants<T extends Group$accessGrantsArgs<ExtArgs> = {}>(args?: Subset<T, Group$accessGrantsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ResourceAccessGrantPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the Group model
+   */
+  interface GroupFieldRefs {
+    readonly id: FieldRef<"Group", 'String'>
+    readonly organizationId: FieldRef<"Group", 'String'>
+    readonly name: FieldRef<"Group", 'String'>
+    readonly scimManaged: FieldRef<"Group", 'Boolean'>
+    readonly createdAt: FieldRef<"Group", 'DateTime'>
+    readonly updatedAt: FieldRef<"Group", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * Group findUnique
+   */
+  export type GroupFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Group
+     */
+    select?: GroupSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Group
+     */
+    omit?: GroupOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GroupInclude<ExtArgs> | null
+    /**
+     * Filter, which Group to fetch.
+     */
+    where: GroupWhereUniqueInput
+  }
+
+  /**
+   * Group findUniqueOrThrow
+   */
+  export type GroupFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Group
+     */
+    select?: GroupSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Group
+     */
+    omit?: GroupOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GroupInclude<ExtArgs> | null
+    /**
+     * Filter, which Group to fetch.
+     */
+    where: GroupWhereUniqueInput
+  }
+
+  /**
+   * Group findFirst
+   */
+  export type GroupFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Group
+     */
+    select?: GroupSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Group
+     */
+    omit?: GroupOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GroupInclude<ExtArgs> | null
+    /**
+     * Filter, which Group to fetch.
+     */
+    where?: GroupWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Groups to fetch.
+     */
+    orderBy?: GroupOrderByWithRelationInput | GroupOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Groups.
+     */
+    cursor?: GroupWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Groups from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Groups.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Groups.
+     */
+    distinct?: GroupScalarFieldEnum | GroupScalarFieldEnum[]
+  }
+
+  /**
+   * Group findFirstOrThrow
+   */
+  export type GroupFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Group
+     */
+    select?: GroupSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Group
+     */
+    omit?: GroupOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GroupInclude<ExtArgs> | null
+    /**
+     * Filter, which Group to fetch.
+     */
+    where?: GroupWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Groups to fetch.
+     */
+    orderBy?: GroupOrderByWithRelationInput | GroupOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Groups.
+     */
+    cursor?: GroupWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Groups from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Groups.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Groups.
+     */
+    distinct?: GroupScalarFieldEnum | GroupScalarFieldEnum[]
+  }
+
+  /**
+   * Group findMany
+   */
+  export type GroupFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Group
+     */
+    select?: GroupSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Group
+     */
+    omit?: GroupOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GroupInclude<ExtArgs> | null
+    /**
+     * Filter, which Groups to fetch.
+     */
+    where?: GroupWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Groups to fetch.
+     */
+    orderBy?: GroupOrderByWithRelationInput | GroupOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing Groups.
+     */
+    cursor?: GroupWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Groups from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Groups.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Groups.
+     */
+    distinct?: GroupScalarFieldEnum | GroupScalarFieldEnum[]
+  }
+
+  /**
+   * Group create
+   */
+  export type GroupCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Group
+     */
+    select?: GroupSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Group
+     */
+    omit?: GroupOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GroupInclude<ExtArgs> | null
+    /**
+     * The data needed to create a Group.
+     */
+    data: XOR<GroupCreateInput, GroupUncheckedCreateInput>
+  }
+
+  /**
+   * Group createMany
+   */
+  export type GroupCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many Groups.
+     */
+    data: GroupCreateManyInput | GroupCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * Group createManyAndReturn
+   */
+  export type GroupCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Group
+     */
+    select?: GroupSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the Group
+     */
+    omit?: GroupOmit<ExtArgs> | null
+    /**
+     * The data used to create many Groups.
+     */
+    data: GroupCreateManyInput | GroupCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GroupIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * Group update
+   */
+  export type GroupUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Group
+     */
+    select?: GroupSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Group
+     */
+    omit?: GroupOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GroupInclude<ExtArgs> | null
+    /**
+     * The data needed to update a Group.
+     */
+    data: XOR<GroupUpdateInput, GroupUncheckedUpdateInput>
+    /**
+     * Choose, which Group to update.
+     */
+    where: GroupWhereUniqueInput
+  }
+
+  /**
+   * Group updateMany
+   */
+  export type GroupUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update Groups.
+     */
+    data: XOR<GroupUpdateManyMutationInput, GroupUncheckedUpdateManyInput>
+    /**
+     * Filter which Groups to update
+     */
+    where?: GroupWhereInput
+    /**
+     * Limit how many Groups to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * Group updateManyAndReturn
+   */
+  export type GroupUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Group
+     */
+    select?: GroupSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the Group
+     */
+    omit?: GroupOmit<ExtArgs> | null
+    /**
+     * The data used to update Groups.
+     */
+    data: XOR<GroupUpdateManyMutationInput, GroupUncheckedUpdateManyInput>
+    /**
+     * Filter which Groups to update
+     */
+    where?: GroupWhereInput
+    /**
+     * Limit how many Groups to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GroupIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * Group upsert
+   */
+  export type GroupUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Group
+     */
+    select?: GroupSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Group
+     */
+    omit?: GroupOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GroupInclude<ExtArgs> | null
+    /**
+     * The filter to search for the Group to update in case it exists.
+     */
+    where: GroupWhereUniqueInput
+    /**
+     * In case the Group found by the `where` argument doesn't exist, create a new Group with this data.
+     */
+    create: XOR<GroupCreateInput, GroupUncheckedCreateInput>
+    /**
+     * In case the Group was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<GroupUpdateInput, GroupUncheckedUpdateInput>
+  }
+
+  /**
+   * Group delete
+   */
+  export type GroupDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Group
+     */
+    select?: GroupSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Group
+     */
+    omit?: GroupOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GroupInclude<ExtArgs> | null
+    /**
+     * Filter which Group to delete.
+     */
+    where: GroupWhereUniqueInput
+  }
+
+  /**
+   * Group deleteMany
+   */
+  export type GroupDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Groups to delete
+     */
+    where?: GroupWhereInput
+    /**
+     * Limit how many Groups to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * Group.members
+   */
+  export type Group$membersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GroupMember
+     */
+    select?: GroupMemberSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the GroupMember
+     */
+    omit?: GroupMemberOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GroupMemberInclude<ExtArgs> | null
+    where?: GroupMemberWhereInput
+    orderBy?: GroupMemberOrderByWithRelationInput | GroupMemberOrderByWithRelationInput[]
+    cursor?: GroupMemberWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: GroupMemberScalarFieldEnum | GroupMemberScalarFieldEnum[]
+  }
+
+  /**
+   * Group.accessGrants
+   */
+  export type Group$accessGrantsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ResourceAccessGrant
+     */
+    select?: ResourceAccessGrantSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ResourceAccessGrant
+     */
+    omit?: ResourceAccessGrantOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ResourceAccessGrantInclude<ExtArgs> | null
+    where?: ResourceAccessGrantWhereInput
+    orderBy?: ResourceAccessGrantOrderByWithRelationInput | ResourceAccessGrantOrderByWithRelationInput[]
+    cursor?: ResourceAccessGrantWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ResourceAccessGrantScalarFieldEnum | ResourceAccessGrantScalarFieldEnum[]
+  }
+
+  /**
+   * Group without action
+   */
+  export type GroupDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Group
+     */
+    select?: GroupSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Group
+     */
+    omit?: GroupOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GroupInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model GroupMember
+   */
+
+  export type AggregateGroupMember = {
+    _count: GroupMemberCountAggregateOutputType | null
+    _min: GroupMemberMinAggregateOutputType | null
+    _max: GroupMemberMaxAggregateOutputType | null
+  }
+
+  export type GroupMemberMinAggregateOutputType = {
+    id: string | null
+    groupId: string | null
+    userId: string | null
+    createdAt: Date | null
+  }
+
+  export type GroupMemberMaxAggregateOutputType = {
+    id: string | null
+    groupId: string | null
+    userId: string | null
+    createdAt: Date | null
+  }
+
+  export type GroupMemberCountAggregateOutputType = {
+    id: number
+    groupId: number
+    userId: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type GroupMemberMinAggregateInputType = {
+    id?: true
+    groupId?: true
+    userId?: true
+    createdAt?: true
+  }
+
+  export type GroupMemberMaxAggregateInputType = {
+    id?: true
+    groupId?: true
+    userId?: true
+    createdAt?: true
+  }
+
+  export type GroupMemberCountAggregateInputType = {
+    id?: true
+    groupId?: true
+    userId?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type GroupMemberAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GroupMember to aggregate.
+     */
+    where?: GroupMemberWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GroupMembers to fetch.
+     */
+    orderBy?: GroupMemberOrderByWithRelationInput | GroupMemberOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: GroupMemberWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GroupMembers from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GroupMembers.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned GroupMembers
+    **/
+    _count?: true | GroupMemberCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: GroupMemberMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: GroupMemberMaxAggregateInputType
+  }
+
+  export type GetGroupMemberAggregateType<T extends GroupMemberAggregateArgs> = {
+        [P in keyof T & keyof AggregateGroupMember]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateGroupMember[P]>
+      : GetScalarType<T[P], AggregateGroupMember[P]>
+  }
+
+
+
+
+  export type GroupMemberGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GroupMemberWhereInput
+    orderBy?: GroupMemberOrderByWithAggregationInput | GroupMemberOrderByWithAggregationInput[]
+    by: GroupMemberScalarFieldEnum[] | GroupMemberScalarFieldEnum
+    having?: GroupMemberScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: GroupMemberCountAggregateInputType | true
+    _min?: GroupMemberMinAggregateInputType
+    _max?: GroupMemberMaxAggregateInputType
+  }
+
+  export type GroupMemberGroupByOutputType = {
+    id: string
+    groupId: string
+    userId: string
+    createdAt: Date
+    _count: GroupMemberCountAggregateOutputType | null
+    _min: GroupMemberMinAggregateOutputType | null
+    _max: GroupMemberMaxAggregateOutputType | null
+  }
+
+  type GetGroupMemberGroupByPayload<T extends GroupMemberGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<GroupMemberGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof GroupMemberGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], GroupMemberGroupByOutputType[P]>
+            : GetScalarType<T[P], GroupMemberGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type GroupMemberSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    groupId?: boolean
+    userId?: boolean
+    createdAt?: boolean
+    group?: boolean | GroupDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["groupMember"]>
+
+  export type GroupMemberSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    groupId?: boolean
+    userId?: boolean
+    createdAt?: boolean
+    group?: boolean | GroupDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["groupMember"]>
+
+  export type GroupMemberSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    groupId?: boolean
+    userId?: boolean
+    createdAt?: boolean
+    group?: boolean | GroupDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["groupMember"]>
+
+  export type GroupMemberSelectScalar = {
+    id?: boolean
+    groupId?: boolean
+    userId?: boolean
+    createdAt?: boolean
+  }
+
+  export type GroupMemberOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "groupId" | "userId" | "createdAt", ExtArgs["result"]["groupMember"]>
+  export type GroupMemberInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    group?: boolean | GroupDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type GroupMemberIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    group?: boolean | GroupDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type GroupMemberIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    group?: boolean | GroupDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+
+  export type $GroupMemberPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "GroupMember"
+    objects: {
+      group: Prisma.$GroupPayload<ExtArgs>
+      user: Prisma.$UserPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      groupId: string
+      userId: string
+      createdAt: Date
+    }, ExtArgs["result"]["groupMember"]>
+    composites: {}
+  }
+
+  type GroupMemberGetPayload<S extends boolean | null | undefined | GroupMemberDefaultArgs> = $Result.GetResult<Prisma.$GroupMemberPayload, S>
+
+  type GroupMemberCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<GroupMemberFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: GroupMemberCountAggregateInputType | true
+    }
+
+  export interface GroupMemberDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['GroupMember'], meta: { name: 'GroupMember' } }
+    /**
+     * Find zero or one GroupMember that matches the filter.
+     * @param {GroupMemberFindUniqueArgs} args - Arguments to find a GroupMember
+     * @example
+     * // Get one GroupMember
+     * const groupMember = await prisma.groupMember.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends GroupMemberFindUniqueArgs>(args: SelectSubset<T, GroupMemberFindUniqueArgs<ExtArgs>>): Prisma__GroupMemberClient<$Result.GetResult<Prisma.$GroupMemberPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one GroupMember that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {GroupMemberFindUniqueOrThrowArgs} args - Arguments to find a GroupMember
+     * @example
+     * // Get one GroupMember
+     * const groupMember = await prisma.groupMember.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends GroupMemberFindUniqueOrThrowArgs>(args: SelectSubset<T, GroupMemberFindUniqueOrThrowArgs<ExtArgs>>): Prisma__GroupMemberClient<$Result.GetResult<Prisma.$GroupMemberPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first GroupMember that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GroupMemberFindFirstArgs} args - Arguments to find a GroupMember
+     * @example
+     * // Get one GroupMember
+     * const groupMember = await prisma.groupMember.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends GroupMemberFindFirstArgs>(args?: SelectSubset<T, GroupMemberFindFirstArgs<ExtArgs>>): Prisma__GroupMemberClient<$Result.GetResult<Prisma.$GroupMemberPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first GroupMember that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GroupMemberFindFirstOrThrowArgs} args - Arguments to find a GroupMember
+     * @example
+     * // Get one GroupMember
+     * const groupMember = await prisma.groupMember.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends GroupMemberFindFirstOrThrowArgs>(args?: SelectSubset<T, GroupMemberFindFirstOrThrowArgs<ExtArgs>>): Prisma__GroupMemberClient<$Result.GetResult<Prisma.$GroupMemberPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more GroupMembers that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GroupMemberFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all GroupMembers
+     * const groupMembers = await prisma.groupMember.findMany()
+     * 
+     * // Get first 10 GroupMembers
+     * const groupMembers = await prisma.groupMember.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const groupMemberWithIdOnly = await prisma.groupMember.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends GroupMemberFindManyArgs>(args?: SelectSubset<T, GroupMemberFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GroupMemberPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a GroupMember.
+     * @param {GroupMemberCreateArgs} args - Arguments to create a GroupMember.
+     * @example
+     * // Create one GroupMember
+     * const GroupMember = await prisma.groupMember.create({
+     *   data: {
+     *     // ... data to create a GroupMember
+     *   }
+     * })
+     * 
+     */
+    create<T extends GroupMemberCreateArgs>(args: SelectSubset<T, GroupMemberCreateArgs<ExtArgs>>): Prisma__GroupMemberClient<$Result.GetResult<Prisma.$GroupMemberPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many GroupMembers.
+     * @param {GroupMemberCreateManyArgs} args - Arguments to create many GroupMembers.
+     * @example
+     * // Create many GroupMembers
+     * const groupMember = await prisma.groupMember.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends GroupMemberCreateManyArgs>(args?: SelectSubset<T, GroupMemberCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many GroupMembers and returns the data saved in the database.
+     * @param {GroupMemberCreateManyAndReturnArgs} args - Arguments to create many GroupMembers.
+     * @example
+     * // Create many GroupMembers
+     * const groupMember = await prisma.groupMember.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many GroupMembers and only return the `id`
+     * const groupMemberWithIdOnly = await prisma.groupMember.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends GroupMemberCreateManyAndReturnArgs>(args?: SelectSubset<T, GroupMemberCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GroupMemberPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a GroupMember.
+     * @param {GroupMemberDeleteArgs} args - Arguments to delete one GroupMember.
+     * @example
+     * // Delete one GroupMember
+     * const GroupMember = await prisma.groupMember.delete({
+     *   where: {
+     *     // ... filter to delete one GroupMember
+     *   }
+     * })
+     * 
+     */
+    delete<T extends GroupMemberDeleteArgs>(args: SelectSubset<T, GroupMemberDeleteArgs<ExtArgs>>): Prisma__GroupMemberClient<$Result.GetResult<Prisma.$GroupMemberPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one GroupMember.
+     * @param {GroupMemberUpdateArgs} args - Arguments to update one GroupMember.
+     * @example
+     * // Update one GroupMember
+     * const groupMember = await prisma.groupMember.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends GroupMemberUpdateArgs>(args: SelectSubset<T, GroupMemberUpdateArgs<ExtArgs>>): Prisma__GroupMemberClient<$Result.GetResult<Prisma.$GroupMemberPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more GroupMembers.
+     * @param {GroupMemberDeleteManyArgs} args - Arguments to filter GroupMembers to delete.
+     * @example
+     * // Delete a few GroupMembers
+     * const { count } = await prisma.groupMember.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends GroupMemberDeleteManyArgs>(args?: SelectSubset<T, GroupMemberDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more GroupMembers.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GroupMemberUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many GroupMembers
+     * const groupMember = await prisma.groupMember.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends GroupMemberUpdateManyArgs>(args: SelectSubset<T, GroupMemberUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more GroupMembers and returns the data updated in the database.
+     * @param {GroupMemberUpdateManyAndReturnArgs} args - Arguments to update many GroupMembers.
+     * @example
+     * // Update many GroupMembers
+     * const groupMember = await prisma.groupMember.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more GroupMembers and only return the `id`
+     * const groupMemberWithIdOnly = await prisma.groupMember.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends GroupMemberUpdateManyAndReturnArgs>(args: SelectSubset<T, GroupMemberUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GroupMemberPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one GroupMember.
+     * @param {GroupMemberUpsertArgs} args - Arguments to update or create a GroupMember.
+     * @example
+     * // Update or create a GroupMember
+     * const groupMember = await prisma.groupMember.upsert({
+     *   create: {
+     *     // ... data to create a GroupMember
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the GroupMember we want to update
+     *   }
+     * })
+     */
+    upsert<T extends GroupMemberUpsertArgs>(args: SelectSubset<T, GroupMemberUpsertArgs<ExtArgs>>): Prisma__GroupMemberClient<$Result.GetResult<Prisma.$GroupMemberPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of GroupMembers.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GroupMemberCountArgs} args - Arguments to filter GroupMembers to count.
+     * @example
+     * // Count the number of GroupMembers
+     * const count = await prisma.groupMember.count({
+     *   where: {
+     *     // ... the filter for the GroupMembers we want to count
+     *   }
+     * })
+    **/
+    count<T extends GroupMemberCountArgs>(
+      args?: Subset<T, GroupMemberCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], GroupMemberCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a GroupMember.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GroupMemberAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends GroupMemberAggregateArgs>(args: Subset<T, GroupMemberAggregateArgs>): Prisma.PrismaPromise<GetGroupMemberAggregateType<T>>
+
+    /**
+     * Group by GroupMember.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GroupMemberGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends GroupMemberGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: GroupMemberGroupByArgs['orderBy'] }
+        : { orderBy?: GroupMemberGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, GroupMemberGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetGroupMemberGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the GroupMember model
+   */
+  readonly fields: GroupMemberFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for GroupMember.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__GroupMemberClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    group<T extends GroupDefaultArgs<ExtArgs> = {}>(args?: Subset<T, GroupDefaultArgs<ExtArgs>>): Prisma__GroupClient<$Result.GetResult<Prisma.$GroupPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the GroupMember model
+   */
+  interface GroupMemberFieldRefs {
+    readonly id: FieldRef<"GroupMember", 'String'>
+    readonly groupId: FieldRef<"GroupMember", 'String'>
+    readonly userId: FieldRef<"GroupMember", 'String'>
+    readonly createdAt: FieldRef<"GroupMember", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * GroupMember findUnique
+   */
+  export type GroupMemberFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GroupMember
+     */
+    select?: GroupMemberSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the GroupMember
+     */
+    omit?: GroupMemberOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GroupMemberInclude<ExtArgs> | null
+    /**
+     * Filter, which GroupMember to fetch.
+     */
+    where: GroupMemberWhereUniqueInput
+  }
+
+  /**
+   * GroupMember findUniqueOrThrow
+   */
+  export type GroupMemberFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GroupMember
+     */
+    select?: GroupMemberSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the GroupMember
+     */
+    omit?: GroupMemberOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GroupMemberInclude<ExtArgs> | null
+    /**
+     * Filter, which GroupMember to fetch.
+     */
+    where: GroupMemberWhereUniqueInput
+  }
+
+  /**
+   * GroupMember findFirst
+   */
+  export type GroupMemberFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GroupMember
+     */
+    select?: GroupMemberSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the GroupMember
+     */
+    omit?: GroupMemberOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GroupMemberInclude<ExtArgs> | null
+    /**
+     * Filter, which GroupMember to fetch.
+     */
+    where?: GroupMemberWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GroupMembers to fetch.
+     */
+    orderBy?: GroupMemberOrderByWithRelationInput | GroupMemberOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GroupMembers.
+     */
+    cursor?: GroupMemberWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GroupMembers from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GroupMembers.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GroupMembers.
+     */
+    distinct?: GroupMemberScalarFieldEnum | GroupMemberScalarFieldEnum[]
+  }
+
+  /**
+   * GroupMember findFirstOrThrow
+   */
+  export type GroupMemberFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GroupMember
+     */
+    select?: GroupMemberSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the GroupMember
+     */
+    omit?: GroupMemberOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GroupMemberInclude<ExtArgs> | null
+    /**
+     * Filter, which GroupMember to fetch.
+     */
+    where?: GroupMemberWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GroupMembers to fetch.
+     */
+    orderBy?: GroupMemberOrderByWithRelationInput | GroupMemberOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GroupMembers.
+     */
+    cursor?: GroupMemberWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GroupMembers from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GroupMembers.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GroupMembers.
+     */
+    distinct?: GroupMemberScalarFieldEnum | GroupMemberScalarFieldEnum[]
+  }
+
+  /**
+   * GroupMember findMany
+   */
+  export type GroupMemberFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GroupMember
+     */
+    select?: GroupMemberSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the GroupMember
+     */
+    omit?: GroupMemberOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GroupMemberInclude<ExtArgs> | null
+    /**
+     * Filter, which GroupMembers to fetch.
+     */
+    where?: GroupMemberWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GroupMembers to fetch.
+     */
+    orderBy?: GroupMemberOrderByWithRelationInput | GroupMemberOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing GroupMembers.
+     */
+    cursor?: GroupMemberWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GroupMembers from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GroupMembers.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GroupMembers.
+     */
+    distinct?: GroupMemberScalarFieldEnum | GroupMemberScalarFieldEnum[]
+  }
+
+  /**
+   * GroupMember create
+   */
+  export type GroupMemberCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GroupMember
+     */
+    select?: GroupMemberSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the GroupMember
+     */
+    omit?: GroupMemberOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GroupMemberInclude<ExtArgs> | null
+    /**
+     * The data needed to create a GroupMember.
+     */
+    data: XOR<GroupMemberCreateInput, GroupMemberUncheckedCreateInput>
+  }
+
+  /**
+   * GroupMember createMany
+   */
+  export type GroupMemberCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many GroupMembers.
+     */
+    data: GroupMemberCreateManyInput | GroupMemberCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * GroupMember createManyAndReturn
+   */
+  export type GroupMemberCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GroupMember
+     */
+    select?: GroupMemberSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the GroupMember
+     */
+    omit?: GroupMemberOmit<ExtArgs> | null
+    /**
+     * The data used to create many GroupMembers.
+     */
+    data: GroupMemberCreateManyInput | GroupMemberCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GroupMemberIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * GroupMember update
+   */
+  export type GroupMemberUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GroupMember
+     */
+    select?: GroupMemberSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the GroupMember
+     */
+    omit?: GroupMemberOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GroupMemberInclude<ExtArgs> | null
+    /**
+     * The data needed to update a GroupMember.
+     */
+    data: XOR<GroupMemberUpdateInput, GroupMemberUncheckedUpdateInput>
+    /**
+     * Choose, which GroupMember to update.
+     */
+    where: GroupMemberWhereUniqueInput
+  }
+
+  /**
+   * GroupMember updateMany
+   */
+  export type GroupMemberUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update GroupMembers.
+     */
+    data: XOR<GroupMemberUpdateManyMutationInput, GroupMemberUncheckedUpdateManyInput>
+    /**
+     * Filter which GroupMembers to update
+     */
+    where?: GroupMemberWhereInput
+    /**
+     * Limit how many GroupMembers to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * GroupMember updateManyAndReturn
+   */
+  export type GroupMemberUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GroupMember
+     */
+    select?: GroupMemberSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the GroupMember
+     */
+    omit?: GroupMemberOmit<ExtArgs> | null
+    /**
+     * The data used to update GroupMembers.
+     */
+    data: XOR<GroupMemberUpdateManyMutationInput, GroupMemberUncheckedUpdateManyInput>
+    /**
+     * Filter which GroupMembers to update
+     */
+    where?: GroupMemberWhereInput
+    /**
+     * Limit how many GroupMembers to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GroupMemberIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * GroupMember upsert
+   */
+  export type GroupMemberUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GroupMember
+     */
+    select?: GroupMemberSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the GroupMember
+     */
+    omit?: GroupMemberOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GroupMemberInclude<ExtArgs> | null
+    /**
+     * The filter to search for the GroupMember to update in case it exists.
+     */
+    where: GroupMemberWhereUniqueInput
+    /**
+     * In case the GroupMember found by the `where` argument doesn't exist, create a new GroupMember with this data.
+     */
+    create: XOR<GroupMemberCreateInput, GroupMemberUncheckedCreateInput>
+    /**
+     * In case the GroupMember was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<GroupMemberUpdateInput, GroupMemberUncheckedUpdateInput>
+  }
+
+  /**
+   * GroupMember delete
+   */
+  export type GroupMemberDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GroupMember
+     */
+    select?: GroupMemberSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the GroupMember
+     */
+    omit?: GroupMemberOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GroupMemberInclude<ExtArgs> | null
+    /**
+     * Filter which GroupMember to delete.
+     */
+    where: GroupMemberWhereUniqueInput
+  }
+
+  /**
+   * GroupMember deleteMany
+   */
+  export type GroupMemberDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GroupMembers to delete
+     */
+    where?: GroupMemberWhereInput
+    /**
+     * Limit how many GroupMembers to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * GroupMember without action
+   */
+  export type GroupMemberDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GroupMember
+     */
+    select?: GroupMemberSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the GroupMember
+     */
+    omit?: GroupMemberOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GroupMemberInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ResourceAccessGrant
+   */
+
+  export type AggregateResourceAccessGrant = {
+    _count: ResourceAccessGrantCountAggregateOutputType | null
+    _min: ResourceAccessGrantMinAggregateOutputType | null
+    _max: ResourceAccessGrantMaxAggregateOutputType | null
+  }
+
+  export type ResourceAccessGrantMinAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    subjectType: $Enums.AccessGrantSubjectType | null
+    subjectUserId: string | null
+    subjectGroupId: string | null
+    resourceType: $Enums.AccessGrantResourceType | null
+    resourceId: string | null
+    roleKey: string | null
+    expiresAt: Date | null
+    grantedByUserId: string | null
+    revokedAt: Date | null
+    revokedByUserId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ResourceAccessGrantMaxAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    subjectType: $Enums.AccessGrantSubjectType | null
+    subjectUserId: string | null
+    subjectGroupId: string | null
+    resourceType: $Enums.AccessGrantResourceType | null
+    resourceId: string | null
+    roleKey: string | null
+    expiresAt: Date | null
+    grantedByUserId: string | null
+    revokedAt: Date | null
+    revokedByUserId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ResourceAccessGrantCountAggregateOutputType = {
+    id: number
+    organizationId: number
+    subjectType: number
+    subjectUserId: number
+    subjectGroupId: number
+    resourceType: number
+    resourceId: number
+    roleKey: number
+    expiresAt: number
+    grantedByUserId: number
+    revokedAt: number
+    revokedByUserId: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type ResourceAccessGrantMinAggregateInputType = {
+    id?: true
+    organizationId?: true
+    subjectType?: true
+    subjectUserId?: true
+    subjectGroupId?: true
+    resourceType?: true
+    resourceId?: true
+    roleKey?: true
+    expiresAt?: true
+    grantedByUserId?: true
+    revokedAt?: true
+    revokedByUserId?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ResourceAccessGrantMaxAggregateInputType = {
+    id?: true
+    organizationId?: true
+    subjectType?: true
+    subjectUserId?: true
+    subjectGroupId?: true
+    resourceType?: true
+    resourceId?: true
+    roleKey?: true
+    expiresAt?: true
+    grantedByUserId?: true
+    revokedAt?: true
+    revokedByUserId?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ResourceAccessGrantCountAggregateInputType = {
+    id?: true
+    organizationId?: true
+    subjectType?: true
+    subjectUserId?: true
+    subjectGroupId?: true
+    resourceType?: true
+    resourceId?: true
+    roleKey?: true
+    expiresAt?: true
+    grantedByUserId?: true
+    revokedAt?: true
+    revokedByUserId?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type ResourceAccessGrantAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ResourceAccessGrant to aggregate.
+     */
+    where?: ResourceAccessGrantWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ResourceAccessGrants to fetch.
+     */
+    orderBy?: ResourceAccessGrantOrderByWithRelationInput | ResourceAccessGrantOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ResourceAccessGrantWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ResourceAccessGrants from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ResourceAccessGrants.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ResourceAccessGrants
+    **/
+    _count?: true | ResourceAccessGrantCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ResourceAccessGrantMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ResourceAccessGrantMaxAggregateInputType
+  }
+
+  export type GetResourceAccessGrantAggregateType<T extends ResourceAccessGrantAggregateArgs> = {
+        [P in keyof T & keyof AggregateResourceAccessGrant]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateResourceAccessGrant[P]>
+      : GetScalarType<T[P], AggregateResourceAccessGrant[P]>
+  }
+
+
+
+
+  export type ResourceAccessGrantGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ResourceAccessGrantWhereInput
+    orderBy?: ResourceAccessGrantOrderByWithAggregationInput | ResourceAccessGrantOrderByWithAggregationInput[]
+    by: ResourceAccessGrantScalarFieldEnum[] | ResourceAccessGrantScalarFieldEnum
+    having?: ResourceAccessGrantScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ResourceAccessGrantCountAggregateInputType | true
+    _min?: ResourceAccessGrantMinAggregateInputType
+    _max?: ResourceAccessGrantMaxAggregateInputType
+  }
+
+  export type ResourceAccessGrantGroupByOutputType = {
+    id: string
+    organizationId: string
+    subjectType: $Enums.AccessGrantSubjectType
+    subjectUserId: string | null
+    subjectGroupId: string | null
+    resourceType: $Enums.AccessGrantResourceType
+    resourceId: string
+    roleKey: string
+    expiresAt: Date | null
+    grantedByUserId: string | null
+    revokedAt: Date | null
+    revokedByUserId: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: ResourceAccessGrantCountAggregateOutputType | null
+    _min: ResourceAccessGrantMinAggregateOutputType | null
+    _max: ResourceAccessGrantMaxAggregateOutputType | null
+  }
+
+  type GetResourceAccessGrantGroupByPayload<T extends ResourceAccessGrantGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ResourceAccessGrantGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ResourceAccessGrantGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ResourceAccessGrantGroupByOutputType[P]>
+            : GetScalarType<T[P], ResourceAccessGrantGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ResourceAccessGrantSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    subjectType?: boolean
+    subjectUserId?: boolean
+    subjectGroupId?: boolean
+    resourceType?: boolean
+    resourceId?: boolean
+    roleKey?: boolean
+    expiresAt?: boolean
+    grantedByUserId?: boolean
+    revokedAt?: boolean
+    revokedByUserId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    subjectUser?: boolean | ResourceAccessGrant$subjectUserArgs<ExtArgs>
+    subjectGroup?: boolean | ResourceAccessGrant$subjectGroupArgs<ExtArgs>
+    grantedBy?: boolean | ResourceAccessGrant$grantedByArgs<ExtArgs>
+  }, ExtArgs["result"]["resourceAccessGrant"]>
+
+  export type ResourceAccessGrantSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    subjectType?: boolean
+    subjectUserId?: boolean
+    subjectGroupId?: boolean
+    resourceType?: boolean
+    resourceId?: boolean
+    roleKey?: boolean
+    expiresAt?: boolean
+    grantedByUserId?: boolean
+    revokedAt?: boolean
+    revokedByUserId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    subjectUser?: boolean | ResourceAccessGrant$subjectUserArgs<ExtArgs>
+    subjectGroup?: boolean | ResourceAccessGrant$subjectGroupArgs<ExtArgs>
+    grantedBy?: boolean | ResourceAccessGrant$grantedByArgs<ExtArgs>
+  }, ExtArgs["result"]["resourceAccessGrant"]>
+
+  export type ResourceAccessGrantSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    subjectType?: boolean
+    subjectUserId?: boolean
+    subjectGroupId?: boolean
+    resourceType?: boolean
+    resourceId?: boolean
+    roleKey?: boolean
+    expiresAt?: boolean
+    grantedByUserId?: boolean
+    revokedAt?: boolean
+    revokedByUserId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    subjectUser?: boolean | ResourceAccessGrant$subjectUserArgs<ExtArgs>
+    subjectGroup?: boolean | ResourceAccessGrant$subjectGroupArgs<ExtArgs>
+    grantedBy?: boolean | ResourceAccessGrant$grantedByArgs<ExtArgs>
+  }, ExtArgs["result"]["resourceAccessGrant"]>
+
+  export type ResourceAccessGrantSelectScalar = {
+    id?: boolean
+    organizationId?: boolean
+    subjectType?: boolean
+    subjectUserId?: boolean
+    subjectGroupId?: boolean
+    resourceType?: boolean
+    resourceId?: boolean
+    roleKey?: boolean
+    expiresAt?: boolean
+    grantedByUserId?: boolean
+    revokedAt?: boolean
+    revokedByUserId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type ResourceAccessGrantOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "subjectType" | "subjectUserId" | "subjectGroupId" | "resourceType" | "resourceId" | "roleKey" | "expiresAt" | "grantedByUserId" | "revokedAt" | "revokedByUserId" | "createdAt" | "updatedAt", ExtArgs["result"]["resourceAccessGrant"]>
+  export type ResourceAccessGrantInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    subjectUser?: boolean | ResourceAccessGrant$subjectUserArgs<ExtArgs>
+    subjectGroup?: boolean | ResourceAccessGrant$subjectGroupArgs<ExtArgs>
+    grantedBy?: boolean | ResourceAccessGrant$grantedByArgs<ExtArgs>
+  }
+  export type ResourceAccessGrantIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    subjectUser?: boolean | ResourceAccessGrant$subjectUserArgs<ExtArgs>
+    subjectGroup?: boolean | ResourceAccessGrant$subjectGroupArgs<ExtArgs>
+    grantedBy?: boolean | ResourceAccessGrant$grantedByArgs<ExtArgs>
+  }
+  export type ResourceAccessGrantIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    subjectUser?: boolean | ResourceAccessGrant$subjectUserArgs<ExtArgs>
+    subjectGroup?: boolean | ResourceAccessGrant$subjectGroupArgs<ExtArgs>
+    grantedBy?: boolean | ResourceAccessGrant$grantedByArgs<ExtArgs>
+  }
+
+  export type $ResourceAccessGrantPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ResourceAccessGrant"
+    objects: {
+      organization: Prisma.$OrganizationPayload<ExtArgs>
+      subjectUser: Prisma.$UserPayload<ExtArgs> | null
+      subjectGroup: Prisma.$GroupPayload<ExtArgs> | null
+      grantedBy: Prisma.$UserPayload<ExtArgs> | null
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      organizationId: string
+      subjectType: $Enums.AccessGrantSubjectType
+      subjectUserId: string | null
+      subjectGroupId: string | null
+      resourceType: $Enums.AccessGrantResourceType
+      resourceId: string
+      /**
+       * Role key the subject gets on the resource (e.g. viewer | guest | editor).
+       */
+      roleKey: string
+      expiresAt: Date | null
+      grantedByUserId: string | null
+      revokedAt: Date | null
+      revokedByUserId: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["resourceAccessGrant"]>
+    composites: {}
+  }
+
+  type ResourceAccessGrantGetPayload<S extends boolean | null | undefined | ResourceAccessGrantDefaultArgs> = $Result.GetResult<Prisma.$ResourceAccessGrantPayload, S>
+
+  type ResourceAccessGrantCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ResourceAccessGrantFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ResourceAccessGrantCountAggregateInputType | true
+    }
+
+  export interface ResourceAccessGrantDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ResourceAccessGrant'], meta: { name: 'ResourceAccessGrant' } }
+    /**
+     * Find zero or one ResourceAccessGrant that matches the filter.
+     * @param {ResourceAccessGrantFindUniqueArgs} args - Arguments to find a ResourceAccessGrant
+     * @example
+     * // Get one ResourceAccessGrant
+     * const resourceAccessGrant = await prisma.resourceAccessGrant.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ResourceAccessGrantFindUniqueArgs>(args: SelectSubset<T, ResourceAccessGrantFindUniqueArgs<ExtArgs>>): Prisma__ResourceAccessGrantClient<$Result.GetResult<Prisma.$ResourceAccessGrantPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ResourceAccessGrant that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ResourceAccessGrantFindUniqueOrThrowArgs} args - Arguments to find a ResourceAccessGrant
+     * @example
+     * // Get one ResourceAccessGrant
+     * const resourceAccessGrant = await prisma.resourceAccessGrant.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ResourceAccessGrantFindUniqueOrThrowArgs>(args: SelectSubset<T, ResourceAccessGrantFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ResourceAccessGrantClient<$Result.GetResult<Prisma.$ResourceAccessGrantPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ResourceAccessGrant that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ResourceAccessGrantFindFirstArgs} args - Arguments to find a ResourceAccessGrant
+     * @example
+     * // Get one ResourceAccessGrant
+     * const resourceAccessGrant = await prisma.resourceAccessGrant.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ResourceAccessGrantFindFirstArgs>(args?: SelectSubset<T, ResourceAccessGrantFindFirstArgs<ExtArgs>>): Prisma__ResourceAccessGrantClient<$Result.GetResult<Prisma.$ResourceAccessGrantPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ResourceAccessGrant that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ResourceAccessGrantFindFirstOrThrowArgs} args - Arguments to find a ResourceAccessGrant
+     * @example
+     * // Get one ResourceAccessGrant
+     * const resourceAccessGrant = await prisma.resourceAccessGrant.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ResourceAccessGrantFindFirstOrThrowArgs>(args?: SelectSubset<T, ResourceAccessGrantFindFirstOrThrowArgs<ExtArgs>>): Prisma__ResourceAccessGrantClient<$Result.GetResult<Prisma.$ResourceAccessGrantPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ResourceAccessGrants that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ResourceAccessGrantFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ResourceAccessGrants
+     * const resourceAccessGrants = await prisma.resourceAccessGrant.findMany()
+     * 
+     * // Get first 10 ResourceAccessGrants
+     * const resourceAccessGrants = await prisma.resourceAccessGrant.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const resourceAccessGrantWithIdOnly = await prisma.resourceAccessGrant.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ResourceAccessGrantFindManyArgs>(args?: SelectSubset<T, ResourceAccessGrantFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ResourceAccessGrantPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ResourceAccessGrant.
+     * @param {ResourceAccessGrantCreateArgs} args - Arguments to create a ResourceAccessGrant.
+     * @example
+     * // Create one ResourceAccessGrant
+     * const ResourceAccessGrant = await prisma.resourceAccessGrant.create({
+     *   data: {
+     *     // ... data to create a ResourceAccessGrant
+     *   }
+     * })
+     * 
+     */
+    create<T extends ResourceAccessGrantCreateArgs>(args: SelectSubset<T, ResourceAccessGrantCreateArgs<ExtArgs>>): Prisma__ResourceAccessGrantClient<$Result.GetResult<Prisma.$ResourceAccessGrantPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ResourceAccessGrants.
+     * @param {ResourceAccessGrantCreateManyArgs} args - Arguments to create many ResourceAccessGrants.
+     * @example
+     * // Create many ResourceAccessGrants
+     * const resourceAccessGrant = await prisma.resourceAccessGrant.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ResourceAccessGrantCreateManyArgs>(args?: SelectSubset<T, ResourceAccessGrantCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ResourceAccessGrants and returns the data saved in the database.
+     * @param {ResourceAccessGrantCreateManyAndReturnArgs} args - Arguments to create many ResourceAccessGrants.
+     * @example
+     * // Create many ResourceAccessGrants
+     * const resourceAccessGrant = await prisma.resourceAccessGrant.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ResourceAccessGrants and only return the `id`
+     * const resourceAccessGrantWithIdOnly = await prisma.resourceAccessGrant.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ResourceAccessGrantCreateManyAndReturnArgs>(args?: SelectSubset<T, ResourceAccessGrantCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ResourceAccessGrantPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ResourceAccessGrant.
+     * @param {ResourceAccessGrantDeleteArgs} args - Arguments to delete one ResourceAccessGrant.
+     * @example
+     * // Delete one ResourceAccessGrant
+     * const ResourceAccessGrant = await prisma.resourceAccessGrant.delete({
+     *   where: {
+     *     // ... filter to delete one ResourceAccessGrant
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ResourceAccessGrantDeleteArgs>(args: SelectSubset<T, ResourceAccessGrantDeleteArgs<ExtArgs>>): Prisma__ResourceAccessGrantClient<$Result.GetResult<Prisma.$ResourceAccessGrantPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ResourceAccessGrant.
+     * @param {ResourceAccessGrantUpdateArgs} args - Arguments to update one ResourceAccessGrant.
+     * @example
+     * // Update one ResourceAccessGrant
+     * const resourceAccessGrant = await prisma.resourceAccessGrant.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ResourceAccessGrantUpdateArgs>(args: SelectSubset<T, ResourceAccessGrantUpdateArgs<ExtArgs>>): Prisma__ResourceAccessGrantClient<$Result.GetResult<Prisma.$ResourceAccessGrantPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ResourceAccessGrants.
+     * @param {ResourceAccessGrantDeleteManyArgs} args - Arguments to filter ResourceAccessGrants to delete.
+     * @example
+     * // Delete a few ResourceAccessGrants
+     * const { count } = await prisma.resourceAccessGrant.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ResourceAccessGrantDeleteManyArgs>(args?: SelectSubset<T, ResourceAccessGrantDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ResourceAccessGrants.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ResourceAccessGrantUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ResourceAccessGrants
+     * const resourceAccessGrant = await prisma.resourceAccessGrant.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ResourceAccessGrantUpdateManyArgs>(args: SelectSubset<T, ResourceAccessGrantUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ResourceAccessGrants and returns the data updated in the database.
+     * @param {ResourceAccessGrantUpdateManyAndReturnArgs} args - Arguments to update many ResourceAccessGrants.
+     * @example
+     * // Update many ResourceAccessGrants
+     * const resourceAccessGrant = await prisma.resourceAccessGrant.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ResourceAccessGrants and only return the `id`
+     * const resourceAccessGrantWithIdOnly = await prisma.resourceAccessGrant.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ResourceAccessGrantUpdateManyAndReturnArgs>(args: SelectSubset<T, ResourceAccessGrantUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ResourceAccessGrantPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ResourceAccessGrant.
+     * @param {ResourceAccessGrantUpsertArgs} args - Arguments to update or create a ResourceAccessGrant.
+     * @example
+     * // Update or create a ResourceAccessGrant
+     * const resourceAccessGrant = await prisma.resourceAccessGrant.upsert({
+     *   create: {
+     *     // ... data to create a ResourceAccessGrant
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ResourceAccessGrant we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ResourceAccessGrantUpsertArgs>(args: SelectSubset<T, ResourceAccessGrantUpsertArgs<ExtArgs>>): Prisma__ResourceAccessGrantClient<$Result.GetResult<Prisma.$ResourceAccessGrantPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ResourceAccessGrants.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ResourceAccessGrantCountArgs} args - Arguments to filter ResourceAccessGrants to count.
+     * @example
+     * // Count the number of ResourceAccessGrants
+     * const count = await prisma.resourceAccessGrant.count({
+     *   where: {
+     *     // ... the filter for the ResourceAccessGrants we want to count
+     *   }
+     * })
+    **/
+    count<T extends ResourceAccessGrantCountArgs>(
+      args?: Subset<T, ResourceAccessGrantCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ResourceAccessGrantCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ResourceAccessGrant.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ResourceAccessGrantAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ResourceAccessGrantAggregateArgs>(args: Subset<T, ResourceAccessGrantAggregateArgs>): Prisma.PrismaPromise<GetResourceAccessGrantAggregateType<T>>
+
+    /**
+     * Group by ResourceAccessGrant.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ResourceAccessGrantGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ResourceAccessGrantGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ResourceAccessGrantGroupByArgs['orderBy'] }
+        : { orderBy?: ResourceAccessGrantGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ResourceAccessGrantGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetResourceAccessGrantGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ResourceAccessGrant model
+   */
+  readonly fields: ResourceAccessGrantFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ResourceAccessGrant.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ResourceAccessGrantClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    organization<T extends OrganizationDefaultArgs<ExtArgs> = {}>(args?: Subset<T, OrganizationDefaultArgs<ExtArgs>>): Prisma__OrganizationClient<$Result.GetResult<Prisma.$OrganizationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    subjectUser<T extends ResourceAccessGrant$subjectUserArgs<ExtArgs> = {}>(args?: Subset<T, ResourceAccessGrant$subjectUserArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    subjectGroup<T extends ResourceAccessGrant$subjectGroupArgs<ExtArgs> = {}>(args?: Subset<T, ResourceAccessGrant$subjectGroupArgs<ExtArgs>>): Prisma__GroupClient<$Result.GetResult<Prisma.$GroupPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    grantedBy<T extends ResourceAccessGrant$grantedByArgs<ExtArgs> = {}>(args?: Subset<T, ResourceAccessGrant$grantedByArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ResourceAccessGrant model
+   */
+  interface ResourceAccessGrantFieldRefs {
+    readonly id: FieldRef<"ResourceAccessGrant", 'String'>
+    readonly organizationId: FieldRef<"ResourceAccessGrant", 'String'>
+    readonly subjectType: FieldRef<"ResourceAccessGrant", 'AccessGrantSubjectType'>
+    readonly subjectUserId: FieldRef<"ResourceAccessGrant", 'String'>
+    readonly subjectGroupId: FieldRef<"ResourceAccessGrant", 'String'>
+    readonly resourceType: FieldRef<"ResourceAccessGrant", 'AccessGrantResourceType'>
+    readonly resourceId: FieldRef<"ResourceAccessGrant", 'String'>
+    readonly roleKey: FieldRef<"ResourceAccessGrant", 'String'>
+    readonly expiresAt: FieldRef<"ResourceAccessGrant", 'DateTime'>
+    readonly grantedByUserId: FieldRef<"ResourceAccessGrant", 'String'>
+    readonly revokedAt: FieldRef<"ResourceAccessGrant", 'DateTime'>
+    readonly revokedByUserId: FieldRef<"ResourceAccessGrant", 'String'>
+    readonly createdAt: FieldRef<"ResourceAccessGrant", 'DateTime'>
+    readonly updatedAt: FieldRef<"ResourceAccessGrant", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ResourceAccessGrant findUnique
+   */
+  export type ResourceAccessGrantFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ResourceAccessGrant
+     */
+    select?: ResourceAccessGrantSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ResourceAccessGrant
+     */
+    omit?: ResourceAccessGrantOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ResourceAccessGrantInclude<ExtArgs> | null
+    /**
+     * Filter, which ResourceAccessGrant to fetch.
+     */
+    where: ResourceAccessGrantWhereUniqueInput
+  }
+
+  /**
+   * ResourceAccessGrant findUniqueOrThrow
+   */
+  export type ResourceAccessGrantFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ResourceAccessGrant
+     */
+    select?: ResourceAccessGrantSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ResourceAccessGrant
+     */
+    omit?: ResourceAccessGrantOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ResourceAccessGrantInclude<ExtArgs> | null
+    /**
+     * Filter, which ResourceAccessGrant to fetch.
+     */
+    where: ResourceAccessGrantWhereUniqueInput
+  }
+
+  /**
+   * ResourceAccessGrant findFirst
+   */
+  export type ResourceAccessGrantFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ResourceAccessGrant
+     */
+    select?: ResourceAccessGrantSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ResourceAccessGrant
+     */
+    omit?: ResourceAccessGrantOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ResourceAccessGrantInclude<ExtArgs> | null
+    /**
+     * Filter, which ResourceAccessGrant to fetch.
+     */
+    where?: ResourceAccessGrantWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ResourceAccessGrants to fetch.
+     */
+    orderBy?: ResourceAccessGrantOrderByWithRelationInput | ResourceAccessGrantOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ResourceAccessGrants.
+     */
+    cursor?: ResourceAccessGrantWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ResourceAccessGrants from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ResourceAccessGrants.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ResourceAccessGrants.
+     */
+    distinct?: ResourceAccessGrantScalarFieldEnum | ResourceAccessGrantScalarFieldEnum[]
+  }
+
+  /**
+   * ResourceAccessGrant findFirstOrThrow
+   */
+  export type ResourceAccessGrantFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ResourceAccessGrant
+     */
+    select?: ResourceAccessGrantSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ResourceAccessGrant
+     */
+    omit?: ResourceAccessGrantOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ResourceAccessGrantInclude<ExtArgs> | null
+    /**
+     * Filter, which ResourceAccessGrant to fetch.
+     */
+    where?: ResourceAccessGrantWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ResourceAccessGrants to fetch.
+     */
+    orderBy?: ResourceAccessGrantOrderByWithRelationInput | ResourceAccessGrantOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ResourceAccessGrants.
+     */
+    cursor?: ResourceAccessGrantWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ResourceAccessGrants from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ResourceAccessGrants.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ResourceAccessGrants.
+     */
+    distinct?: ResourceAccessGrantScalarFieldEnum | ResourceAccessGrantScalarFieldEnum[]
+  }
+
+  /**
+   * ResourceAccessGrant findMany
+   */
+  export type ResourceAccessGrantFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ResourceAccessGrant
+     */
+    select?: ResourceAccessGrantSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ResourceAccessGrant
+     */
+    omit?: ResourceAccessGrantOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ResourceAccessGrantInclude<ExtArgs> | null
+    /**
+     * Filter, which ResourceAccessGrants to fetch.
+     */
+    where?: ResourceAccessGrantWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ResourceAccessGrants to fetch.
+     */
+    orderBy?: ResourceAccessGrantOrderByWithRelationInput | ResourceAccessGrantOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ResourceAccessGrants.
+     */
+    cursor?: ResourceAccessGrantWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ResourceAccessGrants from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ResourceAccessGrants.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ResourceAccessGrants.
+     */
+    distinct?: ResourceAccessGrantScalarFieldEnum | ResourceAccessGrantScalarFieldEnum[]
+  }
+
+  /**
+   * ResourceAccessGrant create
+   */
+  export type ResourceAccessGrantCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ResourceAccessGrant
+     */
+    select?: ResourceAccessGrantSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ResourceAccessGrant
+     */
+    omit?: ResourceAccessGrantOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ResourceAccessGrantInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ResourceAccessGrant.
+     */
+    data: XOR<ResourceAccessGrantCreateInput, ResourceAccessGrantUncheckedCreateInput>
+  }
+
+  /**
+   * ResourceAccessGrant createMany
+   */
+  export type ResourceAccessGrantCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ResourceAccessGrants.
+     */
+    data: ResourceAccessGrantCreateManyInput | ResourceAccessGrantCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ResourceAccessGrant createManyAndReturn
+   */
+  export type ResourceAccessGrantCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ResourceAccessGrant
+     */
+    select?: ResourceAccessGrantSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ResourceAccessGrant
+     */
+    omit?: ResourceAccessGrantOmit<ExtArgs> | null
+    /**
+     * The data used to create many ResourceAccessGrants.
+     */
+    data: ResourceAccessGrantCreateManyInput | ResourceAccessGrantCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ResourceAccessGrantIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ResourceAccessGrant update
+   */
+  export type ResourceAccessGrantUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ResourceAccessGrant
+     */
+    select?: ResourceAccessGrantSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ResourceAccessGrant
+     */
+    omit?: ResourceAccessGrantOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ResourceAccessGrantInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ResourceAccessGrant.
+     */
+    data: XOR<ResourceAccessGrantUpdateInput, ResourceAccessGrantUncheckedUpdateInput>
+    /**
+     * Choose, which ResourceAccessGrant to update.
+     */
+    where: ResourceAccessGrantWhereUniqueInput
+  }
+
+  /**
+   * ResourceAccessGrant updateMany
+   */
+  export type ResourceAccessGrantUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ResourceAccessGrants.
+     */
+    data: XOR<ResourceAccessGrantUpdateManyMutationInput, ResourceAccessGrantUncheckedUpdateManyInput>
+    /**
+     * Filter which ResourceAccessGrants to update
+     */
+    where?: ResourceAccessGrantWhereInput
+    /**
+     * Limit how many ResourceAccessGrants to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ResourceAccessGrant updateManyAndReturn
+   */
+  export type ResourceAccessGrantUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ResourceAccessGrant
+     */
+    select?: ResourceAccessGrantSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ResourceAccessGrant
+     */
+    omit?: ResourceAccessGrantOmit<ExtArgs> | null
+    /**
+     * The data used to update ResourceAccessGrants.
+     */
+    data: XOR<ResourceAccessGrantUpdateManyMutationInput, ResourceAccessGrantUncheckedUpdateManyInput>
+    /**
+     * Filter which ResourceAccessGrants to update
+     */
+    where?: ResourceAccessGrantWhereInput
+    /**
+     * Limit how many ResourceAccessGrants to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ResourceAccessGrantIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ResourceAccessGrant upsert
+   */
+  export type ResourceAccessGrantUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ResourceAccessGrant
+     */
+    select?: ResourceAccessGrantSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ResourceAccessGrant
+     */
+    omit?: ResourceAccessGrantOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ResourceAccessGrantInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ResourceAccessGrant to update in case it exists.
+     */
+    where: ResourceAccessGrantWhereUniqueInput
+    /**
+     * In case the ResourceAccessGrant found by the `where` argument doesn't exist, create a new ResourceAccessGrant with this data.
+     */
+    create: XOR<ResourceAccessGrantCreateInput, ResourceAccessGrantUncheckedCreateInput>
+    /**
+     * In case the ResourceAccessGrant was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ResourceAccessGrantUpdateInput, ResourceAccessGrantUncheckedUpdateInput>
+  }
+
+  /**
+   * ResourceAccessGrant delete
+   */
+  export type ResourceAccessGrantDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ResourceAccessGrant
+     */
+    select?: ResourceAccessGrantSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ResourceAccessGrant
+     */
+    omit?: ResourceAccessGrantOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ResourceAccessGrantInclude<ExtArgs> | null
+    /**
+     * Filter which ResourceAccessGrant to delete.
+     */
+    where: ResourceAccessGrantWhereUniqueInput
+  }
+
+  /**
+   * ResourceAccessGrant deleteMany
+   */
+  export type ResourceAccessGrantDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ResourceAccessGrants to delete
+     */
+    where?: ResourceAccessGrantWhereInput
+    /**
+     * Limit how many ResourceAccessGrants to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ResourceAccessGrant.subjectUser
+   */
+  export type ResourceAccessGrant$subjectUserArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the User
+     */
+    select?: UserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the User
+     */
+    omit?: UserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserInclude<ExtArgs> | null
+    where?: UserWhereInput
+  }
+
+  /**
+   * ResourceAccessGrant.subjectGroup
+   */
+  export type ResourceAccessGrant$subjectGroupArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Group
+     */
+    select?: GroupSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Group
+     */
+    omit?: GroupOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GroupInclude<ExtArgs> | null
+    where?: GroupWhereInput
+  }
+
+  /**
+   * ResourceAccessGrant.grantedBy
+   */
+  export type ResourceAccessGrant$grantedByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the User
+     */
+    select?: UserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the User
+     */
+    omit?: UserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserInclude<ExtArgs> | null
+    where?: UserWhereInput
+  }
+
+  /**
+   * ResourceAccessGrant without action
+   */
+  export type ResourceAccessGrantDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ResourceAccessGrant
+     */
+    select?: ResourceAccessGrantSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ResourceAccessGrant
+     */
+    omit?: ResourceAccessGrantOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ResourceAccessGrantInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -140945,6 +144977,9 @@ export namespace Prisma {
     organizationId: 'organizationId',
     userId: 'userId',
     roleId: 'roleId',
+    state: 'state',
+    invitedByUserId: 'invitedByUserId',
+    joinedAt: 'joinedAt',
     createdAt: 'createdAt'
   };
 
@@ -142585,6 +146620,48 @@ export namespace Prisma {
   export type GalleryListingScalarFieldEnum = (typeof GalleryListingScalarFieldEnum)[keyof typeof GalleryListingScalarFieldEnum]
 
 
+  export const GroupScalarFieldEnum: {
+    id: 'id',
+    organizationId: 'organizationId',
+    name: 'name',
+    scimManaged: 'scimManaged',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type GroupScalarFieldEnum = (typeof GroupScalarFieldEnum)[keyof typeof GroupScalarFieldEnum]
+
+
+  export const GroupMemberScalarFieldEnum: {
+    id: 'id',
+    groupId: 'groupId',
+    userId: 'userId',
+    createdAt: 'createdAt'
+  };
+
+  export type GroupMemberScalarFieldEnum = (typeof GroupMemberScalarFieldEnum)[keyof typeof GroupMemberScalarFieldEnum]
+
+
+  export const ResourceAccessGrantScalarFieldEnum: {
+    id: 'id',
+    organizationId: 'organizationId',
+    subjectType: 'subjectType',
+    subjectUserId: 'subjectUserId',
+    subjectGroupId: 'subjectGroupId',
+    resourceType: 'resourceType',
+    resourceId: 'resourceId',
+    roleKey: 'roleKey',
+    expiresAt: 'expiresAt',
+    grantedByUserId: 'grantedByUserId',
+    revokedAt: 'revokedAt',
+    revokedByUserId: 'revokedByUserId',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type ResourceAccessGrantScalarFieldEnum = (typeof ResourceAccessGrantScalarFieldEnum)[keyof typeof ResourceAccessGrantScalarFieldEnum]
+
+
   export const SortOrder: {
     asc: 'asc',
     desc: 'desc'
@@ -142965,6 +147042,34 @@ export namespace Prisma {
    */
   export type ListEnumScheduledTaskRunStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ScheduledTaskRunStatus[]'>
     
+
+
+  /**
+   * Reference to a field of type 'AccessGrantSubjectType'
+   */
+  export type EnumAccessGrantSubjectTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AccessGrantSubjectType'>
+    
+
+
+  /**
+   * Reference to a field of type 'AccessGrantSubjectType[]'
+   */
+  export type ListEnumAccessGrantSubjectTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AccessGrantSubjectType[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'AccessGrantResourceType'
+   */
+  export type EnumAccessGrantResourceTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AccessGrantResourceType'>
+    
+
+
+  /**
+   * Reference to a field of type 'AccessGrantResourceType[]'
+   */
+  export type ListEnumAccessGrantResourceTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AccessGrantResourceType[]'>
+    
   /**
    * Deep Input Types
    */
@@ -143008,6 +147113,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceListRelationFilter
     collaborationComments?: CollaborationCommentListRelationFilter
     collaborationShareLinks?: ProjectShareLinkListRelationFilter
+    groupMemberships?: GroupMemberListRelationFilter
+    accessGrantsAsSubject?: ResourceAccessGrantListRelationFilter
+    accessGrantsGranted?: ResourceAccessGrantListRelationFilter
     agentMemories?: AgentMemoryListRelationFilter
     agentMemoryPreferences?: AgentMemoryPreferenceListRelationFilter
     mcpInstalls?: McpInstallListRelationFilter
@@ -143058,6 +147166,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceOrderByRelationAggregateInput
     collaborationComments?: CollaborationCommentOrderByRelationAggregateInput
     collaborationShareLinks?: ProjectShareLinkOrderByRelationAggregateInput
+    groupMemberships?: GroupMemberOrderByRelationAggregateInput
+    accessGrantsAsSubject?: ResourceAccessGrantOrderByRelationAggregateInput
+    accessGrantsGranted?: ResourceAccessGrantOrderByRelationAggregateInput
     agentMemories?: AgentMemoryOrderByRelationAggregateInput
     agentMemoryPreferences?: AgentMemoryPreferenceOrderByRelationAggregateInput
     mcpInstalls?: McpInstallOrderByRelationAggregateInput
@@ -143111,6 +147222,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceListRelationFilter
     collaborationComments?: CollaborationCommentListRelationFilter
     collaborationShareLinks?: ProjectShareLinkListRelationFilter
+    groupMemberships?: GroupMemberListRelationFilter
+    accessGrantsAsSubject?: ResourceAccessGrantListRelationFilter
+    accessGrantsGranted?: ResourceAccessGrantListRelationFilter
     agentMemories?: AgentMemoryListRelationFilter
     agentMemoryPreferences?: AgentMemoryPreferenceListRelationFilter
     mcpInstalls?: McpInstallListRelationFilter
@@ -143342,6 +147456,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationListRelationFilter
     scimTokens?: ScimTokenListRelationFilter
     customRoles?: CustomRoleListRelationFilter
+    groups?: GroupListRelationFilter
+    resourceAccessGrants?: ResourceAccessGrantListRelationFilter
     siemWebhooks?: SiemWebhookListRelationFilter
     projectTemplates?: ProjectTemplateListRelationFilter
     agentMemories?: AgentMemoryListRelationFilter
@@ -143385,6 +147501,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationOrderByRelationAggregateInput
     scimTokens?: ScimTokenOrderByRelationAggregateInput
     customRoles?: CustomRoleOrderByRelationAggregateInput
+    groups?: GroupOrderByRelationAggregateInput
+    resourceAccessGrants?: ResourceAccessGrantOrderByRelationAggregateInput
     siemWebhooks?: SiemWebhookOrderByRelationAggregateInput
     projectTemplates?: ProjectTemplateOrderByRelationAggregateInput
     agentMemories?: AgentMemoryOrderByRelationAggregateInput
@@ -143431,6 +147549,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationListRelationFilter
     scimTokens?: ScimTokenListRelationFilter
     customRoles?: CustomRoleListRelationFilter
+    groups?: GroupListRelationFilter
+    resourceAccessGrants?: ResourceAccessGrantListRelationFilter
     siemWebhooks?: SiemWebhookListRelationFilter
     projectTemplates?: ProjectTemplateListRelationFilter
     agentMemories?: AgentMemoryListRelationFilter
@@ -143479,6 +147599,9 @@ export namespace Prisma {
     organizationId?: StringFilter<"OrganizationMember"> | string
     userId?: StringFilter<"OrganizationMember"> | string
     roleId?: StringFilter<"OrganizationMember"> | string
+    state?: StringFilter<"OrganizationMember"> | string
+    invitedByUserId?: StringNullableFilter<"OrganizationMember"> | string | null
+    joinedAt?: DateTimeFilter<"OrganizationMember"> | Date | string
     createdAt?: DateTimeFilter<"OrganizationMember"> | Date | string
     organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
     user?: XOR<UserScalarRelationFilter, UserWhereInput>
@@ -143490,6 +147613,9 @@ export namespace Prisma {
     organizationId?: SortOrder
     userId?: SortOrder
     roleId?: SortOrder
+    state?: SortOrder
+    invitedByUserId?: SortOrderInput | SortOrder
+    joinedAt?: SortOrder
     createdAt?: SortOrder
     organization?: OrganizationOrderByWithRelationInput
     user?: UserOrderByWithRelationInput
@@ -143505,6 +147631,9 @@ export namespace Prisma {
     organizationId?: StringFilter<"OrganizationMember"> | string
     userId?: StringFilter<"OrganizationMember"> | string
     roleId?: StringFilter<"OrganizationMember"> | string
+    state?: StringFilter<"OrganizationMember"> | string
+    invitedByUserId?: StringNullableFilter<"OrganizationMember"> | string | null
+    joinedAt?: DateTimeFilter<"OrganizationMember"> | Date | string
     createdAt?: DateTimeFilter<"OrganizationMember"> | Date | string
     organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
     user?: XOR<UserScalarRelationFilter, UserWhereInput>
@@ -143516,6 +147645,9 @@ export namespace Prisma {
     organizationId?: SortOrder
     userId?: SortOrder
     roleId?: SortOrder
+    state?: SortOrder
+    invitedByUserId?: SortOrderInput | SortOrder
+    joinedAt?: SortOrder
     createdAt?: SortOrder
     _count?: OrganizationMemberCountOrderByAggregateInput
     _max?: OrganizationMemberMaxOrderByAggregateInput
@@ -143530,6 +147662,9 @@ export namespace Prisma {
     organizationId?: StringWithAggregatesFilter<"OrganizationMember"> | string
     userId?: StringWithAggregatesFilter<"OrganizationMember"> | string
     roleId?: StringWithAggregatesFilter<"OrganizationMember"> | string
+    state?: StringWithAggregatesFilter<"OrganizationMember"> | string
+    invitedByUserId?: StringNullableWithAggregatesFilter<"OrganizationMember"> | string | null
+    joinedAt?: DateTimeWithAggregatesFilter<"OrganizationMember"> | Date | string
     createdAt?: DateTimeWithAggregatesFilter<"OrganizationMember"> | Date | string
   }
 
@@ -151980,6 +156115,236 @@ export namespace Prisma {
     publishedAt?: DateTimeNullableWithAggregatesFilter<"GalleryListing"> | Date | string | null
   }
 
+  export type GroupWhereInput = {
+    AND?: GroupWhereInput | GroupWhereInput[]
+    OR?: GroupWhereInput[]
+    NOT?: GroupWhereInput | GroupWhereInput[]
+    id?: StringFilter<"Group"> | string
+    organizationId?: StringFilter<"Group"> | string
+    name?: StringFilter<"Group"> | string
+    scimManaged?: BoolFilter<"Group"> | boolean
+    createdAt?: DateTimeFilter<"Group"> | Date | string
+    updatedAt?: DateTimeFilter<"Group"> | Date | string
+    organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
+    members?: GroupMemberListRelationFilter
+    accessGrants?: ResourceAccessGrantListRelationFilter
+  }
+
+  export type GroupOrderByWithRelationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    name?: SortOrder
+    scimManaged?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    organization?: OrganizationOrderByWithRelationInput
+    members?: GroupMemberOrderByRelationAggregateInput
+    accessGrants?: ResourceAccessGrantOrderByRelationAggregateInput
+  }
+
+  export type GroupWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    organizationId_name?: GroupOrganizationIdNameCompoundUniqueInput
+    AND?: GroupWhereInput | GroupWhereInput[]
+    OR?: GroupWhereInput[]
+    NOT?: GroupWhereInput | GroupWhereInput[]
+    organizationId?: StringFilter<"Group"> | string
+    name?: StringFilter<"Group"> | string
+    scimManaged?: BoolFilter<"Group"> | boolean
+    createdAt?: DateTimeFilter<"Group"> | Date | string
+    updatedAt?: DateTimeFilter<"Group"> | Date | string
+    organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
+    members?: GroupMemberListRelationFilter
+    accessGrants?: ResourceAccessGrantListRelationFilter
+  }, "id" | "organizationId_name">
+
+  export type GroupOrderByWithAggregationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    name?: SortOrder
+    scimManaged?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: GroupCountOrderByAggregateInput
+    _max?: GroupMaxOrderByAggregateInput
+    _min?: GroupMinOrderByAggregateInput
+  }
+
+  export type GroupScalarWhereWithAggregatesInput = {
+    AND?: GroupScalarWhereWithAggregatesInput | GroupScalarWhereWithAggregatesInput[]
+    OR?: GroupScalarWhereWithAggregatesInput[]
+    NOT?: GroupScalarWhereWithAggregatesInput | GroupScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"Group"> | string
+    organizationId?: StringWithAggregatesFilter<"Group"> | string
+    name?: StringWithAggregatesFilter<"Group"> | string
+    scimManaged?: BoolWithAggregatesFilter<"Group"> | boolean
+    createdAt?: DateTimeWithAggregatesFilter<"Group"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"Group"> | Date | string
+  }
+
+  export type GroupMemberWhereInput = {
+    AND?: GroupMemberWhereInput | GroupMemberWhereInput[]
+    OR?: GroupMemberWhereInput[]
+    NOT?: GroupMemberWhereInput | GroupMemberWhereInput[]
+    id?: StringFilter<"GroupMember"> | string
+    groupId?: StringFilter<"GroupMember"> | string
+    userId?: StringFilter<"GroupMember"> | string
+    createdAt?: DateTimeFilter<"GroupMember"> | Date | string
+    group?: XOR<GroupScalarRelationFilter, GroupWhereInput>
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }
+
+  export type GroupMemberOrderByWithRelationInput = {
+    id?: SortOrder
+    groupId?: SortOrder
+    userId?: SortOrder
+    createdAt?: SortOrder
+    group?: GroupOrderByWithRelationInput
+    user?: UserOrderByWithRelationInput
+  }
+
+  export type GroupMemberWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    groupId_userId?: GroupMemberGroupIdUserIdCompoundUniqueInput
+    AND?: GroupMemberWhereInput | GroupMemberWhereInput[]
+    OR?: GroupMemberWhereInput[]
+    NOT?: GroupMemberWhereInput | GroupMemberWhereInput[]
+    groupId?: StringFilter<"GroupMember"> | string
+    userId?: StringFilter<"GroupMember"> | string
+    createdAt?: DateTimeFilter<"GroupMember"> | Date | string
+    group?: XOR<GroupScalarRelationFilter, GroupWhereInput>
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }, "id" | "groupId_userId">
+
+  export type GroupMemberOrderByWithAggregationInput = {
+    id?: SortOrder
+    groupId?: SortOrder
+    userId?: SortOrder
+    createdAt?: SortOrder
+    _count?: GroupMemberCountOrderByAggregateInput
+    _max?: GroupMemberMaxOrderByAggregateInput
+    _min?: GroupMemberMinOrderByAggregateInput
+  }
+
+  export type GroupMemberScalarWhereWithAggregatesInput = {
+    AND?: GroupMemberScalarWhereWithAggregatesInput | GroupMemberScalarWhereWithAggregatesInput[]
+    OR?: GroupMemberScalarWhereWithAggregatesInput[]
+    NOT?: GroupMemberScalarWhereWithAggregatesInput | GroupMemberScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"GroupMember"> | string
+    groupId?: StringWithAggregatesFilter<"GroupMember"> | string
+    userId?: StringWithAggregatesFilter<"GroupMember"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"GroupMember"> | Date | string
+  }
+
+  export type ResourceAccessGrantWhereInput = {
+    AND?: ResourceAccessGrantWhereInput | ResourceAccessGrantWhereInput[]
+    OR?: ResourceAccessGrantWhereInput[]
+    NOT?: ResourceAccessGrantWhereInput | ResourceAccessGrantWhereInput[]
+    id?: StringFilter<"ResourceAccessGrant"> | string
+    organizationId?: StringFilter<"ResourceAccessGrant"> | string
+    subjectType?: EnumAccessGrantSubjectTypeFilter<"ResourceAccessGrant"> | $Enums.AccessGrantSubjectType
+    subjectUserId?: StringNullableFilter<"ResourceAccessGrant"> | string | null
+    subjectGroupId?: StringNullableFilter<"ResourceAccessGrant"> | string | null
+    resourceType?: EnumAccessGrantResourceTypeFilter<"ResourceAccessGrant"> | $Enums.AccessGrantResourceType
+    resourceId?: StringFilter<"ResourceAccessGrant"> | string
+    roleKey?: StringFilter<"ResourceAccessGrant"> | string
+    expiresAt?: DateTimeNullableFilter<"ResourceAccessGrant"> | Date | string | null
+    grantedByUserId?: StringNullableFilter<"ResourceAccessGrant"> | string | null
+    revokedAt?: DateTimeNullableFilter<"ResourceAccessGrant"> | Date | string | null
+    revokedByUserId?: StringNullableFilter<"ResourceAccessGrant"> | string | null
+    createdAt?: DateTimeFilter<"ResourceAccessGrant"> | Date | string
+    updatedAt?: DateTimeFilter<"ResourceAccessGrant"> | Date | string
+    organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
+    subjectUser?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+    subjectGroup?: XOR<GroupNullableScalarRelationFilter, GroupWhereInput> | null
+    grantedBy?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+  }
+
+  export type ResourceAccessGrantOrderByWithRelationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    subjectType?: SortOrder
+    subjectUserId?: SortOrderInput | SortOrder
+    subjectGroupId?: SortOrderInput | SortOrder
+    resourceType?: SortOrder
+    resourceId?: SortOrder
+    roleKey?: SortOrder
+    expiresAt?: SortOrderInput | SortOrder
+    grantedByUserId?: SortOrderInput | SortOrder
+    revokedAt?: SortOrderInput | SortOrder
+    revokedByUserId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    organization?: OrganizationOrderByWithRelationInput
+    subjectUser?: UserOrderByWithRelationInput
+    subjectGroup?: GroupOrderByWithRelationInput
+    grantedBy?: UserOrderByWithRelationInput
+  }
+
+  export type ResourceAccessGrantWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: ResourceAccessGrantWhereInput | ResourceAccessGrantWhereInput[]
+    OR?: ResourceAccessGrantWhereInput[]
+    NOT?: ResourceAccessGrantWhereInput | ResourceAccessGrantWhereInput[]
+    organizationId?: StringFilter<"ResourceAccessGrant"> | string
+    subjectType?: EnumAccessGrantSubjectTypeFilter<"ResourceAccessGrant"> | $Enums.AccessGrantSubjectType
+    subjectUserId?: StringNullableFilter<"ResourceAccessGrant"> | string | null
+    subjectGroupId?: StringNullableFilter<"ResourceAccessGrant"> | string | null
+    resourceType?: EnumAccessGrantResourceTypeFilter<"ResourceAccessGrant"> | $Enums.AccessGrantResourceType
+    resourceId?: StringFilter<"ResourceAccessGrant"> | string
+    roleKey?: StringFilter<"ResourceAccessGrant"> | string
+    expiresAt?: DateTimeNullableFilter<"ResourceAccessGrant"> | Date | string | null
+    grantedByUserId?: StringNullableFilter<"ResourceAccessGrant"> | string | null
+    revokedAt?: DateTimeNullableFilter<"ResourceAccessGrant"> | Date | string | null
+    revokedByUserId?: StringNullableFilter<"ResourceAccessGrant"> | string | null
+    createdAt?: DateTimeFilter<"ResourceAccessGrant"> | Date | string
+    updatedAt?: DateTimeFilter<"ResourceAccessGrant"> | Date | string
+    organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
+    subjectUser?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+    subjectGroup?: XOR<GroupNullableScalarRelationFilter, GroupWhereInput> | null
+    grantedBy?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+  }, "id">
+
+  export type ResourceAccessGrantOrderByWithAggregationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    subjectType?: SortOrder
+    subjectUserId?: SortOrderInput | SortOrder
+    subjectGroupId?: SortOrderInput | SortOrder
+    resourceType?: SortOrder
+    resourceId?: SortOrder
+    roleKey?: SortOrder
+    expiresAt?: SortOrderInput | SortOrder
+    grantedByUserId?: SortOrderInput | SortOrder
+    revokedAt?: SortOrderInput | SortOrder
+    revokedByUserId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: ResourceAccessGrantCountOrderByAggregateInput
+    _max?: ResourceAccessGrantMaxOrderByAggregateInput
+    _min?: ResourceAccessGrantMinOrderByAggregateInput
+  }
+
+  export type ResourceAccessGrantScalarWhereWithAggregatesInput = {
+    AND?: ResourceAccessGrantScalarWhereWithAggregatesInput | ResourceAccessGrantScalarWhereWithAggregatesInput[]
+    OR?: ResourceAccessGrantScalarWhereWithAggregatesInput[]
+    NOT?: ResourceAccessGrantScalarWhereWithAggregatesInput | ResourceAccessGrantScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ResourceAccessGrant"> | string
+    organizationId?: StringWithAggregatesFilter<"ResourceAccessGrant"> | string
+    subjectType?: EnumAccessGrantSubjectTypeWithAggregatesFilter<"ResourceAccessGrant"> | $Enums.AccessGrantSubjectType
+    subjectUserId?: StringNullableWithAggregatesFilter<"ResourceAccessGrant"> | string | null
+    subjectGroupId?: StringNullableWithAggregatesFilter<"ResourceAccessGrant"> | string | null
+    resourceType?: EnumAccessGrantResourceTypeWithAggregatesFilter<"ResourceAccessGrant"> | $Enums.AccessGrantResourceType
+    resourceId?: StringWithAggregatesFilter<"ResourceAccessGrant"> | string
+    roleKey?: StringWithAggregatesFilter<"ResourceAccessGrant"> | string
+    expiresAt?: DateTimeNullableWithAggregatesFilter<"ResourceAccessGrant"> | Date | string | null
+    grantedByUserId?: StringNullableWithAggregatesFilter<"ResourceAccessGrant"> | string | null
+    revokedAt?: DateTimeNullableWithAggregatesFilter<"ResourceAccessGrant"> | Date | string | null
+    revokedByUserId?: StringNullableWithAggregatesFilter<"ResourceAccessGrant"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"ResourceAccessGrant"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"ResourceAccessGrant"> | Date | string
+  }
+
   export type UserCreateInput = {
     id?: string
     email: string
@@ -152015,6 +156380,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
@@ -152065,6 +156433,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
@@ -152115,6 +156486,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
@@ -152165,6 +156539,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
@@ -152417,6 +156794,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -152460,6 +156839,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -152503,6 +156884,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -152546,6 +156929,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -152591,6 +156976,9 @@ export namespace Prisma {
 
   export type OrganizationMemberCreateInput = {
     id?: string
+    state?: string
+    invitedByUserId?: string | null
+    joinedAt?: Date | string
     createdAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutMembersInput
     user: UserCreateNestedOneWithoutMembershipsInput
@@ -152602,11 +156990,17 @@ export namespace Prisma {
     organizationId: string
     userId: string
     roleId: string
+    state?: string
+    invitedByUserId?: string | null
+    joinedAt?: Date | string
     createdAt?: Date | string
   }
 
   export type OrganizationMemberUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    invitedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutMembersNestedInput
     user?: UserUpdateOneRequiredWithoutMembershipsNestedInput
@@ -152618,6 +157012,9 @@ export namespace Prisma {
     organizationId?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     roleId?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    invitedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -152626,11 +157023,17 @@ export namespace Prisma {
     organizationId: string
     userId: string
     roleId: string
+    state?: string
+    invitedByUserId?: string | null
+    joinedAt?: Date | string
     createdAt?: Date | string
   }
 
   export type OrganizationMemberUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    invitedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -152639,6 +157042,9 @@ export namespace Prisma {
     organizationId?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     roleId?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    invitedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -161868,6 +166274,238 @@ export namespace Prisma {
     publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
+  export type GroupCreateInput = {
+    id?: string
+    name: string
+    scimManaged?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutGroupsInput
+    members?: GroupMemberCreateNestedManyWithoutGroupInput
+    accessGrants?: ResourceAccessGrantCreateNestedManyWithoutSubjectGroupInput
+  }
+
+  export type GroupUncheckedCreateInput = {
+    id?: string
+    organizationId: string
+    name: string
+    scimManaged?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: GroupMemberUncheckedCreateNestedManyWithoutGroupInput
+    accessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectGroupInput
+  }
+
+  export type GroupUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    scimManaged?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutGroupsNestedInput
+    members?: GroupMemberUpdateManyWithoutGroupNestedInput
+    accessGrants?: ResourceAccessGrantUpdateManyWithoutSubjectGroupNestedInput
+  }
+
+  export type GroupUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    scimManaged?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: GroupMemberUncheckedUpdateManyWithoutGroupNestedInput
+    accessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectGroupNestedInput
+  }
+
+  export type GroupCreateManyInput = {
+    id?: string
+    organizationId: string
+    name: string
+    scimManaged?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type GroupUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    scimManaged?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GroupUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    scimManaged?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GroupMemberCreateInput = {
+    id?: string
+    createdAt?: Date | string
+    group: GroupCreateNestedOneWithoutMembersInput
+    user: UserCreateNestedOneWithoutGroupMembershipsInput
+  }
+
+  export type GroupMemberUncheckedCreateInput = {
+    id?: string
+    groupId: string
+    userId: string
+    createdAt?: Date | string
+  }
+
+  export type GroupMemberUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    group?: GroupUpdateOneRequiredWithoutMembersNestedInput
+    user?: UserUpdateOneRequiredWithoutGroupMembershipsNestedInput
+  }
+
+  export type GroupMemberUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    groupId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GroupMemberCreateManyInput = {
+    id?: string
+    groupId: string
+    userId: string
+    createdAt?: Date | string
+  }
+
+  export type GroupMemberUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GroupMemberUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    groupId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ResourceAccessGrantCreateInput = {
+    id?: string
+    subjectType: $Enums.AccessGrantSubjectType
+    resourceType: $Enums.AccessGrantResourceType
+    resourceId: string
+    roleKey: string
+    expiresAt?: Date | string | null
+    revokedAt?: Date | string | null
+    revokedByUserId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutResourceAccessGrantsInput
+    subjectUser?: UserCreateNestedOneWithoutAccessGrantsAsSubjectInput
+    subjectGroup?: GroupCreateNestedOneWithoutAccessGrantsInput
+    grantedBy?: UserCreateNestedOneWithoutAccessGrantsGrantedInput
+  }
+
+  export type ResourceAccessGrantUncheckedCreateInput = {
+    id?: string
+    organizationId: string
+    subjectType: $Enums.AccessGrantSubjectType
+    subjectUserId?: string | null
+    subjectGroupId?: string | null
+    resourceType: $Enums.AccessGrantResourceType
+    resourceId: string
+    roleKey: string
+    expiresAt?: Date | string | null
+    grantedByUserId?: string | null
+    revokedAt?: Date | string | null
+    revokedByUserId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ResourceAccessGrantUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    subjectType?: EnumAccessGrantSubjectTypeFieldUpdateOperationsInput | $Enums.AccessGrantSubjectType
+    resourceType?: EnumAccessGrantResourceTypeFieldUpdateOperationsInput | $Enums.AccessGrantResourceType
+    resourceId?: StringFieldUpdateOperationsInput | string
+    roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    revokedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutResourceAccessGrantsNestedInput
+    subjectUser?: UserUpdateOneWithoutAccessGrantsAsSubjectNestedInput
+    subjectGroup?: GroupUpdateOneWithoutAccessGrantsNestedInput
+    grantedBy?: UserUpdateOneWithoutAccessGrantsGrantedNestedInput
+  }
+
+  export type ResourceAccessGrantUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    subjectType?: EnumAccessGrantSubjectTypeFieldUpdateOperationsInput | $Enums.AccessGrantSubjectType
+    subjectUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    subjectGroupId?: NullableStringFieldUpdateOperationsInput | string | null
+    resourceType?: EnumAccessGrantResourceTypeFieldUpdateOperationsInput | $Enums.AccessGrantResourceType
+    resourceId?: StringFieldUpdateOperationsInput | string
+    roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    grantedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    revokedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ResourceAccessGrantCreateManyInput = {
+    id?: string
+    organizationId: string
+    subjectType: $Enums.AccessGrantSubjectType
+    subjectUserId?: string | null
+    subjectGroupId?: string | null
+    resourceType: $Enums.AccessGrantResourceType
+    resourceId: string
+    roleKey: string
+    expiresAt?: Date | string | null
+    grantedByUserId?: string | null
+    revokedAt?: Date | string | null
+    revokedByUserId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ResourceAccessGrantUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    subjectType?: EnumAccessGrantSubjectTypeFieldUpdateOperationsInput | $Enums.AccessGrantSubjectType
+    resourceType?: EnumAccessGrantResourceTypeFieldUpdateOperationsInput | $Enums.AccessGrantResourceType
+    resourceId?: StringFieldUpdateOperationsInput | string
+    roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    revokedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ResourceAccessGrantUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    subjectType?: EnumAccessGrantSubjectTypeFieldUpdateOperationsInput | $Enums.AccessGrantSubjectType
+    subjectUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    subjectGroupId?: NullableStringFieldUpdateOperationsInput | string | null
+    resourceType?: EnumAccessGrantResourceTypeFieldUpdateOperationsInput | $Enums.AccessGrantResourceType
+    resourceId?: StringFieldUpdateOperationsInput | string
+    roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    grantedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    revokedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -162068,6 +166706,18 @@ export namespace Prisma {
     none?: ProjectShareLinkWhereInput
   }
 
+  export type GroupMemberListRelationFilter = {
+    every?: GroupMemberWhereInput
+    some?: GroupMemberWhereInput
+    none?: GroupMemberWhereInput
+  }
+
+  export type ResourceAccessGrantListRelationFilter = {
+    every?: ResourceAccessGrantWhereInput
+    some?: ResourceAccessGrantWhereInput
+    none?: ResourceAccessGrantWhereInput
+  }
+
   export type AgentMemoryListRelationFilter = {
     every?: AgentMemoryWhereInput
     some?: AgentMemoryWhereInput
@@ -162227,6 +166877,14 @@ export namespace Prisma {
   }
 
   export type ProjectShareLinkOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type GroupMemberOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ResourceAccessGrantOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -162598,6 +167256,12 @@ export namespace Prisma {
     none?: CustomRoleWhereInput
   }
 
+  export type GroupListRelationFilter = {
+    every?: GroupWhereInput
+    some?: GroupWhereInput
+    none?: GroupWhereInput
+  }
+
   export type SiemWebhookListRelationFilter = {
     every?: SiemWebhookWhereInput
     some?: SiemWebhookWhereInput
@@ -162695,6 +167359,10 @@ export namespace Prisma {
     _count?: SortOrder
   }
 
+  export type GroupOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
   export type SiemWebhookOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -162766,6 +167434,9 @@ export namespace Prisma {
     organizationId?: SortOrder
     userId?: SortOrder
     roleId?: SortOrder
+    state?: SortOrder
+    invitedByUserId?: SortOrder
+    joinedAt?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -162774,6 +167445,9 @@ export namespace Prisma {
     organizationId?: SortOrder
     userId?: SortOrder
     roleId?: SortOrder
+    state?: SortOrder
+    invitedByUserId?: SortOrder
+    joinedAt?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -162782,6 +167456,9 @@ export namespace Prisma {
     organizationId?: SortOrder
     userId?: SortOrder
     roleId?: SortOrder
+    state?: SortOrder
+    invitedByUserId?: SortOrder
+    joinedAt?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -167993,6 +172670,159 @@ export namespace Prisma {
     useCount?: SortOrder
   }
 
+  export type GroupOrganizationIdNameCompoundUniqueInput = {
+    organizationId: string
+    name: string
+  }
+
+  export type GroupCountOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    name?: SortOrder
+    scimManaged?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type GroupMaxOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    name?: SortOrder
+    scimManaged?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type GroupMinOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    name?: SortOrder
+    scimManaged?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type GroupScalarRelationFilter = {
+    is?: GroupWhereInput
+    isNot?: GroupWhereInput
+  }
+
+  export type GroupMemberGroupIdUserIdCompoundUniqueInput = {
+    groupId: string
+    userId: string
+  }
+
+  export type GroupMemberCountOrderByAggregateInput = {
+    id?: SortOrder
+    groupId?: SortOrder
+    userId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GroupMemberMaxOrderByAggregateInput = {
+    id?: SortOrder
+    groupId?: SortOrder
+    userId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type GroupMemberMinOrderByAggregateInput = {
+    id?: SortOrder
+    groupId?: SortOrder
+    userId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type EnumAccessGrantSubjectTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.AccessGrantSubjectType | EnumAccessGrantSubjectTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.AccessGrantSubjectType[] | ListEnumAccessGrantSubjectTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AccessGrantSubjectType[] | ListEnumAccessGrantSubjectTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumAccessGrantSubjectTypeFilter<$PrismaModel> | $Enums.AccessGrantSubjectType
+  }
+
+  export type EnumAccessGrantResourceTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.AccessGrantResourceType | EnumAccessGrantResourceTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.AccessGrantResourceType[] | ListEnumAccessGrantResourceTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AccessGrantResourceType[] | ListEnumAccessGrantResourceTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumAccessGrantResourceTypeFilter<$PrismaModel> | $Enums.AccessGrantResourceType
+  }
+
+  export type GroupNullableScalarRelationFilter = {
+    is?: GroupWhereInput | null
+    isNot?: GroupWhereInput | null
+  }
+
+  export type ResourceAccessGrantCountOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    subjectType?: SortOrder
+    subjectUserId?: SortOrder
+    subjectGroupId?: SortOrder
+    resourceType?: SortOrder
+    resourceId?: SortOrder
+    roleKey?: SortOrder
+    expiresAt?: SortOrder
+    grantedByUserId?: SortOrder
+    revokedAt?: SortOrder
+    revokedByUserId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ResourceAccessGrantMaxOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    subjectType?: SortOrder
+    subjectUserId?: SortOrder
+    subjectGroupId?: SortOrder
+    resourceType?: SortOrder
+    resourceId?: SortOrder
+    roleKey?: SortOrder
+    expiresAt?: SortOrder
+    grantedByUserId?: SortOrder
+    revokedAt?: SortOrder
+    revokedByUserId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ResourceAccessGrantMinOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    subjectType?: SortOrder
+    subjectUserId?: SortOrder
+    subjectGroupId?: SortOrder
+    resourceType?: SortOrder
+    resourceId?: SortOrder
+    roleKey?: SortOrder
+    expiresAt?: SortOrder
+    grantedByUserId?: SortOrder
+    revokedAt?: SortOrder
+    revokedByUserId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type EnumAccessGrantSubjectTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AccessGrantSubjectType | EnumAccessGrantSubjectTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.AccessGrantSubjectType[] | ListEnumAccessGrantSubjectTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AccessGrantSubjectType[] | ListEnumAccessGrantSubjectTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumAccessGrantSubjectTypeWithAggregatesFilter<$PrismaModel> | $Enums.AccessGrantSubjectType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumAccessGrantSubjectTypeFilter<$PrismaModel>
+    _max?: NestedEnumAccessGrantSubjectTypeFilter<$PrismaModel>
+  }
+
+  export type EnumAccessGrantResourceTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AccessGrantResourceType | EnumAccessGrantResourceTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.AccessGrantResourceType[] | ListEnumAccessGrantResourceTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AccessGrantResourceType[] | ListEnumAccessGrantResourceTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumAccessGrantResourceTypeWithAggregatesFilter<$PrismaModel> | $Enums.AccessGrantResourceType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumAccessGrantResourceTypeFilter<$PrismaModel>
+    _max?: NestedEnumAccessGrantResourceTypeFilter<$PrismaModel>
+  }
+
   export type AccountCreateNestedManyWithoutUserInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -168131,6 +172961,27 @@ export namespace Prisma {
     connectOrCreate?: ProjectShareLinkCreateOrConnectWithoutCreatedByInput | ProjectShareLinkCreateOrConnectWithoutCreatedByInput[]
     createMany?: ProjectShareLinkCreateManyCreatedByInputEnvelope
     connect?: ProjectShareLinkWhereUniqueInput | ProjectShareLinkWhereUniqueInput[]
+  }
+
+  export type GroupMemberCreateNestedManyWithoutUserInput = {
+    create?: XOR<GroupMemberCreateWithoutUserInput, GroupMemberUncheckedCreateWithoutUserInput> | GroupMemberCreateWithoutUserInput[] | GroupMemberUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: GroupMemberCreateOrConnectWithoutUserInput | GroupMemberCreateOrConnectWithoutUserInput[]
+    createMany?: GroupMemberCreateManyUserInputEnvelope
+    connect?: GroupMemberWhereUniqueInput | GroupMemberWhereUniqueInput[]
+  }
+
+  export type ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput = {
+    create?: XOR<ResourceAccessGrantCreateWithoutSubjectUserInput, ResourceAccessGrantUncheckedCreateWithoutSubjectUserInput> | ResourceAccessGrantCreateWithoutSubjectUserInput[] | ResourceAccessGrantUncheckedCreateWithoutSubjectUserInput[]
+    connectOrCreate?: ResourceAccessGrantCreateOrConnectWithoutSubjectUserInput | ResourceAccessGrantCreateOrConnectWithoutSubjectUserInput[]
+    createMany?: ResourceAccessGrantCreateManySubjectUserInputEnvelope
+    connect?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+  }
+
+  export type ResourceAccessGrantCreateNestedManyWithoutGrantedByInput = {
+    create?: XOR<ResourceAccessGrantCreateWithoutGrantedByInput, ResourceAccessGrantUncheckedCreateWithoutGrantedByInput> | ResourceAccessGrantCreateWithoutGrantedByInput[] | ResourceAccessGrantUncheckedCreateWithoutGrantedByInput[]
+    connectOrCreate?: ResourceAccessGrantCreateOrConnectWithoutGrantedByInput | ResourceAccessGrantCreateOrConnectWithoutGrantedByInput[]
+    createMany?: ResourceAccessGrantCreateManyGrantedByInputEnvelope
+    connect?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
   }
 
   export type AgentMemoryCreateNestedManyWithoutUserInput = {
@@ -168358,6 +173209,27 @@ export namespace Prisma {
     connectOrCreate?: ProjectShareLinkCreateOrConnectWithoutCreatedByInput | ProjectShareLinkCreateOrConnectWithoutCreatedByInput[]
     createMany?: ProjectShareLinkCreateManyCreatedByInputEnvelope
     connect?: ProjectShareLinkWhereUniqueInput | ProjectShareLinkWhereUniqueInput[]
+  }
+
+  export type GroupMemberUncheckedCreateNestedManyWithoutUserInput = {
+    create?: XOR<GroupMemberCreateWithoutUserInput, GroupMemberUncheckedCreateWithoutUserInput> | GroupMemberCreateWithoutUserInput[] | GroupMemberUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: GroupMemberCreateOrConnectWithoutUserInput | GroupMemberCreateOrConnectWithoutUserInput[]
+    createMany?: GroupMemberCreateManyUserInputEnvelope
+    connect?: GroupMemberWhereUniqueInput | GroupMemberWhereUniqueInput[]
+  }
+
+  export type ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput = {
+    create?: XOR<ResourceAccessGrantCreateWithoutSubjectUserInput, ResourceAccessGrantUncheckedCreateWithoutSubjectUserInput> | ResourceAccessGrantCreateWithoutSubjectUserInput[] | ResourceAccessGrantUncheckedCreateWithoutSubjectUserInput[]
+    connectOrCreate?: ResourceAccessGrantCreateOrConnectWithoutSubjectUserInput | ResourceAccessGrantCreateOrConnectWithoutSubjectUserInput[]
+    createMany?: ResourceAccessGrantCreateManySubjectUserInputEnvelope
+    connect?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+  }
+
+  export type ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput = {
+    create?: XOR<ResourceAccessGrantCreateWithoutGrantedByInput, ResourceAccessGrantUncheckedCreateWithoutGrantedByInput> | ResourceAccessGrantCreateWithoutGrantedByInput[] | ResourceAccessGrantUncheckedCreateWithoutGrantedByInput[]
+    connectOrCreate?: ResourceAccessGrantCreateOrConnectWithoutGrantedByInput | ResourceAccessGrantCreateOrConnectWithoutGrantedByInput[]
+    createMany?: ResourceAccessGrantCreateManyGrantedByInputEnvelope
+    connect?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
   }
 
   export type AgentMemoryUncheckedCreateNestedManyWithoutUserInput = {
@@ -168745,6 +173617,48 @@ export namespace Prisma {
     update?: ProjectShareLinkUpdateWithWhereUniqueWithoutCreatedByInput | ProjectShareLinkUpdateWithWhereUniqueWithoutCreatedByInput[]
     updateMany?: ProjectShareLinkUpdateManyWithWhereWithoutCreatedByInput | ProjectShareLinkUpdateManyWithWhereWithoutCreatedByInput[]
     deleteMany?: ProjectShareLinkScalarWhereInput | ProjectShareLinkScalarWhereInput[]
+  }
+
+  export type GroupMemberUpdateManyWithoutUserNestedInput = {
+    create?: XOR<GroupMemberCreateWithoutUserInput, GroupMemberUncheckedCreateWithoutUserInput> | GroupMemberCreateWithoutUserInput[] | GroupMemberUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: GroupMemberCreateOrConnectWithoutUserInput | GroupMemberCreateOrConnectWithoutUserInput[]
+    upsert?: GroupMemberUpsertWithWhereUniqueWithoutUserInput | GroupMemberUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: GroupMemberCreateManyUserInputEnvelope
+    set?: GroupMemberWhereUniqueInput | GroupMemberWhereUniqueInput[]
+    disconnect?: GroupMemberWhereUniqueInput | GroupMemberWhereUniqueInput[]
+    delete?: GroupMemberWhereUniqueInput | GroupMemberWhereUniqueInput[]
+    connect?: GroupMemberWhereUniqueInput | GroupMemberWhereUniqueInput[]
+    update?: GroupMemberUpdateWithWhereUniqueWithoutUserInput | GroupMemberUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: GroupMemberUpdateManyWithWhereWithoutUserInput | GroupMemberUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: GroupMemberScalarWhereInput | GroupMemberScalarWhereInput[]
+  }
+
+  export type ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput = {
+    create?: XOR<ResourceAccessGrantCreateWithoutSubjectUserInput, ResourceAccessGrantUncheckedCreateWithoutSubjectUserInput> | ResourceAccessGrantCreateWithoutSubjectUserInput[] | ResourceAccessGrantUncheckedCreateWithoutSubjectUserInput[]
+    connectOrCreate?: ResourceAccessGrantCreateOrConnectWithoutSubjectUserInput | ResourceAccessGrantCreateOrConnectWithoutSubjectUserInput[]
+    upsert?: ResourceAccessGrantUpsertWithWhereUniqueWithoutSubjectUserInput | ResourceAccessGrantUpsertWithWhereUniqueWithoutSubjectUserInput[]
+    createMany?: ResourceAccessGrantCreateManySubjectUserInputEnvelope
+    set?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+    disconnect?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+    delete?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+    connect?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+    update?: ResourceAccessGrantUpdateWithWhereUniqueWithoutSubjectUserInput | ResourceAccessGrantUpdateWithWhereUniqueWithoutSubjectUserInput[]
+    updateMany?: ResourceAccessGrantUpdateManyWithWhereWithoutSubjectUserInput | ResourceAccessGrantUpdateManyWithWhereWithoutSubjectUserInput[]
+    deleteMany?: ResourceAccessGrantScalarWhereInput | ResourceAccessGrantScalarWhereInput[]
+  }
+
+  export type ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput = {
+    create?: XOR<ResourceAccessGrantCreateWithoutGrantedByInput, ResourceAccessGrantUncheckedCreateWithoutGrantedByInput> | ResourceAccessGrantCreateWithoutGrantedByInput[] | ResourceAccessGrantUncheckedCreateWithoutGrantedByInput[]
+    connectOrCreate?: ResourceAccessGrantCreateOrConnectWithoutGrantedByInput | ResourceAccessGrantCreateOrConnectWithoutGrantedByInput[]
+    upsert?: ResourceAccessGrantUpsertWithWhereUniqueWithoutGrantedByInput | ResourceAccessGrantUpsertWithWhereUniqueWithoutGrantedByInput[]
+    createMany?: ResourceAccessGrantCreateManyGrantedByInputEnvelope
+    set?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+    disconnect?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+    delete?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+    connect?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+    update?: ResourceAccessGrantUpdateWithWhereUniqueWithoutGrantedByInput | ResourceAccessGrantUpdateWithWhereUniqueWithoutGrantedByInput[]
+    updateMany?: ResourceAccessGrantUpdateManyWithWhereWithoutGrantedByInput | ResourceAccessGrantUpdateManyWithWhereWithoutGrantedByInput[]
+    deleteMany?: ResourceAccessGrantScalarWhereInput | ResourceAccessGrantScalarWhereInput[]
   }
 
   export type AgentMemoryUpdateManyWithoutUserNestedInput = {
@@ -169201,6 +174115,48 @@ export namespace Prisma {
     deleteMany?: ProjectShareLinkScalarWhereInput | ProjectShareLinkScalarWhereInput[]
   }
 
+  export type GroupMemberUncheckedUpdateManyWithoutUserNestedInput = {
+    create?: XOR<GroupMemberCreateWithoutUserInput, GroupMemberUncheckedCreateWithoutUserInput> | GroupMemberCreateWithoutUserInput[] | GroupMemberUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: GroupMemberCreateOrConnectWithoutUserInput | GroupMemberCreateOrConnectWithoutUserInput[]
+    upsert?: GroupMemberUpsertWithWhereUniqueWithoutUserInput | GroupMemberUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: GroupMemberCreateManyUserInputEnvelope
+    set?: GroupMemberWhereUniqueInput | GroupMemberWhereUniqueInput[]
+    disconnect?: GroupMemberWhereUniqueInput | GroupMemberWhereUniqueInput[]
+    delete?: GroupMemberWhereUniqueInput | GroupMemberWhereUniqueInput[]
+    connect?: GroupMemberWhereUniqueInput | GroupMemberWhereUniqueInput[]
+    update?: GroupMemberUpdateWithWhereUniqueWithoutUserInput | GroupMemberUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: GroupMemberUpdateManyWithWhereWithoutUserInput | GroupMemberUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: GroupMemberScalarWhereInput | GroupMemberScalarWhereInput[]
+  }
+
+  export type ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput = {
+    create?: XOR<ResourceAccessGrantCreateWithoutSubjectUserInput, ResourceAccessGrantUncheckedCreateWithoutSubjectUserInput> | ResourceAccessGrantCreateWithoutSubjectUserInput[] | ResourceAccessGrantUncheckedCreateWithoutSubjectUserInput[]
+    connectOrCreate?: ResourceAccessGrantCreateOrConnectWithoutSubjectUserInput | ResourceAccessGrantCreateOrConnectWithoutSubjectUserInput[]
+    upsert?: ResourceAccessGrantUpsertWithWhereUniqueWithoutSubjectUserInput | ResourceAccessGrantUpsertWithWhereUniqueWithoutSubjectUserInput[]
+    createMany?: ResourceAccessGrantCreateManySubjectUserInputEnvelope
+    set?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+    disconnect?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+    delete?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+    connect?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+    update?: ResourceAccessGrantUpdateWithWhereUniqueWithoutSubjectUserInput | ResourceAccessGrantUpdateWithWhereUniqueWithoutSubjectUserInput[]
+    updateMany?: ResourceAccessGrantUpdateManyWithWhereWithoutSubjectUserInput | ResourceAccessGrantUpdateManyWithWhereWithoutSubjectUserInput[]
+    deleteMany?: ResourceAccessGrantScalarWhereInput | ResourceAccessGrantScalarWhereInput[]
+  }
+
+  export type ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput = {
+    create?: XOR<ResourceAccessGrantCreateWithoutGrantedByInput, ResourceAccessGrantUncheckedCreateWithoutGrantedByInput> | ResourceAccessGrantCreateWithoutGrantedByInput[] | ResourceAccessGrantUncheckedCreateWithoutGrantedByInput[]
+    connectOrCreate?: ResourceAccessGrantCreateOrConnectWithoutGrantedByInput | ResourceAccessGrantCreateOrConnectWithoutGrantedByInput[]
+    upsert?: ResourceAccessGrantUpsertWithWhereUniqueWithoutGrantedByInput | ResourceAccessGrantUpsertWithWhereUniqueWithoutGrantedByInput[]
+    createMany?: ResourceAccessGrantCreateManyGrantedByInputEnvelope
+    set?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+    disconnect?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+    delete?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+    connect?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+    update?: ResourceAccessGrantUpdateWithWhereUniqueWithoutGrantedByInput | ResourceAccessGrantUpdateWithWhereUniqueWithoutGrantedByInput[]
+    updateMany?: ResourceAccessGrantUpdateManyWithWhereWithoutGrantedByInput | ResourceAccessGrantUpdateManyWithWhereWithoutGrantedByInput[]
+    deleteMany?: ResourceAccessGrantScalarWhereInput | ResourceAccessGrantScalarWhereInput[]
+  }
+
   export type AgentMemoryUncheckedUpdateManyWithoutUserNestedInput = {
     set?: AgentMemoryWhereUniqueInput | AgentMemoryWhereUniqueInput[]
     disconnect?: AgentMemoryWhereUniqueInput | AgentMemoryWhereUniqueInput[]
@@ -169541,6 +174497,20 @@ export namespace Prisma {
     connect?: CustomRoleWhereUniqueInput | CustomRoleWhereUniqueInput[]
   }
 
+  export type GroupCreateNestedManyWithoutOrganizationInput = {
+    create?: XOR<GroupCreateWithoutOrganizationInput, GroupUncheckedCreateWithoutOrganizationInput> | GroupCreateWithoutOrganizationInput[] | GroupUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: GroupCreateOrConnectWithoutOrganizationInput | GroupCreateOrConnectWithoutOrganizationInput[]
+    createMany?: GroupCreateManyOrganizationInputEnvelope
+    connect?: GroupWhereUniqueInput | GroupWhereUniqueInput[]
+  }
+
+  export type ResourceAccessGrantCreateNestedManyWithoutOrganizationInput = {
+    create?: XOR<ResourceAccessGrantCreateWithoutOrganizationInput, ResourceAccessGrantUncheckedCreateWithoutOrganizationInput> | ResourceAccessGrantCreateWithoutOrganizationInput[] | ResourceAccessGrantUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: ResourceAccessGrantCreateOrConnectWithoutOrganizationInput | ResourceAccessGrantCreateOrConnectWithoutOrganizationInput[]
+    createMany?: ResourceAccessGrantCreateManyOrganizationInputEnvelope
+    connect?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+  }
+
   export type SiemWebhookCreateNestedManyWithoutOrganizationInput = {
     create?: XOR<SiemWebhookCreateWithoutOrganizationInput, SiemWebhookUncheckedCreateWithoutOrganizationInput> | SiemWebhookCreateWithoutOrganizationInput[] | SiemWebhookUncheckedCreateWithoutOrganizationInput[]
     connectOrCreate?: SiemWebhookCreateOrConnectWithoutOrganizationInput | SiemWebhookCreateOrConnectWithoutOrganizationInput[]
@@ -169771,6 +174741,20 @@ export namespace Prisma {
     connectOrCreate?: CustomRoleCreateOrConnectWithoutOrganizationInput | CustomRoleCreateOrConnectWithoutOrganizationInput[]
     createMany?: CustomRoleCreateManyOrganizationInputEnvelope
     connect?: CustomRoleWhereUniqueInput | CustomRoleWhereUniqueInput[]
+  }
+
+  export type GroupUncheckedCreateNestedManyWithoutOrganizationInput = {
+    create?: XOR<GroupCreateWithoutOrganizationInput, GroupUncheckedCreateWithoutOrganizationInput> | GroupCreateWithoutOrganizationInput[] | GroupUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: GroupCreateOrConnectWithoutOrganizationInput | GroupCreateOrConnectWithoutOrganizationInput[]
+    createMany?: GroupCreateManyOrganizationInputEnvelope
+    connect?: GroupWhereUniqueInput | GroupWhereUniqueInput[]
+  }
+
+  export type ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput = {
+    create?: XOR<ResourceAccessGrantCreateWithoutOrganizationInput, ResourceAccessGrantUncheckedCreateWithoutOrganizationInput> | ResourceAccessGrantCreateWithoutOrganizationInput[] | ResourceAccessGrantUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: ResourceAccessGrantCreateOrConnectWithoutOrganizationInput | ResourceAccessGrantCreateOrConnectWithoutOrganizationInput[]
+    createMany?: ResourceAccessGrantCreateManyOrganizationInputEnvelope
+    connect?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
   }
 
   export type SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput = {
@@ -170137,6 +175121,34 @@ export namespace Prisma {
     update?: CustomRoleUpdateWithWhereUniqueWithoutOrganizationInput | CustomRoleUpdateWithWhereUniqueWithoutOrganizationInput[]
     updateMany?: CustomRoleUpdateManyWithWhereWithoutOrganizationInput | CustomRoleUpdateManyWithWhereWithoutOrganizationInput[]
     deleteMany?: CustomRoleScalarWhereInput | CustomRoleScalarWhereInput[]
+  }
+
+  export type GroupUpdateManyWithoutOrganizationNestedInput = {
+    create?: XOR<GroupCreateWithoutOrganizationInput, GroupUncheckedCreateWithoutOrganizationInput> | GroupCreateWithoutOrganizationInput[] | GroupUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: GroupCreateOrConnectWithoutOrganizationInput | GroupCreateOrConnectWithoutOrganizationInput[]
+    upsert?: GroupUpsertWithWhereUniqueWithoutOrganizationInput | GroupUpsertWithWhereUniqueWithoutOrganizationInput[]
+    createMany?: GroupCreateManyOrganizationInputEnvelope
+    set?: GroupWhereUniqueInput | GroupWhereUniqueInput[]
+    disconnect?: GroupWhereUniqueInput | GroupWhereUniqueInput[]
+    delete?: GroupWhereUniqueInput | GroupWhereUniqueInput[]
+    connect?: GroupWhereUniqueInput | GroupWhereUniqueInput[]
+    update?: GroupUpdateWithWhereUniqueWithoutOrganizationInput | GroupUpdateWithWhereUniqueWithoutOrganizationInput[]
+    updateMany?: GroupUpdateManyWithWhereWithoutOrganizationInput | GroupUpdateManyWithWhereWithoutOrganizationInput[]
+    deleteMany?: GroupScalarWhereInput | GroupScalarWhereInput[]
+  }
+
+  export type ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput = {
+    create?: XOR<ResourceAccessGrantCreateWithoutOrganizationInput, ResourceAccessGrantUncheckedCreateWithoutOrganizationInput> | ResourceAccessGrantCreateWithoutOrganizationInput[] | ResourceAccessGrantUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: ResourceAccessGrantCreateOrConnectWithoutOrganizationInput | ResourceAccessGrantCreateOrConnectWithoutOrganizationInput[]
+    upsert?: ResourceAccessGrantUpsertWithWhereUniqueWithoutOrganizationInput | ResourceAccessGrantUpsertWithWhereUniqueWithoutOrganizationInput[]
+    createMany?: ResourceAccessGrantCreateManyOrganizationInputEnvelope
+    set?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+    disconnect?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+    delete?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+    connect?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+    update?: ResourceAccessGrantUpdateWithWhereUniqueWithoutOrganizationInput | ResourceAccessGrantUpdateWithWhereUniqueWithoutOrganizationInput[]
+    updateMany?: ResourceAccessGrantUpdateManyWithWhereWithoutOrganizationInput | ResourceAccessGrantUpdateManyWithWhereWithoutOrganizationInput[]
+    deleteMany?: ResourceAccessGrantScalarWhereInput | ResourceAccessGrantScalarWhereInput[]
   }
 
   export type SiemWebhookUpdateManyWithoutOrganizationNestedInput = {
@@ -170597,6 +175609,34 @@ export namespace Prisma {
     update?: CustomRoleUpdateWithWhereUniqueWithoutOrganizationInput | CustomRoleUpdateWithWhereUniqueWithoutOrganizationInput[]
     updateMany?: CustomRoleUpdateManyWithWhereWithoutOrganizationInput | CustomRoleUpdateManyWithWhereWithoutOrganizationInput[]
     deleteMany?: CustomRoleScalarWhereInput | CustomRoleScalarWhereInput[]
+  }
+
+  export type GroupUncheckedUpdateManyWithoutOrganizationNestedInput = {
+    create?: XOR<GroupCreateWithoutOrganizationInput, GroupUncheckedCreateWithoutOrganizationInput> | GroupCreateWithoutOrganizationInput[] | GroupUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: GroupCreateOrConnectWithoutOrganizationInput | GroupCreateOrConnectWithoutOrganizationInput[]
+    upsert?: GroupUpsertWithWhereUniqueWithoutOrganizationInput | GroupUpsertWithWhereUniqueWithoutOrganizationInput[]
+    createMany?: GroupCreateManyOrganizationInputEnvelope
+    set?: GroupWhereUniqueInput | GroupWhereUniqueInput[]
+    disconnect?: GroupWhereUniqueInput | GroupWhereUniqueInput[]
+    delete?: GroupWhereUniqueInput | GroupWhereUniqueInput[]
+    connect?: GroupWhereUniqueInput | GroupWhereUniqueInput[]
+    update?: GroupUpdateWithWhereUniqueWithoutOrganizationInput | GroupUpdateWithWhereUniqueWithoutOrganizationInput[]
+    updateMany?: GroupUpdateManyWithWhereWithoutOrganizationInput | GroupUpdateManyWithWhereWithoutOrganizationInput[]
+    deleteMany?: GroupScalarWhereInput | GroupScalarWhereInput[]
+  }
+
+  export type ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput = {
+    create?: XOR<ResourceAccessGrantCreateWithoutOrganizationInput, ResourceAccessGrantUncheckedCreateWithoutOrganizationInput> | ResourceAccessGrantCreateWithoutOrganizationInput[] | ResourceAccessGrantUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: ResourceAccessGrantCreateOrConnectWithoutOrganizationInput | ResourceAccessGrantCreateOrConnectWithoutOrganizationInput[]
+    upsert?: ResourceAccessGrantUpsertWithWhereUniqueWithoutOrganizationInput | ResourceAccessGrantUpsertWithWhereUniqueWithoutOrganizationInput[]
+    createMany?: ResourceAccessGrantCreateManyOrganizationInputEnvelope
+    set?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+    disconnect?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+    delete?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+    connect?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+    update?: ResourceAccessGrantUpdateWithWhereUniqueWithoutOrganizationInput | ResourceAccessGrantUpdateWithWhereUniqueWithoutOrganizationInput[]
+    updateMany?: ResourceAccessGrantUpdateManyWithWhereWithoutOrganizationInput | ResourceAccessGrantUpdateManyWithWhereWithoutOrganizationInput[]
+    deleteMany?: ResourceAccessGrantScalarWhereInput | ResourceAccessGrantScalarWhereInput[]
   }
 
   export type SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput = {
@@ -174709,6 +179749,202 @@ export namespace Prisma {
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutGalleryListingsInput, UserUpdateWithoutGalleryListingsInput>, UserUncheckedUpdateWithoutGalleryListingsInput>
   }
 
+  export type OrganizationCreateNestedOneWithoutGroupsInput = {
+    create?: XOR<OrganizationCreateWithoutGroupsInput, OrganizationUncheckedCreateWithoutGroupsInput>
+    connectOrCreate?: OrganizationCreateOrConnectWithoutGroupsInput
+    connect?: OrganizationWhereUniqueInput
+  }
+
+  export type GroupMemberCreateNestedManyWithoutGroupInput = {
+    create?: XOR<GroupMemberCreateWithoutGroupInput, GroupMemberUncheckedCreateWithoutGroupInput> | GroupMemberCreateWithoutGroupInput[] | GroupMemberUncheckedCreateWithoutGroupInput[]
+    connectOrCreate?: GroupMemberCreateOrConnectWithoutGroupInput | GroupMemberCreateOrConnectWithoutGroupInput[]
+    createMany?: GroupMemberCreateManyGroupInputEnvelope
+    connect?: GroupMemberWhereUniqueInput | GroupMemberWhereUniqueInput[]
+  }
+
+  export type ResourceAccessGrantCreateNestedManyWithoutSubjectGroupInput = {
+    create?: XOR<ResourceAccessGrantCreateWithoutSubjectGroupInput, ResourceAccessGrantUncheckedCreateWithoutSubjectGroupInput> | ResourceAccessGrantCreateWithoutSubjectGroupInput[] | ResourceAccessGrantUncheckedCreateWithoutSubjectGroupInput[]
+    connectOrCreate?: ResourceAccessGrantCreateOrConnectWithoutSubjectGroupInput | ResourceAccessGrantCreateOrConnectWithoutSubjectGroupInput[]
+    createMany?: ResourceAccessGrantCreateManySubjectGroupInputEnvelope
+    connect?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+  }
+
+  export type GroupMemberUncheckedCreateNestedManyWithoutGroupInput = {
+    create?: XOR<GroupMemberCreateWithoutGroupInput, GroupMemberUncheckedCreateWithoutGroupInput> | GroupMemberCreateWithoutGroupInput[] | GroupMemberUncheckedCreateWithoutGroupInput[]
+    connectOrCreate?: GroupMemberCreateOrConnectWithoutGroupInput | GroupMemberCreateOrConnectWithoutGroupInput[]
+    createMany?: GroupMemberCreateManyGroupInputEnvelope
+    connect?: GroupMemberWhereUniqueInput | GroupMemberWhereUniqueInput[]
+  }
+
+  export type ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectGroupInput = {
+    create?: XOR<ResourceAccessGrantCreateWithoutSubjectGroupInput, ResourceAccessGrantUncheckedCreateWithoutSubjectGroupInput> | ResourceAccessGrantCreateWithoutSubjectGroupInput[] | ResourceAccessGrantUncheckedCreateWithoutSubjectGroupInput[]
+    connectOrCreate?: ResourceAccessGrantCreateOrConnectWithoutSubjectGroupInput | ResourceAccessGrantCreateOrConnectWithoutSubjectGroupInput[]
+    createMany?: ResourceAccessGrantCreateManySubjectGroupInputEnvelope
+    connect?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+  }
+
+  export type OrganizationUpdateOneRequiredWithoutGroupsNestedInput = {
+    create?: XOR<OrganizationCreateWithoutGroupsInput, OrganizationUncheckedCreateWithoutGroupsInput>
+    connectOrCreate?: OrganizationCreateOrConnectWithoutGroupsInput
+    upsert?: OrganizationUpsertWithoutGroupsInput
+    connect?: OrganizationWhereUniqueInput
+    update?: XOR<XOR<OrganizationUpdateToOneWithWhereWithoutGroupsInput, OrganizationUpdateWithoutGroupsInput>, OrganizationUncheckedUpdateWithoutGroupsInput>
+  }
+
+  export type GroupMemberUpdateManyWithoutGroupNestedInput = {
+    create?: XOR<GroupMemberCreateWithoutGroupInput, GroupMemberUncheckedCreateWithoutGroupInput> | GroupMemberCreateWithoutGroupInput[] | GroupMemberUncheckedCreateWithoutGroupInput[]
+    connectOrCreate?: GroupMemberCreateOrConnectWithoutGroupInput | GroupMemberCreateOrConnectWithoutGroupInput[]
+    upsert?: GroupMemberUpsertWithWhereUniqueWithoutGroupInput | GroupMemberUpsertWithWhereUniqueWithoutGroupInput[]
+    createMany?: GroupMemberCreateManyGroupInputEnvelope
+    set?: GroupMemberWhereUniqueInput | GroupMemberWhereUniqueInput[]
+    disconnect?: GroupMemberWhereUniqueInput | GroupMemberWhereUniqueInput[]
+    delete?: GroupMemberWhereUniqueInput | GroupMemberWhereUniqueInput[]
+    connect?: GroupMemberWhereUniqueInput | GroupMemberWhereUniqueInput[]
+    update?: GroupMemberUpdateWithWhereUniqueWithoutGroupInput | GroupMemberUpdateWithWhereUniqueWithoutGroupInput[]
+    updateMany?: GroupMemberUpdateManyWithWhereWithoutGroupInput | GroupMemberUpdateManyWithWhereWithoutGroupInput[]
+    deleteMany?: GroupMemberScalarWhereInput | GroupMemberScalarWhereInput[]
+  }
+
+  export type ResourceAccessGrantUpdateManyWithoutSubjectGroupNestedInput = {
+    create?: XOR<ResourceAccessGrantCreateWithoutSubjectGroupInput, ResourceAccessGrantUncheckedCreateWithoutSubjectGroupInput> | ResourceAccessGrantCreateWithoutSubjectGroupInput[] | ResourceAccessGrantUncheckedCreateWithoutSubjectGroupInput[]
+    connectOrCreate?: ResourceAccessGrantCreateOrConnectWithoutSubjectGroupInput | ResourceAccessGrantCreateOrConnectWithoutSubjectGroupInput[]
+    upsert?: ResourceAccessGrantUpsertWithWhereUniqueWithoutSubjectGroupInput | ResourceAccessGrantUpsertWithWhereUniqueWithoutSubjectGroupInput[]
+    createMany?: ResourceAccessGrantCreateManySubjectGroupInputEnvelope
+    set?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+    disconnect?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+    delete?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+    connect?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+    update?: ResourceAccessGrantUpdateWithWhereUniqueWithoutSubjectGroupInput | ResourceAccessGrantUpdateWithWhereUniqueWithoutSubjectGroupInput[]
+    updateMany?: ResourceAccessGrantUpdateManyWithWhereWithoutSubjectGroupInput | ResourceAccessGrantUpdateManyWithWhereWithoutSubjectGroupInput[]
+    deleteMany?: ResourceAccessGrantScalarWhereInput | ResourceAccessGrantScalarWhereInput[]
+  }
+
+  export type GroupMemberUncheckedUpdateManyWithoutGroupNestedInput = {
+    create?: XOR<GroupMemberCreateWithoutGroupInput, GroupMemberUncheckedCreateWithoutGroupInput> | GroupMemberCreateWithoutGroupInput[] | GroupMemberUncheckedCreateWithoutGroupInput[]
+    connectOrCreate?: GroupMemberCreateOrConnectWithoutGroupInput | GroupMemberCreateOrConnectWithoutGroupInput[]
+    upsert?: GroupMemberUpsertWithWhereUniqueWithoutGroupInput | GroupMemberUpsertWithWhereUniqueWithoutGroupInput[]
+    createMany?: GroupMemberCreateManyGroupInputEnvelope
+    set?: GroupMemberWhereUniqueInput | GroupMemberWhereUniqueInput[]
+    disconnect?: GroupMemberWhereUniqueInput | GroupMemberWhereUniqueInput[]
+    delete?: GroupMemberWhereUniqueInput | GroupMemberWhereUniqueInput[]
+    connect?: GroupMemberWhereUniqueInput | GroupMemberWhereUniqueInput[]
+    update?: GroupMemberUpdateWithWhereUniqueWithoutGroupInput | GroupMemberUpdateWithWhereUniqueWithoutGroupInput[]
+    updateMany?: GroupMemberUpdateManyWithWhereWithoutGroupInput | GroupMemberUpdateManyWithWhereWithoutGroupInput[]
+    deleteMany?: GroupMemberScalarWhereInput | GroupMemberScalarWhereInput[]
+  }
+
+  export type ResourceAccessGrantUncheckedUpdateManyWithoutSubjectGroupNestedInput = {
+    create?: XOR<ResourceAccessGrantCreateWithoutSubjectGroupInput, ResourceAccessGrantUncheckedCreateWithoutSubjectGroupInput> | ResourceAccessGrantCreateWithoutSubjectGroupInput[] | ResourceAccessGrantUncheckedCreateWithoutSubjectGroupInput[]
+    connectOrCreate?: ResourceAccessGrantCreateOrConnectWithoutSubjectGroupInput | ResourceAccessGrantCreateOrConnectWithoutSubjectGroupInput[]
+    upsert?: ResourceAccessGrantUpsertWithWhereUniqueWithoutSubjectGroupInput | ResourceAccessGrantUpsertWithWhereUniqueWithoutSubjectGroupInput[]
+    createMany?: ResourceAccessGrantCreateManySubjectGroupInputEnvelope
+    set?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+    disconnect?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+    delete?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+    connect?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+    update?: ResourceAccessGrantUpdateWithWhereUniqueWithoutSubjectGroupInput | ResourceAccessGrantUpdateWithWhereUniqueWithoutSubjectGroupInput[]
+    updateMany?: ResourceAccessGrantUpdateManyWithWhereWithoutSubjectGroupInput | ResourceAccessGrantUpdateManyWithWhereWithoutSubjectGroupInput[]
+    deleteMany?: ResourceAccessGrantScalarWhereInput | ResourceAccessGrantScalarWhereInput[]
+  }
+
+  export type GroupCreateNestedOneWithoutMembersInput = {
+    create?: XOR<GroupCreateWithoutMembersInput, GroupUncheckedCreateWithoutMembersInput>
+    connectOrCreate?: GroupCreateOrConnectWithoutMembersInput
+    connect?: GroupWhereUniqueInput
+  }
+
+  export type UserCreateNestedOneWithoutGroupMembershipsInput = {
+    create?: XOR<UserCreateWithoutGroupMembershipsInput, UserUncheckedCreateWithoutGroupMembershipsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutGroupMembershipsInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type GroupUpdateOneRequiredWithoutMembersNestedInput = {
+    create?: XOR<GroupCreateWithoutMembersInput, GroupUncheckedCreateWithoutMembersInput>
+    connectOrCreate?: GroupCreateOrConnectWithoutMembersInput
+    upsert?: GroupUpsertWithoutMembersInput
+    connect?: GroupWhereUniqueInput
+    update?: XOR<XOR<GroupUpdateToOneWithWhereWithoutMembersInput, GroupUpdateWithoutMembersInput>, GroupUncheckedUpdateWithoutMembersInput>
+  }
+
+  export type UserUpdateOneRequiredWithoutGroupMembershipsNestedInput = {
+    create?: XOR<UserCreateWithoutGroupMembershipsInput, UserUncheckedCreateWithoutGroupMembershipsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutGroupMembershipsInput
+    upsert?: UserUpsertWithoutGroupMembershipsInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutGroupMembershipsInput, UserUpdateWithoutGroupMembershipsInput>, UserUncheckedUpdateWithoutGroupMembershipsInput>
+  }
+
+  export type OrganizationCreateNestedOneWithoutResourceAccessGrantsInput = {
+    create?: XOR<OrganizationCreateWithoutResourceAccessGrantsInput, OrganizationUncheckedCreateWithoutResourceAccessGrantsInput>
+    connectOrCreate?: OrganizationCreateOrConnectWithoutResourceAccessGrantsInput
+    connect?: OrganizationWhereUniqueInput
+  }
+
+  export type UserCreateNestedOneWithoutAccessGrantsAsSubjectInput = {
+    create?: XOR<UserCreateWithoutAccessGrantsAsSubjectInput, UserUncheckedCreateWithoutAccessGrantsAsSubjectInput>
+    connectOrCreate?: UserCreateOrConnectWithoutAccessGrantsAsSubjectInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type GroupCreateNestedOneWithoutAccessGrantsInput = {
+    create?: XOR<GroupCreateWithoutAccessGrantsInput, GroupUncheckedCreateWithoutAccessGrantsInput>
+    connectOrCreate?: GroupCreateOrConnectWithoutAccessGrantsInput
+    connect?: GroupWhereUniqueInput
+  }
+
+  export type UserCreateNestedOneWithoutAccessGrantsGrantedInput = {
+    create?: XOR<UserCreateWithoutAccessGrantsGrantedInput, UserUncheckedCreateWithoutAccessGrantsGrantedInput>
+    connectOrCreate?: UserCreateOrConnectWithoutAccessGrantsGrantedInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type EnumAccessGrantSubjectTypeFieldUpdateOperationsInput = {
+    set?: $Enums.AccessGrantSubjectType
+  }
+
+  export type EnumAccessGrantResourceTypeFieldUpdateOperationsInput = {
+    set?: $Enums.AccessGrantResourceType
+  }
+
+  export type OrganizationUpdateOneRequiredWithoutResourceAccessGrantsNestedInput = {
+    create?: XOR<OrganizationCreateWithoutResourceAccessGrantsInput, OrganizationUncheckedCreateWithoutResourceAccessGrantsInput>
+    connectOrCreate?: OrganizationCreateOrConnectWithoutResourceAccessGrantsInput
+    upsert?: OrganizationUpsertWithoutResourceAccessGrantsInput
+    connect?: OrganizationWhereUniqueInput
+    update?: XOR<XOR<OrganizationUpdateToOneWithWhereWithoutResourceAccessGrantsInput, OrganizationUpdateWithoutResourceAccessGrantsInput>, OrganizationUncheckedUpdateWithoutResourceAccessGrantsInput>
+  }
+
+  export type UserUpdateOneWithoutAccessGrantsAsSubjectNestedInput = {
+    create?: XOR<UserCreateWithoutAccessGrantsAsSubjectInput, UserUncheckedCreateWithoutAccessGrantsAsSubjectInput>
+    connectOrCreate?: UserCreateOrConnectWithoutAccessGrantsAsSubjectInput
+    upsert?: UserUpsertWithoutAccessGrantsAsSubjectInput
+    disconnect?: UserWhereInput | boolean
+    delete?: UserWhereInput | boolean
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutAccessGrantsAsSubjectInput, UserUpdateWithoutAccessGrantsAsSubjectInput>, UserUncheckedUpdateWithoutAccessGrantsAsSubjectInput>
+  }
+
+  export type GroupUpdateOneWithoutAccessGrantsNestedInput = {
+    create?: XOR<GroupCreateWithoutAccessGrantsInput, GroupUncheckedCreateWithoutAccessGrantsInput>
+    connectOrCreate?: GroupCreateOrConnectWithoutAccessGrantsInput
+    upsert?: GroupUpsertWithoutAccessGrantsInput
+    disconnect?: GroupWhereInput | boolean
+    delete?: GroupWhereInput | boolean
+    connect?: GroupWhereUniqueInput
+    update?: XOR<XOR<GroupUpdateToOneWithWhereWithoutAccessGrantsInput, GroupUpdateWithoutAccessGrantsInput>, GroupUncheckedUpdateWithoutAccessGrantsInput>
+  }
+
+  export type UserUpdateOneWithoutAccessGrantsGrantedNestedInput = {
+    create?: XOR<UserCreateWithoutAccessGrantsGrantedInput, UserUncheckedCreateWithoutAccessGrantsGrantedInput>
+    connectOrCreate?: UserCreateOrConnectWithoutAccessGrantsGrantedInput
+    upsert?: UserUpsertWithoutAccessGrantsGrantedInput
+    disconnect?: UserWhereInput | boolean
+    delete?: UserWhereInput | boolean
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutAccessGrantsGrantedInput, UserUpdateWithoutAccessGrantsGrantedInput>, UserUncheckedUpdateWithoutAccessGrantsGrantedInput>
+  }
+
   export type NestedStringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -175304,6 +180540,40 @@ export namespace Prisma {
     _max?: NestedFloatNullableFilter<$PrismaModel>
   }
 
+  export type NestedEnumAccessGrantSubjectTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.AccessGrantSubjectType | EnumAccessGrantSubjectTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.AccessGrantSubjectType[] | ListEnumAccessGrantSubjectTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AccessGrantSubjectType[] | ListEnumAccessGrantSubjectTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumAccessGrantSubjectTypeFilter<$PrismaModel> | $Enums.AccessGrantSubjectType
+  }
+
+  export type NestedEnumAccessGrantResourceTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.AccessGrantResourceType | EnumAccessGrantResourceTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.AccessGrantResourceType[] | ListEnumAccessGrantResourceTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AccessGrantResourceType[] | ListEnumAccessGrantResourceTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumAccessGrantResourceTypeFilter<$PrismaModel> | $Enums.AccessGrantResourceType
+  }
+
+  export type NestedEnumAccessGrantSubjectTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AccessGrantSubjectType | EnumAccessGrantSubjectTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.AccessGrantSubjectType[] | ListEnumAccessGrantSubjectTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AccessGrantSubjectType[] | ListEnumAccessGrantSubjectTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumAccessGrantSubjectTypeWithAggregatesFilter<$PrismaModel> | $Enums.AccessGrantSubjectType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumAccessGrantSubjectTypeFilter<$PrismaModel>
+    _max?: NestedEnumAccessGrantSubjectTypeFilter<$PrismaModel>
+  }
+
+  export type NestedEnumAccessGrantResourceTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AccessGrantResourceType | EnumAccessGrantResourceTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.AccessGrantResourceType[] | ListEnumAccessGrantResourceTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AccessGrantResourceType[] | ListEnumAccessGrantResourceTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumAccessGrantResourceTypeWithAggregatesFilter<$PrismaModel> | $Enums.AccessGrantResourceType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumAccessGrantResourceTypeFilter<$PrismaModel>
+    _max?: NestedEnumAccessGrantResourceTypeFilter<$PrismaModel>
+  }
+
   export type AccountCreateWithoutUserInput = {
     id?: string
     provider: string
@@ -175368,6 +180638,9 @@ export namespace Prisma {
 
   export type OrganizationMemberCreateWithoutUserInput = {
     id?: string
+    state?: string
+    invitedByUserId?: string | null
+    joinedAt?: Date | string
     createdAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutMembersInput
     role: RoleCreateNestedOneWithoutMembersInput
@@ -175377,6 +180650,9 @@ export namespace Prisma {
     id?: string
     organizationId: string
     roleId: string
+    state?: string
+    invitedByUserId?: string | null
+    joinedAt?: Date | string
     createdAt?: Date | string
   }
 
@@ -175918,6 +181194,112 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type GroupMemberCreateWithoutUserInput = {
+    id?: string
+    createdAt?: Date | string
+    group: GroupCreateNestedOneWithoutMembersInput
+  }
+
+  export type GroupMemberUncheckedCreateWithoutUserInput = {
+    id?: string
+    groupId: string
+    createdAt?: Date | string
+  }
+
+  export type GroupMemberCreateOrConnectWithoutUserInput = {
+    where: GroupMemberWhereUniqueInput
+    create: XOR<GroupMemberCreateWithoutUserInput, GroupMemberUncheckedCreateWithoutUserInput>
+  }
+
+  export type GroupMemberCreateManyUserInputEnvelope = {
+    data: GroupMemberCreateManyUserInput | GroupMemberCreateManyUserInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ResourceAccessGrantCreateWithoutSubjectUserInput = {
+    id?: string
+    subjectType: $Enums.AccessGrantSubjectType
+    resourceType: $Enums.AccessGrantResourceType
+    resourceId: string
+    roleKey: string
+    expiresAt?: Date | string | null
+    revokedAt?: Date | string | null
+    revokedByUserId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutResourceAccessGrantsInput
+    subjectGroup?: GroupCreateNestedOneWithoutAccessGrantsInput
+    grantedBy?: UserCreateNestedOneWithoutAccessGrantsGrantedInput
+  }
+
+  export type ResourceAccessGrantUncheckedCreateWithoutSubjectUserInput = {
+    id?: string
+    organizationId: string
+    subjectType: $Enums.AccessGrantSubjectType
+    subjectGroupId?: string | null
+    resourceType: $Enums.AccessGrantResourceType
+    resourceId: string
+    roleKey: string
+    expiresAt?: Date | string | null
+    grantedByUserId?: string | null
+    revokedAt?: Date | string | null
+    revokedByUserId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ResourceAccessGrantCreateOrConnectWithoutSubjectUserInput = {
+    where: ResourceAccessGrantWhereUniqueInput
+    create: XOR<ResourceAccessGrantCreateWithoutSubjectUserInput, ResourceAccessGrantUncheckedCreateWithoutSubjectUserInput>
+  }
+
+  export type ResourceAccessGrantCreateManySubjectUserInputEnvelope = {
+    data: ResourceAccessGrantCreateManySubjectUserInput | ResourceAccessGrantCreateManySubjectUserInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ResourceAccessGrantCreateWithoutGrantedByInput = {
+    id?: string
+    subjectType: $Enums.AccessGrantSubjectType
+    resourceType: $Enums.AccessGrantResourceType
+    resourceId: string
+    roleKey: string
+    expiresAt?: Date | string | null
+    revokedAt?: Date | string | null
+    revokedByUserId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutResourceAccessGrantsInput
+    subjectUser?: UserCreateNestedOneWithoutAccessGrantsAsSubjectInput
+    subjectGroup?: GroupCreateNestedOneWithoutAccessGrantsInput
+  }
+
+  export type ResourceAccessGrantUncheckedCreateWithoutGrantedByInput = {
+    id?: string
+    organizationId: string
+    subjectType: $Enums.AccessGrantSubjectType
+    subjectUserId?: string | null
+    subjectGroupId?: string | null
+    resourceType: $Enums.AccessGrantResourceType
+    resourceId: string
+    roleKey: string
+    expiresAt?: Date | string | null
+    revokedAt?: Date | string | null
+    revokedByUserId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ResourceAccessGrantCreateOrConnectWithoutGrantedByInput = {
+    where: ResourceAccessGrantWhereUniqueInput
+    create: XOR<ResourceAccessGrantCreateWithoutGrantedByInput, ResourceAccessGrantUncheckedCreateWithoutGrantedByInput>
+  }
+
+  export type ResourceAccessGrantCreateManyGrantedByInputEnvelope = {
+    data: ResourceAccessGrantCreateManyGrantedByInput | ResourceAccessGrantCreateManyGrantedByInput[]
+    skipDuplicates?: boolean
+  }
+
   export type AgentMemoryPreferenceCreateWithoutUserInput = {
     id?: string
     enabled?: boolean
@@ -176396,6 +181778,9 @@ export namespace Prisma {
     organizationId?: StringFilter<"OrganizationMember"> | string
     userId?: StringFilter<"OrganizationMember"> | string
     roleId?: StringFilter<"OrganizationMember"> | string
+    state?: StringFilter<"OrganizationMember"> | string
+    invitedByUserId?: StringNullableFilter<"OrganizationMember"> | string | null
+    joinedAt?: DateTimeFilter<"OrganizationMember"> | Date | string
     createdAt?: DateTimeFilter<"OrganizationMember"> | Date | string
   }
 
@@ -176916,6 +182301,84 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"ProjectShareLink"> | Date | string
   }
 
+  export type GroupMemberUpsertWithWhereUniqueWithoutUserInput = {
+    where: GroupMemberWhereUniqueInput
+    update: XOR<GroupMemberUpdateWithoutUserInput, GroupMemberUncheckedUpdateWithoutUserInput>
+    create: XOR<GroupMemberCreateWithoutUserInput, GroupMemberUncheckedCreateWithoutUserInput>
+  }
+
+  export type GroupMemberUpdateWithWhereUniqueWithoutUserInput = {
+    where: GroupMemberWhereUniqueInput
+    data: XOR<GroupMemberUpdateWithoutUserInput, GroupMemberUncheckedUpdateWithoutUserInput>
+  }
+
+  export type GroupMemberUpdateManyWithWhereWithoutUserInput = {
+    where: GroupMemberScalarWhereInput
+    data: XOR<GroupMemberUpdateManyMutationInput, GroupMemberUncheckedUpdateManyWithoutUserInput>
+  }
+
+  export type GroupMemberScalarWhereInput = {
+    AND?: GroupMemberScalarWhereInput | GroupMemberScalarWhereInput[]
+    OR?: GroupMemberScalarWhereInput[]
+    NOT?: GroupMemberScalarWhereInput | GroupMemberScalarWhereInput[]
+    id?: StringFilter<"GroupMember"> | string
+    groupId?: StringFilter<"GroupMember"> | string
+    userId?: StringFilter<"GroupMember"> | string
+    createdAt?: DateTimeFilter<"GroupMember"> | Date | string
+  }
+
+  export type ResourceAccessGrantUpsertWithWhereUniqueWithoutSubjectUserInput = {
+    where: ResourceAccessGrantWhereUniqueInput
+    update: XOR<ResourceAccessGrantUpdateWithoutSubjectUserInput, ResourceAccessGrantUncheckedUpdateWithoutSubjectUserInput>
+    create: XOR<ResourceAccessGrantCreateWithoutSubjectUserInput, ResourceAccessGrantUncheckedCreateWithoutSubjectUserInput>
+  }
+
+  export type ResourceAccessGrantUpdateWithWhereUniqueWithoutSubjectUserInput = {
+    where: ResourceAccessGrantWhereUniqueInput
+    data: XOR<ResourceAccessGrantUpdateWithoutSubjectUserInput, ResourceAccessGrantUncheckedUpdateWithoutSubjectUserInput>
+  }
+
+  export type ResourceAccessGrantUpdateManyWithWhereWithoutSubjectUserInput = {
+    where: ResourceAccessGrantScalarWhereInput
+    data: XOR<ResourceAccessGrantUpdateManyMutationInput, ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserInput>
+  }
+
+  export type ResourceAccessGrantScalarWhereInput = {
+    AND?: ResourceAccessGrantScalarWhereInput | ResourceAccessGrantScalarWhereInput[]
+    OR?: ResourceAccessGrantScalarWhereInput[]
+    NOT?: ResourceAccessGrantScalarWhereInput | ResourceAccessGrantScalarWhereInput[]
+    id?: StringFilter<"ResourceAccessGrant"> | string
+    organizationId?: StringFilter<"ResourceAccessGrant"> | string
+    subjectType?: EnumAccessGrantSubjectTypeFilter<"ResourceAccessGrant"> | $Enums.AccessGrantSubjectType
+    subjectUserId?: StringNullableFilter<"ResourceAccessGrant"> | string | null
+    subjectGroupId?: StringNullableFilter<"ResourceAccessGrant"> | string | null
+    resourceType?: EnumAccessGrantResourceTypeFilter<"ResourceAccessGrant"> | $Enums.AccessGrantResourceType
+    resourceId?: StringFilter<"ResourceAccessGrant"> | string
+    roleKey?: StringFilter<"ResourceAccessGrant"> | string
+    expiresAt?: DateTimeNullableFilter<"ResourceAccessGrant"> | Date | string | null
+    grantedByUserId?: StringNullableFilter<"ResourceAccessGrant"> | string | null
+    revokedAt?: DateTimeNullableFilter<"ResourceAccessGrant"> | Date | string | null
+    revokedByUserId?: StringNullableFilter<"ResourceAccessGrant"> | string | null
+    createdAt?: DateTimeFilter<"ResourceAccessGrant"> | Date | string
+    updatedAt?: DateTimeFilter<"ResourceAccessGrant"> | Date | string
+  }
+
+  export type ResourceAccessGrantUpsertWithWhereUniqueWithoutGrantedByInput = {
+    where: ResourceAccessGrantWhereUniqueInput
+    update: XOR<ResourceAccessGrantUpdateWithoutGrantedByInput, ResourceAccessGrantUncheckedUpdateWithoutGrantedByInput>
+    create: XOR<ResourceAccessGrantCreateWithoutGrantedByInput, ResourceAccessGrantUncheckedCreateWithoutGrantedByInput>
+  }
+
+  export type ResourceAccessGrantUpdateWithWhereUniqueWithoutGrantedByInput = {
+    where: ResourceAccessGrantWhereUniqueInput
+    data: XOR<ResourceAccessGrantUpdateWithoutGrantedByInput, ResourceAccessGrantUncheckedUpdateWithoutGrantedByInput>
+  }
+
+  export type ResourceAccessGrantUpdateManyWithWhereWithoutGrantedByInput = {
+    where: ResourceAccessGrantScalarWhereInput
+    data: XOR<ResourceAccessGrantUpdateManyMutationInput, ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByInput>
+  }
+
   export type AgentMemoryUpdateWithWhereUniqueWithoutUserInput = {
     where: AgentMemoryWhereUniqueInput
     data: XOR<AgentMemoryUpdateWithoutUserInput, AgentMemoryUncheckedUpdateWithoutUserInput>
@@ -177361,6 +182824,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
@@ -177410,6 +182876,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
@@ -177475,6 +182944,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
@@ -177524,6 +182996,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
@@ -177573,6 +183048,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
@@ -177622,6 +183100,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
@@ -177687,6 +183168,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
@@ -177736,6 +183220,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
@@ -177753,6 +183240,9 @@ export namespace Prisma {
 
   export type OrganizationMemberCreateWithoutOrganizationInput = {
     id?: string
+    state?: string
+    invitedByUserId?: string | null
+    joinedAt?: Date | string
     createdAt?: Date | string
     user: UserCreateNestedOneWithoutMembershipsInput
     role: RoleCreateNestedOneWithoutMembersInput
@@ -177762,6 +183252,9 @@ export namespace Prisma {
     id?: string
     userId: string
     roleId: string
+    state?: string
+    invitedByUserId?: string | null
+    joinedAt?: Date | string
     createdAt?: Date | string
   }
 
@@ -178398,6 +183891,78 @@ export namespace Prisma {
 
   export type CustomRoleCreateManyOrganizationInputEnvelope = {
     data: CustomRoleCreateManyOrganizationInput | CustomRoleCreateManyOrganizationInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type GroupCreateWithoutOrganizationInput = {
+    id?: string
+    name: string
+    scimManaged?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: GroupMemberCreateNestedManyWithoutGroupInput
+    accessGrants?: ResourceAccessGrantCreateNestedManyWithoutSubjectGroupInput
+  }
+
+  export type GroupUncheckedCreateWithoutOrganizationInput = {
+    id?: string
+    name: string
+    scimManaged?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: GroupMemberUncheckedCreateNestedManyWithoutGroupInput
+    accessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectGroupInput
+  }
+
+  export type GroupCreateOrConnectWithoutOrganizationInput = {
+    where: GroupWhereUniqueInput
+    create: XOR<GroupCreateWithoutOrganizationInput, GroupUncheckedCreateWithoutOrganizationInput>
+  }
+
+  export type GroupCreateManyOrganizationInputEnvelope = {
+    data: GroupCreateManyOrganizationInput | GroupCreateManyOrganizationInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ResourceAccessGrantCreateWithoutOrganizationInput = {
+    id?: string
+    subjectType: $Enums.AccessGrantSubjectType
+    resourceType: $Enums.AccessGrantResourceType
+    resourceId: string
+    roleKey: string
+    expiresAt?: Date | string | null
+    revokedAt?: Date | string | null
+    revokedByUserId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    subjectUser?: UserCreateNestedOneWithoutAccessGrantsAsSubjectInput
+    subjectGroup?: GroupCreateNestedOneWithoutAccessGrantsInput
+    grantedBy?: UserCreateNestedOneWithoutAccessGrantsGrantedInput
+  }
+
+  export type ResourceAccessGrantUncheckedCreateWithoutOrganizationInput = {
+    id?: string
+    subjectType: $Enums.AccessGrantSubjectType
+    subjectUserId?: string | null
+    subjectGroupId?: string | null
+    resourceType: $Enums.AccessGrantResourceType
+    resourceId: string
+    roleKey: string
+    expiresAt?: Date | string | null
+    grantedByUserId?: string | null
+    revokedAt?: Date | string | null
+    revokedByUserId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ResourceAccessGrantCreateOrConnectWithoutOrganizationInput = {
+    where: ResourceAccessGrantWhereUniqueInput
+    create: XOR<ResourceAccessGrantCreateWithoutOrganizationInput, ResourceAccessGrantUncheckedCreateWithoutOrganizationInput>
+  }
+
+  export type ResourceAccessGrantCreateManyOrganizationInputEnvelope = {
+    data: ResourceAccessGrantCreateManyOrganizationInput | ResourceAccessGrantCreateManyOrganizationInput[]
     skipDuplicates?: boolean
   }
 
@@ -179380,6 +184945,50 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"CustomRole"> | Date | string
   }
 
+  export type GroupUpsertWithWhereUniqueWithoutOrganizationInput = {
+    where: GroupWhereUniqueInput
+    update: XOR<GroupUpdateWithoutOrganizationInput, GroupUncheckedUpdateWithoutOrganizationInput>
+    create: XOR<GroupCreateWithoutOrganizationInput, GroupUncheckedCreateWithoutOrganizationInput>
+  }
+
+  export type GroupUpdateWithWhereUniqueWithoutOrganizationInput = {
+    where: GroupWhereUniqueInput
+    data: XOR<GroupUpdateWithoutOrganizationInput, GroupUncheckedUpdateWithoutOrganizationInput>
+  }
+
+  export type GroupUpdateManyWithWhereWithoutOrganizationInput = {
+    where: GroupScalarWhereInput
+    data: XOR<GroupUpdateManyMutationInput, GroupUncheckedUpdateManyWithoutOrganizationInput>
+  }
+
+  export type GroupScalarWhereInput = {
+    AND?: GroupScalarWhereInput | GroupScalarWhereInput[]
+    OR?: GroupScalarWhereInput[]
+    NOT?: GroupScalarWhereInput | GroupScalarWhereInput[]
+    id?: StringFilter<"Group"> | string
+    organizationId?: StringFilter<"Group"> | string
+    name?: StringFilter<"Group"> | string
+    scimManaged?: BoolFilter<"Group"> | boolean
+    createdAt?: DateTimeFilter<"Group"> | Date | string
+    updatedAt?: DateTimeFilter<"Group"> | Date | string
+  }
+
+  export type ResourceAccessGrantUpsertWithWhereUniqueWithoutOrganizationInput = {
+    where: ResourceAccessGrantWhereUniqueInput
+    update: XOR<ResourceAccessGrantUpdateWithoutOrganizationInput, ResourceAccessGrantUncheckedUpdateWithoutOrganizationInput>
+    create: XOR<ResourceAccessGrantCreateWithoutOrganizationInput, ResourceAccessGrantUncheckedCreateWithoutOrganizationInput>
+  }
+
+  export type ResourceAccessGrantUpdateWithWhereUniqueWithoutOrganizationInput = {
+    where: ResourceAccessGrantWhereUniqueInput
+    data: XOR<ResourceAccessGrantUpdateWithoutOrganizationInput, ResourceAccessGrantUncheckedUpdateWithoutOrganizationInput>
+  }
+
+  export type ResourceAccessGrantUpdateManyWithWhereWithoutOrganizationInput = {
+    where: ResourceAccessGrantScalarWhereInput
+    data: XOR<ResourceAccessGrantUpdateManyMutationInput, ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationInput>
+  }
+
   export type SiemWebhookUpsertWithWhereUniqueWithoutOrganizationInput = {
     where: SiemWebhookWhereUniqueInput
     update: XOR<SiemWebhookUpdateWithoutOrganizationInput, SiemWebhookUncheckedUpdateWithoutOrganizationInput>
@@ -179742,6 +185351,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -179784,6 +185395,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -179839,6 +185452,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
@@ -179888,6 +185504,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
@@ -179968,6 +185587,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -180010,6 +185631,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -180071,6 +185694,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
@@ -180120,6 +185746,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
@@ -180190,6 +185819,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -180232,6 +185863,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -180313,6 +185946,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -180355,6 +185990,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -180420,6 +186057,9 @@ export namespace Prisma {
 
   export type OrganizationMemberCreateWithoutRoleInput = {
     id?: string
+    state?: string
+    invitedByUserId?: string | null
+    joinedAt?: Date | string
     createdAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutMembersInput
     user: UserCreateNestedOneWithoutMembershipsInput
@@ -180429,6 +186069,9 @@ export namespace Prisma {
     id?: string
     organizationId: string
     userId: string
+    state?: string
+    invitedByUserId?: string | null
+    joinedAt?: Date | string
     createdAt?: Date | string
   }
 
@@ -180680,6 +186323,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -180722,6 +186367,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -181571,6 +187218,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -181613,6 +187262,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -182444,6 +188095,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
@@ -182493,6 +188147,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
@@ -182558,6 +188215,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
@@ -182607,6 +188267,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
@@ -182648,6 +188311,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
@@ -182690,6 +188355,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
@@ -182748,6 +188415,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
@@ -182790,6 +188459,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -183024,6 +188695,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
@@ -183073,6 +188747,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
@@ -183119,6 +188796,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -183161,6 +188840,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -183316,6 +188997,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
@@ -183365,6 +189049,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
@@ -183417,6 +189104,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -183459,6 +189148,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -183692,6 +189383,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
@@ -183741,6 +189435,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
@@ -183901,6 +189598,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
@@ -183950,6 +189650,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
@@ -185192,6 +190895,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
@@ -185241,6 +190947,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
@@ -185401,6 +191110,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
@@ -185450,6 +191162,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
@@ -185588,6 +191303,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
@@ -185637,6 +191355,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
@@ -185797,6 +191518,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
@@ -185846,6 +191570,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
@@ -185984,6 +191711,9 @@ export namespace Prisma {
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
@@ -186033,6 +191763,9 @@ export namespace Prisma {
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
@@ -186193,6 +191926,9 @@ export namespace Prisma {
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
@@ -186242,6 +191978,9 @@ export namespace Prisma {
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
@@ -186380,6 +192119,9 @@ export namespace Prisma {
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
@@ -186429,6 +192171,9 @@ export namespace Prisma {
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
@@ -186589,6 +192334,9 @@ export namespace Prisma {
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
@@ -186638,6 +192386,9 @@ export namespace Prisma {
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
@@ -186776,6 +192527,9 @@ export namespace Prisma {
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
@@ -186825,6 +192579,9 @@ export namespace Prisma {
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
@@ -186985,6 +192742,9 @@ export namespace Prisma {
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
@@ -187034,6 +192794,9 @@ export namespace Prisma {
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
@@ -187165,6 +192928,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
@@ -187207,6 +192972,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
@@ -187360,6 +193127,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
@@ -187402,6 +193171,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -188430,6 +194201,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
@@ -188479,6 +194253,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
@@ -188639,6 +194416,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
@@ -188688,6 +194468,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
@@ -189217,6 +195000,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -189259,6 +195044,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -189314,6 +195101,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
@@ -189363,6 +195153,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
@@ -189420,6 +195213,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -189462,6 +195257,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -189523,6 +195320,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
@@ -189572,6 +195372,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
@@ -189621,6 +195424,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
@@ -189670,6 +195476,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
@@ -189735,6 +195544,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
@@ -189784,6 +195596,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
@@ -189825,6 +195640,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -189867,6 +195684,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -189925,6 +195744,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -189967,6 +195788,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -190009,6 +195832,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -190051,6 +195876,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -190142,6 +195969,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -190184,6 +196013,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -190319,6 +196150,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -190361,6 +196194,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -190419,6 +196254,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -190461,6 +196298,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -190503,6 +196342,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -190545,6 +196386,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -190603,6 +196446,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -190645,6 +196490,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -190687,6 +196534,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -190729,6 +196578,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -190787,6 +196638,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -190829,6 +196682,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -190871,6 +196726,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -190913,6 +196770,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -190971,6 +196830,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -191013,6 +196874,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -191152,6 +197015,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
@@ -191201,6 +197067,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
@@ -191389,6 +197258,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
@@ -191438,6 +197310,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
@@ -191777,6 +197652,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
@@ -191826,6 +197704,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
@@ -191891,6 +197772,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
@@ -191940,6 +197824,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
@@ -191980,6 +197867,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -192022,6 +197911,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -192080,6 +197971,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -192122,6 +198015,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -192164,6 +198059,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -192206,6 +198103,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -192264,6 +198163,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -192306,6 +198207,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -192348,6 +198251,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -192390,6 +198295,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -192445,6 +198352,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
@@ -192494,6 +198404,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
@@ -192577,6 +198490,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -192619,6 +198534,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -192680,6 +198597,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
@@ -192729,6 +198649,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
@@ -192858,6 +198781,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -192900,6 +198825,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -192958,6 +198885,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -193000,6 +198929,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -193050,6 +198981,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
@@ -193099,6 +199033,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
@@ -193164,6 +199101,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
@@ -193213,6 +199153,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
@@ -193262,6 +199205,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
@@ -193311,6 +199257,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
@@ -193376,6 +199325,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
@@ -193425,6 +199377,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
@@ -193474,6 +199429,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
@@ -193523,6 +199481,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
@@ -193588,6 +199549,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
@@ -193637,6 +199601,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
@@ -193678,6 +199645,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -193720,6 +199689,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -193778,6 +199749,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -193820,6 +199793,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -193862,6 +199837,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -193904,6 +199881,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -193962,6 +199941,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -194004,6 +199985,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -194046,6 +200029,8 @@ export namespace Prisma {
     domains?: VerifiedDomainCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -194088,6 +200073,8 @@ export namespace Prisma {
     domains?: VerifiedDomainUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -194146,6 +200133,8 @@ export namespace Prisma {
     domains?: VerifiedDomainUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -194188,6 +200177,8 @@ export namespace Prisma {
     domains?: VerifiedDomainUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -194230,6 +200221,8 @@ export namespace Prisma {
     domains?: VerifiedDomainCreateNestedManyWithoutOrganizationInput
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -194272,6 +200265,8 @@ export namespace Prisma {
     domains?: VerifiedDomainUncheckedCreateNestedManyWithoutOrganizationInput
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -194330,6 +200325,8 @@ export namespace Prisma {
     domains?: VerifiedDomainUpdateManyWithoutOrganizationNestedInput
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -194372,6 +200369,8 @@ export namespace Prisma {
     domains?: VerifiedDomainUncheckedUpdateManyWithoutOrganizationNestedInput
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -194414,6 +200413,8 @@ export namespace Prisma {
     domains?: VerifiedDomainCreateNestedManyWithoutOrganizationInput
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -194456,6 +200457,8 @@ export namespace Prisma {
     domains?: VerifiedDomainUncheckedCreateNestedManyWithoutOrganizationInput
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -194514,6 +200517,8 @@ export namespace Prisma {
     domains?: VerifiedDomainUpdateManyWithoutOrganizationNestedInput
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -194556,6 +200561,8 @@ export namespace Prisma {
     domains?: VerifiedDomainUncheckedUpdateManyWithoutOrganizationNestedInput
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -194599,6 +200606,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
@@ -194641,6 +200650,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
@@ -194699,6 +200710,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
@@ -194741,6 +200754,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -194782,6 +200797,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -194824,6 +200841,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -194879,6 +200898,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
@@ -194928,6 +200950,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
@@ -194985,6 +201010,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -195027,6 +201054,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -195088,6 +201117,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
@@ -195137,6 +201169,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
@@ -195186,6 +201221,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
@@ -195235,6 +201273,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
@@ -195300,6 +201341,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
@@ -195349,6 +201393,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
@@ -195498,6 +201545,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
@@ -195547,6 +201597,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
@@ -195593,6 +201646,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -195635,6 +201690,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -195758,6 +201815,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
@@ -195807,6 +201867,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
@@ -195859,6 +201922,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -195901,6 +201966,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -195951,6 +202018,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
@@ -196000,6 +202070,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
@@ -196065,6 +202138,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
@@ -196114,6 +202190,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
@@ -196234,6 +202313,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
@@ -196283,6 +202365,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
@@ -196329,6 +202414,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -196371,6 +202458,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -196510,6 +202599,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
@@ -196559,6 +202651,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
@@ -196611,6 +202706,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -196653,6 +202750,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -196863,6 +202962,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
@@ -196912,6 +203014,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
@@ -197064,6 +203169,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
@@ -197113,6 +203221,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
@@ -197389,6 +203500,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
@@ -197438,6 +203552,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
@@ -197657,6 +203774,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
@@ -197706,6 +203826,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
@@ -197747,6 +203870,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -197789,6 +203914,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -197844,6 +203971,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
@@ -197893,6 +204023,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
@@ -198008,6 +204141,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -198050,6 +204185,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -198111,6 +204248,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
@@ -198160,6 +204300,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
@@ -198217,6 +204360,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -198259,6 +204404,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -198317,6 +204464,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -198359,6 +204508,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -198521,6 +204672,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
@@ -198570,6 +204724,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
@@ -198635,6 +204792,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
@@ -198684,6 +204844,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
@@ -198733,6 +204896,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
@@ -198782,6 +204948,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
@@ -198828,6 +204997,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -198870,6 +205041,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -198936,6 +205109,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
@@ -198985,6 +205161,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
@@ -199037,6 +205216,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -199079,6 +205260,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -199121,6 +205304,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -199163,6 +205348,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -199255,6 +205442,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -199297,6 +205486,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -199355,6 +205546,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -199397,6 +205590,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -199455,6 +205650,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -199497,6 +205694,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -199572,6 +205771,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -199614,6 +205815,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -199711,6 +205914,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -199753,6 +205958,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -199795,6 +206002,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -199837,6 +206046,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -199895,6 +206106,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -199937,6 +206150,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -199979,6 +206194,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
@@ -200021,6 +206238,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
     scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
@@ -200076,6 +206295,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
@@ -200125,6 +206347,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
@@ -200182,6 +206407,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
@@ -200224,6 +206451,8 @@ export namespace Prisma {
     ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
     scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -200285,6 +206514,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
@@ -200334,6 +206566,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
@@ -201204,6 +207439,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
@@ -201253,6 +207491,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
@@ -201318,6 +207559,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
@@ -201367,6 +207611,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
@@ -201504,6 +207751,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
@@ -201553,6 +207803,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
@@ -201713,6 +207966,9 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
@@ -201762,6 +208018,1273 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+  }
+
+  export type OrganizationCreateWithoutGroupsInput = {
+    id?: string
+    slug: string
+    name: string
+    billingEmail?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: OrganizationMemberCreateNestedManyWithoutOrganizationInput
+    invites?: OrganizationInviteCreateNestedManyWithoutOrganizationInput
+    projects?: ProjectCreateNestedManyWithoutOrganizationInput
+    billingCustomer?: BillingCustomerCreateNestedOneWithoutOrganizationInput
+    subscriptions?: SubscriptionCreateNestedManyWithoutOrganizationInput
+    usageEvents?: UsageEventCreateNestedManyWithoutOrganizationInput
+    quotaLedger?: QuotaLedgerCreateNestedManyWithoutOrganizationInput
+    quotaOverrides?: QuotaOverrideCreateNestedManyWithoutOrganizationInput
+    stripeEvents?: StripeEventCreateNestedManyWithoutOrganizationInput
+    aiCostLedger?: AiCostLedgerCreateNestedManyWithoutOrganizationInput
+    auditLogs?: AuditLogCreateNestedManyWithoutOrganizationInput
+    abuseEvents?: AbuseEventCreateNestedManyWithoutOrganizationInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutOrganizationInput
+    featureFlags?: FeatureFlagCreateNestedManyWithoutOrganizationInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutOrganizationInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsCreateNestedOneWithoutOrganizationInput
+    domains?: VerifiedDomainCreateNestedManyWithoutOrganizationInput
+    ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
+    scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
+    customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
+    siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
+    projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
+    creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
+    creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
+    agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+  }
+
+  export type OrganizationUncheckedCreateWithoutGroupsInput = {
+    id?: string
+    slug: string
+    name: string
+    billingEmail?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: OrganizationMemberUncheckedCreateNestedManyWithoutOrganizationInput
+    invites?: OrganizationInviteUncheckedCreateNestedManyWithoutOrganizationInput
+    projects?: ProjectUncheckedCreateNestedManyWithoutOrganizationInput
+    billingCustomer?: BillingCustomerUncheckedCreateNestedOneWithoutOrganizationInput
+    subscriptions?: SubscriptionUncheckedCreateNestedManyWithoutOrganizationInput
+    usageEvents?: UsageEventUncheckedCreateNestedManyWithoutOrganizationInput
+    quotaLedger?: QuotaLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    quotaOverrides?: QuotaOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    stripeEvents?: StripeEventUncheckedCreateNestedManyWithoutOrganizationInput
+    aiCostLedger?: AiCostLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutOrganizationInput
+    abuseEvents?: AbuseEventUncheckedCreateNestedManyWithoutOrganizationInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutOrganizationInput
+    featureFlags?: FeatureFlagUncheckedCreateNestedManyWithoutOrganizationInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutOrganizationInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUncheckedCreateNestedOneWithoutOrganizationInput
+    domains?: VerifiedDomainUncheckedCreateNestedManyWithoutOrganizationInput
+    ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
+    scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
+    customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
+    siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
+    projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
+    creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
+    creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
+    agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+  }
+
+  export type OrganizationCreateOrConnectWithoutGroupsInput = {
+    where: OrganizationWhereUniqueInput
+    create: XOR<OrganizationCreateWithoutGroupsInput, OrganizationUncheckedCreateWithoutGroupsInput>
+  }
+
+  export type GroupMemberCreateWithoutGroupInput = {
+    id?: string
+    createdAt?: Date | string
+    user: UserCreateNestedOneWithoutGroupMembershipsInput
+  }
+
+  export type GroupMemberUncheckedCreateWithoutGroupInput = {
+    id?: string
+    userId: string
+    createdAt?: Date | string
+  }
+
+  export type GroupMemberCreateOrConnectWithoutGroupInput = {
+    where: GroupMemberWhereUniqueInput
+    create: XOR<GroupMemberCreateWithoutGroupInput, GroupMemberUncheckedCreateWithoutGroupInput>
+  }
+
+  export type GroupMemberCreateManyGroupInputEnvelope = {
+    data: GroupMemberCreateManyGroupInput | GroupMemberCreateManyGroupInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ResourceAccessGrantCreateWithoutSubjectGroupInput = {
+    id?: string
+    subjectType: $Enums.AccessGrantSubjectType
+    resourceType: $Enums.AccessGrantResourceType
+    resourceId: string
+    roleKey: string
+    expiresAt?: Date | string | null
+    revokedAt?: Date | string | null
+    revokedByUserId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutResourceAccessGrantsInput
+    subjectUser?: UserCreateNestedOneWithoutAccessGrantsAsSubjectInput
+    grantedBy?: UserCreateNestedOneWithoutAccessGrantsGrantedInput
+  }
+
+  export type ResourceAccessGrantUncheckedCreateWithoutSubjectGroupInput = {
+    id?: string
+    organizationId: string
+    subjectType: $Enums.AccessGrantSubjectType
+    subjectUserId?: string | null
+    resourceType: $Enums.AccessGrantResourceType
+    resourceId: string
+    roleKey: string
+    expiresAt?: Date | string | null
+    grantedByUserId?: string | null
+    revokedAt?: Date | string | null
+    revokedByUserId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ResourceAccessGrantCreateOrConnectWithoutSubjectGroupInput = {
+    where: ResourceAccessGrantWhereUniqueInput
+    create: XOR<ResourceAccessGrantCreateWithoutSubjectGroupInput, ResourceAccessGrantUncheckedCreateWithoutSubjectGroupInput>
+  }
+
+  export type ResourceAccessGrantCreateManySubjectGroupInputEnvelope = {
+    data: ResourceAccessGrantCreateManySubjectGroupInput | ResourceAccessGrantCreateManySubjectGroupInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type OrganizationUpsertWithoutGroupsInput = {
+    update: XOR<OrganizationUpdateWithoutGroupsInput, OrganizationUncheckedUpdateWithoutGroupsInput>
+    create: XOR<OrganizationCreateWithoutGroupsInput, OrganizationUncheckedCreateWithoutGroupsInput>
+    where?: OrganizationWhereInput
+  }
+
+  export type OrganizationUpdateToOneWithWhereWithoutGroupsInput = {
+    where?: OrganizationWhereInput
+    data: XOR<OrganizationUpdateWithoutGroupsInput, OrganizationUncheckedUpdateWithoutGroupsInput>
+  }
+
+  export type OrganizationUpdateWithoutGroupsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    billingEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: OrganizationMemberUpdateManyWithoutOrganizationNestedInput
+    invites?: OrganizationInviteUpdateManyWithoutOrganizationNestedInput
+    projects?: ProjectUpdateManyWithoutOrganizationNestedInput
+    billingCustomer?: BillingCustomerUpdateOneWithoutOrganizationNestedInput
+    subscriptions?: SubscriptionUpdateManyWithoutOrganizationNestedInput
+    usageEvents?: UsageEventUpdateManyWithoutOrganizationNestedInput
+    quotaLedger?: QuotaLedgerUpdateManyWithoutOrganizationNestedInput
+    quotaOverrides?: QuotaOverrideUpdateManyWithoutOrganizationNestedInput
+    stripeEvents?: StripeEventUpdateManyWithoutOrganizationNestedInput
+    aiCostLedger?: AiCostLedgerUpdateManyWithoutOrganizationNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutOrganizationNestedInput
+    abuseEvents?: AbuseEventUpdateManyWithoutOrganizationNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutOrganizationNestedInput
+    featureFlags?: FeatureFlagUpdateManyWithoutOrganizationNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutOrganizationNestedInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUpdateOneWithoutOrganizationNestedInput
+    domains?: VerifiedDomainUpdateManyWithoutOrganizationNestedInput
+    ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
+    scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
+    customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
+    siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
+    projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
+    creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
+    creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
+    agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+  }
+
+  export type OrganizationUncheckedUpdateWithoutGroupsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    billingEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: OrganizationMemberUncheckedUpdateManyWithoutOrganizationNestedInput
+    invites?: OrganizationInviteUncheckedUpdateManyWithoutOrganizationNestedInput
+    projects?: ProjectUncheckedUpdateManyWithoutOrganizationNestedInput
+    billingCustomer?: BillingCustomerUncheckedUpdateOneWithoutOrganizationNestedInput
+    subscriptions?: SubscriptionUncheckedUpdateManyWithoutOrganizationNestedInput
+    usageEvents?: UsageEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    quotaLedger?: QuotaLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    quotaOverrides?: QuotaOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    stripeEvents?: StripeEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    aiCostLedger?: AiCostLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutOrganizationNestedInput
+    abuseEvents?: AbuseEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutOrganizationNestedInput
+    featureFlags?: FeatureFlagUncheckedUpdateManyWithoutOrganizationNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutOrganizationNestedInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUncheckedUpdateOneWithoutOrganizationNestedInput
+    domains?: VerifiedDomainUncheckedUpdateManyWithoutOrganizationNestedInput
+    ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
+    scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
+    customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
+    siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
+    projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
+    creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+  }
+
+  export type GroupMemberUpsertWithWhereUniqueWithoutGroupInput = {
+    where: GroupMemberWhereUniqueInput
+    update: XOR<GroupMemberUpdateWithoutGroupInput, GroupMemberUncheckedUpdateWithoutGroupInput>
+    create: XOR<GroupMemberCreateWithoutGroupInput, GroupMemberUncheckedCreateWithoutGroupInput>
+  }
+
+  export type GroupMemberUpdateWithWhereUniqueWithoutGroupInput = {
+    where: GroupMemberWhereUniqueInput
+    data: XOR<GroupMemberUpdateWithoutGroupInput, GroupMemberUncheckedUpdateWithoutGroupInput>
+  }
+
+  export type GroupMemberUpdateManyWithWhereWithoutGroupInput = {
+    where: GroupMemberScalarWhereInput
+    data: XOR<GroupMemberUpdateManyMutationInput, GroupMemberUncheckedUpdateManyWithoutGroupInput>
+  }
+
+  export type ResourceAccessGrantUpsertWithWhereUniqueWithoutSubjectGroupInput = {
+    where: ResourceAccessGrantWhereUniqueInput
+    update: XOR<ResourceAccessGrantUpdateWithoutSubjectGroupInput, ResourceAccessGrantUncheckedUpdateWithoutSubjectGroupInput>
+    create: XOR<ResourceAccessGrantCreateWithoutSubjectGroupInput, ResourceAccessGrantUncheckedCreateWithoutSubjectGroupInput>
+  }
+
+  export type ResourceAccessGrantUpdateWithWhereUniqueWithoutSubjectGroupInput = {
+    where: ResourceAccessGrantWhereUniqueInput
+    data: XOR<ResourceAccessGrantUpdateWithoutSubjectGroupInput, ResourceAccessGrantUncheckedUpdateWithoutSubjectGroupInput>
+  }
+
+  export type ResourceAccessGrantUpdateManyWithWhereWithoutSubjectGroupInput = {
+    where: ResourceAccessGrantScalarWhereInput
+    data: XOR<ResourceAccessGrantUpdateManyMutationInput, ResourceAccessGrantUncheckedUpdateManyWithoutSubjectGroupInput>
+  }
+
+  export type GroupCreateWithoutMembersInput = {
+    id?: string
+    name: string
+    scimManaged?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutGroupsInput
+    accessGrants?: ResourceAccessGrantCreateNestedManyWithoutSubjectGroupInput
+  }
+
+  export type GroupUncheckedCreateWithoutMembersInput = {
+    id?: string
+    organizationId: string
+    name: string
+    scimManaged?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectGroupInput
+  }
+
+  export type GroupCreateOrConnectWithoutMembersInput = {
+    where: GroupWhereUniqueInput
+    create: XOR<GroupCreateWithoutMembersInput, GroupUncheckedCreateWithoutMembersInput>
+  }
+
+  export type UserCreateWithoutGroupMembershipsInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogCreateNestedManyWithoutActorInput
+    conversations?: AiConversationCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
+    notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+  }
+
+  export type UserUncheckedCreateWithoutGroupMembershipsInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberUncheckedCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogUncheckedCreateNestedManyWithoutActorInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionUncheckedCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
+    notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+  }
+
+  export type UserCreateOrConnectWithoutGroupMembershipsInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutGroupMembershipsInput, UserUncheckedCreateWithoutGroupMembershipsInput>
+  }
+
+  export type GroupUpsertWithoutMembersInput = {
+    update: XOR<GroupUpdateWithoutMembersInput, GroupUncheckedUpdateWithoutMembersInput>
+    create: XOR<GroupCreateWithoutMembersInput, GroupUncheckedCreateWithoutMembersInput>
+    where?: GroupWhereInput
+  }
+
+  export type GroupUpdateToOneWithWhereWithoutMembersInput = {
+    where?: GroupWhereInput
+    data: XOR<GroupUpdateWithoutMembersInput, GroupUncheckedUpdateWithoutMembersInput>
+  }
+
+  export type GroupUpdateWithoutMembersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    scimManaged?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutGroupsNestedInput
+    accessGrants?: ResourceAccessGrantUpdateManyWithoutSubjectGroupNestedInput
+  }
+
+  export type GroupUncheckedUpdateWithoutMembersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    scimManaged?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectGroupNestedInput
+  }
+
+  export type UserUpsertWithoutGroupMembershipsInput = {
+    update: XOR<UserUpdateWithoutGroupMembershipsInput, UserUncheckedUpdateWithoutGroupMembershipsInput>
+    create: XOR<UserCreateWithoutGroupMembershipsInput, UserUncheckedCreateWithoutGroupMembershipsInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutGroupMembershipsInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutGroupMembershipsInput, UserUncheckedUpdateWithoutGroupMembershipsInput>
+  }
+
+  export type UserUpdateWithoutGroupMembershipsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutGroupMembershipsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUncheckedUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUncheckedUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUncheckedUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+  }
+
+  export type OrganizationCreateWithoutResourceAccessGrantsInput = {
+    id?: string
+    slug: string
+    name: string
+    billingEmail?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: OrganizationMemberCreateNestedManyWithoutOrganizationInput
+    invites?: OrganizationInviteCreateNestedManyWithoutOrganizationInput
+    projects?: ProjectCreateNestedManyWithoutOrganizationInput
+    billingCustomer?: BillingCustomerCreateNestedOneWithoutOrganizationInput
+    subscriptions?: SubscriptionCreateNestedManyWithoutOrganizationInput
+    usageEvents?: UsageEventCreateNestedManyWithoutOrganizationInput
+    quotaLedger?: QuotaLedgerCreateNestedManyWithoutOrganizationInput
+    quotaOverrides?: QuotaOverrideCreateNestedManyWithoutOrganizationInput
+    stripeEvents?: StripeEventCreateNestedManyWithoutOrganizationInput
+    aiCostLedger?: AiCostLedgerCreateNestedManyWithoutOrganizationInput
+    auditLogs?: AuditLogCreateNestedManyWithoutOrganizationInput
+    abuseEvents?: AbuseEventCreateNestedManyWithoutOrganizationInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutOrganizationInput
+    featureFlags?: FeatureFlagCreateNestedManyWithoutOrganizationInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutOrganizationInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsCreateNestedOneWithoutOrganizationInput
+    domains?: VerifiedDomainCreateNestedManyWithoutOrganizationInput
+    ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
+    scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
+    customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    groups?: GroupCreateNestedManyWithoutOrganizationInput
+    siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
+    projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
+    creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
+    creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
+    agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+  }
+
+  export type OrganizationUncheckedCreateWithoutResourceAccessGrantsInput = {
+    id?: string
+    slug: string
+    name: string
+    billingEmail?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: OrganizationMemberUncheckedCreateNestedManyWithoutOrganizationInput
+    invites?: OrganizationInviteUncheckedCreateNestedManyWithoutOrganizationInput
+    projects?: ProjectUncheckedCreateNestedManyWithoutOrganizationInput
+    billingCustomer?: BillingCustomerUncheckedCreateNestedOneWithoutOrganizationInput
+    subscriptions?: SubscriptionUncheckedCreateNestedManyWithoutOrganizationInput
+    usageEvents?: UsageEventUncheckedCreateNestedManyWithoutOrganizationInput
+    quotaLedger?: QuotaLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    quotaOverrides?: QuotaOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    stripeEvents?: StripeEventUncheckedCreateNestedManyWithoutOrganizationInput
+    aiCostLedger?: AiCostLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutOrganizationInput
+    abuseEvents?: AbuseEventUncheckedCreateNestedManyWithoutOrganizationInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutOrganizationInput
+    featureFlags?: FeatureFlagUncheckedCreateNestedManyWithoutOrganizationInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutOrganizationInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUncheckedCreateNestedOneWithoutOrganizationInput
+    domains?: VerifiedDomainUncheckedCreateNestedManyWithoutOrganizationInput
+    ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
+    scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
+    customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    groups?: GroupUncheckedCreateNestedManyWithoutOrganizationInput
+    siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
+    projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
+    creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
+    creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
+    agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+  }
+
+  export type OrganizationCreateOrConnectWithoutResourceAccessGrantsInput = {
+    where: OrganizationWhereUniqueInput
+    create: XOR<OrganizationCreateWithoutResourceAccessGrantsInput, OrganizationUncheckedCreateWithoutResourceAccessGrantsInput>
+  }
+
+  export type UserCreateWithoutAccessGrantsAsSubjectInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogCreateNestedManyWithoutActorInput
+    conversations?: AiConversationCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsGranted?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
+    notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+  }
+
+  export type UserUncheckedCreateWithoutAccessGrantsAsSubjectInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberUncheckedCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogUncheckedCreateNestedManyWithoutActorInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionUncheckedCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
+    notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+  }
+
+  export type UserCreateOrConnectWithoutAccessGrantsAsSubjectInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutAccessGrantsAsSubjectInput, UserUncheckedCreateWithoutAccessGrantsAsSubjectInput>
+  }
+
+  export type GroupCreateWithoutAccessGrantsInput = {
+    id?: string
+    name: string
+    scimManaged?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutGroupsInput
+    members?: GroupMemberCreateNestedManyWithoutGroupInput
+  }
+
+  export type GroupUncheckedCreateWithoutAccessGrantsInput = {
+    id?: string
+    organizationId: string
+    name: string
+    scimManaged?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: GroupMemberUncheckedCreateNestedManyWithoutGroupInput
+  }
+
+  export type GroupCreateOrConnectWithoutAccessGrantsInput = {
+    where: GroupWhereUniqueInput
+    create: XOR<GroupCreateWithoutAccessGrantsInput, GroupUncheckedCreateWithoutAccessGrantsInput>
+  }
+
+  export type UserCreateWithoutAccessGrantsGrantedInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogCreateNestedManyWithoutActorInput
+    conversations?: AiConversationCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
+    notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+  }
+
+  export type UserUncheckedCreateWithoutAccessGrantsGrantedInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberUncheckedCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogUncheckedCreateNestedManyWithoutActorInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionUncheckedCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    groupMemberships?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
+    notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+  }
+
+  export type UserCreateOrConnectWithoutAccessGrantsGrantedInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutAccessGrantsGrantedInput, UserUncheckedCreateWithoutAccessGrantsGrantedInput>
+  }
+
+  export type OrganizationUpsertWithoutResourceAccessGrantsInput = {
+    update: XOR<OrganizationUpdateWithoutResourceAccessGrantsInput, OrganizationUncheckedUpdateWithoutResourceAccessGrantsInput>
+    create: XOR<OrganizationCreateWithoutResourceAccessGrantsInput, OrganizationUncheckedCreateWithoutResourceAccessGrantsInput>
+    where?: OrganizationWhereInput
+  }
+
+  export type OrganizationUpdateToOneWithWhereWithoutResourceAccessGrantsInput = {
+    where?: OrganizationWhereInput
+    data: XOR<OrganizationUpdateWithoutResourceAccessGrantsInput, OrganizationUncheckedUpdateWithoutResourceAccessGrantsInput>
+  }
+
+  export type OrganizationUpdateWithoutResourceAccessGrantsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    billingEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: OrganizationMemberUpdateManyWithoutOrganizationNestedInput
+    invites?: OrganizationInviteUpdateManyWithoutOrganizationNestedInput
+    projects?: ProjectUpdateManyWithoutOrganizationNestedInput
+    billingCustomer?: BillingCustomerUpdateOneWithoutOrganizationNestedInput
+    subscriptions?: SubscriptionUpdateManyWithoutOrganizationNestedInput
+    usageEvents?: UsageEventUpdateManyWithoutOrganizationNestedInput
+    quotaLedger?: QuotaLedgerUpdateManyWithoutOrganizationNestedInput
+    quotaOverrides?: QuotaOverrideUpdateManyWithoutOrganizationNestedInput
+    stripeEvents?: StripeEventUpdateManyWithoutOrganizationNestedInput
+    aiCostLedger?: AiCostLedgerUpdateManyWithoutOrganizationNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutOrganizationNestedInput
+    abuseEvents?: AbuseEventUpdateManyWithoutOrganizationNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutOrganizationNestedInput
+    featureFlags?: FeatureFlagUpdateManyWithoutOrganizationNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutOrganizationNestedInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUpdateOneWithoutOrganizationNestedInput
+    domains?: VerifiedDomainUpdateManyWithoutOrganizationNestedInput
+    ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
+    scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
+    customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUpdateManyWithoutOrganizationNestedInput
+    siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
+    projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
+    creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
+    creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
+    agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+  }
+
+  export type OrganizationUncheckedUpdateWithoutResourceAccessGrantsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    billingEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: OrganizationMemberUncheckedUpdateManyWithoutOrganizationNestedInput
+    invites?: OrganizationInviteUncheckedUpdateManyWithoutOrganizationNestedInput
+    projects?: ProjectUncheckedUpdateManyWithoutOrganizationNestedInput
+    billingCustomer?: BillingCustomerUncheckedUpdateOneWithoutOrganizationNestedInput
+    subscriptions?: SubscriptionUncheckedUpdateManyWithoutOrganizationNestedInput
+    usageEvents?: UsageEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    quotaLedger?: QuotaLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    quotaOverrides?: QuotaOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    stripeEvents?: StripeEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    aiCostLedger?: AiCostLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutOrganizationNestedInput
+    abuseEvents?: AbuseEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutOrganizationNestedInput
+    featureFlags?: FeatureFlagUncheckedUpdateManyWithoutOrganizationNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutOrganizationNestedInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUncheckedUpdateOneWithoutOrganizationNestedInput
+    domains?: VerifiedDomainUncheckedUpdateManyWithoutOrganizationNestedInput
+    ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
+    scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
+    customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    groups?: GroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
+    projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
+    creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+  }
+
+  export type UserUpsertWithoutAccessGrantsAsSubjectInput = {
+    update: XOR<UserUpdateWithoutAccessGrantsAsSubjectInput, UserUncheckedUpdateWithoutAccessGrantsAsSubjectInput>
+    create: XOR<UserCreateWithoutAccessGrantsAsSubjectInput, UserUncheckedCreateWithoutAccessGrantsAsSubjectInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutAccessGrantsAsSubjectInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutAccessGrantsAsSubjectInput, UserUncheckedUpdateWithoutAccessGrantsAsSubjectInput>
+  }
+
+  export type UserUpdateWithoutAccessGrantsAsSubjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutAccessGrantsAsSubjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUncheckedUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUncheckedUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUncheckedUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsGranted?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+  }
+
+  export type GroupUpsertWithoutAccessGrantsInput = {
+    update: XOR<GroupUpdateWithoutAccessGrantsInput, GroupUncheckedUpdateWithoutAccessGrantsInput>
+    create: XOR<GroupCreateWithoutAccessGrantsInput, GroupUncheckedCreateWithoutAccessGrantsInput>
+    where?: GroupWhereInput
+  }
+
+  export type GroupUpdateToOneWithWhereWithoutAccessGrantsInput = {
+    where?: GroupWhereInput
+    data: XOR<GroupUpdateWithoutAccessGrantsInput, GroupUncheckedUpdateWithoutAccessGrantsInput>
+  }
+
+  export type GroupUpdateWithoutAccessGrantsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    scimManaged?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutGroupsNestedInput
+    members?: GroupMemberUpdateManyWithoutGroupNestedInput
+  }
+
+  export type GroupUncheckedUpdateWithoutAccessGrantsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    scimManaged?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: GroupMemberUncheckedUpdateManyWithoutGroupNestedInput
+  }
+
+  export type UserUpsertWithoutAccessGrantsGrantedInput = {
+    update: XOR<UserUpdateWithoutAccessGrantsGrantedInput, UserUncheckedUpdateWithoutAccessGrantsGrantedInput>
+    create: XOR<UserCreateWithoutAccessGrantsGrantedInput, UserUncheckedCreateWithoutAccessGrantsGrantedInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutAccessGrantsGrantedInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutAccessGrantsGrantedInput, UserUncheckedUpdateWithoutAccessGrantsGrantedInput>
+  }
+
+  export type UserUpdateWithoutAccessGrantsGrantedInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutAccessGrantsGrantedInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUncheckedUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUncheckedUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUncheckedUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    groupMemberships?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    accessGrantsAsSubject?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
@@ -201802,6 +209325,9 @@ export namespace Prisma {
     id?: string
     organizationId: string
     roleId: string
+    state?: string
+    invitedByUserId?: string | null
+    joinedAt?: Date | string
     createdAt?: Date | string
   }
 
@@ -201980,6 +209506,44 @@ export namespace Prisma {
     expiresAt: Date | string
     revokedAt?: Date | string | null
     createdAt?: Date | string
+  }
+
+  export type GroupMemberCreateManyUserInput = {
+    id?: string
+    groupId: string
+    createdAt?: Date | string
+  }
+
+  export type ResourceAccessGrantCreateManySubjectUserInput = {
+    id?: string
+    organizationId: string
+    subjectType: $Enums.AccessGrantSubjectType
+    subjectGroupId?: string | null
+    resourceType: $Enums.AccessGrantResourceType
+    resourceId: string
+    roleKey: string
+    expiresAt?: Date | string | null
+    grantedByUserId?: string | null
+    revokedAt?: Date | string | null
+    revokedByUserId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ResourceAccessGrantCreateManyGrantedByInput = {
+    id?: string
+    organizationId: string
+    subjectType: $Enums.AccessGrantSubjectType
+    subjectUserId?: string | null
+    subjectGroupId?: string | null
+    resourceType: $Enums.AccessGrantResourceType
+    resourceId: string
+    roleKey: string
+    expiresAt?: Date | string | null
+    revokedAt?: Date | string | null
+    revokedByUserId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type AgentMemoryPreferenceCreateManyUserInput = {
@@ -202173,6 +209737,9 @@ export namespace Prisma {
 
   export type OrganizationMemberUpdateWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    invitedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutMembersNestedInput
     role?: RoleUpdateOneRequiredWithoutMembersNestedInput
@@ -202182,6 +209749,9 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
     roleId?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    invitedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -202189,6 +209759,9 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
     roleId?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    invitedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -202727,6 +210300,120 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type GroupMemberUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    group?: GroupUpdateOneRequiredWithoutMembersNestedInput
+  }
+
+  export type GroupMemberUncheckedUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    groupId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GroupMemberUncheckedUpdateManyWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    groupId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ResourceAccessGrantUpdateWithoutSubjectUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    subjectType?: EnumAccessGrantSubjectTypeFieldUpdateOperationsInput | $Enums.AccessGrantSubjectType
+    resourceType?: EnumAccessGrantResourceTypeFieldUpdateOperationsInput | $Enums.AccessGrantResourceType
+    resourceId?: StringFieldUpdateOperationsInput | string
+    roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    revokedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutResourceAccessGrantsNestedInput
+    subjectGroup?: GroupUpdateOneWithoutAccessGrantsNestedInput
+    grantedBy?: UserUpdateOneWithoutAccessGrantsGrantedNestedInput
+  }
+
+  export type ResourceAccessGrantUncheckedUpdateWithoutSubjectUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    subjectType?: EnumAccessGrantSubjectTypeFieldUpdateOperationsInput | $Enums.AccessGrantSubjectType
+    subjectGroupId?: NullableStringFieldUpdateOperationsInput | string | null
+    resourceType?: EnumAccessGrantResourceTypeFieldUpdateOperationsInput | $Enums.AccessGrantResourceType
+    resourceId?: StringFieldUpdateOperationsInput | string
+    roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    grantedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    revokedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    subjectType?: EnumAccessGrantSubjectTypeFieldUpdateOperationsInput | $Enums.AccessGrantSubjectType
+    subjectGroupId?: NullableStringFieldUpdateOperationsInput | string | null
+    resourceType?: EnumAccessGrantResourceTypeFieldUpdateOperationsInput | $Enums.AccessGrantResourceType
+    resourceId?: StringFieldUpdateOperationsInput | string
+    roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    grantedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    revokedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ResourceAccessGrantUpdateWithoutGrantedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    subjectType?: EnumAccessGrantSubjectTypeFieldUpdateOperationsInput | $Enums.AccessGrantSubjectType
+    resourceType?: EnumAccessGrantResourceTypeFieldUpdateOperationsInput | $Enums.AccessGrantResourceType
+    resourceId?: StringFieldUpdateOperationsInput | string
+    roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    revokedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutResourceAccessGrantsNestedInput
+    subjectUser?: UserUpdateOneWithoutAccessGrantsAsSubjectNestedInput
+    subjectGroup?: GroupUpdateOneWithoutAccessGrantsNestedInput
+  }
+
+  export type ResourceAccessGrantUncheckedUpdateWithoutGrantedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    subjectType?: EnumAccessGrantSubjectTypeFieldUpdateOperationsInput | $Enums.AccessGrantSubjectType
+    subjectUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    subjectGroupId?: NullableStringFieldUpdateOperationsInput | string | null
+    resourceType?: EnumAccessGrantResourceTypeFieldUpdateOperationsInput | $Enums.AccessGrantResourceType
+    resourceId?: StringFieldUpdateOperationsInput | string
+    roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    revokedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    subjectType?: EnumAccessGrantSubjectTypeFieldUpdateOperationsInput | $Enums.AccessGrantSubjectType
+    subjectUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    subjectGroupId?: NullableStringFieldUpdateOperationsInput | string | null
+    resourceType?: EnumAccessGrantResourceTypeFieldUpdateOperationsInput | $Enums.AccessGrantResourceType
+    resourceId?: StringFieldUpdateOperationsInput | string
+    roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    revokedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type AgentMemoryUpdateWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
     sessionId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -203191,6 +210878,9 @@ export namespace Prisma {
     id?: string
     userId: string
     roleId: string
+    state?: string
+    invitedByUserId?: string | null
+    joinedAt?: Date | string
     createdAt?: Date | string
   }
 
@@ -203373,6 +211063,30 @@ export namespace Prisma {
     createdAt?: Date | string
   }
 
+  export type GroupCreateManyOrganizationInput = {
+    id?: string
+    name: string
+    scimManaged?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ResourceAccessGrantCreateManyOrganizationInput = {
+    id?: string
+    subjectType: $Enums.AccessGrantSubjectType
+    subjectUserId?: string | null
+    subjectGroupId?: string | null
+    resourceType: $Enums.AccessGrantResourceType
+    resourceId: string
+    roleKey: string
+    expiresAt?: Date | string | null
+    grantedByUserId?: string | null
+    revokedAt?: Date | string | null
+    revokedByUserId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
   export type SiemWebhookCreateManyOrganizationInput = {
     id?: string
     url: string
@@ -203511,6 +211225,9 @@ export namespace Prisma {
 
   export type OrganizationMemberUpdateWithoutOrganizationInput = {
     id?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    invitedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     user?: UserUpdateOneRequiredWithoutMembershipsNestedInput
     role?: RoleUpdateOneRequiredWithoutMembersNestedInput
@@ -203520,6 +211237,9 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     roleId?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    invitedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -203527,6 +211247,9 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     roleId?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    invitedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -204119,6 +211842,82 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type GroupUpdateWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    scimManaged?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: GroupMemberUpdateManyWithoutGroupNestedInput
+    accessGrants?: ResourceAccessGrantUpdateManyWithoutSubjectGroupNestedInput
+  }
+
+  export type GroupUncheckedUpdateWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    scimManaged?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: GroupMemberUncheckedUpdateManyWithoutGroupNestedInput
+    accessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectGroupNestedInput
+  }
+
+  export type GroupUncheckedUpdateManyWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    scimManaged?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ResourceAccessGrantUpdateWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    subjectType?: EnumAccessGrantSubjectTypeFieldUpdateOperationsInput | $Enums.AccessGrantSubjectType
+    resourceType?: EnumAccessGrantResourceTypeFieldUpdateOperationsInput | $Enums.AccessGrantResourceType
+    resourceId?: StringFieldUpdateOperationsInput | string
+    roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    revokedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    subjectUser?: UserUpdateOneWithoutAccessGrantsAsSubjectNestedInput
+    subjectGroup?: GroupUpdateOneWithoutAccessGrantsNestedInput
+    grantedBy?: UserUpdateOneWithoutAccessGrantsGrantedNestedInput
+  }
+
+  export type ResourceAccessGrantUncheckedUpdateWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    subjectType?: EnumAccessGrantSubjectTypeFieldUpdateOperationsInput | $Enums.AccessGrantSubjectType
+    subjectUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    subjectGroupId?: NullableStringFieldUpdateOperationsInput | string | null
+    resourceType?: EnumAccessGrantResourceTypeFieldUpdateOperationsInput | $Enums.AccessGrantResourceType
+    resourceId?: StringFieldUpdateOperationsInput | string
+    roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    grantedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    revokedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    subjectType?: EnumAccessGrantSubjectTypeFieldUpdateOperationsInput | $Enums.AccessGrantSubjectType
+    subjectUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    subjectGroupId?: NullableStringFieldUpdateOperationsInput | string | null
+    resourceType?: EnumAccessGrantResourceTypeFieldUpdateOperationsInput | $Enums.AccessGrantResourceType
+    resourceId?: StringFieldUpdateOperationsInput | string
+    roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    grantedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    revokedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type SiemWebhookUpdateWithoutOrganizationInput = {
     id?: StringFieldUpdateOperationsInput | string
     url?: StringFieldUpdateOperationsInput | string
@@ -204613,6 +212412,9 @@ export namespace Prisma {
     id?: string
     organizationId: string
     userId: string
+    state?: string
+    invitedByUserId?: string | null
+    joinedAt?: Date | string
     createdAt?: Date | string
   }
 
@@ -204640,6 +212442,9 @@ export namespace Prisma {
 
   export type OrganizationMemberUpdateWithoutRoleInput = {
     id?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    invitedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutMembersNestedInput
     user?: UserUpdateOneRequiredWithoutMembershipsNestedInput
@@ -204649,6 +212454,9 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    invitedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -204656,6 +212464,9 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    invitedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -206753,6 +214564,94 @@ export namespace Prisma {
     computeUnits?: NullableFloatFieldUpdateOperationsInput | number | null
     costCents?: NullableFloatFieldUpdateOperationsInput | number | null
     meteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type GroupMemberCreateManyGroupInput = {
+    id?: string
+    userId: string
+    createdAt?: Date | string
+  }
+
+  export type ResourceAccessGrantCreateManySubjectGroupInput = {
+    id?: string
+    organizationId: string
+    subjectType: $Enums.AccessGrantSubjectType
+    subjectUserId?: string | null
+    resourceType: $Enums.AccessGrantResourceType
+    resourceId: string
+    roleKey: string
+    expiresAt?: Date | string | null
+    grantedByUserId?: string | null
+    revokedAt?: Date | string | null
+    revokedByUserId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type GroupMemberUpdateWithoutGroupInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutGroupMembershipsNestedInput
+  }
+
+  export type GroupMemberUncheckedUpdateWithoutGroupInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GroupMemberUncheckedUpdateManyWithoutGroupInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ResourceAccessGrantUpdateWithoutSubjectGroupInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    subjectType?: EnumAccessGrantSubjectTypeFieldUpdateOperationsInput | $Enums.AccessGrantSubjectType
+    resourceType?: EnumAccessGrantResourceTypeFieldUpdateOperationsInput | $Enums.AccessGrantResourceType
+    resourceId?: StringFieldUpdateOperationsInput | string
+    roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    revokedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutResourceAccessGrantsNestedInput
+    subjectUser?: UserUpdateOneWithoutAccessGrantsAsSubjectNestedInput
+    grantedBy?: UserUpdateOneWithoutAccessGrantsGrantedNestedInput
+  }
+
+  export type ResourceAccessGrantUncheckedUpdateWithoutSubjectGroupInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    subjectType?: EnumAccessGrantSubjectTypeFieldUpdateOperationsInput | $Enums.AccessGrantSubjectType
+    subjectUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    resourceType?: EnumAccessGrantResourceTypeFieldUpdateOperationsInput | $Enums.AccessGrantResourceType
+    resourceId?: StringFieldUpdateOperationsInput | string
+    roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    grantedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    revokedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ResourceAccessGrantUncheckedUpdateManyWithoutSubjectGroupInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    subjectType?: EnumAccessGrantSubjectTypeFieldUpdateOperationsInput | $Enums.AccessGrantSubjectType
+    subjectUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    resourceType?: EnumAccessGrantResourceTypeFieldUpdateOperationsInput | $Enums.AccessGrantResourceType
+    resourceId?: StringFieldUpdateOperationsInput | string
+    roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    grantedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    revokedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
 

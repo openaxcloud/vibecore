@@ -77,6 +77,14 @@ export const rolePermissions: Record<string, PermissionKey[]> = {
     'usage:read',
   ],
   viewer: ['org:read', 'projects:read', 'workspaces:read', 'support:write', 'usage:read'],
+
+  /*
+   * Guest (IDENTITY_COLLABORATION_CONTRACT): narrowest scope of all — a guest
+   * exists ONLY through an explicit grant (share link, GUEST membership or a
+   * ResourceAccessGrant) and can read the specific resources granted, nothing
+   * org-wide. No org:read: a guest must not enumerate the workspace.
+   */
+  guest: ['projects:read', 'workspaces:read'],
 };
 
 export function hasPermission(roleKey: string, permission: PermissionKey) {

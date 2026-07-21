@@ -162,3 +162,17 @@ Décisions committées : `docs/DEPLOY_REPRODUCIBLE_PIPELINE.md` (pipeline) + `do
 ⚠️ Capacité : demande de quota `SSD_TOTAL_GB` REPORTÉE par Google (« resubmit après 48 h ou avec plus d'historique billing » — pas un refus définitif). État 15/07 soir : 432/500, dont **400 = boot disks pd-balanced des 4 nœuds gvisor** (aucun pd-ssd n'existe ; pd-balanced compte DANS ce quota). Seule sortie structurelle : recréer le pool gvisor avec boot disks **pd-standard 200 Go** (throughput ≈ équivalent, coût identique, `DISKS_TOTAL_GB` 4,2/20 To) → SSD ~32/500 et autoscale débloqué. GO d'Avi requis (drain = redémarrage des pods workspaces). Ménage fait : spike-workspace-pvc (2 Go SSD) + 19 PVC d'orgs de test E2E supprimées.
 ⚠️ `--reuse-values` : les nouvelles clés chart (`serverDeployImageRepo`, `nixStorePvc`…) n'atteignent la release que via UN `--set` manuel (fait après passage CD), ensuite persistées.
 
+
+## IDENTITÉ & COLLABORATION — P0-EX-07 Group/Guest/AccessGrant (21/07, session cloud-tenant)
+
+Refus expert levé : « Group, Guest, AccessGrant non implémentés ». Branche `feat/identity-collaboration` (PR, pas de merge sans feu vert). Preuves : `docs/deploy-evidence/2026-07-21-identity-collaboration/` (PROVEN_REVIEW_PENDING, rien de CLOSED). Existant réutilisé sans doublon : OrganizationMember/Role/requireOrg/requireProject/ProjectCollaborator/ProjectShareLink.
+
+| Point | 📤 | 💻 | ✅ | Notes |
+|---|:---:|:---:|:---:|---|
+| IDC-1. Modèles Group/GroupMember (scimManaged) + ResourceAccessGrant (sujet USER\|GROUP, ressource PROJECT\|ARTIFACT\|DEPLOYMENT\|DATASET, roleKey, expiresAt, grantedBy, revokedAt/By) + champs Membership contrat (state/invitedBy/joinedAt) — migration 0080 | ✅ | ✅ branche | ✅ **21/07 réel** | Migrations 0001→0080 appliquées sur vrai Postgres (`identity_proof`), tables+colonnes vérifiées |
+| IDC-2. Rôle `guest` (rbac) : projects:read+workspaces:read SEULS, pas d'org:read ; read-only par construction | ✅ | ✅ branche | ✅ **21/07 réel** | Outsider limité à guest/viewer (`GRANT_OUTSIDER_ROLE_TOO_WIDE` 403, testé) |
+| IDC-3. **Enforcement 100 % serveur** : requireProject→projectCollaborationRole résout collaborateur + grants directs + grants de groupe à CHAQUE requête ; expiré/révoqué ⇒ rien ; élévation bornée au rôle accordé et à SA ressource | ✅ | ✅ branche | ✅ **21/07 réel** | Rejoué sur vraie API+PrismaApiStore+Postgres (`proof-run.jsonl`) ; sémantique préexistante viewer-plafonne-l'écriture conservée (7 specs préexistantes vertes) |
+| IDC-4. **Négatifs contrat** : invité hors scope refusé ; grant expiré refusé ; permission retirée = 403/404 ; groupe SCIM édité à la main = 409 ; cross-tenant refusé | ✅ | ✅ branche | ✅ **21/07 réel** | N1-N5 prouvés en HTTP réel + lignes DB (revokedAt/revokedBy) ; 15/15 specs vitest |
+| IDC-5. Routes /orgs/:id/groups* + /projects/:id/access-grants* sous members:manage + audit | ✅ | ✅ branche | ✅ **21/07 réel** | Un invité ne peut pas élargir l'ACL qui l'a admis (testé) |
+| IDC-6. Sync SCIM Groups (provisioning IdP→Group) | ⬜ | ⬜ | ⬜ | P123/P131 ; modèle + invariant prêts, connecteur non câblé |
+| IDC-7. Enforcement grants sur ARTIFACT/DEPLOYMENT/DATASET + Identity.kind (§10.3) + UI | ⬜ | ⬜ | ⬜ | Modèle prêt ; chemins de lecture unifiés à créer ; Identity.kind = UNKNOWN à trancher |

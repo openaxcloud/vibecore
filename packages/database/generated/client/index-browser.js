@@ -174,6 +174,9 @@ exports.Prisma.OrganizationMemberScalarFieldEnum = {
   organizationId: 'organizationId',
   userId: 'userId',
   roleId: 'roleId',
+  state: 'state',
+  invitedByUserId: 'invitedByUserId',
+  joinedAt: 'joinedAt',
   createdAt: 'createdAt'
 };
 
@@ -1493,6 +1496,39 @@ exports.Prisma.GalleryListingScalarFieldEnum = {
   publishedAt: 'publishedAt'
 };
 
+exports.Prisma.GroupScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  name: 'name',
+  scimManaged: 'scimManaged',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.GroupMemberScalarFieldEnum = {
+  id: 'id',
+  groupId: 'groupId',
+  userId: 'userId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ResourceAccessGrantScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  subjectType: 'subjectType',
+  subjectUserId: 'subjectUserId',
+  subjectGroupId: 'subjectGroupId',
+  resourceType: 'resourceType',
+  resourceId: 'resourceId',
+  roleKey: 'roleKey',
+  expiresAt: 'expiresAt',
+  grantedByUserId: 'grantedByUserId',
+  revokedAt: 'revokedAt',
+  revokedByUserId: 'revokedByUserId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1654,6 +1690,18 @@ exports.ScheduledTaskRunStatus = exports.$Enums.ScheduledTaskRunStatus = {
   CANCELED: 'CANCELED'
 };
 
+exports.AccessGrantSubjectType = exports.$Enums.AccessGrantSubjectType = {
+  USER: 'USER',
+  GROUP: 'GROUP'
+};
+
+exports.AccessGrantResourceType = exports.$Enums.AccessGrantResourceType = {
+  PROJECT: 'PROJECT',
+  ARTIFACT: 'ARTIFACT',
+  DEPLOYMENT: 'DEPLOYMENT',
+  DATASET: 'DATASET'
+};
+
 exports.Prisma.ModelName = {
   User: 'User',
   Account: 'Account',
@@ -1765,7 +1813,10 @@ exports.Prisma.ModelName = {
   AgentCallLog: 'AgentCallLog',
   RemixJob: 'RemixJob',
   ImportJob: 'ImportJob',
-  GalleryListing: 'GalleryListing'
+  GalleryListing: 'GalleryListing',
+  Group: 'Group',
+  GroupMember: 'GroupMember',
+  ResourceAccessGrant: 'ResourceAccessGrant'
 };
 
 /**

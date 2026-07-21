@@ -88,6 +88,9 @@ model User {
   collaborationPresence       CollaborationPresence[]
   collaborationComments       CollaborationComment[]
   collaborationShareLinks     ProjectShareLink[]
+  groupMemberships            GroupMember[]
+  accessGrantsAsSubject       ResourceAccessGrant[] @relation("AccessGrantSubjects")
+  accessGrantsGranted         ResourceAccessGrant[] @relation("AccessGrantsGranted")
   agentMemories               AgentMemory[]
   agentMemoryPreferences      AgentMemoryPreference[]
   mcpInstalls                 McpInstall[]
@@ -163,6 +166,8 @@ model Organization {
   ssoConfigurations          SsoConfiguration[]
   scimTokens                 ScimToken[]
   customRoles                CustomRole[]
+  groups                      Group[]
+  resourceAccessGrants        ResourceAccessGrant[]
   siemWebhooks               SiemWebhook[]
   projectTemplates           ProjectTemplate[]
   agentMemories              AgentMemory[]
@@ -184,6 +189,12 @@ model OrganizationMember {
   organizationId String
   userId         String
   roleId         String
+  /// Membership state (contract): ACTIVE | SUSPENDED. Suspended members keep
+  /// the row but confer no access.
+  state           String      @default("ACTIVE")
+  /// Who invited this member (contract: invitedBy). Null for founders/seeds.
+  invitedByUserId String?
+  joinedAt        DateTime    @default(now())
   createdAt      DateTime     @default(now())
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -2437,4 +2448,89 @@ model GalleryListing {
   @@index([status, category])
   @@index([status, featured])
   @@index([status, createdAt])
+}
+
+// ─── Identity & collaboration (IDENTITY_COLLABORATION_CONTRACT / P0-EX-07) ───
+// Fills the measured gaps: Groups (SCIM-manageable), guest-scoped access and a
+// generic AccessGrant (subject = user OR group, resource = project | artifact |
+// deployment | dataset) with expiry + explicit revocation + grantedBy audit.
+// "Workspace" in the contract maps to Organization here; Membership is
+// OrganizationMember; ProjectCollaborator/ProjectShareLink stay the share-link
+// guest path. Every permission remains enforced SERVER-side (requireProject).
+
+enum AccessGrantSubjectType {
+  USER
+  GROUP
+}
+
+enum AccessGrantResourceType {
+  PROJECT
+  ARTIFACT
+  DEPLOYMENT
+  DATASET
+}
+
+/// A named set of members inside an organization. When scimManaged=true the
+/// SCIM connector is the ONLY writer — manual member edits are refused
+/// (GROUP_SCIM_MANAGED), per the contract's invariant 4.
+model Group {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  scimManaged    Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members      GroupMember[]
+  accessGrants ResourceAccessGrant[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+}
+
+model GroupMember {
+  id        String   @id @default(cuid())
+  groupId   String
+  userId    String
+  createdAt DateTime @default(now())
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([userId])
+}
+
+/// Generic access grant (contract entity "AccessGrant"): subject is a user or
+/// a group, resource is typed, scope is a role key. Carries expiry, explicit
+/// revocation (revokedAt/by) and grantedBy — all three are contract-required.
+/// Enforcement happens in requireProject's role resolution: expired or revoked
+/// grants confer NOTHING.
+model ResourceAccessGrant {
+  id              String                  @id @default(cuid())
+  organizationId  String
+  subjectType     AccessGrantSubjectType
+  subjectUserId   String?
+  subjectGroupId  String?
+  resourceType    AccessGrantResourceType
+  resourceId      String
+  /// Role key the subject gets on the resource (e.g. viewer | guest | editor).
+  roleKey         String
+  expiresAt       DateTime?
+  grantedByUserId String?
+  revokedAt       DateTime?
+  revokedByUserId String?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  subjectUser  User?        @relation("AccessGrantSubjects", fields: [subjectUserId], references: [id], onDelete: Cascade)
+  subjectGroup Group?       @relation(fields: [subjectGroupId], references: [id], onDelete: Cascade)
+  grantedBy    User?        @relation("AccessGrantsGranted", fields: [grantedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([resourceType, resourceId])
+  @@index([subjectUserId])
+  @@index([subjectGroupId])
+  @@index([organizationId])
 }

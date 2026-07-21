@@ -1,0 +1,7 @@
+{"at":"2026-07-21T04:39:52.727Z","step":"setup","projectId":"cmru5zwru001yaylnkhhqxrh1","otherProjectId":"cmru5zx3r0022aylnchghjkob","db":"real Prisma/Postgres (identity_proof)"}
+{"at":"2026-07-21T04:39:52.784Z","step":"n1.guest_scope.proven","readInScope":200,"writeRefused":403,"writeCode":"PROJECT_ROLE_READ_ONLY","otherProjectRefused":404}
+{"at":"2026-07-21T04:39:52.800Z","step":"n2.expired.proven","readRefused":404}
+{"at":"2026-07-21T04:39:52.844Z","step":"n3.revocation.proven","before":200,"after":404,"dbRow":{"revokedAt":"2026-07-21T04:39:52.832Z","revokedByUserId":"cmru5zwl3001faylnybd9ccj0"}}
+{"at":"2026-07-21T04:39:52.859Z","step":"n4.scim.proven","editRefused":409,"code":"GROUP_SCIM_MANAGED"}
+{"at":"2026-07-21T04:39:52.866Z","step":"n5.cross_tenant.proven","groups":404,"project":404}
+{"at":"2026-07-21T04:39:52.866Z","step":"done","summary":{"n1_guestScope":true,"n2_expiredGrantRefused":true,"n3_revocationCutsAccess":true,"n4_scimManualEditRefused":true,"n5_crossTenantRefused":true,"store":"PrismaApiStore (real Postgres)"}}
