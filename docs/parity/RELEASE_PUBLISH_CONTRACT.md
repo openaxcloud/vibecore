@@ -1,11 +1,13 @@
 # RELEASE_PUBLISH_CONTRACT — Publish → Release (audit v4 I)
 
-schemaVersion: 1
-repoCommit: ca299f87
+contractId: CTR-RELEASE-PUBLISH
+contractVersion: 2
+schemaVersion: 2
+repoCommit: 1692f981
 reviewer: UNKNOWN
-reviewVerdict: REFUSED — 0/14 contrats signés (lot 57febeab, OpenAI-Codex, 2026-07-20)
-refusalReason: pas de ReleaseCatalog/Manifest persistant ni UI live (verbatim relecteur, transmis 20/07)
-reviewCloseCriterion: corriger — pas de ReleaseCatalog/Manifest persistant ni UI live — puis re-soumettre à signature
+expectedReviewer: OpenAI-Codex
+signatureResult: PENDING_REVIEW   # v1 REFUSED : « pas de ReleaseCatalog/Manifest persistant ni UI live » — v2 structuré + ancré, re-soumission requise
+implementationAnchor: "Publish→image signée→AR→serverAppDeployment PROUVÉ live (2026-07-15, cold 22s) ; rollback PAR DIGEST post-suppression PROUVÉ live (I-REL-1, vertical 7/7) ; machine PROMOTION_* dans lifecycle-state-machines.ts ; ReleaseCatalog PERSISTANT + UI live = CHANTIER OUVERT (refus v1, non résolu — déclaré)"
 
 Contrat de la publication d'un projet. Complète DOMAIN_MODEL §5 (ReleaseCatalog,
 Promotion→Release) et la machine à états `PROMOTION_PREPARED→…→PROMOTION_COMMITTED`
@@ -88,3 +90,20 @@ rollback des déploiements SANS digest en 409 — cf. `UNK-ROLLBACK-FLAG-PERMANE
 - 🟡 Promotion réelle contre AR live (referrers) = follow-up (UNK-AR-LIVE-PROMOTION).
 - ✅ E2E-VERTICAL-ROLLBACK (PROVEN, vertical: rollback) — v1 ressuscité du digest
   après suppression de la révision + 2 négatifs 409. `docs/deploy-evidence/2026-07-17-rollback/`.
+
+## Préconditions
+- P-REL-1 : une release référence une image par DIGEST (jamais un tag mutable) ; le digest est persisté (imageRef@sha256).
+- P-REL-2 : la promotion suit la machine PROMOTION_PREPARED→…→PROMOTION_COMMITTED — pas de raccourci.
+
+## Invariants
+- I-REL-1 : le rollback re-déploie l'image par digest MÊME après suppression de la révision source (PROUVÉ prod).
+- I-REL-2 : un déploiement FAILED n'écrase jamais la release courante (états honnêtes, fix false-FAILED b3ba27d8).
+
+## Tests négatifs
+- rollback après suppression de révision → sert le digest persisté (prouvé) ; quota à 0 → refus propre (QuotaOverride requis, prouvé) ; publish sans digest → refus.
+
+## Compatibilité
+- Deploys statiques historiques inchangés ; snapshot-image derrière SERVER_DEPLOY_SNAPSHOT_IMAGE.
+
+## Résultat de signature
+- v1 : REFUSED (« pas de ReleaseCatalog/Manifest persistant ni UI live »). v2 : PENDING_REVIEW — le pipeline et le rollback sont prouvés live ; **ReleaseCatalog persistant + UI live restent un CHANTIER OUVERT, dit tel quel** — ce contrat ne les revendique pas.

@@ -1,11 +1,13 @@
 # RUNTIME_NIX_CONTRACT — contrat runtime Nix v2
 
-schemaVersion: 1
-repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
+contractId: CTR-RUNTIME-NIX
+contractVersion: 2
+schemaVersion: 2
+repoCommit: 1692f981
 reviewer: UNKNOWN
-reviewVerdict: REFUSED — 0/14 contrats signés (lot 57febeab, OpenAI-Codex, 2026-07-20)
-refusalReason: format lock incompatible + rotation inconnue (verbatim relecteur, transmis 20/07)
-reviewCloseCriterion: corriger — format lock incompatible + rotation inconnue — puis re-soumettre à signature
+expectedReviewer: OpenAI-Codex
+signatureResult: PENDING_REVIEW   # v1 REFUSED : « format lock incompatible + rotation inconnue » — v2 structuré + ancré, re-soumission requise
+implementationAnchor: "Store Nix v2 partagé RO PROUVÉ live sous gVisor (mutation RO échoue — preuve négative) ; gen-1 12GB/6552 paths ; builds reproductibles Phase B (Node 62s, Python 3.12.13 store v2) ; format ecode.lock + politique de rotation = CHANTIER OUVERT (refus v1, déclaré)"
 Décisions détaillées: `docs/NIX_V2_DECISION.md` + `docs/DEPLOY_REPRODUCIBLE_PIPELINE.md`
 (preuves live: docs/deploy-evidence/2026-07-15-phase-b/).
 
@@ -32,3 +34,20 @@ Voir `docs/parity/schemas/ecode.lock.schema.json`.
 
 - Politique de rotation des générations de store (rétention N-1 ? durée ?): UNKNOWN.
 - Signature: rotation de la clé de signature du store: UNKNOWN.
+
+## Préconditions
+- P-NIX-1 : le store est monté LECTURE SEULE dans tout pod utilisateur ; kill-switch de montage existant (9a21f56f).
+- P-NIX-2 : toute génération de store est versionnée (gen-N) et publiée atomiquement.
+
+## Invariants
+- I-NIX-1 : une écriture dans le store depuis un workspace ÉCHOUE (prouvé gVisor — preuve négative rejouée).
+- I-NIX-2 : un build reproductible référence la génération de store utilisée.
+
+## Tests négatifs
+- mutation du store RO → échec (prouvé) ; build contre une génération absente → échec propre, jamais un fallback silencieux.
+
+## Compatibilité
+- pd-ssd RO multi-reader ; pool pd-standard 200Go (quota SSD) ; réveil 14,5s mesuré.
+
+## Résultat de signature
+- v1 : REFUSED (« format lock incompatible + rotation inconnue »). v2 : PENDING_REVIEW — le store et les builds sont prouvés ; **le format ecode.lock (compatibilité) et la politique de rotation des générations restent un CHANTIER OUVERT, dit tel quel**.

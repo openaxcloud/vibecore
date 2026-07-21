@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "ecode/parity/project-manifest",
-  "x-schemaVersion": 1,
-  "x-repoCommit": "PENDING_COMMIT",
+  "x-schemaVersion": 3,
+  "x-repoCommit": "1692f981",
   "title": "ProjectManifest",
   "description": "Source versionnée des composants, artifacts, bindings et scopes d'un Project (plan §5, P0-EX-08). Consommé par ProjectRevision (manifestDigest).",
   "type": "object",
@@ -17,7 +17,8 @@
       "minimum": 1
     },
     "projectId": {
-      "type": "string"
+      "type": "string",
+      "minLength": 1
     },
     "artifacts": {
       "type": "array",
@@ -31,7 +32,8 @@
         ],
         "properties": {
           "artifactId": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           },
           "kind": {
             "enum": [
@@ -45,7 +47,8 @@
             ]
           },
           "sourceRoot": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           },
           "components": {
             "type": "array",
@@ -66,8 +69,13 @@
                     "SHARED_PACKAGE",
                     "STATIC_SITE_COMPONENT"
                   ]
+                },
+                "componentId": {
+                  "type": "string",
+                  "minLength": 1
                 }
-              }
+              },
+              "additionalProperties": false
             }
           },
           "previewConfig": {
@@ -76,8 +84,10 @@
           "publishConfig": {
             "type": "object"
           }
-        }
-      }
+        },
+        "additionalProperties": false
+      },
+      "minItems": 1
     },
     "sharedBackendBinding": {
       "type": "object"
@@ -100,10 +110,32 @@
   },
   "allOf": [
     {
-      "description": "au plus 1 MOBILE_APP par projet (entitlement configurable, jamais codé en dur ailleurs que via entitlementsRef)"
+      "description": "au plus 1 MOBILE_APP par projet — CONTRAINTE EXÉCUTABLE (plus une simple description) ; le quota vit dans entitlementsRef, jamais codé en dur ailleurs",
+      "properties": {
+        "artifacts": {
+          "contains": {
+            "type": "object",
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "const": "MOBILE_APP"
+              }
+            }
+          },
+          "minContains": 0,
+          "maxContains": 1
+        }
+      }
     }
   ],
   "x-reviewVerdict": "REFUSED — 0/14 contrats signés (lot 57febeab, OpenAI-Codex, 2026-07-20)",
-  "x-reviewCloseCriterion": "corriger — le schéma accepte des contre-exemples et l'état PENDING_COMMIT — puis re-soumettre à signature",
-  "x-refusalReason": "accepte contre-exemples + PENDING_COMMIT (verbatim relecteur, transmis 20/07)"
+  "x-reviewCloseCriterion": "v2 durci : additionalProperties false, allOf exécutable (≤1 MOBILE_APP via maxContains), minLength/minItems, PENDING_COMMIT purgé — re-soumettre à signature",
+  "x-refusalReason": "accepte contre-exemples + PENDING_COMMIT (verbatim relecteur, transmis 20/07 — corrigé en v2 : x-repoCommit était littéralement la chaîne PENDING_COMMIT)",
+  "additionalProperties": false,
+  "x-contractId": "CTR-PROJECT-MANIFEST-SCHEMA",
+  "x-contractVersion": 2,
+  "x-expectedReviewer": "OpenAI-Codex",
+  "x-signatureResult": "PENDING_REVIEW"
 }
