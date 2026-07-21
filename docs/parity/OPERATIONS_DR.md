@@ -34,6 +34,7 @@ Le baseline historique honnête n'existe pas (le SLI était factice avant le
 | Donnée | Mécanisme | RPO cible | RPO démontré | RTO cible | RTO MESURÉ |
 |---|---|---|---|---|---|
 | PostgreSQL (Cloud SQL `vibecore-prod-postgres`) | backups quotidiens 03:00 UTC ×30 + **PITR actif** (archivage WAL) | ≤ 15 min | clone PITR à une minute arbitraire réussi (04:38:21Z) — granularité minute | ≤ 60 min | **13 min 06 s** (restore→données vérifiées, EVID-DR-DB-001) |
+| PostgreSQL — **perte de zone** (failover HA) | REGIONAL, standby cross-zone | 0 (synchrone) | **0 écriture ACKée perdue, prouvé** (drill 2026-07-21) | ≤ 5 min | **24,1 s** bascule / **16,0 s** failback (EVID-DR-FAILOVER-001) |
 | Disques workspaces (PD par projet) | snapshots GCE à la demande (non planifiés — voir BLOCKED) | ≤ 24 h si planifiés ; aujourd'hui : dernier snapshot manuel | snapshot+restore prouvés | ≤ 30 min | **77 s** (snapshot→restauré→vérifié bit-à-bit, EVID-DR-DISK-001) |
 | Store Nix partagé (RO, par génération) | snapshot signé par génération + clone par zone | 0 (immuable) | prouvé (gen-2 → clone zone-b identique, sha256 vérifié) | ≤ 15 min | **~50 s** (snapshot 27 s + clone 23 s, mesuré 2026-07-17/20) |
 | Object storage projets (GCS `vc-<projectId>`) | buckets multi-région **EU** | 0 (réplication GCP) | localisation vérifiée | n/a (pas de restauration à faire en perte de zone/région) | n/a |
@@ -85,7 +86,7 @@ par digest retenu (I-REL-1 live). Réfs : `2026-07-17-nix-multizone/`,
 |---|---|---|---|
 | **Perte de zone** (cordon europe-west9-a, la zone préférée) | 2026-07-20 | Projet Python neuf provisionne en zone-b : store clone monté + génération vérifiée, uv/venv, Preview 200, **Publish READY + 200** — bout en bout pendant la « panne ». Restauration prouvée dans les 2 sens, zéro split-brain. 2 bugs réels trouvés PAR l'exercice et corrigés (deadlock affinités data-PVC ; RBAC PV) | `2026-07-17-nix-multizone/ZONE_LOSS_TEST.md` |
 | **Perte d'instance API** (kill d'1 pod sur 2 sous sonde continue) | 2026-07-21 | **90/90 requêtes HTTP 200** pendant le kill et le remplacement (<2 min) — zéro downtime observé (maxUnavailable:0 + 2 replicas) | `chaos-probe-podkill.log` (EVID-DR-CHAOS-001) |
-| Perte de zone **base de données** | — | Cloud SQL est **REGIONAL (HA cross-zone)** — mais le failover réel n'a pas été déclenché par nous : **BLOCKED — fenêtre + GO Avi** (le failover coupe les écritures quelques dizaines de secondes sur la vraie prod utilisateur) | config vérifiée (availabilityType=REGIONAL) |
+| Perte de zone **base de données** (failover Cloud SQL RÉEL, GO Avi) | 2026-07-21 | Bascule b→c puis failback c→b sous sonde 1 Hz : **24,1 s** d'indispo écritures (bascule) + **16,0 s** (failback), lectures idem, **`/health` API 100 % en 200** pendant tout le drill, **0 écriture ACKée perdue** (270/270), topologie initiale restaurée | `2026-07-21-dr-failover/` (EVID-DR-FAILOVER-001) |
 | Perte de **région** (europe-west9 entière) | — | **BLOCKED — architecture** : aucune réplique cross-région (DB, disques). GCS survit (multi-région EU). Décision + budget Avi (réplique lecture cross-région Cloud SQL ≈ coût d'une 2ᵉ instance) | — |
 
 ## 5. Astreinte / alerting — état honnête
@@ -108,12 +109,11 @@ par digest retenu (I-REL-1 live). Réfs : `2026-07-17-nix-multizone/`,
 | Restore drill disque workspace | trimestriel | §3.2 |
 | Perte de zone (cordon + projet neuf bout en bout) | semestriel | `ZONE_LOSS_TEST.md` (méthode cordon = sans éviction) |
 | Kill-pod sous sonde | à chaque changement de topologie | EVID-DR-CHAOS-001 (one-liner) |
-| Failover Cloud SQL réel | à la 1ʳᵉ fenêtre accordée | BLOCKED (GO Avi) |
+| Failover Cloud SQL réel | annuel (joué le 2026-07-21 : 24,1 s / 16,0 s, zéro perte) | EVID-DR-FAILOVER-001 |
 
 ## 7. BLOCKED / ACTIONS AVI (dépendances exactes, rien d'autre ne manque)
 
-1. **Failover Cloud SQL réel** : `gcloud sql instances failover vibecore-prod-postgres`
-   — coupe brièvement les écritures ; exige une fenêtre + GO explicite.
+1. ~~Failover Cloud SQL réel~~ — **FAIT le 2026-07-21 sur GO Avi** (24,1 s / 16,0 s, zéro perte — EVID-DR-FAILOVER-001).
 2. **Snapshots planifiés des PD workspaces** : créer une resource policy GCE et
    l'attacher aux disques (`gcloud compute resource-policies create snapshot-schedule …`)
    — coût à valider (0.058 $/Gio/mois sur octets stockés).
