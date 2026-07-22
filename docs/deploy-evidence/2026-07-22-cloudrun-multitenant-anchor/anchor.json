@@ -1,0 +1,39 @@
+{
+  "p0": "P0-A2-14",
+  "authoritativeSource": "https://docs.cloud.google.com/run/quotas",
+  "sourceTitle": "Cloud Run — Quotas and limits (Google Cloud)",
+  "htmlFile": "cloudrun-quotas.html",
+  "htmlSha256": "1809ead6e7b96080364cc21a2c5ce8044bcb850a13b8b8a67bca713753de50c0",
+  "htmlBytes": 119002,
+  "namedThresholds": [
+    {
+      "threshold": "maxConcurrentRequestsPerInstance",
+      "value": 1000,
+      "text": "concurrent requests per instance",
+      "present": true,
+      "byteOffset": 78029
+    },
+    {
+      "threshold": "maxVcpuPerInstance",
+      "value": 8,
+      "text": "Maximum number of vCPU",
+      "present": true,
+      "byteOffset": 70481
+    },
+    {
+      "threshold": "maxMemoryGiBPerInstance",
+      "value": 32,
+      "text": "Maximum memory size, in GiB",
+      "present": true,
+      "byteOffset": 70364
+    },
+    {
+      "threshold": "maxRequestTimeout",
+      "value": "60 minutes",
+      "text": "Maximum time before timeout per request",
+      "present": true,
+      "byteOffset": 78215
+    }
+  ],
+  "note": "Les seuils multi-tenant Cloud Run ne sont plus « inexistants » : chaque seuil nommé du contrat CLOUDRUN_MULTITENANT_THRESHOLDS.md est ancré verbatim à la doc GCP autoritative. Rejouable (--offline ou re-fetch) ; échoue si une citation disparaît."
+}

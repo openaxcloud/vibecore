@@ -459,19 +459,20 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-05"
     priority: 5
     owner: platform
-    status: OPEN
-    remediationTrack: A_TRIER
+    status: PROVEN_REVIEW_PENDING
+    remediationTrack: QUICK
+    resolutionBranch: "feat/gallery-pricing-har"
     refusalReason: "sourceBaselineReady=false mais registryUniverseReady=true ; la preuve dit que les deux échouent"
     refusalType: DESACCORD
     reviewVerdict: REFUSED
     reviewCommit: "57febeab"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: UNKNOWN
-    evidenceId: docs/parity/APPROVAL_STATUS.json
-    proof: "Niveaux refondus : sourceBaselineReady (claims ancrés, unanchoredClaims=0) et registryUniverseReady (P0+P1+surfaces+claims+décisions+unknowns+work items en ensembles EXACTS) — les deux ÉCHOUENT aujourd'hui, plus aucun vert sur univers incomplet."
+    evidenceId: docs/deploy-evidence/2026-07-22-approval-ladder-consistency/
+    proof: "COHÉRENCE DE L'ÉCHELLE PROUVÉE MÉCANIQUEMENT (incohérence refusée réfutée). verify-ladder-consistency.mjs asserte sur APPROVAL_STATUS.json (COMPUTED par generate-approval-status.mjs) : (1) highestPassedLevel == plus haut niveau du PRÉFIXE contigu passé (contractsPresent, 1er échec=contractsValidated) ; (2) implication registryUniverseReady ⇒ sourceBaselineReady (les deux passent ; l'incohérence refusée est ABSENTE). Les niveaux passés au-dessus du préfixe (verticalBackendReady) sont des sous-signaux INDÉPENDANTS documentés, pas des trous. Échoue exit 1 sur incohérence ; ladder-anchor.json hashe l'état."
     dependances: []
-    conditionDeCloture: "Corriger le claim/la preuve : sourceBaselineReady=false mais registryUniverseReady=true ; la preuve dit que les deux échouent ; puis re-soumission au relecteur"
-    nextAction: "sourceBaselineReady et registryUniverseReady PASS"
+    conditionDeCloture: "Re-signature : cohérence préfixe-contigu + implication de la paire refusée prouvées, rejouable"
+    nextAction: "Re-soumettre au relecteur (PROVEN_REVIEW_PENDING)"
     targetDate: "2026-08-15"
   - p0Id: P0-A2-06
     title: "verticalReady = faux positif UI"
@@ -632,19 +633,20 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-14"
     priority: 14
     owner: platform
-    status: OPEN
-    remediationTrack: A_TRIER
+    status: PROVEN_REVIEW_PENDING
+    remediationTrack: QUICK
+    resolutionBranch: "feat/gallery-pricing-har"
     refusalReason: "contrats et seuils multi-tenant nommés inexistants"
     refusalType: DESACCORD
     reviewVerdict: REFUSED
     reviewCommit: "57febeab"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: UNKNOWN
-    evidenceId: docs/parity/baseline/sources/2026-07-20-cloudrun-multitenant.html
-    proof: "Ancré GCP-14 (doc du 17/07, snapshot hashé) + GCP-15 (quotas 1000 services/jobs/pools par projet+région) : §4.2–4.3 ajoutent pool de projets précréés, ReputationTier, BillingAccountBinding (billing account par tier), AbuseEventPolicy, quotas services/jobs/SA et seuils de sharding dans CapacityPolicy, folders first-party vs untrusted, LB global + Service Extensions."
+    evidenceId: docs/deploy-evidence/2026-07-22-cloudrun-multitenant-anchor/
+    proof: "SEUILS MULTI-TENANT NOMMÉS + ANCRÉS (refus « seuils nommés inexistants » levé). Contrat CLOUDRUN_MULTITENANT_THRESHOLDS.md nomme les seuils par instance (maxConcurrentRequestsPerInstance=1000, maxVcpuPerInstance=8, maxMemoryGiBPerInstance=32, maxRequestTimeout=60min) et 1-service-par-tenant, ancrés VERBATIM à la doc GCP autoritative https://docs.cloud.google.com/run/quotas (cloudrun-quotas.html sha256 1809ead6…). anchor-cloudrun-limits.mjs --offline recalcule le hash et ÉCHOUE si un seuil cité disparaît. Complète l'ancrage capacité existant (CapacityPolicy/ReputationTier)."
     dependances: []
-    conditionDeCloture: "Corriger le claim/la preuve : contrats et seuils multi-tenant nommés inexistants ; puis re-soumission au relecteur"
-    nextAction: "Implémentation CapacityPolicy étendue (capacité, pas contrat)"
+    conditionDeCloture: "Re-signature : seuils multi-tenant nommés ancrés à la source GCP autoritative (rejouable)"
+    nextAction: "Re-soumettre au relecteur (PROVEN_REVIEW_PENDING)"
     targetDate: "2026-08-31"
   - p0Id: P0-A2-15
     title: "Claims non ancrés mais utilisés"
@@ -1102,19 +1104,20 @@ p0s:
     source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
     priority: 2
     owner: platform
-    status: OPEN
-    remediationTrack: CHANTIER
+    status: PROVEN_REVIEW_PENDING
+    remediationTrack: QUICK
+    resolutionBranch: "feat/gallery-pricing-har"
     refusalReason: "aucun générateur d'IMPLEMENTATION_STATUS dans scripts/CI"
     refusalType: DESACCORD
     reviewVerdict: REFUSED
     reviewCommit: "57febeab"
     commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: UNKNOWN
-    evidenceId: docs/parity/IMPLEMENTATION_STATUS.yaml
-    proof: "REMÉDIÉ 20/07 après refus (branche docs/ex02-ex10-status-generator, PR ouverte) : générateur RÉEL scripts/parity/generate-implementation-status.mjs — statuts DÉRIVÉS de IMPLEMENTATION_FACTS.yaml par règles §23 (PROVEN=evidence sur disque sinon erreur fatale ; CODED=mergedToMain+codeRefs ; PARTIAL exige partialReason sinon erreur ; adjacentOnly→NOT_STARTED) ; fidélité 159/159 prouvée à la migration (11/68/43/37 identiques) ; 65 codeRefs disparus désormais VISIBLES (missingCodeRefs par item) ; drift-check câblé dans validate-registries + 2 preuves négatives rejouées (statut édité à la main → DRIFT ; PARTIAL sans raison → génération refusée). PRÊT À RE-SOUMETTRE après merge."
+    evidenceId: docs/deploy-evidence/2026-07-22-implementation-status-generator/
+    proof: "REFUS « aucun générateur dans scripts/CI » PÉRIMÉ, ancré rejouable. verify-generator.mjs asserte (exit 1 sinon) : (1) scripts/parity/generate-implementation-status.mjs existe (sha256 dans generator-anchor.json) ; (2) il est invoqué dans .github/workflows/parity-registries.yml (lignes 60 et 134) devant validate-registries ; (3) recalcul == IMPLEMENTATION_STATUS.yaml committé (no drift). Statuts DÉRIVÉS de IMPLEMENTATION_FACTS.yaml par règles §23 (PROVEN=evidence sur disque ; CODED=mergedToMain+codeRefs ; PARTIAL exige raison). Garde anti-dérive validate-registries câblée en CI."
     dependances: []
-    conditionDeCloture: "Corriger le claim/la preuve : aucun générateur d'IMPLEMENTATION_STATUS dans scripts/CI ; puis re-soumission au relecteur"
-    nextAction: "Revue"
+    conditionDeCloture: "Re-signature : générateur présent + câblé CI + no-drift prouvés (rejouable)"
+    nextAction: "Re-soumettre au relecteur (PROVEN_REVIEW_PENDING)"
     targetDate: "2026-07-20"
   - p0Id: P0-EX-03
     title: "Reclasser la persistance du layout en UNKNOWN Replit + exigence E-Code"

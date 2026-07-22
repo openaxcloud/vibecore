@@ -41,7 +41,9 @@ paths = [
   # shapes only, so a real credential added in a .mjs/.json/.md here is still caught.
   '''(^|/)docs/deploy-evidence/.*\.har$''',
   '''(^|/)docs/deploy-evidence/.*-dom\.html$''',
-  '''(^|/)docs/deploy-evidence/.*/gcp-resource-manager-limits\.html$''',
+  # Archived third-party doc pages captured under *-anchor/ evidence dirs (Google Cloud
+  # docs etc.) — any "key" is a vendor documentation example, never our secret.
+  '''(^|/)docs/deploy-evidence/[0-9-]+-[a-z-]*anchor/[^/]*\.html$''',
 ]
 
 # Common non-secret placeholder / synthetic-fixture shapes (templates, docs,

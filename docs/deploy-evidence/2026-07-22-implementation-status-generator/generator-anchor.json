@@ -1,0 +1,15 @@
+{
+  "p0": "P0-EX-02",
+  "generator": "scripts/parity/generate-implementation-status.mjs",
+  "generatorSha256": "5cd0161b2e848dd71a15e15656765e0437cba8b8f3e481659522c3c729790239",
+  "output": "docs/parity/IMPLEMENTATION_STATUS.yaml",
+  "outputSha256": "039417d6e64b76e3df2e1abd5b14cf25e56910a8c547aae18a91ccc2511fafa0",
+  "outputLines": 2363,
+  "ciWorkflow": ".github/workflows/parity-registries.yml",
+  "ciInvocationLines": [
+    60,
+    134
+  ],
+  "driftGuard": "validate-registries.mjs (fails on drift)",
+  "claim": "IMPLEMENTATION_STATUS.yaml est COMPUTED par un générateur présent dans scripts/ et exécuté en CI avant validate-registries ; recalcul == committé (no drift)."
+}

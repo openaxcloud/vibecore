@@ -1,0 +1,59 @@
+{
+  "p0": "P0-A2-05",
+  "file": "docs/parity/APPROVAL_STATUS.json",
+  "fileSha256": "a85cc085eccfb367bad5c7b87207aa1224bca4fff791be5adb502e4048799613",
+  "ladder": [
+    {
+      "name": "documentReconciled",
+      "passed": true
+    },
+    {
+      "name": "sourceBaselineReady",
+      "passed": true
+    },
+    {
+      "name": "registryUniverseReady",
+      "passed": true
+    },
+    {
+      "name": "contractsPresent",
+      "passed": true
+    },
+    {
+      "name": "contractsValidated",
+      "passed": false
+    },
+    {
+      "name": "implementationReady",
+      "passed": false
+    },
+    {
+      "name": "verticalBackendReady",
+      "passed": true
+    },
+    {
+      "name": "verticalUserJourneyReady",
+      "passed": false
+    },
+    {
+      "name": "betaReady",
+      "passed": false
+    },
+    {
+      "name": "publicLaunchReady",
+      "passed": false
+    },
+    {
+      "name": "parityBaselineReady",
+      "passed": false
+    }
+  ],
+  "firstFailingLevel": "contractsValidated",
+  "highestPassedLevel": "contractsPresent",
+  "highestPassedLevelIsContiguousPrefix": true,
+  "refusedInconsistencyPresent": false,
+  "subSignalsAbovePrefix": [
+    "verticalBackendReady"
+  ],
+  "claim": "highestPassedLevel == plus haut niveau du PRÉFIXE contigu passé ; l'implication registryUniverseReady ⇒ sourceBaselineReady tient ; les niveaux passés au-dessus du préfixe (verticalBackendReady…) sont des sous-signaux indépendants documentés, PAS des trous. Recalculé par generate-approval-status.mjs (COMPUTED, garde anti-dérive validate-registries)."
+}
