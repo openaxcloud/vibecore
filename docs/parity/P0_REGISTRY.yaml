@@ -543,12 +543,14 @@ p0s:
     reviewCommit: "57febeab"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: UNKNOWN
-    evidenceId: docs/parity/baseline/sources/2026-07-20-gke-workload-identity.html
-    proof: "§4.4 REMPLACÉ, ancré GCP-13 (citation exacte « In GKE, Google Cloud manages the workload identity pool and provider for you and doesn't require an external identity provider ») : 3 chemins — GKE→WIF for GKE (recommandé, aucun IdP externe) ; hors GCP→IAM WIF externe ; Cloud Run→service identity + impersonation courte. Zéro clé persistante partout."
+    resolutionBranch: "feat/wif-three-paths-replayable"
+    resolutionStatus: "PROVEN_REVIEW_PENDING"
+    evidenceId: docs/deploy-evidence/2026-07-21-wif-three-paths/
+    proof: "3 CHEMINS WORKLOAD IDENTITY PROUVÉS LIVE sur GCP, ZÉRO CLÉ, de bout en bout REJOUABLE (correction du refus « non rejouable », REPONSE_EXPERT_PR40_20260722 §D1). repro.sh provisionne un projet de test dédié (jamais la prod) sous folder test, puis CONFIGURE ET JOUE réellement les 3 chemins avec assertions strictes, puis teardown complet (~0$). (1) GKE WIF : cluster de test zonal + KSA liée à la GSA autorisée → pod lit le secret via token metadata (READ_HTTP=200 + contenu attendu) ; KSA NON liée → pod négatif RÉEL joué et archivé (token/impersonation refusé ou identité ≠ GSA autorisée). (2) WIF externe GitHub OIDC : pool+provider (condition assertion.repository=='openaxcloud/vibecore') + grants workloadIdentityUser/serviceAccountTokenCreator ; workflow .github/workflows/wif-proof.yml PARAMÉTRÉ par inputs workflow_dispatch (project/number/bucket/SAs/préfixe) → run GitHub Actions réel : autorisé exige READ_HTTP=200 + contenu (échec sur 403/404), négatif = impersonation SA non autorisée DENIED. (3) Cloud Run service identity : token via metadata (keyUsed=false), Dockerfile corrigé (COPY cloudrun-main.py main.py) ; autorisé read_status=200 + contenu attendu ou fail, négatif SA sans droit = 403. Preuves suivies dans git (exception .gitignore !docs/deploy-evidence/**). Aucune clé de service générée nulle part."
     dependances: []
-    conditionDeCloture: "Compléter l'évidence : WIF prouvé GKE seulement, pas les 3 chemins ; puis re-soumission au relecteur"
-    nextAction: "Revue humaine"
-    targetDate: "2026-07-20"
+    conditionDeCloture: "Merge de la branche feat/wif-three-paths-replayable + re-signature humaine du relecteur (repro.sh rejouable de bout en bout, 3 chemins re-prouvés autorisé 200+contenu / négatif réel, teardown joué)"
+    nextAction: "Re-soumettre la PR feat/wif-three-paths-replayable au relecteur ; NE PAS clôturer avant re-signature (PROVEN_REVIEW_PENDING)"
+    targetDate: "2026-08-15"
   - p0Id: P0-A2-10
     title: "Décision Gallery incohérente"
     description: "Reclasser CAPTURE_INCOMPLETE/OPEN"
