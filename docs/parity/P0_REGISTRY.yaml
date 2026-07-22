@@ -381,19 +381,20 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-01"
     priority: 1
     owner: platform
-    status: OPEN
-    remediationTrack: A_TRIER
+    status: PROVEN_REVIEW_PENDING
+    remediationTrack: QUICK
+    resolutionBranch: "feat/gallery-pricing-har"
     refusalReason: "manifeste non signé, provenance/validation par fichier incomplètes, reviewers UNKNOWN"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
     reviewCommit: "57febeab"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: UNKNOWN
-    evidenceId: docs/parity/DOCUMENT_MANIFEST.yaml
-    proof: "DOCUMENT_MANIFEST.yaml GÉNÉRÉ (hash+schemaVersion+repoCommit+reviewer+validation par fichier, drift-check CI). Reviewer humain encore UNKNOWN."
+    evidenceId: docs/deploy-evidence/2026-07-22-manifest-provenance/
+    proof: "PROVENANCE PAR-FICHIER COMPLÈTE + SIGNATURE DE CONTENU prouvées rejouablement. verify-manifest-provenance.mjs asserte (exit 1 sinon) : (1) chaque fichier listé existe et sha256==recalcul (166/166) ; (2) chaque entrée porte les 5 champs de provenance {file,sha256,schemaVersion,repoCommit,reviewer} ; (3) signature de contenu agrégée (racine sha256 des paires triées) recalculable → manifeste tamper-evident (démontré : une édition non régénérée le fait échouer). La dimension reviewer HUMAIN est reportée honnêtement (reviewerCoverage 165 UNKNOWN/1 signé) = exactement ce que PROVEN_REVIEW_PENDING attend ; jamais falsifiée."
     dependances: []
-    conditionDeCloture: "Compléter l'évidence : manifeste non signé, provenance/validation par fichier incomplètes, reviewers UNKNOWN ; puis re-soumission au relecteur"
-    nextAction: "Revue humaine du manifeste"
+    conditionDeCloture: "Re-signature HUMAINE du manifeste (intégrité + provenance complète + signature de contenu déjà prouvées mécaniquement)"
+    nextAction: "Re-soumettre au relecteur pour signature humaine (PROVEN_REVIEW_PENDING)"
     targetDate: "2026-07-20"
   - p0Id: P0-A2-02
     title: "Univers des surfaces incomplet (10 vs 159)"
@@ -420,20 +421,21 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-03"
     priority: 3
     owner: platform
-    status: OPEN
-    remediationTrack: A_TRIER
+    status: PROVEN_REVIEW_PENDING
+    remediationTrack: QUICK
+    resolutionBranch: "feat/gallery-pricing-har"
     refusalReason: "modèle partiel au §5 (ArtifactKind), aucun schéma complet Project→Artifacts"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
     reviewCommit: "57febeab"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: UNKNOWN
-    evidenceId: docs/parity/PLAN_PARITE_REPLIT.md
-    proof: "§3.0 normatif ajouté : Project/Artifact/Component/ProjectRevision/ArtifactRevision/ArtifactType/SharedBackendBinding/ProjectRelease, 7 max / 1 mobile = entitlements configurables, backend+data partagés, publication groupée (publicationMode: GROUPED)."
+    evidenceId: docs/deploy-evidence/2026-07-22-project-artifacts-schema/
+    proof: "SCHÉMA COMPLET Project→Artifacts FORMALISÉ + EXÉCUTABLE (refus « modèle partiel, aucun schéma complet » levé). docs/parity/PROJECT_ARTIFACTS_SCHEMA.json (draft 2020-12) formalise PLAN_PARITE §5 : entités §5.1 (Project/Artifact/GeneratedAsset/Component/Release), taxonomies §5.2 verrouillées (ArtifactKind/GeneratedAssetKind/ComponentKind/DeploymentType), release groupée §5.4, additionalProperties:false. verify-project-artifacts-schema.mjs (ajv 8.17.1) prouve : projet valide ACCEPTÉ ; ArtifactKind inconnu / SERVICE-comme-Artifact (interdit §5.2) / projectId manquant / propriété inconnue / release vide REJETÉS. schema-anchor.json hashe le schéma. Complète la prose §3.0/§5 existante."
     dependances: []
-    conditionDeCloture: "Compléter l'évidence : modèle partiel au §5 (ArtifactKind), aucun schéma complet Project→Artifacts ; puis re-soumission au relecteur"
-    nextAction: "Revue humaine + contrat de domaine schematisé"
-    targetDate: "2026-07-20"
+    conditionDeCloture: "Re-signature : schéma Project→Artifacts complet + exécutable (ajv rejette les contre-exemples), rejouable"
+    nextAction: "Re-soumettre au relecteur (PROVEN_REVIEW_PENDING)"
+    targetDate: "2026-08-15"
   - p0Id: P0-A2-04
     title: "Types de déploiement non contractualisés"
     description: "Ajouter un contrat produit des 4 types"

@@ -1,0 +1,29 @@
+{
+  "p0": "P0-A2-01",
+  "manifest": "docs/parity/DOCUMENT_MANIFEST.yaml",
+  "fileCount": 166,
+  "filesHashVerified": 166,
+  "provenanceFieldsPerFile": [
+    "file",
+    "sha256",
+    "schemaVersion",
+    "repoCommit",
+    "reviewer"
+  ],
+  "provenanceComplete": true,
+  "aggregateContentSignature": "333e0fb45f10f23b4c83a93782dba6660436e79a860f88913a5e411e181f89d6",
+  "generatedFromCommit": "76d3922c35b652395a179e408444cd6a0755d4ef",
+  "validation": {
+    "workflow": "Parity registries",
+    "runId": 29909965011,
+    "runDate": "2026-07-22T09:57:03Z",
+    "runCommit": "76d3922c35b652395a179e408444cd6a0755d4ef",
+    "source": "docs/parity/CI_ATTESTATION.yaml"
+  },
+  "reviewerCoverage": {
+    "UNKNOWN": 165,
+    "OpenAI-Codex": 1
+  },
+  "humanReviewPending": true,
+  "claim": "Manifeste COMPLET et TAMPER-EVIDENT : chaque fichier existe et son sha256 == recalcul ; chaque entrée porte les 5 champs de provenance ; signature agrégée recalculable. La signature HUMAINE (reviewers) reste la dimension en attente de re-revue — reportée honnêtement, jamais falsifiée."
+}

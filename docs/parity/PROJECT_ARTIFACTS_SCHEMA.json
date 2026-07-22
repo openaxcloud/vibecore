@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecode/parity/project-artifacts",
+  "title": "ProjectArtifacts",
+  "description": "Schéma COMPLET du modèle Project → Artifacts (PLAN_PARITE §5, P0-A2-03). Formalise §5.1 entités + §5.2 taxonomie canonique (ArtifactKind/GeneratedAssetKind/ComponentKind/DeploymentType) + §5.4 release groupée. Enums verrouillés, additionalProperties:false, relations Project→Artifacts→Components et Project→Releases→Artifacts.",
+  "x-schemaVersion": 1,
+  "x-p0Id": "P0-A2-03",
+  "type": "object",
+  "required": ["projectId", "artifacts"],
+  "additionalProperties": false,
+  "properties": {
+    "projectId": { "type": "string", "minLength": 1 },
+    "artifacts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/artifact" }
+    },
+    "generatedAssets": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/generatedAsset" }
+    },
+    "components": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/component" }
+    },
+    "releases": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/release" }
+    }
+  },
+  "$defs": {
+    "artifact": {
+      "type": "object",
+      "required": ["artifactId", "kind"],
+      "additionalProperties": false,
+      "properties": {
+        "artifactId": { "type": "string", "minLength": 1 },
+        "kind": {
+          "description": "ArtifactKind §5.2 — SERVICE/JOB/STATIC_SITE_COMPONENT NE sont PAS des ArtifactKind (ce sont des ComponentKind).",
+          "enum": ["WEB_APP", "MOBILE_APP", "DATA_VISUALIZATION", "SLIDE_DECK", "ANIMATION_VIDEO", "DESIGN", "EXPERIENCE_3D"]
+        },
+        "componentIds": { "type": "array", "items": { "type": "string" } },
+        "deploymentType": {
+          "enum": ["AUTOSCALE", "STATIC", "RESERVED_VM", "SCHEDULED"]
+        }
+      }
+    },
+    "generatedAsset": {
+      "type": "object",
+      "required": ["assetId", "kind"],
+      "additionalProperties": false,
+      "properties": {
+        "assetId": { "type": "string", "minLength": 1 },
+        "kind": {
+          "description": "GeneratedAssetKind §5.2 — sortie fichier, distincte d'un Artifact publiable.",
+          "enum": ["DOCUMENT", "SPREADSHEET", "CSV", "PDF", "MARKDOWN", "IMAGE", "PRESENTATION_FILE", "OTHER_FILE"]
+        }
+      }
+    },
+    "component": {
+      "type": "object",
+      "required": ["componentId", "kind"],
+      "additionalProperties": false,
+      "properties": {
+        "componentId": { "type": "string", "minLength": 1 },
+        "kind": {
+          "enum": ["WEB_FRONTEND", "API", "SERVICE", "WORKER", "JOB", "SHARED_PACKAGE", "STATIC_SITE_COMPONENT"]
+        }
+      }
+    },
+    "release": {
+      "description": "Release groupée §5.4 : publie un ensemble d'Artifacts du projet.",
+      "type": "object",
+      "required": ["releaseId", "artifactIds"],
+      "additionalProperties": false,
+      "properties": {
+        "releaseId": { "type": "string", "minLength": 1 },
+        "artifactIds": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+      }
+    }
+  }
+}

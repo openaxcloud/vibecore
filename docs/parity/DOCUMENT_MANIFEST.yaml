@@ -2,7 +2,7 @@
 # (P0-A2-01 / P0-LS-16). Ne jamais éditer à la main — drift-check en CI. Le
 # champ validation reflète le dernier run du validateur sur l'arbre.
 schemaVersion: 1
-fileCount: 165
+fileCount: 166
 generatedAt: "2026-07-22T09:57:03Z"
 generatedFromCommit: 76d3922c35b652395a179e408444cd6a0755d4ef
 mergedCommit: 76d3922c35b652395a179e408444cd6a0755d4ef
@@ -29,7 +29,7 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: APPROVAL_STATUS.json
-    sha256: "689f8bd043482ed83f35ee8047824bc5183885d16091b368e08f694ce02fd425"
+    sha256: "f857acab0d740c4829acc33c0bbf8b83c13c1ff69bba6ff607d24c1740613943"
     schemaVersion: null
     repoCommit: null
     reviewer: UNKNOWN
@@ -94,7 +94,7 @@ documents:
     repoCommit: 1692f981
     reviewer: UNKNOWN
   - file: COUNTER_RECONCILIATION_20260720.md
-    sha256: "457a8b49cd1e81e0afec0b7403fbe7989319b7ce8bf18985b43df31624e4e40d"
+    sha256: "8d1b249812e149cd96a2687487cbeabeeab4d5d9554922c83dc34350c36334ee"
     schemaVersion: 1
     repoCommit: null
     reviewer: UNKNOWN
@@ -224,7 +224,7 @@ documents:
     repoCommit: d1063912
     reviewer: UNKNOWN
   - file: P0_REGISTRY.yaml
-    sha256: "eb3c10ef9104a662c0085ef87d7ffb188ce99f7a1401b6efcf5428e0bde199e1"
+    sha256: "ed54d5a5db62b21e35088d55511417fbe7c8d45066d87a3ba7f0986543ae8d15"
     schemaVersion: 1
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN
@@ -234,7 +234,7 @@ documents:
     repoCommit: af9e4e83
     reviewer: UNKNOWN
   - file: PARITY_STATUS.md
-    sha256: "14ddd56dbc1710a652cc3bf486f7545cb8f975b095a7cc92abaf558332175958"
+    sha256: "8fa0f27cf0dc868bba0a57b093143ea9405ecde39808f39b4f14cb9ba847cf68"
     schemaVersion: 2
     repoCommit: 76d3922c
     reviewer: UNKNOWN
@@ -257,6 +257,11 @@ documents:
     sha256: "06f61edeb24fd4fe74a08f796d04a5735d9acf453b47a18910949e8369dc0a96"
     schemaVersion: 1
     repoCommit: 9eab2990
+    reviewer: UNKNOWN
+  - file: PROJECT_ARTIFACTS_SCHEMA.json
+    sha256: "aaecd4d933c2f166880b1da874129bf903f93307d29193257707c22d11dff302"
+    schemaVersion: null
+    repoCommit: null
     reviewer: UNKNOWN
   - file: PROJECT_FACTORY_CONTRACT.md
     sha256: "c21dbf977d4d90d849c0094dcfa59a0887101faba3bbd5a451e973b910be238a"

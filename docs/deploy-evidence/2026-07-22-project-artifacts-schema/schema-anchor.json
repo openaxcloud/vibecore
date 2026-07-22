@@ -1,0 +1,56 @@
+{
+  "p0": "P0-A2-03",
+  "schemaFile": "docs/parity/PROJECT_ARTIFACTS_SCHEMA.json",
+  "schemaSha256": "aaecd4d933c2f166880b1da874129bf903f93307d29193257707c22d11dff302",
+  "engine": "ajv 8.17.1",
+  "formalizes": "PLAN_PARITE_REPLIT.md §5 (Project→Artifacts, taxonomie §5.2, release groupée §5.4)",
+  "cases": [
+    {
+      "case": "projet valide",
+      "valid": true,
+      "expected": true,
+      "errorKeywords": []
+    },
+    {
+      "case": "ArtifactKind inconnu (BLOCKCHAIN_APP)",
+      "valid": false,
+      "expected": false,
+      "errorKeywords": [
+        "enum"
+      ]
+    },
+    {
+      "case": "SERVICE traité comme Artifact (interdit §5.2)",
+      "valid": false,
+      "expected": false,
+      "errorKeywords": [
+        "enum"
+      ]
+    },
+    {
+      "case": "projectId manquant (required)",
+      "valid": false,
+      "expected": false,
+      "errorKeywords": [
+        "required"
+      ]
+    },
+    {
+      "case": "propriété inconnue (additionalProperties:false)",
+      "valid": false,
+      "expected": false,
+      "errorKeywords": [
+        "additionalProperties"
+      ]
+    },
+    {
+      "case": "release vide (minItems:1)",
+      "valid": false,
+      "expected": false,
+      "errorKeywords": [
+        "minItems"
+      ]
+    }
+  ],
+  "claim": "Modèle Project→Artifacts formalisé en schéma COMPLET et EXÉCUTABLE : enums verrouillés (ArtifactKind/GeneratedAssetKind/ComponentKind/DeploymentType), additionalProperties:false, relations. ajv accepte un projet valide et rejette les contre-exemples (kind inconnu, SERVICE-comme-Artifact, required, additionalProperties, release vide)."
+}
