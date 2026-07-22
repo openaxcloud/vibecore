@@ -285,7 +285,7 @@ export class LedgerStore {
     const accounts = await this.reservationAccounts(input.organizationId, currency);
 
     try {
-      const reservation = await this.db.$transaction(async (trx) => {
+      const outcome = await this.db.$transaction(async (trx) => {
         /*
          * Hard limit (I-LED-4), SERIALIZED (expert defect #28-2): take a row
          * lock on the org's `reserved` account, THEN read its balance inside
@@ -296,6 +296,29 @@ export class LedgerStore {
          */
         if (input.hardLimitMinor !== undefined) {
           await trx.$queryRaw`SELECT id FROM "LedgerAccount" WHERE id = ${accounts.reservedAccountId} FOR UPDATE`;
+
+          /*
+           * EXPERT #39-3: re-check the idempotency key NOW THAT WE HOLD THE
+           * LOCK, BEFORE any cap arithmetic. Two concurrent retries of the
+           * SAME key can both miss the fast-path pre-check; the loser then
+           * blocks on the lock until the winner's transaction commits — at
+           * which point its hold EXISTS and would be counted as brand-new
+           * consumption, wrongly refusing an idempotent replay with
+           * LEDGER_HARD_LIMIT. Under the lock the winner's row is visible:
+           * replay it instead of re-counting it.
+           */
+          const concurrent = await trx.ledgerReservation.findUnique({
+            where: {
+              organizationId_idempotencyKey: {
+                organizationId: input.organizationId,
+                idempotencyKey: input.idempotencyKey,
+              },
+            },
+          });
+
+          if (concurrent) {
+            return { row: concurrent, created: false };
+          }
 
           const rows = await trx.ledgerEntry.findMany({
             where: { accountId: accounts.reservedAccountId, currency },
@@ -342,10 +365,10 @@ export class LedgerStore {
 
         await trx.ledgerReservation.update({ where: { id: created.id }, data: { reserveTxId: posted.id } });
 
-        return created;
+        return { row: created, created: true };
       });
 
-      return { id: reservation.id, status: 'ACTIVE', created: true };
+      return { id: outcome.row.id, status: outcome.created ? 'ACTIVE' : outcome.row.status, created: outcome.created };
     } catch (error) {
       /*
        * Lost the (org, idempotencyKey) create race — the whole trx rolled
@@ -550,6 +573,81 @@ export class LedgerStore {
     });
 
     return { released: won };
+  }
+
+  /**
+   * ORPHAN RECOVERY (expert #39-1): revive a DEAD, NEVER-ATTACHED reservation
+   * so the same idempotency key can complete after a crash between reserve()
+   * and job creation/attach — instead of replying IMPORT_CREATE_IN_PROGRESS
+   * forever. Two money-distinct cases, each atomic:
+   *
+   *  - stale ACTIVE (past `nowIso`, unattached): the hold entries are still
+   *    posted — only the expiry is extended, no new entries;
+   *  - EXPIRED / RELEASED (the release already returned the hold): CAS back
+   *    to ACTIVE and RE-POST the reserve entries in the same transaction.
+   *
+   * A reservation that is attached to a job, committed, or still live is
+   * NEVER revived — reviving a live hold would let a concurrent creator fork
+   * a second job, the exact defect #27-2 fixed.
+   */
+  async reviveReservation(input: { reservationId: string; expiresAt: string; nowIso: string }): Promise<boolean> {
+    const nextExpiry = new Date(input.expiresAt);
+
+    // Case 1 — stale-ACTIVE unattached: hold intact, extend the expiry only.
+    const extended = await this.db.ledgerReservation.updateMany({
+      where: {
+        id: input.reservationId,
+        status: 'ACTIVE',
+        importJobId: null,
+        expiresAt: { lt: new Date(input.nowIso) },
+      },
+      data: { expiresAt: nextExpiry },
+    });
+
+    if (extended.count === 1) {
+      return true;
+    }
+
+    const reservation = await this.db.ledgerReservation.findUnique({ where: { id: input.reservationId } });
+
+    if (
+      !reservation ||
+      reservation.importJobId !== null ||
+      (reservation.status !== 'EXPIRED' && reservation.status !== 'RELEASED')
+    ) {
+      return false;
+    }
+
+    const accounts = await this.reservationAccounts(reservation.organizationId, reservation.currency);
+
+    // Case 2 — hold already returned: one trx re-arms the row AND re-posts it.
+    return this.db.$transaction(async (trx) => {
+      const cas = await trx.ledgerReservation.updateMany({
+        where: { id: reservation.id, status: { in: ['EXPIRED', 'RELEASED'] }, importJobId: null },
+        data: { status: 'ACTIVE', expiresAt: nextExpiry, releasedAt: null, releaseReason: null },
+      });
+
+      if (cas.count !== 1) {
+        return false;
+      }
+
+      const posted = await this.postEntriesInTrx(trx, {
+        organizationId: reservation.organizationId,
+        reason: 'reservation.revive',
+
+        /*
+         * Unique per revival: only the CAS winner reaches this post, and it
+         * alone sets this exact expiry.
+         */
+        idempotencyKey: `reserve:${reservation.id}:${nextExpiry.getTime()}`,
+        entries: reserveEntries(accounts, reservation.maxAmountMinor, reservation.currency),
+        metadata: { reservationId: reservation.id, revived: true },
+      });
+
+      await trx.ledgerReservation.update({ where: { id: reservation.id }, data: { reserveTxId: posted.id } });
+
+      return true;
+    });
   }
 
   /** Sweep ACTIVE reservations past expiry to EXPIRED + release their hold. */

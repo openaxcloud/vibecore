@@ -107,30 +107,12 @@ import {
   type AgentMemoryScope,
   type AgentMemoryType,
 } from './agent-memory.js';
-import { createWorkspaceBuildAgent, type WsLike } from './deploy-workspace-agent.js';
 import {
-  detectPodPackageManager,
-  runWorkspaceStaticBuild,
-  type WorkspaceStaticBuildResult,
-} from './deploy-workspace-build.js';
-import {
-  buildImageContextFromRevision,
-  type AppBuildRunPayload,
-  type RevisionImageContextResult,
-} from './server-deploy-revision.js';
-import {
-  buildServerDeployEnv,
-  snapshotWorkspaceAppSource,
-  snapshotWorkspaceImageContext,
-} from './server-deploy-transfer.js';
-import {
-  buildServerBootScript,
-  detectDeployTarget,
-  detectPackageManagerInstall,
-  detectServerRuntime,
-  isDetectionError,
-  type ServerRuntimePlan,
-} from './server-runtime-detect.js';
+  agentRoutingCardSchema,
+  getActiveAgentRoutingCard,
+  resetAgentRoutingCache,
+  seedAgentRoutingCard,
+} from './agent-routing-service.js';
 import { runAppImageBuild } from './app-image-build.js';
 import { generateAuthJwtSecret, generateAuthScaffoldFiles, isAuthScaffoldEnabled } from './auth-scaffold.js';
 import { shouldRetirePresenceRow } from './collaboration-presence-cleanup.js';
@@ -149,34 +131,6 @@ import {
   purgeDueAtMs,
 } from './data-deletion.js';
 import { clusterName, resolveDatabaseTier, resolveDefaultDatabaseProvisioner } from './database-provisioner.js';
-import {
-  IMPORT_HUB_PROVIDERS,
-  ImportInvariantError,
-  applyConsentedRedactions,
-  assertImportTransition,
-  assertScanBranch,
-  scanBranchTarget,
-  scanStagedFilesForSecrets,
-  unresolvedFindings,
-  type ConsentDecision,
-  type ImportFile,
-  type ImportState,
-} from './import-pipeline.js';
-import { ImportCreditLedger, estimateImportReservation, type ImportBillingLedger } from './import-billing.js';
-import { DurableImportCreditLedger } from './import-billing-durable.js';
-import {
-  REMIX_CONSENT_VERSION,
-  RemixInvariantError,
-  assertRemixTransition,
-  detachCredentials,
-  maskPiiInFiles,
-  scanClonedFilesForSecrets,
-  scanFilesForPii,
-  scrubSecretsFromFiles,
-  type RemixLicenseSnapshot,
-  type RemixState,
-  type RemixStoragePolicy,
-} from './remix-pipeline.js';
 import {
   databaseRollbackEntitlement,
   isDatabaseRollbackEnabled,
@@ -280,12 +234,27 @@ import {
   type StoredArchive,
 } from './project-storage.js';
 import { aggregateProviderMetrics } from './provider-metrics.js';
+import { createWorkspaceBuildAgent, type WsLike } from './deploy-workspace-agent.js';
 import {
-  agentRoutingCardSchema,
-  getActiveAgentRoutingCard,
-  resetAgentRoutingCache,
-  seedAgentRoutingCard,
-} from './agent-routing-service.js';
+  detectPodPackageManager,
+  runWorkspaceStaticBuild,
+  type WorkspaceStaticBuildResult,
+} from './deploy-workspace-build.js';
+import { DurableImportCreditLedger } from './import-billing-durable.js';
+import { ImportCreditLedger, estimateImportReservation, type ImportBillingLedger } from './import-billing.js';
+import {
+  IMPORT_HUB_PROVIDERS,
+  ImportInvariantError,
+  applyConsentedRedactions,
+  assertImportTransition,
+  assertScanBranch,
+  scanBranchTarget,
+  scanStagedFilesForSecrets,
+  unresolvedFindings,
+  type ConsentDecision,
+  type ImportFile,
+  type ImportState,
+} from './import-pipeline.js';
 import {
   MachineSizeError,
   getActiveRateCard,
@@ -294,6 +263,19 @@ import {
   resolveDeployMachineSize,
 } from './rate-card-service.js';
 import { resolveRollbackImage, resolveRollbackSecrets, type SecretPolicy } from './release-rollback.js';
+import {
+  REMIX_CONSENT_VERSION,
+  RemixInvariantError,
+  assertRemixTransition,
+  detachCredentials,
+  maskPiiInFiles,
+  scanClonedFilesForSecrets,
+  scanFilesForPii,
+  scrubSecretsFromFiles,
+  type RemixLicenseSnapshot,
+  type RemixState,
+  type RemixStoragePolicy,
+} from './remix-pipeline.js';
 import { computeWorkspaceRestorePlan, isPortReadyFromProbe, type PortProbeResult } from './runtime-readiness.js';
 import { describeCron } from './scheduled-tasks-cron.js';
 import {
@@ -312,6 +294,24 @@ import {
   type SandboxExec,
   type WorkflowResolver,
 } from './scheduled-tasks.js';
+import {
+  buildImageContextFromRevision,
+  type AppBuildRunPayload,
+  type RevisionImageContextResult,
+} from './server-deploy-revision.js';
+import {
+  buildServerDeployEnv,
+  snapshotWorkspaceAppSource,
+  snapshotWorkspaceImageContext,
+} from './server-deploy-transfer.js';
+import {
+  buildServerBootScript,
+  detectDeployTarget,
+  detectPackageManagerInstall,
+  detectServerRuntime,
+  isDetectionError,
+  type ServerRuntimePlan,
+} from './server-runtime-detect.js';
 import { isKnownSkill, resolveProjectSkills, resolveSkill } from './skills-catalog.js';
 import { fetchSkillRepoInstructions } from './skills-github-fetch.js';
 import { SKILL_REPO_CATALOG, findRepoEntry, normalizeOwnerRepo } from './skills-repo-catalog.js';
@@ -386,6 +386,13 @@ export interface ApiAppOptions {
 
   /** Override the per-project object storage backend (tests inject a fake). */
   objectStorage?: ObjectStorage;
+
+  /**
+   * Override the import safety-billing ledger. Defaults to the durable
+   * Postgres-backed ledger when the store is Prisma-backed, else the
+   * in-memory backend; tests inject failing/instrumented ones.
+   */
+  importCreditLedger?: ImportBillingLedger;
 
   /** Injectable for tests; defaults to an env-configured (inert-unless-set) capturer. */
   thumbnailCapturer?: ThumbnailCapturer;
@@ -7898,7 +7905,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * the DB-less test store only.
    */
   const importLedger: ImportBillingLedger =
-    store instanceof PrismaApiStore ? new DurableImportCreditLedger(store.prisma) : new ImportCreditLedger();
+    options.importCreditLedger ??
+    (store instanceof PrismaApiStore ? new DurableImportCreditLedger(store.prisma) : new ImportCreditLedger());
 
   const app = Fastify({
     bodyLimit: Number(process.env.API_BODY_LIMIT_BYTES ?? 25 * 1024 * 1024),
@@ -18284,9 +18292,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply.code(201).send({ project });
   });
+
   const importCreateSchema = z.object({
     provider: z.enum(IMPORT_HUB_PROVIDERS as [string, ...string[]]),
     sourceRef: z.string().optional(),
+
     /*
      * Mandatory idempotency key (safety billing): a retried create with the same
      * key replays the same import and never double-reserves credits.
@@ -18328,12 +18338,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     for (const id of expired) {
       importStaging.delete(id);
+
       // Timeout is a non-committed exit → release, zero debit.
       await importLedger.compensateByJob(id, 'timeout').catch(() => undefined);
     }
 
-    // Also sweep reservations never attached to a job (crash between reserve
-    // and job creation) — durable holds must not linger past their TTL.
+    /*
+     * Also sweep reservations never attached to a job (crash between reserve
+     * and job creation) — durable holds must not linger past their TTL.
+     */
     await importLedger.reapExpired(nowIso).catch((): string[] => []);
 
     return expired;
@@ -18375,6 +18388,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * two organizations using the same key hold two independent reservations.
      */
     const stagedFiles: ImportFile[] = body.files ?? [];
+
     const held = await importLedger.reserve({
       organizationId: orgId,
       key: body.idempotencyKey,
@@ -18420,6 +18434,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     // Staging expires (idle) — the sweeper / timeout path uses this.
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
     const job = await store.createImportJob({
       organizationId: orgId,
       actorUserId: request.currentUser?.id,
@@ -18429,6 +18444,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     let state: ImportState = 'RECEIVED';
+
     const advance = async (to: ImportState, patch: Record<string, unknown> = {}) => {
       assertImportTransition(state, to);
       state = to;
@@ -18446,11 +18462,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       // SCANNING — read-only detection; content is never mutated here.
       await advance('SCANNING');
+
       const findings = scanStagedFilesForSecrets(stagedFiles);
 
       // Log counts + kinds ONLY — never a raw value (I-IMP redacted logs).
       request.log?.info?.(
-        { event: 'import.scan', importJobId: job.id, findingCount: findings.length, kinds: findings.map((f) => f.kind) },
+        {
+          event: 'import.scan',
+          importJobId: job.id,
+          findingCount: findings.length,
+          kinds: findings.map((f) => f.kind),
+        },
         'import scan complete',
       );
 
@@ -18515,15 +18537,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireOrg(request, store, orgId, 'projects:write');
     await requireOrganizationNotSuspended(store, orgId);
 
-    const importJobId = z.string().min(1).parse((request.params as { importJobId: string }).importJobId);
+    const importJobId = z
+      .string()
+      .min(1)
+      .parse((request.params as { importJobId: string }).importJobId);
+
     const body = parse(importConsentSchema, request.body);
 
     const job = await store.getImportJob(importJobId);
+
     if (!job || job.organizationId !== orgId) {
       throw Object.assign(new Error('Import job not found'), { statusCode: 404, code: 'IMPORT_JOB_NOT_FOUND' });
     }
 
     const staged = importStaging.get(importJobId);
+
     if (!staged) {
       throw Object.assign(new Error('Import staging expired or already committed'), {
         statusCode: 409,
@@ -18536,6 +18564,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     // I-IMP-1: block while any finding is unresolved.
     const blocked = unresolvedFindings(findings, consent);
+
     if (blocked.length > 0) {
       return reply.status(409).send({
         error: 'Import blocked: resolve every secret finding (keep or redact) before committing.',
@@ -18546,6 +18575,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     let state = job.state as ImportState;
+
     const advance = async (to: ImportState, patch: Record<string, unknown> = {}) => {
       assertImportTransition(state, to);
       state = to;
@@ -18590,7 +18620,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       await advance('COMMITTING', { consent, redactedCount: redacted.length });
 
       // Atomic target write — the first and only touch of a target project.
-      const name = job.sourceRef?.split('/').pop()?.replace(/\.git$/, '') || `Imported ${job.provider}`;
+      const name =
+        job.sourceRef
+          ?.split('/')
+          .pop()
+          ?.replace(/\.git$/, '') || `Imported ${job.provider}`;
+
       /*
        * Record the origin in the fixed sourceType enum where a member exists
        * (github/gitlab/bitbucket/zip); other hub tiles fall back to 'blank'
@@ -18618,15 +18653,34 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       await persistProjectFileManifest(store, project.id, written, request.currentUser!.id);
       await recordUsage(request, orgId, 'projects.count');
 
+      /*
+       * SAFETY BILLING — settle BEFORE the job is stamped COMMITTED (expert
+       * #39-2). The debit is legal here: the billable step (target project +
+       * files) has just succeeded. Settling first means a settlement failure
+       * can still COMPENSATE THE TARGET — the created project is hard-deleted
+       * (files become unreachable with the row; `projects.count` is a live
+       * row count, so quota headroom is restored) — a usable-but-unbilled
+       * target can never survive. Crash between settle and the COMMITTED
+       * stamp: target delivered AND billed, the job is later reaped EXPIRED —
+       * label off, money safe (never delivered-unbilled).
+       */
+      let settled;
+
+      try {
+        settled = await importLedger.settleByJob(
+          orgId,
+          importJobId,
+          true,
+          estimateImportReservation(finalFiles.length),
+        );
+      } catch (billingError) {
+        // No debit ⇒ no target: explicit compensation of the billable step.
+        await store.hardDeleteProject(project.id).catch(() => undefined);
+        throw billingError; // outer catch → ROLLING_BACK + release of the hold
+      }
+
       importStaging.delete(importJobId); // staging disposed after successful commit
       await advance('COMMITTED', { targetProjectId: project.id });
-
-      /*
-       * SAFETY BILLING: settle the reservation — the ONLY place a debit is
-       * recorded, and only now that the import actually COMMITTED. `settleByJob`
-       * enforces "committed === true" and the no-debit-without-commit invariant.
-       */
-      const settled = await importLedger.settleByJob(orgId, importJobId, true, estimateImportReservation(finalFiles.length));
       request.log?.info?.(
         { event: 'import.billing.settle', importJobId, debitedCredits: settled.debitedCredits },
         'import reservation settled',
@@ -18665,23 +18719,34 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/orgs/:orgId/imports/:importJobId/cancel', async (request, reply) => {
     const { orgId } = parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'projects:write');
-    const importJobId = z.string().min(1).parse((request.params as { importJobId: string }).importJobId);
+
+    const importJobId = z
+      .string()
+      .min(1)
+      .parse((request.params as { importJobId: string }).importJobId);
 
     const job = await store.getImportJob(importJobId);
+
     if (!job || job.organizationId !== orgId) {
       throw Object.assign(new Error('Import job not found'), { statusCode: 404, code: 'IMPORT_JOB_NOT_FOUND' });
     }
 
     await cleanupImport(importJobId, 'CANCELLED');
+
     return reply.send({ import: { importJobId, state: 'CANCELLED' } });
   });
 
   app.get('/orgs/:orgId/imports/:importJobId', async (request) => {
     const { orgId } = parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'projects:read');
-    const importJobId = z.string().min(1).parse((request.params as { importJobId: string }).importJobId);
+
+    const importJobId = z
+      .string()
+      .min(1)
+      .parse((request.params as { importJobId: string }).importJobId);
 
     const job = await store.getImportJob(importJobId);
+
     if (!job || job.organizationId !== orgId) {
       throw Object.assign(new Error('Import job not found'), { statusCode: 404, code: 'IMPORT_JOB_NOT_FOUND' });
     }
@@ -21516,6 +21581,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { project: transferred };
   });
+
   const remixSchema = z.object({
     name: z.string().min(1),
     slug: z.string().min(2).optional(),
@@ -21545,6 +21611,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     sourceFiles: ProjectFile[];
     sourceSnapshotId?: string;
     sourceListingId?: string;
+
     /*
      * License + consent (I-RMX-3, P0-V3-05). A gallery remix passes the
      * VERSIONED license captured from the listing plus the consent version the
@@ -21553,8 +21620,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     licenseSnapshot?: RemixLicenseSnapshot;
     consentVersion?: string;
+
     /** Mask PII in the source files before cloning (cross-user remix only). */
     sanitizePii?: boolean;
+
     /** Author's explicit versioned PII consent — skips masking, recorded. */
     piiConsentVersion?: string;
   }): Promise<
@@ -21583,6 +21652,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     let state: RemixState = 'SNAPSHOT_PINNED';
+
     const advance = async (to: RemixState, patch: Record<string, unknown> = {}) => {
       assertRemixTransition(state, to);
       state = to;
@@ -21590,8 +21660,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     };
 
     try {
-      // (1) SNAPSHOT_PINNED — the caller already resolved & pinned the source
-      // file set (live or a snapshot archive); nothing to read here.
+      /*
+       * (1) SNAPSHOT_PINNED — the caller already resolved & pinned the source
+       * file set (live or a snapshot archive); nothing to read here.
+       */
       const sourceFiles = params.sourceFiles;
 
       // (2) CREDENTIALS_DETACHED — references (keys) only, recorded BEFORE any clone.
@@ -21605,8 +21677,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * any materialized copy out of the clone files. Never persisted onto the clone.
        */
       const materializedValues: Array<{ key: string; value: string }> = [];
+
       for (const ref of detached.secretKeys) {
         const full = await store.getProjectSecret(sourceProject.id, ref);
+
         if (full?.valueEncrypted) {
           try {
             materializedValues.push({ key: ref, value: decryptJson<{ value: string }>(full.valueEncrypted).value });
@@ -21615,6 +21689,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           }
         }
       }
+
       for (const envVar of sourceEnvVars) {
         if (typeof envVar.value === 'string' && envVar.value.length > 0) {
           materializedValues.push({ key: envVar.key, value: envVar.value });
@@ -21636,9 +21711,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           content: file.content,
           encoding: file.encoding,
         }));
+
         const { files: maskedFiles, masked } = maskPiiInFiles(remixFiles);
 
         const residual = scanFilesForPii(maskedFiles);
+
         if (residual.length > 0) {
           throw new RemixInvariantError(
             `SOURCE_SANITIZED left ${residual.length} PII span(s) unmasked`,
@@ -21650,8 +21727,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         piiMaskedCount = masked.length;
         await advance('SOURCE_SANITIZED', { piiFindings: masked, piiMaskedCount });
       } else {
-        // Owner self-remix, or author consent on file — nothing masked, and the
-        // job says WHY (consent version or absence of a cross-user flow).
+        /*
+         * Owner self-remix, or author consent on file — nothing masked, and the
+         * job says WHY (consent version or absence of a cross-user flow).
+         */
         await advance('SOURCE_SANITIZED', { piiFindings: [], piiMaskedCount: 0 });
       }
 
@@ -21697,6 +21776,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         });
         return { ok: false, findings, remixJobId: job.id };
       }
+
       await advance('SCANNING', { scanFindings: [] });
 
       // (8) INDEXING — honest completion marker (project code index does not exist yet).
@@ -21725,7 +21805,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         },
       });
 
-      return { ok: true, duplicate, jobId: job.id, state, detached, scrubbedValueLines: removed.length, piiMaskedCount };
+      return {
+        ok: true,
+        duplicate,
+        jobId: job.id,
+        state,
+        detached,
+        scrubbedValueLines: removed.length,
+        piiMaskedCount,
+      };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       await store.updateRemixJob(job.id, { state: 'FAILED', error: message }).catch(() => undefined);
@@ -21755,9 +21843,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const storagePolicy = body.storagePolicy as RemixStoragePolicy;
 
     try {
-      // Plain project-to-project remix: pin the LIVE source file set, clone into
-      // the SAME org. (A gallery remix pins a snapshot and targets the remixer's
-      // org — see POST /gallery/:slug/remix.)
+      /*
+       * Plain project-to-project remix: pin the LIVE source file set, clone into
+       * the SAME org. (A gallery remix pins a snapshot and targets the remixer's
+       * org — see POST /gallery/:slug/remix.)
+       */
       const sourceFiles = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
 
       const result = await runSecureRemixClone({
@@ -21768,8 +21858,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         name: body.name,
         slug: body.slug,
         sourceFiles,
-        // Same-org self-remix: the org already owns this data — no cross-user
-        // license/PII flow, so nothing to mask and no consent to capture.
+
+        /*
+         * Same-org self-remix: the org already owns this data — no cross-user
+         * license/PII flow, so nothing to mask and no consent to capture.
+         */
         sanitizePii: false,
       });
 
@@ -21809,7 +21902,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
-    const remixJobId = z.string().min(1).parse((request.params as { remixJobId: string }).remixJobId);
+
+    const remixJobId = z
+      .string()
+      .min(1)
+      .parse((request.params as { remixJobId: string }).remixJobId);
+
     const job = await store.getRemixJob(remixJobId);
 
     if (!job || job.sourceProjectId !== project.id) {
@@ -21854,9 +21952,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     featured: row.featured,
     author: row.authorName,
     appUrl: row.appUrl ?? null,
-    // License + fork rights are PUBLIC listing facts (P0-V3-05): a remixer
-    // must see what they'd accept before clicking Remix. Never the text sha
-    // alone — the detail route carries the full text.
+
+    /*
+     * License + fork rights are PUBLIC listing facts (P0-V3-05): a remixer
+     * must see what they'd accept before clicking Remix. Never the text sha
+     * alone — the detail route carries the full text.
+     */
     remixAllowed: row.remixAllowed,
     license: row.licenseId ? { id: row.licenseId, textSha256: row.licenseTextSha256 ?? null } : null,
     piiHandling: row.piiConsentVersion
@@ -21876,6 +21977,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/gallery', async (request) => {
     const query = parse(galleryListQuery, request.query);
+
     const listings = await store.listGalleryListings({
       category: query.category,
       query: query.q,
@@ -21890,9 +21992,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     const all = query.category || query.q ? await store.listGalleryListings({}) : listings;
     const counts = new Map<string, number>();
+
     for (const listing of all) {
       counts.set(listing.category, (counts.get(listing.category) ?? 0) + 1);
     }
+
     const categories = [...counts.entries()]
       .map(([id, count]) => ({ id, count }))
       .sort((a, b) => b.count - a.count || a.id.localeCompare(b.id));
@@ -21905,26 +22009,36 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   app.get('/gallery/:slug', async (request, reply) => {
-    const slug = z.string().min(1).parse((request.params as { slug: string }).slug);
+    const slug = z
+      .string()
+      .min(1)
+      .parse((request.params as { slug: string }).slug);
+
     const listing = await store.getGalleryListingBySlug(slug);
 
     if (!listing || listing.status !== 'PUBLISHED') {
       return reply.status(404).send({ error: 'Listing not found', code: 'GALLERY_LISTING_NOT_FOUND' });
     }
 
-    // A public detail view counts once per request (best-effort; never blocks the
-    // read). Capture the post-view count BEFORE incrementing so the response is
-    // correct regardless of whether the store returns a fresh row or a live ref.
+    /*
+     * A public detail view counts once per request (best-effort; never blocks the
+     * read). Capture the post-view count BEFORE incrementing so the response is
+     * correct regardless of whether the store returns a fresh row or a live ref.
+     */
     const views = listing.viewCount + 1;
     await store.incrementGalleryListingViews(listing.id).catch(() => undefined);
 
     return {
       listing: {
         ...toPublicListing(listing),
+
         // detail-only: the immutable release the Remix reproduces (provenance, no secret)
         sourceSnapshotId: listing.sourceSnapshotId,
-        // detail-only: the FULL versioned license text a remixer accepts, and
-        // the consent-text version their acceptance is recorded under.
+
+        /*
+         * detail-only: the FULL versioned license text a remixer accepts, and
+         * the consent-text version their acceptance is recorded under.
+         */
         licenseText: listing.licenseText ?? null,
         remixConsentVersion: REMIX_CONSENT_VERSION,
         views,
@@ -21936,6 +22050,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     organizationId: z.string().min(1),
     name: z.string().min(1).optional(),
     slug: z.string().min(2).optional(),
+
     /*
      * Explicit, versioned acceptance (I-RMX-3). The UI sends acceptLicense
      * after showing the license block; the server refuses a remix without it —
@@ -21951,13 +22066,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * scrub / scan invariant as POST /projects/:id/remix applies (shared helper).
    */
   app.post('/gallery/:slug/remix', async (request, reply) => {
-    const slug = z.string().min(1).parse((request.params as { slug: string }).slug);
+    const slug = z
+      .string()
+      .min(1)
+      .parse((request.params as { slug: string }).slug);
+
     const body = parse(galleryRemixSchema, request.body);
 
     // The clone lands in the remixer's org — authorize membership there.
     await requireOrg(request, store, body.organizationId, 'projects:write');
 
     const listing = await store.getGalleryListingBySlug(slug);
+
     if (!listing || listing.status !== 'PUBLISHED') {
       return reply.status(404).send({ error: 'Listing not found', code: 'GALLERY_LISTING_NOT_FOUND' });
     }
@@ -21970,8 +22090,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    // FAIL-CLOSED en profondeur : même un listing marqué remixable ne se
-    // remixe pas sans licence explicite enregistrée (aucun fallback).
+    /*
+     * FAIL-CLOSED en profondeur : même un listing marqué remixable ne se
+     * remixe pas sans licence explicite enregistrée (aucun fallback).
+     */
     if (!listing.licenseId || !listing.licenseTextSha256) {
       return reply.status(403).send({
         error: 'This listing has no explicit license — remixing is closed by default.',
@@ -21994,16 +22116,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const sourceProject = await store.getProject(listing.sourceProjectId);
+
     if (!sourceProject) {
       return reply.status(409).send({ error: 'Source project unavailable', code: 'GALLERY_SOURCE_MISSING' });
     }
 
-    // Pin the IMMUTABLE release: read the clone's files from the listing's snapshot
-    // archive, NOT the live source project.
+    /*
+     * Pin the IMMUTABLE release: read the clone's files from the listing's snapshot
+     * archive, NOT the live source project.
+     */
     const snapshot = await store.getSnapshot(listing.sourceSnapshotId);
+
     if (!snapshot || snapshot.projectId !== listing.sourceProjectId) {
       return reply.status(409).send({ error: 'Pinned release unavailable', code: 'GALLERY_SNAPSHOT_MISSING' });
     }
+
     const sourceFiles = await getSnapshotFiles(snapshot);
 
     /*
@@ -22031,6 +22158,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         sourceListingId: listing.id,
         licenseSnapshot,
         consentVersion: REMIX_CONSENT_VERSION,
+
         // Cross-user flow: mask PII unless the AUTHOR consented (versioned).
         sanitizePii: true,
         piiConsentVersion: listing.piiConsentVersion,
@@ -22066,6 +22194,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const message = error instanceof Error ? error.message : String(error);
         return reply.status(error.statusCode).send({ error: message, code: error.code });
       }
+
       throw error;
     }
   });
@@ -22086,6 +22215,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     appUrl: z.string().url().optional(),
     featured: z.boolean().optional(),
     status: z.enum(['PUBLISHED', 'PENDING_REVIEW', 'UNPUBLISHED']).optional(),
+
     /*
      * License + PII declarations captured at CURATION (P0-V3-05). licenseText
      * is hashed server-side — the sha256 pin is computed, never client-supplied.
@@ -22096,6 +22226,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     licenseId: z.string().min(1).max(64).optional(),
     licenseText: z.string().min(1).max(100_000).optional(),
     piiConsentVersion: z.string().min(1).max(64).optional(),
+
     /*
      * FAIL-CLOSED (directive 20/07) : rendre un listing remixable exige que
      * l'AUTEUR ait explicitement (1) choisi une licence autorisant le remix,
@@ -22119,8 +22250,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const body = parse(adminGalleryListingSchema, request.body ?? {});
 
-    // FAIL-CLOSED : pas de listing remixable sans licence explicite + droits
-    // confirmés + politique PII acceptée. Le défaut est NON-remixable.
+    /*
+     * FAIL-CLOSED : pas de listing remixable sans licence explicite + droits
+     * confirmés + politique PII acceptée. Le défaut est NON-remixable.
+     */
     if (body.remixAllowed === true) {
       if (!body.licenseId || !body.licenseText) {
         return reply.status(400).send({
@@ -22138,11 +22271,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const sourceProject = await store.getProject(body.sourceProjectId);
+
     if (!sourceProject) {
       return reply.status(404).send({ error: 'Source project not found', code: 'GALLERY_SOURCE_MISSING' });
     }
 
     const snapshot = await store.getSnapshot(body.sourceSnapshotId);
+
     if (!snapshot || snapshot.projectId !== body.sourceProjectId) {
       return reply
         .status(400)
@@ -22152,8 +22287,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     try {
       const listing = await store.createGalleryListing({
         ...body,
-        // Version pin computed HERE: the accepted license text is identified by
-        // content hash, not by whatever a client claims (P0-V3-05).
+
+        /*
+         * Version pin computed HERE: the accepted license text is identified by
+         * content hash, not by whatever a client claims (P0-V3-05).
+         */
         licenseTextSha256: body.licenseText
           ? createHash('sha256').update(body.licenseText, 'utf8').digest('hex')
           : undefined,
@@ -22180,6 +22318,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       if (error instanceof Error && /unique|slug/i.test(error.message)) {
         return reply.status(409).send({ error: 'A listing with that slug already exists', code: 'GALLERY_SLUG_TAKEN' });
       }
+
       throw error;
     }
   });
@@ -23150,7 +23289,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    let base = { lineKey: modeLine.key, provider: modeLine.provider, model: modeLine.model, multiplier: modeLine.multiplier };
+    let base = {
+      lineKey: modeLine.key,
+      provider: modeLine.provider,
+      model: modeLine.model,
+      multiplier: modeLine.multiplier,
+    };
+
     let escalation: typeof base | undefined;
     let classifier: { provider: string; model: string } | undefined;
 
@@ -23165,6 +23310,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       const turboLine = routingLine(card, 'turbo');
+
       const turboOrgEnabled = await evaluateFeatureFlag(store, 'agent_turbo', {
         userId: request.currentUser?.id,
         organizationId: project.organizationId,
@@ -23178,7 +23324,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         });
       }
 
-      base = { lineKey: turboLine.key, provider: turboLine.provider, model: turboLine.model, multiplier: turboLine.multiplier };
+      base = {
+        lineKey: turboLine.key,
+        provider: turboLine.provider,
+        model: turboLine.model,
+        multiplier: turboLine.multiplier,
+      };
     }
 
     if (query.highEffort) {
@@ -23266,6 +23417,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (body.agentRouting) {
       try {
         const routingCard = await getActiveAgentRoutingCard(store);
+
         const callBilling = computeAgentCallBilling(
           routingCard,
           body.agentRouting.lineKey,
@@ -25257,7 +25409,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/admin/agent-routing/calls', async (request) => {
     await requirePlatformAdmin(request);
 
-    const query = parse(z.object({ limit: z.coerce.number().int().positive().max(500).default(100) }), request.query ?? {});
+    const query = parse(
+      z.object({ limit: z.coerce.number().int().positive().max(500).default(100) }),
+      request.query ?? {},
+    );
 
     return { calls: await store.listAgentCalls(query.limit) };
   });
@@ -25408,7 +25563,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       const price = lineUserPrice(candidate, line);
-      const simulatedCostCents = (row.tokensIn * line.costInCentsPerM + row.tokensOut * line.costOutCentsPerM) / 1_000_000;
+
+      const simulatedCostCents =
+        (row.tokensIn * line.costInCentsPerM + row.tokensOut * line.costOutCentsPerM) / 1_000_000;
+
       const simulatedCreditCents = line.billedToUser
         ? (row.tokensIn * price.inCentsPerM + row.tokensOut * price.outCentsPerM) / 1_000_000
         : 0;
@@ -28606,16 +28764,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * rollback target — the digest-only path would refuse it with
    * ROLLBACK_NO_RETAINED_DIGEST.
    */
-  const annotateRollbackAvailability = <T extends { provider?: string | null; status?: string | null; metadata?: unknown }>(
+  const annotateRollbackAvailability = <
+    T extends { provider?: string | null; status?: string | null; metadata?: unknown },
+  >(
     deployment: T,
   ): T & { rollbackUnavailableReason?: 'NO_RETAINED_DIGEST' } => {
     if (deployment.provider !== 'server' || deployment.status !== 'READY') {
       return deployment;
     }
 
-    const image = ((deployment.metadata as Record<string, unknown> | null)?.serverDeploy as
-      | { image?: { imageDigest?: string } }
-      | undefined)?.image;
+    const image = (
+      (deployment.metadata as Record<string, unknown> | null)?.serverDeploy as
+        | { image?: { imageDigest?: string } }
+        | undefined
+    )?.image;
 
     if (image?.imageDigest && /^sha256:[a-f0-9]{64}$/.test(image.imageDigest)) {
       return deployment;
@@ -28703,7 +28865,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     return {
-      deployment: annotateRollbackAvailability(await reconcileDeploymentStatus(store, deployment).catch(() => deployment)),
+      deployment: annotateRollbackAvailability(
+        await reconcileDeploymentStatus(store, deployment).catch(() => deployment),
+      ),
     };
   });
 

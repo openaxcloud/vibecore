@@ -102,10 +102,20 @@ SNAPSHOT_PINNED → CREDENTIALS_DETACHED → SOURCE_SANITIZED → CLONING
   par clé brute sans namespace organisation ; création idempotente non
   sérialisée (2 retries concurrents → 2 jobs possibles) ; réservation
   in-process perdue au redémarrage.
-- v3 (ce document) : **PENDING_REVIEW** — les motifs sont traités : ancre à
-  jour (PR #27 mergée + PR de correction fix/billing-ledger-concurrency),
-  réservation durable org-scoped sérialisée + ownership, preuves vrai Postgres
-  (`import-billing-db.spec.ts` A1-A4) et preuve route concurrente
-  (2 POST simultanés → 1 seul job). La signature exige le merge de la PR de
-  correction + un reçu de revue COMPLET. Rien d'auto-clôturé
-  (PROVEN_REVIEW_PENDING).
+- v3 : REFUSED (réponse expert sur PR #39) — 2 défauts réels : (1) une
+  réservation peut rester sans `importJobId` (crash entre reserve et attach) et
+  la clé répond `IMPORT_CREATE_IN_PROGRESS` indéfiniment, même expirée ; (2) le
+  settlement intervient après la persistance de la cible — un échec de
+  settlement laissait une cible utilisable non facturée. Checks CI rouges et
+  log de tests annoncé absent (404, avalé par `*.log` du .gitignore).
+- v4 (ce document) : **PENDING_REVIEW** — (1) récupération des orphelines :
+  `reviveReservation` atomique (hold mort non-attaché : EXPIRED/RELEASED
+  re-armé + ré-écriture du hold dans la même transaction ; ACTIVE périmé :
+  simple extension, sans doubler le hold ; un hold VIVANT non-attaché n'est
+  jamais ré-armé) — preuves PG A1/A2/A3 (#39) + preuve route (clé morte →
+  retry 201, 1 job) ; (2) settlement AVANT le tampon COMMITTED + en cas
+  d'échec `hardDeleteProject` de la cible (quota restitué, job ROLLING_BACK,
+  hold relâché) — preuve route #39-2 ; logs bruts committés en `.txt`
+  (`docs/deploy-evidence/2026-07-21-billing-fix-forward/test-runs-raw.txt`).
+  Signature = merge de la PR de correction + reçu de revue COMPLET. Rien
+  d'auto-clôturé (PROVEN_REVIEW_PENDING).

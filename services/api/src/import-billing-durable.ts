@@ -134,9 +134,34 @@ export class DurableImportCreditLedger implements ImportBillingLedger {
       expiresAt: new Date(Date.now() + IMPORT_RESERVATION_TTL_MS).toISOString(),
     });
 
-    const row = await this.requireByKey(input.organizationId, input.key);
+    let row = await this.requireByKey(input.organizationId, input.key);
+    let created = result.created;
 
-    return { reservation: mapRow(row), created: result.created };
+    /*
+     * ORPHAN RECOVERY (expert #39-1): a crash between reserve() and the job
+     * creation/attach leaves a reservation with no importJobId. Once that hold
+     * is DEAD (expired or released), a retry of the SAME key revives it
+     * atomically and proceeds as the creator — the key no longer answers
+     * IMPORT_CREATE_IN_PROGRESS forever. A LIVE unattached hold (a concurrent
+     * creator mid-flight, attach happening within milliseconds) is NOT
+     * revivable and stays a normal replay.
+     */
+    if (!created && row.importJobId === null && row.status !== 'COMMITTED') {
+      const nowIso = new Date().toISOString();
+
+      const revived = await this.ledger.reviveReservation({
+        reservationId: row.id,
+        expiresAt: new Date(Date.now() + IMPORT_RESERVATION_TTL_MS).toISOString(),
+        nowIso,
+      });
+
+      if (revived) {
+        row = await this.requireByKey(input.organizationId, input.key);
+        created = true;
+      }
+    }
+
+    return { reservation: mapRow(row), created };
   }
 
   async attachJob(organizationId: string, key: string, importJobId: string): Promise<'attached' | 'conflict'> {

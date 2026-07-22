@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { buildApiApp } from '../app.js';
 import type { EmailProvider } from '../email.js';
+import { ImportCreditLedger, type ImportBillingLedger } from '../import-billing.js';
 import type { ProjectFile, ProjectStorage } from '../project-storage.js';
 import { TestApiStore } from './test-api-store.js';
 
@@ -428,6 +429,122 @@ describe('EXPERT #27-2/#27-5 — concurrent idempotent create is SERIALIZED', ()
     expect(retried.statusCode).toBe(200);
     expect(retried.json().import.replayed).toBe(true);
     expect(retried.json().import.importJobId).toBe(created.json().import.importJobId);
+    expect([...store.importJobs.values()].filter((job) => job.organizationId === org.id)).toHaveLength(1);
+  });
+});
+
+describe('EXPERT #39-1/#39-2 — orphan recovery + target compensation on settlement failure', () => {
+  it('#39-2: settlement failure after target creation → project DELETED, job rolled back, hold released', async () => {
+    const store = new TestApiStore();
+    const projectStorage = new MemoryProjectStorage();
+
+    // Same in-memory ledger, but the settle step fails (simulated billing outage).
+    const ledger = new ImportCreditLedger();
+
+    const failingLedger: ImportBillingLedger = {
+      reserve: (input) => ledger.reserve(input),
+      attachJob: (org, key, job) => ledger.attachJob(org, key, job),
+      findByKey: (org, key) => ledger.findByKey(org, key),
+      settleByJob: async () => {
+        throw new Error('billing backend down');
+      },
+      compensateByJob: (job, reason) => ledger.compensateByJob(job, reason),
+      getByJob: (org, job) => ledger.getByJob(org, job),
+      reapExpired: (now) => ledger.reapExpired(now),
+    };
+
+    const app = await buildApiApp({
+      store,
+      projectStorage,
+      emailProvider: new QuietEmailProvider(),
+      importCreditLedger: failingLedger,
+    });
+
+    const user = await store.createUser({
+      email: 'b39@example.com',
+      name: 'B39',
+      passwordHash: hashPassword('password123'),
+    });
+
+    const org = await store.createOrganization({ name: 'B39 Org', slug: 'b39-org', ownerUserId: user.id });
+    await store.createSession({ userId: user.id, token: 'b39-token', expiresAt: new Date(Date.now() + 3600_000) });
+
+    const created = await app.inject({
+      method: 'POST',
+      url: `/orgs/${org.id}/imports`,
+      headers: auth('b39-token'),
+      payload: { idempotencyKey: 'b39-key', provider: 'github', files: [{ path: 'a.js', content: 'x' }] },
+    });
+    expect(created.statusCode).toBe(201);
+
+    const importJobId = created.json().import.importJobId;
+
+    const commit = await app.inject({
+      method: 'POST',
+      url: `/orgs/${org.id}/imports/${importJobId}/commit`,
+      headers: auth('b39-token'),
+      payload: { consent: {} },
+    });
+
+    // The commit FAILS…
+    expect(commit.statusCode).toBeGreaterThanOrEqual(400);
+
+    // …and NO usable, unbilled target survives: the created project is gone.
+    const orgProjects = [...store.projects.values()].filter((p) => p.organizationId === org.id);
+    expect(orgProjects).toHaveLength(0);
+
+    // Job rolled back; the hold was RELEASED (zero debit), not settled.
+    expect((await store.getImportJob(importJobId))?.state).toBe('ROLLING_BACK');
+
+    const reservation = await ledger.getByJob(org.id, importJobId);
+    expect(reservation?.state).toBe('COMPENSATED');
+    expect(reservation?.debitedCredits).toBe(0);
+  });
+
+  it('#39-1: a dead never-attached reservation does NOT block the key forever — the retry recovers and creates the import', async () => {
+    const store = new TestApiStore();
+    const projectStorage = new MemoryProjectStorage();
+    const ledger = new ImportCreditLedger();
+
+    const app = await buildApiApp({
+      store,
+      projectStorage,
+      emailProvider: new QuietEmailProvider(),
+      importCreditLedger: ledger,
+    });
+
+    const user = await store.createUser({
+      email: 'a39@example.com',
+      name: 'A39',
+      passwordHash: hashPassword('password123'),
+    });
+
+    const org = await store.createOrganization({ name: 'A39 Org', slug: 'a39-org', ownerUserId: user.id });
+    await store.createSession({ userId: user.id, token: 'a39-token', expiresAt: new Date(Date.now() + 3600_000) });
+
+    /*
+     * Simulated crash between reserve() and job creation: the hold exists,
+     * unattached, then dies (release path) — the exact orphan of the refusal.
+     */
+    await ledger.reserve({ organizationId: org.id, key: 'orphan-route-key', reservedCredits: 1 });
+
+    const internal = (ledger as unknown as { byOrgKey: Map<string, { state: string }> }).byOrgKey;
+    const entry = [...internal.entries()].find(([k]) => k.endsWith('orphan-route-key'));
+    expect(entry).toBeTruthy();
+    entry![1].state = 'COMPENSATED';
+
+    /*
+     * The SAME key retried: recovered as creator — 201 and a real job, not an
+     * eternal IMPORT_CREATE_IN_PROGRESS.
+     */
+    const retried = await app.inject({
+      method: 'POST',
+      url: `/orgs/${org.id}/imports`,
+      headers: auth('a39-token'),
+      payload: { idempotencyKey: 'orphan-route-key', provider: 'github', files: [{ path: 'a.js', content: 'x' }] },
+    });
+
+    expect(retried.statusCode).toBe(201);
     expect([...store.importJobs.values()].filter((job) => job.organizationId === org.id)).toHaveLength(1);
   });
 });

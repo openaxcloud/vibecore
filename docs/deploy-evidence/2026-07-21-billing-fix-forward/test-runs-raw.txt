@@ -1,0 +1,354 @@
+== date: 2026-07-22T06:26:18Z
+== branch fix/billing-ledger-concurrency + corrections refus #39 (worktree)
+== Postgres REEL: docker vibecore-postgres-1 pgvector/pg16 @127.0.0.1:55432, migrations deployees jusqu'a 0078
+== commande: npx vitest --run <10 suites> (sortie BRUTE, non filtree)
+
+
+ RUN  v3.2.6 /private/tmp/claude-501/-Users-hb-dev-vibecore/34b82c73-df9c-4288-b0c3-af17c70198c7/scratchpad/wt-fix2/services/api
+
+ ✓ src/ledger-core.spec.ts (18 tests) 3ms
+ ✓ src/ledger-reservation.spec.ts (9 tests) 2ms
+ ✓ src/import-billing.spec.ts (23 tests) 6ms
+ ✓ src/ledger-reconciliation.spec.ts (5 tests) 19ms
+ ✓ src/tests/zip-import-cleanup.spec.ts (4 tests) 37ms
+stdout | src/tests/import-billing-db.spec.ts > PR #27 fix-forward — durable org-scoped import reservations (real Postgres) > A2 — two CONCURRENT reserves, same (org, key), separate connections → exactly ONE created
+prisma:error 
+Invalid `this.db.ledgerAccount.create()` invocation in
+/private/tmp/claude-501/-Users-hb-dev-vibecore/34b82c73-df9c-4288-b0c3-af17c70198c7/scratchpad/wt-fix2/services/api/src/ledger-store.ts:84:51
+
+  81 }
+  82 
+  83 try {
+→ 84   const created = await this.db.ledgerAccount.create(
+Unique constraint failed on the fields: (`"organizationId"`, `key`, `currency`)
+
+stdout | src/tests/import-billing-db.spec.ts > PR #27 fix-forward — durable org-scoped import reservations (real Postgres) > A2 — two CONCURRENT reserves, same (org, key), separate connections → exactly ONE created
+prisma:error 
+Invalid `this.db.ledgerAccount.create()` invocation in
+/private/tmp/claude-501/-Users-hb-dev-vibecore/34b82c73-df9c-4288-b0c3-af17c70198c7/scratchpad/wt-fix2/services/api/src/ledger-store.ts:84:51
+
+  81 }
+  82 
+  83 try {
+→ 84   const created = await this.db.ledgerAccount.create(
+Unique constraint failed on the fields: (`"organizationId"`, `key`, `currency`)
+
+stdout | src/tests/import-billing-db.spec.ts > PR #27 fix-forward — durable org-scoped import reservations (real Postgres) > A2 — two CONCURRENT reserves, same (org, key), separate connections → exactly ONE created
+prisma:error 
+Invalid `this.db.ledgerAccount.create()` invocation in
+/private/tmp/claude-501/-Users-hb-dev-vibecore/34b82c73-df9c-4288-b0c3-af17c70198c7/scratchpad/wt-fix2/services/api/src/ledger-store.ts:84:51
+
+  81 }
+  82 
+  83 try {
+→ 84   const created = await this.db.ledgerAccount.create(
+Unique constraint failed on the fields: (`"organizationId"`, `key`, `currency`)
+
+stdout | src/tests/import-billing-db.spec.ts > PR #27 fix-forward — durable org-scoped import reservations (real Postgres) > A2 — two CONCURRENT reserves, same (org, key), separate connections → exactly ONE created
+prisma:error 
+Invalid `this.db.ledgerAccount.create()` invocation in
+/private/tmp/claude-501/-Users-hb-dev-vibecore/34b82c73-df9c-4288-b0c3-af17c70198c7/scratchpad/wt-fix2/services/api/src/ledger-store.ts:84:51
+
+  81 }
+  82 
+  83 try {
+→ 84   const created = await this.db.ledgerAccount.create(
+Unique constraint failed on the fields: (`"organizationId"`, `key`, `currency`)
+
+stdout | src/tests/import-billing-db.spec.ts > PR #27 fix-forward — durable org-scoped import reservations (real Postgres) > A2 — two CONCURRENT reserves, same (org, key), separate connections → exactly ONE created
+prisma:error 
+Invalid `trx.ledgerReservation.create()` invocation in
+/private/tmp/claude-501/-Users-hb-dev-vibecore/34b82c73-df9c-4288-b0c3-af17c70198c7/scratchpad/wt-fix2/services/api/src/ledger-store.ts:339:53
+
+  336   assertWithinHardLimit(projected, input.hardLimitMinor, 'reservation budget');
+  337 }
+  338 
+→ 339 const created = await trx.ledgerReservation.create(
+Unique constraint failed on the fields: (`"organizationId"`, `"idempotencyKey"`)
+
+stdout | src/tests/ledger-store-db.spec.ts > Canonical double-entry ledger — durable proofs (real Postgres) > (4) a posted entry CANNOT be mutated (append-only DB trigger)
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `P0001`. Message: `Ledger LedgerEntry is append-only: UPDATE refused. Correct with a reversing transaction, never by mutating a posted event.`
+
+stdout | src/tests/ledger-store-db.spec.ts > Canonical double-entry ledger — durable proofs (real Postgres) > (4) a posted entry CANNOT be mutated (append-only DB trigger)
+prisma:error 
+Invalid `prisma.$executeRawUnsafe()` invocation:
+
+
+Raw query failed. Code: `P0001`. Message: `Ledger LedgerTransaction is append-only: DELETE refused. Correct with a reversing transaction, never by mutating a posted event.`
+
+stdout | src/tests/import-billing-db.spec.ts > PR #28 fix-forward — atomic settlement, serialized hard limit, validated accounts, derived compensation > B2 — hard limit under CONCURRENCY: each fits alone, both together breach → exactly one refused
+prisma:error 
+Invalid `this.db.ledgerAccount.create()` invocation in
+/private/tmp/claude-501/-Users-hb-dev-vibecore/34b82c73-df9c-4288-b0c3-af17c70198c7/scratchpad/wt-fix2/services/api/src/ledger-store.ts:84:51
+
+  81 }
+  82 
+  83 try {
+→ 84   const created = await this.db.ledgerAccount.create(
+Unique constraint failed on the fields: (`"organizationId"`, `key`, `currency`)
+
+stdout | src/tests/import-billing-db.spec.ts > PR #28 fix-forward — atomic settlement, serialized hard limit, validated accounts, derived compensation > B2 — hard limit under CONCURRENCY: each fits alone, both together breach → exactly one refused
+prisma:error 
+Invalid `this.db.ledgerAccount.create()` invocation in
+/private/tmp/claude-501/-Users-hb-dev-vibecore/34b82c73-df9c-4288-b0c3-af17c70198c7/scratchpad/wt-fix2/services/api/src/ledger-store.ts:84:51
+
+  81 }
+  82 
+  83 try {
+→ 84   const created = await this.db.ledgerAccount.create(
+Unique constraint failed on the fields: (`"organizationId"`, `key`, `currency`)
+
+stdout | src/tests/import-billing-db.spec.ts > PR #28 fix-forward — atomic settlement, serialized hard limit, validated accounts, derived compensation > B2 — hard limit under CONCURRENCY: each fits alone, both together breach → exactly one refused
+prisma:error 
+Invalid `this.db.ledgerAccount.create()` invocation in
+/private/tmp/claude-501/-Users-hb-dev-vibecore/34b82c73-df9c-4288-b0c3-af17c70198c7/scratchpad/wt-fix2/services/api/src/ledger-store.ts:84:51
+
+  81 }
+  82 
+  83 try {
+→ 84   const created = await this.db.ledgerAccount.create(
+Unique constraint failed on the fields: (`"organizationId"`, `key`, `currency`)
+
+stdout | src/tests/import-billing-db.spec.ts > PR #28 fix-forward — atomic settlement, serialized hard limit, validated accounts, derived compensation > B2 — hard limit under CONCURRENCY: each fits alone, both together breach → exactly one refused
+prisma:error 
+Invalid `this.db.ledgerAccount.create()` invocation in
+/private/tmp/claude-501/-Users-hb-dev-vibecore/34b82c73-df9c-4288-b0c3-af17c70198c7/scratchpad/wt-fix2/services/api/src/ledger-store.ts:84:51
+
+  81 }
+  82 
+  83 try {
+→ 84   const created = await this.db.ledgerAccount.create(
+Unique constraint failed on the fields: (`"organizationId"`, `key`, `currency`)
+
+ ✓ src/tests/ledger-store-db.spec.ts (7 tests) 1234ms
+   ✓ Canonical double-entry ledger — durable proofs (real Postgres) > (2) a reservation SURVIVES A RESTART: written by client A, read by independent client B  320ms
+stdout | src/tests/import-billing-db.spec.ts > PR #39 fix-forward — orphan recovery, target compensation, idempotent retry under cap (real Postgres) > C1 — EXPERT #39-3: two concurrent retries of the SAME key under a hard limit → both succeed, no false LEDGER_HARD_LIMIT
+prisma:error 
+Invalid `this.db.ledgerAccount.create()` invocation in
+/private/tmp/claude-501/-Users-hb-dev-vibecore/34b82c73-df9c-4288-b0c3-af17c70198c7/scratchpad/wt-fix2/services/api/src/ledger-store.ts:84:51
+
+  81 }
+  82 
+  83 try {
+→ 84   const created = await this.db.ledgerAccount.create(
+Unique constraint failed on the fields: (`"organizationId"`, `key`, `currency`)
+
+stdout | src/tests/import-billing-db.spec.ts > PR #39 fix-forward — orphan recovery, target compensation, idempotent retry under cap (real Postgres) > C1 — EXPERT #39-3: two concurrent retries of the SAME key under a hard limit → both succeed, no false LEDGER_HARD_LIMIT
+prisma:error 
+Invalid `this.db.ledgerAccount.create()` invocation in
+/private/tmp/claude-501/-Users-hb-dev-vibecore/34b82c73-df9c-4288-b0c3-af17c70198c7/scratchpad/wt-fix2/services/api/src/ledger-store.ts:84:51
+
+  81 }
+  82 
+  83 try {
+→ 84   const created = await this.db.ledgerAccount.create(
+Unique constraint failed on the fields: (`"organizationId"`, `key`, `currency`)
+
+stdout | src/tests/import-billing-db.spec.ts > PR #39 fix-forward — orphan recovery, target compensation, idempotent retry under cap (real Postgres) > C1 — EXPERT #39-3: two concurrent retries of the SAME key under a hard limit → both succeed, no false LEDGER_HARD_LIMIT
+prisma:error 
+Invalid `this.db.ledgerAccount.create()` invocation in
+/private/tmp/claude-501/-Users-hb-dev-vibecore/34b82c73-df9c-4288-b0c3-af17c70198c7/scratchpad/wt-fix2/services/api/src/ledger-store.ts:84:51
+
+  81 }
+  82 
+  83 try {
+→ 84   const created = await this.db.ledgerAccount.create(
+Unique constraint failed on the fields: (`"organizationId"`, `key`, `currency`)
+
+stdout | src/tests/import-billing-db.spec.ts > PR #39 fix-forward — orphan recovery, target compensation, idempotent retry under cap (real Postgres) > C1 — EXPERT #39-3: two concurrent retries of the SAME key under a hard limit → both succeed, no false LEDGER_HARD_LIMIT
+prisma:error 
+Invalid `this.db.ledgerAccount.create()` invocation in
+/private/tmp/claude-501/-Users-hb-dev-vibecore/34b82c73-df9c-4288-b0c3-af17c70198c7/scratchpad/wt-fix2/services/api/src/ledger-store.ts:84:51
+
+  81 }
+  82 
+  83 try {
+→ 84   const created = await this.db.ledgerAccount.create(
+Unique constraint failed on the fields: (`"organizationId"`, `key`, `currency`)
+
+ ✓ src/tests/import-billing-db.spec.ts (12 tests) 1733ms
+   ✓ PR #27 fix-forward — durable org-scoped import reservations (real Postgres) > A1 — same key, two organizations → two INDEPENDENT reservations  321ms
+{"level":30,"time":1784701582205,"pid":85740,"hostname":"MacBook-Pro-de-HB.local","reqId":"015914b6-15ff-455d-8baf-df65487ba91a","req":{"method":"POST","url":"/auth/register","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582229,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"b9f2d638-942b-4992-8685-8fc527a67ecb","req":{"method":"POST","url":"/orgs/org_4ph8eo3urmxmrvp8q6j/imports","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582242,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"10de1961-979e-448f-b7da-84ab86a7911c","req":{"method":"POST","url":"/orgs/org_tyukd0knadbmrvp8q6v/imports","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582252,"pid":85740,"hostname":"MacBook-Pro-de-HB.local","reqId":"015914b6-15ff-455d-8baf-df65487ba91a","event":"request.completed","requestId":"015914b6-15ff-455d-8baf-df65487ba91a","correlationId":"015914b6-15ff-455d-8baf-df65487ba91a","statusCode":201,"durationSeconds":0.04400014877319336}
+{"level":30,"time":1784701582253,"pid":85740,"hostname":"MacBook-Pro-de-HB.local","reqId":"015914b6-15ff-455d-8baf-df65487ba91a","res":{"statusCode":201},"responseTime":37.173540994524956,"msg":"request completed"}
+{"level":30,"time":1784701582253,"pid":85740,"hostname":"MacBook-Pro-de-HB.local","reqId":"dd8d5d4e-79f7-4879-a46f-f3b61f4b7942","req":{"method":"POST","url":"/orgs/org_it5seekthapmrvp8q76/projects/import/gitlab","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582260,"pid":85740,"hostname":"MacBook-Pro-de-HB.local","reqId":"dd8d5d4e-79f7-4879-a46f-f3b61f4b7942","event":"request.completed","requestId":"dd8d5d4e-79f7-4879-a46f-f3b61f4b7942","correlationId":"dd8d5d4e-79f7-4879-a46f-f3b61f4b7942","userId":"user_zfm9x2d8qkjmrvp8q76","organizationId":"org_it5seekthapmrvp8q76","statusCode":201,"durationSeconds":0.006999969482421875}
+{"level":30,"time":1784701582247,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"10de1961-979e-448f-b7da-84ab86a7911c","event":"import.scan","importJobId":"import_jf592oygukqmrvp8q7a","findingCount":0,"kinds":[],"msg":"import scan complete"}
+{"level":30,"time":1784701582257,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"10de1961-979e-448f-b7da-84ab86a7911c","event":"request.completed","requestId":"10de1961-979e-448f-b7da-84ab86a7911c","correlationId":"10de1961-979e-448f-b7da-84ab86a7911c","userId":"user_9dn7w3hmxblmrvp8q6u","organizationId":"org_tyukd0knadbmrvp8q6v","statusCode":201,"durationSeconds":0.01399993896484375}
+{"level":30,"time":1784701582257,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"10de1961-979e-448f-b7da-84ab86a7911c","res":{"statusCode":201},"responseTime":5.630208998918533,"msg":"request completed"}
+{"level":30,"time":1784701582260,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"3561e62c-bf54-4c82-ab55-d7490a1bb186","req":{"method":"GET","url":"/orgs/org_tyukd0knadbmrvp8q6v/imports/import_jf592oygukqmrvp8q7a","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582261,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"3561e62c-bf54-4c82-ab55-d7490a1bb186","event":"request.completed","requestId":"3561e62c-bf54-4c82-ab55-d7490a1bb186","correlationId":"3561e62c-bf54-4c82-ab55-d7490a1bb186","userId":"user_9dn7w3hmxblmrvp8q6u","organizationId":"org_tyukd0knadbmrvp8q6v","statusCode":200,"durationSeconds":0.0009999275207519531}
+{"level":30,"time":1784701582261,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"3561e62c-bf54-4c82-ab55-d7490a1bb186","res":{"statusCode":200},"responseTime":1.2422080039978027,"msg":"request completed"}
+{"level":30,"time":1784701582263,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"0b66654e-7a96-423c-9db7-91f73dff02ba","req":{"method":"POST","url":"/orgs/org_tyukd0knadbmrvp8q6v/imports/import_jf592oygukqmrvp8q7a/commit","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582327,"pid":85740,"hostname":"MacBook-Pro-de-HB.local","reqId":"06ffd660-2086-45d0-83a8-f6ab7d248bfd","req":{"method":"POST","url":"/auth/register","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582337,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"838e76c2-fe07-4038-9154-99b76022f551","req":{"method":"POST","url":"/orgs/org_gsicq79d9womrvp8q9n/imports","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582236,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"b9f2d638-942b-4992-8685-8fc527a67ecb","event":"import.scan","importJobId":"import_9v3zr7w7oqmrvp8q6z","findingCount":1,"kinds":["env-secret"],"msg":"import scan complete"}
+{"level":30,"time":1784701582245,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"b9f2d638-942b-4992-8685-8fc527a67ecb","event":"request.completed","requestId":"b9f2d638-942b-4992-8685-8fc527a67ecb","correlationId":"b9f2d638-942b-4992-8685-8fc527a67ecb","userId":"user_4kms54mdz4cmrvp8q6j","organizationId":"org_4ph8eo3urmxmrvp8q6j","statusCode":202,"durationSeconds":0.012999773025512695}
+{"level":30,"time":1784701582245,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"b9f2d638-942b-4992-8685-8fc527a67ecb","res":{"statusCode":202},"responseTime":6.50858399271965,"msg":"request completed"}
+{"level":30,"time":1784701582361,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"838e76c2-fe07-4038-9154-99b76022f551","event":"import.scan","importJobId":"import_mjsa26x0sjmrvp8qah","findingCount":1,"kinds":["env-secret"],"msg":"import scan complete"}
+{"level":30,"time":1784701582260,"pid":85740,"hostname":"MacBook-Pro-de-HB.local","reqId":"dd8d5d4e-79f7-4879-a46f-f3b61f4b7942","res":{"statusCode":201},"responseTime":6.5536660104990005,"msg":"request completed"}
+{"level":30,"time":1784701582368,"pid":85740,"hostname":"MacBook-Pro-de-HB.local","reqId":"06ffd660-2086-45d0-83a8-f6ab7d248bfd","event":"request.completed","requestId":"06ffd660-2086-45d0-83a8-f6ab7d248bfd","correlationId":"06ffd660-2086-45d0-83a8-f6ab7d248bfd","statusCode":201,"durationSeconds":0.0410001277923584}
+{"level":30,"time":1784701582368,"pid":85740,"hostname":"MacBook-Pro-de-HB.local","reqId":"06ffd660-2086-45d0-83a8-f6ab7d248bfd","res":{"statusCode":201},"responseTime":40.612040996551514,"msg":"request completed"}
+{"level":30,"time":1784701582369,"pid":85740,"hostname":"MacBook-Pro-de-HB.local","reqId":"d91a178d-4d48-4e28-a40f-0fddf291c9ba","req":{"method":"POST","url":"/orgs/org_paoqt186tmmrvp8qan/projects/import/bitbucket","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582371,"pid":85740,"hostname":"MacBook-Pro-de-HB.local","reqId":"d91a178d-4d48-4e28-a40f-0fddf291c9ba","event":"request.completed","requestId":"d91a178d-4d48-4e28-a40f-0fddf291c9ba","correlationId":"d91a178d-4d48-4e28-a40f-0fddf291c9ba","userId":"user_iizk3lew3iqmrvp8qan","organizationId":"org_paoqt186tmmrvp8qan","statusCode":201,"durationSeconds":0.002000093460083008}
+{"level":30,"time":1784701582380,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"9298c24e-3816-4f0c-956d-35d0f01dc6f6","req":{"method":"POST","url":"/orgs/org_rbh6f0v2z2pmrvp8q9z/imports","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582267,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"0b66654e-7a96-423c-9db7-91f73dff02ba","event":"import.billing.settle","importJobId":"import_jf592oygukqmrvp8q7a","debitedCredits":1,"msg":"import reservation settled"}
+{"level":30,"time":1784701582268,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"0b66654e-7a96-423c-9db7-91f73dff02ba","event":"request.completed","requestId":"0b66654e-7a96-423c-9db7-91f73dff02ba","correlationId":"0b66654e-7a96-423c-9db7-91f73dff02ba","userId":"user_9dn7w3hmxblmrvp8q6u","organizationId":"org_tyukd0knadbmrvp8q6v","statusCode":201,"durationSeconds":0.004999876022338867}
+{"level":30,"time":1784701582268,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"0b66654e-7a96-423c-9db7-91f73dff02ba","res":{"statusCode":201},"responseTime":4.880708992481232,"msg":"request completed"}
+{"level":30,"time":1784701582269,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"f6e16af3-0d3d-4f77-a80d-50ff2145a926","req":{"method":"GET","url":"/orgs/org_tyukd0knadbmrvp8q6v/imports/import_jf592oygukqmrvp8q7a","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582270,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"f6e16af3-0d3d-4f77-a80d-50ff2145a926","event":"request.completed","requestId":"f6e16af3-0d3d-4f77-a80d-50ff2145a926","correlationId":"f6e16af3-0d3d-4f77-a80d-50ff2145a926","userId":"user_9dn7w3hmxblmrvp8q6u","organizationId":"org_tyukd0knadbmrvp8q6v","statusCode":200,"durationSeconds":0.0009999275207519531}
+{"level":30,"time":1784701582270,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"f6e16af3-0d3d-4f77-a80d-50ff2145a926","res":{"statusCode":200},"responseTime":0.8107500076293945,"msg":"request completed"}
+{"level":30,"time":1784701582384,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"9298c24e-3816-4f0c-956d-35d0f01dc6f6","event":"import.scan","importJobId":"import_0txdc79s23ihmrvp8qb4","findingCount":1,"kinds":["env-secret"],"msg":"import scan complete"}
+{"level":30,"time":1784701582410,"pid":85740,"hostname":"MacBook-Pro-de-HB.local","reqId":"9fc95eed-50bf-4375-8d7e-23d12b3b48ad","req":{"method":"POST","url":"/auth/register","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582427,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"13994693-724a-44c1-8d9d-23be3e66ae67","req":{"method":"POST","url":"/orgs/org_dtbw5anmw8mrvp8qc7/imports","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582362,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"838e76c2-fe07-4038-9154-99b76022f551","event":"request.completed","requestId":"838e76c2-fe07-4038-9154-99b76022f551","correlationId":"838e76c2-fe07-4038-9154-99b76022f551","userId":"user_vqd8zix3k6mrvp8q9m","organizationId":"org_gsicq79d9womrvp8q9n","statusCode":202,"durationSeconds":0.02500009536743164}
+{"level":30,"time":1784701582362,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"838e76c2-fe07-4038-9154-99b76022f551","res":{"statusCode":202},"responseTime":24.378124997019768,"msg":"request completed"}
+{"level":30,"time":1784701582362,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"fb83089b-4abb-44cd-9da1-892e3e3fd30a","req":{"method":"POST","url":"/orgs/org_gsicq79d9womrvp8q9n/imports/import_mjsa26x0sjmrvp8qah/cancel","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582363,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"fb83089b-4abb-44cd-9da1-892e3e3fd30a","event":"request.completed","requestId":"fb83089b-4abb-44cd-9da1-892e3e3fd30a","correlationId":"fb83089b-4abb-44cd-9da1-892e3e3fd30a","userId":"user_vqd8zix3k6mrvp8q9m","organizationId":"org_gsicq79d9womrvp8q9n","statusCode":200,"durationSeconds":0.0009999275207519531}
+{"level":30,"time":1784701582363,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"fb83089b-4abb-44cd-9da1-892e3e3fd30a","res":{"statusCode":200},"responseTime":0.7740830034017563,"msg":"request completed"}
+{"level":30,"time":1784701582428,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"13994693-724a-44c1-8d9d-23be3e66ae67","event":"import.scan","importJobId":"import_sxrv3gyu5qmmrvp8qcc","findingCount":1,"kinds":["env-secret"],"msg":"import scan complete"}
+{"level":30,"time":1784701582428,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"13994693-724a-44c1-8d9d-23be3e66ae67","event":"request.completed","requestId":"13994693-724a-44c1-8d9d-23be3e66ae67","correlationId":"13994693-724a-44c1-8d9d-23be3e66ae67","userId":"user_wcoaioonminmrvp8qc7","organizationId":"org_dtbw5anmw8mrvp8qc7","statusCode":202,"durationSeconds":0.0009999275207519531}
+{"level":30,"time":1784701582428,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"13994693-724a-44c1-8d9d-23be3e66ae67","res":{"statusCode":202},"responseTime":0.7848330140113831,"msg":"request completed"}
+{"level":30,"time":1784701582429,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"5833193c-585b-49e2-9ab1-00074a1521dd","req":{"method":"POST","url":"/orgs/org_dtbw5anmw8mrvp8qc7/imports/import_sxrv3gyu5qmmrvp8qcc/commit","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582371,"pid":85740,"hostname":"MacBook-Pro-de-HB.local","reqId":"d91a178d-4d48-4e28-a40f-0fddf291c9ba","res":{"statusCode":201},"responseTime":1.8586249947547913,"msg":"request completed"}
+{"level":30,"time":1784701582439,"pid":85740,"hostname":"MacBook-Pro-de-HB.local","reqId":"9fc95eed-50bf-4375-8d7e-23d12b3b48ad","event":"request.completed","requestId":"9fc95eed-50bf-4375-8d7e-23d12b3b48ad","correlationId":"9fc95eed-50bf-4375-8d7e-23d12b3b48ad","statusCode":201,"durationSeconds":0.028999805450439453}
+{"level":30,"time":1784701582439,"pid":85740,"hostname":"MacBook-Pro-de-HB.local","reqId":"9fc95eed-50bf-4375-8d7e-23d12b3b48ad","res":{"statusCode":201},"responseTime":29.035624995827675,"msg":"request completed"}
+{"level":30,"time":1784701582440,"pid":85740,"hostname":"MacBook-Pro-de-HB.local","reqId":"86c5c063-ec9c-4a3f-8eec-93eacbf6b710","req":{"method":"POST","url":"/orgs/org_6r8i6gtz35amrvp8qcn/projects/import/gitlab","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582445,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"7b782413-cab5-4748-bd29-bf8ed90a7799","req":{"method":"POST","url":"/orgs/org_icagfqve5glmrvp8qcp/imports","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582385,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"9298c24e-3816-4f0c-956d-35d0f01dc6f6","event":"request.completed","requestId":"9298c24e-3816-4f0c-956d-35d0f01dc6f6","correlationId":"9298c24e-3816-4f0c-956d-35d0f01dc6f6","userId":"user_fehg8ny09c4mrvp8q9z","organizationId":"org_rbh6f0v2z2pmrvp8q9z","statusCode":202,"durationSeconds":0.003999948501586914}
+{"level":30,"time":1784701582385,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"9298c24e-3816-4f0c-956d-35d0f01dc6f6","res":{"statusCode":202},"responseTime":3.5788329988718033,"msg":"request completed"}
+{"level":30,"time":1784701582385,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"e5790983-ec51-4221-9405-41bec13af32e","req":{"method":"GET","url":"/orgs/org_rbh6f0v2z2pmrvp8q9z/imports/import_0txdc79s23ihmrvp8qb4","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582386,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"e5790983-ec51-4221-9405-41bec13af32e","event":"request.completed","requestId":"e5790983-ec51-4221-9405-41bec13af32e","correlationId":"e5790983-ec51-4221-9405-41bec13af32e","userId":"user_fehg8ny09c4mrvp8q9z","organizationId":"org_rbh6f0v2z2pmrvp8q9z","statusCode":200,"durationSeconds":0}
+{"level":30,"time":1784701582386,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"e5790983-ec51-4221-9405-41bec13af32e","res":{"statusCode":200},"responseTime":0.3510410040616989,"msg":"request completed"}
+{"level":30,"time":1784701582448,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"7b782413-cab5-4748-bd29-bf8ed90a7799","event":"import.scan","importJobId":"import_klvp168vtwmrvp8qcw","findingCount":1,"kinds":["env-secret"],"msg":"import scan complete"}
+{"level":30,"time":1784701582448,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"7b782413-cab5-4748-bd29-bf8ed90a7799","event":"request.completed","requestId":"7b782413-cab5-4748-bd29-bf8ed90a7799","correlationId":"7b782413-cab5-4748-bd29-bf8ed90a7799","userId":"user_hsuejrwhhngmrvp8qcp","organizationId":"org_icagfqve5glmrvp8qcp","statusCode":202,"durationSeconds":0.003000020980834961}
+{"level":30,"time":1784701582448,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"7b782413-cab5-4748-bd29-bf8ed90a7799","res":{"statusCode":202},"responseTime":2.6342500001192093,"msg":"request completed"}
+{"level":30,"time":1784701582448,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"a6355fd0-5468-4680-9347-750fc735ba8c","req":{"method":"POST","url":"/orgs/org_icagfqve5glmrvp8qcp/imports/import_klvp168vtwmrvp8qcw/commit","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582467,"pid":85740,"hostname":"MacBook-Pro-de-HB.local","reqId":"a5bdb7d3-31a4-44a6-bb47-5cdc63f02204","req":{"method":"POST","url":"/auth/register","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582441,"pid":85740,"hostname":"MacBook-Pro-de-HB.local","reqId":"86c5c063-ec9c-4a3f-8eec-93eacbf6b710","event":"request.completed","requestId":"86c5c063-ec9c-4a3f-8eec-93eacbf6b710","correlationId":"86c5c063-ec9c-4a3f-8eec-93eacbf6b710","userId":"user_furpnulj2oamrvp8qcn","organizationId":"org_6r8i6gtz35amrvp8qcn","statusCode":400,"durationSeconds":0.0009999275207519531}
+{"level":30,"time":1784701582441,"pid":85740,"hostname":"MacBook-Pro-de-HB.local","reqId":"86c5c063-ec9c-4a3f-8eec-93eacbf6b710","res":{"statusCode":400},"responseTime":1.0376249998807907,"msg":"request completed"}
+{"level":30,"time":1784701582496,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"4eff4ad4-05af-4c82-94bf-7e631858383f","req":{"method":"POST","url":"/orgs/org_hal4ulymdh5mrvp8qe5/imports","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582429,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"5833193c-585b-49e2-9ab1-00074a1521dd","event":"request.completed","requestId":"5833193c-585b-49e2-9ab1-00074a1521dd","correlationId":"5833193c-585b-49e2-9ab1-00074a1521dd","userId":"user_wcoaioonminmrvp8qc7","organizationId":"org_dtbw5anmw8mrvp8qc7","statusCode":409,"durationSeconds":0}
+{"level":30,"time":1784701582429,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"5833193c-585b-49e2-9ab1-00074a1521dd","res":{"statusCode":409},"responseTime":0.5946670025587082,"msg":"request completed"}
+{"level":30,"time":1784701582497,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"4eff4ad4-05af-4c82-94bf-7e631858383f","event":"import.scan","importJobId":"import_fbqny59x2ccmrvp8qe9","findingCount":1,"kinds":["env-secret"],"msg":"import scan complete"}
+{"level":30,"time":1784701582504,"pid":85740,"hostname":"MacBook-Pro-de-HB.local","reqId":"a5bdb7d3-31a4-44a6-bb47-5cdc63f02204","event":"request.completed","requestId":"a5bdb7d3-31a4-44a6-bb47-5cdc63f02204","correlationId":"a5bdb7d3-31a4-44a6-bb47-5cdc63f02204","statusCode":201,"durationSeconds":0.03699994087219238}
+{"level":30,"time":1784701582504,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"c4b8aa90-dfc6-4076-b77e-ca9e622326d6","req":{"method":"POST","url":"/orgs/org_711kp6xv658mrvp8qed/imports","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582504,"pid":85740,"hostname":"MacBook-Pro-de-HB.local","reqId":"a5bdb7d3-31a4-44a6-bb47-5cdc63f02204","res":{"statusCode":201},"responseTime":37.37808299064636,"msg":"request completed"}
+{"level":30,"time":1784701582505,"pid":85740,"hostname":"MacBook-Pro-de-HB.local","reqId":"f3e4a19c-997d-4530-8c57-63f93dbd132d","req":{"method":"POST","url":"/auth/register","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582449,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"a6355fd0-5468-4680-9347-750fc735ba8c","event":"import.billing.settle","importJobId":"import_klvp168vtwmrvp8qcw","debitedCredits":1,"msg":"import reservation settled"}
+{"level":30,"time":1784701582450,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"a6355fd0-5468-4680-9347-750fc735ba8c","event":"request.completed","requestId":"a6355fd0-5468-4680-9347-750fc735ba8c","correlationId":"a6355fd0-5468-4680-9347-750fc735ba8c","userId":"user_hsuejrwhhngmrvp8qcp","organizationId":"org_icagfqve5glmrvp8qcp","statusCode":201,"durationSeconds":0.002000093460083008}
+{"level":30,"time":1784701582450,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"a6355fd0-5468-4680-9347-750fc735ba8c","res":{"statusCode":201},"responseTime":1.4621670097112656,"msg":"request completed"}
+{"level":30,"time":1784701582518,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"c4b8aa90-dfc6-4076-b77e-ca9e622326d6","event":"import.scan","importJobId":"import_j6rj1jcm4tmrvp8qeu","findingCount":0,"kinds":[],"msg":"import scan complete"}
+{"level":30,"time":1784701582536,"pid":85740,"hostname":"MacBook-Pro-de-HB.local","reqId":"f3e4a19c-997d-4530-8c57-63f93dbd132d","event":"request.completed","requestId":"f3e4a19c-997d-4530-8c57-63f93dbd132d","correlationId":"f3e4a19c-997d-4530-8c57-63f93dbd132d","statusCode":201,"durationSeconds":0.03099989891052246}
+{"level":30,"time":1784701582536,"pid":85740,"hostname":"MacBook-Pro-de-HB.local","reqId":"f3e4a19c-997d-4530-8c57-63f93dbd132d","res":{"statusCode":201},"responseTime":31.139042004942894,"msg":"request completed"}
+{"level":30,"time":1784701582536,"pid":85740,"hostname":"MacBook-Pro-de-HB.local","reqId":"7d940093-c138-42c0-8eef-91ef1ffa2e6d","req":{"method":"POST","url":"/orgs/org_lvc4lqpnrrmrvp8qeg/projects/import/gitlab","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582537,"pid":85740,"hostname":"MacBook-Pro-de-HB.local","reqId":"7d940093-c138-42c0-8eef-91ef1ffa2e6d","event":"request.completed","requestId":"7d940093-c138-42c0-8eef-91ef1ffa2e6d","correlationId":"7d940093-c138-42c0-8eef-91ef1ffa2e6d","userId":"user_d6rz7rkipemrvp8qfb","organizationId":"org_lvc4lqpnrrmrvp8qeg","statusCode":404,"durationSeconds":0.0009999275207519531}
+{"level":30,"time":1784701582537,"pid":85740,"hostname":"MacBook-Pro-de-HB.local","reqId":"7d940093-c138-42c0-8eef-91ef1ffa2e6d","res":{"statusCode":404},"responseTime":0.5275829881429672,"msg":"request completed"}
+ ✓ src/tests/connector-import.spec.ts (4 tests) 466ms
+{"level":30,"time":1784701582545,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"143bea20-de9f-48e7-874d-1b624bd22d33","req":{"method":"POST","url":"/orgs/org_85xasvt56ffmrvp8qfi/imports","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582497,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"4eff4ad4-05af-4c82-94bf-7e631858383f","event":"request.completed","requestId":"4eff4ad4-05af-4c82-94bf-7e631858383f","correlationId":"4eff4ad4-05af-4c82-94bf-7e631858383f","userId":"user_gae2zduih0wmrvp8qe5","organizationId":"org_hal4ulymdh5mrvp8qe5","statusCode":202,"durationSeconds":0}
+{"level":30,"time":1784701582497,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"4eff4ad4-05af-4c82-94bf-7e631858383f","res":{"statusCode":202},"responseTime":0.7440840005874634,"msg":"request completed"}
+{"level":30,"time":1784701582546,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"143bea20-de9f-48e7-874d-1b624bd22d33","event":"import.scan","importJobId":"import_z5o1t50ejxqmrvp8qfm","findingCount":1,"kinds":["env-secret"],"msg":"import scan complete"}
+{"level":30,"time":1784701582546,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"143bea20-de9f-48e7-874d-1b624bd22d33","event":"request.completed","requestId":"143bea20-de9f-48e7-874d-1b624bd22d33","correlationId":"143bea20-de9f-48e7-874d-1b624bd22d33","userId":"user_xxs8h3tn26mrvp8qfi","organizationId":"org_85xasvt56ffmrvp8qfi","statusCode":202,"durationSeconds":0.0009999275207519531}
+{"level":30,"time":1784701582546,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"143bea20-de9f-48e7-874d-1b624bd22d33","res":{"statusCode":202},"responseTime":0.6012919992208481,"msg":"request completed"}
+{"level":30,"time":1784701582546,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"dee04d3c-4e83-4136-846d-1fe9d9f52d45","req":{"method":"POST","url":"/orgs/org_85xasvt56ffmrvp8qfi/imports/import_z5o1t50ejxqmrvp8qfm/commit","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582566,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"65399882-735c-4786-9b99-5e9711307d26","req":{"method":"POST","url":"/orgs/org_019y3au79br2mrvp8qg2/imports","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582518,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"c4b8aa90-dfc6-4076-b77e-ca9e622326d6","event":"request.completed","requestId":"c4b8aa90-dfc6-4076-b77e-ca9e622326d6","correlationId":"c4b8aa90-dfc6-4076-b77e-ca9e622326d6","userId":"user_ci48zrbnzawmrvp8qed","organizationId":"org_711kp6xv658mrvp8qed","statusCode":201,"durationSeconds":0.012999773025512695}
+{"level":30,"time":1784701582518,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"c4b8aa90-dfc6-4076-b77e-ca9e622326d6","res":{"statusCode":201},"responseTime":13.811332985758781,"msg":"request completed"}
+{"level":30,"time":1784701582519,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"326235a6-dd73-49cd-b63a-3c117f40e66c","req":{"method":"POST","url":"/orgs/org_711kp6xv658mrvp8qed/imports/import_j6rj1jcm4tmrvp8qeu/cancel","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582519,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"326235a6-dd73-49cd-b63a-3c117f40e66c","event":"request.completed","requestId":"326235a6-dd73-49cd-b63a-3c117f40e66c","correlationId":"326235a6-dd73-49cd-b63a-3c117f40e66c","userId":"user_ci48zrbnzawmrvp8qed","organizationId":"org_711kp6xv658mrvp8qed","statusCode":200,"durationSeconds":0}
+{"level":30,"time":1784701582519,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"326235a6-dd73-49cd-b63a-3c117f40e66c","res":{"statusCode":200},"responseTime":0.44975000619888306,"msg":"request completed"}
+{"level":30,"time":1784701582519,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"2fe04265-0c78-42ed-8b12-505cf03c745f","req":{"method":"GET","url":"/orgs/org_711kp6xv658mrvp8qed/imports/import_j6rj1jcm4tmrvp8qeu","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582520,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"2fe04265-0c78-42ed-8b12-505cf03c745f","event":"request.completed","requestId":"2fe04265-0c78-42ed-8b12-505cf03c745f","correlationId":"2fe04265-0c78-42ed-8b12-505cf03c745f","userId":"user_ci48zrbnzawmrvp8qed","organizationId":"org_711kp6xv658mrvp8qed","statusCode":200,"durationSeconds":0.0009999275207519531}
+{"level":30,"time":1784701582520,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"2fe04265-0c78-42ed-8b12-505cf03c745f","res":{"statusCode":200},"responseTime":0.1885409951210022,"msg":"request completed"}
+{"level":30,"time":1784701582566,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"65399882-735c-4786-9b99-5e9711307d26","event":"import.scan","importJobId":"import_50vtkhrczk3mrvp8qg6","findingCount":0,"kinds":[],"msg":"import scan complete"}
+{"level":30,"time":1784701582591,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"259d1ac3-7359-4043-a4a4-67faf02d595b","req":{"method":"POST","url":"/orgs/org_k6isxvgsuzbmrvp8qgs/imports","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582546,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"dee04d3c-4e83-4136-846d-1fe9d9f52d45","event":"request.completed","requestId":"dee04d3c-4e83-4136-846d-1fe9d9f52d45","correlationId":"dee04d3c-4e83-4136-846d-1fe9d9f52d45","userId":"user_xxs8h3tn26mrvp8qfi","organizationId":"org_85xasvt56ffmrvp8qfi","statusCode":409,"durationSeconds":0}
+{"level":30,"time":1784701582546,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"dee04d3c-4e83-4136-846d-1fe9d9f52d45","res":{"statusCode":409},"responseTime":0.2659580111503601,"msg":"request completed"}
+{"level":30,"time":1784701582597,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"259d1ac3-7359-4043-a4a4-67faf02d595b","event":"import.scan","importJobId":"import_do29sytbrabmrvp8qh1","findingCount":1,"kinds":["env-secret"],"msg":"import scan complete"}
+{"level":30,"time":1784701582597,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"259d1ac3-7359-4043-a4a4-67faf02d595b","event":"request.completed","requestId":"259d1ac3-7359-4043-a4a4-67faf02d595b","correlationId":"259d1ac3-7359-4043-a4a4-67faf02d595b","userId":"user_29gpqrx5kgkmrvp8qgs","organizationId":"org_k6isxvgsuzbmrvp8qgs","statusCode":202,"durationSeconds":0.00599980354309082}
+{"level":30,"time":1784701582597,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"259d1ac3-7359-4043-a4a4-67faf02d595b","res":{"statusCode":202},"responseTime":6.251541003584862,"msg":"request completed"}
+{"level":30,"time":1784701582598,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"106c1d77-e0bf-41b2-88ee-c159d8985b16","req":{"method":"POST","url":"/orgs/org_k6isxvgsuzbmrvp8qgs/imports/import_do29sytbrabmrvp8qh1/commit","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582612,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"9c849db0-e47e-4049-a8e5-d8ee0e017e24","req":{"method":"POST","url":"/orgs/org_tjcn3j2keo9mrvp8qhd/imports","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582566,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"65399882-735c-4786-9b99-5e9711307d26","event":"request.completed","requestId":"65399882-735c-4786-9b99-5e9711307d26","correlationId":"65399882-735c-4786-9b99-5e9711307d26","userId":"user_1uol8dxx3tjmrvp8qg2","organizationId":"org_019y3au79br2mrvp8qg2","statusCode":201,"durationSeconds":0}
+{"level":30,"time":1784701582566,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"65399882-735c-4786-9b99-5e9711307d26","res":{"statusCode":201},"responseTime":0.5963750034570694,"msg":"request completed"}
+{"level":30,"time":1784701582567,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"f93229b1-7164-4511-a37a-f3c8d511a006","req":{"method":"GET","url":"/orgs/org_019y3au79br2mrvp8qg2/imports/import_50vtkhrczk3mrvp8qg6","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582567,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"f93229b1-7164-4511-a37a-f3c8d511a006","event":"request.completed","requestId":"f93229b1-7164-4511-a37a-f3c8d511a006","correlationId":"f93229b1-7164-4511-a37a-f3c8d511a006","userId":"user_1uol8dxx3tjmrvp8qg2","organizationId":"org_019y3au79br2mrvp8qg2","statusCode":200,"durationSeconds":0}
+{"level":30,"time":1784701582567,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"f93229b1-7164-4511-a37a-f3c8d511a006","res":{"statusCode":200},"responseTime":0.17608299851417542,"msg":"request completed"}
+{"level":30,"time":1784701582613,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"9c849db0-e47e-4049-a8e5-d8ee0e017e24","event":"import.scan","importJobId":"import_pnefsqb4r4mrvp8qhh","findingCount":0,"kinds":[],"msg":"import scan complete"}
+{"level":30,"time":1784701582613,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"9c849db0-e47e-4049-a8e5-d8ee0e017e24","event":"request.completed","requestId":"9c849db0-e47e-4049-a8e5-d8ee0e017e24","correlationId":"9c849db0-e47e-4049-a8e5-d8ee0e017e24","userId":"user_urdkibh1sqkmrvp8qhd","organizationId":"org_tjcn3j2keo9mrvp8qhd","statusCode":201,"durationSeconds":0}
+{"level":30,"time":1784701582613,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"9c849db0-e47e-4049-a8e5-d8ee0e017e24","res":{"statusCode":201},"responseTime":0.9365829974412918,"msg":"request completed"}
+{"level":30,"time":1784701582614,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"1be4a7ad-60da-428f-a3ea-92cb516d0991","req":{"method":"POST","url":"/orgs/org_tjcn3j2keo9mrvp8qhd/imports/import_pnefsqb4r4mrvp8qhh/commit","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582653,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"fd2cf176-22da-4cac-aa52-4273e734d45f","req":{"method":"POST","url":"/orgs/org_6ajenmxy9lqmrvp8qih/imports","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582599,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"106c1d77-e0bf-41b2-88ee-c159d8985b16","event":"import.billing.settle","importJobId":"import_do29sytbrabmrvp8qh1","debitedCredits":3,"msg":"import reservation settled"}
+{"level":30,"time":1784701582600,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"106c1d77-e0bf-41b2-88ee-c159d8985b16","event":"request.completed","requestId":"106c1d77-e0bf-41b2-88ee-c159d8985b16","correlationId":"106c1d77-e0bf-41b2-88ee-c159d8985b16","userId":"user_29gpqrx5kgkmrvp8qgs","organizationId":"org_k6isxvgsuzbmrvp8qgs","statusCode":201,"durationSeconds":0.0019998550415039062}
+{"level":30,"time":1784701582600,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"106c1d77-e0bf-41b2-88ee-c159d8985b16","res":{"statusCode":201},"responseTime":1.8692499995231628,"msg":"request completed"}
+{"level":30,"time":1784701582654,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"fd2cf176-22da-4cac-aa52-4273e734d45f","event":"import.scan","importJobId":"import_33wm7mmhupgmrvp8qim","findingCount":1,"kinds":["env-secret"],"msg":"import scan complete"}
+{"level":30,"time":1784701582654,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"fd2cf176-22da-4cac-aa52-4273e734d45f","event":"request.completed","requestId":"fd2cf176-22da-4cac-aa52-4273e734d45f","correlationId":"fd2cf176-22da-4cac-aa52-4273e734d45f","userId":"user_yp7myhb8cssmrvp8qih","organizationId":"org_6ajenmxy9lqmrvp8qih","statusCode":202,"durationSeconds":0.0009999275207519531}
+{"level":30,"time":1784701582654,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"fd2cf176-22da-4cac-aa52-4273e734d45f","res":{"statusCode":202},"responseTime":1.0002499967813492,"msg":"request completed"}
+{"level":30,"time":1784701582655,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"e134eada-9140-4ff7-9484-290a14a5d598","req":{"method":"POST","url":"/orgs/org_6ajenmxy9lqmrvp8qih/imports/import_33wm7mmhupgmrvp8qim/commit","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582679,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"6efc23fb-d0f7-422b-a649-a3dca4882a2f","req":{"method":"POST","url":"/orgs/org_138ub4171eimrvp8qix/imports","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":50,"time":1784701582615,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"1be4a7ad-60da-428f-a3ea-92cb516d0991","err":{"type":"Error","message":"disk exploded","stack":"Error: disk exploded\n    at /private/tmp/claude-501/-Users-hb-dev-vibecore/34b82c73-df9c-4288-b0c3-af17c70198c7/scratchpad/wt-fix2/services/api/src/tests/import-state-machine-e2e.spec.ts:226:78\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at file:///Users/hb/dev/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:752:20"},"route":"/orgs/:orgId/imports/:importJobId/commit","code":"API_ERROR","msg":"request failed with server error"}
+{"level":30,"time":1784701582617,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"1be4a7ad-60da-428f-a3ea-92cb516d0991","event":"request.completed","requestId":"1be4a7ad-60da-428f-a3ea-92cb516d0991","correlationId":"1be4a7ad-60da-428f-a3ea-92cb516d0991","userId":"user_urdkibh1sqkmrvp8qhd","organizationId":"org_tjcn3j2keo9mrvp8qhd","statusCode":500,"durationSeconds":0.003000020980834961}
+{"level":30,"time":1784701582617,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"1be4a7ad-60da-428f-a3ea-92cb516d0991","res":{"statusCode":500},"responseTime":2.8729159981012344,"msg":"request completed"}
+{"level":30,"time":1784701582617,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"5f1292a4-5452-4517-8ff0-adab4f69d2e8","req":{"method":"GET","url":"/orgs/org_tjcn3j2keo9mrvp8qhd/imports/import_pnefsqb4r4mrvp8qhh","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582618,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"5f1292a4-5452-4517-8ff0-adab4f69d2e8","event":"request.completed","requestId":"5f1292a4-5452-4517-8ff0-adab4f69d2e8","correlationId":"5f1292a4-5452-4517-8ff0-adab4f69d2e8","userId":"user_urdkibh1sqkmrvp8qhd","organizationId":"org_tjcn3j2keo9mrvp8qhd","statusCode":200,"durationSeconds":0.0009999275207519531}
+{"level":30,"time":1784701582618,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"5f1292a4-5452-4517-8ff0-adab4f69d2e8","res":{"statusCode":200},"responseTime":0.23879198729991913,"msg":"request completed"}
+{"level":30,"time":1784701582680,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"6efc23fb-d0f7-422b-a649-a3dca4882a2f","event":"import.scan","importJobId":"import_nrv53mkk7bcmrvp8qjc","findingCount":0,"kinds":[],"msg":"import scan complete"}
+{"level":30,"time":1784701582680,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"6efc23fb-d0f7-422b-a649-a3dca4882a2f","event":"request.completed","requestId":"6efc23fb-d0f7-422b-a649-a3dca4882a2f","correlationId":"6efc23fb-d0f7-422b-a649-a3dca4882a2f","userId":"user_qig67p1f72smrvp8qix","organizationId":"org_138ub4171eimrvp8qix","statusCode":201,"durationSeconds":0.0010001659393310547}
+{"level":30,"time":1784701582680,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"6efc23fb-d0f7-422b-a649-a3dca4882a2f","res":{"statusCode":201},"responseTime":1.3046659976243973,"msg":"request completed"}
+{"level":30,"time":1784701582681,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"719c2ae3-b0f8-4350-9ecd-3f1571fdb91f","req":{"method":"POST","url":"/orgs/org_138ub4171eimrvp8qix/imports","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582681,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"719c2ae3-b0f8-4350-9ecd-3f1571fdb91f","event":"request.completed","requestId":"719c2ae3-b0f8-4350-9ecd-3f1571fdb91f","correlationId":"719c2ae3-b0f8-4350-9ecd-3f1571fdb91f","userId":"user_qig67p1f72smrvp8qix","organizationId":"org_138ub4171eimrvp8qix","statusCode":200,"durationSeconds":0}
+{"level":30,"time":1784701582681,"pid":85729,"hostname":"MacBook-Pro-de-HB.local","reqId":"719c2ae3-b0f8-4350-9ecd-3f1571fdb91f","res":{"statusCode":200},"responseTime":0.2851250022649765,"msg":"request completed"}
+ ✓ src/tests/import-state-machine-e2e.spec.ts (7 tests) 610ms
+{"level":30,"time":1784701582708,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"9b942e38-79d5-45e2-9fde-435b9dfae24f","req":{"method":"POST","url":"/orgs/org_yq2uk07gozsmrvp8qjz/imports","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582655,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"e134eada-9140-4ff7-9484-290a14a5d598","event":"import.billing.settle","importJobId":"import_33wm7mmhupgmrvp8qim","debitedCredits":3,"msg":"import reservation settled"}
+{"level":30,"time":1784701582655,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"e134eada-9140-4ff7-9484-290a14a5d598","event":"request.completed","requestId":"e134eada-9140-4ff7-9484-290a14a5d598","correlationId":"e134eada-9140-4ff7-9484-290a14a5d598","userId":"user_yp7myhb8cssmrvp8qih","organizationId":"org_6ajenmxy9lqmrvp8qih","statusCode":201,"durationSeconds":0}
+{"level":30,"time":1784701582655,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"e134eada-9140-4ff7-9484-290a14a5d598","res":{"statusCode":201},"responseTime":0.4780000001192093,"msg":"request completed"}
+{"level":30,"time":1784701582709,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"9b942e38-79d5-45e2-9fde-435b9dfae24f","event":"import.scan","importJobId":"import_2ggwwa4whuhmrvp8qk5","findingCount":0,"kinds":[],"msg":"import scan complete"}
+{"level":30,"time":1784701582710,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"9b942e38-79d5-45e2-9fde-435b9dfae24f","event":"request.completed","requestId":"9b942e38-79d5-45e2-9fde-435b9dfae24f","correlationId":"9b942e38-79d5-45e2-9fde-435b9dfae24f","userId":"user_hkch032s1unmrvp8qjz","organizationId":"org_yq2uk07gozsmrvp8qjz","statusCode":201,"durationSeconds":0.002000093460083008}
+{"level":30,"time":1784701582710,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"9b942e38-79d5-45e2-9fde-435b9dfae24f","res":{"statusCode":201},"responseTime":1.7689160108566284,"msg":"request completed"}
+{"level":30,"time":1784701582711,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"eec0ef1c-56c6-44be-a8f4-05795f851b48","req":{"method":"POST","url":"/orgs/org_yq2uk07gozsmrvp8qjz/imports/import_2ggwwa4whuhmrvp8qk5/commit","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":50,"time":1784701582712,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"eec0ef1c-56c6-44be-a8f4-05795f851b48","err":{"type":"Error","message":"disk exploded","stack":"Error: disk exploded\n    at /private/tmp/claude-501/-Users-hb-dev-vibecore/34b82c73-df9c-4288-b0c3-af17c70198c7/scratchpad/wt-fix2/services/api/src/tests/import-routes.spec.ts:324:78\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at file:///Users/hb/dev/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:752:20"},"route":"/orgs/:orgId/imports/:importJobId/commit","code":"API_ERROR","msg":"request failed with server error"}
+{"level":30,"time":1784701582717,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"eec0ef1c-56c6-44be-a8f4-05795f851b48","event":"request.completed","requestId":"eec0ef1c-56c6-44be-a8f4-05795f851b48","correlationId":"eec0ef1c-56c6-44be-a8f4-05795f851b48","userId":"user_hkch032s1unmrvp8qjz","organizationId":"org_yq2uk07gozsmrvp8qjz","statusCode":500,"durationSeconds":0.006000041961669922}
+{"level":30,"time":1784701582717,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"eec0ef1c-56c6-44be-a8f4-05795f851b48","res":{"statusCode":500},"responseTime":5.839041993021965,"msg":"request completed"}
+{"level":30,"time":1784701582812,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"614e52da-2aec-416b-b579-4a9d5e8bf495","req":{"method":"POST","url":"/orgs/org_824yevodx58mrvp8qmw/imports","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582812,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"3dc7e99a-e4fc-4ac5-99f8-80706d149f42","req":{"method":"POST","url":"/orgs/org_824yevodx58mrvp8qmw/imports","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582852,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"f5d9b059-bdeb-424a-bbfe-01329c571e0a","req":{"method":"POST","url":"/orgs/org_y3sxhxdqhppmrvp8qo1/imports","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582812,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"614e52da-2aec-416b-b579-4a9d5e8bf495","event":"import.scan","importJobId":"import_fat6j8a46mfmrvp8qn0","findingCount":0,"kinds":[],"msg":"import scan complete"}
+{"level":30,"time":1784701582812,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"614e52da-2aec-416b-b579-4a9d5e8bf495","event":"request.completed","requestId":"614e52da-2aec-416b-b579-4a9d5e8bf495","correlationId":"614e52da-2aec-416b-b579-4a9d5e8bf495","userId":"user_zjknb4z19bamrvp8qmw","organizationId":"org_824yevodx58mrvp8qmw","statusCode":201,"durationSeconds":0}
+{"level":30,"time":1784701582812,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"614e52da-2aec-416b-b579-4a9d5e8bf495","res":{"statusCode":201},"responseTime":0.595333993434906,"msg":"request completed"}
+{"level":30,"time":1784701582812,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"3dc7e99a-e4fc-4ac5-99f8-80706d149f42","event":"request.completed","requestId":"3dc7e99a-e4fc-4ac5-99f8-80706d149f42","correlationId":"3dc7e99a-e4fc-4ac5-99f8-80706d149f42","userId":"user_zjknb4z19bamrvp8qmw","organizationId":"org_824yevodx58mrvp8qmw","statusCode":200,"durationSeconds":0}
+{"level":30,"time":1784701582812,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"3dc7e99a-e4fc-4ac5-99f8-80706d149f42","res":{"statusCode":200},"responseTime":0.6903330087661743,"msg":"request completed"}
+{"level":30,"time":1784701582853,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"f5d9b059-bdeb-424a-bbfe-01329c571e0a","event":"import.scan","importJobId":"import_1tuekyr95f1mrvp8qo5","findingCount":0,"kinds":[],"msg":"import scan complete"}
+{"level":30,"time":1784701582853,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"f5d9b059-bdeb-424a-bbfe-01329c571e0a","event":"request.completed","requestId":"f5d9b059-bdeb-424a-bbfe-01329c571e0a","correlationId":"f5d9b059-bdeb-424a-bbfe-01329c571e0a","userId":"user_1hklq8ln8lomrvp8qo1","organizationId":"org_y3sxhxdqhppmrvp8qo1","statusCode":201,"durationSeconds":0.0009999275207519531}
+{"level":30,"time":1784701582853,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"f5d9b059-bdeb-424a-bbfe-01329c571e0a","res":{"statusCode":201},"responseTime":0.5289169996976852,"msg":"request completed"}
+{"level":30,"time":1784701582853,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"0a5036ba-6139-4ffb-aaa9-f4799883aff8","req":{"method":"POST","url":"/orgs/org_y3sxhxdqhppmrvp8qo1/imports","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582903,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"7ecd636e-e047-462e-a2d0-1f62cedfb4fe","req":{"method":"POST","url":"/orgs/org_7fa0nu7fhh4mrvp8qpg/imports","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582853,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"0a5036ba-6139-4ffb-aaa9-f4799883aff8","event":"request.completed","requestId":"0a5036ba-6139-4ffb-aaa9-f4799883aff8","correlationId":"0a5036ba-6139-4ffb-aaa9-f4799883aff8","userId":"user_1hklq8ln8lomrvp8qo1","organizationId":"org_y3sxhxdqhppmrvp8qo1","statusCode":200,"durationSeconds":0}
+{"level":30,"time":1784701582853,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"0a5036ba-6139-4ffb-aaa9-f4799883aff8","res":{"statusCode":200},"responseTime":0.1958329975605011,"msg":"request completed"}
+{"level":30,"time":1784701582903,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"7ecd636e-e047-462e-a2d0-1f62cedfb4fe","event":"import.scan","importJobId":"import_v1g4cvl699lmrvp8qpj","findingCount":0,"kinds":[],"msg":"import scan complete"}
+{"level":30,"time":1784701582903,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"7ecd636e-e047-462e-a2d0-1f62cedfb4fe","event":"request.completed","requestId":"7ecd636e-e047-462e-a2d0-1f62cedfb4fe","correlationId":"7ecd636e-e047-462e-a2d0-1f62cedfb4fe","userId":"user_3kihz6z6fofmrvp8qpg","organizationId":"org_7fa0nu7fhh4mrvp8qpg","statusCode":201,"durationSeconds":0}
+{"level":30,"time":1784701582903,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"7ecd636e-e047-462e-a2d0-1f62cedfb4fe","res":{"statusCode":201},"responseTime":0.5195840001106262,"msg":"request completed"}
+{"level":30,"time":1784701582903,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"ed09c3d5-195f-44d6-b753-19ff05f00bf7","req":{"method":"POST","url":"/orgs/org_7fa0nu7fhh4mrvp8qpg/imports/import_v1g4cvl699lmrvp8qpj/commit","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784701582967,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"40f1dbf5-4e6f-47ab-bd5a-dc747d8375a6","req":{"method":"POST","url":"/orgs/org_stq9cmwxlfmrvp8qr7/imports","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":50,"time":1784701582904,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"ed09c3d5-195f-44d6-b753-19ff05f00bf7","err":{"type":"Error","message":"billing backend down","stack":"Error: billing backend down\n    at Object.settleByJob (/private/tmp/claude-501/-Users-hb-dev-vibecore/34b82c73-df9c-4288-b0c3-af17c70198c7/scratchpad/wt-fix2/services/api/src/tests/import-routes.spec.ts:448:15)\n    at Object.<anonymous> (/private/tmp/claude-501/-Users-hb-dev-vibecore/34b82c73-df9c-4288-b0c3-af17c70198c7/scratchpad/wt-fix2/services/api/src/app.ts:18643:38)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)"},"route":"/orgs/:orgId/imports/:importJobId/commit","code":"API_ERROR","msg":"request failed with server error"}
+{"level":30,"time":1784701582922,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"ed09c3d5-195f-44d6-b753-19ff05f00bf7","event":"request.completed","requestId":"ed09c3d5-195f-44d6-b753-19ff05f00bf7","correlationId":"ed09c3d5-195f-44d6-b753-19ff05f00bf7","userId":"user_3kihz6z6fofmrvp8qpg","organizationId":"org_7fa0nu7fhh4mrvp8qpg","statusCode":500,"durationSeconds":0.018999814987182617}
+{"level":30,"time":1784701582922,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"ed09c3d5-195f-44d6-b753-19ff05f00bf7","res":{"statusCode":500},"responseTime":18.58449999988079,"msg":"request completed"}
+{"level":30,"time":1784701582968,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"40f1dbf5-4e6f-47ab-bd5a-dc747d8375a6","event":"import.scan","importJobId":"import_lcql0m7jwnkmrvp8qrc","findingCount":0,"kinds":[],"msg":"import scan complete"}
+{"level":30,"time":1784701582968,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"40f1dbf5-4e6f-47ab-bd5a-dc747d8375a6","event":"request.completed","requestId":"40f1dbf5-4e6f-47ab-bd5a-dc747d8375a6","correlationId":"40f1dbf5-4e6f-47ab-bd5a-dc747d8375a6","userId":"user_z7jetq532bmrvp8qr7","organizationId":"org_stq9cmwxlfmrvp8qr7","statusCode":201,"durationSeconds":0.0009999275207519531}
+{"level":30,"time":1784701582968,"pid":85727,"hostname":"MacBook-Pro-de-HB.local","reqId":"40f1dbf5-4e6f-47ab-bd5a-dc747d8375a6","res":{"statusCode":201},"responseTime":0.9449580013751984,"msg":"request completed"}
+ ✓ src/tests/import-routes.spec.ts (13 tests) 896ms
+
+ Test Files  10 passed (10)
+      Tests  102 passed (102)
+   Start at  09:26:19
+   Duration  3.74s (transform 1.75s, setup 0ms, collect 9.47s, tests 5.01s, environment 1ms, prepare 785ms)
+
+== vitest exit: 0

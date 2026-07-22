@@ -49,7 +49,7 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: BILLING_LEDGER_CONTRACT.md
-    sha256: "f1e877ab264ad8a3c967b2fb3f95f6ec1efe3ba8918580ce885e72b092331755"
+    sha256: "12893bbb6a3c447b5a88bd17cdf86481ed1f0e1d16314fb6b17ae823f8122bbd"
     schemaVersion: 2
     repoCommit: 1692f981
     reviewer: UNKNOWN
@@ -189,7 +189,7 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: IMPORT_REMIX_CONTRACT.md
-    sha256: "763de490e003df7ee03b2528d4508ecb5fff7577d13413dc0b7e14cd6f7713e6"
+    sha256: "49a32ac9331d2b9d42752042e39515c5e8c2c541015327dd734f2fbd5ec3fca7"
     schemaVersion: 2
     repoCommit: 1692f981
     reviewer: UNKNOWN

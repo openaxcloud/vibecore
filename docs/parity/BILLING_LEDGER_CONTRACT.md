@@ -102,9 +102,18 @@ prod actuel : SHADOW). MODEL_REGISTRY_DB dormant.
   non mergée (elle l'est) ; COMMITTED avant le post du settlement ; hard limit
   non sérialisé ; pas de validation organisation/devise des comptes ; taxMinor
   de compensation refourni par l'appelant.
-- v3 (ce document) : **PENDING_REVIEW** — les 5 motifs sont traités : ancre à
-  jour (PR #28 mergée + PR de correction fix/billing-ledger-concurrency), les 4
-  défauts de code corrigés avec preuves contre vrai Postgres rejouables
-  (`ledger-store-db.spec.ts`, `import-billing-db.spec.ts` B1-B4). La signature
-  exige le merge de la PR de correction + un reçu de revue COMPLET. Rien
+- v3 : REFUSED (réponse expert sur PR #39) — 1 défaut réel : sous hard limit,
+  deux retries idempotents concurrents peuvent tous deux manquer la
+  pré-vérification ; le second acquiert le verrou, compte le hold du premier
+  comme consommation nouvelle et lève `LEDGER_HARD_LIMIT` avant le rejeu
+  P2002 — un retry idempotent refusé à tort.
+- v4 (ce document) : **PENDING_REVIEW** — correction : `reserveUsage`
+  re-vérifie `(organizationId, idempotencyKey)` immédiatement APRÈS
+  l'acquisition du verrou FOR UPDATE et AVANT tout calcul de plafond — sous le
+  verrou, la ligne du gagnant est visible et le perdant REJOUE au lieu d'être
+  refusé. Preuve PG C1 (#39) : 2 retries concurrents même clé, limite 100,
+  hold 70 → zéro `LEDGER_HARD_LIMIT`, un `created:true` + un rejeu, 1 seule
+  réservation. Logs bruts committés
+  (`docs/deploy-evidence/2026-07-21-billing-fix-forward/test-runs-raw.txt`).
+  Signature = merge de la PR de correction + reçu de revue COMPLET. Rien
   d'auto-clôturé (PROVEN_REVIEW_PENDING).

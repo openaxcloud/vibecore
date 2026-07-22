@@ -368,3 +368,163 @@ runDbTests(
     });
   },
 );
+
+runDbTests(
+  'PR #39 fix-forward — orphan recovery, target compensation, idempotent retry under cap (real Postgres)',
+  () => {
+    it('C1 — EXPERT #39-3: two concurrent retries of the SAME key under a hard limit → both succeed, no false LEDGER_HARD_LIMIT', async () => {
+      const prismaA = createDatabaseClient();
+      const prismaB = createDatabaseClient();
+
+      try {
+        const org = uniqueOrg('c1');
+        const storeA = new LedgerStore(prismaA);
+        const storeB = new LedgerStore(prismaB);
+
+        /*
+         * Limit 100, hold 70: a SECOND hold would breach — but these two calls
+         * are the SAME logical operation (idempotent retry), so both must pass.
+         */
+        const results = await Promise.allSettled([
+          storeA.reserveUsage({
+            organizationId: org,
+            idempotencyKey: 'retry-under-cap',
+            operation: 'import',
+            maxAmountMinor: 70n,
+            expiresAt: HOUR(),
+            hardLimitMinor: 100n,
+          }),
+          storeB.reserveUsage({
+            organizationId: org,
+            idempotencyKey: 'retry-under-cap',
+            operation: 'import',
+            maxAmountMinor: 70n,
+            expiresAt: HOUR(),
+            hardLimitMinor: 100n,
+          }),
+        ]);
+
+        // NO rejection: the post-lock re-check turns the loser into a replay.
+        const rejected = results.filter((r) => r.status === 'rejected');
+        expect(rejected).toHaveLength(0);
+
+        const fulfilled = results.filter(
+          (r): r is PromiseFulfilledResult<{ id: string; status: string; created: boolean }> =>
+            r.status === 'fulfilled',
+        );
+        expect(fulfilled.map((r) => r.value.created).sort()).toEqual([false, true]);
+        expect(new Set(fulfilled.map((r) => r.value.id)).size).toBe(1); // same hold
+
+        expect(await prismaA.ledgerReservation.count({ where: { organizationId: org } })).toBe(1);
+      } finally {
+        await prismaA.$disconnect();
+        await prismaB.$disconnect();
+      }
+    });
+
+    it('A1 — EXPERT #39-1: an EXPIRED never-attached reservation is REVIVED by a retry of the same key (no eternal IMPORT_CREATE_IN_PROGRESS)', async () => {
+      const prisma = createDatabaseClient();
+
+      try {
+        const org = uniqueOrg('rev1');
+        const ledger = new DurableImportCreditLedger(prisma);
+        const store = new LedgerStore(prisma);
+
+        // Crash between reserve() and attachJob(): reserved, never attached.
+        const first = await ledger.reserve({ organizationId: org, key: 'orphan-key', reservedCredits: 5 });
+        expect(first.created).toBe(true);
+
+        // The timeout sweep releases the dead hold (expiry recovery, step 1).
+        const future = new Date(Date.now() + 2 * 3600_000).toISOString();
+        const reaped = await store.reapExpiredReservations(future);
+        expect(reaped.length).toBeGreaterThanOrEqual(1);
+
+        const dead = await prisma.ledgerReservation.findUniqueOrThrow({
+          where: { organizationId_idempotencyKey: { organizationId: org, idempotencyKey: 'orphan-key' } },
+        });
+        expect(dead.status).toBe('EXPIRED');
+        expect(dead.importJobId).toBeNull();
+
+        // The retry with the SAME key proceeds as creator (reprise, step 2)…
+        const retry = await ledger.reserve({ organizationId: org, key: 'orphan-key', reservedCredits: 5 });
+        expect(retry.created).toBe(true);
+        expect(retry.reservation.state).toBe('RESERVED');
+
+        // …and the revived hold attaches + settles normally.
+        expect(await ledger.attachJob(org, 'orphan-key', 'job-revived')).toBe('attached');
+
+        const settled = await ledger.settleByJob(org, 'job-revived', true, 5);
+        expect(settled.debitedCredits).toBe(5);
+
+        /*
+         * Money conservation across reserve→release→revive→settle: the reserved
+         * account nets to zero once the revived hold is consumed.
+         */
+        const entries = await prisma.ledgerEntry.findMany({
+          where: { account: { organizationId: org, key: 'reserved' } },
+          select: { direction: true, amountMinor: true },
+        });
+
+        let net = 0n;
+
+        for (const e of entries) {
+          net += e.direction === 'DEBIT' ? e.amountMinor : -e.amountMinor;
+        }
+        expect(net).toBe(0n);
+      } finally {
+        await prisma.$disconnect();
+      }
+    });
+
+    it('A2 — a stale-ACTIVE never-attached hold (sweeper not yet passed) is revived by expiry extension, without double-posting the hold', async () => {
+      const prisma = createDatabaseClient();
+
+      try {
+        const org = uniqueOrg('rev2');
+        const store = new LedgerStore(prisma);
+        const ledger = new DurableImportCreditLedger(prisma);
+
+        // Reserve with an ALREADY-PAST expiry, never attached (simulated crash).
+        await store.reserveUsage({
+          organizationId: org,
+          idempotencyKey: 'stale-key',
+          operation: 'import',
+          maxAmountMinor: 5n,
+          expiresAt: new Date(Date.now() - 60_000).toISOString(),
+        });
+
+        const retry = await ledger.reserve({ organizationId: org, key: 'stale-key', reservedCredits: 5 });
+        expect(retry.created).toBe(true); // revived as creator
+
+        // Exactly ONE reserve posting — the extension did not double the hold.
+        const reserveTxs = await prisma.ledgerTransaction.count({
+          where: { organizationId: org, reason: { in: ['reservation.reserve', 'reservation.revive'] } },
+        });
+        expect(reserveTxs).toBe(1);
+      } finally {
+        await prisma.$disconnect();
+      }
+    });
+
+    it('A3 — a LIVE unattached hold is NOT revivable (no second creator can fork)', async () => {
+      const prisma = createDatabaseClient();
+
+      try {
+        const org = uniqueOrg('rev3');
+        const ledger = new DurableImportCreditLedger(prisma);
+
+        const first = await ledger.reserve({ organizationId: org, key: 'live-key', reservedCredits: 5 });
+        expect(first.created).toBe(true);
+
+        /*
+         * Concurrent second request, winner not yet attached: must be a REPLAY,
+         * never a revival — otherwise two creators would fork two jobs.
+         */
+        const second = await ledger.reserve({ organizationId: org, key: 'live-key', reservedCredits: 5 });
+        expect(second.created).toBe(false);
+      } finally {
+        await prisma.$disconnect();
+      }
+    });
+  },
+);

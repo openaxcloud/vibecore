@@ -218,6 +218,23 @@ export class ImportCreditLedger implements ImportBillingLedger {
     const composite = ImportCreditLedger.composite(input.organizationId, input.key);
     const existing = this.byOrgKey.get(composite);
 
+    /*
+     * ORPHAN RECOVERY parity with the durable backend (expert #39-1): a dead
+     * hold (released) that never got a job may be re-armed by a retry of the
+     * same key — the retry proceeds as creator instead of spinning forever.
+     */
+    if (existing && existing.state === 'COMPENSATED' && !existing.importJobId) {
+      const revived = reserveReservation(undefined, {
+        key: input.key,
+        organizationId: input.organizationId,
+        importJobId: '',
+        reservedCredits: input.reservedCredits,
+      });
+      this.byOrgKey.set(composite, revived);
+
+      return { reservation: revived, created: true };
+    }
+
     if (existing) {
       return { reservation: existing, created: false };
     }
