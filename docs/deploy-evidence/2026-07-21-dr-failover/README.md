@@ -53,3 +53,24 @@ consécutifs. Contre-vérification par la source d'autorité (uptime check GCP,
 6 régions de sonde) sur 08:10→08:20 : **276/276 True**. Conclusion : blips
 réseau du poste d'observation, pas de l'API. La fenêtre du drill lui-même
 (07:55→08:00) est à 100 % de 200 sur les DEUX sources.
+
+## Addendum 2026-07-22 — sort des logs bruts de sonde (réserve expert n°5)
+
+Les 3 logs 1 Hz (`probe-write.log`, `probe-read.log`, `probe-health.log`)
+n'ont JAMAIS atteint l'arbre git : le `.gitignore` racine (`*.log`) les a
+silencieusement exclus du `git add`, et les copies locales ont été perdues à
+la purge du poste de travail. Ils sont **PERDUS** — dit ici plutôt que
+maquillé. Ce qui reste et fait foi :
+
+- les fenêtres et compteurs de ce README, calculés au moment de l'analyse
+  (extraits bruts des logs cités dans la timeline) ;
+- la corroboration AUTORITAIRE côté GCP (`gcloud-sql-operations.txt`, ajouté
+  ce jour — irrécusable et re-tirable à tout moment) :
+  `FAILOVER 2026-07-21T07:55:41.633 → 07:56:13.306` et
+  `FAILOVER 2026-07-21T07:58:25.160 → 07:58:49.794` — mes fenêtres d'écriture
+  mesurées (07:55:42→07:56:06 ; 07:58:26→07:58:42) tombent STRICTEMENT dans
+  ces bornes ;
+- les scripts de sonde complets (repro) dans ce README.
+
+Cause racine corrigée : exception `!docs/deploy-evidence/**/*.log` ajoutée au
+`.gitignore`. Le prochain drill (calendrier annuel) commitera ses logs bruts.
