@@ -2,7 +2,7 @@ import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
 import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
-import type { PurgeUserAccountResult } from './account-purge.js';
+import type { PurgeStorageDeps, PurgeUserAccountResult } from './account-purge.js';
 
 export interface UserRecord {
   id: string;
@@ -1264,7 +1264,7 @@ export interface ApiStore {
    * Returns the persisted-shape erasure proof (per class: deleted/anonymized/
    * retained counts + post-purge 0-rows verification) on success.
    */
-  purgeUserAccount(input: { userId: string; nowMs?: number }): Promise<PurgeUserAccountResult>;
+  purgeUserAccount(input: { userId: string; nowMs?: number }, deps?: PurgeStorageDeps): Promise<PurgeUserAccountResult>;
   findUserByEmail(email: string): Promise<UserRecord | undefined>;
   findUserById(id: string): Promise<UserRecord | undefined>;
   /**

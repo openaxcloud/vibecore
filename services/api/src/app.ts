@@ -175,6 +175,8 @@ import {
   reportUsagePaygUsage,
   settleCheckpoint,
 } from './credits-service.js';
+import type { PurgeClassReport } from './account-purge.js';
+import { eraseProjectsStorage, type WorkspaceVolumeErasurePort } from './account-storage-purge.js';
 import {
   DELETION_GRACE_PERIOD_DAYS,
   canCancelDeletion,
@@ -478,6 +480,16 @@ export interface ApiAppOptions {
 
   /** Override the per-project object storage backend (tests inject a fake). */
   objectStorage?: ObjectStorage;
+
+  /**
+   * Physical-erasure hook for account purge (§16.12). Defaults to erasing real
+   * GCS buckets + workspace PVCs via `eraseProjectsStorage`; tests inject a fake
+   * to exercise the fail-closed gate without live GCS / workspace-manager.
+   */
+  accountStoragePurger?: (
+    projectIds: string[],
+    userId: string,
+  ) => Promise<{ classes: PurgeClassReport[]; verified: boolean }>;
 
   /** Injectable for tests; defaults to an env-configured (inert-unless-set) capturer. */
   thumbnailCapturer?: ThumbnailCapturer;
@@ -7009,6 +7021,60 @@ async function writeReleaseManifest(
   } catch (error) {
     logger.warn({ err: error, deploymentId: deployment.id }, 'release_manifest.append_failed');
   }
+}
+
+/*
+ * Workspace-volume eraser for account purge (§16.12 physical erasure): deletes a
+ * workspace's Pod+PVC+Service+Secret via workspace-manager and verifies it is
+ * gone. The API pod has no Kubernetes access of its own — only workspace-manager
+ * does — so PVC deletion necessarily goes through it. `workspaceExists` treats a
+ * 404 or a DELETED row as "gone" (verified erased).
+ */
+function createWorkspaceVolumeEraser(): WorkspaceVolumeErasurePort {
+  const authHeaders = () => {
+    const secret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
+
+    return {
+      accept: 'application/json',
+      ...(secret ? { authorization: `Bearer ${secret}` } : {}),
+    };
+  };
+
+  return {
+    async workspaceExists(workspaceId: string) {
+      const response = await fetch(`${workspaceManagerUrl()}/workspaces/${encodeURIComponent(workspaceId)}`, {
+        headers: authHeaders(),
+        signal: AbortSignal.timeout(15_000),
+      });
+
+      if (response.status === 404) {
+        return false;
+      }
+
+      if (!response.ok) {
+        throw new Error(`workspace status lookup failed: ${response.status}`);
+      }
+
+      const workspace = (await response.json().catch(() => null)) as { status?: string } | null;
+
+      // A DELETED row means the Pod/PVC delete already ran — count it as gone.
+      return Boolean(workspace) && workspace!.status !== 'DELETED';
+    },
+
+    async deleteWorkspace(workspaceId: string) {
+      const response = await fetch(`${workspaceManagerUrl()}/workspaces/${encodeURIComponent(workspaceId)}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+        signal: AbortSignal.timeout(60_000),
+      });
+
+      // 404 = already gone (idempotent). Anything else non-2xx is a real failure
+      // → the caller re-counts, finds the volume present, and fails closed.
+      if (!response.ok && response.status !== 404) {
+        throw new Error(`workspace delete failed: ${response.status}`);
+      }
+    },
+  };
 }
 
 /*
@@ -29540,7 +29606,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       try {
-        const result = await store.purgeUserAccount({ userId, nowMs });
+        const result = await store.purgeUserAccount(
+          { userId, nowMs },
+          {
+            /*
+             * Physical-erasure gate (§16.12): erase the account's GCS buckets +
+             * workspace PVCs and prove 0 remaining BEFORE the DB tombstone is
+             * stamped. A failure throws → the account stays queued and is retried
+             * → an account is never marked purged with storage still on disk.
+             */
+            eraseStorage: (projectIds) =>
+              options.accountStoragePurger
+                ? options.accountStoragePurger(projectIds, userId)
+                : eraseProjectsStorage(projectIds, {
+                    objectStorage: resolveObjectStorage(),
+                    workspaceVolumes: createWorkspaceVolumeEraser(),
+                    workspaceIdFor: (projectId) => runtimeWorkspaceId(projectId, userId),
+                    log: app.log as unknown as { warn(o: unknown, m?: string): void },
+                  }),
+          },
+        );
 
         if (result.outcome === 'purged') {
           purged += 1;

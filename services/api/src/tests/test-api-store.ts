@@ -7,6 +7,7 @@ import {
   anonymizedOrgSlug,
   buildErasureProof,
   type PurgeClassReport,
+  type PurgeStorageDeps,
   type PurgeUserAccountResult,
 } from '../account-purge.js';
 import { deletionStatus, purgeDueAtMs, FINANCIAL_RETENTION_DAYS } from '../data-deletion.js';
@@ -326,7 +327,10 @@ export class TestApiStore implements ApiStore {
    * the single-threaded test runtime observe exactly-once purge semantics like
    * the advisory-locked Postgres implementation.
    */
-  async purgeUserAccount(input: { userId: string; nowMs?: number }): Promise<PurgeUserAccountResult> {
+  async purgeUserAccount(
+    input: { userId: string; nowMs?: number },
+    deps?: PurgeStorageDeps,
+  ): Promise<PurgeUserAccountResult> {
     const { userId } = input;
     const nowMs = Number.isFinite(input.nowMs) ? (input.nowMs as number) : Date.now();
     const nowIso = new Date(nowMs).toISOString();
@@ -375,6 +379,31 @@ export class TestApiStore implements ApiStore {
       (orgId) => [...this.memberships.values()].filter((m) => m.organizationId === orgId).length === 1,
     );
     const sharedOrgIds = orgIds.filter((orgId) => !soleOrgIds.includes(orgId));
+
+    /*
+     * PHYSICAL ERASURE GATE (mirror of PrismaApiStore): erase the sole-org
+     * projects' storage BEFORE any DB row is deleted. FAIL-CLOSED — if it can't
+     * be proven erased, release the just-claimed tombstone (so a retry can
+     * re-attempt) and throw before any destructive DB mutation.
+     */
+    let physicalClasses: PurgeClassReport[] = [];
+
+    if (deps?.eraseStorage) {
+      const purgeableProjectIds = [...this.projects.values()]
+        .filter((p) => soleOrgIds.includes(p.organizationId))
+        .map((p) => p.id);
+      const erasure = await deps.eraseStorage(purgeableProjectIds);
+
+      if (!erasure.verified) {
+        user.preferences = { accountDeletion: { requestedAt } };
+        throw new Error(
+          `ACCOUNT_PURGE_PHYSICAL_INCOMPLETE: physical storage not fully erased for ${userId} ` +
+            `(${erasure.classes.map((c) => `${c.dataClass}=${c.remainingAfterPurge ?? 0}`).join(', ')})`,
+        );
+      }
+
+      physicalClasses = erasure.classes;
+    }
 
     const deleteWhere = <T>(map: Map<string, T>, match: (row: T) => boolean): number => {
       let count = 0;
@@ -683,6 +712,8 @@ export class TestApiStore implements ApiStore {
           .join(', ')}`,
       );
     }
+
+    classes.push(...physicalClasses);
 
     const proof = buildErasureProof({ userId, requestedAt, purgedAt: nowIso, classes });
 

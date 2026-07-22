@@ -56,6 +56,19 @@ export interface ErasureProof {
   verifiedZeroRemaining: boolean;
 }
 
+/**
+ * Optional physical-erasure hook passed into purgeUserAccount. It erases the
+ * given projects' out-of-database storage (GCS buckets + workspace PVCs) and
+ * reports the auditable classes + whether every one re-counted to 0 remaining.
+ * FAIL-CLOSED contract: when it returns `verified: false`, the purge MUST NOT
+ * stamp the account `purged` (throws / rolls back), so an account is only ever
+ * marked erased once BOTH its rows and its physical storage are proven gone.
+ * Omitted → DB-only purge (unit tests of the row layer).
+ */
+export interface PurgeStorageDeps {
+  eraseStorage?: (projectIds: string[]) => Promise<{ classes: PurgeClassReport[]; verified: boolean }>;
+}
+
 /** Outcome of one purgeUserAccount attempt (store layer). */
 export type PurgeUserAccountResult =
   | { outcome: 'purged'; proof: ErasureProof }

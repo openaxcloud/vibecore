@@ -10,6 +10,7 @@ import {
   anonymizedOrgSlug,
   buildErasureProof,
   type PurgeClassReport,
+  type PurgeStorageDeps,
   type PurgeUserAccountResult,
 } from './account-purge.js';
 import { deletionStatus, purgeDueAtMs, FINANCIAL_RETENTION_DAYS } from './data-deletion.js';
@@ -419,10 +420,88 @@ export class PrismaApiStore implements ApiStore {
    * place, never deleted. Any non-zero post-purge recount throws, rolling the
    * transaction back so a half-purge can never be reported as done.
    */
-  async purgeUserAccount(input: { userId: string; nowMs?: number }): Promise<PurgeUserAccountResult> {
+  /**
+   * The projects the purge will delete = those in the user's SOLE-member orgs
+   * (shared orgs belong to other members and are retained). Resolved as plain
+   * reads so the pre-transaction physical-erasure step knows which buckets/PVCs
+   * to erase; the purge tx recomputes the same set authoritatively for the DB
+   * deletes, and physical erasure is idempotent, so any drift is harmless.
+   */
+  private async purgeableProjectIds(userId: string): Promise<string[]> {
+    const memberships = await this.prisma.organizationMember.findMany({
+      where: { userId },
+      select: { organizationId: true },
+    });
+    const orgIds = [...new Set(memberships.map((m) => m.organizationId))];
+    const soleOrgIds: string[] = [];
+
+    for (const orgId of orgIds) {
+      if ((await this.prisma.organizationMember.count({ where: { organizationId: orgId } })) === 1) {
+        soleOrgIds.push(orgId);
+      }
+    }
+
+    if (soleOrgIds.length === 0) {
+      return [];
+    }
+
+    const projects = await this.prisma.project.findMany({
+      where: { organizationId: { in: soleOrgIds } },
+      select: { id: true },
+    });
+
+    return projects.map((p) => p.id);
+  }
+
+  async purgeUserAccount(
+    input: { userId: string; nowMs?: number },
+    deps?: PurgeStorageDeps,
+  ): Promise<PurgeUserAccountResult> {
     const { userId } = input;
     const nowMs = Number.isFinite(input.nowMs) ? (input.nowMs as number) : Date.now();
     const nowIso = new Date(nowMs).toISOString();
+
+    /*
+     * PHYSICAL ERASURE GATE (§16.12) — runs BEFORE the DB transaction because
+     * GCS/PVC deletes are external, non-transactional I/O (they can't live inside
+     * a Postgres tx). It is idempotent, so this pre-step is safe if the tx later
+     * retries. FAIL-CLOSED: if any bucket/volume can't be proven erased we throw
+     * here and never enter the tx, so purgedAt is never stamped. Only runs when
+     * the account is actually ready_to_purge, to avoid touching storage during a
+     * not-due / already-purged call.
+     */
+    let physicalClasses: PurgeClassReport[] = [];
+
+    if (deps?.eraseStorage) {
+      const pre = await this.prisma.user.findUnique({ where: { id: userId }, select: { preferences: true } });
+      const preDeletion = ((pre?.preferences ?? {}) as Record<string, unknown>).accountDeletion as
+        | { requestedAt?: string; purgedAt?: string }
+        | undefined;
+      const toMsPre = (value?: string) => {
+        const ms = value ? new Date(value).getTime() : NaN;
+
+        return Number.isFinite(ms) ? ms : null;
+      };
+      const preStatus = deletionStatus({
+        requestedAtMs: toMsPre(preDeletion?.requestedAt),
+        purgedAtMs: toMsPre(preDeletion?.purgedAt),
+        nowMs,
+      });
+
+      if (preStatus === 'ready_to_purge') {
+        const projectIds = await this.purgeableProjectIds(userId);
+        const erasure = await deps.eraseStorage(projectIds);
+
+        if (!erasure.verified) {
+          throw new Error(
+            `ACCOUNT_PURGE_PHYSICAL_INCOMPLETE: physical storage not fully erased for ${userId} ` +
+              `(${erasure.classes.map((c) => `${c.dataClass}=${c.remainingAfterPurge ?? 0}`).join(', ')})`,
+          );
+        }
+
+        physicalClasses = erasure.classes;
+      }
+    }
 
     return this.prisma.$transaction(
       async (tx) => {
@@ -781,6 +860,14 @@ export class PrismaApiStore implements ApiStore {
               .join(', ')}`,
           );
         }
+
+        /*
+         * Fold the physical-erasure evidence (object_storage, workspace_volumes)
+         * into the proof. It was already verified (remainingAfterPurge === 0)
+         * before this tx started; appending it here makes buildErasureProof's
+         * verifiedZeroRemaining cover physical storage too.
+         */
+        classes.push(...physicalClasses);
 
         const proof = buildErasureProof({
           userId,
