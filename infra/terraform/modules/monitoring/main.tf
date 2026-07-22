@@ -1,10 +1,34 @@
-resource "google_monitoring_notification_channel" "ops_email_placeholder" {
+# Chaîne d'alerte API — RÉELLE depuis le 2026-07-21.
+#
+# Historique (CTR-OPERATIONS-DR, réserve expert n°1) : ce module portait des
+# placeholders en dur (host `replace-me.example.com`, email
+# `ops@example.invalid`, canal disabled) — l'uptime check échouait à 100 %
+# pendant que la vraie API répondait 200, et la policy notifiait une adresse
+# morte. La réparation a d'abord été faite EN LIVE (2026-07-21, evidence
+# EVID-DR-MON-001) ; ce fichier persiste la même configuration dans la source
+# de vérité pour qu'un `terraform apply` ne réintroduise jamais la version
+# cassée. Les valeurs réelles arrivent par variables (défauts posés dans
+# envs/prod/variables.tf).
+#
+# CONVERGENCE APPLY (une fois, opérateur) : les objets live réparés à la main
+# ne sont pas dans le state. Après le premier apply réussi de cette version,
+# supprimer les doublons créés à la main le 2026-07-21 :
+#   gcloud monitoring uptime delete vibecore-prod-api-health-api-e-code-ai-UBigUqgiGrg
+#   gcloud alpha monitoring channels delete projects/vibecore-495216/notificationChannels/16784247357547337289 --force
+# (ou, à la place de l'apply-création : `terraform import` de ces deux objets.)
+
+resource "google_monitoring_notification_channel" "ops_email" {
   display_name = "${var.name_prefix} ops email"
   type         = "email"
   labels = {
-    email_address = "ops@example.invalid"
+    email_address = var.ops_email
   }
-  enabled = false
+  enabled = true
+}
+
+moved {
+  from = google_monitoring_notification_channel.ops_email_placeholder
+  to   = google_monitoring_notification_channel.ops_email
 }
 
 resource "google_monitoring_uptime_check_config" "api_health" {
@@ -23,7 +47,7 @@ resource "google_monitoring_uptime_check_config" "api_health" {
     type = "uptime_url"
     labels = {
       project_id = var.project_id
-      host       = "replace-me.example.com"
+      host       = var.api_host
     }
   }
 }
@@ -48,5 +72,5 @@ resource "google_monitoring_alert_policy" "api_uptime_failed" {
     }
   }
 
-  notification_channels = [google_monitoring_notification_channel.ops_email_placeholder.name]
+  notification_channels = [google_monitoring_notification_channel.ops_email.name]
 }

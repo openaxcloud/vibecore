@@ -1,5 +1,9 @@
 logs
 *.log
+# EXCEPTION : les artefacts de preuve DOIVENT être versionnés — le pattern
+# *.log a déjà silencieusement exclu des logs de drill DR cités par les docs
+# (réserve expert CTR-OPERATIONS-DR n°5, 2026-07-22).
+!docs/deploy-evidence/**/*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

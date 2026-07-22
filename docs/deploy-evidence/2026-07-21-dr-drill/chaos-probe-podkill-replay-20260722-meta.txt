@@ -1,0 +1,8 @@
+kill vibecore-vibecore-platform-api-cdc4ff449-84c6m à 2026-07-22T06:18:20Z
+  90 200
+vibecore-vibecore-platform-api-cdc4ff449-2sw65   1/1   Running   0     2m3s
+vibecore-vibecore-platform-api-cdc4ff449-jqxjc   1/1   Running   0     21h
+vibecore-vibecore-platform-api-cdc4ff449-lg4f7   1/1   Running   0     24h
+vibecore-vibecore-platform-api-cdc4ff449-ncpcr   1/1   Running   0     24h
+vibecore-vibecore-platform-api-cdc4ff449-p8lmr   1/1   Running   0     19h
+vibecore-vibecore-platform-api-cdc4ff449-vnjrw   1/1   Running   0     18h
