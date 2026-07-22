@@ -3,9 +3,56 @@ import { createDatabaseClient } from '@vibecore/database';
 import { describe, expect, it } from 'vitest';
 
 import type { ErasureProof } from '../account-purge.js';
+import { eraseProjectsStorage } from '../account-storage-purge.js';
 import { buildApiApp } from '../app.js';
 import type { EmailProvider } from '../email.js';
 import { PrismaApiStore } from '../prisma-store.js';
+
+/*
+ * Physical-erasure hook for these real-Postgres route tests. It drives the REAL
+ * eraseProjectsStorage orchestration against in-memory fake storage seeded with
+ * a bucket + workspace per project — so the route's fail-closed physical gate is
+ * genuinely exercised (list → delete → verify 0) WITHOUT a live workspace-manager
+ * / GCS. The SQL assertions below verify the row-level purge; the physical proof
+ * has its own dedicated suites. Without this, the route's default eraser would
+ * fetch a non-existent workspace-manager and (correctly) fail the purge closed.
+ */
+function verifiedPhysicalPurger() {
+  return (projectIds: string[]) => {
+    const buckets = new Map<string, string[]>();
+    const workspaces = new Set<string>();
+
+    for (const id of projectIds) {
+      buckets.set(id, ['seed-object.bin']);
+      workspaces.add(`ws-${id}`);
+    }
+
+    return eraseProjectsStorage(projectIds, {
+      objectStorage: {
+        async bucketExists(projectId) {
+          return buckets.has(projectId);
+        },
+        async listObjects(projectId) {
+          return { objects: (buckets.get(projectId) ?? []).map((key) => ({ key })) };
+        },
+        async deleteBucket(projectId) {
+          buckets.delete(projectId);
+
+          return { deleted: true, bucket: `vc-${projectId}` };
+        },
+      },
+      workspaceVolumes: {
+        async workspaceExists(workspaceId) {
+          return workspaces.has(workspaceId);
+        },
+        async deleteWorkspace(workspaceId) {
+          workspaces.delete(workspaceId);
+        },
+      },
+      workspaceIdFor: (projectId) => `ws-${projectId}`,
+    });
+  };
+}
 
 /*
  * §16.12 purge executor — DURABLE proofs against a REAL Postgres. Gated on
@@ -120,7 +167,11 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
 
     try {
       const store = new PrismaApiStore(prisma);
-      const app = await buildApiApp({ store, emailProvider: new QuietEmailProvider() });
+      const app = await buildApiApp({
+        store,
+        emailProvider: new QuietEmailProvider(),
+        accountStoragePurger: verifiedPhysicalPurger(),
+      });
       const { user, org, project, importJob, conversation } = await seedAccount(store);
       await requestElapsedDeletion(store, user.id);
 
