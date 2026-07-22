@@ -1225,19 +1225,20 @@ p0s:
     source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
     priority: 8
     owner: platform
-    status: OPEN
-    remediationTrack: A_TRIER
+    status: PROVEN_REVIEW_PENDING
+    remediationTrack: QUICK
+    resolutionBranch: "feat/gallery-pricing-har"
     refusalReason: "schéma accepte 2 artefacts mobile + manifeste minimal invalide ; allOf n'est qu'une description"
     refusalType: DESACCORD
     reviewVerdict: REFUSED
     reviewCommit: "57febeab"
     commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: UNKNOWN
-    evidenceId: docs/parity/PROJECT_MANIFEST_SCHEMA.json
-    proof: "PROJECT_MANIFEST_SCHEMA.json créé (artifacts≤7, kinds verrouillés, components, bindings, scopes, entitlementsRef)."
+    evidenceId: docs/deploy-evidence/2026-07-22-project-manifest-schema/
+    proof: "SCHÉMA EXÉCUTABLE PROUVÉ par un VRAI moteur JSON-schema (ajv 8.17.1, draft 2020-12) — refus « accepte 2 mobile + allOf n'est qu'une description » levé. verify-manifest-schema.mjs compile PROJECT_MANIFEST_SCHEMA.json (schema-anchor.json hashe le schéma) et asserte : manifeste valide ACCEPTÉ ; 2 artefacts MOBILE_APP REJETÉS (contains/maxContains:1) ; manifeste minimal REJETÉ (required) ; propriété inconnue REJETÉE (additionalProperties:false). Échoue exit 1 si un cas dévie. Le schéma v2 avait déjà additionalProperties:false + allOf maxContains ; ce test PROUVE l'exécutabilité."
     dependances: []
-    conditionDeCloture: "Corriger le claim/la preuve : schéma accepte 2 artefacts mobile + manifeste minimal invalide ; allOf n'est qu'une description ; puis re-soumission au relecteur"
-    nextAction: "Revue"
+    conditionDeCloture: "Re-signature : exécutabilité du schéma prouvée par ajv (rejette les contre-exemples refusés), rejouable"
+    nextAction: "Re-soumettre au relecteur (PROVEN_REVIEW_PENDING)"
     targetDate: "2026-07-20"
   - p0Id: P0-EX-09
     title: "Contractualiser séparément Autoscale, Static, Reserved et Scheduled"

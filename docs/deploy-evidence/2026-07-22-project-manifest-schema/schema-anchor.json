@@ -1,0 +1,40 @@
+{
+  "p0": "P0-EX-08",
+  "schemaFile": "docs/parity/PROJECT_MANIFEST_SCHEMA.json",
+  "schemaSha256": "1c09f782cfa4fcef1633b0136a9360953f8fd9266c18571747d1741c901ae885",
+  "engine": "ajv 8.17.1",
+  "cases": [
+    {
+      "case": "valid manifest",
+      "valid": true,
+      "expected": true,
+      "errorKeywords": []
+    },
+    {
+      "case": "2 MOBILE_APP artifacts (refusé)",
+      "valid": false,
+      "expected": false,
+      "errorKeywords": [
+        "contains"
+      ]
+    },
+    {
+      "case": "manifeste minimal invalide (required)",
+      "valid": false,
+      "expected": false,
+      "errorKeywords": [
+        "required",
+        "required"
+      ]
+    },
+    {
+      "case": "propriété inconnue (additionalProperties:false)",
+      "valid": false,
+      "expected": false,
+      "errorKeywords": [
+        "additionalProperties"
+      ]
+    }
+  ],
+  "claim": "Le schéma est EXÉCUTABLE : ajv rejette 2 MOBILE_APP (maxContains:1), le manifeste minimal (required) et une propriété inconnue (additionalProperties:false), et accepte un manifeste valide. allOf/contains ne sont plus « une simple description »."
+}
