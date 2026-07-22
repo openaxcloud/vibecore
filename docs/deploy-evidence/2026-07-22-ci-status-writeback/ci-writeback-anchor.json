@@ -1,0 +1,13 @@
+{
+  "p0": "P0-EX-10",
+  "ciWorkflow": ".github/workflows/parity-registries.yml",
+  "ciSha256": "d6df1d4593cdcaa63a664816c068096468dedc41e60af5833f67530e6aa66a48",
+  "regeneratesViews": true,
+  "writesInPlace": true,
+  "commitsAndPushes": true,
+  "realAttestationCommitOnMain": {
+    "sha": "96454f3d",
+    "msg": "chore(parity): attestation roulée automatiquement (run 29909965011 @ 76d3922c) — LS-16"
+  },
+  "claim": "La CI ne fait PAS « --check seulement » : elle régénère toutes les vues (generate-*), réécrit l'attestation in-place (open(p,\"w\").write), puis git add docs/parity + git commit + git push origin HEAD:main. Un commit « attestation roulée automatiquement » existe réellement sur main."
+}

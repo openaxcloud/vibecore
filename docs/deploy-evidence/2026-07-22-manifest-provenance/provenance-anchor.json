@@ -11,7 +11,7 @@
     "reviewer"
   ],
   "provenanceComplete": true,
-  "aggregateContentSignature": "f7f207e2992147d63234316828bce3da664a9ef3320130b573d7066c038fe690",
+  "aggregateContentSignature": "32521f43732678be0690aea7397009a2a0854e834525c18046ca665fd570cc9f",
   "generatedFromCommit": "76d3922c35b652395a179e408444cd6a0755d4ef",
   "validation": {
     "workflow": "Parity registries",

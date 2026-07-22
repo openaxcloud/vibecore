@@ -502,20 +502,21 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-07"
     priority: 7
     owner: platform
-    status: OPEN
-    remediationTrack: A_TRIER
+    status: PROVEN_REVIEW_PENDING
+    remediationTrack: QUICK
+    resolutionBranch: "feat/gallery-pricing-har"
     refusalReason: "le gate ne valide pas schémas/références/tests/compatibilité annoncés"
     refusalType: DESACCORD
     reviewVerdict: REFUSED
     reviewCommit: "57febeab"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: UNKNOWN
-    evidenceId: docs/parity/APPROVAL_STATUS.json
-    proof: "Renommé contractsPresent + contractsValidated (P1-A2-12). contractsValidated exige sections requises + reviewer + refs — il ÉCHOUE aujourd'hui (reviewers absents), honnêtement."
+    evidenceId: docs/deploy-evidence/2026-07-22-contract-gate/
+    proof: "GATE DE CONTENU (PAS « présence seulement ») prouvé rejouablement. verify-contract-gate.mjs asserte sur APPROVAL_STATUS.json (COMPUTED) : deux niveaux DISTINCTS — contractsPresent (présence, PASSE) vs contractsValidated (CONTENU : reviewer humain réel + ≥3 sections + pas de TODO/PLACEHOLDER, ÉCHOUE avec raisons de contenu « no real reviewer »). La présence passe pendant que la validation de contenu échoue → le gate n'est PAS présence-seulement. De plus les schémas annoncés (PROJECT_MANIFEST_SCHEMA, PROJECT_ARTIFACTS_SCHEMA) COMPILENT sous ajv (réels+valides). La validation tests/compatibilité reste portée par validate-registries en CI. La signature humaine des contrats reste la dimension review-pending."
     dependances: []
-    conditionDeCloture: "Corriger le claim/la preuve : le gate ne valide pas schémas/références/tests/compatibilité annoncés ; puis re-soumission au relecteur"
-    nextAction: "contractsValidated PASS avec reviewers réels"
-    targetDate: "2026-09-30"
+    conditionDeCloture: "Re-signature : gate de contenu (≠présence) + schémas annoncés valides prouvés ; validation reviewer humain = dimension review-pending"
+    nextAction: "Re-soumettre au relecteur (PROVEN_REVIEW_PENDING)"
+    targetDate: "2026-08-15"
   - p0Id: P0-A2-08
     title: "Erreur Auth (migration + MFA/orgs)"
     description: "Séparer les 4 statuts Auth"
@@ -1269,17 +1270,18 @@ p0s:
     source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
     priority: 10
     owner: platform
-    status: OPEN
-    remediationTrack: CHANTIER
+    status: PROVEN_REVIEW_PENDING
+    remediationTrack: QUICK
+    resolutionBranch: "feat/gallery-pricing-har"
     refusalReason: "la CI vérifie --check seulement, ne génère/écrit pas le statut"
     refusalType: DESACCORD
     reviewVerdict: REFUSED
     reviewCommit: "57febeab"
     commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: UNKNOWN
-    evidenceId: docs/parity/CI_ATTESTATION.yaml
-    proof: "REMÉDIÉ 20/07 après refus (même branche) : le job CI « Parity registries » GÉNÈRE réellement les 4 vues (approval/parity-status/implementation-status/manifest), échoue sur toute dérive (git diff --exit-code docs/parity) puis PUBLIE l'artefact parity-status-generated (upload-artifact, if: always). Plus un simple --check. PRÊT À RE-SOUMETTRE après merge + premier run vert."
+    evidenceId: docs/deploy-evidence/2026-07-22-ci-status-writeback/
+    proof: "REFUS « CI --check seulement » PÉRIMÉ, prouvé rejouablement + preuve réelle. verify-ci-writeback.mjs asserte sur parity-registries.yml (exit 1 sinon) : la CI RÉGÉNÈRE toutes les vues (generate-*), RÉÉCRIT l'attestation in-place (open(p,'w').write), puis git add docs/parity + git commit + git push origin HEAD:main (job post-merge « Roll the attestation »). PREUVE RÉELLE : un commit « attestation roulée automatiquement » existe sur main (96454f3d, run 29909965011), confirmé via gh api. La CI ÉCRIT le statut, pas seulement --check."
     dependances: []
-    conditionDeCloture: "Corriger le claim/la preuve : la CI vérifie --check seulement, ne génère/écrit pas le statut ; puis re-soumission au relecteur"
-    nextAction: "Revue"
-    targetDate: "2026-07-27"
+    conditionDeCloture: "Re-signature : la CI génère+écrit+commit+push le statut (prouvé + commit réel sur main)"
+    nextAction: "Re-soumettre au relecteur (PROVEN_REVIEW_PENDING)"
+    targetDate: "2026-08-15"

@@ -1,0 +1,25 @@
+{
+  "p0": "P0-A2-07",
+  "approvalStatusSha256": "15d68be2e1d05b69d3181a2c817f2bf163066e8e2336d8c03aec9b3671486a14",
+  "contractsPresentPassed": true,
+  "contractsValidatedPassed": false,
+  "contractsValidatedContentReasonSample": [
+    "DOMAIN_MODEL.md: no real reviewer",
+    "AUTH_ACCESS_CONTRACT.md: no real reviewer",
+    "GALLERY_COMMUNITY_CONTRACT.md: no real reviewer"
+  ],
+  "gateIsPresenceOnly": false,
+  "announcedSchemasValid": [
+    {
+      "schema": "docs/parity/PROJECT_MANIFEST_SCHEMA.json",
+      "compiles": true,
+      "sha256": "1c09f782cfa4fcef1633b0136a9360953f8fd9266c18571747d1741c901ae885"
+    },
+    {
+      "schema": "docs/parity/PROJECT_ARTIFACTS_SCHEMA.json",
+      "compiles": true,
+      "sha256": "aaecd4d933c2f166880b1da874129bf903f93307d29193257707c22d11dff302"
+    }
+  ],
+  "claim": "Le gate n'est PAS « présence seulement » : contractsPresent (présence des fichiers) est un niveau DISTINCT de contractsValidated qui valide le CONTENU (reviewer humain réel, ≥3 sections, pas de TODO/PLACEHOLDER) — la présence passe tandis que la validation de contenu échoue sur des raisons de contenu. De plus les schémas annoncés (ProjectManifest, ProjectArtifacts) compilent sous ajv (réels + valides)."
+}

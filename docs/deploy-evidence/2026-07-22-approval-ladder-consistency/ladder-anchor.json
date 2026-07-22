@@ -1,7 +1,7 @@
 {
   "p0": "P0-A2-05",
   "file": "docs/parity/APPROVAL_STATUS.json",
-  "fileSha256": "a85cc085eccfb367bad5c7b87207aa1224bca4fff791be5adb502e4048799613",
+  "fileSha256": "15d68be2e1d05b69d3181a2c817f2bf163066e8e2336d8c03aec9b3671486a14",
   "ladder": [
     {
       "name": "documentReconciled",
