@@ -29457,6 +29457,135 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   /*
+   * ===== Account-purge executor (§16.12 — internal, worker-triggered) =====
+   * Consumes the ready_to_purge queue the self-serve deletion machine feeds
+   * (request → 14-day grace → ready_to_purge, ./data-deletion.ts): for each
+   * user in account.pendingDeletionUserIds whose grace window has ELAPSED, run
+   * store.purgeUserAccount — the real class-by-class erasure with fail-closed
+   * financial retention (canPurgeFinancialRecord), audit-log redaction (never
+   * deletion), ledger immutability respected (mig 0078), an anonymized
+   * tombstone carrying purgedAt, and a structured ERASURE PROOF verified
+   * "0 rows remaining" per purged class. The proof is persisted to the
+   * AdminAuditLog (action account.purge_completed) and the user leaves the
+   * pending set. Idempotent (already-purged → no-op) and concurrency-safe
+   * (per-user advisory lock in the store).
+   *
+   * DRY-RUN by default: scans + counts but only purges when
+   * ACCOUNT_PURGE_ENABLED=true (or body.enabled) — mirrors /internal/inactivity-gc.
+   */
+  app.post('/internal/account-purge', async (request) => {
+    requireInternalSecret(request);
+
+    const body = parse(
+      z.object({
+        enabled: z.boolean().optional(),
+        take: z.number().int().positive().max(1000).optional(),
+        userId: z.string().min(1).optional(),
+      }),
+      request.body ?? {},
+    );
+
+    const enabled = body.enabled ?? process.env.ACCOUNT_PURGE_ENABLED === 'true';
+    const nowMs = Date.now();
+
+    let ids: string[];
+
+    if (body.userId) {
+      ids = [body.userId];
+    } else {
+      const settings = await store.listSystemSettings();
+      const pending = settings.find((setting) => setting.key === ACCOUNT_DELETION_PENDING_KEY);
+      ids = Array.isArray(pending?.value)
+        ? (pending!.value as unknown[]).filter((id): id is string => typeof id === 'string')
+        : [];
+    }
+
+    ids = ids.slice(0, body.take ?? 500);
+
+    let ready = 0;
+    let purged = 0;
+    let alreadyPurged = 0;
+    let notDue = 0;
+    let stale = 0;
+    let failed = 0;
+
+    for (const userId of ids) {
+      const user = await store.findUserById(userId);
+      const state = readAccountDeletionState(user?.preferences);
+      const status = deletionStatus({ ...state, nowMs });
+
+      if (!user || status === 'none') {
+        // Cancelled/vanished request still indexed — drop the stale id.
+        stale += 1;
+        await store.mutateSystemSettingIds(ACCOUNT_DELETION_PENDING_KEY, { remove: userId });
+        continue;
+      }
+
+      if (status === 'grace_period') {
+        notDue += 1;
+        continue;
+      }
+
+      if (status === 'purged') {
+        alreadyPurged += 1;
+        await store.mutateSystemSettingIds(ACCOUNT_DELETION_PENDING_KEY, { remove: userId });
+        continue;
+      }
+
+      // ready_to_purge
+      ready += 1;
+
+      if (!enabled) {
+        continue; // dry-run: counted, not purged
+      }
+
+      try {
+        const result = await store.purgeUserAccount({ userId, nowMs });
+
+        if (result.outcome === 'purged') {
+          purged += 1;
+          /*
+           * The PROOF is persisted before the id leaves the pending set: if the
+           * audit write fails the purge stays visible in the queue and the next
+           * run resolves it as already_purged (idempotent), so an erasure can
+           * never end up both unlisted and unproven.
+           */
+          await store.recordAdminAudit({
+            actorUserId: undefined,
+            action: 'account.purge_completed',
+            metadata: { userId, proof: result.proof },
+          });
+          await store.mutateSystemSettingIds(ACCOUNT_DELETION_PENDING_KEY, { remove: userId });
+        } else if (result.outcome === 'already_purged') {
+          alreadyPurged += 1;
+          await store.mutateSystemSettingIds(ACCOUNT_DELETION_PENDING_KEY, { remove: userId });
+        } else if (result.outcome === 'not_due') {
+          // Store-level re-check disagreed (clock skew) — leave it queued.
+          ready -= 1;
+          notDue += 1;
+        } else {
+          ready -= 1;
+          stale += 1;
+          await store.mutateSystemSettingIds(ACCOUNT_DELETION_PENDING_KEY, { remove: userId });
+        }
+      } catch (error) {
+        // Fail-closed: a failed purge stays in the queue and is observable.
+        failed += 1;
+        request.log?.error?.({ err: error, userId }, 'account purge failed');
+        await store
+          .recordAdminAudit({
+            actorUserId: undefined,
+            action: 'account.purge_failed',
+            metadata: { userId, error: error instanceof Error ? error.message : String(error) },
+          })
+          .catch(() => {});
+      }
+    }
+
+    return { enabled, scanned: ids.length, ready, purged, alreadyPurged, notDue, stale, failed };
+  });
+
+  /*
    * ===== Replit-parity metering ingest (P8/P4 — internal, service-to-service) =====
    * The workspace-manager GC (compute), and other producers (object storage, DB,
    * deployments), POST real usage here after an event. Dispatches to

@@ -2,6 +2,14 @@ import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
 import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
+import {
+  anonymizedEmail,
+  anonymizedOrgSlug,
+  buildErasureProof,
+  type PurgeClassReport,
+  type PurgeUserAccountResult,
+} from '../account-purge.js';
+import { deletionStatus, purgeDueAtMs, FINANCIAL_RETENTION_DAYS } from '../data-deletion.js';
 import { DEFAULT_ENV_VAR_SCOPE } from '../store.js';
 import type {
   EnvVarScope,
@@ -309,6 +317,376 @@ export class TestApiStore implements ApiStore {
     }
 
     return deleted;
+  }
+
+  /*
+   * In-memory mirror of PrismaApiStore.purgeUserAccount (§16.12 purge
+   * executor). Guards + tombstone stamping happen SYNCHRONOUSLY (no await
+   * between the status check and the purgedAt write), so two racing calls in
+   * the single-threaded test runtime observe exactly-once purge semantics like
+   * the advisory-locked Postgres implementation.
+   */
+  async purgeUserAccount(input: { userId: string; nowMs?: number }): Promise<PurgeUserAccountResult> {
+    const { userId } = input;
+    const nowMs = Number.isFinite(input.nowMs) ? (input.nowMs as number) : Date.now();
+    const nowIso = new Date(nowMs).toISOString();
+
+    const user = this.users.get(userId);
+
+    if (!user) {
+      return { outcome: 'not_requested' };
+    }
+
+    const deletion = (user.preferences?.accountDeletion ?? null) as
+      | { requestedAt?: string; purgedAt?: string }
+      | null;
+    const toMs = (value?: string) => {
+      if (!value) {
+        return null;
+      }
+
+      const ms = new Date(value).getTime();
+
+      return Number.isFinite(ms) ? ms : null;
+    };
+    const requestedAtMs = toMs(deletion?.requestedAt);
+    const purgedAtMs = toMs(deletion?.purgedAt);
+    const status = deletionStatus({ requestedAtMs, purgedAtMs, nowMs });
+
+    if (status === 'purged') {
+      return { outcome: 'already_purged', purgedAt: deletion!.purgedAt! };
+    }
+
+    if (status === 'none') {
+      return { outcome: 'not_requested' };
+    }
+
+    if (status === 'grace_period') {
+      return { outcome: 'not_due', purgeDueAt: new Date(purgeDueAtMs(requestedAtMs!)).toISOString() };
+    }
+
+    // ready_to_purge — claim atomically (synchronous stamp = the CAS).
+    const requestedAt = deletion!.requestedAt!;
+    const originalEmail = user.email;
+    user.preferences = { accountDeletion: { requestedAt, purgedAt: nowIso } };
+
+    const orgIds = [...new Set([...this.memberships.values()].filter((m) => m.userId === userId).map((m) => m.organizationId))];
+    const soleOrgIds = orgIds.filter(
+      (orgId) => [...this.memberships.values()].filter((m) => m.organizationId === orgId).length === 1,
+    );
+    const sharedOrgIds = orgIds.filter((orgId) => !soleOrgIds.includes(orgId));
+
+    const deleteWhere = <T>(map: Map<string, T>, match: (row: T) => boolean): number => {
+      let count = 0;
+
+      for (const [key, row] of map.entries()) {
+        if (match(row)) {
+          map.delete(key);
+          count += 1;
+        }
+      }
+
+      return count;
+    };
+
+    const classes: PurgeClassReport[] = [];
+
+    classes.push({
+      dataClass: 'sessions',
+      action: 'deleted',
+      models: { Session: deleteWhere(this.sessions, (s) => s.userId === userId) },
+    });
+
+    classes.push({
+      dataClass: 'auth_tokens',
+      action: 'deleted',
+      models: {
+        EmailVerificationToken: deleteWhere(this.emailVerifications, (t) => t.userId === userId),
+        PasswordResetToken: deleteWhere(this.passwordResets, (t) => t.userId === userId),
+        MfaRecoveryCode: deleteWhere(this.recoveryCodes, (c) => c.userId === userId),
+      },
+    });
+
+    classes.push({
+      dataClass: 'api_keys',
+      action: 'deleted',
+      models: { ApiKey: deleteWhere(this.apiKeys, (k) => k.userId === userId) },
+    });
+
+    classes.push({
+      dataClass: 'connected_accounts',
+      action: 'deleted',
+      models: {
+        OAuthConnection: deleteWhere(this.oauthConnections, (c) => c.userId === userId),
+        UserConnection: deleteWhere(this.userConnections, (c) => c.userId === userId),
+      },
+    });
+
+    const deletedConversationIds = new Set(
+      [...this.aiConversations.values()].filter((c) => c.userId === userId).map((c) => c.id),
+    );
+    const deletedMessageIds = new Set(
+      [...this.aiMessages.values()].filter((m) => deletedConversationIds.has(m.conversationId)).map((m) => m.id),
+    );
+    classes.push({
+      dataClass: 'ai_history',
+      action: 'deleted',
+      models: {
+        AiConversation: deleteWhere(this.aiConversations, (c) => c.userId === userId),
+        AiMessage: deleteWhere(this.aiMessages, (m) => deletedConversationIds.has(m.conversationId)),
+        AiToolCall: deleteWhere(this.aiToolCalls, (t) => deletedMessageIds.has(t.messageId)),
+        AiTokenUsage: deleteWhere(this.aiTokenUsages, (u) => deletedMessageIds.has(u.messageId)),
+        AiMessageFeedback: deleteWhere(this.aiMessageFeedback, (f) => f.userId === userId),
+        Notification: deleteWhere(this.notifications, (n) => n.userId === userId),
+        AgentCheckpoint: deleteWhere(this.agentCheckpoints, (c) => soleOrgIds.includes(c.organizationId)),
+      },
+    });
+
+    classes.push({
+      dataClass: 'collaboration',
+      action: 'deleted',
+      models: {
+        ProjectCollaborator: deleteWhere(this.projectCollaborators, (c) => c.userId === userId),
+        CollaborationPresence: deleteWhere(this.collaborationPresence, (p) => p.userId === userId),
+        CollaborationComment: deleteWhere(this.collaborationComments, (c) => c.userId === userId),
+        ProjectShareLink: deleteWhere(this.projectShareLinks, (l) => l.createdByUserId === userId),
+        UserSpendLimit: deleteWhere(this.userSpendLimits, (l) => l.userId === userId),
+      },
+    });
+
+    const deletedProjectIds = new Set(
+      [...this.projects.values()].filter((p) => soleOrgIds.includes(p.organizationId)).map((p) => p.id),
+    );
+    const projectsDeleted = deleteWhere(this.projects, (p) => soleOrgIds.includes(p.organizationId));
+    deleteWhere(this.workspaces, (w) => deletedProjectIds.has(w.projectId));
+    deleteWhere(this.snapshots, (s) => deletedProjectIds.has(s.projectId));
+    deleteWhere(this.deployments, (d) => deletedProjectIds.has(d.projectId));
+    classes.push({ dataClass: 'projects', action: 'deleted', models: { Project: projectsDeleted } });
+
+    classes.push({
+      dataClass: 'imports',
+      action: 'deleted',
+      models: { ImportJob: deleteWhere(this.importJobs, (j) => soleOrgIds.includes(j.organizationId)) },
+    });
+
+    classes.push({
+      dataClass: 'memberships',
+      action: 'deleted',
+      models: { OrganizationMember: deleteWhere(this.memberships, (m) => m.userId === userId) },
+    });
+
+    classes.push({
+      dataClass: 'marketing',
+      action: 'deleted',
+      models: { NewsletterSubscriber: this.newsletterSubscribers.delete(originalEmail) ? 1 : 0 },
+    });
+
+    // ---- anonymized (redacted in place, never deleted) ----
+    let auditRedacted = 0;
+
+    for (const event of this.auditLogs) {
+      if (event.actorUserId === userId) {
+        event.ipAddress = undefined;
+        event.metadata = { redacted: true, redactedAt: nowIso };
+        auditRedacted += 1;
+      }
+    }
+
+    let adminAuditRedacted = 0;
+
+    for (const event of this.adminAuditLogs) {
+      if (event.actorUserId === userId && event.ipAddress !== undefined) {
+        event.ipAddress = undefined;
+        adminAuditRedacted += 1;
+      }
+    }
+
+    classes.push({
+      dataClass: 'audit_logs',
+      action: 'anonymized',
+      reason: 'append_only_redacted_never_deleted',
+      models: { AuditLog: auditRedacted, AdminAuditLog: adminAuditRedacted },
+    });
+
+    let usageRefs = 0;
+
+    for (const event of this.usageEvents.values()) {
+      if (event.userId === userId) {
+        event.userId = undefined;
+        usageRefs += 1;
+      }
+    }
+
+    let checkpointRefs = 0;
+
+    for (const checkpoint of this.agentCheckpoints.values()) {
+      if (checkpoint.userId === userId) {
+        checkpoint.userId = undefined;
+        checkpointRefs += 1;
+      }
+    }
+
+    let activityRefs = 0;
+
+    for (const activity of this.projectActivity.values()) {
+      if (activity.actorUserId === userId) {
+        activity.actorUserId = undefined;
+        activityRefs += 1;
+      }
+    }
+
+    let galleryRefs = 0;
+
+    for (const listing of this.galleryListings.values()) {
+      if (listing.authorUserId === userId) {
+        listing.authorUserId = undefined;
+        listing.authorName = 'Deleted account';
+        galleryRefs += 1;
+      }
+    }
+
+    classes.push({
+      dataClass: 'user_references',
+      action: 'anonymized',
+      reason: 'retained_rows_detached_from_user',
+      models: {
+        UsageEvent: usageRefs,
+        AgentCheckpoint: checkpointRefs,
+        ProjectActivity: activityRefs,
+        GalleryListing: galleryRefs,
+      },
+    });
+
+    let orgsAnonymized = 0;
+
+    for (const orgId of soleOrgIds) {
+      const org = this.organizations.get(orgId);
+
+      if (org) {
+        org.name = 'Purged account';
+        org.slug = anonymizedOrgSlug(orgId);
+        orgsAnonymized += 1;
+      }
+    }
+
+    classes.push({
+      dataClass: 'organizations',
+      action: 'anonymized',
+      reason: 'retained_as_anchor_for_financial_records',
+      models: { Organization: orgsAnonymized },
+    });
+
+    // ---- retained (fail-closed financial retention, consigned) ----
+    const financialCutoffMs = nowMs - FINANCIAL_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+    const expiredErased =
+      deleteWhere(
+        this.usageEvents,
+        (e) => soleOrgIds.includes(e.organizationId) && new Date(e.createdAt).getTime() < financialCutoffMs,
+      ) +
+      deleteWhere(
+        this.aiCostLedger,
+        (e) => soleOrgIds.includes(e.organizationId) && new Date(e.createdAt).getTime() < financialCutoffMs,
+      ) +
+      deleteWhere(
+        this.creditLedger,
+        (e) => soleOrgIds.includes(e.organizationId) && new Date(e.createdAt).getTime() < financialCutoffMs,
+      );
+
+    const countWhere = <T>(map: Map<string, T>, match: (row: T) => boolean): number =>
+      [...map.values()].filter(match).length;
+
+    classes.push({
+      dataClass: 'financial_records',
+      action: 'retained',
+      reason: 'financial_retention_7y_fail_closed',
+      models: {
+        UsageEvent: countWhere(this.usageEvents, (e) => soleOrgIds.includes(e.organizationId)),
+        AiCostLedger: countWhere(this.aiCostLedger, (e) => soleOrgIds.includes(e.organizationId)),
+        CreditLedger: countWhere(this.creditLedger, (e) => soleOrgIds.includes(e.organizationId)),
+        StripeEvent: countWhere(this.stripeEvents, (e) => (e.organizationId ? soleOrgIds.includes(e.organizationId) : false)),
+        Subscription: countWhere(this.subscriptions, (s) => soleOrgIds.includes(s.organizationId)),
+        ExpiredRowsErased: expiredErased,
+      },
+    });
+
+    classes.push({
+      dataClass: 'ledger',
+      action: 'retained',
+      reason: 'ledger_immutable_posted_entries_mig0078',
+      models: { LedgerTransaction: 0 },
+    });
+
+    classes.push({
+      dataClass: 'shared_org_content',
+      action: 'retained',
+      reason: 'shared_organization_belongs_to_other_members',
+      models: { Project: countWhere(this.projects, (p) => sharedOrgIds.includes(p.organizationId)) },
+    });
+
+    // ---- tombstone ----
+    user.email = anonymizedEmail(userId);
+    user.name = undefined;
+    user.passwordHash = undefined;
+    user.emailVerifiedAt = undefined;
+    user.mfaEnabled = false;
+    user.mfaSecretEncrypted = undefined;
+    user.platformAdmin = false;
+    user.language = undefined;
+    user.timezone = undefined;
+    user.lastActiveAt = undefined;
+    classes.push({
+      dataClass: 'profile',
+      action: 'anonymized',
+      reason: 'tombstone_carries_purgedAt',
+      models: { User: 1 },
+    });
+
+    // ---- post-purge verification ----
+    const verify: Record<string, number> = {
+      sessions: countWhere(this.sessions, (s) => s.userId === userId),
+      auth_tokens:
+        countWhere(this.emailVerifications, (t) => t.userId === userId) +
+        countWhere(this.passwordResets, (t) => t.userId === userId) +
+        countWhere(this.recoveryCodes, (c) => c.userId === userId),
+      api_keys: countWhere(this.apiKeys, (k) => k.userId === userId),
+      connected_accounts:
+        countWhere(this.oauthConnections, (c) => c.userId === userId) +
+        countWhere(this.userConnections, (c) => c.userId === userId),
+      ai_history:
+        countWhere(this.aiConversations, (c) => c.userId === userId) +
+        countWhere(this.aiMessageFeedback, (f) => f.userId === userId) +
+        countWhere(this.notifications, (n) => n.userId === userId),
+      collaboration:
+        countWhere(this.projectCollaborators, (c) => c.userId === userId) +
+        countWhere(this.collaborationPresence, (p) => p.userId === userId) +
+        countWhere(this.collaborationComments, (c) => c.userId === userId) +
+        countWhere(this.projectShareLinks, (l) => l.createdByUserId === userId) +
+        countWhere(this.userSpendLimits, (l) => l.userId === userId),
+      projects: countWhere(this.projects, (p) => soleOrgIds.includes(p.organizationId)),
+      imports: countWhere(this.importJobs, (j) => soleOrgIds.includes(j.organizationId)),
+      memberships: countWhere(this.memberships, (m) => m.userId === userId),
+      marketing: this.newsletterSubscribers.has(originalEmail) ? 1 : 0,
+    };
+
+    for (const entry of classes) {
+      if (entry.action === 'deleted') {
+        entry.remainingAfterPurge = verify[entry.dataClass] ?? 0;
+      }
+    }
+
+    const leftovers = Object.entries(verify).filter(([, remaining]) => remaining > 0);
+
+    if (leftovers.length > 0) {
+      throw new Error(
+        `ACCOUNT_PURGE_VERIFICATION_FAILED: rows remaining after purge for ${userId}: ${leftovers
+          .map(([k, v]) => `${k}=${v}`)
+          .join(', ')}`,
+      );
+    }
+
+    const proof = buildErasureProof({ userId, requestedAt, purgedAt: nowIso, classes });
+
+    return { outcome: 'purged', proof };
   }
 
   async findUserByEmail(email: string) {

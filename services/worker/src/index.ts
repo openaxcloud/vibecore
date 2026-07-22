@@ -316,6 +316,48 @@ export async function triggerInactivityGc(jobData: Record<string, unknown> = {})
 }
 
 /**
+ * Account-purge trigger (§16.12) — POSTs to the api's internal
+ * /internal/account-purge which consumes the ready_to_purge deletion queue:
+ * for each user whose 14-day grace window has elapsed it executes the REAL
+ * class-by-class purge (fail-closed financial retention, audit redaction,
+ * ledger immutability respected) and persists a verified erasure proof to the
+ * AdminAuditLog. Thin trigger so the destructive logic stays in the api with
+ * the store abstraction. DRY-RUN unless ACCOUNT_PURGE_ENABLED=true on the api
+ * (or jobData.enabled). Idempotent + concurrency-safe on the api side.
+ */
+export async function triggerAccountPurge(jobData: Record<string, unknown> = {}) {
+  const baseUrl = process.env.API_INTERNAL_URL ?? process.env.API_URL;
+  if (!baseUrl) {
+    throw new Error('API_INTERNAL_URL (or API_URL) is required to trigger account.purge');
+  }
+
+  const secret = (process.env.INTERNAL_API_SHARED_SECRET ?? process.env.WORKSPACE_MANAGER_SHARED_SECRET)?.trim();
+  const body = {
+    enabled: jobData.enabled as boolean | undefined,
+    take: jobData.take as number | undefined,
+    userId: jobData.userId as string | undefined,
+  };
+
+  const response = await fetch(`${baseUrl.replace(/\/+$/, '')}/internal/account-purge`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      ...(secret ? { authorization: `Bearer ${secret}` } : {}),
+    },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(120_000),
+  });
+
+  if (!response.ok) {
+    await response.body?.cancel().catch(() => {});
+    throw new Error(`account.purge upstream failed: ${response.status}`);
+  }
+
+  const result = await response.json().catch(() => ({}));
+  return result as Record<string, unknown>;
+}
+
+/**
  * Object-storage metering trigger (Replit-parity $0.03/GiB-month) — POSTs to the
  * api's internal /internal/metering/object-storage which sums the REAL stored
  * bytes per org and meters one day's worth of GiB-months. Thin trigger so the
@@ -475,6 +517,10 @@ export function startWorkers() {
 
       if (job.name === 'inactivity.gc') {
         return await triggerInactivityGc(job.data ?? {});
+      }
+
+      if (job.name === 'account.purge') {
+        return await triggerAccountPurge(job.data ?? {});
       }
 
       if (job.name === 'metering.objectStorage') {
