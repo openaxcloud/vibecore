@@ -44,6 +44,7 @@ import type {
   CollaborationPresenceRecord,
   CustomRoleRecord,
   DeploymentRecord,
+  ReleaseCatalogEntryRecord,
   DomainVerificationRecord,
   EmailDeliveryEventRecord,
   EnterpriseSettingsRecord,
@@ -1815,6 +1816,73 @@ export class TestApiStore implements ApiStore {
     return [...this.deployments.values()].filter(
       (deployment) => deployment.provider === 'server' && deployment.status === 'READY',
     );
+  }
+
+  readonly releaseCatalog = new Map<string, ReleaseCatalogEntryRecord>();
+
+  async createReleaseCatalogEntry(input: {
+    projectId: string;
+    imageRef: string;
+    imageDigest: string;
+    provider?: string;
+    status?: string;
+    publishedByDeploymentId?: string;
+    revisionSha256?: string;
+    runtime?: string;
+    appUrl?: string;
+    label?: string;
+    createdByUserId?: string;
+    promotionId?: string;
+    bundleRef?: string;
+    sbomRef?: string;
+    provenanceRef?: string;
+    configRef?: string;
+    accessPolicyVersion?: string;
+    retentionExpiresAt?: string;
+  }): Promise<ReleaseCatalogEntryRecord> {
+    const version =
+      Math.max(
+        0,
+        ...[...this.releaseCatalog.values()].filter((r) => r.projectId === input.projectId).map((r) => r.version),
+      ) + 1;
+    const row: ReleaseCatalogEntryRecord = {
+      id: id('release'),
+      projectId: input.projectId,
+      version,
+      imageRef: input.imageRef,
+      imageDigest: input.imageDigest,
+      provider: input.provider ?? 'server',
+      status: input.status ?? 'PUBLISHED',
+      publishedByDeploymentId: input.publishedByDeploymentId,
+      revisionSha256: input.revisionSha256,
+      runtime: input.runtime,
+      appUrl: input.appUrl,
+      label: input.label,
+      createdByUserId: input.createdByUserId,
+      createdAt: now(),
+      promotionId: input.promotionId,
+      bundleRef: input.bundleRef,
+      sbomRef: input.sbomRef,
+      provenanceRef: input.provenanceRef,
+      configRef: input.configRef,
+      accessPolicyVersion: input.accessPolicyVersion,
+      retentionExpiresAt: input.retentionExpiresAt,
+      referenceCount: 1,
+    };
+    this.releaseCatalog.set(row.id, row);
+    return row;
+  }
+
+  async listReleaseCatalog(projectId: string, options: { take?: number } = {}) {
+    const rows = [...this.releaseCatalog.values()]
+      .filter((r) => r.projectId === projectId)
+      .sort((a, b) => b.version - a.version);
+    return options.take ? rows.slice(0, options.take) : rows;
+  }
+
+  async getReleaseCatalogEntry(projectId: string, releaseId: string) {
+    const row = this.releaseCatalog.get(releaseId);
+    return row && row.projectId === projectId ? row : undefined;
   }
 
   /** No DB-backed rate card in tests: callers fall back to the built-in card. */

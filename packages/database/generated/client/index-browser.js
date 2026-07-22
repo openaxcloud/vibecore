@@ -529,6 +529,31 @@ exports.Prisma.DeploymentScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.ReleaseCatalogEntryScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  version: 'version',
+  imageRef: 'imageRef',
+  imageDigest: 'imageDigest',
+  provider: 'provider',
+  status: 'status',
+  publishedByDeploymentId: 'publishedByDeploymentId',
+  revisionSha256: 'revisionSha256',
+  runtime: 'runtime',
+  appUrl: 'appUrl',
+  label: 'label',
+  createdByUserId: 'createdByUserId',
+  createdAt: 'createdAt',
+  promotionId: 'promotionId',
+  bundleRef: 'bundleRef',
+  sbomRef: 'sbomRef',
+  provenanceRef: 'provenanceRef',
+  configRef: 'configRef',
+  accessPolicyVersion: 'accessPolicyVersion',
+  retentionExpiresAt: 'retentionExpiresAt',
+  referenceCount: 'referenceCount'
+};
+
 exports.Prisma.DeploymentEnvironmentScalarFieldEnum = {
   id: 'id',
   name: 'name'
@@ -1791,6 +1816,7 @@ exports.Prisma.ModelName = {
   ProjectSnapshot: 'ProjectSnapshot',
   ProjectStorageObject: 'ProjectStorageObject',
   Deployment: 'Deployment',
+  ReleaseCatalogEntry: 'ReleaseCatalogEntry',
   DeploymentEnvironment: 'DeploymentEnvironment',
   RateCard: 'RateCard',
   AuditLog: 'AuditLog',

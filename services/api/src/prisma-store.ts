@@ -43,6 +43,7 @@ import type {
   CollaborationPresenceRecord,
   CustomRoleRecord,
   DeploymentRecord,
+  ReleaseCatalogEntryRecord,
   DomainVerificationRecord,
   EmailDeliveryEventRecord,
   EnterpriseSettingsRecord,
@@ -2703,6 +2704,82 @@ export class PrismaApiStore implements ApiStore {
         take: 500,
       })
     ).map(mapDeployment);
+  }
+
+  async createReleaseCatalogEntry(input: {
+    projectId: string;
+    imageRef: string;
+    imageDigest: string;
+    provider?: string;
+    status?: string;
+    publishedByDeploymentId?: string;
+    revisionSha256?: string;
+    runtime?: string;
+    appUrl?: string;
+    label?: string;
+    createdByUserId?: string;
+    promotionId?: string;
+    bundleRef?: string;
+    sbomRef?: string;
+    provenanceRef?: string;
+    configRef?: string;
+    accessPolicyVersion?: string;
+    retentionExpiresAt?: string;
+  }): Promise<ReleaseCatalogEntryRecord> {
+    /*
+     * Assign the monotonic per-project version under a serialized mutation so two
+     * concurrent publishes cannot compute the same max+1 and collide on the
+     * (projectId, version) unique index. Keyed on the project.
+     */
+    return this.withSerializedMutation(`release-catalog:${input.projectId}`, async () => {
+      const latest = await this.prisma.releaseCatalogEntry.findFirst({
+        where: { projectId: input.projectId },
+        orderBy: { version: 'desc' },
+        select: { version: true },
+      });
+      const version = (latest?.version ?? 0) + 1;
+
+      const row = await this.prisma.releaseCatalogEntry.create({
+        data: {
+          projectId: input.projectId,
+          version,
+          imageRef: input.imageRef,
+          imageDigest: input.imageDigest,
+          provider: input.provider ?? 'server',
+          status: input.status ?? 'PUBLISHED',
+          publishedByDeploymentId: input.publishedByDeploymentId ?? null,
+          revisionSha256: input.revisionSha256 ?? null,
+          runtime: input.runtime ?? null,
+          appUrl: input.appUrl ?? null,
+          label: input.label ?? null,
+          createdByUserId: input.createdByUserId ?? null,
+          promotionId: input.promotionId ?? null,
+          bundleRef: input.bundleRef ?? null,
+          sbomRef: input.sbomRef ?? null,
+          provenanceRef: input.provenanceRef ?? null,
+          configRef: input.configRef ?? null,
+          accessPolicyVersion: input.accessPolicyVersion ?? null,
+          retentionExpiresAt: input.retentionExpiresAt ? new Date(input.retentionExpiresAt) : null,
+        },
+      });
+
+      return mapReleaseCatalogEntry(row);
+    });
+  }
+
+  async listReleaseCatalog(projectId: string, options: { take?: number } = {}) {
+    return (
+      await this.prisma.releaseCatalogEntry.findMany({
+        where: { projectId },
+        orderBy: { version: 'desc' },
+        take: options.take ?? 100,
+      })
+    ).map(mapReleaseCatalogEntry);
+  }
+
+  async getReleaseCatalogEntry(projectId: string, releaseId: string) {
+    const row = await this.prisma.releaseCatalogEntry.findUnique({ where: { id: releaseId } });
+    return row && row.projectId === projectId ? mapReleaseCatalogEntry(row) : undefined;
   }
 
   async getActiveRateCard() {
@@ -6041,6 +6118,33 @@ function mapDeployment(deployment: any): DeploymentRecord {
     canceledAt: toIso(deployment.canceledAt),
     createdAt: toIso(deployment.createdAt)!,
     updatedAt: toIso(deployment.updatedAt),
+  };
+}
+
+function mapReleaseCatalogEntry(row: any): ReleaseCatalogEntryRecord {
+  return {
+    id: row.id,
+    projectId: row.projectId,
+    version: row.version,
+    imageRef: row.imageRef,
+    imageDigest: row.imageDigest,
+    provider: row.provider,
+    status: row.status,
+    publishedByDeploymentId: row.publishedByDeploymentId ?? undefined,
+    revisionSha256: row.revisionSha256 ?? undefined,
+    runtime: row.runtime ?? undefined,
+    appUrl: row.appUrl ?? undefined,
+    label: row.label ?? undefined,
+    createdByUserId: row.createdByUserId ?? undefined,
+    createdAt: toIso(row.createdAt)!,
+    promotionId: row.promotionId ?? undefined,
+    bundleRef: row.bundleRef ?? undefined,
+    sbomRef: row.sbomRef ?? undefined,
+    provenanceRef: row.provenanceRef ?? undefined,
+    configRef: row.configRef ?? undefined,
+    accessPolicyVersion: row.accessPolicyVersion ?? undefined,
+    retentionExpiresAt: toIso(row.retentionExpiresAt),
+    referenceCount: row.referenceCount,
   };
 }
 

@@ -331,6 +331,34 @@ export interface DeploymentRecord {
   updatedAt?: string;
 }
 
+/** A persistent ReleaseCatalog entry (CTR-RELEASE-PUBLISH). Source of truth of a release. */
+export interface ReleaseCatalogEntryRecord {
+  /** releaseId. */
+  id: string;
+  projectId: string;
+  /** Monotonic per project. */
+  version: number;
+  imageRef: string;
+  imageDigest: string;
+  provider: string;
+  status: string;
+  publishedByDeploymentId?: string;
+  revisionSha256?: string;
+  runtime?: string;
+  appUrl?: string;
+  label?: string;
+  createdByUserId?: string;
+  createdAt: string;
+  promotionId?: string;
+  bundleRef?: string;
+  sbomRef?: string;
+  provenanceRef?: string;
+  configRef?: string;
+  accessPolicyVersion?: string;
+  retentionExpiresAt?: string;
+  referenceCount: number;
+}
+
 export interface SupportTicketRecord {
   id: string;
   organizationId: string;
@@ -1750,6 +1778,36 @@ export interface ApiStore {
    * walks these to bill active machine time against their machineSize.
    */
   listActiveServerDeployments(): Promise<DeploymentRecord[]>;
+
+  /**
+   * Append a ReleaseCatalog entry (CTR-RELEASE-PUBLISH). The store assigns the
+   * monotonic per-project `version` (max+1) inside a serialized mutation so two
+   * concurrent publishes can never collide on a version. Immutable once written.
+   */
+  createReleaseCatalogEntry(input: {
+    projectId: string;
+    imageRef: string;
+    imageDigest: string;
+    provider?: string;
+    status?: string;
+    publishedByDeploymentId?: string;
+    revisionSha256?: string;
+    runtime?: string;
+    appUrl?: string;
+    label?: string;
+    createdByUserId?: string;
+    promotionId?: string;
+    bundleRef?: string;
+    sbomRef?: string;
+    provenanceRef?: string;
+    configRef?: string;
+    accessPolicyVersion?: string;
+    retentionExpiresAt?: string;
+  }): Promise<ReleaseCatalogEntryRecord>;
+  /** Release history for a project, most-recent version first. */
+  listReleaseCatalog(projectId: string, options?: { take?: number }): Promise<ReleaseCatalogEntryRecord[]>;
+  /** A single release by id, scoped to its project. */
+  getReleaseCatalogEntry(projectId: string, releaseId: string): Promise<ReleaseCatalogEntryRecord | undefined>;
   /**
    * The ACTIVE versioned Rate Card row (undefined when none is active — the
    * caller falls back to the built-in card). `data` is the serialized RateCard.

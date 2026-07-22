@@ -84,6 +84,7 @@ model User {
   projectActivity             ProjectActivity[]
   projectSnapshots            ProjectSnapshot[]
   galleryListings             GalleryListing[]        @relation("UserGalleryListings")
+  releaseCatalogEntries       ReleaseCatalogEntry[]
   projectIdeStateUpdates      ProjectIdeState[]
   collaborationPresence       CollaborationPresence[]
   collaborationComments       CollaborationComment[]
@@ -263,6 +264,7 @@ model Project {
   snapshots              ProjectSnapshot[]
   storageObjects         ProjectStorageObject[]
   deployments            Deployment[]
+  releaseCatalog         ReleaseCatalogEntry[]
   fileSnapshots          FileSnapshot[]
   conversations          AiConversation[]
   ideState               ProjectIdeState?
@@ -766,6 +768,62 @@ model Deployment {
   @@index([projectId, workspaceId])
   @@index([projectId, environmentName])
   @@index([projectId, status])
+}
+
+/// Persistent ReleaseCatalog (CTR-RELEASE-PUBLISH). The source of truth of every
+/// published release: each successful SERVER publish appends ONE immutable entry
+/// pinning the built image by DIGEST (never a mutable tag), with a monotonic
+/// per-project version. Redeploy-from-history re-runs an entry's image via the
+/// proven rollback-by-digest path, so a release survives deletion of its source
+/// revision/workspace (I-PUB-3 / I-REL-1). Formalizes the release identity that
+/// previously lived only inside Deployment.metadata.serverDeploy.image, and the
+/// ReleaseManifest that until now existed only as an in-memory interface.
+///
+/// `publishedByDeploymentId` is a plain pointer (no FK) ON PURPOSE: the catalog
+/// entry must OUTLIVE the deployment/workspace it was cut from — that is the
+/// whole point of a persistent catalog.
+model ReleaseCatalogEntry {
+  /// releaseId.
+  id                      String    @id @default(cuid())
+  projectId               String
+  /// Monotonic per project (1, 2, 3, …); the human-facing release number.
+  version                 Int
+  /// AR image ref WITHOUT a tag (e.g. europe-west9-docker.pkg.dev/…/p-<id>).
+  imageRef                String
+  /// Immutable content digest — the release IS this digest.
+  imageDigest             String
+  provider                String    @default("server")
+  /// PUBLISHED (current or historical, redeployable) | SUPERSEDED | GC_ELIGIBLE.
+  status                  String    @default("PUBLISHED")
+  /// The deployment that first published this release (no FK — see model doc).
+  publishedByDeploymentId String?
+  /// Provenance of what was built: the revision snapshot digest, if any.
+  revisionSha256          String?
+  runtime                 String?
+  /// The live URL at publish time (informational; may 410 once the revision is gone).
+  appUrl                  String?
+  label                   String?
+  createdByUserId         String?
+  createdAt               DateTime  @default(now())
+
+  // audit-v4 alignment (ReleaseManifest / release-catalog-entry.schema.json).
+  // Nullable: the live snapshot-image pipeline does not emit these yet — declared,
+  // never faked. referenceCount + retentionExpiresAt drive future GC (gcEligible).
+  promotionId             String?
+  bundleRef               String?
+  sbomRef                 String?
+  provenanceRef           String?
+  configRef               String?
+  accessPolicyVersion     String?
+  retentionExpiresAt      DateTime?
+  referenceCount          Int       @default(1)
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy User?   @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([projectId, version])
+  @@index([projectId, createdAt])
+  @@index([imageDigest])
 }
 
 model DeploymentEnvironment {

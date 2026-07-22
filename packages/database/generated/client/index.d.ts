@@ -189,6 +189,22 @@ export type ProjectStorageObject = $Result.DefaultSelection<Prisma.$ProjectStora
  */
 export type Deployment = $Result.DefaultSelection<Prisma.$DeploymentPayload>
 /**
+ * Model ReleaseCatalogEntry
+ * Persistent ReleaseCatalog (CTR-RELEASE-PUBLISH). The source of truth of every
+ * published release: each successful SERVER publish appends ONE immutable entry
+ * pinning the built image by DIGEST (never a mutable tag), with a monotonic
+ * per-project version. Redeploy-from-history re-runs an entry's image via the
+ * proven rollback-by-digest path, so a release survives deletion of its source
+ * revision/workspace (I-PUB-3 / I-REL-1). Formalizes the release identity that
+ * previously lived only inside Deployment.metadata.serverDeploy.image, and the
+ * ReleaseManifest that until now existed only as an in-memory interface.
+ * 
+ * `publishedByDeploymentId` is a plain pointer (no FK) ON PURPOSE: the catalog
+ * entry must OUTLIVE the deployment/workspace it was cut from — that is the
+ * whole point of a persistent catalog.
+ */
+export type ReleaseCatalogEntry = $Result.DefaultSelection<Prisma.$ReleaseCatalogEntryPayload>
+/**
  * Model DeploymentEnvironment
  * 
  */
@@ -1484,6 +1500,16 @@ export class PrismaClient<
   get deployment(): Prisma.DeploymentDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.releaseCatalogEntry`: Exposes CRUD operations for the **ReleaseCatalogEntry** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ReleaseCatalogEntries
+    * const releaseCatalogEntries = await prisma.releaseCatalogEntry.findMany()
+    * ```
+    */
+  get releaseCatalogEntry(): Prisma.ReleaseCatalogEntryDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.deploymentEnvironment`: Exposes CRUD operations for the **DeploymentEnvironment** model.
     * Example usage:
     * ```ts
@@ -2771,6 +2797,7 @@ export namespace Prisma {
     ProjectSnapshot: 'ProjectSnapshot',
     ProjectStorageObject: 'ProjectStorageObject',
     Deployment: 'Deployment',
+    ReleaseCatalogEntry: 'ReleaseCatalogEntry',
     DeploymentEnvironment: 'DeploymentEnvironment',
     RateCard: 'RateCard',
     AuditLog: 'AuditLog',
@@ -2868,7 +2895,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "remixJob" | "importJob" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "releaseCatalogEntry" | "deploymentEnvironment" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "remixJob" | "importJob" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -5443,6 +5470,80 @@ export namespace Prisma {
           count: {
             args: Prisma.DeploymentCountArgs<ExtArgs>
             result: $Utils.Optional<DeploymentCountAggregateOutputType> | number
+          }
+        }
+      }
+      ReleaseCatalogEntry: {
+        payload: Prisma.$ReleaseCatalogEntryPayload<ExtArgs>
+        fields: Prisma.ReleaseCatalogEntryFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ReleaseCatalogEntryFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReleaseCatalogEntryPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ReleaseCatalogEntryFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReleaseCatalogEntryPayload>
+          }
+          findFirst: {
+            args: Prisma.ReleaseCatalogEntryFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReleaseCatalogEntryPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ReleaseCatalogEntryFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReleaseCatalogEntryPayload>
+          }
+          findMany: {
+            args: Prisma.ReleaseCatalogEntryFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReleaseCatalogEntryPayload>[]
+          }
+          create: {
+            args: Prisma.ReleaseCatalogEntryCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReleaseCatalogEntryPayload>
+          }
+          createMany: {
+            args: Prisma.ReleaseCatalogEntryCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ReleaseCatalogEntryCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReleaseCatalogEntryPayload>[]
+          }
+          delete: {
+            args: Prisma.ReleaseCatalogEntryDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReleaseCatalogEntryPayload>
+          }
+          update: {
+            args: Prisma.ReleaseCatalogEntryUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReleaseCatalogEntryPayload>
+          }
+          deleteMany: {
+            args: Prisma.ReleaseCatalogEntryDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ReleaseCatalogEntryUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ReleaseCatalogEntryUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReleaseCatalogEntryPayload>[]
+          }
+          upsert: {
+            args: Prisma.ReleaseCatalogEntryUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReleaseCatalogEntryPayload>
+          }
+          aggregate: {
+            args: Prisma.ReleaseCatalogEntryAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateReleaseCatalogEntry>
+          }
+          groupBy: {
+            args: Prisma.ReleaseCatalogEntryGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ReleaseCatalogEntryGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ReleaseCatalogEntryCountArgs<ExtArgs>
+            result: $Utils.Optional<ReleaseCatalogEntryCountAggregateOutputType> | number
           }
         }
       }
@@ -11657,6 +11758,7 @@ export namespace Prisma {
     projectSnapshot?: ProjectSnapshotOmit
     projectStorageObject?: ProjectStorageObjectOmit
     deployment?: DeploymentOmit
+    releaseCatalogEntry?: ReleaseCatalogEntryOmit
     deploymentEnvironment?: DeploymentEnvironmentOmit
     rateCard?: RateCardOmit
     auditLog?: AuditLogOmit
@@ -11835,6 +11937,7 @@ export namespace Prisma {
     projectActivity: number
     projectSnapshots: number
     galleryListings: number
+    releaseCatalogEntries: number
     projectIdeStateUpdates: number
     collaborationPresence: number
     collaborationComments: number
@@ -11870,6 +11973,7 @@ export namespace Prisma {
     projectActivity?: boolean | UserCountOutputTypeCountProjectActivityArgs
     projectSnapshots?: boolean | UserCountOutputTypeCountProjectSnapshotsArgs
     galleryListings?: boolean | UserCountOutputTypeCountGalleryListingsArgs
+    releaseCatalogEntries?: boolean | UserCountOutputTypeCountReleaseCatalogEntriesArgs
     projectIdeStateUpdates?: boolean | UserCountOutputTypeCountProjectIdeStateUpdatesArgs
     collaborationPresence?: boolean | UserCountOutputTypeCountCollaborationPresenceArgs
     collaborationComments?: boolean | UserCountOutputTypeCountCollaborationCommentsArgs
@@ -12009,6 +12113,13 @@ export namespace Prisma {
    */
   export type UserCountOutputTypeCountGalleryListingsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: GalleryListingWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountReleaseCatalogEntriesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ReleaseCatalogEntryWhereInput
   }
 
   /**
@@ -12521,6 +12632,7 @@ export namespace Prisma {
     snapshots: number
     storageObjects: number
     deployments: number
+    releaseCatalog: number
     fileSnapshots: number
     conversations: number
     collaborationPresence: number
@@ -12548,6 +12660,7 @@ export namespace Prisma {
     snapshots?: boolean | ProjectCountOutputTypeCountSnapshotsArgs
     storageObjects?: boolean | ProjectCountOutputTypeCountStorageObjectsArgs
     deployments?: boolean | ProjectCountOutputTypeCountDeploymentsArgs
+    releaseCatalog?: boolean | ProjectCountOutputTypeCountReleaseCatalogArgs
     fileSnapshots?: boolean | ProjectCountOutputTypeCountFileSnapshotsArgs
     conversations?: boolean | ProjectCountOutputTypeCountConversationsArgs
     collaborationPresence?: boolean | ProjectCountOutputTypeCountCollaborationPresenceArgs
@@ -12649,6 +12762,13 @@ export namespace Prisma {
    */
   export type ProjectCountOutputTypeCountDeploymentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: DeploymentWhereInput
+  }
+
+  /**
+   * ProjectCountOutputType without action
+   */
+  export type ProjectCountOutputTypeCountReleaseCatalogArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ReleaseCatalogEntryWhereInput
   }
 
   /**
@@ -13536,6 +13656,7 @@ export namespace Prisma {
     projectActivity?: boolean | User$projectActivityArgs<ExtArgs>
     projectSnapshots?: boolean | User$projectSnapshotsArgs<ExtArgs>
     galleryListings?: boolean | User$galleryListingsArgs<ExtArgs>
+    releaseCatalogEntries?: boolean | User$releaseCatalogEntriesArgs<ExtArgs>
     projectIdeStateUpdates?: boolean | User$projectIdeStateUpdatesArgs<ExtArgs>
     collaborationPresence?: boolean | User$collaborationPresenceArgs<ExtArgs>
     collaborationComments?: boolean | User$collaborationCommentsArgs<ExtArgs>
@@ -13625,6 +13746,7 @@ export namespace Prisma {
     projectActivity?: boolean | User$projectActivityArgs<ExtArgs>
     projectSnapshots?: boolean | User$projectSnapshotsArgs<ExtArgs>
     galleryListings?: boolean | User$galleryListingsArgs<ExtArgs>
+    releaseCatalogEntries?: boolean | User$releaseCatalogEntriesArgs<ExtArgs>
     projectIdeStateUpdates?: boolean | User$projectIdeStateUpdatesArgs<ExtArgs>
     collaborationPresence?: boolean | User$collaborationPresenceArgs<ExtArgs>
     collaborationComments?: boolean | User$collaborationCommentsArgs<ExtArgs>
@@ -13666,6 +13788,7 @@ export namespace Prisma {
       projectActivity: Prisma.$ProjectActivityPayload<ExtArgs>[]
       projectSnapshots: Prisma.$ProjectSnapshotPayload<ExtArgs>[]
       galleryListings: Prisma.$GalleryListingPayload<ExtArgs>[]
+      releaseCatalogEntries: Prisma.$ReleaseCatalogEntryPayload<ExtArgs>[]
       projectIdeStateUpdates: Prisma.$ProjectIdeStatePayload<ExtArgs>[]
       collaborationPresence: Prisma.$CollaborationPresencePayload<ExtArgs>[]
       collaborationComments: Prisma.$CollaborationCommentPayload<ExtArgs>[]
@@ -14109,6 +14232,7 @@ export namespace Prisma {
     projectActivity<T extends User$projectActivityArgs<ExtArgs> = {}>(args?: Subset<T, User$projectActivityArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectActivityPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     projectSnapshots<T extends User$projectSnapshotsArgs<ExtArgs> = {}>(args?: Subset<T, User$projectSnapshotsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectSnapshotPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     galleryListings<T extends User$galleryListingsArgs<ExtArgs> = {}>(args?: Subset<T, User$galleryListingsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GalleryListingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    releaseCatalogEntries<T extends User$releaseCatalogEntriesArgs<ExtArgs> = {}>(args?: Subset<T, User$releaseCatalogEntriesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ReleaseCatalogEntryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     projectIdeStateUpdates<T extends User$projectIdeStateUpdatesArgs<ExtArgs> = {}>(args?: Subset<T, User$projectIdeStateUpdatesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectIdeStatePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     collaborationPresence<T extends User$collaborationPresenceArgs<ExtArgs> = {}>(args?: Subset<T, User$collaborationPresenceArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CollaborationPresencePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     collaborationComments<T extends User$collaborationCommentsArgs<ExtArgs> = {}>(args?: Subset<T, User$collaborationCommentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CollaborationCommentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -14943,6 +15067,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: GalleryListingScalarFieldEnum | GalleryListingScalarFieldEnum[]
+  }
+
+  /**
+   * User.releaseCatalogEntries
+   */
+  export type User$releaseCatalogEntriesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReleaseCatalogEntry
+     */
+    select?: ReleaseCatalogEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReleaseCatalogEntry
+     */
+    omit?: ReleaseCatalogEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReleaseCatalogEntryInclude<ExtArgs> | null
+    where?: ReleaseCatalogEntryWhereInput
+    orderBy?: ReleaseCatalogEntryOrderByWithRelationInput | ReleaseCatalogEntryOrderByWithRelationInput[]
+    cursor?: ReleaseCatalogEntryWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ReleaseCatalogEntryScalarFieldEnum | ReleaseCatalogEntryScalarFieldEnum[]
   }
 
   /**
@@ -25228,6 +25376,7 @@ export namespace Prisma {
     snapshots?: boolean | Project$snapshotsArgs<ExtArgs>
     storageObjects?: boolean | Project$storageObjectsArgs<ExtArgs>
     deployments?: boolean | Project$deploymentsArgs<ExtArgs>
+    releaseCatalog?: boolean | Project$releaseCatalogArgs<ExtArgs>
     fileSnapshots?: boolean | Project$fileSnapshotsArgs<ExtArgs>
     conversations?: boolean | Project$conversationsArgs<ExtArgs>
     ideState?: boolean | Project$ideStateArgs<ExtArgs>
@@ -25315,6 +25464,7 @@ export namespace Prisma {
     snapshots?: boolean | Project$snapshotsArgs<ExtArgs>
     storageObjects?: boolean | Project$storageObjectsArgs<ExtArgs>
     deployments?: boolean | Project$deploymentsArgs<ExtArgs>
+    releaseCatalog?: boolean | Project$releaseCatalogArgs<ExtArgs>
     fileSnapshots?: boolean | Project$fileSnapshotsArgs<ExtArgs>
     conversations?: boolean | Project$conversationsArgs<ExtArgs>
     ideState?: boolean | Project$ideStateArgs<ExtArgs>
@@ -25353,6 +25503,7 @@ export namespace Prisma {
       snapshots: Prisma.$ProjectSnapshotPayload<ExtArgs>[]
       storageObjects: Prisma.$ProjectStorageObjectPayload<ExtArgs>[]
       deployments: Prisma.$DeploymentPayload<ExtArgs>[]
+      releaseCatalog: Prisma.$ReleaseCatalogEntryPayload<ExtArgs>[]
       fileSnapshots: Prisma.$FileSnapshotPayload<ExtArgs>[]
       conversations: Prisma.$AiConversationPayload<ExtArgs>[]
       ideState: Prisma.$ProjectIdeStatePayload<ExtArgs> | null
@@ -25790,6 +25941,7 @@ export namespace Prisma {
     snapshots<T extends Project$snapshotsArgs<ExtArgs> = {}>(args?: Subset<T, Project$snapshotsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectSnapshotPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     storageObjects<T extends Project$storageObjectsArgs<ExtArgs> = {}>(args?: Subset<T, Project$storageObjectsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectStorageObjectPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     deployments<T extends Project$deploymentsArgs<ExtArgs> = {}>(args?: Subset<T, Project$deploymentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DeploymentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    releaseCatalog<T extends Project$releaseCatalogArgs<ExtArgs> = {}>(args?: Subset<T, Project$releaseCatalogArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ReleaseCatalogEntryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     fileSnapshots<T extends Project$fileSnapshotsArgs<ExtArgs> = {}>(args?: Subset<T, Project$fileSnapshotsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FileSnapshotPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     conversations<T extends Project$conversationsArgs<ExtArgs> = {}>(args?: Subset<T, Project$conversationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AiConversationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     ideState<T extends Project$ideStateArgs<ExtArgs> = {}>(args?: Subset<T, Project$ideStateArgs<ExtArgs>>): Prisma__ProjectIdeStateClient<$Result.GetResult<Prisma.$ProjectIdeStatePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
@@ -26510,6 +26662,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: DeploymentScalarFieldEnum | DeploymentScalarFieldEnum[]
+  }
+
+  /**
+   * Project.releaseCatalog
+   */
+  export type Project$releaseCatalogArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReleaseCatalogEntry
+     */
+    select?: ReleaseCatalogEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReleaseCatalogEntry
+     */
+    omit?: ReleaseCatalogEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReleaseCatalogEntryInclude<ExtArgs> | null
+    where?: ReleaseCatalogEntryWhereInput
+    orderBy?: ReleaseCatalogEntryOrderByWithRelationInput | ReleaseCatalogEntryOrderByWithRelationInput[]
+    cursor?: ReleaseCatalogEntryWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ReleaseCatalogEntryScalarFieldEnum | ReleaseCatalogEntryScalarFieldEnum[]
   }
 
   /**
@@ -55239,6 +55415,1379 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: DeploymentInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ReleaseCatalogEntry
+   */
+
+  export type AggregateReleaseCatalogEntry = {
+    _count: ReleaseCatalogEntryCountAggregateOutputType | null
+    _avg: ReleaseCatalogEntryAvgAggregateOutputType | null
+    _sum: ReleaseCatalogEntrySumAggregateOutputType | null
+    _min: ReleaseCatalogEntryMinAggregateOutputType | null
+    _max: ReleaseCatalogEntryMaxAggregateOutputType | null
+  }
+
+  export type ReleaseCatalogEntryAvgAggregateOutputType = {
+    version: number | null
+    referenceCount: number | null
+  }
+
+  export type ReleaseCatalogEntrySumAggregateOutputType = {
+    version: number | null
+    referenceCount: number | null
+  }
+
+  export type ReleaseCatalogEntryMinAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    version: number | null
+    imageRef: string | null
+    imageDigest: string | null
+    provider: string | null
+    status: string | null
+    publishedByDeploymentId: string | null
+    revisionSha256: string | null
+    runtime: string | null
+    appUrl: string | null
+    label: string | null
+    createdByUserId: string | null
+    createdAt: Date | null
+    promotionId: string | null
+    bundleRef: string | null
+    sbomRef: string | null
+    provenanceRef: string | null
+    configRef: string | null
+    accessPolicyVersion: string | null
+    retentionExpiresAt: Date | null
+    referenceCount: number | null
+  }
+
+  export type ReleaseCatalogEntryMaxAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    version: number | null
+    imageRef: string | null
+    imageDigest: string | null
+    provider: string | null
+    status: string | null
+    publishedByDeploymentId: string | null
+    revisionSha256: string | null
+    runtime: string | null
+    appUrl: string | null
+    label: string | null
+    createdByUserId: string | null
+    createdAt: Date | null
+    promotionId: string | null
+    bundleRef: string | null
+    sbomRef: string | null
+    provenanceRef: string | null
+    configRef: string | null
+    accessPolicyVersion: string | null
+    retentionExpiresAt: Date | null
+    referenceCount: number | null
+  }
+
+  export type ReleaseCatalogEntryCountAggregateOutputType = {
+    id: number
+    projectId: number
+    version: number
+    imageRef: number
+    imageDigest: number
+    provider: number
+    status: number
+    publishedByDeploymentId: number
+    revisionSha256: number
+    runtime: number
+    appUrl: number
+    label: number
+    createdByUserId: number
+    createdAt: number
+    promotionId: number
+    bundleRef: number
+    sbomRef: number
+    provenanceRef: number
+    configRef: number
+    accessPolicyVersion: number
+    retentionExpiresAt: number
+    referenceCount: number
+    _all: number
+  }
+
+
+  export type ReleaseCatalogEntryAvgAggregateInputType = {
+    version?: true
+    referenceCount?: true
+  }
+
+  export type ReleaseCatalogEntrySumAggregateInputType = {
+    version?: true
+    referenceCount?: true
+  }
+
+  export type ReleaseCatalogEntryMinAggregateInputType = {
+    id?: true
+    projectId?: true
+    version?: true
+    imageRef?: true
+    imageDigest?: true
+    provider?: true
+    status?: true
+    publishedByDeploymentId?: true
+    revisionSha256?: true
+    runtime?: true
+    appUrl?: true
+    label?: true
+    createdByUserId?: true
+    createdAt?: true
+    promotionId?: true
+    bundleRef?: true
+    sbomRef?: true
+    provenanceRef?: true
+    configRef?: true
+    accessPolicyVersion?: true
+    retentionExpiresAt?: true
+    referenceCount?: true
+  }
+
+  export type ReleaseCatalogEntryMaxAggregateInputType = {
+    id?: true
+    projectId?: true
+    version?: true
+    imageRef?: true
+    imageDigest?: true
+    provider?: true
+    status?: true
+    publishedByDeploymentId?: true
+    revisionSha256?: true
+    runtime?: true
+    appUrl?: true
+    label?: true
+    createdByUserId?: true
+    createdAt?: true
+    promotionId?: true
+    bundleRef?: true
+    sbomRef?: true
+    provenanceRef?: true
+    configRef?: true
+    accessPolicyVersion?: true
+    retentionExpiresAt?: true
+    referenceCount?: true
+  }
+
+  export type ReleaseCatalogEntryCountAggregateInputType = {
+    id?: true
+    projectId?: true
+    version?: true
+    imageRef?: true
+    imageDigest?: true
+    provider?: true
+    status?: true
+    publishedByDeploymentId?: true
+    revisionSha256?: true
+    runtime?: true
+    appUrl?: true
+    label?: true
+    createdByUserId?: true
+    createdAt?: true
+    promotionId?: true
+    bundleRef?: true
+    sbomRef?: true
+    provenanceRef?: true
+    configRef?: true
+    accessPolicyVersion?: true
+    retentionExpiresAt?: true
+    referenceCount?: true
+    _all?: true
+  }
+
+  export type ReleaseCatalogEntryAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ReleaseCatalogEntry to aggregate.
+     */
+    where?: ReleaseCatalogEntryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ReleaseCatalogEntries to fetch.
+     */
+    orderBy?: ReleaseCatalogEntryOrderByWithRelationInput | ReleaseCatalogEntryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ReleaseCatalogEntryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ReleaseCatalogEntries from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ReleaseCatalogEntries.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ReleaseCatalogEntries
+    **/
+    _count?: true | ReleaseCatalogEntryCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ReleaseCatalogEntryAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ReleaseCatalogEntrySumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ReleaseCatalogEntryMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ReleaseCatalogEntryMaxAggregateInputType
+  }
+
+  export type GetReleaseCatalogEntryAggregateType<T extends ReleaseCatalogEntryAggregateArgs> = {
+        [P in keyof T & keyof AggregateReleaseCatalogEntry]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateReleaseCatalogEntry[P]>
+      : GetScalarType<T[P], AggregateReleaseCatalogEntry[P]>
+  }
+
+
+
+
+  export type ReleaseCatalogEntryGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ReleaseCatalogEntryWhereInput
+    orderBy?: ReleaseCatalogEntryOrderByWithAggregationInput | ReleaseCatalogEntryOrderByWithAggregationInput[]
+    by: ReleaseCatalogEntryScalarFieldEnum[] | ReleaseCatalogEntryScalarFieldEnum
+    having?: ReleaseCatalogEntryScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ReleaseCatalogEntryCountAggregateInputType | true
+    _avg?: ReleaseCatalogEntryAvgAggregateInputType
+    _sum?: ReleaseCatalogEntrySumAggregateInputType
+    _min?: ReleaseCatalogEntryMinAggregateInputType
+    _max?: ReleaseCatalogEntryMaxAggregateInputType
+  }
+
+  export type ReleaseCatalogEntryGroupByOutputType = {
+    id: string
+    projectId: string
+    version: number
+    imageRef: string
+    imageDigest: string
+    provider: string
+    status: string
+    publishedByDeploymentId: string | null
+    revisionSha256: string | null
+    runtime: string | null
+    appUrl: string | null
+    label: string | null
+    createdByUserId: string | null
+    createdAt: Date
+    promotionId: string | null
+    bundleRef: string | null
+    sbomRef: string | null
+    provenanceRef: string | null
+    configRef: string | null
+    accessPolicyVersion: string | null
+    retentionExpiresAt: Date | null
+    referenceCount: number
+    _count: ReleaseCatalogEntryCountAggregateOutputType | null
+    _avg: ReleaseCatalogEntryAvgAggregateOutputType | null
+    _sum: ReleaseCatalogEntrySumAggregateOutputType | null
+    _min: ReleaseCatalogEntryMinAggregateOutputType | null
+    _max: ReleaseCatalogEntryMaxAggregateOutputType | null
+  }
+
+  type GetReleaseCatalogEntryGroupByPayload<T extends ReleaseCatalogEntryGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ReleaseCatalogEntryGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ReleaseCatalogEntryGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ReleaseCatalogEntryGroupByOutputType[P]>
+            : GetScalarType<T[P], ReleaseCatalogEntryGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ReleaseCatalogEntrySelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    version?: boolean
+    imageRef?: boolean
+    imageDigest?: boolean
+    provider?: boolean
+    status?: boolean
+    publishedByDeploymentId?: boolean
+    revisionSha256?: boolean
+    runtime?: boolean
+    appUrl?: boolean
+    label?: boolean
+    createdByUserId?: boolean
+    createdAt?: boolean
+    promotionId?: boolean
+    bundleRef?: boolean
+    sbomRef?: boolean
+    provenanceRef?: boolean
+    configRef?: boolean
+    accessPolicyVersion?: boolean
+    retentionExpiresAt?: boolean
+    referenceCount?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    createdBy?: boolean | ReleaseCatalogEntry$createdByArgs<ExtArgs>
+  }, ExtArgs["result"]["releaseCatalogEntry"]>
+
+  export type ReleaseCatalogEntrySelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    version?: boolean
+    imageRef?: boolean
+    imageDigest?: boolean
+    provider?: boolean
+    status?: boolean
+    publishedByDeploymentId?: boolean
+    revisionSha256?: boolean
+    runtime?: boolean
+    appUrl?: boolean
+    label?: boolean
+    createdByUserId?: boolean
+    createdAt?: boolean
+    promotionId?: boolean
+    bundleRef?: boolean
+    sbomRef?: boolean
+    provenanceRef?: boolean
+    configRef?: boolean
+    accessPolicyVersion?: boolean
+    retentionExpiresAt?: boolean
+    referenceCount?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    createdBy?: boolean | ReleaseCatalogEntry$createdByArgs<ExtArgs>
+  }, ExtArgs["result"]["releaseCatalogEntry"]>
+
+  export type ReleaseCatalogEntrySelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    version?: boolean
+    imageRef?: boolean
+    imageDigest?: boolean
+    provider?: boolean
+    status?: boolean
+    publishedByDeploymentId?: boolean
+    revisionSha256?: boolean
+    runtime?: boolean
+    appUrl?: boolean
+    label?: boolean
+    createdByUserId?: boolean
+    createdAt?: boolean
+    promotionId?: boolean
+    bundleRef?: boolean
+    sbomRef?: boolean
+    provenanceRef?: boolean
+    configRef?: boolean
+    accessPolicyVersion?: boolean
+    retentionExpiresAt?: boolean
+    referenceCount?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    createdBy?: boolean | ReleaseCatalogEntry$createdByArgs<ExtArgs>
+  }, ExtArgs["result"]["releaseCatalogEntry"]>
+
+  export type ReleaseCatalogEntrySelectScalar = {
+    id?: boolean
+    projectId?: boolean
+    version?: boolean
+    imageRef?: boolean
+    imageDigest?: boolean
+    provider?: boolean
+    status?: boolean
+    publishedByDeploymentId?: boolean
+    revisionSha256?: boolean
+    runtime?: boolean
+    appUrl?: boolean
+    label?: boolean
+    createdByUserId?: boolean
+    createdAt?: boolean
+    promotionId?: boolean
+    bundleRef?: boolean
+    sbomRef?: boolean
+    provenanceRef?: boolean
+    configRef?: boolean
+    accessPolicyVersion?: boolean
+    retentionExpiresAt?: boolean
+    referenceCount?: boolean
+  }
+
+  export type ReleaseCatalogEntryOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "version" | "imageRef" | "imageDigest" | "provider" | "status" | "publishedByDeploymentId" | "revisionSha256" | "runtime" | "appUrl" | "label" | "createdByUserId" | "createdAt" | "promotionId" | "bundleRef" | "sbomRef" | "provenanceRef" | "configRef" | "accessPolicyVersion" | "retentionExpiresAt" | "referenceCount", ExtArgs["result"]["releaseCatalogEntry"]>
+  export type ReleaseCatalogEntryInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    createdBy?: boolean | ReleaseCatalogEntry$createdByArgs<ExtArgs>
+  }
+  export type ReleaseCatalogEntryIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    createdBy?: boolean | ReleaseCatalogEntry$createdByArgs<ExtArgs>
+  }
+  export type ReleaseCatalogEntryIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    createdBy?: boolean | ReleaseCatalogEntry$createdByArgs<ExtArgs>
+  }
+
+  export type $ReleaseCatalogEntryPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ReleaseCatalogEntry"
+    objects: {
+      project: Prisma.$ProjectPayload<ExtArgs>
+      createdBy: Prisma.$UserPayload<ExtArgs> | null
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      /**
+       * releaseId.
+       */
+      id: string
+      projectId: string
+      /**
+       * Monotonic per project (1, 2, 3, …); the human-facing release number.
+       */
+      version: number
+      /**
+       * AR image ref WITHOUT a tag (e.g. europe-west9-docker.pkg.dev/…/p-<id>).
+       */
+      imageRef: string
+      /**
+       * Immutable content digest — the release IS this digest.
+       */
+      imageDigest: string
+      provider: string
+      /**
+       * PUBLISHED (current or historical, redeployable) | SUPERSEDED | GC_ELIGIBLE.
+       */
+      status: string
+      /**
+       * The deployment that first published this release (no FK — see model doc).
+       */
+      publishedByDeploymentId: string | null
+      /**
+       * Provenance of what was built: the revision snapshot digest, if any.
+       */
+      revisionSha256: string | null
+      runtime: string | null
+      /**
+       * The live URL at publish time (informational; may 410 once the revision is gone).
+       */
+      appUrl: string | null
+      label: string | null
+      createdByUserId: string | null
+      createdAt: Date
+      promotionId: string | null
+      bundleRef: string | null
+      sbomRef: string | null
+      provenanceRef: string | null
+      configRef: string | null
+      accessPolicyVersion: string | null
+      retentionExpiresAt: Date | null
+      referenceCount: number
+    }, ExtArgs["result"]["releaseCatalogEntry"]>
+    composites: {}
+  }
+
+  type ReleaseCatalogEntryGetPayload<S extends boolean | null | undefined | ReleaseCatalogEntryDefaultArgs> = $Result.GetResult<Prisma.$ReleaseCatalogEntryPayload, S>
+
+  type ReleaseCatalogEntryCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ReleaseCatalogEntryFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ReleaseCatalogEntryCountAggregateInputType | true
+    }
+
+  export interface ReleaseCatalogEntryDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ReleaseCatalogEntry'], meta: { name: 'ReleaseCatalogEntry' } }
+    /**
+     * Find zero or one ReleaseCatalogEntry that matches the filter.
+     * @param {ReleaseCatalogEntryFindUniqueArgs} args - Arguments to find a ReleaseCatalogEntry
+     * @example
+     * // Get one ReleaseCatalogEntry
+     * const releaseCatalogEntry = await prisma.releaseCatalogEntry.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ReleaseCatalogEntryFindUniqueArgs>(args: SelectSubset<T, ReleaseCatalogEntryFindUniqueArgs<ExtArgs>>): Prisma__ReleaseCatalogEntryClient<$Result.GetResult<Prisma.$ReleaseCatalogEntryPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ReleaseCatalogEntry that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ReleaseCatalogEntryFindUniqueOrThrowArgs} args - Arguments to find a ReleaseCatalogEntry
+     * @example
+     * // Get one ReleaseCatalogEntry
+     * const releaseCatalogEntry = await prisma.releaseCatalogEntry.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ReleaseCatalogEntryFindUniqueOrThrowArgs>(args: SelectSubset<T, ReleaseCatalogEntryFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ReleaseCatalogEntryClient<$Result.GetResult<Prisma.$ReleaseCatalogEntryPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ReleaseCatalogEntry that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReleaseCatalogEntryFindFirstArgs} args - Arguments to find a ReleaseCatalogEntry
+     * @example
+     * // Get one ReleaseCatalogEntry
+     * const releaseCatalogEntry = await prisma.releaseCatalogEntry.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ReleaseCatalogEntryFindFirstArgs>(args?: SelectSubset<T, ReleaseCatalogEntryFindFirstArgs<ExtArgs>>): Prisma__ReleaseCatalogEntryClient<$Result.GetResult<Prisma.$ReleaseCatalogEntryPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ReleaseCatalogEntry that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReleaseCatalogEntryFindFirstOrThrowArgs} args - Arguments to find a ReleaseCatalogEntry
+     * @example
+     * // Get one ReleaseCatalogEntry
+     * const releaseCatalogEntry = await prisma.releaseCatalogEntry.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ReleaseCatalogEntryFindFirstOrThrowArgs>(args?: SelectSubset<T, ReleaseCatalogEntryFindFirstOrThrowArgs<ExtArgs>>): Prisma__ReleaseCatalogEntryClient<$Result.GetResult<Prisma.$ReleaseCatalogEntryPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ReleaseCatalogEntries that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReleaseCatalogEntryFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ReleaseCatalogEntries
+     * const releaseCatalogEntries = await prisma.releaseCatalogEntry.findMany()
+     * 
+     * // Get first 10 ReleaseCatalogEntries
+     * const releaseCatalogEntries = await prisma.releaseCatalogEntry.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const releaseCatalogEntryWithIdOnly = await prisma.releaseCatalogEntry.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ReleaseCatalogEntryFindManyArgs>(args?: SelectSubset<T, ReleaseCatalogEntryFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ReleaseCatalogEntryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ReleaseCatalogEntry.
+     * @param {ReleaseCatalogEntryCreateArgs} args - Arguments to create a ReleaseCatalogEntry.
+     * @example
+     * // Create one ReleaseCatalogEntry
+     * const ReleaseCatalogEntry = await prisma.releaseCatalogEntry.create({
+     *   data: {
+     *     // ... data to create a ReleaseCatalogEntry
+     *   }
+     * })
+     * 
+     */
+    create<T extends ReleaseCatalogEntryCreateArgs>(args: SelectSubset<T, ReleaseCatalogEntryCreateArgs<ExtArgs>>): Prisma__ReleaseCatalogEntryClient<$Result.GetResult<Prisma.$ReleaseCatalogEntryPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ReleaseCatalogEntries.
+     * @param {ReleaseCatalogEntryCreateManyArgs} args - Arguments to create many ReleaseCatalogEntries.
+     * @example
+     * // Create many ReleaseCatalogEntries
+     * const releaseCatalogEntry = await prisma.releaseCatalogEntry.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ReleaseCatalogEntryCreateManyArgs>(args?: SelectSubset<T, ReleaseCatalogEntryCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ReleaseCatalogEntries and returns the data saved in the database.
+     * @param {ReleaseCatalogEntryCreateManyAndReturnArgs} args - Arguments to create many ReleaseCatalogEntries.
+     * @example
+     * // Create many ReleaseCatalogEntries
+     * const releaseCatalogEntry = await prisma.releaseCatalogEntry.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ReleaseCatalogEntries and only return the `id`
+     * const releaseCatalogEntryWithIdOnly = await prisma.releaseCatalogEntry.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ReleaseCatalogEntryCreateManyAndReturnArgs>(args?: SelectSubset<T, ReleaseCatalogEntryCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ReleaseCatalogEntryPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ReleaseCatalogEntry.
+     * @param {ReleaseCatalogEntryDeleteArgs} args - Arguments to delete one ReleaseCatalogEntry.
+     * @example
+     * // Delete one ReleaseCatalogEntry
+     * const ReleaseCatalogEntry = await prisma.releaseCatalogEntry.delete({
+     *   where: {
+     *     // ... filter to delete one ReleaseCatalogEntry
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ReleaseCatalogEntryDeleteArgs>(args: SelectSubset<T, ReleaseCatalogEntryDeleteArgs<ExtArgs>>): Prisma__ReleaseCatalogEntryClient<$Result.GetResult<Prisma.$ReleaseCatalogEntryPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ReleaseCatalogEntry.
+     * @param {ReleaseCatalogEntryUpdateArgs} args - Arguments to update one ReleaseCatalogEntry.
+     * @example
+     * // Update one ReleaseCatalogEntry
+     * const releaseCatalogEntry = await prisma.releaseCatalogEntry.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ReleaseCatalogEntryUpdateArgs>(args: SelectSubset<T, ReleaseCatalogEntryUpdateArgs<ExtArgs>>): Prisma__ReleaseCatalogEntryClient<$Result.GetResult<Prisma.$ReleaseCatalogEntryPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ReleaseCatalogEntries.
+     * @param {ReleaseCatalogEntryDeleteManyArgs} args - Arguments to filter ReleaseCatalogEntries to delete.
+     * @example
+     * // Delete a few ReleaseCatalogEntries
+     * const { count } = await prisma.releaseCatalogEntry.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ReleaseCatalogEntryDeleteManyArgs>(args?: SelectSubset<T, ReleaseCatalogEntryDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ReleaseCatalogEntries.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReleaseCatalogEntryUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ReleaseCatalogEntries
+     * const releaseCatalogEntry = await prisma.releaseCatalogEntry.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ReleaseCatalogEntryUpdateManyArgs>(args: SelectSubset<T, ReleaseCatalogEntryUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ReleaseCatalogEntries and returns the data updated in the database.
+     * @param {ReleaseCatalogEntryUpdateManyAndReturnArgs} args - Arguments to update many ReleaseCatalogEntries.
+     * @example
+     * // Update many ReleaseCatalogEntries
+     * const releaseCatalogEntry = await prisma.releaseCatalogEntry.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ReleaseCatalogEntries and only return the `id`
+     * const releaseCatalogEntryWithIdOnly = await prisma.releaseCatalogEntry.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ReleaseCatalogEntryUpdateManyAndReturnArgs>(args: SelectSubset<T, ReleaseCatalogEntryUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ReleaseCatalogEntryPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ReleaseCatalogEntry.
+     * @param {ReleaseCatalogEntryUpsertArgs} args - Arguments to update or create a ReleaseCatalogEntry.
+     * @example
+     * // Update or create a ReleaseCatalogEntry
+     * const releaseCatalogEntry = await prisma.releaseCatalogEntry.upsert({
+     *   create: {
+     *     // ... data to create a ReleaseCatalogEntry
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ReleaseCatalogEntry we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ReleaseCatalogEntryUpsertArgs>(args: SelectSubset<T, ReleaseCatalogEntryUpsertArgs<ExtArgs>>): Prisma__ReleaseCatalogEntryClient<$Result.GetResult<Prisma.$ReleaseCatalogEntryPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ReleaseCatalogEntries.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReleaseCatalogEntryCountArgs} args - Arguments to filter ReleaseCatalogEntries to count.
+     * @example
+     * // Count the number of ReleaseCatalogEntries
+     * const count = await prisma.releaseCatalogEntry.count({
+     *   where: {
+     *     // ... the filter for the ReleaseCatalogEntries we want to count
+     *   }
+     * })
+    **/
+    count<T extends ReleaseCatalogEntryCountArgs>(
+      args?: Subset<T, ReleaseCatalogEntryCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ReleaseCatalogEntryCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ReleaseCatalogEntry.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReleaseCatalogEntryAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ReleaseCatalogEntryAggregateArgs>(args: Subset<T, ReleaseCatalogEntryAggregateArgs>): Prisma.PrismaPromise<GetReleaseCatalogEntryAggregateType<T>>
+
+    /**
+     * Group by ReleaseCatalogEntry.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReleaseCatalogEntryGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ReleaseCatalogEntryGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ReleaseCatalogEntryGroupByArgs['orderBy'] }
+        : { orderBy?: ReleaseCatalogEntryGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ReleaseCatalogEntryGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetReleaseCatalogEntryGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ReleaseCatalogEntry model
+   */
+  readonly fields: ReleaseCatalogEntryFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ReleaseCatalogEntry.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ReleaseCatalogEntryClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    project<T extends ProjectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectDefaultArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    createdBy<T extends ReleaseCatalogEntry$createdByArgs<ExtArgs> = {}>(args?: Subset<T, ReleaseCatalogEntry$createdByArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ReleaseCatalogEntry model
+   */
+  interface ReleaseCatalogEntryFieldRefs {
+    readonly id: FieldRef<"ReleaseCatalogEntry", 'String'>
+    readonly projectId: FieldRef<"ReleaseCatalogEntry", 'String'>
+    readonly version: FieldRef<"ReleaseCatalogEntry", 'Int'>
+    readonly imageRef: FieldRef<"ReleaseCatalogEntry", 'String'>
+    readonly imageDigest: FieldRef<"ReleaseCatalogEntry", 'String'>
+    readonly provider: FieldRef<"ReleaseCatalogEntry", 'String'>
+    readonly status: FieldRef<"ReleaseCatalogEntry", 'String'>
+    readonly publishedByDeploymentId: FieldRef<"ReleaseCatalogEntry", 'String'>
+    readonly revisionSha256: FieldRef<"ReleaseCatalogEntry", 'String'>
+    readonly runtime: FieldRef<"ReleaseCatalogEntry", 'String'>
+    readonly appUrl: FieldRef<"ReleaseCatalogEntry", 'String'>
+    readonly label: FieldRef<"ReleaseCatalogEntry", 'String'>
+    readonly createdByUserId: FieldRef<"ReleaseCatalogEntry", 'String'>
+    readonly createdAt: FieldRef<"ReleaseCatalogEntry", 'DateTime'>
+    readonly promotionId: FieldRef<"ReleaseCatalogEntry", 'String'>
+    readonly bundleRef: FieldRef<"ReleaseCatalogEntry", 'String'>
+    readonly sbomRef: FieldRef<"ReleaseCatalogEntry", 'String'>
+    readonly provenanceRef: FieldRef<"ReleaseCatalogEntry", 'String'>
+    readonly configRef: FieldRef<"ReleaseCatalogEntry", 'String'>
+    readonly accessPolicyVersion: FieldRef<"ReleaseCatalogEntry", 'String'>
+    readonly retentionExpiresAt: FieldRef<"ReleaseCatalogEntry", 'DateTime'>
+    readonly referenceCount: FieldRef<"ReleaseCatalogEntry", 'Int'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ReleaseCatalogEntry findUnique
+   */
+  export type ReleaseCatalogEntryFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReleaseCatalogEntry
+     */
+    select?: ReleaseCatalogEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReleaseCatalogEntry
+     */
+    omit?: ReleaseCatalogEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReleaseCatalogEntryInclude<ExtArgs> | null
+    /**
+     * Filter, which ReleaseCatalogEntry to fetch.
+     */
+    where: ReleaseCatalogEntryWhereUniqueInput
+  }
+
+  /**
+   * ReleaseCatalogEntry findUniqueOrThrow
+   */
+  export type ReleaseCatalogEntryFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReleaseCatalogEntry
+     */
+    select?: ReleaseCatalogEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReleaseCatalogEntry
+     */
+    omit?: ReleaseCatalogEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReleaseCatalogEntryInclude<ExtArgs> | null
+    /**
+     * Filter, which ReleaseCatalogEntry to fetch.
+     */
+    where: ReleaseCatalogEntryWhereUniqueInput
+  }
+
+  /**
+   * ReleaseCatalogEntry findFirst
+   */
+  export type ReleaseCatalogEntryFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReleaseCatalogEntry
+     */
+    select?: ReleaseCatalogEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReleaseCatalogEntry
+     */
+    omit?: ReleaseCatalogEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReleaseCatalogEntryInclude<ExtArgs> | null
+    /**
+     * Filter, which ReleaseCatalogEntry to fetch.
+     */
+    where?: ReleaseCatalogEntryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ReleaseCatalogEntries to fetch.
+     */
+    orderBy?: ReleaseCatalogEntryOrderByWithRelationInput | ReleaseCatalogEntryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ReleaseCatalogEntries.
+     */
+    cursor?: ReleaseCatalogEntryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ReleaseCatalogEntries from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ReleaseCatalogEntries.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ReleaseCatalogEntries.
+     */
+    distinct?: ReleaseCatalogEntryScalarFieldEnum | ReleaseCatalogEntryScalarFieldEnum[]
+  }
+
+  /**
+   * ReleaseCatalogEntry findFirstOrThrow
+   */
+  export type ReleaseCatalogEntryFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReleaseCatalogEntry
+     */
+    select?: ReleaseCatalogEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReleaseCatalogEntry
+     */
+    omit?: ReleaseCatalogEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReleaseCatalogEntryInclude<ExtArgs> | null
+    /**
+     * Filter, which ReleaseCatalogEntry to fetch.
+     */
+    where?: ReleaseCatalogEntryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ReleaseCatalogEntries to fetch.
+     */
+    orderBy?: ReleaseCatalogEntryOrderByWithRelationInput | ReleaseCatalogEntryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ReleaseCatalogEntries.
+     */
+    cursor?: ReleaseCatalogEntryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ReleaseCatalogEntries from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ReleaseCatalogEntries.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ReleaseCatalogEntries.
+     */
+    distinct?: ReleaseCatalogEntryScalarFieldEnum | ReleaseCatalogEntryScalarFieldEnum[]
+  }
+
+  /**
+   * ReleaseCatalogEntry findMany
+   */
+  export type ReleaseCatalogEntryFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReleaseCatalogEntry
+     */
+    select?: ReleaseCatalogEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReleaseCatalogEntry
+     */
+    omit?: ReleaseCatalogEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReleaseCatalogEntryInclude<ExtArgs> | null
+    /**
+     * Filter, which ReleaseCatalogEntries to fetch.
+     */
+    where?: ReleaseCatalogEntryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ReleaseCatalogEntries to fetch.
+     */
+    orderBy?: ReleaseCatalogEntryOrderByWithRelationInput | ReleaseCatalogEntryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ReleaseCatalogEntries.
+     */
+    cursor?: ReleaseCatalogEntryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ReleaseCatalogEntries from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ReleaseCatalogEntries.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ReleaseCatalogEntries.
+     */
+    distinct?: ReleaseCatalogEntryScalarFieldEnum | ReleaseCatalogEntryScalarFieldEnum[]
+  }
+
+  /**
+   * ReleaseCatalogEntry create
+   */
+  export type ReleaseCatalogEntryCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReleaseCatalogEntry
+     */
+    select?: ReleaseCatalogEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReleaseCatalogEntry
+     */
+    omit?: ReleaseCatalogEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReleaseCatalogEntryInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ReleaseCatalogEntry.
+     */
+    data: XOR<ReleaseCatalogEntryCreateInput, ReleaseCatalogEntryUncheckedCreateInput>
+  }
+
+  /**
+   * ReleaseCatalogEntry createMany
+   */
+  export type ReleaseCatalogEntryCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ReleaseCatalogEntries.
+     */
+    data: ReleaseCatalogEntryCreateManyInput | ReleaseCatalogEntryCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ReleaseCatalogEntry createManyAndReturn
+   */
+  export type ReleaseCatalogEntryCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReleaseCatalogEntry
+     */
+    select?: ReleaseCatalogEntrySelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReleaseCatalogEntry
+     */
+    omit?: ReleaseCatalogEntryOmit<ExtArgs> | null
+    /**
+     * The data used to create many ReleaseCatalogEntries.
+     */
+    data: ReleaseCatalogEntryCreateManyInput | ReleaseCatalogEntryCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReleaseCatalogEntryIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ReleaseCatalogEntry update
+   */
+  export type ReleaseCatalogEntryUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReleaseCatalogEntry
+     */
+    select?: ReleaseCatalogEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReleaseCatalogEntry
+     */
+    omit?: ReleaseCatalogEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReleaseCatalogEntryInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ReleaseCatalogEntry.
+     */
+    data: XOR<ReleaseCatalogEntryUpdateInput, ReleaseCatalogEntryUncheckedUpdateInput>
+    /**
+     * Choose, which ReleaseCatalogEntry to update.
+     */
+    where: ReleaseCatalogEntryWhereUniqueInput
+  }
+
+  /**
+   * ReleaseCatalogEntry updateMany
+   */
+  export type ReleaseCatalogEntryUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ReleaseCatalogEntries.
+     */
+    data: XOR<ReleaseCatalogEntryUpdateManyMutationInput, ReleaseCatalogEntryUncheckedUpdateManyInput>
+    /**
+     * Filter which ReleaseCatalogEntries to update
+     */
+    where?: ReleaseCatalogEntryWhereInput
+    /**
+     * Limit how many ReleaseCatalogEntries to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ReleaseCatalogEntry updateManyAndReturn
+   */
+  export type ReleaseCatalogEntryUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReleaseCatalogEntry
+     */
+    select?: ReleaseCatalogEntrySelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReleaseCatalogEntry
+     */
+    omit?: ReleaseCatalogEntryOmit<ExtArgs> | null
+    /**
+     * The data used to update ReleaseCatalogEntries.
+     */
+    data: XOR<ReleaseCatalogEntryUpdateManyMutationInput, ReleaseCatalogEntryUncheckedUpdateManyInput>
+    /**
+     * Filter which ReleaseCatalogEntries to update
+     */
+    where?: ReleaseCatalogEntryWhereInput
+    /**
+     * Limit how many ReleaseCatalogEntries to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReleaseCatalogEntryIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ReleaseCatalogEntry upsert
+   */
+  export type ReleaseCatalogEntryUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReleaseCatalogEntry
+     */
+    select?: ReleaseCatalogEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReleaseCatalogEntry
+     */
+    omit?: ReleaseCatalogEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReleaseCatalogEntryInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ReleaseCatalogEntry to update in case it exists.
+     */
+    where: ReleaseCatalogEntryWhereUniqueInput
+    /**
+     * In case the ReleaseCatalogEntry found by the `where` argument doesn't exist, create a new ReleaseCatalogEntry with this data.
+     */
+    create: XOR<ReleaseCatalogEntryCreateInput, ReleaseCatalogEntryUncheckedCreateInput>
+    /**
+     * In case the ReleaseCatalogEntry was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ReleaseCatalogEntryUpdateInput, ReleaseCatalogEntryUncheckedUpdateInput>
+  }
+
+  /**
+   * ReleaseCatalogEntry delete
+   */
+  export type ReleaseCatalogEntryDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReleaseCatalogEntry
+     */
+    select?: ReleaseCatalogEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReleaseCatalogEntry
+     */
+    omit?: ReleaseCatalogEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReleaseCatalogEntryInclude<ExtArgs> | null
+    /**
+     * Filter which ReleaseCatalogEntry to delete.
+     */
+    where: ReleaseCatalogEntryWhereUniqueInput
+  }
+
+  /**
+   * ReleaseCatalogEntry deleteMany
+   */
+  export type ReleaseCatalogEntryDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ReleaseCatalogEntries to delete
+     */
+    where?: ReleaseCatalogEntryWhereInput
+    /**
+     * Limit how many ReleaseCatalogEntries to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ReleaseCatalogEntry.createdBy
+   */
+  export type ReleaseCatalogEntry$createdByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the User
+     */
+    select?: UserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the User
+     */
+    omit?: UserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserInclude<ExtArgs> | null
+    where?: UserWhereInput
+  }
+
+  /**
+   * ReleaseCatalogEntry without action
+   */
+  export type ReleaseCatalogEntryDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReleaseCatalogEntry
+     */
+    select?: ReleaseCatalogEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReleaseCatalogEntry
+     */
+    omit?: ReleaseCatalogEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReleaseCatalogEntryInclude<ExtArgs> | null
   }
 
 
@@ -148901,6 +150450,34 @@ export namespace Prisma {
   export type DeploymentScalarFieldEnum = (typeof DeploymentScalarFieldEnum)[keyof typeof DeploymentScalarFieldEnum]
 
 
+  export const ReleaseCatalogEntryScalarFieldEnum: {
+    id: 'id',
+    projectId: 'projectId',
+    version: 'version',
+    imageRef: 'imageRef',
+    imageDigest: 'imageDigest',
+    provider: 'provider',
+    status: 'status',
+    publishedByDeploymentId: 'publishedByDeploymentId',
+    revisionSha256: 'revisionSha256',
+    runtime: 'runtime',
+    appUrl: 'appUrl',
+    label: 'label',
+    createdByUserId: 'createdByUserId',
+    createdAt: 'createdAt',
+    promotionId: 'promotionId',
+    bundleRef: 'bundleRef',
+    sbomRef: 'sbomRef',
+    provenanceRef: 'provenanceRef',
+    configRef: 'configRef',
+    accessPolicyVersion: 'accessPolicyVersion',
+    retentionExpiresAt: 'retentionExpiresAt',
+    referenceCount: 'referenceCount'
+  };
+
+  export type ReleaseCatalogEntryScalarFieldEnum = (typeof ReleaseCatalogEntryScalarFieldEnum)[keyof typeof ReleaseCatalogEntryScalarFieldEnum]
+
+
   export const DeploymentEnvironmentScalarFieldEnum: {
     id: 'id',
     name: 'name'
@@ -150661,6 +152238,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityListRelationFilter
     projectSnapshots?: ProjectSnapshotListRelationFilter
     galleryListings?: GalleryListingListRelationFilter
+    releaseCatalogEntries?: ReleaseCatalogEntryListRelationFilter
     projectIdeStateUpdates?: ProjectIdeStateListRelationFilter
     collaborationPresence?: CollaborationPresenceListRelationFilter
     collaborationComments?: CollaborationCommentListRelationFilter
@@ -150711,6 +152289,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityOrderByRelationAggregateInput
     projectSnapshots?: ProjectSnapshotOrderByRelationAggregateInput
     galleryListings?: GalleryListingOrderByRelationAggregateInput
+    releaseCatalogEntries?: ReleaseCatalogEntryOrderByRelationAggregateInput
     projectIdeStateUpdates?: ProjectIdeStateOrderByRelationAggregateInput
     collaborationPresence?: CollaborationPresenceOrderByRelationAggregateInput
     collaborationComments?: CollaborationCommentOrderByRelationAggregateInput
@@ -150764,6 +152343,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityListRelationFilter
     projectSnapshots?: ProjectSnapshotListRelationFilter
     galleryListings?: GalleryListingListRelationFilter
+    releaseCatalogEntries?: ReleaseCatalogEntryListRelationFilter
     projectIdeStateUpdates?: ProjectIdeStateListRelationFilter
     collaborationPresence?: CollaborationPresenceListRelationFilter
     collaborationComments?: CollaborationCommentListRelationFilter
@@ -151439,6 +153019,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotListRelationFilter
     storageObjects?: ProjectStorageObjectListRelationFilter
     deployments?: DeploymentListRelationFilter
+    releaseCatalog?: ReleaseCatalogEntryListRelationFilter
     fileSnapshots?: FileSnapshotListRelationFilter
     conversations?: AiConversationListRelationFilter
     ideState?: XOR<ProjectIdeStateNullableScalarRelationFilter, ProjectIdeStateWhereInput> | null
@@ -151483,6 +153064,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotOrderByRelationAggregateInput
     storageObjects?: ProjectStorageObjectOrderByRelationAggregateInput
     deployments?: DeploymentOrderByRelationAggregateInput
+    releaseCatalog?: ReleaseCatalogEntryOrderByRelationAggregateInput
     fileSnapshots?: FileSnapshotOrderByRelationAggregateInput
     conversations?: AiConversationOrderByRelationAggregateInput
     ideState?: ProjectIdeStateOrderByWithRelationInput
@@ -151531,6 +153113,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotListRelationFilter
     storageObjects?: ProjectStorageObjectListRelationFilter
     deployments?: DeploymentListRelationFilter
+    releaseCatalog?: ReleaseCatalogEntryListRelationFilter
     fileSnapshots?: FileSnapshotListRelationFilter
     conversations?: AiConversationListRelationFilter
     ideState?: XOR<ProjectIdeStateNullableScalarRelationFilter, ProjectIdeStateWhereInput> | null
@@ -153565,6 +155148,152 @@ export namespace Prisma {
     canceledAt?: DateTimeNullableWithAggregatesFilter<"Deployment"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Deployment"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Deployment"> | Date | string
+  }
+
+  export type ReleaseCatalogEntryWhereInput = {
+    AND?: ReleaseCatalogEntryWhereInput | ReleaseCatalogEntryWhereInput[]
+    OR?: ReleaseCatalogEntryWhereInput[]
+    NOT?: ReleaseCatalogEntryWhereInput | ReleaseCatalogEntryWhereInput[]
+    id?: StringFilter<"ReleaseCatalogEntry"> | string
+    projectId?: StringFilter<"ReleaseCatalogEntry"> | string
+    version?: IntFilter<"ReleaseCatalogEntry"> | number
+    imageRef?: StringFilter<"ReleaseCatalogEntry"> | string
+    imageDigest?: StringFilter<"ReleaseCatalogEntry"> | string
+    provider?: StringFilter<"ReleaseCatalogEntry"> | string
+    status?: StringFilter<"ReleaseCatalogEntry"> | string
+    publishedByDeploymentId?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    revisionSha256?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    runtime?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    appUrl?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    label?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    createdByUserId?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    createdAt?: DateTimeFilter<"ReleaseCatalogEntry"> | Date | string
+    promotionId?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    bundleRef?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    sbomRef?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    provenanceRef?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    configRef?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    accessPolicyVersion?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    retentionExpiresAt?: DateTimeNullableFilter<"ReleaseCatalogEntry"> | Date | string | null
+    referenceCount?: IntFilter<"ReleaseCatalogEntry"> | number
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+    createdBy?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+  }
+
+  export type ReleaseCatalogEntryOrderByWithRelationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    version?: SortOrder
+    imageRef?: SortOrder
+    imageDigest?: SortOrder
+    provider?: SortOrder
+    status?: SortOrder
+    publishedByDeploymentId?: SortOrderInput | SortOrder
+    revisionSha256?: SortOrderInput | SortOrder
+    runtime?: SortOrderInput | SortOrder
+    appUrl?: SortOrderInput | SortOrder
+    label?: SortOrderInput | SortOrder
+    createdByUserId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    promotionId?: SortOrderInput | SortOrder
+    bundleRef?: SortOrderInput | SortOrder
+    sbomRef?: SortOrderInput | SortOrder
+    provenanceRef?: SortOrderInput | SortOrder
+    configRef?: SortOrderInput | SortOrder
+    accessPolicyVersion?: SortOrderInput | SortOrder
+    retentionExpiresAt?: SortOrderInput | SortOrder
+    referenceCount?: SortOrder
+    project?: ProjectOrderByWithRelationInput
+    createdBy?: UserOrderByWithRelationInput
+  }
+
+  export type ReleaseCatalogEntryWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    projectId_version?: ReleaseCatalogEntryProjectIdVersionCompoundUniqueInput
+    AND?: ReleaseCatalogEntryWhereInput | ReleaseCatalogEntryWhereInput[]
+    OR?: ReleaseCatalogEntryWhereInput[]
+    NOT?: ReleaseCatalogEntryWhereInput | ReleaseCatalogEntryWhereInput[]
+    projectId?: StringFilter<"ReleaseCatalogEntry"> | string
+    version?: IntFilter<"ReleaseCatalogEntry"> | number
+    imageRef?: StringFilter<"ReleaseCatalogEntry"> | string
+    imageDigest?: StringFilter<"ReleaseCatalogEntry"> | string
+    provider?: StringFilter<"ReleaseCatalogEntry"> | string
+    status?: StringFilter<"ReleaseCatalogEntry"> | string
+    publishedByDeploymentId?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    revisionSha256?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    runtime?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    appUrl?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    label?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    createdByUserId?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    createdAt?: DateTimeFilter<"ReleaseCatalogEntry"> | Date | string
+    promotionId?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    bundleRef?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    sbomRef?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    provenanceRef?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    configRef?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    accessPolicyVersion?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    retentionExpiresAt?: DateTimeNullableFilter<"ReleaseCatalogEntry"> | Date | string | null
+    referenceCount?: IntFilter<"ReleaseCatalogEntry"> | number
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+    createdBy?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+  }, "id" | "projectId_version">
+
+  export type ReleaseCatalogEntryOrderByWithAggregationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    version?: SortOrder
+    imageRef?: SortOrder
+    imageDigest?: SortOrder
+    provider?: SortOrder
+    status?: SortOrder
+    publishedByDeploymentId?: SortOrderInput | SortOrder
+    revisionSha256?: SortOrderInput | SortOrder
+    runtime?: SortOrderInput | SortOrder
+    appUrl?: SortOrderInput | SortOrder
+    label?: SortOrderInput | SortOrder
+    createdByUserId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    promotionId?: SortOrderInput | SortOrder
+    bundleRef?: SortOrderInput | SortOrder
+    sbomRef?: SortOrderInput | SortOrder
+    provenanceRef?: SortOrderInput | SortOrder
+    configRef?: SortOrderInput | SortOrder
+    accessPolicyVersion?: SortOrderInput | SortOrder
+    retentionExpiresAt?: SortOrderInput | SortOrder
+    referenceCount?: SortOrder
+    _count?: ReleaseCatalogEntryCountOrderByAggregateInput
+    _avg?: ReleaseCatalogEntryAvgOrderByAggregateInput
+    _max?: ReleaseCatalogEntryMaxOrderByAggregateInput
+    _min?: ReleaseCatalogEntryMinOrderByAggregateInput
+    _sum?: ReleaseCatalogEntrySumOrderByAggregateInput
+  }
+
+  export type ReleaseCatalogEntryScalarWhereWithAggregatesInput = {
+    AND?: ReleaseCatalogEntryScalarWhereWithAggregatesInput | ReleaseCatalogEntryScalarWhereWithAggregatesInput[]
+    OR?: ReleaseCatalogEntryScalarWhereWithAggregatesInput[]
+    NOT?: ReleaseCatalogEntryScalarWhereWithAggregatesInput | ReleaseCatalogEntryScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ReleaseCatalogEntry"> | string
+    projectId?: StringWithAggregatesFilter<"ReleaseCatalogEntry"> | string
+    version?: IntWithAggregatesFilter<"ReleaseCatalogEntry"> | number
+    imageRef?: StringWithAggregatesFilter<"ReleaseCatalogEntry"> | string
+    imageDigest?: StringWithAggregatesFilter<"ReleaseCatalogEntry"> | string
+    provider?: StringWithAggregatesFilter<"ReleaseCatalogEntry"> | string
+    status?: StringWithAggregatesFilter<"ReleaseCatalogEntry"> | string
+    publishedByDeploymentId?: StringNullableWithAggregatesFilter<"ReleaseCatalogEntry"> | string | null
+    revisionSha256?: StringNullableWithAggregatesFilter<"ReleaseCatalogEntry"> | string | null
+    runtime?: StringNullableWithAggregatesFilter<"ReleaseCatalogEntry"> | string | null
+    appUrl?: StringNullableWithAggregatesFilter<"ReleaseCatalogEntry"> | string | null
+    label?: StringNullableWithAggregatesFilter<"ReleaseCatalogEntry"> | string | null
+    createdByUserId?: StringNullableWithAggregatesFilter<"ReleaseCatalogEntry"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"ReleaseCatalogEntry"> | Date | string
+    promotionId?: StringNullableWithAggregatesFilter<"ReleaseCatalogEntry"> | string | null
+    bundleRef?: StringNullableWithAggregatesFilter<"ReleaseCatalogEntry"> | string | null
+    sbomRef?: StringNullableWithAggregatesFilter<"ReleaseCatalogEntry"> | string | null
+    provenanceRef?: StringNullableWithAggregatesFilter<"ReleaseCatalogEntry"> | string | null
+    configRef?: StringNullableWithAggregatesFilter<"ReleaseCatalogEntry"> | string | null
+    accessPolicyVersion?: StringNullableWithAggregatesFilter<"ReleaseCatalogEntry"> | string | null
+    retentionExpiresAt?: DateTimeNullableWithAggregatesFilter<"ReleaseCatalogEntry"> | Date | string | null
+    referenceCount?: IntWithAggregatesFilter<"ReleaseCatalogEntry"> | number
   }
 
   export type DeploymentEnvironmentWhereInput = {
@@ -160146,6 +161875,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
@@ -160196,6 +161926,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
@@ -160246,6 +161977,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
@@ -160296,6 +162028,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -161020,6 +162753,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -161063,6 +162797,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -161106,6 +162841,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -161149,6 +162885,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -163254,6 +164991,179 @@ export namespace Prisma {
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ReleaseCatalogEntryCreateInput = {
+    id?: string
+    version: number
+    imageRef: string
+    imageDigest: string
+    provider?: string
+    status?: string
+    publishedByDeploymentId?: string | null
+    revisionSha256?: string | null
+    runtime?: string | null
+    appUrl?: string | null
+    label?: string | null
+    createdAt?: Date | string
+    promotionId?: string | null
+    bundleRef?: string | null
+    sbomRef?: string | null
+    provenanceRef?: string | null
+    configRef?: string | null
+    accessPolicyVersion?: string | null
+    retentionExpiresAt?: Date | string | null
+    referenceCount?: number
+    project: ProjectCreateNestedOneWithoutReleaseCatalogInput
+    createdBy?: UserCreateNestedOneWithoutReleaseCatalogEntriesInput
+  }
+
+  export type ReleaseCatalogEntryUncheckedCreateInput = {
+    id?: string
+    projectId: string
+    version: number
+    imageRef: string
+    imageDigest: string
+    provider?: string
+    status?: string
+    publishedByDeploymentId?: string | null
+    revisionSha256?: string | null
+    runtime?: string | null
+    appUrl?: string | null
+    label?: string | null
+    createdByUserId?: string | null
+    createdAt?: Date | string
+    promotionId?: string | null
+    bundleRef?: string | null
+    sbomRef?: string | null
+    provenanceRef?: string | null
+    configRef?: string | null
+    accessPolicyVersion?: string | null
+    retentionExpiresAt?: Date | string | null
+    referenceCount?: number
+  }
+
+  export type ReleaseCatalogEntryUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    imageRef?: StringFieldUpdateOperationsInput | string
+    imageDigest?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    publishedByDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    revisionSha256?: NullableStringFieldUpdateOperationsInput | string | null
+    runtime?: NullableStringFieldUpdateOperationsInput | string | null
+    appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    label?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    promotionId?: NullableStringFieldUpdateOperationsInput | string | null
+    bundleRef?: NullableStringFieldUpdateOperationsInput | string | null
+    sbomRef?: NullableStringFieldUpdateOperationsInput | string | null
+    provenanceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    configRef?: NullableStringFieldUpdateOperationsInput | string | null
+    accessPolicyVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    retentionExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    referenceCount?: IntFieldUpdateOperationsInput | number
+    project?: ProjectUpdateOneRequiredWithoutReleaseCatalogNestedInput
+    createdBy?: UserUpdateOneWithoutReleaseCatalogEntriesNestedInput
+  }
+
+  export type ReleaseCatalogEntryUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    imageRef?: StringFieldUpdateOperationsInput | string
+    imageDigest?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    publishedByDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    revisionSha256?: NullableStringFieldUpdateOperationsInput | string | null
+    runtime?: NullableStringFieldUpdateOperationsInput | string | null
+    appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    label?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    promotionId?: NullableStringFieldUpdateOperationsInput | string | null
+    bundleRef?: NullableStringFieldUpdateOperationsInput | string | null
+    sbomRef?: NullableStringFieldUpdateOperationsInput | string | null
+    provenanceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    configRef?: NullableStringFieldUpdateOperationsInput | string | null
+    accessPolicyVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    retentionExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    referenceCount?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type ReleaseCatalogEntryCreateManyInput = {
+    id?: string
+    projectId: string
+    version: number
+    imageRef: string
+    imageDigest: string
+    provider?: string
+    status?: string
+    publishedByDeploymentId?: string | null
+    revisionSha256?: string | null
+    runtime?: string | null
+    appUrl?: string | null
+    label?: string | null
+    createdByUserId?: string | null
+    createdAt?: Date | string
+    promotionId?: string | null
+    bundleRef?: string | null
+    sbomRef?: string | null
+    provenanceRef?: string | null
+    configRef?: string | null
+    accessPolicyVersion?: string | null
+    retentionExpiresAt?: Date | string | null
+    referenceCount?: number
+  }
+
+  export type ReleaseCatalogEntryUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    imageRef?: StringFieldUpdateOperationsInput | string
+    imageDigest?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    publishedByDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    revisionSha256?: NullableStringFieldUpdateOperationsInput | string | null
+    runtime?: NullableStringFieldUpdateOperationsInput | string | null
+    appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    label?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    promotionId?: NullableStringFieldUpdateOperationsInput | string | null
+    bundleRef?: NullableStringFieldUpdateOperationsInput | string | null
+    sbomRef?: NullableStringFieldUpdateOperationsInput | string | null
+    provenanceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    configRef?: NullableStringFieldUpdateOperationsInput | string | null
+    accessPolicyVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    retentionExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    referenceCount?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type ReleaseCatalogEntryUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    imageRef?: StringFieldUpdateOperationsInput | string
+    imageDigest?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    publishedByDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    revisionSha256?: NullableStringFieldUpdateOperationsInput | string | null
+    runtime?: NullableStringFieldUpdateOperationsInput | string | null
+    appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    label?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    promotionId?: NullableStringFieldUpdateOperationsInput | string | null
+    bundleRef?: NullableStringFieldUpdateOperationsInput | string | null
+    sbomRef?: NullableStringFieldUpdateOperationsInput | string | null
+    provenanceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    configRef?: NullableStringFieldUpdateOperationsInput | string | null
+    accessPolicyVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    retentionExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    referenceCount?: IntFieldUpdateOperationsInput | number
   }
 
   export type DeploymentEnvironmentCreateInput = {
@@ -170713,6 +172623,12 @@ export namespace Prisma {
     none?: GalleryListingWhereInput
   }
 
+  export type ReleaseCatalogEntryListRelationFilter = {
+    every?: ReleaseCatalogEntryWhereInput
+    some?: ReleaseCatalogEntryWhereInput
+    none?: ReleaseCatalogEntryWhereInput
+  }
+
   export type ProjectIdeStateListRelationFilter = {
     every?: ProjectIdeStateWhereInput
     some?: ProjectIdeStateWhereInput
@@ -170880,6 +172796,10 @@ export namespace Prisma {
   }
 
   export type GalleryListingOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ReleaseCatalogEntryOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -172987,6 +174907,96 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumDeploymentStatusFilter<$PrismaModel>
     _max?: NestedEnumDeploymentStatusFilter<$PrismaModel>
+  }
+
+  export type ReleaseCatalogEntryProjectIdVersionCompoundUniqueInput = {
+    projectId: string
+    version: number
+  }
+
+  export type ReleaseCatalogEntryCountOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    version?: SortOrder
+    imageRef?: SortOrder
+    imageDigest?: SortOrder
+    provider?: SortOrder
+    status?: SortOrder
+    publishedByDeploymentId?: SortOrder
+    revisionSha256?: SortOrder
+    runtime?: SortOrder
+    appUrl?: SortOrder
+    label?: SortOrder
+    createdByUserId?: SortOrder
+    createdAt?: SortOrder
+    promotionId?: SortOrder
+    bundleRef?: SortOrder
+    sbomRef?: SortOrder
+    provenanceRef?: SortOrder
+    configRef?: SortOrder
+    accessPolicyVersion?: SortOrder
+    retentionExpiresAt?: SortOrder
+    referenceCount?: SortOrder
+  }
+
+  export type ReleaseCatalogEntryAvgOrderByAggregateInput = {
+    version?: SortOrder
+    referenceCount?: SortOrder
+  }
+
+  export type ReleaseCatalogEntryMaxOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    version?: SortOrder
+    imageRef?: SortOrder
+    imageDigest?: SortOrder
+    provider?: SortOrder
+    status?: SortOrder
+    publishedByDeploymentId?: SortOrder
+    revisionSha256?: SortOrder
+    runtime?: SortOrder
+    appUrl?: SortOrder
+    label?: SortOrder
+    createdByUserId?: SortOrder
+    createdAt?: SortOrder
+    promotionId?: SortOrder
+    bundleRef?: SortOrder
+    sbomRef?: SortOrder
+    provenanceRef?: SortOrder
+    configRef?: SortOrder
+    accessPolicyVersion?: SortOrder
+    retentionExpiresAt?: SortOrder
+    referenceCount?: SortOrder
+  }
+
+  export type ReleaseCatalogEntryMinOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    version?: SortOrder
+    imageRef?: SortOrder
+    imageDigest?: SortOrder
+    provider?: SortOrder
+    status?: SortOrder
+    publishedByDeploymentId?: SortOrder
+    revisionSha256?: SortOrder
+    runtime?: SortOrder
+    appUrl?: SortOrder
+    label?: SortOrder
+    createdByUserId?: SortOrder
+    createdAt?: SortOrder
+    promotionId?: SortOrder
+    bundleRef?: SortOrder
+    sbomRef?: SortOrder
+    provenanceRef?: SortOrder
+    configRef?: SortOrder
+    accessPolicyVersion?: SortOrder
+    retentionExpiresAt?: SortOrder
+    referenceCount?: SortOrder
+  }
+
+  export type ReleaseCatalogEntrySumOrderByAggregateInput = {
+    version?: SortOrder
+    referenceCount?: SortOrder
   }
 
   export type DeploymentEnvironmentCountOrderByAggregateInput = {
@@ -177183,6 +179193,13 @@ export namespace Prisma {
     connect?: GalleryListingWhereUniqueInput | GalleryListingWhereUniqueInput[]
   }
 
+  export type ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput = {
+    create?: XOR<ReleaseCatalogEntryCreateWithoutCreatedByInput, ReleaseCatalogEntryUncheckedCreateWithoutCreatedByInput> | ReleaseCatalogEntryCreateWithoutCreatedByInput[] | ReleaseCatalogEntryUncheckedCreateWithoutCreatedByInput[]
+    connectOrCreate?: ReleaseCatalogEntryCreateOrConnectWithoutCreatedByInput | ReleaseCatalogEntryCreateOrConnectWithoutCreatedByInput[]
+    createMany?: ReleaseCatalogEntryCreateManyCreatedByInputEnvelope
+    connect?: ReleaseCatalogEntryWhereUniqueInput | ReleaseCatalogEntryWhereUniqueInput[]
+  }
+
   export type ProjectIdeStateCreateNestedManyWithoutUpdatedByInput = {
     create?: XOR<ProjectIdeStateCreateWithoutUpdatedByInput, ProjectIdeStateUncheckedCreateWithoutUpdatedByInput> | ProjectIdeStateCreateWithoutUpdatedByInput[] | ProjectIdeStateUncheckedCreateWithoutUpdatedByInput[]
     connectOrCreate?: ProjectIdeStateCreateOrConnectWithoutUpdatedByInput | ProjectIdeStateCreateOrConnectWithoutUpdatedByInput[]
@@ -177408,6 +179425,13 @@ export namespace Prisma {
     connectOrCreate?: GalleryListingCreateOrConnectWithoutAuthorInput | GalleryListingCreateOrConnectWithoutAuthorInput[]
     createMany?: GalleryListingCreateManyAuthorInputEnvelope
     connect?: GalleryListingWhereUniqueInput | GalleryListingWhereUniqueInput[]
+  }
+
+  export type ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput = {
+    create?: XOR<ReleaseCatalogEntryCreateWithoutCreatedByInput, ReleaseCatalogEntryUncheckedCreateWithoutCreatedByInput> | ReleaseCatalogEntryCreateWithoutCreatedByInput[] | ReleaseCatalogEntryUncheckedCreateWithoutCreatedByInput[]
+    connectOrCreate?: ReleaseCatalogEntryCreateOrConnectWithoutCreatedByInput | ReleaseCatalogEntryCreateOrConnectWithoutCreatedByInput[]
+    createMany?: ReleaseCatalogEntryCreateManyCreatedByInputEnvelope
+    connect?: ReleaseCatalogEntryWhereUniqueInput | ReleaseCatalogEntryWhereUniqueInput[]
   }
 
   export type ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput = {
@@ -177767,6 +179791,20 @@ export namespace Prisma {
     update?: GalleryListingUpdateWithWhereUniqueWithoutAuthorInput | GalleryListingUpdateWithWhereUniqueWithoutAuthorInput[]
     updateMany?: GalleryListingUpdateManyWithWhereWithoutAuthorInput | GalleryListingUpdateManyWithWhereWithoutAuthorInput[]
     deleteMany?: GalleryListingScalarWhereInput | GalleryListingScalarWhereInput[]
+  }
+
+  export type ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput = {
+    create?: XOR<ReleaseCatalogEntryCreateWithoutCreatedByInput, ReleaseCatalogEntryUncheckedCreateWithoutCreatedByInput> | ReleaseCatalogEntryCreateWithoutCreatedByInput[] | ReleaseCatalogEntryUncheckedCreateWithoutCreatedByInput[]
+    connectOrCreate?: ReleaseCatalogEntryCreateOrConnectWithoutCreatedByInput | ReleaseCatalogEntryCreateOrConnectWithoutCreatedByInput[]
+    upsert?: ReleaseCatalogEntryUpsertWithWhereUniqueWithoutCreatedByInput | ReleaseCatalogEntryUpsertWithWhereUniqueWithoutCreatedByInput[]
+    createMany?: ReleaseCatalogEntryCreateManyCreatedByInputEnvelope
+    set?: ReleaseCatalogEntryWhereUniqueInput | ReleaseCatalogEntryWhereUniqueInput[]
+    disconnect?: ReleaseCatalogEntryWhereUniqueInput | ReleaseCatalogEntryWhereUniqueInput[]
+    delete?: ReleaseCatalogEntryWhereUniqueInput | ReleaseCatalogEntryWhereUniqueInput[]
+    connect?: ReleaseCatalogEntryWhereUniqueInput | ReleaseCatalogEntryWhereUniqueInput[]
+    update?: ReleaseCatalogEntryUpdateWithWhereUniqueWithoutCreatedByInput | ReleaseCatalogEntryUpdateWithWhereUniqueWithoutCreatedByInput[]
+    updateMany?: ReleaseCatalogEntryUpdateManyWithWhereWithoutCreatedByInput | ReleaseCatalogEntryUpdateManyWithWhereWithoutCreatedByInput[]
+    deleteMany?: ReleaseCatalogEntryScalarWhereInput | ReleaseCatalogEntryScalarWhereInput[]
   }
 
   export type ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput = {
@@ -178221,6 +180259,20 @@ export namespace Prisma {
     update?: GalleryListingUpdateWithWhereUniqueWithoutAuthorInput | GalleryListingUpdateWithWhereUniqueWithoutAuthorInput[]
     updateMany?: GalleryListingUpdateManyWithWhereWithoutAuthorInput | GalleryListingUpdateManyWithWhereWithoutAuthorInput[]
     deleteMany?: GalleryListingScalarWhereInput | GalleryListingScalarWhereInput[]
+  }
+
+  export type ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput = {
+    create?: XOR<ReleaseCatalogEntryCreateWithoutCreatedByInput, ReleaseCatalogEntryUncheckedCreateWithoutCreatedByInput> | ReleaseCatalogEntryCreateWithoutCreatedByInput[] | ReleaseCatalogEntryUncheckedCreateWithoutCreatedByInput[]
+    connectOrCreate?: ReleaseCatalogEntryCreateOrConnectWithoutCreatedByInput | ReleaseCatalogEntryCreateOrConnectWithoutCreatedByInput[]
+    upsert?: ReleaseCatalogEntryUpsertWithWhereUniqueWithoutCreatedByInput | ReleaseCatalogEntryUpsertWithWhereUniqueWithoutCreatedByInput[]
+    createMany?: ReleaseCatalogEntryCreateManyCreatedByInputEnvelope
+    set?: ReleaseCatalogEntryWhereUniqueInput | ReleaseCatalogEntryWhereUniqueInput[]
+    disconnect?: ReleaseCatalogEntryWhereUniqueInput | ReleaseCatalogEntryWhereUniqueInput[]
+    delete?: ReleaseCatalogEntryWhereUniqueInput | ReleaseCatalogEntryWhereUniqueInput[]
+    connect?: ReleaseCatalogEntryWhereUniqueInput | ReleaseCatalogEntryWhereUniqueInput[]
+    update?: ReleaseCatalogEntryUpdateWithWhereUniqueWithoutCreatedByInput | ReleaseCatalogEntryUpdateWithWhereUniqueWithoutCreatedByInput[]
+    updateMany?: ReleaseCatalogEntryUpdateManyWithWhereWithoutCreatedByInput | ReleaseCatalogEntryUpdateManyWithWhereWithoutCreatedByInput[]
+    deleteMany?: ReleaseCatalogEntryScalarWhereInput | ReleaseCatalogEntryScalarWhereInput[]
   }
 
   export type ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput = {
@@ -180214,6 +182266,13 @@ export namespace Prisma {
     connect?: DeploymentWhereUniqueInput | DeploymentWhereUniqueInput[]
   }
 
+  export type ReleaseCatalogEntryCreateNestedManyWithoutProjectInput = {
+    create?: XOR<ReleaseCatalogEntryCreateWithoutProjectInput, ReleaseCatalogEntryUncheckedCreateWithoutProjectInput> | ReleaseCatalogEntryCreateWithoutProjectInput[] | ReleaseCatalogEntryUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ReleaseCatalogEntryCreateOrConnectWithoutProjectInput | ReleaseCatalogEntryCreateOrConnectWithoutProjectInput[]
+    createMany?: ReleaseCatalogEntryCreateManyProjectInputEnvelope
+    connect?: ReleaseCatalogEntryWhereUniqueInput | ReleaseCatalogEntryWhereUniqueInput[]
+  }
+
   export type FileSnapshotCreateNestedManyWithoutProjectInput = {
     create?: XOR<FileSnapshotCreateWithoutProjectInput, FileSnapshotUncheckedCreateWithoutProjectInput> | FileSnapshotCreateWithoutProjectInput[] | FileSnapshotUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: FileSnapshotCreateOrConnectWithoutProjectInput | FileSnapshotCreateOrConnectWithoutProjectInput[]
@@ -180383,6 +182442,13 @@ export namespace Prisma {
     connectOrCreate?: DeploymentCreateOrConnectWithoutProjectInput | DeploymentCreateOrConnectWithoutProjectInput[]
     createMany?: DeploymentCreateManyProjectInputEnvelope
     connect?: DeploymentWhereUniqueInput | DeploymentWhereUniqueInput[]
+  }
+
+  export type ReleaseCatalogEntryUncheckedCreateNestedManyWithoutProjectInput = {
+    create?: XOR<ReleaseCatalogEntryCreateWithoutProjectInput, ReleaseCatalogEntryUncheckedCreateWithoutProjectInput> | ReleaseCatalogEntryCreateWithoutProjectInput[] | ReleaseCatalogEntryUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ReleaseCatalogEntryCreateOrConnectWithoutProjectInput | ReleaseCatalogEntryCreateOrConnectWithoutProjectInput[]
+    createMany?: ReleaseCatalogEntryCreateManyProjectInputEnvelope
+    connect?: ReleaseCatalogEntryWhereUniqueInput | ReleaseCatalogEntryWhereUniqueInput[]
   }
 
   export type FileSnapshotUncheckedCreateNestedManyWithoutProjectInput = {
@@ -180639,6 +182705,20 @@ export namespace Prisma {
     update?: DeploymentUpdateWithWhereUniqueWithoutProjectInput | DeploymentUpdateWithWhereUniqueWithoutProjectInput[]
     updateMany?: DeploymentUpdateManyWithWhereWithoutProjectInput | DeploymentUpdateManyWithWhereWithoutProjectInput[]
     deleteMany?: DeploymentScalarWhereInput | DeploymentScalarWhereInput[]
+  }
+
+  export type ReleaseCatalogEntryUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<ReleaseCatalogEntryCreateWithoutProjectInput, ReleaseCatalogEntryUncheckedCreateWithoutProjectInput> | ReleaseCatalogEntryCreateWithoutProjectInput[] | ReleaseCatalogEntryUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ReleaseCatalogEntryCreateOrConnectWithoutProjectInput | ReleaseCatalogEntryCreateOrConnectWithoutProjectInput[]
+    upsert?: ReleaseCatalogEntryUpsertWithWhereUniqueWithoutProjectInput | ReleaseCatalogEntryUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: ReleaseCatalogEntryCreateManyProjectInputEnvelope
+    set?: ReleaseCatalogEntryWhereUniqueInput | ReleaseCatalogEntryWhereUniqueInput[]
+    disconnect?: ReleaseCatalogEntryWhereUniqueInput | ReleaseCatalogEntryWhereUniqueInput[]
+    delete?: ReleaseCatalogEntryWhereUniqueInput | ReleaseCatalogEntryWhereUniqueInput[]
+    connect?: ReleaseCatalogEntryWhereUniqueInput | ReleaseCatalogEntryWhereUniqueInput[]
+    update?: ReleaseCatalogEntryUpdateWithWhereUniqueWithoutProjectInput | ReleaseCatalogEntryUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: ReleaseCatalogEntryUpdateManyWithWhereWithoutProjectInput | ReleaseCatalogEntryUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: ReleaseCatalogEntryScalarWhereInput | ReleaseCatalogEntryScalarWhereInput[]
   }
 
   export type FileSnapshotUpdateManyWithoutProjectNestedInput = {
@@ -180981,6 +183061,20 @@ export namespace Prisma {
     update?: DeploymentUpdateWithWhereUniqueWithoutProjectInput | DeploymentUpdateWithWhereUniqueWithoutProjectInput[]
     updateMany?: DeploymentUpdateManyWithWhereWithoutProjectInput | DeploymentUpdateManyWithWhereWithoutProjectInput[]
     deleteMany?: DeploymentScalarWhereInput | DeploymentScalarWhereInput[]
+  }
+
+  export type ReleaseCatalogEntryUncheckedUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<ReleaseCatalogEntryCreateWithoutProjectInput, ReleaseCatalogEntryUncheckedCreateWithoutProjectInput> | ReleaseCatalogEntryCreateWithoutProjectInput[] | ReleaseCatalogEntryUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ReleaseCatalogEntryCreateOrConnectWithoutProjectInput | ReleaseCatalogEntryCreateOrConnectWithoutProjectInput[]
+    upsert?: ReleaseCatalogEntryUpsertWithWhereUniqueWithoutProjectInput | ReleaseCatalogEntryUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: ReleaseCatalogEntryCreateManyProjectInputEnvelope
+    set?: ReleaseCatalogEntryWhereUniqueInput | ReleaseCatalogEntryWhereUniqueInput[]
+    disconnect?: ReleaseCatalogEntryWhereUniqueInput | ReleaseCatalogEntryWhereUniqueInput[]
+    delete?: ReleaseCatalogEntryWhereUniqueInput | ReleaseCatalogEntryWhereUniqueInput[]
+    connect?: ReleaseCatalogEntryWhereUniqueInput | ReleaseCatalogEntryWhereUniqueInput[]
+    update?: ReleaseCatalogEntryUpdateWithWhereUniqueWithoutProjectInput | ReleaseCatalogEntryUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: ReleaseCatalogEntryUpdateManyWithWhereWithoutProjectInput | ReleaseCatalogEntryUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: ReleaseCatalogEntryScalarWhereInput | ReleaseCatalogEntryScalarWhereInput[]
   }
 
   export type FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput = {
@@ -181905,6 +183999,36 @@ export namespace Prisma {
     delete?: DeploymentEnvironmentWhereInput | boolean
     connect?: DeploymentEnvironmentWhereUniqueInput
     update?: XOR<XOR<DeploymentEnvironmentUpdateToOneWithWhereWithoutDeploymentsInput, DeploymentEnvironmentUpdateWithoutDeploymentsInput>, DeploymentEnvironmentUncheckedUpdateWithoutDeploymentsInput>
+  }
+
+  export type ProjectCreateNestedOneWithoutReleaseCatalogInput = {
+    create?: XOR<ProjectCreateWithoutReleaseCatalogInput, ProjectUncheckedCreateWithoutReleaseCatalogInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutReleaseCatalogInput
+    connect?: ProjectWhereUniqueInput
+  }
+
+  export type UserCreateNestedOneWithoutReleaseCatalogEntriesInput = {
+    create?: XOR<UserCreateWithoutReleaseCatalogEntriesInput, UserUncheckedCreateWithoutReleaseCatalogEntriesInput>
+    connectOrCreate?: UserCreateOrConnectWithoutReleaseCatalogEntriesInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type ProjectUpdateOneRequiredWithoutReleaseCatalogNestedInput = {
+    create?: XOR<ProjectCreateWithoutReleaseCatalogInput, ProjectUncheckedCreateWithoutReleaseCatalogInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutReleaseCatalogInput
+    upsert?: ProjectUpsertWithoutReleaseCatalogInput
+    connect?: ProjectWhereUniqueInput
+    update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutReleaseCatalogInput, ProjectUpdateWithoutReleaseCatalogInput>, ProjectUncheckedUpdateWithoutReleaseCatalogInput>
+  }
+
+  export type UserUpdateOneWithoutReleaseCatalogEntriesNestedInput = {
+    create?: XOR<UserCreateWithoutReleaseCatalogEntriesInput, UserUncheckedCreateWithoutReleaseCatalogEntriesInput>
+    connectOrCreate?: UserCreateOrConnectWithoutReleaseCatalogEntriesInput
+    upsert?: UserUpsertWithoutReleaseCatalogEntriesInput
+    disconnect?: UserWhereInput | boolean
+    delete?: UserWhereInput | boolean
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutReleaseCatalogEntriesInput, UserUpdateWithoutReleaseCatalogEntriesInput>, UserUncheckedUpdateWithoutReleaseCatalogEntriesInput>
   }
 
   export type DeploymentCreateNestedManyWithoutEnvironmentInput = {
@@ -185159,6 +187283,64 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type ReleaseCatalogEntryCreateWithoutCreatedByInput = {
+    id?: string
+    version: number
+    imageRef: string
+    imageDigest: string
+    provider?: string
+    status?: string
+    publishedByDeploymentId?: string | null
+    revisionSha256?: string | null
+    runtime?: string | null
+    appUrl?: string | null
+    label?: string | null
+    createdAt?: Date | string
+    promotionId?: string | null
+    bundleRef?: string | null
+    sbomRef?: string | null
+    provenanceRef?: string | null
+    configRef?: string | null
+    accessPolicyVersion?: string | null
+    retentionExpiresAt?: Date | string | null
+    referenceCount?: number
+    project: ProjectCreateNestedOneWithoutReleaseCatalogInput
+  }
+
+  export type ReleaseCatalogEntryUncheckedCreateWithoutCreatedByInput = {
+    id?: string
+    projectId: string
+    version: number
+    imageRef: string
+    imageDigest: string
+    provider?: string
+    status?: string
+    publishedByDeploymentId?: string | null
+    revisionSha256?: string | null
+    runtime?: string | null
+    appUrl?: string | null
+    label?: string | null
+    createdAt?: Date | string
+    promotionId?: string | null
+    bundleRef?: string | null
+    sbomRef?: string | null
+    provenanceRef?: string | null
+    configRef?: string | null
+    accessPolicyVersion?: string | null
+    retentionExpiresAt?: Date | string | null
+    referenceCount?: number
+  }
+
+  export type ReleaseCatalogEntryCreateOrConnectWithoutCreatedByInput = {
+    where: ReleaseCatalogEntryWhereUniqueInput
+    create: XOR<ReleaseCatalogEntryCreateWithoutCreatedByInput, ReleaseCatalogEntryUncheckedCreateWithoutCreatedByInput>
+  }
+
+  export type ReleaseCatalogEntryCreateManyCreatedByInputEnvelope = {
+    data: ReleaseCatalogEntryCreateManyCreatedByInput | ReleaseCatalogEntryCreateManyCreatedByInput[]
+    skipDuplicates?: boolean
+  }
+
   export type ProjectIdeStateCreateWithoutUpdatedByInput = {
     state: JsonNullValueInput | InputJsonValue
     version?: number
@@ -186160,6 +188342,50 @@ export namespace Prisma {
     publishedAt?: DateTimeNullableFilter<"GalleryListing"> | Date | string | null
   }
 
+  export type ReleaseCatalogEntryUpsertWithWhereUniqueWithoutCreatedByInput = {
+    where: ReleaseCatalogEntryWhereUniqueInput
+    update: XOR<ReleaseCatalogEntryUpdateWithoutCreatedByInput, ReleaseCatalogEntryUncheckedUpdateWithoutCreatedByInput>
+    create: XOR<ReleaseCatalogEntryCreateWithoutCreatedByInput, ReleaseCatalogEntryUncheckedCreateWithoutCreatedByInput>
+  }
+
+  export type ReleaseCatalogEntryUpdateWithWhereUniqueWithoutCreatedByInput = {
+    where: ReleaseCatalogEntryWhereUniqueInput
+    data: XOR<ReleaseCatalogEntryUpdateWithoutCreatedByInput, ReleaseCatalogEntryUncheckedUpdateWithoutCreatedByInput>
+  }
+
+  export type ReleaseCatalogEntryUpdateManyWithWhereWithoutCreatedByInput = {
+    where: ReleaseCatalogEntryScalarWhereInput
+    data: XOR<ReleaseCatalogEntryUpdateManyMutationInput, ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByInput>
+  }
+
+  export type ReleaseCatalogEntryScalarWhereInput = {
+    AND?: ReleaseCatalogEntryScalarWhereInput | ReleaseCatalogEntryScalarWhereInput[]
+    OR?: ReleaseCatalogEntryScalarWhereInput[]
+    NOT?: ReleaseCatalogEntryScalarWhereInput | ReleaseCatalogEntryScalarWhereInput[]
+    id?: StringFilter<"ReleaseCatalogEntry"> | string
+    projectId?: StringFilter<"ReleaseCatalogEntry"> | string
+    version?: IntFilter<"ReleaseCatalogEntry"> | number
+    imageRef?: StringFilter<"ReleaseCatalogEntry"> | string
+    imageDigest?: StringFilter<"ReleaseCatalogEntry"> | string
+    provider?: StringFilter<"ReleaseCatalogEntry"> | string
+    status?: StringFilter<"ReleaseCatalogEntry"> | string
+    publishedByDeploymentId?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    revisionSha256?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    runtime?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    appUrl?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    label?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    createdByUserId?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    createdAt?: DateTimeFilter<"ReleaseCatalogEntry"> | Date | string
+    promotionId?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    bundleRef?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    sbomRef?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    provenanceRef?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    configRef?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    accessPolicyVersion?: StringNullableFilter<"ReleaseCatalogEntry"> | string | null
+    retentionExpiresAt?: DateTimeNullableFilter<"ReleaseCatalogEntry"> | Date | string | null
+    referenceCount?: IntFilter<"ReleaseCatalogEntry"> | number
+  }
+
   export type ProjectIdeStateUpsertWithWhereUniqueWithoutUpdatedByInput = {
     where: ProjectIdeStateWhereUniqueInput
     update: XOR<ProjectIdeStateUpdateWithoutUpdatedByInput, ProjectIdeStateUncheckedUpdateWithoutUpdatedByInput>
@@ -186724,6 +188950,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
@@ -186773,6 +189000,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
@@ -186838,6 +189066,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
@@ -186887,6 +189116,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -186936,6 +189166,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
@@ -186985,6 +189216,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
@@ -187050,6 +189282,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
@@ -187099,6 +189332,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -187198,6 +189432,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -187240,6 +189475,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -189202,6 +191438,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
@@ -189251,6 +191488,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
@@ -189434,6 +191672,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
@@ -189483,6 +191722,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -190500,6 +192740,64 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type ReleaseCatalogEntryCreateWithoutProjectInput = {
+    id?: string
+    version: number
+    imageRef: string
+    imageDigest: string
+    provider?: string
+    status?: string
+    publishedByDeploymentId?: string | null
+    revisionSha256?: string | null
+    runtime?: string | null
+    appUrl?: string | null
+    label?: string | null
+    createdAt?: Date | string
+    promotionId?: string | null
+    bundleRef?: string | null
+    sbomRef?: string | null
+    provenanceRef?: string | null
+    configRef?: string | null
+    accessPolicyVersion?: string | null
+    retentionExpiresAt?: Date | string | null
+    referenceCount?: number
+    createdBy?: UserCreateNestedOneWithoutReleaseCatalogEntriesInput
+  }
+
+  export type ReleaseCatalogEntryUncheckedCreateWithoutProjectInput = {
+    id?: string
+    version: number
+    imageRef: string
+    imageDigest: string
+    provider?: string
+    status?: string
+    publishedByDeploymentId?: string | null
+    revisionSha256?: string | null
+    runtime?: string | null
+    appUrl?: string | null
+    label?: string | null
+    createdByUserId?: string | null
+    createdAt?: Date | string
+    promotionId?: string | null
+    bundleRef?: string | null
+    sbomRef?: string | null
+    provenanceRef?: string | null
+    configRef?: string | null
+    accessPolicyVersion?: string | null
+    retentionExpiresAt?: Date | string | null
+    referenceCount?: number
+  }
+
+  export type ReleaseCatalogEntryCreateOrConnectWithoutProjectInput = {
+    where: ReleaseCatalogEntryWhereUniqueInput
+    create: XOR<ReleaseCatalogEntryCreateWithoutProjectInput, ReleaseCatalogEntryUncheckedCreateWithoutProjectInput>
+  }
+
+  export type ReleaseCatalogEntryCreateManyProjectInputEnvelope = {
+    data: ReleaseCatalogEntryCreateManyProjectInput | ReleaseCatalogEntryCreateManyProjectInput[]
+    skipDuplicates?: boolean
+  }
+
   export type FileSnapshotCreateWithoutProjectInput = {
     id?: string
     path: string
@@ -191271,6 +193569,22 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"Deployment"> | Date | string
   }
 
+  export type ReleaseCatalogEntryUpsertWithWhereUniqueWithoutProjectInput = {
+    where: ReleaseCatalogEntryWhereUniqueInput
+    update: XOR<ReleaseCatalogEntryUpdateWithoutProjectInput, ReleaseCatalogEntryUncheckedUpdateWithoutProjectInput>
+    create: XOR<ReleaseCatalogEntryCreateWithoutProjectInput, ReleaseCatalogEntryUncheckedCreateWithoutProjectInput>
+  }
+
+  export type ReleaseCatalogEntryUpdateWithWhereUniqueWithoutProjectInput = {
+    where: ReleaseCatalogEntryWhereUniqueInput
+    data: XOR<ReleaseCatalogEntryUpdateWithoutProjectInput, ReleaseCatalogEntryUncheckedUpdateWithoutProjectInput>
+  }
+
+  export type ReleaseCatalogEntryUpdateManyWithWhereWithoutProjectInput = {
+    where: ReleaseCatalogEntryScalarWhereInput
+    data: XOR<ReleaseCatalogEntryUpdateManyMutationInput, ReleaseCatalogEntryUncheckedUpdateManyWithoutProjectInput>
+  }
+
   export type FileSnapshotUpsertWithWhereUniqueWithoutProjectInput = {
     where: FileSnapshotWhereUniqueInput
     update: XOR<FileSnapshotUpdateWithoutProjectInput, FileSnapshotUncheckedUpdateWithoutProjectInput>
@@ -191619,6 +193933,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -191661,6 +193976,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -191719,6 +194035,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -191761,6 +194078,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -191807,6 +194125,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
@@ -191856,6 +194175,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
@@ -191921,6 +194241,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
@@ -191970,6 +194291,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -192199,6 +194521,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -192241,6 +194564,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -192299,6 +194623,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -192341,6 +194666,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -192387,6 +194713,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
@@ -192436,6 +194763,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
@@ -192575,6 +194903,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -192617,6 +194946,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -192679,6 +195009,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
@@ -192728,6 +195059,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -192879,6 +195211,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -192921,6 +195254,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -192963,6 +195297,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
@@ -193005,6 +195340,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
@@ -193056,6 +195392,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
@@ -193105,6 +195442,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
@@ -193166,6 +195504,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
@@ -193208,6 +195547,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
@@ -193265,6 +195605,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
@@ -193314,6 +195655,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
@@ -193359,6 +195701,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -193401,6 +195744,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -193459,6 +195803,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -193501,6 +195846,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -193543,6 +195889,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -193585,6 +195932,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -193643,6 +195991,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -193685,6 +196034,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -193727,6 +196077,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -193769,6 +196120,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -193827,6 +196179,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -193869,6 +196222,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -193910,6 +196264,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -193952,6 +196307,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -194010,6 +196366,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -194052,6 +196409,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -194094,6 +196452,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -194136,6 +196495,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -194194,6 +196554,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -194236,6 +196597,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -194278,6 +196640,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -194320,6 +196683,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -194378,6 +196742,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -194420,6 +196785,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -194462,6 +196828,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -194504,6 +196871,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -194555,6 +196923,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
@@ -194604,6 +196973,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
@@ -194665,6 +197035,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -194707,6 +197078,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -194764,6 +197136,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
@@ -194813,6 +197186,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -194858,6 +197232,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -194900,6 +197275,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -194951,6 +197327,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
@@ -195000,6 +197377,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
@@ -195061,6 +197439,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -195103,6 +197482,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -195160,6 +197540,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
@@ -195209,6 +197590,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -195255,6 +197637,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -195297,6 +197680,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -195348,6 +197732,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
@@ -195397,6 +197782,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
@@ -195458,6 +197844,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -195500,6 +197887,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -195557,6 +197945,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
@@ -195606,6 +197995,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
@@ -195651,6 +198041,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -195693,6 +198084,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -195744,6 +198136,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
@@ -195793,6 +198186,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
@@ -195854,6 +198248,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -195896,6 +198291,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -195953,6 +198349,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
@@ -196002,6 +198399,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
@@ -196047,6 +198445,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -196089,6 +198488,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -196140,6 +198540,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
@@ -196189,6 +198590,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
@@ -196250,6 +198652,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -196292,6 +198695,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -196349,6 +198753,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
@@ -196398,6 +198803,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -196442,6 +198848,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -196484,6 +198891,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -196631,6 +199039,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -196673,6 +199082,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -196810,6 +199220,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -196852,6 +199263,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -197013,6 +199425,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -197055,6 +199468,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -197437,6 +199851,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
@@ -197479,6 +199894,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
@@ -197574,6 +199990,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
@@ -197616,6 +200033,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
@@ -197700,6 +200118,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -197742,6 +200161,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -197793,6 +200213,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
@@ -197842,6 +200263,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
@@ -197903,6 +200325,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -197945,6 +200368,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -198002,6 +200426,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
@@ -198051,6 +200476,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -198096,6 +200522,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -198138,6 +200565,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -198196,6 +200624,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -198238,6 +200667,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -198280,6 +200710,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -198322,6 +200753,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -198395,6 +200827,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -198437,6 +200870,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -198472,6 +200906,410 @@ export namespace Prisma {
   export type DeploymentEnvironmentUncheckedUpdateWithoutDeploymentsInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type ProjectCreateWithoutReleaseCatalogInput = {
+    id?: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutProjectsInput
+    environments?: ProjectEnvironmentCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateCreateNestedManyWithoutSourceProjectInput
+    galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectUncheckedCreateWithoutReleaseCatalogInput = {
+    id?: string
+    organizationId: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarUncheckedCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretUncheckedCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorUncheckedCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityUncheckedCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateUncheckedCreateNestedManyWithoutSourceProjectInput
+    galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectCreateOrConnectWithoutReleaseCatalogInput = {
+    where: ProjectWhereUniqueInput
+    create: XOR<ProjectCreateWithoutReleaseCatalogInput, ProjectUncheckedCreateWithoutReleaseCatalogInput>
+  }
+
+  export type UserCreateWithoutReleaseCatalogEntriesInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogCreateNestedManyWithoutActorInput
+    conversations?: AiConversationCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
+    notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+  }
+
+  export type UserUncheckedCreateWithoutReleaseCatalogEntriesInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberUncheckedCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogUncheckedCreateNestedManyWithoutActorInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionUncheckedCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
+    notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+  }
+
+  export type UserCreateOrConnectWithoutReleaseCatalogEntriesInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutReleaseCatalogEntriesInput, UserUncheckedCreateWithoutReleaseCatalogEntriesInput>
+  }
+
+  export type ProjectUpsertWithoutReleaseCatalogInput = {
+    update: XOR<ProjectUpdateWithoutReleaseCatalogInput, ProjectUncheckedUpdateWithoutReleaseCatalogInput>
+    create: XOR<ProjectCreateWithoutReleaseCatalogInput, ProjectUncheckedCreateWithoutReleaseCatalogInput>
+    where?: ProjectWhereInput
+  }
+
+  export type ProjectUpdateToOneWithWhereWithoutReleaseCatalogInput = {
+    where?: ProjectWhereInput
+    data: XOR<ProjectUpdateWithoutReleaseCatalogInput, ProjectUncheckedUpdateWithoutReleaseCatalogInput>
+  }
+
+  export type ProjectUpdateWithoutReleaseCatalogInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
+    environments?: ProjectEnvironmentUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUpdateManyWithoutSourceProjectNestedInput
+    galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+  }
+
+  export type ProjectUncheckedUpdateWithoutReleaseCatalogInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUncheckedUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUncheckedUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUncheckedUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUncheckedUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUncheckedUpdateManyWithoutSourceProjectNestedInput
+    galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+  }
+
+  export type UserUpsertWithoutReleaseCatalogEntriesInput = {
+    update: XOR<UserUpdateWithoutReleaseCatalogEntriesInput, UserUncheckedUpdateWithoutReleaseCatalogEntriesInput>
+    create: XOR<UserCreateWithoutReleaseCatalogEntriesInput, UserUncheckedCreateWithoutReleaseCatalogEntriesInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutReleaseCatalogEntriesInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutReleaseCatalogEntriesInput, UserUncheckedUpdateWithoutReleaseCatalogEntriesInput>
+  }
+
+  export type UserUpdateWithoutReleaseCatalogEntriesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutReleaseCatalogEntriesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUncheckedUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUncheckedUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUncheckedUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type DeploymentCreateWithoutEnvironmentInput = {
@@ -198677,6 +201515,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
@@ -198726,6 +201565,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
@@ -198886,6 +201726,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
@@ -198935,6 +201776,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -198984,6 +201826,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
@@ -199033,6 +201876,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
@@ -199098,6 +201942,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
@@ -199147,6 +201992,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -200423,6 +203269,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
@@ -200465,6 +203312,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
@@ -200515,6 +203363,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
@@ -200564,6 +203413,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
@@ -200654,6 +203504,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
@@ -200696,6 +203547,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
@@ -200752,6 +203604,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
@@ -200801,6 +203654,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -201140,6 +203994,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
@@ -201189,6 +204044,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
@@ -201254,6 +204110,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
@@ -201303,6 +204160,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -201808,6 +204666,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
@@ -201857,6 +204716,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
@@ -202043,6 +204903,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
@@ -202092,6 +204953,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -202413,6 +205275,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
@@ -202462,6 +205325,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
@@ -202527,6 +205391,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
@@ -202576,6 +205441,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -202625,6 +205491,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
@@ -202674,6 +205541,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
@@ -202739,6 +205607,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
@@ -202788,6 +205657,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -202837,6 +205707,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
@@ -202886,6 +205757,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
@@ -202951,6 +205823,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
@@ -203000,6 +205873,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -204242,6 +207116,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
@@ -204291,6 +207166,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
@@ -204451,6 +207327,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
@@ -204500,6 +207377,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -204549,6 +207427,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
@@ -204598,6 +207477,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
@@ -204663,6 +207543,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
@@ -204712,6 +207593,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -204861,6 +207743,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
@@ -204910,6 +207793,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
@@ -205121,6 +208005,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
@@ -205170,6 +208055,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -205314,6 +208200,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
@@ -205363,6 +208250,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
@@ -205428,6 +208316,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
@@ -205477,6 +208366,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -205597,6 +208487,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
@@ -205646,6 +208537,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
@@ -205873,6 +208765,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
@@ -205922,6 +208815,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -206226,6 +209120,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
@@ -206275,6 +209170,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
@@ -206427,6 +209323,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
@@ -206476,6 +209373,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -206606,6 +209504,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -206648,6 +209547,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -206752,6 +209652,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
@@ -206801,6 +209702,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
@@ -206862,6 +209764,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -206904,6 +209807,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -207020,6 +209924,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
@@ -207069,6 +209974,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -207207,6 +210113,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
@@ -207256,6 +210163,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
@@ -207474,6 +210382,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
@@ -207523,6 +210432,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -207884,6 +210794,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
@@ -207933,6 +210844,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
@@ -207998,6 +210910,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
@@ -208047,6 +210960,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -208096,6 +211010,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
@@ -208145,6 +211060,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
@@ -208299,6 +211215,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
@@ -208348,6 +211265,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -209439,6 +212357,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
@@ -209488,6 +212407,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
@@ -209648,6 +212568,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
@@ -209697,6 +212618,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -209885,6 +212807,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -209927,6 +212850,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -210053,6 +212977,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -210095,6 +213020,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -210567,6 +213493,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
@@ -210616,6 +213543,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
@@ -210681,6 +213609,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
@@ -210730,6 +213659,7 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -210774,6 +213704,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -210816,6 +213747,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -210867,6 +213799,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    releaseCatalogEntries?: ReleaseCatalogEntryCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
@@ -210916,6 +213849,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
@@ -210977,6 +213911,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -211019,6 +213954,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -211076,6 +214012,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
@@ -211125,6 +214062,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    releaseCatalogEntries?: ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -211644,6 +214582,30 @@ export namespace Prisma {
     useCount?: number
     createdAt?: Date | string
     publishedAt?: Date | string | null
+  }
+
+  export type ReleaseCatalogEntryCreateManyCreatedByInput = {
+    id?: string
+    projectId: string
+    version: number
+    imageRef: string
+    imageDigest: string
+    provider?: string
+    status?: string
+    publishedByDeploymentId?: string | null
+    revisionSha256?: string | null
+    runtime?: string | null
+    appUrl?: string | null
+    label?: string | null
+    createdAt?: Date | string
+    promotionId?: string | null
+    bundleRef?: string | null
+    sbomRef?: string | null
+    provenanceRef?: string | null
+    configRef?: string | null
+    accessPolicyVersion?: string | null
+    retentionExpiresAt?: Date | string | null
+    referenceCount?: number
   }
 
   export type ProjectIdeStateCreateManyUpdatedByInput = {
@@ -212303,6 +215265,78 @@ export namespace Prisma {
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type ReleaseCatalogEntryUpdateWithoutCreatedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    imageRef?: StringFieldUpdateOperationsInput | string
+    imageDigest?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    publishedByDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    revisionSha256?: NullableStringFieldUpdateOperationsInput | string | null
+    runtime?: NullableStringFieldUpdateOperationsInput | string | null
+    appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    label?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    promotionId?: NullableStringFieldUpdateOperationsInput | string | null
+    bundleRef?: NullableStringFieldUpdateOperationsInput | string | null
+    sbomRef?: NullableStringFieldUpdateOperationsInput | string | null
+    provenanceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    configRef?: NullableStringFieldUpdateOperationsInput | string | null
+    accessPolicyVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    retentionExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    referenceCount?: IntFieldUpdateOperationsInput | number
+    project?: ProjectUpdateOneRequiredWithoutReleaseCatalogNestedInput
+  }
+
+  export type ReleaseCatalogEntryUncheckedUpdateWithoutCreatedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    imageRef?: StringFieldUpdateOperationsInput | string
+    imageDigest?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    publishedByDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    revisionSha256?: NullableStringFieldUpdateOperationsInput | string | null
+    runtime?: NullableStringFieldUpdateOperationsInput | string | null
+    appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    label?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    promotionId?: NullableStringFieldUpdateOperationsInput | string | null
+    bundleRef?: NullableStringFieldUpdateOperationsInput | string | null
+    sbomRef?: NullableStringFieldUpdateOperationsInput | string | null
+    provenanceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    configRef?: NullableStringFieldUpdateOperationsInput | string | null
+    accessPolicyVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    retentionExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    referenceCount?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type ReleaseCatalogEntryUncheckedUpdateManyWithoutCreatedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    imageRef?: StringFieldUpdateOperationsInput | string
+    imageDigest?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    publishedByDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    revisionSha256?: NullableStringFieldUpdateOperationsInput | string | null
+    runtime?: NullableStringFieldUpdateOperationsInput | string | null
+    appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    label?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    promotionId?: NullableStringFieldUpdateOperationsInput | string | null
+    bundleRef?: NullableStringFieldUpdateOperationsInput | string | null
+    sbomRef?: NullableStringFieldUpdateOperationsInput | string | null
+    provenanceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    configRef?: NullableStringFieldUpdateOperationsInput | string | null
+    accessPolicyVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    retentionExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    referenceCount?: IntFieldUpdateOperationsInput | number
   }
 
   export type ProjectIdeStateUpdateWithoutUpdatedByInput = {
@@ -213293,6 +216327,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -213335,6 +216370,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    releaseCatalog?: ReleaseCatalogEntryUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -214548,6 +217584,30 @@ export namespace Prisma {
     updatedAt?: Date | string
   }
 
+  export type ReleaseCatalogEntryCreateManyProjectInput = {
+    id?: string
+    version: number
+    imageRef: string
+    imageDigest: string
+    provider?: string
+    status?: string
+    publishedByDeploymentId?: string | null
+    revisionSha256?: string | null
+    runtime?: string | null
+    appUrl?: string | null
+    label?: string | null
+    createdByUserId?: string | null
+    createdAt?: Date | string
+    promotionId?: string | null
+    bundleRef?: string | null
+    sbomRef?: string | null
+    provenanceRef?: string | null
+    configRef?: string | null
+    accessPolicyVersion?: string | null
+    retentionExpiresAt?: Date | string | null
+    referenceCount?: number
+  }
+
   export type FileSnapshotCreateManyProjectInput = {
     id?: string
     workspaceId?: string | null
@@ -215089,6 +218149,78 @@ export namespace Prisma {
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ReleaseCatalogEntryUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    imageRef?: StringFieldUpdateOperationsInput | string
+    imageDigest?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    publishedByDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    revisionSha256?: NullableStringFieldUpdateOperationsInput | string | null
+    runtime?: NullableStringFieldUpdateOperationsInput | string | null
+    appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    label?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    promotionId?: NullableStringFieldUpdateOperationsInput | string | null
+    bundleRef?: NullableStringFieldUpdateOperationsInput | string | null
+    sbomRef?: NullableStringFieldUpdateOperationsInput | string | null
+    provenanceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    configRef?: NullableStringFieldUpdateOperationsInput | string | null
+    accessPolicyVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    retentionExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    referenceCount?: IntFieldUpdateOperationsInput | number
+    createdBy?: UserUpdateOneWithoutReleaseCatalogEntriesNestedInput
+  }
+
+  export type ReleaseCatalogEntryUncheckedUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    imageRef?: StringFieldUpdateOperationsInput | string
+    imageDigest?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    publishedByDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    revisionSha256?: NullableStringFieldUpdateOperationsInput | string | null
+    runtime?: NullableStringFieldUpdateOperationsInput | string | null
+    appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    label?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    promotionId?: NullableStringFieldUpdateOperationsInput | string | null
+    bundleRef?: NullableStringFieldUpdateOperationsInput | string | null
+    sbomRef?: NullableStringFieldUpdateOperationsInput | string | null
+    provenanceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    configRef?: NullableStringFieldUpdateOperationsInput | string | null
+    accessPolicyVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    retentionExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    referenceCount?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type ReleaseCatalogEntryUncheckedUpdateManyWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    imageRef?: StringFieldUpdateOperationsInput | string
+    imageDigest?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    publishedByDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    revisionSha256?: NullableStringFieldUpdateOperationsInput | string | null
+    runtime?: NullableStringFieldUpdateOperationsInput | string | null
+    appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    label?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    promotionId?: NullableStringFieldUpdateOperationsInput | string | null
+    bundleRef?: NullableStringFieldUpdateOperationsInput | string | null
+    sbomRef?: NullableStringFieldUpdateOperationsInput | string | null
+    provenanceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    configRef?: NullableStringFieldUpdateOperationsInput | string | null
+    accessPolicyVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    retentionExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    referenceCount?: IntFieldUpdateOperationsInput | number
   }
 
   export type FileSnapshotUpdateWithoutProjectInput = {

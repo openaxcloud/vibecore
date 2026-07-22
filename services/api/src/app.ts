@@ -29931,6 +29931,46 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         await recordUsage(request, project.organizationId, 'deployments.count');
       }
 
+      /*
+       * CTR-RELEASE-PUBLISH: a successful server publish that produced a pinned
+       * image DIGEST appends an immutable ReleaseCatalog entry — the persistent
+       * source of truth of releases (history + redeploy-from-history). This
+       * formalizes the release identity that until now lived only inside
+       * metadata.serverDeploy.image. Best-effort: the deploy already succeeded, so
+       * a catalog-append failure is logged (never swallowed) but does not fail the
+       * publish; the entry is idempotently reconcilable on a later publish.
+       */
+      if (ok && imageBuildInfo?.imageRef && imageBuildInfo?.imageDigest) {
+        try {
+          const release = await store.createReleaseCatalogEntry({
+            projectId: project.id,
+            imageRef: imageBuildInfo.imageRef,
+            imageDigest: imageBuildInfo.imageDigest,
+            provider: 'server',
+            publishedByDeploymentId: readyRow.id,
+            revisionSha256: imageBuildInfo.revisionSha256,
+            appUrl: readyRow.url,
+            createdByUserId: request.currentUser?.id,
+          });
+          // Link the deployment back to its release so the history UI can show the version.
+          await store.updateDeployment(project.id, readyRow.id, {
+            metadata: {
+              ...(readyRow.metadata as Record<string, unknown>),
+              release: { releaseId: release.id, version: release.version },
+            },
+          });
+        } catch (err) {
+          request.log.error(
+            redactSecrets({
+              event: 'release_catalog.append_failed',
+              projectId: project.id,
+              deploymentId: readyRow.id,
+              error: err instanceof Error ? err.message : String(err),
+            }),
+          );
+        }
+      }
+
       await audit(request, store, {
         organizationId: project.organizationId,
         action: 'deployment.create',
@@ -31732,6 +31772,161 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply.code(201).send({ deployment: finalDeployment });
   });
+
+  /*
+   * CTR-RELEASE-PUBLISH — persistent ReleaseCatalog surface.
+   * GET  /projects/:projectId/releases                    → release history (source of truth)
+   * POST /projects/:projectId/releases/:releaseId/redeploy → redeploy a past release by DIGEST
+   */
+  app.get('/projects/:projectId/releases', async (request) => {
+    const project = await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:read');
+    const releases = await store.listReleaseCatalog(project.id);
+    return { releases };
+  });
+
+  app.post('/projects/:projectId/releases/:releaseId/redeploy', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+    const releaseId = z.string().min(1).parse((request.params as { releaseId: string }).releaseId);
+
+    const release = await store.getReleaseCatalogEntry(project.id, releaseId);
+    if (!release) {
+      return reply.code(404).send({ error: 'Release not found', code: 'RELEASE_NOT_FOUND' });
+    }
+    if (release.provider !== 'server') {
+      return reply
+        .code(409)
+        .send({ error: 'Only server releases can be redeployed from the catalog', code: 'RELEASE_NOT_SERVER' });
+    }
+
+    /*
+     * Resolve the deploy plan ENTIRELY from the catalog's retained digest, exactly
+     * like the rollback path — independent of whether the original revision or
+     * workspace still exists (I-PUB-3 / I-REL-1). A catalog entry without a digest
+     * is refused loudly rather than producing a dead-URL row.
+     */
+    let plan: ReturnType<typeof resolveRollbackImage>;
+    try {
+      plan = resolveRollbackImage(
+        {
+          deploymentId: release.publishedByDeploymentId ?? release.id,
+          projectId: project.id,
+          imageRef: release.imageRef,
+          imageDigest: release.imageDigest,
+          createdAt: release.createdAt,
+        },
+        { revisionExists: false },
+      );
+    } catch (error) {
+      const code = (error as { code?: string }).code ?? 'RELEASE_REDEPLOY_NO_DIGEST';
+      return reply.code(409).send({ error: (error as Error).message, code, releaseId });
+    }
+
+    const redeploy = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
+      await ensureQuota(request, project.organizationId, 'deployments.count');
+      return store.createDeployment({
+        projectId: project.id,
+        provider: 'server',
+        environment: 'production',
+        status: 'QUEUED',
+        metadata: {
+          // Provenance: this deployment re-runs an existing release, no new version.
+          redeployedFromReleaseId: release.id,
+          releaseVersion: release.version,
+          release: { releaseId: release.id, version: release.version },
+        },
+        startedAt: new Date().toISOString(),
+        logs: [
+          {
+            timestamp: new Date().toISOString(),
+            level: 'info',
+            message: `Redeploy from release v${release.version} (${release.imageDigest}) — pull-by-digest.`,
+          },
+        ],
+      });
+    });
+
+    try {
+      const secretResolution = resolveRollbackSecrets({
+        policy: 'CURRENT' as SecretPolicy,
+        currentSecrets: await resolveProjectSecretValues(store, project.id).catch((): Record<string, string> => ({})),
+        pinnedSecrets: null,
+      });
+
+      const host = serverDeployHost(redeploy.id);
+      const port = Number(process.env.SERVER_DEPLOY_PORT) || 3000;
+      const env = buildServerDeployEnv({
+        deploymentId: redeploy.id,
+        port,
+        environment: 'production',
+        projectSecrets: secretResolution.secrets,
+        envOverrides: {},
+      });
+      const deployRateCard = await getActiveRateCard(store);
+      const machineSize = machineSizeFromCard(deployRateCard, undefined);
+
+      const started = await startServerDeploymentViaManager({
+        deploymentId: redeploy.id,
+        ...machineSizeResources(machineSize),
+        image: plan.pullRef,
+        port,
+        host,
+        projectId: project.id,
+        orgId: project.organizationId,
+        env,
+        healthPath: process.env.SERVER_DEPLOY_HEALTH_PATH || '/',
+        nixStorePvcName: nixStorePvcForProject(project.id),
+      });
+
+      const ok = Boolean(started?.ready);
+      const url = started?.url ?? `https://${host}`;
+      const finalDeployment = await store.updateDeployment(project.id, redeploy.id, {
+        status: ok ? 'READY' : 'BUILDING',
+        url,
+        productionUrl: ok ? url : undefined,
+        metadata: {
+          ...(redeploy.metadata as Record<string, unknown>),
+          serverDeploy: {
+            host,
+            ready: ok,
+            readyReplicas: started?.readyReplicas ?? 0,
+            applied: true,
+            redeployedFromDigest: plan.imageDigest,
+            resolvedWithoutLiveRevision: plan.resolvedWithoutLiveRevision,
+            image: { imageRef: release.imageRef, imageDigest: release.imageDigest },
+          },
+        },
+        finishedAt: ok ? new Date().toISOString() : undefined,
+      });
+
+      await audit(request, store, {
+        organizationId: project.organizationId,
+        action: 'release.redeploy',
+        resourceType: 'deployment',
+        resourceId: finalDeployment.id,
+        metadata: { releaseId: release.id, releaseVersion: release.version, imageDigest: release.imageDigest },
+      });
+
+      return reply.code(201).send({ deployment: finalDeployment, release });
+    } catch (error) {
+      await store
+        .updateDeployment(project.id, redeploy.id, {
+          status: 'FAILED',
+          url: '',
+          logs: [
+            ...redeploy.logs,
+            { timestamp: new Date().toISOString(), level: 'error' as const, message: `Redeploy failed: ${(error as Error).message}` },
+          ],
+        })
+        .catch(() => undefined);
+      return reply.code(502).send({ error: (error as Error).message, code: 'RELEASE_REDEPLOY_FAILED', releaseId });
+    }
+  });
+
   app.get('/deployments/:projectId', async (request) => {
     const project = await requireProject(
       request,
