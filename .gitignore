@@ -81,3 +81,6 @@ docs/instructions/Roadmap.md
 !DESIGN_AUDIT_LIVE.md
 .qodo
 .vibecore-audit/
+
+# Preuves de déploiement suivies malgré la règle *.log ci-dessus.
+!docs/deploy-evidence/**

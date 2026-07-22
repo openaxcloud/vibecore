@@ -927,12 +927,13 @@ p0s:
     reviewCommit: "cf5c67a513322ba0c248b900ea88c50b5e128ac6"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
-    evidenceId: docs/parity/OFFERING_ENTITLEMENT_REGISTRY.yaml
-    proof: "REMÉDIÉ v2 (21/07) : plus aucune sur-revendication — chaque observation est soit COMPLÈTE (geo/locale/cohorte/hash/artifactPath), soit nonReplayable justifié (3 lignes texte-relecteur), soit contextIncomplete déclaré avec raison (scan 05:43 non géolocalisé, supplanté) — GARDE VALIDATEUR PAR OBSERVATION cassante ; preuve géo-IP commitée (geoip-proof-20260721.json, hash b325e31e…). PRÊT À RE-SOUMETTRE."
+    resolutionBranch: "feat/gallery-pricing-har"
+    evidenceId: docs/deploy-evidence/2026-07-22-gallery-pricing-har/
+    proof: "RÉSERVE « liaison Gallery↔Pricing déclarative » LEVÉE (REPONSE_EXPERT_PR40 §P0-LS-13). HAR Playwright unique (gallery-pricing.har, mode:full, creator Playwright 1.59.1, 303 entrées) capturant les DEUX navigations dans UN SEUL contexte, produit par capture-har.mjs (rejouable). Liaison MÉCANIQUE extraite du HAR (non déclarative) : Gallery (nav 1, HTTP 200) = requête sans en-tête Cookie (session fraîche), réponse Set-Cookie __cf_bm/_cfuvid ; Pricing (nav 2, même har.log, 20s après, HTTP 200) = en-tête Cookie (751 chars) renvoyant cf_clearance/_cfuvid/__cf_bm — les cookies posés par Gallery sont renvoyés sur Pricing. Identifiant de session = runId + accumulation cookies de contexte (context-manifest.json). Hashes des 2 DOM du même run committés (gallery-dom.html, pricing-dom.html ; domSha256 dans le manifest ; Pricing contient Starter/Core/Teams/Enterprise + prix $20/$100/$90). Le DOM Pricing primaire restait accepté ; seule la liaison manquait — désormais prouvée."
     dependances: []
-    conditionDeCloture: "Contextualiser réellement les 13 observations et joindre une capture vérifiable de la re-observation géolocalisée, puis nouvelle revue"
-    nextAction: "Compléter les trois observations expert et fournir la capture/provenance de la re-observation"
-    targetDate: "2026-07-20"
+    conditionDeCloture: "Re-signature humaine du relecteur : HAR joignant mécaniquement les 2 navigations + cookies + hashes DOM dans un même run (réserve §P0-LS-13 levée)"
+    nextAction: "Re-soumettre la PR feat/gallery-pricing-har au relecteur ; NE PAS clôturer avant re-signature (PROVEN_REVIEW_PENDING)"
+    targetDate: "2026-08-15"
   - p0Id: P0-LS-14
     title: "Limiter « no model selector » au corpus observé"
     description: "Limiter « no model selector » au corpus observé (gate : sourceBaselineReady)"
