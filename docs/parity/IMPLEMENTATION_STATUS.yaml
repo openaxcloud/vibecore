@@ -15,9 +15,9 @@ derivationRules: PROVEN=evidence sur disque; NOT_STARTED si adjacentOnly;
 counts:
   PROVEN: 11
   CODED: 68
-  PARTIAL: 43
-  NOT_STARTED: 37
-missingCodeRefTotal: 65
+  PARTIAL: 42
+  NOT_STARTED: 38
+missingCodeRefTotal: 0
 items:
   - itemId: P001
     itemType: SURFACE
@@ -33,6 +33,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Route liste projets avec loader backend réel
     status: PROVEN
+    resolvedCodeRefs:
+      - app/routes/projects._index.tsx
+      - app/routes/dashboard.tsx
   - itemId: P002
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -46,6 +49,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Switcher org branché sur /orgs backend
     status: CODED
+    resolvedCodeRefs:
+      - app/routes/organization-switcher.tsx
+      - app/routes/workspace-settings.tsx
   - itemId: P003
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -60,6 +66,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Cartes projet + preview media réels
     status: CODED
+    resolvedCodeRefs:
+      - app/components/dashboard/ProjectCardMenu.tsx
+      - app/components/dashboard/ProjectPreviewMedia.spec.tsx
   - itemId: P004
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -74,6 +83,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Cover media avec backend thumbnail refresh
     status: CODED
+    resolvedCodeRefs:
+      - app/routes/api.projects.$projectId.thumbnail.ts
+      - app/routes/projects._index.tsx
   - itemId: P005
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -87,6 +99,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: "Barre IDE: breadcrumb, run/stop, share, deploy"
     status: CODED
+    resolvedCodeRefs:
+      - app/routes/projects.$projectId.ide.tsx
+      - app/components/header/Header.tsx
   - itemId: P006
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -101,6 +116,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Panes multiples, IdePaneTab, onglets terminal
     status: CODED
+    resolvedCodeRefs:
+      - app/components/chat/BaseChat.tsx
+      - app/components/workbench/terminal/TerminalTabs.tsx
   - itemId: P007
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -114,6 +132,8 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: ideRailToolItems + IDE_MANAGEMENT_PANELS rendus
     status: CODED
+    resolvedCodeRefs:
+      - app/components/chat/BaseChat.tsx
   - itemId: P008
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -128,6 +148,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Route palette + recherche commandes réelle
     status: CODED
+    resolvedCodeRefs:
+      - app/routes/command-palette.tsx
+      - app/components/dashboard/command-palette-search.ts
   - itemId: P009
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -142,6 +165,9 @@ items:
     notes: "Feed réel mais BD-05: pas de cloche/badge shell"
     partialReason: "Feed réel mais BD-05: pas de cloche/badge shell"
     status: PARTIAL
+    resolvedCodeRefs:
+      - app/routes/notifications.tsx
+      - app/routes/api.notifications.ts
   - itemId: P010
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -155,6 +181,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Settings compte branchés backend (hors tabs localStorage)
     status: CODED
+    resolvedCodeRefs:
+      - app/routes/account-settings.tsx
+      - app/components/@settings/tabs
   - itemId: P011
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -169,8 +198,8 @@ items:
     notes: "Widget Resources affiche — : pas de backend compute"
     partialReason: "Widget Resources affiche — : pas de backend compute"
     status: PARTIAL
-    missingCodeRefs:
-      - app/components/chat/BaseChat.tsx:19861
+    resolvedCodeRefs:
+      - app/components/chat/BaseChat.tsx
   - itemId: P012
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -184,6 +213,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Docs/status réels; help orphelin mais construit
     status: CODED
+    resolvedCodeRefs:
+      - app/routes/docs.tsx
+      - app/routes/status.tsx
   - itemId: P013
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -197,6 +229,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Arbre fichiers branché sur runtime files
     status: CODED
+    resolvedCodeRefs:
+      - app/components/workbench/FileTree.tsx
+      - app/components/chat/BaseChat.tsx
   - itemId: P014
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -211,6 +246,8 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Éditeur CodeMirror complet et câblé
     status: PROVEN
+    resolvedCodeRefs:
+      - app/components/editor/codemirror/CodeMirrorEditor.tsx
   - itemId: P015
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -225,6 +262,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Recherche et remplacement dans fichiers réels
     status: CODED
+    resolvedCodeRefs:
+      - app/components/workbench/Search.tsx
+      - app/components/workbench/search-replace.ts
   - itemId: P016
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -233,14 +273,16 @@ items:
     surfaceIds:
       - P016
     evidenceIds: []
-    codeRefs: services/api/src/editor
-    lastMeasuredAt: 2026-07-20T12:30:00Z
-    measuredBy: agent-overlay-2026-07-20
-    notes: Indexation symboles backend, no-UI-by-design, aucune surface
-    partialReason: Indexation symboles backend, no-UI-by-design, aucune surface
-    status: PARTIAL
-    missingCodeRefs:
-      - services/api/src/editor
+    codeRefs: ""
+    lastMeasuredAt: 2026-07-22T00:00:00Z
+    measuredBy: p0-b-01-overlay-verification-2026-07-22
+    notes: "Symbols / Outline — indexation symboles backend NON construite (aucun
+      code suivi sous services/api/src/editor). Emplacement prévu
+      services/api/src/editor. Reclassé PARTIAL->NOT_STARTED : la garde P0-B-01
+      a rejeté un PARTIAL dont l'unique codeRef ne résout vers aucun fichier
+      suivi par git."
+    status: NOT_STARTED
+    resolvedCodeRefs: []
   - itemId: P017
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -254,8 +296,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Vue Problems branchée sur diagnostics runtime réels
     status: CODED
-    missingCodeRefs:
-      - app/components/chat/BaseChat.tsx:8713
+    resolvedCodeRefs:
+      - app/lib/stores/diagnostics.ts
+      - app/components/chat/BaseChat.tsx
   - itemId: P018
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -269,9 +312,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: formatCurrentDocument câblé sur bouton onFormat
     status: CODED
-    missingCodeRefs:
-      - app/lib/stores/workbench.ts:1952
-      - app/components/chat/BaseChat.tsx:6723
+    resolvedCodeRefs:
+      - app/lib/stores/workbench.ts
+      - app/components/chat/BaseChat.tsx
   - itemId: P019
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -286,8 +329,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Console/logs runtime réels streamés
     status: CODED
-    missingCodeRefs:
-      - app/routes/api.projects.$projectId.ide-panel.$panel.ts:1100
+    resolvedCodeRefs:
+      - app/routes/projects.$projectId.logs.tsx
+      - app/routes/api.projects.$projectId.ide-panel.$panel.ts
   - itemId: P020
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -302,6 +346,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Shell terminal branché sur workspace pod
     status: CODED
+    resolvedCodeRefs:
+      - app/components/workbench/terminal/TerminalManager.tsx
+      - app/components/workbench/terminal/terminal-session.ts
   - itemId: P021
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -316,9 +363,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: "SSH réel: push/pull/keypair exécutés dans le pod"
     status: CODED
-    missingCodeRefs:
-      - app/routes/api.projects.$projectId.ide-panel.$panel.ts:3688
-      - app/components/chat/BaseChat.tsx:10441
+    resolvedCodeRefs:
+      - app/routes/api.projects.$projectId.ide-panel.$panel.ts
+      - app/components/chat/BaseChat.tsx
   - itemId: P022
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -334,6 +381,9 @@ items:
     notes: "BD-03: schedule/cron jamais déclenché, feature morte"
     partialReason: "BD-03: schedule/cron jamais déclenché, feature morte"
     status: PARTIAL
+    resolvedCodeRefs:
+      - app/routes/api.projects.$projectId.ide-panel.$panel.ts
+      - docs/parity/BOLT_DEBT_REGISTRY.yaml
   - itemId: P023
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -348,6 +398,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Run/Stop via restartWorkspace + statut workspace réel
     status: CODED
+    resolvedCodeRefs:
+      - app/routes/projects.$projectId.ide.helpers.ts
+      - app/routes/projects.$projectId.ide.tsx
   - itemId: P024
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -362,6 +415,8 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Preview web branché sur ports runtime, tests e2e
     status: PROVEN
+    resolvedCodeRefs:
+      - app/components/workbench/Preview.tsx
   - itemId: P025
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -376,6 +431,9 @@ items:
     notes: "BD-11: DevTools console/network limités aux erreurs/navigations"
     partialReason: "BD-11: DevTools console/network limités aux erreurs/navigations"
     status: PARTIAL
+    resolvedCodeRefs:
+      - app/components/workbench/Inspector.tsx
+      - docs/parity/BOLT_DEBT_REGISTRY.yaml
   - itemId: P026
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -390,8 +448,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Ports forwarded réels depuis runtime
     status: CODED
-    missingCodeRefs:
-      - app/routes/api.projects.$projectId.ide-panel.$panel.ts:560
+    resolvedCodeRefs:
+      - app/components/workbench/PortDropdown.tsx
+      - app/routes/api.projects.$projectId.ide-panel.$panel.ts
   - itemId: P027
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -406,8 +465,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Panel Packages branché sur dépendances runtime réelles
     status: CODED
-    missingCodeRefs:
-      - app/routes/api.projects.$projectId.ide-panel.$panel.ts:721
+    resolvedCodeRefs:
+      - app/routes/api.projects.$projectId.ide-panel.$panel.ts
+      - app/components/chat/BaseChat.tsx
   - itemId: P028
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -422,6 +482,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Réglages projet avancés backend réels
     status: CODED
+    resolvedCodeRefs:
+      - app/routes/advanced.$section.tsx
+      - app/routes/projects.$projectId.settings.tsx
   - itemId: P029
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -436,8 +499,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Git commit/push/pull exécutés dans le pod
     status: CODED
-    missingCodeRefs:
-      - app/routes/api.projects.$projectId.ide-panel.$panel.ts:2867
+    resolvedCodeRefs:
+      - app/components/git/GitTab.tsx
+      - app/routes/api.projects.$projectId.ide-panel.$panel.ts
   - itemId: P030
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -453,8 +517,9 @@ items:
     notes: FileHistory diff de session, pas d'historique persistant par fichier
     partialReason: FileHistory diff de session, pas d'historique persistant par fichier
     status: PARTIAL
-    missingCodeRefs:
-      - app/components/workbench/Workbench.client.tsx:365
+    resolvedCodeRefs:
+      - app/components/workbench/Workbench.client.tsx
+      - app/components/workbench/DiffView.tsx
   - itemId: P031
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -469,6 +534,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Checkpoints/snapshots avec restore backend réel
     status: CODED
+    resolvedCodeRefs:
+      - app/routes/projects.$projectId.snapshots.tsx
+      - app/routes/snapshot-restore-database.ts
   - itemId: P032
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -484,6 +552,9 @@ items:
     notes: "BD-20: PITR WAL replay jamais prouvé, flag OFF prod"
     partialReason: "BD-20: PITR WAL replay jamais prouvé, flag OFF prod"
     status: PARTIAL
+    resolvedCodeRefs:
+      - services/api/src/database-rollback-service.ts
+      - docs/parity/BOLT_DEBT_REGISTRY.yaml
   - itemId: P033
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -498,6 +569,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Panel Secrets add/delete branché backend réel
     status: CODED
+    resolvedCodeRefs:
+      - app/routes/projects.$projectId.secrets.tsx
+      - app/routes/api.projects.$projectId.ide-panel.$panel.ts
   - itemId: P034
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -512,6 +586,10 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Agent chat complet, route+stream branchés
     status: CODED
+    resolvedCodeRefs:
+      - app/routes/api.chat.ts
+      - app/components/chat/BaseChat.tsx
+      - app/components/chat/Messages.client.tsx
   - itemId: P035
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -528,6 +606,10 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Lite/Economy/Power prouvés live (E2E-AGM-A..F)
     status: PROVEN
+    resolvedCodeRefs:
+      - app/components/chat/ChatBoxModeDropdown.tsx
+      - app/components/chat/AgentPowerControls.tsx
+      - services/api/src/agent-routing-service.ts
   - itemId: P036
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -542,6 +624,10 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Toggle Plan (planFirst) + orchestration + checklist rendus
     status: CODED
+    resolvedCodeRefs:
+      - app/lib/.server/llm/agent-orchestration.ts
+      - app/components/chat/PlanChecklist.tsx
+      - app/lib/chat/plan-checklist.ts
   - itemId: P037
     itemType: SURFACE
     codeCommit: null
@@ -556,6 +642,8 @@ items:
     notes: Pas de task board persistant; seule checklist de plan existe
     adjacentOnly: true
     status: NOT_STARTED
+    resolvedCodeRefs:
+      - app/components/chat/PlanChecklist.tsx
   - itemId: P038
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -572,6 +660,9 @@ items:
     partialReason: Statuts pending/in_progress/completed/failed dans checklist, pas
       d'entité tâche
     status: PARTIAL
+    resolvedCodeRefs:
+      - app/lib/chat/plan-checklist.ts
+      - app/components/chat/PlanChecklist.tsx
   - itemId: P039
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -586,8 +677,8 @@ items:
     notes: Chips de suggestions contextuelles, pas de vraies tâches de suivi
     partialReason: Chips de suggestions contextuelles, pas de vraies tâches de suivi
     status: PARTIAL
-    missingCodeRefs:
-      - app/components/chat/BaseChat.tsx#buildProjectAgentSuggestions
+    resolvedCodeRefs:
+      - app/components/chat/BaseChat.tsx
   - itemId: P040
     itemType: SURFACE
     codeCommit: null
@@ -601,6 +692,7 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Aucune file de messages pendant le streaming agent
     status: NOT_STARTED
+    resolvedCodeRefs: []
   - itemId: P041
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -615,6 +707,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Historique/activité de réparation agent branché à route
     status: CODED
+    resolvedCodeRefs:
+      - app/components/chat/AgentRepairHistory.tsx
+      - app/routes/api.projects.$projectId.agent-repair-events.ts
   - itemId: P042
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -630,6 +725,10 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: File de propositions patch + revue diff câblée
     status: CODED
+    resolvedCodeRefs:
+      - app/components/chat/MessagePatchReview.tsx
+      - app/components/chat/DiffActionRow.tsx
+      - app/routes/api.projects.$projectId.agent-patch-proposals.ts
   - itemId: P043
     itemType: SURFACE
     codeCommit: null
@@ -643,6 +742,7 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Aucun agent App Testing; toggle absent du code
     status: NOT_STARTED
+    resolvedCodeRefs: []
   - itemId: P044
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -658,6 +758,10 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Catalogue skills + install routes + panneau IDE
     status: CODED
+    resolvedCodeRefs:
+      - services/api/src/skills-catalog.ts
+      - services/api/src/skills-github-fetch.ts
+      - app/routes/api.projects.$projectId.ide-panel.skills.action.spec.ts
   - itemId: P045
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -671,6 +775,8 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: AGENTS.md/.cursorrules/claude.md injectés dans system prompt
     status: CODED
+    resolvedCodeRefs:
+      - app/lib/.server/llm/project-rules.ts
   - itemId: P046
     itemType: SURFACE
     codeCommit: null
@@ -685,6 +791,8 @@ items:
     notes: WorkspaceSettings = éditeur/thème, pas d'instructions agent workspace
     adjacentOnly: true
     status: NOT_STARTED
+    resolvedCodeRefs:
+      - app/components/settings/WorkspaceSettings.tsx
   - itemId: P047
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -699,6 +807,10 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Route fetch réelle avec garde SSRF
     status: CODED
+    resolvedCodeRefs:
+      - app/routes/api.web-search.ts
+      - app/components/chat/WebSearch.client.tsx
+      - app/lib/web-search-body.ts
   - itemId: P048
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -712,6 +824,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Dictée SpeechRecognition câblée au composer (isListening)
     status: CODED
+    resolvedCodeRefs:
+      - app/components/chat/SpeechRecognition.tsx
+      - app/components/chat/ChatBox.tsx
   - itemId: P049
     itemType: SURFACE
     codeCommit: null
@@ -725,6 +840,7 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Aucune génération d'images
     status: NOT_STARTED
+    resolvedCodeRefs: []
   - itemId: P050
     itemType: SURFACE
     codeCommit: null
@@ -738,6 +854,7 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Aucune génération audio
     status: NOT_STARTED
+    resolvedCodeRefs: []
   - itemId: P051
     itemType: SURFACE
     codeCommit: null
@@ -751,6 +868,7 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Aucune génération vidéo/3D
     status: NOT_STARTED
+    resolvedCodeRefs: []
   - itemId: P052
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -766,6 +884,10 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Cartes connecteurs + token serveur branchés dans le chat
     status: CODED
+    resolvedCodeRefs:
+      - app/components/chat/connector-cards/ConnectionRequestCard.tsx
+      - app/lib/connectors/connector-token.server.ts
+      - app/routes/api.connector-token.$provider.ts
   - itemId: P053
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -780,6 +902,10 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Exécution réelle d'outils MCP par requête
     status: CODED
+    resolvedCodeRefs:
+      - app/components/chat/MCPTools.tsx
+      - app/lib/services/mcpService.ts
+      - app/routes/api.chat.ts
   - itemId: P054
     itemType: SURFACE
     codeCommit: null
@@ -793,6 +919,7 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Aucun Agent Inbox (inbox = notifications seulement)
     status: NOT_STARTED
+    resolvedCodeRefs: []
   - itemId: P055
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -808,8 +935,9 @@ items:
     notes: Entrée skill Code Review, pas de flux/panneau dédié
     partialReason: Entrée skill Code Review, pas de flux/panneau dédié
     status: PARTIAL
-    missingCodeRefs:
-      - services/api/src/skills-catalog.ts#code-review
+    resolvedCodeRefs:
+      - services/api/src/skills-catalog.ts
+      - app/routes/api.ai.features.ts
   - itemId: P056
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -825,8 +953,9 @@ items:
     notes: Scanner sécurité (secrets/scans planifiés), pas d'agent autonome
     partialReason: Scanner sécurité (secrets/scans planifiés), pas d'agent autonome
     status: PARTIAL
-    missingCodeRefs:
-      - app/routes/api.projects.$projectId.ide-panel.$panel.ts#security
+    resolvedCodeRefs:
+      - app/lib/ide-panel-security.ts
+      - app/routes/api.projects.$projectId.ide-panel.$panel.ts
   - itemId: P057
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -841,6 +970,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Tâches cron exécuteur réel prouvé; event-driven/connecteurs manquant
     status: CODED
+    resolvedCodeRefs:
+      - services/api/src/scheduled-tasks.ts
+      - app/routes/api.projects.$projectId.scheduled-tasks.ts
   - itemId: P058
     itemType: SURFACE
     codeCommit: null
@@ -856,8 +988,9 @@ items:
       projet=1 app)
     adjacentOnly: true
     status: NOT_STARTED
-    missingCodeRefs:
-      - app/lib/stores/workbench.ts:98
+    resolvedCodeRefs:
+      - app/lib/stores/workbench.ts
+      - app/components/chat/Artifact.tsx
   - itemId: P059
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -875,6 +1008,10 @@ items:
     partialReason: Dashboard projets + templates/gallery; pas de surface 'Library'
       d'artefacts unifiée
     status: PARTIAL
+    resolvedCodeRefs:
+      - app/routes/dashboard_.templates.tsx
+      - app/routes/gallery._index.tsx
+      - app/routes/explore.tsx
   - itemId: P060
     itemType: SURFACE
     codeCommit: null
@@ -889,6 +1026,8 @@ items:
     notes: FileTree pour fichiers uniquement; aucun asset browser trouvé
     adjacentOnly: true
     status: NOT_STARTED
+    resolvedCodeRefs:
+      - app/components/workbench/FileTree.tsx
   - itemId: P061
     itemType: SURFACE
     codeCommit: null
@@ -902,6 +1041,7 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Aucun canvas de design dans le code
     status: NOT_STARTED
+    resolvedCodeRefs: []
   - itemId: P062
     itemType: SURFACE
     codeCommit: null
@@ -915,6 +1055,7 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Aucun outil média canvas
     status: NOT_STARTED
+    resolvedCodeRefs: []
   - itemId: P063
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -931,8 +1072,10 @@ items:
     notes: Inspecteur d'élément câblé, localise source JSX; panneau lecture seule
     partialReason: Inspecteur d'élément câblé, localise source JSX; panneau lecture seule
     status: PARTIAL
-    missingCodeRefs:
-      - app/components/workbench/Preview.tsx:628
+    resolvedCodeRefs:
+      - app/components/workbench/Inspector.tsx
+      - app/components/workbench/InspectorPanel.tsx
+      - app/components/workbench/Preview.tsx
   - itemId: P064
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -946,8 +1089,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Catégorie web + preview prouvée (E2E-VERTICAL-PREVIEW Flask h1)
     status: CODED
-    missingCodeRefs:
-      - app/routes/projects.new.tsx:88
+    resolvedCodeRefs:
+      - app/routes/projects.new.tsx
+      - app/components/workbench/Preview.tsx
   - itemId: P065
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -962,8 +1106,9 @@ items:
     notes: Catégorie Expo/RN PWA + QR preview sur device; pas de natif
     partialReason: Catégorie Expo/RN PWA + QR preview sur device; pas de natif
     status: PARTIAL
-    missingCodeRefs:
-      - app/routes/projects.new.tsx:104
+    resolvedCodeRefs:
+      - app/routes/projects.new.tsx
+      - app/components/workbench/ExpoQrModal.tsx
   - itemId: P066
     itemType: SURFACE
     codeCommit: null
@@ -978,6 +1123,8 @@ items:
     notes: Seulement QR Expo Go sur son téléphone; aucun simulateur iOS
     adjacentOnly: true
     status: NOT_STARTED
+    resolvedCodeRefs:
+      - app/components/workbench/ExpoQrModal.tsx
   - itemId: P067
     itemType: SURFACE
     codeCommit: null
@@ -991,6 +1138,7 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Aucun émulateur Android
     status: NOT_STARTED
+    resolvedCodeRefs: []
   - itemId: P068
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1005,8 +1153,8 @@ items:
     notes: Catégorie slides = preset de génération (deck web); pas d'éditeur dédié
     partialReason: Catégorie slides = preset de génération (deck web); pas d'éditeur dédié
     status: PARTIAL
-    missingCodeRefs:
-      - app/routes/projects.new.tsx:120
+    resolvedCodeRefs:
+      - app/routes/projects.new.tsx
   - itemId: P069
     itemType: SURFACE
     codeCommit: null
@@ -1022,8 +1170,8 @@ items:
       présentateur
     adjacentOnly: true
     status: NOT_STARTED
-    missingCodeRefs:
-      - app/routes/projects.new.tsx:120
+    resolvedCodeRefs:
+      - app/routes/projects.new.tsx
   - itemId: P070
     itemType: SURFACE
     codeCommit: null
@@ -1037,6 +1185,7 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Aucun export de slides
     status: NOT_STARTED
+    resolvedCodeRefs: []
   - itemId: P071
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1051,8 +1200,9 @@ items:
     notes: Catégorie data + diagrammes Mermaid chat; pas de renderer dataviz dédié
     partialReason: Catégorie data + diagrammes Mermaid chat; pas de renderer dataviz dédié
     status: PARTIAL
-    missingCodeRefs:
-      - app/routes/projects.new.tsx:168
+    resolvedCodeRefs:
+      - app/routes/projects.new.tsx
+      - app/components/chat/MermaidBlock.tsx
   - itemId: P072
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1067,8 +1217,8 @@ items:
     notes: Catégorie animation = preset CSS motion web; pas de vidéo
     partialReason: Catégorie animation = preset CSS motion web; pas de vidéo
     status: PARTIAL
-    missingCodeRefs:
-      - app/routes/projects.new.tsx:136
+    resolvedCodeRefs:
+      - app/routes/projects.new.tsx
   - itemId: P073
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1083,8 +1233,8 @@ items:
     notes: Catégorie game = preset génération; pas de moteur 3D dédié
     partialReason: Catégorie game = preset génération; pas de moteur 3D dédié
     status: PARTIAL
-    missingCodeRefs:
-      - app/routes/projects.new.tsx:200
+    resolvedCodeRefs:
+      - app/routes/projects.new.tsx
   - itemId: P074
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1099,8 +1249,8 @@ items:
     notes: Catégorie design = preset génération vers app web
     partialReason: Catégorie design = preset génération vers app web
     status: PARTIAL
-    missingCodeRefs:
-      - app/routes/projects.new.tsx:152
+    resolvedCodeRefs:
+      - app/routes/projects.new.tsx
   - itemId: P075
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1115,8 +1265,9 @@ items:
     notes: Catégorie document + rendu Markdown/Mermaid chat; pas d'éditeur doc
     partialReason: Catégorie document + rendu Markdown/Mermaid chat; pas d'éditeur doc
     status: PARTIAL
-    missingCodeRefs:
-      - app/routes/projects.new.tsx:216
+    resolvedCodeRefs:
+      - app/routes/projects.new.tsx
+      - app/components/chat/Markdown.tsx
   - itemId: P076
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1131,6 +1282,9 @@ items:
     notes: Gestion niveau projet (dashboard CRUD); pas de gestion par artefact
     partialReason: Gestion niveau projet (dashboard CRUD); pas de gestion par artefact
     status: PARTIAL
+    resolvedCodeRefs:
+      - app/routes/dashboard_.templates.tsx
+      - app/routes/projects.new.tsx
   - itemId: P077
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1145,6 +1299,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Surface 'My Data' câblée aux routes DB réelles (zero mock)
     status: CODED
+    resolvedCodeRefs:
+      - app/components/database/DatabaseStudio.tsx
+      - app/components/database/DatabasePanel.tsx
   - itemId: P078
     itemType: SURFACE
     codeCommit: null
@@ -1159,6 +1316,8 @@ items:
     notes: Deploy publie une app unique; pas de publication groupée d'artefacts
     adjacentOnly: true
     status: NOT_STARTED
+    resolvedCodeRefs:
+      - app/components/deploy/DeployButton.tsx
   - itemId: P079
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1173,6 +1332,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Vue racine All Databases cartes usage, live API
     status: CODED
+    resolvedCodeRefs:
+      - app/components/database/DatabaseWorkbench.tsx
+      - app/routes/api.projects.$projectId.ide-panel.$panel.ts
   - itemId: P080
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1186,6 +1348,8 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Onglet Overview du workbench, données live
     status: CODED
+    resolvedCodeRefs:
+      - app/components/database/DatabaseWorkbench.tsx
   - itemId: P081
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1199,6 +1363,8 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Table browser + schema live
     status: CODED
+    resolvedCodeRefs:
+      - app/components/database/DatabaseStudio.tsx
   - itemId: P082
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1212,6 +1378,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: SQL editor R/W transactionnel CNPG réel
     status: CODED
+    resolvedCodeRefs:
+      - app/components/database/DatabaseStudio.tsx
+      - services/api/src/app.ts
   - itemId: P083
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1225,6 +1394,8 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Connection string + storage + rollback section, wired
     status: CODED
+    resolvedCodeRefs:
+      - app/components/database/DatabaseSettings.tsx
   - itemId: P084
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1240,6 +1411,9 @@ items:
     notes: Scaffold Phase-1 dormant DB_ROLLBACK_ENABLED, backend 404, pas d'executor
     partialReason: Scaffold Phase-1 dormant DB_ROLLBACK_ENABLED, backend 404, pas d'executor
     status: PARTIAL
+    resolvedCodeRefs:
+      - app/components/database/DatabaseRollbackPanel.tsx
+      - services/api/src/database-rollback-service.ts
   - itemId: P085
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1255,6 +1429,9 @@ items:
     notes: Provisioner dev/prod codé; split UI seulement si backend l'expose
     partialReason: Provisioner dev/prod codé; split UI seulement si backend l'expose
     status: PARTIAL
+    resolvedCodeRefs:
+      - services/api/src/database-provisioner.ts
+      - app/components/database/DatabasePanel.tsx
   - itemId: P086
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1269,6 +1446,8 @@ items:
     notes: assertReadOnlySql existe mais non câblé; SQL pane full R/W
     partialReason: assertReadOnlySql existe mais non câblé; SQL pane full R/W
     status: PARTIAL
+    resolvedCodeRefs:
+      - services/api/src/app.ts
   - itemId: P087
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1282,6 +1461,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: ProjectObjectStoragePanel, GCS réel, flag OBJECT_STORAGE_ENABLED
     status: CODED
+    resolvedCodeRefs:
+      - app/components/chat/BaseChat.tsx
+      - services/api/src/object-storage.ts
   - itemId: P088
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1296,6 +1478,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Objects list/upload/download/move/delete via signed URLs GCS
     status: CODED
+    resolvedCodeRefs:
+      - app/components/chat/BaseChat.tsx
+      - app/routes/api.projects.$projectId.ide-panel.$panel.ts
   - itemId: P089
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1313,6 +1498,9 @@ items:
     partialReason: Scaffold auth réel mais dormant AUTH_SCAFFOLD_ENABLED, pas de
       gestion users live
     status: PARTIAL
+    resolvedCodeRefs:
+      - services/api/src/auth-scaffold.ts
+      - app/routes/api.projects.$projectId.auth-scaffold.ts
   - itemId: P090
     itemType: SURFACE
     codeCommit: null
@@ -1326,6 +1514,7 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Aucune surface tokens d'accès externes pour l'app générée
     status: NOT_STARTED
+    resolvedCodeRefs: []
   - itemId: P091
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1340,6 +1529,9 @@ items:
     notes: INTEGRATION_CATALOG hardcodé, sync no-op (BD-01)
     partialReason: INTEGRATION_CATALOG hardcodé, sync no-op (BD-01)
     status: PARTIAL
+    resolvedCodeRefs:
+      - app/components/chat/BaseChat.tsx
+      - docs/parity/BOLT_DEBT_REGISTRY.yaml
   - itemId: P092
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1354,6 +1546,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Config OAuth DB-backed + flow connect réel github/gitlab/bitbucket
     status: CODED
+    resolvedCodeRefs:
+      - app/routes/admin.oauth-providers.tsx
+      - app/routes/api.integrations.oauth.$provider.connect.ts
   - itemId: P093
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1369,6 +1564,9 @@ items:
     notes: status/successRate/lastSync factices posés au connect, pas de vraie santé
     partialReason: status/successRate/lastSync factices posés au connect, pas de vraie santé
     status: PARTIAL
+    resolvedCodeRefs:
+      - app/components/chat/BaseChat.tsx
+      - app/routes/api.projects.$projectId.ide-panel.$panel.ts
   - itemId: P094
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1383,6 +1581,10 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Tab MCP + marketplace DB-backed + installs API + exécution réelle
     status: CODED
+    resolvedCodeRefs:
+      - app/components/@settings/tabs/mcp/McpTab.tsx
+      - services/api/src/mcp-marketplace.ts
+      - app/routes/api.mcp.installs.ts
   - itemId: P095
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1398,6 +1600,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Overview + publish card câblés au pipeline server, preuve READY 200
     status: PROVEN
+    resolvedCodeRefs:
+      - app/routes/projects.$projectId.deployments.tsx
+      - app/components/deploy/DeploymentOverview.tsx
   - itemId: P096
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1413,8 +1618,9 @@ items:
     notes: Static/server auto-détecté + override; sélecteur 4-tiers orphelin,
       reserved-vm coming-soon
     status: CODED
-    missingCodeRefs:
-      - app/routes/projects.$projectId.deployments.tsx:571-640
+    resolvedCodeRefs:
+      - app/routes/projects.$projectId.deployments.tsx
+      - app/components/deploy/deployment-types.ts
   - itemId: P097
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1430,8 +1636,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Machine size servi par rate card versionné, metering prouvé
     status: PROVEN
-    missingCodeRefs:
-      - app/routes/projects.$projectId.deployments.tsx:575-598
+    resolvedCodeRefs:
+      - app/routes/projects.$projectId.deployments.tsx
+      - services/api/src/rate-card-service.spec.ts
   - itemId: P098
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1445,8 +1652,8 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Env vars + injectSecrets câblés au publish, secrets injectés prouvés
     status: CODED
-    missingCodeRefs:
-      - app/routes/projects.$projectId.deployments.tsx:224-227,613
+    resolvedCodeRefs:
+      - app/routes/projects.$projectId.deployments.tsx
   - itemId: P099
     itemType: SURFACE
     codeCommit: null
@@ -1462,9 +1669,9 @@ items:
     notes: Région unique europe-west9 hardcodée; aucun sélecteur de région
     adjacentOnly: true
     status: NOT_STARTED
-    missingCodeRefs:
-      - services/api/src/object-storage.ts:21
-      - app/components/marketing/EcodeProductMarketingPages.tsx:1390
+    resolvedCodeRefs:
+      - services/api/src/object-storage.ts
+      - app/components/marketing/EcodeProductMarketingPages.tsx
   - itemId: P100
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1479,8 +1686,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Ajout domaine custom + vérif DNS TXT réelle + TLS, wizard fonctionnel
     status: CODED
-    missingCodeRefs:
-      - app/routes/projects.$projectId.domains.tsx:109-125
+    resolvedCodeRefs:
+      - app/routes/projects.$projectId.domains.tsx
+      - app/routes/organization-domains.tsx
   - itemId: P101
     itemType: SURFACE
     codeCommit: null
@@ -1495,8 +1703,8 @@ items:
     notes: Bouton Buy a new domain (Beta) redirige vers connect; aucun achat réel
     adjacentOnly: true
     status: NOT_STARTED
-    missingCodeRefs:
-      - app/components/deploy/DeploymentOverview.tsx:94-99
+    resolvedCodeRefs:
+      - app/components/deploy/DeploymentOverview.tsx
   - itemId: P102
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1511,8 +1719,8 @@ items:
     notes: Visibility affiche Public en dur, purement décoratif, sans contrôle
     partialReason: Visibility affiche Public en dur, purement décoratif, sans contrôle
     status: PARTIAL
-    missingCodeRefs:
-      - app/components/deploy/DeploymentOverview.tsx:80-84
+    resolvedCodeRefs:
+      - app/components/deploy/DeploymentOverview.tsx
   - itemId: P103
     itemType: SURFACE
     codeCommit: null
@@ -1527,8 +1735,8 @@ items:
     notes: Aucun contrôle de visibilité privée sur les déploiements
     adjacentOnly: true
     status: NOT_STARTED
-    missingCodeRefs:
-      - app/components/deploy/DeploymentOverview.tsx:80-84
+    resolvedCodeRefs:
+      - app/components/deploy/DeploymentOverview.tsx
   - itemId: P104
     itemType: SURFACE
     codeCommit: null
@@ -1543,6 +1751,8 @@ items:
     notes: Aucune protection par mot de passe des déploiements
     adjacentOnly: true
     status: NOT_STARTED
+    resolvedCodeRefs:
+      - app/components/deploy/DeploymentOverview.tsx
   - itemId: P105
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1557,6 +1767,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Page DB + provision/schema/query réels; PITR restore feature-flaggé
     status: CODED
+    resolvedCodeRefs:
+      - app/routes/projects.$projectId.database.tsx
+      - services/api/src/database-provisioner.ts
   - itemId: P106
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1573,8 +1786,9 @@ items:
     partialReason: Endpoints/admin monitoring existent; 12 métriques Prometheus
       no-data, rien per-app
     status: PARTIAL
-    missingCodeRefs:
-      - app/routes/admin.$section.tsx:251
+    resolvedCodeRefs:
+      - app/routes/api.monitoring.performance.ts
+      - app/routes/admin.$section.tsx
   - itemId: P107
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1589,8 +1803,8 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: DeployLogsView stream logs build/deploy réels redigés, prouvé
     status: PROVEN
-    missingCodeRefs:
-      - app/routes/projects.$projectId.deployments.tsx:671-728
+    resolvedCodeRefs:
+      - app/routes/projects.$projectId.deployments.tsx
   - itemId: P108
     itemType: SURFACE
     codeCommit: null
@@ -1605,6 +1819,8 @@ items:
     notes: Analytics applicatives seulement en marketing; aucun code produit
     adjacentOnly: true
     status: NOT_STARTED
+    resolvedCodeRefs:
+      - app/components/marketing/ecode-exact/pages/PublicDeploymentsSections.tsx
   - itemId: P109
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1619,8 +1835,9 @@ items:
     notes: Usage/metering org réel + ligne Type; pas de graphes ressources per-deploy
     partialReason: Usage/metering org réel + ligne Type; pas de graphes ressources per-deploy
     status: PARTIAL
-    missingCodeRefs:
-      - app/components/deploy/DeploymentOverview.tsx:103-121
+    resolvedCodeRefs:
+      - app/routes/usage.tsx
+      - app/components/deploy/DeploymentOverview.tsx
   - itemId: P110
     itemType: SURFACE
     codeCommit: null
@@ -1634,6 +1851,7 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Aucun widget de feedback dans le code
     status: NOT_STARTED
+    resolvedCodeRefs: []
   - itemId: P111
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1651,9 +1869,9 @@ items:
     partialReason: Bouton deploy security scan disabled (coming soon); scanner SAST
       IDE réel mais non-gate
     status: PARTIAL
-    missingCodeRefs:
-      - app/routes/projects.$projectId.deployments.tsx:428-432
-      - app/components/chat/BaseChat.tsx:18164-18293
+    resolvedCodeRefs:
+      - app/routes/projects.$projectId.deployments.tsx
+      - app/components/chat/BaseChat.tsx
   - itemId: P112
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1667,8 +1885,8 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: DeployHistory rend les déploiements réels avec redeploy/cancel/rollback
     status: CODED
-    missingCodeRefs:
-      - app/routes/projects.$projectId.deployments.tsx:766-820
+    resolvedCodeRefs:
+      - app/routes/projects.$projectId.deployments.tsx
   - itemId: P113
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1683,8 +1901,8 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Rollback par digest live prouvé, audit event, 2 négatifs 409
     status: PROVEN
-    missingCodeRefs:
-      - app/routes/projects.$projectId.deployments.tsx:287-292,950-983
+    resolvedCodeRefs:
+      - app/routes/projects.$projectId.deployments.tsx
   - itemId: P114
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1699,9 +1917,9 @@ items:
     notes: Serving static + CSP sandbox/CORP réels; aucune UI config avancée
     partialReason: Serving static + CSP sandbox/CORP réels; aucune UI config avancée
     status: PARTIAL
-    missingCodeRefs:
-      - services/api/src/app.ts:8130-8260
-      - services/api/src/deployments.ts:711-791
+    resolvedCodeRefs:
+      - services/api/src/app.ts
+      - services/api/src/deployments.ts
   - itemId: P115
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1717,6 +1935,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Cron exécuteur + runs/logs/billing persistés, prouvé volume réel
     status: PROVEN
+    resolvedCodeRefs:
+      - app/routes/api.projects.$projectId.scheduled-tasks.ts
+      - services/api/src/scheduled-tasks.ts
   - itemId: P116
     itemType: SURFACE
     codeCommit: null
@@ -1730,6 +1951,7 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Aucune surface SEO rating dans le code
     status: NOT_STARTED
+    resolvedCodeRefs: []
   - itemId: P117
     itemType: SURFACE
     codeCommit: null
@@ -1743,6 +1965,7 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Aucun agent SEO dans le code
     status: NOT_STARTED
+    resolvedCodeRefs: []
   - itemId: P118
     itemType: SURFACE
     codeCommit: null
@@ -1756,6 +1979,7 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Aucun hub de monétisation dans le code
     status: NOT_STARTED
+    resolvedCodeRefs: []
   - itemId: P119
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1769,8 +1993,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Modèle presence + endpoints ws + cleanup câblés
     status: CODED
-    missingCodeRefs:
-      - schema.prisma:527
+    resolvedCodeRefs:
+      - services/api/src/collaboration-presence-cleanup.ts
+      - packages/database/prisma/schema.prisma
   - itemId: P120
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1784,9 +2009,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Thread agent partagé + panel share
     status: CODED
-    missingCodeRefs:
-      - services/api/src/app.ts (collaboration/ai-conversation)
-      - schema.prisma:1006
+    resolvedCodeRefs:
+      - services/api/src/app.ts
+      - packages/database/prisma/schema.prisma
   - itemId: P121
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1800,8 +2025,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Collaborateurs branchés
     status: CODED
-    missingCodeRefs:
-      - schema.prisma:496
+    resolvedCodeRefs:
+      - app/routes/projects.$projectId.collaborators.tsx
+      - packages/database/prisma/schema.prisma
   - itemId: P122
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1815,8 +2041,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Adhésions org câblées
     status: CODED
-    missingCodeRefs:
-      - schema.prisma:182
+    resolvedCodeRefs:
+      - app/routes/organization-members.tsx
+      - packages/database/prisma/schema.prisma
   - itemId: P123
     itemType: SURFACE
     codeCommit: null
@@ -1830,6 +2057,7 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Aucun modèle/endpoint Groups
     status: NOT_STARTED
+    resolvedCodeRefs: []
   - itemId: P124
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1844,8 +2072,8 @@ items:
     notes: Share-links; pas d'entité guest dédiée
     partialReason: Share-links; pas d'entité guest dédiée
     status: PARTIAL
-    missingCodeRefs:
-      - schema.prisma:565 ProjectShareLink
+    resolvedCodeRefs:
+      - packages/database/prisma/schema.prisma
   - itemId: P125
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1860,6 +2088,8 @@ items:
     notes: Scan secrets import; pas de security center projet
     partialReason: Scan secrets import; pas de security center projet
     status: PARTIAL
+    resolvedCodeRefs:
+      - services/api/src/import-pipeline.ts
   - itemId: P126
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1873,6 +2103,8 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Centre sécurité workspace + events câblés
     status: CODED
+    resolvedCodeRefs:
+      - app/routes/organization-security.tsx
   - itemId: P127
     itemType: SURFACE
     codeCommit: null
@@ -1886,6 +2118,7 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Aucun package firewall
     status: NOT_STARTED
+    resolvedCodeRefs: []
   - itemId: P128
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1899,8 +2132,8 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Enterprise settings + policies câblées
     status: CODED
-    missingCodeRefs:
-      - schema.prisma:1461 McpGlobalPolicy
+    resolvedCodeRefs:
+      - packages/database/prisma/schema.prisma
   - itemId: P129
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1914,8 +2147,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: SAML+OIDC câblés; relecture manquante (bolt gap)
     status: CODED
-    missingCodeRefs:
-      - schema.prisma:1271
+    resolvedCodeRefs:
+      - app/routes/enterprise-sso-settings.tsx
+      - packages/database/prisma/schema.prisma
   - itemId: P130
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1929,8 +2163,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: SCIM Users + tokens câblés
     status: CODED
-    missingCodeRefs:
-      - schema.prisma:1284
+    resolvedCodeRefs:
+      - app/routes/scim-token-settings.tsx
+      - packages/database/prisma/schema.prisma
   - itemId: P131
     itemType: SURFACE
     codeCommit: null
@@ -1945,8 +2180,8 @@ items:
     notes: SCIM Groups absent
     adjacentOnly: true
     status: NOT_STARTED
-    missingCodeRefs:
-      - services/api/src/app.ts (/scim/v2/:orgId/Users)
+    resolvedCodeRefs:
+      - services/api/src/app.ts
   - itemId: P132
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1960,8 +2195,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Audit logs + export câblés
     status: CODED
-    missingCodeRefs:
-      - schema.prisma:793
+    resolvedCodeRefs:
+      - app/routes/audit-logs.tsx
+      - packages/database/prisma/schema.prisma
   - itemId: P133
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1975,8 +2211,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Webhooks SIEM + test câblés
     status: CODED
-    missingCodeRefs:
-      - schema.prisma:1314
+    resolvedCodeRefs:
+      - app/routes/organization-siem.tsx
+      - packages/database/prisma/schema.prisma
   - itemId: P134
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1997,6 +2234,10 @@ items:
       PROVEN_REVIEW_PENDING.
     partialReason: Caps budget UI ; adossés au crédit SHADOW non activé
     status: PARTIAL
+    resolvedCodeRefs:
+      - app/routes/billing.tsx
+      - services/api/src/ledger-core.ts
+      - services/api/src/ledger-store.ts
   - itemId: P135
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -2010,6 +2251,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Limites + alertes câblées (métrage shadow)
     status: CODED
+    resolvedCodeRefs:
+      - app/routes/usage-limits.tsx
+      - services/api/src/spend-alerts.ts
   - itemId: P136
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -2023,8 +2267,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Plans/entitlements + abonnement Stripe câblés
     status: CODED
-    missingCodeRefs:
-      - schema.prisma:873
+    resolvedCodeRefs:
+      - app/routes/plan-comparison.tsx
+      - packages/database/prisma/schema.prisma
   - itemId: P137
     itemType: SURFACE
     codeCommit: null
@@ -2039,6 +2284,8 @@ items:
     notes: Sièges en marketing seul
     adjacentOnly: true
     status: NOT_STARTED
+    resolvedCodeRefs:
+      - app/components/marketing/ecode-exact/pages/Pricing.tsx
   - itemId: P138
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -2052,6 +2299,8 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Factures + portail Stripe câblés
     status: CODED
+    resolvedCodeRefs:
+      - app/routes/invoices.tsx
   - itemId: P139
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -2066,8 +2315,8 @@ items:
     notes: Endpoints usage/coût ; pas de dashboard dédié
     partialReason: Endpoints usage/coût ; pas de dashboard dédié
     status: PARTIAL
-    missingCodeRefs:
-      - services/api/src/app.ts (usage/breakdown)
+    resolvedCodeRefs:
+      - services/api/src/app.ts
   - itemId: P140
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -2088,6 +2337,10 @@ items:
       idempotente, débit si commit seul) — branche
       feat/import-state-machine-p0ex04 (P0-EX-04), PR non mergée.
     status: PROVEN
+    resolvedCodeRefs:
+      - app/routes/import-github.tsx
+      - services/api/src/import-pipeline.ts
+      - services/api/src/import-billing.ts
   - itemId: P141
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -2102,8 +2355,8 @@ items:
     notes: Endpoint git partagé existe ; pas exécuté, pas de tuile hub
     partialReason: Endpoint git partagé existe ; pas exécuté, pas de tuile hub
     status: PARTIAL
-    missingCodeRefs:
-      - services/api/src/app.ts:18660 (/import/gitlab)
+    resolvedCodeRefs:
+      - services/api/src/app.ts
   - itemId: P142
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -2118,8 +2371,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Bitbucket exécuté + tuile + provider
     status: CODED
-    missingCodeRefs:
-      - services/api/src/app.ts:18663
+    resolvedCodeRefs:
+      - services/api/src/app.ts
+      - services/api/src/integrations/providers/bitbucket.ts
   - itemId: P143
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -2133,6 +2387,8 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Import ZIP exécuté + staging sécurisé
     status: CODED
+    resolvedCodeRefs:
+      - app/routes/import-zip.tsx
   - itemId: P144
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -2147,8 +2403,8 @@ items:
     notes: Tuile Figma modélisée, non exécutée
     partialReason: Tuile Figma modélisée, non exécutée
     status: PARTIAL
-    missingCodeRefs:
-      - services/api/src/import-pipeline.ts (IMPORT_HUB_PROVIDERS figma)
+    resolvedCodeRefs:
+      - services/api/src/import-pipeline.ts
   - itemId: P145
     itemType: SURFACE
     codeCommit: null
@@ -2163,6 +2419,8 @@ items:
     notes: Screenshot = référence Agent ; pas de recréation dédiée
     adjacentOnly: true
     status: NOT_STARTED
+    resolvedCodeRefs:
+      - app/components/chat/BaseChat.tsx
   - itemId: P146
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -2176,6 +2434,8 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Export ZIP projet câblé
     status: CODED
+    resolvedCodeRefs:
+      - app/routes/api.projects.$projectId.export.zip.ts
   - itemId: P147
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -2189,8 +2449,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Download-url object storage câblé
     status: CODED
-    missingCodeRefs:
-      - schema.prisma:710
+    resolvedCodeRefs:
+      - services/api/src/object-storage.ts
+      - packages/database/prisma/schema.prisma
   - itemId: P148
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -2206,8 +2467,9 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Remix snapshot-pinné + preuve e2e
     status: PROVEN
-    missingCodeRefs:
-      - schema.prisma:2302
+    resolvedCodeRefs:
+      - services/api/src/remix-pipeline.ts
+      - packages/database/prisma/schema.prisma
   - itemId: P149
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -2222,6 +2484,9 @@ items:
     notes: App Electron + workflow release ; produit non certifié
     partialReason: App Electron + workflow release ; produit non certifié
     status: PARTIAL
+    resolvedCodeRefs:
+      - app/routes/desktop.tsx
+      - electron
   - itemId: P150
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -2236,6 +2501,9 @@ items:
     notes: Routes mobile + release workflow ; non certifié
     partialReason: Routes mobile + release workflow ; non certifié
     status: PARTIAL
+    resolvedCodeRefs:
+      - app/routes/mobile.tsx
+      - app/routes/mobile-workspace.$projectId.tsx
   - itemId: P151
     itemType: SURFACE
     codeCommit: null
@@ -2249,6 +2517,7 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Aucune entrée ChatGPT
     status: NOT_STARTED
+    resolvedCodeRefs: []
   - itemId: P152
     itemType: SURFACE
     codeCommit: null
@@ -2262,6 +2531,7 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Aucune entrée Claude
     status: NOT_STARTED
+    resolvedCodeRefs: []
   - itemId: P153
     itemType: SURFACE
     codeCommit: null
@@ -2275,6 +2545,7 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Aucune entrée Slack
     status: NOT_STARTED
+    resolvedCodeRefs: []
   - itemId: P154
     itemType: SURFACE
     codeCommit: null
@@ -2288,6 +2559,7 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Aucun Open in Replit
     status: NOT_STARTED
+    resolvedCodeRefs: []
   - itemId: P155
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -2302,6 +2574,8 @@ items:
     notes: Linear via connecteur/MCP ; pas d'intégration dédiée
     partialReason: Linear via connecteur/MCP ; pas d'intégration dédiée
     status: PARTIAL
+    resolvedCodeRefs:
+      - services/api/src/tests/connector-store.spec.ts
   - itemId: P156
     itemType: SURFACE
     codeCommit: null
@@ -2315,6 +2589,7 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Aucun CLI
     status: NOT_STARTED
+    resolvedCodeRefs: []
   - itemId: P157
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -2329,8 +2604,9 @@ items:
     notes: Clés API scopes câblées ; pas d'API REST publique produit
     partialReason: Clés API scopes câblées ; pas d'API REST publique produit
     status: PARTIAL
-    missingCodeRefs:
-      - schema.prisma:1332
+    resolvedCodeRefs:
+      - app/routes/api-keys.tsx
+      - packages/database/prisma/schema.prisma
   - itemId: P158
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -2345,8 +2621,8 @@ items:
     notes: Pas de produit webhooks générique
     partialReason: Pas de produit webhooks générique
     status: PARTIAL
-    missingCodeRefs:
-      - services/api/src/app.ts (webhooks entrants + SIEM sortants)
+    resolvedCodeRefs:
+      - services/api/src/app.ts
   - itemId: P159
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -2360,3 +2636,6 @@ items:
     measuredBy: agent-overlay-2026-07-20
     notes: Page statut + endpoints câblés
     status: CODED
+    resolvedCodeRefs:
+      - app/routes/status.tsx
+      - app/routes/api.status.incidents.ts

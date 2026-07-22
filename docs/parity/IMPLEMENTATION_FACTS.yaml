@@ -204,11 +204,13 @@ items:
   surfaceIds:
   - P016
   evidenceIds: []
-  codeRefs: services/api/src/editor
-  lastMeasuredAt: '2026-07-20T12:30:00Z'
-  measuredBy: agent-overlay-2026-07-20
-  notes: Indexation symboles backend, no-UI-by-design, aucune surface
-  partialReason: Indexation symboles backend, no-UI-by-design, aucune surface
+  codeRefs: ''
+  lastMeasuredAt: '2026-07-22T00:00:00Z'
+  measuredBy: p0-b-01-overlay-verification-2026-07-22
+  notes: 'Symbols / Outline — indexation symboles backend NON construite (aucun code
+    suivi sous services/api/src/editor). Emplacement prévu services/api/src/editor.
+    Reclassé PARTIAL->NOT_STARTED : la garde P0-B-01 a rejeté un PARTIAL dont
+    l''unique codeRef ne résout vers aucun fichier suivi par git.'
 - itemId: P017
   itemType: SURFACE
   codeCommit: f69a4b313e2e

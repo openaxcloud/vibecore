@@ -26,15 +26,26 @@
  *   node scripts/parity/generate-implementation-status.mjs           # écrit
  *   node scripts/parity/generate-implementation-status.mjs --check   # exit 1 si dérive
  */
-import { createRequire } from 'node:module';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { loadGitFileset, resolveCodeRefs } from './resolve-code-refs.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, '..', '..');
 const parityRoot = join(repoRoot, 'docs', 'parity');
 const OUT = 'IMPLEMENTATION_STATUS.yaml';
+
+/**
+ * The EXACT canonical surface universe (P0-B-01): the 159 IDE candidates
+ * P001–P159. The overlay covers this set 1:1 — no id may silently appear or
+ * vanish. Consumed by generate + validate as the lock (like EXPECTED_P0_IDS).
+ */
+export const EXPECTED_SURFACE_IDS = Array.from({ length: 159 }, (_, i) => `P${String(i + 1).padStart(3, '0')}`);
+
+/** builtStates that ASSERT working code — every codeRef must resolve to it. */
+const BUILT_STATES = new Set(['CODED', 'INTEGRATED', 'PROVEN']);
 
 const require = createRequire(join(process.env.PARITY_DEPS ?? '/tmp/parity-deps', 'noop.js'));
 
@@ -93,20 +104,69 @@ export function computeImplementationStatus() {
 
   const problems = [];
   const counts = { PROVEN: 0, CODED: 0, PARTIAL: 0, NOT_STARTED: 0 };
+
   let missingCodeRefTotal = 0;
+
+  // The canonical enumeration lock: the fact set must be EXACTLY P001–P159.
+  const factIds = (facts.items ?? []).map((f) => f.itemId);
+  const factIdSet = new Set(factIds);
+
+  for (const id of EXPECTED_SURFACE_IDS) {
+    if (!factIdSet.has(id)) {
+      problems.push(
+        `surface ${id} MANQUANTE des faits — l'univers canonique ne peut pas rétrécir en silence (P0-B-01)`,
+      );
+    }
+  }
+
+  for (const id of factIds) {
+    if (!EXPECTED_SURFACE_IDS.includes(id)) {
+      problems.push(`item ${id} HORS univers canonique P001–P159 — id inventé refusé (P0-B-01)`);
+    }
+  }
+
+  // git-tracked truth: a codeRef resolves ONLY if the tree actually tracks it.
+  const gitset = loadGitFileset(repoRoot);
 
   const items = (facts.items ?? []).map((f) => {
     const status = deriveStatus(f, problems);
     counts[status] += 1;
 
-    const codeRefs = String(f.codeRefs ?? '')
-      .split(';')
-      .map((s) => s.trim())
-      .filter(Boolean);
-    const missingCodeRefs = codeRefs.filter((p) => !existsSync(join(repoRoot, p)));
-    missingCodeRefTotal += missingCodeRefs.length;
+    const { resolved, unresolved } = resolveCodeRefs(f.codeRefs, gitset);
+    missingCodeRefTotal += unresolved.length;
 
-    return { ...f, status, ...(missingCodeRefs.length ? { missingCodeRefs } : {}) };
+    /*
+     * The overlay's core honesty rule (P0-B-01): a builtState that ASSERTS
+     * working code (CODED/INTEGRATED/PROVEN) must have EVERY code reference
+     * resolve to a tracked file — a "built" surface citing a phantom path is
+     * an unjustified builtState and fails the build. PARTIAL is allowed
+     * unresolved refs (they are the gap it names), but must resolve at least
+     * ONE (the part that IS built). NOT_STARTED carries no built claim.
+     */
+    if (BUILT_STATES.has(status)) {
+      if (unresolved.length > 0) {
+        problems.push(
+          `${f.itemId}: builtState ${status} mais codeRef(s) non résolue(s) vers du code suivi par git: ${unresolved.join(', ')} (P0-B-01)`,
+        );
+      }
+
+      if (resolved.length === 0) {
+        problems.push(`${f.itemId}: builtState ${status} sans AUCUN codeRef résolvable — état non justifié (P0-B-01)`);
+      }
+    }
+
+    if (status === 'PARTIAL' && resolved.length === 0) {
+      problems.push(
+        `${f.itemId}: PARTIAL sans aucun codeRef résolvable — un partiel doit montrer la partie construite (P0-B-01)`,
+      );
+    }
+
+    return {
+      ...f,
+      status,
+      resolvedCodeRefs: resolved,
+      ...(unresolved.length ? { missingCodeRefs: unresolved } : {}),
+    };
   });
 
   if (problems.length > 0) {

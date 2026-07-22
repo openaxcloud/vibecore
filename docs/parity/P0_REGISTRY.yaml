@@ -1040,20 +1040,22 @@ p0s:
     source: "Exigence Avi (20/07) ; annexe A.1 du plan"
     priority: 1
     owner: platform
-    status: OPEN
-    remediationTrack: A_TRIER
+    status: PROVEN_REVIEW_PENDING
+    remediationTrack: REMEDIATED
     refusalReason: "159 candidats mais aucun builtState/codeRefs ; tous pending/unknown"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
     reviewCommit: "57febeab"
+    remediationCommit: "docs/p0-b-01-surface-overlay"
+    remediationNote: "Refus levé : univers canonique VERROUILLÉ par garde CI cassante (EXPECTED_SURFACE_IDS = 159 ids P001–P159 exacts) ; overlay code MESURÉ et JUSTIFIÉ — 79 built (11 PROVEN + 68 CODED) / 42 partial / 38 absent, chaque état built/partial porte des codeRefs résolues vers des fichiers SUIVIS PAR GIT (resolve-code-refs.mjs), missingCodeRefTotal=0 ; surfaceUniverse ne porte plus d'UNKNOWN de masse (builtState+codeRefs projetés depuis l'overlay vérifié). 3 preuves négatives rejouées."
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
-    evidenceId: docs/parity/SURFACE_REGISTRY.yaml
-    proof: "159/159 croisées par 6 agents (A–H) : 79 DEJA_CONSTRUIT / 43 PARTIEL / 37 NON_FAIT, builtState+codeRefs par entrée ; composant bolt non câblé = PARTIEL (BD-* respectés)."
+    evidenceId: docs/deploy-evidence/2026-07-22-surface-overlay/README.md
+    proof: "159 candidats croisés au code réel : 79 built (11 PROVEN + 68 CODED) / 42 partial / 38 absent, builtState+codeRefs résolues-git par entrée, missingCodeRefTotal=0 ; garde validate-registries §16 casse si un id manque/inventé, si un codeRef d'état construit ne résout pas, ou si surfaceUniverse dérive de l'overlay ; 3 preuves négatives rejouées (surface retirée / codeRef bidon / builtState divergent → build cassé)."
     dependances: []
-    conditionDeCloture: "Compléter l'évidence : 159 candidats mais aucun builtState/codeRefs ; tous pending/unknown ; puis re-soumission au relecteur"
+    conditionDeCloture: "Revue humaine ; étendre aux registres capacités/connecteurs"
     nextAction: "Revue"
-    targetDate: "2026-07-20"
+    targetDate: "2026-07-22"
   - p0Id: P0-B-02
     title: "Scan authentifié des UNK-LS (exigence propriétaire)"
     description: "Trancher les points sans-trace avec un vrai compte connecté (session dédiée)"

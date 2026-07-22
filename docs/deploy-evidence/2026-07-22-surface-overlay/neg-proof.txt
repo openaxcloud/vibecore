@@ -1,0 +1,10 @@
+NEG-1 — retirer une surface canonique (P080) des faits :
+  ✓ génération refuse un univers rétréci : a cassé comme attendu
+NEG-2 — codeRef fantôme sur un item construit (P002 CODED) :
+  ✓ génération refuse un builtState non justifié : a cassé comme attendu
+NEG-3 — builtState divergent dans surfaceUniverse (P001 built->absent) :
+  ✓ validateur refuse la dérive surfaceUniverse<->overlay : a cassé comme attendu
+CONTRÔLE — après restauration, la génération et le validateur sont VERTS :
+  ✓ vert restauré
+
+RÉSULTAT: 4 OK / 0 KO

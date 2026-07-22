@@ -29,7 +29,7 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: APPROVAL_STATUS.json
-    sha256: "ee5aaa4b1c7852ca2759d706a1b989fe27dd770e07da3b54a1442a9b070f0e3b"
+    sha256: "7c1f46f4a25f6c44803ae666a715a5f2f37d5d48cd15f4fa0bf515f67bccc355"
     schemaVersion: null
     repoCommit: null
     reviewer: UNKNOWN
@@ -94,7 +94,7 @@ documents:
     repoCommit: 1692f981
     reviewer: UNKNOWN
   - file: COUNTER_RECONCILIATION_20260720.md
-    sha256: "196cad5535254188237cf85c74e4d71403babb7e369e496ccc58bbd62cfcd20c"
+    sha256: "a0c0cb7bb23d16f751f787407904ce1b291fe8bf44a5af77c79a48e53d734a8c"
     schemaVersion: 1
     repoCommit: null
     reviewer: UNKNOWN
@@ -174,12 +174,12 @@ documents:
     repoCommit: d56931bd
     reviewer: UNKNOWN
   - file: IMPLEMENTATION_FACTS.yaml
-    sha256: "ff9d85b660d4a095f851ff995f66e32987254f5c6ec285f077554920943424f6"
+    sha256: "14672b8bd46495f5048666449abba77795e483d2740254297b938e3552a35247"
     schemaVersion: 1
     repoCommit: af24d4fe
     reviewer: UNKNOWN
   - file: IMPLEMENTATION_STATUS.yaml
-    sha256: "039417d6e64b76e3df2e1abd5b14cf25e56910a8c547aae18a91ccc2511fafa0"
+    sha256: "74a63678b2711e7d89906e1d1956bccd1637c70be7662827fb6c47e9a3a01bdf"
     schemaVersion: 2
     repoCommit: null
     reviewer: UNKNOWN
@@ -224,7 +224,7 @@ documents:
     repoCommit: d1063912
     reviewer: UNKNOWN
   - file: P0_REGISTRY.yaml
-    sha256: "21b964dae6ed20a068ccfff51efc610227750eef96f86c01efe181c2887e8229"
+    sha256: "0ed6196e58768468590546d9c77418cc02c187b1c5de7cfdd96c46b204485842"
     schemaVersion: 1
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN
@@ -234,7 +234,7 @@ documents:
     repoCommit: af9e4e83
     reviewer: UNKNOWN
   - file: PARITY_STATUS.md
-    sha256: "dee71c09d1e8096bcc97a79607fca06cfa4f8f2c2f4cf35c1d1d435395786c5d"
+    sha256: "2a357b48e2fed91df4c32d12d76d86c6660767044ab6f64bf4cda01d420c6446"
     schemaVersion: 2
     repoCommit: 76d3922c
     reviewer: UNKNOWN
@@ -374,7 +374,7 @@ documents:
     repoCommit: a4a9f71c
     reviewer: UNKNOWN
   - file: SURFACE_REGISTRY.yaml
-    sha256: "b0af412c1fd3a11ff86de86f3c88dabd9a5b4155f0bbbc14ead6fa9b31a39f3e"
+    sha256: "ac7d7fbb66dd9a86882b3efda33f96ebabe16a120b0d126b9f6ee0b4f7d886b0"
     schemaVersion: 3
     repoCommit: 06fabcf1
     reviewer: UNKNOWN

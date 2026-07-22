@@ -406,10 +406,12 @@ function checkHeader(file, doc) {
 {
   const p0 = loadYaml(join(parityRoot, 'P0_REGISTRY.yaml'));
   const decisions = loadYaml(join(parityRoot, 'DECISION_REGISTRY.yaml'));
+
   // Reçus de revue immuables (règle maîtresse 20/07) — requis pour tout CLOSED.
   const reviewReceipts = existsSync(join(parityRoot, 'REVIEW_RECEIPT_REGISTRY.yaml'))
     ? loadYaml(join(parityRoot, 'REVIEW_RECEIPT_REGISTRY.yaml'))
     : { receipts: [] };
+
   const unknowns = loadYaml(join(parityRoot, 'UNKNOWN_REGISTRY.yaml'));
   checkHeader('P0_REGISTRY.yaml', p0);
   checkHeader('DECISION_REGISTRY.yaml', decisions);
@@ -422,8 +424,7 @@ function checkHeader(file, doc) {
   const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
   function checkTargetDate(file, entry, id) {
-    const acceptedRisk =
-      entry.state === 'ACCEPTED_RISK' && entry.owner && entry.expiration && entry.reviewCondition;
+    const acceptedRisk = entry.state === 'ACCEPTED_RISK' && entry.owner && entry.expiration && entry.reviewCondition;
 
     if (acceptedRisk) {
       return;
@@ -445,6 +446,7 @@ function checkHeader(file, doc) {
   const { EXPECTED_P0_IDS, EXPECTED_P1_IDS, EXPECTED_BOLT_DEBT_IDS, EXPECTED_PROD_READINESS_IDS } = await import(
     join(here, 'generate-approval-status.mjs')
   );
+
   const presentP0Ids = new Set((p0.p0s ?? []).map((i) => i.p0Id));
 
   for (const id of EXPECTED_P0_IDS) {
@@ -505,7 +507,10 @@ function checkHeader(file, doc) {
       if (!receipt) {
         fail('P0_REGISTRY.yaml', `${item.p0Id}: CLOSED sans reviewReceiptId valide (règle maîtresse)`);
       } else if (receipt.completeness !== 'COMPLETE') {
-        fail('P0_REGISTRY.yaml', `${item.p0Id}: CLOSED sur un reçu ${receipt.completeness} — interdit tant que responseHash/version modèle manquent`);
+        fail(
+          'P0_REGISTRY.yaml',
+          `${item.p0Id}: CLOSED sur un reçu ${receipt.completeness} — interdit tant que responseHash/version modèle manquent`,
+        );
       } else if (!(receipt.decisions?.accepted ?? []).includes(item.p0Id)) {
         fail('P0_REGISTRY.yaml', `${item.p0Id}: CLOSED mais absent des accepted du reçu ${item.reviewReceiptId}`);
       }
@@ -790,9 +795,12 @@ function checkHeader(file, doc) {
   const RELATIONS = ['MERGED', 'RENAMED', 'SPLIT', 'RETIRED'];
 
   for (const s of sup.surfaceSupersessions ?? []) {
-    requireFields('SUPERSESSION_REGISTRY.yaml', s,
+    requireFields(
+      'SUPERSESSION_REGISTRY.yaml',
+      s,
       ['legacySurfaceId', 'canonicalSurfaceId', 'relation', 'justification', 'source', 'evidence', 'date', 'commit'],
-      s?.legacySurfaceId ?? 'supersession');
+      s?.legacySurfaceId ?? 'supersession',
+    );
 
     if (!RELATIONS.includes(s.relation)) {
       fail('SUPERSESSION_REGISTRY.yaml', `${s.legacySurfaceId}: relation "${s.relation}" invalide`);
@@ -804,7 +812,10 @@ function checkHeader(file, doc) {
   const derivedSurfaces = 159 + additional;
 
   if (cu.canonicalSurfaceCount !== derivedSurfaces) {
-    fail('SUPERSESSION_REGISTRY.yaml', `canonicalSurfaceCount ${cu.canonicalSurfaceCount} ≠ dérivé ${derivedSurfaces} (159 + ${additional})`);
+    fail(
+      'SUPERSESSION_REGISTRY.yaml',
+      `canonicalSurfaceCount ${cu.canonicalSurfaceCount} ≠ dérivé ${derivedSurfaces} (159 + ${additional})`,
+    );
   }
 
   const wiDoc = loadYaml(join(parityRoot, 'WORK_ITEM_REGISTRY.yaml'));
@@ -813,7 +824,10 @@ function checkHeader(file, doc) {
   const derivedWi = 99 - merges + splits * 24; // 24 = items créés par l'éclatement WI-0033
 
   if (wiDoc.canonicalWorkItemCount !== derivedWi) {
-    fail('SUPERSESSION_REGISTRY.yaml', `canonicalWorkItemCount ${wiDoc.canonicalWorkItemCount} ≠ dérivé ${derivedWi} (99 − ${merges} + ${splits}×24)`);
+    fail(
+      'SUPERSESSION_REGISTRY.yaml',
+      `canonicalWorkItemCount ${wiDoc.canonicalWorkItemCount} ≠ dérivé ${derivedWi} (99 − ${merges} + ${splits}×24)`,
+    );
   }
 
   checked.push(`SUPERSESSION_REGISTRY (couverture aliases 100%, 164 et 122 dérivés des tables)`);
@@ -832,7 +846,10 @@ function checkHeader(file, doc) {
     const complete = hasHash && geoKnown && localeKnown && cohortKnown && o.artifactPath;
 
     if (!complete && o.nonReplayable !== true && o.contextIncomplete !== true) {
-      fail('PRICE_OBSERVATION_REGISTRY.yaml', `${label}: observation incomplète (geo/locale/cohorte/hash/artifactPath) sans justification déclarée (LS-13)`);
+      fail(
+        'PRICE_OBSERVATION_REGISTRY.yaml',
+        `${label}: observation incomplète (geo/locale/cohorte/hash/artifactPath) sans justification déclarée (LS-13)`,
+      );
     }
 
     if (o.contextIncomplete === true && !o.contextIncompleteReason) {
@@ -872,20 +889,29 @@ function checkHeader(file, doc) {
       try {
         execSync(`git cat-file -e ${sha}^{commit}`, { cwd: repoRoot, stdio: 'ignore' });
       } catch {
-        fail('CI_ATTESTATION.yaml', `${field} ${String(sha).slice(0, 12)} n'existe pas dans l'historique git — une attestation fictive est refusée (LS-16)`);
+        fail(
+          'CI_ATTESTATION.yaml',
+          `${field} ${String(sha).slice(0, 12)} n'existe pas dans l'historique git — une attestation fictive est refusée (LS-16)`,
+        );
       }
     }
   }
 
-  checked.push(shallow
-    ? 'CI_ATTESTATION anti-fictif SAUTÉ (clone shallow — le job CI validate tourne en fetch-depth 0 où le contrôle est réel)'
-    : 'CI_ATTESTATION commits vérifiés dans l\'historique git (anti-fictif — LS-16)');
+  checked.push(
+    shallow
+      ? 'CI_ATTESTATION anti-fictif SAUTÉ (clone shallow — le job CI validate tourne en fetch-depth 0 où le contrôle est réel)'
+      : "CI_ATTESTATION commits vérifiés dans l'historique git (anti-fictif — LS-16)",
+  );
 }
 
 /* ---- 12quater. CONTRACT_REGISTRY — 14 contrats UN PAR UN (C5) ----------- */
 {
   const cr = loadYaml(join(parityRoot, 'CONTRACT_REGISTRY.yaml'));
-  const reviewReceiptsForContracts = existsSync(join(parityRoot, 'REVIEW_RECEIPT_REGISTRY.yaml')) ? loadYaml(join(parityRoot, 'REVIEW_RECEIPT_REGISTRY.yaml')) : { receipts: [] };
+
+  const reviewReceiptsForContracts = existsSync(join(parityRoot, 'REVIEW_RECEIPT_REGISTRY.yaml'))
+    ? loadYaml(join(parityRoot, 'REVIEW_RECEIPT_REGISTRY.yaml'))
+    : { receipts: [] };
+
   const entries = cr.contracts ?? [];
 
   if (entries.length !== 14) {
@@ -895,16 +921,30 @@ function checkHeader(file, doc) {
   const HSTATES = ['HARDENED_PENDING_REVIEW', 'TO_HARDEN', 'BLOCKED_ON_CHANTIER'];
 
   for (const c of entries) {
-    requireFields('CONTRACT_REGISTRY.yaml', c,
-      ['contractId', 'file', 'contractVersion', 'refusalReasonV1', 'hardeningStatus', 'expectedReviewer', 'signatureResult'],
-      c?.contractId ?? 'contract');
+    requireFields(
+      'CONTRACT_REGISTRY.yaml',
+      c,
+      [
+        'contractId',
+        'file',
+        'contractVersion',
+        'refusalReasonV1',
+        'hardeningStatus',
+        'expectedReviewer',
+        'signatureResult',
+      ],
+      c?.contractId ?? 'contract',
+    );
 
     if (!HSTATES.includes(c.hardeningStatus)) {
       fail('CONTRACT_REGISTRY.yaml', `${c.contractId}: hardeningStatus "${c.hardeningStatus}" invalide`);
     }
 
     if (c.hardeningStatus === 'BLOCKED_ON_CHANTIER' && !c.blockedBy) {
-      fail('CONTRACT_REGISTRY.yaml', `${c.contractId}: BLOCKED_ON_CHANTIER sans blockedBy — un blocage sans cause n'est pas honnête`);
+      fail(
+        'CONTRACT_REGISTRY.yaml',
+        `${c.contractId}: BLOCKED_ON_CHANTIER sans blockedBy — un blocage sans cause n'est pas honnête`,
+      );
     }
 
     const cp = join(parityRoot, c.file);
@@ -918,7 +958,10 @@ function checkHeader(file, doc) {
       const hasV2 = /contractVersion:\s*2/.test(ct) || /"x-contractVersion":\s*2/.test(ct);
 
       if (!hasId || !hasV2) {
-        fail('CONTRACT_REGISTRY.yaml', `${c.contractId}: durci déclaré mais le fichier ne porte pas contractId + contractVersion 2`);
+        fail(
+          'CONTRACT_REGISTRY.yaml',
+          `${c.contractId}: durci déclaré mais le fichier ne porte pas contractId + contractVersion 2`,
+        );
       }
     }
 
@@ -932,7 +975,9 @@ function checkHeader(file, doc) {
     }
   }
 
-  checked.push(`CONTRACT_REGISTRY (14 contrats individuels, ${entries.filter((c) => c.hardeningStatus === 'HARDENED_PENDING_REVIEW').length} durcis, ${entries.filter((c) => c.hardeningStatus === 'BLOCKED_ON_CHANTIER').length} bloqués motivés)`);
+  checked.push(
+    `CONTRACT_REGISTRY (14 contrats individuels, ${entries.filter((c) => c.hardeningStatus === 'HARDENED_PENDING_REVIEW').length} durcis, ${entries.filter((c) => c.hardeningStatus === 'BLOCKED_ON_CHANTIER').length} bloqués motivés)`,
+  );
 }
 
 /* ---- 12bis. COUNTER_RECONCILIATION est CALCULÉ (directive 20/07) ------- */
@@ -946,7 +991,10 @@ function checkHeader(file, doc) {
     const current = existsSync(outPath) ? readFileSync(outPath, 'utf8') : '';
 
     if (current !== computed) {
-      fail('COUNTER_RECONCILIATION_20260720.md', 'DRIFT — compteur édité à la main ou registre changé sans régénération');
+      fail(
+        'COUNTER_RECONCILIATION_20260720.md',
+        'DRIFT — compteur édité à la main ou registre changé sans régénération',
+      );
     } else {
       checked.push('COUNTER_RECONCILIATION_20260720.md is up to date (computed)');
     }
@@ -955,14 +1003,31 @@ function checkHeader(file, doc) {
 
 /* ---- 13. Nouveaux registres (audit de réanalyse) ----------------------- */
 {
-  for (const f of ['LEGACY_FINDING_REGISTRY.yaml', 'WORK_ITEM_REGISTRY.yaml', 'TRACEABILITY_MATRIX.yaml', 'OWNER_ROLES.yaml',
+  for (const f of [
+    'LEGACY_FINDING_REGISTRY.yaml',
+    'WORK_ITEM_REGISTRY.yaml',
+    'TRACEABILITY_MATRIX.yaml',
+    'OWNER_ROLES.yaml',
+
     // Registres séparés (P0-LS-01) — présence + schemaVersion, cassants.
-    'ARTIFACT_KIND_REGISTRY.yaml', 'COMPONENT_KIND_REGISTRY.yaml', 'CREATION_INTENT_REGISTRY.yaml',
-    'GENERATED_ASSET_KIND_REGISTRY.yaml', 'CAPABILITY_REGISTRY.yaml', 'DEPLOYMENT_TYPE_REGISTRY.yaml',
-    'IMPORT_PROVIDER_REGISTRY.yaml', 'CONNECTOR_REGISTRY.yaml', 'OFFERING_ENTITLEMENT_REGISTRY.yaml',
-    'EXTERNAL_ECOSYSTEM_REGISTRY.yaml', 'CI_ATTESTATION.yaml',
-    'SERVICE_REGISTRY.yaml', 'P1_REGISTRY.yaml', 'ROUTE_OBSERVATION_REGISTRY.yaml',
-    'LEGACY_SOURCE_COVERAGE.yaml', 'PRICE_OBSERVATION_REGISTRY.yaml', 'IMPLEMENTATION_STATUS.yaml']) {
+    'ARTIFACT_KIND_REGISTRY.yaml',
+    'COMPONENT_KIND_REGISTRY.yaml',
+    'CREATION_INTENT_REGISTRY.yaml',
+    'GENERATED_ASSET_KIND_REGISTRY.yaml',
+    'CAPABILITY_REGISTRY.yaml',
+    'DEPLOYMENT_TYPE_REGISTRY.yaml',
+    'IMPORT_PROVIDER_REGISTRY.yaml',
+    'CONNECTOR_REGISTRY.yaml',
+    'OFFERING_ENTITLEMENT_REGISTRY.yaml',
+    'EXTERNAL_ECOSYSTEM_REGISTRY.yaml',
+    'CI_ATTESTATION.yaml',
+    'SERVICE_REGISTRY.yaml',
+    'P1_REGISTRY.yaml',
+    'ROUTE_OBSERVATION_REGISTRY.yaml',
+    'LEGACY_SOURCE_COVERAGE.yaml',
+    'PRICE_OBSERVATION_REGISTRY.yaml',
+    'IMPLEMENTATION_STATUS.yaml',
+  ]) {
     const p = join(parityRoot, f);
 
     if (!existsSync(p)) {
@@ -981,20 +1046,41 @@ function checkHeader(file, doc) {
   const work = loadYaml(join(parityRoot, 'WORK_ITEM_REGISTRY.yaml'));
 
   if ((legacy.findings ?? []).length !== legacy.sourceFindingCount) {
-    fail('LEGACY_FINDING_REGISTRY.yaml', `sourceFindingCount (${legacy.sourceFindingCount}) ≠ findings réels (${(legacy.findings ?? []).length})`);
+    fail(
+      'LEGACY_FINDING_REGISTRY.yaml',
+      `sourceFindingCount (${legacy.sourceFindingCount}) ≠ findings réels (${(legacy.findings ?? []).length})`,
+    );
   }
 
   if ((work.workItems ?? []).length !== work.canonicalWorkItemCount) {
-    fail('WORK_ITEM_REGISTRY.yaml', `canonicalWorkItemCount (${work.canonicalWorkItemCount}) ≠ items réels (${(work.workItems ?? []).length})`);
+    fail(
+      'WORK_ITEM_REGISTRY.yaml',
+      `canonicalWorkItemCount (${work.canonicalWorkItemCount}) ≠ items réels (${(work.workItems ?? []).length})`,
+    );
   }
 
   {
     const ak = loadYaml(join(parityRoot, 'ARTIFACT_KIND_REGISTRY.yaml'));
-    const kinds = (ak.kinds ?? []).map((k) => k.kind).sort().join(',');
-    const expected = ['ANIMATION_VIDEO', 'DATA_VISUALIZATION', 'DESIGN', 'EXPERIENCE_3D', 'MOBILE_APP', 'SLIDE_DECK', 'WEB_APP'].join(',');
+
+    const kinds = (ak.kinds ?? [])
+      .map((k) => k.kind)
+      .sort()
+      .join(',');
+    const expected = [
+      'ANIMATION_VIDEO',
+      'DATA_VISUALIZATION',
+      'DESIGN',
+      'EXPERIENCE_3D',
+      'MOBILE_APP',
+      'SLIDE_DECK',
+      'WEB_APP',
+    ].join(',');
 
     if (kinds !== expected) {
-      fail('ARTIFACT_KIND_REGISTRY.yaml', `kinds [${kinds}] ≠ taxonomie exacte P0-LS-02 [${expected}] — SERVICE/JOB/STATIC_SITE/DOCUMENT/SPREADSHEET interdits ici`);
+      fail(
+        'ARTIFACT_KIND_REGISTRY.yaml',
+        `kinds [${kinds}] ≠ taxonomie exacte P0-LS-02 [${expected}] — SERVICE/JOB/STATIC_SITE/DOCUMENT/SPREADSHEET interdits ici`,
+      );
     }
 
     const ip = loadYaml(join(parityRoot, 'IMPORT_PROVIDER_REGISTRY.yaml'));
@@ -1004,7 +1090,10 @@ function checkHeader(file, doc) {
     }
 
     if ((ip.providers ?? []).some((x) => x.provider === 'GITLAB')) {
-      fail('IMPORT_PROVIDER_REGISTRY.yaml', 'GITLAB ne doit pas être une tuile (P0-LS-05) — capacité git plus large = UNK-LS-GITLAB-GIT');
+      fail(
+        'IMPORT_PROVIDER_REGISTRY.yaml',
+        'GITLAB ne doit pas être une tuile (P0-LS-05) — capacité git plus large = UNK-LS-GITLAB-GIT',
+      );
     }
 
     // P0-LS-04 : GitLab exige une entrée STRUCTURÉE hors tuiles (pas une note d'en-tête).
@@ -1021,7 +1110,9 @@ function checkHeader(file, doc) {
     }
   }
 
-  checked.push(`LEGACY/WORK_ITEM/TRACEABILITY/OWNER_ROLES présents (${(legacy.findings ?? []).length} constats → ${(work.workItems ?? []).length} work items canoniques)`);
+  checked.push(
+    `LEGACY/WORK_ITEM/TRACEABILITY/OWNER_ROLES présents (${(legacy.findings ?? []).length} constats → ${(work.workItems ?? []).length} work items canoniques)`,
+  );
 }
 
 /* ---- 14. PARITY_STATUS est GÉNÉRÉE + attestation CI réelle (réconciliation A2) ---- */
@@ -1037,7 +1128,10 @@ function checkHeader(file, doc) {
     const current = existsSync(outPath) ? readFileSync(outPath, 'utf8') : '';
 
     if (current !== computed) {
-      fail('PARITY_STATUS.md', 'DRIFT — vue éditée à la main ou non régénérée (éditer PARITY_STATUS_NOTES.md puis régénérer)');
+      fail(
+        'PARITY_STATUS.md',
+        'DRIFT — vue éditée à la main ou non régénérée (éditer PARITY_STATUS_NOTES.md puis régénérer)',
+      );
     } else {
       checked.push('PARITY_STATUS.md is up to date (computed from registries + NOTES)');
     }
@@ -1066,14 +1160,18 @@ function checkHeader(file, doc) {
       fail('CI_ATTESTATION.yaml', `attestation non verte (conclusion=${att.conclusion})`);
     }
 
-    checked.push(`CI_ATTESTATION (run ${att.runId} @ ${String(att.runCommit).slice(0, 8)}, ${att.runDate}, ${att.conclusion})`);
+    checked.push(
+      `CI_ATTESTATION (run ${att.runId} @ ${String(att.runCommit).slice(0, 8)}, ${att.runDate}, ${att.conclusion})`,
+    );
   }
 }
 
 /* ---- 15. IMPLEMENTATION_STATUS — règles §23 (CODED=mergé, PROVEN=preuves) ---- */
 {
-  // P0-EX-02 : le statut est GÉNÉRÉ depuis IMPLEMENTATION_FACTS.yaml — toute
-  // édition à la main du statut (ou fait changé sans régénération) = DRIFT.
+  /*
+   * P0-EX-02 : le statut est GÉNÉRÉ depuis IMPLEMENTATION_FACTS.yaml — toute
+   * édition à la main du statut (ou fait changé sans régénération) = DRIFT.
+   */
   const genPath = join(here, 'generate-implementation-status.mjs');
 
   if (!existsSync(genPath)) {
@@ -1085,7 +1183,10 @@ function checkHeader(file, doc) {
       const current = readFileSync(join(parityRoot, 'IMPLEMENTATION_STATUS.yaml'), 'utf8');
 
       if (current !== computed) {
-        fail('IMPLEMENTATION_STATUS.yaml', 'DRIFT — régénérer (statut édité à la main ou fait changé sans régénération, P0-EX-02)');
+        fail(
+          'IMPLEMENTATION_STATUS.yaml',
+          'DRIFT — régénérer (statut édité à la main ou fait changé sans régénération, P0-EX-02)',
+        );
       } else {
         checked.push('IMPLEMENTATION_STATUS.yaml is up to date (computed from IMPLEMENTATION_FACTS — P0-EX-02)');
       }
@@ -1127,6 +1228,160 @@ function checkHeader(file, doc) {
   }
 
   checked.push(`IMPLEMENTATION_STATUS (${items.length} items — règles §23 CODED/PROVEN vérifiées)`);
+}
+
+/* ---- 16. P0-B-01 — univers canonique verrouillé + overlay code justifié - */
+{
+  const { EXPECTED_SURFACE_IDS } = await import(join(here, 'generate-implementation-status.mjs'));
+  const { loadGitFileset, resolveCodeRefs } = await import(join(here, 'resolve-code-refs.mjs'));
+
+  const impl = loadYaml(join(parityRoot, 'IMPLEMENTATION_STATUS.yaml'));
+  const overlay = new Map((impl.items ?? []).map((it) => [it.itemId, it]));
+
+  /*
+   * (a) The overlay covers EXACTLY the 159 canonical ids — none missing, none
+   *     invented (the count===159 check alone can't catch an id swap).
+   */
+  const overlayIds = new Set(overlay.keys());
+
+  for (const id of EXPECTED_SURFACE_IDS) {
+    if (!overlayIds.has(id)) {
+      fail('IMPLEMENTATION_STATUS.yaml', `surface canonique ${id} ABSENTE de l'overlay (P0-B-01)`);
+    }
+  }
+
+  for (const id of overlayIds) {
+    if (!EXPECTED_SURFACE_IDS.includes(id)) {
+      fail('IMPLEMENTATION_STATUS.yaml', `item ${id} HORS univers canonique P001–P159 (P0-B-01)`);
+    }
+  }
+
+  /*
+   * (b) SURFACE_REGISTRY.surfaceUniverse is the canonical enumeration: same
+   *     exact 159 ids, and each carries a builtState + codeRefs PROJECTED from
+   *     the verified overlay (no more mass PENDING/UNKNOWN). Any drift breaks.
+   */
+  const surfaceReg = loadYaml(join(parityRoot, 'SURFACE_REGISTRY.yaml'));
+  const universe = surfaceReg.surfaceUniverse ?? [];
+  const universeIds = new Set(universe.map((s) => s.surfaceId));
+
+  for (const id of EXPECTED_SURFACE_IDS) {
+    if (!universeIds.has(id)) {
+      fail('SURFACE_REGISTRY.yaml', `surfaceUniverse: candidate canonique ${id} MANQUANTE (P0-B-01)`);
+    }
+  }
+
+  const LABEL = {
+    PROVEN: 'built',
+    INTEGRATED: 'built',
+    CODED: 'built',
+    PARTIAL: 'partial',
+    NOT_STARTED: 'absent',
+    BLOCKED: 'absent',
+    NOT_APPLICABLE: 'absent',
+  };
+
+  const BUILT_STATES = new Set(['CODED', 'INTEGRATED', 'PROVEN']);
+
+  const gitset = loadGitFileset(repoRoot);
+
+  let builtCount = 0;
+  let partialCount = 0;
+  let absentCount = 0;
+
+  for (const s of universe) {
+    const item = overlay.get(s.surfaceId);
+
+    if (s.surfaceId && !EXPECTED_SURFACE_IDS.includes(s.surfaceId)) {
+      fail('SURFACE_REGISTRY.yaml', `surfaceUniverse: id ${s.surfaceId} hors P001–P159 (P0-B-01)`);
+      continue;
+    }
+
+    if (!item) {
+      fail('SURFACE_REGISTRY.yaml', `surfaceUniverse: ${s.surfaceId} n'a pas d'overlay correspondant (P0-B-01)`);
+      continue;
+    }
+
+    // No surface may stay unevaluated — every one carries a builtState.
+    if (!['built', 'partial', 'absent'].includes(s.builtState)) {
+      fail(
+        'SURFACE_REGISTRY.yaml',
+        `${s.surfaceId}: builtState "${s.builtState}" invalide — plus d'UNKNOWN de masse (P0-B-01)`,
+      );
+      continue;
+    }
+
+    // builtState projected from the overlay must NOT drift from it.
+    const expected = LABEL[item.status];
+
+    if (s.builtState !== expected) {
+      fail(
+        'SURFACE_REGISTRY.yaml',
+        `${s.surfaceId}: builtState "${s.builtState}" ≠ overlay ${item.status} (attendu "${expected}") — dérive (P0-B-01)`,
+      );
+    }
+
+    // codeRefs projected must equal the overlay's verified resolvedCodeRefs.
+    const projected = Array.isArray(s.codeRefs) ? s.codeRefs : [];
+    const verified = item.resolvedCodeRefs ?? [];
+
+    if (JSON.stringify(projected) !== JSON.stringify(verified)) {
+      fail(
+        'SURFACE_REGISTRY.yaml',
+        `${s.surfaceId}: codeRefs projetées ≠ resolvedCodeRefs de l'overlay — dérive (P0-B-01)`,
+      );
+    }
+
+    /*
+     * Defense-in-depth: a built/partial surface's projected codeRefs must ALL
+     * resolve to git-tracked files right here (not just at generation time).
+     */
+    if (s.builtState === 'built' || s.builtState === 'partial') {
+      if (projected.length === 0) {
+        fail('SURFACE_REGISTRY.yaml', `${s.surfaceId}: ${s.builtState} sans codeRefs — état non justifié (P0-B-01)`);
+      }
+
+      const { unresolved } = resolveCodeRefs(projected.join('; '), gitset);
+
+      if (unresolved.length > 0) {
+        fail(
+          'SURFACE_REGISTRY.yaml',
+          `${s.surfaceId}: codeRefs non suivies par git: ${unresolved.join(', ')} (P0-B-01)`,
+        );
+      }
+    }
+
+    // A BUILT overlay status must have every one of its refs resolve.
+    if (BUILT_STATES.has(item.status) && (item.missingCodeRefs?.length ?? 0) > 0) {
+      fail(
+        'IMPLEMENTATION_STATUS.yaml',
+        `${s.surfaceId}: ${item.status} avec codeRef(s) non résolue(s) — état non justifié (P0-B-01)`,
+      );
+    }
+
+    if (s.builtState === 'built') {
+      builtCount += 1;
+    } else if (s.builtState === 'partial') {
+      partialCount += 1;
+    } else {
+      absentCount += 1;
+    }
+  }
+
+  // (c) canonicalUniverse count stays coherent (159 IDE + hors-IDE déclarées).
+  const cu = surfaceReg.canonicalUniverse ?? {};
+  const declaredExtra = (cu.additionalCanonical ?? []).length;
+
+  if (cu.canonicalSurfaceCount !== EXPECTED_SURFACE_IDS.length + declaredExtra) {
+    fail(
+      'SURFACE_REGISTRY.yaml',
+      `canonicalSurfaceCount ${cu.canonicalSurfaceCount} ≠ ${EXPECTED_SURFACE_IDS.length} candidats + ${declaredExtra} additionnels (P0-B-01)`,
+    );
+  }
+
+  checked.push(
+    `P0-B-01 univers canonique verrouillé (159 ids P001–P159) + overlay code justifié: ${builtCount} built / ${partialCount} partial / ${absentCount} absent, codeRefs suivies par git`,
+  );
 }
 
 /* ---- report ------------------------------------------------------------ */

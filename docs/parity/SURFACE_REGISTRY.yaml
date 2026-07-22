@@ -277,1124 +277,1356 @@ surfaceUniverse:
     title: "Accueil / Projects"
     family: "A. Accueil, navigation et shell IDE"
     proofHeadline: "Filtrer 1 000 projets par type, tri et pin; aucun projet non autorisé ne doit apparaître."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # PROVEN (overlay IMPLEMENTATION_STATUS#P001)
+    overlayItemId: P001
+    codeRefs:
+      - app/routes/projects._index.tsx
+      - app/routes/dashboard.tsx
   - surfaceId: P002
     title: "Sélecteur de workspace"
     family: "A. Accueil, navigation et shell IDE"
     proofHeadline: "Changer de workspace actualise projets, budgets et intégrations sans état résiduel."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P002)
+    overlayItemId: P002
+    codeRefs:
+      - app/routes/organization-switcher.tsx
+      - app/routes/workspace-settings.tsx
   - surfaceId: P003
     title: "Cartes projet multi-artefacts"
     family: "A. Accueil, navigation et shell IDE"
     proofHeadline: "Une modification d’artefact renouvelle la miniature privée et invalide l’ancienne URL."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P003)
+    overlayItemId: P003
+    codeRefs:
+      - app/components/dashboard/ProjectCardMenu.tsx
+      - app/components/dashboard/ProjectPreviewMedia.spec.tsx
   - surfaceId: P004
     title: "Spotlight / couverture"
     family: "A. Accueil, navigation et shell IDE"
     proofHeadline: "Un éditeur sans droit de partage ne peut rendre public ni modifier la policy."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P004)
+    overlayItemId: P004
+    codeRefs:
+      - app/routes/api.projects.$projectId.thumbnail.ts
+      - app/routes/projects._index.tsx
   - surfaceId: P005
     title: "Barre supérieure"
     family: "A. Accueil, navigation et shell IDE"
     proofHeadline: "Deux collaborateurs voient le même état Run/Publish en temps réel."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P005)
+    overlayItemId: P005
+    codeRefs:
+      - app/routes/projects.$projectId.ide.tsx
+      - app/components/header/Header.tsx
   - surfaceId: P006
     title: "Windows, panes et tabs"
     family: "A. Accueil, navigation et shell IDE"
     proofHeadline: "Recharger et retrouver exactement le layout de cet utilisateur."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P006)
+    overlayItemId: P006
+    codeRefs:
+      - app/components/chat/BaseChat.tsx
+      - app/components/workbench/terminal/TerminalTabs.tsx
   - surfaceId: P007
     title: "Tools Dock / All tools"
     family: "A. Accueil, navigation et shell IDE"
     proofHeadline: "Feature flag/entitlement modifie le registre sans casser les layouts."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P007)
+    overlayItemId: P007
+    codeRefs:
+      - app/components/chat/BaseChat.tsx
   - surfaceId: P008
     title: "Search / command palette"
     family: "A. Accueil, navigation et shell IDE"
     proofHeadline: "Résultats <300 ms et filtrage ACL sur tous les index."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P008)
+    overlayItemId: P008
+    codeRefs:
+      - app/routes/command-palette.tsx
+      - app/components/dashboard/command-palette-search.ts
   - surfaceId: P009
     title: "Centre notifications / activité"
     family: "A. Accueil, navigation et shell IDE"
     proofHeadline: "Retirer l’utilisateur invalide aussi tous les deep links existants."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P009)
+    overlayItemId: P009
+    codeRefs:
+      - app/routes/notifications.tsx
+      - app/routes/api.notifications.ts
   - surfaceId: P010
     title: "User Settings"
     family: "A. Accueil, navigation et shell IDE"
     proofHeadline: "Deux utilisateurs du même projet gardent des modes Agent différents."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P010)
+    overlayItemId: P010
+    codeRefs:
+      - app/routes/account-settings.tsx
+      - app/components/@settings/tabs
   - surfaceId: P011
     title: "Resources panel"
     family: "A. Accueil, navigation et shell IDE"
     proofHeadline: "Une charge synthétique est visible en moins de 10 secondes."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P011)
+    overlayItemId: P011
+    codeRefs:
+      - app/components/chat/BaseChat.tsx
   - surfaceId: P012
     title: "Help / docs / status"
     family: "A. Accueil, navigation et shell IDE"
     proofHeadline: "Le bundle de support est automatiquement vérifié sans secret."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P012)
+    overlayItemId: P012
+    codeRefs:
+      - app/routes/docs.tsx
+      - app/routes/status.tsx
   - surfaceId: P013
     title: "File Tree"
     family: "B. Fichiers, code, exécution et versionnement"
     proofHeadline: "Deux utilisateurs déplacent le même fichier; résultat déterministe et historique."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P013)
+    overlayItemId: P013
+    codeRefs:
+      - app/components/workbench/FileTree.tsx
+      - app/components/chat/BaseChat.tsx
   - surfaceId: P014
     title: "Code Editor"
     family: "B. Fichiers, code, exécution et versionnement"
     proofHeadline: "Édition simultanée puis perte réseau converge sans caractère perdu."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # PROVEN (overlay IMPLEMENTATION_STATUS#P014)
+    overlayItemId: P014
+    codeRefs:
+      - app/components/editor/codemirror/CodeMirrorEditor.tsx
   - surfaceId: P015
     title: "Search & Replace"
     family: "B. Fichiers, code, exécution et versionnement"
     proofHeadline: "Remplacer 1 000 occurrences et restaurer par checkpoint."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P015)
+    overlayItemId: P015
+    codeRefs:
+      - app/components/workbench/Search.tsx
+      - app/components/workbench/search-replace.ts
   - surfaceId: P016
     title: "Symbols / Outline"
     family: "B. Fichiers, code, exécution et versionnement"
     proofHeadline: "Python, TypeScript, Go et Rust naviguent après cold start."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P016)
+    overlayItemId: P016
+    codeRefs: []           # NON construit — aucune référence de code suivie
   - surfaceId: P017
     title: "Problems / Diagnostics"
     family: "B. Fichiers, code, exécution et versionnement"
     proofHeadline: "Un diagnostic pointe le bon fichier/range et disparaît après correction."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P017)
+    overlayItemId: P017
+    codeRefs:
+      - app/lib/stores/diagnostics.ts
+      - app/components/chat/BaseChat.tsx
   - surfaceId: P018
     title: "Formatter"
     family: "B. Fichiers, code, exécution et versionnement"
     proofHeadline: "Le formatter respecte le config projet et ne modifie pas hors scope."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P018)
+    overlayItemId: P018
+    codeRefs:
+      - app/lib/stores/workbench.ts
+      - app/components/chat/BaseChat.tsx
   - surfaceId: P019
     title: "Console"
     family: "B. Fichiers, code, exécution et versionnement"
     proofHeadline: "Un secret imprimé est masqué et déclenche un événement de sécurité."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P019)
+    overlayItemId: P019
+    codeRefs:
+      - app/routes/projects.$projectId.logs.tsx
+      - app/routes/api.projects.$projectId.ide-panel.$panel.ts
   - surfaceId: P020
     title: "Shell"
     family: "B. Fichiers, code, exécution et versionnement"
     proofHeadline: "Couper le réseau 30 s puis reprendre sans second processus fantôme."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P020)
+    overlayItemId: P020
+    codeRefs:
+      - app/components/workbench/terminal/TerminalManager.tsx
+      - app/components/workbench/terminal/terminal-session.ts
   - surfaceId: P021
     title: "SSH"
     family: "B. Fichiers, code, exécution et versionnement"
     proofHeadline: "Révoquer une session coupe l’accès et interdit la réutilisation."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P021)
+    overlayItemId: P021
+    codeRefs:
+      - app/routes/api.projects.$projectId.ide-panel.$panel.ts
+      - app/components/chat/BaseChat.tsx
   - surfaceId: P022
     title: "Workflows"
     family: "B. Fichiers, code, exécution et versionnement"
     proofHeadline: "Frontend+backend démarrent, exposent deux ports puis s’arrêtent sans orphan."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P022)
+    overlayItemId: P022
+    codeRefs:
+      - app/routes/api.projects.$projectId.ide-panel.$panel.ts
+      - docs/parity/BOLT_DEBT_REGISTRY.yaml
   - surfaceId: P023
     title: "Run / Stop"
     family: "B. Fichiers, code, exécution et versionnement"
     proofHeadline: "Dix clics rapides ne créent qu’une exécution."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P023)
+    overlayItemId: P023
+    codeRefs:
+      - app/routes/projects.$projectId.ide.helpers.ts
+      - app/routes/projects.$projectId.ide.tsx
   - surfaceId: P024
     title: "Preview Web"
     family: "B. Fichiers, code, exécution et versionnement"
     proofHeadline: "Le vrai service détecté rend; second port sélectionnable sans collision."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # PROVEN (overlay IMPLEMENTATION_STATUS#P024)
+    overlayItemId: P024
+    codeRefs:
+      - app/components/workbench/Preview.tsx
   - surfaceId: P025
     title: "Preview DevTools"
     family: "B. Fichiers, code, exécution et versionnement"
     proofHeadline: "Modifier localStorage n’affecte aucune autre origine projet."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "📘 DOC-JOUR vérifié : « Devtools: Toggle the developer tools pane » (llms-full.txt 20/07 l.6116/6132) — présent chez Replit ; évaluation E-Code encore à faire"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P025)
+    overlayItemId: P025
+    codeRefs:
+      - app/components/workbench/Inspector.tsx
+      - docs/parity/BOLT_DEBT_REGISTRY.yaml
   - surfaceId: P026
     title: "Ports"
     family: "B. Fichiers, code, exécution et versionnement"
     proofHeadline: "Le port 8000 apparaît; un port interne interdit reste inaccessible."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P026)
+    overlayItemId: P026
+    codeRefs:
+      - app/components/workbench/PortDropdown.tsx
+      - app/routes/api.projects.$projectId.ide-panel.$panel.ts
   - surfaceId: P027
     title: "Dependencies / Packages"
     family: "B. Fichiers, code, exécution et versionnement"
     proofHeadline: "Monorepo: Flask backend, Express frontend, ffmpeg système."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P027)
+    overlayItemId: P027
+    codeRefs:
+      - app/routes/api.projects.$projectId.ide-panel.$panel.ts
+      - app/components/chat/BaseChat.tsx
   - surfaceId: P028
     title: "Advanced Project Settings"
     family: "B. Fichiers, code, exécution et versionnement"
     proofHeadline: "Config invalide refusée avant redémarrage; ancien env reste actif."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P028)
+    overlayItemId: P028
+    codeRefs:
+      - app/routes/advanced.$section.tsx
+      - app/routes/projects.$projectId.settings.tsx
   - surfaceId: P029
     title: "Git"
     family: "B. Fichiers, code, exécution et versionnement"
     proofHeadline: "Importer/pousser puis restaurer après perte locale sans token dans logs."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P029)
+    overlayItemId: P029
+    codeRefs:
+      - app/components/git/GitTab.tsx
+      - app/routes/api.projects.$projectId.ide-panel.$panel.ts
   - surfaceId: P030
     title: "File History"
     family: "B. Fichiers, code, exécution et versionnement"
     proofHeadline: "Restaurer une ligne sans écraser les autres fichiers."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P030)
+    overlayItemId: P030
+    codeRefs:
+      - app/components/workbench/Workbench.client.tsx
+      - app/components/workbench/DiffView.tsx
   - surfaceId: P031
     title: "Checkpoints"
     family: "B. Fichiers, code, exécution et versionnement"
     proofHeadline: "Rollback restaure fichiers+DB dev, jamais production."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P031)
+    overlayItemId: P031
+    codeRefs:
+      - app/routes/projects.$projectId.snapshots.tsx
+      - app/routes/snapshot-restore-database.ts
   - surfaceId: P032
     title: "Disaster Recovery"
     family: "B. Fichiers, code, exécution et versionnement"
     proofHeadline: "Perdre le volume puis restaurer dans le RTO cible."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P032)
+    overlayItemId: P032
+    codeRefs:
+      - services/api/src/database-rollback-service.ts
+      - docs/parity/BOLT_DEBT_REGISTRY.yaml
   - surfaceId: P033
     title: "Secrets"
     family: "B. Fichiers, code, exécution et versionnement"
     proofHeadline: "Éditeur non-owner ne voit pas valeur; app l’utilise via proxy."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P033)
+    overlayItemId: P033
+    codeRefs:
+      - app/routes/projects.$projectId.secrets.tsx
+      - app/routes/api.projects.$projectId.ide-panel.$panel.ts
   - surfaceId: P034
     title: "Agent Chat"
     family: "C. Agent, tâches et automatisations"
     proofHeadline: "Prompt → code → DB → preview, chaque tool call visible et annulable."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P034)
+    overlayItemId: P034
+    codeRefs:
+      - app/routes/api.chat.ts
+      - app/components/chat/BaseChat.tsx
+      - app/components/chat/Messages.client.tsx
   - surfaceId: P035
     title: "Agent Modes"
     family: "C. Agent, tâches et automatisations"
     proofHeadline: "Deux collaborateurs choisissent des modes personnels sans effet mutuel."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # PROVEN (overlay IMPLEMENTATION_STATUS#P035)
+    overlayItemId: P035
+    codeRefs:
+      - app/components/chat/ChatBoxModeDropdown.tsx
+      - app/components/chat/AgentPowerControls.tsx
+      - services/api/src/agent-routing-service.ts
   - surfaceId: P036
     title: "Plan Mode"
     family: "C. Agent, tâches et automatisations"
     proofHeadline: "Le hash du workspace reste inchangé avant approbation."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P036)
+    overlayItemId: P036
+    codeRefs:
+      - app/lib/.server/llm/agent-orchestration.ts
+      - app/components/chat/PlanChecklist.tsx
+      - app/lib/chat/plan-checklist.ts
   - surfaceId: P037
     title: "Task Board"
     family: "C. Agent, tâches et automatisations"
     proofHeadline: "Deux tâches isolées produisent previews et merge traçable."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P037)
+    overlayItemId: P037
+    codeRefs:
+      - app/components/chat/PlanChecklist.tsx
   - surfaceId: P038
     title: "Task lifecycle"
     family: "C. Agent, tâches et automatisations"
     proofHeadline: "Crash worker reprend sans appliquer deux fois."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P038)
+    overlayItemId: P038
+    codeRefs:
+      - app/lib/chat/plan-checklist.ts
+      - app/components/chat/PlanChecklist.tsx
   - surfaceId: P039
     title: "Follow-up tasks"
     family: "C. Agent, tâches et automatisations"
     proofHeadline: "Cinq suivis sont ordonnés ou explicitement replanifiés."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P039)
+    overlayItemId: P039
+    codeRefs:
+      - app/components/chat/BaseChat.tsx
   - surfaceId: P040
     title: "Message queue"
     family: "C. Agent, tâches et automatisations"
     proofHeadline: "Annuler un message empêche tout tool call associé."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P040)
+    overlayItemId: P040
+    codeRefs: []           # NON construit — aucune référence de code suivie
   - surfaceId: P041
     title: "Agent activity"
     family: "C. Agent, tâches et automatisations"
     proofHeadline: "Chaque diff final est relié au tool call et checkpoint."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P041)
+    overlayItemId: P041
+    codeRefs:
+      - app/components/chat/AgentRepairHistory.tsx
+      - app/routes/api.projects.$projectId.agent-repair-events.ts
   - surfaceId: P042
     title: "Diff review"
     family: "C. Agent, tâches et automatisations"
     proofHeadline: "Rejeter un fichier conserve les autres changements choisis."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P042)
+    overlayItemId: P042
+    codeRefs:
+      - app/components/chat/MessagePatchReview.tsx
+      - app/components/chat/DiffActionRow.tsx
+      - app/routes/api.projects.$projectId.agent-patch-proposals.ts
   - surfaceId: P043
     title: "App Testing"
     family: "C. Agent, tâches et automatisations"
     proofHeadline: "Agent reproduit un bug UI, corrige et montre avant/après."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P043)
+    overlayItemId: P043
+    codeRefs: []           # NON construit — aucune référence de code suivie
   - surfaceId: P044
     title: "Skills Directory"
     family: "C. Agent, tâches et automatisations"
     proofHeadline: "Une skill révoquée cesse de fonctionner dans un run existant."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P044)
+    overlayItemId: P044
+    codeRefs:
+      - services/api/src/skills-catalog.ts
+      - services/api/src/skills-github-fetch.ts
+      - app/routes/api.projects.$projectId.ide-panel.skills.action.spec.ts
   - surfaceId: P045
     title: "replit.md / instructions projet"
     family: "C. Agent, tâches et automatisations"
     proofHeadline: "Règle testable respectée à travers plusieurs conversations."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P045)
+    overlayItemId: P045
+    codeRefs:
+      - app/lib/.server/llm/project-rules.ts
   - surfaceId: P046
     title: "Workspace Instructions"
     family: "C. Agent, tâches et automatisations"
     proofHeadline: "Nouveau projet hérite immédiatement de la policy workspace."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P046)
+    overlayItemId: P046
+    codeRefs:
+      - app/components/settings/WorkspaceSettings.tsx
   - surfaceId: P047
     title: "Web Search"
     family: "C. Agent, tâches et automatisations"
     proofHeadline: "URL metadata/SSRF bloquée; source actuelle et date visibles."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P047)
+    overlayItemId: P047
+    codeRefs:
+      - app/routes/api.web-search.ts
+      - app/components/chat/WebSearch.client.tsx
+      - app/lib/web-search-body.ts
   - surfaceId: P048
     title: "Voice Mode"
     family: "C. Agent, tâches et automatisations"
     proofHeadline: "Retrait permission micro arrête capture client et serveur."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P048)
+    overlayItemId: P048
+    codeRefs:
+      - app/components/chat/SpeechRecognition.tsx
+      - app/components/chat/ChatBox.tsx
   - surfaceId: P049
     title: "Image Generation"
     family: "C. Agent, tâches et automatisations"
     proofHeadline: "Asset généré insérable, référencé et supprimable proprement."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P049)
+    overlayItemId: P049
+    codeRefs: []           # NON construit — aucune référence de code suivie
   - surfaceId: P050
     title: "Audio Generation"
     family: "C. Agent, tâches et automatisations"
     proofHeadline: "Job interrompu n’est pas facturé deux fois."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P050)
+    overlayItemId: P050
+    codeRefs: []           # NON construit — aucune référence de code suivie
   - surfaceId: P051
     title: "Video / 3D Generation"
     family: "C. Agent, tâches et automatisations"
     proofHeadline: "Résultat passe safety, preview et export."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P051)
+    overlayItemId: P051
+    codeRefs: []           # NON construit — aucune référence de code suivie
   - surfaceId: P052
     title: "Connectors in Agent"
     family: "C. Agent, tâches et automatisations"
     proofHeadline: "Révocation du compte rend le prochain appel immédiatement impossible."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P052)
+    overlayItemId: P052
+    codeRefs:
+      - app/components/chat/connector-cards/ConnectionRequestCard.tsx
+      - app/lib/connectors/connector-token.server.ts
+      - app/routes/api.connector-token.$provider.ts
   - surfaceId: P053
     title: "MCP tools"
     family: "C. Agent, tâches et automatisations"
     proofHeadline: "Réponse contenant prompt injection est signalée et neutralisée."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P053)
+    overlayItemId: P053
+    codeRefs:
+      - app/components/chat/MCPTools.tsx
+      - app/lib/services/mcpService.ts
+      - app/routes/api.chat.ts
   - surfaceId: P054
     title: "Agent Inbox"
     family: "C. Agent, tâches et automatisations"
     proofHeadline: "Feedback lié à la bonne release devient task puis resolved après republish."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P054)
+    overlayItemId: P054
+    codeRefs: []           # NON construit — aucune référence de code suivie
   - surfaceId: P055
     title: "Code Review"
     family: "C. Agent, tâches et automatisations"
     proofHeadline: "Patch est testé, diffé et approuvé avant application."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P055)
+    overlayItemId: P055
+    codeRefs:
+      - services/api/src/skills-catalog.ts
+      - app/routes/api.ai.features.ts
   - surfaceId: P056
     title: "Security Agent"
     family: "C. Agent, tâches et automatisations"
     proofHeadline: "CVE critique produit finding, tâche, test et blocage publish."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P056)
+    overlayItemId: P056
+    codeRefs:
+      - app/lib/ide-panel-security.ts
+      - app/routes/api.projects.$projectId.ide-panel.$panel.ts
   - surfaceId: P057
     title: "Automations"
     family: "C. Agent, tâches et automatisations"
     proofHeadline: "Run sous identité service, budget dur et historique complet."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P057)
+    overlayItemId: P057
+    codeRefs:
+      - services/api/src/scheduled-tasks.ts
+      - app/routes/api.projects.$projectId.scheduled-tasks.ts
   - surfaceId: P058
     title: "Artifact Switcher"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
     proofHeadline: "Ajouter slides puis basculer web/slides sans perdre l’état."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P058)
+    overlayItemId: P058
+    codeRefs:
+      - app/lib/stores/workbench.ts
+      - app/components/chat/Artifact.tsx
   - surfaceId: P059
     title: "Library"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
     proofHeadline: "Supprimer un asset référencé montre usages et propose résolution atomique."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "📘 DOC-JOUR vérifié : « The Library sidebar… artifacts, images that Agent generated » (l.7580) — présent chez Replit ; évaluation E-Code encore à faire"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P059)
+    overlayItemId: P059
+    codeRefs:
+      - app/routes/dashboard_.templates.tsx
+      - app/routes/gallery._index.tsx
+      - app/routes/explore.tsx
   - surfaceId: P060
     title: "Asset Browser"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
     proofHeadline: "Upload hostile est quarantiné avant preview."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P060)
+    overlayItemId: P060
+    codeRefs:
+      - app/components/workbench/FileTree.tsx
   - surfaceId: P061
     title: "Design Canvas"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
     proofHeadline: "Deux utilisateurs modifient une frame; Agent code uniquement la frame choisie."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P061)
+    overlayItemId: P061
+    codeRefs: []           # NON construit — aucune référence de code suivie
   - surfaceId: P062
     title: "Canvas media tools"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
     proofHeadline: "Asset et provenance restent liés à la frame."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P062)
+    overlayItemId: P062
+    codeRefs: []           # NON construit — aucune référence de code suivie
   - surfaceId: P063
     title: "Visual Editor"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
     proofHeadline: "Changement de padding produit diff minimal et rollback."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P063)
+    overlayItemId: P063
+    codeRefs:
+      - app/components/workbench/Inspector.tsx
+      - app/components/workbench/InspectorPanel.tsx
+      - app/components/workbench/Preview.tsx
   - surfaceId: P064
     title: "Web Artifact"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
     proofHeadline: "Web utilise backend partagé dans dev et release."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P064)
+    overlayItemId: P064
+    codeRefs:
+      - app/routes/projects.new.tsx
+      - app/components/workbench/Preview.tsx
   - surfaceId: P065
     title: "Mobile Artifact"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
     proofHeadline: "Preview deux plateformes puis build signé reproductible."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P065)
+    overlayItemId: P065
+    codeRefs:
+      - app/routes/projects.new.tsx
+      - app/components/workbench/ExpoQrModal.tsx
   - surfaceId: P066
     title: "iOS Simulator"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
     proofHeadline: "Touch, logs et rotation fonctionnent dans session isolée."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P066)
+    overlayItemId: P066
+    codeRefs:
+      - app/components/workbench/ExpoQrModal.tsx
   - surfaceId: P067
     title: "Android Emulator"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
     proofHeadline: "APK/Expo démarre et logs correspondent à la revision."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "📘 DOC-JOUR vérifié : « choose iOS Simulator or Android Emulator » (l.2833/6120) — présent chez Replit ; évaluation E-Code encore à faire"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P067)
+    overlayItemId: P067
+    codeRefs: []           # NON construit — aucune référence de code suivie
   - surfaceId: P068
     title: "Slides Editor"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
     proofHeadline: "Deck 200 slides reste éditable et exportable."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P068)
+    overlayItemId: P068
+    codeRefs:
+      - app/routes/projects.new.tsx
   - surfaceId: P069
     title: "Presenter / Speaker Notes"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
     proofHeadline: "Audience ne voit pas notes; presenter privé fonctionne."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P069)
+    overlayItemId: P069
+    codeRefs:
+      - app/routes/projects.new.tsx
   - surfaceId: P070
     title: "Slides Export"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
     proofHeadline: "Exports gardent texte, images et ordre dans tolérance."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P070)
+    overlayItemId: P070
+    codeRefs: []           # NON construit — aucune référence de code suivie
   - surfaceId: P071
     title: "Data Visualization Artifact"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
     proofHeadline: "Query read-only affiche dataset sans credential navigateur."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P071)
+    overlayItemId: P071
+    codeRefs:
+      - app/routes/projects.new.tsx
+      - app/components/chat/MermaidBlock.tsx
   - surfaceId: P072
     title: "Animation / Video Artifact"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
     proofHeadline: "Render reprend ou échoue sans artifact partiel promu."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P072)
+    overlayItemId: P072
+    codeRefs:
+      - app/routes/projects.new.tsx
   - surfaceId: P073
     title: "3D / Game Artifact"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
     proofHeadline: "Modèle 3D fonctionne en Preview et Publish."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P073)
+    overlayItemId: P073
+    codeRefs:
+      - app/routes/projects.new.tsx
   - surfaceId: P074
     title: "Design Artifact"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
     proofHeadline: "URL respecte private/password policy."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P074)
+    overlayItemId: P074
+    codeRefs:
+      - app/routes/projects.new.tsx
   - surfaceId: P075
     title: "Document Artifact"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
     proofHeadline: "Fichiers sont liés au checkpoint et téléchargés intacts."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P075)
+    overlayItemId: P075
+    codeRefs:
+      - app/routes/projects.new.tsx
+      - app/components/chat/Markdown.tsx
   - surfaceId: P076
     title: "Artifact Management"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
     proofHeadline: "Suppression artefact ne supprime pas backend partagé."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P076)
+    overlayItemId: P076
+    codeRefs:
+      - app/routes/dashboard_.templates.tsx
+      - app/routes/projects.new.tsx
   - surfaceId: P077
     title: "Shared backend/data view"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
     proofHeadline: "Web/mobile accèdent aux mêmes données avec scopes cohérents."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P077)
+    overlayItemId: P077
+    codeRefs:
+      - app/components/database/DatabaseStudio.tsx
+      - app/components/database/DatabasePanel.tsx
   - surfaceId: P078
     title: "Grouped Publish"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
     proofHeadline: "Aucune release ne mélange deux revisions même en échec partiel."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "📘 DOC-JOUR vérifié : « All artifacts go live together » + pas de publication indépendante (l.7605/7634) — présent chez Replit ; évaluation E-Code encore à faire"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P078)
+    overlayItemId: P078
+    codeRefs:
+      - app/components/deploy/DeployButton.tsx
   - surfaceId: P079
     title: "Database Landing"
     family: "E. Data, Cloud, auth et intégrations"
     proofHeadline: "Éditeur voit dev mais pas credential prod."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P079)
+    overlayItemId: P079
+    codeRefs:
+      - app/components/database/DatabaseWorkbench.tsx
+      - app/routes/api.projects.$projectId.ide-panel.$panel.ts
   - surfaceId: P080
     title: "Database Overview"
     family: "E. Data, Cloud, auth et intégrations"
     proofHeadline: "Schema introspection correspond au vrai DB."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P080)
+    overlayItemId: P080
+    codeRefs:
+      - app/components/database/DatabaseWorkbench.tsx
   - surfaceId: P081
     title: "Database My Data"
     family: "E. Data, Cloud, auth et intégrations"
     proofHeadline: "Mutation dev checkpointable; mutation prod interdite."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P081)
+    overlayItemId: P081
+    codeRefs:
+      - app/components/database/DatabaseStudio.tsx
   - surfaceId: P082
     title: "SQL Editor"
     family: "E. Data, Cloud, auth et intégrations"
     proofHeadline: "UPDATE prod échoue au rôle DB, pas seulement UI."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P082)
+    overlayItemId: P082
+    codeRefs:
+      - app/components/database/DatabaseStudio.tsx
+      - services/api/src/app.ts
   - surfaceId: P083
     title: "Database Settings"
     family: "E. Data, Cloud, auth et intégrations"
     proofHeadline: "Rotation invalide ancien secret sans downtime app."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P083)
+    overlayItemId: P083
+    codeRefs:
+      - app/components/database/DatabaseSettings.tsx
   - surfaceId: P084
     title: "Data Recovery"
     family: "E. Data, Cloud, auth et intégrations"
     proofHeadline: "Restore T-10 min vers copie, validation puis promotion."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P084)
+    overlayItemId: P084
+    codeRefs:
+      - app/components/database/DatabaseRollbackPanel.tsx
+      - services/api/src/database-rollback-service.ts
   - surfaceId: P085
     title: "Dev/Prod Separation"
     family: "E. Data, Cloud, auth et intégrations"
     proofHeadline: "Exfiltrer env dev ne révèle aucun endpoint prod."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P085)
+    overlayItemId: P085
+    codeRefs:
+      - services/api/src/database-provisioner.ts
+      - app/components/database/DatabasePanel.tsx
   - surfaceId: P086
     title: "Agent Prod Read-only"
     family: "E. Data, Cloud, auth et intégrations"
     proofHeadline: "Même une requête UPDATE générée échoue techniquement."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P086)
+    overlayItemId: P086
+    codeRefs:
+      - services/api/src/app.ts
   - surfaceId: P087
     title: "App Storage"
     family: "E. Data, Cloud, auth et intégrations"
     proofHeadline: "Cross-app échoue avant grant puis échoue après revoke."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P087)
+    overlayItemId: P087
+    codeRefs:
+      - app/components/chat/BaseChat.tsx
+      - services/api/src/object-storage.ts
   - surfaceId: P088
     title: "Object Browser"
     family: "E. Data, Cloud, auth et intégrations"
     proofHeadline: "URL signée expire et objet privé ne fuit pas CDN."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P088)
+    overlayItemId: P088
+    codeRefs:
+      - app/components/chat/BaseChat.tsx
+      - app/routes/api.projects.$projectId.ide-panel.$panel.ts
   - surfaceId: P089
     title: "Users & Auth"
     family: "E. Data, Cloud, auth et intégrations"
     proofHeadline: "Utilisateur final app n’obtient aucun accès IDE."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P089)
+    overlayItemId: P089
+    codeRefs:
+      - services/api/src/auth-scaffold.ts
+      - app/routes/api.projects.$projectId.auth-scaffold.ts
   - surfaceId: P090
     title: "External Access Tokens"
     family: "E. Data, Cloud, auth et intégrations"
     proofHeadline: "GET-only token échoue sur POST puis après revoke partout."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P090)
+    overlayItemId: P090
+    codeRefs: []           # NON construit — aucune référence de code suivie
   - surfaceId: P091
     title: "Integrations Catalog"
     family: "E. Data, Cloud, auth et intégrations"
     proofHeadline: "Catalogue reflète plan/région et état réel."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P091)
+    overlayItemId: P091
+    codeRefs:
+      - app/components/chat/BaseChat.tsx
+      - docs/parity/BOLT_DEBT_REGISTRY.yaml
   - surfaceId: P092
     title: "OAuth Setup"
     family: "E. Data, Cloud, auth et intégrations"
     proofHeadline: "OAuth interrompu ne crée pas installation partielle."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P092)
+    overlayItemId: P092
+    codeRefs:
+      - app/routes/admin.oauth-providers.tsx
+      - app/routes/api.integrations.oauth.$provider.connect.ts
   - surfaceId: P093
     title: "Integration Health"
     family: "E. Data, Cloud, auth et intégrations"
     proofHeadline: "Token expiré produit état REAUTH_REQUIRED et aucune boucle."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P093)
+    overlayItemId: P093
+    codeRefs:
+      - app/components/chat/BaseChat.tsx
+      - app/routes/api.projects.$projectId.ide-panel.$panel.ts
   - surfaceId: P094
     title: "MCP Management"
     family: "E. Data, Cloud, auth et intégrations"
     proofHeadline: "Serveur non fiable reste isolé et révocable."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P094)
+    overlayItemId: P094
+    codeRefs:
+      - app/components/@settings/tabs/mcp/McpTab.tsx
+      - services/api/src/mcp-marketplace.ts
+      - app/routes/api.mcp.installs.ts
   - surfaceId: P095
     title: "Publishing Overview"
     family: "F. Publish, production, domaines et croissance"
     proofHeadline: "Clic UI crée vraie release et URL avec contenu attendu."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # PROVEN (overlay IMPLEMENTATION_STATUS#P095)
+    overlayItemId: P095
+    codeRefs:
+      - app/routes/projects.$projectId.deployments.tsx
+      - app/components/deploy/DeploymentOverview.tsx
   - surfaceId: P096
     title: "Deployment Type"
     family: "F. Publish, production, domaines et croissance"
     proofHeadline: "Changer type conserve domaine ou explique la rupture."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P096)
+    overlayItemId: P096
+    codeRefs:
+      - app/routes/projects.$projectId.deployments.tsx
+      - app/components/deploy/deployment-types.ts
   - surfaceId: P097
     title: "Machine Configuration"
     family: "F. Publish, production, domaines et croissance"
     proofHeadline: "Taille non autorisée refusée; taille choisie effective runtime."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # PROVEN (overlay IMPLEMENTATION_STATUS#P097)
+    overlayItemId: P097
+    codeRefs:
+      - app/routes/projects.$projectId.deployments.tsx
+      - services/api/src/rate-card-service.spec.ts
   - surfaceId: P098
     title: "Deployment Secrets"
     family: "F. Publish, production, domaines et croissance"
     proofHeadline: "Nouvelle revision reçoit nouvelle version sans fuite ancienne."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P098)
+    overlayItemId: P098
+    codeRefs:
+      - app/routes/projects.$projectId.deployments.tsx
   - surfaceId: P099
     title: "Publishing Geography"
     family: "F. Publish, production, domaines et croissance"
     proofHeadline: "App Europe prouve placement européen des trois ressources."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P099)
+    overlayItemId: P099
+    codeRefs:
+      - services/api/src/object-storage.ts
+      - app/components/marketing/EcodeProductMarketingPages.tsx
   - surfaceId: P100
     title: "Connect Domain"
     family: "F. Publish, production, domaines et croissance"
     proofHeadline: "Domaine non vérifié ne route jamais; cert se renouvelle."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P100)
+    overlayItemId: P100
+    codeRefs:
+      - app/routes/projects.$projectId.domains.tsx
+      - app/routes/organization-domains.tsx
   - surfaceId: P101
     title: "Buy Domain"
     family: "F. Publish, production, domaines et croissance"
     proofHeadline: "Achat test crée domaine et l’attache au bon deployment."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P101)
+    overlayItemId: P101
+    codeRefs:
+      - app/components/deploy/DeploymentOverview.tsx
   - surfaceId: P102
     title: "Access: Public"
     family: "F. Publish, production, domaines et croissance"
     proofHeadline: "Origine non accessible en contournant edge."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P102)
+    overlayItemId: P102
+    codeRefs:
+      - app/components/deploy/DeploymentOverview.tsx
   - surfaceId: P103
     title: "Access: Private"
     family: "F. Publish, production, domaines et croissance"
     proofHeadline: "Edge exige identité avant runtime."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P103)
+    overlayItemId: P103
+    codeRefs:
+      - app/components/deploy/DeploymentOverview.tsx
   - surfaceId: P104
     title: "Access: Password"
     family: "F. Publish, production, domaines et croissance"
     proofHeadline: "Cache ne sert jamais contenu privé à client public."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P104)
+    overlayItemId: P104
+    codeRefs:
+      - app/components/deploy/DeploymentOverview.tsx
   - surfaceId: P105
     title: "Production Database"
     family: "F. Publish, production, domaines et croissance"
     proofHeadline: "Migration de validation échoue avant promotion."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P105)
+    overlayItemId: P105
+    codeRefs:
+      - app/routes/projects.$projectId.database.tsx
+      - services/api/src/database-provisioner.ts
   - surfaceId: P106
     title: "App Monitoring"
     family: "F. Publish, production, domaines et croissance"
     proofHeadline: "Downtime synthétique déclenche alerte puis résolution."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P106)
+    overlayItemId: P106
+    codeRefs:
+      - app/routes/api.monitoring.performance.ts
+      - app/routes/admin.$section.tsx
   - surfaceId: P107
     title: "Production Logs"
     family: "F. Publish, production, domaines et croissance"
     proofHeadline: "Trace edge→runtime sans secret."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # PROVEN (overlay IMPLEMENTATION_STATUS#P107)
+    overlayItemId: P107
+    codeRefs:
+      - app/routes/projects.$projectId.deployments.tsx
   - surfaceId: P108
     title: "Application Analytics"
     family: "F. Publish, production, domaines et croissance"
     proofHeadline: "Trafic synthétique correspond au dashboard."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P108)
+    overlayItemId: P108
+    codeRefs:
+      - app/components/marketing/ecode-exact/pages/PublicDeploymentsSections.tsx
   - surfaceId: P109
     title: "Production Resources"
     family: "F. Publish, production, domaines et croissance"
     proofHeadline: "Dashboard reconcile avec ledger."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P109)
+    overlayItemId: P109
+    codeRefs:
+      - app/routes/usage.tsx
+      - app/components/deploy/DeploymentOverview.tsx
   - surfaceId: P110
     title: "Feedback Widget"
     family: "F. Publish, production, domaines et croissance"
     proofHeadline: "Feedback privé arrive uniquement au bon projet/release."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P110)
+    overlayItemId: P110
+    codeRefs: []           # NON construit — aucune référence de code suivie
   - surfaceId: P111
     title: "Security Gate"
     family: "F. Publish, production, domaines et croissance"
     proofHeadline: "CVE critique bloque; patch+rescan débloque."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P111)
+    overlayItemId: P111
+    codeRefs:
+      - app/routes/projects.$projectId.deployments.tsx
+      - app/components/chat/BaseChat.tsx
   - surfaceId: P112
     title: "Deployment History"
     family: "F. Publish, production, domaines et croissance"
     proofHeadline: "Chaque release est inspectable et immuable."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P112)
+    overlayItemId: P112
+    codeRefs:
+      - app/routes/projects.$projectId.deployments.tsx
   - surfaceId: P113
     title: "Rollback"
     family: "F. Publish, production, domaines et croissance"
     proofHeadline: "Rollback code/config sans prétendre inverser DB dangereuse."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # PROVEN (overlay IMPLEMENTATION_STATUS#P113)
+    overlayItemId: P113
+    codeRefs:
+      - app/routes/projects.$projectId.deployments.tsx
   - surfaceId: P114
     title: "Static Advanced"
     family: "F. Publish, production, domaines et croissance"
     proofHeadline: "Routes et headers réels correspondent au config."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P114)
+    overlayItemId: P114
+    codeRefs:
+      - services/api/src/app.ts
+      - services/api/src/deployments.ts
   - surfaceId: P115
     title: "Scheduled Deployments"
     family: "F. Publish, production, domaines et croissance"
     proofHeadline: "Succès/échec nettoient toute ressource."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # PROVEN (overlay IMPLEMENTATION_STATUS#P115)
+    overlayItemId: P115
+    codeRefs:
+      - app/routes/api.projects.$projectId.scheduled-tasks.ts
+      - services/api/src/scheduled-tasks.ts
   - surfaceId: P116
     title: "SEO Rating"
     family: "F. Publish, production, domaines et croissance"
     proofHeadline: "Score correspond à crawl réel de la release."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P116)
+    overlayItemId: P116
+    codeRefs: []           # NON construit — aucune référence de code suivie
   - surfaceId: P117
     title: "SEO Agent"
     family: "F. Publish, production, domaines et croissance"
     proofHeadline: "HTML publié change et test synthétique s’améliore."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P117)
+    overlayItemId: P117
+    codeRefs: []           # NON construit — aucune référence de code suivie
   - surfaceId: P118
     title: "Monetization Hub"
     family: "F. Publish, production, domaines et croissance"
     proofHeadline: "Paiement test+webhook signé sans clé côté client."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P118)
+    overlayItemId: P118
+    codeRefs: []           # NON construit — aucune référence de code suivie
   - surfaceId: P119
     title: "Multiplayer Presence"
     family: "G. Collaboration, sécurité, enterprise et billing"
     proofHeadline: "Trois clients convergent après partition réseau."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P119)
+    overlayItemId: P119
+    codeRefs:
+      - services/api/src/collaboration-presence-cleanup.ts
+      - packages/database/prisma/schema.prisma
   - surfaceId: P120
     title: "Shared Agent Thread"
     family: "G. Collaboration, sécurité, enterprise et billing"
     proofHeadline: "Routine questions par editors, actions sensibles owner-only."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P120)
+    overlayItemId: P120
+    codeRefs:
+      - services/api/src/app.ts
+      - packages/database/prisma/schema.prisma
   - surfaceId: P121
     title: "Project Access"
     family: "G. Collaboration, sécurité, enterprise et billing"
     proofHeadline: "Retrait coupe IDE, SSH, preview et tokens dans le SLO."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P121)
+    overlayItemId: P121
+    codeRefs:
+      - app/routes/projects.$projectId.collaborators.tsx
+      - packages/database/prisma/schema.prisma
   - surfaceId: P122
     title: "Workspace Members"
     family: "G. Collaboration, sécurité, enterprise et billing"
     proofHeadline: "Invitation expirée ne crée aucune session."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P122)
+    overlayItemId: P122
+    codeRefs:
+      - app/routes/organization-members.tsx
+      - packages/database/prisma/schema.prisma
   - surfaceId: P123
     title: "Groups"
     family: "G. Collaboration, sécurité, enterprise et billing"
     proofHeadline: "Changement groupe actualise edge et IDE."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P123)
+    overlayItemId: P123
+    codeRefs: []           # NON construit — aucune référence de code suivie
   - surfaceId: P124
     title: "Guests"
     family: "G. Collaboration, sécurité, enterprise et billing"
     proofHeadline: "Guest perd sessions actives à expiration."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P124)
+    overlayItemId: P124
+    codeRefs:
+      - packages/database/prisma/schema.prisma
   - surfaceId: P125
     title: "Project Security Center"
     family: "G. Collaboration, sécurité, enterprise et billing"
     proofHeadline: "Fixtures multi-langages produisent findings reproductibles."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P125)
+    overlayItemId: P125
+    codeRefs:
+      - services/api/src/import-pipeline.ts
   - surfaceId: P126
     title: "Workspace Security Center"
     family: "G. Collaboration, sécurité, enterprise et billing"
     proofHeadline: "Admin voit workspace; membre uniquement projets autorisés."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P126)
+    overlayItemId: P126
+    codeRefs:
+      - app/routes/organization-security.tsx
   - surfaceId: P127
     title: "Package Firewall"
     family: "G. Collaboration, sécurité, enterprise et billing"
     proofHeadline: "Fixture hostile bloquée avant lifecycle script."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P127)
+    overlayItemId: P127
+    codeRefs: []           # NON construit — aucune référence de code suivie
   - surfaceId: P128
     title: "Workspace Policies"
     family: "G. Collaboration, sécurité, enterprise et billing"
     proofHeadline: "Policy nouvelle s’applique aux nouveaux projets et signale anciens."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P128)
+    overlayItemId: P128
+    codeRefs:
+      - packages/database/prisma/schema.prisma
   - surfaceId: P129
     title: "SSO / SAML"
     family: "G. Collaboration, sécurité, enterprise et billing"
     proofHeadline: "Compte hors SSO refusé sauf break-glass audité."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P129)
+    overlayItemId: P129
+    codeRefs:
+      - app/routes/enterprise-sso-settings.tsx
+      - packages/database/prisma/schema.prisma
   - surfaceId: P130
     title: "SCIM Users"
     family: "G. Collaboration, sécurité, enterprise et billing"
     proofHeadline: "Suite SCIM sans doublons et session revoke."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P130)
+    overlayItemId: P130
+    codeRefs:
+      - app/routes/scim-token-settings.tsx
+      - packages/database/prisma/schema.prisma
   - surfaceId: P131
     title: "SCIM Groups / Multi-workspaces"
     family: "G. Collaboration, sécurité, enterprise et billing"
     proofHeadline: "Mapping idempotent et erreurs actionnables."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P131)
+    overlayItemId: P131
+    codeRefs:
+      - services/api/src/app.ts
   - surfaceId: P132
     title: "Audit Logs"
     family: "G. Collaboration, sécurité, enterprise et billing"
     proofHeadline: "Secret/role/domain/policy donnent événements complets sans valeur."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P132)
+    overlayItemId: P132
+    codeRefs:
+      - app/routes/audit-logs.tsx
+      - packages/database/prisma/schema.prisma
   - surfaceId: P133
     title: "SIEM"
     family: "G. Collaboration, sécurité, enterprise et billing"
     proofHeadline: "Outage puis replay sans perte ni duplication logique."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P133)
+    overlayItemId: P133
+    codeRefs:
+      - app/routes/organization-siem.tsx
+      - packages/database/prisma/schema.prisma
   - surfaceId: P134
     title: "Budgets"
     family: "G. Collaboration, sécurité, enterprise et billing"
     proofHeadline: "Hard limit bloque nouveau travail mais respecte policy prod."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P134)
+    overlayItemId: P134
+    codeRefs:
+      - app/routes/billing.tsx
+      - services/api/src/ledger-core.ts
+      - services/api/src/ledger-store.ts
   - surfaceId: P135
     title: "Spend Limits"
     family: "G. Collaboration, sécurité, enterprise et billing"
     proofHeadline: "Deux runs concurrents ne dépassent pas réservation atomique."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P135)
+    overlayItemId: P135
+    codeRefs:
+      - app/routes/usage-limits.tsx
+      - services/api/src/spend-alerts.ts
   - surfaceId: P136
     title: "Plans / Entitlements"
     family: "G. Collaboration, sécurité, enterprise et billing"
     proofHeadline: "Entitlement UI et serveur restent cohérents."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P136)
+    overlayItemId: P136
+    codeRefs:
+      - app/routes/plan-comparison.tsx
+      - packages/database/prisma/schema.prisma
   - surfaceId: P137
     title: "Seats"
     family: "G. Collaboration, sécurité, enterprise et billing"
     proofHeadline: "Retrait seat suit contrat sans orphan de membership."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P137)
+    overlayItemId: P137
+    codeRefs:
+      - app/components/marketing/ecode-exact/pages/Pricing.tsx
   - surfaceId: P138
     title: "Invoices / Billing"
     family: "G. Collaboration, sécurité, enterprise et billing"
     proofHeadline: "Usage déterministe = ledger = invoice preview."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P138)
+    overlayItemId: P138
+    codeRefs:
+      - app/routes/invoices.tsx
   - surfaceId: P139
     title: "Enterprise Analytics"
     family: "G. Collaboration, sécurité, enterprise et billing"
     proofHeadline: "Export reconcile avec catalog+ledger."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P139)
+    overlayItemId: P139
+    codeRefs:
+      - services/api/src/app.ts
   - surfaceId: P140
     title: "Import GitHub"
     family: "H. Imports, plateformes et écosystème externe"
     proofHeadline: "Repo privé fonctionne sans token dans Git config/logs."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # PROVEN (overlay IMPLEMENTATION_STATUS#P140)
+    overlayItemId: P140
+    codeRefs:
+      - app/routes/import-github.tsx
+      - services/api/src/import-pipeline.ts
+      - services/api/src/import-billing.ts
   - surfaceId: P141
     title: "Import GitLab"
     family: "H. Imports, plateformes et écosystème externe"
     proofHeadline: "Branches et submodules conformes au plan."
-    availability: NOT_APPLICABLE
-    evaluation: EVALUATED
-    justification: "GitLab n'est PAS une tuile du hub d'import courant (CONFIRMÉ, table Supported sources du jour — RPL-24/RPL-29 corrigé) ; une capacité d'import Git plus large (Source Control / intégrations) reste UNKNOWN → UNK-LS-GITLAB-GIT. PAS « retiré »."
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P141)
+    overlayItemId: P141
+    codeRefs:
+      - services/api/src/app.ts
   - surfaceId: P142
     title: "Import Bitbucket"
     family: "H. Imports, plateformes et écosystème externe"
     proofHeadline: "OAuth revoke empêche nouveau fetch."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P142)
+    overlayItemId: P142
+    codeRefs:
+      - services/api/src/app.ts
+      - services/api/src/integrations/providers/bitbucket.ts
   - surfaceId: P143
     title: "Import ZIP / Upload"
     family: "H. Imports, plateformes et écosystème externe"
     proofHeadline: "Archive traversal/virus est bloqué."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P143)
+    overlayItemId: P143
+    codeRefs:
+      - app/routes/import-zip.tsx
   - surfaceId: P144
     title: "Import Figma"
     family: "H. Imports, plateformes et écosystème externe"
     proofHeadline: "Seule frame consentie est importée."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P144)
+    overlayItemId: P144
+    codeRefs:
+      - services/api/src/import-pipeline.ts
   - surfaceId: P145
     title: "Recreate from Screenshot"
     family: "H. Imports, plateformes et écosystème externe"
     proofHeadline: "Résultat est previewable et diffé."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P145)
+    overlayItemId: P145
+    codeRefs:
+      - app/components/chat/BaseChat.tsx
   - surfaceId: P146
     title: "Export ZIP"
     family: "H. Imports, plateformes et écosystème externe"
     proofHeadline: "Aucun secret ou token absent du choix explicite."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P146)
+    overlayItemId: P146
+    codeRefs:
+      - app/routes/api.projects.$projectId.export.zip.ts
   - surfaceId: P147
     title: "Download Assets"
     family: "H. Imports, plateformes et écosystème externe"
     proofHeadline: "Hash téléchargé correspond à l’objet."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P147)
+    overlayItemId: P147
+    codeRefs:
+      - services/api/src/object-storage.ts
+      - packages/database/prisma/schema.prisma
   - surfaceId: P148
     title: "Remix / Fork Project"
     family: "H. Imports, plateformes et écosystème externe"
     proofHeadline: "Nouveaux IDs, DB/bucket distincts, secrets vides."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: built          # PROVEN (overlay IMPLEMENTATION_STATUS#P148)
+    overlayItemId: P148
+    codeRefs:
+      - services/api/src/remix-pipeline.ts
+      - packages/database/prisma/schema.prisma
   - surfaceId: P149
     title: "Desktop App"
     family: "H. Imports, plateformes et écosystème externe"
     proofHeadline: "Trois apps ouvertes et update signé sans perte."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P149)
+    overlayItemId: P149
+    codeRefs:
+      - app/routes/desktop.tsx
+      - electron
   - surfaceId: P150
     title: "Mobile App Client"
     family: "H. Imports, plateformes et écosystème externe"
     proofHeadline: "Rôle insuffisant bloque secret/intégration."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P150)
+    overlayItemId: P150
+    codeRefs:
+      - app/routes/mobile.tsx
+      - app/routes/mobile-workspace.$projectId.tsx
   - surfaceId: P151
     title: "ChatGPT Entry"
     family: "H. Imports, plateformes et écosystème externe"
     proofHeadline: "Contexte transféré est affiché et scoped."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P151)
+    overlayItemId: P151
+    codeRefs: []           # NON construit — aucune référence de code suivie
   - surfaceId: P152
     title: "Claude Entry"
     family: "H. Imports, plateformes et écosystème externe"
     proofHeadline: "Tâche garde auteur, source et permissions."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P152)
+    overlayItemId: P152
+    codeRefs: []           # NON construit — aucune référence de code suivie
   - surfaceId: P153
     title: "Slack Entry"
     family: "H. Imports, plateformes et écosystème externe"
     proofHeadline: "Canal non autorisé ne révèle rien."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P153)
+    overlayItemId: P153
+    codeRefs: []           # NON construit — aucune référence de code suivie
   - surfaceId: P154
     title: "Open in Replit"
     family: "H. Imports, plateformes et écosystème externe"
     proofHeadline: "Payload altéré invalide la signature."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P154)
+    overlayItemId: P154
+    codeRefs: []           # NON construit — aucune référence de code suivie
   - surfaceId: P155
     title: "Linear Integration"
     family: "H. Imports, plateformes et écosystème externe"
     proofHeadline: "Issue reste liée au task et status."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P155)
+    overlayItemId: P155
+    codeRefs:
+      - services/api/src/tests/connector-store.spec.ts
   - surfaceId: P156
     title: "CLI / replit ai"
     family: "H. Imports, plateformes et écosystème externe"
     proofHeadline: "Device token révoqué bloque immédiatement."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: absent          # NOT_STARTED (overlay IMPLEMENTATION_STATUS#P156)
+    overlayItemId: P156
+    codeRefs: []           # NON construit — aucune référence de code suivie
   - surfaceId: P157
     title: "Public API"
     family: "H. Imports, plateformes et écosystème externe"
     proofHeadline: "Tests contractuels et idempotency passent."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P157)
+    overlayItemId: P157
+    codeRefs:
+      - app/routes/api-keys.tsx
+      - packages/database/prisma/schema.prisma
   - surfaceId: P158
     title: "Webhooks"
     family: "H. Imports, plateformes et écosystème externe"
     proofHeadline: "Replay attack refusée; retry ne duplique pas effet."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
+    builtState: partial          # PARTIAL (overlay IMPLEMENTATION_STATUS#P158)
+    overlayItemId: P158
+    codeRefs:
+      - services/api/src/app.ts
   - surfaceId: P159
     title: "Status Page"
     family: "H. Imports, plateformes et écosystème externe"
     proofHeadline: "Incident synthétique affiche bannière ciblée."
-    availability: UNKNOWN
-    evaluation: PENDING
-    justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-
-# ============================================================================
-# UNIVERS CANONIQUE (passe 1 de déduplication — P0-LS-06 suite / §6.3 du plan).
-# Le plan (verbatim expert) porte canonicalSurfaceCount: null « à l'écriture » ;
-# l'ÉTAT réel vit ici (règle 11 du plan : un état écrit dans le Markdown n'a
-# aucune autorité). Méthode : alias résolus UNIQUEMENT sur identité évidente
-# (même surface décrite deux fois dans NOS registres) ; fusion suspectée mais
-# non prouvée = documentée SANS fusion. Vérifié par la machine (générateur).
-# ============================================================================
+    builtState: built          # CODED (overlay IMPLEMENTATION_STATUS#P159)
+    overlayItemId: P159
+    codeRefs:
+      - app/routes/status.tsx
+      - app/routes/api.status.incidents.ts
 canonicalUniverse:
   canonicalSurfaceCount: 164   # 159 candidats IDE (P001–P159) + 4 surfaces hors-IDE déclarées + 1 candidate scan
   classificationComplete: true       # les 15 OBS-DELTA sont TRIAGED avec registre cible
