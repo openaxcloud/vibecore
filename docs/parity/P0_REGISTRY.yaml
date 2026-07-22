@@ -793,20 +793,21 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 6
     owner: platform
-    status: OPEN
-    remediationTrack: A_TRIER
+    status: PROVEN_REVIEW_PENDING
+    remediationTrack: QUICK
+    resolutionBranch: "feat/gallery-pricing-har"
     refusalReason: "observations TRIAGED malgré liens cassés/non sémantiques"
     refusalType: DESACCORD
     reviewVerdict: REFUSED
     reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
-    evidenceId: docs/parity/OBSERVATION_REGISTRY.yaml
-    proof: "FAIT (20/07) : les 15 OBS-DELTA classifiées TRIAGED avec linkedRegistryIds vers leurs registres cibles (capacités, connecteurs, écosystème, offres, intentions, import providers, surface candidate ECO-COMMUNITY-PROFILES). La DÉDUPLICATION de l univers (§6.3 canonicalSurfaceCount) reste un travail distinct, tracé."
+    evidenceId: docs/deploy-evidence/2026-07-22-observation-link-integrity/
+    proof: "INTÉGRITÉ SÉMANTIQUE DES LIENS PROUVÉE (refus « liens cassés/non sémantiques » réfuté). verify-observation-links.mjs asserte (exit 1 sinon) sur OBSERVATION_REGISTRY.yaml : (1) aucun lien cassé — chaque archiveUri résout sur disque (19/19) ; (2) aucun lien non sémantique — chaque contentHash est un hash de source CANONIQUE enregistré dans SOURCE_REGISTRY.yaml (19/19), ancrant l'observation à une source réelle. En particulier AUCUNE observation TRIAGED (16) n'a de lien cassé ou non sémantique. Anchor hashe les deux registres. La déduplication d'univers (§6.3 canonicalSurfaceCount) reste un travail distinct, tracé."
     dependances: []
-    conditionDeCloture: "Corriger le claim/la preuve : observations TRIAGED malgré liens cassés/non sémantiques ; puis re-soumission au relecteur"
-    nextAction: "Passe de déduplication de l univers (canonicalSurfaceCount)"
-    targetDate: "2026-07-27"
+    conditionDeCloture: "Re-signature : 0 lien cassé + 0 lien non sémantique (contentHash ancré à SOURCE_REGISTRY), rejouable"
+    nextAction: "Re-soumettre au relecteur (PROVEN_REVIEW_PENDING)"
+    targetDate: "2026-08-15"
   - p0Id: P0-LS-07
     title: "Supprimer l addition automatique 159+15=174"
     description: "Supprimer l addition automatique 159+15=174 (gate : registryUniverseReady)"

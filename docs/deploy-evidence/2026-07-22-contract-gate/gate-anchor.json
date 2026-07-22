@@ -1,6 +1,6 @@
 {
   "p0": "P0-A2-07",
-  "approvalStatusSha256": "0840d29219e59ce4ec518c69a0af52addde926665c55e75bc8d880b92e72fb9c",
+  "approvalStatusSha256": "4c62931fea50911f08261202de3064687de692e51b3207c27e79146a78d75995",
   "contractsPresentPassed": true,
   "contractsValidatedPassed": false,
   "contractsValidatedContentReasonSample": [

@@ -1,0 +1,15 @@
+{
+  "p0": "P0-LS-06",
+  "observationRegistrySha256": "ad945a0972dc6c630fc5e83bd6776d5819a911fa1eccedc5beb355edf440e3ff",
+  "sourceRegistrySha256": "357b1f11bdbd9fbc407758e428a3ba9f149a512230f5a0da1fc287d55368c940",
+  "observationCount": 19,
+  "sourceCount": 30,
+  "brokenLinks": 0,
+  "nonSemanticLinks": 0,
+  "triageStateCounts": {
+    "TRIAGED": 16,
+    "PENDING": 3
+  },
+  "triagedWithBrokenOrNonSemantic": 0,
+  "claim": "Aucun lien d'observation n'est cassé (chaque archiveUri résout) ni non sémantique (chaque contentHash est un hash de source CANONIQUE enregistré dans SOURCE_REGISTRY, ancrant l'observation à une source réelle). En particulier, aucune observation TRIAGED n'a de lien cassé ou non sémantique. Échoue exit 1 si un lien casse."
+}
