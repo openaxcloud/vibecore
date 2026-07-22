@@ -77,3 +77,39 @@ Tous les flips sont adossés à une preuve rejouable + artefacts hashés (Sectio
 aucun n'est clôturé (pas de merge/CLOSED sans re-signature).
 
 *Actualisé si de nouvelles preuves sont produites (Section C = file de travail).*
+
+---
+
+## ADDENDUM — exécution de la Section C (2026-07-22, même branche)
+
+Sur les **14 faisables-sans-Avi** de la Section C, **12 sont désormais PROVEN_REVIEW_PENDING**
+avec preuve rejouable + artefacts hashés + checks verts (chacun un dossier
+`docs/deploy-evidence/2026-07-22-*/` avec script `verify-*.mjs`/`anchor-*.mjs` cassant) :
+
+| P0 | technique | evidence dir |
+|---|---|---|
+| P0-A2-14 | seuils Cloud Run ancrés doc GCP | `2026-07-22-cloudrun-multitenant-anchor/` |
+| P0-EX-02 | générateur existant + câblé CI + no-drift | `2026-07-22-implementation-status-generator/` |
+| P0-A2-05 | cohérence échelle (préfixe contigu) | `2026-07-22-approval-ladder-consistency/` |
+| P0-EX-08 | schéma ProjectManifest exécutable (ajv) | `2026-07-22-project-manifest-schema/` |
+| P0-A2-03 | schéma Project→Artifacts complet (ajv) | `2026-07-22-project-artifacts-schema/` |
+| P0-A2-01 | provenance + signature manifest (tamper-evident) | `2026-07-22-manifest-provenance/` |
+| P0-A2-13 | cohérence attestation + run GitHub réel | `2026-07-22-attestation-coherence/` |
+| P0-V3-13 | contrat WCAG 2.2 AA ancré W3C | `2026-07-22-wcag-contract/` |
+| P0-EX-10 | CI génère+écrit+commit le statut (commit réel) | `2026-07-22-ci-status-writeback/` |
+| P0-A2-07 | gate de contenu ≠ présence + schémas valides | `2026-07-22-contract-gate/` |
+| P0-EX-05 | distinction apps-publiées vs types-Artifact (ajv) | `2026-07-22-entitlement-distinction/` |
+| P0-LS-06 | intégrité sémantique des liens (0 cassé, ancrés SOURCE_REGISTRY) | `2026-07-22-observation-link-integrity/` |
+
+**2 restants** (non « quick-win », honnêtement classés) :
+- **P0-B-01** — overlay `builtState`/`codeRefs` sur les 159 candidats : **NÉCESSITE UN
+  CHANTIER** — l'univers des 159 candidats n'a pas de registre canonique unique (référencé
+  épars) ; il faut d'abord l'énumérer canoniquement PUIS mapper chaque candidat au code.
+  Pas un ancrage rapide. RESTE OPEN.
+- **P0-B-02** — scan authentifié des 23 UNK-LS : **BLOQUÉ** sur un accès de compte Replit
+  (Cloudflare 403 au signup). La partie pages publiques est faisable (cf. HAR LS-13) ; la
+  partie authentifiée dépend d'un identifiant. RESTE OPEN.
+
+**Bilan Section C : 12 prouvés / 2 restants (1 chantier B-01, 1 bloqué-auth B-02).**
+État registre après addendum : **OPEN 30 → 15**, **PROVEN_REVIEW_PENDING 28 → 43**.
+Aucun CLOSED (pas de merge sans re-signature).
