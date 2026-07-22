@@ -94,7 +94,7 @@ documents:
     repoCommit: 1692f981
     reviewer: UNKNOWN
   - file: COUNTER_RECONCILIATION_20260720.md
-    sha256: "196cad5535254188237cf85c74e4d71403babb7e369e496ccc58bbd62cfcd20c"
+    sha256: "effdfd588fc9ac727dbb5a3b50e7eb23a4a1cf0ddba4d22aa0f18830bdca837d"
     schemaVersion: 1
     repoCommit: null
     reviewer: UNKNOWN
@@ -214,9 +214,9 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: OPERATIONS_DR.md
-    sha256: "b1a0a2b35859eb7a9d9fafd45a7307846d9ed2525585befa4237aabe1f492fe0"
-    schemaVersion: 1
-    repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
+    sha256: "45ac48a362ecf090a6547dbdf14c2542794d31f4360b42a66c046c303710157d"
+    schemaVersion: 2
+    repoCommit: c0fd65de
     reviewer: UNKNOWN
   - file: OWNER_ROLES.yaml
     sha256: "ea3158ab7f5696cebb1ed9fbb5767c67e86a3bc954d76055e6f890a9476b4e81"
