@@ -28,3 +28,15 @@ variable "labels" {
   default     = {}
   description = "Standard resource labels."
 }
+
+variable "api_domain" {
+  type        = string
+  description = "Host RÉEL de l'API publique, surveillé par l'uptime check (CTR-OPERATIONS-DR : jamais un placeholder)."
+  default     = "api.e-code.ai"
+}
+
+variable "ops_email" {
+  type        = string
+  description = "Adresse réelle du canal d'alerte ops (CTR-OPERATIONS-DR : jamais *.invalid)."
+  default     = "avi@snatchbot.me"
+}

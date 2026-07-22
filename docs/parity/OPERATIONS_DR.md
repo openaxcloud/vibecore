@@ -3,8 +3,26 @@
 schemaVersion: 2
 repoCommit: c0fd65de
 status: PROVEN_REVIEW_PENDING
-previousReviewVerdict: REFUSED — « SLO/astreinte/chaos/RTO-RPO non prouvés » (lot 57febeab, 2026-07-20)
-refusalResponse: chaque point du refus est traité ci-dessous avec preuve datée (evidenceId) ou marqué BLOCKED avec sa dépendance exacte — rien n'est déclaré sur foi.
+previousReviewVerdict: REFUSED (2026-07-22, REPONSE_EXPERT_PR40 §D2) — drills reconnus utiles et réels, contrat ENTIER non signable
+contractScope: >-
+  Ce document ne revendique PAS la signature du contrat CTR-OPERATIONS-DR
+  entier. Les conclusions sont SCOPÉES aux artefacts : chaque drill joué est
+  une preuve individuelle (evidenceId + repro) ; les obligations UNTESTED /
+  BLOCKED (SLO web, snapshots planifiés, astreinte outillée, SLI par requête,
+  réplique cross-région, RTO applicatif complet) restent OUVERTES et le
+  contrat ne sera signable que quand elles seront faites. Le drill failover
+  Cloud SQL est enregistrable comme preuve individuelle validée (verdict
+  expert 2026-07-22).
+reserveFixes2026_07_22: >-
+  (1) monitoring persisté dans Terraform (module paramétré + validations
+  anti-placeholder + defaults réels, `terraform validate` + fmt verts) ;
+  (2) revendication « bit-à-bit » reformulée (portée exacte : sha256 du
+  fichier témoin, pas le volume entier) ; (3) 13 min 06 s requalifié en durée
+  de restauration/validation du clone, RTO applicatif complet = UNTESTED ;
+  (4) scope du contrat ci-dessus ; (5) artefact chaos pod-kill REJOUÉ et
+  commité + cause racine corrigée (.gitignore *.log excluait silencieusement
+  les logs d'évidence — exception ajoutée), logs 1 Hz du failover perdus
+  déclarés honnêtement avec corroboration GCP.
 Règle d'or: un plan de DR non testé n'est pas un plan. Chaque affirmation ci-dessous
 est PROUVÉE (evidenceId + repro), EN SERVICE (observable live), ou BLOCKED (dépendance
 nommée). Aucun état intermédiaire.
@@ -17,6 +35,13 @@ SLI de disponibilité API : fraction `check_passed` de l'uptime check GCP
 check surveillait un host placeholder (`replace-me.example.com`, 100 % d'échec
 mesuré sur 28 j) et notifiait un email placeholder — chaîne réparée et prouvée
 (EVID-DR-MON-001, `docs/deploy-evidence/2026-07-21-dr-drill/monitoring-repair.txt`).
+**Persisté dans Terraform le 2026-07-22** (réserve expert n°1) :
+`infra/terraform/modules/monitoring/` paramétré (`api_host`, `ops_email`),
+defaults réels dans `infra/terraform/variables.tf`, et **validations
+anti-placeholder** (un plan avec `example.com`/`*.invalid` échoue). Un
+`terraform apply` ne peut plus réintroduire la config cassée ; la convergence
+live↔state (suppression des 2 objets créés à la main, ou import) est
+documentée en tête du module.
 
 | SLO | Cible | Error budget (28 j) | Mesure |
 |---|---|---|---|
@@ -33,9 +58,9 @@ Le baseline historique honnête n'existe pas (le SLI était factice avant le
 
 | Donnée | Mécanisme | RPO cible | RPO démontré | RTO cible | RTO MESURÉ |
 |---|---|---|---|---|---|
-| PostgreSQL (Cloud SQL `vibecore-prod-postgres`) | backups quotidiens 03:00 UTC ×30 + **PITR actif** (archivage WAL) | ≤ 15 min | clone PITR à une minute arbitraire réussi (04:38:21Z) — granularité minute | ≤ 60 min | **13 min 06 s** (restore→données vérifiées, EVID-DR-DB-001) |
+| PostgreSQL (Cloud SQL `vibecore-prod-postgres`) | backups quotidiens 03:00 UTC ×30 + **PITR actif** (archivage WAL) | ≤ 15 min | clone PITR à une minute arbitraire réussi (04:38:21Z) — granularité minute | ≤ 60 min | **13 min 06 s** = restauration+validation du CLONE uniquement (EVID-DR-DB-001). Le **RTO applicatif complet** (bascule de la config DB + rollout + santé utilisateur) N'A PAS été mesuré : **UNTESTED** (l'exiger = re-pointer la prod, hors périmètre sans incident réel ; les étapes restantes sont documentées §3.1) |
 | PostgreSQL — **perte de zone** (failover HA) | REGIONAL, standby cross-zone | 0 (synchrone) | **0 écriture ACKée perdue, prouvé** (drill 2026-07-21) | ≤ 5 min | **24,1 s** bascule / **16,0 s** failback (EVID-DR-FAILOVER-001) |
-| Disques workspaces (PD par projet) | snapshots GCE à la demande (non planifiés — voir BLOCKED) | ≤ 24 h si planifiés ; aujourd'hui : dernier snapshot manuel | snapshot+restore prouvés | ≤ 30 min | **77 s** (snapshot→restauré→vérifié bit-à-bit, EVID-DR-DISK-001) |
+| Disques workspaces (PD par projet) | snapshots GCE à la demande (non planifiés — voir BLOCKED) | ≤ 24 h si planifiés ; aujourd'hui : dernier snapshot manuel | snapshot+restore prouvés | ≤ 30 min | **77 s** (snapshot→restauré→**marqueur témoin vérifié par sha256** ; PAS une vérification du volume entier — EVID-DR-DISK-001) |
 | Store Nix partagé (RO, par génération) | snapshot signé par génération + clone par zone | 0 (immuable) | prouvé (gen-2 → clone zone-b identique, sha256 vérifié) | ≤ 15 min | **~50 s** (snapshot 27 s + clone 23 s, mesuré 2026-07-17/20) |
 | Object storage projets (GCS `vc-<projectId>`) | buckets multi-région **EU** | 0 (réplication GCP) | localisation vérifiée | n/a (pas de restauration à faire en perte de zone/région) | n/a |
 | Images/app AR + archives | rétention AR + tags protégés (workflow 6 h) | 0 | rollback par digest PROUVÉ live (I-REL-1, 2026-07-20) | ≤ 10 min | rollback digest : minutes (mesuré dans la preuve I-REL-1) |
@@ -58,7 +83,15 @@ gcloud sql instances clone vibecore-prod-postgres vibecore-restore-<date> \
 
 Drill mesuré : lancé 04:43:21Z → RUNNABLE + intégrité vérifiée 04:56:27Z =
 **13 min 06 s**, intégrité stricte (4 compteurs + dernier deployment identiques).
-Instance de drill détruite après coup. **RTO DB ≤ 60 min : tenu avec ×4 de marge.**
+Instance de drill détruite après coup.
+
+Portée EXACTE (réserve expert n°3) : ces 13 min 06 s couvrent la restauration
+du clone et sa validation de données — **pas** le RTO applicatif de bout en
+bout. En incident réel s'ajoutent : mise à jour du secret `DATABASE_URL`
+(nouvelle IP), `helm upgrade`/rollout api+worker+manager (~3-5 min observés
+sur les rollouts courants), et vérification santé utilisateur. Ce chemin
+complet n'a **jamais été joué** (il re-pointerait la prod) : RTO applicatif
+complet = **UNTESTED**, borne inférieure connue = 13 min 06 s + rollout.
 
 ### 3.2 Disque workspace (drill joué le 2026-07-21 — EVID-DR-DISK-001)
 
@@ -68,8 +101,13 @@ gcloud compute disks create <nom>-restored --source-snapshot=<nom> --zone=<zone>
 # PV/PVC statiques + pod de vérification (manifests dans l'évidence)
 ```
 
-Mesuré : **77 s** bout en bout, contenu vérifié **bit-à-bit** (sha256 d'un
-marqueur daté écrit avant le snapshot). ⚠ La **planification** de ces snapshots
+Mesuré : **77 s** bout en bout. Portée EXACTE de la vérification (réserve
+expert n°2) : le sha256 d'UN fichier témoin daté, écrit sur le volume juste
+avant le snapshot, est retrouvé identique sur le disque restauré — cela prouve
+la chaîne snapshot→restore→montage et l'intégrité de ce fichier, PAS une
+comparaison du contenu entier du volume (non faite ; un md5 exhaustif du
+filesystem serait l'extension naturelle du prochain drill trimestriel). ⚠ La
+**planification** de ces snapshots
 (schedule GCE sur les PD workspaces) n'existe pas : **BLOCKED — décision Avi**
 (coût snapshot 0.058 $/Gio/mois × volumétrie réelle ; commande prête en §7).
 
@@ -85,7 +123,7 @@ par digest retenu (I-REL-1 live). Réfs : `2026-07-17-nix-multizone/`,
 | Exercice | Date | Résultat | Evidence |
 |---|---|---|---|
 | **Perte de zone** (cordon europe-west9-a, la zone préférée) | 2026-07-20 | Projet Python neuf provisionne en zone-b : store clone monté + génération vérifiée, uv/venv, Preview 200, **Publish READY + 200** — bout en bout pendant la « panne ». Restauration prouvée dans les 2 sens, zéro split-brain. 2 bugs réels trouvés PAR l'exercice et corrigés (deadlock affinités data-PVC ; RBAC PV) | `2026-07-17-nix-multizone/ZONE_LOSS_TEST.md` |
-| **Perte d'instance API** (kill d'1 pod sur 2 sous sonde continue) | 2026-07-21 | **90/90 requêtes HTTP 200** pendant le kill et le remplacement (<2 min) — zéro downtime observé (maxUnavailable:0 + 2 replicas) | `chaos-probe-podkill.log` (EVID-DR-CHAOS-001) |
+| **Perte d'instance API** (kill d'1 pod sous sonde continue) | 2026-07-21, **REJOUÉ 2026-07-22** | 2×**90/90 requêtes HTTP 200** pendant kill + remplacement (<2 min) — zéro downtime. ⚠ Le log du 21/07 cité par un commit n'a jamais atteint l'arbre (`.gitignore *.log` l'excluait silencieusement — réserve expert n°5) : exercice REJOUÉ le 22/07, artefact commité, gitignore corrigé | `chaos-probe-podkill-replay-20260722.log` + `-meta.txt` (EVID-DR-CHAOS-002) |
 | Perte de zone **base de données** (failover Cloud SQL RÉEL, GO Avi) | 2026-07-21 | Bascule b→c puis failback c→b sous sonde 1 Hz : **24,1 s** d'indispo écritures (bascule) + **16,0 s** (failback), lectures idem, **`/health` API 100 % en 200** pendant tout le drill, **0 écriture ACKée perdue** (270/270), topologie initiale restaurée | `2026-07-21-dr-failover/` (EVID-DR-FAILOVER-001) |
 | Perte de **région** (europe-west9 entière) | — | **BLOCKED — architecture** : aucune réplique cross-région (DB, disques). GCS survit (multi-région EU). Décision + budget Avi (réplique lecture cross-région Cloud SQL ≈ coût d'une 2ᵉ instance) | — |
 

@@ -110,4 +110,6 @@ module "monitoring" {
   project_id  = var.project_id
   name_prefix = local.name_prefix
   labels      = local.labels
+  api_host    = var.api_domain
+  ops_email   = var.ops_email
 }
