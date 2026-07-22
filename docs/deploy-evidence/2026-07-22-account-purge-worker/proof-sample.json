@@ -1,0 +1,196 @@
+ {                                                                    +
+     "kind": "account-erasure-proof",                                 +
+     "userId": "cmrvpdz4t000fi0lnerebnm5i",                           +
+     "classes": [                                                     +
+         {                                                            +
+             "action": "deleted",                                     +
+             "models": {                                              +
+                 "Session": 1                                         +
+             },                                                       +
+             "dataClass": "sessions",                                 +
+             "remainingAfterPurge": 0                                 +
+         },                                                           +
+         {                                                            +
+             "action": "deleted",                                     +
+             "models": {                                              +
+                 "MfaRecoveryCode": 0,                                +
+                 "PasswordResetToken": 0,                             +
+                 "EmailVerificationToken": 0                          +
+             },                                                       +
+             "dataClass": "auth_tokens",                              +
+             "remainingAfterPurge": 0                                 +
+         },                                                           +
+         {                                                            +
+             "action": "deleted",                                     +
+             "models": {                                              +
+                 "ApiKey": 0                                          +
+             },                                                       +
+             "dataClass": "api_keys",                                 +
+             "remainingAfterPurge": 0                                 +
+         },                                                           +
+         {                                                            +
+             "action": "deleted",                                     +
+             "models": {                                              +
+                 "Account": 0,                                        +
+                 "UserConnection": 0,                                 +
+                 "OAuthConnection": 0                                 +
+             },                                                       +
+             "dataClass": "connected_accounts",                       +
+             "remainingAfterPurge": 0                                 +
+         },                                                           +
+         {                                                            +
+             "action": "deleted",                                     +
+             "models": {                                              +
+                 "AgentRun": 0,                                       +
+                 "AiMessage": 1,                                      +
+                 "AiToolCall": 0,                                     +
+                 "McpInstall": 0,                                     +
+                 "AgentMemory": 0,                                    +
+                 "AiTokenUsage": 0,                                   +
+                 "Notification": 0,                                   +
+                 "McpUserConfig": 0,                                  +
+                 "AiConversation": 1,                                 +
+                 "AgentCheckpoint": 0,                                +
+                 "AiMessageFeedback": 0,                              +
+                 "AgentMemoryPreference": 0                           +
+             },                                                       +
+             "dataClass": "ai_history",                               +
+             "remainingAfterPurge": 0                                 +
+         },                                                           +
+         {                                                            +
+             "action": "deleted",                                     +
+             "models": {                                              +
+                 "UserSpendLimit": 0,                                 +
+                 "ProjectShareLink": 0,                               +
+                 "ProjectCollaborator": 0,                            +
+                 "CollaborationComment": 0,                           +
+                 "CollaborationPresence": 0                           +
+             },                                                       +
+             "dataClass": "collaboration",                            +
+             "remainingAfterPurge": 0                                 +
+         },                                                           +
+         {                                                            +
+             "action": "deleted",                                     +
+             "models": {                                              +
+                 "Project": 1                                         +
+             },                                                       +
+             "dataClass": "projects",                                 +
+             "remainingAfterPurge": 0                                 +
+         },                                                           +
+         {                                                            +
+             "action": "deleted",                                     +
+             "models": {                                              +
+                 "ImportJob": 1                                       +
+             },                                                       +
+             "dataClass": "imports",                                  +
+             "remainingAfterPurge": 0                                 +
+         },                                                           +
+         {                                                            +
+             "action": "deleted",                                     +
+             "models": {                                              +
+                 "OrganizationMember": 1                              +
+             },                                                       +
+             "dataClass": "memberships",                              +
+             "remainingAfterPurge": 0                                 +
+         },                                                           +
+         {                                                            +
+             "action": "deleted",                                     +
+             "models": {                                              +
+                 "NewsletterSubscriber": 0                            +
+             },                                                       +
+             "dataClass": "marketing",                                +
+             "remainingAfterPurge": 0                                 +
+         },                                                           +
+         {                                                            +
+             "action": "anonymized",                                  +
+             "models": {                                              +
+                 "AuditLog": 1,                                       +
+                 "AdminAuditLog": 0                                   +
+             },                                                       +
+             "reason": "append_only_redacted_never_deleted",          +
+             "dataClass": "audit_logs"                                +
+         },                                                           +
+         {                                                            +
+             "action": "anonymized",                                  +
+             "models": {                                              +
+                 "ImportJob": 0,                                      +
+                 "UsageEvent": 1,                                     +
+                 "AgentCallLog": 0,                                   +
+                 "SupportTicket": 0,                                  +
+                 "GalleryListing": 0,                                 +
+                 "AgentCheckpoint": 0,                                +
+                 "ProjectActivity": 0,                                +
+                 "LedgerReservation": 0                               +
+             },                                                       +
+             "reason": "retained_rows_detached_from_user",            +
+             "dataClass": "user_references"                           +
+         },                                                           +
+         {                                                            +
+             "action": "anonymized",                                  +
+             "models": {                                              +
+                 "Organization": 1                                    +
+             },                                                       +
+             "reason": "retained_as_anchor_for_financial_records",    +
+             "dataClass": "organizations"                             +
+         },                                                           +
+         {                                                            +
+             "action": "retained",                                    +
+             "models": {                                              +
+                 "UsageEvent": 1,                                     +
+                 "StripeEvent": 0,                                    +
+                 "AiCostLedger": 0,                                   +
+                 "CreditLedger": 0,                                   +
+                 "Subscription": 0,                                   +
+                 "ExpiredRowsErased": 0                               +
+             },                                                       +
+             "reason": "financial_retention_7y_fail_closed",          +
+             "dataClass": "financial_records"                         +
+         },                                                           +
+         {                                                            +
+             "action": "retained",                                    +
+             "models": {                                              +
+                 "LedgerTransaction": 0                               +
+             },                                                       +
+             "reason": "ledger_immutable_posted_entries_mig0078",     +
+             "dataClass": "ledger"                                    +
+         },                                                           +
+         {                                                            +
+             "action": "retained",                                    +
+             "models": {                                              +
+                 "Project": 0                                         +
+             },                                                       +
+             "reason": "shared_organization_belongs_to_other_members",+
+             "dataClass": "shared_org_content"                        +
+         },                                                           +
+         {                                                            +
+             "action": "anonymized",                                  +
+             "models": {                                              +
+                 "User": 1                                            +
+             },                                                       +
+             "reason": "tombstone_carries_purgedAt",                  +
+             "dataClass": "profile"                                   +
+         }                                                            +
+     ],                                                               +
+     "version": 1,                                                    +
+     "purgedAt": "2026-07-22T06:30:27.400Z",                          +
+     "exceptions": [                                                  +
+         {                                                            +
+             "rows": 1,                                               +
+             "reason": "financial_retention_7y_fail_closed",          +
+             "dataClass": "financial_records"                         +
+         },                                                           +
+         {                                                            +
+             "rows": 0,                                               +
+             "reason": "ledger_immutable_posted_entries_mig0078",     +
+             "dataClass": "ledger"                                    +
+         },                                                           +
+         {                                                            +
+             "rows": 0,                                               +
+             "reason": "shared_organization_belongs_to_other_members",+
+             "dataClass": "shared_org_content"                        +
+         }                                                            +
+     ],                                                               +
+     "requestedAt": "2026-07-07T06:30:27.360Z",                       +
+     "verifiedZeroRemaining": true                                    +
+ }
+
