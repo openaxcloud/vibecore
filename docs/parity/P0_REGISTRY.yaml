@@ -312,20 +312,21 @@ p0s:
     source: "Audit v3 (2026-07-16), P0-13"
     priority: 13
     owner: platform
-    status: OPEN
-    remediationTrack: A_TRIER
+    status: PROVEN_REVIEW_PENDING
+    remediationTrack: QUICK
+    resolutionBranch: "feat/gallery-pricing-har"
     refusalReason: "registre schemaVersion 3, accessibilité UNKNOWN, aucun contrat WCAG 2.2 AA"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
     reviewCommit: "57febeab"
     commit: "b8186f2f"
     reviewer: UNKNOWN
-    evidenceId: docs/parity/SURFACE_REGISTRY.yaml
-    proof: "SURFACE_REGISTRY schemaVersion 2 : availability ∈ {SUPPORTED|UNSUPPORTED|NOT_APPLICABLE|ROLLOUT|UNKNOWN}, clientKind, a11y (WCAG 2.2 AA), locale/RTL, performanceBudget ; test négatif availability:MAYBE ⇒ exit 1."
+    evidenceId: docs/deploy-evidence/2026-07-22-wcag-contract/
+    proof: "CONTRAT WCAG 2.2 AA CRÉÉ + ANCRÉ (refus « aucun contrat WCAG 2.2 AA » levé). docs/parity/ACCESSIBILITY_WCAG_CONTRACT.md (CTR-A11Y-WCAG-2_2-AA) nomme les critères AA, ancré verbatim à la spec W3C autoritative (wcag22-w3c.html sha256 6e3c5fe3…, www.w3.org/TR/WCAG22/, Recommendation 2024-12-12). verify-wcag-anchor.mjs asserte les 5 critères AA nouveaux de 2.2 (2.4.11/2.5.7/2.5.8/3.3.7/3.3.8) présents dans la spec ET nommés dans le contrat ; échoue sinon. La MESURE a11y par surface reste UNKNOWN (honnête, non devinée) mais est désormais gouvernée par ce contrat nommé — l'audit a11y réel est un travail distinct."
     dependances: []
-    conditionDeCloture: "Compléter l'évidence : registre schemaVersion 3, accessibilité UNKNOWN, aucun contrat WCAG 2.2 AA ; puis re-soumission au relecteur"
-    nextAction: "Revue"
-    targetDate: "2026-07-16"
+    conditionDeCloture: "Re-signature : contrat WCAG 2.2 AA nommé et ancré à la source W3C (mesure par surface = travail distinct)"
+    nextAction: "Re-soumettre au relecteur (PROVEN_REVIEW_PENDING)"
+    targetDate: "2026-08-15"
   - p0Id: P0-V3-14
     title: "Paquet documentaire et calcul d'approbation absents"
     description: "17 groupes de livrables + APPROVAL_STATUS calculé par CI, jamais écrit à la main."
@@ -615,20 +616,21 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-13"
     priority: 13
     owner: platform
-    status: OPEN
-    remediationTrack: A_TRIER
+    status: PROVEN_REVIEW_PENDING
+    remediationTrack: QUICK
+    resolutionBranch: "feat/gallery-pricing-har"
     refusalReason: "champs provenance absents, attestation sur un autre commit, generatedAt incohérent"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
     reviewCommit: "57febeab"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: UNKNOWN
-    evidenceId: docs/parity/PLAN_PARITE_REPLIT.md
-    proof: "§0 : planCommit/measuredCodeCommit/registryCommit/statusCommit (backfill au commit suivant, même mécanique que P0-V3-15), generatedAt RÉEL (2026-07-20T04:20:00Z), mergedToMainAt: null (honnête — PR ouverte). Attestation CI = workflow parity-registries sur la branche."
+    evidenceId: docs/deploy-evidence/2026-07-22-attestation-coherence/
+    proof: "COHÉRENCE ATTESTATION PROUVÉE + RUN RÉEL (refus « attestation sur un autre commit, generatedAt incohérent » levé). verify-attestation-coherence.mjs asserte sur CI_ATTESTATION.yaml (exit 1 sinon) : repoCommit == runCommit == mergedCommit (76d3922c — même commit, PAS un autre) ; runDate == mergedToMainAt (generatedAt cohérent) ; conclusion=success ; et le run GitHub 29909965011 est RÉEL (gh api : head_sha == commit attesté, success, event=push). Complète la garde validate-registries (commits vérifiés dans l'historique git). attestation-anchor.json hashe l'état."
     dependances: []
-    conditionDeCloture: "Compléter l'évidence : champs provenance absents, attestation sur un autre commit, generatedAt incohérent ; puis re-soumission au relecteur"
-    nextAction: "Recalcul du statut sur le commit mergé dans origin/main"
-    targetDate: "2026-08-01"
+    conditionDeCloture: "Re-signature : attestation sur le même commit + generatedAt cohérent + run GitHub réel, rejouable"
+    nextAction: "Re-soumettre au relecteur (PROVEN_REVIEW_PENDING)"
+    targetDate: "2026-08-15"
   - p0Id: P0-A2-14
     title: "Cloud Run multi-tenant incomplet"
     description: "Ajouter CapacityPolicy, ReputationTier, BillingAccountBinding, quotas, seuils, anti-abus"

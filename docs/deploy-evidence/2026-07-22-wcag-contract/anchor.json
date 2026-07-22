@@ -1,0 +1,18 @@
+{
+  "p0": "P0-V3-13",
+  "contract": "docs/parity/ACCESSIBILITY_WCAG_CONTRACT.md",
+  "contractSha256": "17535843993b990280001bf7513b85c41820bf401957dec1c0235ffb4aadb8e0",
+  "authoritativeSource": "https://www.w3.org/TR/WCAG22/",
+  "sourceTitle": "WCAG 2.2 — W3C Recommendation (2024-12-12)",
+  "specHtml": "wcag22-w3c.html",
+  "specSha256": "6e3c5fe397257cae509a2fb4752b73062cf8cbeb92c2cec618989b17e4cf7057",
+  "specBytes": 512457,
+  "aaCriteriaAnchored": [
+    "2.4.11 Focus Not Obscured (Minimum)",
+    "2.5.7 Dragging Movements",
+    "2.5.8 Target Size (Minimum)",
+    "3.3.7 Redundant Entry",
+    "3.3.8 Accessible Authentication (Minimum)"
+  ],
+  "note": "Contrat WCAG 2.2 AA créé et ancré verbatim à la spec W3C autoritative. La mesure a11y par surface reste UNKNOWN (honnête) mais gouvernée par CTR-A11Y-WCAG-2_2-AA. Échoue si un critère disparaît de la spec ou du contrat."
+}

@@ -1,8 +1,8 @@
 {
   "p0": "P0-A2-01",
   "manifest": "docs/parity/DOCUMENT_MANIFEST.yaml",
-  "fileCount": 166,
-  "filesHashVerified": 166,
+  "fileCount": 167,
+  "filesHashVerified": 167,
   "provenanceFieldsPerFile": [
     "file",
     "sha256",
@@ -11,7 +11,7 @@
     "reviewer"
   ],
   "provenanceComplete": true,
-  "aggregateContentSignature": "333e0fb45f10f23b4c83a93782dba6660436e79a860f88913a5e411e181f89d6",
+  "aggregateContentSignature": "f7f207e2992147d63234316828bce3da664a9ef3320130b573d7066c038fe690",
   "generatedFromCommit": "76d3922c35b652395a179e408444cd6a0755d4ef",
   "validation": {
     "workflow": "Parity registries",
@@ -21,7 +21,7 @@
     "source": "docs/parity/CI_ATTESTATION.yaml"
   },
   "reviewerCoverage": {
-    "UNKNOWN": 165,
+    "UNKNOWN": 166,
     "OpenAI-Codex": 1
   },
   "humanReviewPending": true,

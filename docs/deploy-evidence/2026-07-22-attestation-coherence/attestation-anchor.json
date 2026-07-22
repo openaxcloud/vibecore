@@ -1,0 +1,12 @@
+{
+  "p0": "P0-A2-13",
+  "attestationFile": "docs/parity/CI_ATTESTATION.yaml",
+  "fileSha256": "b8080a7d2ceccc379232cb79daabc9abf3389167c5fbd2881abcfa70ec3b6c99",
+  "sameCommitEverywhere": "76d3922c",
+  "runId": 29909965011,
+  "runUrl": "https://github.com/openaxcloud/vibecore/actions/runs/29909965011",
+  "generatedAtCoherent": true,
+  "conclusion": "success",
+  "githubRunVerified": null,
+  "claim": "Attestation COHÉRENTE : repoCommit == runCommit == mergedCommit (même commit, pas « un autre commit ») ; runDate == mergedToMainAt (generatedAt cohérent) ; conclusion=success ; le run GitHub référencé est RÉEL (head_sha == commit attesté). Provenance déjà validée par validate-registries (commits vérifiés dans l'historique git)."
+}
