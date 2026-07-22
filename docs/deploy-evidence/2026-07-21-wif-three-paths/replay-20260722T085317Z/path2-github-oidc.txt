@@ -1,0 +1,12 @@
+run=29906107467 conclusion=success url=https://github.com/openaxcloud/vibecore/actions/runs/29906107467
+negative	Report negative outcome	﻿2026-07-22T08:58:55.4035586Z ##[group]Run echo "AUTH_STEP_OUTCOME=failure"
+negative	Report negative outcome	2026-07-22T08:58:55.4036963Z [36;1mecho "AUTH_STEP_OUTCOME=failure"[0m
+negative	Report negative outcome	2026-07-22T08:58:55.4040212Z [36;1m  echo "NEGATIVE_OK: impersonation of the un-granted SA was DENIED (no workloadIdentityUser binding)"[0m
+negative	Report negative outcome	2026-07-22T08:58:55.4246955Z AUTH_STEP_OUTCOME=failure
+negative	Report negative outcome	2026-07-22T08:58:55.4249726Z NEGATIVE_OK: impersonation of the un-granted SA was DENIED (no workloadIdentityUser binding)
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-22T08:58:49.1838412Z [36;1mecho "CREDENTIAL_FILE=$GOOGLE_APPLICATION_CREDENTIALS (external_account/federated, NOT a key)"[0m
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-22T08:58:49.1840297Z [36;1mgrep -q '"type": "external_account"' "$GOOGLE_APPLICATION_CREDENTIALS" && echo "CREDENTIAL_KIND=external_account (federated, keyless)"[0m
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-22T08:58:49.1845401Z [36;1mecho "SECRET_CONTENT=$(cat /tmp/body)"[0m
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-22T08:58:49.2056348Z CREDENTIAL_FILE=/home/runner/work/vibecore/vibecore/gha-creds-2ed427550e6aafd5.json (external_account/federated, NOT a key)
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-22T08:58:49.3904320Z READ_HTTP=200
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-22T08:58:49.3919005Z SECRET_CONTENT=wif-proof-secret-content-1784710495

@@ -31,6 +31,8 @@ mkdir -p "$OUT"
 log(){ echo "[$(date -u +%H:%M:%S)] $*" | tee -a "$OUT/run.log"; }
 Q(){ grep -vE "WARNING|Python 3|reinstall|CLOUDSDK|compatible Python|gcloud components|NotOpenSSL|warnings.warn|urllib3|importlib|^\s*$" || true; }
 fail(){ echo "ASSERTION FAILED: $*" | tee -a "$OUT/run.log"; exit 1; }
+# retry : absorbe les délais de propagation IAM (SA/role fraîchement créés)
+retry(){ local n=0 max="${RETRY_MAX:-8}"; until "$@"; do n=$((n+1)); [ "$n" -ge "$max" ] && return 1; sleep 12; done; }
 
 # ---- 0. idempotence --------------------------------------------------------
 log "0. idempotence : projets ecode-wif-proof-* ACTIFS ?"
@@ -56,7 +58,9 @@ printf '%s-%s\n' "$EXPECT" "$(date +%s)" > "$OUT/secret.txt"
 gcloud storage cp "$OUT/secret.txt" "gs://$BUCKET/secret.txt" --project="$PROJECT" 2>&1 | Q | tail -1
 gcloud iam service-accounts create wif-authorized --project="$PROJECT" --display-name="WIF authorized" 2>&1 | Q | tail -1 || true
 gcloud iam service-accounts create wif-wrong --project="$PROJECT" --display-name="WIF wrong" 2>&1 | Q | tail -1 || true
-gcloud storage buckets add-iam-policy-binding "gs://$BUCKET" --member="serviceAccount:${AUTH_SA}" --role="roles/storage.objectViewer" 2>&1 | Q | tail -1
+# attendre que les SAs soient réellement propagées avant tout binding (sinon HTTP 400 "does not exist")
+retry gcloud iam service-accounts describe "$AUTH_SA" --project="$PROJECT" >/dev/null 2>&1 || fail "SA wif-authorized jamais propagée"
+retry gcloud storage buckets add-iam-policy-binding "gs://$BUCKET" --member="serviceAccount:${AUTH_SA}" --role="roles/storage.objectViewer" >/dev/null 2>&1 || fail "binding objectViewer (propagation)"
 gcloud projects get-iam-policy "$PROJECT" --format=json 2>/dev/null > "$OUT/policy.json"
 "$CLOUDSDK_PYTHON" -c 'import json,sys;p=json.load(open(sys.argv[1]));p["auditConfigs"]=[{"service":"allServices","auditLogConfigs":[{"logType":"DATA_READ"},{"logType":"DATA_WRITE"}]}];json.dump(p,open(sys.argv[2],"w"))' "$OUT/policy.json" "$OUT/policy2.json"
 gcloud projects set-iam-policy "$PROJECT" "$OUT/policy2.json" 2>&1 | Q | tail -1 >/dev/null
@@ -100,8 +104,8 @@ gcloud iam workload-identity-pools providers create-oidc github --project="$PROJ
   --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository" \
   --attribute-condition="assertion.repository=='${REPO}'" --display-name="GitHub Actions" 2>&1 | Q | tail -1 || true
 MEMBER="principalSet://iam.googleapis.com/projects/${PN}/locations/global/workloadIdentityPools/github-pool/attribute.repository/${REPO}"
-gcloud iam service-accounts add-iam-policy-binding "$AUTH_SA" --project="$PROJECT" --role="roles/iam.workloadIdentityUser" --member="$MEMBER" 2>&1 | Q | tail -1
-gcloud iam service-accounts add-iam-policy-binding "$AUTH_SA" --project="$PROJECT" --role="roles/iam.serviceAccountTokenCreator" --member="$MEMBER" 2>&1 | Q | tail -1
+retry gcloud iam service-accounts add-iam-policy-binding "$AUTH_SA" --project="$PROJECT" --role="roles/iam.workloadIdentityUser" --member="$MEMBER" >/dev/null 2>&1 || fail "grant workloadIdentityUser (GitHub)"
+retry gcloud iam service-accounts add-iam-policy-binding "$AUTH_SA" --project="$PROJECT" --role="roles/iam.serviceAccountTokenCreator" --member="$MEMBER" >/dev/null 2>&1 || fail "grant serviceAccountTokenCreator (GitHub)"
 log "  attente propagation IAM (90s)"; sleep 90
 # déclenche le workflow PARAMÉTRÉ avec les valeurs du projet frais (rejouable après teardown)
 if command -v gh >/dev/null 2>&1; then
@@ -138,8 +142,8 @@ gcloud container clusters get-credentials "$CLUSTER" --zone="$ZONE" --project="$
 kubectl create namespace wif >/dev/null 2>&1 || true
 kubectl create serviceaccount ksa-authorized -n wif >/dev/null 2>&1 || true
 kubectl annotate serviceaccount ksa-authorized -n wif "iam.gke.io/gcp-service-account=${AUTH_SA}" --overwrite >/dev/null
-gcloud iam service-accounts add-iam-policy-binding "$AUTH_SA" --project="$PROJECT" --role="roles/iam.workloadIdentityUser" \
-  --member="serviceAccount:${PROJECT}.svc.id.goog[wif/ksa-authorized]" 2>&1 | Q | tail -1
+retry gcloud iam service-accounts add-iam-policy-binding "$AUTH_SA" --project="$PROJECT" --role="roles/iam.workloadIdentityUser" \
+  --member="serviceAccount:${PROJECT}.svc.id.goog[wif/ksa-authorized]" >/dev/null 2>&1 || fail "grant workloadIdentityUser (GKE KSA)"
 # négatif : KSA NON liée (aucune GSA)
 kubectl create serviceaccount ksa-unbound -n wif >/dev/null 2>&1 || true
 log "  attente propagation IAM GKE (60s)"; sleep 60
@@ -159,21 +163,27 @@ GSC=$(grep -oE "SECRET_CONTENT=.*" "$OUT/path1-gke-authorized.txt" | head -1 | c
 [ "$GRS" = "200" ] || fail "GKE autorisé attendait 200, obtenu '$GRS' (voir path1-gke-authorized.txt)"
 case "$GSC" in "$EXPECT"*) : ;; *) fail "GKE autorisé : contenu inattendu '$GSC'";; esac
 log "  ✓ GKE autorisé : READ_HTTP=200, contenu='$GSC'"
-# pod négatif : KSA non liée → le metadata NE PEUT PAS minter un token GSA autorisé → refus/identité≠GSA archivé
-NEG_CMD='set +e; R=$(curl -s -m 12 -w " HTTP:%{http_code}" -H "Metadata-Flavor: Google" "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token"); echo "METADATA_TOKEN_RESPONSE:$R"; echo "IDENTITY_EMAIL:$(curl -s -m 12 -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/email)"'
+# pod négatif : KSA non liée → identité = défaut du pool (pas la GSA autorisée) →
+# le pod TENTE réellement la lecture du bucket et on archive le REFUS (≠ 200).
+NEG_CMD="set +e
+T=\$(curl -s -m 12 -H 'Metadata-Flavor: Google' 'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token' | python3 -c 'import sys,json;print(json.load(sys.stdin).get(\"access_token\",\"\"))' 2>/dev/null)
+SA=\$(curl -s -m 12 -H 'Metadata-Flavor: Google' 'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/email')
+echo IDENTITY_EMAIL:\$SA
+CODE=\$(curl -s -m 20 -o /tmp/b -w '%{http_code}' -H \"Authorization: Bearer \$T\" 'https://storage.googleapis.com/storage/v1/b/${BUCKET}/o/secret.txt?alt=media')
+echo BUCKET_READ_HTTP:\$CODE
+echo BUCKET_READ_BODY:\$(head -c 300 /tmp/b)"
 kubectl run gke-unbound -n wif --image=google/cloud-sdk:slim --restart=Never \
   --overrides="{\"spec\":{\"serviceAccountName\":\"ksa-unbound\"}}" --quiet -- bash -c "$NEG_CMD" >/dev/null 2>&1 || true
 kubectl wait --for=jsonpath='{.status.phase}'=Succeeded pod/gke-unbound -n wif --timeout=150s >/dev/null 2>&1 || \
   kubectl wait --for=jsonpath='{.status.phase}'=Failed pod/gke-unbound -n wif --timeout=60s >/dev/null 2>&1 || true
 kubectl logs gke-unbound -n wif > "$OUT/path1-gke-negative.txt" 2>&1 || true
-# la KSA non liée n'usurpe aucune GSA : soit le token est refusé, soit l'identité N'EST PAS la GSA autorisée
-if grep -qE "HTTP:(403|404|500)|Unable|error|denied|forbidden|not found" "$OUT/path1-gke-negative.txt"; then
-  log "  ✓ GKE négatif : token/impersonation refusé (archivé)"
-elif ! grep -q "${AUTH_SA%%@*}@" "$OUT/path1-gke-negative.txt"; then
-  log "  ✓ GKE négatif : la KSA non liée n'usurpe PAS la GSA autorisée (identité ≠ wif-authorized) — archivé"
-else
-  fail "GKE négatif : la KSA non liée a obtenu la GSA autorisée (inattendu)"
-fi
+NEG_CODE=$(grep -oE "BUCKET_READ_HTTP:[0-9]+" "$OUT/path1-gke-negative.txt" | head -1 | cut -d: -f2)
+NEG_ID=$(grep -oE "IDENTITY_EMAIL:.*" "$OUT/path1-gke-negative.txt" | head -1 | cut -d: -f2-)
+# négatif RÉEL joué : la lecture du bucket depuis la KSA non liée est REFUSÉE (≠ 200) ET l'identité n'est PAS la GSA autorisée
+[ -n "$NEG_CODE" ] || fail "GKE négatif : pas de tentative de lecture archivée"
+[ "$NEG_CODE" = "200" ] && fail "GKE négatif : la KSA non liée a LU le bucket (HTTP 200, inattendu)"
+case "$NEG_ID" in *"${AUTH_SA}"*) fail "GKE négatif : la KSA non liée a obtenu la GSA autorisée (inattendu)";; esac
+log "  ✓ GKE négatif RÉEL : identité=$NEG_ID (≠ GSA autorisée), lecture bucket REFUSÉE HTTP=$NEG_CODE (archivé)"
 
 ###############################################################################
 # TEARDOWN complet
