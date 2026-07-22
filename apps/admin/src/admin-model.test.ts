@@ -3,7 +3,7 @@ import { collectionFromResponse, searchableText, sortRows, adminSections } from 
 
 describe('admin model helpers', () => {
   it('lists all required admin sections', () => {
-    expect(adminSections).toHaveLength(31);
+    expect(adminSections).toHaveLength(32);
     expect(adminSections.map((section) => section.id)).toContain('kubernetes-health');
     expect(adminSections.map((section) => section.id)).toContain('incident-banner');
   });
