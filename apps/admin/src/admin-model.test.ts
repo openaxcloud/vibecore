@@ -6,6 +6,7 @@ describe('admin model helpers', () => {
     expect(adminSections).toHaveLength(32);
     expect(adminSections.map((section) => section.id)).toContain('kubernetes-health');
     expect(adminSections.map((section) => section.id)).toContain('incident-banner');
+    expect(adminSections.map((section) => section.id)).toContain('agent-routing');
   });
 
   it('extracts and sorts records from API responses', () => {
