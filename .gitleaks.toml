@@ -34,6 +34,14 @@ paths = [
   # Production-config VALIDATOR: builds a mock env of obviously-synthetic values
   # (e.g. "…-prod-123456", "sk_live_prod123456") to exercise the validator itself.
   '''(^|/)scripts/validate-production-enterprise\.mjs$''',
+  # Deploy-evidence CAPTURES of THIRD-PARTY PUBLIC pages (parity proofs): HAR traces,
+  # rendered DOMs (*-dom.html) and archived external docs. Any "key" they contain is a
+  # third party's client-side PUBLISHABLE token (e.g. Replit's public API key, Google
+  # doc examples), visible on every page load — never our secret. Scoped to these file
+  # shapes only, so a real credential added in a .mjs/.json/.md here is still caught.
+  '''(^|/)docs/deploy-evidence/.*\.har$''',
+  '''(^|/)docs/deploy-evidence/.*-dom\.html$''',
+  '''(^|/)docs/deploy-evidence/.*/gcp-resource-manager-limits\.html$''',
 ]
 
 # Common non-secret placeholder / synthetic-fixture shapes (templates, docs,
