@@ -1,9 +1,9 @@
 # CHECKPOINT_CONTRACT — checkpoint projet (audit v4 I)
 
 contractId: CTR-CHECKPOINT
-contractVersion: 2
+contractVersion: 3
 schemaVersion: 2
-repoCommit: 1692f981
+repoCommit: 60a987ca
 reviewer: UNKNOWN
 expectedReviewer: OpenAI-Codex
 signatureResult: PENDING_REVIEW   # v1 REFUSED : « tests unitaires mais aucun câblage réel » — v2 : machine CÂBLÉE derrière de vrais endpoints, re-soumission requise
@@ -84,13 +84,28 @@ cnpg-pitr-v1|n/a} · dependenciesDeclared[] · expiresAt (TTL 30 j).
 - pod-seul → inadmissible ; DB provisionnée sans composant ni déclaration →
   inadmissible ; quiesce sans timeout/dégel → refus ; panne → CLEANED+dégel.
 
-## Dépendance ouverte (déclarée, pas gonflée)
-Le snapshot DB PHYSIQUE (CNPG/Barman takeSnapshot + restore PITR) est câblé
-mais DORMANT derrière DB_ROLLBACK_ENABLED ; quand la base est provisionnée et
-le flag éteint, le checkpoint est FICHIERS-SEULS avec dependenciesDeclared
-explicite. La preuve PITR live prod reste un chantier (PR-DR).
+## Dépendances (déclarées, pas gonflées) — mise à jour 21/07
+- **Preuve PITR live (PR-DR) : JOUÉE le 21/07** — drill DR réel (PR #36,
+  artefacts `docs/deploy-evidence/2026-07-21-dr-drill/`) : clone PITR de la
+  base plateforme prod vers instance jetable en **13 min 06 s**, intégrité
+  vérifiée (4 compteurs égaux prod/clone avant le point-in-time), prod
+  intouchée, instance détruite. Portée honnête : prouve le mécanisme PITR sur
+  la base PLATEFORME (Cloud SQL) — couvre la dépendance « preuve PITR live »
+  par référence croisée ; ne prouve PAS le snapshot physique CNPG des bases
+  PROJET (ligne suivante).
+- **Snapshot DB physique CNPG des bases projet** : câblé (`takeSnapshot`) mais
+  DORMANT derrière DB_ROLLBACK_ENABLED ; reste OUVERT : exige une base CNPG
+  provisionnée (infra, operator k8s) — aucune preuve locale possible ; dit tel
+  quel.
 
 ## Résultat de signature
-v1 : REFUSED. v2 : PENDING_REVIEW — câblage réel + 18 tests ; signature =
-merge + reçu complet.
+- v1 : REFUSED (« tests unitaires mais aucun câblage réel »).
+- v2 : REFUSED (RR-20260721-CODEX-04, verbatim) — « l'implémentation annoncée
+  est sur une PR #32 non mergée ; le snapshot DB physique et la preuve PITR
+  live restent ouverts ».
+- v3 (ce document) : **PENDING_REVIEW** — la preuve PITR live est JOUÉE
+  (drill DR PR #36, référence croisée ci-dessus) ; le câblage réel tient
+  (18 tests, barrière 423 + dégel garanti prouvé sur panne injectée) ; le
+  snapshot CNPG des bases projet reste BLOQUÉ sur l'infra, dit tel quel.
+  Signature = merge de la PR #32 + reçu de revue COMPLET.
 

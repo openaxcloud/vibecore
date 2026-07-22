@@ -71,6 +71,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: PARITY_DEPS=/tmp/parity-deps node scripts/parity/verify-attestation-run.mjs
+      # CTR-PROJECT-MANIFEST-SCHEMA v3 : tests négatifs REJOUABLES — chaque
+      # fixture invalid/ doit être REJETÉE avec le motif x-expectedError, chaque
+      # fixture valid/ (dont compat-oldest-supported, manifestVersion=1) doit
+      # passer. Zéro dépendance (mini-validateur embarqué).
+      - name: Validate project-manifest samples (negative fixtures)
+        run: node scripts/parity/validate-project-manifest-samples.mjs
       # LS-16 (verdict -04) : test négatif de SUBSTITUTION — un run vert réel
       # d'un AUTRE workflow, présenté comme attestation, doit être REJETÉ
       # (identité workflow + événement vérifiés). Échec du test = build rouge.

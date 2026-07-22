@@ -1,0 +1,17 @@
+{
+  "x-expectedError": "maxContains",
+  "manifestVersion": 3,
+  "projectId": "prj_two_mobile_counterexample",
+  "artifacts": [
+    {
+      "artifactId": "art_mobile_a",
+      "kind": "MOBILE_APP",
+      "sourceRoot": "apps/mobile-a"
+    },
+    {
+      "artifactId": "art_mobile_b",
+      "kind": "MOBILE_APP",
+      "sourceRoot": "apps/mobile-b"
+    }
+  ]
+}

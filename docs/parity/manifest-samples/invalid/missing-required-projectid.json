@@ -1,0 +1,11 @@
+{
+  "x-expectedError": "required: propriété requise \"projectId\" manquante",
+  "manifestVersion": 3,
+  "artifacts": [
+    {
+      "artifactId": "art_web_main",
+      "kind": "WEB_APP",
+      "sourceRoot": "apps/web"
+    }
+  ]
+}

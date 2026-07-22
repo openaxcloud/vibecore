@@ -2,7 +2,7 @@
 # (P0-A2-01 / P0-LS-16). Ne jamais éditer à la main — drift-check en CI. Le
 # champ validation reflète le dernier run du validateur sur l'arbre.
 schemaVersion: 1
-fileCount: 169
+fileCount: 183
 generatedAt: "2026-07-21T04:52:01Z"
 generatedFromCommit: 790eef1786d282104707dc95be075706c39764ae
 mergedCommit: 790eef1786d282104707dc95be075706c39764ae
@@ -49,9 +49,9 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: BILLING_LEDGER_CONTRACT.md
-    sha256: "6210db43abf109b0c03c40900385d1c5e6b86717a941d0e930fa2a5e777d2fea"
+    sha256: "699c89e46ea5758c2708c287b63bba8eedb11408a6d27ecf7b451f54df822aa5"
     schemaVersion: 2
-    repoCommit: 1692f981
+    repoCommit: 60a987ca
     reviewer: UNKNOWN
   - file: BOLT_DEBT_REGISTRY.yaml
     sha256: "fb5d2476f0a48c4021a864a4c2b83e09dc855429b7c985d035ccf819ebbbef27"
@@ -69,9 +69,9 @@ documents:
     repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
     reviewer: UNKNOWN
   - file: CHECKPOINT_CONTRACT.md
-    sha256: "d134ba7803fb30de059eb4ebee43392ee7a5cc48e436fefbae15697f6c068e18"
+    sha256: "f4d5c0737e5e5184e3aef06aa757982dcd7723752ea9d7a988b60f460d1f6d25"
     schemaVersion: 2
-    repoCommit: 1692f981
+    repoCommit: 60a987ca
     reviewer: UNKNOWN
   - file: CI_ATTESTATION.yaml
     sha256: "cc6a6bde41b87e110fcb0eb7ebb17d825df7df2628a2341733af7a1ba734e36a"
@@ -89,9 +89,9 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: CONTRACT_REGISTRY.yaml
-    sha256: "95b4c5cd805ac3391e3c9dfa6c98283e45ae778c15e25feabf69b29c3d90b440"
+    sha256: "5bb1e66a7be8549378e1c06123b4e036a8146022751616ba0ba35416102a90a3"
     schemaVersion: 1
-    repoCommit: 1692f981
+    repoCommit: 60a987ca
     reviewer: UNKNOWN
   - file: COUNTER_RECONCILIATION_20260720.md
     sha256: "851d49ad4125df4ad8dc8611d153123ff99ddbabc083a6047edf603e9a4040fe"
@@ -119,9 +119,9 @@ documents:
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN
   - file: DEPLOYMENT_TYPES_CONTRACT.md
-    sha256: "22e48b1507657cabe2b81debd7e48c019617d9ea9339f32ded3840ab733735cd"
+    sha256: "cf02dffc4125ac123d5a832d6c6992deb1ac7b706b2e8fca2b77cbbadb466443"
     schemaVersion: 2
-    repoCommit: 1692f981
+    repoCommit: 60a987ca
     reviewer: UNKNOWN
   - file: DEPLOYMENT_TYPE_REGISTRY.yaml
     sha256: "71a19a82fd6b81fb75a12a21122197d362ee67a30828129c54924cc514c52745"
@@ -129,9 +129,9 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: DOMAIN_MODEL.md
-    sha256: "3f83a06f85f7080266b98d8fb7e099d303d41995788e27da2206a5d3bb4ee52f"
+    sha256: "15e662c0eaaf45fe4e9b9e6512b68cd14bb65f50450e35a49f4df325edc56c58"
     schemaVersion: 2
-    repoCommit: 1692f981
+    repoCommit: 60a987ca
     reviewer: UNKNOWN
   - file: DOSSIER_EXPERT_CONSOLIDE_20260721.md
     sha256: "227762974ed5de7a9fed1a28edfdd0ee199a6299e97e625d3952a8007540d97d"
@@ -164,9 +164,9 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: GALLERY_COMMUNITY_CONTRACT.md
-    sha256: "e7e848f267bb1437456a1f3d5dec23ed6ff8bf99687e3777d89912ad340ac053"
+    sha256: "057aa510f6d521c08727766e95c7684d8bb85745143451b473f1fc3dc3b281e5"
     schemaVersion: 2
-    repoCommit: 1692f981
+    repoCommit: 60a987ca
     reviewer: UNKNOWN
   - file: GENERATED_ASSET_KIND_REGISTRY.yaml
     sha256: "53cc7554ea6ebda0c913d35abd098ff2e4ff4285e76af3475f25b9748486e6d2"
@@ -174,9 +174,9 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: IAM_POLICY_BASELINE.md
-    sha256: "21b008bcdaace9a60ac232a2a5a7d8447c52b2a3d7bfd16fcfeef66afded5990"
+    sha256: "07635109933f1321a1203c199a4d6d32c9a73d853c886b572c14dfe7f7d1a6f1"
     schemaVersion: 2
-    repoCommit: 1692f981
+    repoCommit: 60a987ca
     reviewer: UNKNOWN
   - file: IDENTITY_COLLABORATION_CONTRACT.md
     sha256: "33670343c374f09f6ec0afcbdcf7728cfd8267bd8cbf88b1e2ffef9ebe4649b1"
@@ -199,9 +199,9 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: IMPORT_REMIX_CONTRACT.md
-    sha256: "d0a3d226cd79b959ba5810ca13d3acd228afa42942bd0d66f18931d20e28a70e"
+    sha256: "4bcbf7c4304c3e15880bb9d635ef0ce192f9cfd6412c80fa33b92e76cf82e1e8"
     schemaVersion: 2
-    repoCommit: 1692f981
+    repoCommit: 60a987ca
     reviewer: UNKNOWN
   - file: LEGACY_FINDING_REGISTRY.yaml
     sha256: "07da31df62de1b18faf0bd77d1eec9dd7b564a3660af346b7aac1b0fd2ac7071"
@@ -274,7 +274,7 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: PROJECT_MANIFEST_SCHEMA.json
-    sha256: "d2f72d5ebd6716d3fa0979cd4edad90d5ad47c3404747de62d3f983a52f200ad"
+    sha256: "62a2890417bd2ec078e7c79275cb173010a104de2ef44135eebd33c3507dd37d"
     schemaVersion: null
     repoCommit: null
     reviewer: UNKNOWN
@@ -294,7 +294,7 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: RELEASE_PUBLISH_CONTRACT.md
-    sha256: "2c9f7d0ad330fc0245e6a5a9ee84ef2118320d9d249817ab0cbc4c76b3c7703d"
+    sha256: "138ea4692f5a687989fceb8d6bb0e47d0e04571559cfebf2172784260159aa62"
     schemaVersion: 2
     repoCommit: 1692f981
     reviewer: UNKNOWN
@@ -354,14 +354,14 @@ documents:
     repoCommit: af9e4e83
     reviewer: UNKNOWN
   - file: RUNTIME_NIX_CONTRACT.md
-    sha256: "8b4556a2bcbb82929a05fc6b4fdf68c078f231ea83def1534f46b450bdefcb76"
+    sha256: "56ef6bec7def5b9071149f4357f34988769cd8b4f227cc31361918e82b678069"
     schemaVersion: 2
     repoCommit: 1692f981
     reviewer: UNKNOWN
   - file: SECURITY_PRIVACY_COMPLIANCE.md
-    sha256: "239b5727aeeeffa2cb7fe0bb9233f1e8a89297e3a207cfeee6b55aab77ea6bf3"
+    sha256: "66aaaad781379e22c0fba8d40be8d9c725d0f8b1985035d93f2a142e077c354e"
     schemaVersion: 2
-    repoCommit: 1692f981
+    repoCommit: 60a987ca
     reviewer: UNKNOWN
   - file: SERVICE_CONTRACTS/README.md
     sha256: "89175a30ffd5a719cb30e66b348cb749c93aa7306ce1a5b3ed18c1ce766f2ed4"
@@ -392,6 +392,11 @@ documents:
     sha256: "b0af412c1fd3a11ff86de86f3c88dabd9a5b4155f0bbbc14ead6fa9b31a39f3e"
     schemaVersion: 3
     repoCommit: 06fabcf1
+    reviewer: UNKNOWN
+  - file: THREAT_MODEL.md
+    sha256: "45081f92cb948bea8a793aef992498bbb6a52febc9c60f0a21292b5fbb09ca1d"
+    schemaVersion: null
+    repoCommit: null
     reviewer: UNKNOWN
   - file: TRACEABILITY_MATRIX.yaml
     sha256: "a3d951743acb4f898655cd903f040b93a021e5244886d0cecddc3f4646afdf52"
@@ -790,6 +795,71 @@ documents:
     reviewer: UNKNOWN
   - file: livescan-2026-07-20/usage.txt
     sha256: "f11e2c17e6b60f8e19cd17fb276ac90f70c9b564aecf051ad99da2955dd02fb0"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: manifest-samples/COMPAT.md
+    sha256: "d76a7fce8b97acd2cdd74f10602f6fbb5eeac59843e7c1eb221d8434903ba6e8"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: manifest-samples/invalid/bad-enum-kind.json
+    sha256: "a22f35544ab9113231b23e63e8f959b565d1a6f6ba8757e8840310c949ef3438"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: manifest-samples/invalid/empty-artifacts.json
+    sha256: "32918867c2b726f96f80a927f57b1479fbcd2c99d2b7cbe78d2135d33648ec90"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: manifest-samples/invalid/empty-projectid.json
+    sha256: "a616ed4f00b0001f36a47cdd8dc728b423a88cb2b9c9bd6b1f9ebcda857ec019"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: manifest-samples/invalid/manifestversion-zero.json
+    sha256: "4cd7243980c1054431abde869199b10936482cd87065f50376fa74dfe8f13eae"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: manifest-samples/invalid/missing-required-projectid.json
+    sha256: "21f4fbe30cfa2aa40b512fd9393e68459577da29d04214fd5106b7ac210d853e"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: manifest-samples/invalid/too-many-artifacts.json
+    sha256: "7afe56e30f264f6f0f4988724bfdc0d8ea051e79e82b6efe3d8eb50529d864cc"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: manifest-samples/invalid/two-mobile-apps.json
+    sha256: "8ba5b40bd2a5d13b5303c65d0b424aca13cd9988f4ce1d6cc6c684993b122dfb"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: manifest-samples/invalid/unknown-property.json
+    sha256: "6159f9bc9659d0432d0ce40beee22276f431d445de57f7b45240208597a18819"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: manifest-samples/valid/compat-oldest-supported.json
+    sha256: "4023e1835551a5e471fd29eb4a062cfdeaabd52514f4ceb38367d4c299561f8a"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: manifest-samples/valid/complete.json
+    sha256: "892a49f09b5603af98a48d591e63229f70afaec082bdb6414351225747593169"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: manifest-samples/valid/minimal.json
+    sha256: "b232d2df71b7ab7519638d0d57a8d2281814743e7d40756c34fa3e4ef116276d"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: manifest-samples/valid/mobile-app-single.json
+    sha256: "f056813189908c20b4bc529872da4bf083b91131f5a61e7dcddf83c955b63a8b"
     schemaVersion: null
     repoCommit: null
     reviewer: UNKNOWN

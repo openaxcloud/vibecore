@@ -1,0 +1,11 @@
+{
+  "manifestVersion": 1,
+  "projectId": "prj_compat_v1_sample",
+  "artifacts": [
+    {
+      "artifactId": "art_web_legacy",
+      "kind": "WEB_APP",
+      "sourceRoot": "apps/web"
+    }
+  ]
+}

@@ -1,9 +1,9 @@
 # IAM_POLICY_BASELINE — identités & autorisations d'exécution (audit v4 I)
 
 contractId: CTR-IAM-POLICY-BASELINE
-contractVersion: 2
+contractVersion: 3
 schemaVersion: 2
-repoCommit: 1692f981
+repoCommit: 60a987ca
 reviewer: UNKNOWN
 expectedReviewer: OpenAI-Codex
 signatureResult: PENDING_REVIEW   # v1 REFUSED : « inventaire non exhaustif sans tests négatifs » — v2 structuré + ancré, re-soumission requise
@@ -49,8 +49,32 @@ re-listé ici (owner infra = avi). UNK non bloquant.
 ## Tests négatifs
 - accès après revoke → deny (prouvé) ; exec via gateway depuis CI → refus (prouvé) ; à AJOUTER : test négatif par identité de l'inventaire (chantier).
 
+## Inventaire des identités (dérivé du repo — source déclarée)
+Dérivé du chart Helm + du code (PAS d'un export IAM live — voir dépendances) :
+- KSA par tier (deployments.yaml : `<release>-<tier>` — api, worker, etc.) ;
+  cronjobs → KSA `<release>-worker` ; migrations-job → KSA `<release>-api` ;
+- identités plateforme typées `PlatformIamIdentity` (PR #34 : UNIQUE
+  kind×app×env×boundary×project ; zéro clé persistante ; séparation
+  build ≠ promotion) ;
+- identités de preuve WIF (PR #38, projet de test) : `wif-authorized` (rôle
+  minimal storage.objectViewer) + `wif-wrong` (aucun accès) — créées puis
+  DÉTRUITES au teardown.
+L'export IAM LIVE exhaustif (gcloud, par projet/folder) = dépendance ouverte
+(GO GCP owner) — l'inventaire ci-dessus est REPO-DÉRIVÉ et dit tel quel.
+
 ## Compatibilité
-- Complète DOMAIN_MODEL §4 ; lié au chantier WIF 3 chemins (P0-A2-09, projets GCP de test dédiés).
+- Complète DOMAIN_MODEL §4 ; ancré sur les 3 chemins WIF PROUVÉS (P0-A2-09,
+  PR #38 : GKE re-cité LECTURE SEULE sur la prod ; OIDC GitHub + Cloud Run sur
+  projet de TEST `ecode-wif-proof-619021`, teardown joué, zéro clé).
 
 ## Résultat de signature
-- v1 : REFUSED (« inventaire non exhaustif sans tests négatifs »). v2 : PENDING_REVIEW — 2 tests négatifs réels prouvés et cités ; **l'exhaustivité de l'inventaire + un négatif PAR identité restent un CHANTIER OUVERT, dit tel quel**.
+- v1 : REFUSED (« inventaire non exhaustif sans tests négatifs »).
+- v2 : REFUSED (RR-20260721-CODEX-04, verbatim) — « deux tests négatifs
+  ponctuels ne remplacent pas l'inventaire exhaustif, le négatif par identité
+  et les trois chemins WIF encore ouverts ».
+- v3 (ce document) : **PENDING_REVIEW** — les 3 chemins WIF ne sont PLUS
+  ouverts : PROUVÉS LIVE (PR #38, autorisé + négatif PAR chemin, zéro clé,
+  teardown joué) ; inventaire REPO-DÉRIVÉ ajouté (§Inventaire, source
+  déclarée). Restent OUVERTS, dits tels quels : export IAM live exhaustif +
+  négatif PAR identité de l'inventaire (GO GCP owner). Signature = reçu
+  COMPLET.

@@ -1,0 +1,6 @@
+{
+  "x-expectedError": "minItems",
+  "manifestVersion": 3,
+  "projectId": "prj_empty_artifacts_counterexample",
+  "artifacts": []
+}

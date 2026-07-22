@@ -1,0 +1,41 @@
+{
+  "manifestVersion": 3,
+  "projectId": "prj_complete_sample",
+  "artifacts": [
+    {
+      "artifactId": "art_web_main",
+      "kind": "WEB_APP",
+      "sourceRoot": "apps/web",
+      "components": [
+        { "componentId": "cmp_frontend", "kind": "WEB_FRONTEND" },
+        { "componentId": "cmp_api", "kind": "API" },
+        { "componentId": "cmp_worker", "kind": "WORKER" }
+      ],
+      "previewConfig": { "port": 5173 },
+      "publishConfig": { "target": "SERVER_DEPLOY" }
+    },
+    {
+      "artifactId": "art_mobile_main",
+      "kind": "MOBILE_APP",
+      "sourceRoot": "apps/mobile",
+      "components": [
+        { "componentId": "cmp_mobile_shell", "kind": "SERVICE" }
+      ]
+    },
+    {
+      "artifactId": "art_dataviz",
+      "kind": "DATA_VISUALIZATION",
+      "sourceRoot": "apps/dataviz"
+    },
+    {
+      "artifactId": "art_deck",
+      "kind": "SLIDE_DECK",
+      "sourceRoot": "decks/pitch"
+    }
+  ],
+  "sharedBackendBinding": { "serviceRef": "svc_shared_api" },
+  "sharedDataBindings": [{ "databaseRef": "db_main" }],
+  "sharedStorageBindings": [{ "bucketRef": "vc-prj-complete" }],
+  "scopes": ["deploy:read", "storage:write"],
+  "entitlementsRef": "ent_default_plan"
+}

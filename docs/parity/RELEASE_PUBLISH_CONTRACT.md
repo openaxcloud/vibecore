@@ -107,3 +107,9 @@ rollback des déploiements SANS digest en 409 — cf. `UNK-ROLLBACK-FLAG-PERMANE
 
 ## Résultat de signature
 - v1 : REFUSED (« pas de ReleaseCatalog/Manifest persistant ni UI live »). v2 : PENDING_REVIEW — le pipeline et le rollback sont prouvés live ; **ReleaseCatalog persistant + UI live restent un CHANTIER OUVERT, dit tel quel** — ce contrat ne les revendique pas.
+
+## Historique de refus (mise à jour 22/07)
+- v2 : REFUSED (RR-20260721-CODEX-04, verbatim) — « ReleaseCatalog/ReleaseManifest persistant et UI live restent explicitement ouverts — le refus initial n'est donc pas levé ».
+- Décision de remédiation : ce contrat reste **BLOCKED_ON_CHANTIER** — la levée
+  exige de l'implémentation réelle, pas une réécriture du document. Dépendance
+  nommée dans CONTRACT_REGISTRY.yaml (blockedBy). Rien de gonflé.

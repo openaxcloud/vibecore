@@ -1,13 +1,13 @@
 # IMPORT_REMIX_CONTRACT — import & remix sécurisés
 
 contractId: CTR-IMPORT-REMIX
-contractVersion: 2
+contractVersion: 3
 schemaVersion: 2
-repoCommit: 1692f981
+repoCommit: 60a987ca
 reviewer: UNKNOWN
 expectedReviewer: OpenAI-Codex
-signatureResult: REFUSED_V2   # v1 REFUSED (« 2 machines contradictoires ») ; v2 REFUSED au reçu RR-20260721-CODEX-04 — machine mieux alignée mais billing de sûreté non signable (voir §7)
-implementationAnchor: "Import : PR #27 MERGÉE (merge c0fd65de, 2026-07-21T04:42Z) ; import-pipeline.ts réécrit sur LA machine normative + import-billing.ts (réservation idempotente/compensation) + import-state-machine-e2e.spec.ts (256 lignes). Remix : MERGÉ en prod (7bd91bcf) — remix-pipeline.ts + licence fail-closed (#25)."
+signatureResult: PENDING_REVIEW   # v1 REFUSED (« 2 machines contradictoires ») ; v2 REFUSED (RR-20260721-CODEX-04 : idempotence non durable/scopée org) ; v3 = fix-forward PR #39 (96f53af7), réservation durable org-scoped sérialisée + ownership, preuves PG A1-A4 — voir §7
+implementationAnchor: "Import : PR #27 MERGÉE sur main — import-pipeline.ts sur LA machine normative + import-billing.ts + import-state-machine-e2e.spec.ts. FIX-FORWARD (réponse expert 2026-07-21 §D, PR de correction fix/billing-ledger-concurrency) : réservation DURABLE dans le grand livre double-entrée (DurableImportCreditLedger sur LedgerReservation, migration 0078) — contrainte unique DB (organizationId, idempotencyKey) (plus de clé brute partageable entre orgs), création SÉRIALISÉE par la base (create/catch-P2002 : de 2 POST concurrents même clé, exactement 1 crée le job, l'autre rejoue), survit au redémarrage du process, contrôle d'OWNERSHIP sur settle/get (BILLING_RESERVATION_FOREIGN). Le backend in-memory (tests sans DB uniquement) applique les mêmes règles org-scoped. Preuves vrai Postgres : import-billing-db.spec.ts A1-A4 ; preuve route concurrente : import-routes.spec.ts (2 POST simultanés → 1 seul ImportJob). Remix : MERGÉ en prod (7bd91bcf) — remix-pipeline.ts + licence fail-closed (#25)."
 
 ## 1. Machine à états Import — LA machine (unique, normative = implémentée)
 
@@ -55,7 +55,7 @@ bloquant → retour QUARANTINED. Le commit atomique ne part QUE de READY_TO_COMM
 - **I-IMP-4 (consentement tracé)** : chaque décision keep/redact est enregistrée
   (`consent` sur ImportJob) ; RESCANNING vérifie la copie consentie.
 
-## 4. Tests négatifs (exigés, existants — mergés via #27)
+## 4. Tests négatifs (exigés, existants — branche #27)
 
 - COMMITTING depuis SCANNING (saut d'état) → refusé ;
 - payload PROPRE forcé en QUARANTINED → violation refusée ;
@@ -97,13 +97,15 @@ SNAPSHOT_PINNED → CREDENTIALS_DETACHED → SOURCE_SANITIZED → CLONING
 
 - v1 : REFUSED (RR-20260720-CODEX-01) — « 2 machines contradictoires ; le code
   + 15 tests prouvent encore l'ancienne (SCANNING→COMMITTING) ».
-- v2 (ce document) : **REFUSED_V2** (reçu RR-20260721-CODEX-04, verbatim) —
-  la machine Import unique est « substantiellement mieux alignée » et la PR #27
-  est MERGÉE (c0fd65de), mais le lot reste non signable : mini-ledger indexé
-  par clé brute SANS namespace organisation (2 orgs peuvent partager une
-  réservation) ; création idempotente non sérialisée (2 retries concurrents →
-  2 jobs) ; réservation in-process qui ne survit pas au redémarrage.
-  Correction minimale exigée : contrainte unique durable
-  (organizationId, idempotencyKey), transaction/upsert ou verrou par clé,
-  contrôle d'ownership, stockage durable, tests concurrents multi-orgs.
-  **Remédiation = autre session (directive owner).**
+- v2 : REFUSED (réponse expert 2026-07-21) — machine mieux alignée mais lot non
+  signable : ancre disant la PR #27 non mergée (elle l'est) ; mini-ledger indexé
+  par clé brute sans namespace organisation ; création idempotente non
+  sérialisée (2 retries concurrents → 2 jobs possibles) ; réservation
+  in-process perdue au redémarrage.
+- v3 (ce document) : **PENDING_REVIEW** — les motifs sont traités : ancre à
+  jour (PR #27 mergée + PR de correction fix/billing-ledger-concurrency),
+  réservation durable org-scoped sérialisée + ownership, preuves vrai Postgres
+  (`import-billing-db.spec.ts` A1-A4) et preuve route concurrente
+  (2 POST simultanés → 1 seul job). La signature exige le merge de la PR de
+  correction + un reçu de revue COMPLET. Rien d'auto-clôturé
+  (PROVEN_REVIEW_PENDING).

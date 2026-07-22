@@ -1,0 +1,11 @@
+{
+  "manifestVersion": 3,
+  "projectId": "prj_mobile_only_sample",
+  "artifacts": [
+    {
+      "artifactId": "art_mobile_unique",
+      "kind": "MOBILE_APP",
+      "sourceRoot": "apps/mobile"
+    }
+  ]
+}

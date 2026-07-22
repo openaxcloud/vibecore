@@ -926,7 +926,8 @@ function checkHeader(file, doc) {
       const ct = readFileSync(cp, 'utf8');
 
       const hasId = ct.includes(`contractId: ${c.contractId}`) || ct.includes(`"x-contractId": "${c.contractId}"`);
-      const hasV2 = /contractVersion:\s*2/.test(ct) || /"x-contractVersion":\s*2/.test(ct);
+      // v2+ : un contrat durci peut monter de version (v3 = remédiation des refus v2)
+      const hasV2 = /contractVersion:\s*[2-9]/.test(ct) || /"x-contractVersion":\s*[2-9]/.test(ct);
 
       if (!hasId || !hasV2) {
         fail('CONTRACT_REGISTRY.yaml', `${c.contractId}: durci déclaré mais le fichier ne porte pas contractId + contractVersion 2`);

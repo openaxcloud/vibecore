@@ -1,9 +1,9 @@
 # GALLERY_COMMUNITY_CONTRACT — Gallery & Community (audit v4 F)
 
 contractId: CTR-GALLERY-COMMUNITY
-contractVersion: 2
+contractVersion: 3
 schemaVersion: 2
-repoCommit: 1692f981
+repoCommit: 60a987ca
 reviewer: UNKNOWN
 expectedReviewer: OpenAI-Codex
 signatureResult: PENDING_REVIEW   # v1 REFUSED (« hash obsolète + décision ouverte ») — les DEUX motifs sont levés et SIGNÉS en resoumission (P0-LS-04/A2-10 CLOSED, reçu RR-20260720-CODEX-02) ; hash 1f5f27bc… rejoué ; re-soumission du contrat requise
@@ -124,3 +124,18 @@ secrets AVANT le clone et re-scanne le clone ; une valeur de secret n'apparaît 
 dans les fichiers, ni en base, ni dans le job du clone — et le clone reproduit le
 **snapshot épinglé** (V1), pas une édition ultérieure de la source (V2). Voir
 `services/api/src/tests/gallery-routes.spec.ts` (I-RMX-1/2 + I-GAL-PIN).
+
+## Résultat de signature
+
+- v1 : REFUSED (« hash obsolète + décision ouverte ») — motifs levés (P0-LS-04/
+  P0-A2-10 signés, reçu RR-20260720-CODEX-02).
+- v2 : REFUSED (RR-20260721-CODEX-04, verbatim) — « dépend du paquet Gallery v3
+  qui n'archive pas la preuve primaire ; le report par application n'est pas
+  démontré et la preuve publique ne montre que le footer générique ».
+- v3 (ce document) : **PENDING_REVIEW** — la preuve primaire EXISTE désormais :
+  paquet `docs/deploy-evidence/2026-07-21-gallery-pricing-v4/` (DOM COMPLET
+  1 500 639 octets, sha256 4e5380a8… RECALCULABLE, zéro ellipse) ; le report au
+  niveau app est REQUALIFIÉ NOT_OBSERVED_IN_PUBLIC_RENDER (ligne Report §
+  ci-dessus, cohérente avec P0-V3-02) — il n'est plus « à démontrer », il est
+  documenté ABSENT du rendu public anonyme, avec UNK-GALLERY-REPORT-FLOW pour la
+  voie authentifiée. Signature = reçu de revue COMPLET. Rien d'auto-clôturé.

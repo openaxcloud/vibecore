@@ -1,0 +1,12 @@
+{
+  "x-expectedError": "enum",
+  "manifestVersion": 3,
+  "projectId": "prj_bad_enum_counterexample",
+  "artifacts": [
+    {
+      "artifactId": "art_desktop",
+      "kind": "DESKTOP_APP",
+      "sourceRoot": "apps/desktop"
+    }
+  ]
+}

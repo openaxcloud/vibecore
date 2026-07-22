@@ -1,0 +1,13 @@
+{
+  "x-expectedError": "additionalProperties",
+  "manifestVersion": 3,
+  "projectId": "prj_unknown_prop_counterexample",
+  "artifacts": [
+    {
+      "artifactId": "art_web_main",
+      "kind": "WEB_APP",
+      "sourceRoot": "apps/web"
+    }
+  ],
+  "unknownExtensionField": true
+}

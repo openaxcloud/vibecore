@@ -1,13 +1,13 @@
 # DOMAIN_MODEL — entités, invariants, machines à états
 
 contractId: CTR-DOMAIN-MODEL
-contractVersion: 2
+contractVersion: 3
 schemaVersion: 2
-repoCommit: 1692f981
+repoCommit: 60a987ca
 reviewer: UNKNOWN
 expectedReviewer: OpenAI-Codex
-signatureResult: PENDING_REVIEW   # v1 REFUSED : « modèle Import ancien + CloudTenant incomplet + Checkpoint/Release faibles » — v2 : §2 aligné sur LA machine (PR #27) ; CloudTenant/Checkpoint = dépendances OUVERTES déclarées (pas gonflées)
-implementationAnchor: "Remix : prod (7bd91bcf + fail-closed 7e001f3d). Import : machine alignée PR #27 (NON MERGÉE). CloudTenant : contrat + preuves LIVE partielles (CT-10/CT-11 restants). Checkpoint : machine testée unitairement, câblage réel = chantier." 
+signatureResult: PENDING_REVIEW   # v1 REFUSED (« modèle Import ancien + CloudTenant incomplet + Checkpoint/Release faibles ») ; v2 REFUSED (RR-20260721-CODEX-04 : « CloudTenant complet et câblage Checkpoint restent ouverts ; ancres Import/Billing périmées ») ; v3 : ancres à jour + CloudTenant IMPLÉMENTÉ (PR #34) + Checkpoint CÂBLÉ (PR #32) — voir implementationAnchor
+implementationAnchor: "Remix : prod (7bd91bcf + fail-closed 7e001f3d). Import : machine MERGÉE (PR #27, c0fd65de) + billing de sûreté corrigé fix-forward (PR #39, 96f53af7, preuves PG A1-A4). Ledger double-entrée : MERGÉ (PR #28, 790eef17) + fix-forward #39 (B1-B4). CloudTenant : IMPLÉMENTÉ (PR #34 : migration 0079, 4 services, 38 tests, 6 preuves LIVE GCP du 17/07) — CT-10/CT-11 restants DÉCLARÉS. Checkpoint : CÂBLÉ (PR #32 : endpoints réels, barrière 423 + dégel garanti, 18 tests) + preuve PITR croisée (drill DR PR #36, 13 min 06 s)." 
 Schémas JSON exécutables: `docs/parity/schemas/domain/*.schema.json`.
 Règle: ce document reflète les domaines TRANCHÉS (décisions Avi). Ce qui n'est
 pas tranché est marqué UNKNOWN. Rien ici n'est une promesse d'implémentation:

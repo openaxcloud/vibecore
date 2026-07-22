@@ -1,9 +1,9 @@
 # DEPLOYMENT_TYPES_CONTRACT — les 4 types de déploiement (P0-A2-04)
 
 contractId: CTR-DEPLOYMENT-TYPES
-contractVersion: 2
+contractVersion: 3
 schemaVersion: 2
-repoCommit: 1692f981
+repoCommit: 60a987ca
 reviewer: UNKNOWN
 expectedReviewer: OpenAI-Codex
 signatureResult: PENDING_REVIEW   # v1 REFUSED : « preuve Static absente / Reserved non commencé / Scheduled hors E2E » — v2 structuré + ancré, re-soumission requise
@@ -68,11 +68,35 @@ Invariant commun : le changement de type re-déploie le même ProjectRevision �
 - P-DEP-1 : tout déploiement naît d'un ProjectRevision épinglé par digests — jamais d'un pointeur mutable.
 - P-DEP-2 : changement de type = opération de release auditable et réversible (jamais une recréation destructrice).
 
-## Tests négatifs (exigés)
-- publier depuis un pointeur non épinglé → refus ; rollback re-déploie l'IMAGE PAR DIGEST même après suppression de révision (PROUVÉ live, I-REL-1) ; cron mal formé (« vendredi » implicite) → refus ; type inconnu → refus (le contrat est fermé).
+## Tests négatifs (exigés — ARTEFACTS EXÉCUTABLES, réponse au refus v2)
+- cron invalide → refus : `services/api/src/scheduled-tasks.spec.ts`
+  (« rejects an invalid cron », l.284) — REJOUABLE `vitest run` ;
+- cron trop fréquent pour le plan → refus : idem l.290 (« rejects a schedule
+  that is too frequent for the plan ») ; le même fichier prouve les positifs
+  bornés par plan (l.296+) ;
+- rollback re-déploie l'IMAGE PAR DIGEST même après suppression de révision :
+  PROUVÉ LIVE (I-REL-1, evidence rollback digest — flag
+  SERVER_DEPLOY_ROLLBACK_FROM_DIGEST) ;
+- publier depuis un pointeur non épinglé → refus ; type inconnu → refus (le
+  contrat est fermé) : DÉCLARÉ — l'artefact exécutable dédié reste à produire
+  (dépendance ouverte, pas gonflée).
 
 ## Compatibilité
 - Les 4 modes d'accès (RPL-23) s'appliquent uniformément ; ajouter un type = réviser CE contrat (version++).
 
 ## Résultat de signature
-- v1 : REFUSED (« preuve Static absente / Reserved non commencé / Scheduled hors E2E »). v2 : PENDING_REVIEW — l'état par type est déclaré HONNÊTEMENT dans la matrice §2 (Static : preuve E2E dédiée À PRODUIRE ; Reserved : NON COMMENCÉ — aucune promesse) ; dépendances ouvertes tracées, pas gonflées.
+- v1 : REFUSED (« preuve Static absente / Reserved non commencé / Scheduled hors E2E »).
+- v2 : REFUSED (RR-20260721-CODEX-04, verbatim) — « un type n'existe que s'il
+  est spécifié ET prouvé live : Static reste sans E2E dédié, Reserved VM est
+  NOT_STARTED, le contrat UI/coût de Scheduled est incomplet ; les tests
+  négatifs listés ne sont pas accompagnés d'un artefact exécutable rejoué ».
+- v3 (ce document) : **PENDING_REVIEW** — tests négatifs désormais ANCRÉS sur
+  des artefacts exécutables réels (§Tests négatifs : fichiers+lignes vitest,
+  rejouables) ; coût Scheduled contractualisé : chaque run facture le compute
+  aux tarifs RateCard actifs (18u/CPU-s + 2u/GiB-s — `packages/billing`
+  rate-card.ts), métré sur la durée du run comme Autoscale — pas de tarif
+  distinct ; UI Scheduled = pane Deployments du projet (création/cron/timezone
+  + historique de runs). Dépendances OUVERTES déclarées, pas gonflées :
+  Static = preuve E2E dédiée à produire ; Reserved VM = NON COMMENCÉ (ACT-31) ;
+  artefact exécutable « pointeur non épinglé / type inconnu » à produire.
+  Signature = reçu COMPLET.

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "ecode/parity/project-manifest",
   "x-schemaVersion": 3,
-  "x-repoCommit": "0f668026",
+  "x-repoCommit": "60a987ca",
   "title": "ProjectManifest",
   "description": "Source versionnée des composants, artifacts, bindings et scopes d'un Project (plan §5, P0-EX-08). Consommé par ProjectRevision (manifestDigest).",
   "type": "object",
@@ -132,10 +132,18 @@
   ],
   "x-reviewVerdict": "REFUSED — 0/14 contrats signés (lot 57febeab, OpenAI-Codex, 2026-07-20)",
   "x-reviewCloseCriterion": "v2 durci : additionalProperties false, allOf exécutable (≤1 MOBILE_APP via maxContains), minLength/minItems, PENDING_COMMIT purgé — re-soumettre à signature",
-  "x-refusalReason": "accepte contre-exemples + PENDING_COMMIT (verbatim relecteur, transmis 20/07 — corrigé en v2 : x-repoCommit était littéralement la chaîne PENDING_COMMIT)",
+  "x-refusalHistory": {
+    "v1": "REFUSÉE — accepte contre-exemples + PENDING_COMMIT (x-repoCommit était littéralement la chaîne PENDING_COMMIT) ; corrigé en v2",
+    "v2": "REFUSÉE (verbatim relecteur) : « x-repoCommit reste ancien ; aucun fichier de tests négatifs rejouable n'est fourni dans le dossier ; aucune preuve de compatibilité/migration de versions de manifest n'est jointe. Le schéma est proche d'une signature, mais le niveau contractsValidated demande ces contrôles, pas seulement une inspection visuelle du JSON. »"
+  },
+  "x-remediationV3": {
+    "negativeTests": "8 contre-exemples rejouables dans docs/parity/manifest-samples/invalid/*.json (2×MOBILE_APP→maxContains, propriété inconnue→additionalProperties, projectId manquant→required, chaîne vide→minLength, artifacts vide→minItems, mauvais enum, manifestVersion 0→minimum, 8 artifacts→maxItems), chacun portant x-expectedError vérifié ; 4 fixtures valides dans valid/*.json ; rejoués à chaque CI par scripts/parity/validate-project-manifest-samples.mjs (.github/workflows/parity-registries.yml, job validate, étape « Validate project-manifest samples (negative fixtures) »)",
+    "versionCompat": "docs/parity/manifest-samples/COMPAT.md — matrice manifestVersion acceptées, exemple ancienne version, règle de migration écrite ; preuve exécutable : valid/compat-oldest-supported.json (manifestVersion=1 passe encore le schéma v3)",
+    "repoCommit": "x-repoCommit est roulé au commit d'intégration de la v3 par l'orchestrateur au moment du commit (aucune règle de validation modifiée entre v2 et v3)"
+  },
   "additionalProperties": false,
   "x-contractId": "CTR-PROJECT-MANIFEST-SCHEMA",
-  "x-contractVersion": 2,
+  "x-contractVersion": 3,
   "x-expectedReviewer": "OpenAI-Codex",
   "x-signatureResult": "PENDING_REVIEW"
 }

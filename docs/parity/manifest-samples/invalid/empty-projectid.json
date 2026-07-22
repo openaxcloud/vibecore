@@ -1,0 +1,12 @@
+{
+  "x-expectedError": "minLength",
+  "manifestVersion": 3,
+  "projectId": "",
+  "artifacts": [
+    {
+      "artifactId": "art_web_main",
+      "kind": "WEB_APP",
+      "sourceRoot": "apps/web"
+    }
+  ]
+}

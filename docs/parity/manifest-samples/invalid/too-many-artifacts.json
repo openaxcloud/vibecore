@@ -1,0 +1,15 @@
+{
+  "x-expectedError": "maxItems",
+  "manifestVersion": 3,
+  "projectId": "prj_too_many_artifacts_counterexample",
+  "artifacts": [
+    { "artifactId": "art_1", "kind": "WEB_APP", "sourceRoot": "apps/a1" },
+    { "artifactId": "art_2", "kind": "DATA_VISUALIZATION", "sourceRoot": "apps/a2" },
+    { "artifactId": "art_3", "kind": "SLIDE_DECK", "sourceRoot": "apps/a3" },
+    { "artifactId": "art_4", "kind": "ANIMATION_VIDEO", "sourceRoot": "apps/a4" },
+    { "artifactId": "art_5", "kind": "DESIGN", "sourceRoot": "apps/a5" },
+    { "artifactId": "art_6", "kind": "EXPERIENCE_3D", "sourceRoot": "apps/a6" },
+    { "artifactId": "art_7", "kind": "WEB_APP", "sourceRoot": "apps/a7" },
+    { "artifactId": "art_8", "kind": "WEB_APP", "sourceRoot": "apps/a8" }
+  ]
+}

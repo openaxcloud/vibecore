@@ -51,3 +51,9 @@ Voir `docs/parity/schemas/ecode.lock.schema.json`.
 
 ## Résultat de signature
 - v1 : REFUSED (« format lock incompatible + rotation inconnue »). v2 : PENDING_REVIEW — le store et les builds sont prouvés ; **le format ecode.lock (compatibilité) et la politique de rotation des générations restent un CHANTIER OUVERT, dit tel quel**.
+
+## Historique de refus (mise à jour 22/07)
+- v2 : REFUSED (RR-20260721-CODEX-04, verbatim) — « le format ecode.lock et la rotation/révocation des générations restent des dépendances ouvertes — le refus initial n'est pas levé ».
+- Décision de remédiation : ce contrat reste **BLOCKED_ON_CHANTIER** — la levée
+  exige de l'implémentation réelle, pas une réécriture du document. Dépendance
+  nommée dans CONTRACT_REGISTRY.yaml (blockedBy). Rien de gonflé.
