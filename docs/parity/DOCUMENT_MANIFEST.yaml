@@ -2,7 +2,7 @@
 # (P0-A2-01 / P0-LS-16). Ne jamais éditer à la main — drift-check en CI. Le
 # champ validation reflète le dernier run du validateur sur l'arbre.
 schemaVersion: 1
-fileCount: 164
+fileCount: 165
 generatedAt: "2026-07-22T09:57:03Z"
 generatedFromCommit: 76d3922c35b652395a179e408444cd6a0755d4ef
 mergedCommit: 76d3922c35b652395a179e408444cd6a0755d4ef
@@ -29,7 +29,7 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: APPROVAL_STATUS.json
-    sha256: "ee5aaa4b1c7852ca2759d706a1b989fe27dd770e07da3b54a1442a9b070f0e3b"
+    sha256: "a85cc085eccfb367bad5c7b87207aa1224bca4fff791be5adb502e4048799613"
     schemaVersion: null
     repoCommit: null
     reviewer: UNKNOWN
@@ -94,7 +94,7 @@ documents:
     repoCommit: 1692f981
     reviewer: UNKNOWN
   - file: COUNTER_RECONCILIATION_20260720.md
-    sha256: "196cad5535254188237cf85c74e4d71403babb7e369e496ccc58bbd62cfcd20c"
+    sha256: "f69c770664414f43462efdfe314e883c2d87ccd57ed5bad136967316bdf0cc6b"
     schemaVersion: 1
     repoCommit: null
     reviewer: UNKNOWN
@@ -224,7 +224,7 @@ documents:
     repoCommit: d1063912
     reviewer: UNKNOWN
   - file: P0_REGISTRY.yaml
-    sha256: "4cf3c54e7de82b0e26cc548f5191f411b7dae0a6fc36d66be78cc984f0827906"
+    sha256: "f9bd11c4116ef75975c40440fed511c3a16e54d610cb36309904693de2725673"
     schemaVersion: 1
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN
@@ -234,7 +234,7 @@ documents:
     repoCommit: af9e4e83
     reviewer: UNKNOWN
   - file: PARITY_STATUS.md
-    sha256: "dee71c09d1e8096bcc97a79607fca06cfa4f8f2c2f4cf35c1d1d435395786c5d"
+    sha256: "9927cc8bd8055d224f6582380cffea4ba91a9a92f1af223b2bda679da34a111e"
     schemaVersion: 2
     repoCommit: 76d3922c
     reviewer: UNKNOWN
@@ -411,6 +411,11 @@ documents:
   - file: history/2026-07-20-PLAN_FINAL_LIVRAISON-superseded.md
     sha256: "8ab9a3efcdccf632d830ef7932a4678a3e2b6396b106934067fd2b8a7bde06ef"
     schemaVersion: 2
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: incoming/TRIAGE_P0_OPEN_20260722.md
+    sha256: "8c1ac344e3319d3025cdbe6508da89b5d38eab8c14bf3ba8e34c6f9dcc95d402"
+    schemaVersion: null
     repoCommit: null
     reviewer: UNKNOWN
   - file: livescan-2026-07-20/ai-agent.links.txt

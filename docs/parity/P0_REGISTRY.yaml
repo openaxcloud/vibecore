@@ -45,18 +45,19 @@ p0s:
     title: "Hiérarchie GCP : folder-per-tenant mort (300 cap + 0,1 req/s)"
     priority: 3
     owner: platform
-    status: OPEN
-    remediationTrack: A_TRIER
-    conditionDeCloture: "Compléter l'évidence : tests recopient constantes 300 et 0,1 sans source GCP autoritative ; puis re-soumission au relecteur"
+    status: PROVEN_REVIEW_PENDING
+    remediationTrack: QUICK
+    resolutionBranch: "feat/gallery-pricing-har"
+    conditionDeCloture: "Re-signature : constantes 300 et 0,1 ancrées à la source GCP autoritative (dédupliqué avec P0-V3-03)"
     refusalReason: "tests recopient constantes 300 et 0,1 sans source GCP autoritative"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
     reviewCommit: "57febeab"
     commit: "07ced1c5"
     reviewer: UNKNOWN
-    evidenceId: services/api/src/capacity-policy.spec.ts
-    proof: "capacity-policy.ts : 1000 tenants sharded=4/~40s admissible, folder-per-tenant=2,78h inadmissible ; DOMAIN_MODEL §3 corrigé"
-    nextAction: "Aucun — appliqué"
+    evidenceId: docs/deploy-evidence/2026-07-22-gcp-folder-limits-anchor/
+    proof: "ANCRAGE GCP AUTORITATIF (refus « tests auto-référentiels » levé) : les constantes 300 et 0,1 sont ancrées verbatim à https://docs.cloud.google.com/resource-manager/docs/limits (HTML committé sha256 1d0780c1…, citations « cannot contain more than 300 folders » + « Up to 0.1 » requests/s + « 10 levels »). Script anchor-gcp-limits.mjs rejouable (--offline vs HTML committé, ou re-fetch live) qui ÉCHOUE si une citation disparaît. Dédupliqué avec P0-V3-03 (même claim folder-per-tenant). Le raisonnement capacity-policy.ts (folder-per-tenant=2,78h inadmissible) reste valable, désormais adossé à la source autoritative."
+    nextAction: "Re-soumettre au relecteur (PROVEN_REVIEW_PENDING) ; dédup avec P0-V3-03"
     targetDate: "2026-07-16"
   - p0Id: P0-V4-4
     title: "Promotion Artifact Registry : referrers/attachments non copiés par digest"
@@ -123,16 +124,17 @@ p0s:
     source: "Audit v3 (2026-07-16), P0-03"
     priority: 3
     owner: platform
-    status: OPEN
-    remediationTrack: A_TRIER
+    status: PROVEN_REVIEW_PENDING
+    remediationTrack: QUICK
+    resolutionBranch: "feat/gallery-pricing-har"
     refusalReason: "tests auto-référentiels, sans ancrage GCP vérifiable"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
     reviewCommit: "57febeab"
     commit: "07ced1c5"
     reviewer: UNKNOWN
-    evidenceId: services/api/src/capacity-policy.spec.ts
-    proof: "capacity-policy.ts : 1000 tenants sharded=admissible (~40s), folder-per-tenant=2,78h inadmissible ; DOMAIN_MODEL §3 corrigé ; DEC-TENANT-NO-FOLDER-PER-TENANT DECIDED."
+    evidenceId: docs/deploy-evidence/2026-07-22-gcp-folder-limits-anchor/
+    proof: "ANCRAGE GCP AUTORITATIF (refus « tests auto-référentiels sans ancrage GCP » levé) : constantes 300 enfants et 0,1 folder/s ancrées verbatim à https://docs.cloud.google.com/resource-manager/docs/limits (HTML committé sha256 1d0780c1…, citations « cannot contain more than 300 folders » + « Up to 0.1 » + « 10 levels »). Script anchor-gcp-limits.mjs rejouable qui échoue si une citation disparaît. Dédupliqué avec P0-V4-3. capacity-policy.ts (folder-per-tenant=2,78h inadmissible ; DEC-TENANT-NO-FOLDER-PER-TENANT DECIDED) reste valable, adossé à la source autoritative."
     dependances: []
     conditionDeCloture: "Compléter l'évidence : tests auto-référentiels, sans ancrage GCP vérifiable ; puis re-soumission au relecteur"
     nextAction: "Revue"
@@ -723,20 +725,21 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 3
     owner: platform
-    status: OPEN
-    remediationTrack: A_TRIER
+    status: PROVEN_REVIEW_PENDING
+    remediationTrack: QUICK
+    resolutionBranch: "feat/gallery-pricing-har"
     refusalReason: "69 éléments au total (manifeste inclus) et 21 fichiers de liens non hashés"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
     reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
-    evidenceId: docs/parity/livescan-2026-07-20/
-    proof: "Paquet PRÉSENT dans le repo : docs/parity/livescan-2026-07-20/ = 69 fichiers + manifest.json (21 entrées) ; hashes du tableau = manifest."
+    evidenceId: docs/deploy-evidence/2026-07-22-livescan-hashes/
+    proof: "COUVERTURE DE HASH COMPLÈTE (refus « 21 fichiers de liens non hashés » levé) : hash-index.json couvre les 71 fichiers du paquet docs/parity/livescan-2026-07-20/ — dont les 21 *.links.txt jusque-là absents du manifest (21 screenshot + 24 text + 4 doc + 1 manifest). Vérificateur verify-livescan-hashes.mjs --check qui recalcule tous les sha256 et ÉCHOUE sur toute dérive ou tout fichier non couvert. Rejouable, artefacts hashés."
     dependances: []
-    conditionDeCloture: "Compléter l'évidence : 69 éléments au total (manifeste inclus) et 21 fichiers de liens non hashés ; puis re-soumission au relecteur"
-    nextAction: "Revue"
-    targetDate: "2026-07-20"
+    conditionDeCloture: "Re-signature : les 21 fichiers de liens sont hashés (couverture complète vérifiable --check)"
+    nextAction: "Re-soumettre au relecteur (PROVEN_REVIEW_PENDING)"
+    targetDate: "2026-08-15"
   - p0Id: P0-LS-04
     title: "Reclasser GitLab comme capacité supportée sans tuile courante"
     description: "Reclasser GitLab comme capacité supportée sans tuile courante (gate : registryUniverseReady)"

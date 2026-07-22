@@ -1,0 +1,45 @@
+{
+  "p0Ids": [
+    "P0-V3-03",
+    "P0-V4-3"
+  ],
+  "dedup": "P0-V3-03 et P0-V4-3 revendiquent la MÊME limite folder-per-tenant (300 enfants, 0,1 folder/s) — même source, ancrées ensemble.",
+  "authoritativeSource": "https://docs.cloud.google.com/resource-manager/docs/limits",
+  "sourceTitle": "Resource Manager — Limits and quotas (Google Cloud)",
+  "fetchedUtc": "2026-07-22T13:00:00Z",
+  "htmlFile": "gcp-resource-manager-limits.html",
+  "htmlSha256": "1d0780c16dbe48ed9d53bd94dcddd06420fd0cd6bc21c7b0b36579c42323c464",
+  "htmlBytes": 103709,
+  "verbatimQuotesPresent": [
+    {
+      "claim": "300 direct child folders",
+      "text": "cannot contain more than 300 folders",
+      "p0": [
+        "P0-V3-03",
+        "P0-V4-3"
+      ],
+      "present": true,
+      "byteOffset": 70753
+    },
+    {
+      "claim": "0.1 folder-create req/s",
+      "text": "Up to 0.1",
+      "p0": [
+        "P0-V3-03",
+        "P0-V4-3"
+      ],
+      "present": true,
+      "byteOffset": 68548
+    },
+    {
+      "claim": "10 nesting levels",
+      "text": "10 levels",
+      "p0": [
+        "P0-V3-03"
+      ],
+      "present": true,
+      "byteOffset": 70708
+    }
+  ],
+  "note": "Les constantes 300 et 0,1 ne sont plus des tests auto-référentiels : elles sont ancrées verbatim à la doc GCP autoritative. Rejouable via --offline (HTML committé) ou re-fetch live."
+}
