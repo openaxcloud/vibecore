@@ -45,12 +45,20 @@ afterEach(() => {
  * AI conversation+message, notification, api key, usage event (financial),
  * newsletter subscription, and an audit trail entry.
  */
-async function setup() {
+async function setup(
+  accountStoragePurger: (
+    projectIds: string[],
+    userId: string,
+  ) => Promise<{ classes: any[]; verified: boolean }> = async () => ({ classes: [], verified: true }),
+) {
   process.env.INTERNAL_API_SHARED_SECRET = SECRET;
   delete process.env.ACCOUNT_PURGE_ENABLED; // dry-run default under test
 
   const store = new TestApiStore();
-  const app = await buildApiApp({ store, emailProvider: new QuietEmailProvider() });
+  // Physical-erasure is stubbed here (verified by default) so these DB-purge
+  // route tests don't reach out to live GCS / workspace-manager; a dedicated
+  // test injects a failing purger to prove the fail-closed gate.
+  const app = await buildApiApp({ store, emailProvider: new QuietEmailProvider(), accountStoragePurger });
 
   const user = await store.createUser({
     email: 'purge-me@example.com',
@@ -352,5 +360,55 @@ describe('internal account purge — full erasure proof', () => {
     const shared = proof.classes.find((entry) => entry.dataClass === 'shared_org_content')!;
     expect(shared.action).toBe('retained');
     expect(shared.models.Project).toBe(1);
+  });
+
+  it('FAIL-CLOSED: physical erasure incomplete → account NOT purged, purgedAt never stamped, no proof', async () => {
+    // Inject a physical purger that reports a bucket it could not erase.
+    const { app, store, user } = await setup(async () => ({
+      classes: [{ dataClass: 'object_storage', action: 'deleted', models: {}, remainingAfterPurge: 3 }],
+      verified: false,
+    }));
+
+    await requestDeletionElapsed(app, store, user.id);
+    const res = await app.inject({
+      method: 'POST',
+      url: '/internal/account-purge',
+      headers: internalAuth,
+      payload: { enabled: true },
+    });
+
+    // The run reports a failure, not a purge.
+    expect(res.json()).toMatchObject({ purged: 0, failed: 1 });
+
+    // The account is NOT tombstoned: still reachable, no purgedAt, and still queued.
+    const stored = store.users.get(user.id)!;
+    expect(stored.email).toBe('purge-me@example.com');
+    expect((stored.preferences!.accountDeletion as { purgedAt?: string }).purgedAt).toBeUndefined();
+    expect(purgeProofs(store)).toHaveLength(0);
+  });
+
+  it('embeds the physical-erasure classes (object_storage, workspace_volumes) in the proof', async () => {
+    const { app, store, user } = await setup(async () => ({
+      classes: [
+        { dataClass: 'object_storage', action: 'deleted', models: { BucketsDeleted: 1, ObjectsErased: 5 }, remainingAfterPurge: 0 },
+        { dataClass: 'workspace_volumes', action: 'deleted', models: { WorkspacesDeleted: 1 }, remainingAfterPurge: 0 },
+      ],
+      verified: true,
+    }));
+
+    await requestDeletionElapsed(app, store, user.id);
+    await app.inject({
+      method: 'POST',
+      url: '/internal/account-purge',
+      headers: internalAuth,
+      payload: { enabled: true },
+    });
+
+    const [proof] = purgeProofs(store);
+    expect(proof.verifiedZeroRemaining).toBe(true);
+    const os = proof.classes.find((c) => c.dataClass === 'object_storage')!;
+    const vols = proof.classes.find((c) => c.dataClass === 'workspace_volumes')!;
+    expect(os).toMatchObject({ action: 'deleted', remainingAfterPurge: 0, models: { ObjectsErased: 5 } });
+    expect(vols).toMatchObject({ action: 'deleted', remainingAfterPurge: 0 });
   });
 });
