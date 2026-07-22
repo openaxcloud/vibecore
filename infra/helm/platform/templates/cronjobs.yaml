@@ -44,6 +44,11 @@
       "schedule" "0 4 * * *"
       "queue" "enterprise-jobs"
       "job" "inactivity.gc")
+    "accountPurge" (dict
+      "enabled" true
+      "schedule" "30 4 * * *"
+      "queue" "enterprise-jobs"
+      "job" "account.purge")
     "objectStorageMetering" (dict
       "enabled" true
       "schedule" "15 2 * * *"

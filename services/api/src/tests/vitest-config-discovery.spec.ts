@@ -1,7 +1,10 @@
-import { execFileSync } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
+
+const execFileAsync = promisify(execFile);
 
 /**
  * Regression guard for the api vitest discovery glob.
@@ -23,15 +26,20 @@ describe('vitest.config.ts discovery glob', () => {
   // Spec that lives OUTSIDE src/tests/ and must still be collected.
   const outOfTreeSpec = 'src/integrations/providers/supabase.account-stability.spec.ts';
 
-  it('collects spec files outside src/tests/', () => {
+  it('collects spec files outside src/tests/', async () => {
     expect(existsSync(resolve(serviceRoot, outOfTreeSpec))).toBe(true);
 
-    const output = execFileSync(vitestBin, ['list', '--config', 'vitest.config.ts'], {
+    // ASYNC exec, jamais execFileSync : la collecte `vitest list` dure ~60 s en
+    // CI chargée et un exec SYNCHRONE bloque l'event-loop du worker pendant ce
+    // temps — le worker ne répond plus au RPC du pool (`onTaskUpdate`) et
+    // vitest sort en « Unhandled Error: Timeout calling onTaskUpdate » avec
+    // TOUTE la suite verte (flake chronique observé sur les PR #34/#40).
+    const { stdout } = await execFileAsync(vitestBin, ['list', '--config', 'vitest.config.ts'], {
       cwd: serviceRoot,
       encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe'],
+      maxBuffer: 16 * 1024 * 1024,
     });
 
-    expect(output).toContain('supabase.account-stability.spec.ts');
-  });
+    expect(stdout).toContain('supabase.account-stability.spec.ts');
+  }, 180_000);
 });
