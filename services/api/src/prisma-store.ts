@@ -5,6 +5,14 @@ import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { createDatabaseClient, Prisma, type DatabaseClient } from '@vibecore/database';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { appPublicEnglish } from './app-public-copy.js';
+import {
+  anonymizedEmail,
+  anonymizedOrgSlug,
+  buildErasureProof,
+  type PurgeClassReport,
+  type PurgeUserAccountResult,
+} from './account-purge.js';
+import { deletionStatus, purgeDueAtMs, FINANCIAL_RETENTION_DAYS } from './data-deletion.js';
 import { API_KEY_SCOPES, DEFAULT_ENV_VAR_SCOPE, ENV_VAR_SCOPES } from './store.js';
 import type {
   AbuseEventRecord,
@@ -394,6 +402,397 @@ export class PrismaApiStore implements ApiStore {
 
       throw error;
     }
+  }
+
+  /*
+   * §16.12 purge executor — consumes ready_to_purge and REALLY erases the
+   * account, class by class, producing a persisted-shape erasure proof.
+   *
+   * Concurrency: the whole purge runs in ONE interactive transaction opened
+   * with a per-user pg_advisory_xact_lock, so two workers racing on the same
+   * user serialize; the loser re-reads the tombstone (purgedAt set) and
+   * returns already_purged without touching a row. Idempotent by the same
+   * mechanism. Fail-closed retention: financial records inside the 7-year
+   * window (canPurgeFinancialRecord) and posted ledger transactions
+   * (immutability triggers, mig 0078) are never DELETEd — they are counted
+   * and consigned as exceptions in the proof. Audit logs are redacted in
+   * place, never deleted. Any non-zero post-purge recount throws, rolling the
+   * transaction back so a half-purge can never be reported as done.
+   */
+  async purgeUserAccount(input: { userId: string; nowMs?: number }): Promise<PurgeUserAccountResult> {
+    const { userId } = input;
+    const nowMs = Number.isFinite(input.nowMs) ? (input.nowMs as number) : Date.now();
+    const nowIso = new Date(nowMs).toISOString();
+
+    return this.prisma.$transaction(
+      async (tx) => {
+        await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', `account-purge:${userId}`);
+
+        const user = await tx.user.findUnique({ where: { id: userId } });
+
+        if (!user) {
+          return { outcome: 'not_requested' as const };
+        }
+
+        const preferences = (user.preferences ?? {}) as Record<string, unknown>;
+        const deletion = (preferences.accountDeletion ?? null) as { requestedAt?: string; purgedAt?: string } | null;
+        const toMs = (value?: string) => {
+          if (!value) {
+            return null;
+          }
+
+          const ms = new Date(value).getTime();
+
+          return Number.isFinite(ms) ? ms : null;
+        };
+        const requestedAtMs = toMs(deletion?.requestedAt);
+        const purgedAtMs = toMs(deletion?.purgedAt);
+        const status = deletionStatus({ requestedAtMs, purgedAtMs, nowMs });
+
+        if (status === 'purged') {
+          return { outcome: 'already_purged' as const, purgedAt: deletion!.purgedAt! };
+        }
+
+        if (status === 'none') {
+          return { outcome: 'not_requested' as const };
+        }
+
+        if (status === 'grace_period') {
+          return { outcome: 'not_due' as const, purgeDueAt: new Date(purgeDueAtMs(requestedAtMs!)).toISOString() };
+        }
+
+        // ---- ready_to_purge: resolve org topology (sole-member vs shared) ----
+        const memberships = await tx.organizationMember.findMany({ where: { userId }, select: { organizationId: true } });
+        const orgIds = [...new Set(memberships.map((m) => m.organizationId))];
+        const soleOrgIds: string[] = [];
+        const sharedOrgIds: string[] = [];
+
+        for (const orgId of orgIds) {
+          const members = await tx.organizationMember.count({ where: { organizationId: orgId } });
+          (members === 1 ? soleOrgIds : sharedOrgIds).push(orgId);
+        }
+
+        const classes: PurgeClassReport[] = [];
+
+        // ---- deleted classes ----
+        const sessions = await tx.session.deleteMany({ where: { userId } });
+        classes.push({ dataClass: 'sessions', action: 'deleted', models: { Session: sessions.count } });
+
+        const emailTokens = await tx.emailVerificationToken.deleteMany({ where: { userId } });
+        const resetTokens = await tx.passwordResetToken.deleteMany({ where: { userId } });
+        const recoveryCodes = await tx.mfaRecoveryCode.deleteMany({ where: { userId } });
+        classes.push({
+          dataClass: 'auth_tokens',
+          action: 'deleted',
+          models: {
+            EmailVerificationToken: emailTokens.count,
+            PasswordResetToken: resetTokens.count,
+            MfaRecoveryCode: recoveryCodes.count,
+          },
+        });
+
+        const apiKeys = await tx.apiKey.deleteMany({ where: { userId } });
+        classes.push({ dataClass: 'api_keys', action: 'deleted', models: { ApiKey: apiKeys.count } });
+
+        const accounts = await tx.account.deleteMany({ where: { userId } });
+        const oauthConnections = await tx.oAuthConnection.deleteMany({ where: { userId } });
+        const userConnections = await tx.userConnection.deleteMany({ where: { userId } });
+        classes.push({
+          dataClass: 'connected_accounts',
+          action: 'deleted',
+          models: {
+            Account: accounts.count,
+            OAuthConnection: oauthConnections.count,
+            UserConnection: userConnections.count,
+          },
+        });
+
+        // AI history. AiMessage / AiToolCall / AiTokenUsage cascade off the
+        // conversation delete — count them FIRST so the proof carries real
+        // per-model numbers, not just the parent count. AiTokenUsage rows ride
+        // this cascade by schema design; the canonical billing truth
+        // (AiCostLedger / UsageEvent / Ledger*) is org-scoped and RETAINED below.
+        const aiMessages = await tx.aiMessage.count({ where: { conversation: { userId } } });
+        const aiToolCalls = await tx.aiToolCall.count({ where: { message: { conversation: { userId } } } });
+        const aiTokenUsages = await tx.aiTokenUsage.count({ where: { message: { conversation: { userId } } } });
+        const aiConversations = await tx.aiConversation.deleteMany({ where: { userId } });
+        const agentRuns = await tx.agentRun.deleteMany({ where: { userId } });
+        const agentMemories = await tx.agentMemory.deleteMany({ where: { userId } });
+        const agentMemoryPreferences = await tx.agentMemoryPreference.deleteMany({ where: { userId } });
+        const mcpInstalls = await tx.mcpInstall.deleteMany({ where: { userId } });
+        const mcpUserConfigs = await tx.mcpUserConfig.deleteMany({ where: { userId } });
+        const aiFeedback = await tx.aiMessageFeedback.deleteMany({ where: { userId } });
+        const notifications = await tx.notification.deleteMany({ where: { userId } });
+        const soleOrgCheckpoints =
+          soleOrgIds.length > 0
+            ? await tx.agentCheckpoint.deleteMany({ where: { organizationId: { in: soleOrgIds } } })
+            : { count: 0 };
+        classes.push({
+          dataClass: 'ai_history',
+          action: 'deleted',
+          models: {
+            AiConversation: aiConversations.count,
+            AiMessage: aiMessages,
+            AiToolCall: aiToolCalls,
+            AiTokenUsage: aiTokenUsages,
+            AgentRun: agentRuns.count,
+            AgentMemory: agentMemories.count,
+            AgentMemoryPreference: agentMemoryPreferences.count,
+            McpInstall: mcpInstalls.count,
+            McpUserConfig: mcpUserConfigs.count,
+            AiMessageFeedback: aiFeedback.count,
+            Notification: notifications.count,
+            AgentCheckpoint: soleOrgCheckpoints.count,
+          },
+        });
+
+        const collaborators = await tx.projectCollaborator.deleteMany({ where: { userId } });
+        const presence = await tx.collaborationPresence.deleteMany({ where: { userId } });
+        const comments = await tx.collaborationComment.deleteMany({ where: { userId } });
+        const shareLinks = await tx.projectShareLink.deleteMany({ where: { createdByUserId: userId } });
+        const spendLimits = await tx.userSpendLimit.deleteMany({ where: { userId } });
+        classes.push({
+          dataClass: 'collaboration',
+          action: 'deleted',
+          models: {
+            ProjectCollaborator: collaborators.count,
+            CollaborationPresence: presence.count,
+            CollaborationComment: comments.count,
+            ProjectShareLink: shareLinks.count,
+            UserSpendLimit: spendLimits.count,
+          },
+        });
+
+        // Projects & workspaces of sole-member orgs (files, snapshots,
+        // deployments, workspaces, gallery listings... cascade off Project).
+        const projects =
+          soleOrgIds.length > 0
+            ? await tx.project.deleteMany({ where: { organizationId: { in: soleOrgIds } } })
+            : { count: 0 };
+        classes.push({ dataClass: 'projects', action: 'deleted', models: { Project: projects.count } });
+
+        const importJobs =
+          soleOrgIds.length > 0
+            ? await tx.importJob.deleteMany({ where: { organizationId: { in: soleOrgIds } } })
+            : { count: 0 };
+        classes.push({ dataClass: 'imports', action: 'deleted', models: { ImportJob: importJobs.count } });
+
+        const orgMemberships = await tx.organizationMember.deleteMany({ where: { userId } });
+        classes.push({
+          dataClass: 'memberships',
+          action: 'deleted',
+          models: { OrganizationMember: orgMemberships.count },
+        });
+
+        // Marketing: unsubscribe by e-mail BEFORE the tombstone rewrites it.
+        const newsletter = await tx.newsletterSubscriber.deleteMany({ where: { email: user.email } });
+        classes.push({ dataClass: 'marketing', action: 'deleted', models: { NewsletterSubscriber: newsletter.count } });
+
+        // ---- anonymized classes (redacted in place, never deleted) ----
+        const auditRedacted = await tx.auditLog.updateMany({
+          where: { actorUserId: userId },
+          data: { ipAddress: null, metadata: { redacted: true, redactedAt: nowIso } as Prisma.InputJsonValue },
+        });
+        const adminAuditRedacted = await tx.adminAuditLog.updateMany({
+          where: { actorUserId: userId },
+          data: { ipAddress: null },
+        });
+        classes.push({
+          dataClass: 'audit_logs',
+          action: 'anonymized',
+          reason: 'append_only_redacted_never_deleted',
+          models: { AuditLog: auditRedacted.count, AdminAuditLog: adminAuditRedacted.count },
+        });
+
+        const usageEventRefs = await tx.usageEvent.updateMany({ where: { userId }, data: { userId: null } });
+        const agentCallLogRefs = await tx.agentCallLog.updateMany({ where: { userId }, data: { userId: null } });
+        const reservationRefs = await tx.ledgerReservation.updateMany({ where: { userId }, data: { userId: null } });
+        const checkpointRefs = await tx.agentCheckpoint.updateMany({ where: { userId }, data: { userId: null } });
+        const activityRefs = await tx.projectActivity.updateMany({
+          where: { actorUserId: userId },
+          data: { actorUserId: null },
+        });
+        const importRefs = await tx.importJob.updateMany({ where: { actorUserId: userId }, data: { actorUserId: null } });
+        const galleryRefs = await tx.galleryListing.updateMany({
+          where: { authorUserId: userId },
+          data: { authorUserId: null, authorName: 'Deleted account' },
+        });
+        const ticketRefs = await tx.supportTicket.updateMany({ where: { userId }, data: { userId: null } });
+        classes.push({
+          dataClass: 'user_references',
+          action: 'anonymized',
+          reason: 'retained_rows_detached_from_user',
+          models: {
+            UsageEvent: usageEventRefs.count,
+            AgentCallLog: agentCallLogRefs.count,
+            LedgerReservation: reservationRefs.count,
+            AgentCheckpoint: checkpointRefs.count,
+            ProjectActivity: activityRefs.count,
+            ImportJob: importRefs.count,
+            GalleryListing: galleryRefs.count,
+            SupportTicket: ticketRefs.count,
+          },
+        });
+
+        // Sole-member org shells: anonymize the name/slug (may carry PII), keep
+        // the row as the anchor of the retained financial records.
+        let orgsAnonymized = 0;
+
+        for (const orgId of soleOrgIds) {
+          await tx.organization.update({
+            where: { id: orgId },
+            data: { name: 'Purged account', slug: anonymizedOrgSlug(orgId), billingEmail: null },
+          });
+          orgsAnonymized += 1;
+        }
+
+        classes.push({
+          dataClass: 'organizations',
+          action: 'anonymized',
+          reason: 'retained_as_anchor_for_financial_records',
+          models: { Organization: orgsAnonymized },
+        });
+
+        // ---- retained classes (fail-closed retention, consigned) ----
+        // Financial rows past the 7-year window MAY be erased
+        // (canPurgeFinancialRecord); everything inside the window is retained.
+        const financialCutoff = new Date(nowMs - FINANCIAL_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+        const soleOrgWhere = { organizationId: { in: soleOrgIds } };
+        let financialExpiredDeleted = 0;
+
+        if (soleOrgIds.length > 0) {
+          const expiredUsage = await tx.usageEvent.deleteMany({
+            where: { ...soleOrgWhere, createdAt: { lt: financialCutoff } },
+          });
+          const expiredAiCost = await tx.aiCostLedger.deleteMany({
+            where: { ...soleOrgWhere, createdAt: { lt: financialCutoff } },
+          });
+          const expiredCredits = await tx.creditLedger.deleteMany({
+            where: { ...soleOrgWhere, createdAt: { lt: financialCutoff } },
+          });
+          financialExpiredDeleted = expiredUsage.count + expiredAiCost.count + expiredCredits.count;
+        }
+
+        const retainedFinancial = {
+          UsageEvent: soleOrgIds.length > 0 ? await tx.usageEvent.count({ where: soleOrgWhere }) : 0,
+          AiCostLedger: soleOrgIds.length > 0 ? await tx.aiCostLedger.count({ where: soleOrgWhere }) : 0,
+          CreditLedger: soleOrgIds.length > 0 ? await tx.creditLedger.count({ where: soleOrgWhere }) : 0,
+          StripeEvent: soleOrgIds.length > 0 ? await tx.stripeEvent.count({ where: soleOrgWhere }) : 0,
+          Subscription: soleOrgIds.length > 0 ? await tx.subscription.count({ where: soleOrgWhere }) : 0,
+        };
+        classes.push({
+          dataClass: 'financial_records',
+          action: 'retained',
+          reason: 'financial_retention_7y_fail_closed',
+          models: { ...retainedFinancial, ExpiredRowsErased: financialExpiredDeleted },
+        });
+
+        const ledgerTransactions =
+          soleOrgIds.length > 0 ? await tx.ledgerTransaction.count({ where: soleOrgWhere }) : 0;
+        classes.push({
+          dataClass: 'ledger',
+          action: 'retained',
+          reason: 'ledger_immutable_posted_entries_mig0078',
+          models: { LedgerTransaction: ledgerTransactions },
+        });
+
+        const sharedProjects =
+          sharedOrgIds.length > 0 ? await tx.project.count({ where: { organizationId: { in: sharedOrgIds } } }) : 0;
+        classes.push({
+          dataClass: 'shared_org_content',
+          action: 'retained',
+          reason: 'shared_organization_belongs_to_other_members',
+          models: { Project: sharedProjects },
+        });
+
+        // ---- tombstone: anonymize the user row, stamp purgedAt ----
+        await tx.user.update({
+          where: { id: userId },
+          data: {
+            email: anonymizedEmail(userId),
+            name: null,
+            passwordHash: null,
+            emailVerifiedAt: null,
+            mfaEnabled: false,
+            mfaSecretCiphertext: null,
+            platformAdmin: false,
+            language: null,
+            timezone: null,
+            lastActiveAt: null,
+            preferences: {
+              accountDeletion: { requestedAt: deletion!.requestedAt, purgedAt: nowIso },
+            } as Prisma.InputJsonValue,
+          },
+        });
+        classes.push({
+          dataClass: 'profile',
+          action: 'anonymized',
+          reason: 'tombstone_carries_purgedAt',
+          models: { User: 1 },
+        });
+
+        // ---- post-purge verification: recount every deleted class ----
+        const verify: Record<string, number> = {
+          sessions: await tx.session.count({ where: { userId } }),
+          auth_tokens:
+            (await tx.emailVerificationToken.count({ where: { userId } })) +
+            (await tx.passwordResetToken.count({ where: { userId } })) +
+            (await tx.mfaRecoveryCode.count({ where: { userId } })),
+          api_keys: await tx.apiKey.count({ where: { userId } }),
+          connected_accounts:
+            (await tx.account.count({ where: { userId } })) +
+            (await tx.oAuthConnection.count({ where: { userId } })) +
+            (await tx.userConnection.count({ where: { userId } })),
+          ai_history:
+            (await tx.aiConversation.count({ where: { userId } })) +
+            (await tx.agentRun.count({ where: { userId } })) +
+            (await tx.agentMemory.count({ where: { userId } })) +
+            (await tx.agentMemoryPreference.count({ where: { userId } })) +
+            (await tx.mcpInstall.count({ where: { userId } })) +
+            (await tx.mcpUserConfig.count({ where: { userId } })) +
+            (await tx.aiMessageFeedback.count({ where: { userId } })) +
+            (await tx.notification.count({ where: { userId } })),
+          collaboration:
+            (await tx.projectCollaborator.count({ where: { userId } })) +
+            (await tx.collaborationPresence.count({ where: { userId } })) +
+            (await tx.collaborationComment.count({ where: { userId } })) +
+            (await tx.projectShareLink.count({ where: { createdByUserId: userId } })) +
+            (await tx.userSpendLimit.count({ where: { userId } })),
+          projects: soleOrgIds.length > 0 ? await tx.project.count({ where: soleOrgWhere }) : 0,
+          imports: soleOrgIds.length > 0 ? await tx.importJob.count({ where: soleOrgWhere }) : 0,
+          memberships: await tx.organizationMember.count({ where: { userId } }),
+          marketing: await tx.newsletterSubscriber.count({ where: { email: user.email } }),
+        };
+
+        for (const entry of classes) {
+          if (entry.action === 'deleted') {
+            entry.remainingAfterPurge = verify[entry.dataClass] ?? 0;
+          }
+        }
+
+        const leftovers = Object.entries(verify).filter(([, remaining]) => remaining > 0);
+
+        if (leftovers.length > 0) {
+          // Roll the whole purge back: a partial erasure must never be
+          // reported (and stamped purgedAt) as complete.
+          throw new Error(
+            `ACCOUNT_PURGE_VERIFICATION_FAILED: rows remaining after purge for ${userId}: ${leftovers
+              .map(([k, v]) => `${k}=${v}`)
+              .join(', ')}`,
+          );
+        }
+
+        const proof = buildErasureProof({
+          userId,
+          requestedAt: deletion!.requestedAt!,
+          purgedAt: nowIso,
+          classes,
+        });
+
+        return { outcome: 'purged' as const, proof };
+      },
+      { timeout: 120_000, maxWait: 20_000 },
+    );
   }
 
   async findUserByEmail(email: string) {

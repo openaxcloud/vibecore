@@ -2,6 +2,7 @@ import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
 import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
+import type { PurgeUserAccountResult } from './account-purge.js';
 
 export interface UserRecord {
   id: string;
@@ -1246,6 +1247,24 @@ export interface ApiStore {
     preferences?: Record<string, unknown> | null;
   }): Promise<UserRecord>;
   deleteUser(userId: string): Promise<boolean>;
+
+  /**
+   * Execute the REAL purge of a self-serve account deletion (§16.12 : the
+   * executor that consumes ready_to_purge). Guarded end-to-end:
+   *   - refuses unless the user's accountDeletion request exists AND the
+   *     14-day grace window has elapsed (deletionStatus === 'ready_to_purge');
+   *   - idempotent: an already-purged account returns already_purged, no-op;
+   *   - concurrency-safe: two workers racing on the same user must yield ONE
+   *     purge (the store serializes per user — advisory lock in Postgres);
+   *   - retention fail-closed: financial records inside the 7-year window and
+   *     posted ledger transactions (immutability triggers, mig 0078) are
+   *     RETAINED and consigned as exceptions in the proof, never silently;
+   *   - audit logs are REDACTED (anonymized), never deleted;
+   *   - the user row becomes an anonymized tombstone carrying purgedAt.
+   * Returns the persisted-shape erasure proof (per class: deleted/anonymized/
+   * retained counts + post-purge 0-rows verification) on success.
+   */
+  purgeUserAccount(input: { userId: string; nowMs?: number }): Promise<PurgeUserAccountResult>;
   findUserByEmail(email: string): Promise<UserRecord | undefined>;
   findUserById(id: string): Promise<UserRecord | undefined>;
   /**
