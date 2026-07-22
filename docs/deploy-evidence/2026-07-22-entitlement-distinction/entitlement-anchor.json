@@ -1,0 +1,57 @@
+{
+  "p0": "P0-EX-05",
+  "schemaFile": "docs/parity/ENTITLEMENT_ARTIFACT_SCHEMA.json",
+  "schemaSha256": "303e32c30feffc6e0361e5944e1847fd7ab747900a7dc4a5920f1dbd2963c23f",
+  "engine": "ajv 8.17.1",
+  "cases": [
+    {
+      "case": "starter (1 app publiée, kinds UNKNOWN)",
+      "valid": true,
+      "expected": true,
+      "errorKeywords": []
+    },
+    {
+      "case": "core (compte + kinds explicites)",
+      "valid": true,
+      "expected": true,
+      "errorKeywords": []
+    },
+    {
+      "case": "types d'Artifact fournis comme NOMBRE (confusion)",
+      "valid": false,
+      "expected": false,
+      "errorKeywords": [
+        "const",
+        "type",
+        "oneOf"
+      ]
+    },
+    {
+      "case": "quota d'apps fourni comme ENSEMBLE de kinds (confusion)",
+      "valid": false,
+      "expected": false,
+      "errorKeywords": [
+        "type"
+      ]
+    },
+    {
+      "case": "ArtifactKind inconnu",
+      "valid": false,
+      "expected": false,
+      "errorKeywords": [
+        "const",
+        "enum",
+        "oneOf"
+      ]
+    },
+    {
+      "case": "dimension allowedArtifactKinds manquante (required)",
+      "valid": false,
+      "expected": false,
+      "errorKeywords": [
+        "required"
+      ]
+    }
+  ],
+  "claim": "Le modèle distingue structurellement publishedAppQuota (COMPTE d'apps publiées) et allowedArtifactKinds (ENSEMBLE de types d'Artifact §5.2). ajv rejette toute confusion (kinds-comme-nombre, quota-comme-ensemble, kind inconnu) et accepte Starter (1 app publiée, kinds UNKNOWN honnête). Les deux dimensions ne sont jamais interchangeables."
+}

@@ -2,7 +2,7 @@
 # (P0-A2-01 / P0-LS-16). Ne jamais éditer à la main — drift-check en CI. Le
 # champ validation reflète le dernier run du validateur sur l'arbre.
 schemaVersion: 1
-fileCount: 167
+fileCount: 168
 generatedAt: "2026-07-22T09:57:03Z"
 generatedFromCommit: 76d3922c35b652395a179e408444cd6a0755d4ef
 mergedCommit: 76d3922c35b652395a179e408444cd6a0755d4ef
@@ -34,7 +34,7 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: APPROVAL_STATUS.json
-    sha256: "15d68be2e1d05b69d3181a2c817f2bf163066e8e2336d8c03aec9b3671486a14"
+    sha256: "0840d29219e59ce4ec518c69a0af52addde926665c55e75bc8d880b92e72fb9c"
     schemaVersion: null
     repoCommit: null
     reviewer: UNKNOWN
@@ -99,7 +99,7 @@ documents:
     repoCommit: 1692f981
     reviewer: UNKNOWN
   - file: COUNTER_RECONCILIATION_20260720.md
-    sha256: "6e4fb77e03b2cb94c0ddbef79ffd972e2a452fff08c5fe2e55a62ef08ad8c647"
+    sha256: "bb34470ca1da88fbd568a2cb1b998a3f1fa68693b481340224b5a6fef4a0cb95"
     schemaVersion: 1
     repoCommit: null
     reviewer: UNKNOWN
@@ -147,6 +147,11 @@ documents:
     sha256: "7250f80e5711f7ef4dce2b77ca856804125e7872716794159247a3276cc8226c"
     schemaVersion: 1
     repoCommit: ca299f87
+    reviewer: UNKNOWN
+  - file: ENTITLEMENT_ARTIFACT_SCHEMA.json
+    sha256: "303e32c30feffc6e0361e5944e1847fd7ab747900a7dc4a5920f1dbd2963c23f"
+    schemaVersion: null
+    repoCommit: null
     reviewer: UNKNOWN
   - file: EVIDENCE_ARTIFACT_CONTRACT.md
     sha256: "c3bb9ed4b54d6b190c31c519200c841f430d1117cc89af3d1f08f880369b431f"
@@ -229,7 +234,7 @@ documents:
     repoCommit: d1063912
     reviewer: UNKNOWN
   - file: P0_REGISTRY.yaml
-    sha256: "52cd010c053df217271aa30e0aff249a8515312ff09f706f814ce4c7769bfe2b"
+    sha256: "8c0260b3a01d88a9d563651e21ca08215bcd211b6c2398ca2c7d05b8bded134f"
     schemaVersion: 1
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN
@@ -239,7 +244,7 @@ documents:
     repoCommit: af9e4e83
     reviewer: UNKNOWN
   - file: PARITY_STATUS.md
-    sha256: "9e6dd59d7bf9ca1b4aa7061b89d0b1e710d5d666e05634e6c66adcdb49a6c672"
+    sha256: "787b75d27011b82f21d994ddadf073a0b6970ebd6159b81b5676f49c56b1bce1"
     schemaVersion: 2
     repoCommit: 76d3922c
     reviewer: UNKNOWN

@@ -1171,20 +1171,21 @@ p0s:
     source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
     priority: 5
     owner: platform
-    status: OPEN
-    remediationTrack: A_TRIER
+    status: PROVEN_REVIEW_PENDING
+    remediationTrack: QUICK
+    resolutionBranch: "feat/gallery-pricing-har"
     refusalReason: "l'artefact ne distingue pas apps supplémentaires et types d'Artifact"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
     reviewCommit: "57febeab"
     commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: UNKNOWN
-    evidenceId: docs/parity/OFFERING_ENTITLEMENT_REGISTRY.yaml
-    proof: "Adopté via plan §11.3 (verbatim) ; OFFERING sans montants, entitlements AUTHENTICATED_LIVE_REQUIRED avant reproduction exacte."
+    evidenceId: docs/deploy-evidence/2026-07-22-entitlement-distinction/
+    proof: "DISTINCTION FORMALISÉE + EXÉCUTABLE (refus « ne distingue pas apps supplémentaires et types d'Artifact » levé). docs/parity/ENTITLEMENT_ARTIFACT_SCHEMA.json (draft 2020-12) sépare publishedAppQuota (un COMPTE, Starter=1 app expirant 30j) de allowedArtifactKinds (un ENSEMBLE de ArtifactKind §5.2, ou UNKNOWN si non observé — honnête, non deviné). verify-entitlement-distinction.mjs (ajv) prouve : Starter/Core valides ACCEPTÉS ; types-comme-nombre / quota-comme-ensemble / kind inconnu / dimension manquante REJETÉS. Les deux dimensions ne sont jamais interchangeables. Les montants restent AUTHENTICATED_LIVE_REQUIRED (distinct)."
     dependances: []
-    conditionDeCloture: "Compléter l'évidence : l'artefact ne distingue pas apps supplémentaires et types d'Artifact ; puis re-soumission au relecteur"
-    nextAction: "Revue"
-    targetDate: "2026-07-20"
+    conditionDeCloture: "Re-signature : distinction apps-publiées vs types-d'Artifact formalisée et exécutable (ajv rejette les confusions)"
+    nextAction: "Re-soumettre au relecteur (PROVEN_REVIEW_PENDING)"
+    targetDate: "2026-08-15"
   - p0Id: P0-EX-06
     title: "Retirer les montants tarifaires du plan durable"
     description: "Retirer les montants tarifaires du plan durable (gate : sourceBaselineReady)"

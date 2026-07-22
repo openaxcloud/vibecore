@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecode/parity/entitlement-artifact",
+  "title": "PlanEntitlementArtifactDimensions",
+  "description": "Schéma qui DISTINGUE structurellement deux dimensions d'entitlement jusque-là confondues (P0-EX-05) : publishedAppQuota (un COMPTE d'apps publiées) vs allowedArtifactKinds (un ENSEMBLE de types d'Artifact autorisés, taxonomie §5.2). Les deux ne sont jamais interchangeables.",
+  "x-schemaVersion": 1,
+  "x-p0Id": "P0-EX-05",
+  "type": "object",
+  "required": ["planId", "publishedAppQuota", "allowedArtifactKinds"],
+  "additionalProperties": false,
+  "properties": {
+    "planId": { "type": "string", "minLength": 1 },
+    "publishedAppQuota": {
+      "description": "COMBIEN d'apps le plan peut publier simultanément (un compte). Distinct des types d'Artifact.",
+      "type": "object",
+      "required": ["count"],
+      "additionalProperties": false,
+      "properties": {
+        "count": { "type": "integer", "minimum": 0 },
+        "expiryDays": { "type": ["integer", "null"], "minimum": 1 }
+      }
+    },
+    "allowedArtifactKinds": {
+      "description": "QUELS types d'Artifact le plan peut créer (ensemble de ArtifactKind §5.2), ou UNKNOWN si non observé. JAMAIS un nombre.",
+      "oneOf": [
+        { "const": "UNKNOWN" },
+        {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "enum": ["WEB_APP", "MOBILE_APP", "DATA_VISUALIZATION", "SLIDE_DECK", "ANIMATION_VIDEO", "DESIGN", "EXPERIENCE_3D"] }
+        }
+      ]
+    }
+  }
+}
