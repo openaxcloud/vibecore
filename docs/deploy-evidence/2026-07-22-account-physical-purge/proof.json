@@ -1,0 +1,30 @@
+{
+  "classes": [
+    {
+      "action": "deleted",
+      "dataClass": "object_storage",
+      "models": {
+        "BucketsDeleted": 2,
+        "ObjectsErased": 5,
+        "Projects": 2
+      },
+      "remainingAfterPurge": 0
+    },
+    {
+      "action": "deleted",
+      "dataClass": "workspace_volumes",
+      "models": {
+        "Projects": 2,
+        "WorkspacesDeleted": 1
+      },
+      "remainingAfterPurge": 0
+    }
+  ],
+  "exceptions": [],
+  "kind": "account-erasure-proof",
+  "purgedAt": "2026-07-15T00:00:00.000Z",
+  "requestedAt": "2026-07-01T00:00:00.000Z",
+  "userId": "proof-user-0000",
+  "verifiedZeroRemaining": true,
+  "version": 1
+}
