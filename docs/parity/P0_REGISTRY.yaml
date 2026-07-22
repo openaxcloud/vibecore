@@ -338,10 +338,10 @@ p0s:
     commit: "97759a77"
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/CI_ATTESTATION.yaml
-    proof: "CORRIGÉ v5 (22/07) : le défaut logique du vérificateur est levé (head_branch + test déterministe, cf. P0-LS-16) ; Quality Gates et Validate registries verts à la tête examinée (reconnus par le reçu -05) ; reste le roll post-merge (mini-PR) pour une chaîne entièrement cohérente."
+    proof: "CORRIGÉ v5 + PROUVÉ VIVANT (22/07) : le défaut logique du vérificateur est levé (head_branch + test déterministe) ; Quality Gates + Validate registries verts ; run post-merge VIVANT PRODUIT (22/07) : merge #42 (76d3922c) → job roll-attestation AUTOMATIQUE completed/success → commit bot 96454f3d (« attestation roulée automatiquement (run 29909965011 @ 76d3922c) »). Le run attesté 29909965011 est AUTHENTIFIÉ par le vérificateur DURCI : path=parity-registries.yml, name='Parity registries', event=push, head_branch=main, conclusion=success (verify-attestation-run.mjs exit 0). La chaîne génération→drift-check→validation→authentification→substitution→roll post-merge est désormais entièrement cohérente et rejouable."
     dependances: []
     conditionDeCloture: "Attestation corrigée + run post-merge + chaîne dont chaque étape annoncée est rejouable ; puis re-soumission"
-    nextAction: "Après le mini-merge attestation : re-soumettre la chaîne complète"
+    nextAction: "Re-soumission au relecteur : chaîne complète rejouable + roll post-merge vivant (run 29909965011)"
     targetDate: "2026-07-16"
   - p0Id: P0-V3-15
     title: "Règles normatives violées par le plan lui-même (historique d'audit, étiquetage, P0 non traçables)"
@@ -999,10 +999,10 @@ p0s:
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/CI_ATTESTATION.yaml
-    proof: "CORRIGÉ v5 (22/07), points 1-2 REJOUÉS : (1) verify-attestation-run.mjs vérifie désormais run.head_branch=='main' (EXPECTED_HEAD_BRANCH) ; (2) test de substitution DÉTERMINISTE : fixture FIGÉE d'un run étranger réel (capture API du run 29812663423 'Preview Deployment') injectée par stub fetch — plus aucune dépendance à l'historique ; la sonde live devient best-effort non bloquante. (3) preuve post-merge : mini-PR dédiée PRÊTE (branche ci/attestation-hardening-mini) portant UNIQUEMENT le mécanisme durci — attend le feu vert de merge d'Avi pour produire le roll vivant."
+    proof: "CORRIGÉ v5 + PROUVÉ VIVANT (22/07) : (1) head_branch=='main' vérifié ; (2) test de substitution DÉTERMINISTE (fixture figée du run étranger 29812663423 + contre-contrôle head_branch) ; (3) run post-merge VIVANT PRODUIT (22/07) : merge #42 (76d3922c) → job roll-attestation AUTOMATIQUE completed/success → commit bot 96454f3d (« attestation roulée automatiquement (run 29909965011 @ 76d3922c) »). Le run attesté 29909965011 est AUTHENTIFIÉ par le vérificateur DURCI : path=parity-registries.yml, name='Parity registries', event=push, head_branch=main, conclusion=success (verify-attestation-run.mjs exit 0). Les 3 conditions RR-05 sont désormais satisfaites par une preuve PRÉSENTE, plus une preuve future."
     dependances: []
     conditionDeCloture: "head_branch vérifié + test négatif déterministe + UN roll post-merge vert produit par le mécanisme durci (mini-merge sur feu vert Avi) ; puis re-soumission"
-    nextAction: "Feu vert Avi sur la mini-PR attestation → roll post-merge vert → re-soumettre"
+    nextAction: "Re-soumission au relecteur : les 3 défauts RR-05 levés + roll post-merge vivant authentifié (run 29909965011, commit bot 96454f3d)"
     targetDate: "2026-07-20"
   - p0Id: P0-LS-17
     title: "Réconcilier les compteurs (174/159, 114/99, surfaces 10)"
@@ -1042,10 +1042,10 @@ p0s:
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/CI_ATTESTATION.yaml
-    proof: "CORRIGÉ v5 (22/07) : défauts LS-16 points 1-2 levés dans cette branche (head_branch + fixture déterministe) ; le roll post-merge de la version durcie sera produit par la mini-PR attestation (feu vert Avi) — déclaré, pas anticipé."
+    proof: "CORRIGÉ v5 + PROUVÉ VIVANT (22/07) : défauts LS-16 levés (head_branch + fixture déterministe) ET run post-merge VIVANT PRODUIT (22/07) : merge #42 (76d3922c) → job roll-attestation AUTOMATIQUE completed/success → commit bot 96454f3d (« attestation roulée automatiquement (run 29909965011 @ 76d3922c) »). Le run attesté 29909965011 est AUTHENTIFIÉ par le vérificateur DURCI : path=parity-registries.yml, name='Parity registries', event=push, head_branch=main, conclusion=success (verify-attestation-run.mjs exit 0). L'attestation courante (CI_ATTESTATION.yaml sur main) est produite PAR la version durcie et authentifiée par elle."
     dependances: []
     conditionDeCloture: "Roll post-merge vert du mécanisme durci (après mini-merge) puis recalcul attesté ; puis re-soumission"
-    nextAction: "Après le mini-merge attestation : vérifier le roll + re-soumettre"
+    nextAction: "Re-soumission au relecteur : roll post-merge de la version durcie authentifié (run 29909965011)"
     targetDate: "2026-07-27"
   - p0Id: P0-B-01
     title: "Overlay code réel + bolt sur les 159 candidats (exigence propriétaire)"
