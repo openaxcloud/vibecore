@@ -1,0 +1,12 @@
+{
+  "id": 29812663423,
+  "name": "Preview Deployment",
+  "path": ".github/workflows/preview.yaml",
+  "event": "pull_request",
+  "head_branch": "ops/dr-proven",
+  "head_sha": "ccd762852253286a97893b2f40ab3f71293aee23",
+  "conclusion": "success",
+  "html_url": "https://github.com/openaxcloud/vibecore/actions/runs/29812663423",
+  "created_at": "2026-07-21T08:01:34Z",
+  "status": "completed"
+}
