@@ -73,6 +73,16 @@ type Deployment = {
 
   /** Set when this row was created by rolling back to a previous deployment. */
   rolledBackFromId?: string;
+
+  /**
+   * CTR-RELEASE-PUBLISH: the persistent ReleaseCatalog entry this deployment
+   * published (or re-ran). `release.version` is the monotonic release number
+   * surfaced in the history; `releaseId` drives redeploy-from-history.
+   */
+  metadata?: {
+    release?: { releaseId: string; version: number };
+    redeployedFromReleaseId?: string;
+  };
   createdAt?: string;
   startedAt?: string;
   finishedAt?: string;
@@ -278,6 +288,30 @@ export const action = (args: EnterpriseActionArgs) =>
         }
 
         return json({ error: await apiErrorMessage(error, 'Failed to redeploy') });
+      }
+
+      const redirectQuery = deploymentsRedirectQuery(request.url, body.workspaceId);
+
+      return redirect(`/projects/${projectId}/deployments${redirectQuery}`);
+    },
+
+    /*
+     * CTR-RELEASE-PUBLISH: redeploy from the persistent ReleaseCatalog. Unlike
+     * `redeploy` (re-runs a deployment), this re-runs a RELEASE by its retained
+     * image DIGEST, so it works even if the original revision/workspace is gone.
+     */
+    'redeploy-release': async ({ request, projectId, body }) => {
+      try {
+        await apiRequest(request, `/projects/${projectId}/releases/${body.releaseId}/redeploy`, {
+          method: 'POST',
+          signal: AbortSignal.timeout(DEPLOY_REQUEST_TIMEOUT_MS),
+        });
+      } catch (error) {
+        if (isReauthRedirect(error)) {
+          throw error;
+        }
+
+        return json({ error: await apiErrorMessage(error, 'Failed to redeploy release') });
       }
 
       const redirectQuery = deploymentsRedirectQuery(request.url, body.workspaceId);
@@ -858,6 +892,31 @@ function DeploymentRow({
             >
               <History className="h-3 w-3" aria-hidden /> rollback
             </span>
+          ) : null}
+          {deployment.metadata?.release?.version ? (
+            <span
+              className="inline-flex items-center gap-1 rounded bg-bolt-elements-background-depth-1 px-2 py-0.5 text-[11px] text-bolt-elements-textSecondary"
+              title={
+                deployment.metadata.redeployedFromReleaseId
+                  ? `Redeployed from release v${deployment.metadata.release.version} (by digest)`
+                  : `Published release v${deployment.metadata.release.version}`
+              }
+            >
+              <History className="h-3 w-3" aria-hidden /> release v{deployment.metadata.release.version}
+            </span>
+          ) : null}
+          {deployment.provider === 'server' && deployment.metadata?.release?.releaseId ? (
+            <Form method="post" className="inline">
+              <input type="hidden" name="intent" value="redeploy-release" />
+              <input type="hidden" name="releaseId" value={deployment.metadata.release.releaseId} />
+              <button
+                type="submit"
+                className="inline-flex items-center gap-1 rounded border border-bolt-elements-borderColor px-2 py-0.5 text-[11px] text-bolt-elements-textSecondary transition hover:text-bolt-elements-textPrimary"
+                title="Redeploy this release from the catalog (pull-by-digest — works even if the source revision is gone)"
+              >
+                <History className="h-3 w-3" aria-hidden /> redeploy release
+              </button>
+            </Form>
           ) : null}
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-bolt-elements-textSecondary">

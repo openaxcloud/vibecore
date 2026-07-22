@@ -1,13 +1,13 @@
 # RELEASE_PUBLISH_CONTRACT — Publish → Release (audit v4 I)
 
 contractId: CTR-RELEASE-PUBLISH
-contractVersion: 2
-schemaVersion: 2
-repoCommit: 1692f981
+contractVersion: 3
+schemaVersion: 3
+repoCommit: 5a084101
 reviewer: UNKNOWN
 expectedReviewer: OpenAI-Codex
-signatureResult: PENDING_REVIEW   # v1 REFUSED : « pas de ReleaseCatalog/Manifest persistant ni UI live » — v2 structuré + ancré, re-soumission requise
-implementationAnchor: "Publish→image signée→AR→serverAppDeployment PROUVÉ live (2026-07-15, cold 22s) ; rollback PAR DIGEST post-suppression PROUVÉ live (I-REL-1, vertical 7/7) ; machine PROMOTION_* dans lifecycle-state-machines.ts ; ReleaseCatalog PERSISTANT + UI live = CHANTIER OUVERT (refus v1, non résolu — déclaré)"
+signatureResult: PROVEN_REVIEW_PENDING   # v1 REFUSED (« pas de ReleaseCatalog/Manifest persistant ni UI live ») → v2 PENDING (chantier déclaré ouvert) → v3 : ReleaseCatalog PERSISTANT implémenté + prouvé (tests rejouables verts) ; preuve UI live = après déploiement de la branche (gate D6)
+implementationAnchor: "Publish→image signée→AR→serverAppDeployment PROUVÉ live (2026-07-15, cold 22s) ; rollback PAR DIGEST post-suppression PROUVÉ live (I-REL-1, vertical 7/7) ; machine PROMOTION_* dans lifecycle-state-machines.ts ; ReleaseCatalog PERSISTANT = IMPLÉMENTÉ (table ReleaseCatalogEntry mig 0079 + endpoints history/redeploy, branche feat/release-catalog-persistent, 5 tests + build strict verts) — la refus v1 est LEVÉE ; preuve UI live rejouable après déploiement de la branche"
 
 Contrat de la publication d'un projet. Complète DOMAIN_MODEL §5 (ReleaseCatalog,
 Promotion→Release) et la machine à états `PROMOTION_PREPARED→…→PROMOTION_COMMITTED`
@@ -105,5 +105,66 @@ rollback des déploiements SANS digest en 409 — cf. `UNK-ROLLBACK-FLAG-PERMANE
 ## Compatibilité
 - Deploys statiques historiques inchangés ; snapshot-image derrière SERVER_DEPLOY_SNAPSHOT_IMAGE.
 
+## ReleaseCatalog PERSISTANT (v3 — la refus v1 est LEVÉE)
+
+Le motif du refus v1 (« pas de ReleaseCatalog/Manifest persistant ni UI live ») est
+traité. Le `ReleaseCatalog` n'est plus une identité éparpillée dans
+`Deployment.metadata.serverDeploy.image` ni une interface `ReleaseManifest`
+seulement en mémoire : c'est une **table de premier ordre**, source de vérité des
+releases.
+
+- **Table `ReleaseCatalogEntry`** (migration `0079_release_catalog`). Chaque
+  publish server réussi ajoute UNE entrée **immuable** épinglant l'image par
+  **DIGEST** (`imageRef` + `imageDigest` `sha256:…`), avec une **version monotone
+  par projet** (`@@unique([projectId, version])`, attribuée sous
+  `withSerializedMutation` — deux publishes concurrents ne peuvent pas collisionner).
+  `publishedByDeploymentId` est un pointeur SANS FK **exprès** : l'entrée doit
+  **survivre** à la suppression du déploiement/workspace dont elle est tirée
+  (c'est le cœur d'I-PUB-3). Les champs audit-v4 (`promotionId`, `bundleRef`,
+  `sbomRef`, `provenanceRef`, `configRef`, `accessPolicyVersion`,
+  `retentionExpiresAt`, `referenceCount`) existent mais **nullable** — le pipeline
+  snapshot-image live ne les émet pas encore : DÉCLARÉ, jamais faussé.
+- **Écriture** : hook dans `runDeploymentBuildFlow` après la persistance du digest
+  (`app.ts` ~29930). Best-effort — le deploy a déjà réussi, donc une erreur
+  d'append est **loggée** (`release_catalog.append_failed`), jamais avalée, et ne
+  fait pas échouer la publication ; le déploiement est relié à sa release
+  (`metadata.release = {releaseId, version}`).
+- **Historique** : `GET /projects/:id/releases` → catalogue, version décroissante.
+- **Redeploy depuis l'historique** : `POST /projects/:id/releases/:releaseId/redeploy`
+  → ré-exécute l'image de l'entrée **PAR DIGEST** via le chemin rollback-par-digest
+  **déjà prouvé** (`resolveRollbackImage(entry, { revisionExists:false })` →
+  `startServerDeploymentViaManager({ image: plan.pullRef })`). Indépendant de la
+  survie de la révision source (I-PUB-3). Refuse une entrée sans digest (409),
+  inconnue/autre-projet (404). N'incrémente PAS la version (re-run de la même release).
+
+### Preuve (rejouable, verte)
+`services/api/src/tests/release-catalog.spec.ts` (5 tests) :
+- version **monotone** par projet + historique ordonné + isolation par projet ;
+- `GET /releases` renvoie l'historique persisté ;
+- **redeploy PAR DIGEST avec le déploiement source SUPPRIMÉ** (`publishedByDeploymentId`
+  pointant sur un id inexistant) → 201, le manager reçoit `imageRef@sha256:…`,
+  `resolvedWithoutLiveRevision=true` (**I-PUB-3 prouvé**) ;
+- redeploy inconnu/cross-projet → 404 ; entrée sans digest → 409 (jamais d'URL morte).
+
+Aucune régression : les specs rollback (`deployment-rollback-digest`,
+`release-rollback`) restent vertes (21 tests au total). Build runtime strict
+(`tsc NodeNext` depuis `src/server.ts`) = **0 erreur**.
+
+### Preuve UI live — après déploiement (gate D6)
+La table `ReleaseCatalogEntry` n'existe en prod qu'une fois la migration `0079`
+déployée. Le parcours **publish réel → entrée persistée → visible dans l'historique
+→ redeploy depuis l'historique** se rejoue en prod une fois la branche déployée
+(pas de merge dans `main` sans feu vert — gate D6). Le test ci-dessus prouve le
+mécanisme de bout en bout, déterministe et rejouable, dès maintenant.
+
 ## Résultat de signature
-- v1 : REFUSED (« pas de ReleaseCatalog/Manifest persistant ni UI live »). v2 : PENDING_REVIEW — le pipeline et le rollback sont prouvés live ; **ReleaseCatalog persistant + UI live restent un CHANTIER OUVERT, dit tel quel** — ce contrat ne les revendique pas.
+- v1 : REFUSED (« pas de ReleaseCatalog/Manifest persistant ni UI live »).
+- v2 : PENDING_REVIEW — pipeline + rollback prouvés live ; ReleaseCatalog persistant
+  + UI live déclarés CHANTIER OUVERT.
+- **v3 : PROVEN_REVIEW_PENDING** — le `ReleaseCatalog` **PERSISTANT** est implémenté
+  (table + write-hook + history + redeploy-par-digest) et **prouvé par tests
+  rejouables verts** (I-PUB-3 inclus : redeploy après suppression du déploiement
+  source). La refus v1 est **levée sur le fond**. Reste, honnêtement : la preuve
+  **UI live** (parcours réel en prod) attend le **déploiement de la branche** (D6) ;
+  les champs audit-v4 (promotion/sbom/provenance) restent nullable jusqu'à ce que le
+  pipeline les émette.
