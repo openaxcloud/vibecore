@@ -235,6 +235,13 @@ data:
   {{- end }}
   {{- end }}
 
+  {{- if .Values.platformEnv.runtime.nixGenerations }}
+  # CTR-RUNTIME-NIX generation registry — when set it supersedes the legacy
+  # PVC/zones/hash trio (rotation = flip the ACTIVE entry, révocation = status
+  # REVOKED refused everywhere with a typed error).
+  NIX_STORE_GENERATIONS: {{ .Values.platformEnv.runtime.nixGenerations | quote }}
+  {{- end }}
+
   {{- if .Values.platformEnv.email.httpEndpoint }}
   EMAIL_HTTP_ENDPOINT: {{ .Values.platformEnv.email.httpEndpoint | quote }}
   {{- end }}

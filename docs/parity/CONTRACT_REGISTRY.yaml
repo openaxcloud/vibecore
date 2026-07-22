@@ -74,13 +74,15 @@ contracts:
     signatureResult: REFUSED_V1
   - contractId: CTR-RUNTIME-NIX
     file: RUNTIME_NIX_CONTRACT.md
-    contractVersion: 2
+    contractVersion: 3
     refusalReasonV1: "format lock incompatible + rotation inconnue"
+    refusalReasonV2: "format ecode.lock et rotation/révocation des générations restent des dépendances ouvertes"
+    reviewReceiptIdV2: RR-20260721-CODEX-04
     hardeningStatus: HARDENED_PENDING_REVIEW
-    anchor: "store RO gVisor prouvé (preuve négative), gen v2, réveil 14,5s"
+    anchor: "v3 IMPLÉMENTE les 2 dépendances: ecode-lock.ts (parse strict + canonique + écrivain POST /projects/:id/nix-lock + enforcement Publish typé) + nix-generations.ts (registre ACTIVE/RETIRED/REVOKED, rotation atomique, révocation refusée partout) ; registre gen-2 peuplé du store LIVE 2026-07-22 ; cycle complet rejoué sur le document de prod (nix-generation-lifecycle.spec.ts)"
     expectedReviewer: OpenAI-Codex
     signatureResult: PENDING_REVIEW
-    openDependencies: "format ecode.lock + rotation des générations (chantier)"
+    openDependencies: "preuve E2E live via Publish = BLOCKED sur déploiement de cette PR (l'api/manager prod n'interprètent pas encore NIX_STORE_GENERATIONS)"
   - contractId: CTR-PROJECT-FACTORY
     file: PROJECT_FACTORY_CONTRACT.md
     contractVersion: 1

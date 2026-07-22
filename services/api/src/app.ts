@@ -64,7 +64,19 @@ import {
   type PlanKey,
   type QuotaKey,
 } from '@vibecore/billing';
-import { evaluateCapacityAlerts, DEFAULT_CAPACITY_ALERT_THRESHOLDS, type ClusterCapacity } from '@vibecore/k8s-client';
+import {
+  evaluateCapacityAlerts,
+  DEFAULT_CAPACITY_ALERT_THRESHOLDS,
+  ECODE_LOCK_FILENAME,
+  activeNixGeneration,
+  assertLockAgainstRegistry,
+  buildEcodeLock,
+  nixGenerationRegistryFromEnv,
+  parseEcodeLock,
+  serializeEcodeLock,
+  type ClusterCapacity,
+  type EcodeLock,
+} from '@vibecore/k8s-client';
 import { createPrometheusRegistry, createSentryReporter, durationSeconds, nowSeconds } from '@vibecore/observability';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import {
@@ -6606,6 +6618,9 @@ async function startServerDeploymentViaManager(payload: {
   healthPath?: string;
   readyTimeoutMs?: number;
   nixStorePvcName?: string;
+
+  /** CTR-RUNTIME-NIX: ecode.lock generation pin, enforced by the manager. */
+  nixGenerationRef?: string;
 
   // Machine-size resources (k8s quantities) — requests==limits, see rate-card-service.
   cpuRequest?: string;
@@ -29532,8 +29547,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             // Revision-based (reproducible) builds: the replayable input.
             revisionObject?: string;
             revisionSha256?: string;
+
+            // CTR-RUNTIME-NIX: the ecode.lock generation this deploy pinned.
+            storeGeneration?: string;
           }
         | undefined;
+
+      /*
+       * CTR-RUNTIME-NIX: the parsed (and registry-validated) ecode.lock.json,
+       * hoisted so the runtime start below pins the SAME generation the build
+       * used. Null = no lock (opt-in).
+       */
+      let ecodeLock: EcodeLock | null = null;
 
       let serverEnv: Record<string, string> = { DEPLOY_ID: queued.id, PORT: String(serverPort), ...body.envVars };
 
@@ -29623,6 +29648,46 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             deployConfig = null;
           }
 
+          /*
+           * CTR-RUNTIME-NIX: the project's toolchain lockfile (ecode.lock.json).
+           * When present it is ENFORCED: invalid content, an unknown/revoked
+           * store generation, or a drifted nixpkgs pin FAILS the publish with
+           * the exact reason — never a silent fallback to another generation.
+           * Absent lock = current behaviour (the lock is written by the
+           * platform via POST /projects/:id/nix-lock).
+           */
+          let ecodeLockError: string | null = null;
+
+          {
+            let lockContent: string | null = null;
+
+            try {
+              lockContent = (await buildAgent.readFile(ECODE_LOCK_FILENAME)).content;
+            } catch {
+              lockContent = null;
+            }
+
+            if (lockContent) {
+              try {
+                const parsedLock = parseEcodeLock(lockContent);
+                const registry = nixGenerationRegistryFromEnv();
+
+                if (registry) {
+                  assertLockAgainstRegistry(parsedLock, registry);
+                }
+
+                ecodeLock = parsedLock;
+                buildProgress.onLog({
+                  timestamp: nowIso(),
+                  level: 'info',
+                  message: `Server deploy: ${ECODE_LOCK_FILENAME} pins store generation ${parsedLock.storeGeneration} (nixpkgs ${parsedLock.nixpkgsRev.slice(0, 12)})`,
+                });
+              } catch (error) {
+                ecodeLockError = (error as Error).message;
+              }
+            }
+          }
+
           const runPlan: ServerRuntimePlan | undefined = deployConfig
             ? {
                 framework: 'node', // label only — the declared commands drive everything
@@ -29637,7 +29702,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               ? undefined
               : detection;
 
-          if (!runPlan) {
+          if (ecodeLockError) {
+            serverError = `Server deploy: ${ecodeLockError}`;
+          } else if (!runPlan) {
             const detectionError = detection as { error: string };
             serverError = `${detectionError.error} You can also declare {"run": "<command>"} in .ecode/deploy.json.`;
           } else {
@@ -29704,6 +29771,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                       installCommand: packageJson ? `${runPlan.install.command} ${runPlan.install.args.join(' ')}` : '',
                       buildCommand: runPlan.buildCommand,
                       nixStorePvcName: nixStorePvcForProject(project.id),
+                      nixGenerationRef: ecodeLock?.storeGeneration,
                       timeoutSeconds: Number(process.env.SERVER_DEPLOY_APP_BUILD_TIMEOUT_S) || 600,
                       runAppBuild: runAppBuildViaManager,
                       onLog: (level, line) => buildProgress.onLog({ timestamp: nowIso(), level, message: line }),
@@ -29762,6 +29830,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                       ...(context.revisionSha256
                         ? { revisionObject: context.revisionObject, revisionSha256: context.revisionSha256 }
                         : {}),
+                      ...(ecodeLock ? { storeGeneration: ecodeLock.storeGeneration } : {}),
                     };
                     buildProgress.onLog({
                       timestamp: nowIso(),
@@ -29857,6 +29926,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
              * which every real web app answers (overridable per install).
              */
             healthPath: process.env.SERVER_DEPLOY_HEALTH_PATH || '/',
+
+            // CTR-RUNTIME-NIX: the runtime pod pins the lock's generation too.
+            ...(ecodeLock ? { nixGenerationRef: ecodeLock.storeGeneration } : {}),
 
             // A Nix-enabled project keeps its /nix toolchain at runtime.
             nixStorePvcName: nixStorePvcForProject(project.id),
@@ -30172,6 +30244,102 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return ready;
   };
+
+  /*
+   * CTR-RUNTIME-NIX — the ONLY legitimate writer of ecode.lock.json. Composes
+   * the lock from the generation registry (the ACTIVE generation by default,
+   * or an explicit usable generation), writes the CANONICAL bytes into the
+   * project workspace (where the revision snapshot picks it up) and into
+   * durable project storage. 503 when no registry is configured; a revoked or
+   * unknown generation is a typed 409 — the platform never writes a lock it
+   * would itself refuse at publish time.
+   */
+  app.post('/projects/:projectId/nix-lock', async (request, reply) => {
+    const { projectId } = parse(projectParams, request.params);
+    const body = parse(
+      z.object({
+        generation: z.string().min(1).optional(),
+        bundles: z.array(z.string().min(1)).optional(),
+      }),
+      request.body ?? {},
+    );
+    const project = await requireProject(request, store, projectId, 'projects:write');
+
+    const registry = (() => {
+      try {
+        return nixGenerationRegistryFromEnv();
+      } catch (error) {
+        throw Object.assign(new Error(`nix generation registry misconfigured: ${(error as Error).message}`), {
+          statusCode: 503,
+          code: 'NIX_GENERATIONS_INVALID',
+        });
+      }
+    })();
+
+    if (!registry) {
+      return reply
+        .code(503)
+        .send({ error: 'No nix generation registry configured', code: 'NIX_GENERATIONS_UNAVAILABLE' });
+    }
+
+    let lock;
+
+    try {
+      const generation = body.generation
+        ? assertLockAgainstRegistry(
+            // Compose-then-assert keeps ONE enforcement path for reads and writes.
+            buildEcodeLock(
+              (() => {
+                const found = registry.generations.find((gen) => gen.id === body.generation);
+
+                if (!found) {
+                  throw Object.assign(new Error(`unknown store generation "${body.generation}"`), {
+                    code: 'NIX_GENERATION_UNKNOWN',
+                  });
+                }
+
+                return found;
+              })(),
+              body.bundles,
+            ),
+            registry,
+          )
+        : activeNixGeneration(registry);
+
+      if (!generation) {
+        return reply
+          .code(409)
+          .send({ error: 'No ACTIVE store generation in the registry', code: 'NIX_GENERATION_NONE_ACTIVE' });
+      }
+
+      lock = buildEcodeLock(generation, body.bundles);
+
+      // The write-side runs the SAME gate as the publish-side read.
+      assertLockAgainstRegistry(lock, registry);
+    } catch (error) {
+      const code = (error as { code?: string }).code ?? 'ECODE_LOCK_INVALID';
+
+      return reply.code(409).send({ error: (error as Error).message, code });
+    }
+
+    const content = serializeEcodeLock(lock);
+    const workspaceId = runtimeWorkspaceId(project.id, request.currentUser!.id);
+    const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
+
+    await agentMutateEnsuring(request, authorized, '/files/write', {
+      method: 'POST',
+      body: JSON.stringify({ path: ECODE_LOCK_FILENAME, content }),
+    });
+    await projectStorage.writeFiles(project.id, [{ path: ECODE_LOCK_FILENAME, content }]);
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'runtime.nix-lock.write',
+      resourceType: 'projectFile',
+      resourceId: ECODE_LOCK_FILENAME,
+    });
+
+    return reply.code(201).send({ lock });
+  });
 
   app.post('/projects/:projectId/deployments', async (request, reply) => {
     const project = await requireProject(

@@ -86,6 +86,9 @@ platformEnv:
     # allowlist ('*' = all). Empty = off, pod specs unchanged.
     nixStorePvc: ''
     nixProjects: ''
+    # Registre de générations du store Nix (JSON compact, cf. schéma dans
+    # packages/k8s-client/src/nix-generations.ts). Vide = mode legacy.
+    nixGenerations: ''
     # D3 multi-zone (approved 2026-07-17): per-zone store clones, same
     # generation snapshot. Format `zone=pvc,zone=pvc` (order = preference);
     # empty = legacy single-zone PVC behaviour. nixGenerationHash =

@@ -37,6 +37,9 @@ export interface AppBuildRunPayload {
   buildCommand?: string;
   timeoutSeconds: number;
   nixStorePvcName?: string;
+
+  /** CTR-RUNTIME-NIX: ecode.lock generation pin (manager enforces revocation). */
+  nixGenerationRef?: string;
 }
 
 export interface AppBuildRunResult {
@@ -79,6 +82,7 @@ export async function buildImageContextFromRevision(opts: {
   /** Declared/detected build command, or null when the app has no build step. */
   buildCommand: string | null;
   nixStorePvcName?: string;
+  nixGenerationRef?: string;
   timeoutSeconds?: number;
 
   /** Transport to the workspace-manager (injected so this module stays pure). */
@@ -148,6 +152,7 @@ export async function buildImageContextFromRevision(opts: {
       buildCommand: buildCommand || undefined,
       timeoutSeconds,
       nixStorePvcName: opts.nixStorePvcName,
+      nixGenerationRef: opts.nixGenerationRef,
     });
   } catch (error) {
     return {
