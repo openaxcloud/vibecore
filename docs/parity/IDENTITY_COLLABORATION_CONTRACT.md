@@ -10,7 +10,7 @@ reviewCloseCriterion: corriger — Group/Guest/AccessGrant non implémentés —
 ## 1. Entités de domaine
 
 ```
-Identity { identityId, kind ∈ { PLATFORM_USER, PUBLISHED_APP, APP_END_USER }, authProviderRefs[] }
+Identity { identityId, kind ∈ { USER, GUEST, SERVICE }, authProviderRefs[] }   # DÉCIDÉ 22/07 (DEC-IDENTITY-KIND) — remplace l'ancienne proposition { PLATFORM_USER, PUBLISHED_APP, APP_END_USER }
 Workspace { workspaceId, ownerBoundary, kind ∈ { PERSONAL, ORGANIZATION } }
 Membership { workspaceId, identityId, role ∈ { ADMIN, MEMBER, GUEST, VIEWER }, state, invitedBy, joinedAt }
 Group { groupId, workspaceId, name, memberIds[], scimManaged }
@@ -38,3 +38,14 @@ Groups et SCIM Groups : NOT_STARTED (P123/P131) ; audit logs : CODED (P132).
 
 Accès cross-tenant refusé ; grant expiré refusé ; guest hors scope refusé ;
 édition manuelle d'un groupe SCIM refusée.
+
+## Identity.kind — DÉCISION PRODUIT (2026-07-22, DEC-IDENTITY-KIND)
+
+Décision d'Avi transmise avec le verdict RR-20260722-CODEX-05 : `Identity.kind`
+porte EXACTEMENT trois types — **USER** (humain), **GUEST** (invité, accès
+limité — cohérent avec le rôle `guest` read-only implémenté PR #35),
+**SERVICE** (machine/automatisation — cohérent avec `PlatformIamIdentity`
+zéro-clé, PR #34/#38). Pas d'autre type ; tout 4e type = NOUVELLE décision.
+Le champ cesse d'être UNKNOWN ; l'implémentation (enum `IdentityKind` +
+migration + exposition API) s'ancre sur la branche PR #35.
+Référence : `DECISION_REGISTRY.yaml` → `DEC-IDENTITY-KIND`.

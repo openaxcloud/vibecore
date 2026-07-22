@@ -101,3 +101,24 @@ receipts:
     factualCorrectionsOrdered: "état des merges à aligner (réalité vérifiée gh au 21/07 08h UTC : #27 MERGED 04:42, #28 MERGED 04:46, #29 MERGED 04:29, #30 MERGED 04:36 — le verdict disait #29/#30 OUVERTES, périmé au moment de sa lecture) ; compteur 65 P0 avec les 5 PROVEN ; synchronisation conditionDeCloture/refusalReason/nextAction/reviewVerdict des 5 v3"
     refusalReasonsLocation: "docs/parity/incoming/REPONSE_EXPERT_PR37_20260721.md (verbatim) + P0_REGISTRY.refusalReason + CONTRACT_REGISTRY"
     completeness: COMPLETE
+
+  - reviewReceiptId: RR-20260722-CODEX-05
+    reviewerType: AUTOMATED_LLM
+    reviewerIdentity: "OpenAI-Codex"
+    reviewerModelVersion: "GPT-5 (Codex)"
+    reviewedAt: "2026-07-22"
+    auditedCommit: "60a987ca"   # tête de la PR #40 examinée
+    inputDocuments:
+      - path: docs/parity/DOSSIER_EXPERT_CONSOLIDE_20260721_V2.md
+        note: "dossier final transmis par Avi (état à 60a987ca)"
+    responsePath: docs/parity/incoming/REPONSE_EXPERT_PR40_20260722.md
+    responseHash: "sha256:c32a945d4a4974f1fcb651daeb7447ddeb446b8385c6c4986df9c52c300b9e1f"
+    summary: "pas de feu vert global PR #40 ; 4 corrections factuelles VÉRIFIÉES ; 5 P0 signés / 7 refusés ; CTR-OPERATIONS-DR refusé ; 2 lots code PR #39 refusés"
+    decisions:
+      accepted: [P0-V3-02, P0-A2-02, P0-A2-11, P0-LS-05, P0-LS-17]
+      refused: [P0-V4-1, P0-V4-2, P0-LS-13, P0-LS-16, P0-LS-18, P0-V3-14, P0-A2-09]
+      contractsRefused: 1    # CTR-OPERATIONS-DR (5 blocages verbatim — drill Cloud SQL reconnu comme preuve individuelle)
+      codeLotsRefused: 2     # PR #39 import/billing + grand livre (log brut absent, checks rouges, 2 défauts concurrents résiduels)
+    factualCorrectionsVerified: "0.1 merges (les 4 MERGED) ; 0.2 total 65 ; 0.3 champs v4 resynchronisés ; 0.4 ancres #27/#28"
+    refusalReasonsLocation: "docs/parity/incoming/REPONSE_EXPERT_PR40_20260722.md (verbatim) + P0_REGISTRY.refusalReason"
+    completeness: COMPLETE

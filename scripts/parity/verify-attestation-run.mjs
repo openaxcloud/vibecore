@@ -34,6 +34,9 @@ function loadYamlModule() {
 export const EXPECTED_WORKFLOW_PATH = '.github/workflows/parity-registries.yml';
 export const EXPECTED_WORKFLOW_NAME = 'Parity registries';
 export const EXPECTED_EVENTS = ['push'];
+// Verdict RR-05 : un run push du même workflow depuis une AUTRE branche ne
+// vaut pas attestation de main.
+export const EXPECTED_HEAD_BRANCH = 'main';
 
 /** Vérifie une attestation contre l'API GitHub. Retourne la liste des erreurs. */
 export async function verifyAttestationRun(att, { token, repo }) {
@@ -61,6 +64,11 @@ export async function verifyAttestationRun(att, { token, repo }) {
   // Verdict -04 : événement — l'attestation n'est roulée QUE post-merge (push).
   if (!EXPECTED_EVENTS.includes(run.event)) {
     errors.push(`event API (${run.event}) ∉ attendus [${EXPECTED_EVENTS.join(', ')}] — l'attestation ne roule que sur push`);
+  }
+
+  // Verdict RR-05 : la branche du run doit être main.
+  if (run.head_branch !== EXPECTED_HEAD_BRANCH) {
+    errors.push(`head_branch API (${run.head_branch}) ≠ attendu (${EXPECTED_HEAD_BRANCH}) — run d'une autre branche substitué`);
   }
 
   if (run.head_sha !== att.runCommit) {

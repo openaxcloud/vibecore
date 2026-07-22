@@ -3,6 +3,24 @@
 schemaVersion: 1
 repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
 decisions:
+  - decisionId: DEC-IDENTITY-KIND
+    title: "Identity.kind = 3 types confirmés : USER / GUEST / SERVICE"
+    rationale: >
+      Décision produit d'Avi (2026-07-22, transmise avec le verdict RR-05) :
+      l'identité §10.3 porte EXACTEMENT trois types — USER (humain), GUEST
+      (invité, accès limité — cohérent avec le rôle guest read-only implémenté
+      PR #35), SERVICE (machine/automatisation — cohérent avec
+      PlatformIamIdentity zéro-clé, PR #34/#38). Pas d'autre type.
+    consequence: >
+      Le champ Identity.kind cesse d'être UNKNOWN ; l'implémentation du champ
+      (enum + migration) s'ancre sur CTR-IDENTITY-COLLABORATION (PR #35) ; tout
+      4e type = NOUVELLE décision.
+    owner: owner
+    priority: 2
+    cost: "enum + migration + exposition API (chantier PR #35)"
+    status: DECIDED
+    nextAction: "Ancrer l'enum IdentityKind {USER, GUEST, SERVICE} dans le contrat identité + l'implémenter sur la branche PR #35"
+    targetDate: "2026-08-01"
   - decisionId: DEC-GALLERY-NO-SELF-PUBLISH
     title: "Pas de bouton « Publish to Gallery » self-service"
     rationale: >

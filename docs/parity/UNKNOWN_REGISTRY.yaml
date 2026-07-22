@@ -6,6 +6,13 @@
 schemaVersion: 2
 repoCommit: b774bfa38e881ebaa071fbf2c2fa9d72ab89efb5
 unknowns:
+  - unknownId: UNK-LAUNCH-CHANNEL
+    question: "Le « canal de lancement » Replit existe-t-il comme surface observable, et où (il est ABSENT du rendu public anonyme de /gallery — DOM complet 4e5380a8… vérifié) ?"
+    owner: platform
+    priority: 3
+    nextAction: "Chercher la surface (compte authentifié / autre route / doc produit) et produire une preuve primaire, ou classer NOT_OBSERVED avec périmètre"
+    targetDate: "2026-08-15"
+    expiration: "2026-08-31"
   - unknownId: UNK-AR-LIVE-PROMOTION
     question: "La promotion réelle contre un Artifact Registry live copie-t-elle bien signature+SBOM+provenance (avec fallback ORAS/BinAuthz vu GCP-12 Preview) ?"
     owner: platform

@@ -4,40 +4,40 @@ schemaVersion: 1
 repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
 p0s:
   - p0Id: P0-V4-1
-    title: "Collecteur aveugle : ajouter routes produit (rendu JS) + canal de lancement"
+    title: "Collecteur : routes produit rendues JS — SCINDÉ (canal de lancement → UNK-LAUNCH-CHANNEL)"
     priority: 1
     owner: platform
     status: PROVEN_REVIEW_PENDING
-    reviewReceiptId: RR-20260721-CODEX-04
+    reviewReceiptId: RR-20260722-CODEX-05
     remediationTrack: QUICK
-    conditionDeCloture: "Archive DOM/HTML primaire complète hash-recalculable + trace de collecte de la même session + champs synchronisés ; puis re-soumission au relecteur"
-    refusalReason: "preuve primaire absente et preuve du collecteur insuffisante : HTML/DOM 1,5 Mo non archivé ; texte tronqué par ellipse éditoriale ; metadata.json = déclaration secondaire ; aucune trace rejouable de la collecte ; champs de clôture restés à l'ancien refus"
+    conditionDeCloture: "Preuve primaire des routes produit rendues JS (DOM complet hash-recalculable + trace de collecte) — le canal de lancement est un UNKNOWN séparé (UNK-LAUNCH-CHANNEL) ; puis signature du relecteur"
+    refusalReason: "le titre demande toujours le canal de lancement, que la preuve déclare elle-même absent — la preuve ne soutient qu'une partie du titre ; correction : scinder le point et ne soumettre que « routes produit rendues JS »"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
-    reviewCommit: "6ca7d701"
+    reviewCommit: "60a987ca"
     commit: "07ced1c56bdbcb3ce77e883704342b71a2ad0961"
     reviewer: OpenAI-Codex
     evidenceId: docs/deploy-evidence/2026-07-21-gallery-pricing-v4/
-    proof: "CORRIGÉ v4 (21/07) : DOM COMPLET archivé — replit-gallery-dom.html, 1 500 639 octets, sha256 4e5380a8… RECALCULABLE (hash en page == hash hors page, procédure au README), ZÉRO ellipse ; 43 ancres routes produit /gallery/ dans le markup + trace réseau des routes produit (_next/data gallery/work|life/*.json → 200) de la MÊME session ; compteur archivé tel quel : '82<!-- --> Result<!-- -->s'. Canal de lancement : ABSENT du rendu public anonyme — trou déclaré au README (pas de sur-revendication). Champs synchronisés (ce bloc)."
-    nextAction: "Re-soumission au relecteur (paquet v4 : DOM complet + trace réseau + hashes recalculables)"
+    proof: "SCINDÉ v5 (22/07, réserve RR-05) : CE point ne porte PLUS QUE les routes produit rendues JS — preuve primaire : DOM COMPLET archivé (replit-gallery-dom.html, sha256 4e5380a8… recalculable, zéro ellipse), 43 ancres /gallery/ dans le markup + trace des requêtes _next/data des routes produit. Le canal de lancement (absent du rendu public anonyme) est SORTI du point → UNK-LAUNCH-CHANNEL (UNKNOWN_REGISTRY, owner+expiration). Titre et condition retitrés en conséquence."
+    nextAction: "Re-soumission au relecteur (point scindé : routes produit seules)"
     targetDate: "2026-07-16"
   - p0Id: P0-V4-2
     title: "Gallery : requalifier la table (mesures réelles, archive rendue)"
     priority: 2
     owner: platform
     status: PROVEN_REVIEW_PENDING
-    reviewReceiptId: RR-20260721-CODEX-04
+    reviewReceiptId: RR-20260722-CODEX-05
     remediationTrack: QUICK
-    conditionDeCloture: "Archive primaire reproductible (DOM complet, hash recalculable, valeurs datées par capture) ; puis re-soumission au relecteur"
-    refusalReason: "mesures plausibles mais non adossées à une archive primaire reproductible : aucun HTML rendu complet archivé ; hash DOM déclaré non recalculable depuis le paquet ; liste 'complète' tronquée ; pas de capture primaire liant date, page et valeurs"
+    conditionDeCloture: "Les mesures revendiquées == les mesures de l'artefact (43 ancres /gallery/, pas « cartes ») ; archive primaire reproductible ; puis signature du relecteur"
+    refusalReason: "désaccord entre « 43 cartes » et l'artefact qui mesure 43 ancres : le rendu textuel montre 20 cartes chargées puis Load all apps — une ancre n'est pas nécessairement une carte distincte"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
-    reviewCommit: "6ca7d701"
+    reviewCommit: "60a987ca"
     commit: "07ced1c56bdbcb3ce77e883704342b71a2ad0961"
     reviewer: OpenAI-Codex
     evidenceId: docs/deploy-evidence/2026-07-21-gallery-pricing-v4/
-    proof: "CORRIGÉ v4 (21/07) : le HTML rendu COMPLET est archivé (replit-gallery-dom.html) et le hash EST recalculable depuis le paquet (sha256sum == hash calculé en page, 4e5380a8…) ; il n'y a plus de 'liste' séparée tronquée — le DOM archivé EST la liste ; la capture primaire lie date (2026-07-21T08:05:27.295Z), page (https://replit.com/gallery) et valeurs (82 Results dans le markup, 43 cartes) dans metadata.json adossé à l'artefact hashé."
-    nextAction: "Re-soumission au relecteur (paquet v4)"
+    proof: "CORRIGÉ v5 (22/07) : la mesure revendiquée est EXACTEMENT celle de l'artefact — « 43 ancres /gallery/ dans le DOM » (grep rejouable au README ; le rendu textuel initial montre 20 cartes chargées puis 'Load all apps' — lazy-load, dit tel quel). Plus aucune mention de « cartes » comme mesure. Le HTML rendu COMPLET reste archivé (sha256 4e5380a8… recalculable), 82 Results dans le markup, capture datée liée au hash."
+    nextAction: "Re-soumission au relecteur (terminologie alignée sur la mesure réelle)"
     targetDate: "2026-07-16"
   - p0Id: P0-V4-3
     title: "Hiérarchie GCP : folder-per-tenant mort (300 cap + 0,1 req/s)"
@@ -99,13 +99,14 @@ p0s:
     source: "Audit v3 (2026-07-16), P0-02"
     priority: 2
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewReceiptId: RR-20260721-CODEX-04
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260722-CODEX-05 (COMPLET, responseHash c32a945d…) — requalification cohérente de bout en bout ; la signature valide UNIQUEMENT la constatation NOT_OBSERVED_IN_PUBLIC_RENDER — elle ne prouve pas que le report par application n'existe dans aucun parcours authentifié"
+    reviewReceiptId: RR-20260722-CODEX-05
     remediationTrack: QUICK
     refusalReason: "requalification du critère au lieu de satisfaction du critère enregistré : le registre exigeait encore la preuve du report au niveau app ; il faut modifier de façon cohérente le titre, la condition de clôture et les références normatives (NOT_OBSERVED_IN_PUBLIC_RENDER admis) — le relecteur ne remplace pas lui-même le point"
     refusalType: PREUVE_INSUFFISANTE
-    reviewVerdict: REFUSED
-    reviewCommit: "6ca7d701"
+    reviewVerdict: SIGNED
+    reviewCommit: "60a987ca"
     commit: "07ced1c56bdbcb3ce77e883704342b71a2ad0961"
     reviewer: OpenAI-Codex
     evidenceId: docs/deploy-evidence/2026-07-21-gallery-pricing-v4/
@@ -328,19 +329,19 @@ p0s:
     priority: 14
     owner: platform
     status: PROVEN_REVIEW_PENDING
-    reviewReceiptId: RR-20260721-CODEX-04
+    reviewReceiptId: RR-20260722-CODEX-05
     reviewVerdict: REFUSED
-    refusalReason: "chaîne complète non reproductible dans cette revue et PR globale rouge : Validate registries vert mais workflow global Quality Gates rouge ; contrôle d'attestation non fiable ; chaîne Node/Vitest non rejouable par le relecteur (checkout/node_modules absents)"
+    refusalReason: "la preuve annoncée incorpore le « contrôle d'attestation durci » qui conserve les défauts LS-16 ; chaîne Node non rejouable par le relecteur (checkout/node_modules absents) — les résultats CI officiels ne réparent pas le défaut logique du vérificateur"
     refusalType: PREUVE_INSUFFISANTE
     remediationTrack: QUICK
-    reviewCommit: "6ca7d701"
+    reviewCommit: "60a987ca"
     commit: "97759a77"
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/CI_ATTESTATION.yaml
-    proof: "CORRIGÉ v4 (21/07) : cause du rouge Quality Gates IDENTIFIÉE et RÉPARÉE — apps/admin/src/admin-model.test.ts attendait 31 sections admin alors que l'écran Agent routing (fee92bd0, 16/07) en a ajouté une 32e ; test corrigé (32 + assertion agent-routing). Contrôle d'attestation durci (cf. P0-LS-16). Production E2E (Playwright local stack) reste rouge sur TOUTES les branches y compris main (drift UI pré-existant, chantier séparé tracé) — dit honnêtement, pas caché."
+    proof: "CORRIGÉ v5 (22/07) : le défaut logique du vérificateur est levé (head_branch + test déterministe, cf. P0-LS-16) ; Quality Gates et Validate registries verts à la tête examinée (reconnus par le reçu -05) ; reste le roll post-merge (mini-PR) pour une chaîne entièrement cohérente."
     dependances: []
-    conditionDeCloture: "Quality Gates (workflow d'agrégation) VERT sur la PR de re-soumission + chaîne génération/drift-check/validation rejouable ; puis re-soumission au relecteur"
-    nextAction: "Vérifier Quality Gates VERT sur cette PR, puis re-soumettre (Production E2E = chantier séparé déclaré)"
+    conditionDeCloture: "Attestation corrigée + run post-merge + chaîne dont chaque étape annoncée est rejouable ; puis re-soumission"
+    nextAction: "Après le mini-merge attestation : re-soumettre la chaîne complète"
     targetDate: "2026-07-16"
   - p0Id: P0-V3-15
     title: "Règles normatives violées par le plan lui-même (historique d'audit, étiquetage, P0 non traçables)"
@@ -398,13 +399,14 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-02"
     priority: 2
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewReceiptId: RR-20260721-CODEX-04
-    reviewVerdict: REFUSED
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260722-CODEX-05 (COMPLET, responseHash c32a945d…) — ensemble structuré S01–S56 verrouillé par le validateur, job officiel vert ; la signature valide l'existence et le verrouillage de l'univers DOCUMENTAIRE des 56 services — pas leur implémentation"
+    reviewReceiptId: RR-20260722-CODEX-05
+    reviewVerdict: SIGNED
     refusalReason: "preuve sur-revendiquée : SURFACE_REGISTRY contient 159 P001–P159 mais aucun ensemble réel de 56 IDs S01–S56 ; la mention services = commentaire/source, pas univers exact verrouillé ; le proof affirme plus que l'artefact"
     refusalType: PREUVE_INSUFFISANTE
     remediationTrack: QUICK
-    reviewCommit: "6ca7d701"
+    reviewCommit: "60a987ca"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/SERVICE_REGISTRY.yaml
@@ -537,18 +539,19 @@ p0s:
     priority: 9
     owner: platform
     status: OPEN
+    reviewReceiptId: RR-20260722-CODEX-05
     remediationTrack: CHANTIER
-    refusalReason: "WIF prouvé GKE seulement, pas les 3 chemins"
+    refusalReason: "le paquet WIF contient des résultats historiques mais sa reproduction annoncée ne reproduit pas les 3 chemins : repro.sh remplace les 3 chemins par des commentaires ; workflow codé en dur sur des ressources DELETE_REQUESTED ; curl autorisé ne rougit pas sur 403/404 ; négatif GKE = affirmation sans tentative live archivée ; Dockerfile COPY main.py vs cloudrun-main.py (reconstruction impossible)"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
-    reviewCommit: "57febeab"
+    reviewCommit: "60a987ca"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
-    reviewer: UNKNOWN
+    reviewer: OpenAI-Codex
     evidenceId: docs/parity/baseline/sources/2026-07-20-gke-workload-identity.html
-    proof: "§4.4 REMPLACÉ, ancré GCP-13 (citation exacte « In GKE, Google Cloud manages the workload identity pool and provider for you and doesn't require an external identity provider ») : 3 chemins — GKE→WIF for GKE (recommandé, aucun IdP externe) ; hors GCP→IAM WIF externe ; Cloud Run→service identity + impersonation courte. Zéro clé persistante partout."
+    proof: "REFUSÉ RR-05 (22/07) — remédiation PILOTÉE PAR LA SESSION WIF (PR #38) : rendre repro.sh exécutable de bout en bout (provision paramétrée), exiger HTTP 200 + contenu attendu, jouer et archiver un vrai négatif GKE, corriger le Dockerfile, rejouer les 3 chemins. Les preuves historiques du 21/07 (run GitHub 29812447097, teardown tracé) restent consignées."
     dependances: []
-    conditionDeCloture: "Compléter l'évidence : WIF prouvé GKE seulement, pas les 3 chemins ; puis re-soumission au relecteur"
-    nextAction: "Revue humaine"
+    conditionDeCloture: "repro.sh de bout en bout + 200 exigé + négatif GKE archivé + Dockerfile corrigé + les 3 chemins rejoués ; puis re-soumission"
+    nextAction: "Session WIF (PR #38) : appliquer les 5 corrections verbatim RR-05 puis re-soumettre"
     targetDate: "2026-07-20"
   - p0Id: P0-A2-10
     title: "Décision Gallery incohérente"
@@ -577,13 +580,14 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-11"
     priority: 11
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewReceiptId: RR-20260721-CODEX-04
-    reviewVerdict: REFUSED
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260722-CODEX-05 (COMPLET, responseHash c32a945d…) — compteur régénéré à 122 work items, plus aucune valeur périmée 99 ; compteurs dérivés des registres actuels, validation officielle verte"
+    reviewReceiptId: RR-20260722-CODEX-05
+    reviewVerdict: SIGNED
     refusalReason: "compteurs périmés : le proof affirme canonicalWorkItemCount=99 alors que WORK_ITEM_REGISTRY courant en annonce 122 — le compteur 99 n'est plus la source unique actuelle ; régénérer le proof et toutes les vues"
     refusalType: PREUVE_INSUFFISANTE
     remediationTrack: QUICK
-    reviewCommit: "6ca7d701"
+    reviewCommit: "60a987ca"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/APPROVAL_STATUS.json
@@ -767,16 +771,17 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 5
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewReceiptId: RR-20260721-CODEX-04
-    reviewVerdict: REFUSED
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260722-CODEX-05 (COMPLET, responseHash c32a945d…) — les 4 registres spécialisés existent (7/8/7/4) et sont verrouillés séparément ; la signature porte sur la taxonomie DOCUMENTAIRE, pas sur la disponibilité des types de déploiement"
+    reviewReceiptId: RR-20260722-CODEX-05
+    reviewVerdict: SIGNED
     refusalReason: "l'evidenceId ne contient qu'une taxonomie sur quatre : ARTIFACT_KIND (7) présent, mais pas les 8 GeneratedAssetKind, les 7 ComponentKind ni la taxonomie Deployment annoncés — un renvoi au plan ne remplace pas les registres spécialisés"
     refusalType: PREUVE_INSUFFISANTE
     remediationTrack: QUICK
-    reviewCommit: "6ca7d701"
+    reviewCommit: "60a987ca"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
-    evidenceId: docs/parity/ARTIFACT_KIND_REGISTRY.yaml + GENERATED_ASSET_KIND_REGISTRY.yaml + COMPONENT_KIND_REGISTRY.yaml + DEPLOYMENT_TYPE_REGISTRY.yaml
+    evidenceId: docs/parity/ARTIFACT_KIND_REGISTRY.yaml   # + GENERATED_ASSET_KIND / COMPONENT_KIND / DEPLOYMENT_TYPE (les 4 taxonomies, listées dans proof — le champ pointe le fichier primaire)
     proof: "CORRIGÉ v4 (21/07) : les QUATRE registres spécialisés existent et sont VERROUILLÉS par gardes CI cassantes (validate-registries.mjs) : ARTIFACT_KIND_REGISTRY ×7 exacts, GENERATED_ASSET_KIND_REGISTRY ×8 exacts (DOCUMENT/SPREADSHEET/CSV/PDF/MARKDOWN/IMAGE/PRESENTATION_FILE/OTHER_FILE), COMPONENT_KIND_REGISTRY ×7 exacts (WEB_FRONTEND/API/SERVICE/WORKER/JOB/SHARED_PACKAGE/STATIC_SITE_COMPONENT), DEPLOYMENT_TYPE_REGISTRY ×4 exacts (AUTOSCALE/STATIC/RESERVED_VM/SCHEDULED). L'evidenceId liste les 4 fichiers."
     dependances: []
     conditionDeCloture: "Les 4 taxonomies existent en registres spécialisés verrouillés CI (7+8+7+4 exacts) ; puis re-soumission au relecteur"
@@ -923,19 +928,19 @@ p0s:
     priority: 13
     owner: platform
     status: PROVEN_REVIEW_PENDING
-    reviewReceiptId: RR-20260721-CODEX-04
+    reviewReceiptId: RR-20260722-CODEX-05
     remediationTrack: QUICK
-    refusalReason: "observation liée auto-déclarée, sans artefact primaire liant prix, navigateur, cookies et géolocalisation au même instant : pas de capture réseau/trace navigateur, pas de DOM Pricing archivé, pas de screenshot, pas de journal de collecteur ; hash DOM non recalculable sans le DOM ; la géo ne lie pas l'IP à la session"
+    refusalReason: "le DOM Pricing est primaire, mais la liaison « même session + mêmes cookies » reste DÉCLARATIVE : network-trace-session.txt n'est ni un HAR, ni des en-têtes Cookie, ni une trace Playwright/DevTools — deux déclarations séparées ne constituent pas la preuve de liaison"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
-    reviewCommit: "6ca7d701"
+    reviewCommit: "60a987ca"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/deploy-evidence/2026-07-21-gallery-pricing-v4/
-    proof: "CORRIGÉ v4 (21/07) : DOM Pricing COMPLET archivé (replit-pricing-dom.html, 266 140 octets, sha256 f69b35f6… RECALCULABLE) contenant les prix DANS le markup (2×$25, 2×$20, 2×$100, 1×$95) ; TRACE RÉSEAU de la même session (network-trace-session.txt : routes gallery _next/data → GET /pricing → 200, mêmes cookies gating_id/_dd_s/replit_consent) ; locale fr-FR + horodatage 2026-07-21T08:06:05.080Z + cookies lus dans le MÊME contexte de page que le hash. Géo-IP : sortie séparée non reliée par artefact → DÉCLARÉE comme trou au README (pas affirmée)."
+    proof: "EN COURS v5 (22/07) : exigence actée — il faut UNE trace HAR ou Playwright/DevTools exportée contenant les 2 navigations dans le même contexte, l'identifiant de contexte, les cookies au moment de chaque capture, et les hashes des 2 DOM produits par CE run. La re-capture est PILOTÉE PAR LA SESSION CAPTURE dédiée (coordination consignée ici) ; les acquis primaires v4 (DOM pricing complet f69b35f6…, prix dans le markup, géo non revendiquée) restent valides."
     dependances: []
-    conditionDeCloture: "Artefact primaire liant prix+locale+cookies+horodatage à la même session (DOM archivé + trace réseau + hash recalculable) ; limites déclarées (géo-IP) ; puis re-soumission au relecteur"
-    nextAction: "Re-soumission au relecteur (paquet v4 : DOM pricing + trace réseau même session)"
+    conditionDeCloture: "Un SEUL run instrumenté (HAR ou trace Playwright) liant mécaniquement les 2 navigations + cookies + hashes des 2 DOM ; puis re-soumission au relecteur"
+    nextAction: "Session capture dédiée : produire le HAR/trace Playwright d'un run unique (exigences RR-05 verbatim ci-dessus)"
     targetDate: "2026-07-20"
   - p0Id: P0-LS-14
     title: "Limiter « no model selector » au corpus observé"
@@ -985,19 +990,19 @@ p0s:
     priority: 16
     owner: platform
     status: PROVEN_REVIEW_PENDING
-    reviewReceiptId: RR-20260721-CODEX-04
+    reviewReceiptId: RR-20260722-CODEX-05
     remediationTrack: QUICK
-    refusalReason: "mécanisme CI encore cassable et non validé : permissions actions:read manquante (Get workflow run) ; verify-attestation-run ne vérifie ni le nom/ID du workflow ni l'événement (run étranger substituable) ; roll-attestation skippé sur PR (preuve vivante du nouveau mécanisme à produire) ; Quality Gates de la PR #37 rouge"
+    refusalReason: "attestation encore substituable et preuve post-merge absente : (1) run.head_branch=='main' non vérifié — un run push du même workflow depuis une autre branche peut être accepté ; (2) test de substitution non déterministe (dépend des 50 derniers runs) ; (3) le roll post-merge du mécanisme durci n'existe pas encore — une preuve future n'est pas une preuve présente"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
-    reviewCommit: "6ca7d701"
+    reviewCommit: "60a987ca"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/CI_ATTESTATION.yaml
-    proof: "CORRIGÉ v4 (21/07), chaque point rejoué : (1) permissions actions:read AJOUTÉE au workflow ; (2) verify-attestation-run.mjs vérifie désormais run.path==parity-registries.yml, run.name=='Parity registries' ET run.event=='push' ; (3) test négatif de SUBSTITUTION ajouté EN CI (verify-attestation-substitution-test.mjs) et REJOUÉ en local avec token réel : run vert étranger 29812663423 ('Preview Deployment', event=pull_request) REJETÉ sur les 3 contrôles ; contrôle positif rejoué : run 29802136737 authentifié (workflow+event+sha+conclusion+url+date) ; (4) cause du Quality Gates rouge réparée (admin-model.test 31→32). Preuve vivante post-merge du mécanisme durci : au premier merge de cette branche — déclaré."
+    proof: "CORRIGÉ v5 (22/07), points 1-2 REJOUÉS : (1) verify-attestation-run.mjs vérifie désormais run.head_branch=='main' (EXPECTED_HEAD_BRANCH) ; (2) test de substitution DÉTERMINISTE : fixture FIGÉE d'un run étranger réel (capture API du run 29812663423 'Preview Deployment') injectée par stub fetch — plus aucune dépendance à l'historique ; la sonde live devient best-effort non bloquante. (3) preuve post-merge : mini-PR dédiée PRÊTE (branche ci/attestation-hardening-mini) portant UNIQUEMENT le mécanisme durci — attend le feu vert de merge d'Avi pour produire le roll vivant."
     dependances: []
-    conditionDeCloture: "actions:read + identité workflow/event vérifiées + test négatif de substitution en CI + Quality Gates VERTS sur la PR + un run post-merge vert du mécanisme durci ; puis re-soumission au relecteur"
-    nextAction: "Vérifier Quality Gates VERT sur cette PR ; au merge (sur feu vert) : run post-merge vert du mécanisme durci ; puis re-soumettre"
+    conditionDeCloture: "head_branch vérifié + test négatif déterministe + UN roll post-merge vert produit par le mécanisme durci (mini-merge sur feu vert Avi) ; puis re-soumission"
+    nextAction: "Feu vert Avi sur la mini-PR attestation → roll post-merge vert → re-soumettre"
     targetDate: "2026-07-20"
   - p0Id: P0-LS-17
     title: "Réconcilier les compteurs (174/159, 114/99, surfaces 10)"
@@ -1005,13 +1010,14 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 17
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewReceiptId: RR-20260721-CODEX-04
-    reviewVerdict: REFUSED
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260722-CODEX-05 (COMPLET, responseHash c32a945d…) — 159 candidats IDE / 164 canoniques / 122 work items / 10 déclarées correctement distingués — plus d'univers ambigu"
+    reviewReceiptId: RR-20260722-CODEX-05
+    reviewVerdict: SIGNED
     refusalReason: "le proof conserve 99 work items (registre courant : 122) ; et les 159 candidats IDE vs l'univers canonique 164 doivent être NOMMÉS SÉPARÉMENT au lieu d'un compteur unique"
     refusalType: PREUVE_INSUFFISANTE
     remediationTrack: QUICK
-    reviewCommit: "6ca7d701"
+    reviewCommit: "60a987ca"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/APPROVAL_STATUS.json
@@ -1027,19 +1033,19 @@ p0s:
     priority: 18
     owner: platform
     status: PROVEN_REVIEW_PENDING
-    reviewReceiptId: RR-20260721-CODEX-04
+    reviewReceiptId: RR-20260722-CODEX-05
     reviewVerdict: REFUSED
-    refusalReason: "attestation ancienne et nouveau mécanisme non validé : la preuve reste ancrée sur une ancienne exécution, le mécanisme PR #37 porte les défauts actions:read + workflow/event non vérifiés (cf. P0-LS-16) ; le calcul post-merge n'est pas encore démontré par cette version"
+    refusalReason: "la génération courante reste adossée à un mécanisme d'attestation non entièrement validé (défauts LS-16 : head_branch non vérifié, substitution non déterministe, aucun roll post-merge de la version durcie) — l'attestation courante est antérieure à la preuve exigée"
     refusalType: PREUVE_INSUFFISANTE
     remediationTrack: QUICK
-    reviewCommit: "6ca7d701"
+    reviewCommit: "60a987ca"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/CI_ATTESTATION.yaml
-    proof: "CORRIGÉ v4 (21/07) : défauts LS-16 levés dans CETTE branche (permissions actions:read ; identité workflow parity-registries.yml + name + event=push vérifiés par verify-attestation-run.mjs ; test négatif de substitution d'un run étranger REJOUÉ — run vert 'Preview Deployment' rejeté). L'attestation courante (run 29802136737 @ 790eef17, commit bot 075eaa99) est authentifiée par le mécanisme durci. La preuve vivante POST-MERGE du mécanisme durci sera produite par le premier merge de cette branche — déclaré, pas anticipé."
+    proof: "CORRIGÉ v5 (22/07) : défauts LS-16 points 1-2 levés dans cette branche (head_branch + fixture déterministe) ; le roll post-merge de la version durcie sera produit par la mini-PR attestation (feu vert Avi) — déclaré, pas anticipé."
     dependances: []
-    conditionDeCloture: "Mécanisme durci (actions:read + identité workflow/event + test négatif) mergé, PUIS un roll d'attestation post-merge vert produit par CE mécanisme ; puis re-soumission au relecteur"
-    nextAction: "Au merge (sur feu vert) : vérifier le commit bot + run vert du mécanisme durci, puis re-soumettre"
+    conditionDeCloture: "Roll post-merge vert du mécanisme durci (après mini-merge) puis recalcul attesté ; puis re-soumission"
+    nextAction: "Après le mini-merge attestation : vérifier le roll + re-soumettre"
     targetDate: "2026-07-27"
   - p0Id: P0-B-01
     title: "Overlay code réel + bolt sur les 159 candidats (exigence propriétaire)"
