@@ -536,7 +536,7 @@
       "declared": "PROVEN_REVIEW_PENDING",
       "derived": "PROVEN_REVIEW_PENDING",
       "hasProof": true,
-      "reviewed": true
+      "reviewed": false
     },
     {
       "p0Id": "P0-V3-15",
@@ -816,7 +816,7 @@
       "declared": "PROVEN_REVIEW_PENDING",
       "derived": "PROVEN_REVIEW_PENDING",
       "hasProof": true,
-      "reviewed": true
+      "reviewed": false
     },
     {
       "p0Id": "P0-B-01",
