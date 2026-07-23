@@ -1,68 +1,48 @@
-# P0-LS-13 — HAR liant mécaniquement Gallery ↔ Pricing (même session, mêmes cookies)
+# P0-LS-13 — HAR fail-closed liant Gallery ↔ Pricing (même session, mêmes cookies)
+
+> ⚠️ **Ce README est GÉNÉRÉ par `generate-readme.mjs` depuis `context-manifest.json`.**
+> Ne pas éditer à la main — tous les nombres/hashes ci-dessous viennent de l'artefact final.
 
 **evidenceId :** `docs/deploy-evidence/2026-07-22-gallery-pricing-har/`
-**Branche :** `feat/gallery-pricing-har`
+**runId :** `6ae2116f-0a7a-4bd0-91c2-91283d159c79` · **contexte unique :** true · **navigateur :** chromium 147.0.7727.15
 
-## Ce que le refus exigeait (REPONSE_EXPERT_PR40 §`P0-LS-13`)
-Le DOM Pricing était accepté ; le seul point insuffisant était la **liaison
-déclarative** : `network-trace-session.txt` *affirmait* que Gallery et Pricing
-venaient de la même session sans le prouver. Correction minimale demandée : joindre
-un **HAR / trace Playwright** contenant, **dans le même run** :
-1. les **deux navigations dans un même contexte** ;
-2. l'**identifiant de contexte / session** ;
-3. les **cookies présents au moment de chaque capture** (en-têtes `Cookie`) ;
-4. les **hashes des deux DOM** produits par ce même run.
+## HAR (source de vérité)
+- fichier : `gallery-pricing.har` · **sha256 `bbf1facacfaca0cb2e15f4fa3f26f4fd5b52cf020c88f8df7189f237d9cb0505`**
+- **entrées : 301** · mode `full` · corps embarqués : false
+- valeurs de cookies caviardées : true
 
-## Artefacts (tous produits par UN SEUL run de `capture-har.mjs`)
-| fichier | rôle |
-|---|---|
-| `gallery-pricing.har` | HAR Playwright unique (`mode: full`) — **les 2 navigations dans le même `log`** ; en-têtes complets `Cookie`/`Set-Cookie`. Corps omis (HAR léger) ; DOM committés à part. |
-| `gallery-dom.html` | DOM de `replit.com/gallery` rendu dans ce run |
-| `pricing-dom.html` | DOM de `replit.com/pricing` rendu dans ce run (plans Starter/Core/Teams/Enterprise, prix `$20`/`$100`/`$90` présents) |
-| `context-manifest.json` | manifest reliant runId ↔ hashes DOM ↔ faits HAR ↔ cookies par page |
-| `capture-har.mjs` | script de repro (exécutable de bout en bout) |
+## Navigations (fail-closed : statut 200 + URL finale exacte exigés)
+- **gallery** `https://replit.com/gallery` → HTTP **200** · URL finale `https://replit.com/gallery` · DOM `gallery-dom.html` sha256 `6d036cfc4d983d58cbc9f5c88f8dad80997485ea143d47e2443534f0a0c21829`
+- **pricing** `https://replit.com/pricing` → HTTP **200** · URL finale `https://replit.com/pricing` · DOM `pricing-dom.html` sha256 `8933b6ef66e8fc5836a43082847fddee9776ca36301c699d5e08e14782773ead`
 
-## Preuve de liaison (extraite du HAR réel, non déclarative)
-Un seul `har.log` (creator **Playwright 1.59.1**, **303 entrées**) → **un seul contexte** :
+## Liaison cookie (fail-closed : 2 empreintes NON NULLES exigées)
+Cookies **transportés** Gallery→Pricing (même valeur, empreintes non nulles) : `cf_clearance`, `_cfuvid`.
+Non transportés (renouvelés / absents, honnête) : `__cf_bm`.
+- `cf_clearance` : posé=a7de0d710da8 · renvoyé-pricing=a7de0d710da8 · **sameValueCarried=true**
+- `__cf_bm` : posé=05ded9e28a5c · renvoyé-pricing=6384963f2e18 · **sameValueCarried=false**
+- `_cfuvid` : posé=64bbc531847e · renvoyé-pricing=64bbc531847e · **sameValueCarried=true**
 
-- **Gallery — navigation 1** (`2026-07-22T12:45:52Z`), HTTP **200** :
-  requête **sans** en-tête `Cookie` (session fraîche) ; réponse **`Set-Cookie: __cf_bm, _cfuvid`**.
-- **Pricing — navigation 2** (`2026-07-22T12:46:12Z`, 20 s plus tard, **même `har.log`**), HTTP **200** :
-  requête **avec en-tête `Cookie` (751 chars)** portant **`cf_clearance, _cfuvid, __cf_bm`**
-  — c.-à-d. **les cookies établis pendant la visite Gallery**, renvoyés sur Pricing.
+Total cookies transportés : **2** (≥1 exigé sinon la capture échoue).
 
-➡️ La liaison « même session + mêmes cookies » est **mécanique** : les cookies posés
-par la réponse Gallery sont renvoyés dans la requête Pricing, au sein du **même HAR**.
-Le contexte de session est identifié par `runId` (`context-manifest.json`) et par
-l'accumulation de cookies de contexte (Gallery : `__cf_bm,_cfuvid,cf_clearance` →
-Pricing : + `_dd_s,gating_id,replit_statsig_stable_id`).
+## Rattachement aux observations tarifaires (`PRICE_OBSERVATION_REGISTRY`)
+Observation-scan liée : `OBS-DELTA-20260720-13`.
+**Évidencées par CETTE session** (montant présent dans le DOM pricing de ce run) : **7** —
+`CORE 20 MONTHLY`, `CORE 18 ANNUAL_EFFECTIVE`, `CORE 20 ANNUAL_EFFECTIVE`, `PRO 100 MONTHLY`, `PRO 90 ANNUAL_EFFECTIVE`, `CORE 20 ANNUAL_EFFECTIVE`, `PRO 100 MONTHLY`.
+**Non évidencées par cette session** (provenance propre conservée, honnête) : **6** —
+`STARTER 0 MONTHLY`, `CORE 25 MONTHLY`, `PRO 95 ANNUAL_EFFECTIVE`, `ENTERPRISE null MONTHLY`, `CORE 25 MONTHLY`, `PRO 95 ANNUAL_EFFECTIVE`.
 
-**Liaison par hash de valeur** (`context-manifest.json` → `cookieLinkage`) : pour
-`cf_clearance` et `_cfuvid`, le `sha256_12` de la valeur **posée pendant la session**
-== celui **renvoyé sur Pricing** (`sameValueCarried: true`) → c'est bien *la même
-valeur de cookie* qui voyage. (`__cf_bm` est un jeton court renouvelé par Cloudflare
-entre les requêtes → `sameValueCarried: false`, honnêtement rapporté.)
-
-> **Confidentialité** : les **valeurs** de cookies (jetons Cloudflare éphémères) sont
-> **caviardées** dans le HAR committé — remplacées par `REDACTED(len=N,sha256_12=…)`
-> (276 occurrences, 0 valeur en clair). Les **noms**, la **présence** des en-têtes et
-> l'**égalité de hash** suffisent à la preuve ; aucun token de session n'est committé.
-
-Hashes DOM de ce run (voir `context-manifest.json` pour les valeurs exactes du run
-committé) : chaque `domSha256` == `sha256(fichier *-dom.html joint)`.
+## Garanties fail-closed (correction expert V3)
+- nav rejette non-200 : true · nav rejette URL inattendue : true
+- liaison exige 2 empreintes non nulles : true
 
 ## Reproduire
 ```bash
-# depuis un checkout du repo (Playwright + Chromium installés) :
-node docs/deploy-evidence/2026-07-22-gallery-pricing-har/capture-har.mjs
-# => réécrit gallery-pricing.har, gallery-dom.html, pricing-dom.html, context-manifest.json
-# Vérifier la liaison directement dans le HAR :
-node -e 'const h=JSON.parse(require("fs").readFileSync("docs/deploy-evidence/2026-07-22-gallery-pricing-har/gallery-pricing.har","utf8"));const E=h.log.entries;const p=E.find(e=>e.request.url==="https://replit.com/pricing");console.log("pricing Cookie:",(p.request.headers.find(x=>x.name.toLowerCase()==="cookie")||{}).value)'
+node docs/deploy-evidence/2026-07-22-gallery-pricing-har/capture-har.mjs      # capture fail-closed
+node docs/deploy-evidence/2026-07-22-gallery-pricing-har/generate-readme.mjs  # régénère CE README
+node docs/deploy-evidence/2026-07-22-gallery-pricing-har/verify-har.mjs       # tests négatifs + cohérence
 ```
-Chaque run est une **session fraîche** → les valeurs de cookies et les hashes DOM
-diffèrent, mais l'**invariant de liaison** (cookies posés par Gallery renvoyés par
-Pricing dans le même contexte) est reproductible.
 
 ## Statut
-`P0-LS-13` — **PROVEN_REVIEW_PENDING** : la réserve « liaison déclarative » est levée
-par ce HAR. evidenceId repointé. Ne pas clôturer avant re-signature du relecteur.
+**PROVEN_REVIEW_PENDING** — capture fail-closed, README/proof générés depuis le manifeste,
+liaison exigeant 2 empreintes non nulles, session rattachée aux observations tarifaires.
+Ne pas clôturer sans re-signature.
