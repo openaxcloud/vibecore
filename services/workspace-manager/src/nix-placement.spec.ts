@@ -141,6 +141,7 @@ describe('resolveNixStorePlacement (D3 multi-zone)', () => {
     zones: process.env.NIX_STORE_PVC_ZONES,
     hash: process.env.NIX_STORE_GENERATION_HASH,
     single: process.env.NIX_STORE_PVC_NAME,
+    registry: process.env.NIX_STORE_GENERATIONS,
   };
 
   afterEach(() => {
@@ -248,5 +249,117 @@ describe('resolveNixStorePlacement (D3 multi-zone)', () => {
       nixStorePvcName: 'nix-store-v2-pvc',
       nixStoreZone: 'europe-west9-a',
     });
+  });
+});
+
+
+/*
+ * CTR-RUNTIME-NIX — registry mode: rotation (ACTIVE entry wins, env trio
+ * ignored) and révocation (typed refusal, never a fallback).
+ */
+describe('resolveNixStorePlacement — generation registry', () => {
+  const HASH2 = `sha256:${'2'.repeat(64)}`;
+  const HASH3 = `sha256:${'3'.repeat(64)}`;
+  const registry = (gen2Status: 'ACTIVE' | 'RETIRED' | 'REVOKED', gen3?: boolean) =>
+    JSON.stringify({
+      schemaVersion: 1,
+      generations: [
+        {
+          id: 'gen-2',
+          status: gen2Status,
+          catalogSha256: HASH2,
+          nixVersion: '2.34.8',
+          nixpkgs: { channel: 'nixos-26.05', rev: '8eeec934ae0dbeca3d7868c059568a65c08b2fc3' },
+          zones: { 'europe-west9-a': 'nix-store-v2-pvc', 'europe-west9-b': 'nix-store-v2-b-pvc' },
+          bundles: [],
+          publishedAt: '2026-07-15T00:00:00Z',
+          ...(gen2Status === 'RETIRED' ? { retiredAt: '2026-07-22T00:00:00Z' } : {}),
+          ...(gen2Status === 'REVOKED'
+            ? { revokedAt: '2026-07-22T00:00:00Z', revokedReason: 'exercice de révocation' }
+            : {}),
+        },
+        ...(gen3
+          ? [
+              {
+                id: 'gen-3',
+                status: 'ACTIVE',
+                catalogSha256: HASH3,
+                nixVersion: '2.34.8',
+                nixpkgs: { channel: 'nixos-26.05', rev: '8eeec934ae0dbeca3d7868c059568a65c08b2fc3' },
+                zones: { 'europe-west9-a': 'nix-store-v3-pvc' },
+                bundles: [],
+                publishedAt: '2026-07-22T00:00:00Z',
+              },
+            ]
+          : []),
+      ],
+    });
+
+  const saved = {
+    zones: process.env.NIX_STORE_PVC_ZONES,
+    hash: process.env.NIX_STORE_GENERATION_HASH,
+    single: process.env.NIX_STORE_PVC_NAME,
+    registry: process.env.NIX_STORE_GENERATIONS,
+  };
+
+  afterEach(() => {
+    for (const [key, value] of Object.entries({
+      NIX_STORE_PVC_ZONES: saved.zones,
+      NIX_STORE_GENERATION_HASH: saved.hash,
+      NIX_STORE_PVC_NAME: saved.single,
+      NIX_STORE_GENERATIONS: saved.registry,
+    })) {
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+  });
+
+  it('rotation: the ACTIVE generation drives zones + drift hash; the legacy env trio is ignored', async () => {
+    process.env.NIX_STORE_GENERATIONS = registry('RETIRED', true);
+    process.env.NIX_STORE_PVC_ZONES = 'europe-west9-a=legacy-a,europe-west9-b=legacy-b';
+    process.env.NIX_STORE_GENERATION_HASH = `sha256:${'f'.repeat(64)}`;
+
+    const placement = await makeManager(new NodesOnlyK8sClient([node('europe-west9-a')])).resolveNixStorePlacement(
+      undefined,
+    );
+
+    expect(placement).toEqual({
+      nixStorePvcName: 'nix-store-v3-pvc',
+      nixStoreZone: 'europe-west9-a',
+      nixStoreGenerationHash: HASH3,
+    });
+  });
+
+  it('retention: an ecode.lock pin on a RETIRED generation still resolves (its own zones + hash)', async () => {
+    process.env.NIX_STORE_GENERATIONS = registry('RETIRED', true);
+
+    const placement = await makeManager(new NodesOnlyK8sClient([node('europe-west9-b')])).resolveNixStorePlacement(
+      undefined,
+      undefined,
+      'gen-2',
+    );
+
+    expect(placement.nixStoreGenerationHash).toBe(HASH2);
+    expect(placement.nixStorePvcName).toBe('nix-store-v2-b-pvc');
+  });
+
+  it('révocation: a pin on a REVOKED generation THROWS typed — never a silent fallback', async () => {
+    process.env.NIX_STORE_GENERATIONS = registry('REVOKED', true);
+    const manager = makeManager(new NodesOnlyK8sClient([node('europe-west9-a')]));
+
+    await expect(manager.resolveNixStorePlacement(undefined, undefined, 'gen-2')).rejects.toMatchObject({
+      code: 'NIX_GENERATION_REVOKED',
+    });
+  });
+
+  it('registry with nothing ACTIVE = store disabled (explicit foreign PVC passes through ungoverned)', async () => {
+    process.env.NIX_STORE_GENERATIONS = registry('RETIRED');
+
+    const manager = makeManager(new NodesOnlyK8sClient([node('europe-west9-a')]));
+    expect(await manager.resolveNixStorePlacement(undefined)).toEqual({});
+    expect(await manager.resolveNixStorePlacement('spike-disk-pvc')).toEqual({ nixStorePvcName: 'spike-disk-pvc' });
   });
 });

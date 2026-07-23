@@ -74,13 +74,16 @@ contracts:
     signatureResult: REFUSED_V1
   - contractId: CTR-RUNTIME-NIX
     file: RUNTIME_NIX_CONTRACT.md
-    contractVersion: 2
+    contractVersion: 4
     refusalReasonV1: "format lock incompatible + rotation inconnue"
+    refusalReasonV2: "format ecode.lock et rotation/révocation des générations restent des dépendances ouvertes"
+    reviewReceiptIdV2: RR-20260721-CODEX-04
+    refusalReasonV3: "lock pas prouvé immuable + enforcement incomplet (pin optionnel, rollback sans pin, validation partielle du catalogue, négatif live bloqué)"
     hardeningStatus: HARDENED_PENDING_REVIEW
-    anchor: "store RO gVisor prouvé (preuve négative), gen v2, réveil 14,5s"
+    anchor: "v4 CORRIGE les 4 points: (1) pin de génération OBLIGATOIRE (assertLockPublishable, alias mutable refusé ECODE_LOCK_UNPINNED) ; (2) pin persisté+réutilisé dans release ET rollback (RetainedRelease.storeGeneration → RollbackPlan → nixGenerationRef, rollback évalué contre la génération de SA release) ; (3) validation EXHAUSTIVE bundles/store paths/hashes vs catalogue signé (ECODE_LOCK_BUNDLE_TAMPERED/UNKNOWN) ; tests négatifs sur le vrai gen-2 ; (4) négatif live révocation prêt via mini-merge"
     expectedReviewer: OpenAI-Codex
     signatureResult: PENDING_REVIEW
-    openDependencies: "format ecode.lock + rotation des générations (chantier)"
+    openDependencies: "négatif live révocation (Publish → refus) = prêt à jouer via mini-merge dédié (feu vert Avi) ; l'api/manager prod n'interprètent pas encore NIX_STORE_GENERATIONS"
   - contractId: CTR-PROJECT-FACTORY
     file: PROJECT_FACTORY_CONTRACT.md
     contractVersion: 1

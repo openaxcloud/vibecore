@@ -915,10 +915,15 @@ function checkHeader(file, doc) {
       const ct = readFileSync(cp, 'utf8');
 
       const hasId = ct.includes(`contractId: ${c.contractId}`) || ct.includes(`"x-contractId": "${c.contractId}"`);
-      const hasV2 = /contractVersion:\s*2/.test(ct) || /"x-contractVersion":\s*2/.test(ct);
+      // Le fichier doit porter LA MÊME version que le registre (v2, v3, …) —
+      // l'ancien littéral « 2 » refusait toute remédiation ultérieure.
+      const declaredVersion = String(c.contractVersion);
+      const hasVersion =
+        new RegExp(`contractVersion:\\s*${declaredVersion}\\b`).test(ct) ||
+        new RegExp(`"x-contractVersion":\\s*${declaredVersion}\\b`).test(ct);
 
-      if (!hasId || !hasV2) {
-        fail('CONTRACT_REGISTRY.yaml', `${c.contractId}: durci déclaré mais le fichier ne porte pas contractId + contractVersion 2`);
+      if (!hasId || !hasVersion) {
+        fail('CONTRACT_REGISTRY.yaml', `${c.contractId}: durci déclaré mais le fichier ne porte pas contractId + contractVersion ${declaredVersion}`);
       }
     }
 
