@@ -1,3 +1,16 @@
+# CTR-OPERATIONS-DR : scrape du SLI par requête de l'API (api_request_duration_seconds)
+# par Managed Prometheus. Additif (PodMonitoring) — n'affecte pas l'app.
+observability:
+  apiRequestMetrics:
+    enabled: true
+    interval: '30s'
+    # Namespace des collecteurs Managed Prometheus (Dataplane V2 : le scrape est
+    # autorisé par namespaceSelector, pas par ipBlock — voir template).
+    collectorNamespace: 'gmp-system'
+    # CIDR(s) des nodes, défense en profondeur (sans effet seul sous Cilium).
+    scrapeSourceCidrs:
+      - '10.10.0.0/20'
+
 global:
   environment: staging
   imageRegistry: us-central1-docker.pkg.dev/PROJECT/vibecore

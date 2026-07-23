@@ -21,13 +21,40 @@ continues à 1 Hz depuis un pod api (connexion NEUVE + INSERT commité par
 
 ## Mesures
 
-| Mesure | Valeur | Cible |
-|---|---|---|
-| Indispo écritures (bascule) | **24,1 s** (23 FAIL à 1 Hz) | RTO zone-DB ≤ 5 min → tenu ×12 |
-| Indispo écritures (failback) | **16,0 s** (15 FAIL) | idem |
-| Lectures | mêmes fenêtres (38 READ-FAIL au total) | — |
-| `GET /health` API externe | **100 % en 200** (07:55:10→08:00:12, 1 Hz) | l'API n'est jamais tombée |
-| **Intégrité** | **0 écriture ACKée perdue** (270 ACK, 270 présentes en base) ; 2 lignes commitées dont l'ACK n'a pas atteint le client (réponse coupée) = comportement attendu, pas une perte | RPO transactions commitées = 0 → tenu |
+### Chiffre normatif — RÉGÉNÉRÉ depuis l'artefact brut (réserve expert V3 n°4)
+
+La disponibilité de l'API pendant le drill est **régénérée** depuis la source
+autoritaire re-interrogeable (uptime check GCP `api.e-code.ai/health`, 6
+régions), sur la **fenêtre exacte du drill** 07:55:00Z→08:00:00Z, par le
+script `regen-uptime-count.py` sur le dump brut `uptime-raw-drill-window.json`
+— aucune transcription manuelle :
+
+```
+$ python3 regen-uptime-count.py uptime-raw-drill-window.json
+  points check_passed : True=30  False=0  total=30
+  => disponibilité /health pendant le drill : 30/30   (6 régions × 5 min)
+```
+
+**Chiffre normatif = 30/30 points d'uptime True** (100 %). L'API HTTP n'est
+jamais tombée pendant la bascule ni le failback ; seules les **écritures DB**
+ont marqué la pause attendue (le check sonde `/health`, pas la DB). Re-tirable
+à volonté tant que GCP retient la fenêtre (commande dans « Repro »).
+
+> ⚠️ Correction du dossier consolidé : la version précédente citait « 276/276 »
+> (fenêtre post-drill 08:10→08:20, autre alignement) et « 270/270 » (métrique
+> d'intégrité d'écriture, voir plus bas) comme s'il s'agissait d'un même
+> compteur de sondes. Les deux étaient des transcriptions manuelles de
+> nombres différents. Le seul chiffre normatif de disponibilité est désormais
+> le 30/30 régénéré ci-dessus.
+
+### Fenêtres et intégrité (mesures dérivées ; voir statut de reproductibilité)
+
+| Mesure | Valeur | Source / statut | Cible |
+|---|---|---|---|
+| Indispo écritures (bascule) | **24,1 s** | fenêtre analysée ; **corroborée** par l'op Cloud SQL `FAILOVER 07:55:41→07:56:13` (autoritaire, committée) | RTO zone-DB ≤ 5 min → tenu ×12 |
+| Indispo écritures (failback) | **16,0 s** | idem ; op `FAILOVER 07:58:25→07:58:49` | idem |
+| Disponibilité `/health` | **30/30** (100 %) | **RÉGÉNÉRÉE depuis raw** (ci-dessus) | l'API n'est jamais tombée |
+| Intégrité écritures : 0 ACK perdu | 270 ACK, 270 en base | **mesure NON ré-générable** — le log de sonde brut est perdu (voir addendum n°2) et la table `_dr_failover_drill` a été supprimée après le drill. Consignée comme observation, PAS comme chiffre normatif | RPO commité = 0 (visé) |
 
 Erreurs observées pendant les fenêtres (attendu) : `pg_filenode.map I/O error`
 → `ECONNREFUSED` → `database system is starting up` → reprise.
@@ -40,19 +67,31 @@ gcloud sql instances describe vibecore-prod-postgres --format="value(state,setti
 # sondes 1 Hz (scripts write/read : voir probe-*.log en tête de fichier)
 gcloud sql instances failover vibecore-prod-postgres   # bascule
 # failback : relancer la même commande quand le standby est prêt (409 sinon)
+
+# RÉGÉNÉRER le chiffre normatif de disponibilité depuis la source autoritaire :
+TOKEN=$(gcloud auth print-access-token)
+curl -s -G "https://monitoring.googleapis.com/v3/projects/vibecore-495216/timeSeries" \
+  -H "Authorization: Bearer $TOKEN" \
+  --data-urlencode 'filter=metric.type="monitoring.googleapis.com/uptime_check/check_passed" AND resource.labels.host="api.e-code.ai"' \
+  --data-urlencode "interval.startTime=2026-07-21T07:55:00Z" \
+  --data-urlencode "interval.endTime=2026-07-21T08:00:00Z" \
+  --data-urlencode "aggregation.alignmentPeriod=60s" \
+  --data-urlencode "aggregation.perSeriesAligner=ALIGN_NEXT_OLDER" \
+  -o uptime-raw-drill-window.json
+python3 regen-uptime-count.py uptime-raw-drill-window.json
 ```
 
 Table de drill `_dr_failover_drill` supprimée après le drill.
 
 ## Addendum honnêteté (log complet de la sonde /health)
 
-La sonde /health locale a tourné jusqu'à 08:17:21 (900 échantillons) :
-897×200 et 3×`000` (curl code 000 = échec côté CLIENT) à 08:13:27, 08:15:45,
-08:16:18 — soit 13+ min APRÈS la fin du drill, échantillons isolés non
-consécutifs. Contre-vérification par la source d'autorité (uptime check GCP,
-6 régions de sonde) sur 08:10→08:20 : **276/276 True**. Conclusion : blips
-réseau du poste d'observation, pas de l'API. La fenêtre du drill lui-même
-(07:55→08:00) est à 100 % de 200 sur les DEUX sources.
+La sonde /health locale (poste d'observation) a tourné jusqu'à 08:17:21
+(900 échantillons) : elle a montré 3 codes `000` (échec côté CLIENT curl) à
+08:13:27 / 08:15:45 / 08:16:18 — 13+ min APRÈS la fin du drill, isolés. Ces
+`000` sont des blips réseau du poste, pas de l'API : la source autoritaire GCP
+sur cette fenêtre post-drill était à 100 % True. Ce point ne concerne PAS le
+chiffre normatif (30/30 sur la fenêtre du drill, régénéré ci-dessus) — il est
+gardé seulement pour l'honnêteté du log local, désormais lui aussi perdu.
 
 ## Addendum 2026-07-22 — sort des logs bruts de sonde (réserve expert n°5)
 

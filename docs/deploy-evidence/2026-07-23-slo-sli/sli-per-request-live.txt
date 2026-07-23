@@ -1,0 +1,18 @@
+# SLI par requête — preuve d'ingestion GMP end-to-end (2026-07-23, EVID-DR-SLI-001)
+
+## up (scrape réussi après NetworkPolicy namespaceSelector)
+vibecore-vibecore-platform-api-65d879778-6wczq:http up= 1
+vibecore-vibecore-platform-api-65d879778-rkfth:http up= 1
+
+## SLI succès par requête (part non-5xx, 5m) + p95
+ratio_succès= 1
+p95_latence_s= 0.02165384615384615
+
+## routes vues (SLI ventilé)
+  /auth/oauth/providers
+  /health
+  /internal/deployments/reap
+  /metrics
+  /orgs
+  /ready
+  /robots.txt

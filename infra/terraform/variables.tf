@@ -40,3 +40,9 @@ variable "ops_email" {
   description = "Adresse réelle du canal d'alerte ops (CTR-OPERATIONS-DR : jamais *.invalid)."
   default     = "avi@snatchbot.me"
 }
+
+variable "web_domain" {
+  type        = string
+  description = "Host réel de l'app web publique (CTR-OPERATIONS-DR : SLO web)."
+  default     = "e-code.ai"
+}

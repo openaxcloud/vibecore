@@ -60,7 +60,54 @@ resource "google_monitoring_alert_policy" "api_uptime_failed" {
   conditions {
     display_name = "API uptime check failed"
     condition_threshold {
-      filter          = "metric.type=\"monitoring.googleapis.com/uptime_check/check_passed\" AND resource.type=\"uptime_url\""
+      filter          = "metric.type=\"monitoring.googleapis.com/uptime_check/check_passed\" AND resource.type=\"uptime_url\" AND metric.labels.check_id=\"${google_monitoring_uptime_check_config.api_health.uptime_check_id}\""
+      duration        = "120s"
+      comparison      = "COMPARISON_LT"
+      threshold_value = 1
+
+      aggregations {
+        alignment_period   = "60s"
+        per_series_aligner = "ALIGN_FRACTION_TRUE"
+      }
+    }
+  }
+
+  notification_channels = [google_monitoring_notification_channel.ops_email.name]
+}
+
+# CTR-OPERATIONS-DR (réserve V3 n°1) — SLO WEB réel. Même mécanique que l'API,
+# host RÉEL (var.web_host, validé anti-placeholder). Ferme l'obligation « SLO
+# web » qui était UNTESTED faute de check.
+resource "google_monitoring_uptime_check_config" "web_health" {
+  display_name = "${var.name_prefix} web health"
+  timeout      = "10s"
+  period       = "60s"
+
+  http_check {
+    path         = "/"
+    port         = 443
+    use_ssl      = true
+    validate_ssl = true
+  }
+
+  monitored_resource {
+    type = "uptime_url"
+    labels = {
+      project_id = var.project_id
+      host       = var.web_host
+    }
+  }
+}
+
+resource "google_monitoring_alert_policy" "web_uptime_failed" {
+  display_name = "${var.name_prefix} web uptime failed"
+  combiner     = "OR"
+  enabled      = true
+
+  conditions {
+    display_name = "Web uptime check failed"
+    condition_threshold {
+      filter          = "metric.type=\"monitoring.googleapis.com/uptime_check/check_passed\" AND resource.type=\"uptime_url\" AND metric.labels.check_id=\"${google_monitoring_uptime_check_config.web_health.uptime_check_id}\""
       duration        = "120s"
       comparison      = "COMPARISON_LT"
       threshold_value = 1

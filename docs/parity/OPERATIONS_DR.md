@@ -7,12 +7,22 @@ previousReviewVerdict: REFUSED (2026-07-22, REPONSE_EXPERT_PR40 §D2) — drills
 contractScope: >-
   Ce document ne revendique PAS la signature du contrat CTR-OPERATIONS-DR
   entier. Les conclusions sont SCOPÉES aux artefacts : chaque drill joué est
-  une preuve individuelle (evidenceId + repro) ; les obligations UNTESTED /
-  BLOCKED (SLO web, snapshots planifiés, astreinte outillée, SLI par requête,
-  réplique cross-région, RTO applicatif complet) restent OUVERTES et le
-  contrat ne sera signable que quand elles seront faites. Le drill failover
-  Cloud SQL est enregistrable comme preuve individuelle validée (verdict
-  expert 2026-07-22).
+  une preuve individuelle (evidenceId + repro). Au 2026-07-23, FERMÉES avec
+  preuve live : SLO web, SLI par requête, monitoring persisté, failover DB.
+  Restent OUVERTES (donc contrat non signable) : snapshots planifiés (décision
+  coût, chiffrée §7), astreinte outillée, réplique cross-région, RTO applicatif
+  complet (UNTESTED volontaire). Le drill failover reste une preuve
+  individuelle validée (verdict expert 2026-07-22).
+reserveFixesV3_2026_07_23: >-
+  (n°4 compteur) chiffre normatif de disponibilité du drill failover RÉGÉNÉRÉ
+  depuis l'artefact brut GCP (script `regen-uptime-count.py` sur
+  `uptime-raw-drill-window.json`, fenêtre exacte 07:55→08:00) = 30/30 points
+  True ; les « 276/276 » et « 270/270 » transcrits à la main sont corrigés
+  (276 = fenêtre post-drill ; 270 = intégrité d'écriture, métrique différente
+  dont le log brut est perdu → consignée mais NON normative). (n°1 obligations)
+  SLO web + SLI par requête FERMÉS avec preuve live (EVID-DR-SLO-WEB-001,
+  EVID-DR-SLI-001) ; snapshots planifiés chiffrés (~1,9 $/mois aux 32 Gio
+  actuels) = décision Avi ; astreinte/cross-région = BLOCKED nommé.
 reserveFixes2026_07_22: >-
   (1) monitoring persisté dans Terraform (module paramétré + validations
   anti-placeholder + defaults réels, `terraform validate` + fmt verts) ;
@@ -45,14 +55,27 @@ documentée en tête du module.
 
 | SLO | Cible | Error budget (28 j) | Mesure |
 |---|---|---|---|
-| Disponibilité API (`/health`) | 99.5 % | 3 h 36 min | uptime check ci-dessus (alerte « uptime failed » → email réel) |
-| Disponibilité app web (`e-code.ai`) | 99.5 % | 3 h 36 min | ⚠ UNTESTED — check web à créer (même mécanique, 1 commande, voir §7) |
-| Latence / taux d'erreur par requête | — | — | **BLOCKED** : aucun pipeline de métriques applicatives (Prometheus/Managed Service) n'est déployé. Dépendance : décision + budget Avi |
+| Disponibilité API (`/health`) | 99.5 % | 3 h 36 min | uptime check `api.e-code.ai/health` (alerte « API uptime failed » → email réel) |
+| Disponibilité app web (`e-code.ai`) | 99.5 % | 3 h 36 min | ✅ **FERMÉ le 2026-07-23** (réserve V3 n°1) : uptime check web créé (Terraform `web_health` + validation anti-placeholder, + live), **702/702 points True** mesurés sur 20 min ; alerte « web uptime failed » → email réel (EVID-DR-SLO-WEB-001) |
+| Succès / latence **par requête** | 5xx ≤ 0.5 % ; p95 route < 1 s | dérivé du taux 5xx | ✅ **FERMÉ le 2026-07-23** (réserve V3 n°1) : l'API expose déjà `api_request_duration_seconds` (histogramme par requête, labels method/route/status) ; PodMonitoring GMP ajouté (IaC + live), scrape **prouvé `up=1`** après NetworkPolicy `namespaceSelector: gmp-system` (Dataplane V2), métrique **interrogeable dans Managed Prometheus** (ratio succès 1.0, p95 ~0,022 s live), + **policy d'alerte PromQL** sur l'error budget 5xx. EVID-DR-SLI-001 |
+
+### SLI par requête — requêtes normatives (Managed Prometheus, reproductibles)
+
+- **Taux de succès** : `sum(rate(api_request_duration_seconds_count{status!~"5.."}[5m])) / sum(rate(api_request_duration_seconds_count[5m]))`
+- **Error budget 5xx (alerte, seuil 0,5 %)** : `sum(rate(api_request_duration_seconds_count{status=~"5.."}[5m])) / clamp_min(sum(rate(api_request_duration_seconds_count[5m])),1) > 0.005` → policy `API per-request error budget` (canal email réel).
+- **p95 latence par route** : `histogram_quantile(0.95, sum by (le,route) (rate(api_request_duration_seconds_bucket[5m])))`
+
+Le scrape passe par un PodMonitoring (`templates/podmonitoring-api.yaml`, gate
+`observability.apiRequestMetrics.enabled`) et sa NetworkPolicy d'accompagnement :
+sur GKE **Dataplane V2 (Cilium)**, un `ipBlock` du CIDR des nodes NE suffit PAS
+(le collecteur est hostNetwork → identité `host`/`remote-node`, non matchée par
+CIDR) ; l'autorisation par `namespaceSelector` sur `gmp-system` est requise —
+prouvé live (`ipBlock` seul ⇒ `up=0` ; `+ namespaceSelector` ⇒ `up=1`).
 
 Politique d'error budget : budget consommé > 100 % sur 28 j glissants ⇒ gel des
 déploiements de confort (seuls fixes/sécurité passent) jusqu'à retour sous budget.
-Le baseline historique honnête n'existe pas (le SLI était factice avant le
-2026-07-21) — la première fenêtre de 28 j se termine le 2026-08-18.
+Le baseline historique honnête n'existe pas (le SLI d'uptime était factice avant
+le 2026-07-21) — la première fenêtre de 28 j se termine le 2026-08-18.
 
 ## 2. RPO / RTO — cibles ET mesures
 
@@ -124,7 +147,7 @@ par digest retenu (I-REL-1 live). Réfs : `2026-07-17-nix-multizone/`,
 |---|---|---|---|
 | **Perte de zone** (cordon europe-west9-a, la zone préférée) | 2026-07-20 | Projet Python neuf provisionne en zone-b : store clone monté + génération vérifiée, uv/venv, Preview 200, **Publish READY + 200** — bout en bout pendant la « panne ». Restauration prouvée dans les 2 sens, zéro split-brain. 2 bugs réels trouvés PAR l'exercice et corrigés (deadlock affinités data-PVC ; RBAC PV) | `2026-07-17-nix-multizone/ZONE_LOSS_TEST.md` |
 | **Perte d'instance API** (kill d'1 pod sous sonde continue) | 2026-07-21, **REJOUÉ 2026-07-22** | 2×**90/90 requêtes HTTP 200** pendant kill + remplacement (<2 min) — zéro downtime. ⚠ Le log du 21/07 cité par un commit n'a jamais atteint l'arbre (`.gitignore *.log` l'excluait silencieusement — réserve expert n°5) : exercice REJOUÉ le 22/07, artefact commité, gitignore corrigé | `chaos-probe-podkill-replay-20260722.log` + `-meta.txt` (EVID-DR-CHAOS-002) |
-| Perte de zone **base de données** (failover Cloud SQL RÉEL, GO Avi) | 2026-07-21 | Bascule b→c puis failback c→b sous sonde 1 Hz : **24,1 s** d'indispo écritures (bascule) + **16,0 s** (failback), lectures idem, **`/health` API 100 % en 200** pendant tout le drill, **0 écriture ACKée perdue** (270/270), topologie initiale restaurée | `2026-07-21-dr-failover/` (EVID-DR-FAILOVER-001) |
+| Perte de zone **base de données** (failover Cloud SQL RÉEL, GO Avi) | 2026-07-21 | Bascule b→c puis failback c→b : **24,1 s** d'indispo écritures (bascule) + **16,0 s** (failback), corroborées par les op Cloud SQL `FAILOVER` (autoritaires) ; disponibilité `/health` **30/30 points d'uptime GCP True** (100 %) — chiffre RÉGÉNÉRÉ depuis l'artefact brut, pas transcrit ; topologie initiale restaurée. (L'observation « 0 écriture ACKée perdue » est consignée mais NON ré-générable — log de sonde perdu) | `2026-07-21-dr-failover/` (EVID-DR-FAILOVER-001) |
 | Perte de **région** (europe-west9 entière) | — | **BLOCKED — architecture** : aucune réplique cross-région (DB, disques). GCS survit (multi-région EU). Décision + budget Avi (réplique lecture cross-région Cloud SQL ≈ coût d'une 2ᵉ instance) | — |
 
 ## 5. Astreinte / alerting — état honnête
@@ -149,17 +172,31 @@ par digest retenu (I-REL-1 live). Réfs : `2026-07-17-nix-multizone/`,
 | Kill-pod sous sonde | à chaque changement de topologie | EVID-DR-CHAOS-001 (one-liner) |
 | Failover Cloud SQL réel | annuel (joué le 2026-07-21 : 24,1 s / 16,0 s, zéro perte) | EVID-DR-FAILOVER-001 |
 
-## 7. BLOCKED / ACTIONS AVI (dépendances exactes, rien d'autre ne manque)
+## 7. État des obligations : FERMÉES vs BLOCKED (dépendance nommée)
+
+### Fermées (preuve live + IaC)
 
 1. ~~Failover Cloud SQL réel~~ — **FAIT le 2026-07-21 sur GO Avi** (24,1 s / 16,0 s, zéro perte — EVID-DR-FAILOVER-001).
-2. **Snapshots planifiés des PD workspaces** : créer une resource policy GCE et
-   l'attacher aux disques (`gcloud compute resource-policies create snapshot-schedule …`)
-   — coût à valider (0.058 $/Gio/mois sur octets stockés).
-3. **Astreinte outillée** : choix PagerDuty/OpsGenie/téléphone + rotation.
-4. **SLI par requête (latence/erreurs)** : déployer un pipeline de métriques.
-5. **Réplique cross-région** (perte de région) : décision + budget.
-6. **Confirmation du canal email** (boîte avi@snatchbot.me).
-7. Uptime check du domaine web `e-code.ai` (1 commande, même mécanique que l'API).
+2. ~~SLO web `e-code.ai`~~ — **FAIT le 2026-07-23** : uptime check (Terraform `web_health` + live), 702/702 True mesurés (EVID-DR-SLO-WEB-001).
+3. ~~SLI par requête (latence/erreurs)~~ — **FAIT le 2026-07-23** : `api_request_duration_seconds` scrapé par Managed Prometheus (PodMonitoring + NetworkPolicy IaC), `up=1` prouvé, requêtes SLO + policy d'alerte 5xx (EVID-DR-SLI-001). Contredit le « aucun pipeline de métriques » de la version précédente : GMP EST en service et ingère désormais le SLI par requête.
+4. ~~Monitoring persisté en Terraform~~ — FAIT le 2026-07-22 (module paramétré + validations anti-placeholder).
+
+### BLOCKED — décision/infra Avi (chiffrées quand possible)
+
+5. **Snapshots planifiés des PD workspaces** — **décision COÛT à remonter** :
+   resource policy GCE snapshot-schedule à attacher aux disques. Volumétrie
+   RÉELLE mesurée ce jour : **5 disques PVC, 32 Gio provisionnés au total**.
+   Coût snapshot standard europe-west9 = 0,058 $/Gio/mois sur octets stockés
+   (compressés, < provisionné) → borne haute **~1,9 $/mois** aux 32 Gio actuels,
+   croissant avec le nombre de projets. Commande prête ; **GO + accord coût = Avi**.
+6. **Astreinte outillée** — choix outil (PagerDuty/OpsGenie/téléphone) + rotation.
+   Aujourd'hui : opérateur unique (Avi), alertes → email réel. Dépendance : décision Avi.
+7. **Réplique cross-région** (perte de région entière) — décision + budget (≈ coût
+   d'une 2ᵉ instance Cloud SQL + disques répliqués). Dépendance : arbitrage Avi.
+8. **RTO applicatif complet DB** — mesurer le chemin restore→bascule config→rollout
+   →santé user re-pointerait la prod : **UNTESTED** volontaire (borne inférieure
+   connue = 13 min 06 s + rollout). À jouer lors d'un prochain GO fenêtre.
+9. **Confirmation du canal email** (boîte avi@snatchbot.me — mail de vérification GCP).
 
 ## 8. Incidents notables documentés (inchangé, historique réel)
 

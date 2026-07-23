@@ -111,5 +111,6 @@ module "monitoring" {
   name_prefix = local.name_prefix
   labels      = local.labels
   api_host    = var.api_domain
+  web_host    = var.web_domain
   ops_email   = var.ops_email
 }
