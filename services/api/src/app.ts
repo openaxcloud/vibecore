@@ -390,6 +390,12 @@ export interface ApiAppOptions {
   thumbnailCapturer?: ThumbnailCapturer;
   gitProvider?: GitProvider;
   emailProvider?: EmailProvider;
+  /**
+   * External-billing cancellation for account purge (§16.12, reserve #1).
+   * Defaults to cancelling via the configured Stripe client; tests inject a stub
+   * to exercise the fail-closed gate without live Stripe.
+   */
+  cancelExternalBilling?: (externalIds: string[]) => Promise<{ cancelled: string[]; failed: string[] }>;
   jwtSecret?: string;
   allowedOrigins?: string[];
   isProduction?: boolean;
@@ -27002,21 +27008,50 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       try {
-        const result = await store.purgeUserAccount({ userId, nowMs });
+        const result = await store.purgeUserAccount(
+          { userId, nowMs },
+          {
+            /*
+             * Billing cessation (reserve #1): cancel the external provider's
+             * subscriptions before the tombstone. Fail-closed — if a cancellation
+             * can't be confirmed, purgeUserAccount throws and the account stays
+             * queued (never billed-orphaned).
+             */
+            cancelExternalBilling:
+              options.cancelExternalBilling ??
+              (async (externalIds) => {
+                const cancelled: string[] = [];
+                const failed: string[] = [];
+
+                for (const externalId of externalIds) {
+                  try {
+                    if (!stripeClient) {
+                      // No Stripe configured but a live subscription exists → we
+                      // cannot confirm cancellation, so fail closed.
+                      failed.push(externalId);
+                      continue;
+                    }
+
+                    await stripeClient.cancelSubscription(externalId);
+                    cancelled.push(externalId);
+                  } catch {
+                    failed.push(externalId);
+                  }
+                }
+
+                return { cancelled, failed };
+              }),
+          },
+        );
 
         if (result.outcome === 'purged') {
           purged += 1;
           /*
-           * The PROOF is persisted before the id leaves the pending set: if the
-           * audit write fails the purge stays visible in the queue and the next
-           * run resolves it as already_purged (idempotent), so an erasure can
-           * never end up both unlisted and unproven.
+           * The proof is now persisted ATOMICALLY inside purgeUserAccount's
+           * transaction (tombstone + proof commit together — reserve #2), so
+           * there is no separate audit write here that could fail after the
+           * tombstone.
            */
-          await store.recordAdminAudit({
-            actorUserId: undefined,
-            action: 'account.purge_completed',
-            metadata: { userId, proof: result.proof },
-          });
           await store.mutateSystemSettingIds(ACCOUNT_DELETION_PENDING_KEY, { remove: userId });
         } else if (result.outcome === 'already_purged') {
           alreadyPurged += 1;

@@ -1,7 +1,7 @@
-import { PrismaClient, Prisma } from '../generated/client/index.js';
+import { PrismaClient, Prisma, SubscriptionStatus } from '../generated/client/index.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 
-export { PrismaClient, Prisma };
+export { PrismaClient, Prisma, SubscriptionStatus };
 
 export type DatabaseClient = InstanceType<typeof import('../generated/client/index.js').PrismaClient>;
 

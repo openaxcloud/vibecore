@@ -266,4 +266,91 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
       await prisma.$disconnect();
     }
   });
+
+  it('(reserve #1,#2,#4) cancels billing, atomically persists the proof, and scrubs PII', async () => {
+    process.env.INTERNAL_API_SHARED_SECRET = SECRET;
+    const prisma = createDatabaseClient();
+
+    try {
+      const store = new PrismaApiStore(prisma);
+      const cancelCalls: string[][] = [];
+      const app = await buildApiApp({
+        store,
+        emailProvider: new QuietEmailProvider(),
+        cancelExternalBilling: async (ids) => {
+          cancelCalls.push(ids);
+
+          return { cancelled: ids, failed: [] };
+        },
+      });
+      const { user, org } = await seedAccount(store);
+
+      // An ACTIVE subscription with an external (Stripe) id in the sole org.
+      const plan = await prisma.plan.create({
+        data: { key: `plan-${suffix()}`, name: 'Test', monthlyCents: 1000, limits: {} },
+      });
+      const externalId = `sub_${suffix()}`;
+      const sub = await prisma.subscription.create({
+        data: { organizationId: org.id, planId: plan.id, status: 'ACTIVE', externalId },
+      });
+
+      // PII: a delivery event keyed by the address + a PII-carrying admin audit row.
+      await prisma.emailDeliveryEvent.create({
+        data: {
+          provider: 'resend',
+          providerEventId: `evt-${suffix()}`,
+          type: 'delivered',
+          email: user.email,
+          subject: 'Your invoice',
+          fromAddress: 'billing@e-code.ai',
+          payload: { to: user.email, name: 'Purge Db' },
+        },
+      });
+      await prisma.adminAuditLog.create({
+        data: { actorUserId: user.id, action: 'admin.viewed', ipAddress: '203.0.113.9', metadata: { note: user.email } },
+      });
+
+      await requestElapsedDeletion(store, user.id);
+      const res = await app.inject({
+        method: 'POST',
+        url: '/internal/account-purge',
+        headers: { authorization: `Bearer ${SECRET}` },
+        payload: { enabled: true, userId: user.id },
+      });
+      expect(res.json()).toMatchObject({ purged: 1 });
+
+      // #1 billing cessation: external provider cancelled + DB flipped to CANCELED.
+      expect(cancelCalls).toEqual([[externalId]]);
+      expect((await prisma.subscription.findUnique({ where: { id: sub.id } }))!.status).toBe('CANCELED');
+
+      // #4 PII scrub: EmailDeliveryEvent anonymized (address/subject/from/payload).
+      const evt = await prisma.emailDeliveryEvent.findFirst({
+        where: { email: `purged-${user.id}@erased.invalid` },
+      });
+      expect(evt).toBeTruthy();
+      expect(evt!.subject).toBeNull();
+      expect(evt!.fromAddress).toBeNull();
+      expect((evt!.payload as { redacted?: boolean }).redacted).toBe(true);
+
+      // #4 admin-audit free-form metadata redacted (not just the IP).
+      const admins = await prisma.adminAuditLog.findMany({ where: { actorUserId: user.id } });
+      expect(admins.length).toBeGreaterThanOrEqual(1);
+      for (const row of admins) {
+        expect((row.metadata as { redacted?: boolean } | null)?.redacted).toBe(true);
+        expect(row.ipAddress).toBeNull();
+      }
+
+      // #2 atomicity: exactly one proof row (store-written in-tx), with the new classes.
+      const proofs = await prisma.adminAuditLog.findMany({
+        where: { action: 'account.purge_completed', metadata: { path: ['userId'], equals: user.id } },
+      });
+      expect(proofs.length).toBe(1);
+      const proof = (proofs[0]!.metadata as unknown as { proof: ErasureProof }).proof;
+      expect(proof.verifiedZeroRemaining).toBe(true);
+      expect(proof.classes.find((c) => c.dataClass === 'billing_cessation')!.models.SubscriptionsCancelled).toBe(1);
+      expect(proof.classes.find((c) => c.dataClass === 'communications')!.models.EmailDeliveryEvent).toBe(1);
+    } finally {
+      await prisma.$disconnect();
+    }
+  });
 });

@@ -6,6 +6,7 @@ import {
   anonymizedEmail,
   anonymizedOrgSlug,
   buildErasureProof,
+  type AccountPurgeDeps,
   type PurgeClassReport,
   type PurgeUserAccountResult,
 } from '../account-purge.js';
@@ -288,7 +289,10 @@ export class TestApiStore implements ApiStore {
    * the single-threaded test runtime observe exactly-once purge semantics like
    * the advisory-locked Postgres implementation.
    */
-  async purgeUserAccount(input: { userId: string; nowMs?: number }): Promise<PurgeUserAccountResult> {
+  async purgeUserAccount(
+    input: { userId: string; nowMs?: number },
+    _deps?: AccountPurgeDeps,
+  ): Promise<PurgeUserAccountResult> {
     const { userId } = input;
     const nowMs = Number.isFinite(input.nowMs) ? (input.nowMs as number) : Date.now();
     const nowIso = new Date(nowMs).toISOString();
@@ -647,6 +651,11 @@ export class TestApiStore implements ApiStore {
     }
 
     const proof = buildErasureProof({ userId, requestedAt, purgedAt: nowIso, classes });
+
+    // Atomicity mirror (expert reserve #2): persist the proof here, in the same
+    // synchronous critical section as the tombstone, so the route no longer
+    // writes it separately.
+    this.adminAuditLogs.push({ action: 'account.purge_completed', metadata: { userId, proof }, createdAt: nowIso });
 
     return { outcome: 'purged', proof };
   }

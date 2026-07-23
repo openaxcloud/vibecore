@@ -56,6 +56,19 @@ export interface ErasureProof {
   verifiedZeroRemaining: boolean;
 }
 
+/**
+ * Optional external side-effects the purge runs BEFORE its DB transaction
+ * (they are non-transactional I/O). Today: cancelling the external billing
+ * provider's subscriptions (Stripe) for a sole-owner org so no future invoice
+ * is raised after the owner is gone (expert reserve #1). FAIL-CLOSED: if a
+ * requested cancellation cannot be confirmed, the purge throws and never stamps
+ * the account purged. Omitted → DB-only cessation (the in-tx CANCELED flip still
+ * runs and the external ids are consigned in the proof for reconciliation).
+ */
+export interface AccountPurgeDeps {
+  cancelExternalBilling?: (externalSubscriptionIds: string[]) => Promise<{ cancelled: string[]; failed: string[] }>;
+}
+
 /** Outcome of one purgeUserAccount attempt (store layer). */
 export type PurgeUserAccountResult =
   | { outcome: 'purged'; proof: ErasureProof }

@@ -604,6 +604,15 @@ export class StripeBillingClient {
     });
   }
 
+  /**
+   * Immediately cancel a subscription so no further invoice is raised — used by
+   * account deletion (§16.12) to stop billing a purged sole-owner org. Idempotent
+   * on Stripe's side; an already-cancelled subscription returns 200.
+   */
+  async cancelSubscription(subscriptionId: string): Promise<void> {
+    await this.postForm(`/v1/subscriptions/${encodeURIComponent(subscriptionId)}/cancel`, {}, `purge-cancel-${subscriptionId}`);
+  }
+
   async listInvoices(input: { customerId: string; limit?: number }) {
     const params = new URLSearchParams({
       customer: input.customerId,

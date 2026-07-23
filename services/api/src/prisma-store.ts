@@ -2,12 +2,13 @@ import { promises as dnsPromises } from 'node:dns';
 import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
 import type { PlanKey, QuotaKey } from '@vibecore/billing';
-import { createDatabaseClient, Prisma, type DatabaseClient } from '@vibecore/database';
+import { createDatabaseClient, Prisma, type DatabaseClient, type SubscriptionStatus } from '@vibecore/database';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import {
   anonymizedEmail,
   anonymizedOrgSlug,
   buildErasureProof,
+  type AccountPurgeDeps,
   type PurgeClassReport,
   type PurgeUserAccountResult,
 } from './account-purge.js';
@@ -398,10 +399,94 @@ export class PrismaApiStore implements ApiStore {
    * place, never deleted. Any non-zero post-purge recount throws, rolling the
    * transaction back so a half-purge can never be reported as done.
    */
-  async purgeUserAccount(input: { userId: string; nowMs?: number }): Promise<PurgeUserAccountResult> {
+  /** Non-terminal subscription states that must be cancelled to stop billing. */
+  private static readonly ACTIVE_SUBSCRIPTION_STATES = ['TRIALING', 'ACTIVE', 'PAST_DUE', 'UNPAID'] as const;
+
+  /** Cheap pre-transaction readiness check (avoids external billing I/O when not due). */
+  private async isReadyToPurge(userId: string, nowMs: number): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { preferences: true } });
+    const deletion = ((user?.preferences ?? {}) as Record<string, unknown>).accountDeletion as
+      | { requestedAt?: string; purgedAt?: string }
+      | undefined;
+    const toMs = (value?: string) => {
+      const ms = value ? new Date(value).getTime() : NaN;
+
+      return Number.isFinite(ms) ? ms : null;
+    };
+
+    return (
+      deletionStatus({ requestedAtMs: toMs(deletion?.requestedAt), purgedAtMs: toMs(deletion?.purgedAt), nowMs }) ===
+      'ready_to_purge'
+    );
+  }
+
+  /** External-provider ids of non-terminal subscriptions in the user's sole orgs. */
+  private async soleOrgActiveSubscriptionExternalIds(userId: string): Promise<string[]> {
+    const memberships = await this.prisma.organizationMember.findMany({
+      where: { userId },
+      select: { organizationId: true },
+    });
+    const orgIds = [...new Set(memberships.map((m) => m.organizationId))];
+    const soleOrgIds: string[] = [];
+
+    for (const orgId of orgIds) {
+      if ((await this.prisma.organizationMember.count({ where: { organizationId: orgId } })) === 1) {
+        soleOrgIds.push(orgId);
+      }
+    }
+
+    if (soleOrgIds.length === 0) {
+      return [];
+    }
+
+    const subs = await this.prisma.subscription.findMany({
+      where: {
+        organizationId: { in: soleOrgIds },
+        status: { in: PrismaApiStore.ACTIVE_SUBSCRIPTION_STATES as unknown as SubscriptionStatus[] },
+        externalId: { not: null },
+      },
+      select: { externalId: true },
+    });
+
+    return subs.map((sub) => sub.externalId).filter((id): id is string => Boolean(id));
+  }
+
+  async purgeUserAccount(
+    input: { userId: string; nowMs?: number },
+    deps?: AccountPurgeDeps,
+  ): Promise<PurgeUserAccountResult> {
     const { userId } = input;
     const nowMs = Number.isFinite(input.nowMs) ? (input.nowMs as number) : Date.now();
     const nowIso = new Date(nowMs).toISOString();
+
+    /*
+     * BILLING CESSATION (expert reserve #1) — cancel the external provider's
+     * subscriptions BEFORE the DB tombstone, so a deleted sole-owner account can
+     * never keep being invoiced. This is external I/O (Stripe) and cannot live in
+     * the Postgres tx, so it runs here, gated: only when the account is actually
+     * ready_to_purge, and FAIL-CLOSED — a cancellation that reports a failure
+     * throws and the account is never marked purged (retried next run). The in-tx
+     * flip to CANCELED below is the durable, provable half; this closes the
+     * real-world billing relationship.
+     */
+    if (deps?.cancelExternalBilling) {
+      const preReady = await this.isReadyToPurge(userId, nowMs);
+
+      if (preReady) {
+        const externalIds = await this.soleOrgActiveSubscriptionExternalIds(userId);
+
+        if (externalIds.length > 0) {
+          const result = await deps.cancelExternalBilling(externalIds);
+
+          if (result.failed.length > 0) {
+            throw new Error(
+              `ACCOUNT_PURGE_BILLING_CESSATION_FAILED: could not cancel ${result.failed.length} subscription(s) ` +
+                `for ${userId} — refusing to purge (would leave orphan billing)`,
+            );
+          }
+        }
+      }
+    }
 
     return this.prisma.$transaction(
       async (tx) => {
@@ -443,6 +528,27 @@ export class PrismaApiStore implements ApiStore {
         // ---- ready_to_purge: resolve org topology (sole-member vs shared) ----
         const memberships = await tx.organizationMember.findMany({ where: { userId }, select: { organizationId: true } });
         const orgIds = [...new Set(memberships.map((m) => m.organizationId))];
+
+        /*
+         * Serialize the sole/shared classification against concurrent membership
+         * changes (expert reserve #3). The per-user advisory lock above only
+         * serializes purges of the SAME user; a member being added to / removed
+         * from one of these orgs on ANOTHER connection could still flip a
+         * sole↔shared decision mid-purge. Lock every membership row of the
+         * candidate orgs AND the org rows themselves FOR UPDATE: a concurrent
+         * remove blocks on the row lock, and a concurrent add (which reads the
+         * org to authorize the invite) blocks on the org-row lock, so the counts
+         * re-read below are stable for the life of this transaction.
+         */
+        if (orgIds.length > 0) {
+          await tx.$executeRaw(
+            Prisma.sql`SELECT id FROM "Organization" WHERE id IN (${Prisma.join(orgIds)}) FOR UPDATE`,
+          );
+          await tx.$executeRaw(
+            Prisma.sql`SELECT id FROM "OrganizationMember" WHERE "organizationId" IN (${Prisma.join(orgIds)}) FOR UPDATE`,
+          );
+        }
+
         const soleOrgIds: string[] = [];
         const sharedOrgIds: string[] = [];
 
@@ -568,19 +674,46 @@ export class PrismaApiStore implements ApiStore {
         classes.push({ dataClass: 'marketing', action: 'deleted', models: { NewsletterSubscriber: newsletter.count } });
 
         // ---- anonymized classes (redacted in place, never deleted) ----
+        // Expert reserve #4: scrub the FREE-FORM metadata blob too, not just the
+        // IP — arbitrary PII (names, emails, prompts) can live in it. Both audit
+        // tables get ipAddress nulled AND metadata replaced with a redaction
+        // marker, so no personal data survives in append-only history.
         const auditRedacted = await tx.auditLog.updateMany({
           where: { actorUserId: userId },
           data: { ipAddress: null, metadata: { redacted: true, redactedAt: nowIso } as Prisma.InputJsonValue },
         });
         const adminAuditRedacted = await tx.adminAuditLog.updateMany({
           where: { actorUserId: userId },
-          data: { ipAddress: null },
+          data: { ipAddress: null, metadata: { redacted: true, redactedAt: nowIso } as Prisma.InputJsonValue },
         });
         classes.push({
           dataClass: 'audit_logs',
           action: 'anonymized',
           reason: 'append_only_redacted_never_deleted',
           models: { AuditLog: auditRedacted.count, AdminAuditLog: adminAuditRedacted.count },
+        });
+
+        /*
+         * Expert reserve #4: email-provider delivery events carry PII (recipient
+         * address, subject, from-address, and a free-form provider payload). They
+         * are keyed by the address string (no user FK), so match on the pre-
+         * tombstone email and anonymize: address → tombstone, subject/from → null,
+         * payload → redaction marker. Done BEFORE the tombstone rewrites user.email.
+         */
+        const emailEventsAnonymized = await tx.emailDeliveryEvent.updateMany({
+          where: { email: user.email },
+          data: {
+            email: anonymizedEmail(userId),
+            subject: null,
+            fromAddress: null,
+            payload: { redacted: true, redactedAt: nowIso } as Prisma.InputJsonValue,
+          },
+        });
+        classes.push({
+          dataClass: 'communications',
+          action: 'anonymized',
+          reason: 'delivery_events_retained_for_deliverability_pii_scrubbed',
+          models: { EmailDeliveryEvent: emailEventsAnonymized.count },
         });
 
         const usageEventRefs = await tx.usageEvent.updateMany({ where: { userId }, data: { userId: null } });
@@ -630,6 +763,46 @@ export class PrismaApiStore implements ApiStore {
           action: 'anonymized',
           reason: 'retained_as_anchor_for_financial_records',
           models: { Organization: orgsAnonymized },
+        });
+
+        /*
+         * Billing cessation (expert reserve #1), durable half: flip every
+         * non-terminal subscription of the sole orgs to CANCELED so our own
+         * ledger can never keep an ACTIVE subscription for a purged owner. The
+         * external provider was already cancelled pre-tx (fail-closed). The
+         * cancelled external ids are consigned so a billing-reconcile job can
+         * verify Stripe state. remainingAfterPurge folds into the proof: it MUST
+         * be 0 active subscriptions left, or the proof fails verification.
+         */
+        const activeStates = PrismaApiStore.ACTIVE_SUBSCRIPTION_STATES as unknown as SubscriptionStatus[];
+        let subscriptionsCancelled = 0;
+        let cancelledExternalIds: string[] = [];
+
+        if (soleOrgIds.length > 0) {
+          const toCancel = await tx.subscription.findMany({
+            where: { organizationId: { in: soleOrgIds }, status: { in: activeStates } },
+            select: { externalId: true },
+          });
+          cancelledExternalIds = toCancel
+            .map((sub) => sub.externalId)
+            .filter((id): id is string => Boolean(id));
+
+          const cancelled = await tx.subscription.updateMany({
+            where: { organizationId: { in: soleOrgIds }, status: { in: activeStates } },
+            data: { status: 'CANCELED', cancelAtPeriodEnd: true },
+          });
+          subscriptionsCancelled = cancelled.count;
+        }
+
+        const activeSubsRemaining =
+          soleOrgIds.length > 0
+            ? await tx.subscription.count({ where: { organizationId: { in: soleOrgIds }, status: { in: activeStates } } })
+            : 0;
+        classes.push({
+          dataClass: 'billing_cessation',
+          action: 'deleted',
+          models: { SubscriptionsCancelled: subscriptionsCancelled, ExternalCancelled: cancelledExternalIds.length },
+          remainingAfterPurge: activeSubsRemaining,
         });
 
         // ---- retained classes (fail-closed retention, consigned) ----
@@ -741,6 +914,11 @@ export class PrismaApiStore implements ApiStore {
           imports: soleOrgIds.length > 0 ? await tx.importJob.count({ where: soleOrgWhere }) : 0,
           memberships: await tx.organizationMember.count({ where: { userId } }),
           marketing: await tx.newsletterSubscriber.count({ where: { email: user.email } }),
+          // 0 non-terminal subscriptions may remain in a purged owner's sole orgs.
+          billing_cessation:
+            soleOrgIds.length > 0
+              ? await tx.subscription.count({ where: { organizationId: { in: soleOrgIds }, status: { in: activeStates } } })
+              : 0,
         };
 
         for (const entry of classes) {
@@ -766,6 +944,20 @@ export class PrismaApiStore implements ApiStore {
           requestedAt: deletion!.requestedAt!,
           purgedAt: nowIso,
           classes,
+        });
+
+        /*
+         * ATOMICITY (expert reserve #2): persist the erasure proof in the SAME
+         * transaction as the tombstone (purgedAt was stamped above). Previously
+         * the caller wrote the proof to the audit log AFTER the store returned, so
+         * a crash in between left an account purged with no durable proof. Writing
+         * it here means the tombstone and its proof commit together or not at all.
+         */
+        await tx.adminAuditLog.create({
+          data: {
+            action: 'account.purge_completed',
+            metadata: { userId, proof } as unknown as Prisma.InputJsonValue,
+          },
         });
 
         return { outcome: 'purged' as const, proof };
