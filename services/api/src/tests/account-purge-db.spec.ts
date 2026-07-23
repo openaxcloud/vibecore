@@ -2,8 +2,8 @@ import { hashPassword } from '@vibecore/auth';
 import { createDatabaseClient } from '@vibecore/database';
 import { describe, expect, it } from 'vitest';
 
-import type { ErasureProof } from '../account-purge.js';
-import { eraseProjectsStorage } from '../account-storage-purge.js';
+import type { ErasureProof, PurgeStorageInventory } from '../account-purge.js';
+import { eraseSubjectStorage } from '../account-storage-purge.js';
 import { buildApiApp } from '../app.js';
 import type { EmailProvider } from '../email.js';
 import { PrismaApiStore } from '../prisma-store.js';
@@ -18,39 +18,57 @@ import { PrismaApiStore } from '../prisma-store.js';
  * fetch a non-existent workspace-manager and (correctly) fail the purge closed.
  */
 function verifiedPhysicalPurger() {
-  return (projectIds: string[]) => {
+  return (inventory: PurgeStorageInventory) => {
     const buckets = new Map<string, string[]>();
-    const workspaces = new Set<string>();
+    const pvcs = new Set<string>();
+    let frozen = false;
 
-    for (const id of projectIds) {
+    for (const id of inventory.bucketProjectIds) {
       buckets.set(id, ['seed-object.bin']);
-      workspaces.add(`ws-${id}`);
     }
 
-    return eraseProjectsStorage(projectIds, {
-      objectStorage: {
-        async bucketExists(projectId) {
-          return buckets.has(projectId);
-        },
-        async listObjects(projectId) {
-          return { objects: (buckets.get(projectId) ?? []).map((key) => ({ key })) };
-        },
-        async deleteBucket(projectId) {
-          buckets.delete(projectId);
+    const workspaceIds = inventory.workspaceProjectIds.map((id) => `ws-${id}`);
 
-          return { deleted: true, bucket: `vc-${projectId}` };
+    for (const wsId of workspaceIds) {
+      pvcs.add(wsId);
+    }
+
+    return eraseSubjectStorage(
+      { bucketProjectIds: inventory.bucketProjectIds, workspaceIds },
+      {
+        writeBarrier: {
+          async freeze() {
+            frozen = true;
+          },
+        },
+        objectStorage: {
+          async bucketExists(projectId) {
+            return buckets.has(projectId);
+          },
+          async listObjects(projectId) {
+            return { objects: (buckets.get(projectId) ?? []).map((key) => ({ key })) };
+          },
+          async deleteBucket(projectId) {
+            // Only allow deletion after the write barrier (reserve #1).
+            if (frozen) {
+              buckets.delete(projectId);
+            }
+
+            return { deleted: frozen, bucket: `vc-${projectId}` };
+          },
+        },
+        workspaceVolumes: {
+          async pvcExists(workspaceId) {
+            return pvcs.has(workspaceId);
+          },
+          async deleteWorkspace(workspaceId) {
+            if (frozen) {
+              pvcs.delete(workspaceId);
+            }
+          },
         },
       },
-      workspaceVolumes: {
-        async workspaceExists(workspaceId) {
-          return workspaces.has(workspaceId);
-        },
-        async deleteWorkspace(workspaceId) {
-          workspaces.delete(workspaceId);
-        },
-      },
-      workspaceIdFor: (projectId) => `ws-${projectId}`,
-    });
+    );
   };
 }
 
