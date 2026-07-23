@@ -47,6 +47,44 @@ nonce, conclusion=success), **GKE négatif 403 + corps permission-denied**
 (`path1-gke-negative.txt`), **teardown joué par le trap** (`teardown-trace.txt`,
 `PROJECT_STATE=DELETE_REQUESTED`). **0 projet actif restant → ~0 $.**
 
+## Correction RR-20260723-CODEX-07 §P0-A2-09 — trap ARMÉ *AVANT* create/billing
+Le refus V3 disait « trap installé DÈS la création », mais dans les faits le
+`trap teardown EXIT` était armé **après** `gcloud projects create` **ET**
+`gcloud billing projects link`. Sous `set -Eeuo pipefail`, si la **liaison billing
+échoue**, le script sort AVANT l'armement du trap → **projet laissé ACTIF** (ressource
+facturable orpheline). Corrigé :
+- L'ID du projet est calculé **d'abord**, puis `trap teardown EXIT` est armé **AVANT**
+  `gcloud projects create` et `gcloud billing projects link` (`repro.sh`, l.67-94 :
+  `teardown()` l.67, `trap` l.85, `create` l.93, `billing link` l.94).
+- Le teardown est **idempotent ET SÛR si le projet n'existe pas encore** : garde
+  `gcloud projects describe` → s'il n'existe pas, `PROJECT_STATE=ABSENT`, aucune erreur.
+
+**Preuve du cas négatif billing-fail** (rejoué live 2026-07-23) :
+`replay-20260723T191146Z-negative-billingfail/` — `repro.sh` lancé avec un compte de
+facturation **invalide** (`WIF_BILLING=000000-000000-000000`). `run.log` montre le trap
+armé **avant** le create puis « crée `ecode-wif-proof-833908` » ; la liaison billing
+échoue (`IAM_PERMISSION_DENIED`) sous `set -e` → **le trap EXIT nettoie le projet créé**
+→ `teardown-trace.txt` : `PROJECT_STATE=DELETE_REQUESTED` (vérifié indépendamment :
+`gcloud projects describe` → `DELETE_REQUESTED`, `0` projet `ecode-wif-proof-*` ACTIF).
+Voir `NEGATIVE-CASE-README.md` dans ce dossier. Avec l'ancien ordre, ce même échec aurait
+laissé le projet **ACTIF**.
+
+**3 chemins REJOUÉS après le correctif** (projet frais `ecode-wif-proof-834022`) :
+`replay-20260723T191340Z/` — Cloud Run autorisé 200 + contenu / négatif 403
+(`path3-cloudrun-*.json`) ; GitHub OIDC run **30037477577** nonce-vérifié `success`
+(`path2-github-oidc.txt`, autorisé READ_HTTP=200 + `NEGATIVE_OK`) ; GKE autorisé
+READ_HTTP=200 + contenu / négatif **403 + corps permission-denied**, identité
+`ecode-wif-proof-834022.svc.id.goog` ≠ GSA autorisée (`path1-gke-*.txt`) ;
+teardown joué par le trap (`teardown-trace.txt` : cluster/run/AR/pool/2 SAs supprimés →
+`PROJECT_STATE=DELETE_REQUESTED`). Le diff exact de l'ordre trap↔create est archivé dans
+`trap-order-fix.diff`.
+
+> Note GCP : `gcloud projects describe` (autoritatif) renvoie `DELETE_REQUESTED` dès le
+> teardown ; `gcloud projects list --filter=lifecycleState:ACTIVE` peut encore lister le
+> projet quelques minutes (lag d'index d'eventual-consistency). Les ressources facturables
+> (cluster GKE, Cloud Run, AR, SAs) sont supprimées et le projet est marqué pour purge →
+> facturation stoppée, coût **~0 $**.
+
 ## Cadre (sécurité)
 - Projet de TEST dédié `ecode-wif-proof-*`, créé sous le **folder de test
   `780512954993` (ecode-factory-test)** — JAMAIS la prod `vibecore-495216` —
