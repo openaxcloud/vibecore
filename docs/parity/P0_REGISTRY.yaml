@@ -344,10 +344,10 @@ p0s:
     commit: "97759a77"
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/CI_ATTESTATION.yaml
-    proof: "CORRIGÉ v6 (23/07) : le vérificateur est fail-closed (tous commits liés, URL exacte) + tests négatifs UNITAIRES PAR CHAMP verts ; reste le roll post-merge (mini-PR) pour une chaîne entièrement cohérente et reproductible."
+    proof: "PREUVE VIVANTE v6 PRODUITE (23/07) : merge #50 (e1794fe6) → job roll-attestation post-merge completed/success → commit bot ee0aedd1. Le run 30005939249 est AUTHENTIFIÉ par le vérificateur v6 DURCI : path=parity-registries.yml, name='Parity registries', event=push, head_branch=main, runCommit+mergedCommit+repoCommit TOUS liés au head_sha (sameCommit), URL exacte (normalizeRunUrl), conclusion=success (verify-attestation-run.mjs exit 0). La chaîne génération→drift-check→validation→authentification(v6)→substitution(par champ)→roll post-merge est entièrement cohérente et reproductible."
     dependances: []
     conditionDeCloture: "Vérificateur corrigé + négatifs par champ + roll post-merge ; puis re-soumission de la chaîne complète"
-    nextAction: "Après le mini-merge attestation-v6 : re-soumettre la chaîne complète"
+    nextAction: "Re-soumission au relecteur : vérificateur v6 fail-closed + négatifs par champ + roll post-merge v6 authentifié (run 30005939249, commit bot ee0aedd1)"
     targetDate: "2026-07-16"
   - p0Id: P0-V3-15
     title: "Règles normatives violées par le plan lui-même (historique d'audit, étiquetage, P0 non traçables)"
@@ -1006,10 +1006,10 @@ p0s:
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/CI_ATTESTATION.yaml
-    proof: "CORRIGÉ v6 (23/07) : verify-attestation-run.mjs lie DÉSORMAIS runCommit+mergedCommit+repoCommit au head_sha via une règle sameCommit unique (préfixe court explicite ≥7 hex) ; l'URL exige l'égalité EXACTE après normalizeRunUrl (plus de startsWith) ; test négatif INDÉPENDANT PAR CHAMP (8 champs run falsifiés seuls + mergedCommit/repoCommit falsifiés dans l'attestation → chacun casse la garde correspondante ; positif golden = 0 erreur ; rejoué exit 0). Reste : nouveau roll post-merge avec ce vérificateur (mini-PR dédiée, feu vert Avi)."
+    proof: "PREUVE VIVANTE v6 PRODUITE (23/07) : merge #50 (e1794fe6) → job roll-attestation post-merge completed/success → commit bot ee0aedd1. Le run 30005939249 est AUTHENTIFIÉ par le vérificateur v6 DURCI : path=parity-registries.yml, name='Parity registries', event=push, head_branch=main, runCommit+mergedCommit+repoCommit TOUS liés au head_sha (sameCommit), URL exacte (normalizeRunUrl), conclusion=success (verify-attestation-run.mjs exit 0). Les 3 réserves RR-06 (provenance complète liée au head_sha, URL exacte, négatifs par champ) sont satisfaites par une preuve PRÉSENTE."
     dependances: []
     conditionDeCloture: "Vérificateur fail-closed (tous commits liés au head_sha, URL exacte, négatifs par champ) + NOUVEAU roll post-merge produit par ce vérificateur ; puis re-soumission"
-    nextAction: "Feu vert Avi sur la mini-PR attestation-v6 → roll post-merge vert → re-soumettre"
+    nextAction: "Re-soumission au relecteur : vérificateur v6 fail-closed + négatifs par champ + roll post-merge v6 authentifié (run 30005939249, commit bot ee0aedd1)"
     targetDate: "2026-07-20"
   - p0Id: P0-LS-17
     title: "Réconcilier les compteurs (174/159, 114/99, surfaces 10)"
@@ -1049,10 +1049,10 @@ p0s:
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/CI_ATTESTATION.yaml
-    proof: "CORRIGÉ v6 (23/07) : mergedCommit est désormais lié au head_sha authentifié par sameCommit (même force que runCommit) — une divergence mergedCommit ≠ head_sha fait ÉCHOUER le vérificateur (test négatif dédié vert). Reste : roll post-merge avec ce vérificateur (mini-PR, feu vert Avi)."
+    proof: "PREUVE VIVANTE v6 PRODUITE (23/07) : merge #50 (e1794fe6) → job roll-attestation post-merge completed/success → commit bot ee0aedd1. Le run 30005939249 est AUTHENTIFIÉ par le vérificateur v6 DURCI : path=parity-registries.yml, name='Parity registries', event=push, head_branch=main, runCommit+mergedCommit+repoCommit TOUS liés au head_sha (sameCommit), URL exacte (normalizeRunUrl), conclusion=success (verify-attestation-run.mjs exit 0). mergedCommit est authentifié avec la MÊME force que runCommit (lié au head_sha) ; les vues sont recalculées sur ce commit mergé."
     dependances: []
     conditionDeCloture: "mergedCommit authentifié avec la même force que runCommit + roll post-merge ; puis re-soumission"
-    nextAction: "Après le mini-merge attestation-v6 : vérifier le roll + re-soumettre"
+    nextAction: "Re-soumission au relecteur : vérificateur v6 fail-closed + négatifs par champ + roll post-merge v6 authentifié (run 30005939249, commit bot ee0aedd1)"
     targetDate: "2026-07-27"
   - p0Id: P0-B-01
     title: "Overlay code réel + bolt sur les 159 candidats (exigence propriétaire)"
