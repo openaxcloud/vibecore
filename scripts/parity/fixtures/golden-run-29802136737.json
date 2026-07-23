@@ -1,0 +1,12 @@
+{
+  "id": 29802136737,
+  "name": "Parity registries",
+  "path": ".github/workflows/parity-registries.yml",
+  "event": "push",
+  "head_branch": "main",
+  "head_sha": "790eef1786d282104707dc95be075706c39764ae",
+  "conclusion": "success",
+  "html_url": "https://github.com/openaxcloud/vibecore/actions/runs/29802136737",
+  "created_at": "2026-07-21T04:46:15Z",
+  "status": "completed"
+}

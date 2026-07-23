@@ -10,6 +10,7 @@ attestation:
   event: push
   runCommit: "76d3922c35b652395a179e408444cd6a0755d4ef"
   mergedCommit: "76d3922c35b652395a179e408444cd6a0755d4ef"
+  repoCommit: "76d3922c35b652395a179e408444cd6a0755d4ef"   # commit de dépôt déclaré — lié au head_sha (verdict -06 §1)
   mergedToMainAt: "2026-07-22T09:57:03Z"
   runDate: "2026-07-22T09:57:03Z"
   attestedChecks:
