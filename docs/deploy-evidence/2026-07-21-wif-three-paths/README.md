@@ -25,6 +25,28 @@ en bout **rejouable** (provision → configure → JOUE → teardown), coût **~
 ⚠️ Les logs de preuve étaient avalés par `.gitignore` (`*.log`) → exception ajoutée
 (`!docs/deploy-evidence/**`) : les artefacts de preuve sont bien suivis dans git.
 
+## Corrections V3 FAIL-CLOSED (REPONSE_EXPERT_V3_20260722 §P0-A2-09)
+Le reproducer pouvait finir sans avoir correctement reproduit les 3 chemins → durci :
+1. **`gh` OBLIGATOIRE** : un **préflight fail-closed** vérifie `gcloud/docker/kubectl/gh/curl`
+   + `gh auth status` **avant tout provisioning** ; sans `gh` authentifié, le script
+   sort en erreur (plus de branche « commande manuelle »).
+2. **run GitHub suivi par NONCE EXACT** : chaque dispatch porte un `nonce` unique ; le
+   workflow expose `run-name: wif-proof <nonce>` ; `repro.sh` récupère le `databaseId`
+   dont le `displayTitle` **contient le nonce** (jamais « le plus récent »), et **re-vérifie
+   le nonce** sur le run choisi — un run concurrent ne peut pas être lu par erreur.
+3. **négatif GKE = refus IAM PRÉCIS** : on exige **HTTP 401/403** ET un **corps de refus
+   contrôlé** (`does not have storage.objects.get` / permission-denied) ; un `000/404/5xx`
+   **échoue** (ne prouve pas un refus IAM). Identité vérifiée ≠ GSA autorisée.
+4. **trap de teardown installé DÈS la création du projet** (`trap teardown EXIT`,
+   idempotent) → toute erreur intermédiaire nettoie le projet (0 ressource/coût résiduel).
+5. **3 chemins rejoués** après corrections ; nouveau run archivé sous `replay-<ts>/`.
+
+**Preuve du run V3 (rejouée)** : voir `replay-20260723T114035Z/` — Cloud Run 200/403,
+GitHub OIDC run **suivi par nonce** (`path2-github-oidc.txt`, `displayTitle` porte le
+nonce, conclusion=success), **GKE négatif 403 + corps permission-denied**
+(`path1-gke-negative.txt`), **teardown joué par le trap** (`teardown-trace.txt`,
+`PROJECT_STATE=DELETE_REQUESTED`). **0 projet actif restant → ~0 $.**
+
 ## Cadre (sécurité)
 - Projet de TEST dédié `ecode-wif-proof-*`, créé sous le **folder de test
   `780512954993` (ecode-factory-test)** — JAMAIS la prod `vibecore-495216` —
