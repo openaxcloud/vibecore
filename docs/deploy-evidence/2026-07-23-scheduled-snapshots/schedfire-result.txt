@@ -1,0 +1,14 @@
+# Preuve que le SCHEDULE lui-même déclenche des snapshots (pas seulement le manuel)
+# Policy temporaire dr-snap-schedfire-proof (daily start 20:00 UTC) attachée au
+# disque 1Go pvc-6988fcd4 → snapshot AUTO-créé par le scheduler GCE :
+SCHEDULED SNAPSHOT APPARU @ 2026-07-23T20:07:24Z
+name=pvc-6988fcd4-4bd5-4-europe-west9-a-20260723200602-notnftg6
+status=READY  creation=2026-07-23T20:06:02Z  storageBytes=8116800 (~7,7 MiB)
+sourceDisk=pvc-6988fcd4-4bd5-4f22-871a-295d5cc53b71
+=> le nom auto-généré (…-<disque>-<horodatage>-<hash>) confirme une création PAR LE
+   SCHEDULER (pas un snapshot manuel). SCHEDULE PROUVÉ end-to-end.
+
+# BONUS (couverture disques dynamiques, prouvée en réel) : un NOUVEAU disque
+# workspace (pvc-9df05e4d, europe-west9-a) est apparu pendant la session ; le
+# re-run du script idempotent l'a ATTACHÉ et a laissé les autres « déjà attaché ».
+# => le script couvre bien les disques créés dynamiquement par le CSI GKE.
