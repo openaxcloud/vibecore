@@ -17,7 +17,7 @@ Chaque ligne : valeur DÉRIVÉE du registre indiqué, avec la formule et les IDs
 | Lot A (corrections rapides) | **8** | count(remediationTrack=QUICK) | P0-V4-1, P0-V4-2, P0-V3-02, P0-A2-10, P0-LS-04, P0-LS-13, P0-LS-14, P0-LS-16 | P0_REGISTRY.yaml |
 | Lot B (chantiers P0) | **5** | count(remediationTrack=CHANTIER) | P0-V3-12, P0-A2-09, P0-EX-02, P0-EX-04, P0-EX-10 | P0_REGISTRY.yaml |
 | Refus à trier (raisons reçues 20/07 soir) | **20** | count(remediationTrack=A_TRIER) | P0-V4-3, P0-V3-03, P0-V3-04, P0-V3-08, P0-V3-09, P0-V3-10, P0-V3-11, P0-V3-13, P0-A2-01, P0-A2-03, P0-A2-05, P0-A2-07, P0-A2-13, P0-A2-14, P0-LS-03, P0-LS-06, P0-B-01, P0-EX-05, P0-EX-07, P0-EX-08 | P0_REGISTRY.yaml |
-| Contrats refusés | **4** | count(fichiers docs/parity avec reviewVerdict: REFUSED) | IDENTITY_COLLABORATION_CONTRACT.md, OPERATIONS_DR.md, PROJECT_FACTORY_CONTRACT.md, PROJECT_MANIFEST_SCHEMA.json | annotations des fichiers de contrat |
+| Contrats refusés | **3** | count(fichiers docs/parity avec reviewVerdict: REFUSED) | IDENTITY_COLLABORATION_CONTRACT.md, PROJECT_FACTORY_CONTRACT.md, PROJECT_MANIFEST_SCHEMA.json | annotations des fichiers de contrat |
 | Work items canoniques | **122** | len(WORK_ITEM_REGISTRY.workItems) — vérifié = compte déclaré | — | WORK_ITEM_REGISTRY.yaml |
 | Constats sources | **336** | len(LEGACY_FINDING_REGISTRY.findings) — sceau count+sha CI | — | LEGACY_FINDING_REGISTRY.yaml |
 | Surfaces canoniques | **164** | 159 (univers P001–P159) + additionalCanonical − aliases fusionnés (voir bloc canonicalUniverse) | — | SURFACE_REGISTRY.yaml#canonicalUniverse |
@@ -37,7 +37,7 @@ Chaque ligne : valeur DÉRIVÉE du registre indiqué, avec la formule et les IDs
    P0-V3-12, P0-A2-09, P0-EX-02, P0-EX-04, P0-EX-10) + **1 groupe : les 14 contrats §2.3** (0/14 signés) = 6 lignes.
 
 4. **Comptage des 14 contrats** : DEUX vues cohérentes — (a) **14 points individuels**
-   = les fichiers annotés `reviewVerdict: REFUSED` (comptés ci-dessus : 4),
+   = les fichiers annotés `reviewVerdict: REFUSED` (comptés ci-dessus : 3),
    chacun avec sa raison verbatim ; (b) **1 groupe** dans la colonne chantiers (ligne C5).
    Les compteurs par point dérivent des fichiers ; le groupe n'est qu'une vue d'affichage.
 
