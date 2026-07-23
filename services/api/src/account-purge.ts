@@ -65,8 +65,16 @@ export interface ErasureProof {
  * marked erased once BOTH its rows and its physical storage are proven gone.
  * Omitted → DB-only purge (unit tests of the row layer).
  */
+/** Per-subject physical footprint the store resolves for erasure (reserve #3). */
+export interface PurgeStorageInventory {
+  /** Projects whose per-project GCS bucket the subject owns (their sole orgs). */
+  bucketProjectIds: string[];
+  /** Every project the subject has a workspace in (sole-org + collaborator). */
+  workspaceProjectIds: string[];
+}
+
 export interface PurgeStorageDeps {
-  eraseStorage?: (projectIds: string[]) => Promise<{ classes: PurgeClassReport[]; verified: boolean }>;
+  eraseStorage?: (inventory: PurgeStorageInventory) => Promise<{ classes: PurgeClassReport[]; verified: boolean }>;
 }
 
 /** Outcome of one purgeUserAccount attempt (store layer). */
