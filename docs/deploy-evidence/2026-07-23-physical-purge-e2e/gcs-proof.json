@@ -11,7 +11,7 @@
       "nested/dir/notes.txt"
     ]
   },
-  "bucket": "vc-purgee2emrxjnlt0",
+  "bucket": "vc-purgee2emrxwjafc",
   "classes": [
     {
       "action": "deleted",
@@ -19,7 +19,8 @@
       "models": {
         "Buckets": 1,
         "BucketsDeleted": 1,
-        "ObjectsErased": 3
+        "ObjectsErased": 3,
+        "RealBackend": 1
       },
       "remainingAfterPurge": 0
     },
@@ -36,7 +37,10 @@
   ],
   "kind": "physical-purge-gcs-e2e",
   "location": "EU",
-  "project": "ecode-proof-b906ss",
+  "negative": {
+    "inertBackendRefusedAndBucketSurvived": true
+  },
+  "project": "ecode-wif-proof-834022",
   "verified": true,
-  "version": 1
+  "version": 2
 }

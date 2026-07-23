@@ -9,6 +9,7 @@ import {
 /* ------------------------- in-memory fake backends ------------------------- */
 
 class FakeObjectStorage implements ObjectStorageErasurePort {
+  readonly active = true;
   readonly buckets = new Map<string, string[]>();
   refuseDelete = false;
 
@@ -147,6 +148,34 @@ describe('eraseSubjectStorage', () => {
     expect(out.verified).toBe(true);
     expect(out.classes[0].models).toMatchObject({ Buckets: 1, BucketsDeleted: 1 });
     expect(out.classes[1].models).toMatchObject({ Workspaces: 3, PvcsDeleted: 3 });
+  });
+
+  it('FAIL-CLOSED: an inert (active:false) object-storage backend cannot certify absence (reserve #2)', async () => {
+    // A NoopObjectStorage would return bucketExists=false ("absent") — but it
+    // proves nothing. With buckets to erase, the purge must be REFUSED.
+    const inertObjectStorage: ObjectStorageErasurePort = {
+      active: false,
+      async bucketExists() {
+        return false;
+      },
+      async listObjects() {
+        return { objects: [] };
+      },
+      async deleteBucket(projectId) {
+        return { deleted: false, bucket: `vc-${projectId}` };
+      },
+    };
+    const deleteSpy = vi.spyOn(inertObjectStorage, 'deleteBucket');
+
+    const out = await eraseSubjectStorage(
+      { bucketProjectIds: ['p1'], workspaceIds: [] },
+      { objectStorage: inertObjectStorage, writeBarrier: recordingBarrier() },
+    );
+
+    expect(out.verified).toBe(false);
+    expect(out.classes[0].remainingAfterPurge).toBeGreaterThan(0);
+    expect(out.classes[0].models.RealBackend).toBe(0);
+    expect(deleteSpy).not.toHaveBeenCalled(); // never even attempts a destructive delete
   });
 
   it('is a verified no-op for an empty inventory', async () => {

@@ -196,6 +196,41 @@ describe('WorkspaceManager', () => {
     expect(events.events.map((event) => event.type)).toContain('workspace.running');
   });
 
+  it('account-purge reserve #5: pvcExists is false ONLY on NotFound; a read error propagates (fail-closed)', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    const manager = new WorkspaceManager(new TestWorkspaceStore(), k8s, new TestEventBus(), 'test-workspace-agent-secret');
+    await manager.startWorkspace(input);
+
+    // Real PVC present.
+    expect(await manager.pvcExists('workspaces', 'workspace_1')).toBe(true);
+
+    // Clean NotFound (get -> undefined) is the only thing that counts as absent.
+    await k8s.delete('PersistentVolumeClaim', 'workspaces', 'pvc-workspace_1');
+    expect(await manager.pvcExists('workspaces', 'workspace_1')).toBe(false);
+
+    // A non-NotFound read error (network/RBAC) must NOT be read as "absent".
+    vi.spyOn(k8s, 'get').mockRejectedValueOnce(Object.assign(new Error('connection refused'), { code: 7 }));
+    await expect(manager.pvcExists('workspaces', 'workspace_1')).rejects.toThrow(/connection refused/);
+  });
+
+  it('account-purge reserve #1: freezeWorkspace THROWS if any k8s revoke fails, and does not claim the barrier', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    const store = new TestWorkspaceStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+    await manager.startWorkspace(input);
+
+    // One of the three revokes (the Pod delete) fails.
+    vi.spyOn(k8s, 'delete').mockImplementation(async (kind: string) => {
+      if (kind === 'Pod') {
+        throw new Error('kubectl delete pod: server error');
+      }
+    });
+
+    await expect(manager.freezeWorkspace('workspaces', 'workspace_1')).rejects.toThrow(/WORKSPACE_FREEZE_INCOMPLETE/);
+    // The barrier was NOT acquired → the row must not have been flipped to STOPPED.
+    expect((await store.get('workspace_1'))!.status).not.toBe('STOPPED');
+  });
+
   it('never runs the real agent-reachability fetch under vitest, even without the timeout env (keeps the root `vitest --run` suite fast)', async () => {
     /*
      * Regression guard for the CI flake: the repo-root `vitest --run` globs this

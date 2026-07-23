@@ -48,6 +48,38 @@ local `kind` cluster satisfies "real k8s" at $0, so no cost sign-off was needed.
 No persistent keys: GCS uses ADC (the reviewer's gcloud login), k8s uses the
 local kind kubeconfig.
 
+## Round 2 — the six required corrections (fail-closed) + negatives
+
+Each is implemented fail-closed and has an executable negative proving it:
+
+1. **k8s barrier fails on ANY delete failure** — `manager.freezeWorkspace` now
+   attempts every revoke (`allSettled`) but **throws** if any rejected and never
+   marks the row stopped; the barrier is never reported acquired with a live
+   write path. Negative: `manager.spec.ts` "reserve #1" (a failing Pod delete →
+   throws, row not STOPPED).
+2. **Real GCS backend required** — `eraseSubjectStorage` refuses (unverified,
+   never calls delete) when there are buckets but no `active` backend; a
+   `NoopObjectStorage` can never certify "absent". Negatives:
+   `account-storage-purge.spec.ts` "reserve #2" and the **real GCS E2E**
+   (`negative.inertBackendRefusedAndBucketSurvived: true` — the bucket survives).
+3. **Block ALL object-storage write paths during purge** — the write barrier
+   marks the subject's projects purge-frozen; `upload-url` / `ensure-bucket` /
+   `move` return `403 OBJECT_STORAGE_PURGE_FROZEN`, so nothing is recreated after
+   the zero-check.
+4. **Inventory by REAL authorization** — workspaces are enumerated for EVERY
+   project in ANY org the subject belongs to (shared orgs included, **without**
+   needing a `ProjectCollaborator` row), plus explicit collaborations.
+5. **Only an authenticated NotFound = absence** — `manager.pvcExists` does NOT
+   catch `k8s.get`; the k8s-client returns undefined only for a real NotFound and
+   re-throws network/RBAC errors, so a read error propagates (→ fail-closed),
+   never "PVC absent". Negatives: `manager.spec.ts` "reserve #5", and the **kind
+   E2E** (`negative.survivingPvcReportedPresent: true` — a live PVC is reported
+   present, never mis-read as gone).
+6. **E2E negatives** — both real E2Es carry a negative (above); the #1/#5
+   error-handling negatives are proven deterministically in `manager.spec.ts`
+   because a k8s network/RBAC/partial-delete error cannot be reliably injected
+   through `kubectl` against `kind`.
+
 ## The four reserves (code)
 
 - **#1 write barrier** — `eraseSubjectStorage` calls `WriteBarrierPort.freeze`

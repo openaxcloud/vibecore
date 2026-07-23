@@ -7087,14 +7087,22 @@ function createWorkspaceVolumeEraser(): WorkspaceVolumeErasurePort {
   };
 }
 
+/** System-setting key: projects whose object-storage writes are frozen mid-purge. */
+const OBJECT_STORAGE_PURGE_FROZEN_KEY = 'objectStorage.purgeFrozenProjectIds';
+
 /*
- * Write barrier (reserve #1): freeze writes to the subject's storage BEFORE the
- * erasure, so nothing can be recreated between erase/verify and the tombstone.
- * For each workspace it calls workspace-manager `POST /workspaces/:id/freeze`,
- * which stops the pod and revokes the agent token (no more writes / reprovision).
- * Throws on any failure so the erasure fails closed.
+ * Write barrier (reserve #1 + #3): freeze ALL of the subject's write paths BEFORE
+ * the erasure, so nothing can be recreated between erase/verify and the tombstone:
+ *   - object storage: mark each bucket project purge-frozen so upload-url /
+ *     ensure-bucket / move refuse (reserve #3);
+ *   - workspaces: workspace-manager `POST /workspaces/:id/freeze` (revoke token +
+ *     stop pod).
+ * FAIL-CLOSED: throws on ANY failure (freeze not acquired) so the erasure aborts.
  */
-function createWriteBarrier(workspaceIdsFor: (inv: StorageErasureInventory) => string[]): WriteBarrierPort {
+function createWriteBarrier(
+  workspaceIdsFor: (inv: StorageErasureInventory) => string[],
+  freezeObjectStorage: (projectIds: string[]) => Promise<void>,
+): WriteBarrierPort {
   const authHeaders = () => {
     const secret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
 
@@ -7103,6 +7111,10 @@ function createWriteBarrier(workspaceIdsFor: (inv: StorageErasureInventory) => s
 
   return {
     async freeze(inventory: StorageErasureInventory) {
+      // (a) revoke object-storage write paths first (reserve #3). Throws on failure.
+      await freezeObjectStorage(inventory.bucketProjectIds);
+
+      // (b) freeze each workspace (reserve #1). Throws on any failure.
       for (const workspaceId of workspaceIdsFor(inventory)) {
         const response = await fetch(`${workspaceManagerUrl()}/workspaces/${encodeURIComponent(workspaceId)}/freeze`, {
           method: 'POST',
@@ -29673,7 +29685,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                     {
                       objectStorage: resolveObjectStorage(),
                       workspaceVolumes: createWorkspaceVolumeEraser(),
-                      writeBarrier: createWriteBarrier((inv) => inv.workspaceIds),
+                      writeBarrier: createWriteBarrier(
+                        (inv) => inv.workspaceIds,
+                        async (projectIds) => {
+                          for (const projectId of projectIds) {
+                            await store.mutateSystemSettingIds(OBJECT_STORAGE_PURGE_FROZEN_KEY, { add: projectId });
+                          }
+                        },
+                      ),
                       log: app.log as unknown as { warn(o: unknown, m?: string): void },
                     },
                   ),
@@ -32073,12 +32092,36 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
   });
 
+  /*
+   * Reserve #3: refuse any object-storage WRITE for a project whose storage was
+   * frozen by an in-flight account purge, so a bucket/object can't be recreated
+   * after the zero-check and before the tombstone. Returns true (blocked) after
+   * sending the 403.
+   */
+  const objectStorageWriteBlocked = async (projectId: string, reply: FastifyReply): Promise<boolean> => {
+    const frozen = (await store.listSystemSettings()).find((s) => s.key === OBJECT_STORAGE_PURGE_FROZEN_KEY)?.value;
+
+    if (Array.isArray(frozen) && frozen.includes(projectId)) {
+      await reply
+        .code(403)
+        .send({ error: 'Object storage is frozen for account deletion', code: 'OBJECT_STORAGE_PURGE_FROZEN' });
+
+      return true;
+    }
+
+    return false;
+  };
+
   app.post('/projects/:projectId/object-storage/bucket', async (request, reply) => {
     if (!isObjectStorageEnabled()) {
       return reply.code(404).send({ error: appPublicEnglish('OBJECT_STORAGE_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
     }
 
     const project = await requireObjectStorageProject(request, 'projects:write');
+
+    if (await objectStorageWriteBlocked(project.id, reply)) {
+      return reply;
+    }
 
     try {
       return reply.send(await resolveObjectStorage().ensureBucket(project.id));
@@ -32127,6 +32170,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const project = await requireObjectStorageProject(request, 'projects:write');
 
+    if (await objectStorageWriteBlocked(project.id, reply)) {
+      return reply;
+    }
+
     const body = parse(
       z.object({ key: z.string().min(1).max(1024), contentType: z.string().max(255).optional() }),
       request.body ?? {},
@@ -32160,6 +32207,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const project = await requireObjectStorageProject(request, 'projects:write');
+
+    if (await objectStorageWriteBlocked(project.id, reply)) {
+      return reply;
+    }
 
     const body = parse(
       z.object({ from: z.string().min(1).max(1024), to: z.string().min(1).max(1024) }),

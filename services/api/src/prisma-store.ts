@@ -453,16 +453,24 @@ export class PrismaApiStore implements ApiStore {
     const bucketProjectIds = bucketProjects.map((p) => p.id);
 
     /*
-     * Workspaces (reserve #3): the subject has a PER-USER workspace in EVERY
-     * project they touched — their own sole-org projects AND projects in shared
-     * orgs where they are a collaborator. Erase all of them, not just the sole-org
-     * "main" workspace.
+     * Workspaces (reserve #3 + #4): the subject can hold a per-user workspace in
+     * EVERY project they are AUTHORIZED to open, which follows the REAL access
+     * rules — org membership grants project access, so ANY project in ANY org the
+     * subject belongs to (sole OR shared) is reachable, WITHOUT needing an explicit
+     * ProjectCollaborator row. Enumerate all of them, plus any explicit
+     * collaborations (defence in depth), not just sole-org + collaborators.
      */
+    const orgProjects =
+      orgIds.length > 0
+        ? await this.prisma.project.findMany({ where: { organizationId: { in: orgIds } }, select: { id: true } })
+        : [];
     const collaborations = await this.prisma.projectCollaborator.findMany({
       where: { userId },
       select: { projectId: true },
     });
-    const workspaceProjectIds = [...new Set([...bucketProjectIds, ...collaborations.map((c) => c.projectId)])];
+    const workspaceProjectIds = [
+      ...new Set([...orgProjects.map((p) => p.id), ...collaborations.map((c) => c.projectId)]),
+    ];
 
     return { bucketProjectIds, workspaceProjectIds };
   }
