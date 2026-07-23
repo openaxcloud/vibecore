@@ -42,6 +42,7 @@ function verifiedPhysicalPurger() {
           },
         },
         objectStorage: {
+          active: true,
           async bucketExists(projectId) {
             return buckets.has(projectId);
           },

@@ -1192,7 +1192,16 @@ export class WorkspaceManager {
   async pvcExists(namespace: string, workspaceId: string): Promise<boolean> {
     const workspace = await this.store.get(workspaceId).catch(() => undefined);
     const pvcName = workspace?.pvcName ?? `pvc-${workspaceId}`;
-    const pvc = await this.k8s.get('PersistentVolumeClaim', namespace, pvcName).catch(() => undefined);
+
+    /*
+     * Reserve #5: ONLY an authenticated NotFound counts as absence. `k8s.get`
+     * returns undefined for a REAL NotFound and RE-THROWS every other failure
+     * (network, RBAC, kubectl error) — see KubectlWorkspaceK8sClient.get. We do
+     * NOT catch: a read error must propagate (→ 5xx → the caller fails closed),
+     * never be misread as "PVC absent". Swallowing it would let a transient
+     * error certify erasure.
+     */
+    const pvc = await this.k8s.get('PersistentVolumeClaim', namespace, pvcName);
 
     return Boolean(pvc);
   }
@@ -1200,8 +1209,11 @@ export class WorkspaceManager {
   /**
    * Account-purge reserve #1 (write barrier): revoke the agent token and stop
    * the pod so the workspace can neither write nor be reprovisioned during the
-   * erasure window. Idempotent; a missing row is a no-op. The PVC is kept —
-   * deleteWorkspace erases it immediately after.
+   * erasure window. The PVC is kept — deleteWorkspace erases it immediately after.
+   *
+   * FAIL-CLOSED: it attempts EVERY delete (so partial cleanup still happens) but
+   * THROWS if ANY of them rejected — the barrier is never reported acquired while
+   * a Secret/Pod/Service delete failed, so a write path could still be live.
    */
   async freezeWorkspace(namespace: string, workspaceId: string): Promise<void> {
     const workspace = await this.store.get(workspaceId).catch(() => undefined);
@@ -1210,11 +1222,26 @@ export class WorkspaceManager {
       return;
     }
 
-    await Promise.allSettled([
-      this.k8s.delete('Secret', namespace, workspace.agentTokenSecretName ?? `agent-token-${workspaceId}`),
-      this.k8s.delete('Pod', namespace, workspace.podName),
-      this.k8s.delete('Service', namespace, workspace.serviceName),
-    ]);
+    const targets: Array<[string, string]> = [
+      ['Secret', workspace.agentTokenSecretName ?? `agent-token-${workspaceId}`],
+      ['Pod', workspace.podName],
+      ['Service', workspace.serviceName],
+    ];
+    const results = await Promise.allSettled(
+      targets.map(([kind, name]) => this.k8s.delete(kind, namespace, name)),
+    );
+
+    const failed = results
+      .map((result, index) => ({ result, target: targets[index] }))
+      .filter((entry) => entry.result.status === 'rejected');
+
+    if (failed.length > 0) {
+      // Do NOT mark the row stopped / claim the barrier — a live write path may remain.
+      throw new Error(
+        `WORKSPACE_FREEZE_INCOMPLETE: ${failed.length} revoke(s) failed for ${workspaceId}: ` +
+          failed.map((entry) => entry.target[0]).join(', '),
+      );
+    }
 
     this.lastTouchAt.delete(workspaceId);
     await this.store.update(workspaceId, { status: 'STOPPED' }).catch(() => {});
