@@ -74,7 +74,7 @@ documents:
     repoCommit: 1692f981
     reviewer: UNKNOWN
   - file: CI_ATTESTATION.yaml
-    sha256: "cc6a6bde41b87e110fcb0eb7ebb17d825df7df2628a2341733af7a1ba734e36a"
+    sha256: "868de9444cddbb8530bf98772ecc6857d2ef6b061e0e01c0f327de8e889d8f4f"
     schemaVersion: 1
     repoCommit: 790eef17
     reviewer: UNKNOWN
