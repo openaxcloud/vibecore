@@ -143,3 +143,38 @@ receipts:
       codeLotsRefused: 3     # import/billing #39 + purge DB #43 + purge physique #47
     refusalReasonsLocation: "docs/parity/incoming/REPONSE_EXPERT_V3_20260722.md (verbatim) + P0_REGISTRY.refusalReason"
     completeness: COMPLETE
+
+  - reviewReceiptId: RR-20260723-CODEX-07
+    reviewerType: AUTOMATED_LLM
+    reviewerIdentity: "OpenAI-Codex"
+    reviewerModelVersion: "GPT-5 (Codex)"
+    reviewedAt: "2026-07-23"
+    auditedCommits:   # §1 du reçu
+      attestationV6Merge: "e1794fe6939a55fb1902c5e73629ae81d1b01e1a"
+      liveProofRun: "30005939249"
+      liveProofBotCommit: "ee0aedd1"
+      harLs13Ls03Head: "bc629fe1512ad82d8e1d0aa443438b2cf14e7626"
+      harLs13Ls03CiRun: "30003958808"
+      wifHead: "f08189719797278512da831030b4ff18b4110697"
+      importBillingHead: "22dbfaa19618b1b63a22d21aa5b1a03212151fa4"
+      purgeDbHead: "2d2ff0a0f4413654896935371410b287a981a9e6"
+      purgePhysicalHead: "035ee9ed275cff7171aaddf9989a96befec747cb"
+      operationsDrHead: "9b9f0c4db95563e4155d101cce6a504e9aaea186"
+      runtimeNixHead: "01de5fcef1dd344c1cefa9badeaa20c8cf5ec98f"
+    inputDocuments:
+      - path: outputs/DOSSIER_EXPERT_V4_20260723.md
+        sha256: "e7d08004aff1e3cf2c0f289fa56962c9dcb535065f41cf4710b631ed65abf44c"
+    responsePath: docs/parity/incoming/REPONSE_EXPERT_V4_20260723.md
+    responseHash: "sha256:f5771529584d08e25bb146c87415627c90fc4a55f5d2ae1c66eb8ddb512a1ce0"
+    requestMessageSha256: "f6c49cef35aba54b511c3cc2aa11a19a2c7fd667ed01cf5d8c8c2c6752e1bc22"
+    summary: "2 P0 signés (LS-13, LS-03) / 4 refusés (LS-16, LS-18, V3-14, A2-09) ; 2 contrats refusés (CTR-OPERATIONS-DR, CTR-RUNTIME-NIX) ; PR #39 acceptée à portée ciblée SANS signature de contrat ; PR #51 + #52 refusées"
+    decisions:
+      accepted: [P0-LS-13, P0-LS-03]
+      refused: [P0-LS-16, P0-LS-18, P0-V3-14, P0-A2-09]
+      contractsAccepted: []
+      contractsRefused: [CTR-OPERATIONS-DR, CTR-RUNTIME-NIX]
+      codeLotsAccepted: [PR-39-IMPORT-BILLING-RACE-FIX]   # portée ciblée, AUCUNE signature de contrat
+      codeLotsRefused: [PR-51-ACCOUNT-PURGE-DB, PR-52-ACCOUNT-PURGE-PHYSICAL]
+    keyDefectRaised: "vérificateur v6 fail-OPEN sur l'ABSENCE de mergedCommit/repoCommit/runUrl (checkAttestationFields ne contrôle que s'ils existent) — LS-16/18/V3-14 refusés tant que ces champs ne sont pas rendus OBLIGATOIRES + non vides + test négatif de SUPPRESSION par champ + nouveau roll post-merge"
+    refusalReasonsLocation: "docs/parity/incoming/REPONSE_EXPERT_V4_20260723.md (§4/§6/§7 verbatim) + P0_REGISTRY.refusalReason + CONTRACT_REGISTRY"
+    completeness: COMPLETE

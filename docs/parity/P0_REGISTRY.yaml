@@ -335,19 +335,19 @@ p0s:
     priority: 14
     owner: platform
     status: PROVEN_REVIEW_PENDING
-    reviewReceiptId: RR-20260722-CODEX-06
+    reviewReceiptId: RR-20260723-CODEX-07
     reviewVerdict: REFUSED
-    refusalReason: "la chaîne documentaire incorpore encore un contrôle d'attestation incomplet (lacunes LS-16) — impossible de signer l'ensemble comme chaîne cohérente et reproductible tant que le vérificateur n'est pas corrigé + tests négatifs par champ + nouveau run post-merge"
+    refusalReason: "la chaîne revendique une authentification complète de provenance mais accepte encore une attestation sans mergedCommit/repoCommit/runUrl — le maillon d'attestation n'est pas fail-closed ; l'ensemble génération→drift-check→validation→authentification ne peut être signé comme chaîne complète. Un run vivant et vert ne corrige pas ce défaut LOGIQUE du vérificateur"
     refusalType: PREUVE_INSUFFISANTE
     remediationTrack: QUICK
-    reviewCommit: "21e8a255"
+    reviewCommit: "e1794fe6"
     commit: "97759a77"
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/CI_ATTESTATION.yaml
     proof: "PREUVE VIVANTE v6 PRODUITE (23/07) : merge #50 (e1794fe6) → job roll-attestation post-merge completed/success → commit bot ee0aedd1. Le run 30005939249 est AUTHENTIFIÉ par le vérificateur v6 DURCI : path=parity-registries.yml, name='Parity registries', event=push, head_branch=main, runCommit+mergedCommit+repoCommit TOUS liés au head_sha (sameCommit), URL exacte (normalizeRunUrl), conclusion=success (verify-attestation-run.mjs exit 0). La chaîne génération→drift-check→validation→authentification(v6)→substitution(par champ)→roll post-merge est entièrement cohérente et reproductible."
     dependances: []
     conditionDeCloture: "Vérificateur corrigé + négatifs par champ + roll post-merge ; puis re-soumission de la chaîne complète"
-    nextAction: "Re-soumission au relecteur : vérificateur v6 fail-closed + négatifs par champ + roll post-merge v6 authentifié (run 30005939249, commit bot ee0aedd1)"
+    nextAction: "Correction v7 (feu vert Avi) : vérificateur fail-closed sur l'absence, puis re-soumettre la chaîne"
     targetDate: "2026-07-16"
   - p0Id: P0-V3-15
     title: "Règles normatives violées par le plan lui-même (historique d'audit, étiquetage, P0 non traçables)"
@@ -545,19 +545,19 @@ p0s:
     priority: 9
     owner: platform
     status: OPEN
-    reviewReceiptId: RR-20260722-CODEX-06
+    reviewReceiptId: RR-20260723-CODEX-07
     remediationTrack: CHANTIER
-    refusalReason: "(refus maintenu au reçu -06) — remédiation WIF rejouable pilotée par la session PR #46 ; voir réserve §D1 antérieure"
+    refusalReason: "les autres réserves V3 sont substantiellement traitées (gh obligatoire, run corrélé par nonce, négatif GKE 401/403 à contenu contrôlé, 3 chemins rejoués) MAIS repro.sh installe le trap de teardown APRÈS gcloud projects create + billing link : si la liaison billing échoue sous set -e, le script sort avant le trap et peut laisser le projet actif. La correction annoncée « trap dès la 1re ressource » n'est pas présente (ordre observé : create → billing → def teardown → trap EXIT)"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
-    reviewCommit: "21e8a255"
+    reviewCommit: "e1794fe6"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/baseline/sources/2026-07-20-gke-workload-identity.html
     proof: "REFUSÉ RR-05 (22/07) — remédiation PILOTÉE PAR LA SESSION WIF (PR #38) : rendre repro.sh exécutable de bout en bout (provision paramétrée), exiger HTTP 200 + contenu attendu, jouer et archiver un vrai négatif GKE, corriger le Dockerfile, rejouer les 3 chemins. Les preuves historiques du 21/07 (run GitHub 29812447097, teardown tracé) restent consignées."
     dependances: []
     conditionDeCloture: "repro.sh de bout en bout + 200 exigé + négatif GKE archivé + Dockerfile corrigé + les 3 chemins rejoués ; puis re-soumission"
-    nextAction: "Session WIF (PR #38) : appliquer les 5 corrections verbatim RR-05 puis re-soumettre"
+    nextAction: "Session WIF #46 : poser le trap teardown AVANT toute création de ressource, puis re-soumettre"
     targetDate: "2026-07-20"
   - p0Id: P0-A2-10
     title: "Décision Gallery incohérente"
@@ -736,13 +736,14 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 3
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewReceiptId: RR-20260722-CODEX-06
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260723-CODEX-07 (COMPLET, responseHash f5771529…) — intégrité et COUVERTURE des fichiers du paquet (étape CI officielle 'Verify livescan hash coverage', 71 fichiers dont 21 *.links.txt, test négatif modif-1-octet→échec→restaure→vert) ; NE valide PAS la justesse sémantique de chaque observation contenue dans ces fichiers"
+    reviewReceiptId: RR-20260723-CODEX-07
     remediationTrack: A_TRIER
     refusalReason: "le vérificateur et l'index sont présents (71 fichiers dont les 21 *.links.txt) mais la commande de reproduction n'a pas été rejouée dans un environnement équivalent et n'est pas ancrée à un job CI officiel du point ; le relecteur ne remplace pas l'exécution par une lecture du script"
     refusalType: PREUVE_INSUFFISANTE
-    reviewVerdict: REFUSED
-    reviewCommit: "21e8a255"
+    reviewVerdict: SIGNED
+    reviewCommit: "bc629fe1"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/livescan-2026-07-20/
@@ -934,13 +935,14 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 13
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewReceiptId: RR-20260722-CODEX-06
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260723-CODEX-07 (COMPLET, responseHash f5771529…) — preuve de session navigateur FAIL-CLOSED (HAR unique, README+proof générés depuis le manifeste, capture lève erreur sur nav/status≠200/URL inattendue, sameValueCarried vrai seulement si 2 empreintes non nulles égales, négatifs null/null/une-valeur/vides/différentes/403/404/000/mauvaise-URL couverts) pour les observations EXPLICITEMENT reliées au run ; NE transforme PAS les autres observations historiques en observations capturées par ce HAR"
+    reviewReceiptId: RR-20260723-CODEX-07
     remediationTrack: QUICK
     refusalReason: "(refus antérieur maintenu au reçu -06) — voir la réserve HAR ; la liaison cookie est prouvée par HAR mais le lot reste sous revue"
     refusalType: PREUVE_INSUFFISANTE
-    reviewVerdict: REFUSED
-    reviewCommit: "21e8a255"
+    reviewVerdict: SIGNED
+    reviewCommit: "bc629fe1"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/deploy-evidence/2026-07-21-gallery-pricing-v4/
@@ -997,19 +999,19 @@ p0s:
     priority: 16
     owner: platform
     status: PROVEN_REVIEW_PENDING
-    reviewReceiptId: RR-20260722-CODEX-06
+    reviewReceiptId: RR-20260723-CODEX-07
     remediationTrack: QUICK
-    refusalReason: "le run vivant n'est plus contesté, mais le vérificateur n'authentifie pas TOUTE la provenance fail-closed : (1) mergedCommit et le commit de dépôt déclaré non liés au head_sha avec la même exigence que runCommit ; (2) l'URL accepte un préfixe au lieu de l'égalité normalisée exacte ; (3) le test négatif cumule les différences au lieu de casser indépendamment PAR champ"
+    refusalReason: "le run post-merge 30005939249 et le commit bot ee0aedd1 sont réels, mais le vérificateur v6 reste FAIL-OPEN sur l'absence de mergedCommit/repoCommit/runUrl (checkAttestationFields ne les contrôle que s'ils existent ; validate-registries ne les exige pas ; les tests négatifs falsifient des valeurs présentes sans tester leur SUPPRESSION) — une attestation amputée peut encore passer. Exigé : rendre les 3 champs OBLIGATOIRES et non vides (validateur ET vérificateur), rejeter leur absence, test négatif indépendant supprimant CHACUN, nouveau roll post-merge"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
-    reviewCommit: "21e8a255"
+    reviewCommit: "e1794fe6"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/CI_ATTESTATION.yaml
     proof: "PREUVE VIVANTE v6 PRODUITE (23/07) : merge #50 (e1794fe6) → job roll-attestation post-merge completed/success → commit bot ee0aedd1. Le run 30005939249 est AUTHENTIFIÉ par le vérificateur v6 DURCI : path=parity-registries.yml, name='Parity registries', event=push, head_branch=main, runCommit+mergedCommit+repoCommit TOUS liés au head_sha (sameCommit), URL exacte (normalizeRunUrl), conclusion=success (verify-attestation-run.mjs exit 0). Les 3 réserves RR-06 (provenance complète liée au head_sha, URL exacte, négatifs par champ) sont satisfaites par une preuve PRÉSENTE."
     dependances: []
     conditionDeCloture: "Vérificateur fail-closed (tous commits liés au head_sha, URL exacte, négatifs par champ) + NOUVEAU roll post-merge produit par ce vérificateur ; puis re-soumission"
-    nextAction: "Re-soumission au relecteur : vérificateur v6 fail-closed + négatifs par champ + roll post-merge v6 authentifié (run 30005939249, commit bot ee0aedd1)"
+    nextAction: "Correction v7 (feu vert Avi) : champs obligatoires non vides + négatifs par suppression + roll post-merge, puis re-soumission"
     targetDate: "2026-07-20"
   - p0Id: P0-LS-17
     title: "Réconcilier les compteurs (174/159, 114/99, surfaces 10)"
@@ -1040,19 +1042,19 @@ p0s:
     priority: 18
     owner: platform
     status: PROVEN_REVIEW_PENDING
-    reviewReceiptId: RR-20260722-CODEX-06
+    reviewReceiptId: RR-20260723-CODEX-07
     reviewVerdict: REFUSED
-    refusalReason: "le commit dit « mergé » n'est pas lui-même authentifié par l'API avec la même force que runCommit ; tant que mergedCommit peut diverger du head_sha authentifié sans faire échouer le vérificateur, la condition « vues recalculées sur le commit mergé » n'est pas fail-closed"
+    refusalReason: "mergedCommit reste FACULTATIF dans le chemin de validation ; sa suppression n'est ni rejetée ni testée. Le mécanisme ne prouve pas fail-closed que les vues ont été recalculées sur le commit mergé — une édition retirant mergedCommit garderait un contrôle vert (même correction que LS-16 + nouveau roll)"
     refusalType: PREUVE_INSUFFISANTE
     remediationTrack: QUICK
-    reviewCommit: "21e8a255"
+    reviewCommit: "e1794fe6"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/CI_ATTESTATION.yaml
     proof: "PREUVE VIVANTE v6 PRODUITE (23/07) : merge #50 (e1794fe6) → job roll-attestation post-merge completed/success → commit bot ee0aedd1. Le run 30005939249 est AUTHENTIFIÉ par le vérificateur v6 DURCI : path=parity-registries.yml, name='Parity registries', event=push, head_branch=main, runCommit+mergedCommit+repoCommit TOUS liés au head_sha (sameCommit), URL exacte (normalizeRunUrl), conclusion=success (verify-attestation-run.mjs exit 0). mergedCommit est authentifié avec la MÊME force que runCommit (lié au head_sha) ; les vues sont recalculées sur ce commit mergé."
     dependances: []
     conditionDeCloture: "mergedCommit authentifié avec la même force que runCommit + roll post-merge ; puis re-soumission"
-    nextAction: "Re-soumission au relecteur : vérificateur v6 fail-closed + négatifs par champ + roll post-merge v6 authentifié (run 30005939249, commit bot ee0aedd1)"
+    nextAction: "Correction v7 (feu vert Avi) : mergedCommit obligatoire + négatif de suppression + roll post-merge"
     targetDate: "2026-07-27"
   - p0Id: P0-B-01
     title: "Overlay code réel + bolt sur les 159 candidats (exigence propriétaire)"

@@ -15,6 +15,7 @@ contracts:
     anchor: "PR #28 MERGÉE (790eef17, 2026-07-21T04:46Z) — mig 0078 additive, triggers immutabilité, 39 tests dont 7 Postgres réels, I-LED-1..5 ; 4 défauts bloquants relevés par RR-04 (remédiation = autre session, directive Avi)"
     expectedReviewer: OpenAI-Codex
     signatureResult: REFUSED_V2
+    note07: "PR #39 (correctif Import/billing race + grand livre) ACCEPTÉE À PORTÉE CIBLÉE au reçu RR-20260723-CODEX-07 dans le périmètre exact examiné — AUCUNE signature de ce contrat n'en est déduite, ni preuve de prod. Le contrat reste non signé."
     reviewReceiptIdV2: RR-20260721-CODEX-04
     refusalReasonV2: "le contrat dit encore PR #28 non mergée (elle est mergée) ; le code mergé passe la réservation à COMMITTED avant le post atomique du settlement ; hard limit lu/contrôlé hors transaction (2 réservations concurrentes percent la limite) ; postTransaction ne valide ni organisation ni devise des comptes ; compensation fiscale re-fournie par l'appelant au lieu d'être dérivée de la ventilation persistée — contredit I-LED-4, l'atomicité et la réconciliation"
   - contractId: CTR-IMPORT-REMIX
@@ -95,7 +96,9 @@ contracts:
     hardeningStatus: HARDENED_PENDING_REVIEW
     anchor: "store RO gVisor prouvé (preuve négative), gen v2, réveil 14,5s"
     expectedReviewer: OpenAI-Codex
-    signatureResult: REFUSED_V2
+    signatureResult: REFUSED_V4   # reçu RR-20260723-CODEX-07 — reviewer NON écrit (pas de signature de contrat)
+    reviewReceiptIdV4: RR-20260723-CODEX-07
+    refusalReasonV4: "le NÉGATIF LIVE exigé n'est pas présent : le code de refus d'une génération révoquée n'est pas déployé, NIX_STORE_GENERATIONS prod est déclarée vide, le scénario attend un mini-merge futur — une commande prête à jouer n'est pas une preuve exécutée ; reviewer NON écrit avant le run live négatif + artefact brut + restauration vérifiée de la config"
     reviewReceiptIdV2: RR-20260721-CODEX-04
     refusalReasonV2: "format ecode.lock et rotation/révocation des générations restent des dépendances ouvertes — refus initial non levé"
     openDependencies: "format ecode.lock + rotation des générations (chantier)"
@@ -147,4 +150,6 @@ contracts:
     hardeningStatus: BLOCKED_ON_CHANTIER
     blockedBy: "exercices réels DR/restauration (PR-DR-01/02/03, WI-0051) — un plan non testé n'est pas un plan"
     expectedReviewer: OpenAI-Codex
-    signatureResult: REFUSED_V1
+    signatureResult: REFUSED_V4   # reçu RR-20260723-CODEX-07 — reviewer NON écrit (pas de signature de contrat)
+    reviewReceiptIdV4: RR-20260723-CODEX-07
+    refusalReasonV4: "obligations centrales encore BLOCKED/UNTESTED (snapshots PD planifiés, astreinte outillée, réplique cross-région, RTO applicatif complet) ; les sous-artefacts (compteur 30/30, SLO web 702/702, SLI api_request_duration_seconds dans Managed Prometheus, failover/failback) sont enregistrables comme PREUVES INDIVIDUELLES mais ne satisfont pas le contrat complet — reviewer du contrat NON écrit"
