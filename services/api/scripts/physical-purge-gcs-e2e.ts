@@ -18,7 +18,7 @@ import { Storage } from '@google-cloud/storage';
 import { eraseSubjectStorage } from '../src/account-storage-purge.js';
 import { GcsObjectStorage, type StorageLike } from '../src/object-storage.js';
 
-const TEST_PROJECT = process.env.GCP_TEST_PROJECT ?? 'ecode-proof-b906ss';
+const TEST_PROJECT = process.env.GCP_TEST_PROJECT ?? 'ecode-wif-proof-834022';
 const LOCATION = process.env.GCP_TEST_LOCATION ?? 'EU';
 
 function canonicalize(value: unknown): string {
@@ -84,14 +84,55 @@ async function main() {
       );
     }
 
+    // ---- NEGATIVE (reserve #2 + #6): an inert backend must REFUSE, not certify ----
+    const negProjectId = `purgee2eneg${Date.now().toString(36)}`;
+    const negBucket = `vc-${negProjectId}`;
+    let negRefusedAndSurvived = false;
+
+    try {
+      await gcs.ensureBucket(negProjectId);
+      await gcs.putObject(negProjectId, { key: 'still-here.bin', body: new Uint8Array([9]), contentType: 'application/octet-stream' });
+
+      // An inert (feature-flag-off) backend: active=false. It would answer
+      // bucketExists=false ("absent"), but that proves nothing.
+      const inert = {
+        active: false,
+        bucketExists: (p: string) => gcs.bucketExists(p),
+        listObjects: (p: string) => gcs.listObjects(p),
+        deleteBucket: () => {
+          throw new Error('inert backend must never delete');
+        },
+      };
+      const negOutcome = await eraseSubjectStorage(
+        { bucketProjectIds: [negProjectId], workspaceIds: [] },
+        { objectStorage: inert },
+      );
+      // Must REFUSE (not verified) AND the real bucket must SURVIVE untouched.
+      const negBucketStillThere = await gcs.bucketExists(negProjectId);
+      negRefusedAndSurvived = negOutcome.verified === false && negBucketStillThere === true;
+
+      if (!negRefusedAndSurvived) {
+        throw new Error(`NEGATIVE FAILED: inert backend was allowed to certify (verified=${negOutcome.verified}, bucketThere=${negBucketStillThere})`);
+      }
+    } finally {
+      // teardown the negative bucket (it intentionally survived the refused purge)
+      try {
+        await storage.bucket(negBucket).deleteFiles({ force: true });
+        await storage.bucket(negBucket).delete();
+      } catch {
+        /* best-effort */
+      }
+    }
+
     const artifact = {
       kind: 'physical-purge-gcs-e2e',
-      version: 1,
+      version: 2,
       project: TEST_PROJECT,
       location: LOCATION,
       bucket: bucketName,
       before: { objects: objectsBefore, count: objectsBefore.length },
       after: { bucketExists: bucketStillExists, objectsRemaining: objectsAfter },
+      negative: { inertBackendRefusedAndBucketSurvived: negRefusedAndSurvived },
       classes: outcome.classes,
       verified: outcome.verified,
     };
@@ -104,6 +145,7 @@ async function main() {
         `  bucket:  ${bucketName}\n` +
         `  objects before: ${objectsBefore.length}, bucket+objects after: gone / 0\n` +
         `  verified: ${outcome.verified}\n` +
+        `  NEGATIVE (reserve #2): inert backend refused + bucket survived: ${negRefusedAndSurvived}\n` +
         `  sha256: ${sha256}\n`,
     );
 
