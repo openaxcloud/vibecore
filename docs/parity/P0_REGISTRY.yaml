@@ -746,10 +746,10 @@ p0s:
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/livescan-2026-07-20/
-    proof: "EN COURS v6 (23/07) : `node scripts/parity/verify-livescan-hashes.mjs --check` à câbler dans un job CI officiel VERT au commit soumis + test négatif (fichier/hash modifié → job rouge). Pilotage sur la branche #48 (où vivent le script + l'index)."
+    proof: "CORRIGÉ v6 (23/07) : étape CI OFFICIELLE « Verify livescan hash coverage (P0-LS-03) » câblée dans le job validate de parity-registries.yml (branche #48) — run officiel VERT au commit soumis (run 30003958808, filesVerified=71, linksHashed=21 : les 21 *.links.txt couverts) ; test négatif rejouable prove-livescan-hash-guard.sh REJOUÉ : ROUGE sur modif d'1 octet / VERT sur restauration (log neg-proof.txt)."
     dependances: []
     conditionDeCloture: "Commande --check câblée en job CI officiel vert au commit soumis + test négatif (modif → rouge) ; puis re-soumission"
-    nextAction: "Câbler verify-livescan-hashes --check en CI sur #48 + test négatif"
+    nextAction: "Re-soumission au relecteur : étape CI officielle verte (run 30003958808) + test négatif rejoué"
     targetDate: "2026-07-20"
   - p0Id: P0-LS-04
     title: "Reclasser GitLab comme capacité supportée sans tuile courante"
