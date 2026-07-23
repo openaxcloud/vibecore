@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   assertLockAgainstRegistry,
+  assertLockPublishable,
   buildEcodeLock,
+  isConcreteGenerationPin,
   parseEcodeLock,
   serializeEcodeLock,
 } from './ecode-lock';
@@ -128,6 +130,70 @@ describe('assertLockAgainstRegistry (enforcement)', () => {
       expect.unreachable('must throw');
     } catch (error) {
       expect((error as { code: string }).code).toBe('ECODE_LOCK_NIXPKGS_MISMATCH');
+    }
+  });
+
+  // Expert refusal v3, point 3 — exhaustive bundle/store-path/hash binding.
+  it('REFUSES a lock whose bundle store path was tampered vs the signed catalog', () => {
+    const lock = buildEcodeLock(gen());
+    lock.bundles[0] = { ...lock.bundles[0], storePath: '/nix/store/zzz-evil' };
+
+    try {
+      assertLockAgainstRegistry(lock, reg);
+      expect.unreachable('must throw');
+    } catch (error) {
+      expect((error as { code: string }).code).toBe('ECODE_LOCK_BUNDLE_TAMPERED');
+    }
+  });
+
+  it('REFUSES a lock whose bundle sha256 was tampered vs the signed catalog', () => {
+    const lock = buildEcodeLock(gen());
+    lock.bundles[0] = { ...lock.bundles[0], sha256: '9'.repeat(64) };
+
+    expect(() => assertLockAgainstRegistry(lock, reg)).toThrow(/does not match the signed catalog/);
+  });
+
+  it('REFUSES a lock referencing a bundle the signed catalog never published', () => {
+    const lock = buildEcodeLock(gen());
+    lock.bundles.push({ name: 'ghc', storePath: '/nix/store/ccc-env-ghc', sha256: 'e'.repeat(64) });
+
+    try {
+      assertLockAgainstRegistry(lock, reg);
+      expect.unreachable('must throw');
+    } catch (error) {
+      expect((error as { code: string }).code).toBe('ECODE_LOCK_BUNDLE_UNKNOWN');
+    }
+  });
+
+  it('accepts a legitimate SUBSET of the catalog bundles (subsetting stays allowed)', () => {
+    const lock = buildEcodeLock(gen(), ['python312']);
+    expect(assertLockAgainstRegistry(lock, reg).id).toBe('gen-2');
+    expect(lock.bundles.map((b) => b.name)).toEqual(['python312']);
+  });
+});
+
+// Expert refusal v3, point 1 — mandatory concrete generation pin.
+describe('assertLockPublishable / isConcreteGenerationPin', () => {
+  it('recognises concrete pins (gen-N, sha256 hash) and rejects mutable aliases', () => {
+    expect(isConcreteGenerationPin('gen-2')).toBe(true);
+    expect(isConcreteGenerationPin(HASH_A)).toBe(true);
+    for (const alias of ['active', 'latest', 'current', 'head', 'stable', 'default', '*', '', '  ']) {
+      expect(isConcreteGenerationPin(alias), alias).toBe(false);
+    }
+  });
+
+  it('publishes a concretely-pinned lock and REFUSES a mutable-alias pin', () => {
+    expect(() => assertLockPublishable(buildEcodeLock(gen()))).not.toThrow();
+
+    for (const alias of ['active', 'latest', 'ACTIVE', '']) {
+      const lock = { ...buildEcodeLock(gen()), storeGeneration: alias };
+
+      try {
+        assertLockPublishable(lock);
+        expect.unreachable(`must reject alias "${alias}"`);
+      } catch (error) {
+        expect((error as { code: string }).code).toBe('ECODE_LOCK_UNPINNED');
+      }
     }
   });
 });

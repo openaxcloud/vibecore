@@ -70,6 +70,7 @@ import {
   ECODE_LOCK_FILENAME,
   activeNixGeneration,
   assertLockAgainstRegistry,
+  assertLockPublishable,
   buildEcodeLock,
   nixGenerationRegistryFromEnv,
   parseEcodeLock,
@@ -29672,7 +29673,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                 const parsedLock = parseEcodeLock(lockContent);
                 const registry = nixGenerationRegistryFromEnv();
 
+                /*
+                 * MANDATORY pin (expert refusal v3 point 1): a publishable lock
+                 * must name a concrete, immutable generation — never a mutable
+                 * alias that could re-resolve to a different generation without
+                 * editing the file. Checked before registry validation so an
+                 * unpinned lock fails even if the registry is off.
+                 */
+                assertLockPublishable(parsedLock);
+
                 if (registry) {
+                  // Exhaustive catalog binding runs inside assertLockAgainstRegistry (point 3).
                   assertLockAgainstRegistry(parsedLock, registry);
                 }
 
@@ -30314,7 +30325,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       lock = buildEcodeLock(generation, body.bundles);
 
-      // The write-side runs the SAME gate as the publish-side read.
+      // The write-side runs the SAME gates as the publish-side read: a concrete
+      // generation pin (point 1) AND exhaustive catalog binding (point 3). The
+      // platform never writes a lock it would itself refuse at publish time.
+      assertLockPublishable(lock);
       assertLockAgainstRegistry(lock, registry);
     } catch (error) {
       const code = (error as { code?: string }).code ?? 'ECODE_LOCK_INVALID';
@@ -31776,7 +31790,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (willServerDigestRollback) {
       try {
         const serverMeta = (target.metadata as Record<string, unknown>)?.serverDeploy as
-          | { image?: { imageRef?: string; imageUri?: string; imageDigest?: string }; secretPolicy?: string }
+          | {
+              image?: { imageRef?: string; imageUri?: string; imageDigest?: string; storeGeneration?: string };
+              secretPolicy?: string;
+            }
           | undefined;
 
         const image = serverMeta?.image ?? {};
@@ -31787,6 +31804,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           imageRef: (image.imageRef ?? image.imageUri ?? '').replace(/:[^:/]+$/, ''),
           imageDigest: image.imageDigest ?? '',
           createdAt: new Date().toISOString(),
+          // CTR-RUNTIME-NIX point 2: carry the ORIGINAL release's pinned generation.
+          ...(image.storeGeneration ? { storeGeneration: image.storeGeneration } : {}),
         };
 
         /*
@@ -31829,6 +31848,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           env: rbEnv,
           healthPath: process.env.SERVER_DEPLOY_HEALTH_PATH || '/',
           nixStorePvcName: nixStorePvcForProject(project.id),
+          /*
+           * Re-pin the ORIGINAL release's generation (expert refusal v3 point 2):
+           * the rollback is evaluated against the generation THAT release used,
+           * not the current active one. The manager's placement runs this ref
+           * through the revocation gate — a rollback onto a since-REVOKED
+           * generation is refused, never silently downgraded to active.
+           */
+          ...(plan.storeGeneration ? { nixGenerationRef: plan.storeGeneration } : {}),
         });
 
         const ok = Boolean(started?.ready);
@@ -31847,7 +31874,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               applied: Boolean(started),
               rolledBackFromDigest: plan.imageDigest,
               secretPolicy: secretResolution.policy,
-              image: { imageRef: retained.imageRef, imageUri: plan.pullRef, imageDigest: plan.imageDigest },
+              // Persist the re-pinned generation so a rollback-of-a-rollback carries it too.
+              image: {
+                imageRef: retained.imageRef,
+                imageUri: plan.pullRef,
+                imageDigest: plan.imageDigest,
+                ...(plan.storeGeneration ? { storeGeneration: plan.storeGeneration } : {}),
+              },
             },
           },
           logs: [

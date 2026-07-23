@@ -15,7 +15,13 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { assertLockAgainstRegistry, buildEcodeLock, parseEcodeLock, serializeEcodeLock } from './ecode-lock';
+import {
+  assertLockAgainstRegistry,
+  assertLockPublishable,
+  buildEcodeLock,
+  parseEcodeLock,
+  serializeEcodeLock,
+} from './ecode-lock';
 import {
   activeNixGeneration,
   assertNixGenerationUsable,
@@ -49,6 +55,43 @@ describe('CTR-RUNTIME-NIX lifecycle (real prod registry document)', () => {
       'europe-west9-b': 'nix-store-v2-b-pvc',
     });
     expect(active?.bundles.map((bundle) => bundle.name).sort()).toEqual(['go', 'nodejs22', 'python312']);
+  });
+
+  it('point 1 — a lock built from the real gen-2 is concretely pinned and publishable', () => {
+    const gen2 = activeNixGeneration(parseNixGenerationRegistry(prodRegistryJson()))!;
+    const lock = parseEcodeLock(serializeEcodeLock(buildEcodeLock(gen2)));
+
+    expect(lock.storeGeneration).toBe('gen-2');
+    expect(() => assertLockPublishable(lock)).not.toThrow();
+    // A mutable alias in the same lock is refused — not really pinned.
+    expect(() => assertLockPublishable({ ...lock, storeGeneration: 'active' })).toThrow(/UNPINNED|concrete/i);
+  });
+
+  it('point 3 — exhaustive catalog binding: a tampered bundle hash/path is refused against the real gen-2', () => {
+    const registry = parseNixGenerationRegistry(prodRegistryJson());
+    const gen2 = activeNixGeneration(registry)!;
+    const good = buildEcodeLock(gen2);
+
+    // Same generation + nixpkgs, but one bundle's sha256 flipped ⇒ refused.
+    const tampered = { ...good, bundles: good.bundles.map((b, i) => (i === 0 ? { ...b, sha256: '0'.repeat(64) } : b)) };
+    try {
+      assertLockAgainstRegistry(tampered, registry);
+      expect.unreachable('tampered bundle must be refused');
+    } catch (error) {
+      expect((error as { code: string }).code).toBe('ECODE_LOCK_BUNDLE_TAMPERED');
+    }
+
+    // A bundle name the signed catalog never published ⇒ refused.
+    const foreign = { ...good, bundles: [...good.bundles, { name: 'rustc', storePath: '/nix/store/x-rust', sha256: 'a'.repeat(64) }] };
+    try {
+      assertLockAgainstRegistry(foreign, registry);
+      expect.unreachable('unknown bundle must be refused');
+    } catch (error) {
+      expect((error as { code: string }).code).toBe('ECODE_LOCK_BUNDLE_UNKNOWN');
+    }
+
+    // The untouched, catalog-matching lock passes.
+    expect(assertLockAgainstRegistry(good, registry).id).toBe('gen-2');
   });
 
   it('rotation: gen-3 published + activated atomically; gen-2 retired but retained; locks keep working', () => {

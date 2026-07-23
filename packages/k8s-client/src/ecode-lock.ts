@@ -47,11 +47,29 @@ export class EcodeLockError extends Error {
       | 'ECODE_LOCK_INVALID'
       | 'ECODE_LOCK_GENERATION_UNKNOWN'
       | 'ECODE_LOCK_GENERATION_REVOKED'
-      | 'ECODE_LOCK_NIXPKGS_MISMATCH',
+      | 'ECODE_LOCK_NIXPKGS_MISMATCH'
+      | 'ECODE_LOCK_UNPINNED'
+      | 'ECODE_LOCK_BUNDLE_UNKNOWN'
+      | 'ECODE_LOCK_BUNDLE_TAMPERED',
   ) {
     super(message);
     this.name = 'EcodeLockError';
   }
+}
+
+/*
+ * A store-generation reference is a CONCRETE, immutable pin when it names a
+ * generation entry (`gen-N`) or a catalog content hash (`sha256:…`). Mutable
+ * aliases that could re-resolve to a different generation without editing the
+ * lock (active/latest/current/head/stable/default) are NOT concrete — a lock
+ * carrying one is not really pinned (expert refusal v3, point 1).
+ */
+const MUTABLE_ALIAS = new Set(['active', 'latest', 'current', 'head', 'stable', 'default', '*', '']);
+
+export function isConcreteGenerationPin(ref: string | undefined): boolean {
+  const value = (ref ?? '').trim().toLowerCase();
+
+  return value.length > 0 && !MUTABLE_ALIAS.has(value);
 }
 
 function invalid(message: string): never {
@@ -225,5 +243,51 @@ export function assertLockAgainstRegistry(lock: EcodeLock, registry: NixGenerati
     );
   }
 
+  /*
+   * EXHAUSTIVE catalog binding (expert refusal v3, point 3): every locked
+   * bundle must exist in the generation's SIGNED catalog with the EXACT same
+   * store path AND sha256. This is what makes the lock immutable — the bytes
+   * are bound to the signed generation, so a tampered path/hash, an unknown
+   * bundle, or a bundle silently dropped from the catalog all fail the publish
+   * instead of resolving to something the catalog never signed.
+   */
+  const catalogBundles = new Map(generation.bundles.map((bundle) => [bundle.name, bundle]));
+
+  for (const locked of lock.bundles) {
+    const signed = catalogBundles.get(locked.name);
+
+    if (!signed) {
+      throw new EcodeLockError(
+        `${ECODE_LOCK_FILENAME} locks bundle "${locked.name}" which the signed catalog of generation "${generation.id}" does not contain`,
+        'ECODE_LOCK_BUNDLE_UNKNOWN',
+      );
+    }
+
+    if (locked.storePath !== signed.storePath || locked.sha256 !== signed.sha256) {
+      throw new EcodeLockError(
+        `${ECODE_LOCK_FILENAME} bundle "${locked.name}" does not match the signed catalog of generation "${generation.id}" ` +
+          `(lock ${locked.storePath}@${locked.sha256.slice(0, 12)} vs catalog ${signed.storePath}@${signed.sha256.slice(0, 12)})`,
+        'ECODE_LOCK_BUNDLE_TAMPERED',
+      );
+    }
+  }
+
   return generation;
+}
+
+/**
+ * Publishability gate (expert refusal v3, point 1): a lock is only publishable
+ * when it pins a CONCRETE, immutable generation. A missing or mutable-alias
+ * pin (active/latest/…) is refused — such a "lock" could re-resolve to a
+ * different generation without any file change, which is not a pin at all.
+ * Called at both write time (the platform never writes an unpinned lock) and
+ * publish time (an unpinned lock, however it arrived, fails the deploy).
+ */
+export function assertLockPublishable(lock: EcodeLock): void {
+  if (!isConcreteGenerationPin(lock.storeGeneration)) {
+    throw new EcodeLockError(
+      `${ECODE_LOCK_FILENAME} does not pin a concrete store generation (got "${lock.storeGeneration}") — a publishable lock must name an immutable generation, not a mutable alias`,
+      'ECODE_LOCK_UNPINNED',
+    );
+  }
 }
