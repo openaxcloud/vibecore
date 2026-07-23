@@ -389,10 +389,15 @@ export class TestApiStore implements ApiStore {
     let physicalClasses: PurgeClassReport[] = [];
 
     if (deps?.eraseStorage) {
-      const purgeableProjectIds = [...this.projects.values()]
+      const bucketProjectIds = [...this.projects.values()]
         .filter((p) => soleOrgIds.includes(p.organizationId))
         .map((p) => p.id);
-      const erasure = await deps.eraseStorage(purgeableProjectIds);
+      // Reserve #3: workspaces = sole-org projects + collaborator projects.
+      const collabProjectIds = [...this.projectCollaborators.values()]
+        .filter((c) => c.userId === userId)
+        .map((c) => c.projectId);
+      const workspaceProjectIds = [...new Set([...bucketProjectIds, ...collabProjectIds])];
+      const erasure = await deps.eraseStorage({ bucketProjectIds, workspaceProjectIds });
 
       if (!erasure.verified) {
         user.preferences = { accountDeletion: { requestedAt } };

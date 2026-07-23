@@ -1184,6 +1184,42 @@ export class WorkspaceManager {
     return deleted;
   }
 
+  /**
+   * Account-purge reserve #2: whether the REAL PVC still exists in Kubernetes —
+   * a live `get pvc`, NOT the workspace row's DELETED status (a partial k8s
+   * delete can leave a PVC behind a "deleted" row). A missing row ⇒ no PVC.
+   */
+  async pvcExists(namespace: string, workspaceId: string): Promise<boolean> {
+    const workspace = await this.store.get(workspaceId).catch(() => undefined);
+    const pvcName = workspace?.pvcName ?? `pvc-${workspaceId}`;
+    const pvc = await this.k8s.get('PersistentVolumeClaim', namespace, pvcName).catch(() => undefined);
+
+    return Boolean(pvc);
+  }
+
+  /**
+   * Account-purge reserve #1 (write barrier): revoke the agent token and stop
+   * the pod so the workspace can neither write nor be reprovisioned during the
+   * erasure window. Idempotent; a missing row is a no-op. The PVC is kept —
+   * deleteWorkspace erases it immediately after.
+   */
+  async freezeWorkspace(namespace: string, workspaceId: string): Promise<void> {
+    const workspace = await this.store.get(workspaceId).catch(() => undefined);
+
+    if (!workspace) {
+      return;
+    }
+
+    await Promise.allSettled([
+      this.k8s.delete('Secret', namespace, workspace.agentTokenSecretName ?? `agent-token-${workspaceId}`),
+      this.k8s.delete('Pod', namespace, workspace.podName),
+      this.k8s.delete('Service', namespace, workspace.serviceName),
+    ]);
+
+    this.lastTouchAt.delete(workspaceId);
+    await this.store.update(workspaceId, { status: 'STOPPED' }).catch(() => {});
+  }
+
   #gcInFlight = false;
 
   async garbageCollect(namespace: string, inactiveMs: number, deleteMs: number) {

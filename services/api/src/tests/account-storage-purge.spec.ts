@@ -1,14 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  eraseProjectsStorage,
+  eraseSubjectStorage,
   type ObjectStorageErasurePort,
   type WorkspaceVolumeErasurePort,
+  type WriteBarrierPort,
 } from '../account-storage-purge.js';
 
 /* ------------------------- in-memory fake backends ------------------------- */
 
 class FakeObjectStorage implements ObjectStorageErasurePort {
-  // projectId -> object keys
   readonly buckets = new Map<string, string[]>();
   refuseDelete = false;
 
@@ -25,17 +25,15 @@ class FakeObjectStorage implements ObjectStorageErasurePort {
   }
 
   async deleteBucket(projectId: string) {
-    if (this.refuseDelete) {
-      return { deleted: false, bucket: `vc-${projectId}` };
+    if (!this.refuseDelete) {
+      this.buckets.delete(projectId);
     }
 
-    this.buckets.delete(projectId);
-
-    return { deleted: true, bucket: `vc-${projectId}` };
+    return { deleted: !this.refuseDelete, bucket: `vc-${projectId}` };
   }
 }
 
-class FakeWorkspaceVolumes implements WorkspaceVolumeErasurePort {
+class FakePvcs implements WorkspaceVolumeErasurePort {
   readonly present = new Set<string>();
   refuseDelete = false;
 
@@ -43,7 +41,7 @@ class FakeWorkspaceVolumes implements WorkspaceVolumeErasurePort {
     this.present.add(workspaceId);
   }
 
-  async workspaceExists(workspaceId: string) {
+  async pvcExists(workspaceId: string) {
     return this.present.has(workspaceId);
   }
 
@@ -56,97 +54,109 @@ class FakeWorkspaceVolumes implements WorkspaceVolumeErasurePort {
   }
 }
 
-const wsIdFor = (projectId: string) => `ws-${projectId}`;
+function recordingBarrier(): WriteBarrierPort & { frozen: boolean } {
+  const barrier = {
+    frozen: false,
+    async freeze() {
+      barrier.frozen = true;
+    },
+  };
 
-describe('eraseProjectsStorage', () => {
-  it('lists before, deletes, verifies 0 remaining, and reports evidence', async () => {
+  return barrier;
+}
+
+describe('eraseSubjectStorage', () => {
+  it('freezes writes first, then erases buckets + PVCs and verifies 0 remaining', async () => {
     const objectStorage = new FakeObjectStorage();
-    objectStorage.seed('p1', ['a.png', 'b.json', 'nested/c.txt']);
-    const workspaceVolumes = new FakeWorkspaceVolumes();
+    objectStorage.seed('p1', ['a.png', 'b.json']);
+    const workspaceVolumes = new FakePvcs();
     workspaceVolumes.seed('ws-p1');
+    workspaceVolumes.seed('ws-shared'); // a collaborator workspace in a shared org
+    const barrier = recordingBarrier();
 
-    const out = await eraseProjectsStorage(['p1'], { objectStorage, workspaceVolumes, workspaceIdFor: wsIdFor });
+    const out = await eraseSubjectStorage(
+      { bucketProjectIds: ['p1'], workspaceIds: ['ws-p1', 'ws-shared'] },
+      { objectStorage, workspaceVolumes, writeBarrier: barrier },
+    );
 
+    expect(barrier.frozen).toBe(true); // reserve #1
     expect(out.verified).toBe(true);
-    const [os, ws] = out.classes;
-    expect(os).toMatchObject({
-      dataClass: 'object_storage',
-      action: 'deleted',
-      remainingAfterPurge: 0,
-      models: { Projects: 1, BucketsDeleted: 1, ObjectsErased: 3 },
-    });
-    expect(ws).toMatchObject({ dataClass: 'workspace_volumes', remainingAfterPurge: 0, models: { WorkspacesDeleted: 1 } });
+    const [os, vols] = out.classes;
+    expect(os).toMatchObject({ remainingAfterPurge: 0, models: { ObjectsErased: 2, BucketsDeleted: 1 } });
+    expect(vols).toMatchObject({ remainingAfterPurge: 0, models: { Workspaces: 2, PvcsDeleted: 2, WriteBarrier: 1 } });
     expect(objectStorage.buckets.has('p1')).toBe(false);
-    expect(workspaceVolumes.present.has('ws-p1')).toBe(false);
+    expect(workspaceVolumes.present.size).toBe(0);
   });
 
-  it('FAIL-CLOSED: a bucket that will not delete leaves remainingAfterPurge > 0 (not verified)', async () => {
+  it('FAIL-CLOSED: a freeze failure aborts erasure — nothing deleted, not verified (reserve #1)', async () => {
     const objectStorage = new FakeObjectStorage();
     objectStorage.seed('p1', ['keep.png']);
-    objectStorage.refuseDelete = true;
-
-    const out = await eraseProjectsStorage(['p1'], { objectStorage, workspaceIdFor: wsIdFor });
-
-    expect(out.verified).toBe(false);
-    expect(out.classes[0].remainingAfterPurge).toBe(1);
-  });
-
-  it('FAIL-CLOSED: a workspace delete that throws leaves the volume as remaining', async () => {
-    const workspaceVolumes = new FakeWorkspaceVolumes();
+    const workspaceVolumes = new FakePvcs();
     workspaceVolumes.seed('ws-p1');
-    workspaceVolumes.refuseDelete = true;
     const warn = vi.fn();
 
-    const out = await eraseProjectsStorage(['p1'], { workspaceVolumes, workspaceIdFor: wsIdFor, log: { warn } });
+    const out = await eraseSubjectStorage(
+      { bucketProjectIds: ['p1'], workspaceIds: ['ws-p1'] },
+      {
+        objectStorage,
+        workspaceVolumes,
+        writeBarrier: {
+          async freeze() {
+            throw new Error('cannot revoke tokens');
+          },
+        },
+        log: { warn },
+      },
+    );
 
+    expect(out.frozen).toBe(false);
     expect(out.verified).toBe(false);
-    expect(out.classes[1].remainingAfterPurge).toBe(1);
+    expect(objectStorage.buckets.has('p1')).toBe(true); // NOT deleted — barrier held it closed
+    expect(workspaceVolumes.present.has('ws-p1')).toBe(true);
     expect(warn).toHaveBeenCalled();
   });
 
-  it('is a verified no-op when a project has no bucket and no workspace (idempotent retry)', async () => {
-    const objectStorage = new FakeObjectStorage();
-    const workspaceVolumes = new FakeWorkspaceVolumes();
-
-    const out = await eraseProjectsStorage(['p1'], { objectStorage, workspaceVolumes, workspaceIdFor: wsIdFor });
-
-    expect(out.verified).toBe(true);
-    expect(out.classes[0].models).toMatchObject({ ObjectsErased: 0, BucketsDeleted: 0 });
-    expect(out.classes[1].models).toMatchObject({ WorkspacesDeleted: 0 });
-  });
-
-  it('verifies vacuously (nothing to erase) for an account with no projects', async () => {
-    const out = await eraseProjectsStorage([], {
-      objectStorage: new FakeObjectStorage(),
-      workspaceVolumes: new FakeWorkspaceVolumes(),
-      workspaceIdFor: wsIdFor,
-    });
-
-    expect(out.verified).toBe(true);
-    expect(out.results).toHaveLength(0);
-  });
-
-  it('aggregates across multiple projects and fails closed if ANY remains', async () => {
-    const objectStorage = new FakeObjectStorage();
-    objectStorage.seed('p1', ['x']);
-    objectStorage.seed('p2', ['y', 'z']);
-    const workspaceVolumes = new FakeWorkspaceVolumes();
+  it('FAIL-CLOSED: a PVC that survives the delete (real k8s check) is caught (reserve #2)', async () => {
+    const workspaceVolumes = new FakePvcs();
     workspaceVolumes.seed('ws-p1');
-    workspaceVolumes.seed('ws-p2');
-    // p2's workspace refuses deletion.
-    const original = workspaceVolumes.deleteWorkspace.bind(workspaceVolumes);
-    workspaceVolumes.deleteWorkspace = async (id: string) => {
-      if (id === 'ws-p2') {
-        throw new Error('boom');
-      }
+    workspaceVolumes.refuseDelete = true;
 
-      return original(id);
-    };
+    const out = await eraseSubjectStorage(
+      { bucketProjectIds: [], workspaceIds: ['ws-p1'] },
+      { workspaceVolumes, writeBarrier: recordingBarrier() },
+    );
 
-    const out = await eraseProjectsStorage(['p1', 'p2'], { objectStorage, workspaceVolumes, workspaceIdFor: wsIdFor });
-
-    expect(out.classes[0].remainingAfterPurge).toBe(0); // both buckets gone
-    expect(out.classes[1].remainingAfterPurge).toBe(1); // p2 workspace stuck
     expect(out.verified).toBe(false);
+    expect(out.classes[1].remainingAfterPurge).toBe(1);
+  });
+
+  it('erases buckets and workspaces from independent inventories (reserve #3)', async () => {
+    const objectStorage = new FakeObjectStorage();
+    objectStorage.seed('sole1', ['x']);
+    const workspaceVolumes = new FakePvcs();
+    // buckets only for the sole org, but workspaces for sole + two collaborator projects
+    workspaceVolumes.seed('ws-sole1');
+    workspaceVolumes.seed('ws-collab1');
+    workspaceVolumes.seed('ws-collab2');
+
+    const out = await eraseSubjectStorage(
+      { bucketProjectIds: ['sole1'], workspaceIds: ['ws-sole1', 'ws-collab1', 'ws-collab2'] },
+      { objectStorage, workspaceVolumes, writeBarrier: recordingBarrier() },
+    );
+
+    expect(out.verified).toBe(true);
+    expect(out.classes[0].models).toMatchObject({ Buckets: 1, BucketsDeleted: 1 });
+    expect(out.classes[1].models).toMatchObject({ Workspaces: 3, PvcsDeleted: 3 });
+  });
+
+  it('is a verified no-op for an empty inventory', async () => {
+    const out = await eraseSubjectStorage(
+      { bucketProjectIds: [], workspaceIds: [] },
+      { objectStorage: new FakeObjectStorage(), workspaceVolumes: new FakePvcs(), writeBarrier: recordingBarrier() },
+    );
+
+    expect(out.verified).toBe(true);
+    expect(out.buckets).toHaveLength(0);
+    expect(out.workspaces).toHaveLength(0);
   });
 });

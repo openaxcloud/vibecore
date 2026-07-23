@@ -496,6 +496,16 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
   app.delete('/workspaces/:workspaceId', async (request) =>
     manager.deleteWorkspace(runtimeNamespace(), (request.params as any).workspaceId),
   );
+  // Account-purge reserve #2: REAL PVC existence in Kubernetes (not the row status).
+  app.get('/workspaces/:workspaceId/pvc-exists', async (request) => ({
+    exists: await manager.pvcExists(runtimeNamespace(), (request.params as any).workspaceId),
+  }));
+  // Account-purge reserve #1: write barrier — revoke token + stop pod before erasure.
+  app.post('/workspaces/:workspaceId/freeze', async (request, reply) => {
+    await manager.freezeWorkspace(runtimeNamespace(), (request.params as any).workspaceId);
+
+    return reply.code(204).send();
+  });
 
   /*
    * Live cluster-capacity snapshot for the admin Infrastructure view. The manager
