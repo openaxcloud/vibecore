@@ -88,3 +88,44 @@ resource "google_container_node_pool" "sandbox" {
     }
   }
 }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CTR-OPERATIONS-DR — snapshots PLANIFIÉS des PD des workspaces (GO Avi 2026-07-23).
+#
+# Ferme l'obligation qui était BLOCKED (décision coût). Coût mesuré ~1,9 $/mois
+# borne haute (5 disques / 32 Gio, facturé sur octets STOCKÉS compressés, donc
+# en pratique moindre). Additif et non disruptif : les snapshots sont pris à
+# chaud, sans downtime des workspaces.
+#
+# La policy est RÉGIONALE (europe-west9) et couvre les disques zonaux des 3
+# zones (a/b/c). L'ATTACHE aux disques (dynamiques, créés par le CSI GKE) se
+# fait hors Terraform (les disques ne sont pas des ressources TF) : voir
+# infra/k8s-manual/attach-snapshot-policy.sh (idempotent) + le schedule GKE.
+resource "google_compute_resource_policy" "workspace_snapshots" {
+  count   = var.snapshot_schedule.enabled ? 1 : 0
+  name    = "${var.name_prefix}-workspace-snapshots"
+  project = var.project_id
+  region  = var.region
+
+  snapshot_schedule_policy {
+    schedule {
+      daily_schedule {
+        days_in_cycle = 1
+        start_time    = var.snapshot_schedule.start_time_utc
+      }
+    }
+
+    retention_policy {
+      max_retention_days    = var.snapshot_schedule.retention_days
+      on_source_disk_delete = "APPLY_RETENTION_POLICY"
+    }
+
+    snapshot_properties {
+      storage_locations = [var.region]
+      guest_flush       = false
+      labels = merge(var.labels, {
+        "vibecore.ai/purpose" = "workspace-dr-snapshot"
+      })
+    }
+  }
+}

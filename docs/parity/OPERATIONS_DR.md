@@ -8,11 +8,11 @@ contractScope: >-
   Ce document ne revendique PAS la signature du contrat CTR-OPERATIONS-DR
   entier. Les conclusions sont SCOPÉES aux artefacts : chaque drill joué est
   une preuve individuelle (evidenceId + repro). Au 2026-07-23, FERMÉES avec
-  preuve live : SLO web, SLI par requête, monitoring persisté, failover DB.
-  Restent OUVERTES (donc contrat non signable) : snapshots planifiés (décision
-  coût, chiffrée §7), astreinte outillée, réplique cross-région, RTO applicatif
-  complet (UNTESTED volontaire). Le drill failover reste une preuve
-  individuelle validée (verdict expert 2026-07-22).
+  preuve live : SLO web, SLI par requête, monitoring persisté, failover DB,
+  snapshots planifiés des PD workspaces (GO Avi 2026-07-23, EVID-DR-SNAPSHOT-001).
+  Restent OUVERTES (donc contrat non signable) : astreinte outillée, réplique
+  cross-région, RTO applicatif complet (UNTESTED volontaire). Le drill failover
+  reste une preuve individuelle validée (verdict expert 2026-07-22).
 reserveFixesV3_2026_07_23: >-
   (n°4 compteur) chiffre normatif de disponibilité du drill failover RÉGÉNÉRÉ
   depuis l'artefact brut GCP (script `regen-uptime-count.py` sur
@@ -83,7 +83,7 @@ le 2026-07-21) — la première fenêtre de 28 j se termine le 2026-08-18.
 |---|---|---|---|---|---|
 | PostgreSQL (Cloud SQL `vibecore-prod-postgres`) | backups quotidiens 03:00 UTC ×30 + **PITR actif** (archivage WAL) | ≤ 15 min | clone PITR à une minute arbitraire réussi (04:38:21Z) — granularité minute | ≤ 60 min | **13 min 06 s** = restauration+validation du CLONE uniquement (EVID-DR-DB-001). Le **RTO applicatif complet** (bascule de la config DB + rollout + santé utilisateur) N'A PAS été mesuré : **UNTESTED** (l'exiger = re-pointer la prod, hors périmètre sans incident réel ; les étapes restantes sont documentées §3.1) |
 | PostgreSQL — **perte de zone** (failover HA) | REGIONAL, standby cross-zone | 0 (synchrone) | **0 écriture ACKée perdue, prouvé** (drill 2026-07-21) | ≤ 5 min | **24,1 s** bascule / **16,0 s** failback (EVID-DR-FAILOVER-001) |
-| Disques workspaces (PD par projet) | snapshots GCE à la demande (non planifiés — voir BLOCKED) | ≤ 24 h si planifiés ; aujourd'hui : dernier snapshot manuel | snapshot+restore prouvés | ≤ 30 min | **77 s** (snapshot→restauré→**marqueur témoin vérifié par sha256** ; PAS une vérification du volume entier — EVID-DR-DISK-001) |
+| Disques workspaces (PD par projet) | **snapshots PLANIFIÉS** (resource policy GCE daily, rétention 7 j — EVID-DR-SNAPSHOT-001) attachés aux 5 disques | ≤ 24 h (schedule quotidien) | snapshot+restore prouvés ; policy live + attachée | ≤ 30 min | **77 s** (snapshot→restauré→**marqueur témoin vérifié par sha256** ; PAS une vérification du volume entier — EVID-DR-DISK-001) |
 | Store Nix partagé (RO, par génération) | snapshot signé par génération + clone par zone | 0 (immuable) | prouvé (gen-2 → clone zone-b identique, sha256 vérifié) | ≤ 15 min | **~50 s** (snapshot 27 s + clone 23 s, mesuré 2026-07-17/20) |
 | Object storage projets (GCS `vc-<projectId>`) | buckets multi-région **EU** | 0 (réplication GCP) | localisation vérifiée | n/a (pas de restauration à faire en perte de zone/région) | n/a |
 | Images/app AR + archives | rétention AR + tags protégés (workflow 6 h) | 0 | rollback par digest PROUVÉ live (I-REL-1, 2026-07-20) | ≤ 10 min | rollback digest : minutes (mesuré dans la preuve I-REL-1) |
@@ -180,15 +180,20 @@ par digest retenu (I-REL-1 live). Réfs : `2026-07-17-nix-multizone/`,
 2. ~~SLO web `e-code.ai`~~ — **FAIT le 2026-07-23** : uptime check (Terraform `web_health` + live), 702/702 True mesurés (EVID-DR-SLO-WEB-001).
 3. ~~SLI par requête (latence/erreurs)~~ — **FAIT le 2026-07-23** : `api_request_duration_seconds` scrapé par Managed Prometheus (PodMonitoring + NetworkPolicy IaC), `up=1` prouvé, requêtes SLO + policy d'alerte 5xx (EVID-DR-SLI-001). Contredit le « aucun pipeline de métriques » de la version précédente : GMP EST en service et ingère désormais le SLI par requête.
 4. ~~Monitoring persisté en Terraform~~ — FAIT le 2026-07-22 (module paramétré + validations anti-placeholder).
+5. ~~Snapshots planifiés des PD workspaces~~ — **FAIT le 2026-07-23 sur GO Avi**
+   (EVID-DR-SNAPSHOT-001). Resource policy GCE snapshot-schedule en **Terraform**
+   (`modules/gke-workspaces` : daily 02:00 UTC, rétention **7 j**, validations
+   heure/rétention ; `validate`+`fmt` verts) + appliquée LIVE
+   (`vibecore-prod-workspace-snapshots`) + attachée aux **5 disques** via
+   `infra/k8s-manual/attach-snapshot-policy.sh` (idempotent, pour les disques
+   dynamiques). Preuve : snapshot on-demand `READY` (storageBytes 7,4 MiB pour
+   10 Go) + schedule tiré (policy de preuve). **Coût réel** : plafond 1,86 $/mois
+   (32 Gio pleins × 0,058) ; utilisé mesuré ⇒ régime réel de l'ordre de quelques
+   centimes/mois (snapshots incrémentaux, facturés sur l'utilisé). Additif, zéro
+   downtime.
 
 ### BLOCKED — décision/infra Avi (chiffrées quand possible)
 
-5. **Snapshots planifiés des PD workspaces** — **décision COÛT à remonter** :
-   resource policy GCE snapshot-schedule à attacher aux disques. Volumétrie
-   RÉELLE mesurée ce jour : **5 disques PVC, 32 Gio provisionnés au total**.
-   Coût snapshot standard europe-west9 = 0,058 $/Gio/mois sur octets stockés
-   (compressés, < provisionné) → borne haute **~1,9 $/mois** aux 32 Gio actuels,
-   croissant avec le nombre de projets. Commande prête ; **GO + accord coût = Avi**.
 6. **Astreinte outillée** — choix outil (PagerDuty/OpsGenie/téléphone) + rotation.
    Aujourd'hui : opérateur unique (Avi), alertes → email réel. Dépendance : décision Avi.
 7. **Réplique cross-région** (perte de région entière) — décision + budget (≈ coût
