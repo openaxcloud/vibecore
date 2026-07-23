@@ -1,0 +1,17 @@
+{
+  "after": {
+    "pv": "present",
+    "pvc": "NotFound",
+    "pvcCount": 0
+  },
+  "before": {
+    "pv": "pvc-d27f444a-112c-4b3d-9d35-7fb2918550ee",
+    "pvcPhase": "Bound"
+  },
+  "cluster": "kind:purge-e2e (throwaway, torn down)",
+  "kind": "physical-purge-k8s-e2e",
+  "namespace": "purge-e2e",
+  "pvcName": "ws-e2e-pvc",
+  "verified": true,
+  "version": 1
+}

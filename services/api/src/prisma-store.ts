@@ -427,7 +427,10 @@ export class PrismaApiStore implements ApiStore {
    * to erase; the purge tx recomputes the same set authoritatively for the DB
    * deletes, and physical erasure is idempotent, so any drift is harmless.
    */
-  private async purgeableProjectIds(userId: string): Promise<string[]> {
+  private async purgeableStorageInventory(userId: string): Promise<{
+    bucketProjectIds: string[];
+    workspaceProjectIds: string[];
+  }> {
     const memberships = await this.prisma.organizationMember.findMany({
       where: { userId },
       select: { organizationId: true },
@@ -441,16 +444,27 @@ export class PrismaApiStore implements ApiStore {
       }
     }
 
-    if (soleOrgIds.length === 0) {
-      return [];
-    }
+    // Buckets: only the subject's SOLE-org projects (the bucket is org-owned; a
+    // shared org's bucket belongs to the other members and is retained).
+    const bucketProjects =
+      soleOrgIds.length > 0
+        ? await this.prisma.project.findMany({ where: { organizationId: { in: soleOrgIds } }, select: { id: true } })
+        : [];
+    const bucketProjectIds = bucketProjects.map((p) => p.id);
 
-    const projects = await this.prisma.project.findMany({
-      where: { organizationId: { in: soleOrgIds } },
-      select: { id: true },
+    /*
+     * Workspaces (reserve #3): the subject has a PER-USER workspace in EVERY
+     * project they touched — their own sole-org projects AND projects in shared
+     * orgs where they are a collaborator. Erase all of them, not just the sole-org
+     * "main" workspace.
+     */
+    const collaborations = await this.prisma.projectCollaborator.findMany({
+      where: { userId },
+      select: { projectId: true },
     });
+    const workspaceProjectIds = [...new Set([...bucketProjectIds, ...collaborations.map((c) => c.projectId)])];
 
-    return projects.map((p) => p.id);
+    return { bucketProjectIds, workspaceProjectIds };
   }
 
   async purgeUserAccount(
@@ -489,8 +503,8 @@ export class PrismaApiStore implements ApiStore {
       });
 
       if (preStatus === 'ready_to_purge') {
-        const projectIds = await this.purgeableProjectIds(userId);
-        const erasure = await deps.eraseStorage(projectIds);
+        const inventory = await this.purgeableStorageInventory(userId);
+        const erasure = await deps.eraseStorage(inventory);
 
         if (!erasure.verified) {
           throw new Error(

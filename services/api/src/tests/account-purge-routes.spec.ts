@@ -47,7 +47,7 @@ afterEach(() => {
  */
 async function setup(
   accountStoragePurger: (
-    projectIds: string[],
+    inventory: { bucketProjectIds: string[]; workspaceProjectIds: string[] },
     userId: string,
   ) => Promise<{ classes: any[]; verified: boolean }> = async () => ({ classes: [], verified: true }),
 ) {

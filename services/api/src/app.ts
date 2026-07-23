@@ -176,7 +176,13 @@ import {
   settleCheckpoint,
 } from './credits-service.js';
 import type { PurgeClassReport } from './account-purge.js';
-import { eraseProjectsStorage, type WorkspaceVolumeErasurePort } from './account-storage-purge.js';
+import {
+  eraseSubjectStorage,
+  type WorkspaceVolumeErasurePort,
+  type WriteBarrierPort,
+  type StorageErasureInventory,
+} from './account-storage-purge.js';
+import type { PurgeStorageInventory } from './account-purge.js';
 import {
   DELETION_GRACE_PERIOD_DAYS,
   canCancelDeletion,
@@ -483,11 +489,11 @@ export interface ApiAppOptions {
 
   /**
    * Physical-erasure hook for account purge (§16.12). Defaults to erasing real
-   * GCS buckets + workspace PVCs via `eraseProjectsStorage`; tests inject a fake
+   * GCS buckets + workspace PVCs via `eraseSubjectStorage`; tests inject a fake
    * to exercise the fail-closed gate without live GCS / workspace-manager.
    */
   accountStoragePurger?: (
-    projectIds: string[],
+    inventory: PurgeStorageInventory,
     userId: string,
   ) => Promise<{ classes: PurgeClassReport[]; verified: boolean }>;
 
@@ -7041,8 +7047,13 @@ function createWorkspaceVolumeEraser(): WorkspaceVolumeErasurePort {
   };
 
   return {
-    async workspaceExists(workspaceId: string) {
-      const response = await fetch(`${workspaceManagerUrl()}/workspaces/${encodeURIComponent(workspaceId)}`, {
+    async pvcExists(workspaceId: string) {
+      /*
+       * Reserve #2: ask workspace-manager for the REAL Kubernetes PVC state
+       * (a live `kubectl get pvc`), NOT the workspace row's `DELETED` flag — a
+       * partial k8s delete can leave a PVC while the row says deleted.
+       */
+      const response = await fetch(`${workspaceManagerUrl()}/workspaces/${encodeURIComponent(workspaceId)}/pvc-exists`, {
         headers: authHeaders(),
         signal: AbortSignal.timeout(15_000),
       });
@@ -7052,13 +7063,12 @@ function createWorkspaceVolumeEraser(): WorkspaceVolumeErasurePort {
       }
 
       if (!response.ok) {
-        throw new Error(`workspace status lookup failed: ${response.status}`);
+        throw new Error(`pvc existence check failed: ${response.status}`);
       }
 
-      const workspace = (await response.json().catch(() => null)) as { status?: string } | null;
+      const body = (await response.json().catch(() => null)) as { exists?: boolean } | null;
 
-      // A DELETED row means the Pod/PVC delete already ran — count it as gone.
-      return Boolean(workspace) && workspace!.status !== 'DELETED';
+      return Boolean(body?.exists);
     },
 
     async deleteWorkspace(workspaceId: string) {
@@ -7069,9 +7079,41 @@ function createWorkspaceVolumeEraser(): WorkspaceVolumeErasurePort {
       });
 
       // 404 = already gone (idempotent). Anything else non-2xx is a real failure
-      // → the caller re-counts, finds the volume present, and fails closed.
+      // → the caller re-counts (real PVC check) and fails closed.
       if (!response.ok && response.status !== 404) {
         throw new Error(`workspace delete failed: ${response.status}`);
+      }
+    },
+  };
+}
+
+/*
+ * Write barrier (reserve #1): freeze writes to the subject's storage BEFORE the
+ * erasure, so nothing can be recreated between erase/verify and the tombstone.
+ * For each workspace it calls workspace-manager `POST /workspaces/:id/freeze`,
+ * which stops the pod and revokes the agent token (no more writes / reprovision).
+ * Throws on any failure so the erasure fails closed.
+ */
+function createWriteBarrier(workspaceIdsFor: (inv: StorageErasureInventory) => string[]): WriteBarrierPort {
+  const authHeaders = () => {
+    const secret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
+
+    return { accept: 'application/json', ...(secret ? { authorization: `Bearer ${secret}` } : {}) };
+  };
+
+  return {
+    async freeze(inventory: StorageErasureInventory) {
+      for (const workspaceId of workspaceIdsFor(inventory)) {
+        const response = await fetch(`${workspaceManagerUrl()}/workspaces/${encodeURIComponent(workspaceId)}/freeze`, {
+          method: 'POST',
+          headers: authHeaders(),
+          signal: AbortSignal.timeout(30_000),
+        });
+
+        // 404 = no workspace to freeze (idempotent); other non-2xx = real failure.
+        if (!response.ok && response.status !== 404) {
+          throw new Error(`workspace freeze failed for ${workspaceId}: ${response.status}`);
+        }
       }
     },
   };
@@ -29615,15 +29657,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
              * stamped. A failure throws → the account stays queued and is retried
              * → an account is never marked purged with storage still on disk.
              */
-            eraseStorage: (projectIds) =>
+            eraseStorage: (inventory) =>
               options.accountStoragePurger
-                ? options.accountStoragePurger(projectIds, userId)
-                : eraseProjectsStorage(projectIds, {
-                    objectStorage: resolveObjectStorage(),
-                    workspaceVolumes: createWorkspaceVolumeEraser(),
-                    workspaceIdFor: (projectId) => runtimeWorkspaceId(projectId, userId),
-                    log: app.log as unknown as { warn(o: unknown, m?: string): void },
-                  }),
+                ? options.accountStoragePurger(inventory, userId)
+                : eraseSubjectStorage(
+                    {
+                      bucketProjectIds: inventory.bucketProjectIds,
+                      // Reserve #3: a per-user workspace exists in EVERY project the
+                      // subject touched (sole-org + collaborator), deterministically
+                      // named runtimeWorkspaceId(projectId, userId).
+                      workspaceIds: inventory.workspaceProjectIds.map((projectId) =>
+                        runtimeWorkspaceId(projectId, userId),
+                      ),
+                    },
+                    {
+                      objectStorage: resolveObjectStorage(),
+                      workspaceVolumes: createWorkspaceVolumeEraser(),
+                      writeBarrier: createWriteBarrier((inv) => inv.workspaceIds),
+                      log: app.log as unknown as { warn(o: unknown, m?: string): void },
+                    },
+                  ),
           },
         );
 
