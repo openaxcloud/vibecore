@@ -31,6 +31,13 @@ export interface ImportReservation {
   /** Credits actually charged. > 0 ONLY once SETTLED (i.e. the import committed). */
   debitedCredits: number;
   state: ReservationState;
+
+  /**
+   * Optimistic-lock generation the caller observed (expert V3 §C). Threaded
+   * into `attachJob` so a job binds ONLY to the exact ACTIVE generation the
+   * reserve/revive returned — never to a hold expired or re-armed in between.
+   */
+  version: number;
 }
 
 export class ImportBillingError extends Error {
@@ -86,6 +93,7 @@ export function reserveReservation(
     reservedCredits: input.reservedCredits,
     debitedCredits: 0,
     state: 'RESERVED',
+    version: 0,
   };
 }
 
@@ -178,7 +186,12 @@ export interface ImportBillingLedger {
     key: string;
     reservedCredits: number;
   }): Promise<{ reservation: ImportReservation; created: boolean }>;
-  attachJob(organizationId: string, key: string, importJobId: string): Promise<'attached' | 'conflict'>;
+  attachJob(
+    organizationId: string,
+    key: string,
+    importJobId: string,
+    expectedVersion: number,
+  ): Promise<'attached' | 'conflict'>;
   findByKey(organizationId: string, key: string): Promise<ImportReservation | undefined>;
   settleByJob(
     organizationId: string,
@@ -224,12 +237,16 @@ export class ImportCreditLedger implements ImportBillingLedger {
      * same key — the retry proceeds as creator instead of spinning forever.
      */
     if (existing && existing.state === 'COMPENSATED' && !existing.importJobId) {
-      const revived = reserveReservation(undefined, {
-        key: input.key,
-        organizationId: input.organizationId,
-        importJobId: '',
-        reservedCredits: input.reservedCredits,
-      });
+      // Re-arm at a NEW generation (version bump) so a stale attach can't bind.
+      const revived: ImportReservation = {
+        ...reserveReservation(undefined, {
+          key: input.key,
+          organizationId: input.organizationId,
+          importJobId: '',
+          reservedCredits: input.reservedCredits,
+        }),
+        version: existing.version + 1,
+      };
       this.byOrgKey.set(composite, revived);
 
       return { reservation: revived, created: true };
@@ -250,7 +267,12 @@ export class ImportCreditLedger implements ImportBillingLedger {
     return { reservation: next, created: true };
   }
 
-  async attachJob(organizationId: string, key: string, importJobId: string): Promise<'attached' | 'conflict'> {
+  async attachJob(
+    organizationId: string,
+    key: string,
+    importJobId: string,
+    expectedVersion: number,
+  ): Promise<'attached' | 'conflict'> {
     const composite = ImportCreditLedger.composite(organizationId, key);
     const reservation = this.byOrgKey.get(composite);
 
@@ -258,7 +280,17 @@ export class ImportCreditLedger implements ImportBillingLedger {
       throw new ImportBillingError(`No reservation found for key ${key}`, 'BILLING_RESERVATION_MISSING');
     }
 
-    if (reservation.importJobId && reservation.importJobId !== importJobId) {
+    if (reservation.importJobId === importJobId) {
+      return 'attached'; // idempotent re-attach of the same job
+    }
+
+    /*
+     * FAIL-CLOSED (expert V3 §C): bind ONLY to the exact ACTIVE generation the
+     * caller reserved. A different version (revived/expired since) or a
+     * non-RESERVED state or an already-attached job → refuse. The in-memory
+     * state maps RESERVED to the durable ACTIVE.
+     */
+    if (reservation.importJobId || reservation.state !== 'RESERVED' || reservation.version !== expectedVersion) {
       return 'conflict';
     }
 

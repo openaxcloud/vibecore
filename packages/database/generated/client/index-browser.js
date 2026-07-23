@@ -1529,6 +1529,7 @@ exports.Prisma.LedgerReservationScalarFieldEnum = {
   idempotencyKey: 'idempotencyKey',
   operation: 'operation',
   status: 'status',
+  version: 'version',
   currency: 'currency',
   maxAmountMinor: 'maxAmountMinor',
   committedMinor: 'committedMinor',

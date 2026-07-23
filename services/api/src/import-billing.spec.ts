@@ -127,6 +127,7 @@ describe('assertNoDebitWithoutCommit — the core safety invariant', () => {
       reservedCredits: 5,
       debitedCredits: 2,
       state: 'RESERVED' as const,
+      version: 0,
     };
     expectCode(() => assertNoDebitWithoutCommit(bogus), 'BILLING_DEBIT_WITHOUT_COMMIT');
   });
@@ -136,7 +137,7 @@ describe('ImportCreditLedger — in-memory backend (org-scoped keys, ownership, 
   it('reserve → attach → settle on commit records the debit', async () => {
     const ledger = new ImportCreditLedger();
     await ledger.reserve({ organizationId: 'o', key: 'k', reservedCredits: 4 });
-    await ledger.attachJob('o', 'k', 'job1');
+    await ledger.attachJob('o', 'k', 'job1', 0);
 
     const settled = await ledger.settleByJob('o', 'job1', true, 4);
     expect(settled.state).toBe('SETTLED');
@@ -147,7 +148,7 @@ describe('ImportCreditLedger — in-memory backend (org-scoped keys, ownership, 
   it('reserve → compensate on cleanup leaves zero debit', async () => {
     const ledger = new ImportCreditLedger();
     await ledger.reserve({ organizationId: 'o', key: 'k', reservedCredits: 4 });
-    await ledger.attachJob('o', 'k', 'job2');
+    await ledger.attachJob('o', 'k', 'job2', 0);
 
     const comp = await ledger.compensateByJob('job2', 'cancel');
     expect(comp?.state).toBe('COMPENSATED');
@@ -183,8 +184,8 @@ describe('ImportCreditLedger — in-memory backend (org-scoped keys, ownership, 
     expect(orgB.reservation.reservedCredits).toBe(7);
 
     // Settling org-a's import never touches org-b's reservation.
-    await ledger.attachJob('org-a', 'shared-key', 'job-a');
-    await ledger.attachJob('org-b', 'shared-key', 'job-b');
+    await ledger.attachJob('org-a', 'shared-key', 'job-a', 0);
+    await ledger.attachJob('org-b', 'shared-key', 'job-b', 0);
     await ledger.settleByJob('org-a', 'job-a', true, 3);
     expect((await ledger.findByKey('org-b', 'shared-key'))?.state).toBe('RESERVED');
   });
@@ -192,7 +193,7 @@ describe('ImportCreditLedger — in-memory backend (org-scoped keys, ownership, 
   it('EXPERT #27-4 — ownership: another organization cannot settle or read the reservation', async () => {
     const ledger = new ImportCreditLedger();
     await ledger.reserve({ organizationId: 'org-owner', key: 'k', reservedCredits: 2 });
-    await ledger.attachJob('org-owner', 'k', 'job-x');
+    await ledger.attachJob('org-owner', 'k', 'job-x', 0);
 
     await expect(ledger.settleByJob('org-intruder', 'job-x', true, 2)).rejects.toMatchObject({
       code: 'BILLING_RESERVATION_FOREIGN',

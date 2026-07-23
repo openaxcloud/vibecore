@@ -2534,6 +2534,12 @@ model LedgerReservation {
   idempotencyKey  String
   operation       String
   status          LedgerReservationStatus @default(ACTIVE)
+  /// Optimistic-lock generation. Bumped on EVERY lifecycle transition
+  /// (reserve/revive/release/expire/commit/compensate) so the reaper, a revive
+  /// and an attach serialize: each compare-and-set pins the version it read,
+  /// and a concurrent transition invalidates the others. Fail-closed against
+  /// the revive-vs-reap-vs-attach race (expert V3 §C).
+  version         Int                     @default(0)
   currency        String                  @default("usd")
   /// Authorized ceiling (hold, not a debit).
   maxAmountMinor  BigInt

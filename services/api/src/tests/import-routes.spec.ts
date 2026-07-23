@@ -443,7 +443,7 @@ describe('EXPERT #39-1/#39-2 — orphan recovery + target compensation on settle
 
     const failingLedger: ImportBillingLedger = {
       reserve: (input) => ledger.reserve(input),
-      attachJob: (org, key, job) => ledger.attachJob(org, key, job),
+      attachJob: (org, key, job, version) => ledger.attachJob(org, key, job, version),
       findByKey: (org, key) => ledger.findByKey(org, key),
       settleByJob: async () => {
         throw new Error('billing backend down');

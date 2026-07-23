@@ -428,7 +428,7 @@ export class LedgerStore {
     const posted = await this.db.$transaction(async (trx) => {
       const won = await trx.ledgerReservation.updateMany({
         where: { id: input.reservationId, status: 'ACTIVE' },
-        data: { status: 'COMMITTED', committedMinor: committed, committedAt: new Date() },
+        data: { status: 'COMMITTED', committedMinor: committed, committedAt: new Date(), version: { increment: 1 } },
       });
 
       if (won.count !== 1) {
@@ -508,7 +508,12 @@ export class LedgerStore {
     const won = await this.db.$transaction(async (trx) => {
       const cas = await trx.ledgerReservation.updateMany({
         where: { id: reservationId, status: 'COMMITTED' },
-        data: { status: 'COMPENSATED', releasedAt: new Date(), releaseReason: 'compensation' },
+        data: {
+          status: 'COMPENSATED',
+          releasedAt: new Date(),
+          releaseReason: 'compensation',
+          version: { increment: 1 },
+        },
       });
 
       if (cas.count !== 1) {
@@ -537,9 +542,21 @@ export class LedgerStore {
    * RELEASE — ACTIVE → RELEASED (cancel/failure) or EXPIRED (timeout). Returns the
    * whole hold to available credits. No commit ⇒ no revenue was ever recognised.
    */
+  /**
+   * Release a hold (cancel/failure → RELEASED, timeout → EXPIRED), returning the
+   * held credits. Fail-closed guards (expert V3 §C):
+   *  - `requireExpiredBefore` (the reaper passes `now`): the CAS only fires when
+   *    `expiresAt <= now` STILL holds — a concurrent revive that extended the
+   *    expiry makes this match 0 rows, so a just-revived hold is never expired;
+   *  - `expectedVersion` (the reaper passes the version it selected): the CAS
+   *    pins that generation — any concurrent transition (revive/attach) bumped
+   *    it and the CAS matches 0 rows.
+   * The transition itself bumps `version`.
+   */
   async releaseReservation(
     reservationId: string,
     reason: 'cancel' | 'failure' | 'timeout',
+    opts: { requireExpiredBefore?: Date; expectedVersion?: number } = {},
   ): Promise<{ released: boolean }> {
     const reservation = await this.db.ledgerReservation.findUniqueOrThrow({ where: { id: reservationId } });
 
@@ -553,8 +570,13 @@ export class LedgerStore {
     // One trx: the state change and the hold-return entries are atomic (#28-1).
     const won = await this.db.$transaction(async (trx) => {
       const cas = await trx.ledgerReservation.updateMany({
-        where: { id: reservationId, status: 'ACTIVE' },
-        data: { status: nextStatus, releasedAt: new Date(), releaseReason: reason },
+        where: {
+          id: reservationId,
+          status: 'ACTIVE',
+          ...(opts.requireExpiredBefore ? { expiresAt: { lte: opts.requireExpiredBefore } } : {}),
+          ...(opts.expectedVersion !== undefined ? { version: opts.expectedVersion } : {}),
+        },
+        data: { status: nextStatus, releasedAt: new Date(), releaseReason: reason, version: { increment: 1 } },
       });
 
       if (cas.count !== 1) {
@@ -564,9 +586,9 @@ export class LedgerStore {
       await this.postEntriesInTrx(trx, {
         organizationId: reservation.organizationId,
         reason: `reservation.release.${reason}`,
-        idempotencyKey: `release:${reservation.id}`,
+        idempotencyKey: `release:${reservation.id}:v${reservation.version}`,
         entries: releaseEntries(accounts, reservation.maxAmountMinor, reservation.currency),
-        metadata: { reservationId: reservation.id, reason },
+        metadata: { reservationId: reservation.id, reason, version: reservation.version },
       });
 
       return true;
@@ -593,7 +615,14 @@ export class LedgerStore {
   async reviveReservation(input: { reservationId: string; expiresAt: string; nowIso: string }): Promise<boolean> {
     const nextExpiry = new Date(input.expiresAt);
 
-    // Case 1 — stale-ACTIVE unattached: hold intact, extend the expiry only.
+    /*
+     * Case 1 — stale-ACTIVE unattached: hold intact, extend the expiry only.
+     * BUMP `version` (expert V3 §C): a concurrent reaper that SELECTED this row
+     * as expired pins the old version in its compare-and-set; the bump makes
+     * that CAS match 0 rows, and the extended expiry ALSO fails the reaper's
+     * `expiresAt <= now` guard — belt-and-suspenders, the reaper can no longer
+     * flip a just-revived hold to EXPIRED.
+     */
     const extended = await this.db.ledgerReservation.updateMany({
       where: {
         id: input.reservationId,
@@ -601,7 +630,7 @@ export class LedgerStore {
         importJobId: null,
         expiresAt: { lt: new Date(input.nowIso) },
       },
-      data: { expiresAt: nextExpiry },
+      data: { expiresAt: nextExpiry, version: { increment: 1 } },
     });
 
     if (extended.count === 1) {
@@ -624,7 +653,13 @@ export class LedgerStore {
     return this.db.$transaction(async (trx) => {
       const cas = await trx.ledgerReservation.updateMany({
         where: { id: reservation.id, status: { in: ['EXPIRED', 'RELEASED'] }, importJobId: null },
-        data: { status: 'ACTIVE', expiresAt: nextExpiry, releasedAt: null, releaseReason: null },
+        data: {
+          status: 'ACTIVE',
+          expiresAt: nextExpiry,
+          releasedAt: null,
+          releaseReason: null,
+          version: { increment: 1 },
+        },
       });
 
       if (cas.count !== 1) {
@@ -650,17 +685,28 @@ export class LedgerStore {
     });
   }
 
-  /** Sweep ACTIVE reservations past expiry to EXPIRED + release their hold. */
+  /**
+   * Sweep ACTIVE reservations past expiry to EXPIRED + release their hold.
+   * Each row is expired under the version + expiry it was SELECTED with
+   * (expert V3 §C): if a revive extends the expiry and bumps the version
+   * between the SELECT and the compare-and-set, the guarded CAS matches 0 rows
+   * and the reaper leaves that (now live) hold alone — no lost-update.
+   */
   async reapExpiredReservations(nowIso: string): Promise<string[]> {
+    const now = new Date(nowIso);
+
     const due = await this.db.ledgerReservation.findMany({
-      where: { status: 'ACTIVE', expiresAt: { lte: new Date(nowIso) } },
-      select: { id: true },
+      where: { status: 'ACTIVE', expiresAt: { lte: now } },
+      select: { id: true, version: true },
     });
 
     const reaped: string[] = [];
 
-    for (const { id } of due) {
-      const { released } = await this.releaseReservation(id, 'timeout');
+    for (const { id, version } of due) {
+      const { released } = await this.releaseReservation(id, 'timeout', {
+        requireExpiredBefore: now,
+        expectedVersion: version,
+      });
 
       if (released) {
         reaped.push(id);

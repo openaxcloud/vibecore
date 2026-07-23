@@ -114,8 +114,8 @@ runDbTests('PR #27 fix-forward — durable org-scoped import reservations (real 
 
     const prismaA = createDatabaseClient();
     const ledgerA = new DurableImportCreditLedger(prismaA);
-    await ledgerA.reserve({ organizationId: org, key: 'restart-key', reservedCredits: 4 });
-    await ledgerA.attachJob(org, 'restart-key', 'job-restart');
+    const heldA = await ledgerA.reserve({ organizationId: org, key: 'restart-key', reservedCredits: 4 });
+    await ledgerA.attachJob(org, 'restart-key', 'job-restart', heldA.reservation.version);
     await prismaA.$disconnect(); // "process death"
 
     const prismaB = createDatabaseClient();
@@ -142,8 +142,8 @@ runDbTests('PR #27 fix-forward — durable org-scoped import reservations (real 
       const owner = uniqueOrg('a4o');
       const intruder = uniqueOrg('a4i');
 
-      await ledger.reserve({ organizationId: owner, key: 'owned-key', reservedCredits: 2 });
-      await ledger.attachJob(owner, 'owned-key', 'job-owned');
+      const heldOwner = await ledger.reserve({ organizationId: owner, key: 'owned-key', reservedCredits: 2 });
+      await ledger.attachJob(owner, 'owned-key', 'job-owned', heldOwner.reservation.version);
 
       await expect(ledger.settleByJob(intruder, 'job-owned', true, 2)).rejects.toMatchObject({
         code: 'BILLING_RESERVATION_FOREIGN',
@@ -450,8 +450,8 @@ runDbTests(
         expect(retry.created).toBe(true);
         expect(retry.reservation.state).toBe('RESERVED');
 
-        // …and the revived hold attaches + settles normally.
-        expect(await ledger.attachJob(org, 'orphan-key', 'job-revived')).toBe('attached');
+        // …and the revived hold attaches (at its bumped version) + settles normally.
+        expect(await ledger.attachJob(org, 'orphan-key', 'job-revived', retry.reservation.version)).toBe('attached');
 
         const settled = await ledger.settleByJob(org, 'job-revived', true, 5);
         expect(settled.debitedCredits).toBe(5);
@@ -528,3 +528,169 @@ runDbTests(
     });
   },
 );
+
+runDbTests('PR #39 V3 §C — course reaper/revive/attach fermée (fail-closed, real Postgres)', () => {
+  const PAST = () => new Date(Date.now() - 60_000).toISOString();
+  const FUTURE = () => new Date(Date.now() + 3600_000).toISOString();
+
+  it('C1 — interleaving EXACT: le reaper SÉLECTIONNE une expirée, un revive l’étend+bumpe la version, le CAS du reaper ÉCHOUE (reste ACTIVE)', async () => {
+    const prisma = createDatabaseClient();
+
+    try {
+      const store = new LedgerStore(prisma);
+      const org = uniqueOrg('v3c1');
+
+      // Orphan: reserved with an ALREADY-PAST expiry, never attached (crash).
+      const r = await store.reserveUsage({
+        organizationId: org,
+        idempotencyKey: 'race-key',
+        operation: 'import',
+        maxAmountMinor: 5n,
+        expiresAt: PAST(),
+      });
+
+      // STEP 1 — the reaper SELECTS the due row (id + version it will pin).
+      const now = new Date();
+
+      const selected = await prisma.ledgerReservation.findMany({
+        where: { status: 'ACTIVE', expiresAt: { lte: now } },
+        select: { id: true, version: true },
+      });
+
+      const picked = selected.find((s) => s.id === r.id);
+      expect(picked).toBeTruthy();
+
+      const selectedVersion = picked!.version;
+
+      /*
+       * STEP 2 — a retry REVIVES it FIRST: extends expiry into the future,
+       * bumps the version. Interleaved BEFORE the reaper's compare-and-set.
+       */
+      const revived = await store.reviveReservation({
+        reservationId: r.id,
+        expiresAt: FUTURE(),
+        nowIso: now.toISOString(),
+      });
+      expect(revived).toBe(true);
+
+      /*
+       * STEP 3 — the reaper NOW applies its guarded CAS with the version it
+       * selected + expiresAt<=now. Both guards fail → 0 rows → NOT expired.
+       */
+      const { released } = await store.releaseReservation(r.id, 'timeout', {
+        requireExpiredBefore: now,
+        expectedVersion: selectedVersion,
+      });
+      expect(released).toBe(false);
+
+      const after = await prisma.ledgerReservation.findUniqueOrThrow({ where: { id: r.id } });
+      expect(after.status).toBe('ACTIVE'); // survived the reaper
+      expect(after.version).toBe(selectedVersion + 1); // the revive's bump
+      expect(new Date(after.expiresAt).getTime()).toBeGreaterThan(now.getTime());
+
+      /*
+       * STEP 4/5 — the retry creates the job and attaches at the REVIVED
+       * version → attaches to a LIVE hold (never to an expired one).
+       */
+      const ledger = new DurableImportCreditLedger(prisma);
+      const attached = await ledger.attachJob(org, 'race-key', 'job-race', after.version);
+      expect(attached).toBe('attached');
+
+      const bound = await prisma.ledgerReservation.findUniqueOrThrow({ where: { id: r.id } });
+      expect(bound.status).toBe('ACTIVE');
+      expect(bound.importJobId).toBe('job-race');
+    } finally {
+      await prisma.$disconnect();
+    }
+  });
+
+  it('C2 — fail-closed: attacher un job à une réservation DÉJÀ expirée par le reaper est REFUSÉ', async () => {
+    const prisma = createDatabaseClient();
+
+    try {
+      const store = new LedgerStore(prisma);
+      const ledger = new DurableImportCreditLedger(prisma);
+      const org = uniqueOrg('v3c2');
+
+      const r = await store.reserveUsage({
+        organizationId: org,
+        idempotencyKey: 'expired-key',
+        operation: 'import',
+        maxAmountMinor: 5n,
+        expiresAt: PAST(),
+      });
+
+      const v0 = (await prisma.ledgerReservation.findUniqueOrThrow({ where: { id: r.id } })).version;
+
+      // No revive this time: the reaper wins and expires it.
+      const reaped = await store.reapExpiredReservations(new Date().toISOString());
+      expect(reaped).toContain(r.id);
+      expect((await prisma.ledgerReservation.findUniqueOrThrow({ where: { id: r.id } })).status).toBe('EXPIRED');
+
+      /*
+       * A job MUST NOT attach to the expired hold — even at the version the
+       * caller last saw (v0). Predicate requires status ACTIVE + expiresAt>now.
+       */
+      const attached = await ledger.attachJob(org, 'expired-key', 'job-late', v0);
+      expect(attached).toBe('conflict');
+
+      const row = await prisma.ledgerReservation.findUniqueOrThrow({ where: { id: r.id } });
+      expect(row.importJobId).toBeNull(); // no job bound to an expired hold
+    } finally {
+      await prisma.$disconnect();
+    }
+  });
+
+  it('C3 — fuzz concurrent: reaper vs revive lancés ensemble N fois → JAMAIS d’EXPIRED avec un job attaché', async () => {
+    const prismaR = createDatabaseClient();
+    const prismaV = createDatabaseClient();
+    const prismaA = createDatabaseClient();
+
+    try {
+      const storeR = new LedgerStore(prismaR);
+      const storeV = new LedgerStore(prismaV);
+      const ledgerA = new DurableImportCreditLedger(prismaA);
+
+      for (let i = 0; i < 12; i += 1) {
+        const org = uniqueOrg(`v3c3-${i}`);
+
+        const r = await storeR.reserveUsage({
+          organizationId: org,
+          idempotencyKey: `fuzz-${i}`,
+          operation: 'import',
+          maxAmountMinor: 3n,
+          expiresAt: PAST(),
+        });
+
+        // Reaper and revive race on separate connections.
+        await Promise.all([
+          storeR.reapExpiredReservations(new Date().toISOString()),
+          storeV.reviveReservation({ reservationId: r.id, expiresAt: FUTURE(), nowIso: new Date().toISOString() }),
+        ]);
+
+        const row = await prismaA.ledgerReservation.findUniqueOrThrow({ where: { id: r.id } });
+
+        // Attempt an attach at the CURRENT version (what a retry would read).
+        const attached = await ledgerA.attachJob(org, `fuzz-${i}`, `job-fuzz-${i}`, row.version);
+        const final = await prismaA.ledgerReservation.findUniqueOrThrow({ where: { id: r.id } });
+
+        /*
+         * THE INVARIANT: a job is attached ONLY to a live (ACTIVE) hold. It is
+         * never bound to an EXPIRED reservation — whichever way the race fell.
+         */
+        if (final.importJobId !== null) {
+          expect(final.status).toBe('ACTIVE');
+          expect(attached).toBe('attached');
+        } else {
+          // No attach ⇒ the hold was expired ⇒ attach correctly refused.
+          expect(attached).toBe('conflict');
+          expect(final.status).toBe('EXPIRED');
+        }
+      }
+    } finally {
+      await prismaR.$disconnect();
+      await prismaV.$disconnect();
+      await prismaA.$disconnect();
+    }
+  });
+});

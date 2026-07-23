@@ -144977,12 +144977,14 @@ export namespace Prisma {
   }
 
   export type LedgerReservationAvgAggregateOutputType = {
+    version: number | null
     maxAmountMinor: number | null
     committedMinor: number | null
     rateCardVersion: number | null
   }
 
   export type LedgerReservationSumAggregateOutputType = {
+    version: number | null
     maxAmountMinor: bigint | null
     committedMinor: bigint | null
     rateCardVersion: number | null
@@ -144995,6 +144997,7 @@ export namespace Prisma {
     idempotencyKey: string | null
     operation: string | null
     status: $Enums.LedgerReservationStatus | null
+    version: number | null
     currency: string | null
     maxAmountMinor: bigint | null
     committedMinor: bigint | null
@@ -145018,6 +145021,7 @@ export namespace Prisma {
     idempotencyKey: string | null
     operation: string | null
     status: $Enums.LedgerReservationStatus | null
+    version: number | null
     currency: string | null
     maxAmountMinor: bigint | null
     committedMinor: bigint | null
@@ -145041,6 +145045,7 @@ export namespace Prisma {
     idempotencyKey: number
     operation: number
     status: number
+    version: number
     currency: number
     maxAmountMinor: number
     committedMinor: number
@@ -145061,12 +145066,14 @@ export namespace Prisma {
 
 
   export type LedgerReservationAvgAggregateInputType = {
+    version?: true
     maxAmountMinor?: true
     committedMinor?: true
     rateCardVersion?: true
   }
 
   export type LedgerReservationSumAggregateInputType = {
+    version?: true
     maxAmountMinor?: true
     committedMinor?: true
     rateCardVersion?: true
@@ -145079,6 +145086,7 @@ export namespace Prisma {
     idempotencyKey?: true
     operation?: true
     status?: true
+    version?: true
     currency?: true
     maxAmountMinor?: true
     committedMinor?: true
@@ -145102,6 +145110,7 @@ export namespace Prisma {
     idempotencyKey?: true
     operation?: true
     status?: true
+    version?: true
     currency?: true
     maxAmountMinor?: true
     committedMinor?: true
@@ -145125,6 +145134,7 @@ export namespace Prisma {
     idempotencyKey?: true
     operation?: true
     status?: true
+    version?: true
     currency?: true
     maxAmountMinor?: true
     committedMinor?: true
@@ -145236,6 +145246,7 @@ export namespace Prisma {
     idempotencyKey: string
     operation: string
     status: $Enums.LedgerReservationStatus
+    version: number
     currency: string
     maxAmountMinor: bigint
     committedMinor: bigint | null
@@ -145279,6 +145290,7 @@ export namespace Prisma {
     idempotencyKey?: boolean
     operation?: boolean
     status?: boolean
+    version?: boolean
     currency?: boolean
     maxAmountMinor?: boolean
     committedMinor?: boolean
@@ -145303,6 +145315,7 @@ export namespace Prisma {
     idempotencyKey?: boolean
     operation?: boolean
     status?: boolean
+    version?: boolean
     currency?: boolean
     maxAmountMinor?: boolean
     committedMinor?: boolean
@@ -145327,6 +145340,7 @@ export namespace Prisma {
     idempotencyKey?: boolean
     operation?: boolean
     status?: boolean
+    version?: boolean
     currency?: boolean
     maxAmountMinor?: boolean
     committedMinor?: boolean
@@ -145351,6 +145365,7 @@ export namespace Prisma {
     idempotencyKey?: boolean
     operation?: boolean
     status?: boolean
+    version?: boolean
     currency?: boolean
     maxAmountMinor?: boolean
     committedMinor?: boolean
@@ -145368,7 +145383,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type LedgerReservationOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "userId" | "idempotencyKey" | "operation" | "status" | "currency" | "maxAmountMinor" | "committedMinor" | "rateCardVersion" | "importJobId" | "reserveTxId" | "settleTxId" | "compensateTxId" | "expiresAt" | "committedAt" | "releasedAt" | "releaseReason" | "metadata" | "createdAt" | "updatedAt", ExtArgs["result"]["ledgerReservation"]>
+  export type LedgerReservationOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "userId" | "idempotencyKey" | "operation" | "status" | "version" | "currency" | "maxAmountMinor" | "committedMinor" | "rateCardVersion" | "importJobId" | "reserveTxId" | "settleTxId" | "compensateTxId" | "expiresAt" | "committedAt" | "releasedAt" | "releaseReason" | "metadata" | "createdAt" | "updatedAt", ExtArgs["result"]["ledgerReservation"]>
 
   export type $LedgerReservationPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "LedgerReservation"
@@ -145383,6 +145398,14 @@ export namespace Prisma {
       idempotencyKey: string
       operation: string
       status: $Enums.LedgerReservationStatus
+      /**
+       * Optimistic-lock generation. Bumped on EVERY lifecycle transition
+       * (reserve/revive/release/expire/commit/compensate) so the reaper, a revive
+       * and an attach serialize: each compare-and-set pins the version it read,
+       * and a concurrent transition invalidates the others. Fail-closed against
+       * the revive-vs-reap-vs-attach race (expert V3 §C).
+       */
+      version: number
       currency: string
       /**
        * Authorized ceiling (hold, not a debit).
@@ -145836,6 +145859,7 @@ export namespace Prisma {
     readonly idempotencyKey: FieldRef<"LedgerReservation", 'String'>
     readonly operation: FieldRef<"LedgerReservation", 'String'>
     readonly status: FieldRef<"LedgerReservation", 'LedgerReservationStatus'>
+    readonly version: FieldRef<"LedgerReservation", 'Int'>
     readonly currency: FieldRef<"LedgerReservation", 'String'>
     readonly maxAmountMinor: FieldRef<"LedgerReservation", 'BigInt'>
     readonly committedMinor: FieldRef<"LedgerReservation", 'BigInt'>
@@ -150138,6 +150162,7 @@ export namespace Prisma {
     idempotencyKey: 'idempotencyKey',
     operation: 'operation',
     status: 'status',
+    version: 'version',
     currency: 'currency',
     maxAmountMinor: 'maxAmountMinor',
     committedMinor: 'committedMinor',
@@ -159852,6 +159877,7 @@ export namespace Prisma {
     idempotencyKey?: StringFilter<"LedgerReservation"> | string
     operation?: StringFilter<"LedgerReservation"> | string
     status?: EnumLedgerReservationStatusFilter<"LedgerReservation"> | $Enums.LedgerReservationStatus
+    version?: IntFilter<"LedgerReservation"> | number
     currency?: StringFilter<"LedgerReservation"> | string
     maxAmountMinor?: BigIntFilter<"LedgerReservation"> | bigint | number
     committedMinor?: BigIntNullableFilter<"LedgerReservation"> | bigint | number | null
@@ -159876,6 +159902,7 @@ export namespace Prisma {
     idempotencyKey?: SortOrder
     operation?: SortOrder
     status?: SortOrder
+    version?: SortOrder
     currency?: SortOrder
     maxAmountMinor?: SortOrder
     committedMinor?: SortOrderInput | SortOrder
@@ -159904,6 +159931,7 @@ export namespace Prisma {
     idempotencyKey?: StringFilter<"LedgerReservation"> | string
     operation?: StringFilter<"LedgerReservation"> | string
     status?: EnumLedgerReservationStatusFilter<"LedgerReservation"> | $Enums.LedgerReservationStatus
+    version?: IntFilter<"LedgerReservation"> | number
     currency?: StringFilter<"LedgerReservation"> | string
     maxAmountMinor?: BigIntFilter<"LedgerReservation"> | bigint | number
     committedMinor?: BigIntNullableFilter<"LedgerReservation"> | bigint | number | null
@@ -159928,6 +159956,7 @@ export namespace Prisma {
     idempotencyKey?: SortOrder
     operation?: SortOrder
     status?: SortOrder
+    version?: SortOrder
     currency?: SortOrder
     maxAmountMinor?: SortOrder
     committedMinor?: SortOrderInput | SortOrder
@@ -159960,6 +159989,7 @@ export namespace Prisma {
     idempotencyKey?: StringWithAggregatesFilter<"LedgerReservation"> | string
     operation?: StringWithAggregatesFilter<"LedgerReservation"> | string
     status?: EnumLedgerReservationStatusWithAggregatesFilter<"LedgerReservation"> | $Enums.LedgerReservationStatus
+    version?: IntWithAggregatesFilter<"LedgerReservation"> | number
     currency?: StringWithAggregatesFilter<"LedgerReservation"> | string
     maxAmountMinor?: BigIntWithAggregatesFilter<"LedgerReservation"> | bigint | number
     committedMinor?: BigIntNullableWithAggregatesFilter<"LedgerReservation"> | bigint | number | null
@@ -170222,6 +170252,7 @@ export namespace Prisma {
     idempotencyKey: string
     operation: string
     status?: $Enums.LedgerReservationStatus
+    version?: number
     currency?: string
     maxAmountMinor: bigint | number
     committedMinor?: bigint | number | null
@@ -170246,6 +170277,7 @@ export namespace Prisma {
     idempotencyKey: string
     operation: string
     status?: $Enums.LedgerReservationStatus
+    version?: number
     currency?: string
     maxAmountMinor: bigint | number
     committedMinor?: bigint | number | null
@@ -170270,6 +170302,7 @@ export namespace Prisma {
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     operation?: StringFieldUpdateOperationsInput | string
     status?: EnumLedgerReservationStatusFieldUpdateOperationsInput | $Enums.LedgerReservationStatus
+    version?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     maxAmountMinor?: BigIntFieldUpdateOperationsInput | bigint | number
     committedMinor?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -170294,6 +170327,7 @@ export namespace Prisma {
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     operation?: StringFieldUpdateOperationsInput | string
     status?: EnumLedgerReservationStatusFieldUpdateOperationsInput | $Enums.LedgerReservationStatus
+    version?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     maxAmountMinor?: BigIntFieldUpdateOperationsInput | bigint | number
     committedMinor?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -170318,6 +170352,7 @@ export namespace Prisma {
     idempotencyKey: string
     operation: string
     status?: $Enums.LedgerReservationStatus
+    version?: number
     currency?: string
     maxAmountMinor: bigint | number
     committedMinor?: bigint | number | null
@@ -170342,6 +170377,7 @@ export namespace Prisma {
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     operation?: StringFieldUpdateOperationsInput | string
     status?: EnumLedgerReservationStatusFieldUpdateOperationsInput | $Enums.LedgerReservationStatus
+    version?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     maxAmountMinor?: BigIntFieldUpdateOperationsInput | bigint | number
     committedMinor?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -170366,6 +170402,7 @@ export namespace Prisma {
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     operation?: StringFieldUpdateOperationsInput | string
     status?: EnumLedgerReservationStatusFieldUpdateOperationsInput | $Enums.LedgerReservationStatus
+    version?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     maxAmountMinor?: BigIntFieldUpdateOperationsInput | bigint | number
     committedMinor?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -176873,6 +176910,7 @@ export namespace Prisma {
     idempotencyKey?: SortOrder
     operation?: SortOrder
     status?: SortOrder
+    version?: SortOrder
     currency?: SortOrder
     maxAmountMinor?: SortOrder
     committedMinor?: SortOrder
@@ -176891,6 +176929,7 @@ export namespace Prisma {
   }
 
   export type LedgerReservationAvgOrderByAggregateInput = {
+    version?: SortOrder
     maxAmountMinor?: SortOrder
     committedMinor?: SortOrder
     rateCardVersion?: SortOrder
@@ -176903,6 +176942,7 @@ export namespace Prisma {
     idempotencyKey?: SortOrder
     operation?: SortOrder
     status?: SortOrder
+    version?: SortOrder
     currency?: SortOrder
     maxAmountMinor?: SortOrder
     committedMinor?: SortOrder
@@ -176926,6 +176966,7 @@ export namespace Prisma {
     idempotencyKey?: SortOrder
     operation?: SortOrder
     status?: SortOrder
+    version?: SortOrder
     currency?: SortOrder
     maxAmountMinor?: SortOrder
     committedMinor?: SortOrder
@@ -176943,6 +176984,7 @@ export namespace Prisma {
   }
 
   export type LedgerReservationSumOrderByAggregateInput = {
+    version?: SortOrder
     maxAmountMinor?: SortOrder
     committedMinor?: SortOrder
     rateCardVersion?: SortOrder

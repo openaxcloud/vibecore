@@ -24,51 +24,17 @@
 
 import type { DatabaseClient } from '@vibecore/database';
 
-import { ImportBillingError, type ImportReservation, type ReservationState } from './import-billing.js';
+import {
+  ImportBillingError,
+  type ImportBillingLedger,
+  type ImportReservation,
+  type ReservationState,
+} from './import-billing.js';
 import { LedgerError } from './ledger-core.js';
 import { LedgerStore } from './ledger-store.js';
 
 /** Reservation TTL — matches the import staging expiry (1 h idle). */
 const IMPORT_RESERVATION_TTL_MS = 60 * 60 * 1000;
-
-/**
- * The async surface both backends (durable Postgres / in-memory test) expose.
- * `reserve` is the atomic idempotency point: exactly ONE concurrent caller per
- * (organizationId, key) sees `created: true` and may create the import job.
- */
-export interface ImportBillingLedger {
-  reserve(input: {
-    organizationId: string;
-    key: string;
-    reservedCredits: number;
-  }): Promise<{ reservation: ImportReservation; created: boolean }>;
-
-  /** Bind the winner's import job to its reservation (once; conflicts reported). */
-  attachJob(organizationId: string, key: string, importJobId: string): Promise<'attached' | 'conflict'>;
-  findByKey(organizationId: string, key: string): Promise<ImportReservation | undefined>;
-
-  /** Ownership-checked: refuses a reservation belonging to another org. */
-  settleByJob(
-    organizationId: string,
-    importJobId: string,
-    committed: boolean,
-    actualCredits: number,
-  ): Promise<ImportReservation>;
-
-  /**
-   * Release on a NON-committed exit (cancel / timeout / rollback / failure) —
-   * zero debit. No-op (undefined) when nothing was reserved. Server-side only:
-   * callers pass job ids they already authorized.
-   */
-  compensateByJob(
-    importJobId: string,
-    reason: 'cancel' | 'failure' | 'timeout',
-  ): Promise<ImportReservation | undefined>;
-  getByJob(organizationId: string, importJobId: string): Promise<ImportReservation | undefined>;
-
-  /** Timeout sweep for reservations never attached to a job / never settled. */
-  reapExpired(nowIso: string): Promise<string[]>;
-}
 
 type LedgerReservationRow = {
   id: string;
@@ -78,6 +44,7 @@ type LedgerReservationRow = {
   maxAmountMinor: bigint;
   committedMinor: bigint | null;
   status: string;
+  version: number;
 };
 
 function mapState(status: string): ReservationState {
@@ -103,6 +70,7 @@ function mapRow(row: LedgerReservationRow): ImportReservation {
     reservedCredits: Number(row.maxAmountMinor),
     debitedCredits: state === 'SETTLED' ? Number(row.committedMinor ?? 0n) : 0,
     state,
+    version: row.version,
   };
 }
 
@@ -164,17 +132,38 @@ export class DurableImportCreditLedger implements ImportBillingLedger {
     return { reservation: mapRow(row), created };
   }
 
-  async attachJob(organizationId: string, key: string, importJobId: string): Promise<'attached' | 'conflict'> {
-    // Conditional write: only the first attach (importJobId still NULL) wins.
+  async attachJob(
+    organizationId: string,
+    key: string,
+    importJobId: string,
+    expectedVersion: number,
+  ): Promise<'attached' | 'conflict'> {
+    /*
+     * FAIL-CLOSED (expert V3 §C): bind the job ONLY to the exact generation the
+     * caller reserved AND only while it is STILL ACTIVE and unexpired. The
+     * predicate pins `status: ACTIVE`, `version: expectedVersion` and
+     * `expiresAt > now`, so a reservation reaped-to-EXPIRED or re-armed
+     * (version bumped) between reserve and attach matches 0 rows — a job can
+     * NEVER attach to an expired or wrong-generation hold. Its own version bump
+     * closes the window against a reaper firing at the same instant.
+     */
     const attached = await this.db.ledgerReservation.updateMany({
-      where: { organizationId, idempotencyKey: key, importJobId: null },
-      data: { importJobId },
+      where: {
+        organizationId,
+        idempotencyKey: key,
+        importJobId: null,
+        status: 'ACTIVE',
+        version: expectedVersion,
+        expiresAt: { gt: new Date() },
+      },
+      data: { importJobId, version: { increment: 1 } },
     });
 
     if (attached.count === 1) {
       return 'attached';
     }
 
+    // Idempotent re-attach of the SAME job is fine; anything else is a refusal.
     const row = await this.requireByKey(organizationId, key);
 
     return row.importJobId === importJobId ? 'attached' : 'conflict';

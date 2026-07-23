@@ -140,6 +140,12 @@ import {
 import { enqueueDeployBuildJob } from './deploy-queue.js';
 import { reapStaleDeployments, resolveDeployBuildTimeoutMs } from './deploy-reaper.js';
 import { meterServerDeploymentRuntime } from './deploy-runtime-metering.js';
+import { createWorkspaceBuildAgent, type WsLike } from './deploy-workspace-agent.js';
+import {
+  detectPodPackageManager,
+  runWorkspaceStaticBuild,
+  type WorkspaceStaticBuildResult,
+} from './deploy-workspace-build.js';
 import { shouldRecordDeploymentUsage } from './deployment-billing.js';
 import {
   assertDeploymentRequestAllowed,
@@ -169,6 +175,26 @@ import {
 } from './deployments.js';
 import { createEmailProvider, type EmailProvider } from './email.js';
 import { evaluateFeatureFlag, flagEnabledForUser } from './feature-flags.js';
+import { DurableImportCreditLedger } from './import-billing-durable.js';
+import {
+  ImportBillingError,
+  ImportCreditLedger,
+  estimateImportReservation,
+  type ImportBillingLedger,
+} from './import-billing.js';
+import {
+  IMPORT_HUB_PROVIDERS,
+  ImportInvariantError,
+  applyConsentedRedactions,
+  assertImportTransition,
+  assertScanBranch,
+  scanBranchTarget,
+  scanStagedFilesForSecrets,
+  unresolvedFindings,
+  type ConsentDecision,
+  type ImportFile,
+  type ImportState,
+} from './import-pipeline.js';
 import {
   resolveIntegrationOauthStateSecret,
   signIntegrationOauthState,
@@ -234,27 +260,6 @@ import {
   type StoredArchive,
 } from './project-storage.js';
 import { aggregateProviderMetrics } from './provider-metrics.js';
-import { createWorkspaceBuildAgent, type WsLike } from './deploy-workspace-agent.js';
-import {
-  detectPodPackageManager,
-  runWorkspaceStaticBuild,
-  type WorkspaceStaticBuildResult,
-} from './deploy-workspace-build.js';
-import { DurableImportCreditLedger } from './import-billing-durable.js';
-import { ImportCreditLedger, estimateImportReservation, type ImportBillingLedger } from './import-billing.js';
-import {
-  IMPORT_HUB_PROVIDERS,
-  ImportInvariantError,
-  applyConsentedRedactions,
-  assertImportTransition,
-  assertScanBranch,
-  scanBranchTarget,
-  scanStagedFilesForSecrets,
-  unresolvedFindings,
-  type ConsentDecision,
-  type ImportFile,
-  type ImportState,
-} from './import-pipeline.js';
 import {
   MachineSizeError,
   getActiveRateCard,
@@ -2125,6 +2130,7 @@ function isBlockedGitHost(rawHost: string): boolean {
     /^169\.254\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
     /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host) ||
+
     /*
      * ULA fc00::/7 + link-local fe80::/10, but only as IPv6 LITERALS (hextets +
      * ':'). The old startsWith('fc'/'fd'/'fe80') wrongly blocked public hosts like
@@ -3097,6 +3103,7 @@ async function requireAuth(request: FastifyRequest, reply: FastifyReply, store: 
     mfaPathname.startsWith('/auth/recovery-codes/') ||
     mfaPathname === '/auth/sessions' ||
     mfaPathname.startsWith('/auth/sessions/') ||
+
     /*
      * Re-auth is the gateway to enrolling MFA (mfa/setup now requires it); a
      * platform admin without MFA must be able to reach it or they'd be deadlocked.
@@ -9384,6 +9391,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.url.startsWith('/auth/login') ||
       request.url.startsWith('/auth/verify-email') ||
       request.url.startsWith('/auth/password-reset') ||
+
       /*
        * The OAuth login flow (start/callback/providers) is public, but the
        * account-LINK endpoint must stay authenticated (it binds a provider to the
@@ -9398,18 +9406,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.url.startsWith('/webhooks/') ||
       request.url.startsWith('/scim/') ||
       request.url.startsWith('/static-deployments/') ||
+
       /*
        * Service-to-service internal endpoints (metering ingest, inactivity GC).
        * Exempt from user auth; each route self-authenticates with the shared
        * internal secret via requireInternalSecret(). P8.
        */
       request.url.startsWith('/internal/') ||
+
       /*
        * Public read of a shared conversation snapshot — the signed token is the
        * capability. Only the token-scoped GET path is exempt; POST /chat-shares
        * (create) has no trailing slash and still requires authentication.
        */
       (request.method === 'GET' && request.url.startsWith('/chat-shares/')) ||
+
       /*
        * Public Gallery browse/detail (TPL-02) — anonymous browsing like
        * replit.com/gallery. GET only: POST /gallery/:slug/remix creates a project
@@ -18452,8 +18463,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     };
 
     try {
-      // Bind the reservation (already held, pre-paid-work) to the created job.
-      await importLedger.attachJob(orgId, body.idempotencyKey, job.id);
+      /*
+       * Bind the reservation (already held, pre-paid-work) to the created job,
+       * FAIL-CLOSED on the exact generation `held` observed (expert V3 §C). If
+       * a reaper expired the hold between reserve and attach, attachJob refuses
+       * ('conflict') and we abort — no job proceeds without a live hold (the
+       * catch rolls it back; the orphan reservation is swept by timeout).
+       */
+      const attached = await importLedger.attachJob(orgId, body.idempotencyKey, job.id, held.reservation.version);
+
+      if (attached !== 'attached') {
+        throw new ImportBillingError(
+          "La réservation de crédits a expiré avant l'attache du job — import annulé (réessayer).",
+          'IMPORT_RESERVATION_EXPIRED_BEFORE_ATTACH',
+        );
+      }
+
       await store.updateImportJob(job.id, { creditsReserved: true });
 
       // STAGING_ISOLATED — files into the disposable staging, NOT the target.
@@ -24599,6 +24624,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           : undefined;
         const isStaleByTimestamp = Boolean(
           eventCreatedAt &&
+
             /*
              * Deletion is terminal and must ALWAYS be applied: a `deleted` event
              * can legitimately carry an older event.created than a previously
