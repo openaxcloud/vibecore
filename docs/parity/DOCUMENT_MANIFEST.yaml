@@ -89,7 +89,7 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: CONTRACT_REGISTRY.yaml
-    sha256: "5d18be1128110508ab7938d6424beab2f49fd27c417d13cdcff4e0008668b706"
+    sha256: "dc7642000f84227f9e67abf798dd2899d6f792dffbef94b24f9ee05c2575f937"
     schemaVersion: 1
     repoCommit: 1692f981
     reviewer: UNKNOWN
@@ -344,9 +344,9 @@ documents:
     repoCommit: af9e4e83
     reviewer: UNKNOWN
   - file: RUNTIME_NIX_CONTRACT.md
-    sha256: "2b26d4dd21f22448eb4bcff69e7d38dcbe7dc0c9905adcec84019cffb96c08c8"
-    schemaVersion: 4
-    repoCommit: 179d7242
+    sha256: "d8a9a5fb7458a7d2469dd5dbc757181342912030ecfd8d41a0eb629dc141a055"
+    schemaVersion: 5
+    repoCommit: 6d57a401
     reviewer: UNKNOWN
   - file: SECURITY_PRIVACY_COMPLIANCE.md
     sha256: "239b5727aeeeffa2cb7fe0bb9233f1e8a89297e3a207cfeee6b55aab77ea6bf3"

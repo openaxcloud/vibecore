@@ -74,16 +74,17 @@ contracts:
     signatureResult: REFUSED_V1
   - contractId: CTR-RUNTIME-NIX
     file: RUNTIME_NIX_CONTRACT.md
-    contractVersion: 4
+    contractVersion: 5
     refusalReasonV1: "format lock incompatible + rotation inconnue"
     refusalReasonV2: "format ecode.lock et rotation/révocation des générations restent des dépendances ouvertes"
     reviewReceiptIdV2: RR-20260721-CODEX-04
-    refusalReasonV3: "lock pas prouvé immuable + enforcement incomplet (pin optionnel, rollback sans pin, validation partielle du catalogue, négatif live bloqué)"
+    refusalReasonV3: "lock pas prouvé immuable + enforcement incomplet"
+    refusalReasonV4: "négatif live révocation pas EXÉCUTÉ + config prod restaurée non vérifiée"
     hardeningStatus: HARDENED_PENDING_REVIEW
-    anchor: "v4 CORRIGE les 4 points: (1) pin de génération OBLIGATOIRE (assertLockPublishable, alias mutable refusé ECODE_LOCK_UNPINNED) ; (2) pin persisté+réutilisé dans release ET rollback (RetainedRelease.storeGeneration → RollbackPlan → nixGenerationRef, rollback évalué contre la génération de SA release) ; (3) validation EXHAUSTIVE bundles/store paths/hashes vs catalogue signé (ECODE_LOCK_BUNDLE_TAMPERED/UNKNOWN) ; tests négatifs sur le vrai gen-2 ; (4) négatif live révocation prêt via mini-merge"
+    anchor: "v5: 4 réserves levées — pin obligatoire + persisté release/rollback + validation exhaustive catalogue + NÉGATIF LIVE RÉVOCATION EXÉCUTÉ 23/07 (Publish lock révoqué gen-2 → refus typé ECODE_LOCK_GENERATION_REVOKED + URL 410, code intégré merge #45 6d57a401, config restaurée vérifiée rev 898). Artefact docs/deploy-evidence/2026-07-23-ctr-runtime-nix-v4/"
     expectedReviewer: OpenAI-Codex
     signatureResult: PENDING_REVIEW
-    openDependencies: "négatif live révocation (Publish → refus) = prêt à jouer via mini-merge dédié (feu vert Avi) ; l'api/manager prod n'interprètent pas encore NIX_STORE_GENERATIONS"
+    openDependencies: "aucune — preuve E2E live exécutée + artefact présent"
   - contractId: CTR-PROJECT-FACTORY
     file: PROJECT_FACTORY_CONTRACT.md
     contractVersion: 1
