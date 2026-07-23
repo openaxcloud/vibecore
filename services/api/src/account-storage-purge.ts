@@ -26,6 +26,13 @@ import type { PurgeClassReport } from './account-purge.js';
 
 /** Object-storage operations the erasure needs (a subset of ObjectStorage). */
 export interface ObjectStorageErasurePort {
+  /**
+   * True only for a REAL, wired backend. Reserve #2: an inert NoopObjectStorage
+   * (feature flag off) must NEVER be allowed to certify "bucket absent" — a
+   * no-op means "cannot prove", so a destructive purge with buckets to erase is
+   * REFUSED unless a real backend is present.
+   */
+  readonly active: boolean;
   bucketExists(projectId: string): Promise<boolean>;
   listObjects(projectId: string): Promise<{ objects: Array<{ key: string }> }>;
   deleteBucket(projectId: string): Promise<{ deleted: boolean; bucket: string }>;
@@ -171,10 +178,19 @@ export async function eraseSubjectStorage(
   const buckets: BucketErasureResult[] = [];
   const workspaces: WorkspaceErasureResult[] = [];
 
+  /*
+   * Reserve #2: a destructive purge with buckets to erase REQUIRES a real,
+   * active object-storage backend. An inert NoopObjectStorage (feature flag off)
+   * cannot prove a bucket absent — so we do NOT erase and mark the whole class
+   * unverified, which refuses the purge (fail-closed) rather than certifying
+   * "nothing to erase".
+   */
+  const objectStorageReal = inventory.bucketProjectIds.length === 0 || Boolean(deps.objectStorage?.active);
+
   // Only proceed with erasure once writes are barred, so nothing is recreated
   // between delete and verify.
   if (frozen) {
-    if (deps.objectStorage) {
+    if (deps.objectStorage && objectStorageReal) {
       for (const projectId of inventory.bucketProjectIds) {
         buckets.push(await eraseBucket(projectId, deps.objectStorage, deps.log));
       }
@@ -193,15 +209,22 @@ export async function eraseSubjectStorage(
   const pvcsDeleted = workspaces.filter((r) => r.pvcExistedBefore && r.pvcRemaining === 0).length;
   const pvcsRemaining = workspaces.reduce((sum, r) => sum + r.pvcRemaining, 0);
 
-  // If the barrier didn't hold, mark everything as remaining so the proof fails.
-  const barrierPenalty = frozen ? 0 : Math.max(1, inventory.bucketProjectIds.length + inventory.workspaceIds.length);
+  // Any unmet precondition (barrier didn't hold, or no real GCS backend) makes
+  // the affected class fully "remaining" so the proof cannot verify.
+  const objectStoragePenalty =
+    (frozen ? 0 : inventory.bucketProjectIds.length) + (objectStorageReal ? 0 : inventory.bucketProjectIds.length);
 
   const classes: PurgeClassReport[] = [
     {
       dataClass: 'object_storage',
       action: 'deleted',
-      models: { Buckets: inventory.bucketProjectIds.length, BucketsDeleted: bucketsDeleted, ObjectsErased: objectsErased },
-      remainingAfterPurge: objectsRemaining + (frozen ? 0 : inventory.bucketProjectIds.length),
+      models: {
+        Buckets: inventory.bucketProjectIds.length,
+        BucketsDeleted: bucketsDeleted,
+        ObjectsErased: objectsErased,
+        RealBackend: objectStorageReal ? 1 : 0,
+      },
+      remainingAfterPurge: objectsRemaining + objectStoragePenalty,
     },
     {
       dataClass: 'workspace_volumes',
@@ -211,7 +234,8 @@ export async function eraseSubjectStorage(
     },
   ];
 
-  const verified = frozen && barrierPenalty === 0 && classes.every((entry) => entry.remainingAfterPurge === 0);
+  const verified =
+    frozen && objectStorageReal && classes.every((entry) => (entry.remainingAfterPurge ?? 0) === 0);
 
   return { buckets, workspaces, frozen, classes, verified };
 }

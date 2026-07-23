@@ -64,12 +64,30 @@ PVC_BEFORE=$(kubectl --context "$KCTX" -n "$NS" get pvc "$PVC" -o jsonpath='{.st
 PV_NAME=$(kubectl --context "$KCTX" -n "$NS" get pvc "$PVC" -o jsonpath='{.spec.volumeName}' 2>/dev/null || echo "")
 echo "  BEFORE: pvc=$PVC phase=$PVC_BEFORE pv=$PV_NAME"
 
+# NEGATIVE (reserve #2 + #6): a PVC that STILL EXISTS must be reported present —
+# a surviving PVC can never be certified "gone". Create an extra (unmounted)
+# survivor PVC and confirm the live `get` sees it, so a partial delete that left
+# a PVC behind is caught, not misread as absent.
+echo "== NEGATIVE: a surviving (still-existing) PVC must be reported present =="
+kubectl --context "$KCTX" -n "$NS" apply -f - >/dev/null <<YAML
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: { name: ws-e2e-survivor, namespace: $NS }
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources: { requests: { storage: 32Mi } }
+YAML
+NEG_SURVIVOR_PRESENT="false"
+if kubectl --context "$KCTX" -n "$NS" get pvc ws-e2e-survivor >/dev/null 2>&1; then NEG_SURVIVOR_PRESENT="true"; fi
+echo "  NEGATIVE: surviving pvc reported present: $NEG_SURVIVOR_PRESENT"
+if [ "$NEG_SURVIVOR_PRESENT" != "true" ]; then echo "  negative FAILED (a live PVC was not detected)"; exit 1; fi
+kubectl --context "$KCTX" -n "$NS" delete pvc ws-e2e-survivor --wait=false >/dev/null 2>&1 || true
+
 echo "== erase (same primitives the workspace eraser uses): delete pod + pvc =="
 kubectl --context "$KCTX" -n "$NS" delete pod "$POD" --wait=true --timeout=60s >/dev/null
 kubectl --context "$KCTX" -n "$NS" delete pvc "$PVC" --wait=true --timeout=60s >/dev/null
 
-# Reserve #2: verify the PVC is REALLY gone in the cluster (get -> NotFound),
-# and the underlying PV was reclaimed too.
+# Reserve #2: verify the PVC is REALLY gone in the cluster (get -> NotFound).
 if kubectl --context "$KCTX" -n "$NS" get pvc "$PVC" >/dev/null 2>&1; then
   echo "  AFTER: pvc STILL EXISTS — FAIL"; exit 1
 fi
@@ -83,8 +101,8 @@ echo "  AFTER: pvc=$PVC_AFTER pvcCount=$PVC_COUNT pv=$PV_AFTER"
 
 if [ "$PVC_COUNT" != "0" ]; then echo "  residual PVCs remain — FAIL"; exit 1; fi
 
-CANON=$(printf '{\n  "after": {\n    "pv": "%s",\n    "pvc": "%s",\n    "pvcCount": %s\n  },\n  "before": {\n    "pv": "%s",\n    "pvcPhase": "%s"\n  },\n  "cluster": "kind:%s (throwaway, torn down)",\n  "kind": "physical-purge-k8s-e2e",\n  "namespace": "%s",\n  "pvcName": "%s",\n  "verified": true,\n  "version": 1\n}' \
-  "$PV_AFTER" "$PVC_AFTER" "$PVC_COUNT" "$PV_NAME" "$PVC_BEFORE" "$CLUSTER" "$NS" "$PVC")
+CANON=$(printf '{\n  "after": {\n    "pv": "%s",\n    "pvc": "%s",\n    "pvcCount": %s\n  },\n  "before": {\n    "pv": "%s",\n    "pvcPhase": "%s"\n  },\n  "cluster": "kind:%s (throwaway, torn down)",\n  "kind": "physical-purge-k8s-e2e",\n  "namespace": "%s",\n  "negative": {\n    "survivingPvcReportedPresent": %s\n  },\n  "pvcName": "%s",\n  "verified": true,\n  "version": 2\n}' \
+  "$PV_AFTER" "$PVC_AFTER" "$PVC_COUNT" "$PV_NAME" "$PVC_BEFORE" "$CLUSTER" "$NS" "$NEG_SURVIVOR_PRESENT" "$PVC")
 SHA=$(printf '%s' "$CANON" | shasum -a 256 | awk '{print $1}')
 
 echo "PHYSICAL K8S E2E: PASS"
