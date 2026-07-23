@@ -6,9 +6,13 @@
 # teardown, repro.sh recrée un projet frais et redéclenche ce workflow avec les
 # nouveaux paramètres — aucune valeur codée en dur, aucune clé stockée.
 name: wif-proof
+# run-name porte le NONCE du dispatch → repro.sh récupère l'identifiant EXACT du run
+# déclenché (jamais « le plus récent »), même en cas de runs concurrents.
+run-name: wif-proof ${{ inputs.nonce }}
 on:
   workflow_dispatch:
     inputs:
+      nonce:           { description: "Unique dispatch nonce (exact-run tracking)", required: true, type: string }
       project_id:      { description: "GCP project id (test)",          required: true, type: string }
       project_number:  { description: "GCP project number",             required: true, type: string }
       bucket:          { description: "Bucket holding secret.txt",      required: true, type: string }
@@ -37,6 +41,7 @@ jobs:
           EXPECT: ${{ inputs.expect_prefix }}
         run: |
           set -euo pipefail
+          echo "NONCE=${{ inputs.nonce }}"
           echo "CREDENTIAL_FILE=$GOOGLE_APPLICATION_CREDENTIALS (external_account/federated, NOT a key)"
           grep -q '"type": "external_account"' "$GOOGLE_APPLICATION_CREDENTIALS" && echo "CREDENTIAL_KIND=external_account (federated, keyless)"
           echo "TOKEN_ACQUIRED_VIA=WIF_impersonation length=${#TOKEN}"

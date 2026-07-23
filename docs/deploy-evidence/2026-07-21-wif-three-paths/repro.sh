@@ -1,40 +1,53 @@
 #!/usr/bin/env bash
 ###############################################################################
-# WIF — preuve REJOUABLE de bout en bout des 3 chemins d'identité (P0-A2-09).
+# WIF — preuve REJOUABLE FAIL-CLOSED des 3 chemins d'identité (P0-A2-09).
 #
-# Provisionne un projet de TEST dédié (jamais la prod), configure ET JOUE les
-# 3 chemins avec assertions STRICTES (HTTP 200 + contenu attendu pour l'autorisé,
-# refus réel pour le négatif), archive les preuves, puis teardown complet.
-# Zéro clé de service. Coût cible ~0 $.
+# Corrections expert V3 §P0-A2-09 :
+#  (1) gh OBLIGATOIRE (préflight) avant tout provisioning ;
+#  (2) run GitHub suivi par NONCE EXACT (jamais « le plus récent ») ;
+#  (3) négatif GKE = refus IAM PRÉCIS 401/403 + contenu de refus contrôlé
+#      (000/404/5xx ne prouve RIEN → échec) ;
+#  (4) trap de teardown installé DÈS la création du projet (aucune ressource
+#      laissée en cas d'erreur intermédiaire) ;
+#  (5) rejoue les 3 chemins et archive le nouveau run.
 #
-# Prérequis : gcloud (admin org), docker, gh (repo openaxcloud/vibecore),
-#             kubectl, CLOUDSDK_PYTHON=python3.10+ (gcloud run/storage crashe en 3.9).
-#
-# Chaque étape échoue le script (set -e + assertions) si elle ne prouve pas ce
-# qu'elle annonce : un run VERT ⇒ les 3 chemins prouvés (autorisé + négatif).
+# Projet de TEST dédié (jamais la prod). Zéro clé de service. Coût cible ~0 $.
+# Prérequis : gcloud (admin org), docker, gh (openaxcloud/vibecore), kubectl,
+#             CLOUDSDK_PYTHON=python3.10+ (gcloud run/storage crashe en 3.9).
 ###############################################################################
 set -Eeuo pipefail
 
 : "${CLOUDSDK_PYTHON:?export CLOUDSDK_PYTHON=/opt/homebrew/bin/python3.12 (gcloud run/storage crashe sous Python 3.9)}"
 export CLOUDSDK_CORE_DISABLE_PROMPTS=1
 
+# ---- PRÉFLIGHT FAIL-CLOSED : outils + auth OBLIGATOIRES avant tout provisioning ----
+for t in gcloud docker kubectl gh curl "$CLOUDSDK_PYTHON"; do
+  command -v "$t" >/dev/null 2>&1 || { echo "PREFLIGHT FAIL: outil requis absent: $t"; exit 1; }
+done
+gh auth status >/dev/null 2>&1 || { echo "PREFLIGHT FAIL: gh non authentifié — 'gh auth login' requis AVANT provisioning"; exit 1; }
+gh auth token >/dev/null 2>&1 || { echo "PREFLIGHT FAIL: gh sans token utilisable"; exit 1; }
+gcloud auth list --filter=status:ACTIVE --format='value(account)' 2>/dev/null | grep -q . \
+  || { echo "PREFLIGHT FAIL: gcloud sans compte actif"; exit 1; }
+echo "PREFLIGHT OK: gcloud/docker/kubectl/gh(authentifié)/curl/python présents"
+
 # ---- paramètres (surchargeables) -------------------------------------------
-FOLDER="${WIF_TEST_FOLDER:-780512954993}"            # folder de TEST (ecode-factory-test)
+FOLDER="${WIF_TEST_FOLDER:-780512954993}"
 BILLING="${WIF_BILLING:-019D6D-45FBC1-89F220}"
 REGION="${WIF_REGION:-europe-west9}"
 ZONE="${WIF_ZONE:-europe-west9-a}"
 REPO="${WIF_GH_REPO:-openaxcloud/vibecore}"
-GH_REF="${WIF_GH_REF:-feat/wif-three-paths-replayable}"  # branche portant le workflow
+GH_REF="${WIF_GH_REF:-feat/wif-three-paths-replayable}"
+CLUSTER=wif-proof-gke
+NONCE="wifproof-$(date -u +%Y%m%dT%H%M%SZ)-$$"   # identifiant UNIQUE du dispatch
 HERE="$(cd "$(dirname "$0")" && pwd)"
 OUT="${WIF_OUT:-$HERE/replay-$(date -u +%Y%m%dT%H%M%SZ)}"
 mkdir -p "$OUT"
 log(){ echo "[$(date -u +%H:%M:%S)] $*" | tee -a "$OUT/run.log"; }
 Q(){ grep -vE "WARNING|Python 3|reinstall|CLOUDSDK|compatible Python|gcloud components|NotOpenSSL|warnings.warn|urllib3|importlib|^\s*$" || true; }
 fail(){ echo "ASSERTION FAILED: $*" | tee -a "$OUT/run.log"; exit 1; }
-# retry : absorbe les délais de propagation IAM (SA/role fraîchement créés)
 retry(){ local n=0 max="${RETRY_MAX:-8}"; until "$@"; do n=$((n+1)); [ "$n" -ge "$max" ] && return 1; sleep 12; done; }
 
-# ---- 0. idempotence --------------------------------------------------------
+# ---- 0. provisioning + TRAP TEARDOWN dès la 1re ressource ------------------
 log "0. idempotence : projets ecode-wif-proof-* ACTIFS ?"
 EXISTING=$(gcloud projects list --filter="projectId:ecode-wif-proof-* AND lifecycleState:ACTIVE" --format="value(projectId)" 2>/dev/null | Q | head -1 || true)
 if [ -n "$EXISTING" ]; then PROJECT="$EXISTING"; log "  réutilise $PROJECT"; else
@@ -43,10 +56,31 @@ if [ -n "$EXISTING" ]; then PROJECT="$EXISTING"; log "  réutilise $PROJECT"; el
   gcloud projects create "$PROJECT" --folder="$FOLDER" --name="ECode WIF Proof" 2>&1 | Q | tail -1
   gcloud billing projects link "$PROJECT" --billing-account="$BILLING" 2>&1 | Q | tail -1
 fi
+
+# TEARDOWN idempotent, installé MAINTENANT (dès que le projet existe) via trap EXIT :
+# toute erreur intermédiaire (set -e / fail) déclenche le nettoyage → 0 ressource résiduelle.
+TEARDOWN_DONE=0
+teardown(){
+  local rc=$?
+  [ "$TEARDOWN_DONE" = 1 ] && return; TEARDOWN_DONE=1
+  { echo "# TEARDOWN $(date -u +%FT%TZ) (exit rc=$rc)"
+    gcloud container clusters delete "$CLUSTER" --project="$PROJECT" --zone="$ZONE" --quiet 2>&1 | Q | tail -1 || true
+    gcloud run services delete wif-proof --project="$PROJECT" --region="$REGION" --quiet 2>&1 | Q | tail -1 || true
+    gcloud artifacts repositories delete wif-proof --project="$PROJECT" --location="$REGION" --quiet 2>&1 | Q | tail -1 || true
+    gcloud iam workload-identity-pools providers delete github --project="$PROJECT" --location=global --workload-identity-pool=github-pool --quiet 2>&1 | Q | tail -1 || true
+    gcloud iam workload-identity-pools delete github-pool --project="$PROJECT" --location=global --quiet 2>&1 | Q | tail -1 || true
+    for sa in wif-authorized wif-wrong; do gcloud iam service-accounts delete "${sa}@${PROJECT}.iam.gserviceaccount.com" --project="$PROJECT" --quiet 2>&1 | Q | tail -1 || true; done
+    gcloud projects delete "$PROJECT" --quiet 2>&1 | Q | tail -2 || true
+    echo "PROJECT_STATE=$(gcloud projects describe "$PROJECT" --format="value(lifecycleState)" 2>/dev/null | Q)"
+  } | tee "$OUT/teardown-trace.txt"
+}
+trap teardown EXIT
+log "  trap teardown INSTALLÉ (projet $PROJECT sera nettoyé quoi qu'il arrive)"
+
 PN=$(gcloud projects describe "$PROJECT" --format="value(projectNumber)" 2>/dev/null | Q)
 BUCKET="${PROJECT}-secret-data"; AUTH_SA="wif-authorized@${PROJECT}.iam.gserviceaccount.com"; WRONG_SA="wif-wrong@${PROJECT}.iam.gserviceaccount.com"
-EXPECT="wif-proof-secret-content"   # contenu attendu à la lecture autorisée
-echo "PROJECT=$PROJECT PROJECT_NUMBER=$PN BUCKET=$BUCKET" | tee "$OUT/params.env"
+EXPECT="wif-proof-secret-content"
+echo "PROJECT=$PROJECT PROJECT_NUMBER=$PN BUCKET=$BUCKET NONCE=$NONCE" | tee "$OUT/params.env"
 
 # ---- 1. base ---------------------------------------------------------------
 log "1. APIs + bucket + SAs + rôle minimal + audit Data Access"
@@ -58,7 +92,6 @@ printf '%s-%s\n' "$EXPECT" "$(date +%s)" > "$OUT/secret.txt"
 gcloud storage cp "$OUT/secret.txt" "gs://$BUCKET/secret.txt" --project="$PROJECT" 2>&1 | Q | tail -1
 gcloud iam service-accounts create wif-authorized --project="$PROJECT" --display-name="WIF authorized" 2>&1 | Q | tail -1 || true
 gcloud iam service-accounts create wif-wrong --project="$PROJECT" --display-name="WIF wrong" 2>&1 | Q | tail -1 || true
-# attendre que les SAs soient réellement propagées avant tout binding (sinon HTTP 400 "does not exist")
 retry gcloud iam service-accounts describe "$AUTH_SA" --project="$PROJECT" >/dev/null 2>&1 || fail "SA wif-authorized jamais propagée"
 retry gcloud storage buckets add-iam-policy-binding "gs://$BUCKET" --member="serviceAccount:${AUTH_SA}" --role="roles/storage.objectViewer" >/dev/null 2>&1 || fail "binding objectViewer (propagation)"
 gcloud projects get-iam-policy "$PROJECT" --format=json 2>/dev/null > "$OUT/policy.json"
@@ -68,7 +101,7 @@ gcloud projects set-iam-policy "$PROJECT" "$OUT/policy2.json" 2>&1 | Q | tail -1
 ###############################################################################
 # CHEMIN 3 — Cloud Run metadata (aucune clé) : autorisé=200+contenu, négatif=403
 ###############################################################################
-log "3. Cloud Run — build image (Dockerfile corrigé) + deploy + preuves"
+log "3. Cloud Run — build image + deploy + preuves"
 BUILD="$OUT/cloudrun"; mkdir -p "$BUILD"; cp "$HERE/cloudrun-main.py" "$BUILD/"; cp "$HERE/cloudrun-Dockerfile" "$BUILD/Dockerfile"
 gcloud artifacts repositories create wif-proof --repository-format=docker --location="$REGION" --project="$PROJECT" 2>&1 | Q | tail -1 || true
 gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet 2>&1 | Q | tail -1
@@ -79,14 +112,12 @@ gcloud run deploy wif-proof --image "$IMG" --project="$PROJECT" --region="$REGIO
   --service-account="$AUTH_SA" --set-env-vars="BUCKET=$BUCKET" --allow-unauthenticated --quiet 2>&1 | Q | tail -1
 URL=$(gcloud run services describe wif-proof --project="$PROJECT" --region="$REGION" --format="value(status.url)" 2>/dev/null | Q)
 sleep 4
-# AUTORISÉ — exiger read_status 200 ET contenu attendu, sinon échec
 curl -s --max-time 30 "$URL/" -o "$OUT/path3-cloudrun-authorized.json" || fail "curl cloudrun authorized"
 RS=$("$CLOUDSDK_PYTHON" -c 'import json,sys;print(json.load(open(sys.argv[1])).get("read_status"))' "$OUT/path3-cloudrun-authorized.json")
 SC=$("$CLOUDSDK_PYTHON" -c 'import json,sys;print(json.load(open(sys.argv[1])).get("secret",""))' "$OUT/path3-cloudrun-authorized.json")
 [ "$RS" = "200" ] || fail "Cloud Run autorisé attendait 200, obtenu $RS"
 case "$SC" in "$EXPECT"*) : ;; *) fail "Cloud Run autorisé : contenu inattendu '$SC'";; esac
 log "  ✓ Cloud Run autorisé : read_status=200, contenu='$SC'"
-# NÉGATIF — SA sans droit → 403
 gcloud run services update wif-proof --project="$PROJECT" --region="$REGION" --service-account="$WRONG_SA" --quiet 2>&1 | Q | tail -1
 sleep 4
 curl -s --max-time 30 "$URL/" -o "$OUT/path3-cloudrun-negative.json" || fail "curl cloudrun negative"
@@ -95,9 +126,9 @@ RSN=$("$CLOUDSDK_PYTHON" -c 'import json,sys;print(json.load(open(sys.argv[1])).
 log "  ✓ Cloud Run négatif : read_status=403 (refusé)"
 
 ###############################################################################
-# CHEMIN 2 — WIF externe GitHub OIDC : autorisé=200+contenu, négatif=refus
+# CHEMIN 2 — WIF externe GitHub OIDC : run suivi par NONCE EXACT
 ###############################################################################
-log "2. WIF externe GitHub OIDC — pool/provider/grants + run GitHub Actions paramétré"
+log "2. WIF externe GitHub OIDC — pool/provider/grants + run dispatché suivi par nonce"
 gcloud iam workload-identity-pools create github-pool --project="$PROJECT" --location=global --display-name="GitHub OIDC" 2>&1 | Q | tail -1 || true
 gcloud iam workload-identity-pools providers create-oidc github --project="$PROJECT" --location=global \
   --workload-identity-pool=github-pool --issuer-uri="https://token.actions.githubusercontent.com" \
@@ -107,47 +138,47 @@ MEMBER="principalSet://iam.googleapis.com/projects/${PN}/locations/global/worklo
 retry gcloud iam service-accounts add-iam-policy-binding "$AUTH_SA" --project="$PROJECT" --role="roles/iam.workloadIdentityUser" --member="$MEMBER" >/dev/null 2>&1 || fail "grant workloadIdentityUser (GitHub)"
 retry gcloud iam service-accounts add-iam-policy-binding "$AUTH_SA" --project="$PROJECT" --role="roles/iam.serviceAccountTokenCreator" --member="$MEMBER" >/dev/null 2>&1 || fail "grant serviceAccountTokenCreator (GitHub)"
 log "  attente propagation IAM (90s)"; sleep 90
-# déclenche le workflow PARAMÉTRÉ avec les valeurs du projet frais (rejouable après teardown)
-if command -v gh >/dev/null 2>&1; then
-  gh workflow run wif-proof.yml --ref "$GH_REF" -R "$REPO" \
-    -f project_id="$PROJECT" -f project_number="$PN" -f bucket="$BUCKET" \
-    -f authorized_sa="$AUTH_SA" -f wrong_sa="$WRONG_SA" -f expect_prefix="$EXPECT" 2>&1 | Q | tail -1 \
-    || fail "gh workflow run (le workflow doit exister sur $GH_REF et être dispatchable)"
-  sleep 12
-  RUN=$(gh run list --workflow=wif-proof.yml -R "$REPO" --limit 1 --json databaseId --jq '.[0].databaseId')
-  log "  run GitHub Actions=$RUN, attente..."
-  until [ "$(gh run view "$RUN" -R "$REPO" --json status --jq .status)" = "completed" ]; do sleep 10; done
-  gh run view "$RUN" -R "$REPO" --log > "$OUT/path2-github-oidc.log" 2>/dev/null || true
-  CONCL=$(gh run view "$RUN" -R "$REPO" --json conclusion --jq .conclusion)
-  echo "run=$RUN conclusion=$CONCL url=https://github.com/$REPO/actions/runs/$RUN" > "$OUT/path2-github-oidc.txt"
-  grep -E "READ_HTTP=200|SECRET_CONTENT=|NEGATIVE_OK|AUTH_STEP_OUTCOME=failure|external_account" "$OUT/path2-github-oidc.log" | sed -E 's/^[^\t]*\t[^\t]*\t[0-9T:.Z-]+ //' >> "$OUT/path2-github-oidc.txt" || true
-  [ "$CONCL" = "success" ] || fail "GitHub Actions run $RUN conclusion=$CONCL (attendu success = autorisé 200 + négatif refusé)"
-  grep -q "READ_HTTP=200" "$OUT/path2-github-oidc.log" || fail "GitHub autorisé : pas de READ_HTTP=200"
-  grep -q "NEGATIVE_OK" "$OUT/path2-github-oidc.log" || fail "GitHub négatif : refus non prouvé"
-  log "  ✓ GitHub OIDC : autorisé 200 + négatif refusé (run $RUN)"
-else
-  log "  gh absent — chemin 2 à déclencher manuellement : gh workflow run wif-proof.yml --ref $GH_REF -f project_id=$PROJECT -f project_number=$PN -f bucket=$BUCKET -f authorized_sa=$AUTH_SA -f wrong_sa=$WRONG_SA -f expect_prefix=$EXPECT"
-fi
+# dispatch AVEC nonce → le workflow porte run-name=... $NONCE ; on RÉCUPÈRE l'id EXACT.
+gh workflow run wif-proof.yml --ref "$GH_REF" -R "$REPO" \
+  -f nonce="$NONCE" -f project_id="$PROJECT" -f project_number="$PN" -f bucket="$BUCKET" \
+  -f authorized_sa="$AUTH_SA" -f wrong_sa="$WRONG_SA" -f expect_prefix="$EXPECT" 2>&1 | Q | tail -1 \
+  || fail "gh workflow run (workflow doit exister sur $GH_REF et être dispatchable)"
+RUN=""
+for i in $(seq 1 40); do
+  RUN=$(gh run list --workflow=wif-proof.yml -R "$REPO" --limit 30 --json databaseId,displayTitle \
+        --jq "[.[] | select((.displayTitle // \"\") | contains(\"$NONCE\"))][0].databaseId" 2>/dev/null || true)
+  [ -n "$RUN" ] && [ "$RUN" != "null" ] && break
+  RUN=""; sleep 6
+done
+[ -n "$RUN" ] || fail "run dispatché introuvable par nonce=$NONCE (aucun run le plus récent pris par défaut)"
+log "  run dispatché EXACT=$RUN (nonce=$NONCE), attente..."
+until [ "$(gh run view "$RUN" -R "$REPO" --json status --jq .status)" = "completed" ]; do sleep 10; done
+gh run view "$RUN" -R "$REPO" --log > "$OUT/path2-github-oidc.log" 2>/dev/null || true
+CONCL=$(gh run view "$RUN" -R "$REPO" --json conclusion,displayTitle --jq '.conclusion')
+TITLE=$(gh run view "$RUN" -R "$REPO" --json displayTitle --jq '.displayTitle')
+echo "run=$RUN nonce=$NONCE displayTitle=$TITLE conclusion=$CONCL url=https://github.com/$REPO/actions/runs/$RUN" > "$OUT/path2-github-oidc.txt"
+grep -E "READ_HTTP=200|SECRET_CONTENT=|NEGATIVE_OK|AUTH_STEP_OUTCOME=failure|external_account|NONCE=" "$OUT/path2-github-oidc.log" | sed -E 's/^[^\t]*\t[^\t]*\t[0-9T:.Z-]+ //' >> "$OUT/path2-github-oidc.txt" || true
+case "$TITLE" in *"$NONCE"*) : ;; *) fail "run $RUN displayTitle ne porte pas le nonce ($TITLE) — mauvais run";; esac
+[ "$CONCL" = "success" ] || fail "GitHub run $RUN conclusion=$CONCL (attendu success)"
+grep -q "READ_HTTP=200" "$OUT/path2-github-oidc.log" || fail "GitHub autorisé : pas de READ_HTTP=200"
+grep -q "NEGATIVE_OK" "$OUT/path2-github-oidc.log" || fail "GitHub négatif : refus non prouvé"
+log "  ✓ GitHub OIDC : run EXACT $RUN (nonce vérifié) — autorisé 200 + négatif refusé"
 
 ###############################################################################
-# CHEMIN 1 — GKE WIF LIVE (cluster de test) : autorisé=200+contenu, négatif=refus réel
+# CHEMIN 1 — GKE WIF LIVE : autorisé=200+contenu, négatif=refus IAM PRÉCIS 401/403
 ###############################################################################
-log "1'. GKE WIF — cluster de test zonal + pods autorisé/négatif (token via metadata, sans clé)"
-CLUSTER=wif-proof-gke
+log "1'. GKE WIF — cluster de test + pods autorisé/négatif (token metadata, sans clé)"
 gcloud container clusters create "$CLUSTER" --project="$PROJECT" --zone="$ZONE" \
   --workload-pool="${PROJECT}.svc.id.goog" --num-nodes=1 --machine-type=e2-small --spot \
   --no-enable-managed-prometheus --quiet 2>&1 | Q | tail -2
 gcloud container clusters get-credentials "$CLUSTER" --zone="$ZONE" --project="$PROJECT" 2>&1 | Q | tail -1
-# autorisé : KSA liée à la GSA autorisée
 kubectl create namespace wif >/dev/null 2>&1 || true
 kubectl create serviceaccount ksa-authorized -n wif >/dev/null 2>&1 || true
 kubectl annotate serviceaccount ksa-authorized -n wif "iam.gke.io/gcp-service-account=${AUTH_SA}" --overwrite >/dev/null
 retry gcloud iam service-accounts add-iam-policy-binding "$AUTH_SA" --project="$PROJECT" --role="roles/iam.workloadIdentityUser" \
   --member="serviceAccount:${PROJECT}.svc.id.goog[wif/ksa-authorized]" >/dev/null 2>&1 || fail "grant workloadIdentityUser (GKE KSA)"
-# négatif : KSA NON liée (aucune GSA)
 kubectl create serviceaccount ksa-unbound -n wif >/dev/null 2>&1 || true
 log "  attente propagation IAM GKE (60s)"; sleep 60
-# pod autorisé : lit le token via metadata (sans clé) puis le bucket → exiger 200 + contenu
 POD_CMD="set -e
 T=\$(curl -s -H 'Metadata-Flavor: Google' 'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token' | python3 -c 'import sys,json;print(json.load(sys.stdin)[\"access_token\"])')
 SA=\$(curl -s -H 'Metadata-Flavor: Google' 'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/email')
@@ -163,15 +194,15 @@ GSC=$(grep -oE "SECRET_CONTENT=.*" "$OUT/path1-gke-authorized.txt" | head -1 | c
 [ "$GRS" = "200" ] || fail "GKE autorisé attendait 200, obtenu '$GRS' (voir path1-gke-authorized.txt)"
 case "$GSC" in "$EXPECT"*) : ;; *) fail "GKE autorisé : contenu inattendu '$GSC'";; esac
 log "  ✓ GKE autorisé : READ_HTTP=200, contenu='$GSC'"
-# pod négatif : KSA non liée → identité = défaut du pool (pas la GSA autorisée) →
-# le pod TENTE réellement la lecture du bucket et on archive le REFUS (≠ 200).
+# NÉGATIF : KSA non liée → identité = défaut du pool ; on EXIGE un refus IAM PRÉCIS 401/403
+# + un corps de refus contrôlé. Un 000/404/5xx ne prouve PAS un refus IAM → échec.
 NEG_CMD="set +e
 T=\$(curl -s -m 12 -H 'Metadata-Flavor: Google' 'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token' | python3 -c 'import sys,json;print(json.load(sys.stdin).get(\"access_token\",\"\"))' 2>/dev/null)
 SA=\$(curl -s -m 12 -H 'Metadata-Flavor: Google' 'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/email')
 echo IDENTITY_EMAIL:\$SA
 CODE=\$(curl -s -m 20 -o /tmp/b -w '%{http_code}' -H \"Authorization: Bearer \$T\" 'https://storage.googleapis.com/storage/v1/b/${BUCKET}/o/secret.txt?alt=media')
 echo BUCKET_READ_HTTP:\$CODE
-echo BUCKET_READ_BODY:\$(head -c 300 /tmp/b)"
+echo BUCKET_READ_BODY:\$(head -c 400 /tmp/b)"
 kubectl run gke-unbound -n wif --image=google/cloud-sdk:slim --restart=Never \
   --overrides="{\"spec\":{\"serviceAccountName\":\"ksa-unbound\"}}" --quiet -- bash -c "$NEG_CMD" >/dev/null 2>&1 || true
 kubectl wait --for=jsonpath='{.status.phase}'=Succeeded pod/gke-unbound -n wif --timeout=150s >/dev/null 2>&1 || \
@@ -179,25 +210,16 @@ kubectl wait --for=jsonpath='{.status.phase}'=Succeeded pod/gke-unbound -n wif -
 kubectl logs gke-unbound -n wif > "$OUT/path1-gke-negative.txt" 2>&1 || true
 NEG_CODE=$(grep -oE "BUCKET_READ_HTTP:[0-9]+" "$OUT/path1-gke-negative.txt" | head -1 | cut -d: -f2)
 NEG_ID=$(grep -oE "IDENTITY_EMAIL:.*" "$OUT/path1-gke-negative.txt" | head -1 | cut -d: -f2-)
-# négatif RÉEL joué : la lecture du bucket depuis la KSA non liée est REFUSÉE (≠ 200) ET l'identité n'est PAS la GSA autorisée
+NEG_BODY=$(grep -oE "BUCKET_READ_BODY:.*" "$OUT/path1-gke-negative.txt" | head -1 | cut -d: -f2-)
 [ -n "$NEG_CODE" ] || fail "GKE négatif : pas de tentative de lecture archivée"
-[ "$NEG_CODE" = "200" ] && fail "GKE négatif : la KSA non liée a LU le bucket (HTTP 200, inattendu)"
+case "$NEG_CODE" in
+  401|403) : ;;  # refus IAM attendu
+  *) fail "GKE négatif : refus IAM PRÉCIS attendu (401/403), obtenu '$NEG_CODE' — un 000/404/5xx ne prouve pas un refus IAM";;
+esac
+echo "$NEG_BODY" | grep -qiE "does not have storage.objects.get|storage.objects.get.*denied|permission.*denied|forbidden|unauthorized|invalid.*credential|anonymous caller" \
+  || fail "GKE négatif : corps de refus IAM non contrôlé (attendu message permission-denied) : '$NEG_BODY'"
 case "$NEG_ID" in *"${AUTH_SA}"*) fail "GKE négatif : la KSA non liée a obtenu la GSA autorisée (inattendu)";; esac
-log "  ✓ GKE négatif RÉEL : identité=$NEG_ID (≠ GSA autorisée), lecture bucket REFUSÉE HTTP=$NEG_CODE (archivé)"
+log "  ✓ GKE négatif : refus IAM PRÉCIS HTTP=$NEG_CODE + corps permission-denied contrôlé ; identité=$NEG_ID (≠ GSA autorisée)"
 
-###############################################################################
-# TEARDOWN complet
-###############################################################################
-log "TEARDOWN"
-{
-echo "# TEARDOWN $(date -u +%FT%TZ)"
-gcloud container clusters delete "$CLUSTER" --project="$PROJECT" --zone="$ZONE" --quiet 2>&1 | Q | tail -1
-gcloud run services delete wif-proof --project="$PROJECT" --region="$REGION" --quiet 2>&1 | Q | tail -1
-gcloud artifacts repositories delete wif-proof --project="$PROJECT" --location="$REGION" --quiet 2>&1 | Q | tail -1
-gcloud iam workload-identity-pools providers delete github --project="$PROJECT" --location=global --workload-identity-pool=github-pool --quiet 2>&1 | Q | tail -1
-gcloud iam workload-identity-pools delete github-pool --project="$PROJECT" --location=global --quiet 2>&1 | Q | tail -1
-for sa in wif-authorized wif-wrong; do gcloud iam service-accounts delete "${sa}@${PROJECT}.iam.gserviceaccount.com" --project="$PROJECT" --quiet 2>&1 | Q | tail -1; done
-gcloud projects delete "$PROJECT" --quiet 2>&1 | Q | tail -2
-} | tee "$OUT/teardown-trace.txt"
-echo "PROJECT_STATE=$(gcloud projects describe "$PROJECT" --format="value(lifecycleState)" 2>/dev/null | Q)" | tee -a "$OUT/teardown-trace.txt"
-log "TERMINÉ — preuves dans $OUT (les 3 chemins : autorisé 200 + négatif réel ; teardown joué)."
+log "TOUS LES CHEMINS PROUVÉS — teardown va s'exécuter (trap EXIT)."
+# le teardown est joué automatiquement par le trap EXIT ci-dessus.
