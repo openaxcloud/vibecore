@@ -1,0 +1,64 @@
+{{- if .Values.observability.apiRequestMetrics.enabled }}
+# CTR-OPERATIONS-DR (réserve V3 n°1) — SLI PAR REQUÊTE, source réelle et scrapée.
+#
+# L'API expose déjà `api_request_duration_seconds` (histogramme par requête,
+# labels method/route/status) sur le port `http` (3001), chemin /metrics. Ce
+# PodMonitoring dit aux collecteurs Managed Prometheus (déjà en service,
+# ns gmp-system) de le scraper — additif, ne touche ni l'app ni l'ingress.
+# Rend le SLI par requête INTERROGEABLE et ALERTABLE (plus seulement live sur
+# le pod), condition d'un SLO par requête réel.
+apiVersion: monitoring.googleapis.com/v1
+kind: PodMonitoring
+metadata:
+  name: {{ include "vibecore-platform.fullname" . }}-api-requests
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/part-of: {{ include "vibecore-platform.fullname" . }}
+    app.kubernetes.io/component: observability
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: api
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ .Values.observability.apiRequestMetrics.interval | default "30s" | quote }}
+{{- end }}
+{{- if .Values.observability.apiRequestMetrics.enabled }}
+---
+# La NetworkPolicy deny-all-default du namespace bloque le scrape : les
+# collecteurs Managed Prometheus tournent en hostNetwork (source = IP du node),
+# qu'aucun selector de pod/namespace ne matche. On autorise le CIDR des nodes
+# sur le SEUL port metrics (3001/http), rien d'autre. Sans cette règle, up=0.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "vibecore-platform.fullname" . }}-allow-gmp-scrape-api
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/part-of: {{ include "vibecore-platform.fullname" . }}
+    app.kubernetes.io/component: observability
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: api
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        # Dataplane V2 (Cilium) : le trafic source d'un collecteur hostNetwork
+        # est résolu par son namespace (identité de pod), PAS par ipBlock
+        # (les identités réservées host/remote-node ne matchent pas un CIDR).
+        # Prouvé live 2026-07-23 : ipBlock seul ⇒ up=0 ; + namespaceSelector ⇒ up=1.
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.observability.apiRequestMetrics.collectorNamespace | default "gmp-system" }}
+        {{- range .Values.observability.apiRequestMetrics.scrapeSourceCidrs }}
+        - ipBlock:
+            cidr: {{ . | quote }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: 3001
+{{- end }}

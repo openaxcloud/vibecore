@@ -1,0 +1,401 @@
+{
+  "timeSeries": [
+    {
+      "metric": {
+        "labels": {
+          "checker_location": "usa-virginia",
+          "check_id": "vibecore-prod-api-health-api-e-code-ai-UBigUqgiGrg",
+          "checked_resource_id": "api.e-code.ai"
+        },
+        "type": "monitoring.googleapis.com/uptime_check/check_passed"
+      },
+      "resource": {
+        "type": "uptime_url",
+        "labels": {
+          "host": "api.e-code.ai",
+          "project_id": "vibecore-495216"
+        }
+      },
+      "metricKind": "GAUGE",
+      "valueType": "BOOL",
+      "points": [
+        {
+          "interval": {
+            "startTime": "2026-07-21T08:00:00Z",
+            "endTime": "2026-07-21T08:00:00Z"
+          },
+          "value": {
+            "boolValue": true
+          }
+        },
+        {
+          "interval": {
+            "startTime": "2026-07-21T07:59:00Z",
+            "endTime": "2026-07-21T07:59:00Z"
+          },
+          "value": {
+            "boolValue": true
+          }
+        },
+        {
+          "interval": {
+            "startTime": "2026-07-21T07:58:00Z",
+            "endTime": "2026-07-21T07:58:00Z"
+          },
+          "value": {
+            "boolValue": true
+          }
+        },
+        {
+          "interval": {
+            "startTime": "2026-07-21T07:57:00Z",
+            "endTime": "2026-07-21T07:57:00Z"
+          },
+          "value": {
+            "boolValue": true
+          }
+        },
+        {
+          "interval": {
+            "startTime": "2026-07-21T07:56:00Z",
+            "endTime": "2026-07-21T07:56:00Z"
+          },
+          "value": {
+            "boolValue": true
+          }
+        }
+      ]
+    },
+    {
+      "metric": {
+        "labels": {
+          "checker_location": "usa-oregon",
+          "check_id": "vibecore-prod-api-health-api-e-code-ai-UBigUqgiGrg",
+          "checked_resource_id": "api.e-code.ai"
+        },
+        "type": "monitoring.googleapis.com/uptime_check/check_passed"
+      },
+      "resource": {
+        "type": "uptime_url",
+        "labels": {
+          "host": "api.e-code.ai",
+          "project_id": "vibecore-495216"
+        }
+      },
+      "metricKind": "GAUGE",
+      "valueType": "BOOL",
+      "points": [
+        {
+          "interval": {
+            "startTime": "2026-07-21T08:00:00Z",
+            "endTime": "2026-07-21T08:00:00Z"
+          },
+          "value": {
+            "boolValue": true
+          }
+        },
+        {
+          "interval": {
+            "startTime": "2026-07-21T07:59:00Z",
+            "endTime": "2026-07-21T07:59:00Z"
+          },
+          "value": {
+            "boolValue": true
+          }
+        },
+        {
+          "interval": {
+            "startTime": "2026-07-21T07:58:00Z",
+            "endTime": "2026-07-21T07:58:00Z"
+          },
+          "value": {
+            "boolValue": true
+          }
+        },
+        {
+          "interval": {
+            "startTime": "2026-07-21T07:57:00Z",
+            "endTime": "2026-07-21T07:57:00Z"
+          },
+          "value": {
+            "boolValue": true
+          }
+        },
+        {
+          "interval": {
+            "startTime": "2026-07-21T07:56:00Z",
+            "endTime": "2026-07-21T07:56:00Z"
+          },
+          "value": {
+            "boolValue": true
+          }
+        }
+      ]
+    },
+    {
+      "metric": {
+        "labels": {
+          "checker_location": "usa-iowa",
+          "check_id": "vibecore-prod-api-health-api-e-code-ai-UBigUqgiGrg",
+          "checked_resource_id": "api.e-code.ai"
+        },
+        "type": "monitoring.googleapis.com/uptime_check/check_passed"
+      },
+      "resource": {
+        "type": "uptime_url",
+        "labels": {
+          "host": "api.e-code.ai",
+          "project_id": "vibecore-495216"
+        }
+      },
+      "metricKind": "GAUGE",
+      "valueType": "BOOL",
+      "points": [
+        {
+          "interval": {
+            "startTime": "2026-07-21T08:00:00Z",
+            "endTime": "2026-07-21T08:00:00Z"
+          },
+          "value": {
+            "boolValue": true
+          }
+        },
+        {
+          "interval": {
+            "startTime": "2026-07-21T07:59:00Z",
+            "endTime": "2026-07-21T07:59:00Z"
+          },
+          "value": {
+            "boolValue": true
+          }
+        },
+        {
+          "interval": {
+            "startTime": "2026-07-21T07:58:00Z",
+            "endTime": "2026-07-21T07:58:00Z"
+          },
+          "value": {
+            "boolValue": true
+          }
+        },
+        {
+          "interval": {
+            "startTime": "2026-07-21T07:57:00Z",
+            "endTime": "2026-07-21T07:57:00Z"
+          },
+          "value": {
+            "boolValue": true
+          }
+        },
+        {
+          "interval": {
+            "startTime": "2026-07-21T07:56:00Z",
+            "endTime": "2026-07-21T07:56:00Z"
+          },
+          "value": {
+            "boolValue": true
+          }
+        }
+      ]
+    },
+    {
+      "metric": {
+        "labels": {
+          "checked_resource_id": "api.e-code.ai",
+          "checker_location": "eur-belgium",
+          "check_id": "vibecore-prod-api-health-api-e-code-ai-UBigUqgiGrg"
+        },
+        "type": "monitoring.googleapis.com/uptime_check/check_passed"
+      },
+      "resource": {
+        "type": "uptime_url",
+        "labels": {
+          "project_id": "vibecore-495216",
+          "host": "api.e-code.ai"
+        }
+      },
+      "metricKind": "GAUGE",
+      "valueType": "BOOL",
+      "points": [
+        {
+          "interval": {
+            "startTime": "2026-07-21T08:00:00Z",
+            "endTime": "2026-07-21T08:00:00Z"
+          },
+          "value": {
+            "boolValue": true
+          }
+        },
+        {
+          "interval": {
+            "startTime": "2026-07-21T07:59:00Z",
+            "endTime": "2026-07-21T07:59:00Z"
+          },
+          "value": {
+            "boolValue": true
+          }
+        },
+        {
+          "interval": {
+            "startTime": "2026-07-21T07:58:00Z",
+            "endTime": "2026-07-21T07:58:00Z"
+          },
+          "value": {
+            "boolValue": true
+          }
+        },
+        {
+          "interval": {
+            "startTime": "2026-07-21T07:57:00Z",
+            "endTime": "2026-07-21T07:57:00Z"
+          },
+          "value": {
+            "boolValue": true
+          }
+        },
+        {
+          "interval": {
+            "startTime": "2026-07-21T07:56:00Z",
+            "endTime": "2026-07-21T07:56:00Z"
+          },
+          "value": {
+            "boolValue": true
+          }
+        }
+      ]
+    },
+    {
+      "metric": {
+        "labels": {
+          "checker_location": "apac-singapore",
+          "check_id": "vibecore-prod-api-health-api-e-code-ai-UBigUqgiGrg",
+          "checked_resource_id": "api.e-code.ai"
+        },
+        "type": "monitoring.googleapis.com/uptime_check/check_passed"
+      },
+      "resource": {
+        "type": "uptime_url",
+        "labels": {
+          "project_id": "vibecore-495216",
+          "host": "api.e-code.ai"
+        }
+      },
+      "metricKind": "GAUGE",
+      "valueType": "BOOL",
+      "points": [
+        {
+          "interval": {
+            "startTime": "2026-07-21T08:00:00Z",
+            "endTime": "2026-07-21T08:00:00Z"
+          },
+          "value": {
+            "boolValue": true
+          }
+        },
+        {
+          "interval": {
+            "startTime": "2026-07-21T07:59:00Z",
+            "endTime": "2026-07-21T07:59:00Z"
+          },
+          "value": {
+            "boolValue": true
+          }
+        },
+        {
+          "interval": {
+            "startTime": "2026-07-21T07:58:00Z",
+            "endTime": "2026-07-21T07:58:00Z"
+          },
+          "value": {
+            "boolValue": true
+          }
+        },
+        {
+          "interval": {
+            "startTime": "2026-07-21T07:57:00Z",
+            "endTime": "2026-07-21T07:57:00Z"
+          },
+          "value": {
+            "boolValue": true
+          }
+        },
+        {
+          "interval": {
+            "startTime": "2026-07-21T07:56:00Z",
+            "endTime": "2026-07-21T07:56:00Z"
+          },
+          "value": {
+            "boolValue": true
+          }
+        }
+      ]
+    },
+    {
+      "metric": {
+        "labels": {
+          "checked_resource_id": "api.e-code.ai",
+          "checker_location": "sa-brazil-sao_paulo",
+          "check_id": "vibecore-prod-api-health-api-e-code-ai-UBigUqgiGrg"
+        },
+        "type": "monitoring.googleapis.com/uptime_check/check_passed"
+      },
+      "resource": {
+        "type": "uptime_url",
+        "labels": {
+          "project_id": "vibecore-495216",
+          "host": "api.e-code.ai"
+        }
+      },
+      "metricKind": "GAUGE",
+      "valueType": "BOOL",
+      "points": [
+        {
+          "interval": {
+            "startTime": "2026-07-21T08:00:00Z",
+            "endTime": "2026-07-21T08:00:00Z"
+          },
+          "value": {
+            "boolValue": true
+          }
+        },
+        {
+          "interval": {
+            "startTime": "2026-07-21T07:59:00Z",
+            "endTime": "2026-07-21T07:59:00Z"
+          },
+          "value": {
+            "boolValue": true
+          }
+        },
+        {
+          "interval": {
+            "startTime": "2026-07-21T07:58:00Z",
+            "endTime": "2026-07-21T07:58:00Z"
+          },
+          "value": {
+            "boolValue": true
+          }
+        },
+        {
+          "interval": {
+            "startTime": "2026-07-21T07:57:00Z",
+            "endTime": "2026-07-21T07:57:00Z"
+          },
+          "value": {
+            "boolValue": true
+          }
+        },
+        {
+          "interval": {
+            "startTime": "2026-07-21T07:56:00Z",
+            "endTime": "2026-07-21T07:56:00Z"
+          },
+          "value": {
+            "boolValue": true
+          }
+        }
+      ]
+    }
+  ],
+  "unit": "{not_a_unit}"
+}

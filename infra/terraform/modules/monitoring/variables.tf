@@ -21,3 +21,13 @@ variable "ops_email" {
     error_message = "ops_email ne doit pas être un placeholder (*.invalid / @example.*) — les alertes partiraient dans le vide."
   }
 }
+
+variable "web_host" {
+  type        = string
+  description = "Host RÉEL de l'app web publique, surveillé par l'uptime check web (CTR-OPERATIONS-DR : jamais un placeholder)."
+
+  validation {
+    condition     = !can(regex("example\\.com|example\\.invalid|replace-me", var.web_host))
+    error_message = "web_host ne doit pas être un placeholder (example.com / replace-me) — le SLI serait factice."
+  }
+}
