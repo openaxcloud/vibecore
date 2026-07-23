@@ -1,0 +1,15 @@
+EVID-CT13-PROV-001 — provisioning tenant via API sous folder test 780512954993
+
+## POSITIF : projet tenant provisionné → lifecycle REQUESTED(op create)→ACTIVE
+ecode-ct13-tenant-9e2f	ACTIVE	folder	780512954993	648361323554
+op create observée : create_project.global.5599782828545241861 (done)
+=> tenant ACTIVE sous folder test (attendu) ; la machine REQUESTED→ACTIVE du domaine est adossée à cet état GCP réel
+
+## NÉGATIF : kill-switch CLOUD_TENANT_FACTORY_ENABLED=0 → factory refuse (503 typé)
+Test réel (code committé, branche factory 147a622d) :
+ ✓ src/cloud-governance-routes.spec.ts > cloud governance admin routes > is dark behind the kill-switch (503, typed) 42ms
+ Test Files  1 passed (1)
+      Tests  1 passed | 4 skipped (5)
+   Duration  484ms (transform 64ms, setup 0ms, collect 221ms, tests 43ms, environment 0ms, prepare 53ms)
+assertions du test: statusCode==503 ET code=='CLOUD_TENANT_FACTORY_DISABLED' (voir cloud-governance-routes.spec.ts:45-46)
+=> provisioning refusé quand kill-switch off (attendu)

@@ -1,0 +1,21 @@
+EVID-CT11-VPCSC-001 — VPC-SC folder-scoped DRY-RUN — BLOCKED (dépendance nommée)
+
+Le compte auth groupequaliwatt@gmail.com N'A PAS les permissions Access Context
+Manager au niveau org 974552983243 :
+- accesscontextmanager.policies.list  => PERMISSION_DENIED (mesuré)
+- accesscontextmanager.policies.create => PERMISSION_DENIED (mesuré)
+Créer une access-policy (même folder-scoped sur folders/780512954993) exige
+roles/accesscontextmanager.policyAdmin à l'org. => décision/grant Avi.
+
+Garde-fou respecté : aucune policy org existante lue ni modifiée (list refusée
+côté droit, donc rien touché). Le DRY-RUN perimeter + négatif hors-perimeter
+sont réalisables DÈS que le rôle est accordé (procédure prête, ci-dessous).
+
+Procédure prête (à rejouer avec policyAdmin) :
+  gcloud access-context-manager policies create --organization=974552983243 \
+    --scopes=folders/780512954993 --title=ct11-folder-proof
+  gcloud access-context-manager perimeters dry-run create ct11-peri \
+    --policy=<POLICY_ID> --title=ct11-peri --resources=projects/<NUM projet test> \
+    --restricted-services=storage.googleapis.com
+  # positif : accès storage DANS le périmètre ; négatif : accès depuis hors
+  # périmètre => VIOLATION dry-run (bloqué), lue dans les logs dry-run.
