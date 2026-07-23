@@ -123,6 +123,7 @@ jobs:
           t = re.sub(r'runs/\d+', f'runs/{run_id}', t)
           t = re.sub(r'runCommit: "[0-9a-f]+"', f'runCommit: "{sha}"', t)
           t = re.sub(r'mergedCommit: "[0-9a-f]+"', f'mergedCommit: "{sha}"', t)
+          t = re.sub(r'  repoCommit: "[0-9a-f]+"', f'  repoCommit: "{sha}"', t)  # commit dépôt déclaré = head_sha (verdict -06)
           t = re.sub(r'mergedToMainAt: "[^"]+"', f'mergedToMainAt: "{now}"', t)
           t = re.sub(r'runDate: "[^"]+"', f'runDate: "{now}"', t)
           open(p, 'w').write(t)

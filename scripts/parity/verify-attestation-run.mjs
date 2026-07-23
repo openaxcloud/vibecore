@@ -1,16 +1,23 @@
 #!/usr/bin/env node
 /**
- * LS-16 (verdicts RR-20260721-CODEX-03 puis -04) — AUTHENTIFIE l'attestation
- * contre l'API GitHub Actions : le runId déclaré doit être une VRAIE exécution
- * dont head_sha == runCommit, conclusion == success, created_at cohérent avec
- * runDate (±48h), html_url == runUrl, ET (verdict -04) dont l'IDENTITÉ DE
- * WORKFLOW (path parity-registries.yml) et l'ÉVÉNEMENT (push) correspondent —
- * sinon un run vert de n'importe quel autre workflow au même SHA pourrait être
- * substitué. Sans GH_TOKEN (exécution locale), le contrôle est SAUTÉ
- * EXPLICITEMENT (dit, jamais silencieux) — la CI le fait.
+ * LS-16 (verdicts RR-…-03/-04/-05 puis RR-20260722-CODEX-06) — AUTHENTIFIE
+ * l'attestation contre l'API GitHub Actions, FAIL-CLOSED sur TOUTE la
+ * provenance :
+ *   - identité du workflow : path == parity-registries.yml, name == 'Parity
+ *     registries' ;
+ *   - événement : push ; branche : head_branch == main ;
+ *   - conclusion == success ; created_at cohérent avec runDate (±48h) ;
+ *   - **TOUS les commits de provenance** (runCommit, mergedCommit, et le commit
+ *     de dépôt déclaré repoCommit s'il est présent) liés au head_sha authentifié
+ *     par la MÊME règle `sameCommit` (verdict -06 §1) ;
+ *   - **égalité EXACTE de l'URL** après normalisation — plus de préfixe accepté
+ *     (verdict -06 §2).
+ * Sans GH_TOKEN (exécution locale), le contrôle est SAUTÉ EXPLICITEMENT — la CI
+ * le fait avec le token du run.
  *
- * Exporte verifyAttestationRun(att, {token, repo}) pour le test négatif de
- * substitution (verify-attestation-substitution-test.mjs).
+ * Exporte verifyAttestationRun(att, {token, repo}) + checkAttestationFields(att,
+ * run) (pur, sans réseau) pour les tests négatifs INDÉPENDANTS par champ
+ * (verify-attestation-substitution-test.mjs).
  */
 import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
@@ -29,16 +36,91 @@ function loadYamlModule() {
   }
 }
 
-// Identité attendue du workflow attesté (verdict -04) : le job roll-attestation
-// vit dans CE fichier et ne roule QUE sur l'événement push (merge sur main).
 export const EXPECTED_WORKFLOW_PATH = '.github/workflows/parity-registries.yml';
 export const EXPECTED_WORKFLOW_NAME = 'Parity registries';
 export const EXPECTED_EVENTS = ['push'];
-// Verdict RR-05 : un run push du même workflow depuis une AUTRE branche ne
-// vaut pas attestation de main.
 export const EXPECTED_HEAD_BRANCH = 'main';
+// Verdict -06 §1 : un commit de provenance PEUT être un préfixe court du
+// head_sha authentifié, mais SEULEMENT s'il fait au moins 7 hex ET est
+// réellement un préfixe. Règle explicite, fail-closed.
+export const MIN_SHORT_SHA = 7;
 
-/** Vérifie une attestation contre l'API GitHub. Retourne la liste des erreurs. */
+/** Le commit déclaré == le head_sha authentifié, ou en est un préfixe court explicite (≥7 hex). */
+export function sameCommit(declared, headSha) {
+  if (typeof declared !== 'string' || typeof headSha !== 'string') return false;
+  const d = declared.trim().toLowerCase();
+  const h = headSha.trim().toLowerCase();
+  if (!/^[0-9a-f]{7,40}$/.test(d) || !/^[0-9a-f]{40}$/.test(h)) return false;
+  if (d.length === 40) return d === h;
+  return h.startsWith(d); // préfixe court explicite, ≥7 hex garanti par le regex
+}
+
+/** Normalise une URL de run pour comparaison exacte (schéma+host+path, sans slash final ni query/fragment). */
+export function normalizeRunUrl(u) {
+  if (typeof u !== 'string') return null;
+  try {
+    const url = new URL(u.trim());
+    return `${url.protocol}//${url.host}${url.pathname.replace(/\/+$/, '')}`;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Contrôle PUR (sans réseau) de tous les champs de l'attestation contre l'objet
+ * `run` renvoyé par l'API. Retourne la liste des erreurs. Un test négatif peut
+ * falsifier UN seul champ de `run` et vérifier que l'erreur correspondante
+ * apparaît (indépendance par champ — verdict -06 §3).
+ */
+export function checkAttestationFields(att, run) {
+  const errors = [];
+
+  if (run.path !== EXPECTED_WORKFLOW_PATH) {
+    errors.push(`workflow: path API (${run.path}) ≠ attendu (${EXPECTED_WORKFLOW_PATH})`);
+  }
+  if (run.name !== EXPECTED_WORKFLOW_NAME) {
+    errors.push(`workflow: name API (${run.name}) ≠ attendu (${EXPECTED_WORKFLOW_NAME})`);
+  }
+  if (!EXPECTED_EVENTS.includes(run.event)) {
+    errors.push(`event: API (${run.event}) ∉ attendus [${EXPECTED_EVENTS.join(', ')}]`);
+  }
+  if (run.head_branch !== EXPECTED_HEAD_BRANCH) {
+    errors.push(`branche: head_branch API (${run.head_branch}) ≠ attendu (${EXPECTED_HEAD_BRANCH})`);
+  }
+
+  // Verdict -06 §1 : TOUS les commits de provenance liés au head_sha authentifié.
+  if (!sameCommit(att.runCommit, run.head_sha)) {
+    errors.push(`sha: runCommit attesté (${String(att.runCommit).slice(0, 12)}) non lié au head_sha API (${String(run.head_sha).slice(0, 12)})`);
+  }
+  if (att.mergedCommit !== undefined && !sameCommit(att.mergedCommit, run.head_sha)) {
+    errors.push(`sha: mergedCommit attesté (${String(att.mergedCommit).slice(0, 12)}) non lié au head_sha API (${String(run.head_sha).slice(0, 12)})`);
+  }
+  // Commit de dépôt déclaré (repoCommit) — s'il est présent dans l'attestation.
+  if (att.repoCommit !== undefined && !sameCommit(att.repoCommit, run.head_sha)) {
+    errors.push(`sha: repoCommit déclaré (${String(att.repoCommit).slice(0, 12)}) non lié au head_sha API (${String(run.head_sha).slice(0, 12)})`);
+  }
+
+  if (run.conclusion !== att.conclusion) {
+    errors.push(`conclusion: API (${run.conclusion}) ≠ attestée (${att.conclusion})`);
+  }
+
+  // Verdict -06 §2 : égalité EXACTE de l'URL après normalisation.
+  const attUrl = normalizeRunUrl(att.runUrl);
+  const apiUrl = normalizeRunUrl(run.html_url);
+  if (att.runUrl !== undefined && (attUrl === null || apiUrl === null || attUrl !== apiUrl)) {
+    errors.push(`url: runUrl attesté (${att.runUrl}) ≠ html_url API normalisée (${run.html_url})`);
+  }
+
+  const apiDate = new Date(run.created_at).getTime();
+  const attDate = new Date(att.runDate).getTime();
+  if (Number.isFinite(apiDate) && Number.isFinite(attDate) && Math.abs(apiDate - attDate) > 48 * 3600_000) {
+    errors.push(`date: runDate attestée (${att.runDate}) à plus de 48h de created_at API (${run.created_at})`);
+  }
+
+  return errors;
+}
+
+/** Récupère le run via l'API GitHub puis applique checkAttestationFields. */
 export async function verifyAttestationRun(att, { token, repo }) {
   const res = await fetch(`https://api.github.com/repos/${repo}/actions/runs/${att.runId}`, {
     headers: { authorization: `Bearer ${token}`, accept: 'application/vnd.github+json' },
@@ -48,49 +130,7 @@ export async function verifyAttestationRun(att, { token, repo }) {
     return [`run ${att.runId} INTROUVABLE via l'API (${res.status}) — attestation non authentifiable`];
   }
 
-  const run = await res.json();
-  const errors = [];
-
-  // Verdict -04 : identité du workflow — un run vert d'un AUTRE workflow au
-  // même SHA n'est PAS une attestation Parity registries.
-  if (run.path !== EXPECTED_WORKFLOW_PATH) {
-    errors.push(`workflow path API (${run.path}) ≠ attendu (${EXPECTED_WORKFLOW_PATH}) — substitution de run étranger`);
-  }
-
-  if (run.name !== EXPECTED_WORKFLOW_NAME) {
-    errors.push(`workflow name API (${run.name}) ≠ attendu (${EXPECTED_WORKFLOW_NAME})`);
-  }
-
-  // Verdict -04 : événement — l'attestation n'est roulée QUE post-merge (push).
-  if (!EXPECTED_EVENTS.includes(run.event)) {
-    errors.push(`event API (${run.event}) ∉ attendus [${EXPECTED_EVENTS.join(', ')}] — l'attestation ne roule que sur push`);
-  }
-
-  // Verdict RR-05 : la branche du run doit être main.
-  if (run.head_branch !== EXPECTED_HEAD_BRANCH) {
-    errors.push(`head_branch API (${run.head_branch}) ≠ attendu (${EXPECTED_HEAD_BRANCH}) — run d'une autre branche substitué`);
-  }
-
-  if (run.head_sha !== att.runCommit) {
-    errors.push(`head_sha API (${String(run.head_sha).slice(0, 12)}) ≠ runCommit attesté (${String(att.runCommit).slice(0, 12)})`);
-  }
-
-  if (run.conclusion !== att.conclusion) {
-    errors.push(`conclusion API (${run.conclusion}) ≠ attestée (${att.conclusion})`);
-  }
-
-  if (att.runUrl && run.html_url && !String(att.runUrl).startsWith(run.html_url)) {
-    errors.push(`runUrl attesté (${att.runUrl}) ≠ html_url API (${run.html_url})`);
-  }
-
-  const apiDate = new Date(run.created_at).getTime();
-  const attDate = new Date(att.runDate).getTime();
-
-  if (Number.isFinite(apiDate) && Number.isFinite(attDate) && Math.abs(apiDate - attDate) > 48 * 3600_000) {
-    errors.push(`runDate attestée (${att.runDate}) à plus de 48h de created_at API (${run.created_at})`);
-  }
-
-  return errors;
+  return checkAttestationFields(att, await res.json());
 }
 
 const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
@@ -114,5 +154,5 @@ if (isMain) {
     process.exit(1);
   }
 
-  console.log(`[verify-attestation-run] OK — run ${att.runId} authentifié via l'API GitHub (workflow, event, head_sha, conclusion, url, date cohérents)`);
+  console.log(`[verify-attestation-run] OK — run ${att.runId} authentifié (workflow, event, branche, runCommit+mergedCommit+repoCommit liés au head_sha, conclusion, url exacte, date)`);
 }

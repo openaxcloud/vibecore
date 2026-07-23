@@ -7,14 +7,15 @@ p0s:
     title: "Collecteur : routes produit rendues JS — SCINDÉ (canal de lancement → UNK-LAUNCH-CHANNEL)"
     priority: 1
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewReceiptId: RR-20260722-CODEX-05
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260722-CODEX-06 (COMPLET, responseHash 9ac5e9b6…) — signature valide UNIQUEMENT la collecte des routes produit rendues en JavaScript ; elle ne valide ni ne ferme UNK-LAUNCH-CHANNEL (canal de lancement resté inconnu)"
+    reviewReceiptId: RR-20260722-CODEX-06
     remediationTrack: QUICK
     conditionDeCloture: "Preuve primaire des routes produit rendues JS (DOM complet hash-recalculable + trace de collecte) — le canal de lancement est un UNKNOWN séparé (UNK-LAUNCH-CHANNEL) ; puis signature du relecteur"
     refusalReason: "le titre demande toujours le canal de lancement, que la preuve déclare elle-même absent — la preuve ne soutient qu'une partie du titre ; correction : scinder le point et ne soumettre que « routes produit rendues JS »"
     refusalType: PREUVE_INSUFFISANTE
-    reviewVerdict: REFUSED
-    reviewCommit: "60a987ca"
+    reviewVerdict: SIGNED
+    reviewCommit: "21e8a255"
     commit: "07ced1c56bdbcb3ce77e883704342b71a2ad0961"
     reviewer: OpenAI-Codex
     evidenceId: docs/deploy-evidence/2026-07-21-gallery-pricing-v4/
@@ -25,14 +26,15 @@ p0s:
     title: "Gallery : requalifier la table (mesures réelles, archive rendue)"
     priority: 2
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewReceiptId: RR-20260722-CODEX-05
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260722-CODEX-06 (COMPLET, responseHash 9ac5e9b6…) — le titre, le proof et l'artefact portent la même unité de mesure (43 ancres /gallery/ dans le DOM) ; 43 ancres NE sont PAS requalifiées en 43 applications ou 43 cartes distinctes"
+    reviewReceiptId: RR-20260722-CODEX-06
     remediationTrack: QUICK
     conditionDeCloture: "Les mesures revendiquées == les mesures de l'artefact (43 ancres /gallery/, pas « cartes ») ; archive primaire reproductible ; puis signature du relecteur"
     refusalReason: "désaccord entre « 43 cartes » et l'artefact qui mesure 43 ancres : le rendu textuel montre 20 cartes chargées puis Load all apps — une ancre n'est pas nécessairement une carte distincte"
     refusalType: PREUVE_INSUFFISANTE
-    reviewVerdict: REFUSED
-    reviewCommit: "60a987ca"
+    reviewVerdict: SIGNED
+    reviewCommit: "21e8a255"
     commit: "07ced1c56bdbcb3ce77e883704342b71a2ad0961"
     reviewer: OpenAI-Codex
     evidenceId: docs/deploy-evidence/2026-07-21-gallery-pricing-v4/
@@ -43,15 +45,17 @@ p0s:
     title: "Hiérarchie GCP : folder-per-tenant mort (300 cap + 0,1 req/s)"
     priority: 3
     owner: platform
-    status: OPEN
+    status: CLOSED
+    reviewReceiptId: RR-20260722-CODEX-06
+    reviewNote: "SIGNÉ au reçu RR-20260722-CODEX-06 (COMPLET, responseHash 9ac5e9b6…) — repose sur les mêmes limites autoritatives que P0-V3-03, déduplication documentée ; portée identique à V3-03 (limites au moment de l'archive, pas de garantie de stabilité future)"
     remediationTrack: A_TRIER
     conditionDeCloture: "Compléter l'évidence : tests recopient constantes 300 et 0,1 sans source GCP autoritative ; puis re-soumission au relecteur"
     refusalReason: "tests recopient constantes 300 et 0,1 sans source GCP autoritative"
     refusalType: PREUVE_INSUFFISANTE
-    reviewVerdict: REFUSED
-    reviewCommit: "57febeab"
+    reviewVerdict: SIGNED
+    reviewCommit: "21e8a255"
     commit: "07ced1c5"
-    reviewer: UNKNOWN
+    reviewer: OpenAI-Codex
     evidenceId: services/api/src/capacity-policy.spec.ts
     proof: "capacity-policy.ts : 1000 tenants sharded=4/~40s admissible, folder-per-tenant=2,78h inadmissible ; DOMAIN_MODEL §3 corrigé"
     nextAction: "Aucun — appliqué"
@@ -121,14 +125,16 @@ p0s:
     source: "Audit v3 (2026-07-16), P0-03"
     priority: 3
     owner: platform
-    status: OPEN
+    status: CLOSED
+    reviewReceiptId: RR-20260722-CODEX-06
+    reviewNote: "SIGNÉ au reçu RR-20260722-CODEX-06 (COMPLET, responseHash 9ac5e9b6…) — validation des limites GCP (300 dossiers, 0,1 folder/s, 10 niveaux) et de leur conséquence architecturale AU MOMENT DE L'ARCHIVE (source hashée) ; pas de garantie que les quotas GCP ne changeront jamais"
     remediationTrack: A_TRIER
     refusalReason: "tests auto-référentiels, sans ancrage GCP vérifiable"
     refusalType: PREUVE_INSUFFISANTE
-    reviewVerdict: REFUSED
-    reviewCommit: "57febeab"
+    reviewVerdict: SIGNED
+    reviewCommit: "21e8a255"
     commit: "07ced1c5"
-    reviewer: UNKNOWN
+    reviewer: OpenAI-Codex
     evidenceId: services/api/src/capacity-policy.spec.ts
     proof: "capacity-policy.ts : 1000 tenants sharded=admissible (~40s), folder-per-tenant=2,78h inadmissible ; DOMAIN_MODEL §3 corrigé ; DEC-TENANT-NO-FOLDER-PER-TENANT DECIDED."
     dependances: []
@@ -329,19 +335,19 @@ p0s:
     priority: 14
     owner: platform
     status: PROVEN_REVIEW_PENDING
-    reviewReceiptId: RR-20260722-CODEX-05
+    reviewReceiptId: RR-20260722-CODEX-06
     reviewVerdict: REFUSED
-    refusalReason: "la preuve annoncée incorpore le « contrôle d'attestation durci » qui conserve les défauts LS-16 ; chaîne Node non rejouable par le relecteur (checkout/node_modules absents) — les résultats CI officiels ne réparent pas le défaut logique du vérificateur"
+    refusalReason: "la chaîne documentaire incorpore encore un contrôle d'attestation incomplet (lacunes LS-16) — impossible de signer l'ensemble comme chaîne cohérente et reproductible tant que le vérificateur n'est pas corrigé + tests négatifs par champ + nouveau run post-merge"
     refusalType: PREUVE_INSUFFISANTE
     remediationTrack: QUICK
-    reviewCommit: "60a987ca"
+    reviewCommit: "21e8a255"
     commit: "97759a77"
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/CI_ATTESTATION.yaml
-    proof: "CORRIGÉ v5 + PROUVÉ VIVANT (22/07) : le défaut logique du vérificateur est levé (head_branch + test déterministe) ; Quality Gates + Validate registries verts ; run post-merge VIVANT PRODUIT (22/07) : merge #42 (76d3922c) → job roll-attestation AUTOMATIQUE completed/success → commit bot 96454f3d (« attestation roulée automatiquement (run 29909965011 @ 76d3922c) »). Le run attesté 29909965011 est AUTHENTIFIÉ par le vérificateur DURCI : path=parity-registries.yml, name='Parity registries', event=push, head_branch=main, conclusion=success (verify-attestation-run.mjs exit 0). La chaîne génération→drift-check→validation→authentification→substitution→roll post-merge est désormais entièrement cohérente et rejouable."
+    proof: "CORRIGÉ v6 (23/07) : le vérificateur est fail-closed (tous commits liés, URL exacte) + tests négatifs UNITAIRES PAR CHAMP verts ; reste le roll post-merge (mini-PR) pour une chaîne entièrement cohérente et reproductible."
     dependances: []
-    conditionDeCloture: "Attestation corrigée + run post-merge + chaîne dont chaque étape annoncée est rejouable ; puis re-soumission"
-    nextAction: "Re-soumission au relecteur : chaîne complète rejouable + roll post-merge vivant (run 29909965011)"
+    conditionDeCloture: "Vérificateur corrigé + négatifs par champ + roll post-merge ; puis re-soumission de la chaîne complète"
+    nextAction: "Après le mini-merge attestation-v6 : re-soumettre la chaîne complète"
     targetDate: "2026-07-16"
   - p0Id: P0-V3-15
     title: "Règles normatives violées par le plan lui-même (historique d'audit, étiquetage, P0 non traçables)"
@@ -539,12 +545,12 @@ p0s:
     priority: 9
     owner: platform
     status: OPEN
-    reviewReceiptId: RR-20260722-CODEX-05
+    reviewReceiptId: RR-20260722-CODEX-06
     remediationTrack: CHANTIER
-    refusalReason: "le paquet WIF contient des résultats historiques mais sa reproduction annoncée ne reproduit pas les 3 chemins : repro.sh remplace les 3 chemins par des commentaires ; workflow codé en dur sur des ressources DELETE_REQUESTED ; curl autorisé ne rougit pas sur 403/404 ; négatif GKE = affirmation sans tentative live archivée ; Dockerfile COPY main.py vs cloudrun-main.py (reconstruction impossible)"
+    refusalReason: "(refus maintenu au reçu -06) — remédiation WIF rejouable pilotée par la session PR #46 ; voir réserve §D1 antérieure"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
-    reviewCommit: "60a987ca"
+    reviewCommit: "21e8a255"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/baseline/sources/2026-07-20-gke-workload-identity.html
@@ -730,19 +736,20 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 3
     owner: platform
-    status: OPEN
+    status: PROVEN_REVIEW_PENDING
+    reviewReceiptId: RR-20260722-CODEX-06
     remediationTrack: A_TRIER
-    refusalReason: "69 éléments au total (manifeste inclus) et 21 fichiers de liens non hashés"
+    refusalReason: "le vérificateur et l'index sont présents (71 fichiers dont les 21 *.links.txt) mais la commande de reproduction n'a pas été rejouée dans un environnement équivalent et n'est pas ancrée à un job CI officiel du point ; le relecteur ne remplace pas l'exécution par une lecture du script"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
-    reviewCommit: "57febeab"
+    reviewCommit: "21e8a255"
     commit: b598e79042dce0af91c376a810c61320fd988013
-    reviewer: UNKNOWN
+    reviewer: OpenAI-Codex
     evidenceId: docs/parity/livescan-2026-07-20/
-    proof: "Paquet PRÉSENT dans le repo : docs/parity/livescan-2026-07-20/ = 69 fichiers + manifest.json (21 entrées) ; hashes du tableau = manifest."
+    proof: "EN COURS v6 (23/07) : `node scripts/parity/verify-livescan-hashes.mjs --check` à câbler dans un job CI officiel VERT au commit soumis + test négatif (fichier/hash modifié → job rouge). Pilotage sur la branche #48 (où vivent le script + l'index)."
     dependances: []
-    conditionDeCloture: "Compléter l'évidence : 69 éléments au total (manifeste inclus) et 21 fichiers de liens non hashés ; puis re-soumission au relecteur"
-    nextAction: "Revue"
+    conditionDeCloture: "Commande --check câblée en job CI officiel vert au commit soumis + test négatif (modif → rouge) ; puis re-soumission"
+    nextAction: "Câbler verify-livescan-hashes --check en CI sur #48 + test négatif"
     targetDate: "2026-07-20"
   - p0Id: P0-LS-04
     title: "Reclasser GitLab comme capacité supportée sans tuile courante"
@@ -928,12 +935,12 @@ p0s:
     priority: 13
     owner: platform
     status: PROVEN_REVIEW_PENDING
-    reviewReceiptId: RR-20260722-CODEX-05
+    reviewReceiptId: RR-20260722-CODEX-06
     remediationTrack: QUICK
-    refusalReason: "le DOM Pricing est primaire, mais la liaison « même session + mêmes cookies » reste DÉCLARATIVE : network-trace-session.txt n'est ni un HAR, ni des en-têtes Cookie, ni une trace Playwright/DevTools — deux déclarations séparées ne constituent pas la preuve de liaison"
+    refusalReason: "(refus antérieur maintenu au reçu -06) — voir la réserve HAR ; la liaison cookie est prouvée par HAR mais le lot reste sous revue"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
-    reviewCommit: "60a987ca"
+    reviewCommit: "21e8a255"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/deploy-evidence/2026-07-21-gallery-pricing-v4/
@@ -990,19 +997,19 @@ p0s:
     priority: 16
     owner: platform
     status: PROVEN_REVIEW_PENDING
-    reviewReceiptId: RR-20260722-CODEX-05
+    reviewReceiptId: RR-20260722-CODEX-06
     remediationTrack: QUICK
-    refusalReason: "attestation encore substituable et preuve post-merge absente : (1) run.head_branch=='main' non vérifié — un run push du même workflow depuis une autre branche peut être accepté ; (2) test de substitution non déterministe (dépend des 50 derniers runs) ; (3) le roll post-merge du mécanisme durci n'existe pas encore — une preuve future n'est pas une preuve présente"
+    refusalReason: "le run vivant n'est plus contesté, mais le vérificateur n'authentifie pas TOUTE la provenance fail-closed : (1) mergedCommit et le commit de dépôt déclaré non liés au head_sha avec la même exigence que runCommit ; (2) l'URL accepte un préfixe au lieu de l'égalité normalisée exacte ; (3) le test négatif cumule les différences au lieu de casser indépendamment PAR champ"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
-    reviewCommit: "60a987ca"
+    reviewCommit: "21e8a255"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/CI_ATTESTATION.yaml
-    proof: "CORRIGÉ v5 + PROUVÉ VIVANT (22/07) : (1) head_branch=='main' vérifié ; (2) test de substitution DÉTERMINISTE (fixture figée du run étranger 29812663423 + contre-contrôle head_branch) ; (3) run post-merge VIVANT PRODUIT (22/07) : merge #42 (76d3922c) → job roll-attestation AUTOMATIQUE completed/success → commit bot 96454f3d (« attestation roulée automatiquement (run 29909965011 @ 76d3922c) »). Le run attesté 29909965011 est AUTHENTIFIÉ par le vérificateur DURCI : path=parity-registries.yml, name='Parity registries', event=push, head_branch=main, conclusion=success (verify-attestation-run.mjs exit 0). Les 3 conditions RR-05 sont désormais satisfaites par une preuve PRÉSENTE, plus une preuve future."
+    proof: "CORRIGÉ v6 (23/07) : verify-attestation-run.mjs lie DÉSORMAIS runCommit+mergedCommit+repoCommit au head_sha via une règle sameCommit unique (préfixe court explicite ≥7 hex) ; l'URL exige l'égalité EXACTE après normalizeRunUrl (plus de startsWith) ; test négatif INDÉPENDANT PAR CHAMP (8 champs run falsifiés seuls + mergedCommit/repoCommit falsifiés dans l'attestation → chacun casse la garde correspondante ; positif golden = 0 erreur ; rejoué exit 0). Reste : nouveau roll post-merge avec ce vérificateur (mini-PR dédiée, feu vert Avi)."
     dependances: []
-    conditionDeCloture: "head_branch vérifié + test négatif déterministe + UN roll post-merge vert produit par le mécanisme durci (mini-merge sur feu vert Avi) ; puis re-soumission"
-    nextAction: "Re-soumission au relecteur : les 3 défauts RR-05 levés + roll post-merge vivant authentifié (run 29909965011, commit bot 96454f3d)"
+    conditionDeCloture: "Vérificateur fail-closed (tous commits liés au head_sha, URL exacte, négatifs par champ) + NOUVEAU roll post-merge produit par ce vérificateur ; puis re-soumission"
+    nextAction: "Feu vert Avi sur la mini-PR attestation-v6 → roll post-merge vert → re-soumettre"
     targetDate: "2026-07-20"
   - p0Id: P0-LS-17
     title: "Réconcilier les compteurs (174/159, 114/99, surfaces 10)"
@@ -1033,19 +1040,19 @@ p0s:
     priority: 18
     owner: platform
     status: PROVEN_REVIEW_PENDING
-    reviewReceiptId: RR-20260722-CODEX-05
+    reviewReceiptId: RR-20260722-CODEX-06
     reviewVerdict: REFUSED
-    refusalReason: "la génération courante reste adossée à un mécanisme d'attestation non entièrement validé (défauts LS-16 : head_branch non vérifié, substitution non déterministe, aucun roll post-merge de la version durcie) — l'attestation courante est antérieure à la preuve exigée"
+    refusalReason: "le commit dit « mergé » n'est pas lui-même authentifié par l'API avec la même force que runCommit ; tant que mergedCommit peut diverger du head_sha authentifié sans faire échouer le vérificateur, la condition « vues recalculées sur le commit mergé » n'est pas fail-closed"
     refusalType: PREUVE_INSUFFISANTE
     remediationTrack: QUICK
-    reviewCommit: "60a987ca"
+    reviewCommit: "21e8a255"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/CI_ATTESTATION.yaml
-    proof: "CORRIGÉ v5 + PROUVÉ VIVANT (22/07) : défauts LS-16 levés (head_branch + fixture déterministe) ET run post-merge VIVANT PRODUIT (22/07) : merge #42 (76d3922c) → job roll-attestation AUTOMATIQUE completed/success → commit bot 96454f3d (« attestation roulée automatiquement (run 29909965011 @ 76d3922c) »). Le run attesté 29909965011 est AUTHENTIFIÉ par le vérificateur DURCI : path=parity-registries.yml, name='Parity registries', event=push, head_branch=main, conclusion=success (verify-attestation-run.mjs exit 0). L'attestation courante (CI_ATTESTATION.yaml sur main) est produite PAR la version durcie et authentifiée par elle."
+    proof: "CORRIGÉ v6 (23/07) : mergedCommit est désormais lié au head_sha authentifié par sameCommit (même force que runCommit) — une divergence mergedCommit ≠ head_sha fait ÉCHOUER le vérificateur (test négatif dédié vert). Reste : roll post-merge avec ce vérificateur (mini-PR, feu vert Avi)."
     dependances: []
-    conditionDeCloture: "Roll post-merge vert du mécanisme durci (après mini-merge) puis recalcul attesté ; puis re-soumission"
-    nextAction: "Re-soumission au relecteur : roll post-merge de la version durcie authentifié (run 29909965011)"
+    conditionDeCloture: "mergedCommit authentifié avec la même force que runCommit + roll post-merge ; puis re-soumission"
+    nextAction: "Après le mini-merge attestation-v6 : vérifier le roll + re-soumettre"
     targetDate: "2026-07-27"
   - p0Id: P0-B-01
     title: "Overlay code réel + bolt sur les 159 candidats (exigence propriétaire)"

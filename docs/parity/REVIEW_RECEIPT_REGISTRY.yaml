@@ -122,3 +122,24 @@ receipts:
     factualCorrectionsVerified: "0.1 merges (les 4 MERGED) ; 0.2 total 65 ; 0.3 champs v4 resynchronisés ; 0.4 ancres #27/#28"
     refusalReasonsLocation: "docs/parity/incoming/REPONSE_EXPERT_PR40_20260722.md (verbatim) + P0_REGISTRY.refusalReason"
     completeness: COMPLETE
+
+  - reviewReceiptId: RR-20260722-CODEX-06
+    reviewerType: AUTOMATED_LLM
+    reviewerIdentity: "OpenAI-Codex"
+    reviewerModelVersion: "GPT-5 (Codex)"
+    reviewedAt: "2026-07-22"
+    auditedCommit: "21e8a255"   # tête #40 examinée dans le dossier V3
+    inputDocuments:
+      - path: outputs/DOSSIER_EXPERT_V3_20260722.md
+        note: "dossier V3 transmis par Avi"
+    responsePath: docs/parity/incoming/REPONSE_EXPERT_V3_20260722.md
+    responseHash: "sha256:9ac5e9b6c2b9f6c3496b..."   # préfixe fourni par Avi
+    summary: "pas de feu vert global ; 4 P0 signés / 6 refusés ; 2 contrats refusés ; grand livre accepté portée limitée ; import/billing + purge #43/#47 refusés"
+    decisions:
+      accepted: [P0-V4-1, P0-V4-2, P0-V3-03, P0-V4-3]
+      refused: [P0-LS-16, P0-LS-18, P0-V3-14, P0-LS-13, P0-A2-09, P0-LS-03]
+      contractsRefused: 2    # CTR-OPERATIONS-DR, CTR-RUNTIME-NIX
+      codeLotAcceptedLimited: 1   # correctif grand livre PR #39 (portée limitée)
+      codeLotsRefused: 3     # import/billing #39 + purge DB #43 + purge physique #47
+    refusalReasonsLocation: "docs/parity/incoming/REPONSE_EXPERT_V3_20260722.md (verbatim) + P0_REGISTRY.refusalReason"
+    completeness: COMPLETE
