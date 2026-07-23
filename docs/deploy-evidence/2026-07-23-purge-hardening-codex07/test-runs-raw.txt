@@ -1,0 +1,139 @@
+== date: 2026-07-23T19:36:26Z
+== branch vague3-purge43-hardening + réserves RR-20260723-CODEX-07 (Stripe DELETE / ordre verrous / matrice PII)
+== Postgres REEL docker vibecore-postgres-1 pg16
+
+===== billing: Stripe cancelSubscription DELETE (fake HTTP strict) =====
+[tsconfig-paths] An error occurred while parsing "/private/tmp/wt-purge43/packages/billing/tsconfig.json". See below for details. To disable this message, set the `ignoreConfigErrors` option to true.
+TSConfckParseError: parsing /private/tmp/wt-purge43/packages/billing/tsconfig.json failed: Error: ENOENT: no such file or directory, open '/private/tmp/wt-purge43/packages/billing/tsconfig.json'
+    at file:///private/tmp/wt-purge43/node_modules/.pnpm/tsconfck@3.1.6_typescript@5.8.3/node_modules/tsconfck/src/parse.js:114:10
+    at async Module.parse (file:///private/tmp/wt-purge43/node_modules/.pnpm/tsconfck@3.1.6_typescript@5.8.3/node_modules/tsconfck/src/parse.js:53:13)
+    ... 6 lines matching cause stack trace ...
+    at async createVitest (file:///private/tmp/wt-purge43/node_modules/.pnpm/vitest@3.2.6_@types+debug@4.1.12_@types+node@25.6.0_jsdom@26.1.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vitest/dist/chunks/cli-api.DWGBtMmz.js:10212:17)
+    at async prepareVitest (file:///private/tmp/wt-purge43/node_modules/.pnpm/vitest@3.2.6_@types+debug@4.1.12_@types+node@25.6.0_jsdom@26.1.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vitest/dist/chunks/cli-api.DWGBtMmz.js:10551:14) {
+  code: 'PARSE_FILE',
+  cause: Error: ENOENT: no such file or directory, open '/private/tmp/wt-purge43/packages/billing/tsconfig.json'
+      at async open (node:internal/fs/promises:642:25)
+      at async Object.readFile (node:internal/fs/promises:1279:14)
+      at async Module.parse (file:///private/tmp/wt-purge43/node_modules/.pnpm/tsconfck@3.1.6_typescript@5.8.3/node_modules/tsconfck/src/parse.js:53:13)
+      at async Promise.all (index 0)
+      at async configResolved (file:///private/tmp/wt-purge43/node_modules/.pnpm/vite-tsconfig-paths@4.3.2_typescript@5.8.3_vite@5.4.21_@types+node@25.6.0_lightningcss@1.32.0_ilzxdzud4mw2rzfjibxacahffu/node_modules/vite-tsconfig-paths/dist/index.mjs:104:9)
+      at async Promise.all (index 1)
+      at async resolveConfig (file:///private/tmp/wt-purge43/node_modules/.pnpm/vite@5.4.21_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:66688:3)
+      at async _createServer (file:///private/tmp/wt-purge43/node_modules/.pnpm/vite@5.4.21_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:63015:18)
+      at async createViteServer (file:///private/tmp/wt-purge43/node_modules/.pnpm/vitest@3.2.6_@types+debug@4.1.12_@types+node@25.6.0_jsdom@26.1.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vitest/dist/chunks/cli-api.DWGBtMmz.js:6921:17)
+      at async createVitest (file:///private/tmp/wt-purge43/node_modules/.pnpm/vitest@3.2.6_@types+debug@4.1.12_@types+node@25.6.0_jsdom@26.1.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vitest/dist/chunks/cli-api.DWGBtMmz.js:10212:17) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: '/private/tmp/wt-purge43/packages/billing/tsconfig.json'
+  },
+  tsconfigFile: '/private/tmp/wt-purge43/packages/billing/tsconfig.json'
+}
+
+ RUN  v3.2.6 /private/tmp/wt-purge43/packages/billing
+
+ ✓ src/stripe-cancel-subscription.spec.ts (3 tests) 5ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  22:36:28
+   Duration  484ms (transform 104ms, setup 0ms, collect 90ms, tests 5ms, environment 0ms, prepare 140ms)
+
+
+===== services/api: account-purge DB (vrai Postgres) + routes =====
+
+ RUN  v3.2.6 /private/tmp/wt-purge43/services/api
+
+{"level":30,"time":1784835392105,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"69853735-591d-4474-a80a-0f77cba3f85c","req":{"method":"POST","url":"/internal/account-purge","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784835392215,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"2c5fd439-1133-4fc1-b650-36941866f4af","req":{"method":"POST","url":"/account/deletion","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784835392122,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"69853735-591d-4474-a80a-0f77cba3f85c","event":"request.completed","requestId":"69853735-591d-4474-a80a-0f77cba3f85c","correlationId":"69853735-591d-4474-a80a-0f77cba3f85c","statusCode":401,"durationSeconds":0.013000011444091797}
+{"level":30,"time":1784835392122,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"69853735-591d-4474-a80a-0f77cba3f85c","res":{"statusCode":401},"responseTime":7.922874987125397,"msg":"request completed"}
+{"level":30,"time":1784835392217,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"2c5fd439-1133-4fc1-b650-36941866f4af","event":"request.completed","requestId":"2c5fd439-1133-4fc1-b650-36941866f4af","correlationId":"2c5fd439-1133-4fc1-b650-36941866f4af","userId":"user_5r288h0cgi7mrxwwqmk","statusCode":200,"durationSeconds":0.002000093460083008}
+{"level":30,"time":1784835392217,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"2c5fd439-1133-4fc1-b650-36941866f4af","res":{"statusCode":200},"responseTime":1.9099999964237213,"msg":"request completed"}
+{"level":30,"time":1784835392217,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"3c193d7d-53e7-449e-b614-52d86e6b8099","req":{"method":"POST","url":"/internal/account-purge","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784835392327,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"441affe5-58c5-4622-a26f-548333d67e31","req":{"method":"POST","url":"/account/deletion","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784835392239,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"3c193d7d-53e7-449e-b614-52d86e6b8099","event":"request.completed","requestId":"3c193d7d-53e7-449e-b614-52d86e6b8099","correlationId":"3c193d7d-53e7-449e-b614-52d86e6b8099","statusCode":200,"durationSeconds":0.021000146865844727}
+{"level":30,"time":1784835392239,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"3c193d7d-53e7-449e-b614-52d86e6b8099","res":{"statusCode":200},"responseTime":21.295125007629395,"msg":"request completed"}
+{"level":30,"time":1784835392328,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"441affe5-58c5-4622-a26f-548333d67e31","event":"request.completed","requestId":"441affe5-58c5-4622-a26f-548333d67e31","correlationId":"441affe5-58c5-4622-a26f-548333d67e31","userId":"user_0lemw3wcsxcamrxwwqpv","statusCode":200,"durationSeconds":0}
+{"level":30,"time":1784835392328,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"441affe5-58c5-4622-a26f-548333d67e31","res":{"statusCode":200},"responseTime":0.9467500150203705,"msg":"request completed"}
+{"level":30,"time":1784835392329,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"e7ae9331-b5ce-46e4-afbf-d3f9485d922c","req":{"method":"POST","url":"/account/deletion/cancel","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784835392331,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"e7ae9331-b5ce-46e4-afbf-d3f9485d922c","event":"request.completed","requestId":"e7ae9331-b5ce-46e4-afbf-d3f9485d922c","correlationId":"e7ae9331-b5ce-46e4-afbf-d3f9485d922c","userId":"user_0lemw3wcsxcamrxwwqpv","statusCode":200,"durationSeconds":0.002000093460083008}
+{"level":30,"time":1784835392331,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"e7ae9331-b5ce-46e4-afbf-d3f9485d922c","res":{"statusCode":200},"responseTime":2.0385409891605377,"msg":"request completed"}
+{"level":30,"time":1784835392331,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"a3fd7b3a-3437-472a-987a-d31efd99714a","req":{"method":"POST","url":"/internal/account-purge","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784835392404,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"6fbc95db-d6ff-4f43-9e56-cf5776778524","req":{"method":"POST","url":"/account/deletion","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784835392333,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"a3fd7b3a-3437-472a-987a-d31efd99714a","event":"request.completed","requestId":"a3fd7b3a-3437-472a-987a-d31efd99714a","correlationId":"a3fd7b3a-3437-472a-987a-d31efd99714a","statusCode":200,"durationSeconds":0.0019998550415039062}
+{"level":30,"time":1784835392333,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"a3fd7b3a-3437-472a-987a-d31efd99714a","res":{"statusCode":200},"responseTime":2.0176670253276825,"msg":"request completed"}
+{"level":30,"time":1784835392404,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"6fbc95db-d6ff-4f43-9e56-cf5776778524","event":"request.completed","requestId":"6fbc95db-d6ff-4f43-9e56-cf5776778524","correlationId":"6fbc95db-d6ff-4f43-9e56-cf5776778524","userId":"user_0dixpkxihh7imrxwwqro","statusCode":200,"durationSeconds":0}
+{"level":30,"time":1784835392404,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"6fbc95db-d6ff-4f43-9e56-cf5776778524","res":{"statusCode":200},"responseTime":0.4408330023288727,"msg":"request completed"}
+{"level":30,"time":1784835392404,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"d077ae8f-3612-4728-8e63-30ca7d4f8cbc","req":{"method":"POST","url":"/internal/account-purge","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784835392455,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"7f3fea67-95cf-4fee-b241-1809e51f0f6d","req":{"method":"POST","url":"/account/deletion","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784835392405,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"d077ae8f-3612-4728-8e63-30ca7d4f8cbc","event":"request.completed","requestId":"d077ae8f-3612-4728-8e63-30ca7d4f8cbc","correlationId":"d077ae8f-3612-4728-8e63-30ca7d4f8cbc","statusCode":200,"durationSeconds":0.0009999275207519531}
+{"level":30,"time":1784835392405,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"d077ae8f-3612-4728-8e63-30ca7d4f8cbc","res":{"statusCode":200},"responseTime":0.5784590244293213,"msg":"request completed"}
+{"level":30,"time":1784835392456,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"7f3fea67-95cf-4fee-b241-1809e51f0f6d","event":"request.completed","requestId":"7f3fea67-95cf-4fee-b241-1809e51f0f6d","correlationId":"7f3fea67-95cf-4fee-b241-1809e51f0f6d","userId":"user_tt7ei9sbwymrxwwqta","statusCode":200,"durationSeconds":0}
+{"level":30,"time":1784835392457,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"7f3fea67-95cf-4fee-b241-1809e51f0f6d","res":{"statusCode":200},"responseTime":0.9259999990463257,"msg":"request completed"}
+{"level":30,"time":1784835392457,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"11eca923-6ab0-4ff9-8b67-34099fc08970","req":{"method":"POST","url":"/internal/account-purge","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784835392459,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"11eca923-6ab0-4ff9-8b67-34099fc08970","event":"request.completed","requestId":"11eca923-6ab0-4ff9-8b67-34099fc08970","correlationId":"11eca923-6ab0-4ff9-8b67-34099fc08970","statusCode":200,"durationSeconds":0.002000093460083008}
+{"level":30,"time":1784835392459,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"11eca923-6ab0-4ff9-8b67-34099fc08970","res":{"statusCode":200},"responseTime":2.2528750002384186,"msg":"request completed"}
+{"level":30,"time":1784835392460,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"270e0bd5-5777-4fe2-be4a-8dd9bd515a1e","req":{"method":"POST","url":"/internal/account-purge","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784835392460,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"270e0bd5-5777-4fe2-be4a-8dd9bd515a1e","event":"request.completed","requestId":"270e0bd5-5777-4fe2-be4a-8dd9bd515a1e","correlationId":"270e0bd5-5777-4fe2-be4a-8dd9bd515a1e","statusCode":200,"durationSeconds":0}
+{"level":30,"time":1784835392460,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"270e0bd5-5777-4fe2-be4a-8dd9bd515a1e","res":{"statusCode":200},"responseTime":0.5578329861164093,"msg":"request completed"}
+{"level":30,"time":1784835392461,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"dfac551d-211c-40cd-8f2b-00cb30e1f82d","req":{"method":"POST","url":"/internal/account-purge","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784835392545,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"af330ae8-fb2b-4a50-943e-3fdaeb43cceb","req":{"method":"POST","url":"/account/deletion","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784835392632,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"8183efd0-059f-4fd2-8fc0-a92c069af778","req":{"method":"POST","url":"/account/deletion","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784835392461,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"dfac551d-211c-40cd-8f2b-00cb30e1f82d","event":"request.completed","requestId":"dfac551d-211c-40cd-8f2b-00cb30e1f82d","correlationId":"dfac551d-211c-40cd-8f2b-00cb30e1f82d","statusCode":200,"durationSeconds":0}
+{"level":30,"time":1784835392461,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"dfac551d-211c-40cd-8f2b-00cb30e1f82d","res":{"statusCode":200},"responseTime":0.5607079863548279,"msg":"request completed"}
+{"level":30,"time":1784835392547,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"af330ae8-fb2b-4a50-943e-3fdaeb43cceb","event":"request.completed","requestId":"af330ae8-fb2b-4a50-943e-3fdaeb43cceb","correlationId":"af330ae8-fb2b-4a50-943e-3fdaeb43cceb","userId":"user_33w8ubdbzo8mrxwwqvu","statusCode":200,"durationSeconds":0.0009999275207519531}
+{"level":30,"time":1784835392547,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"af330ae8-fb2b-4a50-943e-3fdaeb43cceb","res":{"statusCode":200},"responseTime":1.5787500143051147,"msg":"request completed"}
+{"level":30,"time":1784835392632,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"8183efd0-059f-4fd2-8fc0-a92c069af778","event":"request.completed","requestId":"8183efd0-059f-4fd2-8fc0-a92c069af778","correlationId":"8183efd0-059f-4fd2-8fc0-a92c069af778","userId":"user_15usyi0y85omrxwwqxi","statusCode":200,"durationSeconds":0}
+{"level":30,"time":1784835392632,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"8183efd0-059f-4fd2-8fc0-a92c069af778","res":{"statusCode":200},"responseTime":0.5059159994125366,"msg":"request completed"}
+{"level":30,"time":1784835392633,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"31a38a9c-50ee-451f-88bf-d8174cdff1d2","req":{"method":"POST","url":"/internal/account-purge","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784835392704,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"cec4626d-ceaf-4288-93e9-37a2f711e898","req":{"method":"POST","url":"/account/deletion","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784835392633,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"31a38a9c-50ee-451f-88bf-d8174cdff1d2","event":"request.completed","requestId":"31a38a9c-50ee-451f-88bf-d8174cdff1d2","correlationId":"31a38a9c-50ee-451f-88bf-d8174cdff1d2","statusCode":200,"durationSeconds":0}
+{"level":30,"time":1784835392633,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"31a38a9c-50ee-451f-88bf-d8174cdff1d2","res":{"statusCode":200},"responseTime":0.6437920033931732,"msg":"request completed"}
+{"level":30,"time":1784835392705,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"cec4626d-ceaf-4288-93e9-37a2f711e898","event":"request.completed","requestId":"cec4626d-ceaf-4288-93e9-37a2f711e898","correlationId":"cec4626d-ceaf-4288-93e9-37a2f711e898","userId":"user_9z7c3ki2bkpmrxwwr0b","statusCode":200,"durationSeconds":0.0009999275207519531}
+{"level":30,"time":1784835392705,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"cec4626d-ceaf-4288-93e9-37a2f711e898","res":{"statusCode":200},"responseTime":0.6512909829616547,"msg":"request completed"}
+{"level":30,"time":1784835392705,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"0740e367-e325-470b-8566-2ce80b53a3f5","req":{"method":"POST","url":"/internal/account-purge","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784835392800,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"5adfd170-8fb3-4849-bfa7-7fd27610dce6","req":{"method":"POST","url":"/account/deletion","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784835392706,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"0740e367-e325-470b-8566-2ce80b53a3f5","event":"request.completed","requestId":"0740e367-e325-470b-8566-2ce80b53a3f5","correlationId":"0740e367-e325-470b-8566-2ce80b53a3f5","statusCode":200,"durationSeconds":0.0010001659393310547}
+{"level":30,"time":1784835392706,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"0740e367-e325-470b-8566-2ce80b53a3f5","res":{"statusCode":200},"responseTime":1.2212500274181366,"msg":"request completed"}
+{"level":30,"time":1784835392709,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"de67ff10-9aff-4459-8141-1ce7d1455348","req":{"method":"GET","url":"/account/deletion","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784835392710,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"de67ff10-9aff-4459-8141-1ce7d1455348","event":"request.completed","requestId":"de67ff10-9aff-4459-8141-1ce7d1455348","correlationId":"de67ff10-9aff-4459-8141-1ce7d1455348","statusCode":401,"durationSeconds":0.0009999275207519531}
+{"level":30,"time":1784835392710,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"de67ff10-9aff-4459-8141-1ce7d1455348","res":{"statusCode":401},"responseTime":0.4338330030441284,"msg":"request completed"}
+{"level":30,"time":1784835392801,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"5adfd170-8fb3-4849-bfa7-7fd27610dce6","event":"request.completed","requestId":"5adfd170-8fb3-4849-bfa7-7fd27610dce6","correlationId":"5adfd170-8fb3-4849-bfa7-7fd27610dce6","userId":"user_q60q8a8zpvmrxwwr23","statusCode":200,"durationSeconds":0}
+{"level":30,"time":1784835392801,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"5adfd170-8fb3-4849-bfa7-7fd27610dce6","res":{"statusCode":200},"responseTime":0.5121670067310333,"msg":"request completed"}
+{"level":30,"time":1784835392801,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"bd9b5c69-fcb5-4e08-8732-0fcf409f3345","req":{"method":"POST","url":"/internal/account-purge","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784835392809,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"bd9b5c69-fcb5-4e08-8732-0fcf409f3345","event":"request.completed","requestId":"bd9b5c69-fcb5-4e08-8732-0fcf409f3345","correlationId":"bd9b5c69-fcb5-4e08-8732-0fcf409f3345","statusCode":200,"durationSeconds":0.007999897003173828}
+{"level":30,"time":1784835392809,"pid":3845,"hostname":"MacBook-Pro-de-HB.local","reqId":"bd9b5c69-fcb5-4e08-8732-0fcf409f3345","res":{"statusCode":200},"responseTime":7.149125009775162,"msg":"request completed"}
+ ✓ src/tests/account-purge-routes.spec.ts (9 tests) 962ms
+{"level":30,"time":1784835392920,"pid":3844,"hostname":"MacBook-Pro-de-HB.local","reqId":"88a34583-eb87-4d70-b019-09314ca4f9e2","req":{"method":"POST","url":"/internal/account-purge","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784835393169,"pid":3844,"hostname":"MacBook-Pro-de-HB.local","reqId":"88a34583-eb87-4d70-b019-09314ca4f9e2","event":"request.completed","requestId":"88a34583-eb87-4d70-b019-09314ca4f9e2","correlationId":"88a34583-eb87-4d70-b019-09314ca4f9e2","statusCode":200,"durationSeconds":0.247999906539917}
+{"level":30,"time":1784835393169,"pid":3844,"hostname":"MacBook-Pro-de-HB.local","reqId":"88a34583-eb87-4d70-b019-09314ca4f9e2","res":{"statusCode":200},"responseTime":241.24712499976158,"msg":"request completed"}
+stdout | src/tests/account-purge-db.spec.ts > account purge — durable proofs (real Postgres) > (5) a POSTED ledger transaction survives the purge (mig 0078 immutability) and is consigned
+prisma:error Ledger LedgerTransaction is append-only: DELETE refused. Correct with a reversing transaction, never by mutating a posted event.
+
+{"level":30,"time":1784835394081,"pid":3844,"hostname":"MacBook-Pro-de-HB.local","reqId":"4d3d0834-81d3-4ae9-bdf5-a041695b8bee","req":{"method":"POST","url":"/internal/account-purge","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784835394195,"pid":3844,"hostname":"MacBook-Pro-de-HB.local","reqId":"4d3d0834-81d3-4ae9-bdf5-a041695b8bee","event":"request.completed","requestId":"4d3d0834-81d3-4ae9-bdf5-a041695b8bee","correlationId":"4d3d0834-81d3-4ae9-bdf5-a041695b8bee","statusCode":200,"durationSeconds":0.1119999885559082}
+{"level":30,"time":1784835394195,"pid":3844,"hostname":"MacBook-Pro-de-HB.local","reqId":"4d3d0834-81d3-4ae9-bdf5-a041695b8bee","res":{"statusCode":200},"responseTime":112.23600000143051,"msg":"request completed"}
+{"level":30,"time":1784835394420,"pid":3844,"hostname":"MacBook-Pro-de-HB.local","reqId":"80fb0465-a82b-46c5-be63-5609f59454b8","req":{"method":"POST","url":"/internal/account-purge","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":50,"time":1784835394428,"pid":3844,"hostname":"MacBook-Pro-de-HB.local","reqId":"80fb0465-a82b-46c5-be63-5609f59454b8","err":{"type":"Error","message":"ACCOUNT_PURGE_BILLING_CESSATION_FAILED: could not cancel 1 subscription(s) for cmrxwwsan002ayslnlyyv3ewn — refusing to purge (would leave orphan billing)","stack":"Error: ACCOUNT_PURGE_BILLING_CESSATION_FAILED: could not cancel 1 subscription(s) for cmrxwwsan002ayslnlyyv3ewn — refusing to purge (would leave orphan billing)\n    at prisma.$transaction.timeout (/private/tmp/wt-purge43/services/api/src/prisma-store.ts:520:21)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at Proxy._transactionWithCallback (/private/tmp/wt-purge43/packages/database/generated/client/runtime/client.js:79:4800)\n    at Object.<anonymous> (/private/tmp/wt-purge43/services/api/src/app.ts:27011:24)"},"userId":"cmrxwwsan002ayslnlyyv3ewn","msg":"account purge failed"}
+{"level":30,"time":1784835394527,"pid":3844,"hostname":"MacBook-Pro-de-HB.local","reqId":"80fb0465-a82b-46c5-be63-5609f59454b8","event":"request.completed","requestId":"80fb0465-a82b-46c5-be63-5609f59454b8","correlationId":"80fb0465-a82b-46c5-be63-5609f59454b8","statusCode":200,"durationSeconds":0.10699987411499023}
+{"level":30,"time":1784835394527,"pid":3844,"hostname":"MacBook-Pro-de-HB.local","reqId":"80fb0465-a82b-46c5-be63-5609f59454b8","res":{"statusCode":200},"responseTime":107.02691599726677,"msg":"request completed"}
+{"level":30,"time":1784835394836,"pid":3844,"hostname":"MacBook-Pro-de-HB.local","reqId":"2afb8625-9b7c-4d26-871c-7a6caca8c512","req":{"method":"POST","url":"/internal/account-purge","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784835394893,"pid":3844,"hostname":"MacBook-Pro-de-HB.local","reqId":"2afb8625-9b7c-4d26-871c-7a6caca8c512","event":"request.completed","requestId":"2afb8625-9b7c-4d26-871c-7a6caca8c512","correlationId":"2afb8625-9b7c-4d26-871c-7a6caca8c512","statusCode":200,"durationSeconds":0.056999921798706055}
+{"level":30,"time":1784835394893,"pid":3844,"hostname":"MacBook-Pro-de-HB.local","reqId":"2afb8625-9b7c-4d26-871c-7a6caca8c512","res":{"statusCode":200},"responseTime":56.861707985401154,"msg":"request completed"}
+{"level":30,"time":1784835395088,"pid":3844,"hostname":"MacBook-Pro-de-HB.local","reqId":"28fad8d8-e312-4afb-8878-de9940b5925b","req":{"method":"POST","url":"/internal/account-purge","hostname":"localhost","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1784835395118,"pid":3844,"hostname":"MacBook-Pro-de-HB.local","reqId":"28fad8d8-e312-4afb-8878-de9940b5925b","event":"request.completed","requestId":"28fad8d8-e312-4afb-8878-de9940b5925b","correlationId":"28fad8d8-e312-4afb-8878-de9940b5925b","statusCode":200,"durationSeconds":0.029999971389770508}
+{"level":30,"time":1784835395118,"pid":3844,"hostname":"MacBook-Pro-de-HB.local","reqId":"28fad8d8-e312-4afb-8878-de9940b5925b","res":{"statusCode":200},"responseTime":30.185249984264374,"msg":"request completed"}
+ ✓ src/tests/account-purge-db.spec.ts (8 tests) 3128ms
+   ✓ account purge — durable proofs (real Postgres) > (2 NEGATIVE first) refuses while the grace window has not elapsed  533ms
+   ✓ account purge — durable proofs (real Postgres) > (1+3) purges for real, verifies 0 rows per class in SQL, persists a re-readable proof, then no-ops  654ms
+   ✓ account purge — durable proofs (real Postgres) > (reserve #1,#2,#4) cancels billing, atomically persists the proof, and scrubs PII  504ms
+   ✓ account purge — durable proofs (real Postgres) > (reserve #2 NEGATIVE) external billing cancellation runs INSIDE the locked tx: its failure ROLLS BACK the whole purge (fail-closed)  326ms
+   ✓ account purge — durable proofs (real Postgres) > (reserve #2 NEGATIVE) a SHARED org active subscription is NEVER selected for external cancellation  363ms
+
+ Test Files  2 passed (2)
+      Tests  17 passed (17)
+   Start at  22:36:29
+   Duration  5.75s (transform 1.18s, setup 0ms, collect 4.37s, tests 4.09s, environment 0ms, prepare 249ms)
+
+== done

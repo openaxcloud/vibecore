@@ -123,8 +123,10 @@ function isPrismaKnownRequestError(error: unknown): error is PrismaKnownRequestE
   return error instanceof Prisma.PrismaClientKnownRequestError;
 }
 
-// Database point-in-time rollback (Phase-1 scaffold) row → record mappers.
-// sizeBytes is a Postgres BIGINT (Prisma `bigint`); narrow to number for the API.
+/*
+ * Database point-in-time rollback (Phase-1 scaffold) row → record mappers.
+ * sizeBytes is a Postgres BIGINT (Prisma `bigint`); narrow to number for the API.
+ */
 function mapDatabaseInstance(row: {
   id: string;
   projectId: string;
@@ -402,55 +404,6 @@ export class PrismaApiStore implements ApiStore {
   /** Non-terminal subscription states that must be cancelled to stop billing. */
   private static readonly ACTIVE_SUBSCRIPTION_STATES = ['TRIALING', 'ACTIVE', 'PAST_DUE', 'UNPAID'] as const;
 
-  /** Cheap pre-transaction readiness check (avoids external billing I/O when not due). */
-  private async isReadyToPurge(userId: string, nowMs: number): Promise<boolean> {
-    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { preferences: true } });
-    const deletion = ((user?.preferences ?? {}) as Record<string, unknown>).accountDeletion as
-      | { requestedAt?: string; purgedAt?: string }
-      | undefined;
-    const toMs = (value?: string) => {
-      const ms = value ? new Date(value).getTime() : NaN;
-
-      return Number.isFinite(ms) ? ms : null;
-    };
-
-    return (
-      deletionStatus({ requestedAtMs: toMs(deletion?.requestedAt), purgedAtMs: toMs(deletion?.purgedAt), nowMs }) ===
-      'ready_to_purge'
-    );
-  }
-
-  /** External-provider ids of non-terminal subscriptions in the user's sole orgs. */
-  private async soleOrgActiveSubscriptionExternalIds(userId: string): Promise<string[]> {
-    const memberships = await this.prisma.organizationMember.findMany({
-      where: { userId },
-      select: { organizationId: true },
-    });
-    const orgIds = [...new Set(memberships.map((m) => m.organizationId))];
-    const soleOrgIds: string[] = [];
-
-    for (const orgId of orgIds) {
-      if ((await this.prisma.organizationMember.count({ where: { organizationId: orgId } })) === 1) {
-        soleOrgIds.push(orgId);
-      }
-    }
-
-    if (soleOrgIds.length === 0) {
-      return [];
-    }
-
-    const subs = await this.prisma.subscription.findMany({
-      where: {
-        organizationId: { in: soleOrgIds },
-        status: { in: PrismaApiStore.ACTIVE_SUBSCRIPTION_STATES as unknown as SubscriptionStatus[] },
-        externalId: { not: null },
-      },
-      select: { externalId: true },
-    });
-
-    return subs.map((sub) => sub.externalId).filter((id): id is string => Boolean(id));
-  }
-
   async purgeUserAccount(
     input: { userId: string; nowMs?: number },
     deps?: AccountPurgeDeps,
@@ -461,33 +414,17 @@ export class PrismaApiStore implements ApiStore {
 
     /*
      * BILLING CESSATION (expert reserve #1) — cancel the external provider's
-     * subscriptions BEFORE the DB tombstone, so a deleted sole-owner account can
-     * never keep being invoiced. This is external I/O (Stripe) and cannot live in
-     * the Postgres tx, so it runs here, gated: only when the account is actually
-     * ready_to_purge, and FAIL-CLOSED — a cancellation that reports a failure
-     * throws and the account is never marked purged (retried next run). The in-tx
-     * flip to CANCELED below is the durable, provable half; this closes the
-     * real-world billing relationship.
+     * subscriptions so a deleted sole-owner account can never keep being
+     * invoiced. RR-20260723-CODEX-07 reserve #2: the SELECTION of which
+     * subscriptions to cancel MUST happen UNDER the topology locks, not before
+     * them — a concurrent membership change between an un-locked pre-read and
+     * the locked classification could make an org flip sole↔shared, so we'd
+     * cancel a still-shared org's subscription or miss a now-sole one. The
+     * whole billing cessation therefore runs INSIDE the transaction below,
+     * after the Organization/OrganizationMember FOR UPDATE locks, and the
+     * locks are held until commit. FAIL-CLOSED: a cancellation failure throws,
+     * rolls the tx back, and the account is never marked purged (retried).
      */
-    if (deps?.cancelExternalBilling) {
-      const preReady = await this.isReadyToPurge(userId, nowMs);
-
-      if (preReady) {
-        const externalIds = await this.soleOrgActiveSubscriptionExternalIds(userId);
-
-        if (externalIds.length > 0) {
-          const result = await deps.cancelExternalBilling(externalIds);
-
-          if (result.failed.length > 0) {
-            throw new Error(
-              `ACCOUNT_PURGE_BILLING_CESSATION_FAILED: could not cancel ${result.failed.length} subscription(s) ` +
-                `for ${userId} — refusing to purge (would leave orphan billing)`,
-            );
-          }
-        }
-      }
-    }
-
     return this.prisma.$transaction(
       async (tx) => {
         await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', `account-purge:${userId}`);
@@ -500,6 +437,7 @@ export class PrismaApiStore implements ApiStore {
 
         const preferences = (user.preferences ?? {}) as Record<string, unknown>;
         const deletion = (preferences.accountDeletion ?? null) as { requestedAt?: string; purgedAt?: string } | null;
+
         const toMs = (value?: string) => {
           if (!value) {
             return null;
@@ -509,6 +447,7 @@ export class PrismaApiStore implements ApiStore {
 
           return Number.isFinite(ms) ? ms : null;
         };
+
         const requestedAtMs = toMs(deletion?.requestedAt);
         const purgedAtMs = toMs(deletion?.purgedAt);
         const status = deletionStatus({ requestedAtMs, purgedAtMs, nowMs });
@@ -526,7 +465,11 @@ export class PrismaApiStore implements ApiStore {
         }
 
         // ---- ready_to_purge: resolve org topology (sole-member vs shared) ----
-        const memberships = await tx.organizationMember.findMany({ where: { userId }, select: { organizationId: true } });
+        const memberships = await tx.organizationMember.findMany({
+          where: { userId },
+          select: { organizationId: true },
+        });
+
         const orgIds = [...new Set(memberships.map((m) => m.organizationId))];
 
         /*
@@ -558,6 +501,36 @@ export class PrismaApiStore implements ApiStore {
         }
 
         const classes: PurgeClassReport[] = [];
+        const activeStates = PrismaApiStore.ACTIVE_SUBSCRIPTION_STATES as unknown as SubscriptionStatus[];
+
+        /*
+         * EXTERNAL BILLING CESSATION under the topology locks (expert reserve
+         * #2). The sole-org active-subscription external ids are SELECTED HERE,
+         * inside the locked transaction, from the SAME classification that will
+         * flip them to CANCELED below — the FOR UPDATE locks above froze the
+         * membership counts, so this set cannot drift. The external provider
+         * call runs while the locks are held (kept until commit); a failure
+         * throws → rollback → account never marked purged (fail-closed).
+         */
+        if (deps?.cancelExternalBilling && soleOrgIds.length > 0) {
+          const preCancel = await tx.subscription.findMany({
+            where: { organizationId: { in: soleOrgIds }, status: { in: activeStates }, externalId: { not: null } },
+            select: { externalId: true },
+          });
+
+          const externalIds = preCancel.map((sub) => sub.externalId).filter((id): id is string => Boolean(id));
+
+          if (externalIds.length > 0) {
+            const result = await deps.cancelExternalBilling(externalIds);
+
+            if (result.failed.length > 0) {
+              throw new Error(
+                `ACCOUNT_PURGE_BILLING_CESSATION_FAILED: could not cancel ${result.failed.length} subscription(s) ` +
+                  `for ${userId} — refusing to purge (would leave orphan billing)`,
+              );
+            }
+          }
+        }
 
         // ---- deleted classes ----
         const sessions = await tx.session.deleteMany({ where: { userId } });
@@ -592,11 +565,13 @@ export class PrismaApiStore implements ApiStore {
           },
         });
 
-        // AI history. AiMessage / AiToolCall / AiTokenUsage cascade off the
-        // conversation delete — count them FIRST so the proof carries real
-        // per-model numbers, not just the parent count. AiTokenUsage rows ride
-        // this cascade by schema design; the canonical billing truth
-        // (AiCostLedger / UsageEvent / Ledger*) is org-scoped and RETAINED below.
+        /*
+         * AI history. AiMessage / AiToolCall / AiTokenUsage cascade off the
+         * conversation delete — count them FIRST so the proof carries real
+         * per-model numbers, not just the parent count. AiTokenUsage rows ride
+         * this cascade by schema design; the canonical billing truth
+         * (AiCostLedger / UsageEvent / Ledger*) is org-scoped and RETAINED below.
+         */
         const aiMessages = await tx.aiMessage.count({ where: { conversation: { userId } } });
         const aiToolCalls = await tx.aiToolCall.count({ where: { message: { conversation: { userId } } } });
         const aiTokenUsages = await tx.aiTokenUsage.count({ where: { message: { conversation: { userId } } } });
@@ -608,6 +583,7 @@ export class PrismaApiStore implements ApiStore {
         const mcpUserConfigs = await tx.mcpUserConfig.deleteMany({ where: { userId } });
         const aiFeedback = await tx.aiMessageFeedback.deleteMany({ where: { userId } });
         const notifications = await tx.notification.deleteMany({ where: { userId } });
+
         const soleOrgCheckpoints =
           soleOrgIds.length > 0
             ? await tx.agentCheckpoint.deleteMany({ where: { organizationId: { in: soleOrgIds } } })
@@ -648,8 +624,10 @@ export class PrismaApiStore implements ApiStore {
           },
         });
 
-        // Projects & workspaces of sole-member orgs (files, snapshots,
-        // deployments, workspaces, gallery listings... cascade off Project).
+        /*
+         * Projects & workspaces of sole-member orgs (files, snapshots,
+         * deployments, workspaces, gallery listings... cascade off Project).
+         */
         const projects =
           soleOrgIds.length > 0
             ? await tx.project.deleteMany({ where: { organizationId: { in: soleOrgIds } } })
@@ -673,11 +651,13 @@ export class PrismaApiStore implements ApiStore {
         const newsletter = await tx.newsletterSubscriber.deleteMany({ where: { email: user.email } });
         classes.push({ dataClass: 'marketing', action: 'deleted', models: { NewsletterSubscriber: newsletter.count } });
 
-        // ---- anonymized classes (redacted in place, never deleted) ----
-        // Expert reserve #4: scrub the FREE-FORM metadata blob too, not just the
-        // IP — arbitrary PII (names, emails, prompts) can live in it. Both audit
-        // tables get ipAddress nulled AND metadata replaced with a redaction
-        // marker, so no personal data survives in append-only history.
+        /*
+         * ---- anonymized classes (redacted in place, never deleted) ----
+         * Expert reserve #4: scrub the FREE-FORM metadata blob too, not just the
+         * IP — arbitrary PII (names, emails, prompts) can live in it. Both audit
+         * tables get ipAddress nulled AND metadata replaced with a redaction
+         * marker, so no personal data survives in append-only history.
+         */
         const auditRedacted = await tx.auditLog.updateMany({
           where: { actorUserId: userId },
           data: { ipAddress: null, metadata: { redacted: true, redactedAt: nowIso } as Prisma.InputJsonValue },
@@ -716,19 +696,90 @@ export class PrismaApiStore implements ApiStore {
           models: { EmailDeliveryEvent: emailEventsAnonymized.count },
         });
 
+        /*
+         * FREE-FORM CONTENT SCRUB (expert reserve #3) — a field-by-field PII
+         * matrix, applied BEFORE the user references are detached. Detaching
+         * `userId → null` alone leaves the user's authored TEXT in place, so any
+         * free-form field that can hold personal data (a support subject the
+         * user typed, a ticket message body, a metadata blob, a snapshot label)
+         * is overwritten first. Ordering matters: the ticket-thread bodies are
+         * matched via the `ticket.userId` relation, so they must be scrubbed
+         * while that FK still points at the user.
+         *
+         *   Model          | field       | free-form? | action
+         *   ---------------|-------------|-----------|--------------------------
+         *   SupportTicket   | subject     | yes (PII)  | → '[redacted]'
+         *   SupportTicket   | metadata    | yes (PII)  | → {redacted marker}
+         *   SupportTicket   | userId      | ref        | → null (detach, below)
+         *   TicketMessage   | body        | yes (PII)  | → '[redacted]'
+         *   TicketMessage   | authorUserId| ref        | → null (detach)
+         *   ProjectSnapshot | label       | yes (PII)  | → null
+         *   ProjectSnapshot | createdByUserId | ref    | → null (detach)
+         *
+         * (ProjectSnapshot.manifest is the SHARED project's file structure that
+         * belongs to the remaining members — retained, not the departing user's
+         * to erase; sole-org snapshots are already gone via the Project cascade.)
+         */
+        const redactionMarker = { redacted: true, redactedAt: nowIso } as Prisma.InputJsonValue;
+
+        /*
+         * Scrub the whole support conversation of the user's tickets (subject +
+         * metadata + every message body) BEFORE detaching the ticket's userId.
+         */
+        const ticketThreadBodies = await tx.ticketMessage.updateMany({
+          where: { ticket: { userId } },
+          data: { body: '[redacted]' },
+        });
+        const authoredMessages = await tx.ticketMessage.updateMany({
+          where: { authorUserId: userId },
+          data: { body: '[redacted]', authorUserId: null },
+        });
+        const ticketSubjects = await tx.supportTicket.updateMany({
+          where: { userId },
+          data: { subject: '[redacted]', metadata: redactionMarker },
+        });
+
+        /*
+         * Snapshot labels the user typed (retained shared-org snapshots only —
+         * sole-org projects + their snapshots were deleted above).
+         */
+        const snapshotLabels = await tx.projectSnapshot.updateMany({
+          where: { createdByUserId: userId },
+          data: { label: null, createdByUserId: null },
+        });
+        classes.push({
+          dataClass: 'free_form_pii',
+          action: 'anonymized',
+          reason: 'free_form_content_scrubbed_before_detach',
+          models: {
+            SupportTicketSubject: ticketSubjects.count,
+            TicketMessageBodyInThread: ticketThreadBodies.count,
+            TicketMessageBodyAuthored: authoredMessages.count,
+            ProjectSnapshotLabel: snapshotLabels.count,
+          },
+        });
+
         const usageEventRefs = await tx.usageEvent.updateMany({ where: { userId }, data: { userId: null } });
         const agentCallLogRefs = await tx.agentCallLog.updateMany({ where: { userId }, data: { userId: null } });
         const reservationRefs = await tx.ledgerReservation.updateMany({ where: { userId }, data: { userId: null } });
         const checkpointRefs = await tx.agentCheckpoint.updateMany({ where: { userId }, data: { userId: null } });
+
         const activityRefs = await tx.projectActivity.updateMany({
           where: { actorUserId: userId },
           data: { actorUserId: null },
         });
-        const importRefs = await tx.importJob.updateMany({ where: { actorUserId: userId }, data: { actorUserId: null } });
+
+        const importRefs = await tx.importJob.updateMany({
+          where: { actorUserId: userId },
+          data: { actorUserId: null },
+        });
+
         const galleryRefs = await tx.galleryListing.updateMany({
           where: { authorUserId: userId },
           data: { authorUserId: null, authorName: 'Deleted account' },
         });
+
+        // Subject/metadata already scrubbed above; here we only detach the ref.
         const ticketRefs = await tx.supportTicket.updateMany({ where: { userId }, data: { userId: null } });
         classes.push({
           dataClass: 'user_references',
@@ -746,8 +797,10 @@ export class PrismaApiStore implements ApiStore {
           },
         });
 
-        // Sole-member org shells: anonymize the name/slug (may carry PII), keep
-        // the row as the anchor of the retained financial records.
+        /*
+         * Sole-member org shells: anonymize the name/slug (may carry PII), keep
+         * the row as the anchor of the retained financial records.
+         */
         let orgsAnonymized = 0;
 
         for (const orgId of soleOrgIds) {
@@ -773,8 +826,8 @@ export class PrismaApiStore implements ApiStore {
          * cancelled external ids are consigned so a billing-reconcile job can
          * verify Stripe state. remainingAfterPurge folds into the proof: it MUST
          * be 0 active subscriptions left, or the proof fails verification.
+         * (`activeStates` was resolved above, before the external cessation.)
          */
-        const activeStates = PrismaApiStore.ACTIVE_SUBSCRIPTION_STATES as unknown as SubscriptionStatus[];
         let subscriptionsCancelled = 0;
         let cancelledExternalIds: string[] = [];
 
@@ -783,9 +836,7 @@ export class PrismaApiStore implements ApiStore {
             where: { organizationId: { in: soleOrgIds }, status: { in: activeStates } },
             select: { externalId: true },
           });
-          cancelledExternalIds = toCancel
-            .map((sub) => sub.externalId)
-            .filter((id): id is string => Boolean(id));
+          cancelledExternalIds = toCancel.map((sub) => sub.externalId).filter((id): id is string => Boolean(id));
 
           const cancelled = await tx.subscription.updateMany({
             where: { organizationId: { in: soleOrgIds }, status: { in: activeStates } },
@@ -796,7 +847,9 @@ export class PrismaApiStore implements ApiStore {
 
         const activeSubsRemaining =
           soleOrgIds.length > 0
-            ? await tx.subscription.count({ where: { organizationId: { in: soleOrgIds }, status: { in: activeStates } } })
+            ? await tx.subscription.count({
+                where: { organizationId: { in: soleOrgIds }, status: { in: activeStates } },
+              })
             : 0;
         classes.push({
           dataClass: 'billing_cessation',
@@ -805,11 +858,14 @@ export class PrismaApiStore implements ApiStore {
           remainingAfterPurge: activeSubsRemaining,
         });
 
-        // ---- retained classes (fail-closed retention, consigned) ----
-        // Financial rows past the 7-year window MAY be erased
-        // (canPurgeFinancialRecord); everything inside the window is retained.
+        /*
+         * ---- retained classes (fail-closed retention, consigned) ----
+         * Financial rows past the 7-year window MAY be erased
+         * (canPurgeFinancialRecord); everything inside the window is retained.
+         */
         const financialCutoff = new Date(nowMs - FINANCIAL_RETENTION_DAYS * 24 * 60 * 60 * 1000);
         const soleOrgWhere = { organizationId: { in: soleOrgIds } };
+
         let financialExpiredDeleted = 0;
 
         if (soleOrgIds.length > 0) {
@@ -914,10 +970,13 @@ export class PrismaApiStore implements ApiStore {
           imports: soleOrgIds.length > 0 ? await tx.importJob.count({ where: soleOrgWhere }) : 0,
           memberships: await tx.organizationMember.count({ where: { userId } }),
           marketing: await tx.newsletterSubscriber.count({ where: { email: user.email } }),
+
           // 0 non-terminal subscriptions may remain in a purged owner's sole orgs.
           billing_cessation:
             soleOrgIds.length > 0
-              ? await tx.subscription.count({ where: { organizationId: { in: soleOrgIds }, status: { in: activeStates } } })
+              ? await tx.subscription.count({
+                  where: { organizationId: { in: soleOrgIds }, status: { in: activeStates } },
+                })
               : 0,
         };
 
@@ -930,8 +989,10 @@ export class PrismaApiStore implements ApiStore {
         const leftovers = Object.entries(verify).filter(([, remaining]) => remaining > 0);
 
         if (leftovers.length > 0) {
-          // Roll the whole purge back: a partial erasure must never be
-          // reported (and stamped purgedAt) as complete.
+          /*
+           * Roll the whole purge back: a partial erasure must never be
+           * reported (and stamped purgedAt) as complete.
+           */
           throw new Error(
             `ACCOUNT_PURGE_VERIFICATION_FAILED: rows remaining after purge for ${userId}: ${leftovers
               .map(([k, v]) => `${k}=${v}`)
@@ -978,6 +1039,7 @@ export class PrismaApiStore implements ApiStore {
 
   async touchUserActivity(userId: string, nowMs?: number) {
     const at = new Date(Number.isFinite(nowMs) ? (nowMs as number) : Date.now());
+
     try {
       // updateMany so a deleted user is a no-op (count 0) rather than a P2025 throw.
       const result = await this.prisma.user.updateMany({ where: { id: userId }, data: { lastActiveAt: at } });
@@ -990,8 +1052,11 @@ export class PrismaApiStore implements ApiStore {
   async listInactiveUserCandidates(input: { cutoffMs: number; take?: number }) {
     const cutoff = new Date(input.cutoffMs);
     const take = Math.max(1, Math.min(input.take ?? 500, 5000));
-    // Active reference = lastActiveAt, falling back to createdAt for accounts
-    // never touched. Both branches must be older than the cutoff.
+
+    /*
+     * Active reference = lastActiveAt, falling back to createdAt for accounts
+     * never touched. Both branches must be older than the cutoff.
+     */
     const users = await this.prisma.user.findMany({
       where: {
         OR: [{ lastActiveAt: { lt: cutoff } }, { AND: [{ lastActiveAt: null }, { createdAt: { lt: cutoff } }] }],
@@ -1408,8 +1473,10 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async getProject(id: string) {
-    // Count deployments so callers (e.g. the IDE top bar) can show Publish vs
-    // Republish without a second query; mapProject surfaces it as deploymentCount.
+    /*
+     * Count deployments so callers (e.g. the IDE top bar) can show Publish vs
+     * Republish without a second query; mapProject surfaces it as deploymentCount.
+     */
     const project = await this.prisma.project.findUnique({
       where: { id },
       include: { _count: { select: { deployments: true } } },
@@ -1455,15 +1522,19 @@ export class PrismaApiStore implements ApiStore {
       'PROJECT_NOT_FOUND',
     );
 
-    // No-op rename: don't mint a self-redirect (it would loop the old→new URL
-    // back onto itself) — just hand back the project unchanged.
+    /*
+     * No-op rename: don't mint a self-redirect (it would loop the old→new URL
+     * back onto itself) — just hand back the project unchanged.
+     */
     if (project.slug === input.newSlug) {
       return mapProject(project);
     }
 
-    // slug is only @@unique within an org, so a bare update would 500 on P2002.
-    // Surface the clash as a typed 409 the route can translate into an inline
-    // "slug already taken" message.
+    /*
+     * slug is only @@unique within an org, so a bare update would 500 on P2002.
+     * Surface the clash as a typed 409 the route can translate into an inline
+     * "slug already taken" message.
+     */
     const clash = await this.prisma.project.findFirst({
       where: { organizationId: project.organizationId, slug: input.newSlug, id: { not: project.id } },
       select: { id: true },
@@ -1480,17 +1551,21 @@ export class PrismaApiStore implements ApiStore {
     const expiresAt = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000);
 
     return this.prisma.$transaction(async (tx) => {
-      // Persist old → project redirect (upsert so a re-rename of the same old
-      // slug just refreshes the 30-day window instead of P2002-ing).
+      /*
+       * Persist old → project redirect (upsert so a re-rename of the same old
+       * slug just refreshes the 30-day window instead of P2002-ing).
+       */
       await tx.projectSlugRedirect.upsert({
         where: { projectId_oldSlug: { projectId: project.id, oldSlug: project.slug } },
         create: { projectId: project.id, oldSlug: project.slug, expiresAt },
         update: { expiresAt },
       });
 
-      // Renaming BACK to a slug this project previously redirected FROM would
-      // leave a self-redirect (newSlug → this project) that bounces the fresh
-      // canonical URL. Drop it.
+      /*
+       * Renaming BACK to a slug this project previously redirected FROM would
+       * leave a self-redirect (newSlug → this project) that bounces the fresh
+       * canonical URL. Drop it.
+       */
       await tx.projectSlugRedirect.deleteMany({ where: { projectId: project.id, oldSlug: input.newSlug } });
 
       return mapProject(await tx.project.update({ where: { id: project.id }, data: { slug: input.newSlug } }));
@@ -1579,8 +1654,10 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async hardDeleteProject(projectId: string) {
-    // Every child relation declares onDelete: Cascade (AiConversation: SetNull),
-    // so a plain delete removes the whole project graph atomically.
+    /*
+     * Every child relation declares onDelete: Cascade (AiConversation: SetNull),
+     * so a plain delete removes the whole project graph atomically.
+     */
     return mapProject(await this.prisma.project.delete({ where: { id: projectId } }));
   }
 
@@ -1911,6 +1988,7 @@ export class PrismaApiStore implements ApiStore {
     publishedAt?: string;
   }) {
     const status = input.status ?? 'PUBLISHED';
+
     const row = await this.prisma.galleryListing.create({
       data: {
         slug: input.slug,
@@ -1930,13 +2008,12 @@ export class PrismaApiStore implements ApiStore {
         licenseText: input.licenseText ?? null,
         licenseTextSha256: input.licenseTextSha256 ?? null,
         piiConsentVersion: input.piiConsentVersion ?? null,
-        // A row published at creation records publishedAt so the detail page
-        // can show a real date; a PENDING_REVIEW row leaves it null.
-        publishedAt: input.publishedAt
-          ? new Date(input.publishedAt)
-          : status === 'PUBLISHED'
-            ? new Date()
-            : null,
+
+        /*
+         * A row published at creation records publishedAt so the detail page
+         * can show a real date; a PENDING_REVIEW row leaves it null.
+         */
+        publishedAt: input.publishedAt ? new Date(input.publishedAt) : status === 'PUBLISHED' ? new Date() : null,
       },
     });
 
@@ -1952,6 +2029,7 @@ export class PrismaApiStore implements ApiStore {
   }) {
     const status = opts?.status ?? 'PUBLISHED';
     const query = opts?.query?.trim();
+
     const rows = await this.prisma.galleryListing.findMany({
       where: {
         status,
@@ -1968,8 +2046,11 @@ export class PrismaApiStore implements ApiStore {
             }
           : {}),
       },
-      // Featured first, then most recently published, so the grid leads with
-      // the curated highlights (mirrors the replit.com/gallery ordering).
+
+      /*
+       * Featured first, then most recently published, so the grid leads with
+       * the curated highlights (mirrors the replit.com/gallery ordering).
+       */
       orderBy: [{ featured: 'desc' }, { publishedAt: 'desc' }, { createdAt: 'desc' }],
       ...(opts?.limit ? { take: opts.limit } : {}),
     });
@@ -2071,6 +2152,7 @@ export class PrismaApiStore implements ApiStore {
 
   async reapExpiredImportJobs(nowIso: string): Promise<string[]> {
     const now = new Date(nowIso);
+
     // Non-terminal jobs only: COMMITTED/ROLLING_BACK/EXPIRED/CANCELLED are done.
     const stale = await this.prisma.importJob.findMany({
       where: {
@@ -2085,6 +2167,7 @@ export class PrismaApiStore implements ApiStore {
     }
 
     const ids = stale.map((row) => row.id);
+
     // updateMany never sets targetProjectId — the target stays unmounted.
     await this.prisma.importJob.updateMany({
       where: { id: { in: ids } },
@@ -3289,8 +3372,11 @@ export class PrismaApiStore implements ApiStore {
       await this.prisma.deployment.findMany({
         where: { provider: 'server', status: 'READY' as any },
         orderBy: { createdAt: 'asc' },
-        // Bound one metering sweep; an unswept tail is billed on the next tick
-        // (the watermark is per-row, so nothing is lost — only deferred).
+
+        /*
+         * Bound one metering sweep; an unswept tail is billed on the next tick
+         * (the watermark is per-row, so nothing is lost — only deferred).
+         */
         take: 500,
       })
     ).map(mapDeployment);
@@ -3503,8 +3589,11 @@ export class PrismaApiStore implements ApiStore {
           updatedAt: { lt: new Date(cutoffIso) },
         },
         orderBy: { updatedAt: 'asc' },
-        // Bound the sweep so a large backlog can't exceed a single reaper tick's
-        // budget; the unswept tail is picked up on the next run.
+
+        /*
+         * Bound the sweep so a large backlog can't exceed a single reaper tick's
+         * budget; the unswept tail is picked up on the next run.
+         */
         take: 200,
       })
     ).map(mapDeployment);
@@ -3530,8 +3619,10 @@ export class PrismaApiStore implements ApiStore {
     ).map(mapSupportTicket);
   }
 
-  // I25: fetch a single ticket, scoped to its org so one org can't read another's
-  // ticket by guessing an id. Returns null when the ticket isn't in that org.
+  /*
+   * I25: fetch a single ticket, scoped to its org so one org can't read another's
+   * ticket by guessing an id. Returns null when the ticket isn't in that org.
+   */
   async getSupportTicket(organizationId: string, ticketId: string): Promise<SupportTicketRecord | null> {
     const ticket = await this.prisma.supportTicket.findFirst({ where: { id: ticketId, organizationId } });
     return ticket ? mapSupportTicket(ticket) : null;
@@ -3624,8 +3715,11 @@ export class PrismaApiStore implements ApiStore {
       await this.prisma.featureFlag.findMany({
         where: { organizationId: organizationId ?? null },
         orderBy: { key: 'asc' },
-        // Bound the payload — an unbounded findMany on a misconfigured tenant could
-        // return an enormous list. 1000 flags is far beyond any real registry.
+
+        /*
+         * Bound the payload — an unbounded findMany on a misconfigured tenant could
+         * return an enormous list. 1000 flags is far beyond any real registry.
+         */
         take: 1000,
       })
     ).map(mapFeatureFlag);
@@ -3741,6 +3835,7 @@ export class PrismaApiStore implements ApiStore {
           vote: input.vote,
           chatId: input.chatId,
         },
+
         // An undefined chatId is skipped by Prisma, keeping the stored one.
         update: { vote: input.vote, chatId: input.chatId },
       }),
@@ -3813,8 +3908,11 @@ export class PrismaApiStore implements ApiStore {
       create: {
         organizationId,
         ipAllowlist: [],
-        // MFA optional everywhere (Avi's decision): default an org to NOT forcing
-        // admin MFA. Note this setting is not itself an enforcement gate — the
+
+        /*
+         * MFA optional everywhere (Avi's decision): default an org to NOT forcing
+         * admin MFA. Note this setting is not itself an enforcement gate — the
+         */
         // global ADMIN_MFA_REQUIRED env (adminMfaRequired()) is the real lever —
         // so this default is for consistency/UI, not behavior.
         requireMfaForAdmins: false,
@@ -3840,6 +3938,7 @@ export class PrismaApiStore implements ApiStore {
           dataRetentionDays: input.dataRetentionDays ?? 365,
           legalHoldEnabled: input.legalHoldEnabled ?? false,
           ssoEnforced: input.ssoEnforced ?? false,
+
           // undefined on the record means "not provided"; null/ISO both map to a concrete value.
           ssoEnforcedAt:
             input.ssoEnforcedAt === undefined ? undefined : input.ssoEnforcedAt ? new Date(input.ssoEnforcedAt) : null,
@@ -3851,6 +3950,7 @@ export class PrismaApiStore implements ApiStore {
           dataRetentionDays: input.dataRetentionDays,
           legalHoldEnabled: input.legalHoldEnabled,
           ssoEnforced: input.ssoEnforced,
+
           // Passing `null` clears the clock (enforcement turned off); `undefined` leaves it untouched.
           ssoEnforcedAt:
             input.ssoEnforcedAt === undefined ? undefined : input.ssoEnforcedAt ? new Date(input.ssoEnforcedAt) : null,
@@ -4037,6 +4137,7 @@ export class PrismaApiStore implements ApiStore {
      * that window the previous hash no longer matches, so an old bearer stops working.
      */
     const rotationWindowStart = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
     const record = await this.prisma.scimToken.findFirst({
       where: {
         OR: [{ tokenHash }, { previousTokenHash: tokenHash, rotatedAt: { gte: rotationWindowStart } }],
@@ -4558,6 +4659,7 @@ export class PrismaApiStore implements ApiStore {
   async listNotificationsByUser(input: { userId: string; limit?: number }) {
     const rows = await this.prisma.notification.findMany({
       where: { userId: input.userId },
+
       // Unread first, then newest — a compact, actionable feed.
       orderBy: [{ readAt: { sort: 'asc', nulls: 'first' } }, { createdAt: 'desc' }],
       take: Math.min(Math.max(input.limit ?? 50, 1), 200),
@@ -4823,15 +4925,19 @@ export class PrismaApiStore implements ApiStore {
     autoTopupCents?: number | null;
   }) {
     const data: Record<string, unknown> = {};
+
     if (input.budgetCapCents !== undefined) {
       data.budgetCapCents = input.budgetCapCents;
     }
+
     if (input.serviceShutdownCents !== undefined) {
       data.serviceShutdownCents = input.serviceShutdownCents;
     }
+
     if (input.autoTopupCents !== undefined) {
       data.autoTopupCents = input.autoTopupCents;
     }
+
     return mapCreditWallet(
       await this.prisma.creditWallet.upsert({
         where: { organizationId: input.organizationId },
@@ -4878,6 +4984,7 @@ export class PrismaApiStore implements ApiStore {
         where: { id: wallet.id },
         data: { balanceCents: { increment: input.deltaCents } },
       });
+
       return { entry: mapCreditLedger(entry), balanceCents: updated.balanceCents };
     });
   }
@@ -5175,6 +5282,7 @@ export class PrismaApiStore implements ApiStore {
       displayName: input.displayName,
       ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
       ...(input.apiKeySecret !== undefined ? { apiKeySecret: input.apiKeySecret } : {}),
+
       // `undefined` = leave unchanged; explicit `null` = clear the encrypted key.
       ...(input.apiKeyEnc !== undefined ? { apiKeyEnc: input.apiKeyEnc } : {}),
       ...(input.baseUrl !== undefined ? { baseUrl: input.baseUrl } : {}),
@@ -5230,6 +5338,7 @@ export class PrismaApiStore implements ApiStore {
       ...(input.clientSecretEnc !== undefined ? { defaultClientSecretEnc: input.clientSecretEnc } : {}),
       ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
     };
+
     const row = await this.prisma.connectorCatalog.update({ where: { provider: input.provider }, data });
 
     return {
@@ -5395,6 +5504,7 @@ export class PrismaApiStore implements ApiStore {
     }
 
     const result = await this.prisma.agentCheckpoint.deleteMany({ where });
+
     return { count: result.count };
   }
 
@@ -5421,8 +5531,10 @@ export class PrismaApiStore implements ApiStore {
     outputCentsPerM: number;
     contextWindow: number;
   }) {
-    // The parent provider must exist; create a disabled shell if the admin is
-    // registering a model before configuring its provider.
+    /*
+     * The parent provider must exist; create a disabled shell if the admin is
+     * registering a model before configuring its provider.
+     */
     const provider = await this.prisma.providerConfig.upsert({
       where: { provider: input.provider },
       update: {},
@@ -5438,6 +5550,7 @@ export class PrismaApiStore implements ApiStore {
       ...(input.isHighPower !== undefined ? { isHighPower: input.isHighPower } : {}),
       ...(input.supportsThinking !== undefined ? { supportsThinking: input.supportsThinking } : {}),
     };
+
     return mapModelConfig(
       await this.prisma.modelConfig.upsert({
         where: { providerConfigId_modelId: { providerConfigId: provider.id, modelId: input.modelId } },
@@ -5940,6 +6053,7 @@ export class PrismaApiStore implements ApiStore {
       this.prisma.user.findMany({ orderBy: { createdAt: 'desc' }, take: 500 }),
       this.prisma.user.findMany({ where: { platformAdmin: true } }),
     ]);
+
     const byId = new Map<string, (typeof recent)[number]>();
 
     for (const user of recent) {
@@ -6187,8 +6301,10 @@ export class PrismaApiStore implements ApiStore {
       }
     }
 
-    // Guard against an unscoped wipe: a selector is mandatory at the route layer,
-    // but defend here too so a future caller can never null the whole trail.
+    /*
+     * Guard against an unscoped wipe: a selector is mandatory at the route layer,
+     * but defend here too so a future caller can never null the whole trail.
+     */
     if (!input.organizationId && !input.actorUserId) {
       return { redacted: 0 };
     }
@@ -6384,6 +6500,7 @@ function mapEnvVar(envVar: any): ProjectEnvironmentRecord {
     projectId: envVar.projectId,
     key: envVar.key,
     value: envVar.value,
+
     // Back-compat: rows read before the column was populated fall back to production.
     scope: normalizeEnvVarScope(envVar.scope),
     createdAt: toIso(envVar.createdAt)!,

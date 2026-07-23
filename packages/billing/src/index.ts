@@ -15,11 +15,13 @@ export * from './agent-routing.js';
  */
 const STRIPE_API_VERSION = '2024-06-20';
 
-// Legacy keys (free/pro/team) drive the CURRENT live flat-rate billing and must
-// keep working. The Replit-parity keys (starter/core) are added to the union so
-// the new catalog + migration can reference them; the two catalogs are kept
-// separate (see `creditPlanCatalog`) because the `pro` key is reused with a new
-// price/meaning (legacy team → new pro). See docs/REPLIT_PARITY_SPEC.md §2.A/§4.
+/*
+ * Legacy keys (free/pro/team) drive the CURRENT live flat-rate billing and must
+ * keep working. The Replit-parity keys (starter/core) are added to the union so
+ * the new catalog + migration can reference them; the two catalogs are kept
+ * separate (see `creditPlanCatalog`) because the `pro` key is reused with a new
+ * price/meaning (legacy team → new pro). See docs/REPLIT_PARITY_SPEC.md §2.A/§4.
+ */
 export type PlanKey = 'free' | 'starter' | 'pro' | 'core' | 'team' | 'enterprise';
 
 export type QuotaKey =
@@ -64,6 +66,7 @@ export const billingPlans: BillingPlan[] = [
       'projects.count': 3,
       'workspaces.active': 1,
       'workspaces.runtimeMinutes': 300,
+
       /*
        * 500m throttled vite's startup (esbuild dep optimization is a multi-second
        * CPU burst): the workspace-agent on the same container got starved, missed
@@ -180,8 +183,10 @@ export const billingPlans: BillingPlan[] = [
   },
 ];
 
-/** Strict lookup: returns undefined on an unknown key so callers can detect a
- * miss instead of silently downgrading a paying customer to the Free plan. */
+/**
+ * Strict lookup: returns undefined on an unknown key so callers can detect a
+ * miss instead of silently downgrading a paying customer to the Free plan.
+ */
 export function findPlanByKey(key: string | undefined): BillingPlan | undefined {
   return billingPlans.find((plan) => plan.key === key);
 }
@@ -190,41 +195,54 @@ export function planByKey(key: string | undefined): BillingPlan {
   return findPlanByKey(key) ?? billingPlans[0];
 }
 
-// ===========================================================================
-// Replit-parity plan catalog (starter/core/pro/enterprise, monthly + annual,
-// included credits). Separate from `billingPlans` (legacy) during migration —
-// not seeded into the Plan table until the P7 cutover. Drives the new pricing
-// page and credit grants. See docs/REPLIT_PARITY_SPEC.md.
-// ===========================================================================
+/*
+ * ===========================================================================
+ * Replit-parity plan catalog (starter/core/pro/enterprise, monthly + annual,
+ * included credits). Separate from `billingPlans` (legacy) during migration —
+ * not seeded into the Plan table until the P7 cutover. Drives the new pricing
+ * page and credit grants. See docs/REPLIT_PARITY_SPEC.md.
+ * ===========================================================================
+ */
 
 export type PublishRegions = 'single' | 'all' | 'custom';
 
 export interface CreditBillingPlan {
   key: CreditPlanKey; // 'starter' | 'core' | 'pro' | 'enterprise'
   name: string;
+
   /** Monthly price in cents (0 = free / custom). */
   monthlyCents: number;
+
   /** Total annual price in cents billed once (0 = free / custom). */
   annualCents: number;
+
   /** Effective monthly price when paying annually, in cents (display helper). */
   annualMonthlyCents: number;
+
   /** Monthly credit grant in cents (0 for Starter, which grants daily). */
   includedCreditCents: number;
+
   /** Daily credit grant in cents (Starter only). */
   dailyCreditCents: number;
   collaborators: number;
+
   /** Read-only viewers (Pro+). 0 = none. */
   viewers: number;
+
   /** Concurrent agents allowed per request fan-out. */
   parallelAgents: number;
+
   /** Database point-in-time rollback window in days (0 = none). */
   dbRollbackDays: number;
+
   /** Can remove the "Made with VibeCore" badge. */
   badgeRemovable: boolean;
   publishRegions: PublishRegions;
+
   /** Access to the most powerful models (Pro/Enterprise). */
   topModels: boolean;
   features: string[];
+
   /** Compute/storage guard-rails (reused quota dimensions). */
   limits: PlanLimits;
   stripeProductEnv: string;
@@ -359,25 +377,32 @@ export function creditPlanByKey(key: string | undefined): CreditBillingPlan {
   return findCreditPlan(toCreditPlanKey(key)) ?? creditPlanCatalog[0];
 }
 
-// --- Credit packs (one-time purchases, Replit parity) ----------------------
-//
-// Replit sells four pre-paid credit packs at a volume discount; the credits
-// expire 6 months after purchase and never roll over past expiry
-// (consumed earliest-expiry-first — see planPackConsumption in credits.ts).
-// Prices/values transcribed from replit.com/pricing (verified 2026-06-29):
-//   $100 → $100   ·   $300 → $290   ·   $500 → $480   ·   $1000 → $950
+/*
+ * --- Credit packs (one-time purchases, Replit parity) ----------------------
+ *
+ * Replit sells four pre-paid credit packs at a volume discount; the credits
+ * expire 6 months after purchase and never roll over past expiry
+ * (consumed earliest-expiry-first — see planPackConsumption in credits.ts).
+ * Prices/values transcribed from replit.com/pricing (verified 2026-06-29):
+ *   $100 → $100   ·   $300 → $290   ·   $500 → $480   ·   $1000 → $950
+ */
 
 export interface CreditPackSku {
   /** Stable SKU id used by checkout and Stripe price-env resolution. */
   id: string;
+
   /** Display label (the credit value as a dollar string). */
   label: string;
+
   /** Credit value granted to the wallet, in cents. */
   creditCents: number;
+
   /** Amount charged at purchase, in cents (≤ creditCents; the gap is the discount). */
   priceCents: number;
+
   /** Validity window from purchase, in days (Replit: 6 months). */
   validityDays: number;
+
   /** Env var holding the Stripe one-time Price id for this pack. */
   stripePriceEnv: string;
 }
@@ -439,6 +464,7 @@ export const MAX_CONCURRENT_PUBLISHED_APPS = 20;
  */
 export function assertConcurrentPublishedApps(input: { active: number; cap?: number }): void {
   const cap = input.cap ?? MAX_CONCURRENT_PUBLISHED_APPS;
+
   if (input.active >= cap) {
     throw Object.assign(new Error(`Concurrent published-app limit reached (${cap}).`), {
       statusCode: 429,
@@ -482,16 +508,23 @@ export function verifyStripeSignature(input: {
     throw Object.assign(new Error('Missing Stripe signature'), { statusCode: 400, code: 'STRIPE_SIGNATURE_MISSING' });
   }
 
-  // A Stripe-Signature header can carry MULTIPLE `v1=` signatures (one per active signing
-  // secret during a secret rotation). Collapsing them with Object.fromEntries kept only
-  // the last, so a legitimate event signed by our secret was rejected if it wasn't the
-  // final v1. Collect every v1 and accept if any matches.
+  /*
+   * A Stripe-Signature header can carry MULTIPLE `v1=` signatures (one per active signing
+   * secret during a secret rotation). Collapsing them with Object.fromEntries kept only
+   * the last, so a legitimate event signed by our secret was rejected if it wasn't the
+   * final v1. Collect every v1 and accept if any matches.
+   */
   const parts = input.signatureHeader.split(',').map((part) => {
     const index = part.indexOf('=');
     return index === -1 ? [part, ''] : [part.slice(0, index), part.slice(index + 1)];
   });
+
   const timestamp = Number(parts.find(([key]) => key === 't')?.[1]);
-  const signatures = parts.filter(([key]) => key === 'v1').map(([, value]) => value).filter(Boolean);
+
+  const signatures = parts
+    .filter(([key]) => key === 'v1')
+    .map(([, value]) => value)
+    .filter(Boolean);
 
   if (!timestamp || signatures.length === 0) {
     throw Object.assign(new Error('Invalid Stripe signature header'), {
@@ -509,6 +542,7 @@ export function verifyStripeSignature(input: {
 
   const expected = createHmac('sha256', input.secret).update(`${timestamp}.${input.payload}`).digest('hex');
   const expectedBuffer = Buffer.from(expected);
+
   const matched = signatures.some((signature) => {
     const actualBuffer = Buffer.from(signature);
     return expectedBuffer.length === actualBuffer.length && timingSafeEqual(expectedBuffer, actualBuffer);
@@ -590,8 +624,11 @@ export class StripeBillingClient {
       'metadata[organizationId]': input.organizationId,
       'metadata[creditPackSku]': input.creditPackSku,
       'metadata[priceId]': input.priceId,
-      // Mirror metadata onto the resulting PaymentIntent so a refund/dispute
-      // webhook can also resolve back to the org + pack without a session lookup.
+
+      /*
+       * Mirror metadata onto the resulting PaymentIntent so a refund/dispute
+       * webhook can also resolve back to the org + pack without a session lookup.
+       */
       'payment_intent_data[metadata][organizationId]': input.organizationId,
       'payment_intent_data[metadata][creditPackSku]': input.creditPackSku,
     });
@@ -605,12 +642,18 @@ export class StripeBillingClient {
   }
 
   /**
-   * Immediately cancel a subscription so no further invoice is raised — used by
-   * account deletion (§16.12) to stop billing a purged sole-owner org. Idempotent
-   * on Stripe's side; an already-cancelled subscription returns 200.
+   * IMMEDIATELY cancel (delete) a subscription so no further invoice is raised —
+   * used by account deletion (§16.12) to stop billing a purged sole-owner org.
+   *
+   * Stripe's immediate cancellation of an ACTIVE subscription is a DELETE on the
+   * subscription resource: `DELETE /v1/subscriptions/{id}` (RR-20260723-CODEX-07).
+   * The former `POST /v1/subscriptions/{id}/cancel` is NOT the immediate-cancel
+   * endpoint — it would either 404 or schedule at period end, leaving the org
+   * billable. DELETE returns the canceled subscription (status=canceled) and is
+   * idempotent: deleting an already-canceled subscription returns it unchanged.
    */
   async cancelSubscription(subscriptionId: string): Promise<void> {
-    await this.postForm(`/v1/subscriptions/${encodeURIComponent(subscriptionId)}/cancel`, {}, `purge-cancel-${subscriptionId}`);
+    await this.deleteRequest(`/v1/subscriptions/${encodeURIComponent(subscriptionId)}`);
   }
 
   async listInvoices(input: { customerId: string; limit?: number }) {
@@ -618,6 +661,7 @@ export class StripeBillingClient {
       customer: input.customerId,
       limit: String(Math.min(Math.max(input.limit ?? 20, 1), 100)),
     });
+
     const response = await this.getJson(`/v1/invoices?${params.toString()}`);
 
     return (response as { data?: StripeInvoice[] }).data ?? [];
@@ -639,7 +683,13 @@ export class StripeBillingClient {
     });
   }
 
-  async createRecurringPrice(input: { productId: string; planKey: PlanKey; unitAmountCents: number; currency?: string; interval?: 'month' | 'year' }) {
+  async createRecurringPrice(input: {
+    productId: string;
+    planKey: PlanKey;
+    unitAmountCents: number;
+    currency?: string;
+    interval?: 'month' | 'year';
+  }) {
     return this.postForm('/v1/prices', {
       product: input.productId,
       currency: input.currency ?? 'eur',
@@ -715,9 +765,11 @@ export class StripeBillingClient {
       quantity: String(Math.max(0, Math.ceil(input.quantity))),
       action: input.action ?? 'increment',
     };
+
     if (input.timestampSeconds) {
       fields.timestamp = String(input.timestampSeconds);
     }
+
     return this.postForm(
       `/v1/subscription_items/${encodeURIComponent(input.subscriptionItemId)}/usage_records`,
       fields,
@@ -736,12 +788,16 @@ export class StripeBillingClient {
   }
 
   async findProductByPlanKey(planKey: PlanKey) {
-    const response = await this.getJson(`/v1/products/search?query=${encodeURIComponent(`metadata['planKey']:'${planKey}' AND active:'true'`)}`);
+    const response = await this.getJson(
+      `/v1/products/search?query=${encodeURIComponent(`metadata['planKey']:'${planKey}' AND active:'true'`)}`,
+    );
     return (response as { data?: Array<{ id: string; name: string }> }).data?.[0];
   }
 
   async findActivePriceForProduct(productId: string, planKey: PlanKey) {
-    const response = await this.getJson(`/v1/prices/search?query=${encodeURIComponent(`product:'${productId}' AND metadata['planKey']:'${planKey}' AND active:'true'`)}`);
+    const response = await this.getJson(
+      `/v1/prices/search?query=${encodeURIComponent(`product:'${productId}' AND metadata['planKey']:'${planKey}' AND active:'true'`)}`,
+    );
     return (response as { data?: Array<{ id: string; unit_amount: number; currency: string }> }).data?.[0];
   }
 
@@ -769,16 +825,21 @@ export class StripeBillingClient {
       headers: {
         authorization: `Bearer ${this.input.apiKey}`,
         'content-type': 'application/x-www-form-urlencoded',
-        // Pin the API version so payload/webhook shape doesn't drift with the
-        // account's dashboard default (the webhook reads top-level
-        // current_period_* / subscription fields that newer versions relocate).
+
+        /*
+         * Pin the API version so payload/webhook shape doesn't drift with the
+         * account's dashboard default (the webhook reads top-level
+         * current_period_* / subscription fields that newer versions relocate).
+         */
         'stripe-version': STRIPE_API_VERSION,
+
         // Safe retries for metered usage reporting (avoid double-charging on retry).
         ...(idempotencyKey ? { 'idempotency-key': idempotencyKey } : {}),
       },
       body: new URLSearchParams(fields),
       signal: AbortSignal.timeout(20_000),
     });
+
     const body = await response.json().catch(() => ({}));
 
     if (!response.ok) {
@@ -792,6 +853,33 @@ export class StripeBillingClient {
     return body as { id: string; url?: string };
   }
 
+  /**
+   * DELETE against the Stripe REST API — the verb for immediate resource
+   * cancellation (subscriptions). Same auth/version/error contract as postForm.
+   */
+  private async deleteRequest(path: string) {
+    const response = await fetch(`${this.input.baseUrl ?? 'https://api.stripe.com'}${path}`, {
+      method: 'DELETE',
+      headers: {
+        authorization: `Bearer ${this.input.apiKey}`,
+        'stripe-version': STRIPE_API_VERSION,
+      },
+      signal: AbortSignal.timeout(20_000),
+    });
+
+    const body = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw Object.assign(new Error(`Stripe request failed: ${response.status}`), {
+        statusCode: 502,
+        code: 'STRIPE_REQUEST_FAILED',
+        stripeError: body,
+      });
+    }
+
+    return body as { id: string; status?: string };
+  }
+
   private async getJson(path: string) {
     const response = await fetch(`${this.input.baseUrl ?? 'https://api.stripe.com'}${path}`, {
       headers: {
@@ -800,6 +888,7 @@ export class StripeBillingClient {
       },
       signal: AbortSignal.timeout(20_000),
     });
+
     const body = await response.json().catch(() => ({}));
 
     if (!response.ok) {

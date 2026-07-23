@@ -57,6 +57,7 @@ const suffix = () => `${Date.now().toString(36)}-${Math.random().toString(36).sl
 /** Seed a user with rows in every purgeable class. Returns ids for later SQL checks. */
 async function seedAccount(store: PrismaApiStore) {
   const tag = suffix();
+
   const user = await store.createUser({
     email: `purge-${tag}@example.com`,
     name: 'Purge Db',
@@ -64,7 +65,12 @@ async function seedAccount(store: PrismaApiStore) {
   });
   await store.createSession({ userId: user.id, token: `tok-${tag}`, expiresAt: new Date(Date.now() + 3600_000) });
 
-  const org = await store.createOrganization({ name: `Purge Org ${tag}`, slug: `purge-org-${tag}`, ownerUserId: user.id });
+  const org = await store.createOrganization({
+    name: `Purge Org ${tag}`,
+    slug: `purge-org-${tag}`,
+    ownerUserId: user.id,
+  });
+
   const project = await store.createProject({ organizationId: org.id, name: `Secret ${tag}`, slug: `secret-${tag}` });
   const importJob = await store.createImportJob({ organizationId: org.id, actorUserId: user.id, provider: 'zip' });
   const conversation = await store.createAiConversation({ projectId: project.id, userId: user.id, title: 'chat' });
@@ -116,6 +122,7 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
   it('(1+3) purges for real, verifies 0 rows per class in SQL, persists a re-readable proof, then no-ops', async () => {
     const previousSecret = process.env.INTERNAL_API_SHARED_SECRET;
     process.env.INTERNAL_API_SHARED_SECRET = SECRET;
+
     const prisma = createDatabaseClient();
 
     try {
@@ -246,6 +253,7 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
       });
 
       await requestElapsedDeletion(store, user.id);
+
       const result = await store.purgeUserAccount({ userId: user.id });
       expect(result.outcome).toBe('purged');
 
@@ -269,11 +277,13 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
 
   it('(reserve #1,#2,#4) cancels billing, atomically persists the proof, and scrubs PII', async () => {
     process.env.INTERNAL_API_SHARED_SECRET = SECRET;
+
     const prisma = createDatabaseClient();
 
     try {
       const store = new PrismaApiStore(prisma);
       const cancelCalls: string[][] = [];
+
       const app = await buildApiApp({
         store,
         emailProvider: new QuietEmailProvider(),
@@ -283,13 +293,16 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
           return { cancelled: ids, failed: [] };
         },
       });
+
       const { user, org } = await seedAccount(store);
 
       // An ACTIVE subscription with an external (Stripe) id in the sole org.
       const plan = await prisma.plan.create({
         data: { key: `plan-${suffix()}`, name: 'Test', monthlyCents: 1000, limits: {} },
       });
+
       const externalId = `sub_${suffix()}`;
+
       const sub = await prisma.subscription.create({
         data: { organizationId: org.id, planId: plan.id, status: 'ACTIVE', externalId },
       });
@@ -307,10 +320,16 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
         },
       });
       await prisma.adminAuditLog.create({
-        data: { actorUserId: user.id, action: 'admin.viewed', ipAddress: '203.0.113.9', metadata: { note: user.email } },
+        data: {
+          actorUserId: user.id,
+          action: 'admin.viewed',
+          ipAddress: '203.0.113.9',
+          metadata: { note: user.email },
+        },
       });
 
       await requestElapsedDeletion(store, user.id);
+
       const res = await app.inject({
         method: 'POST',
         url: '/internal/account-purge',
@@ -335,6 +354,7 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
       // #4 admin-audit free-form metadata redacted (not just the IP).
       const admins = await prisma.adminAuditLog.findMany({ where: { actorUserId: user.id } });
       expect(admins.length).toBeGreaterThanOrEqual(1);
+
       for (const row of admins) {
         expect((row.metadata as { redacted?: boolean } | null)?.redacted).toBe(true);
         expect(row.ipAddress).toBeNull();
@@ -345,10 +365,238 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
         where: { action: 'account.purge_completed', metadata: { path: ['userId'], equals: user.id } },
       });
       expect(proofs.length).toBe(1);
+
       const proof = (proofs[0]!.metadata as unknown as { proof: ErasureProof }).proof;
       expect(proof.verifiedZeroRemaining).toBe(true);
       expect(proof.classes.find((c) => c.dataClass === 'billing_cessation')!.models.SubscriptionsCancelled).toBe(1);
       expect(proof.classes.find((c) => c.dataClass === 'communications')!.models.EmailDeliveryEvent).toBe(1);
+    } finally {
+      await prisma.$disconnect();
+    }
+  });
+
+  it('(reserve #2 NEGATIVE) external billing cancellation runs INSIDE the locked tx: its failure ROLLS BACK the whole purge (fail-closed)', async () => {
+    process.env.INTERNAL_API_SHARED_SECRET = SECRET;
+
+    const prisma = createDatabaseClient();
+
+    try {
+      const store = new PrismaApiStore(prisma);
+
+      // The cancel callback observes topology at call time, then FAILS.
+      let memberCountSeenAtCancel = -1;
+
+      const app = await buildApiApp({
+        store,
+        emailProvider: new QuietEmailProvider(),
+        cancelExternalBilling: async (ids) => {
+          /*
+           * The selection is under the FOR UPDATE topology lock; at cancel time
+           * the sole-org classification (1 member) is the one being cancelled.
+           */
+          const found = await prisma.subscription.findFirst({ where: { externalId: ids[0] } });
+          memberCountSeenAtCancel = await prisma.organizationMember.count({
+            where: { organizationId: found!.organizationId },
+          });
+
+          return { cancelled: [], failed: ids }; // provider failure → fail-closed
+        },
+      });
+
+      const { user, org } = await seedAccount(store);
+
+      const plan = await prisma.plan.create({
+        data: { key: `plan-${suffix()}`, name: 'Test', monthlyCents: 1000, limits: {} },
+      });
+
+      const externalId = `sub_${suffix()}`;
+
+      const sub = await prisma.subscription.create({
+        data: { organizationId: org.id, planId: plan.id, status: 'ACTIVE', externalId },
+      });
+
+      await requestElapsedDeletion(store, user.id);
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/internal/account-purge',
+        headers: { authorization: `Bearer ${SECRET}` },
+        payload: { enabled: true, userId: user.id },
+      });
+
+      // The run reports NOT purged (the billing cessation failed).
+      expect(res.json()).toMatchObject({ purged: 0 });
+      expect(memberCountSeenAtCancel).toBe(1); // selected under the sole-org topology
+
+      /*
+       * ROLLBACK proof — nothing the tx did survives: subscription still ACTIVE
+       * (not flipped to CANCELED), the account is NOT tombstoned, and NO proof
+       * row was written. A PRE-tx cancel could not have rolled the DB back.
+       */
+      expect((await prisma.subscription.findUnique({ where: { id: sub.id } }))!.status).toBe('ACTIVE');
+
+      const stillThere = await store.findUserById(user.id);
+      expect(stillThere!.email).toBe(user.email); // no tombstone
+
+      const proofs = await prisma.adminAuditLog.findMany({
+        where: { action: 'account.purge_completed', metadata: { path: ['userId'], equals: user.id } },
+      });
+      expect(proofs.length).toBe(0);
+    } finally {
+      await prisma.$disconnect();
+    }
+  });
+
+  it('(reserve #2 NEGATIVE) a SHARED org active subscription is NEVER selected for external cancellation', async () => {
+    process.env.INTERNAL_API_SHARED_SECRET = SECRET;
+
+    const prisma = createDatabaseClient();
+
+    try {
+      const store = new PrismaApiStore(prisma);
+      const cancelCalls: string[][] = [];
+
+      const app = await buildApiApp({
+        store,
+        emailProvider: new QuietEmailProvider(),
+        cancelExternalBilling: async (ids) => {
+          cancelCalls.push(ids);
+
+          return { cancelled: ids, failed: [] };
+        },
+      });
+
+      const { user, org } = await seedAccount(store);
+
+      /*
+       * A SECOND member makes the org SHARED (not sole) — its billing belongs to
+       * the remaining member, so it must not be cancelled by this user's purge.
+       */
+      const other = await store.createUser({
+        email: `keep-${suffix()}@example.com`,
+        name: 'Keep',
+        passwordHash: hashPassword('password123'),
+      });
+      await store.addMember({ organizationId: org.id, userId: other.id, roleKey: 'member' });
+
+      const plan = await prisma.plan.create({
+        data: { key: `plan-${suffix()}`, name: 'Test', monthlyCents: 1000, limits: {} },
+      });
+
+      const externalId = `sub_${suffix()}`;
+
+      const sub = await prisma.subscription.create({
+        data: { organizationId: org.id, planId: plan.id, status: 'ACTIVE', externalId },
+      });
+
+      await requestElapsedDeletion(store, user.id);
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/internal/account-purge',
+        headers: { authorization: `Bearer ${SECRET}` },
+        payload: { enabled: true, userId: user.id },
+      });
+      expect(res.json()).toMatchObject({ purged: 1 });
+
+      // The shared org's subscription is NOT externally cancelled and stays ACTIVE.
+      expect(cancelCalls).toEqual([]);
+      expect((await prisma.subscription.findUnique({ where: { id: sub.id } }))!.status).toBe('ACTIVE');
+    } finally {
+      await prisma.$disconnect();
+    }
+  });
+
+  it('(reserve #3) field-by-field PII matrix: free-form content is SCRUBBED (not just detached)', async () => {
+    process.env.INTERNAL_API_SHARED_SECRET = SECRET;
+
+    const prisma = createDatabaseClient();
+
+    try {
+      const store = new PrismaApiStore(prisma);
+      const app = await buildApiApp({ store, emailProvider: new QuietEmailProvider() });
+      const { user, org, project } = await seedAccount(store);
+
+      const SUBJECT_PII = `My card is 4242-4242 ${suffix()}`;
+      const BODY_PII = `Please refund me, my SSN is 123-45 ${suffix()}`;
+      const STAFF_BODY_PII = `Hi ${user.email}, we will refund you`;
+      const LABEL_PII = `before I typed my password ${suffix()}`;
+
+      const ticket = await store.createSupportTicket({ organizationId: org.id, userId: user.id, subject: SUBJECT_PII });
+      await store.addTicketMessage({ ticketId: ticket.id, authorType: 'USER', authorUserId: user.id, body: BODY_PII });
+      await store.addTicketMessage({
+        ticketId: ticket.id,
+        authorType: 'ADMIN',
+        authorUserId: undefined,
+        body: STAFF_BODY_PII,
+      });
+
+      // A snapshot in the (shared) org survives the purge — its label is user PII.
+      const other = await store.createUser({
+        email: `keep-${suffix()}@example.com`,
+        name: 'Keep',
+        passwordHash: hashPassword('password123'),
+      });
+      await store.addMember({ organizationId: org.id, userId: other.id, roleKey: 'member' });
+
+      const snap = await prisma.projectSnapshot.create({
+        data: { projectId: project.id, label: LABEL_PII, manifest: {}, createdByUserId: user.id },
+      });
+
+      await requestElapsedDeletion(store, user.id);
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/internal/account-purge',
+        headers: { authorization: `Bearer ${SECRET}` },
+        payload: { enabled: true, userId: user.id },
+      });
+      expect(res.json()).toMatchObject({ purged: 1 });
+
+      // Ticket: subject SCRUBBED + metadata redacted + userId DETACHED.
+      const t = await prisma.supportTicket.findUnique({ where: { id: ticket.id } });
+      expect(t!.userId).toBeNull();
+      expect(t!.subject).toBe('[redacted]');
+      expect(t!.subject).not.toContain('4242');
+      expect((t!.metadata as { redacted?: boolean } | null)?.redacted).toBe(true);
+
+      /*
+       * TicketMessage: EVERY body in the thread scrubbed (user's AND staff's),
+       * and the user's own message authorUserId detached.
+       */
+      const msgs = await prisma.ticketMessage.findMany({ where: { ticketId: ticket.id } });
+      expect(msgs.length).toBe(2);
+
+      for (const m of msgs) {
+        expect(m.body).toBe('[redacted]');
+      }
+      expect(msgs.filter((m) => m.authorUserId === user.id)).toHaveLength(0);
+
+      // Snapshot: label SCRUBBED + createdByUserId DETACHED (row retained).
+      const s = await prisma.projectSnapshot.findUnique({ where: { id: snap.id } });
+      expect(s).toBeTruthy();
+      expect(s!.label).toBeNull();
+      expect(s!.createdByUserId).toBeNull();
+
+      // NEGATIVE sweep: no original PII string survives in any of these fields.
+      const surviving = [t!.subject, JSON.stringify(t!.metadata), ...msgs.map((m) => m.body), s!.label ?? ''].join(
+        '\n',
+      );
+
+      for (const needle of [SUBJECT_PII, BODY_PII, STAFF_BODY_PII, LABEL_PII, user.email]) {
+        expect(surviving).not.toContain(needle);
+      }
+
+      // The scrub is consigned in the proof, field-by-field.
+      const proofs = await prisma.adminAuditLog.findMany({
+        where: { action: 'account.purge_completed', metadata: { path: ['userId'], equals: user.id } },
+      });
+
+      const proof = (proofs[0]!.metadata as unknown as { proof: ErasureProof }).proof;
+      const pii = proof.classes.find((c) => c.dataClass === 'free_form_pii')!;
+      expect(pii.models.SupportTicketSubject).toBe(1);
+      expect(pii.models.TicketMessageBodyInThread).toBe(2);
+      expect(pii.models.ProjectSnapshotLabel).toBe(1);
     } finally {
       await prisma.$disconnect();
     }
