@@ -224,7 +224,7 @@ documents:
     repoCommit: d1063912
     reviewer: UNKNOWN
   - file: P0_REGISTRY.yaml
-    sha256: "e720bd0ac0b90876189fcf578f0e85018ee61bc1bc1fc73d8220d880bf215aee"
+    sha256: "7851288bbeaf598580b624504617143648cf1913f028d4974543f4ebe5f4e16f"
     schemaVersion: 1
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN
@@ -324,7 +324,7 @@ documents:
     repoCommit: null
     reviewer: UNKNOWN
   - file: REVIEW_RECEIPT_REGISTRY.yaml
-    sha256: "b3483101a8d4ab787002d45e8776196a4b887ca2decfc6346b2dfb6f05dc84da"
+    sha256: "b7be601f432084c03a14e2bc84274333b792889cf35c4d95420c5ea3661ffe2e"
     schemaVersion: 1
     repoCommit: a4a9f71c
     reviewer: UNKNOWN

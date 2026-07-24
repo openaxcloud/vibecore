@@ -745,8 +745,8 @@ p0s:
     reviewCommit: "bc629fe1"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
-    evidenceId: docs/parity/livescan-2026-07-20/
-    proof: "CORRIGÉ v6 (23/07) : étape CI OFFICIELLE « Verify livescan hash coverage (P0-LS-03) » câblée dans le job validate de parity-registries.yml (branche #48) — run officiel VERT au commit soumis (run 30003958808, filesVerified=71, linksHashed=21 : les 21 *.links.txt couverts) ; test négatif rejouable prove-livescan-hash-guard.sh REJOUÉ : ROUGE sur modif d'1 octet / VERT sur restauration (log neg-proof.txt)."
+    evidenceId: docs/deploy-evidence/2026-07-22-livescan-hashes/
+    proof: "SIGNÉ au reçu RR-20260723-CODEX-07 : garde auditée RÉELLEMENT INCORPORÉE (commit bc629fe1, PR #48) — étape CI officielle « Verify livescan hash coverage (P0-LS-03 — fails on hash drift) » dans le job validate de parity-registries.yml qui rejoue verify-livescan-hashes.mjs --check (recalcule le sha256 des 71 fichiers du paquet livescan-2026-07-20 dont les 21 *.links.txt, échoue exit 1 sur dérive/couverture incomplète ; run officiel 30003958808 vert) ; test négatif rejouable prove-livescan-hash-guard.sh (ROUGE sur modif d'1 octet / VERT sur restauration, log neg-proof.txt) ; hash-index.json couvre 71 fichiers (21 links / 21 screenshots / 24 text / 4 doc / 1 manifest). Rejoué local : --check exit 0."
     dependances: []
     conditionDeCloture: "Commande --check câblée en job CI officiel vert au commit soumis + test négatif (modif → rouge) ; puis re-soumission"
     nextAction: "Re-soumission au relecteur : étape CI officielle verte (run 30003958808) + test négatif rejoué"
@@ -944,10 +944,10 @@ p0s:
     reviewCommit: "bc629fe1"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
-    evidenceId: docs/deploy-evidence/2026-07-21-gallery-pricing-v4/
-    proof: "EN COURS v5 (22/07) : exigence actée — il faut UNE trace HAR ou Playwright/DevTools exportée contenant les 2 navigations dans le même contexte, l'identifiant de contexte, les cookies au moment de chaque capture, et les hashes des 2 DOM produits par CE run. La re-capture est PILOTÉE PAR LA SESSION CAPTURE dédiée (coordination consignée ici) ; les acquis primaires v4 (DOM pricing complet f69b35f6…, prix dans le markup, géo non revendiquée) restent valides."
+    evidenceId: docs/deploy-evidence/2026-07-22-gallery-pricing-har/
+    proof: "SIGNÉ au reçu RR-20260723-CODEX-07 : preuve HAR fail-closed RÉELLEMENT INCORPORÉE (commit bc629fe1, PR #48) — gallery-pricing.har (HAR UNIQUE des 2 navigations Gallery puis Pricing, un seul contexte), context-manifest.json, les 2 DOM hashés (gallery-dom.html + pricing-dom.html), cookies PORTÉS cf_clearance + _cfuvid (sha256_12 identiques session→pricing, sameValueCarried), 7 observations pricing evidenciées ; rejouable via capture-har.mjs, AUTO-VÉRIFIÉ par verify-har.mjs (harEntryCountMatches, navsAll200, cookiesCarried=2, pricingObsEvidenced=7 — exit 0)."
     dependances: []
-    conditionDeCloture: "Un SEUL run instrumenté (HAR ou trace Playwright) liant mécaniquement les 2 navigations + cookies + hashes des 2 DOM ; puis re-soumission au relecteur"
+    conditionDeCloture: "Un HAR unique liant mécaniquement les 2 navigations + cookies + hashes des 2 DOM du même run — incorporé et auto-vérifié (verify-har.mjs exit 0)."
     nextAction: "Session capture dédiée : produire le HAR/trace Playwright d'un run unique (exigences RR-05 verbatim ci-dessus)"
     targetDate: "2026-07-20"
   - p0Id: P0-LS-14

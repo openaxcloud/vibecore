@@ -1,0 +1,13 @@
+# .gitleaksignore — fingerprints EXACTS (chemin:règle:ligne) des clés PUBLIQUES
+# tierces et hashes non-secrets contenus dans les ARCHIVES DE PREUVE hashées
+# (DOM et HAR capturés verbatim de replit.com pour le relecteur — reçus
+# RR-…-04/-06/-07). Ces valeurs sont déjà servies à tout visiteur anonyme
+# (Datadog browser-intake pub…, IDs/ETags du HAR) ; les rédiger casserait le
+# hash recalculable exigé. Portée VOLONTAIREMENT étroite : un fingerprint =
+# un finding précis (fichier + règle + ligne). Un vrai secret ailleurs, ou à
+# une autre ligne, N'est PAS ignoré. (Verdict RR-20260723-CODEX-07, blocage 4 :
+# remplace la regex globale dd-api-key=pub[0-9a-f]{32}.)
+docs/deploy-evidence/2026-07-21-gallery-pricing-v4/replit-pricing-dom.html:generic-api-key:178
+docs/deploy-evidence/2026-07-22-gallery-pricing-har/pricing-dom.html:generic-api-key:182
+docs/deploy-evidence/2026-07-22-gallery-pricing-har/gallery-pricing.har:generic-api-key:155
+docs/deploy-evidence/2026-07-22-gallery-pricing-har/gallery-pricing.har:generic-api-key:15829

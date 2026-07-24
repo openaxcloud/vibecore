@@ -34,13 +34,6 @@ paths = [
   # Production-config VALIDATOR: builds a mock env of obviously-synthetic values
   # (e.g. "…-prod-123456", "sk_live_prod123456") to exercise the validator itself.
   '''(^|/)scripts/validate-production-enterprise\.mjs$''',
-  # Archives DOM de PREUVE (pages PUBLIQUES tierces capturées verbatim pour le
-  # relecteur — reçu RR-20260721-CODEX-04). Tout ce qu'elles contiennent est par
-  # définition déjà servi à tout visiteur anonyme (clés browser publishables :
-  # Datadog pub…, Segment writeKey, Google Maps AIza…). Les rédiger casserait le
-  # hash recalculable exigé par l'expert. Portée VOLONTAIREMENT étroite : ces
-  # deux fichiers précis, pas tout deploy-evidence.
-  '''(^|/)docs/deploy-evidence/2026-07-21-gallery-pricing-v4/replit-(gallery|pricing)-dom\.html$''',
 ]
 
 # Common non-secret placeholder / synthetic-fixture shapes (templates, docs,
@@ -49,11 +42,6 @@ regexes = [
   '''(?i)your[_-]?[a-z0-9]*[_-]?(api[_-]?key|token|secret|password)[_-]?(here)?''',
   '''(?i)(changeme|placeholder|example|dummy|redacted|xxxxx+)''',
   '''github_pat_your_personal_access_token_here''',
-  # Clé PUBLIQUE Datadog browser-intake (préfixe pub…) embarquée par des sites
-  # TIERS dans leurs pages servies aux navigateurs — présente dans les archives
-  # DOM de preuve (docs/deploy-evidence/…-dom.html). Publishable par
-  # conception, pas un secret ; rédiger casserait le hash de l'archive primaire.
-  '''dd-api-key=pub[0-9a-f]{32}''',
   # Synthetic fixtures in validate-production-enterprise.mjs.
   '''(?i)(prod-?123456|prod123456|-prod-\d{6})''',
   '''sk_live_prod123456''',

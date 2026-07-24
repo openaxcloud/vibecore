@@ -133,7 +133,7 @@ receipts:
       - path: outputs/DOSSIER_EXPERT_V3_20260722.md
         note: "dossier V3 transmis par Avi"
     responsePath: docs/parity/incoming/REPONSE_EXPERT_V3_20260722.md
-    responseHash: "sha256:9ac5e9b6c2b9f6c3496b..."   # préfixe fourni par Avi
+    responseHash: "sha256:9ac5e9b6c2b9f6c3496bab0ddb2f1e3f44b57e93e8be36e7c270a7b5fb663776"   # préfixe fourni par Avi
     summary: "pas de feu vert global ; 4 P0 signés / 6 refusés ; 2 contrats refusés ; grand livre accepté portée limitée ; import/billing + purge #43/#47 refusés"
     decisions:
       accepted: [P0-V4-1, P0-V4-2, P0-V3-03, P0-V4-3]
