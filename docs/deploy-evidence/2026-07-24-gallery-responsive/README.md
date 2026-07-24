@@ -111,3 +111,23 @@ Puis un **balayage de TOUT le store + le magasin de fichiers** : tout emplacemen
 secret DOIT être scoped à la source (là où il vit légitimement) ; nulle part ailleurs. Une
 assertion prouve que la recherche n'est **pas vacante** — elle retrouve bien le secret dans la
 source. Résultat : **20/20 verts** (`vitest`), typecheck api exit 0, lint OK.
+
+---
+
+## 5. Hygiène — scaffolding QA retiré, prod restaurée
+
+Le handoff a nécessité un échafaudage temporaire : un user QA (élevé platform-admin le temps de la
+curation), son org, un **listing remixable temporaire** `realtime-chat-starter-remix` (pinné au
+snapshot réel du 17/07) et le clone produit par le remix. **Tout a été supprimé après la preuve**
+(transaction `pg` : `remixJobs=1, listings=1, orgs=1 (cascade le clone), users=1`) — la prod est
+**restaurée à son état antérieur** : `GalleryListing PUBLISHED = 1` (l'unique carte
+`realtime-chat-starter`), aucun compte platform-admin QA résiduel. Vérifié anonyme : `/gallery`
+rend 1 carte, débordement=0, cibles=44px.
+
+**Conséquence pour les captures** : les captures de **grille** (`grid-*.png`) montrent **2 cartes**
+(la carte originale + le listing remixable QA temporaire alors publié) ; les captures de **détail**
+(`detail-*.png`) portent sur ce listing remixable (pour montrer le rail d'action complet). La
+validation design (débordement=0, adaptation, ≥44px) est indépendante du nombre de cartes et reste
+valable. **Note produit** : la Gallery publique n'a donc, en l'état, aucune app *remixable* — la
+rendre remixable est une simple curation (`POST /admin/gallery-listings` avec licence, ou retrofit
+d'une licence sur la carte existante), à la main d'Avi.
