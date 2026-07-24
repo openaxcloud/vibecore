@@ -70,6 +70,7 @@ import { EmptyState } from '~/components/ui/EmptyState';
 import { InputDialog } from '~/components/ui/InputDialog';
 import { PanelBoundary, PanelErrorBoundary, PanelLoading, ZoneErrorBoundary } from '~/components/ui/PanelBoundary';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
+import { EditorHistoryOverlay } from '~/components/workbench/EditorHistoryOverlay';
 import { FileTree } from '~/components/workbench/FileTree';
 import { Preview } from '~/components/workbench/Preview';
 import { Search } from '~/components/workbench/Search';
@@ -6711,7 +6712,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         if (panel === 'editor') {
           return (
             <div
-              className="bolt-project-editor-tool min-h-0 flex-1 overflow-hidden"
+              className="bolt-project-editor-tool relative min-h-0 flex-1 overflow-hidden"
               data-testid="responsive-code-editor"
             >
               <ProjectEditorToolbar
@@ -6772,6 +6773,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   onOpenTool={openIdeTool}
                   onOpenFile={(filePath) => openProjectFile(filePath, { preview: false })}
                 />
+              )}
+              {/* File History — bottom-right toggle + standalone panel (independent of Git) */}
+              {currentDocument && !currentDocument.isBinary && (
+                <EditorHistoryOverlay filePath={currentDocument.filePath} content={currentDocument.value} />
               )}
             </div>
           );
