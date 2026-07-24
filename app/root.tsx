@@ -424,6 +424,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const matches = useMatches();
   const showIdeBootFallback = /^\/projects\/[^/]+\/ide(?:\/|$)/.test(location.pathname);
+
   const serverRendersRoute = matches.some((match) => {
     const handle = match.handle;
 
@@ -431,6 +432,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
       handle && typeof handle === 'object' && 'serverRenderedMarketing' in handle && handle.serverRenderedMarketing,
     );
   });
+
   const editorServiceWorkerInstalled = useRef(false);
 
   /*
