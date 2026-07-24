@@ -291,6 +291,125 @@ describe('POST /gallery/:slug/remix — pinned, secure fork into the remixer org
     expect(detail.json().listing.uses).toBe(1);
   });
 
+  it('EXHAUSTIVE secret hunt: the value is actively searched across files + DB + env + logs + job and found NOWHERE the remix could leak it — only in the source it came from', async () => {
+    const { app, store, projectStorage, source, remixer, remixerOrg } = await setupRemix();
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/gallery/paid-app/remix',
+      headers: auth('remixer-token'),
+      payload: { organizationId: remixerOrg.id, acceptLicense: true },
+    });
+    expect(res.statusCode).toBe(201);
+    const body = res.json();
+    const cloneId: string = body.project.id;
+    const job = await store.getRemixJob(body.remix.remixJobId);
+
+    /*
+     * The hunt: given any haystack (a string or an object we serialize), return
+     * which of the secrets it contains. A leak-proof surface returns [] for BOTH.
+     * We hunt for the STRIPE key value AND the DATABASE_URL value (a distinct env
+     * secret) so a partial scrub cannot pass.
+     */
+    const SECRETS = [SECRET_VALUE, ENV_VALUE];
+    const hunt = (haystack: unknown): string[] => {
+      const text = typeof haystack === 'string' ? haystack : JSON.stringify(haystack ?? null);
+      return SECRETS.filter((secret) => text.includes(secret));
+    };
+    const asRecord = (v: unknown): Record<string, unknown> => (v && typeof v === 'object' ? (v as Record<string, unknown>) : {});
+
+    // ───────── SURFACE 1 · FILES (the clone's files, every one of them) ─────────
+    const cloneFiles = await projectStorage.listFiles(cloneId);
+    for (const file of cloneFiles) {
+      expect(hunt(file.content), `secret leaked into clone file ${file.path}`).toEqual([]);
+    }
+    // The .env is preserved as a REFERENCE: the keys stay, the values are gone.
+    const cloneEnv = cloneFiles.find((f) => f.path === '.env');
+    expect(cloneEnv?.content).toMatch(/STRIPE_KEY=/);
+    expect(cloneEnv?.content).toMatch(/DATABASE_URL=/);
+    expect(cloneEnv?.content).toContain('# detached on remix');
+    expect(hunt(cloneEnv?.content)).toEqual([]);
+
+    // ───────── SURFACE 2 · DB (the encrypted secret store) ─────────
+    expect(await store.listProjectSecrets(cloneId)).toEqual([]);
+    for (const [, rec] of store.projectSecrets) {
+      if (asRecord(rec).projectId === cloneId) expect(hunt(rec), 'secret leaked into clone projectSecrets').toEqual([]);
+    }
+
+    // ───────── SURFACE 3 · ENV (the plaintext env-var store) ─────────
+    expect(await store.listProjectEnvVars(cloneId)).toEqual([]);
+    for (const [, rec] of store.projectEnvVars) {
+      if (asRecord(rec).projectId === cloneId) expect(hunt(rec), 'secret leaked into clone projectEnvVars').toEqual([]);
+    }
+
+    // ───────── SURFACE 4 · LOGS (audit, admin audit, security, activity, notifications) ─────────
+    const logSurfaces: Array<readonly [string, unknown]> = [
+      ['auditLogs', await store.listAuditLogs()],
+      ['securityAuditEvents', await store.listSecurityAuditEvents()],
+      ['adminAuditLogs', await store.listAdminAuditLogs()],
+      ['cloneProjectActivity', await store.listProjectActivity(cloneId)],
+      ['remixerNotifications', await store.listNotificationsByUser({ userId: remixer.id })],
+    ];
+    for (const [name, rows] of logSurfaces) {
+      expect(hunt(rows), `secret leaked into ${name}`).toEqual([]);
+    }
+    // Non-vacuous: the remix WAS audited, so this surface is genuinely populated (not empty-by-accident).
+    expect((await store.listAuditLogs()).length).toBeGreaterThan(0);
+
+    // ───────── SURFACE 5 · JOB (the remix job record) ─────────
+    expect(hunt(job), 'secret leaked into the remix job').toEqual([]);
+    // The KEYS are kept on the job as a reference ({ secretKeys, envVarKeys }); the VALUES never are.
+    const detached = asRecord(job?.detachedKeys);
+    expect(detached.secretKeys).toEqual(expect.arrayContaining(['STRIPE_KEY']));
+    expect(detached.envVarKeys).toEqual(expect.arrayContaining(['DATABASE_URL']));
+
+    /*
+     * ───────── WHOLE-STORE SWEEP ─────────
+     * Walk EVERY in-memory collection on the store plus the file store, and hunt
+     * for the secret in each entry. The search is only meaningful if it can
+     * actually find the value — so it MUST locate it in the source (where it
+     * legitimately lives) and MUST NOT find it anywhere else (any clone-scoped
+     * row, any log, the job, a notification…). The only sanctioned hiding places
+     * are the source project's own secret/env rows and the source's file bucket +
+     * immutable snapshot the listing was pinned to.
+     */
+    const leaks: string[] = [];
+    let foundInSource = false;
+    const isSourceSecretRow = (field: string, v: unknown) =>
+      (field === 'projectSecrets' || field === 'projectEnvVars') && asRecord(v).projectId === source.id;
+
+    for (const [field, value] of Object.entries(store as unknown as Record<string, unknown>)) {
+      const entries: Array<[unknown, unknown]> | null =
+        value instanceof Map ? [...value.entries()] : Array.isArray(value) ? value.map((v, i) => [i, v]) : null;
+      if (!entries) continue;
+      for (const [key, entry] of entries) {
+        if (hunt(entry).length === 0) continue;
+        if (isSourceSecretRow(field, entry)) {
+          foundInSource = true;
+          continue;
+        }
+        leaks.push(`${field}[${String(key)}]`);
+      }
+    }
+    // The raw file store: the SOURCE bucket + the immutable snapshots may hold the
+    // value; the CLONE bucket (and any other project's bucket) must not.
+    for (const [projectId, bucket] of projectStorage.files) {
+      for (const [path, content] of bucket) {
+        if (hunt(content).length === 0) continue;
+        if (projectId === source.id) foundInSource = true;
+        else leaks.push(`files:${projectId}/${path}`);
+      }
+    }
+    for (const [, files] of projectStorage.snapshots) {
+      // snapshots are the immutable SOURCE archive — a legit hiding place.
+      if (files.some((f) => hunt(f.content).length > 0)) foundInSource = true;
+    }
+
+    expect(leaks, `secret leaked outside the source into: ${leaks.join(', ') || '(none)'}`).toEqual([]);
+    // Proof the hunt is NOT vacuous: it positively located the secret where it belongs.
+    expect(foundInSource, 'the hunt never found the secret even in the source — the search itself is broken').toBe(true);
+  });
+
   it('requires authentication (anonymous remix is rejected)', async () => {
     const { app, remixerOrg } = await setupRemix();
     const res = await app.inject({

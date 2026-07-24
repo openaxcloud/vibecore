@@ -159,7 +159,7 @@ export default function GalleryDetailRoute() {
         <div className="container-responsive py-10 sm:py-14">
           <Link
             to="/gallery"
-            className="inline-flex items-center gap-2 text-[13px] font-semibold text-[var(--ecode-text-secondary)] hover:text-[var(--ecode-accent)]"
+            className="inline-flex min-h-[44px] items-center gap-2 text-[13px] font-semibold text-[var(--ecode-text-secondary)] hover:text-[var(--ecode-accent)]"
           >
             <ArrowLeft className="h-4 w-4" aria-hidden />
             Back to gallery
@@ -254,7 +254,7 @@ export default function GalleryDetailRoute() {
 
               {listing.remixAllowed ? (
                 <Form method="post" className="mt-4">
-                  <label className="flex cursor-pointer items-start gap-2 text-[12px] leading-5 text-[var(--ecode-text-secondary)]">
+                  <label className="flex min-h-[44px] cursor-pointer items-start gap-2 py-1 text-[12px] leading-5 text-[var(--ecode-text-secondary)]">
                     <input
                       type="checkbox"
                       name="acceptLicense"
@@ -272,7 +272,7 @@ export default function GalleryDetailRoute() {
                   <button
                     type="submit"
                     disabled={remixing || !licenseAccepted}
-                    className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--ecode-accent)] px-5 py-3 text-[15px] font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="mt-3 inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg bg-[var(--ecode-accent)] px-5 py-3 text-[15px] font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                     data-testid="gallery-remix"
                   >
                     {remixing ? (
@@ -303,7 +303,7 @@ export default function GalleryDetailRoute() {
                   href={listing.appUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--ecode-border)] px-5 py-3 text-[15px] font-semibold text-[var(--ecode-text)] transition hover:border-[var(--ecode-accent)]"
+                  className="mt-3 inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg border border-[var(--ecode-border)] px-5 py-3 text-[15px] font-semibold text-[var(--ecode-text)] transition hover:border-[var(--ecode-accent)]"
                   data-testid="gallery-view-app"
                 >
                   <ExternalLink className="h-4 w-4" aria-hidden />
@@ -318,7 +318,7 @@ export default function GalleryDetailRoute() {
 
               <a
                 href={`mailto:trust-safety@e-code.ai?subject=${encodeURIComponent(`Report gallery app: ${listing.slug}`)}`}
-                className="mt-4 inline-flex items-center gap-1.5 text-[12px] text-[var(--ecode-text-muted)] hover:text-[var(--ecode-text-secondary)]"
+                className="mt-4 inline-flex min-h-[44px] items-center gap-1.5 text-[12px] text-[var(--ecode-text-muted)] hover:text-[var(--ecode-text-secondary)]"
                 data-testid="gallery-report"
               >
                 <Flag className="h-3.5 w-3.5" aria-hidden />
