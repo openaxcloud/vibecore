@@ -2321,6 +2321,19 @@ model RemixJob {
   scanFindings    Json?
   /// Count of value-lines scrubbed out of the clone during CLONING.
   scrubbedCount   Int      @default(0)
+  /// VERSIONED license captured at remix time from the source listing —
+  /// { licenseId, licenseTextSha256, sourceListingId, capturedAt }. Immutable on
+  /// the job: later edits to the listing's license never rewrite what THIS remix
+  /// was accepted under (I-RMX-3, P0-V3-05). Null for a same-org self-remix.
+  licenseSnapshot Json?
+  /// Version of the remix consent text the REMIXER explicitly accepted before
+  /// the clone ran (REMIX_CONSENT_VERSION at accept time). Null = no consent
+  /// captured (same-org self-remix only — a gallery remix REQUIRES it).
+  consentVersion  String?
+  /// PiiFinding[] { path, kind, line } — kind of PII masked, never the value.
+  piiFindings     Json?
+  /// Count of PII spans masked out of the clone during SOURCE_SANITIZED.
+  piiMaskedCount  Int      @default(0)
   /// Honest marker: was a physical isolated DB provisioned, or deferred?
   dbForked        Boolean  @default(false)
   error           String?
@@ -2402,6 +2415,21 @@ model GalleryListing {
   /// asset (/gallery-apps/<id>/thumbnail.png) or an https URL; null renders
   /// the text-only card.
   thumbnailUrl     String?
+  /// FAIL-CLOSED (directive 20/07) : un projet publié ordinaire est
+  /// ALL_RIGHTS_RESERVED, non-remixable. remixAllowed ne passe true qu'avec
+  /// une licence EXPLICITE + confirmation des droits + politique PII acceptée.
+  remixAllowed     Boolean   @default(false)
+  /// License identifier declared at curation (e.g. an SPDX id like "MIT").
+  /// Null = the author declared no license (surfaced as such — never invented).
+  licenseId        String?
+  /// VERSIONED license text snapshot captured at curation. What a remixer
+  /// accepts is THIS text, pinned by its sha256 onto the RemixJob.
+  licenseText      String?
+  /// sha256 of licenseText — the version pin recorded on every remix.
+  licenseTextSha256 String?
+  /// Version of the PII-sharing consent the AUTHOR explicitly gave at curation
+  /// (data ships unmasked). Null = no consent → PII is masked on every remix.
+  piiConsentVersion String?
   viewCount        Int       @default(0)
   useCount         Int       @default(0)
   createdAt        DateTime  @default(now())
@@ -2413,4 +2441,153 @@ model GalleryListing {
   @@index([status, category])
   @@index([status, featured])
   @@index([status, createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CANONICAL DOUBLE-ENTRY LEDGER (C1 / P0-V3-12)
+// Supersedes the single-entry CreditWallet.balanceCents "porte-monnaie". Every
+// posted transaction balances per currency (Σ debits == Σ credits); posted
+// transactions + entries are IMMUTABLE (DB triggers in migration 0078) — a
+// correction is a NEW reversing transaction, never a mutation. Amounts are exact
+// integer minor units (BigInt); FX is exact rational (num/den). No relation to
+// Organization is declared (plain organizationId, like UsageReservation) to keep
+// the migration self-contained.
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum LedgerAccountType {
+  ASSET
+  LIABILITY
+  REVENUE
+  EXPENSE
+  EQUITY
+}
+
+enum LedgerEntryDirection {
+  DEBIT
+  CREDIT
+}
+
+enum LedgerReservationStatus {
+  ACTIVE
+  COMMITTED
+  COMPENSATED
+  RELEASED
+  EXPIRED
+}
+
+enum LedgerReconciliationStatus {
+  OK
+  DISCREPANCY
+}
+
+model LedgerAccount {
+  id             String            @id @default(cuid())
+  organizationId String
+  /// Stable account key: user_credits | reserved | revenue | provider_cost |
+  /// fx_clearing | fx_rounding | tax_payable | refunds | budget_hold ...
+  key            String
+  type           LedgerAccountType
+  currency       String
+  createdAt      DateTime          @default(now())
+  entries        LedgerEntry[]
+
+  @@unique([organizationId, key, currency])
+  @@index([organizationId])
+}
+
+model LedgerTransaction {
+  id              String              @id @default(cuid())
+  organizationId  String
+  reason          String
+  /// Idempotency key (unique per org when set). NULL rows are not deduped.
+  idempotencyKey  String?
+  /// Compensation: points at the original transaction this one reverses.
+  reversalOfId    String?
+  rateCardVersion Int?
+  postedAt        DateTime            @default(now())
+  metadata        Json?
+  entries         LedgerEntry[]
+  reversalOf      LedgerTransaction?  @relation("LedgerReversal", fields: [reversalOfId], references: [id], onDelete: SetNull)
+  reversals       LedgerTransaction[] @relation("LedgerReversal")
+
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, postedAt])
+  @@index([reversalOfId])
+}
+
+model LedgerEntry {
+  id            String               @id @default(cuid())
+  transactionId String
+  accountId     String
+  direction     LedgerEntryDirection
+  /// Exact positive integer minor units (e.g. USD cents / micro-credits).
+  amountMinor   BigInt
+  currency      String
+  transaction   LedgerTransaction    @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  account       LedgerAccount        @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([transactionId])
+  @@index([accountId, currency])
+}
+
+model LedgerReservation {
+  id              String                  @id @default(cuid())
+  organizationId  String
+  userId          String?
+  /// Idempotency key, unique per org: a replay returns the SAME reservation.
+  idempotencyKey  String
+  operation       String
+  status          LedgerReservationStatus @default(ACTIVE)
+  currency        String                  @default("usd")
+  /// Authorized ceiling (hold, not a debit).
+  maxAmountMinor  BigInt
+  /// Actually settled at COMMIT (≤ maxAmountMinor).
+  committedMinor  BigInt?
+  rateCardVersion Int?
+  importJobId     String?
+  /// Correlated ledger transactions across the lifecycle.
+  reserveTxId     String?
+  settleTxId      String?
+  compensateTxId  String?
+  expiresAt       DateTime
+  committedAt     DateTime?
+  releasedAt      DateTime?
+  releaseReason   String?
+  metadata        Json?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, status])
+  @@index([status, expiresAt])
+  @@index([importJobId])
+}
+
+model LedgerFxRate {
+  id           String    @id @default(cuid())
+  fromCurrency String
+  toCurrency   String
+  /// Exact rational rate = rateNum / rateDen (no float).
+  rateNum      BigInt
+  rateDen      BigInt
+  effectiveAt  DateTime
+  /// Exclusive upper bound this rate is valid for (cutoff).
+  cutoffAt     DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([fromCurrency, toCurrency, effectiveAt])
+}
+
+model LedgerReconciliationRun {
+  id               String                     @id @default(cuid())
+  organizationId   String?
+  /// GCP | STRIPE | LEDGER — the external source compared against the ledger.
+  source           String
+  status           LedgerReconciliationStatus
+  discrepancyCount Int                        @default(0)
+  discrepancies    Json?
+  runAt            DateTime                   @default(now())
+  metadata         Json?
+
+  @@index([source, runAt])
 }

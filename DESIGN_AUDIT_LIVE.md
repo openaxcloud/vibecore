@@ -16,8 +16,8 @@ Un point ne passe dans la colonne « Testé live » qu'après vérification à l
 | SOL-07 | Enterprise | ☐ | ☐ | ☐ | En attente de validation SOL-01 |
 | SOL-08 | Startups | ☐ | ☐ | ☐ | En attente de validation SOL-01 |
 | SOL-09 | Freelancers | ☐ | ☐ | ☐ | En attente de validation SOL-01 |
-| TPL-02.1 | Gallery d'applications publiées/remixables `/dashboard/templates` | ✅ | ☐ | ☐ | À vérifier en clair/sombre, 390/768/1024/1440 px : cartes riches, recherche/filtres/tri, modération/signalement, aperçu fonctionnel et permissions de remix. |
-| TPL-02.2 | Remix/Fork isolé avec provenance | ✅ | ☐ | ☐ | Source publiée → nouveau projectId/propriétaire/repo/workspace/locks ; aucun secret ; données isolées ; IDE/runtime/Preview/publish réels. |
+| TPL-02.1 | Gallery d'applications publiées/remixables `/dashboard/templates` | ✅ | ✅ `d95108ae` | ✅ 24/07 | Matrice clair/sombre 390/768/1024/1440 (grille + détail) capturée LIVE sur prod déployée : **16 captures**, débordement horizontal=0 partout, adaptation auto (grille 1→2→3 col, rail détail empilé↔latéral), **toutes cibles ≥44px** (fix : recherche/chips 39-36→44, CTA/liens détail min-h-44). `docs/deploy-evidence/2026-07-24-gallery-responsive/shots/`. |
+| TPL-02.2 | Remix/Fork isolé avec provenance | ✅ | ✅ `d95108ae` | ✅ 24/07 | Clic-connecté « Remix » → **IDE réel navigateur** (`@qa-handoff-org/…`, IDE propre 7 fichiers), clone dans l'org du remixeur, `RemixJob COMPLETED` épinglé listing+snapshot, `secrets=0`, `useCount=1` ; **test secret-absent EXHAUSTIVE** (fichiers+DB+env+logs+job) 20/20. `docs/deploy-evidence/2026-07-24-gallery-responsive/`. |
 | TPL-02.3 | Hub Import — 12 sources | ✅ | ☐ | ☐ | Chaque connecteur doit exposer validation, progression, récupération d'erreur, détections et aperçu avant création ; screenshot absent. |
 | TPL-02.4 | Projet vide sans Agent/scaffold | ✅ | ☐ | ☐ | Voie power-user à vérifier réellement jusqu'à l'IDE. |
 | TPL-02.5 | 6 starters historiques requalifiés en démos/fixtures | ✅ | ☐ | ☐ | Aucune carte de framework Python/Go/Rust ; scénarios de non-régression à exécuter. |

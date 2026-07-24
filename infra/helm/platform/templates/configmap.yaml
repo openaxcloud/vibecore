@@ -202,6 +202,16 @@ data:
   {{- end }}
   {{- end }}
 
+  # D2 (approved 2026-07-17): server rollback re-deploys the retained image BY
+  # DIGEST (I-REL-1), fail-closed. Anchored HERE — unconditionally, outside any
+  # if-block — so a helm upgrade can never drop it (it used to live only in a
+  # `kubectl set env`, which the next upgrade wipes). `default "1"` keeps the
+  # digest path on even for a release whose stored values pre-date this key
+  # (--reuse-values). '0' is an explicit kill switch: the api then REFUSES
+  # server rollbacks (409 SERVER_ROLLBACK_DIGEST_DISABLED) instead of the
+  # URL-copy row that re-deploys nothing.
+  SERVER_DEPLOY_ROLLBACK_FROM_DIGEST: {{ .Values.platformEnv.runtime.serverDeployRollbackFromDigest | default "1" | quote }}
+
   {{- if .Values.platformEnv.runtime.nixStorePvc }}
   # Shared RO Nix store (candidate E) — per-project rollout gate. The api
   # threads the PVC into workspace pods AND published-app pods for the projects
@@ -210,6 +220,26 @@ data:
   # stays untouched.
   WORKSPACE_NIX_STORE_PVC: {{ .Values.platformEnv.runtime.nixStorePvc | quote }}
   WORKSPACE_NIX_PROJECTS: {{ .Values.platformEnv.runtime.nixProjects | default "" | quote }}
+  {{- end }}
+
+  {{- if .Values.platformEnv.runtime.nixStorePvcZones }}
+  # D3 multi-zone store (approved 2026-07-17): per-zone identical clones
+  # (`zone=pvc,zone=pvc`, order = preference). The workspace-manager picks the
+  # zone with live schedulable sandbox capacity and mounts THAT zone's clone
+  # (zone stockout ⇒ new pods route to the surviving zone). The generation
+  # hash arms the drift guard: a clone whose /nix/ecode/catalog.json does not
+  # hash to it BLOCKS the pod (initContainer nix-store-guard).
+  NIX_STORE_PVC_ZONES: {{ .Values.platformEnv.runtime.nixStorePvcZones | quote }}
+  {{- if .Values.platformEnv.runtime.nixGenerationHash }}
+  NIX_STORE_GENERATION_HASH: {{ .Values.platformEnv.runtime.nixGenerationHash | quote }}
+  {{- end }}
+  {{- end }}
+
+  {{- if .Values.platformEnv.runtime.nixGenerations }}
+  # CTR-RUNTIME-NIX generation registry — when set it supersedes the legacy
+  # PVC/zones/hash trio (rotation = flip the ACTIVE entry, révocation = status
+  # REVOKED refused everywhere with a typed error).
+  NIX_STORE_GENERATIONS: {{ .Values.platformEnv.runtime.nixGenerations | quote }}
   {{- end }}
 
   {{- if .Values.platformEnv.email.httpEndpoint }}

@@ -1,25 +1,53 @@
-# PARITY_STATUS — état de parité, 3 états SÉPARÉS par point
+# PARITY_STATUS — vue GÉNÉRÉE (ne pas éditer : modifier les registres ou PARITY_STATUS_NOTES.md puis régénérer)
+
+schemaVersion: 2
+repoCommit: c1f29fd4
+généréPar: scripts/parity/generate-parity-status.mjs (drift-check CI)
+
+**Statut global** : `overallStatus: NOT_APPROVED` · `highestPassedLevel: contractsPresent`
+**Attestation CI** : run 30081245711 (2026-07-24T09:05:23Z, commit c1f29fd4) — verte.
+
+| Niveau | État |
+|---|---|
+| documentReconciled | ✅ PASS |
+| sourceBaselineReady | ✅ PASS |
+| registryUniverseReady | ✅ PASS |
+| contractsPresent | ✅ PASS |
+| contractsValidated | ❌ FAIL (DOMAIN_MODEL.md: no real reviewer … +18) |
+| implementationReady | ❌ FAIL (P0-V3-01 is OPEN … +26) |
+| verticalBackendReady | ✅ PASS |
+| verticalUserJourneyReady | ❌ FAIL (stage "publish" has no UI proof (une preuve API n'est pas une preuve UI) … +1) |
+| betaReady | ❌ FAIL (beta gate capability still unknown: UNK-GIT-RECONCILE-DONE … +5) |
+| publicLaunchReady | ❌ FAIL (betaReady not passed … +39) |
+| parityBaselineReady | ❌ FAIL (surface SRF-IDE-FILE-HISTORY not done … +10) |
+
+**Compteurs (source unique)** : P0 65 (27 OPEN · 5 PROVEN · 30 CLOSED) · P1 40 · surfaces déclarées 10 (univers 159/159 importé, 1 évaluées, 56 services) · e2e 12/12 · constats 336 → 122 work items · claims non ancrées 0 · uiGaps [publish, rollback]
+
+---
+
+# PARITY_STATUS_NOTES — détail par chantier, MAINTENU À LA MAIN (déclaré)
 
 schemaVersion: 1
-repoCommit: 2b421a4598389d4402e3b3f5ad0db4cd13b11057
-États: 📤 Dispatché · 💻 Codé (commité+poussé main) · ✅ Testé live (écran +
-greps, web/tablette/mobile). Un point n'est « fait » QUE quand ✅ est coché.
-Règle de ce fichier : on ne coche ✅ QUE ce qui a un `evidenceId` vérifiable —
-jamais par déduction ni « couvert par ailleurs ». Ce qui est codé mais pas
-prouvé reste 💻 avec ✅ ⬜. Sources de détail : `REPLIT_PARITY.md`,
-`PLAN_REMAINING_UNIFIED.md`, `DESIGN_PROGRAM_MASTER.md`, `BUG_INVENTORY_LIVE.md`.
+repoCommit: fed58e96
+
+> Ce fichier est la SEULE partie humaine de la vue PARITY_STATUS : le détail
+> par chantier (états 📤/💻/✅, evidenceIds, sous-tables). Il est embarqué
+> VERBATIM par `scripts/parity/generate-parity-status.mjs` dans
+> `PARITY_STATUS.md` (qui, lui, est GÉNÉRÉ et drift-checké). Règle inchangée :
+> on ne coche ✅ QUE sur artefact vérifiable.
 
 ## Vue par chantier
 
 | Chantier | 📤 | 💻 | ✅ | evidenceId / détail |
 |---|:---:|:---:|:---:|---|
+| Plan canonique + réconciliation registres (19 P0, targetDate ISO, niveaux nommés, sources GCP-11/12/RPL-24 hashées) | ✅ | ✅ cette PR | ⬜ | `docs/parity/PLAN_PARITE_REPLIT.md`, `APPROVAL_STATUS.json` (approved.level=architectureContracted) — ✅ après merge + CI parity-registries verte sur main |
 | Server deploy Phase A (A1–A10) | ✅ | ✅ | ✅ 15/07 | `docs/deploy-evidence/…` — snapshot→image→run prouvé Node+Python |
 | Phase B pipeline reproductible + Nix v2 (B0–B5,B8) | ✅ | ✅ | ✅ 15/07 | `docs/deploy-evidence/2026-07-15-phase-b/` ; B6/B7 (gates, cosign) ⬜ |
 | Zone autoscale/tailles machine/AR (Z1–Z5) | ✅ | ✅ `1ea573b4` | ✅ 16/07 | `docs/deploy-evidence/2026-07-16-zone-autoscale/` |
 | Agent modes + routage (AGM) | ✅ | ✅ `dc2d6c9d`→`2b421a45` | 🟡 partiel | voir sous-table AGM ci-dessous — 7/11 points prouvés live, 4 codés-mais-non-prouvés |
 | P0-02 registres parité (12 fichiers) | ✅ | ✅ `97759a77`+`afd741d5` | ✅ 16/07 | validateur exit 0 sur HEAD `2b421a45` + CI parity-registries **verte sur `2b421a45`** (push→success). Le validateur prouve structure/hash/snapshots-sur-disque, PAS la complétude fonctionnelle des domaines. |
 | P0-04 collecteur baseline quotidien | ✅ | ✅ `97759a77` | ✅ 16/07 | run réel 6/6 sources, `docs/parity/baseline/snapshots/2026-07-16/manifest.json` (llms.txt sha256 03cbdb07…) ; CI cron 05:17 UTC armé |
-| Remix (impl.) | ✅ | ✅ `bd4c334e` | 🟡 partiel | pipeline sécurisé + preuve secret-introuvable (14 tests) ; RMX-1,2,6,7 ✅ ; RMX-3,4,5 partiels (fork DB physique + copie objets = follow-up). `docs/deploy-evidence/2026-07-16-remix/` |
+| Remix (impl.) | ✅ | ✅ `bd4c334e` | 🟡 partiel | pipeline sécurisé + preuve secret-introuvable ; RMX-1,2,6,7 ✅ ; RMX-3 CODÉ non mergé (licence+consentement versionnés, SOURCE_SANITIZED masque PII, 35 tests, branche feat/remix-license-pii) — preuve live après merge ; RMX-4,5 follow-up (fork DB physique + copie objets). `docs/deploy-evidence/2026-07-16-remix/` |
 | Import (impl.) | ✅ | ✅ `7d45c2cb` | 🟡 partiel | pipeline sécurisé : aucune suppression silencieuse + staging jetable (22 tests) ; IMP-1,2,3,5 ✅ ; IMP-4 (timeout sweeper), IMP-6 (providers non exécutés), IMP-7 (débit crédits) partiels. `docs/deploy-evidence/2026-07-16-import/` |
 | CloudTenant / IAM / ReleaseCatalog / Checkpoint (impl.) | ✅ (spec) | ⬜ | ⬜ | `DOMAIN_MODEL.md §3-6` — implémentation NON commencée (prochains chantiers) |
 
@@ -47,3 +75,4 @@ l'artefact précis, ou reste ⬜ si l'aspect n'a pas été capturé live.
 (4,5,9,10 — l'aspect central est prouvé, un sous-aspect ne l'est pas) ; 1 non
 testé (11 nudge). Le chantier n'est PAS « fait » à 100 % — il est déployé et le
 cœur (suppression des noms de modèle + routage réel + marge admin) est prouvé.
+| Backlog complet DANS le plan (§14 : 336 points exacts, 332 NON FAIT) + registres (P1-COV ×8, BD ×29, PR ×50) + certification calculable check-plan-completeness (compte+SHA-256, preuve négative exit 1) | ✅ | ✅ cette PR | ⬜ | `docs/parity/COVERAGE_GAP_AUDIT_2026-07-17.md` + `BOLT_DEBT_REGISTRY.yaml` + `PRODUCTION_READINESS_REGISTRY.yaml` — ✅ après merge + CI parity-registries verte sur main ; contenu 100 % NON_FAIT/OPEN (traçage, pas réalisation) |

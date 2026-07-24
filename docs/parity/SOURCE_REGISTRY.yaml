@@ -44,7 +44,7 @@ sources:
     title: "Replit pricing"
     publishedAt: UNKNOWN
     accessedAt: "2026-07-16T12:56:16Z"
-    contentHash: "sha256:ebf2013a406b0db0c2429825da98523b90f47adf2f3980b57fd0660e61f6ea2e"
+    contentHash: "sha256:c33462034ba3ec900fea43ab915c619158eb5db8bf08de716cf83a8530864a61"  # snapshot assaini (jeton client public Datadog caviardé)
     snapshot: docs/parity/baseline/snapshots/2026-07-16/pricing.html
   - sourceId: SRC-CHANGELOG-2026-04-17
     url: https://docs.replit.com/updates/2026/04/17/changelog.md
@@ -57,15 +57,15 @@ sources:
     url: https://replit.com/gallery
     title: "Replit Gallery (rendu JS)"
     publishedAt: UNKNOWN
-    accessedAt: "2026-07-16T16:45:51Z"
-    contentHash: "sha256:fad9ec75ed95273ba3632391edf5025af5c95eb78258790f3931260f65b09b20"
+    accessedAt: "2026-07-16T16:58:20Z"
+    contentHash: "sha256:1f5f27bcf87743017d2e1aee8768f941041a2ebe17b21127b76db83c241bd4c7"  # re-vérifié 20/07 (refus V4-1 : hash déclaré ≠ fichier) — shasum rejoué
     snapshot: docs/parity/baseline/snapshots/2026-07-16/gallery.rendered.html
   - sourceId: SRC-GALLERY-DETAIL-JOURNEY-MAPPER
     url: https://replit.com/gallery/work/product-and-design/journey-mapper
     title: "Replit Gallery — page détail Journey Mapper (rendu JS)"
     publishedAt: UNKNOWN
     accessedAt: "2026-07-16T16:45:51Z"
-    contentHash: "sha256:5e1d57296d5c035518f3423cddc3c00a294f1b135269698b79533df517691b28"
+    contentHash: "sha256:885a7c3772643090a3833f41c9cd43a5b14f22e5dabd22679660416f9a514ddf"  # snapshot assaini (identifiant interne CMS caviardé)
     snapshot: docs/parity/baseline/snapshots/2026-07-16/gallery-detail-journey-mapper.rendered.html
   - sourceId: SRC-COMMUNITY-RENDERED
     url: https://replit.com/community
@@ -81,3 +81,144 @@ sources:
     accessedAt: "2026-07-16T16:56:05Z"
     contentHash: "sha256:010fb57a8c421f2f4351569033abd0843df7452df6a075ff78ac55b773420f57"
     snapshot: docs/parity/baseline/sources/2026-07-10-changelog.md
+  # --- Sources cloud (GCP) — ajoutées 2026-07-17 pour ancrer les claims GCP-11/GCP-12.
+  # Snapshots ASSAINIS : les clés web publiques Google embarquées dans le HTML
+  # devsite (motif AIza…, non-secrets) sont caviardées avant hash, pour ne pas
+  # déclencher le secret-scan. Le contentHash est celui du fichier assaini.
+  # Le registre accepte des sources non-Replit dès lors qu'un claim du plan les cite.
+  - sourceId: SRC-CLOUDRUN-SERVICE-HEALTH
+    url: https://docs.cloud.google.com/run/docs/configuring/configure-service-health
+    title: "Automate cross-region failover with Cloud Run service health"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-17T09:51:51Z"
+    contentHash: "sha256:dcfbdee7dfb69eb27897b49ae53adf38836c313acb42ffb5cff7dfeddc4ae612"
+    snapshot: docs/parity/baseline/sources/2026-07-17-cloudrun-service-health.html
+  - sourceId: SRC-CLOUDRUN-RELEASE-NOTES
+    url: https://docs.cloud.google.com/run/docs/release-notes
+    title: "Cloud Run release notes (GA de service health le 29/06/2026 ; Preview interne 21/11/2025, externe 24/02/2026)"
+    publishedAt: "2026-06-29"
+    accessedAt: "2026-07-17T09:51:51Z"
+    contentHash: "sha256:54ecea8ffa86274de7e27f278745bb75a1b88a41ac19a2a38e9e6db22289a894"
+    snapshot: docs/parity/baseline/sources/2026-07-17-cloudrun-release-notes.html
+  - sourceId: SRC-AR-ATTACHMENTS
+    url: https://docs.cloud.google.com/artifact-registry/docs/manage-metadata-with-attachments
+    title: "Artifact Registry — Manage metadata with attachments (bannière Pre-GA « Preview » présente dans le snapshot)"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-17T09:51:51Z"
+    contentHash: "sha256:df666b6ca552a61237284babed7921682669364a21cc34720122a801d4a645c6"
+    snapshot: docs/parity/baseline/sources/2026-07-17-ar-attachments.html
+  - sourceId: SRC-REPLIT-IMPORT-PROVIDERS
+    url: https://docs.replit.com/build/import-from-providers.md
+    title: "Replit — Import from a provider (table « Supported sources » : 12 entrées dont Previous Agent export et Empty)"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-17T09:51:51Z"
+    contentHash: "sha256:56b145555f6d82a4cb94c07bfc35345cd6fade908b1f3ec4e3a727138b9f70e3"
+    snapshot: docs/parity/baseline/sources/2026-07-17-import-from-providers.md
+  # --- Sources ajoutées 2026-07-20 (audit de réanalyse — corrections WIF/Auth + multi-tenant).
+  # Snapshots assainis (clés client publiques caviardées avant hash, cf. collecteur).
+  - sourceId: SRC-GKE-WORKLOAD-IDENTITY
+    url: https://docs.cloud.google.com/kubernetes-engine/docs/concepts/workload-identity
+    title: "GKE — About Workload Identity Federation for GKE (« In GKE, Google Cloud manages the workload identity pool and provider for you and doesn't require an external identity provider » ; « recommended way »)"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-20T04:20:00Z"
+    contentHash: "sha256:9d3f0f66fd447ea61a9bd5372190ff7bb1f1d1490005cecf5251e0f84dffa1f2"
+    snapshot: docs/parity/baseline/sources/2026-07-20-gke-workload-identity.html
+  - sourceId: SRC-CLOUDRUN-MULTITENANT
+    url: https://docs.cloud.google.com/run/docs/securing/multi-tenant
+    title: "Cloud Run for multi-tenant platforms running untrusted code (Last updated 2026-07-17 : 1 projet/tenant recommandé, pool de projets précréés, folders first-party vs untrusted, billing account par tier de réputation, LB global + Service Extensions)"
+    publishedAt: "2026-07-17"
+    accessedAt: "2026-07-20T04:20:00Z"
+    contentHash: "sha256:86362e28f50c81e99e7aabccf24e275ee916e8027f6eaeaaa378f301312c122e"
+    snapshot: docs/parity/baseline/sources/2026-07-20-cloudrun-multitenant.html
+  - sourceId: SRC-CLOUDRUN-QUOTAS
+    url: https://docs.cloud.google.com/run/quotas
+    title: "Cloud Run quotas and limits (services 1000/projet/région ; jobs 1000 ; worker pools 1000 ; augmentables)"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-20T04:20:00Z"
+    contentHash: "sha256:604d5e5ee2f25aec1f2109b73db1f0b26795cc9206303712c75ebe06c51c8cde"
+    snapshot: docs/parity/baseline/sources/2026-07-20-cloudrun-quotas.html
+  - sourceId: SRC-REPLIT-CLERK-AUTH
+    url: https://docs.replit.com/features/auth-and-identity/clerk-auth.md
+    title: "Replit — Clerk Auth (« What's not supported … MFA support … Organization tenants » ; providers Google/GitHub/Apple/X ; env DEV/PROD isolés)"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-20T04:20:00Z"
+    contentHash: "sha256:6f94c8fdc39ed47887dd6e562bfa84843cd8a1c09302c4e3de22cbf02b6af624"
+    snapshot: docs/parity/baseline/sources/2026-07-20-replit-clerk-auth.md
+  - sourceId: SRC-REPLIT-CLERK-MIGRATION
+    url: https://docs.replit.com/features/auth-and-identity/clerk-auth-migration.md
+    title: "Replit — Migrating an existing app to Clerk Auth (« only covers migrating from a custom authentication solution … not a guide for moving an app from Replit Auth to Clerk Auth — official guidance … coming soon »)"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-20T04:20:00Z"
+    contentHash: "sha256:daf309ee0b54568f40293dc7f60abd4e350160bd0611db61f68f545c25116a1e"
+    snapshot: docs/parity/baseline/sources/2026-07-20-replit-clerk-auth-migration.md
+  - sourceId: SRC-REPLIT-LIVESCAN-2026-07-20
+    url: https://replit.com/ (scan multi-pages rendu JS, anonyme, robots.txt respecté)
+    title: "Replit live scan 2026-07-20 (Playwright/Chromium headless, 19 pages rendues, captures PNG+texte+liens hashées dans livescan-2026-07-20/manifest.json)"
+    publishedAt: "2026-07-20"
+    accessedAt: "2026-07-20T05:43:00Z"
+    contentHash: "sha256:396b07e2520d1171807a7873938d8671e4776076e0902208e31eaa1e4bba1f0f"
+    snapshot: docs/parity/REPLIT_LIVE_SCAN_2026-07-20.md
+  # --- Ancrage des 21 claims hérités (lot registres 20/07) — snapshots assainis.
+  - sourceId: SRC-REPLIT-DEFENSE-BLOG
+    url: https://blog.replit.com/defense-in-depth-how-replit-secures-every-layer-of-the-vibe-coding-stack
+    title: "Replit — Defense in Depth (seccomp-bpf, rollout microVM, Determinate Nix, « every single customer gets their own GCP Project, even free-tier users », Cloud Run, Cloud Armor, proxy MCP)"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-20T13:30:00Z"
+    contentHash: "sha256:921df2e3bac0b9d52ade537d10af0c515b6ee6aa93b5637770ceec6ccd7e9b5f"
+    snapshot: docs/parity/baseline/sources/2026-07-20-replit-defense-in-depth.html
+  - sourceId: SRC-GKE-AGENT-SANDBOX
+    url: https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox
+    title: "GKE — About Agent Sandbox (gVisor primaire, Kata supporté, GKE ≥1.35.2 pour snapshots)"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-20T13:30:00Z"
+    contentHash: "sha256:1efb337401726abafc0d9cf30f6e7686686312a856a266085eb3dde2022133b6"
+    snapshot: docs/parity/baseline/sources/2026-07-20-gke-agent-sandbox.html
+  - sourceId: SRC-GKE-POD-SNAPSHOTS
+    url: https://docs.cloud.google.com/kubernetes-engine/docs/concepts/pod-snapshots
+    title: "GKE — About Pod snapshots (« persistent volumes are not checkpointed », rootfs/EmptyDir/tmpfs)"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-20T13:30:00Z"
+    contentHash: "sha256:8c42727c4cf9d0e07a5ec676e4ebcf4e486de99444ea0c34e5a1100825dfb9e8"
+    snapshot: docs/parity/baseline/sources/2026-07-20-gke-pod-snapshots.html
+  - sourceId: SRC-GKE-IMAGE-STREAMING
+    url: https://docs.cloud.google.com/kubernetes-engine/docs/how-to/image-streaming
+    title: "GKE — Image streaming (rootfs des images conteneur)"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-20T13:30:00Z"
+    contentHash: "sha256:4ce0907a29a552d1f77e94abe7624c88f3794daaadd56ea15809c67f94902dbd"
+    snapshot: docs/parity/baseline/sources/2026-07-20-gke-image-streaming.html
+  - sourceId: SRC-CLOUDRUN-INGRESS
+    url: https://docs.cloud.google.com/run/docs/securing/ingress
+    title: "Cloud Run — Restricting ingress (internal-and-cloud-load-balancing)"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-20T13:30:00Z"
+    contentHash: "sha256:68d76e0501b57145e820af050acd647aacd5599a90347dd95a769abe951d21c5"
+    snapshot: docs/parity/baseline/sources/2026-07-20-cloudrun-ingress.html
+  - sourceId: SRC-GCP-PROJECT-LIFECYCLE
+    url: https://docs.cloud.google.com/resource-manager/docs/creating-managing-projects
+    title: "Resource Manager — Creating and managing projects (soft-delete, « fully deleted after 30 days », quota consommé pendant la fenêtre)"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-20T13:30:00Z"
+    contentHash: "sha256:5f3e680bce5d841e53f4744e6413e4e3e8ddb5a32a6164faa4b9824e7b2f8024"
+    snapshot: docs/parity/baseline/sources/2026-07-20-gcp-project-lifecycle.html
+  - sourceId: SRC-IAM-QUOTAS
+    url: https://docs.cloud.google.com/iam/quotas
+    title: "IAM — Quotas and limits (service accounts par projet)"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-20T13:30:00Z"
+    contentHash: "sha256:f75b46131f469a1e896a068cd465630ad2ae86d1c762014494dffefbaeabf7ce"
+    snapshot: docs/parity/baseline/sources/2026-07-20-iam-quotas.html
+  - sourceId: SRC-RM-LIMITS
+    url: https://docs.cloud.google.com/resource-manager/docs/limits
+    title: "Resource Manager — Limits (300 folders enfants directs, profondeur, 0.1 folder/s)"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-20T13:30:00Z"
+    contentHash: "sha256:6423697650c0b49ad98dd38aba1a833d1e1c7bb4c43afb707f768ca3cf08209f"
+    snapshot: docs/parity/baseline/sources/2026-07-20-resource-manager-limits.html
+  - sourceId: SRC-NIXOS-2605
+    url: https://nixos.org/blog/announcements/
+    title: "NixOS — Release announcements (26.05)"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-20T13:30:00Z"
+    contentHash: "sha256:8979cb95c252e6d5879700b0a1825cfc7948f103d7c0f2653ee4af95a2d58659"
+    snapshot: docs/parity/baseline/sources/2026-07-20-nixos-2605-release.html

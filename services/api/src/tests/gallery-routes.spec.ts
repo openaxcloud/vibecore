@@ -54,7 +54,7 @@ class SnapshotProjectStorage implements ProjectStorage {
   }
   async deleteFiles() {}
   async exportZip() {
-    return Buffer.from('');
+    return { storageKey: 'export', byteLength: 0, base64: '', createdAt: new Date().toISOString() };
   }
   async importZip() {
     return [];
@@ -221,11 +221,16 @@ describe('POST /gallery/:slug/remix — pinned, secure fork into the remixer org
       sourceSnapshotId: snapshot.id,
       authorName: 'Ada Lovelace',
       authorUserId: ctx.author.id,
+      // FAIL-CLOSED : un fixture remixable déclare sa licence explicitement.
+      remixAllowed: true,
+      licenseId: 'MIT',
+      licenseText: 'MIT License — fixture',
+      licenseTextSha256: 'f'.repeat(64),
     });
 
     // ---- Mutate the LIVE source AFTER the snapshot: the pin must ignore this. ----
     await projectStorage.writeFiles(source.id, [
-      { path: 'src/app.ts', content: 'console.log("LIVE_EDIT_V2_AFTER_SNAPSHOT");\n', updatedAt: '' },
+      { path: 'src/app.ts', content: 'console.log("LIVE_EDIT_V2_AFTER_SNAPSHOT");\n' },
     ]);
 
     // The remixer: a DIFFERENT user + org.
@@ -247,7 +252,7 @@ describe('POST /gallery/:slug/remix — pinned, secure fork into the remixer org
       method: 'POST',
       url: '/gallery/paid-app/remix',
       headers: auth('remixer-token'),
-      payload: { organizationId: remixerOrg.id },
+      payload: { organizationId: remixerOrg.id, acceptLicense: true },
     });
     expect(res.statusCode).toBe(201);
     const body = res.json();
@@ -286,6 +291,125 @@ describe('POST /gallery/:slug/remix — pinned, secure fork into the remixer org
     expect(detail.json().listing.uses).toBe(1);
   });
 
+  it('EXHAUSTIVE secret hunt: the value is actively searched across files + DB + env + logs + job and found NOWHERE the remix could leak it — only in the source it came from', async () => {
+    const { app, store, projectStorage, source, remixer, remixerOrg } = await setupRemix();
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/gallery/paid-app/remix',
+      headers: auth('remixer-token'),
+      payload: { organizationId: remixerOrg.id, acceptLicense: true },
+    });
+    expect(res.statusCode).toBe(201);
+    const body = res.json();
+    const cloneId: string = body.project.id;
+    const job = await store.getRemixJob(body.remix.remixJobId);
+
+    /*
+     * The hunt: given any haystack (a string or an object we serialize), return
+     * which of the secrets it contains. A leak-proof surface returns [] for BOTH.
+     * We hunt for the STRIPE key value AND the DATABASE_URL value (a distinct env
+     * secret) so a partial scrub cannot pass.
+     */
+    const SECRETS = [SECRET_VALUE, ENV_VALUE];
+    const hunt = (haystack: unknown): string[] => {
+      const text = typeof haystack === 'string' ? haystack : JSON.stringify(haystack ?? null);
+      return SECRETS.filter((secret) => text.includes(secret));
+    };
+    const asRecord = (v: unknown): Record<string, unknown> => (v && typeof v === 'object' ? (v as Record<string, unknown>) : {});
+
+    // ───────── SURFACE 1 · FILES (the clone's files, every one of them) ─────────
+    const cloneFiles = await projectStorage.listFiles(cloneId);
+    for (const file of cloneFiles) {
+      expect(hunt(file.content), `secret leaked into clone file ${file.path}`).toEqual([]);
+    }
+    // The .env is preserved as a REFERENCE: the keys stay, the values are gone.
+    const cloneEnv = cloneFiles.find((f) => f.path === '.env');
+    expect(cloneEnv?.content).toMatch(/STRIPE_KEY=/);
+    expect(cloneEnv?.content).toMatch(/DATABASE_URL=/);
+    expect(cloneEnv?.content).toContain('# detached on remix');
+    expect(hunt(cloneEnv?.content)).toEqual([]);
+
+    // ───────── SURFACE 2 · DB (the encrypted secret store) ─────────
+    expect(await store.listProjectSecrets(cloneId)).toEqual([]);
+    for (const [, rec] of store.projectSecrets) {
+      if (asRecord(rec).projectId === cloneId) expect(hunt(rec), 'secret leaked into clone projectSecrets').toEqual([]);
+    }
+
+    // ───────── SURFACE 3 · ENV (the plaintext env-var store) ─────────
+    expect(await store.listProjectEnvVars(cloneId)).toEqual([]);
+    for (const [, rec] of store.projectEnvVars) {
+      if (asRecord(rec).projectId === cloneId) expect(hunt(rec), 'secret leaked into clone projectEnvVars').toEqual([]);
+    }
+
+    // ───────── SURFACE 4 · LOGS (audit, admin audit, security, activity, notifications) ─────────
+    const logSurfaces: Array<readonly [string, unknown]> = [
+      ['auditLogs', await store.listAuditLogs()],
+      ['securityAuditEvents', await store.listSecurityAuditEvents()],
+      ['adminAuditLogs', await store.listAdminAuditLogs()],
+      ['cloneProjectActivity', await store.listProjectActivity(cloneId)],
+      ['remixerNotifications', await store.listNotificationsByUser({ userId: remixer.id })],
+    ];
+    for (const [name, rows] of logSurfaces) {
+      expect(hunt(rows), `secret leaked into ${name}`).toEqual([]);
+    }
+    // Non-vacuous: the remix WAS audited, so this surface is genuinely populated (not empty-by-accident).
+    expect((await store.listAuditLogs()).length).toBeGreaterThan(0);
+
+    // ───────── SURFACE 5 · JOB (the remix job record) ─────────
+    expect(hunt(job), 'secret leaked into the remix job').toEqual([]);
+    // The KEYS are kept on the job as a reference ({ secretKeys, envVarKeys }); the VALUES never are.
+    const detached = asRecord(job?.detachedKeys);
+    expect(detached.secretKeys).toEqual(expect.arrayContaining(['STRIPE_KEY']));
+    expect(detached.envVarKeys).toEqual(expect.arrayContaining(['DATABASE_URL']));
+
+    /*
+     * ───────── WHOLE-STORE SWEEP ─────────
+     * Walk EVERY in-memory collection on the store plus the file store, and hunt
+     * for the secret in each entry. The search is only meaningful if it can
+     * actually find the value — so it MUST locate it in the source (where it
+     * legitimately lives) and MUST NOT find it anywhere else (any clone-scoped
+     * row, any log, the job, a notification…). The only sanctioned hiding places
+     * are the source project's own secret/env rows and the source's file bucket +
+     * immutable snapshot the listing was pinned to.
+     */
+    const leaks: string[] = [];
+    let foundInSource = false;
+    const isSourceSecretRow = (field: string, v: unknown) =>
+      (field === 'projectSecrets' || field === 'projectEnvVars') && asRecord(v).projectId === source.id;
+
+    for (const [field, value] of Object.entries(store as unknown as Record<string, unknown>)) {
+      const entries: Array<[unknown, unknown]> | null =
+        value instanceof Map ? [...value.entries()] : Array.isArray(value) ? value.map((v, i) => [i, v]) : null;
+      if (!entries) continue;
+      for (const [key, entry] of entries) {
+        if (hunt(entry).length === 0) continue;
+        if (isSourceSecretRow(field, entry)) {
+          foundInSource = true;
+          continue;
+        }
+        leaks.push(`${field}[${String(key)}]`);
+      }
+    }
+    // The raw file store: the SOURCE bucket + the immutable snapshots may hold the
+    // value; the CLONE bucket (and any other project's bucket) must not.
+    for (const [projectId, bucket] of projectStorage.files) {
+      for (const [path, content] of bucket) {
+        if (hunt(content).length === 0) continue;
+        if (projectId === source.id) foundInSource = true;
+        else leaks.push(`files:${projectId}/${path}`);
+      }
+    }
+    for (const [, files] of projectStorage.snapshots) {
+      // snapshots are the immutable SOURCE archive — a legit hiding place.
+      if (files.some((f) => hunt(f.content).length > 0)) foundInSource = true;
+    }
+
+    expect(leaks, `secret leaked outside the source into: ${leaks.join(', ') || '(none)'}`).toEqual([]);
+    // Proof the hunt is NOT vacuous: it positively located the secret where it belongs.
+    expect(foundInSource, 'the hunt never found the secret even in the source — the search itself is broken').toBe(true);
+  });
+
   it('requires authentication (anonymous remix is rejected)', async () => {
     const { app, remixerOrg } = await setupRemix();
     const res = await app.inject({
@@ -305,6 +429,206 @@ describe('POST /gallery/:slug/remix — pinned, secure fork into the remixer org
       payload: { organizationId: remixerOrg.id },
     });
     expect(res.statusCode).toBe(404);
+  });
+});
+
+describe('Gallery remix — versioned license + consent + PII masking (P0-V3-05 / I-RMX-3)', () => {
+  const LICENSE_TEXT = 'MIT License\n\nPermission is hereby granted, free of charge…';
+  const PII_EMAIL = 'jane.doe@realmail.example-corp.fr';
+  const PII_PHONE = '+33 6 12 34 56 78';
+  const PII_CARD = '4242 4242 4242 4242'; // Luhn-valid test number
+
+  async function setupLicensed(listingOverrides: Record<string, unknown> = {}) {
+    const ctx = await seedGallery();
+    const { store, projectStorage } = ctx;
+
+    const source = await store.createProject({ organizationId: ctx.org.id, name: 'CRM App', slug: 'crm-app' });
+    const snapshotFiles: ProjectFile[] = [
+      {
+        path: 'seed/customers.csv',
+        content: `name,email,phone,card\nJane Doe,${PII_EMAIL},${PII_PHONE},${PII_CARD}\n`,
+        updatedAt: '',
+      },
+      { path: 'src/app.ts', content: 'export const CONTACT = "support@example.com";\n', updatedAt: '' },
+    ];
+    await projectStorage.writeFiles(source.id, snapshotFiles);
+    const archive = await projectStorage.createSnapshot({ projectId: source.id, files: snapshotFiles });
+    const snapshot = await store.createSnapshot({
+      projectId: source.id,
+      kind: 'manual',
+      manifest: { files: snapshotFiles.map((f) => f.path) },
+      storageKey: archive.storageKey,
+    });
+    const { createHash } = await import('node:crypto');
+    const listing = await store.createGalleryListing({
+      slug: 'crm-app',
+      title: 'CRM App',
+      description: 'A CRM sample with seeded customer data',
+      category: 'web',
+      sourceProjectId: source.id,
+      sourceSnapshotId: snapshot.id,
+      authorName: 'Ada Lovelace',
+      authorUserId: ctx.author.id,
+      licenseId: 'MIT',
+      licenseText: LICENSE_TEXT,
+      licenseTextSha256: createHash('sha256').update(LICENSE_TEXT, 'utf8').digest('hex'),
+      remixAllowed: true,
+      ...listingOverrides,
+    });
+
+    const remixer = await store.createUser({
+      email: 'remixer2@example.com',
+      name: 'Remixer Two',
+      passwordHash: hashPassword('password123'),
+    });
+    const remixerOrg = await store.createOrganization({
+      name: 'Remixer Two Org',
+      slug: 'remixer-two-org',
+      ownerUserId: remixer.id,
+    });
+    await store.createSession({
+      userId: remixer.id,
+      token: 'remixer2-token',
+      expiresAt: new Date(Date.now() + 3600_000),
+    });
+
+    return { ...ctx, source, snapshot, listing, remixerOrg };
+  }
+
+  it('REFUSES the remix without explicit license acceptance (400 REMIX_CONSENT_REQUIRED)', async () => {
+    const { app, store, remixerOrg } = await setupLicensed();
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/gallery/crm-app/remix',
+      headers: auth('remixer2-token'),
+      payload: { organizationId: remixerOrg.id }, // no acceptLicense
+    });
+
+    expect(res.statusCode).toBe(400);
+    const body = res.json();
+    expect(body.code).toBe('REMIX_CONSENT_REQUIRED');
+    // The refusal carries what there IS to accept (so a client can render it).
+    expect(body.license.id).toBe('MIT');
+    expect(body.remixConsentVersion).toMatch(/^\d{4}-\d{2}-\d{2}\./);
+    // Negative proof: nothing was cloned.
+    expect([...store.remixJobs.values()]).toHaveLength(0);
+  });
+
+  it('REFUSES the remix when the author disallowed forking (403 REMIX_NOT_ALLOWED)', async () => {
+    const { app, store, remixerOrg } = await setupLicensed({ remixAllowed: false });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/gallery/crm-app/remix',
+      headers: auth('remixer2-token'),
+      payload: { organizationId: remixerOrg.id, acceptLicense: true },
+    });
+
+    expect(res.statusCode).toBe(403);
+    expect(res.json().code).toBe('REMIX_NOT_ALLOWED');
+    expect([...store.remixJobs.values()]).toHaveLength(0);
+  });
+
+  it('records the VERSIONED license + consent on the job, immune to later listing edits', async () => {
+    const { app, store, listing, remixerOrg } = await setupLicensed();
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/gallery/crm-app/remix',
+      headers: auth('remixer2-token'),
+      payload: { organizationId: remixerOrg.id, acceptLicense: true },
+    });
+    expect(res.statusCode).toBe(201);
+    const body = res.json();
+
+    const job = await store.getRemixJob(body.remix.remixJobId);
+    const snapshotOnJob = job?.licenseSnapshot as {
+      licenseId: string;
+      licenseTextSha256: string;
+      sourceListingId: string;
+    };
+    expect(snapshotOnJob.licenseId).toBe('MIT');
+    expect(snapshotOnJob.licenseTextSha256).toBe(listing.licenseTextSha256);
+    expect(snapshotOnJob.sourceListingId).toBe(listing.id);
+    expect(job?.consentVersion).toMatch(/^\d{4}-\d{2}-\d{2}\./);
+
+    // IMMUTABILITY: rewriting the listing's license later must not touch the job.
+    listing.licenseId = 'Apache-2.0';
+    listing.licenseTextSha256 = 'rewritten';
+    const jobAfter = await store.getRemixJob(body.remix.remixJobId);
+    expect((jobAfter?.licenseSnapshot as { licenseId: string }).licenseId).toBe('MIT');
+  });
+
+  it('MASKS PII in the clone (no author consent): email, phone, card gone; fixtures kept', async () => {
+    const { app, store, projectStorage, remixerOrg } = await setupLicensed();
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/gallery/crm-app/remix',
+      headers: auth('remixer2-token'),
+      payload: { organizationId: remixerOrg.id, acceptLicense: true },
+    });
+    expect(res.statusCode).toBe(201);
+    const body = res.json();
+
+    const cloneFiles = await projectStorage.listFiles(body.project.id);
+    const allText = cloneFiles.map((f) => f.content).join('\n');
+
+    // THE PROOF: the person's data is nowhere in the clone.
+    expect(allText).not.toContain(PII_EMAIL);
+    expect(allText).not.toContain(PII_PHONE);
+    expect(allText).not.toContain(PII_CARD);
+    expect(allText).toContain('[PII:email masked on remix]');
+    expect(allText).toContain('[PII:phone masked on remix]');
+    expect(allText).toContain('[PII:card masked on remix]');
+
+    // RFC 2606 fixture addresses are NOT someone's data — kept.
+    expect(allText).toContain('support@example.com');
+
+    // The job records WHAT was masked (kind + location), never the value.
+    expect(body.remix.piiMaskedCount).toBeGreaterThanOrEqual(3);
+    const job = await store.getRemixJob(body.remix.remixJobId);
+    expect(job?.piiMaskedCount).toBe(body.remix.piiMaskedCount);
+    expect(JSON.stringify(job)).not.toContain(PII_EMAIL);
+    expect(JSON.stringify(job)).not.toContain('4242');
+  });
+
+  it('SKIPS masking when the author gave explicit versioned consent — recorded, not silent', async () => {
+    const { app, store, projectStorage, remixerOrg } = await setupLicensed({ piiConsentVersion: '2026-07-20.1' });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/gallery/crm-app/remix',
+      headers: auth('remixer2-token'),
+      payload: { organizationId: remixerOrg.id, acceptLicense: true },
+    });
+    expect(res.statusCode).toBe(201);
+    const body = res.json();
+
+    const cloneFiles = await projectStorage.listFiles(body.project.id);
+    const allText = cloneFiles.map((f) => f.content).join('\n');
+    expect(allText).toContain(PII_EMAIL); // shipped as-is — author consented
+    expect(body.remix.piiMaskedCount).toBe(0);
+
+    const job = await store.getRemixJob(body.remix.remixJobId);
+    expect(job?.piiMaskedCount).toBe(0);
+    expect(job?.state).toBe('COMPLETED');
+  });
+
+  it('exposes license + remixAllowed + PII handling on the public listing and detail', async () => {
+    const { app } = await setupLicensed();
+
+    const list = await app.inject({ method: 'GET', url: '/gallery' });
+    const row = list.json().results.find((r: { slug: string }) => r.slug === 'crm-app');
+    expect(row.license.id).toBe('MIT');
+    expect(row.remixAllowed).toBe(true);
+    expect(row.piiHandling.mode).toBe('MASKED');
+
+    const detail = await app.inject({ method: 'GET', url: '/gallery/crm-app' });
+    const shown = detail.json().listing;
+    expect(shown.licenseText).toBe(LICENSE_TEXT);
+    expect(shown.remixConsentVersion).toMatch(/^\d{4}-\d{2}-\d{2}\./);
   });
 });
 
@@ -388,5 +712,96 @@ describe('POST /admin/gallery-listings — curator publish (no self-service)', (
       payload: listingBody(source.id, snapshot.id),
     });
     expect(res.statusCode).toBe(403);
+  });
+});
+
+describe('Politique licence FAIL-CLOSED (directive 20/07)', () => {
+  // Curateur local (setupCurator est scoped dans le describe admin).
+  async function mkCurator() {
+    const store = new TestApiStore();
+    const projectStorage = new SnapshotProjectStorage();
+    const app = await buildApiApp({ store, projectStorage, emailProvider: new QuietEmailProvider() });
+    const admin = await store.createUser({
+      email: 'curator2@example.com',
+      name: 'Curator2',
+      passwordHash: hashPassword('password123'),
+      platformAdmin: true,
+    });
+    await store.updateUser({ userId: admin.id, mfaEnabled: true });
+    await store.createSession({ userId: admin.id, token: 'admin-token', expiresAt: new Date(Date.now() + 3600_000) });
+    await app.inject({ method: 'POST', url: '/auth/reauth', headers: auth('admin-token'), payload: { password: 'password123' } });
+    const org = await store.createOrganization({ name: 'C2 Org', slug: 'c2-org', ownerUserId: admin.id });
+    const source = await store.createProject({ organizationId: org.id, name: 'Sample2', slug: 'sample2' });
+    const files: ProjectFile[] = [{ path: 'index.js', content: '1\n', updatedAt: '' }];
+    await projectStorage.writeFiles(source.id, files);
+    const archive = await projectStorage.createSnapshot({ projectId: source.id, files });
+    const snapshot = await store.createSnapshot({ projectId: source.id, kind: 'manual', manifest: {}, storageKey: archive.storageKey });
+    return { app, store, source, snapshot };
+  }
+
+  it('un listing créé SANS choix explicite est NON-remixable par défaut', async () => {
+    const { app, mkListing } = await seedGallery();
+    await mkListing({ slug: 'plain-app', title: 'Plain App', category: 'web', files: [{ path: 'a', content: '1', updatedAt: '' }] });
+
+    const detail = await app.inject({ method: 'GET', url: '/gallery/plain-app' });
+    expect(detail.json().listing.remixAllowed).toBe(false); // ALL_RIGHTS_RESERVED par défaut
+  });
+
+  it('curation : remixAllowed=true SANS licence → 400 REMIX_LICENSE_REQUIRED', async () => {
+    const { app, source, snapshot } = await mkCurator();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/admin/gallery-listings',
+      headers: auth('admin-token'),
+      payload: {
+        slug: 'no-license', title: 'No License', description: 'x', category: 'web',
+        sourceProjectId: source.id, sourceSnapshotId: snapshot.id, authorName: 'A',
+        remixAllowed: true,
+      },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().code).toBe('REMIX_LICENSE_REQUIRED');
+  });
+
+  it('curation : licence fournie mais SANS confirmations droits/PII → 400 REMIX_RIGHTS_CONFIRMATION_REQUIRED', async () => {
+    const { app, source, snapshot } = await mkCurator();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/admin/gallery-listings',
+      headers: auth('admin-token'),
+      payload: {
+        slug: 'no-rights', title: 'No Rights', description: 'x', category: 'web',
+        sourceProjectId: source.id, sourceSnapshotId: snapshot.id, authorName: 'A',
+        remixAllowed: true, licenseId: 'MIT', licenseText: 'MIT…',
+      },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().code).toBe('REMIX_RIGHTS_CONFIRMATION_REQUIRED');
+  });
+
+  it('défense en profondeur : listing marqué remixable mais SANS licence en base → remix 403 REMIX_LICENSE_REQUIRED', async () => {
+    const ctx = await seedGallery();
+    const { store, projectStorage, app } = ctx;
+    const project = await store.createProject({ organizationId: ctx.org.id, name: 'Forced', slug: 'forced' });
+    const files: ProjectFile[] = [{ path: 'a', content: '1', updatedAt: '' }];
+    await projectStorage.writeFiles(project.id, files);
+    const archive = await projectStorage.createSnapshot({ projectId: project.id, files });
+    const snapshot = await store.createSnapshot({ projectId: project.id, kind: 'manual', manifest: {}, storageKey: archive.storageKey });
+    // Contourne la route (écriture store directe) : remixable SANS licence.
+    await store.createGalleryListing({
+      slug: 'forced-app', title: 'Forced', description: 'x', category: 'web',
+      sourceProjectId: project.id, sourceSnapshotId: snapshot.id, authorName: 'A',
+      remixAllowed: true,
+    });
+    const remixer = await store.createUser({ email: 'rx@example.com', name: 'Rx', passwordHash: hashPassword('password123') });
+    const remixerOrg = await store.createOrganization({ name: 'RxO', slug: 'rxo', ownerUserId: remixer.id });
+    await store.createSession({ userId: remixer.id, token: 'rx-token', expiresAt: new Date(Date.now() + 3600_000) });
+
+    const res = await app.inject({
+      method: 'POST', url: '/gallery/forced-app/remix', headers: auth('rx-token'),
+      payload: { organizationId: remixerOrg.id, acceptLicense: true },
+    });
+    expect(res.statusCode).toBe(403);
+    expect(res.json().code).toBe('REMIX_LICENSE_REQUIRED'); // aucun fallback, jamais
   });
 });

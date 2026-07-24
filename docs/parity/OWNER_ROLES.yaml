@@ -1,0 +1,17 @@
+# OWNER_ROLES — mapping versionné rôle → personne (P1-A2-08).
+# Les registres portent des RÔLES ; les personnes vivent ici, versionnées.
+schemaVersion: 1
+repoCommit: d1063912
+roles:
+  - role: owner
+    description: "Propriétaire produit — décisions OWNER_DECISION, arbitrages, validations"
+    person: avi
+  - role: platform
+    description: "Ingénierie plateforme (sessions agent) — architecture, registres, preuves"
+    person: claude
+  - role: security
+    description: "Sécurité — triage secrets, tenancy, invariants"
+    person: claude
+  - role: billing
+    description: "Facturation — ledger, réservations, réconciliation PSP"
+    person: claude

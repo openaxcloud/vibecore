@@ -1439,6 +1439,10 @@ exports.Prisma.RemixJobScalarFieldEnum = {
   storagePolicy: 'storagePolicy',
   scanFindings: 'scanFindings',
   scrubbedCount: 'scrubbedCount',
+  licenseSnapshot: 'licenseSnapshot',
+  consentVersion: 'consentVersion',
+  piiFindings: 'piiFindings',
+  piiMaskedCount: 'piiMaskedCount',
   dbForked: 'dbForked',
   error: 'error',
   createdAt: 'createdAt',
@@ -1479,10 +1483,90 @@ exports.Prisma.GalleryListingScalarFieldEnum = {
   authorUserId: 'authorUserId',
   appUrl: 'appUrl',
   thumbnailUrl: 'thumbnailUrl',
+  remixAllowed: 'remixAllowed',
+  licenseId: 'licenseId',
+  licenseText: 'licenseText',
+  licenseTextSha256: 'licenseTextSha256',
+  piiConsentVersion: 'piiConsentVersion',
   viewCount: 'viewCount',
   useCount: 'useCount',
   createdAt: 'createdAt',
   publishedAt: 'publishedAt'
+};
+
+exports.Prisma.LedgerAccountScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  key: 'key',
+  type: 'type',
+  currency: 'currency',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.LedgerTransactionScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  reason: 'reason',
+  idempotencyKey: 'idempotencyKey',
+  reversalOfId: 'reversalOfId',
+  rateCardVersion: 'rateCardVersion',
+  postedAt: 'postedAt',
+  metadata: 'metadata'
+};
+
+exports.Prisma.LedgerEntryScalarFieldEnum = {
+  id: 'id',
+  transactionId: 'transactionId',
+  accountId: 'accountId',
+  direction: 'direction',
+  amountMinor: 'amountMinor',
+  currency: 'currency'
+};
+
+exports.Prisma.LedgerReservationScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  userId: 'userId',
+  idempotencyKey: 'idempotencyKey',
+  operation: 'operation',
+  status: 'status',
+  currency: 'currency',
+  maxAmountMinor: 'maxAmountMinor',
+  committedMinor: 'committedMinor',
+  rateCardVersion: 'rateCardVersion',
+  importJobId: 'importJobId',
+  reserveTxId: 'reserveTxId',
+  settleTxId: 'settleTxId',
+  compensateTxId: 'compensateTxId',
+  expiresAt: 'expiresAt',
+  committedAt: 'committedAt',
+  releasedAt: 'releasedAt',
+  releaseReason: 'releaseReason',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.LedgerFxRateScalarFieldEnum = {
+  id: 'id',
+  fromCurrency: 'fromCurrency',
+  toCurrency: 'toCurrency',
+  rateNum: 'rateNum',
+  rateDen: 'rateDen',
+  effectiveAt: 'effectiveAt',
+  cutoffAt: 'cutoffAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.LedgerReconciliationRunScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  source: 'source',
+  status: 'status',
+  discrepancyCount: 'discrepancyCount',
+  discrepancies: 'discrepancies',
+  runAt: 'runAt',
+  metadata: 'metadata'
 };
 
 exports.Prisma.SortOrder = {
@@ -1646,6 +1730,32 @@ exports.ScheduledTaskRunStatus = exports.$Enums.ScheduledTaskRunStatus = {
   CANCELED: 'CANCELED'
 };
 
+exports.LedgerAccountType = exports.$Enums.LedgerAccountType = {
+  ASSET: 'ASSET',
+  LIABILITY: 'LIABILITY',
+  REVENUE: 'REVENUE',
+  EXPENSE: 'EXPENSE',
+  EQUITY: 'EQUITY'
+};
+
+exports.LedgerEntryDirection = exports.$Enums.LedgerEntryDirection = {
+  DEBIT: 'DEBIT',
+  CREDIT: 'CREDIT'
+};
+
+exports.LedgerReservationStatus = exports.$Enums.LedgerReservationStatus = {
+  ACTIVE: 'ACTIVE',
+  COMMITTED: 'COMMITTED',
+  COMPENSATED: 'COMPENSATED',
+  RELEASED: 'RELEASED',
+  EXPIRED: 'EXPIRED'
+};
+
+exports.LedgerReconciliationStatus = exports.$Enums.LedgerReconciliationStatus = {
+  OK: 'OK',
+  DISCREPANCY: 'DISCREPANCY'
+};
+
 exports.Prisma.ModelName = {
   User: 'User',
   Account: 'Account',
@@ -1757,7 +1867,13 @@ exports.Prisma.ModelName = {
   AgentCallLog: 'AgentCallLog',
   RemixJob: 'RemixJob',
   ImportJob: 'ImportJob',
-  GalleryListing: 'GalleryListing'
+  GalleryListing: 'GalleryListing',
+  LedgerAccount: 'LedgerAccount',
+  LedgerTransaction: 'LedgerTransaction',
+  LedgerEntry: 'LedgerEntry',
+  LedgerReservation: 'LedgerReservation',
+  LedgerFxRate: 'LedgerFxRate',
+  LedgerReconciliationRun: 'LedgerReconciliationRun'
 };
 
 /**

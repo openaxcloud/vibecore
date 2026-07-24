@@ -1,0 +1,56 @@
+# IMPORT_PROVIDER_REGISTRY — les entrées du hub d'import (RPL-24 : 12 entrées,
+# snapshot doc identique au 17/07 ET au scan du 20/07 — 56b14555…).
+# GitLab : voir l'entrée STRUCTURÉE nonTileCapabilities ci-dessous (P0-LS-04 —
+# le relecteur a refusé la simple note d'en-tête). JAMAIS « retiré ».
+schemaVersion: 1
+repoCommit: 42a48091
+providers:
+  - provider: GITHUB
+    ecodeBuiltState: DEJA_CONSTRUIT
+    proof: "Import sécurisé staging jetable (2026-07-16-import, 22 tests)"
+  - provider: BITBUCKET
+    ecodeBuiltState: NON_FAIT
+  - provider: VERCEL
+    ecodeBuiltState: NON_FAIT
+    note: "D4 lot 1"
+  - provider: FIGMA
+    ecodeBuiltState: NON_FAIT
+    note: "D4 lot 2"
+  - provider: CLAUDE
+    ecodeBuiltState: NON_FAIT
+    note: "D4 lot 2"
+  - provider: BOLT
+    ecodeBuiltState: NON_FAIT
+    note: "D4 lot 1"
+  - provider: LOVABLE
+    ecodeBuiltState: NON_FAIT
+    note: "D4 lot 1"
+  - provider: BASE44
+    ecodeBuiltState: NON_FAIT
+    note: "D4 lot 1"
+  - provider: ZIP
+    ecodeBuiltState: DEJA_CONSTRUIT
+    proof: "Pipeline import archive sécurisé (IMP-1/2/3/5)"
+  - provider: SPREADSHEET
+    ecodeBuiltState: NON_FAIT
+    note: "D4 lot 3"
+  - provider: PREVIOUS_AGENT_EXPORT
+    ecodeBuiltState: NON_FAIT
+    note: "D4 lot 1"
+  - provider: EMPTY
+    ecodeBuiltState: DEJA_CONSTRUIT
+    proof: "Création projet vide (voie power-user) — à re-prouver UI (ACT-03)"
+
+# Capacités d'import CONFIRMÉES par la doc mais SANS tuile dans le hub courant
+# (P0-LS-04). Une entrée ici n'est ni une tuile (interdit par le validateur)
+# ni un retrait — c'est un état documenté, cassant en CI.
+nonTileCapabilities:
+  - capability: GITLAB
+    kind: GIT_URL_IMPORT
+    hubTileVisible: false
+    capabilityStatus: DOC_CURRENT
+    evidence: "§9.1 verbatim expert : « capacité Git confirmée par la documentation et le changelog, mais pas une tuile » ; doc/changelog Replit scannés (RPL-24, snapshot 56b14555…)"
+    ecodeBuiltState: PARTIEL
+    ecodeProof: "endpoint /import/gitlab existe (P141 builtState=PARTIEL)"
+    unknowns: [UNK-LS-GITLAB-GIT]
+    verdict: "JAMAIS écrire « retiré » sans preuve positive ; flux authentifié exact à vérifier (compte E2E)"

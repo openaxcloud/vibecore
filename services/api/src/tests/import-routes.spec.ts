@@ -42,7 +42,7 @@ class MemoryProjectStorage implements ProjectStorage {
   }
   async deleteFiles() {}
   async exportZip() {
-    return Buffer.from('');
+    return { storageKey: 'export', byteLength: 0, base64: '', createdAt: new Date().toISOString() };
   }
   async importZip() {
     return [];
@@ -53,7 +53,7 @@ class MemoryProjectStorage implements ProjectStorage {
   }
   async deleteObject() {}
   async createSnapshot() {
-    return { id: 'snap', createdAt: new Date().toISOString() };
+    return { storageKey: 'snap', byteLength: 0, createdAt: new Date().toISOString() };
   }
   async getSnapshotFiles() {
     return [];
@@ -102,7 +102,7 @@ describe('POST /orgs/:orgId/imports — secure import, no silent deletion, dispo
       method: 'POST',
       url: `/orgs/${org.id}/imports`,
       headers: auth('imp-token'),
-      payload: { provider: 'github', sourceRef: 'https://github.com/acme/app.git', files: stagedFiles() },
+      payload: { idempotencyKey: 'idem-r-1', provider: 'github', sourceRef: 'https://github.com/acme/app.git', files: stagedFiles() },
     });
 
     expect(res.statusCode).toBe(202); // quarantined, awaiting consent
@@ -134,7 +134,7 @@ describe('POST /orgs/:orgId/imports — secure import, no silent deletion, dispo
       method: 'POST',
       url: `/orgs/${org.id}/imports`,
       headers: auth('imp-token'),
-      payload: { provider: 'github', files: stagedFiles() },
+      payload: { idempotencyKey: 'idem-r-2', provider: 'github', files: stagedFiles() },
     });
 
     const importJobId = created.json().import.importJobId;
@@ -163,7 +163,7 @@ describe('POST /orgs/:orgId/imports — secure import, no silent deletion, dispo
       method: 'POST',
       url: `/orgs/${org.id}/imports`,
       headers: auth('imp-token'),
-      payload: { provider: 'github', files: stagedFiles() },
+      payload: { idempotencyKey: 'idem-r-3', provider: 'github', files: stagedFiles() },
     });
     const importJobId = created.json().import.importJobId;
     expect(created.json().import.state).toBe('AWAITING_USER_ACTION'); // staged, never resolved
@@ -198,7 +198,7 @@ describe('POST /orgs/:orgId/imports — secure import, no silent deletion, dispo
       method: 'POST',
       url: `/orgs/${org.id}/imports`,
       headers: auth('imp-token'),
-      payload: { provider: 'github', files: stagedFiles() },
+      payload: { idempotencyKey: 'idem-r-4', provider: 'github', files: stagedFiles() },
     });
     const freshId = created.json().import.importJobId;
 
@@ -214,7 +214,7 @@ describe('POST /orgs/:orgId/imports — secure import, no silent deletion, dispo
       method: 'POST',
       url: `/orgs/${org.id}/imports`,
       headers: auth('imp-token'),
-      payload: { provider: 'github', files: stagedFiles() },
+      payload: { idempotencyKey: 'idem-r-5', provider: 'github', files: stagedFiles() },
     });
 
     const importJobId = created.json().import.importJobId;
@@ -237,7 +237,7 @@ describe('POST /orgs/:orgId/imports — secure import, no silent deletion, dispo
       method: 'POST',
       url: `/orgs/${org.id}/imports`,
       headers: auth('imp-token'),
-      payload: { provider: 'github', files: stagedFiles() },
+      payload: { idempotencyKey: 'idem-r-6', provider: 'github', files: stagedFiles() },
     });
 
     const importJobId = created.json().import.importJobId;
@@ -279,7 +279,7 @@ describe('POST /orgs/:orgId/imports — secure import, no silent deletion, dispo
       method: 'POST',
       url: `/orgs/${org.id}/imports`,
       headers: auth('imp-token'),
-      payload: { provider: 'github', files: stagedFiles() },
+      payload: { idempotencyKey: 'idem-r-7', provider: 'github', files: stagedFiles() },
     });
 
     const importJobId = created.json().import.importJobId;
@@ -307,7 +307,7 @@ describe('POST /orgs/:orgId/imports — secure import, no silent deletion, dispo
       method: 'POST',
       url: `/orgs/${org.id}/imports`,
       headers: auth('imp-token'),
-      payload: { provider: 'zip', files: [{ path: 'a.txt', content: 'clean file\n' }] }, // no findings
+      payload: { idempotencyKey: 'idem-r-8', provider: 'zip', files: [{ path: 'a.txt', content: 'clean file\n' }] }, // no findings
     });
 
     const importJobId = created.json().import.importJobId;
@@ -356,7 +356,7 @@ describe('POST /orgs/:orgId/imports — secure import, no silent deletion, dispo
       method: 'POST',
       url: `/orgs/${org.id}/imports`,
       headers: auth('log-token'),
-      payload: { provider: 'github', files: stagedFiles() },
+      payload: { idempotencyKey: 'idem-r-9', provider: 'github', files: stagedFiles() },
     });
 
     const allLogs = logLines.join('\n');

@@ -205,13 +205,13 @@ export default function GalleryIndexRoute() {
                   defaultValue={query}
                   placeholder="Search apps, authors, tags…"
                   aria-label="Search the gallery"
-                  className="h-11 w-full rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] pl-9 pr-3 text-[14px] text-[var(--ecode-text)] outline-none focus:border-[var(--ecode-accent)]"
+                  className="h-11 min-h-[44px] w-full rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] pl-9 pr-3 text-[14px] text-[var(--ecode-text)] outline-none focus:border-[var(--ecode-accent)]"
                 />
                 {activeCategory !== 'all' ? <input type="hidden" name="category" value={activeCategory} /> : null}
               </div>
               <button
                 type="submit"
-                className="inline-flex h-11 items-center rounded-lg bg-[var(--ecode-accent)] px-5 text-[14px] font-semibold text-white transition hover:opacity-90"
+                className="inline-flex h-11 min-h-[44px] items-center rounded-lg bg-[var(--ecode-accent)] px-5 text-[14px] font-semibold text-white transition hover:opacity-90"
               >
                 Search
               </button>
@@ -231,7 +231,7 @@ export default function GalleryIndexRoute() {
                   onClick={() => setCategory(category.id)}
                   aria-pressed={active}
                   className={classNames(
-                    'inline-flex min-h-[36px] items-center gap-1.5 rounded-full border px-4 text-[13px] font-semibold transition',
+                    'inline-flex min-h-[44px] items-center gap-1.5 rounded-full border px-4 text-[13px] font-semibold transition',
                     active
                       ? 'border-[var(--ecode-accent)] bg-[var(--ecode-accent)] text-white'
                       : 'border-[var(--ecode-border)] bg-[var(--ecode-surface)] text-[var(--ecode-text-secondary)] hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-text)]',

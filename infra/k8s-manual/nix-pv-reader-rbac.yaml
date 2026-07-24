@@ -1,0 +1,37 @@
+# D3 multi-zone (2026-07-20) — grant MANUEL, hors chart Helm.
+#
+# Pourquoi hors chart : le service account CI (github-actions-docker@…) n'a
+# pas `container.clusterRoles.update`; un ClusterRole géré par le chart fait
+# échouer CHAQUE `helm upgrade` du CD (prouvé live : release rev 874 failed
+# + rollback atomique). Appliqué une fois à la main :
+#   kubectl apply -f infra/k8s-manual/nix-pv-reader-rbac.yaml
+#
+# Rôle : chemin de REPLI de workspaceDataZone (lecture de la nodeAffinity du
+# PV lié quand l'annotation selected-node manque). Lecture seule.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: vibecore-manager-pv-reader
+  labels:
+    app.kubernetes.io/part-of: vibecore-vibecore-platform
+    vibecore.ai/managed-by: manual-apply
+rules:
+  - apiGroups: [""]
+    resources: ["persistentvolumes"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: vibecore-manager-pv-reader
+  labels:
+    app.kubernetes.io/part-of: vibecore-vibecore-platform
+    vibecore.ai/managed-by: manual-apply
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: vibecore-manager-pv-reader
+subjects:
+  - kind: ServiceAccount
+    name: vibecore-vibecore-platform-workspace-manager
+    namespace: vibecore

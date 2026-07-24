@@ -266,6 +266,16 @@ jobs:
         with:
           version: v3.16.2
 
+      # D2 (approved 2026-07-17): MANDATORY render test before any upgrade. The
+      # rollback flag used to live only in a `kubectl set env`, which the next
+      # helm upgrade wiped — silently reviving the fake URL-copy rollback. This
+      # step proves the chart itself renders SERVER_DEPLOY_ROLLBACK_FROM_DIGEST
+      # under default values, values-prod.yaml AND legacy stored values
+      # (--reuse-values simulation), and that values.schema.json rejects a
+      # malformed value. Failing here blocks the deploy.
+      - name: Helm render test — rollback flag (blocking)
+        run: node scripts/validate-helm-rollback-flag.mjs
+
       # kubectl through Connect Gateway: the cluster control plane is
       # IP-restricted, so direct `get-gke-credentials` won't reach it from a
       # GitHub-hosted runner. Connect Gateway routes kubectl through a
@@ -306,6 +316,12 @@ jobs:
           # rollback risk. previewUrlTemplate is always re-asserted (configmap value
           # that --reuse-values would otherwise freeze).
           SETS=( --set "platformEnv.runtime.previewUrlTemplate=https://{workspaceId}-{port}.preview.e-code.ai/" )
+          # D2 (approved 2026-07-17): re-assert the digest-rollback flag on EVERY
+          # upgrade (configmap value that --reuse-values would otherwise freeze
+          # at whatever the release stored). Belt on top of the chart default
+          # "1" + values.schema.json; the post-deploy step below verifies the
+          # flag actually reached the running api pods.
+          SETS+=( --set-string "platformEnv.runtime.serverDeployRollbackFromDigest=1" )
           if [ "${{ steps.tiers.outputs.web }}" = "true" ]; then
             SETS+=( --set "services.web.imageTag=${SHORT_SHA}" )
           fi
@@ -343,6 +359,46 @@ jobs:
             kubectl -n "${HELM_NAMESPACE}" rollout status "${dep}" --timeout=5m
             echo "::endgroup::"
           done
+
+      # D2 (approved 2026-07-17): POST-DEPLOY proof that the rollback flag
+      # survived the upgrade — checked against the LIVE cluster (rendered
+      # configmap value AND the env of a running api pod), not the workflow's
+      # own inputs. If this fails the job goes red and the Notify step below
+      # alerts (job summary + Slack): that IS the "flag absent after helm
+      # upgrade" alert. A failure here does NOT auto-rollback — the deployed
+      # code fails CLOSED (api refuses URL-only rollbacks even without the
+      # env var), so red-alert-and-investigate beats a blind rollback.
+      - name: Verify rollback flag survived the upgrade (D2)
+        run: |
+          set -euo pipefail
+          CM_VALUE="$(kubectl -n "${HELM_NAMESPACE}" get configmap "${HELM_RELEASE}-vibecore-platform-platform-env" \
+            -o jsonpath='{.data.SERVER_DEPLOY_ROLLBACK_FROM_DIGEST}')"
+          echo "configmap SERVER_DEPLOY_ROLLBACK_FROM_DIGEST='${CM_VALUE}'"
+          if [ "${CM_VALUE}" != "1" ]; then
+            echo "::error::SERVER_DEPLOY_ROLLBACK_FROM_DIGEST missing/wrong in the live configmap after upgrade (got '${CM_VALUE}', want '1')" >&2
+            exit 1
+          fi
+          # `kubectl exec` is NOT available through the Connect Gateway for the
+          # CI's WIF identity (websocket upgrade denied — 5/5 retries failed on
+          # both live runs while the pods actually carried '1'). Verify WITHOUT
+          # exec, via plain GETs that DO work from here: the api Deployment's
+          # pod template must consume the flag — an explicit env entry (must be
+          # '1') or envFrom on the platform-env configmap whose live value was
+          # asserted above. Every pod the Deployment creates then starts with
+          # the flag; there is no per-pod drift channel left to check.
+          TEMPLATE_JSON="$(kubectl -n "${HELM_NAMESPACE}" get deploy "${HELM_RELEASE}-vibecore-platform-api" \
+            -o jsonpath='{.spec.template.spec.containers[0]}')"
+          EXPLICIT="$(printf '%s' "${TEMPLATE_JSON}" | jq -r '[.env // [] | .[] | select(.name=="SERVER_DEPLOY_ROLLBACK_FROM_DIGEST")][0].value // "ABSENT"')"
+          CONSUMES_CM="$(printf '%s' "${TEMPLATE_JSON}" | jq -r --arg cm "${HELM_RELEASE}-vibecore-platform-platform-env" '[.envFrom // [] | .[] | select(.configMapRef.name==$cm)] | length')"
+          echo "api pod template: explicit env='${EXPLICIT}', envFrom platform-env configmap refs=${CONSUMES_CM}"
+          if [ "${EXPLICIT}" != "ABSENT" ] && [ "${EXPLICIT}" != "1" ]; then
+            echo "::error::api pod template pins SERVER_DEPLOY_ROLLBACK_FROM_DIGEST='${EXPLICIT}' (explicit env overrides the configmap)" >&2
+            exit 1
+          fi
+          if [ "${EXPLICIT}" = "ABSENT" ] && [ "${CONSUMES_CM}" = "0" ]; then
+            echo "::error::api pod template neither sets SERVER_DEPLOY_ROLLBACK_FROM_DIGEST nor consumes the platform-env configmap" >&2
+            exit 1
+          fi
 
       # Notifications: always runs. Writes a GitHub job summary (visible on the
       # run + emailed to the actor by GitHub on failure) and, when a Slack

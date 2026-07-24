@@ -11,13 +11,15 @@ on:
     paths:
       - 'docs/parity/**'
       - 'scripts/parity/**'
+      # P0-LS-03 : l'index de hash + le vérificateur du paquet livescan vivent
+      # ici — les inclure garantit que toute altération de l'index redéclenche
+      # le job de vérification (le scan lui-même est déjà sous docs/parity/**).
+      - 'docs/deploy-evidence/2026-07-22-livescan-hashes/**'
       - '.github/workflows/parity-registries.yml'
   push:
+    # LS-16 (verdict -03) : le job d'attestation doit partir À CHAQUE push sur
+    # main — le filtre paths excluait les push code-only. Retiré.
     branches: [main]
-    paths:
-      - 'docs/parity/**'
-      - 'scripts/parity/**'
-      - '.github/workflows/parity-registries.yml'
   schedule:
     # DAILY at 05:17 UTC — deliberately not Friday-anything.
     - cron: '17 5 * * *'
@@ -25,6 +27,10 @@ on:
 
 permissions:
   contents: write
+  # LS-16 (verdict -04) : verify-attestation-run.mjs appelle « Get a workflow
+  # run » — sans actions:read, l'API répond « Resource not accessible by
+  # integration » et le contrôle est cassable.
+  actions: read
 
 concurrency:
   group: parity-registries-${{ github.ref }}
@@ -36,7 +42,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      # fetch-depth 0 : la garde anti-fictif (LS-16) vérifie que les commits de
+      # l'attestation existent dans l'HISTORIQUE — impossible en clone shallow.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -44,11 +54,110 @@ jobs:
       # repo root fails on pnpm `workspace:` protocols, so it goes into an
       # isolated dir handed to the script via PARITY_DEPS.
       - run: mkdir -p /tmp/parity-deps && cd /tmp/parity-deps && npm init -y >/dev/null && npm install yaml@2 >/dev/null
-      # APPROVAL_STATUS.json must be COMPUTED — fail if it was hand-edited / is stale.
-      - run: PARITY_DEPS=/tmp/parity-deps node scripts/parity/generate-approval-status.mjs --check
+      # P0-EX-10: the CI GENERATES every computed view for real (not just
+      # --check), then fails on ANY drift vs the committed tree — a hand-edited
+      # or stale view cannot survive this step.
+      - name: Generate all computed views
+        run: |
+          PARITY_DEPS=/tmp/parity-deps node scripts/parity/generate-approval-status.mjs
+          PARITY_DEPS=/tmp/parity-deps node scripts/parity/generate-parity-status.mjs
+          PARITY_DEPS=/tmp/parity-deps node scripts/parity/generate-implementation-status.mjs
+          PARITY_DEPS=/tmp/parity-deps node scripts/parity/generate-counter-reconciliation.mjs
+          PARITY_DEPS=/tmp/parity-deps node scripts/parity/generate-document-manifest.mjs
+      - name: Fail on drift (generated ≠ committed)
+        run: git diff --exit-code docs/parity
       # Full registry validation (cross-refs, freshness SLA, no CLOSED-without-review,
-      # no surface DONE without evidence, APPROVAL_STATUS drift).
+      # no surface DONE without evidence, computed-view drift).
       - run: PARITY_DEPS=/tmp/parity-deps node scripts/parity/validate-registries.mjs
+      # P0-LS-03 (verdict RR-20260722-CODEX-06) : la commande annoncée du point
+      # DOIT être rejouée dans un job CI officiel. Ce step recalcule le sha256 de
+      # TOUS les fichiers du paquet livescan (dont les 21 *.links.txt) et ÉCHOUE
+      # (exit 1) sur toute dérive de hash ou couverture incomplète. Aucune
+      # dépendance externe (node built-ins) → pas de PARITY_DEPS requis.
+      - name: Verify livescan hash coverage (P0-LS-03 — fails on hash drift)
+        run: node docs/deploy-evidence/2026-07-22-livescan-hashes/verify-livescan-hashes.mjs --check
+      # LS-16 (verdict -03) : AUTHENTIFIER l'attestation contre l'API GitHub —
+      # runId/commit/date/conclusion doivent correspondre à une VRAIE exécution.
+      - name: Authenticate attestation run against GitHub API
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: PARITY_DEPS=/tmp/parity-deps node scripts/parity/verify-attestation-run.mjs
+      # LS-16 (verdict -04) : test négatif de SUBSTITUTION — un run vert réel
+      # d'un AUTRE workflow, présenté comme attestation, doit être REJETÉ
+      # (identité workflow + événement vérifiés). Échec du test = build rouge.
+      - name: Negative test — foreign-run substitution must be rejected
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: PARITY_DEPS=/tmp/parity-deps node scripts/parity/verify-attestation-substitution-test.mjs
+      # P0-EX-10: PUBLISH the generated status set as a build artifact.
+      - name: Publish generated status views
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: parity-status-generated
+          path: |
+            docs/parity/APPROVAL_STATUS.json
+            docs/parity/PARITY_STATUS.md
+            docs/parity/IMPLEMENTATION_STATUS.yaml
+            docs/parity/DOCUMENT_MANIFEST.yaml
+            docs/parity/CI_ATTESTATION.yaml
+
+  roll-attestation:
+    # LS-16 : l'attestation est roulée AUTOMATIQUEMENT après chaque merge sur
+    # main — plus un commit manuel. Le job écrit SON PROPRE run id + commit +
+    # timestamp réels, régénère toutes les vues et pousse. Les pushes faits
+    # avec GITHUB_TOKEN ne redéclenchent pas les workflows → pas de boucle.
+    name: Roll CI attestation (post-merge, automatique)
+    if: github.event_name == 'push'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: mkdir -p /tmp/parity-deps && cd /tmp/parity-deps && npm init -y >/dev/null && npm install yaml@2 >/dev/null
+      - name: Roll attestation with THIS run's real identifiers
+        run: |
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          python3 - "$GITHUB_RUN_ID" "$GITHUB_SHA" "$NOW" <<'EOF'
+          import sys, re
+          run_id, sha, now = sys.argv[1], sys.argv[2], sys.argv[3]
+          p = 'docs/parity/CI_ATTESTATION.yaml'
+          t = open(p).read()
+          t = re.sub(r'repoCommit: \w+', f'repoCommit: {sha[:8]}', t, count=1)
+          t = re.sub(r'runId: \d+', f'runId: {run_id}', t)
+          t = re.sub(r'runs/\d+', f'runs/{run_id}', t)
+          t = re.sub(r'runCommit: "[0-9a-f]+"', f'runCommit: "{sha}"', t)
+          t = re.sub(r'mergedCommit: "[0-9a-f]+"', f'mergedCommit: "{sha}"', t)
+          t = re.sub(r'  repoCommit: "[0-9a-f]+"', f'  repoCommit: "{sha}"', t)  # commit dépôt déclaré = head_sha (verdict -06)
+          t = re.sub(r'mergedToMainAt: "[^"]+"', f'mergedToMainAt: "{now}"', t)
+          t = re.sub(r'runDate: "[^"]+"', f'runDate: "{now}"', t)
+          open(p, 'w').write(t)
+          EOF
+      - name: Regenerate every computed view
+        run: |
+          PARITY_DEPS=/tmp/parity-deps node scripts/parity/generate-approval-status.mjs
+          PARITY_DEPS=/tmp/parity-deps node scripts/parity/generate-parity-status.mjs
+          PARITY_DEPS=/tmp/parity-deps node scripts/parity/generate-implementation-status.mjs
+          PARITY_DEPS=/tmp/parity-deps node scripts/parity/generate-counter-reconciliation.mjs
+          PARITY_DEPS=/tmp/parity-deps node scripts/parity/generate-document-manifest.mjs
+      - run: PARITY_DEPS=/tmp/parity-deps node scripts/parity/validate-registries.mjs
+      - name: Commit the rolled attestation
+        run: |
+          git config user.name "parity-attestation-bot"
+          git config user.email "noreply@e-code.ai"
+          git add docs/parity
+          if git diff --cached --quiet; then
+            echo "attestation already current"
+          else
+            git commit -m "chore(parity): attestation roulée automatiquement (run ${GITHUB_RUN_ID} @ ${GITHUB_SHA:0:8}) — LS-16"
+            git push origin HEAD:main
+          fi
 
   collect-baseline:
     name: Daily baseline snapshot (schedule only)

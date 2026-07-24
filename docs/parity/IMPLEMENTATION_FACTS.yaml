@@ -1,0 +1,1993 @@
+# IMPLEMENTATION_FACTS — les FAITS d'implémentation par item (P0-EX-02).
+# Source de vérité ÉDITABLE : codeRefs / evidenceIds / mergedToMain /
+# partialReason / adjacentOnly. Le STATUT n'est PAS ici — il est DÉRIVÉ par
+# scripts/parity/generate-implementation-status.mjs (règles §23) et écrit
+# dans IMPLEMENTATION_STATUS.yaml (généré, drift-check CI).
+# adjacentOnly: true = les codeRefs citées sont du CONTEXTE voisin, pas une
+# implémentation de l'item (l'item reste NOT_STARTED).
+
+schemaVersion: 1
+repoCommit: af24d4fe
+measuredAtCodeCommit: f69a4b313e2e50d1069d95975e2b44d6ae20e992
+lastMeasuredAt: '2026-07-20T12:30:00Z'
+measuredBy: 6 agents Explore (overlay familles A-H) + preuves E2E_PROOFS/deploy-evidence
+items:
+- itemId: P001
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P001
+  evidenceIds:
+  - docs/deploy-evidence/2026-07-17-vertical/
+  codeRefs: app/routes/projects._index.tsx; app/routes/dashboard.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Route liste projets avec loader backend réel
+- itemId: P002
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P002
+  evidenceIds: []
+  codeRefs: app/routes/organization-switcher.tsx; app/routes/workspace-settings.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Switcher org branché sur /orgs backend
+- itemId: P003
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P003
+  evidenceIds: []
+  codeRefs: app/components/dashboard/ProjectCardMenu.tsx; app/components/dashboard/ProjectPreviewMedia.spec.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Cartes projet + preview media réels
+- itemId: P004
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P004
+  evidenceIds: []
+  codeRefs: app/routes/api.projects.$projectId.thumbnail.ts; app/routes/projects._index.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Cover media avec backend thumbnail refresh
+- itemId: P005
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P005
+  evidenceIds: []
+  codeRefs: app/routes/projects.$projectId.ide.tsx; app/components/header/Header.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: 'Barre IDE: breadcrumb, run/stop, share, deploy'
+- itemId: P006
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P006
+  evidenceIds: []
+  codeRefs: app/components/chat/BaseChat.tsx; app/components/workbench/terminal/TerminalTabs.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Panes multiples, IdePaneTab, onglets terminal
+- itemId: P007
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P007
+  evidenceIds: []
+  codeRefs: app/components/chat/BaseChat.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: ideRailToolItems + IDE_MANAGEMENT_PANELS rendus
+- itemId: P008
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P008
+  evidenceIds: []
+  codeRefs: app/routes/command-palette.tsx; app/components/dashboard/command-palette-search.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Route palette + recherche commandes réelle
+- itemId: P009
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P009
+  evidenceIds: []
+  codeRefs: app/routes/notifications.tsx; app/routes/api.notifications.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: 'Feed réel mais BD-05: pas de cloche/badge shell'
+  partialReason: 'Feed réel mais BD-05: pas de cloche/badge shell'
+- itemId: P010
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P010
+  evidenceIds: []
+  codeRefs: app/routes/account-settings.tsx; app/components/@settings/tabs
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Settings compte branchés backend (hors tabs localStorage)
+- itemId: P011
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P011
+  evidenceIds: []
+  codeRefs: app/components/chat/BaseChat.tsx:19861
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: 'Widget Resources affiche — : pas de backend compute'
+  partialReason: 'Widget Resources affiche — : pas de backend compute'
+- itemId: P012
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P012
+  evidenceIds: []
+  codeRefs: app/routes/docs.tsx; app/routes/status.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Docs/status réels; help orphelin mais construit
+- itemId: P013
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P013
+  evidenceIds: []
+  codeRefs: app/components/workbench/FileTree.tsx; app/components/chat/BaseChat.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Arbre fichiers branché sur runtime files
+- itemId: P014
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P014
+  evidenceIds:
+  - docs/deploy-evidence/2026-07-17-vertical/
+  codeRefs: app/components/editor/codemirror/CodeMirrorEditor.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Éditeur CodeMirror complet et câblé
+- itemId: P015
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P015
+  evidenceIds: []
+  codeRefs: app/components/workbench/Search.tsx; app/components/workbench/search-replace.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Recherche et remplacement dans fichiers réels
+- itemId: P016
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P016
+  evidenceIds: []
+  codeRefs: services/api/src/editor
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Indexation symboles backend, no-UI-by-design, aucune surface
+  partialReason: Indexation symboles backend, no-UI-by-design, aucune surface
+- itemId: P017
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P017
+  evidenceIds: []
+  codeRefs: app/lib/stores/diagnostics.ts; app/components/chat/BaseChat.tsx:8713
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Vue Problems branchée sur diagnostics runtime réels
+- itemId: P018
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P018
+  evidenceIds: []
+  codeRefs: app/lib/stores/workbench.ts:1952; app/components/chat/BaseChat.tsx:6723
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: formatCurrentDocument câblé sur bouton onFormat
+- itemId: P019
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P019
+  evidenceIds: []
+  codeRefs: app/routes/projects.$projectId.logs.tsx; app/routes/api.projects.$projectId.ide-panel.$panel.ts:1100
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Console/logs runtime réels streamés
+- itemId: P020
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P020
+  evidenceIds: []
+  codeRefs: app/components/workbench/terminal/TerminalManager.tsx; app/components/workbench/terminal/terminal-session.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Shell terminal branché sur workspace pod
+- itemId: P021
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P021
+  evidenceIds: []
+  codeRefs: app/routes/api.projects.$projectId.ide-panel.$panel.ts:3688; app/components/chat/BaseChat.tsx:10441
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: 'SSH réel: push/pull/keypair exécutés dans le pod'
+- itemId: P022
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P022
+  evidenceIds: []
+  codeRefs: app/routes/api.projects.$projectId.ide-panel.$panel.ts; docs/parity/BOLT_DEBT_REGISTRY.yaml
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: 'BD-03: schedule/cron jamais déclenché, feature morte'
+  partialReason: 'BD-03: schedule/cron jamais déclenché, feature morte'
+- itemId: P023
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P023
+  evidenceIds: []
+  codeRefs: app/routes/projects.$projectId.ide.helpers.ts; app/routes/projects.$projectId.ide.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Run/Stop via restartWorkspace + statut workspace réel
+- itemId: P024
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P024
+  evidenceIds:
+  - docs/deploy-evidence/2026-07-17-vertical/
+  codeRefs: app/components/workbench/Preview.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Preview web branché sur ports runtime, tests e2e
+- itemId: P025
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P025
+  evidenceIds: []
+  codeRefs: app/components/workbench/Inspector.tsx; docs/parity/BOLT_DEBT_REGISTRY.yaml
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: 'BD-11: DevTools console/network limités aux erreurs/navigations'
+  partialReason: 'BD-11: DevTools console/network limités aux erreurs/navigations'
+- itemId: P026
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P026
+  evidenceIds: []
+  codeRefs: app/components/workbench/PortDropdown.tsx; app/routes/api.projects.$projectId.ide-panel.$panel.ts:560
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Ports forwarded réels depuis runtime
+- itemId: P027
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P027
+  evidenceIds: []
+  codeRefs: app/routes/api.projects.$projectId.ide-panel.$panel.ts:721; app/components/chat/BaseChat.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Panel Packages branché sur dépendances runtime réelles
+- itemId: P028
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P028
+  evidenceIds: []
+  codeRefs: app/routes/advanced.$section.tsx; app/routes/projects.$projectId.settings.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Réglages projet avancés backend réels
+- itemId: P029
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P029
+  evidenceIds: []
+  codeRefs: app/components/git/GitTab.tsx; app/routes/api.projects.$projectId.ide-panel.$panel.ts:2867
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Git commit/push/pull exécutés dans le pod
+- itemId: P030
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P030
+  evidenceIds: []
+  codeRefs: app/components/workbench/Workbench.client.tsx:365; app/components/workbench/DiffView.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: FileHistory diff de session, pas d'historique persistant par fichier
+  partialReason: FileHistory diff de session, pas d'historique persistant par fichier
+- itemId: P031
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P031
+  evidenceIds: []
+  codeRefs: app/routes/projects.$projectId.snapshots.tsx; app/routes/snapshot-restore-database.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Checkpoints/snapshots avec restore backend réel
+- itemId: P032
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P032
+  evidenceIds: []
+  codeRefs: services/api/src/database-rollback-service.ts; docs/parity/BOLT_DEBT_REGISTRY.yaml
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: 'BD-20: PITR WAL replay jamais prouvé, flag OFF prod'
+  partialReason: 'BD-20: PITR WAL replay jamais prouvé, flag OFF prod'
+- itemId: P033
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P033
+  evidenceIds: []
+  codeRefs: app/routes/projects.$projectId.secrets.tsx; app/routes/api.projects.$projectId.ide-panel.$panel.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Panel Secrets add/delete branché backend réel
+- itemId: P034
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P034
+  evidenceIds: []
+  codeRefs: app/routes/api.chat.ts; app/components/chat/BaseChat.tsx; app/components/chat/Messages.client.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Agent chat complet, route+stream branchés
+- itemId: P035
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P035
+  evidenceIds:
+  - docs/deploy-evidence/2026-07-16-agent-modes/
+  codeRefs: app/components/chat/ChatBoxModeDropdown.tsx; app/components/chat/AgentPowerControls.tsx; services/api/src/agent-routing-service.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Lite/Economy/Power prouvés live (E2E-AGM-A..F)
+- itemId: P036
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P036
+  evidenceIds: []
+  codeRefs: app/lib/.server/llm/agent-orchestration.ts; app/components/chat/PlanChecklist.tsx; app/lib/chat/plan-checklist.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Toggle Plan (planFirst) + orchestration + checklist rendus
+- itemId: P037
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P037
+  evidenceIds: []
+  codeRefs: app/components/chat/PlanChecklist.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Pas de task board persistant; seule checklist de plan existe
+  adjacentOnly: true
+- itemId: P038
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P038
+  evidenceIds: []
+  codeRefs: app/lib/chat/plan-checklist.ts; app/components/chat/PlanChecklist.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Statuts pending/in_progress/completed/failed dans checklist, pas d'entité tâche
+  partialReason: Statuts pending/in_progress/completed/failed dans checklist, pas d'entité tâche
+- itemId: P039
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P039
+  evidenceIds: []
+  codeRefs: app/components/chat/BaseChat.tsx#buildProjectAgentSuggestions
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Chips de suggestions contextuelles, pas de vraies tâches de suivi
+  partialReason: Chips de suggestions contextuelles, pas de vraies tâches de suivi
+- itemId: P040
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P040
+  evidenceIds: []
+  codeRefs: ''
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Aucune file de messages pendant le streaming agent
+- itemId: P041
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P041
+  evidenceIds: []
+  codeRefs: app/components/chat/AgentRepairHistory.tsx; app/routes/api.projects.$projectId.agent-repair-events.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Historique/activité de réparation agent branché à route
+- itemId: P042
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P042
+  evidenceIds: []
+  codeRefs: app/components/chat/MessagePatchReview.tsx; app/components/chat/DiffActionRow.tsx; app/routes/api.projects.$projectId.agent-patch-proposals.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: File de propositions patch + revue diff câblée
+- itemId: P043
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P043
+  evidenceIds: []
+  codeRefs: ''
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Aucun agent App Testing; toggle absent du code
+- itemId: P044
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P044
+  evidenceIds: []
+  codeRefs: services/api/src/skills-catalog.ts; services/api/src/skills-github-fetch.ts; app/routes/api.projects.$projectId.ide-panel.skills.action.spec.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Catalogue skills + install routes + panneau IDE
+- itemId: P045
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P045
+  evidenceIds: []
+  codeRefs: app/lib/.server/llm/project-rules.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: AGENTS.md/.cursorrules/claude.md injectés dans system prompt
+- itemId: P046
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P046
+  evidenceIds: []
+  codeRefs: app/components/settings/WorkspaceSettings.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: WorkspaceSettings = éditeur/thème, pas d'instructions agent workspace
+  adjacentOnly: true
+- itemId: P047
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P047
+  evidenceIds: []
+  codeRefs: app/routes/api.web-search.ts; app/components/chat/WebSearch.client.tsx; app/lib/web-search-body.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Route fetch réelle avec garde SSRF
+- itemId: P048
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P048
+  evidenceIds: []
+  codeRefs: app/components/chat/SpeechRecognition.tsx; app/components/chat/ChatBox.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Dictée SpeechRecognition câblée au composer (isListening)
+- itemId: P049
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P049
+  evidenceIds: []
+  codeRefs: ''
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Aucune génération d'images
+- itemId: P050
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P050
+  evidenceIds: []
+  codeRefs: ''
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Aucune génération audio
+- itemId: P051
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P051
+  evidenceIds: []
+  codeRefs: ''
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Aucune génération vidéo/3D
+- itemId: P052
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P052
+  evidenceIds: []
+  codeRefs: app/components/chat/connector-cards/ConnectionRequestCard.tsx; app/lib/connectors/connector-token.server.ts; app/routes/api.connector-token.$provider.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Cartes connecteurs + token serveur branchés dans le chat
+- itemId: P053
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P053
+  evidenceIds: []
+  codeRefs: app/components/chat/MCPTools.tsx; app/lib/services/mcpService.ts; app/routes/api.chat.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Exécution réelle d'outils MCP par requête
+- itemId: P054
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P054
+  evidenceIds: []
+  codeRefs: ''
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Aucun Agent Inbox (inbox = notifications seulement)
+- itemId: P055
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P055
+  evidenceIds: []
+  codeRefs: services/api/src/skills-catalog.ts#code-review; app/routes/api.ai.features.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Entrée skill Code Review, pas de flux/panneau dédié
+  partialReason: Entrée skill Code Review, pas de flux/panneau dédié
+- itemId: P056
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P056
+  evidenceIds: []
+  codeRefs: app/lib/ide-panel-security.ts; app/routes/api.projects.$projectId.ide-panel.$panel.ts#security
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Scanner sécurité (secrets/scans planifiés), pas d'agent autonome
+  partialReason: Scanner sécurité (secrets/scans planifiés), pas d'agent autonome
+- itemId: P057
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P057
+  evidenceIds: []
+  codeRefs: services/api/src/scheduled-tasks.ts; app/routes/api.projects.$projectId.scheduled-tasks.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Tâches cron exécuteur réel prouvé; event-driven/connecteurs manquant
+- itemId: P058
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P058
+  evidenceIds: []
+  codeRefs: app/lib/stores/workbench.ts:98; app/components/chat/Artifact.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Vue code/diff/preview/git seulement; pas de switch multi-artefacts (1 projet=1 app)
+  adjacentOnly: true
+- itemId: P059
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P059
+  evidenceIds: []
+  codeRefs: app/routes/dashboard_.templates.tsx; app/routes/gallery._index.tsx; app/routes/explore.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Dashboard projets + templates/gallery; pas de surface 'Library' d'artefacts unifiée
+  partialReason: Dashboard projets + templates/gallery; pas de surface 'Library' d'artefacts unifiée
+- itemId: P060
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P060
+  evidenceIds: []
+  codeRefs: app/components/workbench/FileTree.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: FileTree pour fichiers uniquement; aucun asset browser trouvé
+  adjacentOnly: true
+- itemId: P061
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P061
+  evidenceIds: []
+  codeRefs: ''
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Aucun canvas de design dans le code
+- itemId: P062
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P062
+  evidenceIds: []
+  codeRefs: ''
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Aucun outil média canvas
+- itemId: P063
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P063
+  evidenceIds: []
+  codeRefs: app/components/workbench/Inspector.tsx; app/components/workbench/InspectorPanel.tsx; app/components/workbench/Preview.tsx:628
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Inspecteur d'élément câblé, localise source JSX; panneau lecture seule
+  partialReason: Inspecteur d'élément câblé, localise source JSX; panneau lecture seule
+- itemId: P064
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P064
+  evidenceIds: []
+  codeRefs: app/routes/projects.new.tsx:88; app/components/workbench/Preview.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Catégorie web + preview prouvée (E2E-VERTICAL-PREVIEW Flask h1)
+- itemId: P065
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P065
+  evidenceIds: []
+  codeRefs: app/routes/projects.new.tsx:104; app/components/workbench/ExpoQrModal.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Catégorie Expo/RN PWA + QR preview sur device; pas de natif
+  partialReason: Catégorie Expo/RN PWA + QR preview sur device; pas de natif
+- itemId: P066
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P066
+  evidenceIds: []
+  codeRefs: app/components/workbench/ExpoQrModal.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Seulement QR Expo Go sur son téléphone; aucun simulateur iOS
+  adjacentOnly: true
+- itemId: P067
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P067
+  evidenceIds: []
+  codeRefs: ''
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Aucun émulateur Android
+- itemId: P068
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P068
+  evidenceIds: []
+  codeRefs: app/routes/projects.new.tsx:120
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Catégorie slides = preset de génération (deck web); pas d'éditeur dédié
+  partialReason: Catégorie slides = preset de génération (deck web); pas d'éditeur dédié
+- itemId: P069
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P069
+  evidenceIds: []
+  codeRefs: app/routes/projects.new.tsx:120
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Speaker notes seulement évoqué dans generationHint; pas de mode présentateur
+  adjacentOnly: true
+- itemId: P070
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P070
+  evidenceIds: []
+  codeRefs: ''
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Aucun export de slides
+- itemId: P071
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P071
+  evidenceIds: []
+  codeRefs: app/routes/projects.new.tsx:168; app/components/chat/MermaidBlock.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Catégorie data + diagrammes Mermaid chat; pas de renderer dataviz dédié
+  partialReason: Catégorie data + diagrammes Mermaid chat; pas de renderer dataviz dédié
+- itemId: P072
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P072
+  evidenceIds: []
+  codeRefs: app/routes/projects.new.tsx:136
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Catégorie animation = preset CSS motion web; pas de vidéo
+  partialReason: Catégorie animation = preset CSS motion web; pas de vidéo
+- itemId: P073
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P073
+  evidenceIds: []
+  codeRefs: app/routes/projects.new.tsx:200
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Catégorie game = preset génération; pas de moteur 3D dédié
+  partialReason: Catégorie game = preset génération; pas de moteur 3D dédié
+- itemId: P074
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P074
+  evidenceIds: []
+  codeRefs: app/routes/projects.new.tsx:152
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Catégorie design = preset génération vers app web
+  partialReason: Catégorie design = preset génération vers app web
+- itemId: P075
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P075
+  evidenceIds: []
+  codeRefs: app/routes/projects.new.tsx:216; app/components/chat/Markdown.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Catégorie document + rendu Markdown/Mermaid chat; pas d'éditeur doc
+  partialReason: Catégorie document + rendu Markdown/Mermaid chat; pas d'éditeur doc
+- itemId: P076
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P076
+  evidenceIds: []
+  codeRefs: app/routes/dashboard_.templates.tsx; app/routes/projects.new.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Gestion niveau projet (dashboard CRUD); pas de gestion par artefact
+  partialReason: Gestion niveau projet (dashboard CRUD); pas de gestion par artefact
+- itemId: P077
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P077
+  evidenceIds: []
+  codeRefs: app/components/database/DatabaseStudio.tsx; app/components/database/DatabasePanel.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Surface 'My Data' câblée aux routes DB réelles (zero mock)
+- itemId: P078
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P078
+  evidenceIds: []
+  codeRefs: app/components/deploy/DeployButton.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Deploy publie une app unique; pas de publication groupée d'artefacts
+  adjacentOnly: true
+- itemId: P079
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P079
+  evidenceIds: []
+  codeRefs: app/components/database/DatabaseWorkbench.tsx; app/routes/api.projects.$projectId.ide-panel.$panel.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Vue racine All Databases cartes usage, live API
+- itemId: P080
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P080
+  evidenceIds: []
+  codeRefs: app/components/database/DatabaseWorkbench.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Onglet Overview du workbench, données live
+- itemId: P081
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P081
+  evidenceIds: []
+  codeRefs: app/components/database/DatabaseStudio.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Table browser + schema live
+- itemId: P082
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P082
+  evidenceIds: []
+  codeRefs: app/components/database/DatabaseStudio.tsx; services/api/src/app.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: SQL editor R/W transactionnel CNPG réel
+- itemId: P083
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P083
+  evidenceIds: []
+  codeRefs: app/components/database/DatabaseSettings.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Connection string + storage + rollback section, wired
+- itemId: P084
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P084
+  evidenceIds: []
+  codeRefs: app/components/database/DatabaseRollbackPanel.tsx; services/api/src/database-rollback-service.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Scaffold Phase-1 dormant DB_ROLLBACK_ENABLED, backend 404, pas d'executor
+  partialReason: Scaffold Phase-1 dormant DB_ROLLBACK_ENABLED, backend 404, pas d'executor
+- itemId: P085
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P085
+  evidenceIds: []
+  codeRefs: services/api/src/database-provisioner.ts; app/components/database/DatabasePanel.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Provisioner dev/prod codé; split UI seulement si backend l'expose
+  partialReason: Provisioner dev/prod codé; split UI seulement si backend l'expose
+- itemId: P086
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P086
+  evidenceIds: []
+  codeRefs: services/api/src/app.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: assertReadOnlySql existe mais non câblé; SQL pane full R/W
+  partialReason: assertReadOnlySql existe mais non câblé; SQL pane full R/W
+- itemId: P087
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P087
+  evidenceIds: []
+  codeRefs: app/components/chat/BaseChat.tsx; services/api/src/object-storage.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: ProjectObjectStoragePanel, GCS réel, flag OBJECT_STORAGE_ENABLED
+- itemId: P088
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P088
+  evidenceIds: []
+  codeRefs: app/components/chat/BaseChat.tsx; app/routes/api.projects.$projectId.ide-panel.$panel.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Objects list/upload/download/move/delete via signed URLs GCS
+- itemId: P089
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P089
+  evidenceIds: []
+  codeRefs: services/api/src/auth-scaffold.ts; app/routes/api.projects.$projectId.auth-scaffold.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Scaffold auth réel mais dormant AUTH_SCAFFOLD_ENABLED, pas de gestion users live
+  partialReason: Scaffold auth réel mais dormant AUTH_SCAFFOLD_ENABLED, pas de gestion users live
+- itemId: P090
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P090
+  evidenceIds: []
+  codeRefs: ''
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Aucune surface tokens d'accès externes pour l'app générée
+- itemId: P091
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P091
+  evidenceIds: []
+  codeRefs: app/components/chat/BaseChat.tsx; docs/parity/BOLT_DEBT_REGISTRY.yaml
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: INTEGRATION_CATALOG hardcodé, sync no-op (BD-01)
+  partialReason: INTEGRATION_CATALOG hardcodé, sync no-op (BD-01)
+- itemId: P092
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P092
+  evidenceIds: []
+  codeRefs: app/routes/admin.oauth-providers.tsx; app/routes/api.integrations.oauth.$provider.connect.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Config OAuth DB-backed + flow connect réel github/gitlab/bitbucket
+- itemId: P093
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P093
+  evidenceIds: []
+  codeRefs: app/components/chat/BaseChat.tsx; app/routes/api.projects.$projectId.ide-panel.$panel.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: status/successRate/lastSync factices posés au connect, pas de vraie santé
+  partialReason: status/successRate/lastSync factices posés au connect, pas de vraie santé
+- itemId: P094
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P094
+  evidenceIds: []
+  codeRefs: app/components/@settings/tabs/mcp/McpTab.tsx; services/api/src/mcp-marketplace.ts; app/routes/api.mcp.installs.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Tab MCP + marketplace DB-backed + installs API + exécution réelle
+- itemId: P095
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P095
+  evidenceIds:
+  - docs/deploy-evidence/2026-07-15-phase-b/
+  codeRefs: app/routes/projects.$projectId.deployments.tsx; app/components/deploy/DeploymentOverview.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Overview + publish card câblés au pipeline server, preuve READY 200
+- itemId: P096
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P096
+  evidenceIds: []
+  codeRefs: app/routes/projects.$projectId.deployments.tsx:571-640; app/components/deploy/deployment-types.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Static/server auto-détecté + override; sélecteur 4-tiers orphelin, reserved-vm coming-soon
+- itemId: P097
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P097
+  evidenceIds:
+  - docs/deploy-evidence/2026-07-16-zone-autoscale/
+  codeRefs: app/routes/projects.$projectId.deployments.tsx:575-598; services/api/src/rate-card-service.spec.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Machine size servi par rate card versionné, metering prouvé
+- itemId: P098
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P098
+  evidenceIds: []
+  codeRefs: app/routes/projects.$projectId.deployments.tsx:224-227,613
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Env vars + injectSecrets câblés au publish, secrets injectés prouvés
+- itemId: P099
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P099
+  evidenceIds: []
+  codeRefs: services/api/src/object-storage.ts:21; app/components/marketing/EcodeProductMarketingPages.tsx:1390
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Région unique europe-west9 hardcodée; aucun sélecteur de région
+  adjacentOnly: true
+- itemId: P100
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P100
+  evidenceIds: []
+  codeRefs: app/routes/projects.$projectId.domains.tsx:109-125; app/routes/organization-domains.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Ajout domaine custom + vérif DNS TXT réelle + TLS, wizard fonctionnel
+- itemId: P101
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P101
+  evidenceIds: []
+  codeRefs: app/components/deploy/DeploymentOverview.tsx:94-99
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Bouton Buy a new domain (Beta) redirige vers connect; aucun achat réel
+  adjacentOnly: true
+- itemId: P102
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P102
+  evidenceIds: []
+  codeRefs: app/components/deploy/DeploymentOverview.tsx:80-84
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Visibility affiche Public en dur, purement décoratif, sans contrôle
+  partialReason: Visibility affiche Public en dur, purement décoratif, sans contrôle
+- itemId: P103
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P103
+  evidenceIds: []
+  codeRefs: app/components/deploy/DeploymentOverview.tsx:80-84
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Aucun contrôle de visibilité privée sur les déploiements
+  adjacentOnly: true
+- itemId: P104
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P104
+  evidenceIds: []
+  codeRefs: app/components/deploy/DeploymentOverview.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Aucune protection par mot de passe des déploiements
+  adjacentOnly: true
+- itemId: P105
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P105
+  evidenceIds: []
+  codeRefs: app/routes/projects.$projectId.database.tsx; services/api/src/database-provisioner.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Page DB + provision/schema/query réels; PITR restore feature-flaggé
+- itemId: P106
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P106
+  evidenceIds: []
+  codeRefs: app/routes/api.monitoring.performance.ts; app/routes/admin.$section.tsx:251
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Endpoints/admin monitoring existent; 12 métriques Prometheus no-data, rien per-app
+  partialReason: Endpoints/admin monitoring existent; 12 métriques Prometheus no-data, rien per-app
+- itemId: P107
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P107
+  evidenceIds:
+  - docs/deploy-evidence/2026-07-17-vertical/
+  codeRefs: app/routes/projects.$projectId.deployments.tsx:671-728
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: DeployLogsView stream logs build/deploy réels redigés, prouvé
+- itemId: P108
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P108
+  evidenceIds: []
+  codeRefs: app/components/marketing/ecode-exact/pages/PublicDeploymentsSections.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Analytics applicatives seulement en marketing; aucun code produit
+  adjacentOnly: true
+- itemId: P109
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P109
+  evidenceIds: []
+  codeRefs: app/routes/usage.tsx; app/components/deploy/DeploymentOverview.tsx:103-121
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Usage/metering org réel + ligne Type; pas de graphes ressources per-deploy
+  partialReason: Usage/metering org réel + ligne Type; pas de graphes ressources per-deploy
+- itemId: P110
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P110
+  evidenceIds: []
+  codeRefs: ''
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Aucun widget de feedback dans le code
+- itemId: P111
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P111
+  evidenceIds: []
+  codeRefs: app/routes/projects.$projectId.deployments.tsx:428-432; app/components/chat/BaseChat.tsx:18164-18293
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Bouton deploy security scan disabled (coming soon); scanner SAST IDE réel mais non-gate
+  partialReason: Bouton deploy security scan disabled (coming soon); scanner SAST IDE réel mais non-gate
+- itemId: P112
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P112
+  evidenceIds: []
+  codeRefs: app/routes/projects.$projectId.deployments.tsx:766-820
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: DeployHistory rend les déploiements réels avec redeploy/cancel/rollback
+- itemId: P113
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P113
+  evidenceIds:
+  - docs/deploy-evidence/2026-07-17-rollback/
+  codeRefs: app/routes/projects.$projectId.deployments.tsx:287-292,950-983
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Rollback par digest live prouvé, audit event, 2 négatifs 409
+- itemId: P114
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P114
+  evidenceIds: []
+  codeRefs: services/api/src/app.ts:8130-8260; services/api/src/deployments.ts:711-791
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Serving static + CSP sandbox/CORP réels; aucune UI config avancée
+  partialReason: Serving static + CSP sandbox/CORP réels; aucune UI config avancée
+- itemId: P115
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P115
+  evidenceIds:
+  - docs/deploy-evidence/2026-07-16-zone-autoscale/
+  codeRefs: app/routes/api.projects.$projectId.scheduled-tasks.ts; services/api/src/scheduled-tasks.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Cron exécuteur + runs/logs/billing persistés, prouvé volume réel
+- itemId: P116
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P116
+  evidenceIds: []
+  codeRefs: ''
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Aucune surface SEO rating dans le code
+- itemId: P117
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P117
+  evidenceIds: []
+  codeRefs: ''
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Aucun agent SEO dans le code
+- itemId: P118
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P118
+  evidenceIds: []
+  codeRefs: ''
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Aucun hub de monétisation dans le code
+- itemId: P119
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P119
+  evidenceIds: []
+  codeRefs: services/api/src/collaboration-presence-cleanup.ts; schema.prisma:527
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Modèle presence + endpoints ws + cleanup câblés
+- itemId: P120
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P120
+  evidenceIds: []
+  codeRefs: services/api/src/app.ts (collaboration/ai-conversation); schema.prisma:1006
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Thread agent partagé + panel share
+- itemId: P121
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P121
+  evidenceIds: []
+  codeRefs: app/routes/projects.$projectId.collaborators.tsx; schema.prisma:496
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Collaborateurs branchés
+- itemId: P122
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P122
+  evidenceIds: []
+  codeRefs: app/routes/organization-members.tsx; schema.prisma:182
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Adhésions org câblées
+- itemId: P123
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P123
+  evidenceIds: []
+  codeRefs: ''
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Aucun modèle/endpoint Groups
+- itemId: P124
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P124
+  evidenceIds: []
+  codeRefs: schema.prisma:565 ProjectShareLink
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Share-links; pas d'entité guest dédiée
+  partialReason: Share-links; pas d'entité guest dédiée
+- itemId: P125
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P125
+  evidenceIds: []
+  codeRefs: services/api/src/import-pipeline.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Scan secrets import; pas de security center projet
+  partialReason: Scan secrets import; pas de security center projet
+- itemId: P126
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P126
+  evidenceIds: []
+  codeRefs: app/routes/organization-security.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Centre sécurité workspace + events câblés
+- itemId: P127
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P127
+  evidenceIds: []
+  codeRefs: ''
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Aucun package firewall
+- itemId: P128
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P128
+  evidenceIds: []
+  codeRefs: schema.prisma:1461 McpGlobalPolicy
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Enterprise settings + policies câblées
+- itemId: P129
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P129
+  evidenceIds: []
+  codeRefs: app/routes/enterprise-sso-settings.tsx; schema.prisma:1271
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: SAML+OIDC câblés; relecture manquante (bolt gap)
+- itemId: P130
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P130
+  evidenceIds: []
+  codeRefs: app/routes/scim-token-settings.tsx; schema.prisma:1284
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: SCIM Users + tokens câblés
+- itemId: P131
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P131
+  evidenceIds: []
+  codeRefs: services/api/src/app.ts (/scim/v2/:orgId/Users)
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: SCIM Groups absent
+  adjacentOnly: true
+- itemId: P132
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P132
+  evidenceIds: []
+  codeRefs: app/routes/audit-logs.tsx; schema.prisma:793
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Audit logs + export câblés
+- itemId: P133
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P133
+  evidenceIds: []
+  codeRefs: app/routes/organization-siem.tsx; schema.prisma:1314
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Webhooks SIEM + test câblés
+- itemId: P134
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P134
+  evidenceIds: []
+  codeRefs: app/routes/billing.tsx; services/api/src/ledger-core.ts; services/api/src/ledger-store.ts
+  lastMeasuredAt: '2026-07-20T21:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: 'Caps budget UI ; adossés au crédit SHADOW non activé. Grand livre CANONIQUE à double entrée durable implémenté + prouvé en réel (Postgres) — double entrée stricte, décimal exact/FX/cutoff, compensation par écriture inverse, réservation durable, rapprochement, hard limits (P0-V3-12) — branche feat/billing-double-entry-ledger, PR non mergée, PROVEN_REVIEW_PENDING.'
+  partialReason: Caps budget UI ; adossés au crédit SHADOW non activé
+- itemId: P135
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P135
+  evidenceIds: []
+  codeRefs: app/routes/usage-limits.tsx; services/api/src/spend-alerts.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Limites + alertes câblées (métrage shadow)
+- itemId: P136
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P136
+  evidenceIds: []
+  codeRefs: app/routes/plan-comparison.tsx; schema.prisma:873
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Plans/entitlements + abonnement Stripe câblés
+- itemId: P137
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P137
+  evidenceIds: []
+  codeRefs: app/components/marketing/ecode-exact/pages/Pricing.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Sièges en marketing seul
+  adjacentOnly: true
+- itemId: P138
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P138
+  evidenceIds: []
+  codeRefs: app/routes/invoices.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Factures + portail Stripe câblés
+- itemId: P139
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P139
+  evidenceIds: []
+  codeRefs: services/api/src/app.ts (usage/breakdown)
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Endpoints usage/coût ; pas de dashboard dédié
+  partialReason: Endpoints usage/coût ; pas de dashboard dédié
+- itemId: P140
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P140
+  evidenceIds:
+  - docs/deploy-evidence/2026-07-16-import/
+  - docs/deploy-evidence/2026-07-20-import-state-machine/
+  codeRefs: app/routes/import-github.tsx; services/api/src/import-pipeline.ts; services/api/src/import-billing.ts
+  lastMeasuredAt: '2026-07-20T20:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: 'Import GitHub exécuté + staging sécurisé + preuve e2e. Machine à états ALIGNÉE sur le contrat §9.2 (READY_TO_COMMIT/RESCANNING, commit atomique depuis READY_TO_COMMIT seul) + billing minimal de sûreté (réservation idempotente, débit si commit seul) — branche feat/import-state-machine-p0ex04 (P0-EX-04), PR non mergée.'
+- itemId: P141
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P141
+  evidenceIds: []
+  codeRefs: services/api/src/app.ts:18660 (/import/gitlab)
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Endpoint git partagé existe ; pas exécuté, pas de tuile hub
+  partialReason: Endpoint git partagé existe ; pas exécuté, pas de tuile hub
+- itemId: P142
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P142
+  evidenceIds: []
+  codeRefs: services/api/src/app.ts:18663; services/api/src/integrations/providers/bitbucket.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Bitbucket exécuté + tuile + provider
+- itemId: P143
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P143
+  evidenceIds: []
+  codeRefs: app/routes/import-zip.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Import ZIP exécuté + staging sécurisé
+- itemId: P144
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P144
+  evidenceIds: []
+  codeRefs: services/api/src/import-pipeline.ts (IMPORT_HUB_PROVIDERS figma)
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Tuile Figma modélisée, non exécutée
+  partialReason: Tuile Figma modélisée, non exécutée
+- itemId: P145
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P145
+  evidenceIds: []
+  codeRefs: app/components/chat/BaseChat.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Screenshot = référence Agent ; pas de recréation dédiée
+  adjacentOnly: true
+- itemId: P146
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P146
+  evidenceIds: []
+  codeRefs: app/routes/api.projects.$projectId.export.zip.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Export ZIP projet câblé
+- itemId: P147
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P147
+  evidenceIds: []
+  codeRefs: services/api/src/object-storage.ts; schema.prisma:710
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Download-url object storage câblé
+- itemId: P148
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P148
+  evidenceIds:
+  - docs/deploy-evidence/2026-07-16-remix/
+  - docs/deploy-evidence/2026-07-17-gallery/
+  codeRefs: services/api/src/remix-pipeline.ts; schema.prisma:2302
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Remix snapshot-pinné + preuve e2e
+- itemId: P149
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P149
+  evidenceIds: []
+  codeRefs: app/routes/desktop.tsx; electron/
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: App Electron + workflow release ; produit non certifié
+  partialReason: App Electron + workflow release ; produit non certifié
+- itemId: P150
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P150
+  evidenceIds: []
+  codeRefs: app/routes/mobile.tsx; app/routes/mobile-workspace.$projectId.tsx
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Routes mobile + release workflow ; non certifié
+  partialReason: Routes mobile + release workflow ; non certifié
+- itemId: P151
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P151
+  evidenceIds: []
+  codeRefs: ''
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Aucune entrée ChatGPT
+- itemId: P152
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P152
+  evidenceIds: []
+  codeRefs: ''
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Aucune entrée Claude
+- itemId: P153
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P153
+  evidenceIds: []
+  codeRefs: ''
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Aucune entrée Slack
+- itemId: P154
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P154
+  evidenceIds: []
+  codeRefs: ''
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Aucun Open in Replit
+- itemId: P155
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P155
+  evidenceIds: []
+  codeRefs: services/api/src/tests/connector-store.spec.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Linear via connecteur/MCP ; pas d'intégration dédiée
+  partialReason: Linear via connecteur/MCP ; pas d'intégration dédiée
+- itemId: P156
+  itemType: SURFACE
+  codeCommit: null
+  mergedToMain: false
+  deploymentEnvironment: null
+  surfaceIds:
+  - P156
+  evidenceIds: []
+  codeRefs: ''
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Aucun CLI
+- itemId: P157
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P157
+  evidenceIds: []
+  codeRefs: app/routes/api-keys.tsx; schema.prisma:1332
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Clés API scopes câblées ; pas d'API REST publique produit
+  partialReason: Clés API scopes câblées ; pas d'API REST publique produit
+- itemId: P158
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: false
+  deploymentEnvironment: production
+  surfaceIds:
+  - P158
+  evidenceIds: []
+  codeRefs: services/api/src/app.ts (webhooks entrants + SIEM sortants)
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Pas de produit webhooks générique
+  partialReason: Pas de produit webhooks générique
+- itemId: P159
+  itemType: SURFACE
+  codeCommit: f69a4b313e2e
+  mergedToMain: true
+  deploymentEnvironment: production
+  surfaceIds:
+  - P159
+  evidenceIds: []
+  codeRefs: app/routes/status.tsx; app/routes/api.status.incidents.ts
+  lastMeasuredAt: '2026-07-20T12:30:00Z'
+  measuredBy: agent-overlay-2026-07-20
+  notes: Page statut + endpoints câblés

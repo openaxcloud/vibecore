@@ -62,6 +62,12 @@ export interface ServerAppSpec {
   createIngress?: boolean;
   nixStorePvcName?: string;
 
+  /** D3 multi-zone: zone of the mounted store clone (pins the app pod there). */
+  nixStoreZone?: string;
+
+  /** D3 drift guard: expected sha256 of /nix/ecode/catalog.json. */
+  nixStoreGenerationHash?: string;
+
   /*
    * Machine size (rate-card catalogue): applied verbatim as the container's
    * resources. requests==limits by contract — the size the user picked is the
@@ -144,6 +150,8 @@ export class GvisorPodRuntime implements SandboxRuntime {
       replicas: spec.replicas,
       healthPath: spec.healthPath,
       nixStorePvcName: spec.nixStorePvcName,
+      nixStoreZone: spec.nixStoreZone,
+      nixStoreGenerationHash: spec.nixStoreGenerationHash,
       cpuRequest: spec.cpuRequest,
       cpuLimit: spec.cpuLimit,
       memoryRequest: spec.memoryRequest,

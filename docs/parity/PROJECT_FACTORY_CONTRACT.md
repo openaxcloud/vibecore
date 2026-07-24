@@ -2,6 +2,10 @@
 
 schemaVersion: 1
 repoCommit: ca299f87
+reviewer: UNKNOWN
+reviewVerdict: REFUSED — 0/14 contrats signés (lot 57febeab, OpenAI-Codex, 2026-07-20)
+refusalReason: couvre pod/PVC pas la factory tenant GCP (verbatim relecteur, transmis 20/07)
+reviewCloseCriterion: corriger — couvre pod/PVC pas la factory tenant GCP — puis re-soumettre à signature
 
 Contrat de la fabrique de projets : de `POST /projects` au workspace exécutable.
 

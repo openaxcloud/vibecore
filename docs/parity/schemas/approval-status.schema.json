@@ -1,30 +1,83 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "ecode/parity/approval-status",
-  "x-schemaVersion": 2,
-  "x-repoCommit": "b8186f2f",
+  "x-schemaVersion": 4,
+  "x-repoCommit": "19e48513",
   "title": "APPROVAL_STATUS",
+  "description": "v4 (audit de réanalyse 2026-07-20) : échelle à 11 niveaux ; overallStatus ∈ {NOT_APPROVED, SCOPE_APPROVED} + highestPassedLevel (contigu) ; « approvalReady » ET « approved » interdits — une approbation vit dans APPROVALS.yaml avec périmètre + approbateur.",
   "type": "object",
   "additionalProperties": true,
   "required": [
     "schemaVersion",
     "generatedFrom",
     "algorithm",
-    "approvalReady",
+    "overallStatus",
+    "highestPassedLevel",
+    "levels",
     "blocking",
     "conditions",
     "counts",
     "p0"
   ],
+  "not": {
+    "anyOf": [
+      {
+        "required": [
+          "approvalReady"
+        ]
+      },
+      {
+        "required": [
+          "approved"
+        ]
+      }
+    ]
+  },
   "properties": {
     "schemaVersion": {
-      "const": 2
+      "const": 4
     },
     "algorithm": {
       "type": "string"
     },
-    "approvalReady": {
-      "type": "boolean"
+    "levels": {
+      "type": "array",
+      "minItems": 11,
+      "maxItems": 11,
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "passed",
+          "reasons"
+        ],
+        "properties": {
+          "name": {
+            "enum": [
+              "documentReconciled",
+              "sourceBaselineReady",
+              "registryUniverseReady",
+              "contractsPresent",
+              "contractsValidated",
+              "implementationReady",
+              "verticalBackendReady",
+              "verticalUserJourneyReady",
+              "betaReady",
+              "publicLaunchReady",
+              "parityBaselineReady"
+            ]
+          },
+          "passed": {
+            "type": "boolean"
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
     },
     "blocking": {
       "type": "array",
@@ -33,18 +86,36 @@
       }
     },
     "conditions": {
-      "description": "The 6 approval conditions (audit v4 H). approvalReady iff every condition passed.",
+      "description": "Les 6 signaux de base (audit v4 H) — conservés comme sous-calculs des niveaux.",
       "type": "array",
       "minItems": 6,
       "maxItems": 6,
       "items": {
         "type": "object",
-        "required": ["id", "description", "passed", "reasons"],
+        "required": [
+          "id",
+          "description",
+          "passed",
+          "reasons"
+        ],
         "properties": {
-          "id": { "type": "integer", "minimum": 1, "maximum": 6 },
-          "description": { "type": "string" },
-          "passed": { "type": "boolean" },
-          "reasons": { "type": "array", "items": { "type": "string" } }
+          "id": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6
+          },
+          "description": {
+            "type": "string"
+          },
+          "passed": {
+            "type": "boolean"
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         }
       }
     },
@@ -69,6 +140,34 @@
           }
         }
       }
+    },
+    "overallStatus": {
+      "enum": [
+        "NOT_APPROVED",
+        "SCOPE_APPROVED"
+      ]
+    },
+    "highestPassedLevel": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "enum": [
+            "documentReconciled",
+            "sourceBaselineReady",
+            "registryUniverseReady",
+            "contractsPresent",
+            "contractsValidated",
+            "implementationReady",
+            "verticalBackendReady",
+            "verticalUserJourneyReady",
+            "betaReady",
+            "publicLaunchReady",
+            "parityBaselineReady"
+          ]
+        }
+      ]
     }
   }
 }

@@ -74,6 +74,10 @@ const appBuildSchema = z.object({
 
   // Same /nix RO mount contract as workspaces + app pods (kill-switch gated).
   nixStorePvcName: z.string().min(1).optional(),
+
+  // CTR-RUNTIME-NIX: ecode.lock pin (generation id or catalog hash), resolved
+  // through the registry's revocation gate — REVOKED/unknown throws typed.
+  nixGenerationRef: z.string().min(1).optional(),
 });
 
 /** Body for POST /server-deployments/start (Replit-parity durable runtime). */
@@ -96,6 +100,9 @@ const serverStartSchema = z.object({
 
   // Same /nix RO mount as the workspace the app was snapshotted from (see startSchema).
   nixStorePvcName: z.string().min(1).optional(),
+
+  // Same ecode.lock generation pin as app-builds (CTR-RUNTIME-NIX).
+  nixGenerationRef: z.string().min(1).optional(),
 
   /*
    * Machine size resources (rate-card catalogue, resolved by the api):
@@ -285,9 +292,18 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
    * docker-context artifact out, disposable gVisor pod in between. Synchronous —
    * returns { exitCode, output, timedOut, phase } once the pod terminates.
    */
-  app.post('/app-builds/run', async (request) =>
-    runAppBuild(manager.k8s, { ...appBuildSchema.parse(request.body), namespace: runtimeNamespace() }),
-  );
+  app.post('/app-builds/run', async (request) => {
+    const body = appBuildSchema.parse(request.body);
+
+    /*
+     * D3 multi-zone: same placement resolution as workspaces/app pods — the
+     * build pod mounts the store clone of a zone with live capacity and is
+     * pinned there (plus the generation drift guard).
+     */
+    const nixPlacement = await manager.resolveNixStorePlacement(body.nixStorePvcName, undefined, body.nixGenerationRef);
+
+    return runAppBuild(manager.k8s, { ...body, ...nixPlacement, namespace: runtimeNamespace() });
+  });
   app.get('/server-deployments/:deploymentId/status', async (request) =>
     manager.getServerDeploymentStatus(runtimeNamespace(), (request.params as any).deploymentId),
   );

@@ -1,0 +1,50 @@
+# TRACEABILITY_MATRIX — claimId → surfaceId → serviceId → contractId →
+# workItemId → evidenceId (architecture documentaire, audit de réanalyse §12).
+# ÉTAT : AMORCÉE (seed) — les chaînes complètes existent pour les domaines
+# prouvés ; la couverture de l'univers P001–P159 est un travail continu
+# (P0-A2-02). Une case UNKNOWN est une absence déclarée, pas oubliée.
+schemaVersion: 1
+repoCommit: d1063912
+links:
+  - claimId: RPL-17
+    surfaceIds: [SRF-GALLERY-STARTER-DEMOS]
+    serviceIds: [web, api]
+    contractId: GALLERY_COMMUNITY_CONTRACT.md
+    workItemIds: [WI-from ACT-04/ACT-36 — voir WORK_ITEM_REGISTRY]
+    evidenceIds: [docs/deploy-evidence/2026-07-17-gallery/]
+  - claimId: RPL-24
+    surfaceIds: [UNKNOWN]
+    serviceIds: [api]
+    contractId: IMPORT_REMIX_CONTRACT.md
+    workItemIds: [voir P0-V3-06]
+    evidenceIds: [docs/deploy-evidence/2026-07-16-import/]
+  - claimId: RPL-2026-002
+    surfaceIds: [SRF-IDE-COMPOSER]
+    serviceIds: [web, api]
+    contractId: AGENT_TOOL_BROKER_CONTRACT.md
+    workItemIds: [voir PARITY_STATUS AGM-*]
+    evidenceIds: [docs/deploy-evidence/2026-07-16-agent-modes/]
+  - claimId: GCP-11
+    surfaceIds: [NOT_APPLICABLE]
+    serviceIds: [runtime]
+    contractId: EDGE_CONTRACT.md
+    workItemIds: [voir UNK-CLOUDTENANT-IMPL]
+    evidenceIds: [docs/parity/baseline/sources/2026-07-17-cloudrun-release-notes.html]
+  - claimId: GCP-13
+    surfaceIds: [NOT_APPLICABLE]
+    serviceIds: [runtime, api]
+    contractId: IAM_POLICY_BASELINE.md
+    workItemIds: [voir P0-A2-09]
+    evidenceIds: [docs/parity/baseline/sources/2026-07-20-gke-workload-identity.html]
+  - claimId: GCP-14
+    surfaceIds: [NOT_APPLICABLE]
+    serviceIds: [runtime]
+    contractId: PROJECT_FACTORY_CONTRACT.md
+    workItemIds: [voir P0-A2-14, UNK-CLOUDTENANT-IMPL]
+    evidenceIds: [docs/parity/baseline/sources/2026-07-20-cloudrun-multitenant.html]
+  - claimId: RPL-25
+    surfaceIds: [UNKNOWN]
+    serviceIds: [api]
+    contractId: AUTH_ACCESS_CONTRACT.md
+    workItemIds: [voir P0-A2-08]
+    evidenceIds: [docs/parity/baseline/sources/2026-07-20-replit-clerk-auth.md]

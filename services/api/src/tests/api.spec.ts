@@ -1068,6 +1068,95 @@ describe('SaaS API', () => {
     await app.close();
   });
 
+  it('never leaks an invitation tokenHash from any of the 5 invitation endpoints', async () => {
+    /*
+     * Security regression (coverage audit): GET /orgs/:orgId/invitations used to
+     * return the raw invite rows — including `tokenHash` — while the other four
+     * invitation endpoints strip it. The invite token must never leave the server
+     * in any form. This asserts ALL FIVE endpoints (list / create / resend /
+     * expire / accept) so the leak cannot reappear on any of them. It FAILS
+     * against the pre-fix code because the list response carries tokenHash.
+     */
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const owner = await register(app, { email: 'leak-owner@example.com', organizationName: 'Leak Org' });
+    const invitee = await register(app, { email: 'leak-invitee@example.com', organizationName: 'Invitee Org' });
+    await store.updateUser({ userId: invitee.user.id, emailVerifiedAt: new Date().toISOString() });
+    await store.upsertSubscription({ organizationId: owner.organization.id, planKey: 'team', status: 'ACTIVE' });
+
+    // A response never carries the invite secret — neither the hash nor a clear token.
+    const assertNoTokenLeak = (label: string, response: { payload: string }) => {
+      expect(`${label}: ${response.payload}`).not.toContain('tokenHash');
+    };
+
+    // (2) create — stores a tokenHash server-side.
+    const created = await app.inject({
+      method: 'POST',
+      url: `/orgs/${owner.organization.id}/invitations`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { email: 'leak-invitee@example.com', roleKey: 'member' },
+    });
+    expect(created.statusCode).toBe(201);
+    assertNoTokenLeak('create', created);
+    const inviteId = created.json().invitation.id as string;
+
+    // The stored invite really has a tokenHash — proving the list has something to leak.
+    const storedInvite = [...store.organizationInvites.values()].find((entry) => entry.id === inviteId);
+    expect(storedInvite?.tokenHash).toBeTruthy();
+
+    // (1) list — the endpoint that leaked. Assert the raw body AND every parsed row.
+    const listed = await app.inject({
+      method: 'GET',
+      url: `/orgs/${owner.organization.id}/invitations`,
+      headers: { authorization: `Bearer ${owner.token}` },
+    });
+    expect(listed.statusCode).toBe(200);
+    assertNoTokenLeak('list', listed);
+    for (const invitation of listed.json().invitations as Array<Record<string, unknown>>) {
+      expect(invitation.tokenHash).toBeUndefined();
+      expect(invitation).not.toHaveProperty('tokenHash');
+      // Belt and braces: the stored hash value must not appear under any key either.
+      expect(Object.values(invitation)).not.toContain(storedInvite?.tokenHash);
+    }
+
+    // (3) resend
+    const resent = await app.inject({
+      method: 'POST',
+      url: `/orgs/${owner.organization.id}/invitations/${inviteId}/resend`,
+      headers: { authorization: `Bearer ${owner.token}` },
+    });
+    expect(resent.statusCode).toBe(200);
+    assertNoTokenLeak('resend', resent);
+
+    // (5) accept
+    const accepted = await app.inject({
+      method: 'POST',
+      url: '/invitations/accept',
+      headers: { authorization: `Bearer ${invitee.token}` },
+      payload: { token: resent.json().token },
+    });
+    expect(accepted.statusCode).toBe(200);
+    assertNoTokenLeak('accept', accepted);
+
+    // (4) expire — on a second, still-pending invite.
+    const second = await app.inject({
+      method: 'POST',
+      url: `/orgs/${owner.organization.id}/invitations`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { email: 'leak-late@example.com' },
+    });
+    expect(second.statusCode).toBe(201);
+    const expired = await app.inject({
+      method: 'POST',
+      url: `/orgs/${owner.organization.id}/invitations/${second.json().invitation.id}/expire`,
+      headers: { authorization: `Bearer ${owner.token}` },
+    });
+    expect(expired.statusCode).toBe(200);
+    assertNoTokenLeak('expire', expired);
+
+    await app.close();
+  });
+
   it('throttles invitation resends to once per minute per invite', async () => {
     const store = new TestApiStore();
     const emailProvider = new TestEmailProvider();

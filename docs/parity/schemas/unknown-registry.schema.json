@@ -1,9 +1,10 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "ecode/parity/unknown-registry",
-  "x-schemaVersion": 1,
-  "x-repoCommit": "07ced1c56bdbcb3ce77e883704342b71a2ad0961",
+  "x-schemaVersion": 2,
+  "x-repoCommit": "b774bfa38e881ebaa071fbf2c2fa9d72ab89efb5",
   "title": "UnknownRegistry",
+  "description": "v2 (2026-07-17, évaluation v5) : targetDate UNKNOWN INTERDIT — soit une date ISO réelle, soit state: ACCEPTED_RISK justifié (riskRationale + reviewCondition + owner + expiration).",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -29,7 +30,24 @@
           "nextAction",
           "targetDate",
           "expiration"
-        ]
+        ],
+        "properties": {
+          "targetDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "Date ISO réelle. UNKNOWN interdit."
+          },
+          "state": {
+            "enum": ["ACCEPTED_RISK"]
+          }
+        },
+        "if": {
+          "required": ["state"],
+          "properties": { "state": { "const": "ACCEPTED_RISK" } }
+        },
+        "then": {
+          "required": ["riskRationale", "reviewCondition", "owner", "expiration"]
+        }
       }
     }
   }

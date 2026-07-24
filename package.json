@@ -48,6 +48,7 @@
     "infra:validate": "pnpm --filter @vibecore/infra validate",
     "sre:validate": "node scripts/validate-observability-assets.mjs && node scripts/backup-restore-dry-run.mjs",
     "cicd:validate": "node scripts/validate-ci-cd-assets.mjs",
+    "helm:validate:rollback-flag": "node scripts/validate-helm-rollback-flag.mjs",
     "readiness:validate": "node scripts/validate-readiness-docs.mjs",
     "admin:dangerous-actions:validate": "node scripts/validate-admin-dangerous-actions.mjs",
     "ide:panel-audit": "node scripts/audit-ide-panels.mjs",

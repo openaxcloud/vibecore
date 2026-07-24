@@ -1,6 +1,11 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import {
+  activeNixGeneration,
+  assertNixGenerationUsable,
+  chooseNixStoreZone,
+  nixGenerationRegistryFromEnv,
+  parseNixStorePvcZones,
   serverDeploymentName,
   workspaceAgentSecret,
   workspacePod,
@@ -302,6 +307,203 @@ export class WorkspaceManager {
     readonly runtime: SandboxRuntime = resolveSandboxRuntime(k8s),
   ) {}
 
+  /*
+   * D3 multi-zone shared Nix store (approved 2026-07-17): the store is an
+   * IDENTICAL zonal clone per active zone (same generation snapshot), declared
+   * in NIX_STORE_PVC_ZONES (`zone=pvc,zone=pvc`, order = preference). When a
+   * pod wants the store and the requested PVC is one of the declared clones
+   * (or unset), the zone with live schedulable sandbox capacity is picked and
+   * THAT zone's PVC + a zone pin are used — so a zone stockout (the measured
+   * zone-a incident) routes new pods to the surviving zone instead of wedging
+   * them behind a zonal PV they can never attach. NIX_STORE_GENERATION_HASH
+   * (sha256 of /nix/ecode/catalog.json) arms the drift guard: a clone carrying
+   * a different generation BLOCKS the pod. With NIX_STORE_PVC_ZONES unset this
+   * resolves to exactly the legacy single-PVC behaviour.
+   */
+  async resolveNixStorePlacement(
+    requestedPvcName: string | undefined,
+    pinnedZone?: string,
+
+    /*
+     * CTR-RUNTIME-NIX: an ecode.lock.json pin (generation id or catalog hash).
+     * Resolved through the generation registry's revocation gate — a REVOKED
+     * or unknown generation THROWS a typed error up to the caller (the publish
+     * fails with the reason), never falls back to another generation.
+     */
+    generationRef?: string,
+  ): Promise<{ nixStorePvcName?: string; nixStoreZone?: string; nixStoreGenerationHash?: string }> {
+    const registry = nixGenerationRegistryFromEnv();
+
+    let fallback: string | undefined;
+    let generationHash: string | undefined;
+    let zones: ReturnType<typeof parseNixStorePvcZones>;
+
+    if (registry) {
+      /*
+       * Registry mode (NIX_STORE_GENERATIONS set): rotation = which entry is
+       * ACTIVE; révocation = assertNixGenerationUsable throws. The legacy
+       * env trio (PVC/ZONES/HASH) is ignored — ONE source of truth.
+       */
+      const generation = generationRef
+        ? assertNixGenerationUsable(registry, generationRef)
+        : activeNixGeneration(registry);
+
+      if (!generation) {
+        // Registry present but nothing ACTIVE = store disabled by rotation
+        // document. An explicit non-clone PVC (operator experiment) may still
+        // pass through, ungoverned and WITHOUT a generation hash.
+        return requestedPvcName ? { nixStorePvcName: requestedPvcName } : {};
+      }
+
+      zones = Object.entries(generation.zones).map(([zone, pvcName]) => ({ zone, pvcName }));
+      generationHash = generation.catalogSha256;
+      fallback = requestedPvcName ?? zones[0]?.pvcName;
+    } else {
+      // Legacy env mode — byte-for-byte the pre-registry behaviour.
+      fallback = requestedPvcName ?? process.env.NIX_STORE_PVC_NAME;
+      generationHash = process.env.NIX_STORE_GENERATION_HASH || undefined;
+      zones = parseNixStorePvcZones(process.env.NIX_STORE_PVC_ZONES);
+    }
+
+    if (!fallback) {
+      return {};
+    }
+
+    /*
+     * Only substitute when the requested PVC is one of the declared zonal
+     * clones — an explicit one-off PVC (spike disk, an operator experiment)
+     * must never be silently rewritten to a different disk. In registry mode
+     * an unknown disk also drops the generation hash: the guard would only
+     * block a disk the registry never governed.
+     */
+    if (zones.length === 0 || !zones.some((z) => z.pvcName === fallback)) {
+      const governed = zones.some((z) => z.pvcName === fallback);
+
+      if (registry && !governed && requestedPvcName) {
+        return { nixStorePvcName: fallback };
+      }
+
+      return { nixStorePvcName: fallback, ...(generationHash ? { nixStoreGenerationHash: generationHash } : {}) };
+    }
+
+    /*
+     * A workspace whose RWO data disk already exists is PINNED to that disk's
+     * zone — the pod can only ever schedule there, so the store clone MUST be
+     * that zone's (proven live 2026-07-20: after a zone-a restore, a
+     * capacity-preferred zone-a pin + a zone-b data disk deadlocked the pod:
+     * "didn't match PersistentVolume's node affinity" vs the zone selector).
+     * A pinned zone missing from the map falls through to the capacity path.
+     */
+    const pinned = pinnedZone ? zones.find((z) => z.zone === pinnedZone) : undefined;
+
+    if (pinned) {
+      return {
+        nixStorePvcName: pinned.pvcName,
+        nixStoreZone: pinned.zone,
+        ...(generationHash ? { nixStoreGenerationHash: generationHash } : {}),
+      };
+    }
+
+    /*
+     * Nodes are cluster-scoped: kubectl accepts and ignores the namespace flag,
+     * so any value satisfies the client signature. RBAC: the manager's SA holds
+     * the capacity-reader ClusterRole (get/list nodes). A listing failure falls
+     * back to an empty list ⇒ chooseNixStoreZone picks the first configured
+     * zone — the legacy behaviour, never a refusal.
+     */
+    const nodes = await this.k8s
+      .listByLabel('nodes', process.env.WORKSPACE_RUNTIME_NAMESPACE ?? 'workspaces', 'vibecore.ai/node-pool=sandbox')
+      .catch(() => [] as Awaited<ReturnType<WorkspaceK8sClient['listByLabel']>>);
+
+    const chosen = chooseNixStoreZone(zones, nodes) ?? { zone: undefined, pvcName: fallback };
+
+    return {
+      nixStorePvcName: chosen.pvcName,
+      ...(chosen.zone ? { nixStoreZone: chosen.zone } : {}),
+      ...(generationHash ? { nixStoreGenerationHash: generationHash } : {}),
+    };
+  }
+
+  /*
+   * Zone of an existing workspace data PVC's bound zonal PD, if determinable.
+   * Undefined for a fresh workspace (PVC not yet created/bound) — the nix
+   * placement is then free to follow live capacity, and the data disk will be
+   * provisioned in the pod's zone (WaitForFirstConsumer).
+   */
+  async workspaceDataZone(namespace: string, pvcName: string): Promise<string | undefined> {
+    try {
+      const pvc = (await this.k8s.get('pvc', namespace, pvcName)) as
+        | {
+            metadata?: { annotations?: Record<string, string> };
+            spec?: { volumeName?: string };
+          }
+        | undefined;
+
+      /*
+       * Preferred path — no extra RBAC: WaitForFirstConsumer stamps the chosen
+       * node on the PVC (`volume.kubernetes.io/selected-node`), and the manager
+       * may read nodes (capacity-reader). Proven necessary live 2026-07-20: the
+       * manager SA could NOT `get persistentvolumes` (cluster-scoped), so the
+       * PV-affinity path below silently returned undefined and the deadlock fix
+       * never engaged.
+       */
+      const selectedNode = pvc?.metadata?.annotations?.['volume.kubernetes.io/selected-node'];
+
+      if (selectedNode) {
+        const node = (await this.k8s.get('node', namespace, selectedNode).catch(() => undefined)) as
+          | { metadata?: { labels?: Record<string, string> } }
+          | undefined;
+        const zone = node?.metadata?.labels?.['topology.kubernetes.io/zone'];
+
+        if (zone) {
+          return zone;
+        }
+      }
+
+      const volumeName = pvc?.spec?.volumeName;
+
+      if (!volumeName) {
+        return undefined;
+      }
+
+      // Fallback: the bound PV's nodeAffinity (needs `get persistentvolumes`,
+      // granted to the capacity-reader ClusterRole alongside this fix).
+      const pv = await this.k8s.get('pv', namespace, volumeName);
+      const terms =
+        (
+          pv as
+            | {
+                spec?: {
+                  nodeAffinity?: {
+                    required?: {
+                      nodeSelectorTerms?: Array<{
+                        matchExpressions?: Array<{ key?: string; operator?: string; values?: string[] }>;
+                      }>;
+                    };
+                  };
+                };
+              }
+            | undefined
+        )?.spec?.nodeAffinity?.required?.nodeSelectorTerms ?? [];
+
+      for (const term of terms) {
+        for (const expr of term.matchExpressions ?? []) {
+          if (
+            (expr.key === 'topology.kubernetes.io/zone' || expr.key === 'topology.gke.io/zone') &&
+            expr.operator === 'In' &&
+            expr.values?.length
+          ) {
+            return expr.values[0];
+          }
+        }
+      }
+    } catch {
+      // Fall through — an unreadable PVC/PV must not block provisioning.
+    }
+
+    return undefined;
+  }
+
   async startWorkspace(input: StartWorkspaceInput) {
     const pvcName = `pvc-${input.workspaceId}`;
     const agentTokenSecretName = `agent-token-${input.workspaceId}`;
@@ -310,6 +512,20 @@ export class WorkspaceManager {
     const secretEnv = Object.fromEntries(
       [...new Set([...input.allowedSecretKeys, ...Object.keys(allowedSecrets)])].map((key) => [key, key]),
     );
+
+    /*
+     * Shared Nix store (candidate E) — OFF by default. Enabled per-request or
+     * cluster-wide via NIX_STORE_PVC_NAME (a Helm value pinned to the current
+     * store generation). Undefined ⇒ workspacePod emits the pre-Nix spec
+     * verbatim, so live Node workspaces never change until an operator opts in.
+     * D3: the placement resolver substitutes the per-zone clone + zone pin +
+     * generation guard when the multi-zone map is configured.
+     */
+    const nixPlacement = await this.resolveNixStorePlacement(
+      input.nixStorePvcName,
+      await this.workspaceDataZone(input.namespace, pvcName),
+    );
+
     const runtimeInput = {
       ...input,
       pvcName,
@@ -318,14 +534,7 @@ export class WorkspaceManager {
       tokenSecret: this.tokenSecret,
       secretEnv,
       env: { ...input.env, WORKSPACE_ID: input.workspaceId },
-
-      /*
-       * Shared Nix store (candidate E) — OFF by default. Enabled per-request or
-       * cluster-wide via NIX_STORE_PVC_NAME (a Helm value pinned to the current
-       * store generation). Undefined ⇒ workspacePod emits the pre-Nix spec
-       * verbatim, so live Node workspaces never change until an operator opts in.
-       */
-      nixStorePvcName: input.nixStorePvcName ?? process.env.NIX_STORE_PVC_NAME,
+      ...nixPlacement,
     };
     const baseRecord = {
       id: input.workspaceId,
@@ -565,6 +774,9 @@ export class WorkspaceManager {
      */
     nixStorePvcName?: string;
 
+    /** CTR-RUNTIME-NIX: ecode.lock generation pin (id or catalog hash). */
+    nixGenerationRef?: string;
+
     // Machine-size resources (k8s quantities), applied verbatim on the container.
     cpuRequest?: string;
     cpuLimit?: string;
@@ -616,8 +828,10 @@ export class WorkspaceManager {
       readyTimeoutMs: input.readyTimeoutMs,
       createIngress: input.createIngress,
 
-      // Per-request opt-in wins; cluster-wide kill switch as fallback (mirrors startWorkspace).
-      nixStorePvcName: input.nixStorePvcName ?? process.env.NIX_STORE_PVC_NAME,
+      // Per-request opt-in wins; cluster-wide kill switch as fallback (mirrors
+      // startWorkspace). D3: the placement resolver substitutes the per-zone
+      // clone + zone pin + generation guard when the multi-zone map is set.
+      ...(await this.resolveNixStorePlacement(input.nixStorePvcName, undefined, input.nixGenerationRef)),
       cpuRequest: input.cpuRequest,
       cpuLimit: input.cpuLimit,
       memoryRequest: input.memoryRequest,

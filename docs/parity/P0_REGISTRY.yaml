@@ -4,34 +4,58 @@ schemaVersion: 1
 repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
 p0s:
   - p0Id: P0-V4-1
-    title: "Collecteur aveugle : ajouter routes produit (rendu JS) + canal de lancement"
+    title: "Collecteur : routes produit rendues JS — SCINDÉ (canal de lancement → UNK-LAUNCH-CHANNEL)"
     priority: 1
-    owner: claude
-    status: PROVEN
+    owner: platform
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260722-CODEX-06 (COMPLET, responseHash 9ac5e9b6…) — signature valide UNIQUEMENT la collecte des routes produit rendues en JavaScript ; elle ne valide ni ne ferme UNK-LAUNCH-CHANNEL (canal de lancement resté inconnu)"
+    reviewReceiptId: RR-20260722-CODEX-06
+    remediationTrack: QUICK
+    conditionDeCloture: "Preuve primaire des routes produit rendues JS (DOM complet hash-recalculable + trace de collecte) — le canal de lancement est un UNKNOWN séparé (UNK-LAUNCH-CHANNEL) ; puis signature du relecteur"
+    refusalReason: "le titre demande toujours le canal de lancement, que la preuve déclare elle-même absent — la preuve ne soutient qu'une partie du titre ; correction : scinder le point et ne soumettre que « routes produit rendues JS »"
+    refusalType: PREUVE_INSUFFISANTE
+    reviewVerdict: SIGNED
+    reviewCommit: "21e8a255"
     commit: "07ced1c56bdbcb3ce77e883704342b71a2ad0961"
-    reviewer: UNKNOWN
-    evidenceId: docs/deploy-evidence/2026-07-16-collector-gallery/
-    proof: "collecteur retrouve Community Profiles (watchHits.community) ; gallery/community rendus+hashés"
-    nextAction: "Aucun — closable après revue"
+    reviewer: OpenAI-Codex
+    evidenceId: docs/deploy-evidence/2026-07-21-gallery-pricing-v4/
+    proof: "SCINDÉ v5 (22/07, réserve RR-05) : CE point ne porte PLUS QUE les routes produit rendues JS — preuve primaire : DOM COMPLET archivé (replit-gallery-dom.html, sha256 4e5380a8… recalculable, zéro ellipse), 43 ancres /gallery/ dans le markup + trace des requêtes _next/data des routes produit. Le canal de lancement (absent du rendu public anonyme) est SORTI du point → UNK-LAUNCH-CHANNEL (UNKNOWN_REGISTRY, owner+expiration). Titre et condition retitrés en conséquence."
+    nextAction: "Re-soumission au relecteur (point scindé : routes produit seules)"
     targetDate: "2026-07-16"
   - p0Id: P0-V4-2
     title: "Gallery : requalifier la table (mesures réelles, archive rendue)"
     priority: 2
-    owner: claude
-    status: PROVEN
+    owner: platform
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260722-CODEX-06 (COMPLET, responseHash 9ac5e9b6…) — le titre, le proof et l'artefact portent la même unité de mesure (43 ancres /gallery/ dans le DOM) ; 43 ancres NE sont PAS requalifiées en 43 applications ou 43 cartes distinctes"
+    reviewReceiptId: RR-20260722-CODEX-06
+    remediationTrack: QUICK
+    conditionDeCloture: "Les mesures revendiquées == les mesures de l'artefact (43 ancres /gallery/, pas « cartes ») ; archive primaire reproductible ; puis signature du relecteur"
+    refusalReason: "désaccord entre « 43 cartes » et l'artefact qui mesure 43 ancres : le rendu textuel montre 20 cartes chargées puis Load all apps — une ancre n'est pas nécessairement une carte distincte"
+    refusalType: PREUVE_INSUFFISANTE
+    reviewVerdict: SIGNED
+    reviewCommit: "21e8a255"
     commit: "07ced1c56bdbcb3ce77e883704342b71a2ad0961"
-    reviewer: UNKNOWN
-    evidenceId: docs/deploy-evidence/2026-07-16-collector-gallery/
-    proof: "RPL-17/18/19 VERIFIED/CONFIRMED avec SRC-GALLERY-RENDERED (sha256 fad9ec75…) ; conséquence DEC-GALLERY-NO-SELF-PUBLISH"
-    nextAction: "Décision produit DEC-GALLERY-NO-SELF-PUBLISH à trancher"
+    reviewer: OpenAI-Codex
+    evidenceId: docs/deploy-evidence/2026-07-21-gallery-pricing-v4/
+    proof: "CORRIGÉ v5 (22/07) : la mesure revendiquée est EXACTEMENT celle de l'artefact — « 43 ancres /gallery/ dans le DOM » (grep rejouable au README ; le rendu textuel initial montre 20 cartes chargées puis 'Load all apps' — lazy-load, dit tel quel). Plus aucune mention de « cartes » comme mesure. Le HTML rendu COMPLET reste archivé (sha256 4e5380a8… recalculable), 82 Results dans le markup, capture datée liée au hash."
+    nextAction: "Re-soumission au relecteur (terminologie alignée sur la mesure réelle)"
     targetDate: "2026-07-16"
   - p0Id: P0-V4-3
     title: "Hiérarchie GCP : folder-per-tenant mort (300 cap + 0,1 req/s)"
     priority: 3
-    owner: claude
-    status: PROVEN
+    owner: platform
+    status: CLOSED
+    reviewReceiptId: RR-20260722-CODEX-06
+    reviewNote: "SIGNÉ au reçu RR-20260722-CODEX-06 (COMPLET, responseHash 9ac5e9b6…) — repose sur les mêmes limites autoritatives que P0-V3-03, déduplication documentée ; portée identique à V3-03 (limites au moment de l'archive, pas de garantie de stabilité future)"
+    remediationTrack: A_TRIER
+    conditionDeCloture: "Compléter l'évidence : tests recopient constantes 300 et 0,1 sans source GCP autoritative ; puis re-soumission au relecteur"
+    refusalReason: "tests recopient constantes 300 et 0,1 sans source GCP autoritative"
+    refusalType: PREUVE_INSUFFISANTE
+    reviewVerdict: SIGNED
+    reviewCommit: "21e8a255"
     commit: "07ced1c5"
-    reviewer: UNKNOWN
+    reviewer: OpenAI-Codex
     evidenceId: services/api/src/capacity-policy.spec.ts
     proof: "capacity-policy.ts : 1000 tenants sharded=4/~40s admissible, folder-per-tenant=2,78h inadmissible ; DOMAIN_MODEL §3 corrigé"
     nextAction: "Aucun — appliqué"
@@ -39,11 +63,1232 @@ p0s:
   - p0Id: P0-V4-4
     title: "Promotion Artifact Registry : referrers/attachments non copiés par digest"
     priority: 4
-    owner: claude
+    owner: platform
     status: PROVEN
     commit: "07ced1c5"
     reviewer: UNKNOWN
     evidenceId: services/api/src/artifact-promotion.spec.ts
     proof: "promoteArtifact découvre+relie+vérifie+BinAuthz ; 4 tests négatifs (SBOM manquant, relink échoué, BinAuthz refusé, source absente) prouvent le blocage. Adapter AR live = follow-up (🟡)"
     nextAction: "Implémenter l'adapter Artifact Registry live + promotion réelle"
-    targetDate: UNKNOWN
+    targetDate: "2026-08-15"
+
+  # ============================================================================
+  # Les 15 P0 du DERNIER AUDIT EXTERNE (Audit_complet_PLAN_PARITE_REPLIT_v3_2026,
+  # expert externe, 2026-07-16) — tracés INDIVIDUELLEMENT (exigence évaluation
+  # v5 du 17/07 : « P0_REGISTRY ne contient que 4 des 15 P0 »).
+  # Règles : un statut PROVEN exige commit + proof + evidenceId sur disque ;
+  # CLOSED exige en plus un reviewer humain réel. « Un contrat n'est pas une
+  # capacité » : quand la correction demandée par l'audit était SPÉCIFICATIVE,
+  # le P0 peut être PROVEN sur preuve documentaire, et l'IMPLÉMENTATION reste
+  # tracée par un UNKNOWN dédié (listé dans dependances) + gate bêta.
+  # ============================================================================
+  - p0Id: P0-V3-01
+    title: "Baseline 16/07 incomplète (Community Profiles absent, canal de lancement non surveillé)"
+    description: "La baseline publique ne contenait ni Community Profiles ni Ramp for Agents ; le collecteur documentaire seul est aveugle aux routes produit rendues JS."
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (expert externe, 2026-07-16), P0-01"
+    priority: 1
+    owner: platform
+    status: OPEN
+    commit: "07ced1c5"
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/baseline/snapshots/2026-07-16/
+    proof: "PARTIEL : collecteur 5 familles + rendu JS + hash (community.rendered.html capturé, OBS-COMMUNITY-PROFILES TRIAGED). RESTE : rendu JS prouvé en CI (UNK-COLLECTOR-CI-RENDER) + triage Ramp for Agents."
+    dependances: [UNK-COLLECTOR-CI-RENDER]
+    conditionDeCloture: "Run CI réel du collecteur avec rendu JS (chromium) vert + Ramp for Agents trié dans OBSERVATION_REGISTRY"
+    nextAction: "Prouver le rendu JS en CI GitHub ; trier Ramp for Agents"
+    targetDate: "2026-08-01"
+  - p0Id: P0-V3-02
+    title: "Gallery : report au niveau app — NOT_OBSERVED_IN_PUBLIC_RENDER (requalifié, ex-« table Gallery factuellement dépassée »)"
+    description: "Des fonctions observables (Submit, auteurs, stats, View App, report) étaient classées inconnues."
+    source: "Audit v3 (2026-07-16), P0-02"
+    priority: 2
+    owner: platform
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260722-CODEX-05 (COMPLET, responseHash c32a945d…) — requalification cohérente de bout en bout ; la signature valide UNIQUEMENT la constatation NOT_OBSERVED_IN_PUBLIC_RENDER — elle ne prouve pas que le report par application n'existe dans aucun parcours authentifié"
+    reviewReceiptId: RR-20260722-CODEX-05
+    remediationTrack: QUICK
+    refusalReason: "requalification du critère au lieu de satisfaction du critère enregistré : le registre exigeait encore la preuve du report au niveau app ; il faut modifier de façon cohérente le titre, la condition de clôture et les références normatives (NOT_OBSERVED_IN_PUBLIC_RENDER admis) — le relecteur ne remplace pas lui-même le point"
+    refusalType: PREUVE_INSUFFISANTE
+    reviewVerdict: SIGNED
+    reviewCommit: "60a987ca"
+    commit: "07ced1c56bdbcb3ce77e883704342b71a2ad0961"
+    reviewer: OpenAI-Codex
+    evidenceId: docs/deploy-evidence/2026-07-21-gallery-pricing-v4/
+    proof: "REQUALIFIÉ v4 (21/07) DE FAÇON COHÉRENTE : titre, condition et références alignés sur NOT_OBSERVED_IN_PUBLIC_RENDER. Preuve primaire : replit-gallery-dom.html (sha256 4e5380a8… recalculable) — le DOM complet ne contient AUCUN report au niveau app ; seules 2 occurrences 'Report abuse' (footer générique) → docs.replit.com/legal-and-security-info/abuse-report. GALLERY_COMMUNITY_CONTRACT (ligne Report) aligné sur la même qualification ; le report app authentifié reste tracé UNK-GALLERY-REPORT-FLOW."
+    dependances: []
+    conditionDeCloture: "Le report au niveau app est enregistré NOT_OBSERVED_IN_PUBLIC_RENDER (preuve : DOM complet archivé, footer générique seul) ; titre+condition+références cohérents ; toute revendication future exige une preuve UI authentifiée (UNK-GALLERY-REPORT-FLOW) ; puis signature du relecteur sur la requalification"
+    nextAction: "Re-soumission au relecteur (requalification cohérente + preuve primaire)"
+    targetDate: "2026-07-16"
+  - p0Id: P0-V3-03
+    title: "Hiérarchie folder-per-tenant non scalable (300 enfants max, 0,1 folder/s)"
+    description: "Un folder GCP par tenant est cassé par construction ; sharding explicite requis."
+    source: "Audit v3 (2026-07-16), P0-03"
+    priority: 3
+    owner: platform
+    status: CLOSED
+    reviewReceiptId: RR-20260722-CODEX-06
+    reviewNote: "SIGNÉ au reçu RR-20260722-CODEX-06 (COMPLET, responseHash 9ac5e9b6…) — validation des limites GCP (300 dossiers, 0,1 folder/s, 10 niveaux) et de leur conséquence architecturale AU MOMENT DE L'ARCHIVE (source hashée) ; pas de garantie que les quotas GCP ne changeront jamais"
+    remediationTrack: A_TRIER
+    refusalReason: "tests auto-référentiels, sans ancrage GCP vérifiable"
+    refusalType: PREUVE_INSUFFISANTE
+    reviewVerdict: SIGNED
+    reviewCommit: "21e8a255"
+    commit: "07ced1c5"
+    reviewer: OpenAI-Codex
+    evidenceId: services/api/src/capacity-policy.spec.ts
+    proof: "capacity-policy.ts : 1000 tenants sharded=admissible (~40s), folder-per-tenant=2,78h inadmissible ; DOMAIN_MODEL §3 corrigé ; DEC-TENANT-NO-FOLDER-PER-TENANT DECIDED."
+    dependances: []
+    conditionDeCloture: "Compléter l'évidence : tests auto-référentiels, sans ancrage GCP vérifiable ; puis re-soumission au relecteur"
+    nextAction: "Revue"
+    targetDate: "2026-07-16"
+  - p0Id: P0-V3-04
+    title: "Cycle de vie CloudTenant incomplet (owner, transfert, merge/split, résidence)"
+    description: "customerId seul ne définit pas le client ; transfert personnel→organisation = migration de sécurité non spécifiée."
+    source: "Audit v3 (2026-07-16), P0-04"
+    priority: 4
+    owner: platform
+    status: OPEN
+    remediationTrack: A_TRIER
+    refusalReason: "champs CloudTenant + machines transfert/merge/split/suspension/restauration absents"
+    refusalType: DESACCORD
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
+    commit: "4a61800c"
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/PROJECT_FACTORY_CONTRACT.md
+    proof: "SPEC UNIQUEMENT : CloudTenant{customerBoundaryType,billingPrincipalId,legalEntityId,ownershipVersion,residencyPolicy} + machines à états transfer/merge/split/suspension/restoration contractualisées (DOMAIN_MODEL §3, PROJECT_FACTORY_CONTRACT). L'implémentation N'EST PAS commencée — un contrat n'est pas une capacité."
+    dependances: [UNK-CLOUDTENANT-IMPL]
+    conditionDeCloture: "Corriger le claim/la preuve : champs CloudTenant + machines transfert/merge/split/suspension/restauration absents ; puis re-soumission au relecteur"
+    nextAction: "Implémentation minimale pour les apps publiées de la bêta"
+    targetDate: "2026-08-31"
+  - p0Id: P0-V3-05
+    title: "Remix incomplet juridiquement et pour les données (licence, PII, historique Git)"
+    description: "Détacher les credentials est nécessaire mais insuffisant ; licence/consentement + masking PII requis."
+    source: "Audit v3 (2026-07-16), P0-05"
+    priority: 5
+    owner: platform
+    status: OPEN
+    commit: "bd4c334e"
+    reviewer: UNKNOWN
+    evidenceId: docs/deploy-evidence/2026-07-16-remix/
+    proof: "PARTIEL : invariant sécurité PROUVÉ live (secret introuvable fichiers+DB+job ; quarantaine 409 ; CLONING refusé avant CREDENTIALS_DETACHED). RMX-3 CODÉ (branche feat/remix-license-pii, PR ouverte, PAS mergée) : remixAllowed/licenseSnapshot(sha256)/consentVersion effectifs + étape SOURCE_SANITIZED (masquage PII email/téléphone international/IBAN/carte Luhn-valide, findings {path,kind,line} sans valeur, re-scan résiduel bloquant) + consentement explicite UI (checkbox, bouton gaté) + refus 400 REMIX_CONSENT_REQUIRED / 403 REMIX_NOT_ALLOWED + immutabilité du snapshot licence prouvée par test — 12 tests dédiés (35 remix+gallery au total), typecheck + build stricts verts. PROUVÉ SUR STACK CI RÉELLE (API+Postgres réels, run 29747404378, commit 67f3b2cb) : parcours écran complet + PII masquées dans le clone + licenseSnapshot/consentVersion sur le job + négatif 400 — evidence docs/deploy-evidence/2026-07-20-remix-license-pii/. RESTE : merge + preuve LIVE PROD à l'écran, fork DB physique + copie objets (RMX-4/5), décision DEC-OWNER-REMIX-DEFAULT-LICENSE (Avi)."
+    dependances: []
+    conditionDeCloture: "Licence+consentement appliqués au listing ET masking PII prouvé sur un clone réel"
+    nextAction: "Feu vert merge PR remix-license-pii → deploy → preuve live à l'écran + artefacts ; puis RMX-4/5"
+    targetDate: "2026-08-31"
+  - p0Id: P0-V3-06
+    title: "Import incomplet malgré la quarantaine (rétention, appel, scanners reproductibles, Git complexe)"
+    description: "Durée de quarantaine, procédure d'appel, reproductibilité des scans, LFS/submodules/OAuth non couverts."
+    source: "Audit v3 (2026-07-16), P0-06"
+    priority: 6
+    owner: platform
+    status: OPEN
+    commit: "7d45c2cb"
+    reviewer: UNKNOWN
+    evidenceId: docs/deploy-evidence/2026-07-16-import/
+    proof: "PARTIEL : aucune suppression silencieuse + staging jetable sans montage du workspace cible + commit tardif refusé (22 tests, IMP-1/2/3/5). RESTE : IMP-4 (timeout sweeper), IMP-6 (7 connecteurs non exécutés — inventaire corrigé à 12 entrées dont Previous Agent export, RPL-24), IMP-7 (débit crédits, gaté D4)."
+    dependances: [UNK-BILLING-MINIMAL-IMPL]
+    conditionDeCloture: "Rétention+appel spécifiés ET lots de connecteurs D4 exécutés ET débit crédits réel après réservation"
+    nextAction: "Billing minimal (D4) puis lot 1 connecteurs Git-backed"
+    targetDate: "2026-08-31"
+  - p0Id: P0-V3-07
+    title: "Promotion Artifact Registry non fermée (referrers/attachments non copiés)"
+    description: "Copier une image par digest ne copie ni signature ni SBOM ni provenance ; vérification dans le contexte tenant requise."
+    source: "Audit v3 (2026-07-16), P0-07"
+    priority: 7
+    owner: platform
+    status: OPEN
+    commit: "07ced1c5"
+    reviewer: UNKNOWN
+    evidenceId: services/api/src/artifact-promotion.spec.ts
+    proof: "PARTIEL : machine à états PROMOTION_PREPARED→…→PROMOTION_COMMITTED + 4 tests négatifs bloquants (SBOM manquant, relink échoué, BinAuthz refusé, source absente). RESTE : adapter AR LIVE (OCI referrers) + promotion réelle vérifiée dans le repo tenant. CONTRAINTE (GCP-12) : attachments = PREVIEW ⇒ fallback BinAuthz/Container Analysis + ORAS + exit strategy OBLIGATOIRES."
+    dependances: [UNK-AR-LIVE-PROMOTION]
+    conditionDeCloture: "Promotion réelle : copie image + referrers + vérif signatures + policy tenant + déploiement, avec fallback prouvé"
+    nextAction: "Adapter AR live + preuve dans le contexte cible"
+    targetDate: "2026-08-15"
+  - p0Id: P0-V3-08
+    title: "Rollback non reproductible avec de simples refs secrets"
+    description: "Une ref vers latest rejoue une autre application ; le manifest doit pinner versions de secrets, accès, domaines, migrations."
+    source: "Audit v3 (2026-07-16), P0-08"
+    priority: 8
+    owner: platform
+    status: OPEN
+    remediationTrack: A_TRIER
+    refusalReason: "RUN.log absent, rollback vide/404, JSON antérieur 400, script incomplet"
+    refusalType: NON_REPRODUCTIBLE
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
+    commit: "ec0ad6bd"
+    reviewer: UNKNOWN
+    evidenceId: docs/deploy-evidence/2026-07-17-rollback/
+    proof: "PROUVÉ LIVE (E2E-VERTICAL-ROLLBACK) : rollback par digest APRÈS suppression de la révision (410→re-déploiement p-…@sha256:657271c5, sert v1) ; 2 négatifs 409 (ROLLBACK_NO_RETAINED_DIGEST, ROLLBACK_SECRET_POLICY_UNSATISFIABLE). Permanence du flag = D2 DECIDED, application Helm tracée UNK-ROLLBACK-FLAG-APPLIED."
+    dependances: [UNK-ROLLBACK-FLAG-APPLIED]
+    conditionDeCloture: "Fournir artefacts rejouables : RUN.log absent, rollback vide/404, JSON antérieur 400, script incomplet ; puis re-soumission au relecteur"
+    nextAction: "Appliquer D2 (Helm values + schéma + canary + test post-deploy)"
+    targetDate: "2026-07-24"
+  - p0Id: P0-V3-09
+    title: "Atomicité du checkpoint surpromise"
+    description: "Une séquence d'étapes ne crée pas un instant atomique ; le niveau de cohérence doit être déclaré et une barrière établie avant tout snapshot."
+    source: "Audit v3 (2026-07-16), P0-09"
+    priority: 9
+    owner: platform
+    status: OPEN
+    remediationTrack: A_TRIER
+    refusalReason: "barrière 2 phases prouvée mais pas le niveau « transaction-consistent » revendiqué"
+    refusalType: DESACCORD
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
+    commit: "b8186f2f"
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/CHECKPOINT_CONTRACT.md
+    proof: "SPEC UNIQUEMENT : protocole barrière 2 phases (BARRIER_ESTABLISHED avant SNAPSHOTTING), niveaux crash/application/transaction-consistent, quiesce avec dégel obligatoire ; transition CHECKPOINT_SNAPSHOT_BEFORE_BARRIER refusée par test. Implémentation non commencée — un contrat n'est pas une capacité."
+    dependances: [UNK-CHECKPOINT-IMPL]
+    conditionDeCloture: "Corriger le claim/la preuve : barrière 2 phases prouvée mais pas le niveau « transaction-consistent » revendiqué ; puis re-soumission au relecteur"
+    nextAction: "Implémentation volume+DB+manifest avec preuve de restore"
+    targetDate: "2026-09-30"
+  - p0Id: P0-V3-10
+    title: "Contrat Nix incomplet et pin mal classé"
+    description: "Nix 2.34.8 = décision E-Code (pas parité) ; system/arch, clés, révocation, réplication zonale, upgrade DB Nix à fixer."
+    source: "Audit v3 (2026-07-16), P0-10"
+    priority: 10
+    owner: platform
+    status: OPEN
+    remediationTrack: A_TRIER
+    refusalReason: "rotation/rétention UNKNOWN ; révocation, provenance, récupération manquent"
+    refusalType: PREUVE_INSUFFISANTE
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
+    commit: "9a21f56f"
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/RUNTIME_NIX_CONTRACT.md
+    proof: "Pin reclassé DÉCISION E-CODE ; v1=x86_64-linux ; contrat complété (clés/rotation/révocation, provenance builder, reprise corruption, réplication zonale, upgrade schéma DB Nix, E2E offline). Store v2 PROUVÉ live (Node 62s + Python 3.12.13). RESTE (capacité) : multi-zone D3 GO — tracé UNK-NIX-MULTIZONE-IMPL, préalable au Python zéro-manuel."
+    dependances: [UNK-NIX-MULTIZONE-IMPL]
+    conditionDeCloture: "Compléter l'évidence : rotation/rétention UNKNOWN ; révocation, provenance, récupération manquent ; puis re-soumission au relecteur"
+    nextAction: "Exécuter D3 (clones zonaux signés par génération, test de perte de zone, coût mesuré)"
+    targetDate: "2026-08-01"
+  - p0Id: P0-V3-11
+    title: "Database : « Agent mute DEV » erroné + protocole publish insuffisant"
+    description: "Texte corrigé en « Agent peut modifier DEV » ; migration au publish sous concurrence/échec à spécifier."
+    source: "Audit v3 (2026-07-16), P0-11"
+    priority: 11
+    owner: platform
+    status: OPEN
+    remediationTrack: A_TRIER
+    refusalReason: "contrat sans DBMigrationExecution, clé idempotence ni protocole complet mutation PROD"
+    refusalType: PREUVE_INSUFFISANTE
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
+    commit: "57ab0a67"
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/DATABASE_CONTRACT.md
+    proof: "SPEC : DBMigrationExecution (PLANNED→…→COMMITTED, FAILED_SAFE/FORWARD_FIX_REQUIRED/MANUAL_RECOVERY), idempotencyKey, une migration active/env, aucune mutation PROD par l'Agent ; transition MIGRATION_APPLY_BEFORE_BACKUP refusée par test. Implémentation publish-migration non prouvée live — tracée UNK-DB-MIGRATION-PUBLISH-IMPL."
+    dependances: [UNK-DB-MIGRATION-PUBLISH-IMPL]
+    conditionDeCloture: "Compléter l'évidence : contrat sans DBMigrationExecution, clé idempotence ni protocole complet mutation PROD ; puis re-soumission au relecteur"
+    nextAction: "Prouver une migration au publish réelle (lock, backup, validation)"
+    targetDate: "2026-09-30"
+  - p0Id: P0-V3-12
+    title: "Ledger de billing insuffisant"
+    description: "Invariants comptables requis : double entrée, decimal exact, FX/cutoff, PaymentAuthorization distincte de UsageReservation."
+    source: "Audit v3 (2026-07-16), P0-12"
+    priority: 12
+    owner: platform
+    status: OPEN
+    remediationTrack: CHANTIER
+    refusalReason: "pas de double entrée canonique, décimales/FX/cutoff, compensations ni rapprochement PSP/GCP"
+    refusalType: DESACCORD
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
+    resolutionBranch: "feat/billing-double-entry-ledger"
+    resolutionStatus: "PROVEN_REVIEW_PENDING"
+    commit: "07ced1c5"
+    reviewer: UNKNOWN
+    evidenceId: docs/deploy-evidence/2026-07-20-double-entry-ledger/
+    proof: "GRAND LIVRE DOUBLE-ENTRÉE DURABLE IMPLÉMENTÉ + PROUVÉ EN RÉEL (branche feat/billing-double-entry-ledger, PR ouverte non mergée). ledger-core.ts (double entrée stricte Σdébits=Σcrédits/devise validée avant écriture, écriture inverse, FX rationnel exact + cutoff, décimal bigint jamais flottant, hard limit) + ledger-store.ts (durable, migration 0078 : LedgerAccount/Transaction/Entry/Reservation/FxRate/ReconciliationRun + triggers immutabilité BEFORE UPDATE/DELETE/TRUNCATE) + ledger-reservation.ts (reserve/settle/compensate/release) + ledger-reconciliation.ts. 39 tests dont 7 DURABLES contre un vrai Postgres : transaction débit=crédit, compensation qui remet chaque compte à zéro (settle intact, reversalOfId), réservation qui SURVIT à un redémarrage (2 clients indépendants), mutation d'événement passé refusée par la DB, rapprochement détecte un écart, hard limit refusé ; négatifs : débit≠crédit refusé, idempotence. Build strict 0 err. Décision Avi : ancien wallet abandonné, aucune migration de soldes."
+    dependances: [UNK-BILLING-MINIMAL-IMPL]
+    conditionDeCloture: "Merge de la PR feat/billing-double-entry-ledger + re-signature humaine du relecteur (double entrée + décimal/FX/cutoff + compensation + rapprochement désormais implémentés et prouvés)"
+    nextAction: "Re-soumettre la PR feat/billing-double-entry-ledger au relecteur ; NE PAS clôturer avant re-signature (PROVEN_REVIEW_PENDING)"
+    targetDate: "2026-08-15"
+  - p0Id: P0-V3-13
+    title: "Matrice des surfaces inexploitable"
+    description: "Matrice infinie compte×plan×région×client remplacée par une matrice supportée déclarée."
+    source: "Audit v3 (2026-07-16), P0-13"
+    priority: 13
+    owner: platform
+    status: OPEN
+    remediationTrack: A_TRIER
+    refusalReason: "registre schemaVersion 3, accessibilité UNKNOWN, aucun contrat WCAG 2.2 AA"
+    refusalType: PREUVE_INSUFFISANTE
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
+    commit: "b8186f2f"
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/SURFACE_REGISTRY.yaml
+    proof: "SURFACE_REGISTRY schemaVersion 2 : availability ∈ {SUPPORTED|UNSUPPORTED|NOT_APPLICABLE|ROLLOUT|UNKNOWN}, clientKind, a11y (WCAG 2.2 AA), locale/RTL, performanceBudget ; test négatif availability:MAYBE ⇒ exit 1."
+    dependances: []
+    conditionDeCloture: "Compléter l'évidence : registre schemaVersion 3, accessibilité UNKNOWN, aucun contrat WCAG 2.2 AA ; puis re-soumission au relecteur"
+    nextAction: "Revue"
+    targetDate: "2026-07-16"
+  - p0Id: P0-V3-14
+    title: "Paquet documentaire et calcul d'approbation absents"
+    description: "17 groupes de livrables + APPROVAL_STATUS calculé par CI, jamais écrit à la main."
+    source: "Audit v3 (2026-07-16), P0-14"
+    priority: 14
+    owner: platform
+    status: PROVEN_REVIEW_PENDING
+    reviewNote: "REFUSÉ au reçu RR-20260723-CODEX-07 (motif verbatim) : la chaîne documentaire revendique une authentification complète de provenance mais accepte encore une attestation sans mergedCommit/repoCommit/runUrl — le maillon d'attestation n'est pas fail-closed ; l'ensemble génération→drift-check→validation→authentification ne peut être signé comme chaîne complète. Un run vivant et vert ne corrige pas ce défaut LOGIQUE du vérificateur"
+    reviewReceiptId: RR-20260723-CODEX-07
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
+    commit: "97759a77"
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/APPROVAL_STATUS.json
+    proof: "Registres + schémas + validateur (exit 0/1 prouvé, test négatif 3 violations) + CI parity-registries verte + APPROVAL_STATUS généré avec drift-check (édition manuelle = build cassé)."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue"
+    targetDate: "2026-07-16"
+  - p0Id: P0-V3-15
+    title: "Règles normatives violées par le plan lui-même (historique d'audit, étiquetage, P0 non traçables)"
+    description: "Le plan portait son historique d'audit et exigeait la clôture de 19 P0 sans les identifier."
+    source: "Audit v3 (2026-07-16), P0-15"
+    priority: 15
+    owner: platform
+    status: PROVEN
+    commit: "d1040286a4000c84372ca540943bee6eca6cace5"
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/PLAN_PARITE_REPLIT.md
+    proof: "Plan canonique sans récit autobiographique (historique → CHANGELOG_AUDIT.md) ; étiquetage limité aux assertions factuelles externes ; les 15 P0 du dernier audit tracés individuellement dans CE registre (cette entrée incluse)."
+    dependances: []
+    conditionDeCloture: "PLAN_PARITE_REPLIT.md mergé + revue humaine"
+    nextAction: "Merge du plan canonique + revue"
+    targetDate: "2026-07-17"
+
+# ============================================================================
+# P1 — audit de couverture 2026-07-19 (COVERAGE_GAP_AUDIT_2026-07-17.md,
+# famille A + B). Ce sont les features Replit qu'on suivait AILLEURS et que le
+# plan canonique ne mentionnait pas. DISTINCTS des 18 P1 de l'audit externe v3
+# (toujours non tracés individuellement, cible 2026-08-15, cf. plan §9/§12.8).
+# Mêmes règles que les P0 : la CI compare l'ensemble EXACT (EXPECTED_P1_IDS) ;
+# targetDate ISO ; rien n'est « fait » sans preuve. Statut OPEN par défaut.
+# ============================================================================
+
+  # ============================================================================
+  # Les 16 P0 de l'AUDIT DE RÉANALYSE (Audit_reanalyse_PLAN_PARITE_REPLIT_
+  # LIVRAISON_2_2026.docx, expert externe, 2026-07-20, fichier audité
+  # sha256 af88c6c6…). Ensemble EXACT verrouillé CI (EXPECTED_P0_IDS).
+  # ============================================================================
+  - p0Id: P0-A2-01
+    title: "Paquet de preuve absent — DOCUMENT_MANIFEST signé"
+    description: "Fournir un DOCUMENT_MANIFEST signé avec hash, repoCommit, schemaVersion et résultat de validation de chaque fichier"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-01"
+    priority: 1
+    owner: platform
+    status: OPEN
+    remediationTrack: A_TRIER
+    refusalReason: "manifeste non signé, provenance/validation par fichier incomplètes, reviewers UNKNOWN"
+    refusalType: PREUVE_INSUFFISANTE
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
+    commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/DOCUMENT_MANIFEST.yaml
+    proof: "DOCUMENT_MANIFEST.yaml GÉNÉRÉ (hash+schemaVersion+repoCommit+reviewer+validation par fichier, drift-check CI). Reviewer humain encore UNKNOWN."
+    dependances: []
+    conditionDeCloture: "Compléter l'évidence : manifeste non signé, provenance/validation par fichier incomplètes, reviewers UNKNOWN ; puis re-soumission au relecteur"
+    nextAction: "Revue humaine du manifeste"
+    targetDate: "2026-07-20"
+  - p0Id: P0-A2-02
+    title: "Univers des surfaces incomplet (10 vs 159)"
+    description: "Créer EXPECTED_SURFACE_IDS et exiger l'égalité exacte avec SURFACE_REGISTRY"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-02"
+    priority: 2
+    owner: platform
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260722-CODEX-05 (COMPLET, responseHash c32a945d…) — ensemble structuré S01–S56 verrouillé par le validateur, job officiel vert ; la signature valide l'existence et le verrouillage de l'univers DOCUMENTAIRE des 56 services — pas leur implémentation"
+    reviewReceiptId: RR-20260722-CODEX-05
+    reviewVerdict: SIGNED
+    refusalReason: "preuve sur-revendiquée : SURFACE_REGISTRY contient 159 P001–P159 mais aucun ensemble réel de 56 IDs S01–S56 ; la mention services = commentaire/source, pas univers exact verrouillé ; le proof affirme plus que l'artefact"
+    refusalType: PREUVE_INSUFFISANTE
+    remediationTrack: QUICK
+    reviewCommit: "60a987ca"
+    commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
+    reviewer: OpenAI-Codex
+    evidenceId: docs/parity/SERVICE_REGISTRY.yaml
+    proof: "CORRIGÉ v4 (21/07) : l'ensemble RÉEL S01–S56 vit dans SERVICE_REGISTRY.yaml (56 entrées serviceId+title+responsibility, migré le 20/07 — P1-A2-09 : pas de duplication dans SURFACE_REGISTRY) et il est désormais VERROUILLÉ par garde CI cassante (validate-registries.mjs : égalité exacte S01…S56 + title/responsibility obligatoires). Le proof ne pointe plus un commentaire mais l'artefact réel + sa garde."
+    dependances: []
+    conditionDeCloture: "L'univers services S01–S56 est un ensemble réel verrouillé CI (SERVICE_REGISTRY + garde d'égalité exacte) ; puis re-soumission au relecteur"
+    nextAction: "Re-soumission au relecteur (SERVICE_REGISTRY 56 IDs + garde CI exacte)"
+    targetDate: "2026-09-30"
+  - p0Id: P0-A2-03
+    title: "Modèle Project → Artifacts absent"
+    description: "Ajouter un §3.0 normatif"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-03"
+    priority: 3
+    owner: platform
+    status: OPEN
+    remediationTrack: A_TRIER
+    refusalReason: "modèle partiel au §5 (ArtifactKind), aucun schéma complet Project→Artifacts"
+    refusalType: PREUVE_INSUFFISANTE
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
+    commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/PLAN_PARITE_REPLIT.md
+    proof: "§3.0 normatif ajouté : Project/Artifact/Component/ProjectRevision/ArtifactRevision/ArtifactType/SharedBackendBinding/ProjectRelease, 7 max / 1 mobile = entitlements configurables, backend+data partagés, publication groupée (publicationMode: GROUPED)."
+    dependances: []
+    conditionDeCloture: "Compléter l'évidence : modèle partiel au §5 (ArtifactKind), aucun schéma complet Project→Artifacts ; puis re-soumission au relecteur"
+    nextAction: "Revue humaine + contrat de domaine schematisé"
+    targetDate: "2026-07-20"
+  - p0Id: P0-A2-04
+    title: "Types de déploiement non contractualisés"
+    description: "Ajouter un contrat produit des 4 types"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-04"
+    priority: 4
+    owner: platform
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260721-CODEX-04 (COMPLET, responseHash 6d91bcfb…) — le contrat distingue réellement les 4 types (lifecycle, config, secrets, coûts, observabilité, changement de type, preuve attendue) ; la signature valide l'EXISTENCE de la contractualisation, PAS la disponibilité réelle des 4 produits"
+    reviewReceiptId: RR-20260721-CODEX-04
+    reviewVerdict: SIGNED
+    reviewCommit: "6ca7d701"
+    commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
+    reviewer: OpenAI-Codex
+    evidenceId: docs/parity/DEPLOYMENT_TYPES_CONTRACT.md
+    proof: "DEPLOYMENT_TYPES_CONTRACT.md créé : Autoscale/Static/Reserved VM/Scheduled — lifecycle, config, port, secrets, coûts, observabilité, changement de type sans recréer, preuve exigée par type."
+    dependances: []
+    conditionDeCloture: "Chaque type prouvé live (E2E) — capacité, pas contrat"
+    nextAction: "Chaque type prouvé live (E2E) — capacité, pas contrat"
+    targetDate: "2026-09-30"
+  - p0Id: P0-A2-05
+    title: "registryComplete vrai sur registre incomplet"
+    description: "Le gate doit couvrir l'ensemble exact P0+P1+surfaces+claims+décisions+unknowns+work items"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-05"
+    priority: 5
+    owner: platform
+    status: OPEN
+    remediationTrack: A_TRIER
+    refusalReason: "sourceBaselineReady=false mais registryUniverseReady=true ; la preuve dit que les deux échouent"
+    refusalType: DESACCORD
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
+    commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/APPROVAL_STATUS.json
+    proof: "Niveaux refondus : sourceBaselineReady (claims ancrés, unanchoredClaims=0) et registryUniverseReady (P0+P1+surfaces+claims+décisions+unknowns+work items en ensembles EXACTS) — les deux ÉCHOUENT aujourd'hui, plus aucun vert sur univers incomplet."
+    dependances: []
+    conditionDeCloture: "Corriger le claim/la preuve : sourceBaselineReady=false mais registryUniverseReady=true ; la preuve dit que les deux échouent ; puis re-soumission au relecteur"
+    nextAction: "sourceBaselineReady et registryUniverseReady PASS"
+    targetDate: "2026-08-15"
+  - p0Id: P0-A2-06
+    title: "verticalReady = faux positif UI"
+    description: "Scinder verticalBackendReady et verticalUserJourneyReady"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-06"
+    priority: 6
+    owner: platform
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260721-CODEX-04 (COMPLET, responseHash 6d91bcfb…) — faux positif UI corrigé — verticalBackendReady passed:true / verticalUserJourneyReady passed:false (preuve UI Publish/Rollback absente, dit honnêtement)"
+    reviewReceiptId: RR-20260721-CODEX-04
+    reviewVerdict: SIGNED
+    reviewCommit: "6ca7d701"
+    commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
+    reviewer: OpenAI-Codex
+    evidenceId: docs/parity/APPROVAL_STATUS.json
+    proof: "Scindé : verticalBackendReady (7/7 backend) + verticalUserJourneyReady (ÉCHOUE tant que uiGaps non vide — publish, rollback aujourd'hui)."
+    dependances: []
+    conditionDeCloture: "verticalUserJourneyReady PASS depuis un vrai client UI"
+    nextAction: "verticalUserJourneyReady PASS depuis un vrai client UI"
+    targetDate: "2026-08-31"
+  - p0Id: P0-A2-07
+    title: "architectureContracted = présence seulement"
+    description: "Exiger schémas, requiredSections, reviewer, cross-references, tests négatifs"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-07"
+    priority: 7
+    owner: platform
+    status: OPEN
+    remediationTrack: A_TRIER
+    refusalReason: "le gate ne valide pas schémas/références/tests/compatibilité annoncés"
+    refusalType: DESACCORD
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
+    commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/APPROVAL_STATUS.json
+    proof: "Renommé contractsPresent + contractsValidated (P1-A2-12). contractsValidated exige sections requises + reviewer + refs — il ÉCHOUE aujourd'hui (reviewers absents), honnêtement."
+    dependances: []
+    conditionDeCloture: "Corriger le claim/la preuve : le gate ne valide pas schémas/références/tests/compatibilité annoncés ; puis re-soumission au relecteur"
+    nextAction: "contractsValidated PASS avec reviewers réels"
+    targetDate: "2026-09-30"
+  - p0Id: P0-A2-08
+    title: "Erreur Auth (migration + MFA/orgs)"
+    description: "Séparer les 4 statuts Auth"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-08"
+    priority: 8
+    owner: platform
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260721-CODEX-04 (COMPLET, responseHash 6d91bcfb…) — snapshot distingue les 2 produits Clerk/Replit Auth, chemin custom-auth→Clerk documenté, guide Replit-Auth→Clerk 'coming soon' laissé UNKNOWN, MFA/SMS/Organizations non revendiqués"
+    reviewReceiptId: RR-20260721-CODEX-04
+    reviewVerdict: SIGNED
+    reviewCommit: "6ca7d701"
+    commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
+    reviewer: OpenAI-Codex
+    evidenceId: docs/parity/baseline/sources/2026-07-20-replit-clerk-auth.md
+    proof: "§3.9 REMPLACÉ, ancré RPL-25/RPL-26 (snapshots hashés) : deux produits confirmés ; migration custom-auth→Clerk documentée ; guide Replit Auth→Clerk « coming soon » = INCONNU ; MFA/SMS/orgs « What's not supported » ⇒ extensions E-CODE, PAS parité courante."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue humaine"
+    targetDate: "2026-07-20"
+  - p0Id: P0-A2-09
+    title: "Erreur Workload Identity"
+    description: "Définir trois chemins d'identité"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-09"
+    priority: 9
+    owner: platform
+    status: OPEN
+    reviewNote: "REFUSÉ au reçu RR-20260723-CODEX-07 (motif verbatim) : les autres réserves V3 sont substantiellement traitées (gh obligatoire, run corrélé par nonce, négatif GKE 401/403 à contenu contrôlé, 3 chemins rejoués) mais repro.sh installe le trap de teardown APRÈS gcloud projects create + billing link : si la liaison billing échoue sous set -e, le script sort avant le trap et peut laisser le projet actif — la correction annoncée « trap dès la 1re ressource » n'est pas présente"
+    reviewReceiptId: RR-20260723-CODEX-07
+    remediationTrack: CHANTIER
+    refusalReason: "WIF prouvé GKE seulement, pas les 3 chemins"
+    refusalType: PREUVE_INSUFFISANTE
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
+    commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/baseline/sources/2026-07-20-gke-workload-identity.html
+    proof: "§4.4 REMPLACÉ, ancré GCP-13 (citation exacte « In GKE, Google Cloud manages the workload identity pool and provider for you and doesn't require an external identity provider ») : 3 chemins — GKE→WIF for GKE (recommandé, aucun IdP externe) ; hors GCP→IAM WIF externe ; Cloud Run→service identity + impersonation courte. Zéro clé persistante partout."
+    dependances: []
+    conditionDeCloture: "Compléter l'évidence : WIF prouvé GKE seulement, pas les 3 chemins ; puis re-soumission au relecteur"
+    nextAction: "Revue humaine"
+    targetDate: "2026-07-20"
+  - p0Id: P0-A2-10
+    title: "Décision Gallery incohérente"
+    description: "Reclasser CAPTURE_INCOMPLETE/OPEN"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-10"
+    priority: 10
+    owner: platform
+    status: CLOSED
+    reviewReceiptId: RR-20260720-CODEX-02
+    remediationTrack: QUICK
+    previousRefusalReason: "décision Gallery réellement DECIDED, pas OPEN/CAPTURE_INCOMPLETE"
+    reviewVerdict: SIGNED
+    reviewedRemediationCommit: "af24d4fe48015e6041c8e11b240b1f2d54f333d1"
+    reviewCommit: "cf5c67a513322ba0c248b900ea88c50b5e128ac6"
+    commit: "af24d4fe48015e6041c8e11b240b1f2d54f333d1"
+    reviewer: OpenAI-Codex
+    evidenceId: docs/parity/DECISION_REGISTRY.yaml
+    proof: "DEC-GALLERY-NO-SELF-PUBLISH est DECIDED ; seul POST /admin/gallery-listings crée une publication, sous contrôle platform-admin + réauthentification ; gallery-routes.spec.ts passe 15/15, dont le refus 403 non-admin."
+    dependances: []
+    conditionDeCloture: "Satisfaite par le reçu complet RR-20260720-CODEX-02"
+    nextAction: "Aucun — accepté et signé dans RR-20260720-CODEX-02"
+    targetDate: "2026-07-31"
+  - p0Id: P0-A2-11
+    title: "Compteurs contradictoires"
+    description: "Générer tous les compteurs depuis un registre unique"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-11"
+    priority: 11
+    owner: platform
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260722-CODEX-05 (COMPLET, responseHash c32a945d…) — compteur régénéré à 122 work items, plus aucune valeur périmée 99 ; compteurs dérivés des registres actuels, validation officielle verte"
+    reviewReceiptId: RR-20260722-CODEX-05
+    reviewVerdict: SIGNED
+    refusalReason: "compteurs périmés : le proof affirme canonicalWorkItemCount=99 alors que WORK_ITEM_REGISTRY courant en annonce 122 — le compteur 99 n'est plus la source unique actuelle ; régénérer le proof et toutes les vues"
+    refusalType: PREUVE_INSUFFISANTE
+    remediationTrack: QUICK
+    reviewCommit: "60a987ca"
+    commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
+    reviewer: OpenAI-Codex
+    evidenceId: docs/parity/APPROVAL_STATUS.json
+    proof: "CORRIGÉ v4 (21/07) : proof régénéré depuis les registres COURANTS : canonicalWorkItemCount=122 (WORK_ITEM_REGISTRY, dérivé 99−1 merge+1 split×24 — garde supersession CI), boltDebt=29, prodReadiness=50, sourceFindingCount=336. Tout compteur affiché vient du JSON généré (APPROVAL_STATUS) — aucun compteur saisi à la main."
+    dependances: []
+    conditionDeCloture: "Aucun compteur saisi à la main ; tous les proofs re-dérivés des registres courants (122 work items) ; puis re-soumission au relecteur"
+    nextAction: "Re-soumission au relecteur (compteurs 122 partout, vues régénérées)"
+    targetDate: "2026-07-20"
+  - p0Id: P0-A2-12
+    title: "336 constats ≠ 336 tâches uniques"
+    description: "Ajouter sourceFindingId→canonicalWorkItemId, duplicateOf, supersedes, sourceFile, sourceLine, sourceHash"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-12"
+    priority: 12
+    owner: platform
+    status: PROVEN
+    commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/A2_12_DEDUP_SEMANTIQUE_20260720.md
+    proof: "FAIT : LEGACY_FINDING_REGISTRY (336, provenance plan@af88c6c6 + originRef, duplicateOf posés) + passe SÉMANTIQUE 20/07 (2 proposeurs indépendants, application = intersection au niveau work item) : 3 fusions appliquées (OUT-EF-04→BD-21/WI-0079, RPD-24→CM-34/WI-0055, BD-22→WI-0044) + sur-regroupement WI-0033 corrigé (27 dettes BD agrégées par NOM DE FICHIER → éclatées par livrable, WI-0100..WI-0123) → canonicalWorkItemCount 99→122, mapping bijectif 336↔122 vérifié machine, SHA des 336 IDs inchangé. Provenance origine = ACCEPTED_RISK justifié (UNK-LEGACY-ORIGIN-PROVENANCE). Pièce : A2_12_DEDUP_SEMANTIQUE_20260720.md."
+    dependances: []
+    conditionDeCloture: "Passe de déduplication sémantique revue + provenance origine complétée ou ACCEPTED_RISK"
+    nextAction: "Signature reviewer (packet expert) ; candidat non appliqué tracé : BD-20 (WI-0118) ↔ WI-0051"
+    targetDate: "2026-08-15"
+  - p0Id: P0-A2-13
+    title: "Provenance du statut insuffisante"
+    description: "Ajouter planCommit, measuredCodeCommit, registryCommit, statusGeneratorCommit, mergedToMainAt"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-13"
+    priority: 13
+    owner: platform
+    status: OPEN
+    remediationTrack: A_TRIER
+    refusalReason: "champs provenance absents, attestation sur un autre commit, generatedAt incohérent"
+    refusalType: PREUVE_INSUFFISANTE
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
+    commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/PLAN_PARITE_REPLIT.md
+    proof: "§0 : planCommit/measuredCodeCommit/registryCommit/statusCommit (backfill au commit suivant, même mécanique que P0-V3-15), generatedAt RÉEL (2026-07-20T04:20:00Z), mergedToMainAt: null (honnête — PR ouverte). Attestation CI = workflow parity-registries sur la branche."
+    dependances: []
+    conditionDeCloture: "Compléter l'évidence : champs provenance absents, attestation sur un autre commit, generatedAt incohérent ; puis re-soumission au relecteur"
+    nextAction: "Recalcul du statut sur le commit mergé dans origin/main"
+    targetDate: "2026-08-01"
+  - p0Id: P0-A2-14
+    title: "Cloud Run multi-tenant incomplet"
+    description: "Ajouter CapacityPolicy, ReputationTier, BillingAccountBinding, quotas, seuils, anti-abus"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-14"
+    priority: 14
+    owner: platform
+    status: OPEN
+    remediationTrack: A_TRIER
+    refusalReason: "contrats et seuils multi-tenant nommés inexistants"
+    refusalType: DESACCORD
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
+    commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/baseline/sources/2026-07-20-cloudrun-multitenant.html
+    proof: "Ancré GCP-14 (doc du 17/07, snapshot hashé) + GCP-15 (quotas 1000 services/jobs/pools par projet+région) : §4.2–4.3 ajoutent pool de projets précréés, ReputationTier, BillingAccountBinding (billing account par tier), AbuseEventPolicy, quotas services/jobs/SA et seuils de sharding dans CapacityPolicy, folders first-party vs untrusted, LB global + Service Extensions."
+    dependances: []
+    conditionDeCloture: "Corriger le claim/la preuve : contrats et seuils multi-tenant nommés inexistants ; puis re-soumission au relecteur"
+    nextAction: "Implémentation CapacityPolicy étendue (capacité, pas contrat)"
+    targetDate: "2026-08-31"
+  - p0Id: P0-A2-15
+    title: "Claims non ancrés mais utilisés"
+    description: "Ancrer toute claim utilisée dans un gate, sinon UNVERIFIED + gate FAIL"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-15"
+    priority: 15
+    owner: platform
+    status: PROVEN
+    commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/PLAN_PARITE_REPLIT.md
+    proof: "FAIT (20/07, lot registres) : les 21 claims hérités (RPL-01..06,09,10,13,14,16 + GCP-01..04,06..10 + NIX-01) ancrés URL+snapshot+hash dans PUBLIC_BASELINE — chaque citation RE-VÉRIFIÉE (greps ligne à ligne, 9 nouvelles sources assainies + réutilisation des corpus hashés identiques 16/07=20/07 sha a7d6f513). unanchoredClaims passe à 0."
+    dependances: []
+    conditionDeCloture: "unanchoredClaims == 0"
+    nextAction: "unanchoredClaims == 0"
+    targetDate: "2026-08-15"
+  - p0Id: P0-A2-16
+    title: "Sémantique approved.level trompeuse"
+    description: "Remplacer par highestPassedLevel + overallStatus=NOT_APPROVED"
+    source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-16"
+    priority: 16
+    owner: platform
+    status: PROVEN
+    commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/APPROVAL_STATUS.json
+    proof: "REMPLACÉ : overallStatus: NOT_APPROVED + highestPassedLevel (échelle contiguë). « approved » réservé à une approbation de périmètre explicite avec approbateur stocké (APPROVALS.yaml, aujourd'hui vide). Interdits par le validateur : approvalReady ET approved.level."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue humaine"
+    targetDate: "2026-07-20"
+  # ============================================================================
+  # Les 18 P0-LS — NUMÉROTATION DE L'EXPERT (§19 du plan adopté, verbatim).
+  # L'ancienne numérotation P0-LS d'E-Code (matin du 20/07) est SUPERSÉDÉE —
+  # mapping consigné au CHANGELOG_AUDIT (aucun contenu perdu).
+  # ============================================================================
+  - p0Id: P0-LS-01
+    title: "Corriger « nouveau compte » en visiteur anonyme"
+    description: "Corriger « nouveau compte » en visiteur anonyme (gate : sourceBaselineReady)"
+    source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
+    priority: 1
+    owner: platform
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260721-CODEX-04 (COMPLET, responseHash 6d91bcfb…) — registre des routes : 20 entrées, toutes authenticated:false — sujet observé correctement qualifié de visiteur anonyme"
+    reviewReceiptId: RR-20260721-CODEX-04
+    reviewVerdict: SIGNED
+    reviewCommit: "6ca7d701"
+    commit: b598e79042dce0af91c376a810c61320fd988013
+    reviewer: OpenAI-Codex
+    evidenceId: docs/parity/ROUTE_OBSERVATION_REGISTRY.yaml
+    proof: "Adopté verbatim §3.3 (« le sujet observé est un visiteur anonyme ») ; ROUTE_OBSERVATION authenticated:false."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue"
+    targetDate: "2026-07-20"
+  - p0Id: P0-LS-02
+    title: "Corriger 21 tentatives / 20 routes / 19 HTTP 200 / 16 hashes distincts"
+    description: "Corriger 21 tentatives / 20 routes / 19 HTTP 200 / 16 hashes distincts (gate : sourceBaselineReady)"
+    source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
+    priority: 2
+    owner: platform
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260721-CODEX-04 (COMPLET, responseHash 6d91bcfb…) — recalcul relecteur : 20 routes / 21 tentatives (signup ×2) / 19 HTTP 200 / 2 tentatives anti-bot / 16 hashes distincts"
+    reviewReceiptId: RR-20260721-CODEX-04
+    reviewVerdict: SIGNED
+    reviewCommit: "6ca7d701"
+    commit: b598e79042dce0af91c376a810c61320fd988013
+    reviewer: OpenAI-Codex
+    evidenceId: docs/parity/ROUTE_OBSERVATION_REGISTRY.yaml
+    proof: "Chiffres verbatim §3.3 adoptés + ROUTE_OBSERVATION_REGISTRY (20 routes, signup ×2)."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue"
+    targetDate: "2026-07-20"
+  - p0Id: P0-LS-03
+    title: "Joindre et valider le paquet complet d evidence du scan"
+    description: "Joindre et valider le paquet complet d evidence du scan (gate : sourceBaselineReady)"
+    source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
+    priority: 3
+    owner: platform
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260723-CODEX-07 (COMPLET, responseHash f5771529…) — intégrité et COUVERTURE des fichiers du paquet (étape CI officielle 'Verify livescan hash coverage', 71 fichiers dont 21 *.links.txt, test négatif modif-1-octet→échec→restaure→vert) ; NE valide PAS la justesse sémantique de chaque observation contenue dans ces fichiers"
+    reviewReceiptId: RR-20260723-CODEX-07
+    remediationTrack: A_TRIER
+    refusalReason: "le vérificateur et l'index sont présents (71 fichiers dont les 21 *.links.txt) mais la commande de reproduction n'a pas été rejouée dans un environnement équivalent et n'est pas ancrée à un job CI officiel du point ; le relecteur ne remplace pas l'exécution par une lecture du script"
+    refusalType: PREUVE_INSUFFISANTE
+    reviewVerdict: SIGNED
+    reviewCommit: "bc629fe1"
+    commit: b598e79042dce0af91c376a810c61320fd988013
+    reviewer: OpenAI-Codex
+    evidenceId: docs/deploy-evidence/2026-07-22-livescan-hashes/
+    proof: "SIGNÉ au reçu RR-20260723-CODEX-07 : garde auditée RÉELLEMENT INCORPORÉE (commit bc629fe1, PR #48) — étape CI officielle « Verify livescan hash coverage (P0-LS-03 — fails on hash drift) » dans le job validate de parity-registries.yml qui rejoue verify-livescan-hashes.mjs --check (recalcule le sha256 des 71 fichiers du paquet livescan-2026-07-20 dont les 21 *.links.txt, échoue exit 1 sur dérive/couverture incomplète ; run officiel 30003958808 vert) ; test négatif rejouable prove-livescan-hash-guard.sh (ROUGE sur modif d'1 octet / VERT sur restauration, log neg-proof.txt) ; hash-index.json couvre 71 fichiers (21 links / 21 screenshots / 24 text / 4 doc / 1 manifest). Rejoué local : --check exit 0."
+    dependances: []
+    conditionDeCloture: "Commande --check câblée en job CI officiel vert au commit soumis + test négatif (modif → rouge) ; puis re-soumission"
+    nextAction: "Re-soumission au relecteur : étape CI officielle verte (run 30003958808) + test négatif rejoué"
+    targetDate: "2026-07-20"
+  - p0Id: P0-LS-04
+    title: "Reclasser GitLab comme capacité supportée sans tuile courante"
+    description: "Reclasser GitLab comme capacité supportée sans tuile courante (gate : registryUniverseReady)"
+    source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
+    priority: 4
+    owner: platform
+    status: CLOSED
+    reviewReceiptId: RR-20260720-CODEX-02
+    remediationTrack: QUICK
+    previousRefusalReason: "simple note d'en-tête, aucune entrée GitLab structurée"
+    reviewVerdict: SIGNED
+    reviewedRemediationCommit: "af24d4fe48015e6041c8e11b240b1f2d54f333d1"
+    reviewCommit: "cf5c67a513322ba0c248b900ea88c50b5e128ac6"
+    commit: "af24d4fe48015e6041c8e11b240b1f2d54f333d1"
+    reviewer: OpenAI-Codex
+    evidenceId: docs/parity/IMPORT_PROVIDER_REGISTRY.yaml
+    proof: "IMPORT_PROVIDER_REGISTRY porte GITLAB sous nonTileCapabilities avec kind/hubTileVisible/capabilityStatus/evidence/ecodeBuiltState/unknowns ; retrait de kind rejoué → validateur rouge explicite, restauration → vert ; les 12 tuiles restent intactes."
+    dependances: []
+    conditionDeCloture: "Satisfaite par le reçu complet RR-20260720-CODEX-02"
+    nextAction: "Aucun — accepté et signé dans RR-20260720-CODEX-02"
+    targetDate: "2026-07-20"
+  - p0Id: P0-LS-05
+    title: "Corriger la taxonomie Artifact/Asset/Component/Deployment"
+    description: "Corriger la taxonomie Artifact/Asset/Component/Deployment (gate : documentReconciled)"
+    source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
+    priority: 5
+    owner: platform
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260722-CODEX-05 (COMPLET, responseHash c32a945d…) — les 4 registres spécialisés existent (7/8/7/4) et sont verrouillés séparément ; la signature porte sur la taxonomie DOCUMENTAIRE, pas sur la disponibilité des types de déploiement"
+    reviewReceiptId: RR-20260722-CODEX-05
+    reviewVerdict: SIGNED
+    refusalReason: "l'evidenceId ne contient qu'une taxonomie sur quatre : ARTIFACT_KIND (7) présent, mais pas les 8 GeneratedAssetKind, les 7 ComponentKind ni la taxonomie Deployment annoncés — un renvoi au plan ne remplace pas les registres spécialisés"
+    refusalType: PREUVE_INSUFFISANTE
+    remediationTrack: QUICK
+    reviewCommit: "60a987ca"
+    commit: b598e79042dce0af91c376a810c61320fd988013
+    reviewer: OpenAI-Codex
+    evidenceId: docs/parity/ARTIFACT_KIND_REGISTRY.yaml   # + GENERATED_ASSET_KIND / COMPONENT_KIND / DEPLOYMENT_TYPE (les 4 taxonomies, listées dans proof — le champ pointe le fichier primaire)
+    proof: "CORRIGÉ v4 (21/07) : les QUATRE registres spécialisés existent et sont VERROUILLÉS par gardes CI cassantes (validate-registries.mjs) : ARTIFACT_KIND_REGISTRY ×7 exacts, GENERATED_ASSET_KIND_REGISTRY ×8 exacts (DOCUMENT/SPREADSHEET/CSV/PDF/MARKDOWN/IMAGE/PRESENTATION_FILE/OTHER_FILE), COMPONENT_KIND_REGISTRY ×7 exacts (WEB_FRONTEND/API/SERVICE/WORKER/JOB/SHARED_PACKAGE/STATIC_SITE_COMPONENT), DEPLOYMENT_TYPE_REGISTRY ×4 exacts (AUTOSCALE/STATIC/RESERVED_VM/SCHEDULED). L'evidenceId liste les 4 fichiers."
+    dependances: []
+    conditionDeCloture: "Les 4 taxonomies existent en registres spécialisés verrouillés CI (7+8+7+4 exacts) ; puis re-soumission au relecteur"
+    nextAction: "Re-soumission au relecteur (4 registres + 4 gardes d'exactitude)"
+    targetDate: "2026-07-20"
+  - p0Id: P0-LS-06
+    title: "Classifier N1–N15 par registre spécialisé"
+    description: "Classifier N1–N15 par registre spécialisé (gate : registryUniverseReady)"
+    source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
+    priority: 6
+    owner: platform
+    status: OPEN
+    remediationTrack: A_TRIER
+    refusalReason: "observations TRIAGED malgré liens cassés/non sémantiques"
+    refusalType: DESACCORD
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
+    commit: b598e79042dce0af91c376a810c61320fd988013
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/OBSERVATION_REGISTRY.yaml
+    proof: "FAIT (20/07) : les 15 OBS-DELTA classifiées TRIAGED avec linkedRegistryIds vers leurs registres cibles (capacités, connecteurs, écosystème, offres, intentions, import providers, surface candidate ECO-COMMUNITY-PROFILES). La DÉDUPLICATION de l univers (§6.3 canonicalSurfaceCount) reste un travail distinct, tracé."
+    dependances: []
+    conditionDeCloture: "Corriger le claim/la preuve : observations TRIAGED malgré liens cassés/non sémantiques ; puis re-soumission au relecteur"
+    nextAction: "Passe de déduplication de l univers (canonicalSurfaceCount)"
+    targetDate: "2026-07-27"
+  - p0Id: P0-LS-07
+    title: "Supprimer l addition automatique 159+15=174"
+    description: "Supprimer l addition automatique 159+15=174 (gate : registryUniverseReady)"
+    source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
+    priority: 7
+    owner: platform
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260721-CODEX-04 (COMPLET, responseHash 6d91bcfb…) — univers exactement P001–P159, aucun P160–P174 présent, addition mécanique 159+15 supprimée"
+    reviewReceiptId: RR-20260721-CODEX-04
+    reviewVerdict: SIGNED
+    reviewCommit: "6ca7d701"
+    commit: b598e79042dce0af91c376a810c61320fd988013
+    reviewer: OpenAI-Codex
+    evidenceId: docs/parity/SURFACE_REGISTRY.yaml
+    proof: "P160–P174 et WI-LS-* démontés ; EXPECTED univers = 159 candidats historiques ; §6.3 canonicalSurfaceCount:null adopté."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue"
+    targetDate: "2026-07-20"
+  - p0Id: P0-LS-08
+    title: "Reclasser Spotlight, Resources, Preview DevTools, Library, Android Emulator, Grouped Publish"
+    description: "Reclasser Spotlight, Resources, Preview DevTools, Library, Android Emulator, Grouped Publish (gate : sourceBaselineReady)"
+    source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
+    priority: 8
+    owner: platform
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260721-CODEX-04 (COMPLET, responseHash 6d91bcfb…) — les 6 capacités présentes dans le corpus documentaire hashé, reclassées documentation courante (Spotlight, Resources, Preview DevTools, Library, Android Emulator, Grouped Publish)"
+    reviewReceiptId: RR-20260721-CODEX-04
+    reviewVerdict: SIGNED
+    reviewCommit: "6ca7d701"
+    commit: b598e79042dce0af91c376a810c61320fd988013
+    reviewer: OpenAI-Codex
+    evidenceId: docs/parity/baseline/snapshots/2026-07-20/llms-full.txt
+    proof: "Les 6 vérifiés DOC_CURRENT dans le corpus hashé du 20/07 : Spotlight l.5911, Resources panel l.5959, Devtools l.6116, Library l.7580, Android Emulator l.2833, Grouped Publish l.7605/7634. UNK-LS correspondants retirés."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue"
+    targetDate: "2026-07-20"
+  - p0Id: P0-LS-09
+    title: "Corriger MCP ≠ preuve de remplacement d API"
+    description: "Corriger MCP ≠ preuve de remplacement d API (gate : sourceBaselineReady)"
+    source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
+    priority: 9
+    owner: platform
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260721-CODEX-04 (COMPLET, responseHash 6d91bcfb…) — API publique UNKNOWN distinguée du serveur MCP documenté en bêta ; MCP plus présenté comme preuve de remplacement de l'API"
+    reviewReceiptId: RR-20260721-CODEX-04
+    reviewVerdict: SIGNED
+    reviewCommit: "6ca7d701"
+    commit: b598e79042dce0af91c376a810c61320fd988013
+    reviewer: OpenAI-Codex
+    evidenceId: docs/parity/CAPABILITY_REGISTRY.yaml
+    proof: "§10.4 verbatim (PublicApiStatus UNKNOWN, McpServerStatus DOC_CURRENT_BETA) + claim RPL-30 amendé + CAP-MCP-SERVER."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue"
+    targetDate: "2026-07-20"
+  - p0Id: P0-LS-10
+    title: "Limiter l inférence sur /@user"
+    description: "Limiter l inférence sur /@user (gate : sourceBaselineReady)"
+    source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
+    priority: 10
+    owner: platform
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260721-CODEX-04 (COMPLET, responseHash 6d91bcfb…) — conclusion /@user bornée à la route testée, plus généralisée à toutes les routes de profil"
+    reviewReceiptId: RR-20260721-CODEX-04
+    reviewVerdict: SIGNED
+    reviewCommit: "6ca7d701"
+    commit: b598e79042dce0af91c376a810c61320fd988013
+    reviewer: OpenAI-Codex
+    evidenceId: docs/parity/PUBLIC_BASELINE_REPLIT_2026.yaml
+    proof: "§8.3 verbatim + claim RPL-29 amendé (une route testée ne prouve pas la disparition de toutes)."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue"
+    targetDate: "2026-07-20"
+  - p0Id: P0-LS-11
+    title: "Reclasser /bounties comme redirect Expert Network (Contra)"
+    description: "Reclasser /bounties comme redirect Expert Network (Contra) (gate : sourceBaselineReady)"
+    source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
+    priority: 11
+    owner: platform
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260721-CODEX-04 (COMPLET, responseHash 6d91bcfb…) — /bounties enregistré comme redirection externe vers l'Expert Network opéré via Contra, sans inférence non prouvée sur l'ancien backend"
+    reviewReceiptId: RR-20260721-CODEX-04
+    reviewVerdict: SIGNED
+    reviewCommit: "6ca7d701"
+    commit: b598e79042dce0af91c376a810c61320fd988013
+    reviewer: OpenAI-Codex
+    evidenceId: docs/parity/EXTERNAL_ECOSYSTEM_REGISTRY.yaml
+    proof: "§8.4 verbatim adopté ; ECO-EXPERTS : provider Contra, behavior EXTERNAL_REDIRECT, legacyDataOrBackendState UNKNOWN."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue"
+    targetDate: "2026-07-20"
+  - p0Id: P0-LS-12
+    title: "Distinguer plan Teams retiré et capacités d équipe"
+    description: "Distinguer plan Teams retiré et capacités d équipe (gate : sourceBaselineReady)"
+    source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
+    priority: 12
+    owner: platform
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260721-CODEX-04 (COMPLET, responseHash 6d91bcfb…) — retrait du plan Teams et existence de capacités de collaboration en équipe = deux faits distincts"
+    reviewReceiptId: RR-20260721-CODEX-04
+    reviewVerdict: SIGNED
+    reviewCommit: "6ca7d701"
+    commit: b598e79042dce0af91c376a810c61320fd988013
+    reviewer: OpenAI-Codex
+    evidenceId: docs/parity/OFFERING_ENTITLEMENT_REGISTRY.yaml
+    proof: "§11.1 verbatim + OFF-TEAMS-RETIRED + CAP-TEAM-COLLAB + claims amendés."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue"
+    targetDate: "2026-07-20"
+  - p0Id: P0-LS-13
+    title: "Contextualiser les prix et mesurer les divergences"
+    description: "Contextualiser les prix et mesurer les divergences (gate : sourceBaselineReady)"
+    source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
+    priority: 13
+    owner: platform
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260723-CODEX-07 (COMPLET, responseHash f5771529…) — preuve de session navigateur FAIL-CLOSED (HAR unique, README+proof générés depuis le manifeste, capture lève erreur sur nav/status≠200/URL inattendue, sameValueCarried vrai seulement si 2 empreintes non nulles égales, négatifs null/null/une-valeur/vides/différentes/403/404/000/mauvaise-URL couverts) pour les observations EXPLICITEMENT reliées au run ; NE transforme PAS les autres observations historiques en observations capturées par ce HAR"
+    reviewReceiptId: RR-20260723-CODEX-07
+    remediationTrack: QUICK
+    refusalReason: "(refus antérieur maintenu au reçu -06) — voir la réserve HAR ; la liaison cookie est prouvée par HAR mais le lot reste sous revue"
+    refusalType: PREUVE_INSUFFISANTE
+    reviewVerdict: SIGNED
+    reviewCommit: "bc629fe1"
+    commit: b598e79042dce0af91c376a810c61320fd988013
+    reviewer: OpenAI-Codex
+    evidenceId: docs/deploy-evidence/2026-07-22-gallery-pricing-har/
+    proof: "SIGNÉ au reçu RR-20260723-CODEX-07 : preuve HAR fail-closed RÉELLEMENT INCORPORÉE (commit bc629fe1, PR #48) — gallery-pricing.har (HAR UNIQUE des 2 navigations Gallery puis Pricing, un seul contexte), context-manifest.json, les 2 DOM hashés (gallery-dom.html + pricing-dom.html), cookies PORTÉS cf_clearance + _cfuvid (sha256_12 identiques session→pricing, sameValueCarried), 7 observations pricing evidenciées ; rejouable via capture-har.mjs, AUTO-VÉRIFIÉ par verify-har.mjs (harEntryCountMatches, navsAll200, cookiesCarried=2, pricingObsEvidenced=7 — exit 0)."
+    dependances: []
+    conditionDeCloture: "Un HAR unique liant mécaniquement les 2 navigations + cookies + hashes des 2 DOM du même run — incorporé et auto-vérifié (verify-har.mjs exit 0)."
+    nextAction: "Session capture dédiée : produire le HAR/trace Playwright d'un run unique (exigences RR-05 verbatim ci-dessus)"
+    targetDate: "2026-07-20"
+  - p0Id: P0-LS-14
+    title: "Limiter « no model selector » au corpus observé"
+    description: "Limiter « no model selector » au corpus observé (gate : sourceBaselineReady)"
+    source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
+    priority: 14
+    owner: platform
+    status: CLOSED
+    reviewReceiptId: RR-20260721-CODEX-03
+    remediationTrack: QUICK
+    refusalReason: "La formulation est bornée, mais le claim affirme encore que Lite/Economy ne sont jamais nommés dans 83 changelogs ; c'est contredit par RPL-2026-002 et le snapshot 2026-04-17-changelog.md, qui nomment explicitement le sélecteur Lite/Economy/Power. La commande annoncée n'est pas reproductible à l'identique : elle retourne aussi REPLIT_LIVE_SCAN_2026-07-20.md:325."
+    refusalType: DESACCORD
+    reviewVerdict: SIGNED
+    reviewedRemediationCommit: "af24d4fe48015e6041c8e11b240b1f2d54f333d1"
+    reviewCommit: "70eb30a0"
+    commit: b598e79042dce0af91c376a810c61320fd988013
+    reviewer: OpenAI-Codex
+    evidenceId: docs/parity/PUBLIC_BASELINE_REPLIT_2026.yaml
+    proof: "REMÉDIÉ v2 (21/07) : RPL-2026-004 réconcilié avec RPL-2026-002 — l'affirmation fausse « Lite/Economy jamais nommés dans les 83 changelogs » est RETIRÉE (le sélecteur de MODE Lite/Economy/Power est documenté au changelog 2026-04-17) ; le claim porte uniquement sur l'absence de sélecteur de MODÈLE BRUT, borné ; l'occurrence « nulle part » du scan (l.325) reformulée — la commande de repro rend vide. PRÊT À RE-SOUMETTRE."
+    dependances: []
+    conditionDeCloture: "Réconcilier le claim avec le changelog du 17/04 et fournir une commande de reproduction exacte, puis nouvelle revue"
+    nextAction: "Corriger le claim contradictoire et la commande de reproduction"
+    targetDate: "2026-07-20"
+  - p0Id: P0-LS-15
+    title: "Retirer le lien non prouvé Parallel Agents = microVM par tâche"
+    description: "Retirer le lien non prouvé Parallel Agents = microVM par tâche (gate : sourceBaselineReady)"
+    source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
+    priority: 15
+    owner: platform
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260721-CODEX-04 (COMPLET, responseHash 6d91bcfb…) — inférence 'Parallel Agents = une microVM par tâche' retirée ; isolation runtime par tâche classée UNKNOWN"
+    reviewReceiptId: RR-20260721-CODEX-04
+    reviewVerdict: SIGNED
+    reviewCommit: "6ca7d701"
+    commit: b598e79042dce0af91c376a810c61320fd988013
+    reviewer: OpenAI-Codex
+    evidenceId: docs/parity/CAPABILITY_REGISTRY.yaml
+    proof: "§7.2 verbatim ; CAP-PARALLEL-AGENTS corrigé : isolation runtime par tâche = UNKNOWN."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue"
+    targetDate: "2026-07-20"
+  - p0Id: P0-LS-16
+    title: "Corriger generatedAt et recalculer après merge"
+    description: "Corriger generatedAt et recalculer après merge (gate : documentReconciled)"
+    source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
+    priority: 16
+    owner: platform
+    status: PROVEN_REVIEW_PENDING
+    reviewNote: "REFUSÉ au reçu RR-20260723-CODEX-07 (motif verbatim) : le run post-merge 30005939249 et le commit bot ee0aedd1 sont réels, mais le vérificateur v6 reste FAIL-OPEN sur l'absence de mergedCommit/repoCommit/runUrl (checkAttestationFields ne les contrôle que s'ils existent ; validate-registries ne les exige pas ; les tests négatifs falsifient des valeurs présentes sans tester leur SUPPRESSION) — une attestation amputée peut passer. Exigé : champs obligatoires non vides (validateur ET vérificateur), rejet de l'absence, négatif par suppression, nouveau roll post-merge"
+    reviewReceiptId: RR-20260723-CODEX-07
+    remediationTrack: QUICK
+    refusalReason: "Les trois champs existent et le run 29756163626 est vert, mais .github/workflows/parity-registries.yml ne roule pas CI_ATTESTATION et ne génère/publie pas DOCUMENT_MANIFEST après chaque merge ; a4a9f71c est un commit manuel postérieur. Le validateur accepte en outre un runId, commit et timestamp fictifs après régénération. L'exemple manuel est prouvé, pas l'automatisation ni la garantie de provenance annoncées."
+    refusalType: DESACCORD
+    reviewVerdict: REFUSED
+    reviewedRemediationCommit: "af24d4fe48015e6041c8e11b240b1f2d54f333d1"
+    reviewCommit: "cf5c67a513322ba0c248b900ea88c50b5e128ac6"
+    commit: b598e79042dce0af91c376a810c61320fd988013
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/DOCUMENT_MANIFEST.yaml
+    proof: "REMÉDIÉ v2 (21/07) : l'AUTOMATISATION existe — job roll-attestation dans parity-registries.yml (déclenché à chaque push main) : écrit SON PROPRE run id/commit/timestamp, régénère TOUTES les vues, valide, commit bot ; plus de commit manuel. Anti-fictif : le validateur vérifie que runCommit/mergedCommit EXISTENT dans l'historique git (git cat-file). PREUVE RÉELLE au premier merge post-PR. PRÊT À RE-SOUMETTRE."
+    dependances: []
+    conditionDeCloture: "Automatiser le roulage post-merge, valider la provenance contre GitHub et démontrer le flux sur un merge, puis nouvelle revue"
+    nextAction: "Ajouter le job post-merge réel et une validation de provenance cassante"
+    targetDate: "2026-07-20"
+  - p0Id: P0-LS-17
+    title: "Réconcilier les compteurs (174/159, 114/99, surfaces 10)"
+    description: "Réconcilier les compteurs (174/159, 114/99, surfaces 10) (gate : registryUniverseReady)"
+    source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
+    priority: 17
+    owner: platform
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260722-CODEX-05 (COMPLET, responseHash c32a945d…) — 159 candidats IDE / 164 canoniques / 122 work items / 10 déclarées correctement distingués — plus d'univers ambigu"
+    reviewReceiptId: RR-20260722-CODEX-05
+    reviewVerdict: SIGNED
+    refusalReason: "le proof conserve 99 work items (registre courant : 122) ; et les 159 candidats IDE vs l'univers canonique 164 doivent être NOMMÉS SÉPARÉMENT au lieu d'un compteur unique"
+    refusalType: PREUVE_INSUFFISANTE
+    remediationTrack: QUICK
+    reviewCommit: "60a987ca"
+    commit: b598e79042dce0af91c376a810c61320fd988013
+    reviewer: OpenAI-Codex
+    evidenceId: docs/parity/APPROVAL_STATUS.json
+    proof: "CORRIGÉ v4 (21/07) : triplet régénéré 159 candidats IDE / 122 work items / 10 surfaces déclarées ; les DEUX notions sont nommées séparément : ideCandidateSurfaceCount=159 (P001–P159, univers d'audit IDE) et canonicalSurfaceCount=164 (=159+5 surfaces hors-IDE, dérivation verrouillée par la garde supersession CI). Vues régénérées au commit courant."
+    dependances: []
+    conditionDeCloture: "Compteurs re-dérivés (122) + les deux univers nommés séparément (159 IDE vs 164 canonique) dans les vues générées ; puis re-soumission au relecteur"
+    nextAction: "Re-soumission au relecteur (159/122/10 + 159 vs 164 nommés)"
+    targetDate: "2026-07-20"
+  - p0Id: P0-LS-18
+    title: "Recalculer APPROVAL_STATUS sur le commit mergé"
+    description: "Recalculer APPROVAL_STATUS sur le commit mergé (gate : tous)"
+    source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
+    priority: 18
+    owner: platform
+    status: PROVEN_REVIEW_PENDING
+    reviewNote: "REFUSÉ au reçu RR-20260723-CODEX-07 (motif verbatim) : mergedCommit reste FACULTATIF dans le chemin de validation ; sa suppression n'est ni rejetée ni testée. Le mécanisme ne prouve pas fail-closed que les vues ont été recalculées sur le commit mergé — une édition retirant mergedCommit garderait un contrôle vert. Même correction que LS-16 + nouveau roll post-merge"
+    reviewReceiptId: RR-20260723-CODEX-07
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
+    commit: b598e79042dce0af91c376a810c61320fd988013
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/CI_ATTESTATION.yaml
+    proof: "FAIT : PR #15 mergée (d3925b16) ; run CI Parity registries 29733640863 VERT au commit mergé ; APPROVAL_STATUS/PARITY_STATUS/DOCUMENT_MANIFEST régénérés à ce commit ; attestation datée dans CI_ATTESTATION.yaml."
+    dependances: []
+    conditionDeCloture: "Revue humaine + recalcul au commit mergé main"
+    nextAction: "Revue"
+    targetDate: "2026-07-27"
+  - p0Id: P0-B-01
+    title: "Overlay code réel + bolt sur les 159 candidats (exigence propriétaire)"
+    description: "Croiser chaque candidat avec le code réel + héritage bolt — rien de déjà construit marqué à faire"
+    source: "Exigence Avi (20/07) ; annexe A.1 du plan"
+    priority: 1
+    owner: platform
+    status: OPEN
+    remediationTrack: A_TRIER
+    refusalReason: "159 candidats mais aucun builtState/codeRefs ; tous pending/unknown"
+    refusalType: PREUVE_INSUFFISANTE
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
+    commit: b598e79042dce0af91c376a810c61320fd988013
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/SURFACE_REGISTRY.yaml
+    proof: "159/159 croisées par 6 agents (A–H) : 79 DEJA_CONSTRUIT / 43 PARTIEL / 37 NON_FAIT, builtState+codeRefs par entrée ; composant bolt non câblé = PARTIEL (BD-* respectés)."
+    dependances: []
+    conditionDeCloture: "Compléter l'évidence : 159 candidats mais aucun builtState/codeRefs ; tous pending/unknown ; puis re-soumission au relecteur"
+    nextAction: "Revue"
+    targetDate: "2026-07-20"
+  - p0Id: P0-B-02
+    title: "Scan authentifié des UNK-LS (exigence propriétaire)"
+    description: "Trancher les points sans-trace avec un vrai compte connecté (session dédiée)"
+    source: "Exigence Avi (20/07) ; §20.8 du plan (Starter, Core et Pro au minimum)"
+    priority: 2
+    owner: platform
+    status: OPEN
+    commit: b598e79042dce0af91c376a810c61320fd988013
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/UNKNOWN_REGISTRY.yaml
+    proof: "PARTIEL : 44 inconnues tracées avec méthode ; verdicts attendus de la session « Scan Replit live » (Chrome connecté d Avi)."
+    dependances: []
+    conditionDeCloture: "Verdicts intégrés + observations LIVE_AUTHENTICATED enregistrées"
+    nextAction: "Attendre la session scan authentifié"
+    targetDate: "2026-07-27"
+
+  # ============================================================================
+  # Les 10 P0-EX — plan exécutable v2026-07-20.4 (§19, verbatim expert).
+  # ============================================================================
+  - p0Id: P0-EX-01
+    title: "Retirer le statut d audit et l overlay incomplet du plan normatif"
+    description: "Retirer le statut d audit et l overlay incomplet du plan normatif (gate : documentReconciled)"
+    source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
+    priority: 1
+    owner: platform
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260721-CODEX-04 (COMPLET, responseHash 6d91bcfb…) — stateEmbeddedInPlan:false — l'état courant renvoyé aux vues et registres générés ; le plan normatif ne porte plus l'overlay manuel comme source d'autorité"
+    reviewReceiptId: RR-20260721-CODEX-04
+    reviewVerdict: SIGNED
+    reviewCommit: "6ca7d701"
+    commit: 46da267bcaf21335635935aed385ae414daade9b
+    reviewer: OpenAI-Codex
+    evidenceId: docs/parity/PLAN_PARITE_REPLIT.md
+    proof: "Plan v2026-07-20.4 installé : stateEmbeddedInPlan=false, annexe manuelle SUPPRIMÉE — l état vit dans IMPLEMENTATION_STATUS.yaml."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue"
+    targetDate: "2026-07-20"
+  - p0Id: P0-EX-02
+    title: "Générer IMPLEMENTATION_STATUS.yaml depuis le code, les registres et les preuves"
+    description: "Générer IMPLEMENTATION_STATUS.yaml depuis le code, les registres et les preuves (gate : registryUniverseReady)"
+    source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
+    priority: 2
+    owner: platform
+    status: OPEN
+    remediationTrack: CHANTIER
+    refusalReason: "aucun générateur d'IMPLEMENTATION_STATUS dans scripts/CI"
+    refusalType: DESACCORD
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
+    commit: 46da267bcaf21335635935aed385ae414daade9b
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/IMPLEMENTATION_STATUS.yaml
+    proof: "REMÉDIÉ 20/07 après refus (branche docs/ex02-ex10-status-generator, PR ouverte) : générateur RÉEL scripts/parity/generate-implementation-status.mjs — statuts DÉRIVÉS de IMPLEMENTATION_FACTS.yaml par règles §23 (PROVEN=evidence sur disque sinon erreur fatale ; CODED=mergedToMain+codeRefs ; PARTIAL exige partialReason sinon erreur ; adjacentOnly→NOT_STARTED) ; fidélité 159/159 prouvée à la migration (11/68/43/37 identiques) ; 65 codeRefs disparus désormais VISIBLES (missingCodeRefs par item) ; drift-check câblé dans validate-registries + 2 preuves négatives rejouées (statut édité à la main → DRIFT ; PARTIAL sans raison → génération refusée). PRÊT À RE-SOUMETTRE après merge."
+    dependances: []
+    conditionDeCloture: "Corriger le claim/la preuve : aucun générateur d'IMPLEMENTATION_STATUS dans scripts/CI ; puis re-soumission au relecteur"
+    nextAction: "Revue"
+    targetDate: "2026-07-20"
+  - p0Id: P0-EX-03
+    title: "Reclasser la persistance du layout en UNKNOWN Replit + exigence E-Code"
+    description: "Reclasser la persistance du layout en UNKNOWN Replit + exigence E-Code (gate : sourceBaselineReady)"
+    source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
+    priority: 3
+    owner: platform
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260721-CODEX-04 (COMPLET, responseHash 6d91bcfb…) — persistance layout côté Replit bornée UNKNOWN ; exigence E-Code explicitement séparée ; aucune persistance non sourcée affirmée"
+    reviewReceiptId: RR-20260721-CODEX-04
+    reviewVerdict: SIGNED
+    reviewCommit: "6ca7d701"
+    commit: 46da267bcaf21335635935aed385ae414daade9b
+    reviewer: OpenAI-Codex
+    evidenceId: docs/parity/PLAN_PARITE_REPLIT.md
+    proof: "Adopté via le plan §6.1 (verbatim installé) ; aucune assertion de persistance non sourcée."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue"
+    targetDate: "2026-07-20"
+  - p0Id: P0-EX-04
+    title: "Corriger le branchement clean/quarantaine de la machine Import"
+    description: "Corriger le branchement clean/quarantaine de la machine Import (gate : contractsValidated)"
+    source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
+    priority: 4
+    owner: platform
+    status: OPEN
+    remediationTrack: CHANTIER
+    refusalReason: "code + 15 tests prouvent encore l'ancienne machine (SCANNING→COMMITTING)"
+    refusalType: DESACCORD
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
+    resolutionBranch: "feat/import-state-machine-p0ex04"
+    resolutionStatus: "ADDRESSED_PENDING_REREVIEW"
+    commit: 46da267bcaf21335635935aed385ae414daade9b
+    reviewer: UNKNOWN
+    evidenceId: docs/deploy-evidence/2026-07-20-import-state-machine/
+    proof: "REFUS LEVÉ SUR BRANCHE (20/07, feat/import-state-machine-p0ex04, PR ouverte, non mergée). Le CODE suit désormais la machine branchée : import-pipeline.ts implémente READY_TO_COMMIT/RESCANNING/CLEANUP_PENDING/FAILED, COMMITTING ne part que de READY_TO_COMMIT (IMPORT_COMMIT_NOT_READY), un import propre ne passe pas par la quarantaine (assertScanBranch). Les 15 anciens tests de la machine linéaire sont RÉÉCRITS. 3 tests négatifs réels + 4 preuves E2E (clean→COMMITTED, findings→QUARANTINE, cancel/timeout cible intacte, échec sans débit) + billing minimal de sûreté. 57 tests verts, build strict 0 err. Preuve : docs/deploy-evidence/2026-07-20-import-state-machine/."
+    dependances: []
+    conditionDeCloture: "Merge de la PR feat/import-state-machine-p0ex04 + re-revue humaine du relecteur (le code aligne désormais la machine, refus adressé)"
+    nextAction: "Re-soumettre la PR feat/import-state-machine-p0ex04 au relecteur ; merger après feu vert"
+    targetDate: "2026-07-27"
+  - p0Id: P0-EX-05
+    title: "Corriger les entitlements Starter : apps supplémentaires vs types d Artifact"
+    description: "Corriger les entitlements Starter : apps supplémentaires vs types d Artifact (gate : sourceBaselineReady)"
+    source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
+    priority: 5
+    owner: platform
+    status: OPEN
+    remediationTrack: A_TRIER
+    refusalReason: "l'artefact ne distingue pas apps supplémentaires et types d'Artifact"
+    refusalType: PREUVE_INSUFFISANTE
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
+    commit: 46da267bcaf21335635935aed385ae414daade9b
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/OFFERING_ENTITLEMENT_REGISTRY.yaml
+    proof: "Adopté via plan §11.3 (verbatim) ; OFFERING sans montants, entitlements AUTHENTICATED_LIVE_REQUIRED avant reproduction exacte."
+    dependances: []
+    conditionDeCloture: "Compléter l'évidence : l'artefact ne distingue pas apps supplémentaires et types d'Artifact ; puis re-soumission au relecteur"
+    nextAction: "Revue"
+    targetDate: "2026-07-20"
+  - p0Id: P0-EX-06
+    title: "Retirer les montants tarifaires du plan durable"
+    description: "Retirer les montants tarifaires du plan durable (gate : sourceBaselineReady)"
+    source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
+    priority: 6
+    owner: platform
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260721-CODEX-04 (COMPLET, responseHash 6d91bcfb…) — montants tarifaires sortis du plan durable → registre d'observations ; cette signature ne valide PAS les nouvelles observations de prix de P0-LS-13"
+    reviewReceiptId: RR-20260721-CODEX-04
+    reviewVerdict: SIGNED
+    reviewCommit: "6ca7d701"
+    commit: 46da267bcaf21335635935aed385ae414daade9b
+    reviewer: OpenAI-Codex
+    evidenceId: docs/parity/PRICE_OBSERVATION_REGISTRY.yaml
+    proof: "Plan sans montants ; PRICE_OBSERVATION_REGISTRY.yaml créé (9 observations contextualisées, divergences $20/$25 et $90/$95 conservées) ; OFFERING nettoyé."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue"
+    targetDate: "2026-07-20"
+  - p0Id: P0-EX-07
+    title: "Ajouter identité, Workspace, Membership, Group, Guest et AccessGrant au domaine"
+    description: "Ajouter identité, Workspace, Membership, Group, Guest et AccessGrant au domaine (gate : contractsValidated)"
+    source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
+    priority: 7
+    owner: platform
+    status: OPEN
+    remediationTrack: A_TRIER
+    refusalReason: "contrat annonce P124 CODED, réel PARTIAL, sans entité Guest"
+    refusalType: DESACCORD
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
+    commit: 46da267bcaf21335635935aed385ae414daade9b
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/IDENTITY_COLLABORATION_CONTRACT.md
+    proof: "IDENTITY_COLLABORATION_CONTRACT.md créé (entités + invariants + état mesuré + tests négatifs exigés). Reviewer UNKNOWN — contractsValidated reste FAIL, honnête."
+    dependances: []
+    conditionDeCloture: "Corriger le claim/la preuve : contrat annonce P124 CODED, réel PARTIAL, sans entité Guest ; puis re-soumission au relecteur"
+    nextAction: "Revue"
+    targetDate: "2026-07-20"
+  - p0Id: P0-EX-08
+    title: "Ajouter un ProjectManifest versionné comme source des composants et scopes"
+    description: "Ajouter un ProjectManifest versionné comme source des composants et scopes (gate : contractsValidated)"
+    source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
+    priority: 8
+    owner: platform
+    status: OPEN
+    remediationTrack: A_TRIER
+    refusalReason: "schéma accepte 2 artefacts mobile + manifeste minimal invalide ; allOf n'est qu'une description"
+    refusalType: DESACCORD
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
+    commit: 46da267bcaf21335635935aed385ae414daade9b
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/PROJECT_MANIFEST_SCHEMA.json
+    proof: "PROJECT_MANIFEST_SCHEMA.json créé (artifacts≤7, kinds verrouillés, components, bindings, scopes, entitlementsRef)."
+    dependances: []
+    conditionDeCloture: "Corriger le claim/la preuve : schéma accepte 2 artefacts mobile + manifeste minimal invalide ; allOf n'est qu'une description ; puis re-soumission au relecteur"
+    nextAction: "Revue"
+    targetDate: "2026-07-20"
+  - p0Id: P0-EX-09
+    title: "Contractualiser séparément Autoscale, Static, Reserved et Scheduled"
+    description: "Contractualiser séparément Autoscale, Static, Reserved et Scheduled (gate : contractsValidated)"
+    source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
+    priority: 9
+    owner: platform
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260721-CODEX-04 (COMPLET, responseHash 6d91bcfb…) — les 4 types de déploiement ont des sous-contrats séparés ; signature = structure contractuelle, PAS l'implémentation de Static ou Reserved VM"
+    reviewReceiptId: RR-20260721-CODEX-04
+    reviewVerdict: SIGNED
+    reviewCommit: "6ca7d701"
+    commit: 46da267bcaf21335635935aed385ae414daade9b
+    reviewer: OpenAI-Codex
+    evidenceId: docs/parity/DEPLOYMENT_TYPES_CONTRACT.md
+    proof: "DEPLOYMENT_TYPES_CONTRACT §4.1–4.4 : contrat dédié par type avec lifecycle/config/coûts/preuve ; Reserved = NOT_STARTED déclaré."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue"
+    targetDate: "2026-07-20"
+  - p0Id: P0-EX-10
+    title: "Rendre l activation canonique et la génération de statut entièrement CI"
+    description: "Rendre l activation canonique et la génération de statut entièrement CI (gate : documentReconciled)"
+    source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
+    priority: 10
+    owner: platform
+    status: OPEN
+    remediationTrack: CHANTIER
+    refusalReason: "la CI vérifie --check seulement, ne génère/écrit pas le statut"
+    refusalType: DESACCORD
+    reviewVerdict: REFUSED
+    reviewCommit: "57febeab"
+    commit: 46da267bcaf21335635935aed385ae414daade9b
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/CI_ATTESTATION.yaml
+    proof: "REMÉDIÉ 20/07 après refus (même branche) : le job CI « Parity registries » GÉNÈRE réellement les 4 vues (approval/parity-status/implementation-status/manifest), échoue sur toute dérive (git diff --exit-code docs/parity) puis PUBLIE l'artefact parity-status-generated (upload-artifact, if: always). Plus un simple --check. PRÊT À RE-SOUMETTRE après merge + premier run vert."
+    dependances: []
+    conditionDeCloture: "Corriger le claim/la preuve : la CI vérifie --check seulement, ne génère/écrit pas le statut ; puis re-soumission au relecteur"
+    nextAction: "Revue"
+    targetDate: "2026-07-27"

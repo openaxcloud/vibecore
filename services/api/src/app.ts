@@ -64,7 +64,20 @@ import {
   type PlanKey,
   type QuotaKey,
 } from '@vibecore/billing';
-import { evaluateCapacityAlerts, DEFAULT_CAPACITY_ALERT_THRESHOLDS, type ClusterCapacity } from '@vibecore/k8s-client';
+import {
+  evaluateCapacityAlerts,
+  DEFAULT_CAPACITY_ALERT_THRESHOLDS,
+  ECODE_LOCK_FILENAME,
+  activeNixGeneration,
+  assertLockAgainstRegistry,
+  assertLockPublishable,
+  buildEcodeLock,
+  nixGenerationRegistryFromEnv,
+  parseEcodeLock,
+  serializeEcodeLock,
+  type ClusterCapacity,
+  type EcodeLock,
+} from '@vibecore/k8s-client';
 import { createPrometheusRegistry, createSentryReporter, durationSeconds, nowSeconds } from '@vibecore/observability';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import {
@@ -154,18 +167,25 @@ import {
   ImportInvariantError,
   applyConsentedRedactions,
   assertImportTransition,
+  assertScanBranch,
+  scanBranchTarget,
   scanStagedFilesForSecrets,
   unresolvedFindings,
   type ConsentDecision,
   type ImportFile,
   type ImportState,
 } from './import-pipeline.js';
+import { ImportCreditLedger, estimateImportReservation } from './import-billing.js';
 import {
+  REMIX_CONSENT_VERSION,
   RemixInvariantError,
   assertRemixTransition,
   detachCredentials,
+  maskPiiInFiles,
   scanClonedFilesForSecrets,
+  scanFilesForPii,
   scrubSecretsFromFiles,
+  type RemixLicenseSnapshot,
   type RemixState,
   type RemixStoragePolicy,
 } from './remix-pipeline.js';
@@ -6600,6 +6620,9 @@ async function startServerDeploymentViaManager(payload: {
   readyTimeoutMs?: number;
   nixStorePvcName?: string;
 
+  /** CTR-RUNTIME-NIX: ecode.lock generation pin, enforced by the manager. */
+  nixGenerationRef?: string;
+
   // Machine-size resources (k8s quantities) — requests==limits, see rate-card-service.
   cpuRequest?: string;
   cpuLimit?: string;
@@ -7878,6 +7901,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * mount until commit — holds regardless of the backing store.)
    */
   const importStaging = new Map<string, ImportFile[]>();
+
+  /*
+   * SAFETY billing ledger (in-process, mirrors importStaging): idempotent credit
+   * reservation reserved BEFORE any paid work, settled ONLY on COMMITTED, and
+   * compensated on every non-committed exit (cancel/timeout/rollback/failure).
+   * `importIdemIndex` maps a client idempotency key → jobId so a retried create
+   * replays the same import instead of double-creating + double-reserving.
+   */
+  const importLedger = new ImportCreditLedger();
+  const importIdemIndex = new Map<string, string>();
 
   const app = Fastify({
     bodyLimit: Number(process.env.API_BODY_LIMIT_BYTES ?? 25 * 1024 * 1024),
@@ -17289,7 +17322,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { orgId } = parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'members:manage');
 
-    return { invitations: await store.listOrganizationInvites(orgId) };
+    /*
+     * Strip the secret `tokenHash` from every row, exactly like the create /
+     * resend / expire / accept endpoints do. The invite token (and its hash)
+     * must never leave the server; listing invitees must not become a side
+     * channel that exposes it.
+     */
+    const invitations = await store.listOrganizationInvites(orgId);
+
+    return { invitations: invitations.map((invitation) => ({ ...invitation, tokenHash: undefined })) };
   });
   app.post(
     '/orgs/:orgId/invitations',
@@ -18258,6 +18299,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const importCreateSchema = z.object({
     provider: z.enum(IMPORT_HUB_PROVIDERS as [string, ...string[]]),
     sourceRef: z.string().optional(),
+    /*
+     * Mandatory idempotency key (safety billing): a retried create with the same
+     * key replays the same import and never double-reserves credits.
+     */
+    idempotencyKey: z.string().trim().min(1).max(200),
     files: z
       .array(z.object({ path: z.string().min(1), content: z.string(), encoding: z.string().optional() }))
       .max(5000)
@@ -18268,9 +18314,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     consent: z.record(z.string(), z.enum(['keep', 'redact'])).default({}),
   });
 
-  /** Cleanup is reachable on EVERY exit — cancel, timeout, and failure alike. */
+  /*
+   * Cleanup is reachable on EVERY non-committed exit — cancel, timeout, rollback
+   * and failure alike. It disposes the disposable staging (the target is NEVER
+   * mounted before COMMITTED) and COMPENSATES the credit reservation to zero
+   * debit — so an import that never committed is never charged (safety rule 3).
+   */
   const cleanupImport = async (importJobId: string, terminal: ImportState, error?: string) => {
     importStaging.delete(importJobId); // dispose the staging — target never mounted
+    importLedger.compensateByJob(importJobId); // release the reservation, zero debit
     await store.updateImportJob(importJobId, { state: terminal, ...(error ? { error } : {}) }).catch(() => undefined);
   };
 
@@ -18287,6 +18339,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     for (const id of expired) {
       importStaging.delete(id);
+      importLedger.compensateByJob(id); // timeout is a non-committed exit → release, zero debit
     }
 
     return expired;
@@ -18296,6 +18349,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     void reapExpiredImports().catch(() => undefined);
   }, 60_000);
   importReaper.unref();
+
+  /*
+   * Expose the app-level reaper (store sweep + staging dispose + reservation
+   * compensation) so operational tooling and tests can drive the SAME timeout
+   * path the periodic timer runs — never a partial store-only sweep.
+   */
+  app.decorate('reapExpiredImports', reapExpiredImports);
 
   /*
    * Secure import (DOMAIN_MODEL §2): RECEIVED → STAGING_ISOLATED → SCANNING →
@@ -18310,6 +18370,34 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const body = parse(importCreateSchema, request.body);
 
+    /*
+     * IDEMPOTENT CREATE: a retried POST with the same key replays the SAME import
+     * (re-fetched current status) instead of creating a second job + a second
+     * reservation. In-process index; durable idempotency = UsageReservation follow-up.
+     */
+    const idemMapKey = `${orgId}:${body.idempotencyKey}`;
+    const existingJobId = importIdemIndex.get(idemMapKey);
+
+    if (existingJobId) {
+      const existing = await store.getImportJob(existingJobId);
+
+      if (existing && existing.organizationId === orgId) {
+        const requiresConsent = existing.state === 'QUARANTINED' || existing.state === 'AWAITING_USER_ACTION';
+
+        return reply.code(existing.state === 'AWAITING_USER_ACTION' ? 202 : 200).send({
+          import: {
+            importJobId: existing.id,
+            state: existing.state,
+            provider: existing.provider,
+            findings: (existing.findings as unknown[]) ?? [],
+            stagedFileCount: existing.stagedFileCount,
+            requiresConsent,
+            replayed: true,
+          },
+        });
+      }
+    }
+
     // Staging expires (idle) — the sweeper / timeout path uses this.
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
     const job = await store.createImportJob({
@@ -18319,6 +18407,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       sourceRef: body.sourceRef,
       expiresAt,
     });
+    importIdemIndex.set(idemMapKey, job.id);
 
     let state: ImportState = 'RECEIVED';
     const advance = async (to: ImportState, patch: Record<string, unknown> = {}) => {
@@ -18329,14 +18418,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     try {
       /*
-       * E-CODE DECISION (not Replit parity): reserve Agent credits idempotently
-       * (keyed by importJobId) BEFORE staging, so a retried import never double-
-       * charges. Recorded as a marker here; wiring the real debit is a follow-up.
+       * SAFETY BILLING: RESERVE credits idempotently (keyed by the client
+       * idempotency key) BEFORE any paid work (staging / scan). A retried import
+       * with the same key never double-reserves. The debit is recorded ONLY if
+       * the import reaches COMMITTED (settle); every other exit compensates.
        */
+      const stagedFiles: ImportFile[] = body.files ?? [];
+      importLedger.reserve({
+        key: body.idempotencyKey,
+        organizationId: orgId,
+        importJobId: job.id,
+        reservedCredits: estimateImportReservation(stagedFiles.length),
+      });
       await store.updateImportJob(job.id, { creditsReserved: true });
 
       // STAGING_ISOLATED — files into the disposable staging, NOT the target.
-      const stagedFiles: ImportFile[] = body.files ?? [];
       importStaging.set(job.id, stagedFiles);
       await advance('STAGING_ISOLATED', { stagedFileCount: stagedFiles.length });
 
@@ -18350,7 +18446,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         'import scan complete',
       );
 
-      if (findings.length > 0) {
+      /*
+       * SCANNING branches on the contract machine (P0-EX-04): blocking findings →
+       * QUARANTINED (never straight to COMMITTING); a CLEAN payload → READY_TO_COMMIT
+       * (never artificially through quarantine). assertScanBranch enforces both.
+       */
+      const hasBlockingFindings = findings.length > 0;
+      const branch = scanBranchTarget(hasBlockingFindings);
+      assertScanBranch(branch, hasBlockingFindings);
+
+      if (branch === 'QUARANTINED') {
         await advance('QUARANTINED', { findings });
         await advance('AWAITING_USER_ACTION');
 
@@ -18366,8 +18471,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         });
       }
 
-      // Clean scan — ready to commit (no findings), but still awaits the explicit
-      // commit call. State stays at SCANNING; the commit endpoint drives the rest.
+      // Clean scan → READY_TO_COMMIT. The commit endpoint drives COMMITTING→COMMITTED.
+      await advance('READY_TO_COMMIT');
+
       return reply.code(201).send({
         import: {
           importJobId: job.id,
@@ -18380,7 +18486,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      await cleanupImport(job.id, 'ROLLING_BACK', message);
+      await cleanupImport(job.id, 'FAILED', message);
 
       if (error instanceof ImportInvariantError) {
         return reply.status(error.statusCode).send({ error: message, code: error.code, importJobId: job.id });
@@ -18442,6 +18548,37 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       // Apply ONLY consented redactions (never silent).
       const { files: finalFiles, redacted } = applyConsentedRedactions(staged, findings, consent);
 
+      /*
+       * Quarantine path (P0-EX-04): a job AWAITING_USER_ACTION does NOT jump to
+       * COMMITTING. It goes AWAITING_USER_ACTION → RESCANNING, re-scans the
+       * CONSENTED copy, then branches: fully resolved → READY_TO_COMMIT; a still-
+       * unresolved finding → back to QUARANTINED (409). Only READY_TO_COMMIT may
+       * then advance to COMMITTING.
+       */
+      if (state === 'AWAITING_USER_ACTION') {
+        await advance('RESCANNING');
+
+        const rescanFindings = scanStagedFilesForSecrets(finalFiles);
+        const stillUnresolved = unresolvedFindings(rescanFindings, consent);
+        const hasBlocking = stillUnresolved.length > 0;
+        const rescanBranch = scanBranchTarget(hasBlocking);
+        assertScanBranch(rescanBranch, hasBlocking);
+
+        if (rescanBranch === 'QUARANTINED') {
+          await advance('QUARANTINED', { findings: rescanFindings });
+
+          return reply.status(409).send({
+            error: 'Import blocked after rescan: resolve every remaining finding before committing.',
+            code: 'IMPORT_RESCAN_STILL_BLOCKED',
+            findings: stillUnresolved,
+            importJobId,
+          });
+        }
+
+        await advance('READY_TO_COMMIT', { consent, redactedCount: redacted.length });
+      }
+
+      // COMMITTING may ONLY depart from READY_TO_COMMIT (assertImportTransition).
       await advance('COMMITTING', { consent, redactedCount: redacted.length });
 
       // Atomic target write — the first and only touch of a target project.
@@ -18476,6 +18613,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       importStaging.delete(importJobId); // staging disposed after successful commit
       await advance('COMMITTED', { targetProjectId: project.id });
 
+      /*
+       * SAFETY BILLING: settle the reservation — the ONLY place a debit is
+       * recorded, and only now that the import actually COMMITTED. `settleByJob`
+       * enforces "committed === true" and the no-debit-without-commit invariant.
+       */
+      const settled = importLedger.settleByJob(importJobId, true, estimateImportReservation(finalFiles.length));
+      request.log?.info?.(
+        { event: 'import.billing.settle', importJobId, debitedCredits: settled.debitedCredits },
+        'import reservation settled',
+      );
+
       await audit(request, store, {
         organizationId: orgId,
         action: 'project.import.commit',
@@ -18495,7 +18643,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         import: { importJobId, state, redactedCount: redacted.length, targetProjectId: project.id },
       });
     } catch (error) {
-      // Failure path: full rollback — no partial target, staging disposed.
+      /*
+       * Failure path: full rollback — no partial target, staging disposed, and the
+       * reservation COMPENSATED (zero debit) via cleanupImport. A failure after
+       * reservation therefore never charges. ROLLING_BACK is the terminal here.
+       */
       const message = error instanceof Error ? error.message : String(error);
       await cleanupImport(importJobId, 'ROLLING_BACK', message);
       throw error;
@@ -18526,7 +18678,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       throw Object.assign(new Error('Import job not found'), { statusCode: 404, code: 'IMPORT_JOB_NOT_FOUND' });
     }
 
-    return { import: job };
+    /*
+     * Surface the safety-billing reservation state (in-process ledger) so the
+     * reservation lifecycle is observable: RESERVED before commit, SETTLED with a
+     * positive debit only on COMMITTED, COMPENSATED (zero debit) on any cleanup.
+     */
+    const reservation = importLedger.getByJob(importJobId);
+
+    return {
+      import: {
+        ...job,
+        reservation: reservation
+          ? {
+              state: reservation.state,
+              reservedCredits: reservation.reservedCredits,
+              debitedCredits: reservation.debitedCredits,
+            }
+          : null,
+      },
+    };
   });
 
   app.post('/orgs/:orgId/projects/import/github', async (request, reply) => {
@@ -21367,6 +21537,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     sourceFiles: ProjectFile[];
     sourceSnapshotId?: string;
     sourceListingId?: string;
+    /*
+     * License + consent (I-RMX-3, P0-V3-05). A gallery remix passes the
+     * VERSIONED license captured from the listing plus the consent version the
+     * remixer accepted; a same-org self-remix passes neither (owner forking
+     * their own data is not a cross-user license/PII flow).
+     */
+    licenseSnapshot?: RemixLicenseSnapshot;
+    consentVersion?: string;
+    /** Mask PII in the source files before cloning (cross-user remix only). */
+    sanitizePii?: boolean;
+    /** Author's explicit versioned PII consent — skips masking, recorded. */
+    piiConsentVersion?: string;
   }): Promise<
     | {
         ok: true;
@@ -21375,6 +21557,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         state: RemixState;
         detached: ReturnType<typeof detachCredentials>;
         scrubbedValueLines: number;
+        piiMaskedCount: number;
       }
     | { ok: false; findings: ReturnType<typeof scanClonedFilesForSecrets>; remixJobId: string }
   > => {
@@ -21387,6 +21570,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       storagePolicy,
       sourceSnapshotId: params.sourceSnapshotId,
       sourceListingId: params.sourceListingId,
+      licenseSnapshot: params.licenseSnapshot,
+      consentVersion: params.consentVersion,
     });
 
     let state: RemixState = 'SNAPSHOT_PINNED';
@@ -21428,7 +21613,41 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }
       }
 
-      // (3) CLONING — new project (metadata only) in the TARGET org + files scrubbed.
+      /*
+       * (3) SOURCE_SANITIZED (I-RMX-3) — PII masked before anything is cloned,
+       * UNLESS the source author gave an explicit versioned consent (recorded,
+       * never silent). The masked output is re-scanned: a survivor is a defect
+       * and fails the remix rather than shipping someone's data.
+       */
+      let sanitizedFiles = params.sourceFiles;
+      let piiMaskedCount = 0;
+
+      if (params.sanitizePii && !params.piiConsentVersion) {
+        const remixFiles = sanitizedFiles.map((file) => ({
+          path: file.path,
+          content: file.content,
+          encoding: file.encoding,
+        }));
+        const { files: maskedFiles, masked } = maskPiiInFiles(remixFiles);
+
+        const residual = scanFilesForPii(maskedFiles);
+        if (residual.length > 0) {
+          throw new RemixInvariantError(
+            `SOURCE_SANITIZED left ${residual.length} PII span(s) unmasked`,
+            'REMIX_PII_RESIDUAL',
+          );
+        }
+
+        sanitizedFiles = sanitizedFiles.map((file, index) => ({ ...file, content: maskedFiles[index].content }));
+        piiMaskedCount = masked.length;
+        await advance('SOURCE_SANITIZED', { piiFindings: masked, piiMaskedCount });
+      } else {
+        // Owner self-remix, or author consent on file — nothing masked, and the
+        // job says WHY (consent version or absence of a cross-user flow).
+        await advance('SOURCE_SANITIZED', { piiFindings: [], piiMaskedCount: 0 });
+      }
+
+      // (4) CLONING — new project (metadata only) in the TARGET org + files scrubbed.
       const duplicate = await store.withSerializedMutation(`projects:${targetOrganizationId}`, async () => {
         await ensureQuota(request, targetOrganizationId, 'projects.count');
         return store.duplicateProject({
@@ -21440,23 +21659,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
 
       const { files: scrubbedFiles, removed } = scrubSecretsFromFiles(
-        sourceFiles.map((file) => ({ path: file.path, content: file.content, encoding: file.encoding })),
+        sanitizedFiles.map((file) => ({ path: file.path, content: file.content, encoding: file.encoding })),
         materializedValues,
       );
       const writtenFiles = await projectStorage.writeFiles(
         duplicate.id,
-        scrubbedFiles.map((file, index) => ({ ...sourceFiles[index], content: file.content })),
+        scrubbedFiles.map((file, index) => ({ ...sanitizedFiles[index], content: file.content })),
       );
       await persistProjectFileManifest(store, duplicate.id, writtenFiles, request.currentUser!.id);
       await advance('CLONING', { targetProjectId: duplicate.id, scrubbedCount: removed.length });
 
-      // (4) DB_FORKING — isolation, not copy (honest marker; no source DATABASE_URL carried).
+      // (5) DB_FORKING — isolation, not copy (honest marker; no source DATABASE_URL carried).
       await advance('DB_FORKING', { dbForked: false });
 
-      // (5) STORAGE_POLICY_APPLIED — clone gets its own bucket ref; CLONE/SHARE deferred.
+      // (6) STORAGE_POLICY_APPLIED — clone gets its own bucket ref; CLONE/SHARE deferred.
       await advance('STORAGE_POLICY_APPLIED');
 
-      // (6) SCANNING — re-verify NO materialized secret value survived into the clone.
+      // (7) SCANNING — re-verify NO materialized secret value survived into the clone.
       const findings = scanClonedFilesForSecrets(
         scrubbedFiles.map((file) => ({ path: file.path, content: file.content, encoding: file.encoding })),
         materializedValues,
@@ -21472,7 +21691,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
       await advance('SCANNING', { scanFindings: [] });
 
-      // (7) INDEXING — honest completion marker (project code index does not exist yet).
+      // (8) INDEXING — honest completion marker (project code index does not exist yet).
       await advance('INDEXING');
       await advance('COMPLETED');
 
@@ -21490,10 +21709,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           detachedEnvVarKeys: detached.envVarKeys.length,
           scrubbedValueLines: removed.length,
           storagePolicy,
+          piiMaskedCount,
+          piiConsentVersion: params.piiConsentVersion ?? null,
+          consentVersion: params.consentVersion ?? null,
+          licenseId: params.licenseSnapshot?.licenseId ?? null,
+          licenseTextSha256: params.licenseSnapshot?.licenseTextSha256 ?? null,
         },
       });
 
-      return { ok: true, duplicate, jobId: job.id, state, detached, scrubbedValueLines: removed.length };
+      return { ok: true, duplicate, jobId: job.id, state, detached, scrubbedValueLines: removed.length, piiMaskedCount };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       await store.updateRemixJob(job.id, { state: 'FAILED', error: message }).catch(() => undefined);
@@ -21536,6 +21760,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         name: body.name,
         slug: body.slug,
         sourceFiles,
+        // Same-org self-remix: the org already owns this data — no cross-user
+        // license/PII flow, so nothing to mask and no consent to capture.
+        sanitizePii: false,
       });
 
       if (!result.ok) {
@@ -21603,6 +21830,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     authorName: string;
     appUrl?: string;
     thumbnailUrl?: string;
+    remixAllowed: boolean;
+    licenseId?: string;
+    licenseTextSha256?: string;
+    piiConsentVersion?: string;
     viewCount: number;
     useCount: number;
     publishedAt?: string;
@@ -21617,6 +21848,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     author: row.authorName,
     appUrl: row.appUrl ?? null,
     thumbnailUrl: row.thumbnailUrl ?? null,
+    // License + fork rights are PUBLIC listing facts (P0-V3-05): a remixer
+    // must see what they'd accept before clicking Remix. Never the text sha
+    // alone — the detail route carries the full text.
+    remixAllowed: row.remixAllowed,
+    license: row.licenseId ? { id: row.licenseId, textSha256: row.licenseTextSha256 ?? null } : null,
+    piiHandling: row.piiConsentVersion
+      ? { mode: 'AUTHOR_CONSENT' as const, consentVersion: row.piiConsentVersion }
+      : { mode: 'MASKED' as const },
     views: row.viewCount,
     uses: row.useCount,
     publishedAt: row.publishedAt ?? null,
@@ -21678,6 +21917,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         ...toPublicListing(listing),
         // detail-only: the immutable release the Remix reproduces (provenance, no secret)
         sourceSnapshotId: listing.sourceSnapshotId,
+        // detail-only: the FULL versioned license text a remixer accepts, and
+        // the consent-text version their acceptance is recorded under.
+        licenseText: listing.licenseText ?? null,
+        remixConsentVersion: REMIX_CONSENT_VERSION,
         views,
       },
     };
@@ -21687,6 +21930,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     organizationId: z.string().min(1),
     name: z.string().min(1).optional(),
     slug: z.string().min(2).optional(),
+    /*
+     * Explicit, versioned acceptance (I-RMX-3). The UI sends acceptLicense
+     * after showing the license block; the server refuses a remix without it —
+     * consent is an input, never an assumption.
+     */
+    acceptLicense: z.boolean().optional(),
   });
 
   /*
@@ -21707,6 +21956,37 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.status(404).send({ error: 'Listing not found', code: 'GALLERY_LISTING_NOT_FOUND' });
     }
 
+    // Curation gate (P0-V3-05): a published listing may be view-only.
+    if (!listing.remixAllowed) {
+      return reply.status(403).send({
+        error: 'The author has not allowed this app to be remixed.',
+        code: 'REMIX_NOT_ALLOWED',
+      });
+    }
+
+    // FAIL-CLOSED en profondeur : même un listing marqué remixable ne se
+    // remixe pas sans licence explicite enregistrée (aucun fallback).
+    if (!listing.licenseId || !listing.licenseTextSha256) {
+      return reply.status(403).send({
+        error: 'This listing has no explicit license — remixing is closed by default.',
+        code: 'REMIX_LICENSE_REQUIRED',
+      });
+    }
+
+    /*
+     * Explicit versioned acceptance (I-RMX-3): no consent, no clone. The reply
+     * carries what there IS to accept (license id + text sha + consent-text
+     * version) so a client can render the consent step from this response.
+     */
+    if (body.acceptLicense !== true) {
+      return reply.status(400).send({
+        error: 'Remixing requires accepting the license terms first.',
+        code: 'REMIX_CONSENT_REQUIRED',
+        license: listing.licenseId ? { id: listing.licenseId, textSha256: listing.licenseTextSha256 ?? null } : null,
+        remixConsentVersion: REMIX_CONSENT_VERSION,
+      });
+    }
+
     const sourceProject = await store.getProject(listing.sourceProjectId);
     if (!sourceProject) {
       return reply.status(409).send({ error: 'Source project unavailable', code: 'GALLERY_SOURCE_MISSING' });
@@ -21720,6 +22000,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
     const sourceFiles = await getSnapshotFiles(snapshot);
 
+    /*
+     * VERSIONED license capture (I-RMX-3): what the remixer accepted is pinned
+     * onto the job by content hash NOW — later curation edits to the listing
+     * never rewrite what this remix ran under.
+     */
+    const licenseSnapshot: RemixLicenseSnapshot = {
+      licenseId: listing.licenseId ?? null,
+      licenseTextSha256: listing.licenseTextSha256 ?? null,
+      sourceListingId: listing.id,
+      capturedAt: new Date().toISOString(),
+    };
+
     try {
       const result = await runSecureRemixClone({
         request,
@@ -21731,6 +22023,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         sourceFiles,
         sourceSnapshotId: listing.sourceSnapshotId,
         sourceListingId: listing.id,
+        licenseSnapshot,
+        consentVersion: REMIX_CONSENT_VERSION,
+        // Cross-user flow: mask PII unless the AUTHOR consented (versioned).
+        sanitizePii: true,
+        piiConsentVersion: listing.piiConsentVersion,
       });
 
       if (!result.ok) {
@@ -21753,6 +22050,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           sourceSnapshotId: listing.sourceSnapshotId,
           sourceListingId: listing.id,
           scrubbedValueLines: result.scrubbedValueLines,
+          piiMaskedCount: result.piiMaskedCount,
+          licenseSnapshot,
+          consentVersion: REMIX_CONSENT_VERSION,
         },
       });
     } catch (error) {
@@ -21792,6 +22092,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       .optional(),
     featured: z.boolean().optional(),
     status: z.enum(['PUBLISHED', 'PENDING_REVIEW', 'UNPUBLISHED']).optional(),
+    /*
+     * License + PII declarations captured at CURATION (P0-V3-05). licenseText
+     * is hashed server-side — the sha256 pin is computed, never client-supplied.
+     * piiConsentVersion records the author's explicit consent to ship their
+     * data unmasked; absent = every remix masks PII.
+     */
+    remixAllowed: z.boolean().optional(),
+    licenseId: z.string().min(1).max(64).optional(),
+    licenseText: z.string().min(1).max(100_000).optional(),
+    piiConsentVersion: z.string().min(1).max(64).optional(),
+    /*
+     * FAIL-CLOSED (directive 20/07) : rendre un listing remixable exige que
+     * l'AUTEUR ait explicitement (1) choisi une licence autorisant le remix,
+     * (2) confirmé détenir les droits (code/assets/données), (3) accepté la
+     * politique données personnelles. Aucun choix implicite.
+     */
+    rightsConfirmed: z.boolean().optional(),
+    piiPolicyAccepted: z.boolean().optional(),
   });
 
   /*
@@ -21807,6 +22125,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const body = parse(adminGalleryListingSchema, request.body ?? {});
 
+    // FAIL-CLOSED : pas de listing remixable sans licence explicite + droits
+    // confirmés + politique PII acceptée. Le défaut est NON-remixable.
+    if (body.remixAllowed === true) {
+      if (!body.licenseId || !body.licenseText) {
+        return reply.status(400).send({
+          error: 'A remixable listing requires an explicit license (id + text). Default is non-remixable.',
+          code: 'REMIX_LICENSE_REQUIRED',
+        });
+      }
+
+      if (body.rightsConfirmed !== true || body.piiPolicyAccepted !== true) {
+        return reply.status(400).send({
+          error: 'A remixable listing requires explicit rights confirmation and PII policy acceptance.',
+          code: 'REMIX_RIGHTS_CONFIRMATION_REQUIRED',
+        });
+      }
+    }
+
     const sourceProject = await store.getProject(body.sourceProjectId);
     if (!sourceProject) {
       return reply.status(404).send({ error: 'Source project not found', code: 'GALLERY_SOURCE_MISSING' });
@@ -21820,7 +22156,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     try {
-      const listing = await store.createGalleryListing(body);
+      const listing = await store.createGalleryListing({
+        ...body,
+        // Version pin computed HERE: the accepted license text is identified by
+        // content hash, not by whatever a client claims (P0-V3-05).
+        licenseTextSha256: body.licenseText
+          ? createHash('sha256').update(body.licenseText, 'utf8').digest('hex')
+          : undefined,
+      });
 
       await audit(request, store, {
         action: 'admin.gallery_listing.create',
@@ -21831,6 +22174,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           sourceProjectId: listing.sourceProjectId,
           sourceSnapshotId: listing.sourceSnapshotId,
           status: listing.status,
+          remixAllowed: listing.remixAllowed,
+          licenseId: listing.licenseId ?? null,
+          piiConsentVersion: listing.piiConsentVersion ?? null,
         },
       });
 
@@ -28258,6 +28604,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return reply.code(201).send({ pullRequest });
   });
 
+  /*
+   * D2 (approved 2026-07-17): surface WHY a deployment cannot be rolled back to,
+   * instead of letting the client discover it via a 409. A READY server release
+   * whose metadata retained no sha256 image digest (pre-digest builds whose AR
+   * artifact is gone, or rows the backfill could not resolve) is not a valid
+   * rollback target — the digest-only path would refuse it with
+   * ROLLBACK_NO_RETAINED_DIGEST.
+   */
+  const annotateRollbackAvailability = <T extends { provider?: string | null; status?: string | null; metadata?: unknown }>(
+    deployment: T,
+  ): T & { rollbackUnavailableReason?: 'NO_RETAINED_DIGEST' } => {
+    if (deployment.provider !== 'server' || deployment.status !== 'READY') {
+      return deployment;
+    }
+
+    const image = ((deployment.metadata as Record<string, unknown> | null)?.serverDeploy as
+      | { image?: { imageDigest?: string } }
+      | undefined)?.image;
+
+    if (image?.imageDigest && /^sha256:[a-f0-9]{64}$/.test(image.imageDigest)) {
+      return deployment;
+    }
+
+    return { ...deployment, rollbackUnavailableReason: 'NO_RETAINED_DIGEST' };
+  };
+
   app.get('/projects/:projectId/deployments', async (request) => {
     const project = await requireProject(
       request,
@@ -28276,7 +28648,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       deployments.map((deployment) => reconcileDeploymentStatus(store, deployment).catch(() => deployment)),
     );
 
-    return { deployments: reconciled };
+    return { deployments: reconciled.map(annotateRollbackAvailability) };
   });
 
   /*
@@ -28336,7 +28708,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: 'Deployment not found', code: 'DEPLOYMENT_NOT_FOUND' });
     }
 
-    return { deployment: await reconcileDeploymentStatus(store, deployment).catch(() => deployment) };
+    return {
+      deployment: annotateRollbackAvailability(await reconcileDeploymentStatus(store, deployment).catch(() => deployment)),
+    };
   });
 
   /*
@@ -29188,8 +29562,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             // Revision-based (reproducible) builds: the replayable input.
             revisionObject?: string;
             revisionSha256?: string;
+
+            // CTR-RUNTIME-NIX: the ecode.lock generation this deploy pinned.
+            storeGeneration?: string;
           }
         | undefined;
+
+      /*
+       * CTR-RUNTIME-NIX: the parsed (and registry-validated) ecode.lock.json,
+       * hoisted so the runtime start below pins the SAME generation the build
+       * used. Null = no lock (opt-in).
+       */
+      let ecodeLock: EcodeLock | null = null;
 
       let serverEnv: Record<string, string> = { DEPLOY_ID: queued.id, PORT: String(serverPort), ...body.envVars };
 
@@ -29279,6 +29663,56 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             deployConfig = null;
           }
 
+          /*
+           * CTR-RUNTIME-NIX: the project's toolchain lockfile (ecode.lock.json).
+           * When present it is ENFORCED: invalid content, an unknown/revoked
+           * store generation, or a drifted nixpkgs pin FAILS the publish with
+           * the exact reason — never a silent fallback to another generation.
+           * Absent lock = current behaviour (the lock is written by the
+           * platform via POST /projects/:id/nix-lock).
+           */
+          let ecodeLockError: string | null = null;
+
+          {
+            let lockContent: string | null = null;
+
+            try {
+              lockContent = (await buildAgent.readFile(ECODE_LOCK_FILENAME)).content;
+            } catch {
+              lockContent = null;
+            }
+
+            if (lockContent) {
+              try {
+                const parsedLock = parseEcodeLock(lockContent);
+                const registry = nixGenerationRegistryFromEnv();
+
+                /*
+                 * MANDATORY pin (expert refusal v3 point 1): a publishable lock
+                 * must name a concrete, immutable generation — never a mutable
+                 * alias that could re-resolve to a different generation without
+                 * editing the file. Checked before registry validation so an
+                 * unpinned lock fails even if the registry is off.
+                 */
+                assertLockPublishable(parsedLock);
+
+                if (registry) {
+                  // Exhaustive catalog binding runs inside assertLockAgainstRegistry (point 3).
+                  assertLockAgainstRegistry(parsedLock, registry);
+                }
+
+                ecodeLock = parsedLock;
+                buildProgress.onLog({
+                  timestamp: nowIso(),
+                  level: 'info',
+                  message: `Server deploy: ${ECODE_LOCK_FILENAME} pins store generation ${parsedLock.storeGeneration} (nixpkgs ${parsedLock.nixpkgsRev.slice(0, 12)})`,
+                });
+              } catch (error) {
+                ecodeLockError = (error as Error).message;
+              }
+            }
+          }
+
           const runPlan: ServerRuntimePlan | undefined = deployConfig
             ? {
                 framework: 'node', // label only — the declared commands drive everything
@@ -29293,7 +29727,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               ? undefined
               : detection;
 
-          if (!runPlan) {
+          if (ecodeLockError) {
+            serverError = `Server deploy: ${ecodeLockError}`;
+          } else if (!runPlan) {
             const detectionError = detection as { error: string };
             serverError = `${detectionError.error} You can also declare {"run": "<command>"} in .ecode/deploy.json.`;
           } else {
@@ -29360,6 +29796,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                       installCommand: packageJson ? `${runPlan.install.command} ${runPlan.install.args.join(' ')}` : '',
                       buildCommand: runPlan.buildCommand,
                       nixStorePvcName: nixStorePvcForProject(project.id),
+                      nixGenerationRef: ecodeLock?.storeGeneration,
                       timeoutSeconds: Number(process.env.SERVER_DEPLOY_APP_BUILD_TIMEOUT_S) || 600,
                       runAppBuild: runAppBuildViaManager,
                       onLog: (level, line) => buildProgress.onLog({ timestamp: nowIso(), level, message: line }),
@@ -29418,6 +29855,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                       ...(context.revisionSha256
                         ? { revisionObject: context.revisionObject, revisionSha256: context.revisionSha256 }
                         : {}),
+                      ...(ecodeLock ? { storeGeneration: ecodeLock.storeGeneration } : {}),
                     };
                     buildProgress.onLog({
                       timestamp: nowIso(),
@@ -29513,6 +29951,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
              * which every real web app answers (overridable per install).
              */
             healthPath: process.env.SERVER_DEPLOY_HEALTH_PATH || '/',
+
+            // CTR-RUNTIME-NIX: the runtime pod pins the lock's generation too.
+            ...(ecodeLock ? { nixGenerationRef: ecodeLock.storeGeneration } : {}),
 
             // A Nix-enabled project keeps its /nix toolchain at runtime.
             nixStorePvcName: nixStorePvcForProject(project.id),
@@ -29828,6 +30269,105 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return ready;
   };
+
+  /*
+   * CTR-RUNTIME-NIX — the ONLY legitimate writer of ecode.lock.json. Composes
+   * the lock from the generation registry (the ACTIVE generation by default,
+   * or an explicit usable generation), writes the CANONICAL bytes into the
+   * project workspace (where the revision snapshot picks it up) and into
+   * durable project storage. 503 when no registry is configured; a revoked or
+   * unknown generation is a typed 409 — the platform never writes a lock it
+   * would itself refuse at publish time.
+   */
+  app.post('/projects/:projectId/nix-lock', async (request, reply) => {
+    const { projectId } = parse(projectParams, request.params);
+    const body = parse(
+      z.object({
+        generation: z.string().min(1).optional(),
+        bundles: z.array(z.string().min(1)).optional(),
+      }),
+      request.body ?? {},
+    );
+    const project = await requireProject(request, store, projectId, 'projects:write');
+
+    const registry = (() => {
+      try {
+        return nixGenerationRegistryFromEnv();
+      } catch (error) {
+        throw Object.assign(new Error(`nix generation registry misconfigured: ${(error as Error).message}`), {
+          statusCode: 503,
+          code: 'NIX_GENERATIONS_INVALID',
+        });
+      }
+    })();
+
+    if (!registry) {
+      return reply
+        .code(503)
+        .send({ error: 'No nix generation registry configured', code: 'NIX_GENERATIONS_UNAVAILABLE' });
+    }
+
+    let lock;
+
+    try {
+      const generation = body.generation
+        ? assertLockAgainstRegistry(
+            // Compose-then-assert keeps ONE enforcement path for reads and writes.
+            buildEcodeLock(
+              (() => {
+                const found = registry.generations.find((gen) => gen.id === body.generation);
+
+                if (!found) {
+                  throw Object.assign(new Error(`unknown store generation "${body.generation}"`), {
+                    code: 'NIX_GENERATION_UNKNOWN',
+                  });
+                }
+
+                return found;
+              })(),
+              body.bundles,
+            ),
+            registry,
+          )
+        : activeNixGeneration(registry);
+
+      if (!generation) {
+        return reply
+          .code(409)
+          .send({ error: 'No ACTIVE store generation in the registry', code: 'NIX_GENERATION_NONE_ACTIVE' });
+      }
+
+      lock = buildEcodeLock(generation, body.bundles);
+
+      // The write-side runs the SAME gates as the publish-side read: a concrete
+      // generation pin (point 1) AND exhaustive catalog binding (point 3). The
+      // platform never writes a lock it would itself refuse at publish time.
+      assertLockPublishable(lock);
+      assertLockAgainstRegistry(lock, registry);
+    } catch (error) {
+      const code = (error as { code?: string }).code ?? 'ECODE_LOCK_INVALID';
+
+      return reply.code(409).send({ error: (error as Error).message, code });
+    }
+
+    const content = serializeEcodeLock(lock);
+    const workspaceId = runtimeWorkspaceId(project.id, request.currentUser!.id);
+    const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
+
+    await agentMutateEnsuring(request, authorized, '/files/write', {
+      method: 'POST',
+      body: JSON.stringify({ path: ECODE_LOCK_FILENAME, content }),
+    });
+    await projectStorage.writeFiles(project.id, [{ path: ECODE_LOCK_FILENAME, content }]);
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'runtime.nix-lock.write',
+      resourceType: 'projectFile',
+      resourceId: ECODE_LOCK_FILENAME,
+    });
+
+    return reply.code(201).send({ lock });
+  });
 
   app.post('/projects/:projectId/deployments', async (request, reply) => {
     const project = await requireProject(
@@ -31158,15 +31698,28 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     /*
+     * D2 (approved 2026-07-17): server rollbacks are digest-only and FAIL-CLOSED.
+     * The digest path is the DEFAULT — a lost env var (e.g. a helm upgrade wiping
+     * a `kubectl set env` flag) must not silently revive the URL-copy path, which
+     * re-deploys nothing and can present a dead URL as a READY "rollback".
+     * SERVER_DEPLOY_ROLLBACK_FROM_DIGEST=0 is an explicit kill switch: it REFUSES
+     * server rollbacks loudly instead of falling back to that URL-copy row.
+     */
+    if (target.provider === 'server' && process.env.SERVER_DEPLOY_ROLLBACK_FROM_DIGEST === '0') {
+      return reply.code(409).send({
+        error:
+          'Server rollback is disabled (SERVER_DEPLOY_ROLLBACK_FROM_DIGEST=0) — refusing a URL-only rollback that would re-deploy nothing.',
+        code: 'SERVER_ROLLBACK_DIGEST_DISABLED',
+      });
+    }
+
+    /*
      * Server digest-rollback re-deploys the retained image via the manager and
      * then promotes the row to READY. Create it NON-TERMINAL (QUEUED) too — the
      * monotonic updateDeployment guard refuses to mutate a row already at a
      * terminal READY, which would silently drop the re-deploy + its metadata.
      */
-    const willServerDigestRollback =
-      !willTriggerProviderRollback &&
-      target.provider === 'server' &&
-      process.env.SERVER_DEPLOY_ROLLBACK_FROM_DIGEST === '1';
+    const willServerDigestRollback = !willTriggerProviderRollback && target.provider === 'server';
 
     const rollback = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
       await ensureQuota(request, project.organizationId, 'deployments.count');
@@ -31251,7 +31804,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (willServerDigestRollback) {
       try {
         const serverMeta = (target.metadata as Record<string, unknown>)?.serverDeploy as
-          | { image?: { imageRef?: string; imageUri?: string; imageDigest?: string }; secretPolicy?: string }
+          | {
+              image?: { imageRef?: string; imageUri?: string; imageDigest?: string; storeGeneration?: string };
+              secretPolicy?: string;
+            }
           | undefined;
 
         const image = serverMeta?.image ?? {};
@@ -31262,6 +31818,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           imageRef: (image.imageRef ?? image.imageUri ?? '').replace(/:[^:/]+$/, ''),
           imageDigest: image.imageDigest ?? '',
           createdAt: new Date().toISOString(),
+          // CTR-RUNTIME-NIX point 2: carry the ORIGINAL release's pinned generation.
+          ...(image.storeGeneration ? { storeGeneration: image.storeGeneration } : {}),
         };
 
         /*
@@ -31304,6 +31862,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           env: rbEnv,
           healthPath: process.env.SERVER_DEPLOY_HEALTH_PATH || '/',
           nixStorePvcName: nixStorePvcForProject(project.id),
+          /*
+           * Re-pin the ORIGINAL release's generation (expert refusal v3 point 2):
+           * the rollback is evaluated against the generation THAT release used,
+           * not the current active one. The manager's placement runs this ref
+           * through the revocation gate — a rollback onto a since-REVOKED
+           * generation is refused, never silently downgraded to active.
+           */
+          ...(plan.storeGeneration ? { nixGenerationRef: plan.storeGeneration } : {}),
         });
 
         const ok = Boolean(started?.ready);
@@ -31322,7 +31888,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               applied: Boolean(started),
               rolledBackFromDigest: plan.imageDigest,
               secretPolicy: secretResolution.policy,
-              image: { imageRef: retained.imageRef, imageUri: plan.pullRef, imageDigest: plan.imageDigest },
+              // Persist the re-pinned generation so a rollback-of-a-rollback carries it too.
+              image: {
+                imageRef: retained.imageRef,
+                imageUri: plan.pullRef,
+                imageDigest: plan.imageDigest,
+                ...(plan.storeGeneration ? { storeGeneration: plan.storeGeneration } : {}),
+              },
             },
           },
           logs: [

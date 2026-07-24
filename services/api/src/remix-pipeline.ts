@@ -3,8 +3,8 @@
  *
  * NORMATIVE state machine — the order is a SECURITY property, not a convenience:
  *
- *   SNAPSHOT_PINNED → CREDENTIALS_DETACHED → CLONING → DB_FORKING
- *     → STORAGE_POLICY_APPLIED → SCANNING → INDEXING → COMPLETED
+ *   SNAPSHOT_PINNED → CREDENTIALS_DETACHED → SOURCE_SANITIZED → CLONING
+ *     → DB_FORKING → STORAGE_POLICY_APPLIED → SCANNING → INDEXING → COMPLETED
  *
  * Hard invariants:
  *  - I-RMX-1: a secret VALUE never enters the clone artifact. Secrets are
@@ -16,6 +16,11 @@
  *    source secret value (e.g. a `.env` committed into the workspace files). A
  *    hit fails the remix — the scan must actively look for the secret and find
  *    nothing.
+ *  - I-RMX-3 (SOURCE_SANITIZED, P0-V3-05): PII in the source files is MASKED
+ *    before cloning, unless the source author gave an explicit, versioned
+ *    consent to share it. Findings record {path, kind, line} — never the value.
+ *    License + consent are versioned: the remix job pins the license text
+ *    sha256 and the consent-text version the remixer accepted.
  *
  * This module is PURE (no DB, no I/O) so the security core is unit-testable in
  * isolation. The endpoint (`app.ts`) drives it against the real store.
@@ -24,6 +29,7 @@
 export type RemixState =
   | 'SNAPSHOT_PINNED'
   | 'CREDENTIALS_DETACHED'
+  | 'SOURCE_SANITIZED'
   | 'CLONING'
   | 'DB_FORKING'
   | 'STORAGE_POLICY_APPLIED'
@@ -36,6 +42,7 @@ export type RemixState =
 export const REMIX_STATE_ORDER: RemixState[] = [
   'SNAPSHOT_PINNED',
   'CREDENTIALS_DETACHED',
+  'SOURCE_SANITIZED',
   'CLONING',
   'DB_FORKING',
   'STORAGE_POLICY_APPLIED',
@@ -43,6 +50,13 @@ export const REMIX_STATE_ORDER: RemixState[] = [
   'INDEXING',
   'COMPLETED',
 ];
+
+/**
+ * Version of the remix consent text a remixer accepts (license terms + PII
+ * handling disclosure). Bump when the consent WORDING changes — every RemixJob
+ * records the version that was actually accepted, never "latest".
+ */
+export const REMIX_CONSENT_VERSION = '2026-07-20.1';
 
 /** App-storage handling at remix time. Bucket is per-project (`vc-<projid>`). */
 export type RemixStoragePolicy = 'DETACH' | 'CLONE' | 'SHARE_WITH_CONSENT';
@@ -230,4 +244,174 @@ export function scrubSecretsFromFiles(
   });
 
   return { files: cleaned, removed };
+}
+
+/* ------------------------------------------------------------------------- *
+ * SOURCE_SANITIZED (I-RMX-3, P0-V3-05) — PII masking before cloning.
+ * ------------------------------------------------------------------------- */
+
+export type PiiKind = 'email' | 'phone' | 'iban' | 'card';
+
+export interface PiiFinding {
+  path: string;
+
+  /** What kind of PII was found — never the value itself. */
+  kind: PiiKind;
+
+  /** 1-indexed line of the masked span. */
+  line: number;
+}
+
+/**
+ * RFC 2606 / documentation domains — addresses on these are fixtures, not a
+ * person's data. Masking them would mangle test suites and READMEs for zero
+ * privacy gain.
+ */
+const PII_EXEMPT_EMAIL_DOMAIN = /@(?:[a-z0-9-]+\.)*(?:example\.(?:com|org|net)|example|invalid|test|localhost)$/i;
+
+const EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
+
+/**
+ * International-format phone numbers only (+ then 8-15 digits, separators
+ * allowed). Bare digit runs are deliberately NOT matched — ids, timestamps and
+ * ports would drown the signal in false positives.
+ */
+const PHONE_RE = /\+\d(?:[\s().-]?\d){7,14}/g;
+
+/** IBAN: 2 letters + 2 check digits + 11-30 alphanumerics (word-bounded). */
+const IBAN_RE = /\b[A-Z]{2}\d{2}(?:\s?[A-Z0-9]{4}){2,7}[A-Z0-9]{0,3}\b/g;
+
+/** Candidate payment-card numbers: 13-19 digits, optional space/dash groups. */
+const CARD_RE = /\b\d(?:[ -]?\d){12,18}\b/g;
+
+/** Luhn check — keeps CARD_RE from eating ordinary long numbers. */
+export function luhnValid(digits: string): boolean {
+  const clean = digits.replace(/[ -]/g, '');
+
+  if (clean.length < 13 || clean.length > 19) {
+    return false;
+  }
+
+  let sum = 0;
+
+  for (let i = 0; i < clean.length; i++) {
+    let d = clean.charCodeAt(clean.length - 1 - i) - 48;
+
+    if (i % 2 === 1) {
+      d *= 2;
+
+      if (d > 9) {
+        d -= 9;
+      }
+    }
+
+    sum += d;
+  }
+
+  return sum % 10 === 0;
+}
+
+const PII_MATCHERS: Array<{ kind: PiiKind; re: RegExp; accept?: (match: string) => boolean }> = [
+  { kind: 'email', re: EMAIL_RE, accept: (m) => !PII_EXEMPT_EMAIL_DOMAIN.test(m) },
+  { kind: 'phone', re: PHONE_RE },
+  { kind: 'iban', re: IBAN_RE },
+  { kind: 'card', re: CARD_RE, accept: luhnValid },
+];
+
+/**
+ * SOURCE_SANITIZED: mask PII spans out of the source files BEFORE cloning.
+ * Deterministic pattern-based pass (emails, intl phone numbers, IBANs,
+ * Luhn-valid card numbers). Each masked span becomes `[PII:<kind> masked on
+ * remix]` so the file stays readable and the mask is self-explanatory.
+ * Findings carry {path, kind, line} — the matched VALUE is never persisted.
+ *
+ * When the source author gave an explicit versioned consent
+ * (`piiConsentVersion` on the listing), the caller SKIPS this pass and records
+ * the consent version on the job instead — "PII masquées OU consentement
+ * explicite" (plan §8.2), never silently unmasked.
+ */
+export function maskPiiInFiles(files: RemixFile[]): { files: RemixFile[]; masked: PiiFinding[] } {
+  const masked: PiiFinding[] = [];
+
+  const cleaned = files.map((file) => {
+    if (file.encoding && file.encoding !== 'utf-8' && file.encoding !== 'utf8') {
+      return file; // binary blob — nothing maskable as text
+    }
+
+    const lines = file.content.split('\n');
+    let touched = false;
+
+    const rewritten = lines.map((line, index) => {
+      let out = line;
+
+      for (const matcher of PII_MATCHERS) {
+        out = out.replace(matcher.re, (match) => {
+          if (matcher.accept && !matcher.accept(match)) {
+            return match;
+          }
+
+          masked.push({ path: file.path, kind: matcher.kind, line: index + 1 });
+          touched = true;
+
+          return `[PII:${matcher.kind} masked on remix]`;
+        });
+      }
+
+      return out;
+    });
+
+    return touched ? { ...file, content: rewritten.join('\n') } : file;
+  });
+
+  return { files: cleaned, masked };
+}
+
+/**
+ * Verification twin of {@link maskPiiInFiles}: scan WITHOUT rewriting. Used to
+ * re-check the sanitized output (must come back empty when masking ran) and in
+ * tests as the invariant's teeth.
+ */
+export function scanFilesForPii(files: RemixFile[]): PiiFinding[] {
+  const findings: PiiFinding[] = [];
+
+  for (const file of files) {
+    if (file.encoding && file.encoding !== 'utf-8' && file.encoding !== 'utf8') {
+      continue;
+    }
+
+    const lines = file.content.split('\n');
+
+    for (let i = 0; i < lines.length; i++) {
+      for (const matcher of PII_MATCHERS) {
+        for (const match of lines[i].match(matcher.re) ?? []) {
+          if (matcher.accept && !matcher.accept(match)) {
+            continue;
+          }
+
+          findings.push({ path: file.path, kind: matcher.kind, line: i + 1 });
+        }
+      }
+    }
+  }
+
+  return findings;
+}
+
+/**
+ * License capture at remix time (versioned, immutable on the job). The remixer
+ * accepts THIS text — its sha256 pins the version so later curation edits
+ * never rewrite what was agreed.
+ */
+export interface RemixLicenseSnapshot {
+  /** Declared license id (e.g. SPDX "MIT"), or null when the author declared none. */
+  licenseId: string | null;
+
+  /** sha256 of the license text accepted, or null when no text was declared. */
+  licenseTextSha256: string | null;
+
+  /** Listing the license was captured from (provenance). */
+  sourceListingId: string;
+
+  /** ISO timestamp of capture. */
+  capturedAt: string;
 }

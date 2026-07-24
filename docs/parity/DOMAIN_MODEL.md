@@ -1,7 +1,13 @@
 # DOMAIN_MODEL — entités, invariants, machines à états
 
-schemaVersion: 1
-repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
+contractId: CTR-DOMAIN-MODEL
+contractVersion: 2
+schemaVersion: 2
+repoCommit: 1692f981
+reviewer: UNKNOWN
+expectedReviewer: OpenAI-Codex
+signatureResult: PENDING_REVIEW   # v1 REFUSED : « modèle Import ancien + CloudTenant incomplet + Checkpoint/Release faibles » — v2 : §2 aligné sur LA machine (PR #27) ; CloudTenant/Checkpoint = dépendances OUVERTES déclarées (pas gonflées)
+implementationAnchor: "Remix : prod (7bd91bcf + fail-closed 7e001f3d). Import : machine alignée PR #27 (NON MERGÉE). CloudTenant : contrat + preuves LIVE partielles (CT-10/CT-11 restants). Checkpoint : machine testée unitairement, câblage réel = chantier." 
 Schémas JSON exécutables: `docs/parity/schemas/domain/*.schema.json`.
 Règle: ce document reflète les domaines TRANCHÉS (décisions Avi). Ce qui n'est
 pas tranché est marqué UNKNOWN. Rien ici n'est une promesse d'implémentation:
@@ -12,8 +18,8 @@ l'état d'implémentation vit dans PARITY_STATUS.md.
 Machine à états (ordre NORMATIF — le détachement des credentials précède le clone):
 
 ```
-SNAPSHOT_PINNED → CREDENTIALS_DETACHED → CLONING → DB_FORKING
-  → STORAGE_POLICY_APPLIED → SCANNING → INDEXING
+SNAPSHOT_PINNED → CREDENTIALS_DETACHED → SOURCE_SANITIZED → CLONING
+  → DB_FORKING → STORAGE_POLICY_APPLIED → SCANNING → INDEXING
 ```
 
 Invariants:
@@ -21,14 +27,35 @@ Invariants:
   dans un remix (ni dans un snapshot, ni dans l'archive clonée).
 - I-RMX-2: `CREDENTIALS_DETACHED` est un prérequis dur de `CLONING` — un clone
   qui démarre avec des credentials attachés est un bug de sécurité, pas un état.
-- I-RMX-3: le remix produit un nouveau projet/propriétaire/repo/workspace/locks;
-  données isolées; lien vers la source conservé (provenance).
+- I-RMX-3 (licence + PII, P0-V3-05): la licence et le consentement sont
+  VERSIONNÉS — le job épingle `licenseSnapshot` (id + sha256 du texte accepté)
+  et `consentVersion`; une édition ultérieure du listing ne réécrit jamais ce
+  qui a été accepté. Les PII (emails, téléphones internationaux, IBAN, cartes
+  Luhn-valides) sont MASQUÉES en `SOURCE_SANITIZED` avant le clone, sauf
+  consentement explicite versionné de l'auteur (`piiConsentVersion`) —
+  enregistré, jamais silencieux. Les findings portent {path, kind, line},
+  jamais la valeur.
+- I-RMX-PROV: le remix produit un nouveau projet/propriétaire/repo/workspace/
+  locks; données isolées; lien vers la source conservé (provenance).
 - Cardinalité: Projet source 1 → N remixes; un remix a exactement 1 source.
 - Rétention/migrations: UNKNOWN (non tranché).
+- `DB_FORKING` reste un marqueur honnête (isolation, pas de copie physique) —
+  fork DB physique + copie d'objets = RMX-4/5, follow-up déclaré.
 
 ## 2. Import (staging jetable)
 
-États: `QUARANTINED`, `AWAITING_USER_ACTION`, `COMMITTING`, `ROLLING_BACK`, `EXPIRED`.
+Machine à états (LA machine — unique, normative = implémentée, PR #27) :
+
+```
+RECEIVED → STAGING_ISOLATED → SCANNING
+   ├─ clean ───────────────→ READY_TO_COMMIT
+   └─ blocking findings ──→ QUARANTINED → AWAITING_USER_ACTION → RESCANNING → READY_TO_COMMIT
+READY_TO_COMMIT → COMMITTING → COMMITTED
+latéraux : ROLLING_BACK · CLEANUP_PENDING · EXPIRED · CANCELLED · FAILED
+```
+
+Le commit atomique ne part QUE de READY_TO_COMMIT ; un payload propre ne passe
+pas par la quarantaine ; détail : IMPORT_REMIX_CONTRACT (CTR-IMPORT-REMIX v2).
 
 Invariants:
 - I-IMP-1: le staging est JETABLE et ne monte **jamais** le workspace cible.

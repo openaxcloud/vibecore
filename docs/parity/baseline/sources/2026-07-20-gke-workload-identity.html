@@ -1,0 +1,4557 @@
+
+
+
+
+
+
+
+
+
+<!doctype html>
+<html 
+      lang="en"
+      dir="ltr">
+  <head>
+    <meta name="google-signin-client-id" content="721724668570-nbkv1cfusk7kk4eni4pjvepaus73b13t.apps.googleusercontent.com"><meta name="google-signin-scope"
+          content="profile email https://www.googleapis.com/auth/developerprofiles https://www.googleapis.com/auth/developerprofiles.award https://www.googleapis.com/auth/devprofiles.full_control.firstparty"><meta property="og:site_name" content="Google Cloud Documentation">
+    <meta property="og:type" content="website"><meta name="theme-color" content="#1a73e8"><meta charset="utf-8">
+    <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+
+    <link rel="manifest" href="/_pwa/clouddocs/manifest.json"
+          crossorigin="use-credentials">
+    <link rel="preconnect" href="//www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="//fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="//www.google-analytics.com" crossorigin><link rel="stylesheet" href="//fonts.googleapis.com/css?family=Google+Sans:400,500|Roboto:400,400italic,500,500italic,700,700italic|Roboto+Mono:400,500,700&display=swap">
+      <link rel="stylesheet"
+            href="//fonts.googleapis.com/css2?family=Material+Icons&family=Material+Symbols+Outlined&display=block"><link rel="stylesheet" href="https://www.gstatic.com/devrel-devsite/prod/v544324a32f4e1e28baf5bd35dca83b6157fef32c5ffbe146b7ca395602e11426/clouddocs/css/app.css">
+      
+        <link rel="stylesheet" href="https://www.gstatic.com/devrel-devsite/prod/v544324a32f4e1e28baf5bd35dca83b6157fef32c5ffbe146b7ca395602e11426/clouddocs/css/dark-theme.css" disabled>
+      <link rel="shortcut icon" href="https://www.gstatic.com/devrel-devsite/prod/v544324a32f4e1e28baf5bd35dca83b6157fef32c5ffbe146b7ca395602e11426/clouddocs/images/favicons/onecloud/favicon.ico">
+    <link rel="apple-touch-icon" href="https://www.gstatic.com/devrel-devsite/prod/v544324a32f4e1e28baf5bd35dca83b6157fef32c5ffbe146b7ca395602e11426/clouddocs/images/favicons/onecloud/super_cloud.png"><link rel="canonical" href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/workload-identity"><link rel="search" type="application/opensearchdescription+xml"
+            title="Google Cloud Documentation" href="https://docs.cloud.google.com/s/opensearch.xml">
+      <link rel="alternate" hreflang="en"
+          href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/workload-identity" /><link rel="alternate" hreflang="x-default" href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/workload-identity" /><link rel="alternate" hreflang="zh-Hans"
+          href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/workload-identity?hl=zh-cn" /><link rel="alternate" hreflang="zh-Hant"
+          href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/workload-identity?hl=zh-tw" /><link rel="alternate" hreflang="fr"
+          href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/workload-identity?hl=fr" /><link rel="alternate" hreflang="de"
+          href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/workload-identity?hl=de" /><link rel="alternate" hreflang="he"
+          href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/workload-identity?hl=he" /><link rel="alternate" hreflang="id"
+          href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/workload-identity?hl=id" /><link rel="alternate" hreflang="it"
+          href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/workload-identity?hl=it" /><link rel="alternate" hreflang="ja"
+          href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/workload-identity?hl=ja" /><link rel="alternate" hreflang="ko"
+          href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/workload-identity?hl=ko" /><link rel="alternate" hreflang="pt-BR"
+          href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/workload-identity?hl=pt-br" /><link rel="alternate" hreflang="pt"
+          href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/workload-identity?hl=pt" /><link rel="alternate" hreflang="es"
+          href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/workload-identity?hl=es" /><link rel="alternate" hreflang="es-419"
+          href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/workload-identity?hl=es-419" /><link rel="alternate" hreflang="en"
+          href="https://berlin.devsitetest.how/kubernetes-engine/docs/concepts/workload-identity" /><link rel="alternate" hreflang="x-default" href="https://berlin.devsitetest.how/kubernetes-engine/docs/concepts/workload-identity" /><link rel="alternate" hreflang="zh-Hans"
+          href="https://berlin.devsitetest.how/kubernetes-engine/docs/concepts/workload-identity?hl=zh-cn" /><link rel="alternate" hreflang="zh-Hant"
+          href="https://berlin.devsitetest.how/kubernetes-engine/docs/concepts/workload-identity?hl=zh-tw" /><link rel="alternate" hreflang="fr"
+          href="https://berlin.devsitetest.how/kubernetes-engine/docs/concepts/workload-identity?hl=fr" /><link rel="alternate" hreflang="de"
+          href="https://berlin.devsitetest.how/kubernetes-engine/docs/concepts/workload-identity?hl=de" /><link rel="alternate" hreflang="he"
+          href="https://berlin.devsitetest.how/kubernetes-engine/docs/concepts/workload-identity?hl=he" /><link rel="alternate" hreflang="id"
+          href="https://berlin.devsitetest.how/kubernetes-engine/docs/concepts/workload-identity?hl=id" /><link rel="alternate" hreflang="it"
+          href="https://berlin.devsitetest.how/kubernetes-engine/docs/concepts/workload-identity?hl=it" /><link rel="alternate" hreflang="ja"
+          href="https://berlin.devsitetest.how/kubernetes-engine/docs/concepts/workload-identity?hl=ja" /><link rel="alternate" hreflang="ko"
+          href="https://berlin.devsitetest.how/kubernetes-engine/docs/concepts/workload-identity?hl=ko" /><link rel="alternate" hreflang="pt-BR"
+          href="https://berlin.devsitetest.how/kubernetes-engine/docs/concepts/workload-identity?hl=pt-br" /><link rel="alternate" hreflang="pt"
+          href="https://berlin.devsitetest.how/kubernetes-engine/docs/concepts/workload-identity?hl=pt" /><link rel="alternate" hreflang="es"
+          href="https://berlin.devsitetest.how/kubernetes-engine/docs/concepts/workload-identity?hl=es" /><link rel="alternate" hreflang="es-419"
+          href="https://berlin.devsitetest.how/kubernetes-engine/docs/concepts/workload-identity?hl=es-419" /><title>About Workload Identity Federation for GKE &nbsp;|&nbsp; GKE security &nbsp;|&nbsp; Google Cloud Documentation</title>
+
+<meta property="og:title" content="About Workload Identity Federation for GKE &nbsp;|&nbsp; GKE security &nbsp;|&nbsp; Google Cloud Documentation"><meta name="description" content="Authenticate Kubernetes workloads to Google Cloud APIs by using Workload Identity Federation for GKE.">
+  <meta property="og:description" content="Authenticate Kubernetes workloads to Google Cloud APIs by using Workload Identity Federation for GKE."><meta property="og:url" content="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/workload-identity"><meta property="og:image" content="https://docs.cloud.google.com/_static/cloud/images/social-icon-google-cloud-1200-630.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630"><meta property="og:locale" content="en"><meta name="twitter:card" content="summary_large_image"><script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    
+    "headline": "About Workload Identity Federation for GKE"
+  }
+</script><script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [{
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Google Kubernetes Engine (GKE)",
+      "item": "https://docs.cloud.google.com/kubernetes-engine/docs"
+    },{
+      "@type": "ListItem",
+      "position": 2,
+      "name": "GKE security",
+      "item": "https://docs.cloud.google.com/kubernetes-engine/docs/concepts/security-overview"
+    },{
+      "@type": "ListItem",
+      "position": 3,
+      "name": "About Workload Identity Federation for GKE",
+      "item": "https://docs.cloud.google.com/kubernetes-engine/docs/concepts/workload-identity"
+    }]
+  }
+  </script>
+  
+    
+
+
+
+    
+    
+
+
+
+
+
+
+
+ 
+ 
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+ 
+ 
+
+ 
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+ 
+ 
+
+
+
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+
+
+
+
+
+
+
+
+
+
+ 
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- Lowercase versions of the archetype names -->
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- IT administrators IT administrators doesn't need a lowercase version -->
+
+
+
+
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    
+    
+    
+    
+    
+
+
+    
+    
+    
+    
+    
+  
+
+    </head>
+  <body class="color-scheme--light"
+        template="page"
+        theme="clouddocs-theme"
+        type="article"
+        
+        appearance
+        
+        layout="docs"
+        
+        
+        free-trial
+        
+        
+        display-toc
+        pending>
+  
+    <devsite-progress type="indeterminate" id="app-progress"></devsite-progress>
+  
+  
+    <a href="#main-content" class="skip-link button">
+      
+      Skip to main content
+    </a>
+    <section class="devsite-wrapper">
+      <devsite-cookie-notification-bar></devsite-cookie-notification-bar>
+        <cloudx-track userCountry="IL"></cloudx-track>
+
+<devsite-header role="banner" keep-tabs-visible>
+  
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="devsite-header--inner" data-nosnippet>
+  <div class="devsite-top-logo-row-wrapper-wrapper">
+    <div class="devsite-top-logo-row-wrapper">
+      <div class="devsite-top-logo-row">
+        <button type="button" id="devsite-hamburger-menu"
+          class="devsite-header-icon-button button-flat material-icons gc-analytics-event"
+          data-category="Site-Wide Custom Events"
+          data-label="Navigation menu button"
+          visually-hidden
+          aria-label="Open menu">
+        </button>
+        
+<div class="devsite-product-name-wrapper">
+
+  <a href="/" class="devsite-site-logo-link gc-analytics-event"
+   data-category="Site-Wide Custom Events" data-label="Site logo" track-type="globalNav"
+   track-name="googleCloudDocumentation" track-metadata-position="nav"
+   track-metadata-eventDetail="nav">
+  
+  <picture>
+    
+    <source srcset="https://www.gstatic.com/devrel-devsite/prod/v544324a32f4e1e28baf5bd35dca83b6157fef32c5ffbe146b7ca395602e11426/clouddocs/images/lockup_dark_theme.svg"
+            media="(prefers-color-scheme: dark)"
+            class="devsite-dark-theme">
+    
+    <img src="https://www.gstatic.com/devrel-devsite/prod/v544324a32f4e1e28baf5bd35dca83b6157fef32c5ffbe146b7ca395602e11426/clouddocs/images/lockup_full_color.svg" class="devsite-site-logo" alt="Google Cloud Documentation">
+  </picture>
+  
+</a>
+
+
+
+</div>
+        <div class="devsite-top-logo-row-middle">
+          <div class="devsite-header-upper-tabs">
+            
+              
+              
+  <devsite-tabs class="upper-tabs">
+
+    <nav class="devsite-tabs-wrapper" aria-label="Upper tabs">
+      
+        
+          <tab class="devsite-dropdown
+    
+    devsite-active
+    devsite-clickable
+    ">
+  
+    <a href="https://docs.cloud.google.com/docs"
+    class="devsite-tabs-content gc-analytics-event "
+      track-metadata-eventdetail="https://docs.cloud.google.com/docs"
+    
+       track-type="nav"
+       track-metadata-position="nav - docs-home"
+       track-metadata-module="primary nav"
+       aria-label="Technology areas, selected" 
+       
+         
+           data-category="Site-Wide Custom Events"
+         
+           data-label="Tab: Technology areas"
+         
+           track-name="docs-home"
+         
+           track-link-column-type="single-column"
+         
+       >
+    Technology areas
+  
+    </a>
+    
+      <button
+         aria-haspopup="menu"
+         aria-expanded="false"
+         aria-label="Dropdown menu for Technology areas"
+         track-type="nav"
+         track-metadata-eventdetail="https://docs.cloud.google.com/docs"
+         track-metadata-position="nav - docs-home"
+         track-metadata-module="primary nav"
+         
+          
+            data-category="Site-Wide Custom Events"
+          
+            data-label="Tab: Technology areas"
+          
+            track-name="docs-home"
+          
+            track-link-column-type="single-column"
+          
+        
+         class="devsite-tabs-dropdown-toggle devsite-icon devsite-icon-arrow-drop-down"></button>
+    
+  
+  <div class="devsite-tabs-dropdown" role="menu" aria-label="submenu" hidden>
+    <div class="devsite-tabs-dropdown-content">
+      
+        <button class="devsite-tabs-close-button material-icons button-flat gc-analytics-event"
+                data-category="Site-Wide Custom Events"
+                data-label="Close dropdown menu"
+                aria-label="Close dropdown menu"
+                track-type="nav"
+                track-name="close"
+                track-metadata-eventdetail="#"
+                track-metadata-position="nav - docs-home"
+                track-metadata-module="tertiary nav">close</button>
+      
+      
+        <div class="devsite-tabs-dropdown-column
+                    ">
+          
+            <ul class="devsite-tabs-dropdown-section
+                       ">
+              
+              
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/ai-ml"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/ai-ml"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      AI and ML
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/application-development"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/application-development"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Application development
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/application-hosting"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/application-hosting"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Application hosting
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/compute-area"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/compute-area"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Compute
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/data"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/data"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Data analytics and pipelines
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/databases"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/databases"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Databases
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/dhm-cloud"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/dhm-cloud"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Distributed, hybrid, and multicloud
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/industry"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/industry"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Industry solutions
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/migration"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/migration"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Migration
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/networking"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/networking"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Networking
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/observability"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/observability"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Observability and monitoring
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/security"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/security"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Security
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/storage"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/storage"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Storage
+                    </div>
+                    
+                  </a>
+                </li>
+              
+            </ul>
+          
+        </div>
+      
+    </div>
+  </div>
+</tab>
+        
+      
+        
+          <tab class="devsite-dropdown
+    
+    
+    devsite-clickable
+    ">
+  
+    <a href="https://docs.cloud.google.com/docs/cross-product-overviews"
+    class="devsite-tabs-content gc-analytics-event "
+      track-metadata-eventdetail="https://docs.cloud.google.com/docs/cross-product-overviews"
+    
+       track-type="nav"
+       track-metadata-position="nav - crossproduct"
+       track-metadata-module="primary nav"
+       
+       
+         
+           data-category="Site-Wide Custom Events"
+         
+           data-label="Tab: Cross-product tools"
+         
+           track-name="crossproduct"
+         
+           track-link-column-type="single-column"
+         
+       >
+    Cross-product tools
+  
+    </a>
+    
+      <button
+         aria-haspopup="menu"
+         aria-expanded="false"
+         aria-label="Dropdown menu for Cross-product tools"
+         track-type="nav"
+         track-metadata-eventdetail="https://docs.cloud.google.com/docs/cross-product-overviews"
+         track-metadata-position="nav - crossproduct"
+         track-metadata-module="primary nav"
+         
+          
+            data-category="Site-Wide Custom Events"
+          
+            data-label="Tab: Cross-product tools"
+          
+            track-name="crossproduct"
+          
+            track-link-column-type="single-column"
+          
+        
+         class="devsite-tabs-dropdown-toggle devsite-icon devsite-icon-arrow-drop-down"></button>
+    
+  
+  <div class="devsite-tabs-dropdown" role="menu" aria-label="submenu" hidden>
+    <div class="devsite-tabs-dropdown-content">
+      
+        <button class="devsite-tabs-close-button material-icons button-flat gc-analytics-event"
+                data-category="Site-Wide Custom Events"
+                data-label="Close dropdown menu"
+                aria-label="Close dropdown menu"
+                track-type="nav"
+                track-name="close"
+                track-metadata-eventdetail="#"
+                track-metadata-position="nav - crossproduct"
+                track-metadata-module="tertiary nav">close</button>
+      
+      
+        <div class="devsite-tabs-dropdown-column
+                    ">
+          
+            <ul class="devsite-tabs-dropdown-section
+                       ">
+              
+              
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/access-resources"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/access-resources"
+                     track-metadata-position="nav - crossproduct"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Access and resources management
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/costs-usage"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/costs-usage"
+                     track-metadata-position="nav - crossproduct"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Costs and usage management
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/iac"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/iac"
+                     track-metadata-position="nav - crossproduct"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Infrastructure as code
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/devtools"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/devtools"
+                     track-metadata-position="nav - crossproduct"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      SDK, languages, frameworks, and tools
+                    </div>
+                    
+                  </a>
+                </li>
+              
+            </ul>
+          
+        </div>
+      
+    </div>
+  </div>
+</tab>
+        
+      
+    </nav>
+
+  </devsite-tabs>
+
+            
+           </div>
+          
+<devsite-search
+    enable-signin
+    enable-search
+    enable-suggestions
+      
+    
+    enable-search-summaries
+    project-name="GKE security"
+    tenant-name="Google Cloud Documentation"
+    project-scope="/kubernetes-engine/docs/concepts/security-overview"
+    url-scoped="https://docs.cloud.google.com/s/results/kubernetes-engine/docs/concepts/security-overview"
+    
+    
+    
+    >
+  <form class="devsite-search-form" action="https://docs.cloud.google.com/s/results" method="GET">
+    <div class="devsite-search-container">
+      <button type="button"
+              search-open
+              class="devsite-search-button devsite-header-icon-button button-flat material-icons"
+              
+              aria-label="Open search"></button>
+      <div class="devsite-searchbox">
+        <input
+          aria-activedescendant=""
+          aria-autocomplete="list"
+          
+          aria-label="Search"
+          aria-expanded="false"
+          aria-haspopup="listbox"
+          autocomplete="off"
+          class="devsite-search-field devsite-search-query"
+          name="q"
+          
+          placeholder="Search"
+          role="combobox"
+          type="text"
+          value=""
+          >
+          <div class="devsite-search-image material-icons" aria-hidden="true">
+            
+              <svg class="devsite-search-ai-image" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <g clip-path="url(#clip0_6641_386)">
+                    <path d="M19.6 21L13.3 14.7C12.8 15.1 12.225 15.4167 11.575 15.65C10.925 15.8833 10.2333 16 9.5 16C7.68333 16 6.14167 15.375 4.875 14.125C3.625 12.8583 3 11.3167 3 9.5C3 7.68333 3.625 6.15 4.875 4.9C6.14167 3.63333 7.68333 3 9.5 3C10.0167 3 10.5167 3.05833 11 3.175C11.4833 3.275 11.9417 3.43333 12.375 3.65L10.825 5.2C10.6083 5.13333 10.3917 5.08333 10.175 5.05C9.95833 5.01667 9.73333 5 9.5 5C8.25 5 7.18333 5.44167 6.3 6.325C5.43333 7.19167 5 8.25 5 9.5C5 10.75 5.43333 11.8167 6.3 12.7C7.18333 13.5667 8.25 14 9.5 14C10.6667 14 11.6667 13.625 12.5 12.875C13.35 12.1083 13.8417 11.15 13.975 10H15.975C15.925 10.6333 15.7833 11.2333 15.55 11.8C15.3333 12.3667 15.05 12.8667 14.7 13.3L21 19.6L19.6 21ZM17.5 12C17.5 10.4667 16.9667 9.16667 15.9 8.1C14.8333 7.03333 13.5333 6.5 12 6.5C13.5333 6.5 14.8333 5.96667 15.9 4.9C16.9667 3.83333 17.5 2.53333 17.5 0.999999C17.5 2.53333 18.0333 3.83333 19.1 4.9C20.1667 5.96667 21.4667 6.5 23 6.5C21.4667 6.5 20.1667 7.03333 19.1 8.1C18.0333 9.16667 17.5 10.4667 17.5 12Z" fill="#5F6368"/>
+                  </g>
+                <defs>
+                <clipPath id="clip0_6641_386">
+                <rect width="24" height="24" fill="white"/>
+                </clipPath>
+                </defs>
+              </svg>
+            
+          </div>
+          <div class="devsite-search-shortcut-icon-container" aria-hidden="true">
+            <kbd class="devsite-search-shortcut-icon">/</kbd>
+          </div>
+      </div>
+    </div>
+  </form>
+  <button type="button"
+          search-close
+          class="devsite-search-button devsite-header-icon-button button-flat material-icons"
+          
+          aria-label="Close search"></button>
+</devsite-search>
+
+        </div>
+
+        
+
+  
+
+  
+    <a class="devsite-header-link devsite-top-button button gc-analytics-event button-with-icon"
+    href="//console.cloud.google.com/"
+    data-category="Site-Wide Custom Events"
+    data-label="Site header link: Console"
+    
+      
+        track-metadata-eventDetail="nav"
+      
+        track-metadata-position="nav"
+      
+        referrerpolicy="no-referrer-when-downgrade"
+      
+        track-type="globalNav"
+      
+        track-name="console"
+      
+    >
+  Console
+</a>
+  
+
+  
+
+  <devsite-appearance-selector></devsite-appearance-selector>
+
+  
+<devsite-language-selector>
+  <ul role="presentation">
+    
+    
+    <li role="presentation">
+      <a role="menuitem" lang="en"
+        >English</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="de"
+        >Deutsch</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="es"
+        >Español</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="es_419"
+        >Español – América Latina</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="fr"
+        >Français</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="id"
+        >Indonesia</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="it"
+        >Italiano</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="pt"
+        >Português</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="pt_br"
+        >Português – Brasil</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="he"
+        >עברית</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="zh_cn"
+        >中文 – 简体</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="zh_tw"
+        >中文 – 繁體</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="ja"
+        >日本語</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="ko"
+        >한국어</a>
+    </li>
+    
+  </ul>
+</devsite-language-selector>
+
+
+
+
+        
+          <devsite-user 
+                        
+                        
+                          enable-profiles
+                        
+                        
+                          fp-auth
+                        
+                        id="devsite-user">
+            
+              
+              <span class="button devsite-top-button" aria-hidden="true" visually-hidden>Sign in</span>
+            
+          </devsite-user>
+        
+        
+        
+      </div>
+    </div>
+  </div>
+
+
+
+  <div class="devsite-collapsible-section
+    ">
+    <div class="devsite-header-background">
+      
+        
+          <div class="devsite-product-id-row"
+           >
+            <div class="devsite-product-description-row">
+              
+                
+                <div class="devsite-product-id">
+                  
+                    
+  
+  <a href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/security-overview">
+    
+  <div class="devsite-product-logo-container"
+       
+       
+       
+    size="medium"
+  >
+  
+    <picture>
+      
+      <source class="devsite-dark-theme"
+              media="(prefers-color-scheme: dark)"
+              srcset=" /_static/clouddocs/images/icons/products/kubernetes-engine-white.svg"
+              sizes="64px">
+      
+      <img class="devsite-product-logo"
+           alt=""
+           src="https://docs.cloud.google.com/_static/clouddocs/images/icons/products/kubernetes-engine-color.svg"
+           srcset=" /_static/clouddocs/images/icons/products/kubernetes-engine-color.svg"
+           sizes="64px"
+           loading="lazy"
+           >
+    </picture>
+  
+  </div>
+  
+  </a>
+  
+
+                  
+                  
+                  
+                    <ul class="devsite-breadcrumb-list"
+  
+    aria-label="Lower header breadcrumb">
+  
+  <li class="devsite-breadcrumb-item
+             ">
+    
+    
+    
+      
+        
+  <a href="https://docs.cloud.google.com/kubernetes-engine/docs"
+      
+        class="devsite-breadcrumb-link gc-analytics-event"
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Lower Header"
+      
+        data-value="1"
+      
+        track-type="globalNav"
+      
+        track-name="breadcrumb"
+      
+        track-metadata-position="1"
+      
+        track-metadata-eventdetail="Google Kubernetes Engine (GKE)"
+      
+    >
+    
+          Google Kubernetes Engine (GKE)
+        
+  </a>
+  
+      
+    
+  </li>
+  
+  <li class="devsite-breadcrumb-item
+             ">
+    
+      
+      <div class="devsite-breadcrumb-guillemet material-icons" aria-hidden="true"></div>
+    
+    
+    
+      
+        
+  <a href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/security-overview"
+      
+        class="devsite-breadcrumb-link gc-analytics-event"
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Lower Header"
+      
+        data-value="2"
+      
+        track-type="globalNav"
+      
+        track-name="breadcrumb"
+      
+        track-metadata-position="2"
+      
+        track-metadata-eventdetail="GKE security"
+      
+    >
+    
+          GKE security
+        
+  </a>
+  
+      
+    
+  </li>
+  
+</ul>
+                </div>
+                
+              
+              
+            </div>
+            
+              <div class="devsite-product-button-row">
+  
+
+  
+  <a href="//console.cloud.google.com/freetrial"
+  
+    class="cloud-free-trial-button button button-primary
+      "
+    
+    
+      
+        track-metadata-eventDetail="nav"
+      
+        track-metadata-position="nav"
+      
+        referrerpolicy="no-referrer-when-downgrade"
+      
+        track-type="freeTrial"
+      
+        track-name="gcpCta"
+      
+    
+    >Start free</a>
+
+</div>
+            
+          </div>
+          
+        
+      
+      
+        <div class="devsite-doc-set-nav-row">
+          
+          
+            
+            
+  <devsite-tabs class="lower-tabs">
+
+    <nav class="devsite-tabs-wrapper" aria-label="Lower tabs">
+      
+        
+          <tab  >
+            
+    <a href="https://docs.cloud.google.com/kubernetes-engine/docs"
+    class="devsite-tabs-content gc-analytics-event "
+      track-metadata-eventdetail="https://docs.cloud.google.com/kubernetes-engine/docs"
+    
+       track-type="nav"
+       track-metadata-position="nav - overview"
+       track-metadata-module="primary nav"
+       
+       
+         
+           data-category="Site-Wide Custom Events"
+         
+           data-label="Tab: Overview"
+         
+           track-name="overview"
+         
+       >
+    Overview
+  
+    </a>
+    
+  
+          </tab>
+        
+      
+        
+          <tab  class="devsite-active">
+            
+    <a href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/security-overview"
+    class="devsite-tabs-content gc-analytics-event "
+      track-metadata-eventdetail="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/security-overview"
+    
+       track-type="nav"
+       track-metadata-position="nav - guides"
+       track-metadata-module="primary nav"
+       aria-label="Guides, selected" 
+       
+         
+           data-category="Site-Wide Custom Events"
+         
+           data-label="Tab: Guides"
+         
+           track-name="guides"
+         
+       >
+    Guides
+  
+    </a>
+    
+  
+          </tab>
+        
+      
+    </nav>
+
+  </devsite-tabs>
+
+          
+          
+        </div>
+      
+    </div>
+  </div>
+
+</div>
+
+
+
+  
+
+  
+</devsite-header>
+        <devsite-book-nav scrollbars >
+          
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="devsite-book-nav-filter"
+     >
+  <span class="filter-list-icon material-icons" aria-hidden="true"></span>
+  <input type="text"
+         placeholder="Filter"
+         
+         aria-label="Type to filter"
+         role="searchbox">
+  
+  <span class="filter-clear-button hidden"
+        data-title="Clear filter"
+        aria-label="Clear filter"
+        role="button"
+        tabindex="0"></span>
+</div>
+
+<nav class="devsite-book-nav devsite-nav nocontent" data-nosnippet
+     aria-label="Side menu">
+  <div class="devsite-mobile-header">
+    <button type="button"
+            id="devsite-close-nav"
+            class="devsite-header-icon-button button-flat material-icons gc-analytics-event"
+            data-category="Site-Wide Custom Events"
+            data-label="Close navigation"
+            aria-label="Close navigation">
+    </button>
+    <div class="devsite-product-name-wrapper">
+
+  <a href="/" class="devsite-site-logo-link gc-analytics-event"
+   data-category="Site-Wide Custom Events" data-label="Site logo" track-type="globalNav"
+   track-name="googleCloudDocumentation" track-metadata-position="nav"
+   track-metadata-eventDetail="nav">
+  
+  <picture>
+    
+    <source srcset="https://www.gstatic.com/devrel-devsite/prod/v544324a32f4e1e28baf5bd35dca83b6157fef32c5ffbe146b7ca395602e11426/clouddocs/images/lockup_dark_theme.svg"
+            media="(prefers-color-scheme: dark)"
+            class="devsite-dark-theme">
+    
+    <img src="https://www.gstatic.com/devrel-devsite/prod/v544324a32f4e1e28baf5bd35dca83b6157fef32c5ffbe146b7ca395602e11426/clouddocs/images/lockup_full_color.svg" class="devsite-site-logo" alt="Google Cloud Documentation">
+  </picture>
+  
+</a>
+
+
+</div>
+  </div>
+
+  <div class="devsite-book-nav-wrapper">
+    <div class="devsite-mobile-nav-top">
+      
+        <ul class="devsite-nav-list">
+          
+            <li class="devsite-nav-item">
+              
+  
+  <a href="/docs"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              devsite-nav-active"
+    
+
+    
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Tab: Technology areas"
+      
+        track-name="docs-home"
+      
+        track-link-column-type="single-column"
+      
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Technology areas"
+     track-type="globalNav"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Technology areas
+   </span>
+    
+  
+  </a>
+  
+
+  
+    <ul class="devsite-nav-responsive-tabs devsite-nav-has-menu
+               ">
+      
+<li class="devsite-nav-item">
+
+  
+  <span
+    
+       class="devsite-nav-title"
+       tooltip
+    
+    
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Tab: Technology areas"
+      
+        track-name="docs-home"
+      
+        track-link-column-type="single-column"
+      
+    >
+  
+    <span class="devsite-nav-text" tooltip menu="Technology areas">
+      More
+   </span>
+    
+    <span class="devsite-nav-icon material-icons" data-icon="forward"
+          menu="Technology areas">
+    </span>
+    
+  
+  </span>
+  
+
+</li>
+
+    </ul>
+  
+              
+                <ul class="devsite-nav-responsive-tabs">
+                  
+                    
+                    
+                    
+                    <li class="devsite-nav-item">
+                      
+  
+  <a href="/kubernetes-engine/docs"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Tab: Overview"
+      
+        track-name="overview"
+      
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Overview"
+     track-type="globalNav"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Overview
+   </span>
+    
+  
+  </a>
+  
+
+  
+                    </li>
+                  
+                    
+                    
+                    
+                    <li class="devsite-nav-item">
+                      
+  
+  <a href="/kubernetes-engine/docs/concepts/security-overview"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              devsite-nav-active"
+    
+
+    
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Tab: Guides"
+      
+        track-name="guides"
+      
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Guides"
+     track-type="globalNav"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip menu="_book">
+      Guides
+   </span>
+    
+  
+  </a>
+  
+
+  
+                    </li>
+                  
+                </ul>
+              
+            </li>
+          
+            <li class="devsite-nav-item">
+              
+  
+  <a href="/docs/cross-product-overviews"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Tab: Cross-product tools"
+      
+        track-name="crossproduct"
+      
+        track-link-column-type="single-column"
+      
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Cross-product tools"
+     track-type="globalNav"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Cross-product tools
+   </span>
+    
+  
+  </a>
+  
+
+  
+    <ul class="devsite-nav-responsive-tabs devsite-nav-has-menu
+               ">
+      
+<li class="devsite-nav-item">
+
+  
+  <span
+    
+       class="devsite-nav-title"
+       tooltip
+    
+    
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Tab: Cross-product tools"
+      
+        track-name="crossproduct"
+      
+        track-link-column-type="single-column"
+      
+    >
+  
+    <span class="devsite-nav-text" tooltip menu="Cross-product tools">
+      More
+   </span>
+    
+    <span class="devsite-nav-icon material-icons" data-icon="forward"
+          menu="Cross-product tools">
+    </span>
+    
+  
+  </span>
+  
+
+</li>
+
+    </ul>
+  
+              
+            </li>
+          
+          
+    
+    
+<li class="devsite-nav-item">
+
+  
+  <a href="//console.cloud.google.com/"
+    
+       class="devsite-nav-title gc-analytics-event button-with-icon"
+    
+
+    
+      
+        track-metadata-eventDetail="nav"
+      
+        track-metadata-position="nav"
+      
+        referrerpolicy="no-referrer-when-downgrade"
+      
+        track-type="globalNav"
+      
+        track-name="console"
+      
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Console"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Console
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+  
+          
+        </ul>
+      
+    </div>
+    
+      <div class="devsite-mobile-nav-bottom">
+        
+          
+          <ul class="devsite-nav-list" menu="_book">
+            <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Discover</span>
+      </div></li>
+
+  <li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/security-overview"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>GKE security overview</span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Explore GKE documentation</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/kubernetes-engine/security/explore-gke-docs"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Overview</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/kubernetes-engine-overview"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Main GKE documentation</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/machine-learning"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>GKE AI/ML documentation</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/explore-gke-networking-docs-use-cases"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>GKE networking documentation</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/security-overview"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>GKE security documentation</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/fleet-management/docs"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>GKE fleet management documentation</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/autopilot-security"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Security measures in GKE Autopilot</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/cluster-trust"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>About cluster trust</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/shared-responsibility"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Shared security responsibilities</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/cis-benchmarks"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>CIS Benchmarks</span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Control access</span>
+      </div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Authenticate</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/authentication"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Authenticate to the GKE API</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/api-server-authentication"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Authenticate to the Kubernetes API server</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/oidc"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Use external identity providers to authenticate to GKE clusters</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/service-accounts"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>About service accounts in GKE</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/security/configure-node-service-accounts"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Configure GKE node service accounts</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Authorize</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/access-control"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>About RBAC and IAM</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/best-practices/rbac"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Best practices for RBAC</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/iam"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Authorize access to Google Cloud resources using IAM policies</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/role-based-access-control"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Authorize actions in clusters using GKE RBAC</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/google-groups-rbac"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Manage permissions for groups using Google Groups with RBAC</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/restrict-resources-access-by-namespace"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Enable access and view cluster resources by namespace</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/access-scopes"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Access scopes in GKE</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Access resources from workloads</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/workload-identity"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>About Workload Identity Federation for GKE</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/workload-identity"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Authenticate to Google Cloud APIs from GKE</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/tutorials/workload-identity-secrets"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Access secrets stored outside GKE clusters using client libraries</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/access-private-registries-private-certificates"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Access private registries with private CA certificates</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Manage cluster security</span>
+      </div></li>
+
+  <li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/hardening-your-cluster"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Best practices for hardening your clusters</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/kubernetes-engine/security/ai-security-best-practices"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Best practices for AI workload security</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/kubernetes-engine/docs/resources/security-patching"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Security patching</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/security-mitigations"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Mitigate security incidents</span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Manage node security</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/shielded-gke-nodes"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Verify node identity and integrity with GKE Shielded Nodes</span></a></li><li class="devsite-nav-item
+           devsite-nav-preview"><a href="/kubernetes-engine/security/control-plane-node-creation"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Prevent node self-registration in GKE clusters</span><span class="devsite-nav-icon material-icons"
+        data-icon="preview"
+        data-title="Preview"
+        aria-hidden="true"></span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/disable-kubelet-readonly-port"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Disable the insecure kubelet read-only port</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/enforce-vm-agents"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Run VM agents on every GKE node</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/enable-oslogin"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Manage node SSH access without using SSH keys</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/security/secure-modules-cos"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Securely load modules on nodes running COS</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Isolate workloads</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/sandbox-pods"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>About GKE Sandbox</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/sandbox-pods"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Isolate your workloads using GKE Sandbox</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/isolate-workloads-dedicated-nodes"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Isolate your workloads in dedicated node pools</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/seccomp-in-gke"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>About seccomp in GKE</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/sole-tenancy"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Isolate your workloads using sole-tenant nodes</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/workload-separation"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Configure workload separation in GKE</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Manage credentials</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/credential-rotation"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Rotate your cluster&#39;s credentials</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/ip-rotation"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Rotate your control plane IP addresses</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Encrypt sensitive data</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/gke-fips-compliance"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>About FIPS-validated encryption in GKE</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/confidential-gke-nodes"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Encrypt your data in-use with GKE Confidential Nodes</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/enable-inter-node-transparent-encryption"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Encrypt your data in-transit in GKE with user-managed encryption keys</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/using-cmek"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Encrypt data at rest with keys that you manage</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/encrypting-secrets"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Encrypt Secrets at the application layer</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/vtpms"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>vTPM in Confidential GKE workloads</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Enforce security policies</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/podsecurityadmission"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Apply predefined Pod-level security policies using PodSecurity</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/pod-security-policies-with-gatekeeper"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Apply custom Pod-level security policies using Gatekeeper</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/custom-org-policies"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Restrict actions on GKE resources using custom organization policies</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/security/autopilot-cluster-policies-standard"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Enforce Autopilot security policies in Standard clusters</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/tutorials/restrict-computeclass-usage-admission"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Restrict access to modify and select ComputeClasses</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Manage network security</span>
+      </div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Enforce firewall rules and policies</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/tags-firewall-policies"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Selectively enforce firewall policies in GKE</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/autopilot-network-tags"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Use network tags to apply firewall rules to nodes</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Manage control plane security</span>
+      </div></li>
+
+  <li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/control-plane-security"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>About control plane security</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/cluster-trust"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>About cluster trust</span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Configure control plane security features</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/about-control-plane-authority"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>About control plane authority</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/tutorials/run-your-own-cas-keys"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Run your own certificate authorities and keys in GKE</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/encrypt-etcd-control-plane-disks"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Encrypt etcd and control plane boot disks</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/rotate-control-plane-cas-keys"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Rotate customer-managed control plane CAs and keys</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/rotate-etcd-kcp-encryption-keys"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Rotate etcd and control plane boot disk encryption keys</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Verify control plane security status</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/verify-google-connections-control-plane"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Verify Google connections to the GKE control plane</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/verify-identity-issuance-usage"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Verify identity issuance and usage</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/verify-control-plane-vm-integrity"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Verify GKE control plane VM integrity</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Monitor cluster security</span>
+      </div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Manage audit logs</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/audit-logging"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Audit logging for Kubernetes</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/audit-logging-container"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Audit logging for Kubernetes Engine</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/audit-logging-container-security"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Audit logging for Container Security API</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/audit-policy"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>About audit policy</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/linux-auditd-logging"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Enable Linux auditd logging in Standard clusters</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Monitor cluster security</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/about-security-posture-dashboard"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>About the security posture dashboard</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/about-configuration-scanning"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>About Kubernetes security posture scanning</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/protect-workload-configuration"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Scan workloads for configuration issues</span></a></li><li class="devsite-nav-item
+           devsite-nav-deprecated"><a href="/kubernetes-engine/docs/concepts/about-workload-vulnerability-scanning"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>About workload vulnerability scanning</span><span class="devsite-nav-icon material-icons"
+        data-icon="deprecated"
+        data-title="Deprecated"
+        aria-hidden="true"></span></a></li><li class="devsite-nav-item
+           devsite-nav-deprecated"><a href="/kubernetes-engine/docs/how-to/security-posture-vulnerability-scanning"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Scan containers for known vulnerabilities</span><span class="devsite-nav-icon material-icons"
+        data-icon="deprecated"
+        data-title="Deprecated"
+        aria-hidden="true"></span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Monitor fleet security</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/fleet-security-posture"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Configure GKE security posture features for fleets</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Troubleshoot</span>
+      </div></li>
+
+  <li class="devsite-nav-item"><a href="/kubernetes-engine/docs/troubleshooting/authentication"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Authentication</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/kubernetes-engine/docs/troubleshooting/service-accounts"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Service accounts</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/kubernetes-engine/docs/troubleshooting/troubleshoot-secrets"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Application-layer secrets encryption</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/crd-with-invalid-caBundle"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>CRDs with an invalid CA bundle</span></a></li>
+          </ul>
+        
+        
+          
+    
+      
+      <ul class="devsite-nav-list" menu="Technology areas"
+          aria-label="Side menu" hidden>
+        
+          
+            
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/ai-ml"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: AI and ML"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      AI and ML
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/application-development"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Application development"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Application development
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/application-hosting"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Application hosting"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Application hosting
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/compute-area"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Compute"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Compute
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/data"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Data analytics and pipelines"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Data analytics and pipelines
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/databases"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Databases"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Databases
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/dhm-cloud"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Distributed, hybrid, and multicloud"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Distributed, hybrid, and multicloud
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/industry"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Industry solutions"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Industry solutions
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/migration"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Migration"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Migration
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/networking"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Networking"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Networking
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/observability"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Observability and monitoring"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Observability and monitoring
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/security"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Security"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Security
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/storage"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Storage"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Storage
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+          
+        
+      </ul>
+    
+  
+    
+      
+      <ul class="devsite-nav-list" menu="Cross-product tools"
+          aria-label="Side menu" hidden>
+        
+          
+            
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/access-resources"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Access and resources management"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Access and resources management
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/costs-usage"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Costs and usage management"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Costs and usage management
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/iac"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Infrastructure as code"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Infrastructure as code
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/devtools"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: SDK, languages, frameworks, and tools"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      SDK, languages, frameworks, and tools
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+          
+        
+      </ul>
+    
+  
+        
+        
+          
+    
+  
+    
+  
+        
+      </div>
+    
+  </div>
+</nav>
+          
+        </devsite-book-nav>
+      
+      <section id="gc-wrapper">
+        <main role="main" id="main-content" class="devsite-main-content"
+            
+              has-book-nav
+              has-sidebar
+            >
+          <div class="devsite-sidebar">
+            <div class="devsite-sidebar-content">
+                
+                <devsite-toc class="devsite-nav"
+                            role="navigation"
+                            aria-label="On this page"
+                            depth="2"
+                            scrollbars
+                            data-nosnippet
+                  ></devsite-toc>
+                <devsite-recommendations-sidebar class="nocontent devsite-nav" data-nosnippet>
+                </devsite-recommendations-sidebar>
+            </div>
+          </div>
+          <devsite-content>
+            
+              
+
+
+
+
+
+
+
+
+
+
+<article class="devsite-article"><style>
+      /* Styles inlined from /kubernetes-engine/kubernetes-engine.css */
+/* Checklist in a table */
+table.checklist ul.checklist-items {
+  list-style-type: none;
+  list-style-position:outside;
+}
+
+table.checklist input[type="checkbox"],
+table.checklist input[type="checkbox"]:focus {
+  margin-left: -1.3em;
+  margin-top: 0;
+  margin-bottom: 0;
+  font-size: 20px;
+}
+
+table.gke-release-schedule td + td {
+  white-space: nowrap;
+  font-size: 88%;
+  padding-left: 3px;
+  padding-right: 3px;
+}
+      </style>
+  
+  
+  
+  
+  
+
+  <div class="devsite-article-meta nocontent" role="navigation" data-nosnippet>
+    
+    
+    <ul class="devsite-breadcrumb-list"
+  
+    aria-label="Breadcrumb">
+  
+  <li class="devsite-breadcrumb-item
+             ">
+    
+    
+    
+      
+        
+  <a href="https://docs.cloud.google.com/"
+      
+        class="devsite-breadcrumb-link gc-analytics-event"
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Breadcrumbs"
+      
+        data-value="1"
+      
+        track-type="globalNav"
+      
+        track-name="breadcrumb"
+      
+        track-metadata-position="1"
+      
+        track-metadata-eventdetail="Google Cloud Documentation"
+      
+    >
+    
+          Home
+        
+  </a>
+  
+      
+    
+  </li>
+  
+  <li class="devsite-breadcrumb-item
+             ">
+    
+      
+      <div class="devsite-breadcrumb-guillemet material-icons" aria-hidden="true"></div>
+    
+    
+    
+      
+        
+  <a href="https://docs.cloud.google.com/docs"
+      
+        class="devsite-breadcrumb-link gc-analytics-event"
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Breadcrumbs"
+      
+        data-value="2"
+      
+        track-type="globalNav"
+      
+        track-name="breadcrumb"
+      
+        track-metadata-position="2"
+      
+        track-metadata-eventdetail="Documentation"
+      
+    >
+    
+          Documentation
+        
+  </a>
+  
+      
+    
+  </li>
+  
+  <li class="devsite-breadcrumb-item
+             ">
+    
+      
+      <div class="devsite-breadcrumb-guillemet material-icons" aria-hidden="true"></div>
+    
+    
+    
+      
+        
+  <a href="https://docs.cloud.google.com/docs/application-hosting"
+      
+        class="devsite-breadcrumb-link gc-analytics-event"
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Breadcrumbs"
+      
+        data-value="3"
+      
+        track-type="globalNav"
+      
+        track-name="breadcrumb"
+      
+        track-metadata-position="3"
+      
+        track-metadata-eventdetail="Application hosting"
+      
+    >
+    
+          Application hosting
+        
+  </a>
+  
+      
+    
+  </li>
+  
+  <li class="devsite-breadcrumb-item
+             ">
+    
+      
+      <div class="devsite-breadcrumb-guillemet material-icons" aria-hidden="true"></div>
+    
+    
+    
+      
+        
+  <a href="https://docs.cloud.google.com/kubernetes-engine/docs"
+      
+        class="devsite-breadcrumb-link gc-analytics-event"
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Breadcrumbs"
+      
+        data-value="4"
+      
+        track-type="globalNav"
+      
+        track-name="breadcrumb"
+      
+        track-metadata-position="4"
+      
+        track-metadata-eventdetail="Google Kubernetes Engine (GKE)"
+      
+    >
+    
+          Google Kubernetes Engine (GKE)
+        
+  </a>
+  
+      
+    
+  </li>
+  
+  <li class="devsite-breadcrumb-item
+             ">
+    
+      
+      <div class="devsite-breadcrumb-guillemet material-icons" aria-hidden="true"></div>
+    
+    
+    
+      
+        
+  <a href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/security-overview"
+      
+        class="devsite-breadcrumb-link gc-analytics-event"
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Breadcrumbs"
+      
+        data-value="5"
+      
+        track-type="globalNav"
+      
+        track-name="breadcrumb"
+      
+        track-metadata-position="5"
+      
+        track-metadata-eventdetail="GKE security"
+      
+    >
+    
+          GKE security
+        
+  </a>
+  
+      
+    
+  </li>
+  
+</ul>
+    
+      
+    <devsite-thumb-rating position="header">
+    </devsite-thumb-rating>
+  
+    
+  </div>
+  
+    <devsite-feedback
+  position="header"
+  project-name="GKE security"
+  product-id="101662"
+  bucket="documentation"
+  context=""
+  version="t-devsite-webserver-20260714-r01-rc00.478945198367210522"
+  data-label="Send Feedback Button"
+  track-type="feedback"
+  track-name="sendFeedbackLink"
+  track-metadata-position="header"
+  class="nocontent"
+  data-nosnippet
+  
+  
+    project-feedback-url="https://issuetracker.google.com/issues/new?component=187077"
+  
+  
+    
+      project-icon="https://docs.cloud.google.com/_static/clouddocs/images/icons/products/kubernetes-engine-color.svg"
+    
+  
+  
+  
+  >
+
+  <button>
+  
+    
+    Send feedback
+  
+  </button>
+</devsite-feedback>
+  
+    <h1 class="devsite-page-title" tabindex="-1">
+      About Workload Identity Federation for GKE<devsite-actions hidden data-nosnippet><devsite-feature-tooltip
+      ack-key="AckCollectionsBookmarkTooltipDismiss"
+      analytics-category="Site-Wide Custom Events"
+      analytics-action-show="Callout Profile displayed"
+      analytics-action-close="Callout Profile dismissed"
+      analytics-label="Create Collection Callout"
+      class="devsite-page-bookmark-tooltip nocontent"
+      data-nosnippet
+      dismiss-button="true"
+      id="devsite-collections-dropdown"
+      
+      dismiss-button-text="Dismiss"
+
+      
+      close-button-text="Got it">
+
+    
+    
+      <devsite-bookmark></devsite-bookmark>
+    
+
+    <span slot="popout-heading">
+      
+      Stay organized with collections
+    </span>
+    <span slot="popout-contents">
+      
+      Save and categorize content based on your preferences.
+    </span>
+  </devsite-feature-tooltip>
+    <devsite-llm-tools></devsite-llm-tools></devsite-actions>
+  
+      
+    </h1>
+  
+
+  <devsite-toc class="devsite-nav"
+    depth="2"
+    devsite-toc-embedded
+    >
+  </devsite-toc>
+  
+    
+  <div class="devsite-article-body clearfix
+  ">
+
+  
+    
+    
+    
+
+    
+    <div id="tags" class="nocontent">
+    
+      
+      
+        
+        
+        
+
+  <a href="/kubernetes-engine/docs/concepts/autopilot-overview"
+
+    class="devsite-label"
+    data-title="Applies to GKE Autopilot mode." track-type="docChip" track-name="Autopilot"
+    >
+    
+      Autopilot
+    
+
+  </a>
+
+      
+    
+      
+      
+        
+        
+        
+
+  <a href="/kubernetes-engine/docs/concepts/choose-cluster-mode"
+
+    class="devsite-label"
+    data-title="Applies to GKE Standard mode." track-type="docChip" track-name="Standard"
+    >
+    
+      Standard
+    
+
+  </a>
+
+      
+    
+    </div>
+  
+
+    
+
+<p>This document describes Workload Identity Federation for GKE, including how it
+works, how enabling it affects your GKE clusters, and how to
+grant roles to Kubernetes entities in Identity and Access Management policies. In most cases,
+Workload Identity Federation for GKE is the recommended way to help secure and manage how your
+workloads that run on GKE access Google Cloud services.</p>
+
+<p>This document is for Security specialists and Operators who manage
+workloads on GKE that require access to other Google Cloud
+services. To learn more about common roles and example tasks that we reference
+in Google Cloud content, see
+<a href="/kubernetes-engine/enterprise/docs/concepts/roles-tasks" track-type="concepts" track-name="internalLink">Common GKE user roles and tasks</a>.</p>
+
+<h2 id="terminology" data-text="Terminology" tabindex="-1">Terminology</h2>
+
+<p>This page distinguishes between
+<a href="https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/" track-type="concepts" track-name="k8sLink">Kubernetes service accounts</a> 
+and <a href="/iam/docs/service-accounts" track-type="concepts" track-name="internalLink">Identity and Access Management (IAM) service accounts</a>.</p>
+
+<dl>
+<dt>Kubernetes service accounts</dt>
+<dd>Kubernetes resources that provide an identity for processes
+running in your GKE pods.</dd>
+<dt>IAM service accounts</dt>
+<dd>Google Cloud resources that allow applications to make authorized calls to
+Google Cloud APIs.</dd>
+</dl>
+
+<h2 id="what_is" data-text="What is Workload Identity Federation for GKE?" tabindex="-1">What is Workload Identity Federation for GKE?</h2>
+
+<p>Applications running on GKE might need access to
+<a href="/apis">Google Cloud APIs</a> such as Compute Engine API, BigQuery Storage API, or
+Machine Learning APIs.</p>
+
+<p>Workload Identity Federation for GKE lets you use IAM policies to grant
+Kubernetes workloads in your GKE cluster access to specific
+Google Cloud APIs without needing manual configuration or less secure
+methods like service account key files. Using
+Workload Identity Federation for GKE lets you assign distinct, fine-grained identities and
+authorization for each application in your cluster.</p>
+
+<p>Workload Identity Federation for GKE replaces the need to use
+<a href="/kubernetes-engine/docs/how-to/protecting-cluster-metadata">Metadata concealment</a>.
+The sensitive metadata protected by metadata concealment is also protected by
+Workload Identity Federation for GKE.</p>
+
+<p>Workload Identity Federation for GKE is available through IAM
+Workload Identity Federation, which provides identities for workloads that run
+in environments inside and outside Google Cloud. You can use
+IAM Workload Identity Federation to securely authenticate to
+<a href="/iam/docs/federated-identity-supported-services">supported Google Cloud APIs</a>
+from workloads running on, for example, AWS, Azure, and self-managed Kubernetes.
+In GKE,
+Google Cloud manages the workload identity pool and provider for you and
+doesn&#39;t require an external identity provider.</p>
+
+<h2 id="how_works" data-text="How Workload Identity Federation for GKE works" tabindex="-1">How Workload Identity Federation for GKE works</h2>
+
+<p>When you enable Workload Identity Federation for GKE on a cluster, GKE does the
+following:</p>
+
+<ul>
+<li><p>Creates a fixed <em>workload identity pool</em> for the cluster&#39;s Google Cloud
+project with the following format:</p>
+<div></div><devsite-code><pre class="devsite-disable-click-to-copy devsite-click-to-copy" translate="no" dir="ltr" is-upgraded><code translate="no" dir="ltr"><var translate="no">PROJECT_ID</var>.svc.id.goog
+</code></pre></devsite-code>
+<p>The workload identity pool provides a naming format that allows
+IAM to understand and trust Kubernetes credentials.
+GKE doesn&#39;t delete this workload identity pool even if you
+delete all of the clusters in your project.</p></li>
+<li><p>Registers the GKE cluster as an identity provider in the
+workload identity pool.</p></li>
+<li><p>Deploys the <a href="#metadata_server"><em>GKE metadata server</em></a>, which
+intercepts credential requests from workloads, on every node.</p></li>
+</ul>
+<aside class="note"><strong>Note:</strong><span> Enabling Workload Identity Federation for GKE on the cluster doesn&#39;t grant your workloads
+any additional IAM permissions.</span></aside>
+<h3 id="create-allow-policies" data-text="Create IAM allow policies on Google Cloud resources" tabindex="-1">Create IAM allow policies on Google Cloud resources</h3>
+
+<p>To provide access with Workload Identity Federation for GKE, you create an IAM
+allow policy that grants access on a specific Google Cloud resource
+to a principal that corresponds to your application&#39;s identity. For example,
+you could give read permissions on a Cloud Storage bucket to all Pods that
+use the <code translate="no" dir="ltr">database-reader</code> Kubernetes ServiceAccount.</p>
+
+<p>For a list of resources that support allow policies, see
+<a href="/iam/docs/resource-types-with-policies">Resource types that accept allow policies</a>.</p>
+
+<h3 id="use-iam-conditions" data-text="Use conditions in IAM policies" tabindex="-1">Use conditions in IAM policies</h3>
+
+<p>You can also limit the scope of the access by setting <em>conditions</em> in your
+allow policies. Conditions are an extensible method of specifying when an allow
+policy should apply. For example, you could use conditions to grant temporary
+access to a workload on a specific Google Cloud resource, eliminating the
+need to manage that access manually.</p>
+
+<p>Conditions might also be useful if you set your allow policies at the project,
+folder, or organization level instead of on specific resources like
+Secret Manager secrets or Cloud Storage buckets.</p>
+
+<p>To add a condition to your allow policy, use the following resources:</p>
+
+<ul>
+<li><a href="/iam/docs/managing-conditional-role-bindings">Manage conditional role bindings</a>:
+Add, modify, or remove conditional role bindings.</li>
+<li><a href="/iam/docs/configuring-temporary-access">Configure temporary access</a>: Use
+conditions to set expiring access to Google Cloud resources in allow
+policies.</li>
+<li><a href="/iam/docs/tags-access-control">Tags and conditional access</a>: Use conditions
+to only apply allow policies when resources have specific tags.</li>
+</ul>
+
+<p>The following example expressions are for common scenarios in which you might use
+conditions. For a list of available attributes in expressions, see
+<a href="/iam/docs/conditions-attribute-reference">Attribute reference for IAM Conditions</a>.</p>
+
+<table class="responsive">
+  <thead>
+    <th colspan="2">Example condition expressions</th>
+    <th></th>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Allow access before the specified time</td>
+      <td><div></div><devsite-code><pre class="wrap-code devsite-click-to-copy" translate="no" dir="ltr" is-upgraded>request.time < timestamp('<code translate="no" dir="ltr"><var translate="no">TIMESTAMP</var></code>')</pre></devsite-code>
+      <p>Replace <code translate="no" dir="ltr"><var translate="no">TIMESTAMP</var></code> with a timestamp in UTC, like
+      <code translate="no" dir="ltr">2024-08-30T00:00:00.000Z</code>.</p></td>
+    </tr>
+    <tr>
+      <td>Allow access if the resource in the request has the specified tag</td>
+      <td><div></div><devsite-code><pre class="wrap-code devsite-click-to-copy" translate="no" dir="ltr" is-upgraded>resource.matchTag('<code translate="no" dir="ltr"><var translate="no">TAG_KEY</var></code>', '<code translate="no" dir="ltr"><var translate="no">TAG_VALUE</var></code>')</pre></devsite-code>
+      <p>Replace the following:</p>
+      <ul>
+        <li><code translate="no" dir="ltr"><var translate="no">TAG_KEY</var></code>: the tag key to match, like <code translate="no" dir="ltr">env</code></li>
+        <li><code translate="no" dir="ltr"><var translate="no">TAG_VALUE</var></code>: the value of the tag, like <code translate="no" dir="ltr">dev</code></li>
+      </ul></td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="kubernetes-resources-iam-policies" data-text="Reference Kubernetes resources in IAM policies" tabindex="-1">Reference Kubernetes resources in IAM policies</h3>
+
+<p>In your IAM policy, you refer to a Kubernetes resource by using
+an IAM <em>principal identifier</em> to select the resource. This
+identifier has the following syntax:</p>
+<div></div><devsite-code><pre class="devsite-disable-click-to-copy devsite-click-to-copy" translate="no" dir="ltr" is-upgraded><code translate="no" dir="ltr"><var translate="no">PREFIX</var>://iam.googleapis.com/projects/1234567890/locations/global/workloadIdentityPools/example-project.svc.id.goog/<var translate="no">SELECTOR</var>
+</code></pre></devsite-code>
+<p>In this example, consider the following fields:</p>
+
+<ul>
+<li><code translate="no" dir="ltr"><var translate="no">PREFIX</var></code>: must be <code translate="no" dir="ltr">principal</code> or <code translate="no" dir="ltr">principalSet</code> depending
+on the resource that you select. <code translate="no" dir="ltr">principal</code> is for a specific resource, like
+a single ServiceAccount. <code translate="no" dir="ltr">principalSet</code> is for multiple resources that belong to
+the specified resource, like all Pods in a specific cluster.</li>
+<li><code translate="no" dir="ltr"><var translate="no">SELECTOR</var></code>: a string that selects a principal type. For
+example, <code translate="no" dir="ltr">kubernetes.serviceaccount.uid/<var translate="no">SERVICEACCOUNT_UID</var></code>
+selects a ServiceAccount by its UID.</li>
+</ul>
+
+<p>The following table shows the supported principal types in GKE:</p>
+
+<table caption="Principal identifiers for Workload Identity Federation for GKE" class="fixed" id="principal-id-examples">
+  <tbody>
+    <tr>
+      <th width="20%">Principal identifier type</th>
+      <th>Syntax</th>
+    </tr>
+    <tr>
+      <td>All Pods that use a specific Kubernetes ServiceAccount</td>
+      <td><b>Select the ServiceAccount by name:</b>
+      <div></div><devsite-code><pre class="wrap-code devsite-click-to-copy" translate="no" dir="ltr" is-upgraded>principal://iam.googleapis.com/projects/<code translate="no" dir="ltr"><var translate="no">PROJECT_NUMBER</var></code>/locations/global/workloadIdentityPools/<var translate="no">PROJECT_ID</var>.svc.id.goog/subject/ns/<var translate="no">NAMESPACE</var>/sa/<var translate="no">SERVICEACCOUNT</var></pre></devsite-code>
+      <p>Replace the following:</p>
+      <ul>
+        <li><code translate="no" dir="ltr"><var translate="no">PROJECT_NUMBER</var></code>: your numerical project
+        number. To get the project number, see
+        <a href="/resource-manager/docs/creating-managing-projects#identifying_projects">Identifying projects</a>.</li>
+        <li><code translate="no" dir="ltr"><var translate="no">PROJECT_ID</var></code>: your Google Cloud project ID.</li>
+        <li><code translate="no" dir="ltr"><var translate="no">NAMESPACE</var></code>: the Kubernetes namespace.</li>
+        <li><code translate="no" dir="ltr"><var translate="no">SERVICEACCOUNT</var></code>: the Kubernetes ServiceAccount
+        name.</li>
+      </ul>
+      <hr>
+      <b>Select the ServiceAccount by UID:</b>
+      <div></div><devsite-code><pre class="wrap-code devsite-click-to-copy" translate="no" dir="ltr" is-upgraded>principal://iam.googleapis.com/projects/<code translate="no" dir="ltr"><var translate="no">PROJECT_NUMBER</var></code>/locations/global/workloadIdentityPools/<var translate="no">PROJECT_ID</var>.svc.id.goog/kubernetes.serviceaccount.uid/<var translate="no">SERVICEACCOUNT_UID</var></pre></devsite-code>
+      <p>Replace the following:</p>
+      <ul>
+        <li><code translate="no" dir="ltr"><var translate="no">PROJECT_NUMBER</var></code>: your numerical project
+        number. To get the project number, see
+        <a href="/resource-manager/docs/creating-managing-projects#identifying_projects">Identifying projects</a>.</li>
+        <li><code translate="no" dir="ltr"><var translate="no">PROJECT_ID</var></code>: your Google Cloud project ID.</li>
+        <li><code translate="no" dir="ltr"><var translate="no">SERVICEACCOUNT_UID</var></code>: the UID of the
+        <code translate="no" dir="ltr">ServiceAccount</code> object in the API server.</li>
+      </ul>
+      </td>
+    </tr>
+    <tr>
+      <td>All Pods in a namespace, regardless of service account or cluster</td>
+      <td><div></div><devsite-code><pre class="wrap-code devsite-click-to-copy" translate="no" dir="ltr" is-upgraded>principalSet://iam.googleapis.com/projects/<var translate="no">PROJECT_NUMBER</var>/locations/global/workloadIdentityPools/<var translate="no">PROJECT_ID</var>.svc.id.goog/namespace/<var translate="no">NAMESPACE</var></pre></devsite-code>
+      <p>Replace the following:</p>
+      <ul>
+        <li><code translate="no" dir="ltr"><var translate="no">PROJECT_NUMBER</var></code>: your numerical project
+        number. To get the project number, see
+        <a href="/resource-manager/docs/creating-managing-projects#identifying_projects">Identifying projects</a>.</li>
+        <li><code translate="no" dir="ltr"><var translate="no">PROJECT_ID</var></code>: your Google Cloud project ID.</li>
+        <li><code translate="no" dir="ltr"><var translate="no">NAMESPACE</var></code>: the Kubernetes namespace.</li>
+      </ul></td>
+    </tr>
+    <tr>
+      <td>All Pods in a specific cluster</td>
+      <td><div></div><devsite-code><pre class="wrap-code devsite-click-to-copy" translate="no" dir="ltr" is-upgraded>principalSet://iam.googleapis.com/projects/<var translate="no">PROJECT_NUMBER</var>/locations/global/workloadIdentityPools/<var translate="no">PROJECT_ID</var>.svc.id.goog/kubernetes.cluster/https://container.googleapis.com/v1/projects/<var translate="no">PROJECT_ID</var>/locations/<var translate="no">LOCATION</var>/clusters/<var translate="no">CLUSTER_NAME</var></pre></devsite-code>
+      <p>Replace the following:</p>
+      <ul>
+        <li><code translate="no" dir="ltr"><var translate="no">PROJECT_NUMBER</var></code>: your numerical project
+        number. To get the project number, see
+        <a href="/resource-manager/docs/creating-managing-projects#identifying_projects">Identifying projects</a>.</li>
+        <li><code translate="no" dir="ltr"><var translate="no">PROJECT_ID</var></code>: your Google Cloud project ID.</li>
+        <li><code translate="no" dir="ltr"><var translate="no">CLUSTER_NAME</var></code>: the name of your
+          GKE cluster.</li>
+        <li><code translate="no" dir="ltr"><var translate="no">LOCATION</var></code>: the location of your cluster.</li>
+      </ul></td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="credential-flow" data-text="Credential flow" tabindex="-1">Credential flow</h3>
+
+<p>When a workload sends a request to access a Google Cloud API, for example
+when using a Google Cloud client library, the following authentication
+steps occur:</p>
+
+<figure style="text-align: center">
+    <img src="/static/kubernetes-engine/images/workload-identity-token-flow.svg"
+    alt="How a workload gets an IAM service account token with Workload Identity.">
+      <figcaption><b>Figure 1:</b> How a workload gets a federated access token with Workload Identity Federation for GKE.</figcaption>
+</figure>
+
+<ol>
+<li><a href="/docs/authentication/application-default-credentials#attached-sa"><em>Application default credentials (ADC)</em></a>
+requests a Google Cloud access token from the Compute Engine
+metadata server that runs on the VM.</li>
+<li>The GKE metadata server intercepts the token request and asks
+the Kubernetes API server for a Kubernetes ServiceAccount token that
+identifies the requesting workload. This credential is a JSON web token
+(JWT) that&#39;s signed by the API server.</li>
+<li>The GKE metadata server uses
+<a href="/iam/docs/reference/sts/rest">Security Token Service</a> to exchange the JWT for a
+short-lived
+<a href="/docs/authentication/token-types#fed-access-tokens">federated access token</a>
+that references the identity of the Kubernetes workload.</li>
+</ol>
+
+<p>The federated access token that&#39;s returned by Security Token Service might have
+limitations when trying to access some Google Cloud services, as described
+in <a href="/iam/docs/federated-identity-supported-services">Supported products and limitations</a>.
+If your selected Google Cloud service has limitations, you can optionally
+configure service account impersonation. This method results in an access token
+for an IAM service account that your workload can use to access
+the target service. For details, see
+<a href="/kubernetes-engine/docs/how-to/workload-identity#kubernetes-sa-to-iam">link Kubernetes ServiceAccounts to IAM</a>.</p>
+
+<p>The workload can then access any Google Cloud APIs that the
+IAM principal identifier of the workload can access.</p>
+<aside class="note"><strong>Note:</strong><span> Even with Workload Identity Federation for GKE configured on a cluster, GKE
+still uses the configured IAM service account for the node pool
+to pull container images from the image registry. If you encounter
+<code translate="no" dir="ltr">ImagePullBackOff</code> or <code translate="no" dir="ltr">ErrImagePull</code> errors, see
+<a href="/kubernetes-engine/docs/troubleshooting/image-pulls">Troubleshoot image pulls</a>.</span></aside>
+<h4 id="sts-quota" data-text="Quota for the Exchange Token API in Security Token Service" tabindex="-1">Quota for the Exchange Token API in Security Token Service</h4>
+
+<p>The Exchange Token API in Security Token Service has a <a href="https://cloud.google.com/iam/quotas">quota limit</a>
+of 6,000 requests per minute. If you see <code translate="no" dir="ltr">QUOTA_EXCEEDED</code> errors, you can
+request an increase for the <code translate="no" dir="ltr">Token exchange requests per minute</code> quota through
+the <a href="https://console.cloud.google.com/iam-admin/quotas">Quotas &amp; System Limits</a>
+page.</p>
+<aside class="note"><strong>Note:</strong><span> The Exchange Token quota will be gradually updated to use a regional one
+in versions after 1.33.0-gke.1552000. New quota requests should
+use <code translate="no" dir="ltr">Token exchange requests (regional) per minute per region</code> going forward.</span></aside>
+<h2 id="identity_sameness" data-text="Identity sameness" tabindex="-1">Identity sameness</h2>
+
+<p>If the metadata in your principal identifier is the same for workloads in
+multiple clusters that share a workload identity pool because they belong to the
+same Google Cloud project, IAM identifies those workloads
+as the same. For example, if you have the same namespace in two clusters and you
+grant access to that namespace in IAM, the workloads in that
+namespace in both clusters get that access. You can limit this access to
+specific clusters by using conditional IAM policies.</p>
+
+<p>For example, consider the following diagram. Clusters A and B belong to the
+same workload identity pool. Google Cloud identifies applications that use
+the <code translate="no" dir="ltr">back-ksa</code> ServiceAccount in the <code translate="no" dir="ltr">backend</code> namespace of both Cluster A and
+Cluster B as the same identity. IAM doesn&#39;t distinguish between
+the clusters making the calls.</p>
+
+<figure style="text-align: center">
+  <a href="/static/kubernetes-engine/images/identity-sameness-workload-identity.svg">
+    <img src="/static/kubernetes-engine/images/identity-sameness-workload-identity.svg" border="0"
+    Alt="Diagram illustrating identity sameness within a workload identity pool"></a>
+      <figcaption><b>Figure 2: </b>Identity sameness accessing Google Cloud APIs with Workload Identity Federation for GKE.</figcaption>
+</figure>
+
+<p>This identity sameness also means that you must be able to trust every cluster
+in a specific workload identity pool. For example, if a new cluster, Cluster C
+in the previous example was owned by an untrusted team, they could create a
+<code translate="no" dir="ltr">backend</code> namespace and access Google Cloud APIs using the <code translate="no" dir="ltr">back-ksa</code>
+ServiceAccount, just like Cluster A and Cluster B.</p>
+
+<p>To avoid untrusted access, place your clusters in separate projects to ensure
+that they get different workload identity pools, or ensure that the namespace
+names are distinct from each other to avoid a common principal identifier.</p>
+
+<h2 id="metadata_server" data-text="GKE metadata server" tabindex="-1">GKE metadata server</h2>
+
+<p>When you enable Workload Identity Federation for GKE for a cluster, every node in the cluster
+stores metadata on the <em>GKE metadata server</em>. The
+GKE metadata server is a subset of the
+<a href="/compute/docs/metadata/overview">Compute Engine metadata server</a> endpoints
+required for Kubernetes workloads.</p>
+
+<p>The GKE metadata server runs as a DaemonSet, with one Pod on
+every Linux node or a native Windows service on every Windows node in the
+cluster. The metadata server intercepts HTTP requests to <code translate="no" dir="ltr">http://metadata.google.internal</code>
+(<code translate="no" dir="ltr">169.254.169.254:80</code>). For example, the <code translate="no" dir="ltr">GET
+/computeMetadata/v1/instance/service-accounts/default/token</code> request retrieves a
+token for the IAM service account that the Pod is configured to impersonate.
+Traffic to the GKE metadata server never leaves the VM instance
+that hosts the Pod.</p>
+
+<h3 id="token-lifetime" data-text="Token lifetime" tabindex="-1">Token lifetime</h3>
+
+<p>By default, the access token returned has a lifetime of 1 hour (3,600 seconds).
+To reduce client latency, the GKE metadata server caches the
+access tokens. In some situations, the cached token that the metadata server
+returns might be close to its expiry time.</p>
+
+<p><a href="/apis/docs/cloud-client-libraries">Cloud Client Libraries</a> have built-in
+logic that, by default, checks whether the access token expires in the next 3
+minutes and 45 seconds. If the token is within the expiry period,
+GKE refreshes the token. Consecutive API calls can use the
+refreshed token.</p>
+
+<p>If you use your own code to directly access Google Cloud APIs, implement
+similar logic to handle token expiry. Your code should do the following:</p>
+
+<ol>
+<li>Check whether the access token expires after a period of 3 minutes and 45
+seconds. The <code translate="no" dir="ltr">exp</code> parameter in the token payload indicates the token
+expiration timestamp.</li>
+<li>If the token is set to expire in the next 3 minutes and 45 seconds, make a
+token request.</li>
+</ol>
+<aside class="note"><strong>Note:</strong><span> If you have a strict <a href="/kubernetes-engine/docs/how-to/network-policy">cluster network policy</a>
+in place, you must allow egress to the following IP addresses and port numbers
+so your Pod can communicate with the GKE metadata server. Allow
+egress to <code translate="no" dir="ltr">169.254.169.252/32</code> on port <code translate="no" dir="ltr">988</code>. For clusters running
+GKE Dataplane V2, ensure that you allowed egress to <code translate="no" dir="ltr">169.254.169.254/32</code> on port
+<code translate="no" dir="ltr">80</code>.</span></aside>
+<p>The following tables describe the subset of Compute Engine metadata server
+endpoints available with the GKE metadata server. For a full list
+of endpoints available in the Compute Engine metadata server, see
+<a href="/compute/docs/metadata/default-metadata-values">Default VM metadata values</a>.</p>
+
+<h3 id="instance_metadata" data-text="Instance metadata" tabindex="-1">Instance metadata</h3>
+
+<p>Instance metadata is stored under the following directory.</p>
+
+<p><code translate="no" dir="ltr">http://metadata.google.internal/computeMetadata/v1/instance/</code></p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Entry</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code translate="no" dir="ltr">hostname</code></td>
+      <td><p>The hostname of your node.</p></td>
+    </tr>
+    <tr>
+      <td><code translate="no" dir="ltr">id</code></td>
+      <td><p>The unique ID of your node.</p></td>
+    </tr>
+    <tr>
+      <td><code translate="no" dir="ltr">service-accounts/</code></td>
+      <td>
+        <p>
+        A directory of service accounts associated with the node. For each
+        service account, the following information is available:
+        </p>
+        <ul>
+          <li><code translate="no" dir="ltr">aliases</code></li>
+          <li><code translate="no" dir="ltr">email</code>: the service account email address.</li>
+          <li><code translate="no" dir="ltr">identity</code>: a JSON Web Token (JWT) unique to the node.
+          You must include the <code translate="no" dir="ltr">audience</code> parameter in your request.
+          For example, <code translate="no" dir="ltr">?audience=http://www.example.com</code>.</li>
+          <li><code translate="no" dir="ltr">scopes</code>: the access scopes assigned to the service
+          account.</li>
+          <li><code translate="no" dir="ltr">token</code>: the OAuth 2.0 access token to authenticate
+          your workloads.</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><code translate="no" dir="ltr">zone</code></td>
+      <td>
+        <p>The Compute Engine zone of your GKE node.</p>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<h4 id="instance_attributes" data-text="Instance attributes" tabindex="-1">Instance attributes</h4>
+
+<p>Instance attributes are stored under the following directory.</p>
+
+<p><code translate="no" dir="ltr">http://metadata.google.internal/computeMetadata/v1/instance/attributes/</code></p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Entry</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code translate="no" dir="ltr">cluster-location</code></td>
+      <td><p>The Compute Engine zone or region of your cluster.</p></td>
+    </tr>
+    <tr>
+      <td><code translate="no" dir="ltr">cluster-name</code></td>
+      <td><p>The name of your GKE cluster.</p></td>
+    </tr>
+    <tr>
+      <td><code translate="no" dir="ltr">cluster-uid</code></td>
+      <td>
+        <p>The UID of your GKE cluster.</p>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<p>The attributes listed in the table are the only supported attributes. If you
+attempt to access any unsupported attributes, the <code translate="no" dir="ltr">gke-metadata-server</code> Pod in
+the <code translate="no" dir="ltr">kube-system</code> namespace generates and logs a <code translate="no" dir="ltr">404</code> error.
+The error is similar to the following:</p>
+<div></div><devsite-code><pre class="devsite-disable-click-to-copy devsite-click-to-copy" translate="no" dir="ltr" is-upgraded><code translate="no" dir="ltr">HTTP/404: generic::not_found: no child &#34;&#34;, Reason: &#34;NOT_FOUND&#34;, UserMessage: &#34;Not Found&#34;
+</code></pre></devsite-code>
+<p>If you are using <code translate="no" dir="ltr">istio-proxy</code>, you will encounter an error message like the following:</p>
+<div></div><devsite-code><pre class="devsite-disable-click-to-copy devsite-click-to-copy" translate="no" dir="ltr" is-upgraded><code translate="no" dir="ltr">Error fetching GCP Metadata property gcp_gce_instance_template: metadata: GCE metadata &#34;instance/attributes/<var translate="no">UNSUPPORTED_ATTRIBUTE</var>&#34; not defined
+</code></pre></devsite-code>
+<h3 id="project_metadata" data-text="Project metadata" tabindex="-1">Project metadata</h3>
+
+<p>Cluster project metadata is stored under the following directory.</p>
+
+<p><code translate="no" dir="ltr">http://metadata.google.internal/computeMetadata/v1/project/</code></p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Entry</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code translate="no" dir="ltr">project-id</code></td>
+      <td><p>Your Google Cloud project ID.</p></td>
+    </tr>
+    <tr>
+      <td><code translate="no" dir="ltr">numeric-project-id</code></td>
+      <td><p>Your Google Cloud project number.</p></td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="restrictions" data-text="Restrictions of Workload Identity Federation for GKE" tabindex="-1">Restrictions of Workload Identity Federation for GKE</h2>
+
+<ul>
+<li><p>You can&#39;t change the name of the workload identity pool that
+GKE creates for your Google Cloud project.</p></li>
+<li><p>If you
+<a href="/kubernetes-engine/docs/how-to/workload-identity#kubernetes-sa-to-iam">link Kubernetes ServiceAccounts to IAM service accounts</a>
+to configure Workload Identity Federation for GKE, the GKE metadata server
+returns a value of
+<code translate="no" dir="ltr"><var translate="no">SERVICEACCOUNT_NAME</var>.svc.id.goog</code>
+as the service account identifier. This identifier doesn&#39;t use the standard
+IAM principal identifier syntax, which might cause errors in
+some programmatic operations. To get the service account identifier as an
+IAM principal identifier, add the
+<code translate="no" dir="ltr">iam.gke.io/return-principal-id-as-email: &quot;true&quot;</code> annotation to your Kubernetes
+ServiceAccount.</p></li>
+<li><p>When GKE enables the <a href="/kubernetes-engine/docs/concepts/workload-identity#metadata_server">GKE metadata server</a>
+on a node pool, Pods can no longer access the <a href="/compute/docs/metadata/overview">Compute Engine metadata server</a>.
+Instead, the GKE metadata server intercepts requests made from
+these pods to metadata endpoints, with the exception of Pods running on the
+host network.</p>
+<aside class="caution"><strong>Caution:</strong><span> Pods running on the
+<a href="https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#hosts-namespaces">host network</a>
+(<code translate="no" dir="ltr">hostNetwork: true</code>) don&#39;t use Workload Identity Federation for GKE. GKE
+automatically routes requests from these Pods to the Compute Engine metadata
+server.</span></aside></li>
+<li><p>When using <a href="/kubernetes-engine/docs/how-to/persistent-volumes/cloud-storage-fuse-csi-driver">Cloud Storage FUSE CSI driver</a> with Standard GKE clusters with version <code translate="no" dir="ltr">1.33.3-gke.1226000</code> or later, the Pods running on the host network (<code translate="no" dir="ltr">hostNetwork: true</code>) can authenticate using their own Kubernetes Service Account. For more information, see <a href="/kubernetes-engine/docs/how-to/cloud-storage-fuse-csi-driver-setup#access-for-pods-with-host-network">Configure access for Pods with host network</a>.</p></li>
+<li><p>The GKE metadata server takes a few seconds to start accepting
+requests on a newly created Pod. Therefore, attempts to
+authenticate using Workload Identity Federation for GKE within the first few seconds of a Pod&#39;s life might
+fail. Retrying the call will resolve the problem. See <a href="/kubernetes-engine/docs/troubleshooting/troubleshooting-security#troubleshoot-timeout">Troubleshooting</a>
+for more details.</p></li>
+<li><p>GKE built-in logging and monitoring agents continue to use the
+<a href="/kubernetes-engine/docs/how-to/hardening-your-cluster#use_least_privilege_sa">node&#39;s service account</a>.</p></li>
+<li><p>Workload Identity Federation for GKE requires <a href="/anthos/run/docs/setup#workload-identity">manual setup for Knative serving to
+continue releasing request metrics</a>.</p></li>
+<li><p>Workload Identity Federation for GKE sets a limit of 500 concurrent connections to the GKE
+metadata server for each node. Additional concurrent calls that exceed this
+limit are placed in a wait queue for later processing. This queuing mechanism
+might lead to <code translate="no" dir="ltr">HTTP/499</code> errors if the client timeout is reached before the
+GKE metadata server can process the request.</p></li>
+<li><p>The GKE metadata server uses memory resources proportional to
+the total number of Kubernetes service accounts in your cluster. If your
+cluster has more than 3000 Kubernetes service accounts, the kubelet might
+terminate the metadata server Pods. For mitigations, refer to
+<a href="/kubernetes-engine/docs/troubleshooting/troubleshooting-security#metadata-server-crashes">Troubleshooting</a>.</p></li>
+<li><p>Workload Identity Federation for GKE operates within a VPC Service Controls perimeter, allowing access to
+resources within it. However, <a href="/vpc-service-controls/docs/configure-identity-groups">VPC Service Controls</a>
+does not enforce access control for cross-perimeter requests based on these
+federated identities. You can use <a href="/kubernetes-engine/docs/how-to/workload-identity#kubernetes-sa-to-iam">service account impersonation</a> to access
+resources in a different perimeter.</p></li>
+</ul>
+
+<h2 id="alternatives_to" data-text="Alternatives to Workload Identity Federation for GKE" tabindex="-1">Alternatives to Workload Identity Federation for GKE</h2>
+
+<p>You can use one of the following alternatives to Workload Identity Federation for GKE to access
+Google Cloud APIs from GKE. We recommend that you use
+Workload Identity Federation for GKE because these alternatives require you to make certain
+security compromises.</p>
+
+<ul>
+<li><p>Use the <a href="/compute/docs/access/service-accounts">Compute Engine default service account</a>
+of your nodes. You can run node pools as any <a href="/kubernetes-engine/docs/how-to/hardening-your-cluster#use_least_privilege_sa">IAM service account</a>
+in your project. If you don&#39;t specify a service account during node pool
+creation, GKE uses the <a href="/compute/docs/access/service-accounts#default_service_account">Compute Engine default service account</a>
+for the project. The Compute Engine service account is shared by all workloads
+deployed on that node. This can result in over-provisioning of permissions, which
+violates the principle of least privilege and is inappropriate for multi-tenant
+clusters.</p></li>
+<li><p><a href="/iam/docs/keys-create-delete#creating">Export service account keys</a> and store
+them as
+<a href="https://kubernetes.io/docs/concepts/configuration/secret/">Kubernetes Secrets</a>
+that you mount to your Pods as volumes.</p>
+<aside class="caution"><strong>Caution:</strong><span> 
+
+
+Service account keys are a security risk if not managed correctly. You should
+<a href="/docs/authentication#auth-decision-tree">
+   choose a more secure alternative to service account keys</a>
+whenever possible. If you must authenticate with a service account key, you are responsible for the
+security of the private key and for other operations described by
+<a href="/iam/docs/best-practices-for-managing-service-account-keys">
+  Best practices for managing service account keys</a>.
+If you are prevented from creating a service account key, service account key creation might
+be disabled for your organization. For more information, see
+<a href="/resource-manager/docs/secure-by-default-organizations">
+  Managing secure-by-default organization resources</a>.
+<p>
+If you acquired the service account key from an external source, you must validate it before use.
+For more information, see <a href="/docs/authentication/external/externally-sourced-credentials">
+                             Security requirements for externally sourced credentials</a>.
+</p>
+
+</span></aside></li>
+</ul>
+
+<h2 id="whats_next" data-text="What's next" tabindex="-1">What's next</h2>
+
+<ul>
+<li><a href="/kubernetes-engine/docs/how-to/workload-identity">Learn how to enable and configure Workload Identity Federation for GKE</a>.</li>
+<li><a href="/compute/docs/metadata/overview">Learn about the Compute Engine metadata server</a>.</li>
+<li><a href="/iam/docs/workload-identity-federation" track-type="concepts" track-name="internalLink">Learn about Workload Identity Federation in other environments</a>.</li>
+<li><a href="/kubernetes-engine/fleet-management/docs/use-workload-identity" track-type="concepts" track-name="internalLink">Provide Workload Identity Federation support for clusters in fleets by using fleet workload identity</a>.</li>
+</ul>
+
+
+  
+  
+
+  
+    <devsite-hats-survey class="nocontent" data-nosnippet
+      hats-id="mwETRvWii0eU5NUYprb0Y9z5GVbc"
+      listnr-id="83405"></devsite-hats-survey>
+  
+
+  
+</div>
+
+  
+    
+    
+      
+    <devsite-thumb-rating position="footer">
+    </devsite-thumb-rating>
+  
+       
+         <devsite-feedback
+  position="footer"
+  project-name="GKE security"
+  product-id="101662"
+  bucket="documentation"
+  context=""
+  version="t-devsite-webserver-20260714-r01-rc00.478945198367210522"
+  data-label="Send Feedback Button"
+  track-type="feedback"
+  track-name="sendFeedbackLink"
+  track-metadata-position="footer"
+  class="nocontent"
+  data-nosnippet
+  
+  
+    project-feedback-url="https://issuetracker.google.com/issues/new?component=187077"
+  
+  
+    
+      project-icon="https://docs.cloud.google.com/_static/clouddocs/images/icons/products/kubernetes-engine-color.svg"
+    
+  
+  
+  
+  >
+
+  <button>
+  
+    
+    Send feedback
+  
+  </button>
+</devsite-feedback>
+       
+    
+    
+  
+
+  <div class="devsite-floating-action-buttons"></div></article>
+
+
+<devsite-content-footer class="nocontent" data-nosnippet>
+  <p>Except as otherwise noted, the content of this page is licensed under the <a href="https://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 License</a>, and code samples are licensed under the <a href="https://www.apache.org/licenses/LICENSE-2.0">Apache 2.0 License</a>. For details, see the <a href="https://developers.google.com/site-policies">Google Developers Site Policies</a>. Java is a registered trademark of Oracle and/or its affiliates.</p>
+  <p>Last updated 2026-07-17 UTC.</p>
+</devsite-content-footer>
+
+
+<devsite-notification
+>
+</devsite-notification>
+
+
+  
+<div class="devsite-content-data">
+  
+    
+    
+    <template class="devsite-thumb-rating-feedback">
+      <devsite-feedback
+  position="thumb-rating"
+  project-name="GKE security"
+  product-id="101662"
+  bucket="documentation"
+  context=""
+  version="t-devsite-webserver-20260714-r01-rc00.478945198367210522"
+  data-label="Send Feedback Button"
+  track-type="feedback"
+  track-name="sendFeedbackLink"
+  track-metadata-position="thumb-rating"
+  class="nocontent"
+  data-nosnippet
+  
+  
+    project-feedback-url="https://issuetracker.google.com/issues/new?component=187077"
+  
+  
+    
+      project-icon="https://docs.cloud.google.com/_static/clouddocs/images/icons/products/kubernetes-engine-color.svg"
+    
+  
+  
+  
+  >
+
+  <button>
+  
+    Need to tell us more?
+  
+  </button>
+</devsite-feedback>
+    </template>
+  
+  
+    <template class="devsite-content-data-template">
+      [[["Easy to understand","easyToUnderstand","thumb-up"],["Solved my problem","solvedMyProblem","thumb-up"],["Other","otherUp","thumb-up"]],[["Hard to understand","hardToUnderstand","thumb-down"],["Incorrect information or sample code","incorrectInformationOrSampleCode","thumb-down"],["Missing the information/samples I need","missingTheInformationSamplesINeed","thumb-down"],["Other","otherDown","thumb-down"]],["Last updated 2026-07-17 UTC."],[],[]]
+    </template>
+  
+</div>
+            
+          </devsite-content>
+        </main>
+        <devsite-footer-promos class="devsite-footer">
+          
+            
+          
+        </devsite-footer-promos>
+        <devsite-footer-linkboxes class="devsite-footer">
+          
+            
+<nav class="devsite-footer-linkboxes nocontent"
+     aria-label="Footer links"
+     data-nosnippet>
+  
+  <ul class="devsite-footer-linkboxes-list">
+    
+    <li class="devsite-footer-linkbox ">
+    <h3 class="devsite-footer-linkbox-heading no-link">Products and pricing</h3>
+      <ul class="devsite-footer-linkbox-list">
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//cloud.google.com/products/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 1)"
+            track-type="footer link"track-name="see all products"track-metadata-child_headline="products and pricing"track-metadata-module="footer"track-metadata-position="footer"track-metadata-eventDetail="cloud.google.com/products/">
+            
+          
+            See all products
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//cloud.google.com/pricing/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 2)"
+            track-metadata-module="footer"track-metadata-child_headline="products and pricing"track-type="footer link"track-name="google cloud pricing"track-metadata-eventDetail="cloud.google.com/pricing/"track-metadata-position="footer">
+            
+          
+            Google Cloud pricing
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//cloud.google.com/marketplace/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 3)"
+            track-name="google cloud marketplace"track-type="footer link"track-metadata-module="footer"track-metadata-child_headline="resources"track-metadata-position="footer"track-metadata-eventDetail="cloud.google.com/marketplace/">
+            
+          
+            Google Cloud Marketplace
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//cloud.google.com/contact/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 4)"
+            track-metadata-position="footer"track-metadata-eventDetail="cloud.google.com/contact/"track-name="contact sales"track-type="footer link"track-metadata-module="footer"track-metadata-child_headline="engage">
+            
+              
+              
+            
+          
+            Contact sales
+          
+          </a>
+          
+          
+        </li>
+        
+      </ul>
+    </li>
+    
+    <li class="devsite-footer-linkbox ">
+    <h3 class="devsite-footer-linkbox-heading no-link">Support</h3>
+      <ul class="devsite-footer-linkbox-list">
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//discuss.google.dev/c/google-cloud/14/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 1)"
+            track-metadata-module="footer"track-metadata-child_headline="engage"rel="noopener"target="_blank"track-name="google cloud community"track-type="footer link"track-metadata-eventDetail="www.googlecloudcommunity.com"track-metadata-position="footer">
+            
+          
+            Community forums
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//cloud.google.com/support-hub/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 2)"
+            track-metadata-eventDetail="cloud.google.com/support-hub/"track-metadata-position="footer"track-metadata-module="footer"track-metadata-child_headline="resources"track-name="support"track-type="footer link">
+            
+          
+            Support
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//docs.cloud.google.com/release-notes"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 3)"
+            track-metadata-position="footer"track-metadata-eventDetail="cloud.google.com/release-notes/"track-type="footer link"track-name="release notes"track-metadata-child_headline="resources"track-metadata-module="footer">
+            
+          
+            Release Notes
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//status.cloud.google.com"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 4)"
+            track-type="footer link"track-name="system status"target="_blank"track-metadata-child_headline="resources"track-metadata-module="footer"track-metadata-position="footer"track-metadata-eventDetail="status.cloud.google.com">
+            
+              
+              
+            
+          
+            System status
+          
+          </a>
+          
+          
+        </li>
+        
+      </ul>
+    </li>
+    
+    <li class="devsite-footer-linkbox ">
+    <h3 class="devsite-footer-linkbox-heading no-link">Resources</h3>
+      <ul class="devsite-footer-linkbox-list">
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//github.com/googlecloudPlatform/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 1)"
+            track-metadata-position="footer"track-metadata-eventDetail="github.com/googlecloudPlatform/"track-type="footer link"track-name="github"track-metadata-child_headline="resources"track-metadata-module="footer">
+            
+          
+            GitHub
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="/docs/get-started/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 2)"
+            track-metadata-child_headline="resources"track-metadata-module="footer"track-name="google cloud quickstarts"track-type="footer link"track-metadata-eventDetail="cloud.google.com/docs/get-started/"track-metadata-position="footer">
+            
+          
+            Getting Started with Google Cloud
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="/docs/samples"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 3)"
+            track-metadata-child_headline="resources"track-metadata-module="footer"track-type="footer link"track-name="code samples"track-metadata-eventDetail="cloud.google.com/docs/samples"track-metadata-position="footer">
+            
+          
+            Code samples
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="/architecture/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 4)"
+            track-metadata-child_headline="resources"track-metadata-module="footer"track-name="cloud architecture center"track-type="footer link"track-metadata-eventDetail="cloud.google.com/architecture/"track-metadata-position="footer">
+            
+          
+            Cloud Architecture Center
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//cloud.google.com/learn/training/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 5)"
+            track-metadata-position="footer"track-metadata-eventDetail="cloud.google.com/learn/training/"track-type="footer link"track-name="training"track-metadata-child_headline="resources"track-metadata-module="footer">
+            
+              
+              
+            
+          
+            Training and Certification
+          
+          </a>
+          
+          
+        </li>
+        
+      </ul>
+    </li>
+    
+    <li class="devsite-footer-linkbox ">
+    <h3 class="devsite-footer-linkbox-heading no-link">Engage</h3>
+      <ul class="devsite-footer-linkbox-list">
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//cloud.google.com/blog/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 1)"
+            track-metadata-eventDetail="cloud.google.com/blog/"track-metadata-position="footer"track-metadata-child_headline="engage"track-metadata-module="footer"track-name="blog"track-type="footer link">
+            
+          
+            Blog
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//cloud.google.com/events/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 2)"
+            track-type="footer link"track-name="events"track-metadata-child_headline="engage"track-metadata-module="footer"track-metadata-position="footer"track-metadata-eventDetail="cloud.google.com/events/">
+            
+          
+            Events
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//x.com/googlecloud"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 3)"
+            track-metadata-eventDetail="x.com/googlecloud"track-metadata-position="footer"rel="noopener"track-metadata-child_headline="engage"track-metadata-module="footer"track-type="footer link"track-name="follow on x"target="_blank">
+            
+          
+            X (Twitter)
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//www.youtube.com/googlecloud"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 4)"
+            track-metadata-position="footer"track-metadata-eventDetail="www.youtube.com/googlecloud"target="_blank"track-type="footer link"track-name="google cloud on youtube"track-metadata-module="footer"rel="noopener"track-metadata-child_headline="engage">
+            
+          
+            Google Cloud on YouTube
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//www.youtube.com/googlecloudplatform"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 5)"
+            track-metadata-child_headline="engage"rel="noopener"track-metadata-module="footer"track-name="google cloud tech on youtube"track-type="footer link"target="_blank"track-metadata-eventDetail="www.youtube.com/googlecloudplatform"track-metadata-position="footer">
+            
+              
+              
+            
+          
+            Google Cloud Tech on YouTube
+          
+          </a>
+          
+          
+        </li>
+        
+      </ul>
+    </li>
+    
+  </ul>
+  
+</nav>
+          
+        </devsite-footer-linkboxes>
+        <devsite-footer-utility class="devsite-footer">
+          
+            
+
+<div class="devsite-footer-utility nocontent" data-nosnippet>
+  
+
+  
+  <nav class="devsite-footer-utility-links" aria-label="Utility links">
+    
+    <ul class="devsite-footer-utility-list">
+      
+      <li class="devsite-footer-utility-item
+                 ">
+        
+        
+        <a class="devsite-footer-utility-link gc-analytics-event"
+           href="//about.google/"
+           data-category="Site-Wide Custom Events"
+           data-label="Footer About Google link"
+         
+           track-metadata-eventDetail="//about.google/"
+         
+           track-metadata-position="footer"
+         
+           track-metadata-module="utility footer"
+         
+           track-name="about google"
+         
+           track-type="footer link"
+         
+           target="_blank"
+         >
+          About Google
+        </a>
+        
+      </li>
+      
+      <li class="devsite-footer-utility-item
+                 devsite-footer-privacy-link">
+        
+        
+        <a class="devsite-footer-utility-link gc-analytics-event"
+           href="//policies.google.com/privacy"
+           data-category="Site-Wide Custom Events"
+           data-label="Footer Privacy link"
+         
+           track-metadata-eventDetail="//policies.google.com/privacy"
+         
+           track-metadata-position="footer"
+         
+           track-metadata-module="utility footer"
+         
+           target="_blank"
+         
+           track-name="privacy"
+         
+           track-type="footer link"
+         >
+          Privacy
+        </a>
+        
+      </li>
+      
+      <li class="devsite-footer-utility-item
+                 ">
+        
+        
+        <a class="devsite-footer-utility-link gc-analytics-event"
+           href="//policies.google.com/terms?hl=en"
+           data-category="Site-Wide Custom Events"
+           data-label="Footer Site terms link"
+         
+           target="_blank"
+         
+           track-name="site terms"
+         
+           track-type="footer link"
+         
+           track-metadata-module="utility footer"
+         
+           track-metadata-position="footer"
+         
+           track-metadata-eventDetail="//www.google.com/intl/en/policies/terms/regional.html"
+         >
+          Site terms
+        </a>
+        
+      </li>
+      
+      <li class="devsite-footer-utility-item
+                 ">
+        
+        
+        <a class="devsite-footer-utility-link gc-analytics-event"
+           href="//cloud.google.com/product-terms"
+           data-category="Site-Wide Custom Events"
+           data-label="Footer Google Cloud terms link"
+         
+           track-metadata-position="footer"
+         
+           track-metadata-eventDetail="//cloud.google.com/product-terms"
+         
+           track-type="footer link"
+         
+           track-name="google cloud terms"
+         
+           track-metadata-module="utility footer"
+         >
+          Google Cloud terms
+        </a>
+        
+      </li>
+      
+      <li class="devsite-footer-utility-item
+                 glue-cookie-notification-bar-control">
+        
+        
+        <a class="devsite-footer-utility-link gc-analytics-event"
+           href="#"
+           data-category="Site-Wide Custom Events"
+           data-label="Footer Manage cookies link"
+         
+           track-metadata-module="utility footer"
+         
+           track-type="footer link"
+         
+           track-name="Manage cookies"
+         
+           track-metadata-eventDetail="#"
+         
+           aria-hidden="true"
+         
+           track-metadata-position="footer"
+         >
+          Manage cookies
+        </a>
+        
+      </li>
+      
+      <li class="devsite-footer-utility-item
+                 devsite-footer-carbon-button">
+        
+        
+        <a class="devsite-footer-utility-link gc-analytics-event"
+           href="//cloud.google.com/sustainability"
+           data-category="Site-Wide Custom Events"
+           data-label="Footer Our third decade of climate action: join us link"
+         
+           track-name="Our third decade of climate action: join us"
+         
+           track-type="footer link"
+         
+           track-metadata-module="utility footer"
+         
+           track-metadata-position="footer"
+         
+           track-metadata-eventDetail="/sustainability/"
+         >
+          Our third decade of climate action: join us
+        </a>
+        
+      </li>
+      
+      <li class="devsite-footer-utility-item
+                 devsite-footer-utility-button">
+        
+        <span class="devsite-footer-utility-description">Sign up for the Google Cloud newsletter</span>
+        
+        
+        <a class="devsite-footer-utility-link gc-analytics-event"
+           href="//cloud.google.com/newsletter/"
+           data-category="Site-Wide Custom Events"
+           data-label="Footer Subscribe link"
+         
+           track-metadata-module="utility footer"
+         
+           track-name="subscribe"
+         
+           track-type="footer link"
+         
+           track-metadata-eventDetail="/newsletter/"
+         
+           track-metadata-position="footer"
+         >
+          Subscribe
+        </a>
+        
+      </li>
+      
+    </ul>
+    
+    
+<devsite-language-selector>
+  <ul role="presentation">
+    
+    
+    <li role="presentation">
+      <a role="menuitem" lang="en"
+        >English</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="de"
+        >Deutsch</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="es"
+        >Español</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="es_419"
+        >Español – América Latina</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="fr"
+        >Français</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="id"
+        >Indonesia</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="it"
+        >Italiano</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="pt"
+        >Português</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="pt_br"
+        >Português – Brasil</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="he"
+        >עברית</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="zh_cn"
+        >中文 – 简体</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="zh_tw"
+        >中文 – 繁體</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="ja"
+        >日本語</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="ko"
+        >한국어</a>
+    </li>
+    
+  </ul>
+</devsite-language-selector>
+
+  </nav>
+</div>
+          
+        </devsite-footer-utility>
+        <devsite-panel>
+          
+        </devsite-panel>
+        
+      </section>
+      </section>
+    <devsite-sitemask></devsite-sitemask>
+    <devsite-snackbar></devsite-snackbar>
+    <devsite-tooltip ></devsite-tooltip>
+    <devsite-heading-link></devsite-heading-link>
+    <devsite-analytics>
+      
+        <script type="application/json" analytics>[]</script>
+<script type="application/json" tag-management>{&#34;at&#34;: &#34;True&#34;, &#34;ga4&#34;: [], &#34;ga4p&#34;: [], &#34;gtm&#34;: [{&#34;id&#34;: &#34;GTM-5CVQBG&#34;, &#34;purpose&#34;: 1}], &#34;parameters&#34;: {&#34;internalUser&#34;: &#34;False&#34;, &#34;language&#34;: {&#34;machineTranslated&#34;: &#34;False&#34;, &#34;requested&#34;: &#34;en&#34;, &#34;served&#34;: &#34;en&#34;}, &#34;pageType&#34;: &#34;article&#34;, &#34;projectName&#34;: &#34;GKE security&#34;, &#34;signedIn&#34;: &#34;False&#34;, &#34;tenant&#34;: &#34;clouddocs&#34;, &#34;recommendations&#34;: {&#34;sourcePage&#34;: &#34;&#34;, &#34;sourceType&#34;: 0, &#34;sourceRank&#34;: 0, &#34;sourceIdenticalDescriptions&#34;: 0, &#34;sourceTitleWords&#34;: 0, &#34;sourceDescriptionWords&#34;: 0, &#34;experiment&#34;: &#34;&#34;}, &#34;experiment&#34;: {&#34;ids&#34;: &#34;&#34;}}}</script>
+      
+    </devsite-analytics>
+    
+      <devsite-badger></devsite-badger>
+    
+    
+    <cloudx-user></cloudx-user>
+
+
+
+  <cloudx-free-trial-eligible-store freeTrialEligible="true"></cloudx-free-trial-eligible-store>
+
+    
+<script nonce="Xblzjw4V3vA/BFRLN8898cCOpz/51F">
+  
+  (function(d,e,v,s,i,t,E){d['GoogleDevelopersObject']=i;
+    t=e.createElement(v);t.async=1;t.src=s;E=e.getElementsByTagName(v)[0];
+    E.parentNode.insertBefore(t,E);})(window, document, 'script',
+    'https://www.gstatic.com/devrel-devsite/prod/v544324a32f4e1e28baf5bd35dca83b6157fef32c5ffbe146b7ca395602e11426/clouddocs/js/app_loader.js', '[39,"en",null,"/js/devsite_app_module.js","https://www.gstatic.com/devrel-devsite/prod/v544324a32f4e1e28baf5bd35dca83b6157fef32c5ffbe146b7ca395602e11426","https://www.gstatic.com/devrel-devsite/prod/v544324a32f4e1e28baf5bd35dca83b6157fef32c5ffbe146b7ca395602e11426/clouddocs","https://clouddocs-dot-devsite-v2-prod.appspot.com",null,null,["/_pwa/clouddocs/manifest.json","https://www.gstatic.com/devrel-devsite/prod/v544324a32f4e1e28baf5bd35dca83b6157fef32c5ffbe146b7ca395602e11426/images/video-placeholder.svg","https://www.gstatic.com/devrel-devsite/prod/v544324a32f4e1e28baf5bd35dca83b6157fef32c5ffbe146b7ca395602e11426/clouddocs/images/favicons/onecloud/favicon.ico","https://www.gstatic.com/devrel-devsite/prod/v544324a32f4e1e28baf5bd35dca83b6157fef32c5ffbe146b7ca395602e11426/clouddocs/images/lockup_full_color.svg","https://fonts.googleapis.com/css?family=Google+Sans:400,500|Roboto:400,400italic,500,500italic,700,700italic|Roboto+Mono:400,500,700&display=swap"],1,null,[1,6,8,12,14,17,21,25,50,52,63,70,75,76,80,87,91,92,93,97,98,100,101,102,103,104,105,107,108,109,110,112,113,117,118,120,122,124,125,126,127,129,130,131,132,133,134,135,136,138,140,141,147,148,149,151,152,156,157,158,159,161,163,164,168,169,170,179,180,182,183,186,191,193,196],"AIza_REDACTED_PUBLIC_WEB_KEY_x0000000","AIza_REDACTED_PUBLIC_WEB_KEY_x0000000","docs.cloud.google.com","AIza_REDACTED_PUBLIC_WEB_KEY_x0000000","AIza_REDACTED_PUBLIC_WEB_KEY_x0000000",null,null,null,["Concierge__enable_actions_menu","Cloud__fast_free_trial","EngEduTelemetry__enable_engedu_telemetry","MiscFeatureFlags__enable_view_transitions","Search__enable_suggestions_from_borg","DevPro__enable_credits_banner","TpcFeatures__proxy_prod_host","Profiles__enable_purchase_prompts","DevPro__enable_code_assist","MiscFeatureFlags__enable_variable_operator_index_yaml","DevPro__enable_google_payments_buyflow","Profiles__enable_completecodelab_endpoint","CloudShell__cloud_shell_button","MiscFeatureFlags__enable_dark_theme","Analytics__enable_devpro_interaction_logging","Profiles__enable_playlist_community_acl","Profiles__enable_awarding_url","MiscFeatureFlags__enable_explicit_template_dependencies","Search__enable_ai_eligibility_checks","DevPro__enable_embed_profile_creation","Search__enable_ai_search_summaries_for_all","DevPro__remove_eu_tax_intake_form","Analytics__enable_clearcut_logging","Search__enable_page_map","MiscFeatureFlags__enable_project_variables","Cloud__enable_legacy_calculator_redirect","Profiles__enable_user_type","MiscFeatureFlags__developers_footer_dark_image","DevPro__enable_vertex_credit_card","TpcFeatures__enable_unmirrored_page_left_nav","MiscFeatureFlags__fix_lower_breadcrumbs","Concierge__enable_devsite_llm_tools","Profiles__enable_callout_notifications","MiscFeatureFlags__enable_appearance_cookies","Cloud__enable_cloudx_experiment_ids","Cloud__enable_free_trial_server_call","DevPro__enable_devsite_captcha","Profiles__enable_join_program_group_endpoint","MiscFeatureFlags__enable_firebase_utm","MiscFeatureFlags__gdp_dashboard_reskin_enabled","Profiles__enable_complete_playlist_endpoint","Profiles__enable_developer_profile_benefits_ui_redesign","MiscFeatureFlags__enable_variable_operator","BookNav__enable_tenant_cache_key","SignIn__enable_l1_signup_flow","Cloud__enable_cloud_shell","Concierge__enable_pushui","DevPro__enable_g1_ineligible_redirect","DevPro__enable_cloud_innovators_plus","Profiles__enable_developer_profiles_callout","DevPro__enable_nvidia_credits_card","Profiles__enable_recognition_badges","Profiles__enable_dashboard_curated_recommendations","Profiles__enable_developer_profile_pages_as_content","Search__enable_dynamic_content_confidential_banner","CloudShell__cloud_code_overflow_menu","DevPro__enable_free_benefits","Concierge__enable_concierge_restricted","DevPro__enable_developer_subscriptions","Profiles__enable_completequiz_endpoint","Profiles__require_profile_eligibility_for_signin","Experiments__reqs_query_experiments","Profiles__enable_auto_apply_credits","AIStudioInteractionsToggle__interactions_are_default","Profiles__enable_stripe_subscription_management","Cloud__cache_serialized_dynamic_content","Cloud__enable_cloud_shell_fte_user_flow","MiscFeatureFlags__remove_cross_domain_tracking_params","DevPro__enable_google_one_card","Profiles__enable_targeted_hero","Profiles__enable_profile_collections","DevPro__enable_firebase_workspaces_card","Cloud__enable_cloud_dlp_service","MiscFeatureFlags__enable_explain_this_code","MiscFeatureFlags__developers_footer_image","Profiles__enable_page_saving","Profiles__enable_public_developer_profiles","DevPro__enable_enterprise","DevPro__enable_g1_integration","OnSwitch__enable","Concierge__enable_remove_info_panel_tags","MiscFeatureFlags__enable_framebox_badge_methods","DevPro__enable_devpro_offers"],null,null,"AIza_REDACTED_PUBLIC_WEB_KEY_x0000000","https://developerscontentserving-pa.clients6.google.com","AIza_REDACTED_PUBLIC_WEB_KEY_x0000000","https://developerscontentsearch-pa.clients6.google.com",1,4,1,"https://developerprofiles-pa.clients6.google.com",[39,"clouddocs","Google Cloud Documentation","docs.cloud.google.com",null,"clouddocs-dot-devsite-v2-prod.appspot.com",null,null,[1,1,null,null,null,null,null,null,null,null,null,[1],null,null,null,null,null,1,[1],[null,null,null,[1,20],"/terms/recommendations"],[1],null,[1],[1,null,1],null,[1]],null,[54,null,null,null,null,null,"/images/lockup_full_color.svg","/images/favicons/onecloud/apple-icon.png",null,null,null,1,1,1,1,null,[],null,null,[[],[],[],[],[],[],[],[]],null,1,null,null,null,"/images/lockup_dark_theme.svg",[]],[],null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,[6,1,14,15,22,23,29,37],null,[[null,null,null,null,null,null,[1,[["docType","Choose a content type",[["ApiReference",null,null,null,null,null,null,null,null,"API reference"],["Sample",null,null,null,null,null,null,null,null,"Code sample"],["ReferenceArchitecture",null,null,null,null,null,null,null,null,"Reference architecture"],["Tutorial",null,null,null,null,null,null,null,null,"Tutorial"]]],["category","Choose a topic",[["AiAndMachineLearning",null,null,null,null,null,null,null,null,"Artificial intelligence and machine learning (AI/ML)"],["ApplicationDevelopment",null,null,null,null,null,null,null,null,"Application development"],["BigDataAndAnalytics",null,null,null,null,null,null,null,null,"Big data and analytics"],["Compute",null,null,null,null,null,null,null,null,"Compute"],["Containers",null,null,null,null,null,null,null,null,"Containers"],["Databases",null,null,null,null,null,null,null,null,"Databases"],["HybridCloud",null,null,null,null,null,null,null,null,"Hybrid and multicloud"],["LoggingAndMonitoring",null,null,null,null,null,null,null,null,"Logging and monitoring"],["Migrations",null,null,null,null,null,null,null,null,"Migrations"],["Networking",null,null,null,null,null,null,null,null,"Networking"],["SecurityAndCompliance",null,null,null,null,null,null,null,null,"Security and compliance"],["Serverless",null,null,null,null,null,null,null,null,"Serverless"],["Storage",null,null,null,null,null,null,null,null,"Storage"]]]]]],[1],null,1],[[null,null,null,null,null,["GTM-5CVQBG"],null,null,null,null,null,[["GTM-5CVQBG",2]],1],null,null,null,null,null,1],"mwETRvWii0eU5NUYprb0Y9z5GVbc",4],null,"pk_live_5170syrHvgGVmSx9sBrnWtA5luvk9BwnVcvIi7HizpwauFG96WedXsuXh790rtij9AmGllqPtMLfhe2RSwD6Pn38V00uBCydV4m",1,null,"https://developerscontentinsights-pa.clients6.google.com","AIza_REDACTED_PUBLIC_WEB_KEY_x0000000","AIza_REDACTED_PUBLIC_WEB_KEY_x0000000","https://developers.clients6.google.com",null,null,"AIza_REDACTED_PUBLIC_WEB_KEY_x0000000\n",null,null,"https://developers.googleapis.com"]')
+  
+</script>
+
+    <devsite-a11y-announce></devsite-a11y-announce>
+  </body>
+</html>

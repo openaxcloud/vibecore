@@ -1,0 +1,180 @@
+# REVIEW_RECEIPT_REGISTRY — reçus de revue IMMUABLES (directive Avi 20/07).
+# Règle maîtresse : un P0 ne passe CLOSED que s'il est accepté dans un reçu
+# COMPLET (responseHash réel). reviewer: UNKNOWN + « signé » = interdit.
+# Un reçu ne se modifie JAMAIS après coup — une nouvelle revue = nouveau reçu.
+schemaVersion: 1
+repoCommit: a4a9f71c
+receipts:
+  - reviewReceiptId: RR-20260720-CODEX-01
+    reviewerType: AUTOMATED_LLM
+    reviewerIdentity: "OpenAI-Codex"
+    reviewerModelVersion: "UNKNOWN — version exacte du modèle non transmise avec le verdict ; à consigner si Avi la fournit"
+    reviewedAt: "2026-07-20T15:20:41+03:00"   # date de publication des signatures (commit 57febeab)
+    auditedCommit: "646e75ca"                  # commit de référence du paquet soumis
+    signaturesPublishedInCommit: "57febeab"
+    inputDocuments:
+      - path: docs/parity/REVIEWER_PACKET_EXPERT_20260720.md
+        sha256: "55d699db54d8aa70afc97b7b061c61743a0e159aa8261efed56beed96ed9e6f6"  # état au commit 57febeab^
+      - path: docs/parity/P0_REGISTRY.yaml
+        sha256Prefix: "30dcc5aabb8b8fa8"       # état au commit 57febeab^
+    responseHash: "UNKNOWN — la réponse brute du relecteur n'a pas été fournie comme fichier ; le verdict a été transmis par Avi (canal de pilotage) et ses raisons verbatim sont consignées point par point dans P0_REGISTRY (refusalReason). TANT QUE ce hash est UNKNOWN, AUCUN point de ce reçu ne peut être CLOSED (règle maîtresse) — fournir le texte brut de la réponse pour compléter le reçu."
+    ciAttestationRunId: 29739384301           # run vert du commit sur lequel les preuves étaient assises
+    summary: "22 acceptés / 33 refusés / 0 des 14 contrats signés"
+    decisions:
+      accepted: [P0-V3-14, P0-A2-02, P0-A2-04, P0-A2-06, P0-A2-08, P0-A2-11,
+                 P0-LS-01, P0-LS-02, P0-LS-05, P0-LS-07, P0-LS-08, P0-LS-09,
+                 P0-LS-10, P0-LS-11, P0-LS-12, P0-LS-15, P0-LS-17, P0-LS-18,
+                 P0-EX-01, P0-EX-03, P0-EX-06, P0-EX-09]
+      refused: [P0-A2-01, P0-A2-03, P0-A2-05, P0-A2-07, P0-A2-09, P0-A2-10,
+                P0-A2-13, P0-A2-14, P0-B-01, P0-EX-02, P0-EX-04, P0-EX-05,
+                P0-EX-07, P0-EX-08, P0-EX-10, P0-LS-03, P0-LS-04, P0-LS-06,
+                P0-LS-13, P0-LS-14, P0-LS-16, P0-V3-02, P0-V3-03, P0-V3-04,
+                P0-V3-08, P0-V3-09, P0-V3-10, P0-V3-11, P0-V3-12, P0-V3-13,
+                P0-V4-1, P0-V4-2, P0-V4-3]
+      contractsRefused: 14   # 0/14 signés — raisons par fichier (reviewVerdict/refusalReason dans chaque contrat)
+    refusalReasonsLocation: "P0_REGISTRY.yaml (champ refusalReason, verbatim) + annotations des 14 fichiers de contrat"
+    completeness: INCOMPLETE   # responseHash + version modèle manquants → CLOSED interdit sur ce reçu
+
+  - reviewReceiptId: RR-20260720-CODEX-02
+    reviewerType: AUTOMATED_LLM
+    reviewerIdentity: "OpenAI-Codex"
+    reviewerModelVersion: "GPT-5 (Codex)"
+    reviewedAt: "2026-07-20T20:38:18+03:00"
+    auditedCommit: "af24d4fe48015e6041c8e11b240b1f2d54f333d1"
+    postMergeEvidenceCommit: "a4a9f71c"
+    signaturesPublishedInCommit: "cf5c67a513322ba0c248b900ea88c50b5e128ac6"
+    inputDocuments:
+      - path: docs/parity/REVIEWER_RESUBMISSION_A_20260720.md
+        sha256: "98700dfc5ffd7e8249bc3dfa84561b7a140ee91711f43b90bd2971de97787cf4"
+      - path: docs/parity/P0_REGISTRY.yaml
+        sha256: "d5011124386944d766853bd2c103f441dd50c511cca91b787749f10e5f326552"
+        stateAtCommit: "cf5c67a513322ba0c248b900ea88c50b5e128ac6"
+    responsePath: docs/parity/REVIEW_RESPONSE_RR-20260720-CODEX-02.md
+    responseHash: "sha256:e2563a96c7e2acfa474ab285dfebee193dea08d2ed56302b1e9af10a6f5c3fd9"
+    ciAttestationRunId: 29756163626
+    summary: "2 acceptés / 6 refusés / 0 contrat réexaminé"
+    decisions:
+      accepted: [P0-A2-10, P0-LS-04]
+      refused: [P0-V4-1, P0-V4-2, P0-V3-02, P0-LS-14, P0-LS-13, P0-LS-16]
+      contractsRefused: 0
+    refusalReasonsLocation: "REVIEW_RESPONSE_RR-20260720-CODEX-02.md + P0_REGISTRY.yaml (champ refusalReason)"
+    completeness: COMPLETE
+  - reviewReceiptId: RR-20260721-CODEX-03
+    reviewerType: AUTOMATED_LLM
+    reviewerIdentity: "OpenAI-Codex"
+    reviewerModelVersion: "GPT-5 (Codex)"
+    reviewedAt: "2026-07-21"
+    auditedCommit: "70eb30a0"
+    inputDocuments:
+      - path: docs/parity/REVIEWER_RESUBMISSION_B_20260721.md
+        note: "état à la tête de la branche docs/remediation-lot-b (70eb30a0)"
+    responsePath: docs/parity/REVIEW_RESPONSE_RR-20260721-CODEX-03.md
+    responseHash: "sha256:6acd422d31d2c9a1c91d33cc9248eb5aa738e021a1c19ff9df051ebbd641caa2"
+    summary: "1 accepté (LS-14) / 5 refusés / #29 non couvert / aucun feu vert facturation"
+    decisions:
+      accepted: [P0-LS-14]
+      refused: [P0-V4-1, P0-V4-2, P0-V3-02, P0-LS-13, P0-LS-16]
+    refusalReasonsLocation: "REVIEW_RESPONSE_RR-20260721-CODEX-03.md + P0_REGISTRY.refusalReason"
+    completeness: COMPLETE
+
+  - reviewReceiptId: RR-20260721-CODEX-04
+    reviewerType: AUTOMATED_LLM
+    reviewerIdentity: "OpenAI-Codex"
+    reviewerModelVersion: "GPT-5 (Codex)"
+    reviewedAt: "2026-07-21"
+    auditedCommit: "6ca7d701fdb5c2308bfac8715a966c5aa09d32df"   # tête de la PR #37 examinée
+    inputDocuments:
+      - path: docs/parity/DOSSIER_EXPERT_CONSOLIDE_20260721.md
+        note: "dossier consolidé soumis (état à 6ca7d701)"
+    responsePath: docs/parity/incoming/REPONSE_EXPERT_PR37_20260721.md
+    responseHash: "sha256:6d91bcfbb4bbd3f515e48f9b6c6a9e89338a7676b440d65a674242e3b7965b27"
+    checksPath: docs/parity/incoming/PR37_REVIEW_CHECKS_20260721.txt
+    summary: "PR #37 REFUSÉE ; 16 P0 re-confirmés SIGNÉS / 11 P0 refusés (5 v3 + 6 lot B) ; 0/11 contrats signés ; lots code #27 et #28 refusés dans leur état mergé"
+    decisions:
+      accepted: [P0-A2-04, P0-A2-06, P0-A2-08, P0-EX-01, P0-EX-03, P0-EX-06,
+                 P0-EX-09, P0-LS-01, P0-LS-02, P0-LS-07, P0-LS-08, P0-LS-09,
+                 P0-LS-10, P0-LS-11, P0-LS-12, P0-LS-15]
+      refused: [P0-V4-1, P0-V4-2, P0-V3-02, P0-LS-13, P0-LS-16,
+                P0-A2-02, P0-A2-11, P0-LS-05, P0-LS-17, P0-LS-18, P0-V3-14]
+      contractsRefused: 11   # les 11 contrats v2 soumis — raisons verbatim reportées dans CONTRACT_REGISTRY
+      codeLotsRefused: 2     # PR #27 (idempotence non durable/scopée org) + PR #28 (atomicité/hard-limit/orga-devise/reversal) — remédiation = autre session (directive Avi)
+    factualCorrectionsOrdered: "état des merges à aligner (réalité vérifiée gh au 21/07 08h UTC : #27 MERGED 04:42, #28 MERGED 04:46, #29 MERGED 04:29, #30 MERGED 04:36 — le verdict disait #29/#30 OUVERTES, périmé au moment de sa lecture) ; compteur 65 P0 avec les 5 PROVEN ; synchronisation conditionDeCloture/refusalReason/nextAction/reviewVerdict des 5 v3"
+    refusalReasonsLocation: "docs/parity/incoming/REPONSE_EXPERT_PR37_20260721.md (verbatim) + P0_REGISTRY.refusalReason + CONTRACT_REGISTRY"
+    completeness: COMPLETE
+
+  - reviewReceiptId: RR-20260722-CODEX-05
+    reviewerType: AUTOMATED_LLM
+    reviewerIdentity: "OpenAI-Codex"
+    reviewerModelVersion: "GPT-5 (Codex)"
+    reviewedAt: "2026-07-22"
+    auditedCommit: "60a987ca"   # tête de la PR #40 examinée
+    inputDocuments:
+      - path: docs/parity/DOSSIER_EXPERT_CONSOLIDE_20260721_V2.md
+        note: "dossier final transmis par Avi (état à 60a987ca)"
+    responsePath: docs/parity/incoming/REPONSE_EXPERT_PR40_20260722.md
+    responseHash: "sha256:c32a945d4a4974f1fcb651daeb7447ddeb446b8385c6c4986df9c52c300b9e1f"
+    summary: "pas de feu vert global PR #40 ; 4 corrections factuelles VÉRIFIÉES ; 5 P0 signés / 7 refusés ; CTR-OPERATIONS-DR refusé ; 2 lots code PR #39 refusés"
+    decisions:
+      accepted: [P0-V3-02, P0-A2-02, P0-A2-11, P0-LS-05, P0-LS-17]
+      refused: [P0-V4-1, P0-V4-2, P0-LS-13, P0-LS-16, P0-LS-18, P0-V3-14, P0-A2-09]
+      contractsRefused: 1    # CTR-OPERATIONS-DR (5 blocages verbatim — drill Cloud SQL reconnu comme preuve individuelle)
+      codeLotsRefused: 2     # PR #39 import/billing + grand livre (log brut absent, checks rouges, 2 défauts concurrents résiduels)
+    factualCorrectionsVerified: "0.1 merges (les 4 MERGED) ; 0.2 total 65 ; 0.3 champs v4 resynchronisés ; 0.4 ancres #27/#28"
+    refusalReasonsLocation: "docs/parity/incoming/REPONSE_EXPERT_PR40_20260722.md (verbatim) + P0_REGISTRY.refusalReason"
+    completeness: COMPLETE
+
+  - reviewReceiptId: RR-20260722-CODEX-06
+    reviewerType: AUTOMATED_LLM
+    reviewerIdentity: "OpenAI-Codex"
+    reviewerModelVersion: "GPT-5 (Codex)"
+    reviewedAt: "2026-07-22"
+    auditedCommit: "21e8a255"   # tête #40 examinée dans le dossier V3
+    inputDocuments:
+      - path: outputs/DOSSIER_EXPERT_V3_20260722.md
+        note: "dossier V3 transmis par Avi"
+    responsePath: docs/parity/incoming/REPONSE_EXPERT_V3_20260722.md
+    responseHash: "sha256:9ac5e9b6c2b9f6c3496bab0ddb2f1e3f44b57e93e8be36e7c270a7b5fb663776"   # préfixe fourni par Avi
+    summary: "pas de feu vert global ; 4 P0 signés / 6 refusés ; 2 contrats refusés ; grand livre accepté portée limitée ; import/billing + purge #43/#47 refusés"
+    decisions:
+      accepted: [P0-V4-1, P0-V4-2, P0-V3-03, P0-V4-3]
+      refused: [P0-LS-16, P0-LS-18, P0-V3-14, P0-LS-13, P0-A2-09, P0-LS-03]
+      contractsRefused: 2    # CTR-OPERATIONS-DR, CTR-RUNTIME-NIX
+      codeLotAcceptedLimited: 1   # correctif grand livre PR #39 (portée limitée)
+      codeLotsRefused: 3     # import/billing #39 + purge DB #43 + purge physique #47
+    refusalReasonsLocation: "docs/parity/incoming/REPONSE_EXPERT_V3_20260722.md (verbatim) + P0_REGISTRY.refusalReason"
+    completeness: COMPLETE
+
+  - reviewReceiptId: RR-20260723-CODEX-07
+    reviewerType: AUTOMATED_LLM
+    reviewerIdentity: "OpenAI-Codex"
+    reviewerModelVersion: "GPT-5 (Codex)"
+    reviewedAt: "2026-07-23"
+    auditedCommits:   # §1 du reçu
+      attestationV6Merge: "e1794fe6939a55fb1902c5e73629ae81d1b01e1a"
+      liveProofRun: "30005939249"
+      liveProofBotCommit: "ee0aedd1"
+      harLs13Ls03Head: "bc629fe1512ad82d8e1d0aa443438b2cf14e7626"
+      harLs13Ls03CiRun: "30003958808"
+      wifHead: "f08189719797278512da831030b4ff18b4110697"
+      importBillingHead: "22dbfaa19618b1b63a22d21aa5b1a03212151fa4"
+      purgeDbHead: "2d2ff0a0f4413654896935371410b287a981a9e6"
+      purgePhysicalHead: "035ee9ed275cff7171aaddf9989a96befec747cb"
+      operationsDrHead: "9b9f0c4db95563e4155d101cce6a504e9aaea186"
+      runtimeNixHead: "01de5fcef1dd344c1cefa9badeaa20c8cf5ec98f"
+    inputDocuments:
+      - path: outputs/DOSSIER_EXPERT_V4_20260723.md
+        sha256: "e7d08004aff1e3cf2c0f289fa56962c9dcb535065f41cf4710b631ed65abf44c"
+    responsePath: docs/parity/incoming/REPONSE_EXPERT_V4_20260723.md
+    responseHash: "sha256:f5771529584d08e25bb146c87415627c90fc4a55f5d2ae1c66eb8ddb512a1ce0"
+    requestMessageSha256: "f6c49cef35aba54b511c3cc2aa11a19a2c7fd667ed01cf5d8c8c2c6752e1bc22"
+    summary: "2 P0 signés (LS-13, LS-03) / 4 refusés (LS-16, LS-18, V3-14, A2-09) ; 2 contrats refusés (CTR-OPERATIONS-DR, CTR-RUNTIME-NIX) ; PR #39 acceptée à portée ciblée SANS signature de contrat ; PR #51 + #52 refusées"
+    decisions:
+      accepted: [P0-LS-13, P0-LS-03]
+      refused: [P0-LS-16, P0-LS-18, P0-V3-14, P0-A2-09]
+      contractsAccepted: []
+      contractsRefused: [CTR-OPERATIONS-DR, CTR-RUNTIME-NIX]
+      codeLotsAccepted: [PR-39-IMPORT-BILLING-RACE-FIX]   # portée ciblée, AUCUNE signature de contrat
+      codeLotsRefused: [PR-51-ACCOUNT-PURGE-DB, PR-52-ACCOUNT-PURGE-PHYSICAL]
+    keyDefectRaised: "vérificateur v6 fail-OPEN sur l'ABSENCE de mergedCommit/repoCommit/runUrl (checkAttestationFields ne contrôle que s'ils existent) — LS-16/18/V3-14 refusés tant que ces champs ne sont pas rendus OBLIGATOIRES + non vides + test négatif de SUPPRESSION par champ + nouveau roll post-merge"
+    refusalReasonsLocation: "docs/parity/incoming/REPONSE_EXPERT_V4_20260723.md (§4/§6/§7 verbatim) + P0_REGISTRY.refusalReason + CONTRACT_REGISTRY"
+    completeness: COMPLETE

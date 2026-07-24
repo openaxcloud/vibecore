@@ -1,7 +1,13 @@
 # IAM_POLICY_BASELINE — identités & autorisations d'exécution (audit v4 I)
 
-schemaVersion: 1
-repoCommit: ca299f87
+contractId: CTR-IAM-POLICY-BASELINE
+contractVersion: 2
+schemaVersion: 2
+repoCommit: 1692f981
+reviewer: UNKNOWN
+expectedReviewer: OpenAI-Codex
+signatureResult: PENDING_REVIEW   # v1 REFUSED : « inventaire non exhaustif sans tests négatifs » — v2 structuré + ancré, re-soumission requise
+implementationAnchor: "Workload Identity KSA→GSA prouvé (object-storage WI, server-deploy) ; revoke→deny PROUVÉ live (215s) ; exec CI interdit via gateway (contrainte prouvée) ; WIF limité au chemin GKE — les 2 autres chemins = CHANTIER D (A2-09) ; inventaire EXHAUSTIF = à compléter (déclaré)"
 
 Baseline des identités GCP/K8s. Complète DOMAIN_MODEL §4 (IAM).
 
@@ -31,3 +37,20 @@ Baseline des identités GCP/K8s. Complète DOMAIN_MODEL §4 (IAM).
 
 Baseline documentaire ; l'inventaire exhaustif des bindings IAM prod n'est pas
 re-listé ici (owner infra = avi). UNK non bloquant.
+
+## Préconditions
+- P-IAM-1 : aucune clé de service account exportée — Workload Identity uniquement.
+- P-IAM-2 : toute identité runtime est déclarée ici AVANT usage (une identité non listée est un défaut).
+
+## Invariants
+- I-IAM-1 : une révocation IAM prend effet et REFUSE l'accès (prouvé live : revoke→deny 215s).
+- I-IAM-2 : les pods CI ne peuvent pas exec dans le cluster via gateway (interdiction prouvée).
+
+## Tests négatifs
+- accès après revoke → deny (prouvé) ; exec via gateway depuis CI → refus (prouvé) ; à AJOUTER : test négatif par identité de l'inventaire (chantier).
+
+## Compatibilité
+- Complète DOMAIN_MODEL §4 ; lié au chantier WIF 3 chemins (P0-A2-09, projets GCP de test dédiés).
+
+## Résultat de signature
+- v1 : REFUSED (« inventaire non exhaustif sans tests négatifs »). v2 : PENDING_REVIEW — 2 tests négatifs réels prouvés et cités ; **l'exhaustivité de l'inventaire + un négatif PAR identité restent un CHANTIER OUVERT, dit tel quel**.

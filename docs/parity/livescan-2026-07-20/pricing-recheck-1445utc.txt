@@ -1,0 +1,18 @@
+Capture texte replit.com/pricing — re-vérification P0-LS-13 (divergence $20/$25)
+observedAt: 2026-07-20T14:45Z (approx, navigateur local)
+--- extrait verbatim du rendu (main) ---
+Replit Core
+Save 20%
+$25
+$20
+per month
+billed annually
+[...]
+Replit Pro
+Save 5%
+$100
+$95
+per month
+billed annually
+[...]
+*Prices are subject to tax depending on your location.
