@@ -139455,6 +139455,7 @@ export namespace Prisma {
     authorName: string | null
     authorUserId: string | null
     appUrl: string | null
+    thumbnailUrl: string | null
     viewCount: number | null
     useCount: number | null
     createdAt: Date | null
@@ -139474,6 +139475,7 @@ export namespace Prisma {
     authorName: string | null
     authorUserId: string | null
     appUrl: string | null
+    thumbnailUrl: string | null
     viewCount: number | null
     useCount: number | null
     createdAt: Date | null
@@ -139494,6 +139496,7 @@ export namespace Prisma {
     authorName: number
     authorUserId: number
     appUrl: number
+    thumbnailUrl: number
     viewCount: number
     useCount: number
     createdAt: number
@@ -139525,6 +139528,7 @@ export namespace Prisma {
     authorName?: true
     authorUserId?: true
     appUrl?: true
+    thumbnailUrl?: true
     viewCount?: true
     useCount?: true
     createdAt?: true
@@ -139544,6 +139548,7 @@ export namespace Prisma {
     authorName?: true
     authorUserId?: true
     appUrl?: true
+    thumbnailUrl?: true
     viewCount?: true
     useCount?: true
     createdAt?: true
@@ -139564,6 +139569,7 @@ export namespace Prisma {
     authorName?: true
     authorUserId?: true
     appUrl?: true
+    thumbnailUrl?: true
     viewCount?: true
     useCount?: true
     createdAt?: true
@@ -139671,6 +139677,7 @@ export namespace Prisma {
     authorName: string
     authorUserId: string | null
     appUrl: string | null
+    thumbnailUrl: string | null
     viewCount: number
     useCount: number
     createdAt: Date
@@ -139710,6 +139717,7 @@ export namespace Prisma {
     authorName?: boolean
     authorUserId?: boolean
     appUrl?: boolean
+    thumbnailUrl?: boolean
     viewCount?: boolean
     useCount?: boolean
     createdAt?: boolean
@@ -139732,6 +139740,7 @@ export namespace Prisma {
     authorName?: boolean
     authorUserId?: boolean
     appUrl?: boolean
+    thumbnailUrl?: boolean
     viewCount?: boolean
     useCount?: boolean
     createdAt?: boolean
@@ -139754,6 +139763,7 @@ export namespace Prisma {
     authorName?: boolean
     authorUserId?: boolean
     appUrl?: boolean
+    thumbnailUrl?: boolean
     viewCount?: boolean
     useCount?: boolean
     createdAt?: boolean
@@ -139776,13 +139786,14 @@ export namespace Prisma {
     authorName?: boolean
     authorUserId?: boolean
     appUrl?: boolean
+    thumbnailUrl?: boolean
     viewCount?: boolean
     useCount?: boolean
     createdAt?: boolean
     publishedAt?: boolean
   }
 
-  export type GalleryListingOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "slug" | "title" | "description" | "category" | "tags" | "status" | "featured" | "sourceProjectId" | "sourceSnapshotId" | "authorName" | "authorUserId" | "appUrl" | "viewCount" | "useCount" | "createdAt" | "publishedAt", ExtArgs["result"]["galleryListing"]>
+  export type GalleryListingOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "slug" | "title" | "description" | "category" | "tags" | "status" | "featured" | "sourceProjectId" | "sourceSnapshotId" | "authorName" | "authorUserId" | "appUrl" | "thumbnailUrl" | "viewCount" | "useCount" | "createdAt" | "publishedAt", ExtArgs["result"]["galleryListing"]>
   export type GalleryListingInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     sourceProject?: boolean | ProjectDefaultArgs<ExtArgs>
     author?: boolean | GalleryListing$authorArgs<ExtArgs>
@@ -139831,6 +139842,12 @@ export namespace Prisma {
        * Outbound "View App" link to the deployed app (may be null pre-deploy).
        */
       appUrl: string | null
+      /**
+       * Card preview image (a real rendered screenshot). Root-relative static
+       * asset (/gallery-apps/<id>/thumbnail.png) or an https URL; null renders
+       * the text-only card.
+       */
+      thumbnailUrl: string | null
       viewCount: number
       useCount: number
       createdAt: Date
@@ -140273,6 +140290,7 @@ export namespace Prisma {
     readonly authorName: FieldRef<"GalleryListing", 'String'>
     readonly authorUserId: FieldRef<"GalleryListing", 'String'>
     readonly appUrl: FieldRef<"GalleryListing", 'String'>
+    readonly thumbnailUrl: FieldRef<"GalleryListing", 'String'>
     readonly viewCount: FieldRef<"GalleryListing", 'Int'>
     readonly useCount: FieldRef<"GalleryListing", 'Int'>
     readonly createdAt: FieldRef<"GalleryListing", 'DateTime'>
@@ -142417,6 +142435,7 @@ export namespace Prisma {
     authorName: 'authorName',
     authorUserId: 'authorUserId',
     appUrl: 'appUrl',
+    thumbnailUrl: 'thumbnailUrl',
     viewCount: 'viewCount',
     useCount: 'useCount',
     createdAt: 'createdAt',
@@ -151673,6 +151692,7 @@ export namespace Prisma {
     authorName?: StringFilter<"GalleryListing"> | string
     authorUserId?: StringNullableFilter<"GalleryListing"> | string | null
     appUrl?: StringNullableFilter<"GalleryListing"> | string | null
+    thumbnailUrl?: StringNullableFilter<"GalleryListing"> | string | null
     viewCount?: IntFilter<"GalleryListing"> | number
     useCount?: IntFilter<"GalleryListing"> | number
     createdAt?: DateTimeFilter<"GalleryListing"> | Date | string
@@ -151695,6 +151715,7 @@ export namespace Prisma {
     authorName?: SortOrder
     authorUserId?: SortOrderInput | SortOrder
     appUrl?: SortOrderInput | SortOrder
+    thumbnailUrl?: SortOrderInput | SortOrder
     viewCount?: SortOrder
     useCount?: SortOrder
     createdAt?: SortOrder
@@ -151720,6 +151741,7 @@ export namespace Prisma {
     authorName?: StringFilter<"GalleryListing"> | string
     authorUserId?: StringNullableFilter<"GalleryListing"> | string | null
     appUrl?: StringNullableFilter<"GalleryListing"> | string | null
+    thumbnailUrl?: StringNullableFilter<"GalleryListing"> | string | null
     viewCount?: IntFilter<"GalleryListing"> | number
     useCount?: IntFilter<"GalleryListing"> | number
     createdAt?: DateTimeFilter<"GalleryListing"> | Date | string
@@ -151742,6 +151764,7 @@ export namespace Prisma {
     authorName?: SortOrder
     authorUserId?: SortOrderInput | SortOrder
     appUrl?: SortOrderInput | SortOrder
+    thumbnailUrl?: SortOrderInput | SortOrder
     viewCount?: SortOrder
     useCount?: SortOrder
     createdAt?: SortOrder
@@ -151770,6 +151793,7 @@ export namespace Prisma {
     authorName?: StringWithAggregatesFilter<"GalleryListing"> | string
     authorUserId?: StringNullableWithAggregatesFilter<"GalleryListing"> | string | null
     appUrl?: StringNullableWithAggregatesFilter<"GalleryListing"> | string | null
+    thumbnailUrl?: StringNullableWithAggregatesFilter<"GalleryListing"> | string | null
     viewCount?: IntWithAggregatesFilter<"GalleryListing"> | number
     useCount?: IntWithAggregatesFilter<"GalleryListing"> | number
     createdAt?: DateTimeWithAggregatesFilter<"GalleryListing"> | Date | string
@@ -161475,6 +161499,7 @@ export namespace Prisma {
     sourceSnapshotId: string
     authorName: string
     appUrl?: string | null
+    thumbnailUrl?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -161497,6 +161522,7 @@ export namespace Prisma {
     authorName: string
     authorUserId?: string | null
     appUrl?: string | null
+    thumbnailUrl?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -161515,6 +161541,7 @@ export namespace Prisma {
     sourceSnapshotId?: StringFieldUpdateOperationsInput | string
     authorName?: StringFieldUpdateOperationsInput | string
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -161537,6 +161564,7 @@ export namespace Prisma {
     authorName?: StringFieldUpdateOperationsInput | string
     authorUserId?: NullableStringFieldUpdateOperationsInput | string | null
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -161557,6 +161585,7 @@ export namespace Prisma {
     authorName: string
     authorUserId?: string | null
     appUrl?: string | null
+    thumbnailUrl?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -161575,6 +161604,7 @@ export namespace Prisma {
     sourceSnapshotId?: StringFieldUpdateOperationsInput | string
     authorName?: StringFieldUpdateOperationsInput | string
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -161595,6 +161625,7 @@ export namespace Prisma {
     authorName?: StringFieldUpdateOperationsInput | string
     authorUserId?: NullableStringFieldUpdateOperationsInput | string | null
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -167647,6 +167678,7 @@ export namespace Prisma {
     authorName?: SortOrder
     authorUserId?: SortOrder
     appUrl?: SortOrder
+    thumbnailUrl?: SortOrder
     viewCount?: SortOrder
     useCount?: SortOrder
     createdAt?: SortOrder
@@ -167671,6 +167703,7 @@ export namespace Prisma {
     authorName?: SortOrder
     authorUserId?: SortOrder
     appUrl?: SortOrder
+    thumbnailUrl?: SortOrder
     viewCount?: SortOrder
     useCount?: SortOrder
     createdAt?: SortOrder
@@ -167690,6 +167723,7 @@ export namespace Prisma {
     authorName?: SortOrder
     authorUserId?: SortOrder
     appUrl?: SortOrder
+    thumbnailUrl?: SortOrder
     viewCount?: SortOrder
     useCount?: SortOrder
     createdAt?: SortOrder
@@ -175454,6 +175488,7 @@ export namespace Prisma {
     sourceSnapshotId: string
     authorName: string
     appUrl?: string | null
+    thumbnailUrl?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -175474,6 +175509,7 @@ export namespace Prisma {
     sourceSnapshotId: string
     authorName: string
     appUrl?: string | null
+    thumbnailUrl?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -176480,6 +176516,7 @@ export namespace Prisma {
     authorName?: StringFilter<"GalleryListing"> | string
     authorUserId?: StringNullableFilter<"GalleryListing"> | string | null
     appUrl?: StringNullableFilter<"GalleryListing"> | string | null
+    thumbnailUrl?: StringNullableFilter<"GalleryListing"> | string | null
     viewCount?: IntFilter<"GalleryListing"> | number
     useCount?: IntFilter<"GalleryListing"> | number
     createdAt?: DateTimeFilter<"GalleryListing"> | Date | string
@@ -180604,6 +180641,7 @@ export namespace Prisma {
     sourceSnapshotId: string
     authorName: string
     appUrl?: string | null
+    thumbnailUrl?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -180624,6 +180662,7 @@ export namespace Prisma {
     authorName: string
     authorUserId?: string | null
     appUrl?: string | null
+    thumbnailUrl?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -201611,6 +201650,7 @@ export namespace Prisma {
     sourceSnapshotId: string
     authorName: string
     appUrl?: string | null
+    thumbnailUrl?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -202216,6 +202256,7 @@ export namespace Prisma {
     sourceSnapshotId?: StringFieldUpdateOperationsInput | string
     authorName?: StringFieldUpdateOperationsInput | string
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -202236,6 +202277,7 @@ export namespace Prisma {
     sourceSnapshotId?: StringFieldUpdateOperationsInput | string
     authorName?: StringFieldUpdateOperationsInput | string
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -202255,6 +202297,7 @@ export namespace Prisma {
     sourceSnapshotId?: StringFieldUpdateOperationsInput | string
     authorName?: StringFieldUpdateOperationsInput | string
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -204429,6 +204472,7 @@ export namespace Prisma {
     authorName: string
     authorUserId?: string | null
     appUrl?: string | null
+    thumbnailUrl?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -204782,6 +204826,7 @@ export namespace Prisma {
     sourceSnapshotId?: StringFieldUpdateOperationsInput | string
     authorName?: StringFieldUpdateOperationsInput | string
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -204802,6 +204847,7 @@ export namespace Prisma {
     authorName?: StringFieldUpdateOperationsInput | string
     authorUserId?: NullableStringFieldUpdateOperationsInput | string | null
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -204821,6 +204867,7 @@ export namespace Prisma {
     authorName?: StringFieldUpdateOperationsInput | string
     authorUserId?: NullableStringFieldUpdateOperationsInput | string | null
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string

@@ -1950,6 +1950,7 @@ export class TestApiStore implements ApiStore {
     authorName: string;
     authorUserId?: string;
     appUrl?: string;
+    thumbnailUrl?: string;
     publishedAt?: string;
   }): Promise<GalleryListingRecord> {
     const status = input.status ?? 'PUBLISHED';
@@ -1967,6 +1968,7 @@ export class TestApiStore implements ApiStore {
       authorName: input.authorName,
       authorUserId: input.authorUserId,
       appUrl: input.appUrl,
+      thumbnailUrl: input.thumbnailUrl,
       viewCount: 0,
       useCount: 0,
       createdAt: now(),

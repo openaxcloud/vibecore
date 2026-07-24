@@ -159,6 +159,8 @@ export interface GalleryListingRecord {
   authorName: string;
   authorUserId?: string;
   appUrl?: string;
+  /** Card preview image (real rendered screenshot): root-relative asset or https URL. */
+  thumbnailUrl?: string;
   viewCount: number;
   useCount: number;
   createdAt: string;
@@ -1344,6 +1346,7 @@ export interface ApiStore {
     authorName: string;
     authorUserId?: string;
     appUrl?: string;
+    thumbnailUrl?: string;
     publishedAt?: string;
   }): Promise<GalleryListingRecord>;
   /** Browse published listings, filtered by category / free-text / featured. */

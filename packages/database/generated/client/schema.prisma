@@ -2398,6 +2398,10 @@ model GalleryListing {
   authorUserId     String?
   /// Outbound "View App" link to the deployed app (may be null pre-deploy).
   appUrl           String?
+  /// Card preview image (a real rendered screenshot). Root-relative static
+  /// asset (/gallery-apps/<id>/thumbnail.png) or an https URL; null renders
+  /// the text-only card.
+  thumbnailUrl     String?
   viewCount        Int       @default(0)
   useCount         Int       @default(0)
   createdAt        DateTime  @default(now())

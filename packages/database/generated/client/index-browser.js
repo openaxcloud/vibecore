@@ -1478,6 +1478,7 @@ exports.Prisma.GalleryListingScalarFieldEnum = {
   authorName: 'authorName',
   authorUserId: 'authorUserId',
   appUrl: 'appUrl',
+  thumbnailUrl: 'thumbnailUrl',
   viewCount: 'viewCount',
   useCount: 'useCount',
   createdAt: 'createdAt',

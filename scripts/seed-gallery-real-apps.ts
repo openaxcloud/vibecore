@@ -115,6 +115,9 @@ async function main() {
         sourceProjectId: project.id,
         sourceSnapshotId: snapshot.id,
         authorName: app.author.displayName,
+        // Real rendered screenshot served as a static asset by the web app, so
+        // the public grid card shows a preview image (not a text-only card).
+        thumbnailUrl: app.thumbnailUrl,
         featured: app.featured,
         status: 'PUBLISHED',
       });

@@ -24,6 +24,7 @@ type GalleryCard = {
   featured: boolean;
   author: string;
   appUrl: string | null;
+  thumbnailUrl: string | null;
   views: number;
   uses: number;
 };
@@ -93,9 +94,22 @@ function GalleryCardLink({ card }: { card: GalleryCard }) {
   return (
     <Link
       to={`/gallery/${encodeURIComponent(card.slug)}`}
-      className="group flex flex-col rounded-xl border border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-5 transition hover:border-[var(--ecode-accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)]"
+      className="group flex flex-col overflow-hidden rounded-xl border border-[var(--ecode-border)] bg-[var(--ecode-surface)] transition hover:border-[var(--ecode-accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)]"
       data-testid={`gallery-card-${card.slug}`}
     >
+      {card.thumbnailUrl ? (
+        <img
+          src={card.thumbnailUrl}
+          alt={`Preview of ${card.title}`}
+          loading="lazy"
+          width={1200}
+          height={675}
+          className="aspect-[16/9] w-full border-b border-[var(--ecode-border)] bg-[var(--ecode-background)] object-cover"
+          data-testid={`gallery-card-thumb-${card.slug}`}
+        />
+      ) : null}
+
+      <div className="flex flex-1 flex-col p-5">
       <div className="flex items-center justify-between gap-3">
         <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--ecode-border)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--ecode-text-secondary)]">
           {card.category}
@@ -134,6 +148,7 @@ function GalleryCardLink({ card }: { card: GalleryCard }) {
           <Stat icon={<Eye className="h-3.5 w-3.5" aria-hidden />} value={card.views} label="views" />
           <Stat icon={<GitFork className="h-3.5 w-3.5" aria-hidden />} value={card.uses} label="remixes" />
         </span>
+      </div>
       </div>
     </Link>
   );

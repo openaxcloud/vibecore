@@ -21602,6 +21602,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     featured: boolean;
     authorName: string;
     appUrl?: string;
+    thumbnailUrl?: string;
     viewCount: number;
     useCount: number;
     publishedAt?: string;
@@ -21615,6 +21616,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     featured: row.featured,
     author: row.authorName,
     appUrl: row.appUrl ?? null,
+    thumbnailUrl: row.thumbnailUrl ?? null,
     views: row.viewCount,
     uses: row.useCount,
     publishedAt: row.publishedAt ?? null,
@@ -21776,6 +21778,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     authorName: z.string().min(1),
     authorUserId: z.string().min(1).optional(),
     appUrl: z.string().url().optional(),
+    // Card preview image: either an https URL or a root-relative static asset
+    // (/gallery-apps/<id>/thumbnail.png) served by the web app. Rejected
+    // otherwise so a listing can't point the grid at an arbitrary scheme.
+    thumbnailUrl: z
+      .string()
+      .trim()
+      .max(2_048)
+      .refine(
+        (value) => /^\/[A-Za-z0-9._~!$&'()*+,;=:@%/-]+$/.test(value) || /^https:\/\//.test(value),
+        { message: 'thumbnailUrl must be an https URL or a root-relative /path' },
+      )
+      .optional(),
     featured: z.boolean().optional(),
     status: z.enum(['PUBLISHED', 'PENDING_REVIEW', 'UNPUBLISHED']).optional(),
   });

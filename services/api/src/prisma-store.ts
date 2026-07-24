@@ -1251,6 +1251,7 @@ export class PrismaApiStore implements ApiStore {
     authorName: string;
     authorUserId: string | null;
     appUrl: string | null;
+    thumbnailUrl: string | null;
     viewCount: number;
     useCount: number;
     createdAt: Date;
@@ -1270,6 +1271,7 @@ export class PrismaApiStore implements ApiStore {
       authorName: row.authorName,
       authorUserId: row.authorUserId ?? undefined,
       appUrl: row.appUrl ?? undefined,
+      thumbnailUrl: row.thumbnailUrl ?? undefined,
       viewCount: row.viewCount,
       useCount: row.useCount,
       createdAt: row.createdAt.toISOString(),
@@ -1290,6 +1292,7 @@ export class PrismaApiStore implements ApiStore {
     authorName: string;
     authorUserId?: string;
     appUrl?: string;
+    thumbnailUrl?: string;
     publishedAt?: string;
   }) {
     const status = input.status ?? 'PUBLISHED';
@@ -1307,6 +1310,7 @@ export class PrismaApiStore implements ApiStore {
         authorName: input.authorName,
         authorUserId: input.authorUserId ?? null,
         appUrl: input.appUrl ?? null,
+        thumbnailUrl: input.thumbnailUrl ?? null,
         // A row published at creation records publishedAt so the detail page
         // can show a real date; a PENDING_REVIEW row leaves it null.
         publishedAt: input.publishedAt
