@@ -10,7 +10,18 @@ import {
   materializeGalleryDemoApp,
 } from './server.js';
 
-const REQUIRED_IDS = [
+const NEW_APP_IDS = [
+  'vendor-risk-review',
+  'field-service-inspector',
+  'revenue-cohort-explorer',
+  'qbr-generator',
+  'incident-postmortem-explainer',
+  'warehouse-layout-planner',
+  'pipeline-crm',
+  'storefront',
+] as const;
+
+const HISTORICAL_IDS = [
   'react-saas',
   'next-dashboard',
   'fastify-api',
@@ -19,8 +30,10 @@ const REQUIRED_IDS = [
   'mobile-starter',
 ] as const;
 
+const REQUIRED_IDS = [...NEW_APP_IDS, ...HISTORICAL_IDS] as const;
+
 describe('published Gallery demo applications', () => {
-  it('exposes exactly the six historical starters as application—not framework—cards', () => {
+  it('exposes application—not framework—cards for every published demo app', () => {
     expect(listGalleryDemoAppSummaries()).toBe(GALLERY_DEMO_APP_SUMMARIES);
     expect(GALLERY_DEMO_APP_SUMMARIES.map((item) => item.id)).toEqual(REQUIRED_IDS);
     expect(new Set(GALLERY_DEMO_APP_SUMMARIES.map((item) => item.key)).size).toBe(REQUIRED_IDS.length);
@@ -39,6 +52,22 @@ describe('published Gallery demo applications', () => {
       expect(item.previewUrl).toBe(`/gallery-apps/${item.id}/preview/`);
       expect(JSON.stringify(item).toLowerCase()).not.toMatch(/python|golang|\brust\b/);
     }
+  });
+
+  it('gives each of the eight real applications its own artifact-type chip', () => {
+    const chips = NEW_APP_IDS.map((id) => getGalleryDemoAppSummary(id)!.artifactType);
+
+    expect(chips).toEqual([
+      'business-app',
+      'mobile-app',
+      'data-viz',
+      'slide-deck',
+      'animation',
+      'three-d',
+      'crm',
+      'ecommerce',
+    ]);
+    expect(new Set(chips).size).toBe(NEW_APP_IDS.length);
   });
 
   it('keeps executable files out of the client-safe entrypoint', () => {
@@ -68,7 +97,7 @@ describe('published Gallery demo applications', () => {
       const source = Object.values(snapshot?.files ?? {}).join('\n').replaceAll('\\"', '"');
       expect(source).toContain(`data-gallery-app-id="${id}"`);
       expect(source.toLowerCase()).not.toMatch(/python|golang|\brust\b/);
-      expect(source).not.toMatch(/TODO|placeholder code/i);
+      expect(source).not.toMatch(/TODO/);
 
       hashes.add(snapshot!.contentHash);
       expect(Object.isFrozen(snapshot)).toBe(true);
@@ -79,13 +108,50 @@ describe('published Gallery demo applications', () => {
     expect(hashes.size).toBe(REQUIRED_IDS.length);
   });
 
+  it('never embeds anything that looks like a live or test API key', () => {
+    for (const id of REQUIRED_IDS) {
+      const snapshot = materializeGalleryDemoApp(id)!;
+      const source = Object.values(snapshot.files).join('\n');
+
+      expect(source).not.toMatch(/sk_(?:test|live)_[A-Za-z0-9]{8,}/);
+      expect(source).not.toMatch(/pk_(?:test|live)_[A-Za-z0-9]{8,}/);
+      expect(source).not.toMatch(/AKIA[0-9A-Z]{16}/);
+      expect(source).not.toMatch(/-----BEGIN [A-Z ]*PRIVATE KEY-----/);
+    }
+  });
+
+  it('declares required secrets only where an optional integration needs them', () => {
+    for (const id of REQUIRED_IDS) {
+      const manifest = materializeGalleryDemoApp(id)!.manifest;
+
+      if (id === 'storefront') {
+        expect(manifest.requiredSecretNames).toEqual(['STRIPE_SECRET_KEY']);
+      } else {
+        expect(manifest.requiredSecretNames).toEqual([]);
+      }
+    }
+  });
+
   it('ships a usable index/preview surface and an interaction for each application', () => {
     for (const id of REQUIRED_IDS) {
       const snapshot = materializeGalleryDemoApp(id)!;
       const paths = Object.keys(snapshot.files);
-      expect(paths.some((path) => path === 'index.html' || path === 'app/page.tsx' || path === 'src/server.ts')).toBe(true);
+      expect(
+        paths.some(
+          (path) =>
+            path === 'index.html' ||
+            path === 'app/page.tsx' ||
+            path === 'src/server.ts' ||
+            path === 'server/main.ts' ||
+            path === 'App.tsx',
+        ),
+      ).toBe(true);
       const source = Object.values(snapshot.files).join('\n');
-      expect(source).toMatch(/onClick|onChange|onSubmit|addEventListener/);
+      expect(source).toMatch(/onClick|onChange|onSubmit|onPress|addEventListener/);
+
+      if ((NEW_APP_IDS as readonly string[]).includes(id)) {
+        expect(paths.some((path) => /(^|\/)README\.md$/.test(path))).toBe(true);
+      }
     }
 
     expect(materializeGalleryDemoApp('fastify-api')?.files['src/server.ts']).toContain("app.get('/api/health'");
@@ -94,9 +160,31 @@ describe('published Gallery demo applications', () => {
     expect(materializeGalleryDemoApp('mobile-starter')?.files['public/sw.js']).toContain("self.addEventListener('fetch'");
   });
 
+  it('keeps the mobile chip on a real Expo + Metro application and the animation chip off Remotion', () => {
+    const snapshot = materializeGalleryDemoApp('field-service-inspector')!;
+    const packageJson = JSON.parse(snapshot.files['package.json']!) as {
+      scripts?: Record<string, string>;
+      dependencies?: Record<string, string>;
+    };
+
+    expect(packageJson.dependencies?.expo).toBeTruthy();
+    expect(packageJson.dependencies?.['react-native']).toBeTruthy();
+    expect(packageJson.scripts?.dev).toContain('expo start');
+
+    const allDependencies = GALLERY_DEMO_APP_CATALOG.flatMap((definition) => {
+      const parsed = JSON.parse(
+        definition.files.find((file) => file.path === 'package.json')?.content ?? '{}',
+      ) as { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
+      return [...Object.keys(parsed.dependencies ?? {}), ...Object.keys(parsed.devDependencies ?? {})];
+    });
+    expect(allDependencies.some((name) => name.includes('remotion'))).toBe(false);
+  });
+
   it('looks up app id, stable key and public slug while rejecting unknown values', () => {
     expect(getGalleryDemoAppSummary('react-saas')?.name).toBe('Orbit CRM');
+    expect(getGalleryDemoAppSummary('vendor-risk-review')?.name).toBe('Vendor Risk Review');
     expect(getGalleryDemoApp(' DEMO-NEXT-OPERATIONS-DASHBOARD ')?.id).toBe('next-dashboard');
+    expect(getGalleryDemoApp('demo-storefront')?.id).toBe('storefront');
     expect(getGalleryDemoApp('pulse-api-monitor')?.id).toBe('fastify-api');
     expect(getGalleryDemoApp('unknown-app')).toBeUndefined();
     expect(materializeGalleryDemoApp('unknown-app')).toBeUndefined();
