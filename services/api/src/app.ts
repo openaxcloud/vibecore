@@ -18442,7 +18442,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       // Log counts + kinds ONLY — never a raw value (I-IMP redacted logs).
       request.log?.info?.(
-        { event: 'import.scan', importJobId: job.id, findingCount: findings.length, kinds: findings.map((f) => f.kind) },
+        {
+          event: 'import.scan',
+          importJobId: job.id,
+          findingCount: findings.length,
+          kinds: findings.map((f) => f.kind),
+        },
         'import scan complete',
       );
 
@@ -18507,7 +18512,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireOrg(request, store, orgId, 'projects:write');
     await requireOrganizationNotSuspended(store, orgId);
 
-    const importJobId = z.string().min(1).parse((request.params as { importJobId: string }).importJobId);
+    const importJobId = z
+      .string()
+      .min(1)
+      .parse((request.params as { importJobId: string }).importJobId);
     const body = parse(importConsentSchema, request.body);
 
     const job = await store.getImportJob(importJobId);
@@ -18582,7 +18590,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       await advance('COMMITTING', { consent, redactedCount: redacted.length });
 
       // Atomic target write — the first and only touch of a target project.
-      const name = job.sourceRef?.split('/').pop()?.replace(/\.git$/, '') || `Imported ${job.provider}`;
+      const name =
+        job.sourceRef
+          ?.split('/')
+          .pop()
+          ?.replace(/\.git$/, '') || `Imported ${job.provider}`;
       /*
        * Record the origin in the fixed sourceType enum where a member exists
        * (github/gitlab/bitbucket/zip); other hub tiles fall back to 'blank'
@@ -18657,7 +18669,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/orgs/:orgId/imports/:importJobId/cancel', async (request, reply) => {
     const { orgId } = parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'projects:write');
-    const importJobId = z.string().min(1).parse((request.params as { importJobId: string }).importJobId);
+    const importJobId = z
+      .string()
+      .min(1)
+      .parse((request.params as { importJobId: string }).importJobId);
 
     const job = await store.getImportJob(importJobId);
     if (!job || job.organizationId !== orgId) {
@@ -18671,7 +18686,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/orgs/:orgId/imports/:importJobId', async (request) => {
     const { orgId } = parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'projects:read');
-    const importJobId = z.string().min(1).parse((request.params as { importJobId: string }).importJobId);
+    const importJobId = z
+      .string()
+      .min(1)
+      .parse((request.params as { importJobId: string }).importJobId);
 
     const job = await store.getImportJob(importJobId);
     if (!job || job.organizationId !== orgId) {
@@ -21717,7 +21735,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         },
       });
 
-      return { ok: true, duplicate, jobId: job.id, state, detached, scrubbedValueLines: removed.length, piiMaskedCount };
+      return {
+        ok: true,
+        duplicate,
+        jobId: job.id,
+        state,
+        detached,
+        scrubbedValueLines: removed.length,
+        piiMaskedCount,
+      };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       await store.updateRemixJob(job.id, { state: 'FAILED', error: message }).catch(() => undefined);
@@ -21801,7 +21827,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
-    const remixJobId = z.string().min(1).parse((request.params as { remixJobId: string }).remixJobId);
+    const remixJobId = z
+      .string()
+      .min(1)
+      .parse((request.params as { remixJobId: string }).remixJobId);
     const job = await store.getRemixJob(remixJobId);
 
     if (!job || job.sourceProjectId !== project.id) {
@@ -21899,7 +21928,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   app.get('/gallery/:slug', async (request, reply) => {
-    const slug = z.string().min(1).parse((request.params as { slug: string }).slug);
+    const slug = z
+      .string()
+      .min(1)
+      .parse((request.params as { slug: string }).slug);
     const listing = await store.getGalleryListingBySlug(slug);
 
     if (!listing || listing.status !== 'PUBLISHED') {
@@ -21945,7 +21977,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * scrub / scan invariant as POST /projects/:id/remix applies (shared helper).
    */
   app.post('/gallery/:slug/remix', async (request, reply) => {
-    const slug = z.string().min(1).parse((request.params as { slug: string }).slug);
+    const slug = z
+      .string()
+      .min(1)
+      .parse((request.params as { slug: string }).slug);
     const body = parse(galleryRemixSchema, request.body);
 
     // The clone lands in the remixer's org — authorize membership there.
@@ -22085,10 +22120,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       .string()
       .trim()
       .max(2_048)
-      .refine(
-        (value) => /^\/[A-Za-z0-9._~!$&'()*+,;=:@%/-]+$/.test(value) || /^https:\/\//.test(value),
-        { message: 'thumbnailUrl must be an https URL or a root-relative /path' },
-      )
+      .refine((value) => /^\/[A-Za-z0-9._~!$&'()*+,;=:@%/-]+$/.test(value) || /^https:\/\//.test(value), {
+        message: 'thumbnailUrl must be an https URL or a root-relative /path',
+      })
       .optional(),
     featured: z.boolean().optional(),
     status: z.enum(['PUBLISHED', 'PENDING_REVIEW', 'UNPUBLISHED']).optional(),
@@ -23156,7 +23190,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    let base = { lineKey: modeLine.key, provider: modeLine.provider, model: modeLine.model, multiplier: modeLine.multiplier };
+    let base = {
+      lineKey: modeLine.key,
+      provider: modeLine.provider,
+      model: modeLine.model,
+      multiplier: modeLine.multiplier,
+    };
     let escalation: typeof base | undefined;
     let classifier: { provider: string; model: string } | undefined;
 
@@ -23184,7 +23223,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         });
       }
 
-      base = { lineKey: turboLine.key, provider: turboLine.provider, model: turboLine.model, multiplier: turboLine.multiplier };
+      base = {
+        lineKey: turboLine.key,
+        provider: turboLine.provider,
+        model: turboLine.model,
+        multiplier: turboLine.multiplier,
+      };
     }
 
     if (query.highEffort) {
@@ -25263,7 +25307,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/admin/agent-routing/calls', async (request) => {
     await requirePlatformAdmin(request);
 
-    const query = parse(z.object({ limit: z.coerce.number().int().positive().max(500).default(100) }), request.query ?? {});
+    const query = parse(
+      z.object({ limit: z.coerce.number().int().positive().max(500).default(100) }),
+      request.query ?? {},
+    );
 
     return { calls: await store.listAgentCalls(query.limit) };
   });
@@ -25414,7 +25461,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       const price = lineUserPrice(candidate, line);
-      const simulatedCostCents = (row.tokensIn * line.costInCentsPerM + row.tokensOut * line.costOutCentsPerM) / 1_000_000;
+      const simulatedCostCents =
+        (row.tokensIn * line.costInCentsPerM + row.tokensOut * line.costOutCentsPerM) / 1_000_000;
       const simulatedCreditCents = line.billedToUser
         ? (row.tokensIn * price.inCentsPerM + row.tokensOut * price.outCentsPerM) / 1_000_000
         : 0;
@@ -28612,16 +28660,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * rollback target — the digest-only path would refuse it with
    * ROLLBACK_NO_RETAINED_DIGEST.
    */
-  const annotateRollbackAvailability = <T extends { provider?: string | null; status?: string | null; metadata?: unknown }>(
+  const annotateRollbackAvailability = <
+    T extends { provider?: string | null; status?: string | null; metadata?: unknown },
+  >(
     deployment: T,
   ): T & { rollbackUnavailableReason?: 'NO_RETAINED_DIGEST' } => {
     if (deployment.provider !== 'server' || deployment.status !== 'READY') {
       return deployment;
     }
 
-    const image = ((deployment.metadata as Record<string, unknown> | null)?.serverDeploy as
-      | { image?: { imageDigest?: string } }
-      | undefined)?.image;
+    const image = (
+      (deployment.metadata as Record<string, unknown> | null)?.serverDeploy as
+        | { image?: { imageDigest?: string } }
+        | undefined
+    )?.image;
 
     if (image?.imageDigest && /^sha256:[a-f0-9]{64}$/.test(image.imageDigest)) {
       return deployment;
@@ -28709,7 +28761,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     return {
-      deployment: annotateRollbackAvailability(await reconcileDeploymentStatus(store, deployment).catch(() => deployment)),
+      deployment: annotateRollbackAvailability(
+        await reconcileDeploymentStatus(store, deployment).catch(() => deployment),
+      ),
     };
   });
 

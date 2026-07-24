@@ -1,14 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-  GALLERY_DEMO_APP_SUMMARIES,
-  getGalleryDemoAppSummary,
-  listGalleryDemoAppSummaries,
-} from './index.js';
-import {
-  GALLERY_DEMO_APP_CATALOG,
-  getGalleryDemoApp,
-  materializeGalleryDemoApp,
-} from './server.js';
+import { GALLERY_DEMO_APP_SUMMARIES, getGalleryDemoAppSummary, listGalleryDemoAppSummaries } from './index.js';
+import { GALLERY_DEMO_APP_CATALOG, getGalleryDemoApp, materializeGalleryDemoApp } from './server.js';
 
 const NEW_APP_IDS = [
   'vendor-risk-review',
@@ -42,7 +34,12 @@ describe('published Gallery demo applications', () => {
     for (const item of GALLERY_DEMO_APP_SUMMARIES) {
       expect(item.name).not.toMatch(/starter|react \+|next\.js$|fastify api$/i);
       expect(item.description.length).toBeGreaterThan(50);
-      expect(item.author).toEqual({ id: 'ecode-studio', displayName: 'E-Code Studio', handle: 'ecode', verified: true });
+      expect(item.author).toEqual({
+        id: 'ecode-studio',
+        displayName: 'E-Code Studio',
+        handle: 'ecode',
+        verified: true,
+      });
       expect(item.technologies.length).toBeGreaterThan(1);
       expect(item.publishedAt).toMatch(/^2026-/);
       expect(item.remixCount).toBeGreaterThan(0);
@@ -92,9 +89,13 @@ describe('published Gallery demo applications', () => {
       expect(snapshot?.contentHash).toMatch(/^[a-f0-9]{64}$/);
       expect(snapshot?.app.id).toBe(id);
       expect(snapshot?.files['package.json']).toBeTruthy();
-      expect(JSON.parse(snapshot?.files['package.json'] ?? '{}')).toMatchObject({ scripts: { dev: expect.any(String) } });
+      expect(JSON.parse(snapshot?.files['package.json'] ?? '{}')).toMatchObject({
+        scripts: { dev: expect.any(String) },
+      });
 
-      const source = Object.values(snapshot?.files ?? {}).join('\n').replaceAll('\\"', '"');
+      const source = Object.values(snapshot?.files ?? {})
+        .join('\n')
+        .replaceAll('\\"', '"');
       expect(source).toContain(`data-gallery-app-id="${id}"`);
       expect(source.toLowerCase()).not.toMatch(/python|golang|\brust\b/);
       expect(source).not.toMatch(/TODO/);
@@ -157,7 +158,9 @@ describe('published Gallery demo applications', () => {
     expect(materializeGalleryDemoApp('fastify-api')?.files['src/server.ts']).toContain("app.get('/api/health'");
     expect(materializeGalleryDemoApp('landing-page')?.files['main.js']).toContain("form.addEventListener('submit'");
     expect(materializeGalleryDemoApp('mobile-starter')?.files['public/manifest.webmanifest']).toContain('standalone');
-    expect(materializeGalleryDemoApp('mobile-starter')?.files['public/sw.js']).toContain("self.addEventListener('fetch'");
+    expect(materializeGalleryDemoApp('mobile-starter')?.files['public/sw.js']).toContain(
+      "self.addEventListener('fetch'",
+    );
   });
 
   it('keeps the mobile chip on a real Expo + Metro application and the animation chip off Remotion', () => {
@@ -172,9 +175,10 @@ describe('published Gallery demo applications', () => {
     expect(packageJson.scripts?.dev).toContain('expo start');
 
     const allDependencies = GALLERY_DEMO_APP_CATALOG.flatMap((definition) => {
-      const parsed = JSON.parse(
-        definition.files.find((file) => file.path === 'package.json')?.content ?? '{}',
-      ) as { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
+      const parsed = JSON.parse(definition.files.find((file) => file.path === 'package.json')?.content ?? '{}') as {
+        dependencies?: Record<string, string>;
+        devDependencies?: Record<string, string>;
+      };
       return [...Object.keys(parsed.dependencies ?? {}), ...Object.keys(parsed.devDependencies ?? {})];
     });
     expect(allDependencies.some((name) => name.includes('remotion'))).toBe(false);

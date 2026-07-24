@@ -1345,11 +1345,7 @@ export class PrismaApiStore implements ApiStore {
         piiConsentVersion: input.piiConsentVersion ?? null,
         // A row published at creation records publishedAt so the detail page
         // can show a real date; a PENDING_REVIEW row leaves it null.
-        publishedAt: input.publishedAt
-          ? new Date(input.publishedAt)
-          : status === 'PUBLISHED'
-            ? new Date()
-            : null,
+        publishedAt: input.publishedAt ? new Date(input.publishedAt) : status === 'PUBLISHED' ? new Date() : null,
       },
     });
 

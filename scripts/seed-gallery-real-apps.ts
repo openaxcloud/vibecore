@@ -138,7 +138,10 @@ async function main() {
         title: app.name,
         description: app.description,
         category: app.category,
-        tags: [app.artifactType, ...app.technologies.map((item) => item.toLowerCase().replace(/[^a-z0-9+._-]/g, '-'))].slice(0, 12),
+        tags: [
+          app.artifactType,
+          ...app.technologies.map((item) => item.toLowerCase().replace(/[^a-z0-9+._-]/g, '-')),
+        ].slice(0, 12),
         sourceProjectId: project.id,
         sourceSnapshotId: snapshot.id,
         authorName: app.author.displayName,
