@@ -4,9 +4,9 @@
 # changer le FAIT (codeRefs / evidenceIds / mergedToMain / partialReason /
 # adjacentOnly) dans IMPLEMENTATION_FACTS.yaml, puis régénérer.
 schemaVersion: 2
-generatedAt: 2026-07-24T08:58:30Z
-generatedFromCommit: 402af6fd0a13cc0ad29d1661c29c13cbdf239e09
-mergedCommit: 402af6fd0a13cc0ad29d1661c29c13cbdf239e09
+generatedAt: 2026-07-24T09:02:18Z
+generatedFromCommit: 89ac6cc8dad87301cfcc35480679256dfdf51d1d
+mergedCommit: 89ac6cc8dad87301cfcc35480679256dfdf51d1d
 factsSource: docs/parity/IMPLEMENTATION_FACTS.yaml
 generator: scripts/parity/generate-implementation-status.mjs
 derivationRules: PROVEN=evidence sur disque; NOT_STARTED si adjacentOnly;
