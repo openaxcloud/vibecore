@@ -28,6 +28,7 @@ describe('solutions.$slug loader — legacy slug redirects', () => {
     }
 
     expect(thrown).toBeInstanceOf(Response);
+
     const response = thrown as Response;
     expect(response.status).toBe(308);
     expect(response.headers.get('Location')).toBe('/solutions/internal-ai-builder');
