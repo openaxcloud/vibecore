@@ -188,11 +188,11 @@
     "Error: WebSocket closed without opened."
   ],
   "consoleErrors": [
-    "WebSocket connection to 'ws://127.0.0.1:24678/?token=xuIH9kqonaR2' failed: Error during WebSocket handshake: Unexpected response code: 400",
+    "WebSocket connection to 'ws://127.0.0.1:24678/?token=[redacted-vite-hmr-token]' failed: Error during WebSocket handshake: Unexpected response code: 400",
     "[vite] failed to connect to websocket (Error: WebSocket closed without opened.). ",
     "Failed to send error to Vite server: Error: WebSocket closed without opened.\n    at WebSocket.<anonymous> (http://127.0.0.1:44140/@vite/client:418:30)",
     "Failed to send error to Vite server: Error: WebSocket closed without opened.\n    at WebSocket.<anonymous> (http://127.0.0.1:44140/@vite/client:418:30)",
-    "WebSocket connection to 'ws://127.0.0.1:24678/?token=xuIH9kqonaR2' failed: Error during WebSocket handshake: Unexpected response code: 400",
+    "WebSocket connection to 'ws://127.0.0.1:24678/?token=[redacted-vite-hmr-token]' failed: Error during WebSocket handshake: Unexpected response code: 400",
     "[vite] failed to connect to websocket (Error: WebSocket closed without opened.). ",
     "Failed to send error to Vite server: Error: WebSocket closed without opened.\n    at WebSocket.<anonymous> (http://127.0.0.1:44140/@vite/client:418:30)",
     "Failed to send error to Vite server: Error: WebSocket closed without opened.\n    at WebSocket.<anonymous> (http://127.0.0.1:44140/@vite/client:418:30)"

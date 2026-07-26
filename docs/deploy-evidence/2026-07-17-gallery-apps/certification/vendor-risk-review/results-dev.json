@@ -398,7 +398,7 @@
   "consoleErrors": [
     {
       "at": "http://127.0.0.1:44110/",
-      "text": "WebSocket connection to 'ws://127.0.0.1:24678/?token=XVc_xmFrg40t' failed: Error during WebSocket handshake: Unexpected response code: 400",
+      "text": "WebSocket connection to 'ws://127.0.0.1:24678/?token=[redacted-vite-hmr-token]' failed: Error during WebSocket handshake: Unexpected response code: 400",
       "location": "http://127.0.0.1:44110/@vite/client"
     },
     {
@@ -448,7 +448,7 @@
     },
     {
       "at": "http://127.0.0.1:44110/",
-      "text": "WebSocket connection to 'ws://127.0.0.1:24678/?token=XVc_xmFrg40t' failed: Error during WebSocket handshake: Unexpected response code: 400",
+      "text": "WebSocket connection to 'ws://127.0.0.1:24678/?token=[redacted-vite-hmr-token]' failed: Error during WebSocket handshake: Unexpected response code: 400",
       "location": "http://127.0.0.1:44110/@vite/client"
     },
     {
@@ -468,7 +468,7 @@
     },
     {
       "at": "http://127.0.0.1:44110/",
-      "text": "WebSocket connection to 'ws://127.0.0.1:24678/?token=XVc_xmFrg40t' failed: Error during WebSocket handshake: Unexpected response code: 400",
+      "text": "WebSocket connection to 'ws://127.0.0.1:24678/?token=[redacted-vite-hmr-token]' failed: Error during WebSocket handshake: Unexpected response code: 400",
       "location": "http://127.0.0.1:44110/@vite/client"
     },
     {
@@ -488,7 +488,7 @@
     },
     {
       "at": "http://127.0.0.1:44110/",
-      "text": "WebSocket connection to 'ws://127.0.0.1:24678/?token=XVc_xmFrg40t' failed: Error during WebSocket handshake: Unexpected response code: 400",
+      "text": "WebSocket connection to 'ws://127.0.0.1:24678/?token=[redacted-vite-hmr-token]' failed: Error during WebSocket handshake: Unexpected response code: 400",
       "location": "http://127.0.0.1:44110/@vite/client"
     },
     {
