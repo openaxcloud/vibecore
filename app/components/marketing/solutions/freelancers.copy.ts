@@ -187,7 +187,7 @@ export const FREELANCERS_COPY = {
         },
         {
           title: 'Internal tools for clients',
-          body: 'Small back-office apps that model a real workflow rather than a static mock.',
+          body: 'Small back-office apps that model a real workflow rather than a static prototype.',
         },
         {
           title: 'Prototypes for pitches',
