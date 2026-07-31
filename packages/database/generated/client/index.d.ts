@@ -141477,6 +141477,7 @@ export namespace Prisma {
     authorName: string | null
     authorUserId: string | null
     appUrl: string | null
+    thumbnailUrl: string | null
     remixAllowed: boolean | null
     licenseId: string | null
     licenseText: string | null
@@ -141501,6 +141502,7 @@ export namespace Prisma {
     authorName: string | null
     authorUserId: string | null
     appUrl: string | null
+    thumbnailUrl: string | null
     remixAllowed: boolean | null
     licenseId: string | null
     licenseText: string | null
@@ -141526,6 +141528,7 @@ export namespace Prisma {
     authorName: number
     authorUserId: number
     appUrl: number
+    thumbnailUrl: number
     remixAllowed: number
     licenseId: number
     licenseText: number
@@ -141562,6 +141565,7 @@ export namespace Prisma {
     authorName?: true
     authorUserId?: true
     appUrl?: true
+    thumbnailUrl?: true
     remixAllowed?: true
     licenseId?: true
     licenseText?: true
@@ -141586,6 +141590,7 @@ export namespace Prisma {
     authorName?: true
     authorUserId?: true
     appUrl?: true
+    thumbnailUrl?: true
     remixAllowed?: true
     licenseId?: true
     licenseText?: true
@@ -141611,6 +141616,7 @@ export namespace Prisma {
     authorName?: true
     authorUserId?: true
     appUrl?: true
+    thumbnailUrl?: true
     remixAllowed?: true
     licenseId?: true
     licenseText?: true
@@ -141723,6 +141729,7 @@ export namespace Prisma {
     authorName: string
     authorUserId: string | null
     appUrl: string | null
+    thumbnailUrl: string | null
     remixAllowed: boolean
     licenseId: string | null
     licenseText: string | null
@@ -141767,6 +141774,7 @@ export namespace Prisma {
     authorName?: boolean
     authorUserId?: boolean
     appUrl?: boolean
+    thumbnailUrl?: boolean
     remixAllowed?: boolean
     licenseId?: boolean
     licenseText?: boolean
@@ -141794,6 +141802,7 @@ export namespace Prisma {
     authorName?: boolean
     authorUserId?: boolean
     appUrl?: boolean
+    thumbnailUrl?: boolean
     remixAllowed?: boolean
     licenseId?: boolean
     licenseText?: boolean
@@ -141821,6 +141830,7 @@ export namespace Prisma {
     authorName?: boolean
     authorUserId?: boolean
     appUrl?: boolean
+    thumbnailUrl?: boolean
     remixAllowed?: boolean
     licenseId?: boolean
     licenseText?: boolean
@@ -141848,6 +141858,7 @@ export namespace Prisma {
     authorName?: boolean
     authorUserId?: boolean
     appUrl?: boolean
+    thumbnailUrl?: boolean
     remixAllowed?: boolean
     licenseId?: boolean
     licenseText?: boolean
@@ -141859,7 +141870,7 @@ export namespace Prisma {
     publishedAt?: boolean
   }
 
-  export type GalleryListingOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "slug" | "title" | "description" | "category" | "tags" | "status" | "featured" | "sourceProjectId" | "sourceSnapshotId" | "authorName" | "authorUserId" | "appUrl" | "remixAllowed" | "licenseId" | "licenseText" | "licenseTextSha256" | "piiConsentVersion" | "viewCount" | "useCount" | "createdAt" | "publishedAt", ExtArgs["result"]["galleryListing"]>
+  export type GalleryListingOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "slug" | "title" | "description" | "category" | "tags" | "status" | "featured" | "sourceProjectId" | "sourceSnapshotId" | "authorName" | "authorUserId" | "appUrl" | "thumbnailUrl" | "remixAllowed" | "licenseId" | "licenseText" | "licenseTextSha256" | "piiConsentVersion" | "viewCount" | "useCount" | "createdAt" | "publishedAt", ExtArgs["result"]["galleryListing"]>
   export type GalleryListingInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     sourceProject?: boolean | ProjectDefaultArgs<ExtArgs>
     author?: boolean | GalleryListing$authorArgs<ExtArgs>
@@ -141908,6 +141919,12 @@ export namespace Prisma {
        * Outbound "View App" link to the deployed app (may be null pre-deploy).
        */
       appUrl: string | null
+      /**
+       * Card preview image (a real rendered screenshot). Root-relative static
+       * asset (/gallery-apps/<id>/thumbnail.png) or an https URL; null renders
+       * the text-only card.
+       */
+      thumbnailUrl: string | null
       /**
        * FAIL-CLOSED (directive 20/07) : un projet publié ordinaire est
        * ALL_RIGHTS_RESERVED, non-remixable. remixAllowed ne passe true qu'avec
@@ -142375,6 +142392,7 @@ export namespace Prisma {
     readonly authorName: FieldRef<"GalleryListing", 'String'>
     readonly authorUserId: FieldRef<"GalleryListing", 'String'>
     readonly appUrl: FieldRef<"GalleryListing", 'String'>
+    readonly thumbnailUrl: FieldRef<"GalleryListing", 'String'>
     readonly remixAllowed: FieldRef<"GalleryListing", 'Boolean'>
     readonly licenseId: FieldRef<"GalleryListing", 'String'>
     readonly licenseText: FieldRef<"GalleryListing", 'String'>
@@ -151391,6 +151409,7 @@ export namespace Prisma {
     authorName: 'authorName',
     authorUserId: 'authorUserId',
     appUrl: 'appUrl',
+    thumbnailUrl: 'thumbnailUrl',
     remixAllowed: 'remixAllowed',
     licenseId: 'licenseId',
     licenseText: 'licenseText',
@@ -160948,6 +160967,7 @@ export namespace Prisma {
     authorName?: StringFilter<"GalleryListing"> | string
     authorUserId?: StringNullableFilter<"GalleryListing"> | string | null
     appUrl?: StringNullableFilter<"GalleryListing"> | string | null
+    thumbnailUrl?: StringNullableFilter<"GalleryListing"> | string | null
     remixAllowed?: BoolFilter<"GalleryListing"> | boolean
     licenseId?: StringNullableFilter<"GalleryListing"> | string | null
     licenseText?: StringNullableFilter<"GalleryListing"> | string | null
@@ -160975,6 +160995,7 @@ export namespace Prisma {
     authorName?: SortOrder
     authorUserId?: SortOrderInput | SortOrder
     appUrl?: SortOrderInput | SortOrder
+    thumbnailUrl?: SortOrderInput | SortOrder
     remixAllowed?: SortOrder
     licenseId?: SortOrderInput | SortOrder
     licenseText?: SortOrderInput | SortOrder
@@ -161005,6 +161026,7 @@ export namespace Prisma {
     authorName?: StringFilter<"GalleryListing"> | string
     authorUserId?: StringNullableFilter<"GalleryListing"> | string | null
     appUrl?: StringNullableFilter<"GalleryListing"> | string | null
+    thumbnailUrl?: StringNullableFilter<"GalleryListing"> | string | null
     remixAllowed?: BoolFilter<"GalleryListing"> | boolean
     licenseId?: StringNullableFilter<"GalleryListing"> | string | null
     licenseText?: StringNullableFilter<"GalleryListing"> | string | null
@@ -161032,6 +161054,7 @@ export namespace Prisma {
     authorName?: SortOrder
     authorUserId?: SortOrderInput | SortOrder
     appUrl?: SortOrderInput | SortOrder
+    thumbnailUrl?: SortOrderInput | SortOrder
     remixAllowed?: SortOrder
     licenseId?: SortOrderInput | SortOrder
     licenseText?: SortOrderInput | SortOrder
@@ -161065,6 +161088,7 @@ export namespace Prisma {
     authorName?: StringWithAggregatesFilter<"GalleryListing"> | string
     authorUserId?: StringNullableWithAggregatesFilter<"GalleryListing"> | string | null
     appUrl?: StringNullableWithAggregatesFilter<"GalleryListing"> | string | null
+    thumbnailUrl?: StringNullableWithAggregatesFilter<"GalleryListing"> | string | null
     remixAllowed?: BoolWithAggregatesFilter<"GalleryListing"> | boolean
     licenseId?: StringNullableWithAggregatesFilter<"GalleryListing"> | string | null
     licenseText?: StringNullableWithAggregatesFilter<"GalleryListing"> | string | null
@@ -171442,6 +171466,7 @@ export namespace Prisma {
     sourceSnapshotId: string
     authorName: string
     appUrl?: string | null
+    thumbnailUrl?: string | null
     remixAllowed?: boolean
     licenseId?: string | null
     licenseText?: string | null
@@ -171469,6 +171494,7 @@ export namespace Prisma {
     authorName: string
     authorUserId?: string | null
     appUrl?: string | null
+    thumbnailUrl?: string | null
     remixAllowed?: boolean
     licenseId?: string | null
     licenseText?: string | null
@@ -171492,6 +171518,7 @@ export namespace Prisma {
     sourceSnapshotId?: StringFieldUpdateOperationsInput | string
     authorName?: StringFieldUpdateOperationsInput | string
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     remixAllowed?: BoolFieldUpdateOperationsInput | boolean
     licenseId?: NullableStringFieldUpdateOperationsInput | string | null
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
@@ -171519,6 +171546,7 @@ export namespace Prisma {
     authorName?: StringFieldUpdateOperationsInput | string
     authorUserId?: NullableStringFieldUpdateOperationsInput | string | null
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     remixAllowed?: BoolFieldUpdateOperationsInput | boolean
     licenseId?: NullableStringFieldUpdateOperationsInput | string | null
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
@@ -171544,6 +171572,7 @@ export namespace Prisma {
     authorName: string
     authorUserId?: string | null
     appUrl?: string | null
+    thumbnailUrl?: string | null
     remixAllowed?: boolean
     licenseId?: string | null
     licenseText?: string | null
@@ -171567,6 +171596,7 @@ export namespace Prisma {
     sourceSnapshotId?: StringFieldUpdateOperationsInput | string
     authorName?: StringFieldUpdateOperationsInput | string
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     remixAllowed?: BoolFieldUpdateOperationsInput | boolean
     licenseId?: NullableStringFieldUpdateOperationsInput | string | null
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
@@ -171592,6 +171622,7 @@ export namespace Prisma {
     authorName?: StringFieldUpdateOperationsInput | string
     authorUserId?: NullableStringFieldUpdateOperationsInput | string | null
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     remixAllowed?: BoolFieldUpdateOperationsInput | boolean
     licenseId?: NullableStringFieldUpdateOperationsInput | string | null
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
@@ -178262,6 +178293,7 @@ export namespace Prisma {
     authorName?: SortOrder
     authorUserId?: SortOrder
     appUrl?: SortOrder
+    thumbnailUrl?: SortOrder
     remixAllowed?: SortOrder
     licenseId?: SortOrder
     licenseText?: SortOrder
@@ -178291,6 +178323,7 @@ export namespace Prisma {
     authorName?: SortOrder
     authorUserId?: SortOrder
     appUrl?: SortOrder
+    thumbnailUrl?: SortOrder
     remixAllowed?: SortOrder
     licenseId?: SortOrder
     licenseText?: SortOrder
@@ -178315,6 +178348,7 @@ export namespace Prisma {
     authorName?: SortOrder
     authorUserId?: SortOrder
     appUrl?: SortOrder
+    thumbnailUrl?: SortOrder
     remixAllowed?: SortOrder
     licenseId?: SortOrder
     licenseText?: SortOrder
@@ -186782,6 +186816,7 @@ export namespace Prisma {
     sourceSnapshotId: string
     authorName: string
     appUrl?: string | null
+    thumbnailUrl?: string | null
     remixAllowed?: boolean
     licenseId?: string | null
     licenseText?: string | null
@@ -186807,6 +186842,7 @@ export namespace Prisma {
     sourceSnapshotId: string
     authorName: string
     appUrl?: string | null
+    thumbnailUrl?: string | null
     remixAllowed?: boolean
     licenseId?: string | null
     licenseText?: string | null
@@ -187818,6 +187854,7 @@ export namespace Prisma {
     authorName?: StringFilter<"GalleryListing"> | string
     authorUserId?: StringNullableFilter<"GalleryListing"> | string | null
     appUrl?: StringNullableFilter<"GalleryListing"> | string | null
+    thumbnailUrl?: StringNullableFilter<"GalleryListing"> | string | null
     remixAllowed?: BoolFilter<"GalleryListing"> | boolean
     licenseId?: StringNullableFilter<"GalleryListing"> | string | null
     licenseText?: StringNullableFilter<"GalleryListing"> | string | null
@@ -191947,6 +191984,7 @@ export namespace Prisma {
     sourceSnapshotId: string
     authorName: string
     appUrl?: string | null
+    thumbnailUrl?: string | null
     remixAllowed?: boolean
     licenseId?: string | null
     licenseText?: string | null
@@ -191972,6 +192010,7 @@ export namespace Prisma {
     authorName: string
     authorUserId?: string | null
     appUrl?: string | null
+    thumbnailUrl?: string | null
     remixAllowed?: boolean
     licenseId?: string | null
     licenseText?: string | null
@@ -213304,6 +213343,7 @@ export namespace Prisma {
     sourceSnapshotId: string
     authorName: string
     appUrl?: string | null
+    thumbnailUrl?: string | null
     remixAllowed?: boolean
     licenseId?: string | null
     licenseText?: string | null
@@ -213914,6 +213954,7 @@ export namespace Prisma {
     sourceSnapshotId?: StringFieldUpdateOperationsInput | string
     authorName?: StringFieldUpdateOperationsInput | string
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     remixAllowed?: BoolFieldUpdateOperationsInput | boolean
     licenseId?: NullableStringFieldUpdateOperationsInput | string | null
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
@@ -213939,6 +213980,7 @@ export namespace Prisma {
     sourceSnapshotId?: StringFieldUpdateOperationsInput | string
     authorName?: StringFieldUpdateOperationsInput | string
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     remixAllowed?: BoolFieldUpdateOperationsInput | boolean
     licenseId?: NullableStringFieldUpdateOperationsInput | string | null
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
@@ -213963,6 +214005,7 @@ export namespace Prisma {
     sourceSnapshotId?: StringFieldUpdateOperationsInput | string
     authorName?: StringFieldUpdateOperationsInput | string
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     remixAllowed?: BoolFieldUpdateOperationsInput | boolean
     licenseId?: NullableStringFieldUpdateOperationsInput | string | null
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
@@ -216142,6 +216185,7 @@ export namespace Prisma {
     authorName: string
     authorUserId?: string | null
     appUrl?: string | null
+    thumbnailUrl?: string | null
     remixAllowed?: boolean
     licenseId?: string | null
     licenseText?: string | null
@@ -216500,6 +216544,7 @@ export namespace Prisma {
     sourceSnapshotId?: StringFieldUpdateOperationsInput | string
     authorName?: StringFieldUpdateOperationsInput | string
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     remixAllowed?: BoolFieldUpdateOperationsInput | boolean
     licenseId?: NullableStringFieldUpdateOperationsInput | string | null
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
@@ -216525,6 +216570,7 @@ export namespace Prisma {
     authorName?: StringFieldUpdateOperationsInput | string
     authorUserId?: NullableStringFieldUpdateOperationsInput | string | null
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     remixAllowed?: BoolFieldUpdateOperationsInput | boolean
     licenseId?: NullableStringFieldUpdateOperationsInput | string | null
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
@@ -216549,6 +216595,7 @@ export namespace Prisma {
     authorName?: StringFieldUpdateOperationsInput | string
     authorUserId?: NullableStringFieldUpdateOperationsInput | string | null
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     remixAllowed?: BoolFieldUpdateOperationsInput | boolean
     licenseId?: NullableStringFieldUpdateOperationsInput | string | null
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null

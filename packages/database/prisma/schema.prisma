@@ -2456,6 +2456,10 @@ model GalleryListing {
   authorUserId     String?
   /// Outbound "View App" link to the deployed app (may be null pre-deploy).
   appUrl           String?
+  /// Card preview image (a real rendered screenshot). Root-relative static
+  /// asset (/gallery-apps/<id>/thumbnail.png) or an https URL; null renders
+  /// the text-only card.
+  thumbnailUrl     String?
   /// FAIL-CLOSED (directive 20/07) : un projet publié ordinaire est
   /// ALL_RIGHTS_RESERVED, non-remixable. remixAllowed ne passe true qu'avec
   /// une licence EXPLICITE + confirmation des droits + politique PII acceptée.

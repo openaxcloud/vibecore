@@ -4,56 +4,58 @@ schemaVersion: 1
 repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
 p0s:
   - p0Id: P0-V4-1
-    title: "Collecteur aveugle : ajouter routes produit (rendu JS) + canal de lancement"
+    title: "Collecteur : routes produit rendues JS — SCINDÉ (canal de lancement → UNK-LAUNCH-CHANNEL)"
     priority: 1
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewReceiptId: RR-20260720-CODEX-02
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260722-CODEX-06 (COMPLET, responseHash 9ac5e9b6…) — signature valide UNIQUEMENT la collecte des routes produit rendues en JavaScript ; elle ne valide ni ne ferme UNK-LAUNCH-CHANNEL (canal de lancement resté inconnu)"
+    reviewReceiptId: RR-20260722-CODEX-06
     remediationTrack: QUICK
-    conditionDeCloture: "Repointage effectif de l'evidenceId vers un artefact cohérent, avec README/capture/métriques régénérés, puis nouvelle revue"
-    refusalReason: "Le chemin canonique evidenceId reste docs/deploy-evidence/2026-07-16-collector-gallery/ : son README annonce encore fad9ec75…, Views 20,650 et 82 Results, et sa seule capture gallery-rendered.png ne montre que le footer. Le HTML 1f5f27bc… existe, mais l'evidenceId du registre n'a pas été repointé."
+    conditionDeCloture: "Preuve primaire des routes produit rendues JS (DOM complet hash-recalculable + trace de collecte) — le canal de lancement est un UNKNOWN séparé (UNK-LAUNCH-CHANNEL) ; puis signature du relecteur"
+    refusalReason: "le titre demande toujours le canal de lancement, que la preuve déclare elle-même absent — la preuve ne soutient qu'une partie du titre ; correction : scinder le point et ne soumettre que « routes produit rendues JS »"
     refusalType: PREUVE_INSUFFISANTE
-    reviewVerdict: REFUSED
-    reviewedRemediationCommit: "af24d4fe48015e6041c8e11b240b1f2d54f333d1"
-    reviewCommit: "cf5c67a513322ba0c248b900ea88c50b5e128ac6"
+    reviewVerdict: SIGNED
+    reviewCommit: "21e8a255"
     commit: "07ced1c56bdbcb3ce77e883704342b71a2ad0961"
-    reviewer: UNKNOWN
-    evidenceId: docs/deploy-evidence/2026-07-16-collector-gallery/
-    proof: "REMÉDIÉ v2 (21/07) : le README canonique de l'évidence (2026-07-16-collector-gallery) porte une section CORRECTION expliquant le hash post-assainissement (fad9→1f5f, caviardage CMS) et repointe vers les HTML complets ; la capture footer-only est déclarée supplantée. PRÊT À RE-SOUMETTRE."
-    nextAction: "Régénérer le paquet canonique complet et repointer evidenceId"
+    reviewer: OpenAI-Codex
+    evidenceId: docs/deploy-evidence/2026-07-21-gallery-pricing-v4/
+    proof: "SCINDÉ v5 (22/07, réserve RR-05) : CE point ne porte PLUS QUE les routes produit rendues JS — preuve primaire : DOM COMPLET archivé (replit-gallery-dom.html, sha256 4e5380a8… recalculable, zéro ellipse), 43 ancres /gallery/ dans le markup + trace des requêtes _next/data des routes produit. Le canal de lancement (absent du rendu public anonyme) est SORTI du point → UNK-LAUNCH-CHANNEL (UNKNOWN_REGISTRY, owner+expiration). Titre et condition retitrés en conséquence."
+    nextAction: "Re-soumission au relecteur (point scindé : routes produit seules)"
     targetDate: "2026-07-16"
   - p0Id: P0-V4-2
     title: "Gallery : requalifier la table (mesures réelles, archive rendue)"
     priority: 2
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewReceiptId: RR-20260720-CODEX-02
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260722-CODEX-06 (COMPLET, responseHash 9ac5e9b6…) — le titre, le proof et l'artefact portent la même unité de mesure (43 ancres /gallery/ dans le DOM) ; 43 ancres NE sont PAS requalifiées en 43 applications ou 43 cartes distinctes"
+    reviewReceiptId: RR-20260722-CODEX-06
     remediationTrack: QUICK
-    conditionDeCloture: "Réconcilier l'artefact canonique, le contrat et les IDs de source avec 20,653/20,649, puis nouvelle revue"
-    refusalReason: "Les HTML reproduisent bien 20,653/20,649, mais le README de l'artefact canonique annonce encore 20,650 et 82 Results ; GALLERY_COMMUNITY_CONTRACT conserve aussi « 82 Results » et cite SRC-GALLERY-DETAIL, ID absent du registre (SRC-GALLERY-DETAIL-JOURNEY-MAPPER existe). La requalification reste contradictoire."
-    refusalType: DESACCORD
-    reviewVerdict: REFUSED
-    reviewedRemediationCommit: "af24d4fe48015e6041c8e11b240b1f2d54f333d1"
-    reviewCommit: "cf5c67a513322ba0c248b900ea88c50b5e128ac6"
+    conditionDeCloture: "Les mesures revendiquées == les mesures de l'artefact (43 ancres /gallery/, pas « cartes ») ; archive primaire reproductible ; puis signature du relecteur"
+    refusalReason: "désaccord entre « 43 cartes » et l'artefact qui mesure 43 ancres : le rendu textuel montre 20 cartes chargées puis Load all apps — une ancre n'est pas nécessairement une carte distincte"
+    refusalType: PREUVE_INSUFFISANTE
+    reviewVerdict: SIGNED
+    reviewCommit: "21e8a255"
     commit: "07ced1c56bdbcb3ce77e883704342b71a2ad0961"
-    reviewer: UNKNOWN
-    evidenceId: docs/deploy-evidence/2026-07-16-collector-gallery/
-    proof: "REMÉDIÉ v2 (21/07) : README corrigé (20,653/20,649, « 82 Results » retiré partout) + GALLERY_COMMUNITY_CONTRACT : ligne Recherche requalifiée et SRC-GALLERY-DETAIL → SRC-GALLERY-DETAIL-JOURNEY-MAPPER (ID réel du registre). PRÊT À RE-SOUMETTRE."
-    nextAction: "Réconcilier README, capture, contrat et IDs de source"
+    reviewer: OpenAI-Codex
+    evidenceId: docs/deploy-evidence/2026-07-21-gallery-pricing-v4/
+    proof: "CORRIGÉ v5 (22/07) : la mesure revendiquée est EXACTEMENT celle de l'artefact — « 43 ancres /gallery/ dans le DOM » (grep rejouable au README ; le rendu textuel initial montre 20 cartes chargées puis 'Load all apps' — lazy-load, dit tel quel). Plus aucune mention de « cartes » comme mesure. Le HTML rendu COMPLET reste archivé (sha256 4e5380a8… recalculable), 82 Results dans le markup, capture datée liée au hash."
+    nextAction: "Re-soumission au relecteur (terminologie alignée sur la mesure réelle)"
     targetDate: "2026-07-16"
   - p0Id: P0-V4-3
     title: "Hiérarchie GCP : folder-per-tenant mort (300 cap + 0,1 req/s)"
     priority: 3
     owner: platform
-    status: OPEN
+    status: CLOSED
+    reviewReceiptId: RR-20260722-CODEX-06
+    reviewNote: "SIGNÉ au reçu RR-20260722-CODEX-06 (COMPLET, responseHash 9ac5e9b6…) — repose sur les mêmes limites autoritatives que P0-V3-03, déduplication documentée ; portée identique à V3-03 (limites au moment de l'archive, pas de garantie de stabilité future)"
     remediationTrack: A_TRIER
     conditionDeCloture: "Compléter l'évidence : tests recopient constantes 300 et 0,1 sans source GCP autoritative ; puis re-soumission au relecteur"
     refusalReason: "tests recopient constantes 300 et 0,1 sans source GCP autoritative"
     refusalType: PREUVE_INSUFFISANTE
-    reviewVerdict: REFUSED
-    reviewCommit: "57febeab"
+    reviewVerdict: SIGNED
+    reviewCommit: "21e8a255"
     commit: "07ced1c5"
-    reviewer: UNKNOWN
+    reviewer: OpenAI-Codex
     evidenceId: services/api/src/capacity-policy.spec.ts
     proof: "capacity-policy.ts : 1000 tenants sharded=4/~40s admissible, folder-per-tenant=2,78h inadmissible ; DOMAIN_MODEL §3 corrigé"
     nextAction: "Aucun — appliqué"
@@ -96,26 +98,26 @@ p0s:
     nextAction: "Prouver le rendu JS en CI GitHub ; trier Ramp for Agents"
     targetDate: "2026-08-01"
   - p0Id: P0-V3-02
-    title: "Table Gallery factuellement dépassée"
+    title: "Gallery : report au niveau app — NOT_OBSERVED_IN_PUBLIC_RENDER (requalifié, ex-« table Gallery factuellement dépassée »)"
     description: "Des fonctions observables (Submit, auteurs, stats, View App, report) étaient classées inconnues."
     source: "Audit v3 (2026-07-16), P0-02"
     priority: 2
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewReceiptId: RR-20260720-CODEX-02
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260722-CODEX-05 (COMPLET, responseHash c32a945d…) — requalification cohérente de bout en bout ; la signature valide UNIQUEMENT la constatation NOT_OBSERVED_IN_PUBLIC_RENDER — elle ne prouve pas que le report par application n'existe dans aucun parcours authentifié"
+    reviewReceiptId: RR-20260722-CODEX-05
     remediationTrack: QUICK
-    refusalReason: "La table reste assise sur le paquet canonique incohérent (README 20,650/82 Results et capture footer-only) ; le contrat conserve 82 Results et un ID de source inexistant. En outre, le report propre à une app n'est pas prouvé : l'artefact ne montre que le lien générique de footer « Report abuse »."
+    refusalReason: "requalification du critère au lieu de satisfaction du critère enregistré : le registre exigeait encore la preuve du report au niveau app ; il faut modifier de façon cohérente le titre, la condition de clôture et les références normatives (NOT_OBSERVED_IN_PUBLIC_RENDER admis) — le relecteur ne remplace pas lui-même le point"
     refusalType: PREUVE_INSUFFISANTE
-    reviewVerdict: REFUSED
-    reviewedRemediationCommit: "af24d4fe48015e6041c8e11b240b1f2d54f333d1"
-    reviewCommit: "cf5c67a513322ba0c248b900ea88c50b5e128ac6"
+    reviewVerdict: SIGNED
+    reviewCommit: "60a987ca"
     commit: "07ced1c56bdbcb3ce77e883704342b71a2ad0961"
-    reviewer: UNKNOWN
-    evidenceId: docs/deploy-evidence/2026-07-16-collector-gallery/
-    proof: "REMÉDIÉ v2 (21/07) : la ligne « Signaler (Report) » du contrat est requalifiée honnêtement — lien GÉNÉRIQUE de footer « Report abuse », le report PAR APP n'est pas prouvé par l'artefact. PRÊT À RE-SOUMETTRE."
+    reviewer: OpenAI-Codex
+    evidenceId: docs/deploy-evidence/2026-07-21-gallery-pricing-v4/
+    proof: "REQUALIFIÉ v4 (21/07) DE FAÇON COHÉRENTE : titre, condition et références alignés sur NOT_OBSERVED_IN_PUBLIC_RENDER. Preuve primaire : replit-gallery-dom.html (sha256 4e5380a8… recalculable) — le DOM complet ne contient AUCUN report au niveau app ; seules 2 occurrences 'Report abuse' (footer générique) → docs.replit.com/legal-and-security-info/abuse-report. GALLERY_COMMUNITY_CONTRACT (ligne Report) aligné sur la même qualification ; le report app authentifié reste tracé UNK-GALLERY-REPORT-FLOW."
     dependances: []
-    conditionDeCloture: "Réconcilier le paquet Gallery et fournir une preuve de report au niveau de l'app, puis nouvelle revue"
-    nextAction: "Régénérer le paquet Gallery et prouver le report app-spécifique"
+    conditionDeCloture: "Le report au niveau app est enregistré NOT_OBSERVED_IN_PUBLIC_RENDER (preuve : DOM complet archivé, footer générique seul) ; titre+condition+références cohérents ; toute revendication future exige une preuve UI authentifiée (UNK-GALLERY-REPORT-FLOW) ; puis signature du relecteur sur la requalification"
+    nextAction: "Re-soumission au relecteur (requalification cohérente + preuve primaire)"
     targetDate: "2026-07-16"
   - p0Id: P0-V3-03
     title: "Hiérarchie folder-per-tenant non scalable (300 enfants max, 0,1 folder/s)"
@@ -123,14 +125,16 @@ p0s:
     source: "Audit v3 (2026-07-16), P0-03"
     priority: 3
     owner: platform
-    status: OPEN
+    status: CLOSED
+    reviewReceiptId: RR-20260722-CODEX-06
+    reviewNote: "SIGNÉ au reçu RR-20260722-CODEX-06 (COMPLET, responseHash 9ac5e9b6…) — validation des limites GCP (300 dossiers, 0,1 folder/s, 10 niveaux) et de leur conséquence architecturale AU MOMENT DE L'ARCHIVE (source hashée) ; pas de garantie que les quotas GCP ne changeront jamais"
     remediationTrack: A_TRIER
     refusalReason: "tests auto-référentiels, sans ancrage GCP vérifiable"
     refusalType: PREUVE_INSUFFISANTE
-    reviewVerdict: REFUSED
-    reviewCommit: "57febeab"
+    reviewVerdict: SIGNED
+    reviewCommit: "21e8a255"
     commit: "07ced1c5"
-    reviewer: UNKNOWN
+    reviewer: OpenAI-Codex
     evidenceId: services/api/src/capacity-policy.spec.ts
     proof: "capacity-policy.ts : 1000 tenants sharded=admissible (~40s), folder-per-tenant=2,78h inadmissible ; DOMAIN_MODEL §3 corrigé ; DEC-TENANT-NO-FOLDER-PER-TENANT DECIDED."
     dependances: []
@@ -331,12 +335,12 @@ p0s:
     priority: 14
     owner: platform
     status: PROVEN_REVIEW_PENDING
-    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
-    reviewReceiptId: RR-20260720-CODEX-01
-    reviewVerdict: SIGNED
+    reviewNote: "REFUSÉ au reçu RR-20260723-CODEX-07 (motif verbatim) : la chaîne documentaire revendique une authentification complète de provenance mais accepte encore une attestation sans mergedCommit/repoCommit/runUrl — le maillon d'attestation n'est pas fail-closed ; l'ensemble génération→drift-check→validation→authentification ne peut être signé comme chaîne complète. Un run vivant et vert ne corrige pas ce défaut LOGIQUE du vérificateur"
+    reviewReceiptId: RR-20260723-CODEX-07
+    reviewVerdict: REFUSED
     reviewCommit: "57febeab"
     commit: "97759a77"
-    reviewer: OpenAI-Codex
+    reviewer: UNKNOWN
     evidenceId: docs/parity/APPROVAL_STATUS.json
     proof: "Registres + schémas + validateur (exit 0/1 prouvé, test négatif 3 violations) + CI parity-registries verte + APPROVAL_STATUS généré avec drift-check (édition manuelle = build cassé)."
     dependances: []
@@ -399,18 +403,21 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-02"
     priority: 2
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
-    reviewReceiptId: RR-20260720-CODEX-01
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260722-CODEX-05 (COMPLET, responseHash c32a945d…) — ensemble structuré S01–S56 verrouillé par le validateur, job officiel vert ; la signature valide l'existence et le verrouillage de l'univers DOCUMENTAIRE des 56 services — pas leur implémentation"
+    reviewReceiptId: RR-20260722-CODEX-05
     reviewVerdict: SIGNED
-    reviewCommit: "57febeab"
+    refusalReason: "preuve sur-revendiquée : SURFACE_REGISTRY contient 159 P001–P159 mais aucun ensemble réel de 56 IDs S01–S56 ; la mention services = commentaire/source, pas univers exact verrouillé ; le proof affirme plus que l'artefact"
+    refusalType: PREUVE_INSUFFISANTE
+    remediationTrack: QUICK
+    reviewCommit: "60a987ca"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: OpenAI-Codex
-    evidenceId: docs/parity/SURFACE_REGISTRY.yaml
-    proof: "Univers importé : 159 surfaces P001–P159 + 56 services S01–S56 (source Plan_IDE docx sha256 0b232212…) en ensemble EXACT verrouillé CI (EXPECTED_SURFACE_UNIVERSE_IDS). Évaluation par surface = PENDING (honnête) : parityBaselineReady ÉCHOUE tant que availability=UNKNOWN."
+    evidenceId: docs/parity/SERVICE_REGISTRY.yaml
+    proof: "CORRIGÉ v4 (21/07) : l'ensemble RÉEL S01–S56 vit dans SERVICE_REGISTRY.yaml (56 entrées serviceId+title+responsibility, migré le 20/07 — P1-A2-09 : pas de duplication dans SURFACE_REGISTRY) et il est désormais VERROUILLÉ par garde CI cassante (validate-registries.mjs : égalité exacte S01…S56 + title/responsibility obligatoires). Le proof ne pointe plus un commentaire mais l'artefact réel + sa garde."
     dependances: []
-    conditionDeCloture: "Toutes les entrées évaluées SUPPORTED/UNSUPPORTED/NA justifié"
-    nextAction: "Toutes les entrées évaluées SUPPORTED/UNSUPPORTED/NA justifié"
+    conditionDeCloture: "L'univers services S01–S56 est un ensemble réel verrouillé CI (SERVICE_REGISTRY + garde d'égalité exacte) ; puis re-soumission au relecteur"
+    nextAction: "Re-soumission au relecteur (SERVICE_REGISTRY 56 IDs + garde CI exacte)"
     targetDate: "2026-09-30"
   - p0Id: P0-A2-03
     title: "Modèle Project → Artifacts absent"
@@ -438,11 +445,11 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-04"
     priority: 4
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
-    reviewReceiptId: RR-20260720-CODEX-01
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260721-CODEX-04 (COMPLET, responseHash 6d91bcfb…) — le contrat distingue réellement les 4 types (lifecycle, config, secrets, coûts, observabilité, changement de type, preuve attendue) ; la signature valide l'EXISTENCE de la contractualisation, PAS la disponibilité réelle des 4 produits"
+    reviewReceiptId: RR-20260721-CODEX-04
     reviewVerdict: SIGNED
-    reviewCommit: "57febeab"
+    reviewCommit: "6ca7d701"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/DEPLOYMENT_TYPES_CONTRACT.md
@@ -477,11 +484,11 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-06"
     priority: 6
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
-    reviewReceiptId: RR-20260720-CODEX-01
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260721-CODEX-04 (COMPLET, responseHash 6d91bcfb…) — faux positif UI corrigé — verticalBackendReady passed:true / verticalUserJourneyReady passed:false (preuve UI Publish/Rollback absente, dit honnêtement)"
+    reviewReceiptId: RR-20260721-CODEX-04
     reviewVerdict: SIGNED
-    reviewCommit: "57febeab"
+    reviewCommit: "6ca7d701"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/APPROVAL_STATUS.json
@@ -516,11 +523,11 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-08"
     priority: 8
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
-    reviewReceiptId: RR-20260720-CODEX-01
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260721-CODEX-04 (COMPLET, responseHash 6d91bcfb…) — snapshot distingue les 2 produits Clerk/Replit Auth, chemin custom-auth→Clerk documenté, guide Replit-Auth→Clerk 'coming soon' laissé UNKNOWN, MFA/SMS/Organizations non revendiqués"
+    reviewReceiptId: RR-20260721-CODEX-04
     reviewVerdict: SIGNED
-    reviewCommit: "57febeab"
+    reviewCommit: "6ca7d701"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/baseline/sources/2026-07-20-replit-clerk-auth.md
@@ -536,6 +543,8 @@ p0s:
     priority: 9
     owner: platform
     status: OPEN
+    reviewNote: "REFUSÉ au reçu RR-20260723-CODEX-07 (motif verbatim) : les autres réserves V3 sont substantiellement traitées (gh obligatoire, run corrélé par nonce, négatif GKE 401/403 à contenu contrôlé, 3 chemins rejoués) mais repro.sh installe le trap de teardown APRÈS gcloud projects create + billing link : si la liaison billing échoue sous set -e, le script sort avant le trap et peut laisser le projet actif — la correction annoncée « trap dès la 1re ressource » n'est pas présente"
+    reviewReceiptId: RR-20260723-CODEX-07
     remediationTrack: CHANTIER
     refusalReason: "WIF prouvé GKE seulement, pas les 3 chemins"
     refusalType: PREUVE_INSUFFISANTE
@@ -576,18 +585,21 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-11"
     priority: 11
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
-    reviewReceiptId: RR-20260720-CODEX-01
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260722-CODEX-05 (COMPLET, responseHash c32a945d…) — compteur régénéré à 122 work items, plus aucune valeur périmée 99 ; compteurs dérivés des registres actuels, validation officielle verte"
+    reviewReceiptId: RR-20260722-CODEX-05
     reviewVerdict: SIGNED
-    reviewCommit: "57febeab"
+    refusalReason: "compteurs périmés : le proof affirme canonicalWorkItemCount=99 alors que WORK_ITEM_REGISTRY courant en annonce 122 — le compteur 99 n'est plus la source unique actuelle ; régénérer le proof et toutes les vues"
+    refusalType: PREUVE_INSUFFISANTE
+    remediationTrack: QUICK
+    reviewCommit: "60a987ca"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/APPROVAL_STATUS.json
-    proof: "Source unique = registres : boltDebt=29 (BOLT_DEBT_REGISTRY), prodReadiness=50 (PRODUCTION_READINESS_REGISTRY), sourceFindingCount=336, canonicalWorkItemCount=99 (calculé). Les « 26 » et « 48 » manuels du §13 sont supprimés du plan — tout compteur affiché vient du JSON généré."
+    proof: "CORRIGÉ v4 (21/07) : proof régénéré depuis les registres COURANTS : canonicalWorkItemCount=122 (WORK_ITEM_REGISTRY, dérivé 99−1 merge+1 split×24 — garde supersession CI), boltDebt=29, prodReadiness=50, sourceFindingCount=336. Tout compteur affiché vient du JSON généré (APPROVAL_STATUS) — aucun compteur saisi à la main."
     dependances: []
-    conditionDeCloture: "Aucun compteur saisi à la main dans le plan"
-    nextAction: "Aucun compteur saisi à la main dans le plan"
+    conditionDeCloture: "Aucun compteur saisi à la main ; tous les proofs re-dérivés des registres courants (122 work items) ; puis re-soumission au relecteur"
+    nextAction: "Re-soumission au relecteur (compteurs 122 partout, vues régénérées)"
     targetDate: "2026-07-20"
   - p0Id: P0-A2-12
     title: "336 constats ≠ 336 tâches uniques"
@@ -685,11 +697,11 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 1
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
-    reviewReceiptId: RR-20260720-CODEX-01
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260721-CODEX-04 (COMPLET, responseHash 6d91bcfb…) — registre des routes : 20 entrées, toutes authenticated:false — sujet observé correctement qualifié de visiteur anonyme"
+    reviewReceiptId: RR-20260721-CODEX-04
     reviewVerdict: SIGNED
-    reviewCommit: "57febeab"
+    reviewCommit: "6ca7d701"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/ROUTE_OBSERVATION_REGISTRY.yaml
@@ -704,11 +716,11 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 2
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
-    reviewReceiptId: RR-20260720-CODEX-01
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260721-CODEX-04 (COMPLET, responseHash 6d91bcfb…) — recalcul relecteur : 20 routes / 21 tentatives (signup ×2) / 19 HTTP 200 / 2 tentatives anti-bot / 16 hashes distincts"
+    reviewReceiptId: RR-20260721-CODEX-04
     reviewVerdict: SIGNED
-    reviewCommit: "57febeab"
+    reviewCommit: "6ca7d701"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/ROUTE_OBSERVATION_REGISTRY.yaml
@@ -723,19 +735,21 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 3
     owner: platform
-    status: OPEN
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260723-CODEX-07 (COMPLET, responseHash f5771529…) — intégrité et COUVERTURE des fichiers du paquet (étape CI officielle 'Verify livescan hash coverage', 71 fichiers dont 21 *.links.txt, test négatif modif-1-octet→échec→restaure→vert) ; NE valide PAS la justesse sémantique de chaque observation contenue dans ces fichiers"
+    reviewReceiptId: RR-20260723-CODEX-07
     remediationTrack: A_TRIER
-    refusalReason: "69 éléments au total (manifeste inclus) et 21 fichiers de liens non hashés"
+    refusalReason: "le vérificateur et l'index sont présents (71 fichiers dont les 21 *.links.txt) mais la commande de reproduction n'a pas été rejouée dans un environnement équivalent et n'est pas ancrée à un job CI officiel du point ; le relecteur ne remplace pas l'exécution par une lecture du script"
     refusalType: PREUVE_INSUFFISANTE
-    reviewVerdict: REFUSED
-    reviewCommit: "57febeab"
+    reviewVerdict: SIGNED
+    reviewCommit: "bc629fe1"
     commit: b598e79042dce0af91c376a810c61320fd988013
-    reviewer: UNKNOWN
-    evidenceId: docs/parity/livescan-2026-07-20/
-    proof: "Paquet PRÉSENT dans le repo : docs/parity/livescan-2026-07-20/ = 69 fichiers + manifest.json (21 entrées) ; hashes du tableau = manifest."
+    reviewer: OpenAI-Codex
+    evidenceId: docs/deploy-evidence/2026-07-22-livescan-hashes/
+    proof: "SIGNÉ au reçu RR-20260723-CODEX-07 : garde auditée RÉELLEMENT INCORPORÉE (commit bc629fe1, PR #48) — étape CI officielle « Verify livescan hash coverage (P0-LS-03 — fails on hash drift) » dans le job validate de parity-registries.yml qui rejoue verify-livescan-hashes.mjs --check (recalcule le sha256 des 71 fichiers du paquet livescan-2026-07-20 dont les 21 *.links.txt, échoue exit 1 sur dérive/couverture incomplète ; run officiel 30003958808 vert) ; test négatif rejouable prove-livescan-hash-guard.sh (ROUGE sur modif d'1 octet / VERT sur restauration, log neg-proof.txt) ; hash-index.json couvre 71 fichiers (21 links / 21 screenshots / 24 text / 4 doc / 1 manifest). Rejoué local : --check exit 0."
     dependances: []
-    conditionDeCloture: "Compléter l'évidence : 69 éléments au total (manifeste inclus) et 21 fichiers de liens non hashés ; puis re-soumission au relecteur"
-    nextAction: "Revue"
+    conditionDeCloture: "Commande --check câblée en job CI officiel vert au commit soumis + test négatif (modif → rouge) ; puis re-soumission"
+    nextAction: "Re-soumission au relecteur : étape CI officielle verte (run 30003958808) + test négatif rejoué"
     targetDate: "2026-07-20"
   - p0Id: P0-LS-04
     title: "Reclasser GitLab comme capacité supportée sans tuile courante"
@@ -764,18 +778,21 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 5
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
-    reviewReceiptId: RR-20260720-CODEX-01
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260722-CODEX-05 (COMPLET, responseHash c32a945d…) — les 4 registres spécialisés existent (7/8/7/4) et sont verrouillés séparément ; la signature porte sur la taxonomie DOCUMENTAIRE, pas sur la disponibilité des types de déploiement"
+    reviewReceiptId: RR-20260722-CODEX-05
     reviewVerdict: SIGNED
-    reviewCommit: "57febeab"
+    refusalReason: "l'evidenceId ne contient qu'une taxonomie sur quatre : ARTIFACT_KIND (7) présent, mais pas les 8 GeneratedAssetKind, les 7 ComponentKind ni la taxonomie Deployment annoncés — un renvoi au plan ne remplace pas les registres spécialisés"
+    refusalType: PREUVE_INSUFFISANTE
+    remediationTrack: QUICK
+    reviewCommit: "60a987ca"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
-    evidenceId: docs/parity/ARTIFACT_KIND_REGISTRY.yaml
-    proof: "§5.2 verbatim adopté ; ARTIFACT_KIND ×7 verrouillé validateur ; GENERATED_ASSET ×8 et COMPONENT ×7 alignés sur l expert."
+    evidenceId: docs/parity/ARTIFACT_KIND_REGISTRY.yaml   # + GENERATED_ASSET_KIND / COMPONENT_KIND / DEPLOYMENT_TYPE (les 4 taxonomies, listées dans proof — le champ pointe le fichier primaire)
+    proof: "CORRIGÉ v4 (21/07) : les QUATRE registres spécialisés existent et sont VERROUILLÉS par gardes CI cassantes (validate-registries.mjs) : ARTIFACT_KIND_REGISTRY ×7 exacts, GENERATED_ASSET_KIND_REGISTRY ×8 exacts (DOCUMENT/SPREADSHEET/CSV/PDF/MARKDOWN/IMAGE/PRESENTATION_FILE/OTHER_FILE), COMPONENT_KIND_REGISTRY ×7 exacts (WEB_FRONTEND/API/SERVICE/WORKER/JOB/SHARED_PACKAGE/STATIC_SITE_COMPONENT), DEPLOYMENT_TYPE_REGISTRY ×4 exacts (AUTOSCALE/STATIC/RESERVED_VM/SCHEDULED). L'evidenceId liste les 4 fichiers."
     dependances: []
-    conditionDeCloture: "Revue humaine"
-    nextAction: "Revue"
+    conditionDeCloture: "Les 4 taxonomies existent en registres spécialisés verrouillés CI (7+8+7+4 exacts) ; puis re-soumission au relecteur"
+    nextAction: "Re-soumission au relecteur (4 registres + 4 gardes d'exactitude)"
     targetDate: "2026-07-20"
   - p0Id: P0-LS-06
     title: "Classifier N1–N15 par registre spécialisé"
@@ -803,11 +820,11 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 7
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
-    reviewReceiptId: RR-20260720-CODEX-01
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260721-CODEX-04 (COMPLET, responseHash 6d91bcfb…) — univers exactement P001–P159, aucun P160–P174 présent, addition mécanique 159+15 supprimée"
+    reviewReceiptId: RR-20260721-CODEX-04
     reviewVerdict: SIGNED
-    reviewCommit: "57febeab"
+    reviewCommit: "6ca7d701"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/SURFACE_REGISTRY.yaml
@@ -822,11 +839,11 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 8
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
-    reviewReceiptId: RR-20260720-CODEX-01
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260721-CODEX-04 (COMPLET, responseHash 6d91bcfb…) — les 6 capacités présentes dans le corpus documentaire hashé, reclassées documentation courante (Spotlight, Resources, Preview DevTools, Library, Android Emulator, Grouped Publish)"
+    reviewReceiptId: RR-20260721-CODEX-04
     reviewVerdict: SIGNED
-    reviewCommit: "57febeab"
+    reviewCommit: "6ca7d701"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/baseline/snapshots/2026-07-20/llms-full.txt
@@ -841,11 +858,11 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 9
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
-    reviewReceiptId: RR-20260720-CODEX-01
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260721-CODEX-04 (COMPLET, responseHash 6d91bcfb…) — API publique UNKNOWN distinguée du serveur MCP documenté en bêta ; MCP plus présenté comme preuve de remplacement de l'API"
+    reviewReceiptId: RR-20260721-CODEX-04
     reviewVerdict: SIGNED
-    reviewCommit: "57febeab"
+    reviewCommit: "6ca7d701"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/CAPABILITY_REGISTRY.yaml
@@ -860,11 +877,11 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 10
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
-    reviewReceiptId: RR-20260720-CODEX-01
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260721-CODEX-04 (COMPLET, responseHash 6d91bcfb…) — conclusion /@user bornée à la route testée, plus généralisée à toutes les routes de profil"
+    reviewReceiptId: RR-20260721-CODEX-04
     reviewVerdict: SIGNED
-    reviewCommit: "57febeab"
+    reviewCommit: "6ca7d701"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/PUBLIC_BASELINE_REPLIT_2026.yaml
@@ -879,11 +896,11 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 11
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
-    reviewReceiptId: RR-20260720-CODEX-01
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260721-CODEX-04 (COMPLET, responseHash 6d91bcfb…) — /bounties enregistré comme redirection externe vers l'Expert Network opéré via Contra, sans inférence non prouvée sur l'ancien backend"
+    reviewReceiptId: RR-20260721-CODEX-04
     reviewVerdict: SIGNED
-    reviewCommit: "57febeab"
+    reviewCommit: "6ca7d701"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/EXTERNAL_ECOSYSTEM_REGISTRY.yaml
@@ -898,11 +915,11 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 12
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
-    reviewReceiptId: RR-20260720-CODEX-01
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260721-CODEX-04 (COMPLET, responseHash 6d91bcfb…) — retrait du plan Teams et existence de capacités de collaboration en équipe = deux faits distincts"
+    reviewReceiptId: RR-20260721-CODEX-04
     reviewVerdict: SIGNED
-    reviewCommit: "57febeab"
+    reviewCommit: "6ca7d701"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/OFFERING_ENTITLEMENT_REGISTRY.yaml
@@ -917,21 +934,21 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 13
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewReceiptId: RR-20260720-CODEX-02
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260723-CODEX-07 (COMPLET, responseHash f5771529…) — preuve de session navigateur FAIL-CLOSED (HAR unique, README+proof générés depuis le manifeste, capture lève erreur sur nav/status≠200/URL inattendue, sameValueCarried vrai seulement si 2 empreintes non nulles égales, négatifs null/null/une-valeur/vides/différentes/403/404/000/mauvaise-URL couverts) pour les observations EXPLICITEMENT reliées au run ; NE transforme PAS les autres observations historiques en observations capturées par ce HAR"
+    reviewReceiptId: RR-20260723-CODEX-07
     remediationTrack: QUICK
-    refusalReason: "Le claim « 13 observations toutes contextualisées » est faux : 3 observations expert gardent locale/countryOrGeo/cookieState UNKNOWN, sans hash ni artifactPath ; seules 4/13 ont une géographie connue. pricing-recheck-1445utc.txt est une transcription manuelle horodatée approximativement, sans capture ni preuve de géo-IP IL. Le test négatif ne contrôle que présence/schemaVersion du registre."
+    refusalReason: "(refus antérieur maintenu au reçu -06) — voir la réserve HAR ; la liaison cookie est prouvée par HAR mais le lot reste sous revue"
     refusalType: PREUVE_INSUFFISANTE
-    reviewVerdict: REFUSED
-    reviewedRemediationCommit: "af24d4fe48015e6041c8e11b240b1f2d54f333d1"
-    reviewCommit: "cf5c67a513322ba0c248b900ea88c50b5e128ac6"
+    reviewVerdict: SIGNED
+    reviewCommit: "bc629fe1"
     commit: b598e79042dce0af91c376a810c61320fd988013
-    reviewer: UNKNOWN
-    evidenceId: docs/parity/OFFERING_ENTITLEMENT_REGISTRY.yaml
-    proof: "REMÉDIÉ v2 (21/07) : plus aucune sur-revendication — chaque observation est soit COMPLÈTE (geo/locale/cohorte/hash/artifactPath), soit nonReplayable justifié (3 lignes texte-relecteur), soit contextIncomplete déclaré avec raison (scan 05:43 non géolocalisé, supplanté) — GARDE VALIDATEUR PAR OBSERVATION cassante ; preuve géo-IP commitée (geoip-proof-20260721.json, hash b325e31e…). PRÊT À RE-SOUMETTRE."
+    reviewer: OpenAI-Codex
+    evidenceId: docs/deploy-evidence/2026-07-22-gallery-pricing-har/
+    proof: "SIGNÉ au reçu RR-20260723-CODEX-07 : preuve HAR fail-closed RÉELLEMENT INCORPORÉE (commit bc629fe1, PR #48) — gallery-pricing.har (HAR UNIQUE des 2 navigations Gallery puis Pricing, un seul contexte), context-manifest.json, les 2 DOM hashés (gallery-dom.html + pricing-dom.html), cookies PORTÉS cf_clearance + _cfuvid (sha256_12 identiques session→pricing, sameValueCarried), 7 observations pricing evidenciées ; rejouable via capture-har.mjs, AUTO-VÉRIFIÉ par verify-har.mjs (harEntryCountMatches, navsAll200, cookiesCarried=2, pricingObsEvidenced=7 — exit 0)."
     dependances: []
-    conditionDeCloture: "Contextualiser réellement les 13 observations et joindre une capture vérifiable de la re-observation géolocalisée, puis nouvelle revue"
-    nextAction: "Compléter les trois observations expert et fournir la capture/provenance de la re-observation"
+    conditionDeCloture: "Un HAR unique liant mécaniquement les 2 navigations + cookies + hashes des 2 DOM du même run — incorporé et auto-vérifié (verify-har.mjs exit 0)."
+    nextAction: "Session capture dédiée : produire le HAR/trace Playwright d'un run unique (exigences RR-05 verbatim ci-dessus)"
     targetDate: "2026-07-20"
   - p0Id: P0-LS-14
     title: "Limiter « no model selector » au corpus observé"
@@ -939,16 +956,16 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 14
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewReceiptId: RR-20260720-CODEX-02
+    status: CLOSED
+    reviewReceiptId: RR-20260721-CODEX-03
     remediationTrack: QUICK
     refusalReason: "La formulation est bornée, mais le claim affirme encore que Lite/Economy ne sont jamais nommés dans 83 changelogs ; c'est contredit par RPL-2026-002 et le snapshot 2026-04-17-changelog.md, qui nomment explicitement le sélecteur Lite/Economy/Power. La commande annoncée n'est pas reproductible à l'identique : elle retourne aussi REPLIT_LIVE_SCAN_2026-07-20.md:325."
     refusalType: DESACCORD
-    reviewVerdict: REFUSED
+    reviewVerdict: SIGNED
     reviewedRemediationCommit: "af24d4fe48015e6041c8e11b240b1f2d54f333d1"
-    reviewCommit: "cf5c67a513322ba0c248b900ea88c50b5e128ac6"
+    reviewCommit: "70eb30a0"
     commit: b598e79042dce0af91c376a810c61320fd988013
-    reviewer: UNKNOWN
+    reviewer: OpenAI-Codex
     evidenceId: docs/parity/PUBLIC_BASELINE_REPLIT_2026.yaml
     proof: "REMÉDIÉ v2 (21/07) : RPL-2026-004 réconcilié avec RPL-2026-002 — l'affirmation fausse « Lite/Economy jamais nommés dans les 83 changelogs » est RETIRÉE (le sélecteur de MODE Lite/Economy/Power est documenté au changelog 2026-04-17) ; le claim porte uniquement sur l'absence de sélecteur de MODÈLE BRUT, borné ; l'occurrence « nulle part » du scan (l.325) reformulée — la commande de repro rend vide. PRÊT À RE-SOUMETTRE."
     dependances: []
@@ -961,11 +978,11 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 15
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
-    reviewReceiptId: RR-20260720-CODEX-01
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260721-CODEX-04 (COMPLET, responseHash 6d91bcfb…) — inférence 'Parallel Agents = une microVM par tâche' retirée ; isolation runtime par tâche classée UNKNOWN"
+    reviewReceiptId: RR-20260721-CODEX-04
     reviewVerdict: SIGNED
-    reviewCommit: "57febeab"
+    reviewCommit: "6ca7d701"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/CAPABILITY_REGISTRY.yaml
@@ -981,7 +998,8 @@ p0s:
     priority: 16
     owner: platform
     status: PROVEN_REVIEW_PENDING
-    reviewReceiptId: RR-20260720-CODEX-02
+    reviewNote: "REFUSÉ au reçu RR-20260723-CODEX-07 (motif verbatim) : le run post-merge 30005939249 et le commit bot ee0aedd1 sont réels, mais le vérificateur v6 reste FAIL-OPEN sur l'absence de mergedCommit/repoCommit/runUrl (checkAttestationFields ne les contrôle que s'ils existent ; validate-registries ne les exige pas ; les tests négatifs falsifient des valeurs présentes sans tester leur SUPPRESSION) — une attestation amputée peut passer. Exigé : champs obligatoires non vides (validateur ET vérificateur), rejet de l'absence, négatif par suppression, nouveau roll post-merge"
+    reviewReceiptId: RR-20260723-CODEX-07
     remediationTrack: QUICK
     refusalReason: "Les trois champs existent et le run 29756163626 est vert, mais .github/workflows/parity-registries.yml ne roule pas CI_ATTESTATION et ne génère/publie pas DOCUMENT_MANIFEST après chaque merge ; a4a9f71c est un commit manuel postérieur. Le validateur accepte en outre un runId, commit et timestamp fictifs après régénération. L'exemple manuel est prouvé, pas l'automatisation ni la garantie de provenance annoncées."
     refusalType: DESACCORD
@@ -1002,18 +1020,21 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 17
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
-    reviewReceiptId: RR-20260720-CODEX-01
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260722-CODEX-05 (COMPLET, responseHash c32a945d…) — 159 candidats IDE / 164 canoniques / 122 work items / 10 déclarées correctement distingués — plus d'univers ambigu"
+    reviewReceiptId: RR-20260722-CODEX-05
     reviewVerdict: SIGNED
-    reviewCommit: "57febeab"
+    refusalReason: "le proof conserve 99 work items (registre courant : 122) ; et les 159 candidats IDE vs l'univers canonique 164 doivent être NOMMÉS SÉPARÉMENT au lieu d'un compteur unique"
+    refusalType: PREUVE_INSUFFISANTE
+    remediationTrack: QUICK
+    reviewCommit: "60a987ca"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/APPROVAL_STATUS.json
-    proof: "Source unique = JSON généré : univers 159 candidats, 99 work items, 10 surfaces déclarées, deltas=observations."
+    proof: "CORRIGÉ v4 (21/07) : triplet régénéré 159 candidats IDE / 122 work items / 10 surfaces déclarées ; les DEUX notions sont nommées séparément : ideCandidateSurfaceCount=159 (P001–P159, univers d'audit IDE) et canonicalSurfaceCount=164 (=159+5 surfaces hors-IDE, dérivation verrouillée par la garde supersession CI). Vues régénérées au commit courant."
     dependances: []
-    conditionDeCloture: "Revue humaine"
-    nextAction: "Revue"
+    conditionDeCloture: "Compteurs re-dérivés (122) + les deux univers nommés séparément (159 IDE vs 164 canonique) dans les vues générées ; puis re-soumission au relecteur"
+    nextAction: "Re-soumission au relecteur (159/122/10 + 159 vs 164 nommés)"
     targetDate: "2026-07-20"
   - p0Id: P0-LS-18
     title: "Recalculer APPROVAL_STATUS sur le commit mergé"
@@ -1022,12 +1043,12 @@ p0s:
     priority: 18
     owner: platform
     status: PROVEN_REVIEW_PENDING
-    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
-    reviewReceiptId: RR-20260720-CODEX-01
-    reviewVerdict: SIGNED
+    reviewNote: "REFUSÉ au reçu RR-20260723-CODEX-07 (motif verbatim) : mergedCommit reste FACULTATIF dans le chemin de validation ; sa suppression n'est ni rejetée ni testée. Le mécanisme ne prouve pas fail-closed que les vues ont été recalculées sur le commit mergé — une édition retirant mergedCommit garderait un contrôle vert. Même correction que LS-16 + nouveau roll post-merge"
+    reviewReceiptId: RR-20260723-CODEX-07
+    reviewVerdict: REFUSED
     reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
-    reviewer: OpenAI-Codex
+    reviewer: UNKNOWN
     evidenceId: docs/parity/CI_ATTESTATION.yaml
     proof: "FAIT : PR #15 mergée (d3925b16) ; run CI Parity registries 29733640863 VERT au commit mergé ; APPROVAL_STATUS/PARITY_STATUS/DOCUMENT_MANIFEST régénérés à ce commit ; attestation datée dans CI_ATTESTATION.yaml."
     dependances: []
@@ -1079,11 +1100,11 @@ p0s:
     source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
     priority: 1
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
-    reviewReceiptId: RR-20260720-CODEX-01
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260721-CODEX-04 (COMPLET, responseHash 6d91bcfb…) — stateEmbeddedInPlan:false — l'état courant renvoyé aux vues et registres générés ; le plan normatif ne porte plus l'overlay manuel comme source d'autorité"
+    reviewReceiptId: RR-20260721-CODEX-04
     reviewVerdict: SIGNED
-    reviewCommit: "57febeab"
+    reviewCommit: "6ca7d701"
     commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/PLAN_PARITE_REPLIT.md
@@ -1118,11 +1139,11 @@ p0s:
     source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
     priority: 3
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
-    reviewReceiptId: RR-20260720-CODEX-01
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260721-CODEX-04 (COMPLET, responseHash 6d91bcfb…) — persistance layout côté Replit bornée UNKNOWN ; exigence E-Code explicitement séparée ; aucune persistance non sourcée affirmée"
+    reviewReceiptId: RR-20260721-CODEX-04
     reviewVerdict: SIGNED
-    reviewCommit: "57febeab"
+    reviewCommit: "6ca7d701"
     commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/PLAN_PARITE_REPLIT.md
@@ -1179,11 +1200,11 @@ p0s:
     source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
     priority: 6
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
-    reviewReceiptId: RR-20260720-CODEX-01
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260721-CODEX-04 (COMPLET, responseHash 6d91bcfb…) — montants tarifaires sortis du plan durable → registre d'observations ; cette signature ne valide PAS les nouvelles observations de prix de P0-LS-13"
+    reviewReceiptId: RR-20260721-CODEX-04
     reviewVerdict: SIGNED
-    reviewCommit: "57febeab"
+    reviewCommit: "6ca7d701"
     commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/PRICE_OBSERVATION_REGISTRY.yaml
@@ -1238,11 +1259,11 @@ p0s:
     source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
     priority: 9
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
-    reviewReceiptId: RR-20260720-CODEX-01
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260721-CODEX-04 (COMPLET, responseHash 6d91bcfb…) — les 4 types de déploiement ont des sous-contrats séparés ; signature = structure contractuelle, PAS l'implémentation de Static ou Reserved VM"
+    reviewReceiptId: RR-20260721-CODEX-04
     reviewVerdict: SIGNED
-    reviewCommit: "57febeab"
+    reviewCommit: "6ca7d701"
     commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/DEPLOYMENT_TYPES_CONTRACT.md

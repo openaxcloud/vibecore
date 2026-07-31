@@ -1280,6 +1280,7 @@ export class PrismaApiStore implements ApiStore {
     authorName: string;
     authorUserId: string | null;
     appUrl: string | null;
+    thumbnailUrl: string | null;
     remixAllowed: boolean;
     licenseId: string | null;
     licenseText: string | null;
@@ -1304,6 +1305,7 @@ export class PrismaApiStore implements ApiStore {
       authorName: row.authorName,
       authorUserId: row.authorUserId ?? undefined,
       appUrl: row.appUrl ?? undefined,
+      thumbnailUrl: row.thumbnailUrl ?? undefined,
       remixAllowed: row.remixAllowed,
       licenseId: row.licenseId ?? undefined,
       licenseText: row.licenseText ?? undefined,
@@ -1329,6 +1331,7 @@ export class PrismaApiStore implements ApiStore {
     authorName: string;
     authorUserId?: string;
     appUrl?: string;
+    thumbnailUrl?: string;
     remixAllowed?: boolean;
     licenseId?: string;
     licenseText?: string;
@@ -1351,6 +1354,7 @@ export class PrismaApiStore implements ApiStore {
         authorName: input.authorName,
         authorUserId: input.authorUserId ?? null,
         appUrl: input.appUrl ?? null,
+        thumbnailUrl: input.thumbnailUrl ?? null,
         remixAllowed: input.remixAllowed ?? false, // FAIL-CLOSED : jamais remixable sans choix explicite
         licenseId: input.licenseId ?? null,
         licenseText: input.licenseText ?? null,
@@ -1358,11 +1362,7 @@ export class PrismaApiStore implements ApiStore {
         piiConsentVersion: input.piiConsentVersion ?? null,
         // A row published at creation records publishedAt so the detail page
         // can show a real date; a PENDING_REVIEW row leaves it null.
-        publishedAt: input.publishedAt
-          ? new Date(input.publishedAt)
-          : status === 'PUBLISHED'
-            ? new Date()
-            : null,
+        publishedAt: input.publishedAt ? new Date(input.publishedAt) : status === 'PUBLISHED' ? new Date() : null,
       },
     });
 
