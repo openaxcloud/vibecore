@@ -224,7 +224,16 @@ export const FileHistoryPanel = memo(({ filePath, currentContent, onClose }: Fil
       tabIndex={-1}
       onKeyDown={handleKeyDown}
       data-testid="file-history-panel"
-      className="absolute inset-0 z-30 flex flex-col bg-bolt-elements-background-depth-1 focus:outline-none"
+      className="absolute inset-0 z-40 flex flex-col bg-bolt-elements-background-depth-1 focus:outline-none"
+      style={{
+        /*
+         * Bulletproof opacity: an explicit solid fill + its own stacking context
+         * so the editor (Monaco and its GPU scroll layers) can never bleed
+         * through the panel while it is mounting.
+         */
+        background: 'var(--bolt-elements-background-depth-1, #0e1525)',
+        isolation: 'isolate',
+      }}
     >
       {/* Header */}
       <div className="flex items-center gap-2 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2">
