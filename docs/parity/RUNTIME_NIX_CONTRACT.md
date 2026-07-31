@@ -1,12 +1,12 @@
 # RUNTIME_NIX_CONTRACT — contrat runtime Nix v2
 
 contractId: CTR-RUNTIME-NIX
-contractVersion: 5
-schemaVersion: 5
+contractVersion: 6
+schemaVersion: 6
 repoCommit: 6d57a401
 reviewer: UNKNOWN
 expectedReviewer: OpenAI-Codex
-signatureResult: PENDING_REVIEW   # v4 REFUSED (négatif live non exécuté) ; v5 = négatif live EXÉCUTÉ 23/07 + config restaurée vérifiée. Antérieur : v3 REFUSED (REPONSE_EXPERT_V3_20260722 §B) : « lock pas prouvé immuable + enforcement incomplet » — v4 = les 4 corrections exigées IMPLÉMENTÉES + testées négativement, pas réécrites
+signatureResult: PENDING_REVIEW   # v5 REFUSED (RR-08 : code typé non capturé, référence morte .log, sur-revendication UI) — v6 = les 3 incohérences corrigées + code capturé LIVE (409 avec code littéral, 31/07)
 implementationAnchor: "v4 : pin de génération OBLIGATOIRE (assertLockPublishable — alias mutable refusé) ; validation EXHAUSTIVE bundles/store paths/hashes contre le catalogue signé (ECODE_LOCK_BUNDLE_TAMPERED/UNKNOWN) ; pin persisté+réutilisé dans release ET rollback (RetainedRelease.storeGeneration → nixGenerationRef, rollback évalué contre la génération de SA release) ; négatif live révocation = prêt à jouer (mini-merge)"
 Décisions: `docs/NIX_V2_DECISION.md` + `docs/DEPLOY_REPRODUCIBLE_PIPELINE.md`
 (preuves live antérieures: docs/deploy-evidence/2026-07-15-phase-b/ — store RO gVisor
@@ -103,7 +103,29 @@ Joué RÉELLEMENT en prod sur code intégré (merge #45 = `6d57a401`, api
   `revokedAt` absent) ; **Publish #4** → READY/200 (restauration comportementale confirmée).
 
 Artefacts bruts : `docs/deploy-evidence/2026-07-23-ctr-runtime-nix-v4/`
-(`live-revocation-EXECUTED.log`, `publish2-REVOKED-deployment.json`, hashes sha256).
+(`live-revocation-EXECUTED.txt`, `publish2-REVOKED-deployment.json`, hashes sha256).
+
+## Levée du refus v5 (RR-08) — les 3 incohérences
+
+**1. Code typé PERSISTÉ + capturé live.** Le catch publish (`ecodeLockError =
+(error as Error).message`) effaçait `.code`. Corrigé : `describeEcodeLockFailure`
+(server-deploy-revision.ts) préserve le code, qui mène la ligne persistée
+(`Server deploy: ECODE_LOCK_GENERATION_REVOKED: …`) ; **test automatisé qui
+EXIGE `ECODE_LOCK_GENERATION_REVOKED`** (+ UNPINNED/TAMPERED/UNKNOWN) dans
+server-deploy-revision.spec.ts. **Rejeu live 31/07** : gen-2 révoquée →
+`POST /nix-lock` → **409 dont le payload contient littéralement**
+`"code":"ECODE_LOCK_GENERATION_REVOKED"` (`rr08-409-revoked-code.json`,
+sha256 `14e4c1f4…`) ; publish → FAILED (comportement re-confirmé) ; restauration
+vérifiée (configmap ACTIVE, 201, health 200). Sans sur-revendication : le log
+publish de l'image live (antérieure à ce fix) porte le message sans le code
+littéral — il y apparaîtra au déploiement de cette branche, le test le verrouille.
+
+**2. Références réparées.** Toutes les références pointent le fichier réel
+`live-revocation-EXECUTED.txt` (le `.log` était exclu par gitignore).
+
+**3. Surface dé-revendiquée.** La preuve a été exécutée par appels HTTP directs
+authentifiés à l'API publique (`api.e-code.ai`) — pas par la surface UI
+navigateur. Le contrat et le README le disent tels quels.
 
 ## Préconditions
 - P-NIX-1 : store monté LECTURE SEULE dans tout pod utilisateur ; kill-switch (9a21f56f) intact.
