@@ -134,7 +134,7 @@ documents:
     repoCommit: 1692f981
     reviewer: UNKNOWN
   - file: DOSSIER_EXPERT_V5_20260731.md
-    sha256: "56fba2d8f88352d560cbdef21a6c66a8b26a135b273c67d0d5b87ce4dfafde9d"
+    sha256: "1bfe95e340cd7a5ca12d1cce0a2101ea03035d49256721e07298e1195fee0625"
     schemaVersion: null
     repoCommit: null
     reviewer: UNKNOWN

@@ -173,9 +173,13 @@ erreurs réseau/RBAC ; étendre les E2E à ces négatifs).
 
 **Preuves** : 34 tests purge api + 48 tests manager verts ; E2E réels
 rejouables — `docs/deploy-evidence/2026-07-23-physical-purge-e2e/` :
-`gcs-proof.json` `6177f68c…`, `k8s-proof.json` `8d3faba0…` (+ SHA256SUMS).
-**CI (tête `ee0df5a7`)** : Production CI run **30038932121** success ·
-Quality Gates run **30038932082** success.
+`gcs-proof.json` `c427b032…`, `k8s-proof.json` `aac80903…`, index
+SHA256SUMS **vérifiable par `sha256sum -c`**. Correction d'intégrité du
+31/07 (commit `48c4bef2`) : les SUMS committés en `ee0df5a7` ne
+correspondaient pas aux proofs committés (index écrit avant la dernière
+régénération) — recalculés depuis les fichiers committés, proofs INCHANGÉS.
+**CI (tête `ee0df5a7`, contenu ; index `48c4bef2`)** : Production CI run
+**30038932121** success · Quality Gates run **30038932082** success.
 https://github.com/openaxcloud/vibecore/actions/runs/30038932121
 
 # E. `CTR-RUNTIME-NIX` — négatif live EXÉCUTÉ (plus « prêt à jouer »)
