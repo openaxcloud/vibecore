@@ -44,10 +44,10 @@ Spécification de référence : `outputs/REPLIT_PARITY.md`, documentation Replit
 | RPL-FH-001.4 | Restore append-only sans perte d'historique | ✅ | ☐ | ☐ | Nouvelle version et anciennes versions à prouver |
 | RPL-FH-001.5 | Playback play/pause/progression/vitesse | ✅ | ☐ | ☐ | Lecture réelle à l'écran attendue |
 | RPL-FH-001.6 | File History responsive, accessible, loading/error/retry | ✅ | ☐ | ☐ | Captures web/tablette/mobile attendues |
-| RPL-SK-001.1 | Skills interopérables `.agents/skills/<name>/SKILL.md` | ✅ | ☐ | ☐ | Skill workspace réel attendu |
-| RPL-SK-001.2 | Progressive disclosure name+description → body → ressources | ✅ | ☐ | ☐ | Trace prouvant le chargement à la demande attendue |
-| RPL-SK-001.3 | Catalogue externe audité avec quarantaine, findings et approbation | ✅ | ☐ | ☐ | Skill malveillant refusé et journal d'audit attendus |
-| RPL-SK-001.4 | UI Skills avec provenance, état d'audit, enable/disable/revoke | ✅ | ☐ | ☐ | États desktop/tablette/mobile attendus |
+| RPL-SK-001.1 | Skills interopérables `.agents/skills/<name>/SKILL.md` | ✅ | 🟡 `a961c1d0` PR #58 | ☐ | Codé + testé local : `skill-manifest.ts` (parser strict frontmatter name+description, allowed-tools, metadata, body, ressources ; name==dossier) + skill réel livré `.agents/skills/commit-helper/` (SKILL.md + references/). 14 tests unitaires verts. **Reste** : merge main + captures responsive live. |
+| RPL-SK-001.2 | Progressive disclosure name+description → body → ressources | ✅ | 🟡 `a961c1d0` PR #58 | ☐ | Codé + prouvé local : `skill-disclosure.ts` L1/L2/L3, callbacks appelés au plus une fois à la demande + trace ordonnée. Script `skill-audit-proof.ts` imprime la trace `L1 → L2 → L3` (ne monte qu'après demande). 4 tests. **Reste** : merge main + live. |
+| RPL-SK-001.3 | Catalogue externe audité avec quarantaine, findings et approbation | ✅ | 🟡 `a961c1d0` PR #58 | ☐ | Codé + prouvé local : `skill-audit.ts` fail-closed rejected/quarantined/approved ; route d'install **refuse un malveillant (HTTP 422)**, rien persisté ; journal append-only `SkillAuditEvent` (mig 0079) ; endpoint approve. 8 tests audit + 5 tests d'intégration API (malveillant refusé end-to-end, quarantaine→approve). Pas de faux positif OWASP (test dédié). **Reste** : merge main + live. |
+| RPL-SK-001.4 | UI Skills avec provenance, état d'audit, enable/disable/revoke | ✅ | 🟡 `a961c1d0` PR #58 | ☐ | Codé : panneau Skills avec provenance (origin, sha256, manifest, ressources), badge de verdict, findings, boutons Approve/**Revoke**, journal d'audit ; store fail-closed (revoked/rejected → re-enable 409, testé). Web tsc + lint verts. **Reste** : captures responsive 390/768/1024/1440 clair+sombre (desktop/tablette/mobile) + merge main. |
 
 ## Lot RPL-IDE-2026-07 — Project Editor Window → Panes → Tabs + Tools dock
 

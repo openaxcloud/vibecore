@@ -327,6 +327,8 @@ import {
 import { isKnownSkill, resolveProjectSkills, resolveSkill } from './skills-catalog.js';
 import { fetchSkillRepoInstructions } from './skills-github-fetch.js';
 import { SKILL_REPO_CATALOG, findRepoEntry, normalizeOwnerRepo } from './skills-repo-catalog.js';
+import { auditSkill, type SkillContent } from './skill-audit.js';
+import { parseSkillManifest, type SkillManifest } from './skill-manifest.js';
 import { nextSpendAlertPct, spendAlertEmailContent } from './spend-alerts.js';
 import {
   API_KEY_SCOPES,
@@ -738,6 +740,20 @@ const skillToggleBody = z.object({
   ownerRepo: z.string().min(1).max(220),
   scope: installedSkillScope.default('project'),
   enabled: z.boolean(),
+});
+/** RPL-SK-001.4 revoke + RPL-SK-001.3 approve / audit-journal. */
+const skillRevokeBody = z.object({
+  ownerRepo: z.string().min(1).max(220),
+  scope: installedSkillScope.default('project'),
+  reason: z.string().max(500).optional(),
+});
+const skillApproveBody = z.object({
+  ownerRepo: z.string().min(1).max(220),
+  scope: installedSkillScope.default('project'),
+});
+const skillAuditQuery = z.object({
+  scope: installedSkillScope.default('project'),
+  ownerRepo: z.string().max(220).optional(),
 });
 
 /** P2d: which database environment a provision/read targets (default development). */
@@ -19713,6 +19729,45 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const homepageUrl = catalogEntry?.homepageUrl ?? `https://github.com/${ownerRepo}`;
     const userId = request.currentUser?.id ?? null;
 
+    /*
+     * RPL-SK-001.3 — security audit BEFORE persisting. The fetched instructions
+     * are parsed as an interop SKILL.md manifest when possible (giving us the
+     * skill name + declared resources for provenance); either way the full text
+     * is statically audited. A `rejected` (critical) verdict is FAIL-CLOSED: the
+     * install is refused, nothing is persisted, and an install-rejected row is
+     * written to the audit journal. A `quarantined` (high) verdict installs the
+     * skill DISABLED, pending explicit approval.
+     */
+    const parsedManifest = parseSkillManifest(instructions);
+    const auditManifest: SkillManifest = parsedManifest.ok
+      ? parsedManifest.manifest
+      : { name, description, allowedTools: [], metadata: {}, body: instructions, resources: [], raw: instructions };
+    const auditContent: SkillContent = { manifest: auditManifest, resourceContents: {} };
+    const audit = auditSkill(auditContent);
+    const auditedAt = new Date().toISOString();
+
+    if (audit.verdict === 'rejected') {
+      await store.recordSkillAudit({
+        scope,
+        scopeId,
+        ownerRepo,
+        action: 'install-rejected',
+        verdict: 'rejected',
+        findings: audit.findings,
+        contentHash: audit.contentHash,
+        actorUserId: userId,
+      });
+
+      return reply.code(422).send({
+        error: `'${ownerRepo}' was refused by the security audit and was not installed.`,
+        code: 'SKILL_AUDIT_REJECTED',
+        verdict: 'rejected',
+        findings: audit.findings,
+      });
+    }
+
+    const enabled = audit.verdict === 'approved';
+
     const { record, created } = await store.installSkill({
       scope,
       scopeId,
@@ -19722,6 +19777,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       instructions,
       homepageUrl,
       installedByUserId: userId,
+      origin: catalogEntry ? 'catalog' : 'github',
+      enabled,
+      contentHash: audit.contentHash,
+      auditVerdict: audit.verdict,
+      auditFindings: audit.findings,
+      auditedAt,
+      manifestName: parsedManifest.ok ? parsedManifest.manifest.name : null,
+      resources: auditManifest.resources,
     });
 
     if (!created) {
@@ -19729,7 +19792,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(409).send({ error: `'${ownerRepo}' is already installed`, code: 'SKILL_ALREADY_INSTALLED' });
     }
 
-    return reply.code(201).send({ skill: record, source: fetched.ok ? fetched.source : null, note });
+    await store.recordSkillAudit({
+      scope,
+      scopeId,
+      ownerRepo,
+      action: audit.verdict === 'quarantined' ? 'install-quarantined' : 'install-approved',
+      verdict: audit.verdict,
+      findings: audit.findings,
+      contentHash: audit.contentHash,
+      actorUserId: userId,
+    });
+
+    return reply.code(201).send({
+      skill: record,
+      source: fetched.ok ? fetched.source : null,
+      note,
+      audit: { verdict: audit.verdict, findings: audit.findings },
+    });
   });
 
   // Uninstall a GitHub-repo skill from a scope.
@@ -19761,6 +19840,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (!removed) {
       return reply.code(404).send({ error: `'${ownerRepo}' is not installed`, code: 'SKILL_NOT_INSTALLED' });
     }
+
+    await store.recordSkillAudit({
+      scope,
+      scopeId,
+      ownerRepo,
+      action: 'uninstall',
+      actorUserId: request.currentUser?.id ?? null,
+    });
 
     return reply.send({ removed: true, ownerRepo, scope });
   });
@@ -19800,7 +19887,169 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: `'${ownerRepo}' is not installed`, code: 'SKILL_NOT_INSTALLED' });
     }
 
+    // Fail-closed: the store refuses to enable a revoked or audit-rejected skill,
+    // returning it still-disabled. Surface that as a 409 rather than a false 200.
+    if (body.enabled && !updated.enabled) {
+      const reason = updated.revokedAt ? 'has been revoked' : 'was rejected by the security audit';
+
+      return reply.code(409).send({
+        error: `'${ownerRepo}' ${reason} and cannot be enabled. Uninstall and re-install it to reconsider.`,
+        code: 'SKILL_ENABLE_BLOCKED',
+        skill: updated,
+      });
+    }
+
+    await store.recordSkillAudit({
+      scope,
+      scopeId,
+      ownerRepo,
+      action: body.enabled ? 'enable' : 'disable',
+      verdict: updated.auditVerdict,
+      actorUserId: request.currentUser?.id ?? null,
+    });
+
     return reply.send({ skill: updated });
+  });
+
+  /*
+   * RPL-SK-001.4 — REVOKE an installed skill. Distinct from uninstall: the row is
+   * kept (for the audit trail) but hard-disabled and stamped revokedAt/by/reason,
+   * and it can never be re-enabled until re-installed (enforced in the store).
+   */
+  app.post('/projects/:projectId/skills/installed/revoke', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+
+    const body = parse(skillRevokeBody, request.body);
+    const scope = body.scope ?? 'project';
+
+    const ownerRepo = normalizeOwnerRepo(body.ownerRepo);
+
+    if (!ownerRepo) {
+      return reply.code(400).send({ error: 'ownerRepo must be a valid "owner/repo" slug', code: 'SKILL_REPO_INVALID' });
+    }
+
+    const scopeId = await resolveSkillScopeId(scope, project, reply);
+
+    if (scopeId === undefined) {
+      return reply; // 409 already sent
+    }
+
+    const userId = request.currentUser?.id ?? null;
+
+    const revoked = await store.revokeSkill({
+      scope,
+      scopeId,
+      ownerRepo,
+      revokedByUserId: userId,
+      reason: body.reason ?? null,
+    });
+
+    if (!revoked) {
+      return reply.code(404).send({ error: `'${ownerRepo}' is not installed`, code: 'SKILL_NOT_INSTALLED' });
+    }
+
+    await store.recordSkillAudit({
+      scope,
+      scopeId,
+      ownerRepo,
+      action: 'revoke',
+      verdict: revoked.auditVerdict,
+      contentHash: revoked.contentHash,
+      actorUserId: userId,
+    });
+
+    return reply.send({ skill: revoked });
+  });
+
+  /*
+   * RPL-SK-001.3 — APPROVE a quarantined skill. Only a skill that installed with a
+   * `quarantined` verdict (and is not revoked) can be approved; approval enables
+   * it and records an `approve` event. A `rejected` skill is never approvable.
+   */
+  app.post('/projects/:projectId/skills/installed/approve', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+
+    const body = parse(skillApproveBody, request.body);
+    const scope = body.scope ?? 'project';
+
+    const ownerRepo = normalizeOwnerRepo(body.ownerRepo);
+
+    if (!ownerRepo) {
+      return reply.code(400).send({ error: 'ownerRepo must be a valid "owner/repo" slug', code: 'SKILL_REPO_INVALID' });
+    }
+
+    const scopeId = await resolveSkillScopeId(scope, project, reply);
+
+    if (scopeId === undefined) {
+      return reply; // 409 already sent
+    }
+
+    const current = (await store.listInstalledSkills(scope, scopeId)).find((row) => row.ownerRepo === ownerRepo);
+
+    if (!current) {
+      return reply.code(404).send({ error: `'${ownerRepo}' is not installed`, code: 'SKILL_NOT_INSTALLED' });
+    }
+
+    if (current.revokedAt || current.auditVerdict === 'rejected') {
+      return reply.code(409).send({
+        error: `'${ownerRepo}' cannot be approved (it is revoked or was rejected by the audit).`,
+        code: 'SKILL_NOT_APPROVABLE',
+      });
+    }
+
+    const userId = request.currentUser?.id ?? null;
+
+    const updated = await store.setInstalledSkillEnabled({ scope, scopeId, ownerRepo, enabled: true });
+
+    await store.recordSkillAudit({
+      scope,
+      scopeId,
+      ownerRepo,
+      action: 'approve',
+      verdict: current.auditVerdict,
+      contentHash: current.contentHash,
+      actorUserId: userId,
+    });
+
+    return reply.send({ skill: updated });
+  });
+
+  /*
+   * RPL-SK-001.3 — the append-only audit journal for a scope target. Optional
+   * ?ownerRepo= filters to one skill's history. Read-only projects:read.
+   */
+  app.get('/projects/:projectId/skills/audit', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+
+    const queryParsed = parse(skillAuditQuery, request.query);
+    const scope = queryParsed.scope ?? 'project';
+
+    const scopeId = await resolveSkillScopeId(scope, project, reply);
+
+    if (scopeId === undefined) {
+      return reply; // 409 already sent
+    }
+
+    const ownerRepo = queryParsed.ownerRepo ? normalizeOwnerRepo(queryParsed.ownerRepo) : undefined;
+
+    const events = await store.listSkillAuditEvents(scope, scopeId, { ownerRepo, limit: 200 });
+
+    return reply.send({ scope, events });
   });
 
   app.get('/projects/:projectId/settings', async (request) => ({

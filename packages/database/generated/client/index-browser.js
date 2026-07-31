@@ -328,7 +328,30 @@ exports.Prisma.InstalledSkillScalarFieldEnum = {
   enabled: 'enabled',
   installedByUserId: 'installedByUserId',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  origin: 'origin',
+  contentHash: 'contentHash',
+  auditVerdict: 'auditVerdict',
+  auditFindings: 'auditFindings',
+  auditedAt: 'auditedAt',
+  manifestName: 'manifestName',
+  resourcesJson: 'resourcesJson',
+  revokedAt: 'revokedAt',
+  revokedByUserId: 'revokedByUserId',
+  revokeReason: 'revokeReason'
+};
+
+exports.Prisma.SkillAuditEventScalarFieldEnum = {
+  id: 'id',
+  scope: 'scope',
+  scopeId: 'scopeId',
+  ownerRepo: 'ownerRepo',
+  action: 'action',
+  verdict: 'verdict',
+  findingsJson: 'findingsJson',
+  contentHash: 'contentHash',
+  actorUserId: 'actorUserId',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.ProjectEnvironmentScalarFieldEnum = {
@@ -1775,6 +1798,7 @@ exports.Prisma.ModelName = {
   AgentRepairEvent: 'AgentRepairEvent',
   ProjectSkill: 'ProjectSkill',
   InstalledSkill: 'InstalledSkill',
+  SkillAuditEvent: 'SkillAuditEvent',
   ProjectEnvironment: 'ProjectEnvironment',
   ProjectSecret: 'ProjectSecret',
   ProjectEnvVar: 'ProjectEnvVar',

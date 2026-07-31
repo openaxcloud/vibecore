@@ -23,3 +23,7 @@ Un point ne passe dans la colonne « Testé live » qu'après vérification à l
 | TPL-02.4 | Projet vide sans Agent/scaffold | ✅ | ☐ | ☐ | Voie power-user à vérifier réellement jusqu'à l'IDE. |
 | TPL-02.5 | 6 starters historiques requalifiés en démos/fixtures | ✅ | ☐ | ☐ | Aucune carte de framework Python/Go/Rust ; scénarios de non-régression à exécuter. |
 | TPL-02.PROOF | Prompt, import et remix publiables | ✅ | ☐ | ☐ | Trois vrais projets distincts → IDE → runtime → Preview → publish, avec captures. |
+| RPL-SK-001.1 | Skills interop `.agents/skills/<name>/SKILL.md` | ✅ | 🟡 `a961c1d0` PR #58 | ☐ | Parser + skill réel `commit-helper` prouvés local (14 tests, script `skill-audit-proof.ts`). À vérifier live après merge/deploy : chargement d'un skill workspace réel. |
+| RPL-SK-001.2 | Progressive disclosure L1→L2→L3 tracée | ✅ | 🟡 `a961c1d0` PR #58 | ☐ | Trace `L1 → L2 → L3` à la demande prouvée local (4 tests + script). À rejouer live. |
+| RPL-SK-001.3 | Audit + quarantaine + findings + approbation | ✅ | 🟡 `a961c1d0` PR #58 | ☐ | Malveillant **refusé (422)** + journal prouvés local (8+5 tests). À rejouer live sur prod (install refusé à l'écran + journal d'audit). |
+| RPL-SK-001.4 | UI Skills provenance / audit / enable-disable-revoke | ✅ | 🟡 `a961c1d0` PR #58 | ☐ | UI codée (badges verdict, findings, Approve/Revoke, journal). **Captures responsive 390/768/1024/1440 clair+sombre du panneau non prises** — bloquant pour ✅ Testé live. |
