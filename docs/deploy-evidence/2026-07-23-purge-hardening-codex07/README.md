@@ -1,4 +1,20 @@
-# Purge DB compte — réserves RR-20260723-CODEX-07 (PR #51)
+# Purge DB compte — réserves RR-20260723-CODEX-07 + RR-08 (PR #51)
+
+## Ronde RR-08 — 2 classes PII hors purge (corrigées)
+
+**1. ChatShare publics.** La purge supprimait `AiConversation` mais pas les `ChatShare` authored — or `ChatShare` n'a AUCUNE FK (survit à la suppression du projet/conversation) et `GET /chat-shares/:token` est **non authentifié** : un vieux lien servait encore le snapshot (`payloadJson` = les messages de l'utilisateur) après purge, y compris depuis un org PARTAGÉ dont le projet est conservé. Corrigé : `chatShare.deleteMany({ authorUserId })` dans la transaction (classe `chat_shares`, supprimé — le payload EST la PII), + compteur dans la vérification 0-restant (rollback sinon).
+Preuve réelle (`test-runs-rr08-raw.txt`, RR-08 #1) : org **partagé** (projet conservé), token signé HMAC → GET **200** avant purge (snapshot servi) → purge → même token → **404**, contenu absent de la réponse, 0 row SQL, classe consignée dans la preuve.
+
+**2. AdminAuditLog ciblant le sujet.** La purge n'anonymisait que `actorUserId == sujet` ; les events où un AUTRE admin agit SUR le sujet (`admin.user.suspend`, `metadata.userId` + texte libre citant l'email) restaient. Stratégie retenue (« stratégie sûre de redaction » de l'énoncé, sans migration) : tout `AdminAuditLog` dont `metadata.userId == sujet` a son metadata ENTIER remplacé par un marqueur (impossible d'énumérer les clés libres porteuses de PII) ; `action`/`actorUserId`/`ipAddress` (la trace de L'ACTEUR) conservés ; la preuve de purge (`account.purge_completed`) est exclue par filtre d'action ET écrite après la redaction dans la même tx.
+Preuve réelle (RR-08 #2) : admin B suspend le sujet (metadata avec userId + email en texte libre) → après purge : metadata rédigé (**ni l'id ni l'email ne survivent**), acteur/IP intacts ; row visant un TIERS **intouché** (pas de sur-redaction) ; preuve de purge **non** rédigée, classe `AdminAuditLogTargetingUser=1` consignée.
+
+**Matrice PII** : les 2 classes ajoutées à la table champ-par-champ dans le code (`ChatShare.payloadJson/title` → row DELETED ; `AdminAuditLog.metadata` ciblant → marqueur).
+
+Chiffres ronde RR-08 : **19/19** (10 DB dont les 2 nouveaux + 9 routes) vrai Postgres ; typecheck + build strict TS 5.8 exit 0.
+
+---
+
+## Ronde précédente — RR-20260723-CODEX-07
 
 Trois réserves de l'expert, corrigées + testées.
 

@@ -1,4 +1,6 @@
-import { hashPassword } from '@vibecore/auth';
+import { createHmac } from 'node:crypto';
+
+import { hashPassword, hashToken } from '@vibecore/auth';
 import { createDatabaseClient } from '@vibecore/database';
 import { describe, expect, it } from 'vitest';
 
@@ -597,6 +599,164 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
       expect(pii.models.SupportTicketSubject).toBe(1);
       expect(pii.models.TicketMessageBodyInThread).toBe(2);
       expect(pii.models.ProjectSnapshotLabel).toBe(1);
+    } finally {
+      await prisma.$disconnect();
+    }
+  });
+});
+
+runDbTests('RR-08 — chat-shares publics + AdminAuditLog ciblant le sujet (real Postgres)', () => {
+  it('RR-08 #1: an old PUBLIC chat-share token serves the snapshot BEFORE purge and 404s AFTER (shared-org project retained)', async () => {
+    process.env.INTERNAL_API_SHARED_SECRET = SECRET;
+    process.env.SHARE_LINK_SECRET = 'purge-share-secret';
+
+    const prisma = createDatabaseClient();
+
+    try {
+      const store = new PrismaApiStore(prisma);
+      const app = await buildApiApp({ store, emailProvider: new QuietEmailProvider() });
+      const { user, org, project, conversation } = await seedAccount(store);
+
+      /*
+       * SHARED org: the project (and thus the route's project gate) SURVIVES the
+       * purge — without the ChatShare delete, the public link would keep serving.
+       */
+      const other = await store.createUser({
+        email: `keep-${suffix()}@example.com`,
+        name: 'Keep',
+        passwordHash: hashPassword('password123'),
+      });
+      await store.addMember({ organizationId: org.id, userId: other.id, roleKey: 'member' });
+
+      const SECRET_MSG = `my api key is sk-live-${suffix()}`;
+      const raw = `share-${suffix()}`;
+      const signed = `${raw}.${createHmac('sha256', 'purge-share-secret').update(raw).digest('base64url')}`;
+      await store.createChatShare({
+        tokenHash: hashToken(raw),
+        conversationId: conversation.id,
+        projectId: project.id,
+        authorUserId: user.id,
+        title: 'debug session',
+        payload: { messages: [{ role: 'user', content: SECRET_MSG }] },
+      });
+
+      // The UNAUTHENTICATED route serves the snapshot pre-purge.
+      const before = await app.inject({ method: 'GET', url: `/chat-shares/${signed}` });
+      expect(before.statusCode).toBe(200);
+      expect(before.body).toContain('debug session');
+
+      await requestElapsedDeletion(store, user.id);
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/internal/account-purge',
+        headers: { authorization: `Bearer ${SECRET}` },
+        payload: { enabled: true, userId: user.id },
+      });
+      expect(res.json()).toMatchObject({ purged: 1 });
+
+      // The SAME token now 404s — and the snapshot content is gone from the response.
+      const after = await app.inject({ method: 'GET', url: `/chat-shares/${signed}` });
+      expect(after.statusCode).toBe(404);
+      expect(after.body).not.toContain(SECRET_MSG);
+      expect(after.body).not.toContain('debug session');
+
+      // SQL: zero authored shares survive; consigned in the proof.
+      expect(await prisma.chatShare.count({ where: { authorUserId: user.id } })).toBe(0);
+
+      const proofs = await prisma.adminAuditLog.findMany({
+        where: { action: 'account.purge_completed', metadata: { path: ['userId'], equals: user.id } },
+      });
+
+      const proof = (proofs[0]!.metadata as unknown as { proof: ErasureProof }).proof;
+      expect(proof.classes.find((c) => c.dataClass === 'chat_shares')!.models.ChatShare).toBe(1);
+    } finally {
+      await prisma.$disconnect();
+    }
+  });
+
+  it('RR-08 #2: AdminAuditLog rows where ANOTHER admin acted ON the subject are redacted; unrelated rows and the purge proof are not', async () => {
+    process.env.INTERNAL_API_SHARED_SECRET = SECRET;
+
+    const prisma = createDatabaseClient();
+
+    try {
+      const store = new PrismaApiStore(prisma);
+      const app = await buildApiApp({ store, emailProvider: new QuietEmailProvider() });
+      const { user } = await seedAccount(store);
+
+      const admin = await store.createUser({
+        email: `admin-${suffix()}@example.com`,
+        name: 'Admin',
+        passwordHash: hashPassword('password123'),
+      });
+      const bystander = await store.createUser({
+        email: `bystander-${suffix()}@example.com`,
+        name: 'Bystander',
+        passwordHash: hashPassword('password123'),
+      });
+
+      /*
+       * ANOTHER admin suspends the subject — metadata carries the subject's id
+       * AND free text quoting their email (the exact leak of the refusal).
+       */
+      await store.recordAdminAudit({
+        actorUserId: admin.id,
+        action: 'admin.user.suspend',
+        metadata: { userId: user.id, reason: `fraud check for ${user.email}` },
+        ipAddress: '198.51.100.7',
+      });
+
+      // Unrelated row (targets the bystander): must NOT be over-redacted.
+      await store.recordAdminAudit({
+        actorUserId: admin.id,
+        action: 'admin.user.suspend',
+        metadata: { userId: bystander.id, reason: 'unrelated case' },
+        ipAddress: '198.51.100.7',
+      });
+
+      await requestElapsedDeletion(store, user.id);
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/internal/account-purge',
+        headers: { authorization: `Bearer ${SECRET}` },
+        payload: { enabled: true, userId: user.id },
+      });
+      expect(res.json()).toMatchObject({ purged: 1 });
+
+      /*
+       * Row targeting the subject: WHOLE metadata redacted (no id, no email),
+       * while the ACTOR's trail (action, actorUserId, their IP) is retained.
+       */
+      const targeting = await prisma.adminAuditLog.findMany({
+        where: { actorUserId: admin.id, action: 'admin.user.suspend' },
+        orderBy: { createdAt: 'asc' },
+      });
+      expect(targeting).toHaveLength(2);
+
+      const [subjectRow, bystanderRow] = targeting;
+      expect((subjectRow.metadata as { redacted?: boolean }).redacted).toBe(true);
+
+      const subjectRowText = JSON.stringify(subjectRow.metadata);
+      expect(subjectRowText).not.toContain(user.id);
+      expect(subjectRowText).not.toContain(user.email);
+      expect(subjectRow.actorUserId).toBe(admin.id);
+      expect(subjectRow.ipAddress).toBe('198.51.100.7');
+
+      // Unrelated row untouched.
+      expect((bystanderRow.metadata as { userId?: string }).userId).toBe(bystander.id);
+      expect((bystanderRow.metadata as { reason?: string }).reason).toBe('unrelated case');
+
+      // The purge proof (metadata.userId = subject, by design) is NOT redacted.
+      const proofs = await prisma.adminAuditLog.findMany({
+        where: { action: 'account.purge_completed', metadata: { path: ['userId'], equals: user.id } },
+      });
+      expect(proofs).toHaveLength(1);
+
+      const proof = (proofs[0]!.metadata as unknown as { proof: ErasureProof }).proof;
+      expect(proof.verifiedZeroRemaining).toBe(true);
+      expect(proof.classes.find((c) => c.dataClass === 'audit_logs')!.models.AdminAuditLogTargetingUser).toBe(1);
     } finally {
       await prisma.$disconnect();
     }

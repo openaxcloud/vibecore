@@ -625,6 +625,22 @@ export class PrismaApiStore implements ApiStore {
         });
 
         /*
+         * RR-08 #1 — public chat-share snapshots authored by the subject. The
+         * ChatShare row has NO FK (survives project/conversation deletion by
+         * design) and GET /chat-shares/:token is UNAUTHENTICATED, so without
+         * this delete an old public link keeps serving the conversation
+         * snapshot (payloadJson = the user's messages) after the purge —
+         * including from SHARED orgs whose project is retained. DELETED (not
+         * merely revoked): the payload itself is the PII.
+         */
+        const chatShares = await tx.chatShare.deleteMany({ where: { authorUserId: userId } });
+        classes.push({
+          dataClass: 'chat_shares',
+          action: 'deleted',
+          models: { ChatShare: chatShares.count },
+        });
+
+        /*
          * Projects & workspaces of sole-member orgs (files, snapshots,
          * deployments, workspaces, gallery listings... cascade off Project).
          */
@@ -666,11 +682,41 @@ export class PrismaApiStore implements ApiStore {
           where: { actorUserId: userId },
           data: { ipAddress: null, metadata: { redacted: true, redactedAt: nowIso } as Prisma.InputJsonValue },
         });
+
+        /*
+         * RR-08 #2 — admin events where ANOTHER admin acted ON the subject
+         * (admin.user.suspend / unsuspend / impersonate_* …). Those rows carry
+         * the subject in metadata.userId plus free-form fields (reason text can
+         * quote an email); the actor-scoped pass above never touches them.
+         * SAFE REDACTION STRATEGY (chosen over a schema change): every
+         * AdminAuditLog whose metadata references the subject via the
+         * structured `userId` key has its WHOLE metadata replaced by a
+         * redaction marker — we cannot enumerate which free-form keys hold
+         * PII, so nothing selective survives. The row itself (action,
+         * actorUserId = the other admin, their IP) is retained: that is the
+         * ACTOR's audit trail, not the subject's PII. The purge proof written
+         * at the END of this tx also matches `metadata.userId` — it does not
+         * exist yet at this point, and the action filter keeps any replay from
+         * ever redacting a proof.
+         */
+        const adminAuditTargetRedacted = await tx.adminAuditLog.updateMany({
+          where: {
+            metadata: { path: ['userId'], equals: userId },
+            NOT: { action: 'account.purge_completed' },
+          },
+          data: {
+            metadata: { redacted: true, redactedAt: nowIso, target: 'purged-user' } as Prisma.InputJsonValue,
+          },
+        });
         classes.push({
           dataClass: 'audit_logs',
           action: 'anonymized',
           reason: 'append_only_redacted_never_deleted',
-          models: { AuditLog: auditRedacted.count, AdminAuditLog: adminAuditRedacted.count },
+          models: {
+            AuditLog: auditRedacted.count,
+            AdminAuditLog: adminAuditRedacted.count,
+            AdminAuditLogTargetingUser: adminAuditTargetRedacted.count,
+          },
         });
 
         /*
@@ -715,6 +761,8 @@ export class PrismaApiStore implements ApiStore {
          *   TicketMessage   | authorUserId| ref        | → null (detach)
          *   ProjectSnapshot | label       | yes (PII)  | → null
          *   ProjectSnapshot | createdByUserId | ref    | → null (detach)
+         *   ChatShare       | payloadJson/title | yes (PII, PUBLIC route) | → row DELETED (RR-08 #1, chat_shares class above)
+         *   AdminAuditLog   | metadata (rows TARGETING the subject, any actor) | yes (PII) | → {redacted marker} (RR-08 #2, audit_logs class above)
          *
          * (ProjectSnapshot.manifest is the SHARED project's file structure that
          * belongs to the remaining members — retained, not the departing user's
@@ -966,6 +1014,9 @@ export class PrismaApiStore implements ApiStore {
             (await tx.collaborationComment.count({ where: { userId } })) +
             (await tx.projectShareLink.count({ where: { createdByUserId: userId } })) +
             (await tx.userSpendLimit.count({ where: { userId } })),
+
+          // RR-08 #1: no authored public snapshot may survive the purge.
+          chat_shares: await tx.chatShare.count({ where: { authorUserId: userId } }),
           projects: soleOrgIds.length > 0 ? await tx.project.count({ where: soleOrgWhere }) : 0,
           imports: soleOrgIds.length > 0 ? await tx.importJob.count({ where: soleOrgWhere }) : 0,
           memberships: await tx.organizationMember.count({ where: { userId } }),
