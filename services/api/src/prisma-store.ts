@@ -130,6 +130,29 @@ function parseJsonArray<T>(value: string | null | undefined): T[] {
   }
 }
 
+/*
+ * A stable, order-independent signature of the storage topology an account purge
+ * depends on. The external GCS/PVC erasure runs on the PRE-transaction topology;
+ * the purge tx re-derives this same fingerprint under the advisory lock and
+ * aborts on any drift, so a membership race (shared→sole / sole→shared) can never
+ * finalize a purge on a stale inventory (RR-08 #3).
+ */
+function storageTopologyFingerprint(topology: {
+  orgIds: string[];
+  soleOrgIds: string[];
+  bucketProjectIds: string[];
+  workspaceProjectIds: string[];
+}): string {
+  const sorted = (values: string[]) => [...values].sort();
+
+  return JSON.stringify({
+    orgIds: sorted(topology.orgIds),
+    soleOrgIds: sorted(topology.soleOrgIds),
+    bucketProjectIds: sorted(topology.bucketProjectIds),
+    workspaceProjectIds: sorted(topology.workspaceProjectIds),
+  });
+}
+
 type PrismaKnownRequestError = Error & { readonly code: string };
 
 /**
@@ -421,34 +444,44 @@ export class PrismaApiStore implements ApiStore {
    * transaction back so a half-purge can never be reported as done.
    */
   /**
-   * The projects the purge will delete = those in the user's SOLE-member orgs
-   * (shared orgs belong to other members and are retained). Resolved as plain
-   * reads so the pre-transaction physical-erasure step knows which buckets/PVCs
-   * to erase; the purge tx recomputes the same set authoritatively for the DB
-   * deletes, and physical erasure is idempotent, so any drift is harmless.
+   * The full storage TOPOLOGY the purge depends on: the user's orgs, which are
+   * SOLE-member (bucket + DB rows are erased) vs shared (retained for the other
+   * members), and the resolved project-id sets. Computed against ANY client — the
+   * live `this.prisma` (pre-transaction, to drive the external GCS/PVC erasure)
+   * OR the purge `tx` (authoritative, under the advisory lock). The `fingerprint`
+   * lets the tx detect a membership race (shared→sole / sole→shared) that shifted
+   * the topology while the external erasure ran, and ABORT before the tombstone
+   * rather than finalize on a stale inventory (see purgeUserAccount, RR-08 #3).
    */
-  private async purgeableStorageInventory(userId: string): Promise<{
+  private async resolveStorageTopology(
+    client: Prisma.TransactionClient,
+    userId: string,
+  ): Promise<{
+    orgIds: string[];
+    soleOrgIds: string[];
+    sharedOrgIds: string[];
     bucketProjectIds: string[];
     workspaceProjectIds: string[];
+    fingerprint: string;
   }> {
-    const memberships = await this.prisma.organizationMember.findMany({
+    const memberships = await client.organizationMember.findMany({
       where: { userId },
       select: { organizationId: true },
     });
     const orgIds = [...new Set(memberships.map((m) => m.organizationId))];
     const soleOrgIds: string[] = [];
+    const sharedOrgIds: string[] = [];
 
     for (const orgId of orgIds) {
-      if ((await this.prisma.organizationMember.count({ where: { organizationId: orgId } })) === 1) {
-        soleOrgIds.push(orgId);
-      }
+      const members = await client.organizationMember.count({ where: { organizationId: orgId } });
+      (members === 1 ? soleOrgIds : sharedOrgIds).push(orgId);
     }
 
     // Buckets: only the subject's SOLE-org projects (the bucket is org-owned; a
     // shared org's bucket belongs to the other members and is retained).
     const bucketProjects =
       soleOrgIds.length > 0
-        ? await this.prisma.project.findMany({ where: { organizationId: { in: soleOrgIds } }, select: { id: true } })
+        ? await client.project.findMany({ where: { organizationId: { in: soleOrgIds } }, select: { id: true } })
         : [];
     const bucketProjectIds = bucketProjects.map((p) => p.id);
 
@@ -462,9 +495,9 @@ export class PrismaApiStore implements ApiStore {
      */
     const orgProjects =
       orgIds.length > 0
-        ? await this.prisma.project.findMany({ where: { organizationId: { in: orgIds } }, select: { id: true } })
+        ? await client.project.findMany({ where: { organizationId: { in: orgIds } }, select: { id: true } })
         : [];
-    const collaborations = await this.prisma.projectCollaborator.findMany({
+    const collaborations = await client.projectCollaborator.findMany({
       where: { userId },
       select: { projectId: true },
     });
@@ -472,7 +505,9 @@ export class PrismaApiStore implements ApiStore {
       ...new Set([...orgProjects.map((p) => p.id), ...collaborations.map((c) => c.projectId)]),
     ];
 
-    return { bucketProjectIds, workspaceProjectIds };
+    const fingerprint = storageTopologyFingerprint({ orgIds, soleOrgIds, bucketProjectIds, workspaceProjectIds });
+
+    return { orgIds, soleOrgIds, sharedOrgIds, bucketProjectIds, workspaceProjectIds, fingerprint };
   }
 
   async purgeUserAccount(
@@ -493,6 +528,10 @@ export class PrismaApiStore implements ApiStore {
      * not-due / already-purged call.
      */
     let physicalClasses: PurgeClassReport[] = [];
+    // Fingerprint of the topology the external erasure acted on (RR-08 #3). Null
+    // when no physical erasure ran (dry-run / no storage deps): nothing external
+    // was touched, so there is no stale-inventory risk to guard against.
+    let erasedTopologyFingerprint: string | null = null;
 
     if (deps?.eraseStorage) {
       const pre = await this.prisma.user.findUnique({ where: { id: userId }, select: { preferences: true } });
@@ -511,8 +550,11 @@ export class PrismaApiStore implements ApiStore {
       });
 
       if (preStatus === 'ready_to_purge') {
-        const inventory = await this.purgeableStorageInventory(userId);
-        const erasure = await deps.eraseStorage(inventory);
+        const preTopology = await this.resolveStorageTopology(this.prisma, userId);
+        const erasure = await deps.eraseStorage({
+          bucketProjectIds: preTopology.bucketProjectIds,
+          workspaceProjectIds: preTopology.workspaceProjectIds,
+        });
 
         if (!erasure.verified) {
           throw new Error(
@@ -522,6 +564,7 @@ export class PrismaApiStore implements ApiStore {
         }
 
         physicalClasses = erasure.classes;
+        erasedTopologyFingerprint = preTopology.fingerprint;
       }
     }
 
@@ -562,15 +605,30 @@ export class PrismaApiStore implements ApiStore {
           return { outcome: 'not_due' as const, purgeDueAt: new Date(purgeDueAtMs(requestedAtMs!)).toISOString() };
         }
 
-        // ---- ready_to_purge: resolve org topology (sole-member vs shared) ----
-        const memberships = await tx.organizationMember.findMany({ where: { userId }, select: { organizationId: true } });
-        const orgIds = [...new Set(memberships.map((m) => m.organizationId))];
-        const soleOrgIds: string[] = [];
-        const sharedOrgIds: string[] = [];
+        /*
+         * ready_to_purge: resolve the org topology (sole-member vs shared)
+         * AUTHORITATIVELY under the advisory lock. This is the same computation
+         * the pre-transaction step used to drive the external GCS/PVC erasure.
+         */
+        const topology = await this.resolveStorageTopology(tx, userId);
+        const { orgIds, soleOrgIds, sharedOrgIds } = topology;
 
-        for (const orgId of orgIds) {
-          const members = await tx.organizationMember.count({ where: { organizationId: orgId } });
-          (members === 1 ? soleOrgIds : sharedOrgIds).push(orgId);
+        /*
+         * RR-08 #3 — TOPOLOGY DRIFT GUARD. The external erasure already ran, on
+         * the PRE-transaction topology. If a membership race shifted it while we
+         * erased — a co-member left (shared→sole) or joined (sole→shared) — then
+         * finalizing now would either strand a newly-sole org's bucket (never
+         * erased) or have destroyed a newly-shared org's bucket. Re-verify the
+         * exact same topology here, BEFORE any delete or the tombstone, and ABORT
+         * on drift: the tx rolls back, purgedAt is never stamped, the account
+         * stays queued, and the next run recomputes a fresh inventory and
+         * re-erases (idempotent). Never finalize on a stale inventory.
+         */
+        if (erasedTopologyFingerprint !== null && topology.fingerprint !== erasedTopologyFingerprint) {
+          throw new Error(
+            `ACCOUNT_PURGE_TOPOLOGY_DRIFT: storage topology changed during physical erasure for ${userId} ` +
+              `— refusing to finalize on a stale inventory (account re-queued)`,
+          );
         }
 
         const classes: PurgeClassReport[] = [];

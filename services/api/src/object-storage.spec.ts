@@ -6,9 +6,11 @@ import {
   ObjectStorageError,
   assertValidObjectKey,
   buildLifecycleRules,
+  guardObjectStorageWrites,
   projectBucketName,
   type BucketLike,
   type FileLike,
+  type ObjectStorage,
   type StorageLike,
 } from './object-storage.js';
 
@@ -331,5 +333,69 @@ describe('GcsObjectStorage', () => {
     const result = await svc.deleteBucket('missing');
 
     expect(result.deleted).toBe(false);
+  });
+});
+
+describe('guardObjectStorageWrites — account-purge freeze barrier (RR-08 #1)', () => {
+  function tracking(): { storage: ObjectStorage; calls: string[] } {
+    const calls: string[] = [];
+    const record =
+      <T>(name: string, value: T) =>
+      async () => {
+        calls.push(name);
+
+        return value;
+      };
+    const storage: ObjectStorage = {
+      active: true,
+      ensureBucket: record('ensureBucket', { bucket: 'vc-p', created: true, location: 'EU' }),
+      bucketExists: record('bucketExists', true),
+      listObjects: record('listObjects', { objects: [], folders: [] }),
+      createUploadUrl: record('createUploadUrl', { url: 'u', method: 'PUT' as const, headers: {}, expiresAt: 'x' }),
+      createDownloadUrl: record('createDownloadUrl', { url: 'd', expiresAt: 'y' }),
+      putObject: record('putObject', { key: 'k', size: 1 }),
+      moveObject: record('moveObject', { moved: true, key: 't' }),
+      deleteObject: record('deleteObject', { deleted: true, count: 1 }),
+      deletePrefix: record('deletePrefix', { deleted: true, count: 1 }),
+      deleteBucket: record('deleteBucket', { deleted: true, bucket: 'vc-p' }),
+    };
+
+    return { storage, calls };
+  }
+
+  const frozenFor = (frozen: Set<string>) => async (projectId: string) => frozen.has(projectId);
+
+  it('REFUSES every create/modify primitive for a frozen project and never touches the backend', async () => {
+    const { storage, calls } = tracking();
+    const guarded = guardObjectStorageWrites(storage, frozenFor(new Set(['p'])));
+
+    for (const call of [
+      () => guarded.ensureBucket('p'),
+      () => guarded.createUploadUrl('p', { key: 'thumbnail.png' }),
+      () => guarded.putObject('p', { key: 'thumbnail.png', body: new Uint8Array([1]) }),
+      () => guarded.moveObject('p', { from: 'a', to: 'b' }),
+    ]) {
+      await expect(call()).rejects.toMatchObject({ code: 'OBJECT_STORAGE_PURGE_FROZEN' });
+    }
+
+    // Not one write reached the underlying backend.
+    expect(calls).toEqual([]);
+  });
+
+  it('lets a frozen project still be READ and DELETED, and lets an UNFROZEN project write', async () => {
+    const { storage, calls } = tracking();
+    const guarded = guardObjectStorageWrites(storage, frozenFor(new Set(['p'])));
+
+    // Reads + deletes pass through even for the frozen project.
+    await guarded.bucketExists('p');
+    await guarded.listObjects('p');
+    await guarded.deleteBucket('p');
+    await guarded.deleteObject('p', { key: 'x' });
+
+    // A different, unfrozen project writes normally.
+    await guarded.ensureBucket('other');
+    await guarded.createUploadUrl('other', { key: 'k' });
+
+    expect(calls).toEqual(['bucketExists', 'listObjects', 'deleteBucket', 'deleteObject', 'ensureBucket', 'createUploadUrl']);
   });
 });

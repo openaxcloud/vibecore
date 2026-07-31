@@ -336,4 +336,100 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
       await prisma.$disconnect();
     }
   });
+
+  /*
+   * RR-08 #3 — TOPOLOGY DRIFT. The external GCS/PVC erasure runs on the
+   * PRE-transaction topology; the tx re-derives it under the advisory lock and
+   * must ABORT (never stamp purgedAt) if a membership race shifted sole↔shared
+   * while the erasure ran. The `eraseStorage` hook IS that window — it is invoked
+   * after the inventory is taken and before the tx — so mutating membership
+   * inside it faithfully reproduces the race, deterministically.
+   */
+
+  it('(6) shared→sole during external erasure ABORTS the purge (never finalizes on stale inventory)', async () => {
+    const prisma = createDatabaseClient();
+
+    try {
+      const store = new PrismaApiStore(prisma);
+      const { user, org, project } = await seedAccount(store);
+
+      // Make the org SHARED: add a second member (reuse the owner's role).
+      const owner = (await prisma.organizationMember.findFirst({
+        where: { organizationId: org.id, userId: user.id },
+      }))!;
+      const other = await store.createUser({
+        email: `co-${suffix()}@example.com`,
+        name: 'Co Member',
+        passwordHash: hashPassword('password123'),
+      });
+      await prisma.organizationMember.create({
+        data: { organizationId: org.id, userId: other.id, roleId: owner.roleId },
+      });
+
+      await requestElapsedDeletion(store, user.id);
+
+      // During the external erasure the co-member LEAVES → the org becomes SOLE,
+      // so its bucket (excluded pre-tx as shared) would now need erasing.
+      const eraseStorage = async () => {
+        await prisma.organizationMember.deleteMany({ where: { organizationId: org.id, userId: other.id } });
+
+        return { classes: [], verified: true };
+      };
+
+      await expect(store.purgeUserAccount({ userId: user.id }, { eraseStorage })).rejects.toThrow(
+        /ACCOUNT_PURGE_TOPOLOGY_DRIFT/,
+      );
+
+      // Fail-closed: NOT finalized. No tombstone, storage rows intact.
+      const after = await prisma.user.findUnique({ where: { id: user.id } });
+      expect((after!.preferences as { accountDeletion?: { purgedAt?: string } }).accountDeletion?.purgedAt).toBeUndefined();
+      expect(await prisma.session.count({ where: { userId: user.id } })).toBe(1);
+      expect(await prisma.project.count({ where: { id: project.id } })).toBe(1);
+    } finally {
+      await prisma.$disconnect();
+    }
+  });
+
+  it('(7) sole→shared during external erasure ABORTS the purge (never destroys a now-shared org)', async () => {
+    const prisma = createDatabaseClient();
+
+    try {
+      const store = new PrismaApiStore(prisma);
+      const { user, org, project } = await seedAccount(store);
+
+      // Pre-tx the org is SOLE (owner only) → its bucket is in the erase inventory.
+      const owner = (await prisma.organizationMember.findFirst({
+        where: { organizationId: org.id, userId: user.id },
+      }))!;
+      const joiner = await store.createUser({
+        email: `join-${suffix()}@example.com`,
+        name: 'Late Joiner',
+        passwordHash: hashPassword('password123'),
+      });
+
+      await requestElapsedDeletion(store, user.id);
+
+      // During the external erasure a new member JOINS → the org becomes SHARED,
+      // so it must NOT be deleted/tombstoned on the now-stale sole inventory.
+      const eraseStorage = async () => {
+        await prisma.organizationMember.create({
+          data: { organizationId: org.id, userId: joiner.id, roleId: owner.roleId },
+        });
+
+        return { classes: [], verified: true };
+      };
+
+      await expect(store.purgeUserAccount({ userId: user.id }, { eraseStorage })).rejects.toThrow(
+        /ACCOUNT_PURGE_TOPOLOGY_DRIFT/,
+      );
+
+      // Fail-closed: the now-shared org and its project survive; no tombstone.
+      const after = await prisma.user.findUnique({ where: { id: user.id } });
+      expect((after!.preferences as { accountDeletion?: { purgedAt?: string } }).accountDeletion?.purgedAt).toBeUndefined();
+      expect(await prisma.project.count({ where: { id: project.id } })).toBe(1);
+      expect(await prisma.organizationMember.count({ where: { organizationId: org.id, userId: joiner.id } })).toBe(1);
+    } finally {
+      await prisma.$disconnect();
+    }
+  });
 });

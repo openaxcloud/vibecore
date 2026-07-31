@@ -48,6 +48,43 @@ local `kind` cluster satisfies "real k8s" at $0, so no cost sign-off was needed.
 No persistent keys: GCS uses ADC (the reviewer's gcloud login), k8s uses the
 local kind kubeconfig.
 
+## Round 3 — RR-08: two blocking paths closed (fail-closed)
+
+The reviewer (RR-08) found two more holes. Both are fixed fail-closed with
+executable tests (real Postgres for the topology race; route + unit for the
+write barrier). These paths are code/logic, not new external-I/O, so the proof
+is the test suite below rather than a new GCS/kind artifact.
+
+1. **Thumbnail (and every future signed upload) was outside the freeze barrier.**
+   `POST /projects/:id/thumbnail/upload-url` called `ensureBucket` +
+   `createUploadUrl` with NO freeze check, so it could recreate a bucket/object
+   for a project the purge had already zero-checked. Fixed two ways:
+   - the route now calls the same `objectStorageWriteBlocked` guard (early 403);
+   - **structural** — `resolveObjectStorage()` now returns a
+     `guardObjectStorageWrites()` wrapper whose CREATE/MODIFY primitives
+     (`ensureBucket` / `createUploadUrl` / `putObject` / `moveObject`) refuse a
+     frozen project, so the background thumbnail *capturer* and any future write
+     path are covered by construction. The purge's OWN erasure uses the RAW
+     (unwrapped) adapter, so it can still delete the very project it froze.
+     Proof: `tests/object-storage-purge-freeze.spec.ts` (thumbnail → 403,
+     generic upload-url → 403, reads still 200, unfreeze → 200) +
+     `object-storage.spec.ts` `guardObjectStorageWrites` unit (every write
+     refused, reads/deletes pass, unfrozen project writes).
+
+2. **Topology was not serialized against the tombstone.** The external GCS/PVC
+   erasure ran on the PRE-transaction sole/shared classification; the tx then
+   recomputed it independently, so a membership race (shared→sole / sole→shared)
+   during the erasure could strand a newly-sole org's bucket or destroy a
+   newly-shared org's bucket, yet still stamp `purgedAt`. Fixed: the purge tx now
+   re-derives the EXACT topology fingerprint under the advisory lock and
+   **aborts (`ACCOUNT_PURGE_TOPOLOGY_DRIFT`) before any delete or the tombstone**
+   on any drift — the account stays queued and the next run recomputes a fresh
+   inventory (idempotent erasure). Never finalize on a stale inventory.
+   Proof (real Postgres): `tests/account-purge-db.spec.ts` (6) shared→sole and
+   (7) sole→shared — the `eraseStorage` hook IS the race window, so the tests
+   mutate membership inside it and assert the purge aborts with no tombstone and
+   intact storage rows.
+
 ## Round 2 — the six required corrections (fail-closed) + negatives
 
 Each is implemented fail-closed and has an executable negative proving it:

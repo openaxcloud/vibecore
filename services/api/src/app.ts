@@ -317,6 +317,7 @@ import {
 import {
   ObjectStorageError,
   type ObjectStorage,
+  guardObjectStorageWrites,
   isObjectStorageEnabled,
   PROJECT_THUMBNAIL_KEY,
   resolveDefaultObjectStorage,
@@ -29683,7 +29684,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                       ),
                     },
                     {
-                      objectStorage: resolveObjectStorage(),
+                      // RAW (unguarded) backend: the erasure must delete the very
+                      // projects it freezes; the freeze guard would refuse them.
+                      objectStorage: resolveRawObjectStorage(),
                       workspaceVolumes: createWorkspaceVolumeEraser(),
                       writeBarrier: createWriteBarrier(
                         (inv) => inv.workspaceIds,
@@ -32028,7 +32031,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   /* -------- Object Storage (GCS, per-project) — dormant unless OBJECT_STORAGE_ENABLED -------- */
   const sendObjectStorageError = (reply: FastifyReply, error: unknown) => {
     if (error instanceof ObjectStorageError) {
-      const status = error.code === 'INVALID_KEY' ? 400 : error.code === 'FEATURE_NOT_ENABLED' ? 404 : 422;
+      const status =
+        error.code === 'INVALID_KEY'
+          ? 400
+          : error.code === 'FEATURE_NOT_ENABLED'
+            ? 404
+            : error.code === 'OBJECT_STORAGE_PURGE_FROZEN'
+              ? 403
+              : 422;
 
       return reply.code(status).send({ error: error.message, code: error.code });
     }
@@ -32036,7 +32046,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     throw error;
   };
 
-  const resolveObjectStorage = (): ObjectStorage => options.objectStorage ?? resolveDefaultObjectStorage();
+  /*
+   * Reserve #3 / RR-08 #1: is THIS project's object storage frozen by an in-flight
+   * account purge? Shared by the explicit route guard (objectStorageWriteBlocked,
+   * early 403) and the structural write wrapper below (defence in depth for the
+   * background thumbnail capturer and any future write path).
+   */
+  const isObjectStoragePurgeFrozen = async (projectId: string): Promise<boolean> => {
+    const frozen = (await store.listSystemSettings()).find((s) => s.key === OBJECT_STORAGE_PURGE_FROZEN_KEY)?.value;
+
+    return Array.isArray(frozen) && frozen.includes(projectId);
+  };
+
+  /*
+   * RAW backend — used ONLY by the account-purge erasure, which must be able to
+   * delete the very project it just froze (the guard below would otherwise refuse
+   * it). Erasure only ever reads/deletes, never creates, so this is safe.
+   */
+  const resolveRawObjectStorage = (): ObjectStorage => options.objectStorage ?? resolveDefaultObjectStorage();
+
+  /*
+   * Everyone else — every request route AND the background thumbnail capturer —
+   * obtains the freeze-GUARDED wrapper, so no present or future write path can
+   * recreate a bucket/object for a project under purge (RR-08 #1).
+   */
+  const resolveObjectStorage = (): ObjectStorage =>
+    guardObjectStorageWrites(resolveRawObjectStorage(), isObjectStoragePurgeFrozen);
 
   /*
    * P11 automatic thumbnails. Inert unless SCREENSHOTTER_URL is set, so this is a
@@ -32099,9 +32134,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * sending the 403.
    */
   const objectStorageWriteBlocked = async (projectId: string, reply: FastifyReply): Promise<boolean> => {
-    const frozen = (await store.listSystemSettings()).find((s) => s.key === OBJECT_STORAGE_PURGE_FROZEN_KEY)?.value;
-
-    if (Array.isArray(frozen) && frozen.includes(projectId)) {
+    if (await isObjectStoragePurgeFrozen(projectId)) {
       await reply
         .code(403)
         .send({ error: 'Object storage is frozen for account deletion', code: 'OBJECT_STORAGE_PURGE_FROZEN' });
@@ -32265,6 +32298,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const project = await requireObjectStorageProject(request, 'projects:write');
+
+    // RR-08 #1: the thumbnail signed-upload is a storage WRITE like any other —
+    // it must refuse a project frozen for account deletion, or ensureBucket +
+    // createUploadUrl could recreate the bucket/object after the purge zero-check.
+    if (await objectStorageWriteBlocked(project.id, reply)) {
+      return reply;
+    }
 
     try {
       const storage = resolveObjectStorage();
