@@ -23,16 +23,19 @@ for (const lang of LANGS) {
         deviceScaleFactor: 1,
         colorScheme: theme,
       });
-      await context.addCookies([
-        { name: 'ecode_theme', value: theme, url: BASE },
-      ]);
+      await context.addCookies([{ name: 'ecode_theme', value: theme, url: BASE }]);
+
       const page = await context.newPage();
       const errors = [];
       page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
       page.on('pageerror', (e) => errors.push(String(e)));
 
       const url = `${BASE}/solutions/${SLUG}?lang=${lang}`;
-      await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+      await page
+        .waitForSelector('[data-testid="app-builder-page"], [data-testid="solution-page"]', { timeout: 30000 })
+        .catch(() => {});
+
       // Force theme deterministically
       await page.evaluate((t) => {
         const r = document.documentElement;
@@ -41,28 +44,44 @@ for (const lang of LANGS) {
         r.classList.toggle('light', t === 'light');
         r.style.colorScheme = t;
       }, theme);
+
       // Trigger lazy images: scroll to bottom then back
       await page.evaluate(async () => {
         await new Promise((res) => {
           let y = 0;
+
           const step = () => {
             window.scrollTo(0, y);
             y += 600;
-            if (y < document.body.scrollHeight) setTimeout(step, 40);
-            else { window.scrollTo(0, 0); setTimeout(res, 300); }
+
+            if (y < document.body.scrollHeight) {
+              setTimeout(step, 40);
+            } else {
+              window.scrollTo(0, 0);
+              setTimeout(res, 300);
+            }
           };
           step();
         });
       });
-      await page.waitForLoadState('networkidle').catch(() => {});
+      await page.waitForTimeout(500);
+
       // Detect horizontal overflow (responsive failure)
       const overflow = await page.evaluate(() => {
         const de = document.documentElement;
         return { scrollW: de.scrollWidth, clientW: de.clientWidth, over: de.scrollWidth - de.clientWidth };
       });
+
       const file = resolve(OUT, `${lang}-${theme}-${width}.png`);
       await page.screenshot({ path: file, fullPage: true });
-      results.push({ lang, theme, width, overflowPx: overflow.over, errors: errors.length, file: `${lang}-${theme}-${width}.png` });
+      results.push({
+        lang,
+        theme,
+        width,
+        overflowPx: overflow.over,
+        errors: errors.length,
+        file: `${lang}-${theme}-${width}.png`,
+      });
       await context.close();
     }
   }
@@ -70,5 +89,6 @@ for (const lang of LANGS) {
 
 await browser.close();
 console.log(JSON.stringify(results, null, 2));
+
 const bad = results.filter((r) => r.overflowPx > 1 || r.errors > 0);
 console.log(bad.length ? `\nISSUES: ${bad.length}` : '\nNO OVERFLOW / NO CONSOLE ERRORS across matrix');
