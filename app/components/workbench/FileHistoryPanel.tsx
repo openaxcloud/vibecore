@@ -92,6 +92,20 @@ export const FileHistoryPanel = memo(({ filePath, currentContent, onClose }: Fil
   }, [versionCount]);
 
   /*
+   * Open on the newest version, like Replit. The versions may already be cached
+   * in the store from a previous open (so the "list grows" effect below won't
+   * fire), so pin to latest once, the first time versions are available for this
+   * file — otherwise a re-open lands on the oldest version.
+   */
+  const pinnedForFileRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (versionCount > 0 && pinnedForFileRef.current !== filePath) {
+      pinnedForFileRef.current = filePath;
+      setSelectedIndex(versionCount - 1);
+    }
+  }, [versionCount, filePath]);
+
+  /*
    * When a new version is captured (e.g. a save while the panel is open), the
    * list grows — follow it to the newest unless the user is mid-playback.
    */
