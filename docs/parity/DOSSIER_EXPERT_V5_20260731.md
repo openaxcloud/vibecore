@@ -241,8 +241,9 @@ dans Managed Prometheus ; failover/failback Cloud SQL joués.
 
 **Obligations RESTANTES (dites telles quelles, rien de gonflé)** : astreinte
 outillée · réplique cross-région · RTO applicatif complet.
-**CI** : drift de vues réparé le 31/07 (régénération par script), validateur
-vert en local ; confirmation CI en cours au moment de la rédaction.
+**CI** : drift de vues réparé + branche réconciliée sur main le 31/07 (tête
+`a27772c3`) — **CI confirmée VERTE** (0 échec bloquant, seul Playwright
+repo-wide).
 **Demande pour F** : enregistrer les sous-preuves (dont la nouvelle
 « snapshots planifiés ») — **pas** de signature du contrat entier.
 
@@ -253,9 +254,9 @@ vert en local ; confirmation CI en cours au moment de la rédaction.
   (30038887097/30038887179), #52 (30038932121/30038932082), #57 (title +
   registries pass après retitrage du 31/07) ; #54 MERGÉE (roll 30193204381
   success) ; #45 MERGÉE.
-- #36 : deux rouges mécaniques corrigés le 31/07 (drift de vues → régénérées
-  par script) — re-run en cours à la rédaction ; l'item F n'est de toute façon
-  pas soumis en signature entière.
+- #36 : rouges mécaniques corrigés le 31/07 (drift de vues régénérées par
+  script + réconciliation main, tête `a27772c3`) — **CI confirmée VERTE**
+  (0 échec bloquant).
 - Seul rouge universel : Production E2E/Playwright (repo-wide, aussi sur main).
 
 # DEMANDE
