@@ -327,6 +327,8 @@ import {
 import { isKnownSkill, resolveProjectSkills, resolveSkill } from './skills-catalog.js';
 import { fetchSkillRepoInstructions } from './skills-github-fetch.js';
 import { SKILL_REPO_CATALOG, findRepoEntry, normalizeOwnerRepo } from './skills-repo-catalog.js';
+import { auditSkill, type SkillContent } from './skill-audit.js';
+import { parseSkillManifest, type SkillManifest } from './skill-manifest.js';
 import { nextSpendAlertPct, spendAlertEmailContent } from './spend-alerts.js';
 import {
   API_KEY_SCOPES,
@@ -738,6 +740,20 @@ const skillToggleBody = z.object({
   ownerRepo: z.string().min(1).max(220),
   scope: installedSkillScope.default('project'),
   enabled: z.boolean(),
+});
+/** RPL-SK-001.4 revoke + RPL-SK-001.3 approve / audit-journal. */
+const skillRevokeBody = z.object({
+  ownerRepo: z.string().min(1).max(220),
+  scope: installedSkillScope.default('project'),
+  reason: z.string().max(500).optional(),
+});
+const skillApproveBody = z.object({
+  ownerRepo: z.string().min(1).max(220),
+  scope: installedSkillScope.default('project'),
+});
+const skillAuditQuery = z.object({
+  scope: installedSkillScope.default('project'),
+  ownerRepo: z.string().max(220).optional(),
 });
 
 /** P2d: which database environment a provision/read targets (default development). */
@@ -18442,7 +18458,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       // Log counts + kinds ONLY — never a raw value (I-IMP redacted logs).
       request.log?.info?.(
-        { event: 'import.scan', importJobId: job.id, findingCount: findings.length, kinds: findings.map((f) => f.kind) },
+        {
+          event: 'import.scan',
+          importJobId: job.id,
+          findingCount: findings.length,
+          kinds: findings.map((f) => f.kind),
+        },
         'import scan complete',
       );
 
@@ -18507,7 +18528,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireOrg(request, store, orgId, 'projects:write');
     await requireOrganizationNotSuspended(store, orgId);
 
-    const importJobId = z.string().min(1).parse((request.params as { importJobId: string }).importJobId);
+    const importJobId = z
+      .string()
+      .min(1)
+      .parse((request.params as { importJobId: string }).importJobId);
     const body = parse(importConsentSchema, request.body);
 
     const job = await store.getImportJob(importJobId);
@@ -18582,7 +18606,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       await advance('COMMITTING', { consent, redactedCount: redacted.length });
 
       // Atomic target write — the first and only touch of a target project.
-      const name = job.sourceRef?.split('/').pop()?.replace(/\.git$/, '') || `Imported ${job.provider}`;
+      const name =
+        job.sourceRef
+          ?.split('/')
+          .pop()
+          ?.replace(/\.git$/, '') || `Imported ${job.provider}`;
       /*
        * Record the origin in the fixed sourceType enum where a member exists
        * (github/gitlab/bitbucket/zip); other hub tiles fall back to 'blank'
@@ -18657,7 +18685,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/orgs/:orgId/imports/:importJobId/cancel', async (request, reply) => {
     const { orgId } = parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'projects:write');
-    const importJobId = z.string().min(1).parse((request.params as { importJobId: string }).importJobId);
+    const importJobId = z
+      .string()
+      .min(1)
+      .parse((request.params as { importJobId: string }).importJobId);
 
     const job = await store.getImportJob(importJobId);
     if (!job || job.organizationId !== orgId) {
@@ -18671,7 +18702,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/orgs/:orgId/imports/:importJobId', async (request) => {
     const { orgId } = parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'projects:read');
-    const importJobId = z.string().min(1).parse((request.params as { importJobId: string }).importJobId);
+    const importJobId = z
+      .string()
+      .min(1)
+      .parse((request.params as { importJobId: string }).importJobId);
 
     const job = await store.getImportJob(importJobId);
     if (!job || job.organizationId !== orgId) {
@@ -19695,6 +19729,45 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const homepageUrl = catalogEntry?.homepageUrl ?? `https://github.com/${ownerRepo}`;
     const userId = request.currentUser?.id ?? null;
 
+    /*
+     * RPL-SK-001.3 — security audit BEFORE persisting. The fetched instructions
+     * are parsed as an interop SKILL.md manifest when possible (giving us the
+     * skill name + declared resources for provenance); either way the full text
+     * is statically audited. A `rejected` (critical) verdict is FAIL-CLOSED: the
+     * install is refused, nothing is persisted, and an install-rejected row is
+     * written to the audit journal. A `quarantined` (high) verdict installs the
+     * skill DISABLED, pending explicit approval.
+     */
+    const parsedManifest = parseSkillManifest(instructions);
+    const auditManifest: SkillManifest = parsedManifest.ok
+      ? parsedManifest.manifest
+      : { name, description, allowedTools: [], metadata: {}, body: instructions, resources: [], raw: instructions };
+    const auditContent: SkillContent = { manifest: auditManifest, resourceContents: {} };
+    const audit = auditSkill(auditContent);
+    const auditedAt = new Date().toISOString();
+
+    if (audit.verdict === 'rejected') {
+      await store.recordSkillAudit({
+        scope,
+        scopeId,
+        ownerRepo,
+        action: 'install-rejected',
+        verdict: 'rejected',
+        findings: audit.findings,
+        contentHash: audit.contentHash,
+        actorUserId: userId,
+      });
+
+      return reply.code(422).send({
+        error: `'${ownerRepo}' was refused by the security audit and was not installed.`,
+        code: 'SKILL_AUDIT_REJECTED',
+        verdict: 'rejected',
+        findings: audit.findings,
+      });
+    }
+
+    const enabled = audit.verdict === 'approved';
+
     const { record, created } = await store.installSkill({
       scope,
       scopeId,
@@ -19704,6 +19777,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       instructions,
       homepageUrl,
       installedByUserId: userId,
+      origin: catalogEntry ? 'catalog' : 'github',
+      enabled,
+      contentHash: audit.contentHash,
+      auditVerdict: audit.verdict,
+      auditFindings: audit.findings,
+      auditedAt,
+      manifestName: parsedManifest.ok ? parsedManifest.manifest.name : null,
+      resources: auditManifest.resources,
     });
 
     if (!created) {
@@ -19711,7 +19792,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(409).send({ error: `'${ownerRepo}' is already installed`, code: 'SKILL_ALREADY_INSTALLED' });
     }
 
-    return reply.code(201).send({ skill: record, source: fetched.ok ? fetched.source : null, note });
+    await store.recordSkillAudit({
+      scope,
+      scopeId,
+      ownerRepo,
+      action: audit.verdict === 'quarantined' ? 'install-quarantined' : 'install-approved',
+      verdict: audit.verdict,
+      findings: audit.findings,
+      contentHash: audit.contentHash,
+      actorUserId: userId,
+    });
+
+    return reply.code(201).send({
+      skill: record,
+      source: fetched.ok ? fetched.source : null,
+      note,
+      audit: { verdict: audit.verdict, findings: audit.findings },
+    });
   });
 
   // Uninstall a GitHub-repo skill from a scope.
@@ -19743,6 +19840,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (!removed) {
       return reply.code(404).send({ error: `'${ownerRepo}' is not installed`, code: 'SKILL_NOT_INSTALLED' });
     }
+
+    await store.recordSkillAudit({
+      scope,
+      scopeId,
+      ownerRepo,
+      action: 'uninstall',
+      actorUserId: request.currentUser?.id ?? null,
+    });
 
     return reply.send({ removed: true, ownerRepo, scope });
   });
@@ -19782,7 +19887,169 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: `'${ownerRepo}' is not installed`, code: 'SKILL_NOT_INSTALLED' });
     }
 
+    // Fail-closed: the store refuses to enable a revoked or audit-rejected skill,
+    // returning it still-disabled. Surface that as a 409 rather than a false 200.
+    if (body.enabled && !updated.enabled) {
+      const reason = updated.revokedAt ? 'has been revoked' : 'was rejected by the security audit';
+
+      return reply.code(409).send({
+        error: `'${ownerRepo}' ${reason} and cannot be enabled. Uninstall and re-install it to reconsider.`,
+        code: 'SKILL_ENABLE_BLOCKED',
+        skill: updated,
+      });
+    }
+
+    await store.recordSkillAudit({
+      scope,
+      scopeId,
+      ownerRepo,
+      action: body.enabled ? 'enable' : 'disable',
+      verdict: updated.auditVerdict,
+      actorUserId: request.currentUser?.id ?? null,
+    });
+
     return reply.send({ skill: updated });
+  });
+
+  /*
+   * RPL-SK-001.4 — REVOKE an installed skill. Distinct from uninstall: the row is
+   * kept (for the audit trail) but hard-disabled and stamped revokedAt/by/reason,
+   * and it can never be re-enabled until re-installed (enforced in the store).
+   */
+  app.post('/projects/:projectId/skills/installed/revoke', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+
+    const body = parse(skillRevokeBody, request.body);
+    const scope = body.scope ?? 'project';
+
+    const ownerRepo = normalizeOwnerRepo(body.ownerRepo);
+
+    if (!ownerRepo) {
+      return reply.code(400).send({ error: 'ownerRepo must be a valid "owner/repo" slug', code: 'SKILL_REPO_INVALID' });
+    }
+
+    const scopeId = await resolveSkillScopeId(scope, project, reply);
+
+    if (scopeId === undefined) {
+      return reply; // 409 already sent
+    }
+
+    const userId = request.currentUser?.id ?? null;
+
+    const revoked = await store.revokeSkill({
+      scope,
+      scopeId,
+      ownerRepo,
+      revokedByUserId: userId,
+      reason: body.reason ?? null,
+    });
+
+    if (!revoked) {
+      return reply.code(404).send({ error: `'${ownerRepo}' is not installed`, code: 'SKILL_NOT_INSTALLED' });
+    }
+
+    await store.recordSkillAudit({
+      scope,
+      scopeId,
+      ownerRepo,
+      action: 'revoke',
+      verdict: revoked.auditVerdict,
+      contentHash: revoked.contentHash,
+      actorUserId: userId,
+    });
+
+    return reply.send({ skill: revoked });
+  });
+
+  /*
+   * RPL-SK-001.3 — APPROVE a quarantined skill. Only a skill that installed with a
+   * `quarantined` verdict (and is not revoked) can be approved; approval enables
+   * it and records an `approve` event. A `rejected` skill is never approvable.
+   */
+  app.post('/projects/:projectId/skills/installed/approve', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+
+    const body = parse(skillApproveBody, request.body);
+    const scope = body.scope ?? 'project';
+
+    const ownerRepo = normalizeOwnerRepo(body.ownerRepo);
+
+    if (!ownerRepo) {
+      return reply.code(400).send({ error: 'ownerRepo must be a valid "owner/repo" slug', code: 'SKILL_REPO_INVALID' });
+    }
+
+    const scopeId = await resolveSkillScopeId(scope, project, reply);
+
+    if (scopeId === undefined) {
+      return reply; // 409 already sent
+    }
+
+    const current = (await store.listInstalledSkills(scope, scopeId)).find((row) => row.ownerRepo === ownerRepo);
+
+    if (!current) {
+      return reply.code(404).send({ error: `'${ownerRepo}' is not installed`, code: 'SKILL_NOT_INSTALLED' });
+    }
+
+    if (current.revokedAt || current.auditVerdict === 'rejected') {
+      return reply.code(409).send({
+        error: `'${ownerRepo}' cannot be approved (it is revoked or was rejected by the audit).`,
+        code: 'SKILL_NOT_APPROVABLE',
+      });
+    }
+
+    const userId = request.currentUser?.id ?? null;
+
+    const updated = await store.setInstalledSkillEnabled({ scope, scopeId, ownerRepo, enabled: true });
+
+    await store.recordSkillAudit({
+      scope,
+      scopeId,
+      ownerRepo,
+      action: 'approve',
+      verdict: current.auditVerdict,
+      contentHash: current.contentHash,
+      actorUserId: userId,
+    });
+
+    return reply.send({ skill: updated });
+  });
+
+  /*
+   * RPL-SK-001.3 — the append-only audit journal for a scope target. Optional
+   * ?ownerRepo= filters to one skill's history. Read-only projects:read.
+   */
+  app.get('/projects/:projectId/skills/audit', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+
+    const queryParsed = parse(skillAuditQuery, request.query);
+    const scope = queryParsed.scope ?? 'project';
+
+    const scopeId = await resolveSkillScopeId(scope, project, reply);
+
+    if (scopeId === undefined) {
+      return reply; // 409 already sent
+    }
+
+    const ownerRepo = queryParsed.ownerRepo ? normalizeOwnerRepo(queryParsed.ownerRepo) : undefined;
+
+    const events = await store.listSkillAuditEvents(scope, scopeId, { ownerRepo, limit: 200 });
+
+    return reply.send({ scope, events });
   });
 
   app.get('/projects/:projectId/settings', async (request) => ({
@@ -21717,7 +21984,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         },
       });
 
-      return { ok: true, duplicate, jobId: job.id, state, detached, scrubbedValueLines: removed.length, piiMaskedCount };
+      return {
+        ok: true,
+        duplicate,
+        jobId: job.id,
+        state,
+        detached,
+        scrubbedValueLines: removed.length,
+        piiMaskedCount,
+      };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       await store.updateRemixJob(job.id, { state: 'FAILED', error: message }).catch(() => undefined);
@@ -21801,7 +22076,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
-    const remixJobId = z.string().min(1).parse((request.params as { remixJobId: string }).remixJobId);
+    const remixJobId = z
+      .string()
+      .min(1)
+      .parse((request.params as { remixJobId: string }).remixJobId);
     const job = await store.getRemixJob(remixJobId);
 
     if (!job || job.sourceProjectId !== project.id) {
@@ -21829,6 +22107,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     featured: boolean;
     authorName: string;
     appUrl?: string;
+    thumbnailUrl?: string;
     remixAllowed: boolean;
     licenseId?: string;
     licenseTextSha256?: string;
@@ -21846,6 +22125,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     featured: row.featured,
     author: row.authorName,
     appUrl: row.appUrl ?? null,
+    thumbnailUrl: row.thumbnailUrl ?? null,
     // License + fork rights are PUBLIC listing facts (P0-V3-05): a remixer
     // must see what they'd accept before clicking Remix. Never the text sha
     // alone — the detail route carries the full text.
@@ -21897,7 +22177,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   app.get('/gallery/:slug', async (request, reply) => {
-    const slug = z.string().min(1).parse((request.params as { slug: string }).slug);
+    const slug = z
+      .string()
+      .min(1)
+      .parse((request.params as { slug: string }).slug);
     const listing = await store.getGalleryListingBySlug(slug);
 
     if (!listing || listing.status !== 'PUBLISHED') {
@@ -21943,7 +22226,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * scrub / scan invariant as POST /projects/:id/remix applies (shared helper).
    */
   app.post('/gallery/:slug/remix', async (request, reply) => {
-    const slug = z.string().min(1).parse((request.params as { slug: string }).slug);
+    const slug = z
+      .string()
+      .min(1)
+      .parse((request.params as { slug: string }).slug);
     const body = parse(galleryRemixSchema, request.body);
 
     // The clone lands in the remixer's org — authorize membership there.
@@ -22076,6 +22362,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     authorName: z.string().min(1),
     authorUserId: z.string().min(1).optional(),
     appUrl: z.string().url().optional(),
+    // Card preview image: either an https URL or a root-relative static asset
+    // (/gallery-apps/<id>/thumbnail.png) served by the web app. Rejected
+    // otherwise so a listing can't point the grid at an arbitrary scheme.
+    thumbnailUrl: z
+      .string()
+      .trim()
+      .max(2_048)
+      .refine((value) => /^\/[A-Za-z0-9._~!$&'()*+,;=:@%/-]+$/.test(value) || /^https:\/\//.test(value), {
+        message: 'thumbnailUrl must be an https URL or a root-relative /path',
+      })
+      .optional(),
     featured: z.boolean().optional(),
     status: z.enum(['PUBLISHED', 'PENDING_REVIEW', 'UNPUBLISHED']).optional(),
     /*
@@ -23142,7 +23439,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    let base = { lineKey: modeLine.key, provider: modeLine.provider, model: modeLine.model, multiplier: modeLine.multiplier };
+    let base = {
+      lineKey: modeLine.key,
+      provider: modeLine.provider,
+      model: modeLine.model,
+      multiplier: modeLine.multiplier,
+    };
     let escalation: typeof base | undefined;
     let classifier: { provider: string; model: string } | undefined;
 
@@ -23170,7 +23472,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         });
       }
 
-      base = { lineKey: turboLine.key, provider: turboLine.provider, model: turboLine.model, multiplier: turboLine.multiplier };
+      base = {
+        lineKey: turboLine.key,
+        provider: turboLine.provider,
+        model: turboLine.model,
+        multiplier: turboLine.multiplier,
+      };
     }
 
     if (query.highEffort) {
@@ -25249,7 +25556,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/admin/agent-routing/calls', async (request) => {
     await requirePlatformAdmin(request);
 
-    const query = parse(z.object({ limit: z.coerce.number().int().positive().max(500).default(100) }), request.query ?? {});
+    const query = parse(
+      z.object({ limit: z.coerce.number().int().positive().max(500).default(100) }),
+      request.query ?? {},
+    );
 
     return { calls: await store.listAgentCalls(query.limit) };
   });
@@ -25400,7 +25710,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       const price = lineUserPrice(candidate, line);
-      const simulatedCostCents = (row.tokensIn * line.costInCentsPerM + row.tokensOut * line.costOutCentsPerM) / 1_000_000;
+      const simulatedCostCents =
+        (row.tokensIn * line.costInCentsPerM + row.tokensOut * line.costOutCentsPerM) / 1_000_000;
       const simulatedCreditCents = line.billedToUser
         ? (row.tokensIn * price.inCentsPerM + row.tokensOut * price.outCentsPerM) / 1_000_000
         : 0;
@@ -28598,16 +28909,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * rollback target — the digest-only path would refuse it with
    * ROLLBACK_NO_RETAINED_DIGEST.
    */
-  const annotateRollbackAvailability = <T extends { provider?: string | null; status?: string | null; metadata?: unknown }>(
+  const annotateRollbackAvailability = <
+    T extends { provider?: string | null; status?: string | null; metadata?: unknown },
+  >(
     deployment: T,
   ): T & { rollbackUnavailableReason?: 'NO_RETAINED_DIGEST' } => {
     if (deployment.provider !== 'server' || deployment.status !== 'READY') {
       return deployment;
     }
 
-    const image = ((deployment.metadata as Record<string, unknown> | null)?.serverDeploy as
-      | { image?: { imageDigest?: string } }
-      | undefined)?.image;
+    const image = (
+      (deployment.metadata as Record<string, unknown> | null)?.serverDeploy as
+        | { image?: { imageDigest?: string } }
+        | undefined
+    )?.image;
 
     if (image?.imageDigest && /^sha256:[a-f0-9]{64}$/.test(image.imageDigest)) {
       return deployment;
@@ -28695,7 +29010,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     return {
-      deployment: annotateRollbackAvailability(await reconcileDeploymentStatus(store, deployment).catch(() => deployment)),
+      deployment: annotateRollbackAvailability(
+        await reconcileDeploymentStatus(store, deployment).catch(() => deployment),
+      ),
     };
   });
 

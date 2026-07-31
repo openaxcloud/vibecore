@@ -92,6 +92,8 @@ import type {
   InstalledSkillRecord,
   InstalledSkillScope,
   InstallSkillInput,
+  SkillAuditEventRecord,
+  RecordSkillAuditInput,
 } from '../store.js';
 
 function id(prefix: string) {
@@ -1365,10 +1367,20 @@ export class TestApiStore implements ApiStore {
       description: input.description,
       instructions: input.instructions,
       homepageUrl: input.homepageUrl ?? null,
-      enabled: true,
+      enabled: input.enabled ?? true,
       installedByUserId: input.installedByUserId ?? null,
       createdAt: now,
       updatedAt: now,
+      origin: input.origin ?? 'github',
+      contentHash: input.contentHash ?? null,
+      auditVerdict: input.auditVerdict ?? null,
+      auditFindings: input.auditFindings ?? [],
+      auditedAt: input.auditedAt ?? null,
+      manifestName: input.manifestName ?? null,
+      resources: input.resources ?? [],
+      revokedAt: null,
+      revokedByUserId: null,
+      revokeReason: null,
     };
 
     this.installedSkills.set(key, record);
@@ -1393,10 +1405,77 @@ export class TestApiStore implements ApiStore {
       return undefined;
     }
 
+    // Fail-closed: a revoked or audit-rejected skill can never be enabled.
+    if (input.enabled && (existing.revokedAt !== null || existing.auditVerdict === 'rejected')) {
+      return existing;
+    }
+
     const updated: InstalledSkillRecord = { ...existing, enabled: input.enabled, updatedAt: new Date().toISOString() };
     this.installedSkills.set(key, updated);
 
     return updated;
+  }
+
+  async revokeSkill(input: {
+    scope: InstalledSkillScope;
+    scopeId: string;
+    ownerRepo: string;
+    revokedByUserId?: string | null;
+    reason?: string | null;
+  }): Promise<InstalledSkillRecord | undefined> {
+    const key = this.#installedSkillKey(input.scope, input.scopeId, input.ownerRepo);
+    const existing = this.installedSkills.get(key);
+
+    if (!existing) {
+      return undefined;
+    }
+
+    const updated: InstalledSkillRecord = {
+      ...existing,
+      enabled: false,
+      revokedAt: existing.revokedAt ?? new Date().toISOString(),
+      revokedByUserId: input.revokedByUserId ?? existing.revokedByUserId ?? null,
+      revokeReason: input.reason ?? existing.revokeReason ?? null,
+      updatedAt: new Date().toISOString(),
+    };
+    this.installedSkills.set(key, updated);
+
+    return updated;
+  }
+
+  readonly skillAuditEvents: SkillAuditEventRecord[] = [];
+
+  async recordSkillAudit(input: RecordSkillAuditInput): Promise<SkillAuditEventRecord> {
+    const record: SkillAuditEventRecord = {
+      id: id('skillaudit'),
+      scope: input.scope,
+      scopeId: input.scopeId,
+      ownerRepo: input.ownerRepo,
+      action: input.action,
+      verdict: input.verdict ?? null,
+      findings: input.findings ?? [],
+      contentHash: input.contentHash ?? null,
+      actorUserId: input.actorUserId ?? null,
+      createdAt: new Date().toISOString(),
+    };
+
+    this.skillAuditEvents.push(record);
+
+    return record;
+  }
+
+  async listSkillAuditEvents(
+    scope: InstalledSkillScope,
+    scopeId: string,
+    options: { ownerRepo?: string; limit?: number } = {},
+  ): Promise<SkillAuditEventRecord[]> {
+    return this.skillAuditEvents
+      .filter(
+        (row) =>
+          row.scope === scope && row.scopeId === scopeId && (!options.ownerRepo || row.ownerRepo === options.ownerRepo),
+      )
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, Math.min(Math.max(options.limit ?? 100, 1), 500));
   }
 
   async countInstallsByRepo(): Promise<Record<string, number>> {
@@ -1961,6 +2040,7 @@ export class TestApiStore implements ApiStore {
     authorName: string;
     authorUserId?: string;
     appUrl?: string;
+    thumbnailUrl?: string;
     remixAllowed?: boolean;
     licenseId?: string;
     licenseText?: string;
@@ -1983,6 +2063,7 @@ export class TestApiStore implements ApiStore {
       authorName: input.authorName,
       authorUserId: input.authorUserId,
       appUrl: input.appUrl,
+      thumbnailUrl: input.thumbnailUrl,
       remixAllowed: input.remixAllowed ?? false, // FAIL-CLOSED : jamais remixable sans choix explicite
       licenseId: input.licenseId,
       licenseText: input.licenseText,
