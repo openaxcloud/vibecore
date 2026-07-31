@@ -12712,6 +12712,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           continue;
         }
 
+        /*
+         * A CLIENT error from the agent (404 file-not-found, 400 bad path…) is
+         * NOT a server failure: it must reach the caller as-is. Mapping it to
+         * 502 was measured in prod (2026-07-31) to (a) inflate the per-request
+         * 5xx SLI — 119 of 135 5xx in one hour were agent 404/400 — spamming
+         * the error-budget alert, and (b) trigger agentMutateEnsuring's
+         * self-heal (provision + wait for the pod) for a merely missing file,
+         * since that path keys off WORKSPACE_AGENT_REQUEST_FAILED.
+         *
+         * 408/429 stay on the 502 path on purpose: they are transient agent
+         * pressure, where the existing retry/self-heal behaviour is correct.
+         */
+        if (response.status >= 400 && response.status < 500 && ![408, 429].includes(response.status)) {
+          throw Object.assign(new Error(`Workspace agent rejected the request: ${response.status}`), {
+            statusCode: response.status,
+            code: 'WORKSPACE_AGENT_CLIENT_ERROR',
+          });
+        }
+
         throw Object.assign(new Error(`Workspace agent request failed: ${response.status}`), {
           statusCode: 502,
           code: 'WORKSPACE_AGENT_REQUEST_FAILED',
