@@ -13,7 +13,7 @@ const PREVIEW_TIMEOUT_MS = 8 * 60 * 1000;
 
 const REPAIR_PROMPT =
   process.env.APP_BUILDER_PROOF_REPAIR_PROMPT?.trim() ??
-  'Fix the Vite syntax error in src/pages/Calendar.tsx around line 252 (Unexpected token, expected a comma). Run the app and verify the Preview renders the booking dashboard without errors. Preserve the existing calendar behavior.';
+  'The Webview Preview is completely white and the Problems panel reports errors. Inspect the actual runtime and build diagnostics plus the generated files, fix every blocking error, run typecheck and build, then verify the booking app renders in Preview. Preserve the booking calendar, customer accounts, and reminder features.';
 
 const LOCALE_CONFIG = {
   en: {
@@ -170,16 +170,13 @@ async function waitForGeneratedFiles(page: Page, projectId: string, token: strin
   await expect
     .poll(
       async () => {
-        const response = await page.request.get(`${API_BASE_URL}/projects/${encodeURIComponent(projectId)}/files`, {
-          headers: { authorization: `Bearer ${token}` },
-        });
+        const projectState = await readProjectIdeState(page, projectId, token);
 
-        if (!response.ok()) {
+        if (!projectState) {
           return false;
         }
 
-        const payload = (await response.json()) as { files?: Array<{ path?: string }> };
-        lastPaths = (payload.files ?? []).flatMap((file) => (file.path ? [file.path] : []));
+        lastPaths = projectState.files.flatMap((file) => (file.path ? [file.path] : []));
 
         const hasPackage = lastPaths.some((path) => /(^|\/)package\.json$/.test(path));
         const hasApplication = lastPaths.some((path) => /(^|\/)(App\.(?:tsx|jsx)|main\.(?:tsx|jsx|js))$/.test(path));
@@ -188,6 +185,7 @@ async function waitForGeneratedFiles(page: Page, projectId: string, token: strin
       },
       {
         message: 'The real agent run must create package.json and application source files',
+        intervals: [1_000, 2_000, 3_000],
         timeout: GENERATION_TIMEOUT_MS,
       },
     )
@@ -196,23 +194,114 @@ async function waitForGeneratedFiles(page: Page, projectId: string, token: strin
   return lastPaths;
 }
 
-async function projectFilesRevision(page: Page, projectId: string, token: string) {
-  const response = await page.request.get(`${API_BASE_URL}/projects/${encodeURIComponent(projectId)}/files`, {
-    headers: { authorization: `Bearer ${token}` },
-  });
+async function readProjectIdeState(page: Page, projectId: string, token: string) {
+  try {
+    const response = await page.request.get(
+      `${API_BASE_URL}/projects/${encodeURIComponent(projectId)}/ide-state`,
+      {
+        headers: { authorization: `Bearer ${token}` },
+        timeout: 20_000,
+      },
+    );
 
-  if (!response.ok()) {
+    if (!response.ok()) {
+      return undefined;
+    }
+
+    const payload = (await response.json()) as {
+      ideState?: {
+        version?: number;
+        state?: {
+          files?: {
+            entries?: Array<{ path?: string; content?: string }>;
+          };
+        };
+      } | null;
+    };
+
+    if (!payload.ideState) {
+      return undefined;
+    }
+
+    return {
+      version: payload.ideState.version,
+      files: payload.ideState.state?.files?.entries ?? [],
+    };
+  } catch {
     return undefined;
   }
+}
 
-  const payload = (await response.json()) as {
-    files?: Array<{ path?: string; updatedAt?: string; sizeBytes?: number }>;
-  };
+async function waitForProjectToSettle(
+  page: Page,
+  agentPanel: ReturnType<Page['getByTestId']>,
+  projectId: string,
+  token: string,
+  message: string,
+) {
+  let previousRevision: string | undefined;
+  let stableChecks = 0;
 
-  return (payload.files ?? [])
-    .map((file) => `${file.path ?? ''}:${file.updatedAt ?? ''}:${file.sizeBytes ?? 0}`)
-    .sort()
-    .join('|');
+  await expect
+    .poll(
+      async () => {
+        const revision = await projectFilesRevision(page, projectId, token);
+
+        if (revision && revision === previousRevision) {
+          stableChecks += 1;
+        } else {
+          stableChecks = 0;
+          previousRevision = revision;
+        }
+
+        const composer = agentPanel.getByRole('textbox', { name: 'Agent prompt' });
+        const composerReady = await composer.isEnabled().catch(() => false);
+
+        const completedProgress = await agentPanel
+          .locator('[aria-label*="Agent Done"][aria-label*="100%"]')
+          .last()
+          .isVisible()
+          .catch(() => false);
+
+        return Boolean(revision) && stableChecks >= 7 && composerReady && completedProgress;
+      },
+      {
+        message,
+        intervals: [2_000, 3_000, 5_000],
+        timeout: 4 * 60 * 1000,
+      },
+    )
+    .toBe(true);
+}
+
+async function projectFilesRevision(page: Page, projectId: string, token: string) {
+  const projectState = await readProjectIdeState(page, projectId, token);
+
+  return projectState?.version === undefined ? undefined : String(projectState.version);
+}
+
+async function submitAgentPrompt(
+  agentPanel: ReturnType<Page['getByTestId']>,
+  prompt: string,
+) {
+  const composer = agentPanel.getByRole('textbox', { name: 'Agent prompt' });
+  const stopButton = agentPanel.getByRole('button', { name: 'Stop generation' }).first();
+
+  await expect(composer).toBeVisible({ timeout: 60_000 });
+
+  if (await stopButton.isVisible().catch(() => false)) {
+    const completedProgress = agentPanel.locator('[aria-label*="Agent Done"][aria-label*="100%"]').last();
+
+    await expect(completedProgress).toBeVisible({ timeout: 60_000 });
+    await stopButton.click();
+    await expect(stopButton).toBeHidden({ timeout: 60_000 });
+  }
+
+  await composer.fill(prompt);
+  await expect(composer).toHaveValue(prompt);
+  await composer.press('Enter');
+
+  return composer;
 }
 
 async function repairGeneratedPreview(
@@ -222,11 +311,8 @@ async function repairGeneratedPreview(
   token: string,
 ) {
   const initialRevision = await projectFilesRevision(page, projectId, token);
-  const composer = agentPanel.getByRole('textbox', { name: 'Agent prompt' });
 
-  await expect(composer).toBeVisible({ timeout: 60_000 });
-  await composer.fill(REPAIR_PROMPT);
-  await composer.press('Enter');
+  await submitAgentPrompt(agentPanel, REPAIR_PROMPT);
 
   const repairBubble = agentPanel.locator('.bolt-chat-message-row-user').last();
 
@@ -240,13 +326,18 @@ async function repairGeneratedPreview(
   await expect
     .poll(() => projectFilesRevision(page, projectId, token), {
       message: 'The repair prompt must update at least one generated project file',
+      intervals: [1_000, 2_000, 3_000],
       timeout: GENERATION_TIMEOUT_MS,
     })
     .not.toBe(initialRevision);
 
-  if (await stopButton.isVisible().catch(() => false)) {
-    await expect(stopButton).toBeHidden({ timeout: GENERATION_TIMEOUT_MS });
-  }
+  await waitForProjectToSettle(
+    page,
+    agentPanel,
+    projectId,
+    token,
+    'Repair files must stabilize and the agent must report completion',
+  );
 
   return repairBubble;
 }
@@ -347,6 +438,139 @@ async function waitForPreview(page: Page, evidenceRoot: string) {
   return { iframe, previewText };
 }
 
+async function waitForOrangePreview(page: Page, evidenceRoot: string) {
+  let lastAudit = { orangeCount: 0, purpleCount: 0 };
+
+  try {
+    await expect
+      .poll(
+        async () => {
+          const body = page.frameLocator('iframe[data-testid="preview-iframe"]:visible').last().locator('body');
+
+          lastAudit = await body.evaluate((previewBody) => {
+            const previewDocument = previewBody.ownerDocument;
+            const previewWindow = previewDocument.defaultView;
+
+            if (!previewWindow) {
+              return { orangeCount: 0, purpleCount: 0 };
+            }
+
+            const colors = new Set<string>();
+
+            for (const element of previewDocument.querySelectorAll('*')) {
+              const style = previewWindow.getComputedStyle(element);
+
+              for (const value of [
+                style.color,
+                style.backgroundColor,
+                style.borderTopColor,
+                style.borderRightColor,
+                style.borderBottomColor,
+                style.borderLeftColor,
+                style.outlineColor,
+                style.fill,
+                style.stroke,
+              ]) {
+                if (value && value !== 'none' && value !== 'transparent') {
+                  colors.add(value);
+                }
+              }
+            }
+
+            const hueFor = (red: number, green: number, blue: number) => {
+              const r = red / 255;
+              const g = green / 255;
+              const b = blue / 255;
+              const max = Math.max(r, g, b);
+              const min = Math.min(r, g, b);
+              const delta = max - min;
+
+              if (delta === 0) {
+                return { hue: 0, saturation: 0, lightness: max };
+              }
+
+              let hue = 0;
+
+              if (max === r) {
+                hue = ((g - b) / delta) % 6;
+              } else if (max === g) {
+                hue = (b - r) / delta + 2;
+              } else {
+                hue = (r - g) / delta + 4;
+              }
+
+              hue = Math.round(hue * 60);
+
+              if (hue < 0) {
+                hue += 360;
+              }
+
+              const lightness = (max + min) / 2;
+              const saturation = delta / (1 - Math.abs(2 * lightness - 1));
+
+              return { hue, saturation, lightness };
+            };
+
+            let orangeCount = 0;
+            let purpleCount = 0;
+
+            for (const color of colors) {
+              const match = color.match(/rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)(?:\s*\/\s*([\d.]+)|[,\s]+([\d.]+))?/i);
+
+              if (!match) {
+                continue;
+              }
+
+              const alpha = Number(match[4] ?? match[5] ?? 1);
+
+              if (alpha === 0) {
+                continue;
+              }
+
+              const { hue, saturation, lightness } = hueFor(Number(match[1]), Number(match[2]), Number(match[3]));
+              const visibleAccent = saturation >= 0.38 && lightness >= 0.2 && lightness <= 0.82;
+
+              if (!visibleAccent) {
+                continue;
+              }
+
+              if (hue >= 10 && hue <= 42) {
+                orangeCount += 1;
+              }
+
+              if (hue >= 255 && hue <= 345) {
+                purpleCount += 1;
+              }
+            }
+
+            return { orangeCount, purpleCount };
+          });
+
+          return lastAudit.orangeCount > 0 && lastAudit.purpleCount === 0;
+        },
+        {
+          message: 'The refreshed Preview must contain orange accents and no purple, violet, mauve, or pink accents',
+          timeout: PREVIEW_TIMEOUT_MS,
+        },
+      )
+      .toBe(true);
+  } catch (error) {
+    await mkdir(evidenceRoot, { recursive: true });
+    await page.screenshot({
+      path: resolve(evidenceRoot, '04-orange-preview-audit-failed.png'),
+      animations: 'disabled',
+      caret: 'hide',
+    });
+
+    throw new Error(
+      `Preview accent audit failed (orange=${lastAudit.orangeCount}, purple=${lastAudit.purpleCount})`,
+      { cause: error },
+    );
+  }
+
+  return lastAudit;
+}
+
 async function main() {
   const locale = readLocale();
   const copy = LOCALE_CONFIG[locale];
@@ -359,8 +583,8 @@ async function main() {
   const outputRoot = resolve(process.cwd(), 'public/assets/solutions/app-builder', locale);
   const evidenceRoot = resolve(process.cwd(), 'outputs/solutions/app-builder/ide-proof', locale);
 
-  if (Boolean(existingEmail) !== Boolean(existingProjectId)) {
-    throw new Error('APP_BUILDER_PROOF_EMAIL and APP_BUILDER_PROOF_PROJECT_ID must be provided together');
+  if (existingProjectId && !existingEmail) {
+    throw new Error('APP_BUILDER_PROOF_EMAIL is required when APP_BUILDER_PROOF_PROJECT_ID is provided');
   }
 
   const contextOptions = {
@@ -418,12 +642,22 @@ async function main() {
       const promptField = page.locator('textarea[name="prompt"]');
 
       await expect(promptField).toBeVisible({ timeout: 120_000 });
-      await expect(
-        page.getByTestId('ai-provider-dropdown').getByRole('combobox', { name: 'AI provider' }),
-      ).toContainText(/Anthropic|OpenAI|Google/, { timeout: 30_000 });
-      await expect(page.getByTestId('ai-model-dropdown').getByRole('combobox', { name: 'AI model' })).not.toContainText(
-        'No option available',
-      );
+
+      const dismissOnboarding = page.getByRole('button', { name: 'Not now' });
+
+      if (await dismissOnboarding.isVisible().catch(() => false)) {
+        await dismissOnboarding.click();
+      }
+
+      const providerDropdown = page.getByTestId('ai-provider-dropdown').getByRole('combobox', { name: 'AI provider' });
+
+      if (await providerDropdown.isVisible().catch(() => false)) {
+        await expect(providerDropdown).toContainText(/Anthropic|OpenAI|Google/, { timeout: 30_000 });
+        await expect(
+          page.getByTestId('ai-model-dropdown').getByRole('combobox', { name: 'AI model' }),
+        ).not.toContainText('No option available');
+      }
+
       await promptField.fill(copy.prompt);
       await page.getByRole('button', { name: 'Create project' }).click();
       await page.waitForURL(/(?:\/projects\/[^/]+\/ide|\/@[^/]+\/[^/?]+)(?:\?.*)?$/, {
@@ -443,10 +677,8 @@ async function main() {
     const agentPanel = page.getByTestId('ide-agent-panel');
     const promptBubble = page.getByText(copy.prompt, { exact: true }).first();
     await expect(agentPanel).toBeVisible({ timeout: 180_000 });
-
-    if (!repairOnly && !iterationOnly) {
-      await expect(promptBubble).toBeVisible({ timeout: 60_000 });
-    }
+    await expect(promptBubble).toBeVisible({ timeout: 180_000 });
+    await expect(page.locator('.bolt-file-tree-name').first()).toBeVisible({ timeout: 180_000 });
 
     await mkdir(evidenceRoot, { recursive: true });
     await page.screenshot({
@@ -456,14 +688,20 @@ async function main() {
     });
 
     const generatedFiles = await waitForGeneratedFiles(page, projectId, token);
-    const stopButton = agentPanel.getByRole('button', { name: /^Stop/i }).first();
-
-    if (await stopButton.isVisible().catch(() => false)) {
-      await expect(stopButton).toBeHidden({ timeout: GENERATION_TIMEOUT_MS });
+    if (!repairOnly && !iterationOnly) {
+      await waitForProjectToSettle(
+        page,
+        agentPanel,
+        projectId,
+        token,
+        'Generated files must stabilize and the agent composer must become active again',
+      );
     }
+    process.stdout.write(`${JSON.stringify({ status: 'initial-generation-settled', locale, generatedFiles: generatedFiles.length })}\n`);
 
     if (repairOnly) {
       const repairBubble = await repairGeneratedPreview(page, agentPanel, projectId, token);
+      const { previewText } = await waitForPreview(page, evidenceRoot);
 
       await repairBubble.scrollIntoViewIfNeeded();
       await page.screenshot({
@@ -472,7 +710,14 @@ async function main() {
         caret: 'hide',
       });
       process.stdout.write(
-        `${JSON.stringify({ locale, projectId, repairPrompt: REPAIR_PROMPT, generatedFilesUpdated: true })}\n`,
+        `${JSON.stringify({
+          locale,
+          projectId,
+          repairPrompt: REPAIR_PROMPT,
+          generatedFilesUpdated: true,
+          previewVerified: true,
+          previewTextSample: previewText.slice(0, 240),
+        })}\n`,
       );
       await context.close();
       context = undefined!;
@@ -480,7 +725,70 @@ async function main() {
       return;
     }
 
-    const { previewText } = await waitForPreview(page, evidenceRoot);
+    let previewText = '';
+
+    try {
+      ({ previewText } = await waitForPreview(page, evidenceRoot));
+    } catch (previewError) {
+      if (iterationOnly) {
+        throw previewError;
+      }
+
+      const repairBubble = await repairGeneratedPreview(page, agentPanel, projectId, token);
+
+      ({ previewText } = await waitForPreview(page, evidenceRoot));
+      await repairBubble.scrollIntoViewIfNeeded();
+      await page.screenshot({
+        path: resolve(evidenceRoot, '03-agent-repair-finished.png'),
+        animations: 'disabled',
+        caret: 'hide',
+      });
+      process.stdout.write(
+        `${JSON.stringify({
+          status: 'preview-repaired',
+          locale,
+          projectId,
+          repairPrompt: REPAIR_PROMPT,
+          previewTextSample: previewText.slice(0, 240),
+        })}\n`,
+      );
+    }
+
+    let iterationBubble: ReturnType<typeof agentPanel.locator> | undefined;
+    let accentAudit: { orangeCount: number; purpleCount: number } | undefined;
+
+    if (iterationPrompt) {
+      const initialRevision = await projectFilesRevision(page, projectId, token);
+      const previousLastBubble = agentPanel.locator('.bolt-chat-message-row-user').last();
+      const previousIterationText = (await previousLastBubble.innerText().catch(() => '')).replace(/\s+/g, ' ').trim();
+
+      if (!previousIterationText.includes(iterationPrompt.slice(0, 80))) {
+        await submitAgentPrompt(agentPanel, iterationPrompt);
+      }
+
+      iterationBubble = agentPanel.locator('.bolt-chat-message-row-user').last();
+      await expect(iterationBubble).toBeVisible({ timeout: 60_000 });
+      await expect(iterationBubble).toContainText(iterationPrompt.slice(0, 80), { timeout: 60_000 });
+
+      await expect
+        .poll(() => projectFilesRevision(page, projectId, token), {
+          message: 'The orange-theme iteration must update at least one generated project file',
+          intervals: [1_000, 2_000, 3_000],
+          timeout: GENERATION_TIMEOUT_MS,
+        })
+        .not.toBe(initialRevision);
+      await waitForProjectToSettle(
+        page,
+        agentPanel,
+        projectId,
+        token,
+        'Orange-theme files must stabilize and the agent composer must become active again',
+      );
+      process.stdout.write(`${JSON.stringify({ status: 'orange-iteration-settled', locale })}\n`);
+
+      ({ previewText } = await waitForPreview(page, evidenceRoot));
+      accentAudit = await waitForOrangePreview(page, evidenceRoot);
+    }
 
     if (!iterationOnly) {
       await promptBubble.scrollIntoViewIfNeeded();
@@ -492,20 +800,14 @@ async function main() {
     const previewOutput = resolve(outputRoot, 'ide-agent-preview.png');
     await mkdir(dirname(previewOutput), { recursive: true });
 
-    if (!iterationOnly) {
+    if (!iterationOnly || iterationPrompt) {
       await page.screenshot({ path: previewOutput, animations: 'disabled', caret: 'hide' });
     }
 
     let iterationOutput: string | undefined;
 
-    if (iterationPrompt) {
-      const iterationBubble = agentPanel.locator('.bolt-chat-message-row-user').last();
-      const iterationText = (await iterationBubble.innerText().catch(() => '')).replace(/\s+/g, ' ').trim();
-
-      if (
-        iterationText.includes(iterationPrompt.slice(0, 80)) &&
-        (await iterationBubble.isVisible().catch(() => false))
-      ) {
+    if (iterationPrompt && iterationBubble) {
+      if (await iterationBubble.isVisible().catch(() => false)) {
         const dismissPreviewError = agentPanel.getByRole('button', { name: 'Dismiss' }).last();
 
         if (await dismissPreviewError.isVisible().catch(() => false)) {
@@ -573,6 +875,7 @@ async function main() {
           pageErrors,
           previewOutput,
           iterationOutput,
+          accentAudit,
           problemsSummary,
           problemDetails,
         },
