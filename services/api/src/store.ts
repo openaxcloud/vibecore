@@ -159,6 +159,8 @@ export interface GalleryListingRecord {
   authorName: string;
   authorUserId?: string;
   appUrl?: string;
+  /** Card preview image (real rendered screenshot): root-relative asset or https URL. */
+  thumbnailUrl?: string;
   /** Curation gate: false = view-only listing, remix refused (P0-V3-05). */
   remixAllowed: boolean;
   /** Declared license id (e.g. SPDX "MIT"); undefined = none declared. */
@@ -1364,6 +1366,7 @@ export interface ApiStore {
     authorName: string;
     authorUserId?: string;
     appUrl?: string;
+    thumbnailUrl?: string;
     remixAllowed?: boolean;
     licenseId?: string;
     licenseText?: string;

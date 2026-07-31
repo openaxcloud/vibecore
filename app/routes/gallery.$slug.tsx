@@ -35,6 +35,7 @@ type GalleryDetail = {
   featured: boolean;
   author: string;
   appUrl: string | null;
+  thumbnailUrl: string | null;
 
   /* License + fork rights (P0-V3-05): what a remixer accepts, versioned. */
   remixAllowed: boolean;
@@ -175,6 +176,17 @@ export default function GalleryDetailRoute() {
                 {listing.title}
               </h1>
               <p className="mt-2 text-[14px] text-[var(--ecode-text-muted)]">by {listing.author}</p>
+
+              {listing.thumbnailUrl ? (
+                <img
+                  src={listing.thumbnailUrl}
+                  alt={`Preview of ${listing.title}`}
+                  width={1200}
+                  height={675}
+                  className="mt-6 aspect-[16/9] w-full rounded-xl border border-[var(--ecode-border)] bg-[var(--ecode-background)] object-cover"
+                  data-testid="gallery-detail-thumb"
+                />
+              ) : null}
 
               <p className="mt-6 max-w-2xl text-[15px] leading-7 text-[var(--ecode-text-secondary)]">
                 {listing.description}

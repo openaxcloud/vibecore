@@ -1482,6 +1482,7 @@ exports.Prisma.GalleryListingScalarFieldEnum = {
   authorName: 'authorName',
   authorUserId: 'authorUserId',
   appUrl: 'appUrl',
+  thumbnailUrl: 'thumbnailUrl',
   remixAllowed: 'remixAllowed',
   licenseId: 'licenseId',
   licenseText: 'licenseText',

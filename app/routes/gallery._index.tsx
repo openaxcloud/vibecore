@@ -24,6 +24,7 @@ type GalleryCard = {
   featured: boolean;
   author: string;
   appUrl: string | null;
+  thumbnailUrl: string | null;
   views: number;
   uses: number;
 };
@@ -93,47 +94,61 @@ function GalleryCardLink({ card }: { card: GalleryCard }) {
   return (
     <Link
       to={`/gallery/${encodeURIComponent(card.slug)}`}
-      className="group flex flex-col rounded-xl border border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-5 transition hover:border-[var(--ecode-accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)]"
+      className="group flex flex-col overflow-hidden rounded-xl border border-[var(--ecode-border)] bg-[var(--ecode-surface)] transition hover:border-[var(--ecode-accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)]"
       data-testid={`gallery-card-${card.slug}`}
     >
-      <div className="flex items-center justify-between gap-3">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--ecode-border)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--ecode-text-secondary)]">
-          {card.category}
-        </span>
-        {card.featured ? (
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--ecode-accent)]">
-            <Sparkles className="h-3.5 w-3.5" aria-hidden />
-            Featured
-          </span>
-        ) : null}
-      </div>
-
-      <h3 className="mt-3 text-[16px] font-bold text-[var(--ecode-text)] group-hover:text-[var(--ecode-accent)]">
-        {card.title}
-      </h3>
-      <p className="mt-1.5 line-clamp-3 flex-1 text-[13px] leading-6 text-[var(--ecode-text-secondary)]">
-        {card.description}
-      </p>
-
-      {card.tags.length > 0 ? (
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {card.tags.slice(0, 4).map((tag) => (
-            <span
-              key={tag}
-              className="rounded-full bg-[var(--ecode-background)] px-2 py-0.5 text-[11px] text-[var(--ecode-text-muted)]"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
+      {card.thumbnailUrl ? (
+        <img
+          src={card.thumbnailUrl}
+          alt={`Preview of ${card.title}`}
+          loading="lazy"
+          width={1200}
+          height={675}
+          className="aspect-[16/9] w-full border-b border-[var(--ecode-border)] bg-[var(--ecode-background)] object-cover"
+          data-testid={`gallery-card-thumb-${card.slug}`}
+        />
       ) : null}
 
-      <div className="mt-4 flex items-center justify-between border-t border-[var(--ecode-border)] pt-3">
-        <span className="truncate text-[12px] text-[var(--ecode-text-muted)]">by {card.author}</span>
-        <span className="flex items-center gap-3">
-          <Stat icon={<Eye className="h-3.5 w-3.5" aria-hidden />} value={card.views} label="views" />
-          <Stat icon={<GitFork className="h-3.5 w-3.5" aria-hidden />} value={card.uses} label="remixes" />
-        </span>
+      <div className="flex flex-1 flex-col p-5">
+        <div className="flex items-center justify-between gap-3">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--ecode-border)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--ecode-text-secondary)]">
+            {card.category}
+          </span>
+          {card.featured ? (
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--ecode-accent)]">
+              <Sparkles className="h-3.5 w-3.5" aria-hidden />
+              Featured
+            </span>
+          ) : null}
+        </div>
+
+        <h3 className="mt-3 text-[16px] font-bold text-[var(--ecode-text)] group-hover:text-[var(--ecode-accent)]">
+          {card.title}
+        </h3>
+        <p className="mt-1.5 line-clamp-3 flex-1 text-[13px] leading-6 text-[var(--ecode-text-secondary)]">
+          {card.description}
+        </p>
+
+        {card.tags.length > 0 ? (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {card.tags.slice(0, 4).map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full bg-[var(--ecode-background)] px-2 py-0.5 text-[11px] text-[var(--ecode-text-muted)]"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        ) : null}
+
+        <div className="mt-4 flex items-center justify-between border-t border-[var(--ecode-border)] pt-3">
+          <span className="truncate text-[12px] text-[var(--ecode-text-muted)]">by {card.author}</span>
+          <span className="flex items-center gap-3">
+            <Stat icon={<Eye className="h-3.5 w-3.5" aria-hidden />} value={card.views} label="views" />
+            <Stat icon={<GitFork className="h-3.5 w-3.5" aria-hidden />} value={card.uses} label="remixes" />
+          </span>
+        </div>
       </div>
     </Link>
   );

@@ -1961,6 +1961,7 @@ export class TestApiStore implements ApiStore {
     authorName: string;
     authorUserId?: string;
     appUrl?: string;
+    thumbnailUrl?: string;
     remixAllowed?: boolean;
     licenseId?: string;
     licenseText?: string;
@@ -1983,6 +1984,7 @@ export class TestApiStore implements ApiStore {
       authorName: input.authorName,
       authorUserId: input.authorUserId,
       appUrl: input.appUrl,
+      thumbnailUrl: input.thumbnailUrl,
       remixAllowed: input.remixAllowed ?? false, // FAIL-CLOSED : jamais remixable sans choix explicite
       licenseId: input.licenseId,
       licenseText: input.licenseText,
