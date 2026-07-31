@@ -54,10 +54,12 @@ Le refus V3 disait « trap installé DÈS la création », mais dans les faits l
 échoue**, le script sort AVANT l'armement du trap → **projet laissé ACTIF** (ressource
 facturable orpheline). Corrigé :
 - L'ID du projet est calculé **d'abord**, puis `trap teardown EXIT` est armé **AVANT**
-  `gcloud projects create` et `gcloud billing projects link` (`repro.sh`, l.67-94 :
-  `teardown()` l.67, `trap` l.85, `create` l.93, `billing link` l.94).
+  `gcloud projects create` et `gcloud billing projects link` (`repro.sh` :
+  `teardown()` l.94, `trap` l.108, `create` l.116, `billing link` l.117).
 - Le teardown est **idempotent ET SÛR si le projet n'existe pas encore** : garde
   `gcloud projects describe` → s'il n'existe pas, `PROJECT_STATE=ABSENT`, aucune erreur.
+  *(⚠️ cette garde binaire a ensuite été refusée — voir RR-08 ci-dessous : un échec de
+  `describe` ≠ « projet absent ».)*
 
 **Preuve du cas négatif billing-fail** (rejoué live 2026-07-23) :
 `replay-20260723T191146Z-negative-billingfail/` — `repro.sh` lancé avec un compte de
@@ -84,6 +86,36 @@ teardown joué par le trap (`teardown-trace.txt` : cluster/run/AR/pool/2 SAs sup
 > projet quelques minutes (lag d'index d'eventual-consistency). Les ressources facturables
 > (cluster GKE, Cloud Run, AR, SAs) sont supprimées et le projet est marqué pour purge →
 > facturation stoppée, coût **~0 $**.
+
+## Correction RR-20260723-CODEX-08 (RR-08) §P0-A2-09 — teardown FAIL-CLOSED
+Le refus RR-08 vise la garde `if gcloud projects describe … ; then … else "absent"` :
+**tout** échec de `describe` (réseau / API / auth / quota) était lu comme « projet absent »
+→ la suppression était **sautée** → un flap pouvait laisser le projet **actif**. La preuve
+billing-fail ne couvrait que le cas où `describe` répond bien.
+
+Corrigé — logique extraite dans **`teardown-lib.sh`** (sourcée par `repro.sh`), FAIL-CLOSED :
+1. **Parse du motif d'erreur** : `NOTFOUND` n'est conclu que sur motif not-found **ET** auth
+   prouvée saine (`gcloud auth print-access-token`) ; permission explicite / transitoire /
+   auth non prouvée ⇒ `UNKNOWN`.
+2. **Retry** de `describe` sur erreurs transitoires (réseau/5xx/quota), borné.
+3. **`gcloud projects delete` tenté MÊME quand l'état est `UNKNOWN`** (illisible).
+4. **Reçu fail-closed** : `CLEANUP_RECEIPT=OK` seulement si l'état FINAL est `DELETE_REQUESTED`
+   ou `NOTFOUND` authentifié ; sinon `CLEANUP_RECEIPT=FAILED` → `repro.sh` sort en erreur.
+
+**Test à injection de fautes (exigence 5)** — `teardown-lib.spec.sh` + `rr08-teardown-faultinjection/`
+(`spec-output.txt`, **PASS=23 FAIL=0**) : un **mock `gcloud`** simule chaque panne. Le cas
+`transient_persistent` (erreur réseau à chaque `describe`) prouve que **la suppression est
+tentée quand même** et que le **reçu échoue fail-closed** ; `notfound_auth` vs
+`notfound_auth_broken` prouvent qu'un not-found n'est conclu « absent » **que** si l'auth est
+saine ; `delete_fails_active` prouve que le reçu **ne passe pas** sur un projet resté ACTIF.
+
+**Preuves live (2026-07-31, nouveau teardown)** :
+- Cas négatif billing-fail — `replay-20260731T151804Z-rr08-negative-billingfail/` :
+  `DESCRIBE_CLASSIFICATION=PRESENT:ACTIVE` → delete tenté → `PROJECT_STATE=DELETE_REQUESTED`,
+  `CLEANUP_RECEIPT=OK` (projet `ecode-wif-proof-511088`, `describe` indépendant = `DELETE_REQUESTED`).
+- 3 chemins rejoués — `replay-20260731T151929Z-rr08/` (projet frais `ecode-wif-proof-511173`) :
+  Cloud Run 200/403 ; GitHub OIDC nonce-vérifié `success` ; GKE 200 / négatif 403+corps ;
+  teardown fail-closed → `CLEANUP_RECEIPT=OK`, `PROJECT_STATE=DELETE_REQUESTED`.
 
 ## Cadre (sécurité)
 - Projet de TEST dédié `ecode-wif-proof-*`, créé sous le **folder de test

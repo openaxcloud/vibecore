@@ -1,0 +1,34 @@
+== teardown-lib fail-closed tests ==
+[1] present_then_deleted
+  ok  - reçu OK (rc=0)
+  ok  - receipt OK
+  ok  - état final DELETE_REQUESTED
+  ok  - delete tenté
+[2] transient_persistent (erreur réseau simulée)
+  ok  - fail-closed (rc=1)
+  ok  - suppression tentée malgré état illisible
+  ok  - delete tenté malgré UNKNOWN (ex.3)
+  ok  - reçu FAILED (fail-closed, ex.4)
+[3] transient_then_recover
+  ok  - reçu OK après retry (rc=0)
+  ok  - receipt OK
+  ok  - delete tenté
+[4] notfound_auth
+  ok  - reçu OK (rc=0)
+  ok  - NOT_FOUND authentifié
+  ok  - delete non tenté (NOT_FOUND authentifié)
+[5] notfound_auth_broken (not-found + auth KO)
+  ok  - fail-closed (rc=1)
+  ok  - delete tenté (auth non prouvée → pas 'absent')
+  ok  - reçu FAILED
+[6] perm_denied
+  ok  - fail-closed (rc=1)
+  ok  - delete tenté
+  ok  - reçu FAILED
+[7] delete_fails_active
+  ok  - fail-closed (rc=1)
+  ok  - état final ACTIVE
+  ok  - reçu FAILED sur projet encore ACTIF
+
+== RÉSULTAT : PASS=23 FAIL=0 ==
+SPEC_EXIT=0
