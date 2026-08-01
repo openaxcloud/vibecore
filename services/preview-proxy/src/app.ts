@@ -289,6 +289,46 @@ export function parseServerDeployHost(
 }
 
 /*
+ * STATIC-deploy host (`s-<deploymentId>.<previewDomain>`) — LAUNCH-BLOCKER fix
+ * 2026-08-01. A published static app used to be served from the API origin,
+ * which forces an opaque `CSP: sandbox` (no allow-same-origin) to strip the
+ * ambient cookie authority; that breaks localStorage and the SPA renders BLANK.
+ * Giving each deployment its own origin removes the ambient authority by
+ * construction (the session cookie is host-only on the API host), so the app
+ * can run with a real origin. Same label grammar as `d-` and never collides
+ * with it or with a `<ws>-<port>` preview host.
+ */
+export function parseStaticDeployHost(
+  hostHeader: string | undefined,
+  previewDomain: string | undefined,
+): { deploymentId: string } | null {
+  if (!hostHeader || !previewDomain) {
+    return null;
+  }
+
+  const host = hostHeader.split(':')[0].trim().toLowerCase();
+
+  const suffix = `.${previewDomain
+    .trim()
+    .toLowerCase()
+    .replace(/^\.+|\.+$/g, '')}`;
+
+  if (suffix === '.' || !host.endsWith(suffix)) {
+    return null;
+  }
+
+  const label = host.slice(0, host.length - suffix.length);
+
+  if (!label || label.includes('.')) {
+    return null;
+  }
+
+  const match = /^s-([a-z0-9]{6,})$/.exec(label);
+
+  return match ? { deploymentId: match[1] } : null;
+}
+
+/*
  * Build the in-cluster upstream base URL for a server deployment from the
  * template (default: the workspace-manager's `app-<id>` Service on port 80).
  * Returns null when the substituted value is not a usable http(s) URL so a bad
