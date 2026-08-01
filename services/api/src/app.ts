@@ -8313,7 +8313,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * API-origin URL now redirects here.
      */
     const dedicatedOrigin = staticDeployDedicatedOrigin(deploymentId);
-    const onDedicatedHost = isDedicatedStaticDeployHost(request.headers.host, deploymentId);
+    const onDedicatedHost = isDedicatedStaticDeployHost(
+      request.headers.host,
+      deploymentId,
+      request.headers['x-forwarded-host'] as string | undefined,
+    );
 
     if (dedicatedOrigin && !onDedicatedHost) {
       const search = request.url.includes('?') ? request.url.slice(request.url.indexOf('?')) : '';

@@ -708,6 +708,20 @@ export function serverDeployHost(deploymentId: string) {
 
 export function buildDeploymentUrl(project: ProjectRecord, deployment: DeploymentRecord) {
   if (deployment.provider === 'static') {
+    /*
+     * Prefer the deployment's DEDICATED origin (`s-<id>.<previewDomain>`): on the
+     * API origin the artifact must be served in an opaque sandbox, which breaks
+     * localStorage and renders storage-using SPAs blank (LAUNCH-BLOCKER
+     * 2026-08-01). Falls back to the legacy same-origin URL when no preview
+     * domain is configured (local dev/tests); that URL keeps working either way
+     * because the route redirects to the dedicated origin when one exists.
+     */
+    const dedicated = staticDeployDedicatedOrigin(deployment.id);
+
+    if (dedicated) {
+      return `${dedicated}/`;
+    }
+
     return `${staticDeployPublicBaseUrl()}/static-deployments/${deployment.id}/`;
   }
 
@@ -1531,12 +1545,25 @@ export function staticDeployDedicatedOrigin(deploymentId: string): string | null
  * page JS, so this is a safe signal for relaxing the sandbox: a document loaded
  * from the API origin always reports the API host and therefore stays opaque.
  */
-export function isDedicatedStaticDeployHost(hostHeader: string | undefined, deploymentId: string): boolean {
+export function isDedicatedStaticDeployHost(
+  hostHeader: string | undefined,
+  deploymentId: string,
+  forwardedHost?: string | undefined,
+): boolean {
   const origin = staticDeployDedicatedOrigin(deploymentId);
 
-  if (!origin || !hostHeader) {
+  /*
+   * The preview-proxy reaches this route over the in-cluster Service, so the
+   * literal Host is the internal name; it forwards the PUBLIC host as
+   * `x-forwarded-host`. Neither header can be set by page JS on a top-level
+   * navigation, so a document loaded from the API origin can never claim the
+   * dedicated host and thus never obtains `allow-same-origin`.
+   */
+  const candidate = (forwardedHost ?? hostHeader ?? '').split(',')[0];
+
+  if (!origin || !candidate) {
     return false;
   }
 
-  return hostHeader.split(':')[0].trim().toLowerCase() === new URL(origin).hostname;
+  return candidate.split(':')[0].trim().toLowerCase() === new URL(origin).hostname;
 }
