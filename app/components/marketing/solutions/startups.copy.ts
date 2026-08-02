@@ -1,9 +1,10 @@
 import type { SolutionCopyByLanguage } from './solution-copy';
 
 /**
- * SOL — Startups. Dedicated seed-stage MVP story in EN and FR. All product and
- * traction data is fictional and labeled; proof claims stop at the captured Agent
- * exchange, generated files, Webview, and local demo interactions.
+ * SOL — Startups. Dedicated launch-cockpit story in EN and FR. All funnel,
+ * waitlist, experiment, interview, milestone, and runway data is fictional and
+ * labeled; proof claims stop at the captured Agent exchange, generated files,
+ * Webview, and local experiment-form interaction.
  */
 export const STARTUPS_COPY = {
   en: {
@@ -26,32 +27,32 @@ export const STARTUPS_COPY = {
     demo: {
       badge: 'Fictional demo data',
       brand: 'Launchpad',
-      brandType: 'Fictional product concept',
-      nav: ['Product', 'Waitlist', 'Metrics'],
-      eyebrow: 'Sample launch plan',
-      title: 'Local MVP checklist',
+      brandType: 'Local startup cockpit',
+      nav: ['Funnel', 'Experiments', 'Runway'],
+      eyebrow: 'Fictional launch workspace',
+      title: 'Put launch assumptions, evidence, and next moves on one screen.',
       intro:
-        'A responsive local product scenario that pairs fictional milestones with demo-only states; it does not report traction, stored sign-ups, or a production launch.',
-      primaryHeading: 'Fictional MVP states',
+        'A responsive local cockpit with an onboarding funnel, waitlist, experiment board, interview notes, product milestones, and runway inputs. Every number is fictional.',
+      primaryHeading: 'Fictional launch signals',
       primaryRows: [
-        { label: 'Landing + waitlist', meta: 'local route · demo state', status: 'UI ready' },
-        { label: 'Product dashboard', meta: 'local route · review state' },
-        { label: 'Sign-in and accounts', meta: 'screen scaffold · no provider' },
+        { label: 'Onboarding funnel', meta: 'local sample stages', status: 'Demo data' },
+        { label: 'Waitlist', meta: 'fictional local entries' },
+        { label: 'Experiment board', meta: 'local cards and states' },
       ],
-      asideHeading: 'Demo boundaries',
+      asideHeading: 'Founder context',
       asideRows: [
-        { label: 'Waitlist records', value: 'Local fixtures' },
-        { label: 'Preview state', value: 'Current IDE run' },
-        { label: 'Next milestone', value: 'Sample only' },
+        { label: 'Interview notes', value: 'Fictional' },
+        { label: 'Product milestones', value: 'Local plan' },
+        { label: 'Runway inputs', value: 'Sample values' },
       ],
-      asideCta: 'Preview share control',
+      asideCta: 'Add experiment',
       disclaimer:
-        'Scripted local interface · fictional product and milestones · no stored sign-ups, real accounts, analytics, funding, or production launch · not a generation record',
+        'Scripted local interface · fictional funnel, waitlist, experiments, interviews, milestones, and runway · no live analytics, billing, email, external database, or production launch · not a generation record',
       caption: {
-        title: 'An MVP walkthrough that keeps traction and production claims out',
-        body: 'This local interface demonstrates a launch checklist, explicit demo boundaries, and the presentation of a share control without claiming an external share occurred.',
+        title: 'A launch cockpit that never turns sample data into traction',
+        body: 'This local interface demonstrates how founders group funnel, customer-learning, experiment, milestone, and runway decisions without claiming a live analytics or finance connection.',
       },
-      alt: 'Scripted local startup MVP interface with fictional milestones, local fixtures, and an unverified share-control preview.',
+      alt: 'Scripted Launchpad startup cockpit with fictional onboarding funnel, waitlist, experiment cards, interview notes, product milestones, and runway inputs.',
     },
     problem: {
       eyebrow: 'From throwaway prototype to a product you can raise on',
@@ -76,53 +77,53 @@ export const STARTUPS_COPY = {
         'E-Code starts from the MVP you describe and produces a working demo in real source files. You inspect the code, run it in a hosted Preview, share the link, and keep developing the same project instead of discarding the prototype.',
     },
     build: {
-      eyebrow: 'One prompt starts the MVP',
-      title: 'Describe the product, not the plumbing',
+      eyebrow: 'One prompt starts the launch cockpit',
+      title: 'Describe the decisions your startup tracks between customer calls',
       intro:
-        'The request below reads like a founder briefing the build. The four items map its implementation scope in real source files, not a throwaway prototype.',
+        'This founder brief becomes Launchpad in editable React and TypeScript files. E-Code runs the cockpit in Webview while all sample records and calculations stay local.',
       label: 'Example prompt',
       promptText:
-        'Build our MVP: a waitlist landing page, a product dashboard, and sign-in, ready to demo to investors.',
+        'Create Launchpad, a launch cockpit for an early-stage startup team. Include onboarding funnel, waitlist, experiment board, customer interview notes, product milestones, and runway inputs using realistic fictional local sample data. Do not claim live analytics, billing, email, or database integrations. Build accessible responsive React and TypeScript with coral, teal, graphite, and orange actions. No purple.',
       outputs: [
         {
-          title: 'Waitlist landing page',
-          body: 'A responsive landing page with a waitlist form and submission structure, rendered from real components and routes across desktop, tablet, and mobile. Persistent storage still needs its chosen service configured.',
+          title: 'Onboarding funnel and waitlist',
+          body: 'The generated cockpit renders fictional funnel stages and local waitlist entries in a responsive view. No signup is stored outside the project.',
         },
         {
-          title: 'Product dashboard',
-          body: 'A dashboard shell with structured data views and navigation, modeled as editable code the team can extend feature by feature.',
+          title: 'Experiment board',
+          body: 'Editable components organize local experiment cards and states. The board does not read from live product analytics or an external database.',
         },
         {
-          title: 'Sign-in and accounts',
-          body: 'Sign-in and account screens with route scaffolding modeled in code. A real identity provider, session policy, and production secrets remain separate integration work.',
+          title: 'Customer learning and runway context',
+          body: 'Fictional interview notes, product milestones, and runway inputs sit in the same local workspace so the sample launch story stays coherent without becoming a traction claim.',
         },
         {
-          title: 'Hosted Preview and demo link',
-          body: 'E-Code runs the compatible MVP build in a hosted Preview and provides a shareable review link. The project stays exportable while production readiness remains a separate validation step.',
+          title: 'A visible experiment action in Webview',
+          body: 'Clicking “Add experiment” opens the “New experiment” form beside the Agent exchange and generated files. The capture verifies that UI transition, not a persisted experiment or board-count update.',
         },
       ],
     },
     proofLink: {
-      eyebrow: 'Founder brief → Agent → MVP Webview',
-      title: 'Inspect the startup demo generated from one product brief',
-      body: 'These dedicated E-Code captures show the founder prompt, the Agent exchange, the generated landing-page and dashboard files, and the MVP running in Webview inside the same project.',
-      galleryLabel: 'Captured startup-MVP generation and local demo flow inside E-Code',
+      eyebrow: 'Launchpad prompt → Agent → experiment form in Webview',
+      title: 'Inspect the launch cockpit generated inside E-Code',
+      body: 'These dedicated captures keep the Launchpad prompt, Agent activity, generated React and TypeScript project tree, and the startup cockpit together. The second state opens the “New experiment” form from “Add experiment.”',
+      galleryLabel: 'Captured Launchpad generation and New experiment interaction inside E-Code',
       disclaimer:
-        'Captured E-Code generation · fictional product and traction data · waitlist and account behavior stays local to the demo · no persistent database, production authentication, email delivery, analytics, or production deployment is demonstrated',
-      openFullSizeLabel: 'Open the startup-MVP capture at full size',
+        'Captured E-Code generation · fictional local funnel, waitlist, experiments, interviews, milestones, and runway inputs · no live analytics, billing, email, external database, persisted experiment, or production deployment is demonstrated',
+      openFullSizeLabel: 'Open the Launchpad capture at full size',
       preview: {
-        title: 'The landing page and product shell run beside their files',
-        body: 'The first capture keeps the MVP brief and Agent activity visible while Webview renders the waitlist landing page, product navigation, and dashboard shell from generated source.',
-        alt: 'Real E-Code Startups workspace showing an MVP prompt, Agent activity, generated landing-page and dashboard files, and the startup product running in Webview.',
+        title: 'Launchpad runs beside the files the Agent created',
+        body: 'The first capture shows the real Agent exchange and generated project tree while Webview renders the onboarding funnel, waitlist, experiments, interview notes, milestones, runway inputs, and local-data disclosure.',
+        alt: 'Real E-Code Startups workspace showing the Launchpad prompt, Agent activity, generated React and TypeScript files, and a fictional local startup launch cockpit in Webview.',
       },
       iteration: {
-        title: 'A founder follow-up becomes a visible demo change',
-        body: 'The second capture keeps the next instruction beside the updated MVP and its source. A local confirmation or navigation state proves the demo interaction; it does not prove stored sign-ups, real accounts, or production readiness.',
-        alt: 'Real E-Code Startups iteration showing a founder follow-up prompt, generated MVP files, and an updated local waitlist or product state in Webview.',
+        title: '“Add experiment” opens the local creation form',
+        body: 'The follow-up capture keeps the Agent iteration visible after the Webview opens “New experiment.” It proves the form transition, not an external save, a persisted card, a live board count, or connected startup metrics.',
+        alt: 'Real E-Code Startups iteration showing generated Launchpad files and the Add experiment interaction opening a New experiment form in Webview.',
       },
       cta: {
-        label: 'Inspect the captured MVP run',
-        ariaLabel: 'Inspect the captured E-Code startup-MVP generation and local demo interaction',
+        label: 'Inspect the captured Launchpad run',
+        ariaLabel: 'Inspect the captured E-Code Launchpad generation and New experiment Webview interaction',
       },
     },
     deliverables: {
@@ -283,32 +284,32 @@ export const STARTUPS_COPY = {
     demo: {
       badge: 'Données fictives',
       brand: 'Launchpad',
-      brandType: 'Concept produit fictif',
-      nav: ['Produit', 'Liste d’attente', 'Métriques'],
-      eyebrow: 'Plan de lancement d’exemple',
-      title: 'Checklist locale du MVP',
+      brandType: 'Cockpit startup local',
+      nav: ['Tunnel', 'Expériences', 'Trésorerie'],
+      eyebrow: 'Espace de lancement fictif',
+      title: 'Rassemblez hypothèses, apprentissages et prochaines décisions sur un écran.',
       intro:
-        'Un scénario produit local et responsive qui associe des jalons fictifs à des états de démo ; il ne rapporte ni traction, ni inscription stockée, ni lancement en production.',
-      primaryHeading: 'États fictifs du MVP',
+        'Un cockpit local responsive avec tunnel d’onboarding, liste d’attente, tableau d’expériences, notes d’entretiens, jalons produit et paramètres de trésorerie. Chaque chiffre est fictif.',
+      primaryHeading: 'Signaux de lancement fictifs',
       primaryRows: [
-        { label: 'Page d’attente + liste', meta: 'route locale · état de démo', status: 'UI prête' },
-        { label: 'Tableau de bord produit', meta: 'route locale · état de revue' },
-        { label: 'Connexion et comptes', meta: 'écrans échafaudés · aucun fournisseur' },
+        { label: 'Tunnel d’onboarding', meta: 'étapes locales d’exemple', status: 'Données démo' },
+        { label: 'Liste d’attente', meta: 'entrées locales fictives' },
+        { label: 'Tableau d’expériences', meta: 'cartes et états locaux' },
       ],
-      asideHeading: 'Frontières de la démo',
+      asideHeading: 'Contexte fondateur',
       asideRows: [
-        { label: 'Fiches d’attente', value: 'Fixtures locales' },
-        { label: 'État de l’aperçu', value: 'Run IDE courant' },
-        { label: 'Prochain jalon', value: 'Exemple seul' },
+        { label: 'Notes d’entretiens', value: 'Fictives' },
+        { label: 'Jalons produit', value: 'Plan local' },
+        { label: 'Trésorerie', value: 'Valeurs d’exemple' },
       ],
-      asideCta: 'Prévisualiser le contrôle de partage',
+      asideCta: 'Ajouter une expérience',
       disclaimer:
-        'Interface locale scénarisée · produit et jalons fictifs · aucune inscription stockée, compte réel, analytics, levée ni production · pas une trace de génération',
+        'Interface locale scénarisée · tunnel, liste d’attente, expériences, entretiens, jalons et trésorerie fictifs · aucun analytics, billing, email, base externe ni lancement en production · pas une trace de génération',
       caption: {
-        title: 'Un parcours MVP qui exclut toute promesse de traction ou de production',
-        body: 'Cette interface locale présente une checklist de lancement, les frontières explicites de la démo et un contrôle de partage sans prétendre qu’un partage externe a eu lieu.',
+        title: 'Un cockpit de lancement qui ne transforme jamais l’exemple en traction',
+        body: 'Cette interface locale regroupe tunnel, apprentissage client, expériences, jalons et trésorerie sans prétendre avoir une connexion analytics ou financière active.',
       },
-      alt: 'Interface locale scénarisée de MVP avec jalons fictifs, fixtures locales et contrôle de partage non vérifié.',
+      alt: 'Cockpit startup Launchpad scénarisé avec tunnel d’onboarding, liste d’attente, cartes d’expériences, notes d’entretiens, jalons produit et paramètres de trésorerie fictifs.',
     },
     problem: {
       eyebrow: 'Du prototype jetable à un produit sur lequel lever des fonds',
@@ -333,53 +334,54 @@ export const STARTUPS_COPY = {
         'E-Code part du MVP que vous décrivez et produit une démo fonctionnelle dans de vrais fichiers source. Vous inspectez le code, l’exécutez dans un aperçu hébergé, partagez le lien et poursuivez le même projet au lieu de jeter le prototype.',
     },
     build: {
-      eyebrow: 'Un prompt lance le MVP',
-      title: 'Décrivez le produit, pas la tuyauterie',
+      eyebrow: 'Un prompt lance le cockpit de lancement',
+      title: 'Décrivez les décisions que votre startup suit entre deux entretiens clients',
       intro:
-        'La demande ci-dessous se lit comme un fondateur qui briefe la construction. Les quatre éléments cartographient son périmètre d’implémentation dans de vrais fichiers source, pas un prototype jetable.',
+        'Ce brief fondateur devient Launchpad dans des fichiers React et TypeScript modifiables. E-Code exécute le cockpit dans la Webview, avec tous les exemples et calculs conservés localement.',
       label: 'Exemple de prompt',
       promptText:
-        'Construis notre MVP : une page d’attente, un tableau de bord produit et une connexion, prêt à démontrer aux investisseurs.',
+        'Crée Launchpad, un cockpit de lancement pour une équipe de startup en amorçage. Ajoute tunnel d’onboarding, liste d’attente, tableau d’expériences, notes d’entretiens clients, jalons produit et paramètres de trésorerie avec des données locales fictives réalistes. Ne prétends pas avoir d’analytics, billing, emails ou base externe actifs. React et TypeScript accessibles et responsive, corail, sarcelle, graphite et actions orange. Aucun violet.',
       outputs: [
         {
-          title: 'Page d’attente',
-          body: 'Une page d’accueil responsive avec un formulaire de liste d’attente et sa structure de soumission, rendue à partir de vrais composants et routes sur desktop, tablette et mobile. Le service choisi pour la persistance reste à configurer.',
+          title: 'Tunnel d’onboarding et liste d’attente',
+          body: 'Le cockpit généré affiche des étapes de tunnel et entrées de liste d’attente fictives dans une vue responsive. Aucune inscription ne sort du projet.',
         },
         {
-          title: 'Tableau de bord produit',
-          body: 'Une base de tableau de bord avec des vues de données structurées et une navigation, modélisée comme un code modifiable que l’équipe étend fonctionnalité par fonctionnalité.',
+          title: 'Tableau d’expériences',
+          body: 'Des composants modifiables organisent des cartes et états locaux. Le tableau ne lit ni analytics produit actif ni base de données externe.',
         },
         {
-          title: 'Connexion et comptes',
-          body: 'Des écrans de connexion et de compte avec une base de routes modélisée en code. Un vrai fournisseur d’identité, la politique de session et les secrets de production restent un travail d’intégration distinct.',
+          title: 'Apprentissage client et contexte de trésorerie',
+          body: 'Notes d’entretiens, jalons produit et paramètres de trésorerie fictifs restent dans le même espace local pour raconter le lancement sans les faire passer pour de la traction.',
         },
         {
-          title: 'Aperçu hébergé et lien de démo',
-          body: 'E-Code exécute le build compatible du MVP dans un aperçu hébergé et fournit un lien de revue partageable. Le projet reste exportable, tandis que l’aptitude à la production fait l’objet d’une validation séparée.',
+          title: 'Action d’expérience visible dans la Webview',
+          body: 'Le clic sur « Ajouter une expérience » ouvre le formulaire « Nouvelle expérience » à côté de l’échange Agent et des fichiers générés. La capture vérifie cette transition UI, pas l’enregistrement d’une carte ni le changement du compteur.',
         },
       ],
     },
     proofLink: {
-      eyebrow: 'Brief fondateur → Agent → Webview du MVP',
-      title: 'Inspectez la démo startup générée à partir d’un seul brief produit',
-      body: 'Ces captures E-Code dédiées montrent le prompt du fondateur, l’échange avec l’Agent, les fichiers générés de la landing page et du tableau de bord et le MVP actif dans la Webview du même projet.',
-      galleryLabel: 'Génération capturée du MVP startup et parcours local dans E-Code',
+      eyebrow: 'Prompt Launchpad → Agent → formulaire dans la Webview',
+      title: 'Inspectez le cockpit de lancement généré dans E-Code',
+      body: 'Ces captures dédiées réunissent le prompt Launchpad, l’activité de l’Agent, l’arborescence React et TypeScript générée et le cockpit startup. Le second état ouvre « Nouvelle expérience » depuis « Ajouter une expérience ».',
+      galleryLabel: 'Génération Launchpad capturée et interaction Nouvelle expérience dans E-Code',
       disclaimer:
-        'Génération E-Code capturée · produit et traction fictifs · comportement de la liste d’attente et des comptes limité à la démo locale · aucune base persistante, authentification de production, livraison d’email, analytics ni production démontrée',
-      openFullSizeLabel: 'Ouvrir la capture du MVP startup en grand',
+        'Génération E-Code capturée · tunnel, liste d’attente, expériences, entretiens, jalons et trésorerie locaux fictifs · aucun analytics, billing, email, base externe, expérience persistée ni production démontrée',
+      openFullSizeLabel: 'Ouvrir la capture Launchpad en grand',
       preview: {
-        title: 'La landing page et le produit tournent à côté de leurs fichiers',
-        body: 'La première capture conserve le brief du MVP et l’activité de l’Agent pendant que la Webview affiche la landing page de liste d’attente, la navigation produit et le tableau de bord issus de la source générée.',
-        alt: 'Vrai workspace Startups E-Code montrant un prompt de MVP, l’activité de l’Agent, les fichiers générés de landing page et de tableau de bord et le produit actif dans la Webview.',
+        title: 'Launchpad tourne à côté des fichiers créés par l’Agent',
+        body: 'La première capture montre le vrai échange avec l’Agent et l’arborescence générée pendant que la Webview affiche tunnel, liste d’attente, expériences, entretiens, jalons, trésorerie et avertissement sur les données locales.',
+        alt: 'Vrai workspace Startups E-Code montrant le prompt Launchpad, l’activité de l’Agent, les fichiers React et TypeScript générés et un cockpit de lancement local fictif dans la Webview.',
       },
       iteration: {
-        title: 'Un suivi du fondateur devient un changement visible dans la démo',
-        body: 'La seconde capture conserve l’instruction suivante auprès du MVP mis à jour et de sa source. Une confirmation ou une navigation locale prouve l’interaction de la démo ; elle ne prouve ni inscription stockée, ni vrai compte, ni préparation à la production.',
-        alt: 'Vraie itération Startups E-Code montrant un prompt de suivi du fondateur, les fichiers du MVP et un état local mis à jour de la liste d’attente ou du produit dans la Webview.',
+        title: '« Ajouter une expérience » ouvre le formulaire local',
+        body: 'La capture de suivi garde l’itération de l’Agent visible après l’ouverture de « Nouvelle expérience » dans la Webview. Elle prouve la transition du formulaire, pas un enregistrement externe, une carte persistée, un compteur actif ni des métriques connectées.',
+        alt: 'Vraie itération Startups E-Code montrant les fichiers Launchpad générés et l’interaction Ajouter une expérience ouvrant le formulaire Nouvelle expérience dans la Webview.',
       },
       cta: {
-        label: 'Inspecter le run capturé du MVP',
-        ariaLabel: 'Inspecter la génération E-Code capturée du MVP startup et son interaction locale',
+        label: 'Inspecter le run Launchpad capturé',
+        ariaLabel:
+          'Inspecter la génération Launchpad capturée dans E-Code et le formulaire Nouvelle expérience dans la Webview',
       },
     },
     deliverables: {
