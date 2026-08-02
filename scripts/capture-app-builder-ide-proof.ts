@@ -625,6 +625,7 @@ async function projectFilesRevision(page: Page, projectId: string, token: string
 async function submitAgentPrompt(agentPanel: ReturnType<Page['getByTestId']>, prompt: string) {
   const composer = agentPanel.getByRole('textbox', { name: 'Agent prompt' });
   const stopButton = agentPanel.getByRole('button', { name: 'Stop generation' }).first();
+  const preferredAgentMode = process.env.SOLUTION_PROOF_AGENT_MODE?.trim();
 
   await expect(composer).toBeVisible({ timeout: 60_000 });
 
@@ -634,6 +635,13 @@ async function submitAgentPrompt(agentPanel: ReturnType<Page['getByTestId']>, pr
     await expect(completedProgress).toBeVisible({ timeout: 60_000 });
     await stopButton.click();
     await expect(stopButton).toBeHidden({ timeout: 60_000 });
+  }
+
+  if (preferredAgentMode) {
+    const modeButton = agentPanel.getByRole('button', { name: preferredAgentMode, exact: true }).first();
+
+    await expect(modeButton).toBeVisible({ timeout: 60_000 });
+    await modeButton.click();
   }
 
   await composer.fill(prompt);
