@@ -1447,7 +1447,7 @@
   border-radius: 1rem;
   overflow: hidden;
   background: var(--ecode-surface);
-  box-shadow: 0 30px 70px color-mix(in srgb, var(--ecode-shadow, #000) 20%, transparent);
+  box-shadow: 0 30px 70px color-mix(in srgb, var(--ecode-text) 12%, transparent);
 }
 
 .sol-demo__chrome {
@@ -1464,10 +1464,6 @@
   height: 0.62rem;
   border-radius: 999px;
   background: var(--ecode-border-strong);
-}
-
-.sol-demo__dot:first-child {
-  background: var(--ecode-accent);
 }
 
 .sol-demo__url {
@@ -1545,7 +1541,7 @@
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--ecode-accent-text);
+  color: var(--ecode-text-secondary);
 }
 
 .sol-demo__hero h3 {
@@ -1658,8 +1654,9 @@
   border-radius: 0.55rem;
   font-size: 0.78rem;
   font-weight: 700;
-  color: var(--ecode-accent-contrast);
-  background: var(--ecode-accent);
+  color: var(--ecode-text-secondary);
+  background: var(--ecode-surface-secondary);
+  border: 1px solid var(--ecode-border);
 }
 
 .sol-demo figcaption {
