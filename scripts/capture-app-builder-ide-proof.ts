@@ -1160,7 +1160,7 @@ async function main() {
     process.stdout.write(`${JSON.stringify({ status: 'project-ready', slug, locale, projectId })}\n`);
 
     const agentPanel = page.getByTestId('ide-agent-panel');
-    const promptBubble = page.getByText(creationPrompt, { exact: true }).first();
+    const promptBubble = agentPanel.getByText(creationPrompt, { exact: true }).first();
     await expect(agentPanel).toBeVisible({ timeout: 180_000 });
     await expect(promptBubble).toBeVisible({ timeout: 180_000 });
     await expect(page.locator('.bolt-file-tree-name').first()).toBeVisible({ timeout: 180_000 });
