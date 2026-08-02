@@ -274,6 +274,21 @@ describe('workspace-manager app', () => {
       await app.close();
     });
 
+    it('applies shared-tier Pooler and Database CNPG kinds', async () => {
+      for (const kind of ['Pooler', 'Database'] as const) {
+        const runtime = manager();
+        const app = buildWorkspaceManagerApp(runtime.manager);
+        const res = await app.inject({
+          method: 'POST',
+          url: '/databases/apply',
+          payload: { manifest: { ...cnpgCluster, kind, metadata: { name: `sh-${kind}`, namespace: 'project-databases' } } },
+        });
+        expect(res.statusCode).toBe(200);
+        expect(runtime.k8s.objects.has(`project-databases:${kind}:sh-${kind}`)).toBe(true);
+        await app.close();
+      }
+    });
+
     it('rejects a forbidden kind', async () => {
       const app = buildWorkspaceManagerApp(manager().manager);
       const res = await app.inject({
