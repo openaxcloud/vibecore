@@ -13,14 +13,13 @@
 | # | Item | Motif RR-08 (résumé) | Correction V6 | Commit audité | CI à la tête |
 |---|---|---|---|---|---|
 | A | WIF `P0-A2-09` | teardown lit tout échec de describe comme absence | classification fail-closed + retry + delete tenté + injection de panne | `53eb488f` (PR #55) | ✅ |
-| B | Purge DB (PR #51) | ChatShare public survivant ; audit ciblant le sujet non rédigé | deleteMany authored + redaction metadata ciblé, preuves PG réelles | `c85363e0` (PR #51) | ⏳ en cours |
+| B | Purge DB (PR #51) | ChatShare public survivant ; audit ciblant le sujet non rédigé | deleteMany authored + redaction metadata ciblé, preuves PG réelles | `c85363e0` (PR #51) | ✅ |
 | C | Purge physique (PR #52) | route thumbnail hors barrière ; topologie non sérialisée | garde structurelle toutes primitives + guard de dérive topologie | `018389f3` (PR #52) | ✅ |
-| D | CTR-RUNTIME-NIX | code typé non capturé ; réf `.log` morte ; sur-revendication UI | code persisté + capturé LIVE ; refs corrigées ; UI retirée | `633796aa` (PR #57) | ⏳ en cours |
+| D | CTR-RUNTIME-NIX | code typé non capturé ; réf `.log` morte ; sur-revendication UI | code persisté + capturé LIVE ; refs corrigées ; UI retirée | `633796aa` (PR #57) | ✅ |
 
-**Demande : rejouer et signer, ou refuser avec réserve** les items PRÊTS
-(A et C — CI vertes à la tête, artefacts hashés) ; B et D sont complets sur le
-contenu mais leur CI tourne encore (« en cours de preuve », voir Note CI) — ne
-pas les signer avant leur verdict CI. **Seul rouge universel** : Production
+**Demande : rejouer et signer, ou refuser avec réserve.** Les 4 items sont
+PRÊTS — CI vertes aux têtes (voir Note CI ; réserve dite telle quelle pour A :
+Quality Gates non programmé à sa tête), artefacts hashés. **Seul rouge universel** : Production
 E2E/Playwright, repo-wide (aussi sur main), hors périmètre.
 
 ---
@@ -91,8 +90,11 @@ test-runs-rr08-raw.txt` `4d077b56…` (tests réels vrai Postgres) + README mis
 à jour + `account-purge-db.spec.ts` (+162 lignes) + matrice
 `docs/account-deletion-data-matrix.md` (ligne ChatShare : « row DELETED
 (RR-08 #1) »).
-**CI** : voir Note CI (tête réconciliée sur main le 02/08 — conflit trivial de
-commentaire résolu, zéro différence sémantique).
+**CI (tête `602eb3d7`, branche réconciliée sur main le 02/08 — conflit trivial
+de commentaire résolu, zéro différence sémantique)** : Production CI run
+**30758853009** success · PR Validation (Quality Gates) run **30758852988**
+success · Security Analysis + Code Quality + gitleaks success.
+https://github.com/openaxcloud/vibecore/actions/runs/30758853009
 **Statut** : lot re-soumis ; rien d'auto-clôturé.
 
 # C. PURGE PHYSIQUE — `PR #52` (2 chemins fail-open fermés)
@@ -165,8 +167,12 @@ alors que appels HTTP directs. »
 `rr08-code-capture-EXECUTED.txt` `8d8b299a…` ·
 `rr08-publish-revoked-deployment.json` ; + la sous-preuve déjà acceptée
 NIX-REVOKED-GENERATION-FAILED-410-AND-RESTORE-READY-200 inchangée.
-**CI** : voir Note CI (tête réconciliée sur main le 02/08 — CONTRACT_REGISTRY
-fusionné en UNION : historique v4 de la branche + verbatim RR-08 de main).
+**CI (tête `9ff4717d` — v6 rebasée sur le main courant, contenu identique à
+`633796aa` ; CONTRACT_REGISTRY fusionné en UNION : historique v4 de la branche
++ verbatim RR-08 de main)** : Production CI run **30759024780** success · PR
+Validation (Quality Gates) run **30759024769** success · Parity registries run
+**30759024771** success.
+https://github.com/openaxcloud/vibecore/actions/runs/30759024780
 **Statut** : contrat v6, PROVEN_REVIEW_PENDING — signature = ta décision.
 
 ---
@@ -189,13 +195,16 @@ Vérifiés activement via gh le 2026-08-02 :
     (agrégateur de Production CI) n'a PAS été programmé par GitHub à cette
     tête — re-déclenchement tenté (label), sans effet ; dit tel quel, pas
     revendiqué vert.
-  - **B / PR #51 @ `602eb3d7` : ⏳ EN COURS DE PREUVE** — branche réconciliée
-    sur main le 02/08, gitleaks pass, Production CI + Quality Gates en cours
-    d'exécution au moment du commit de ce dossier. Le contenu (c85363e0) est
-    complet ; le verdict CI sera consigné dès conclusion.
-  - **D / PR #57 @ `9ff4717d` : ⏳ EN COURS DE PREUVE** — v6 rebasée sur le
-    main courant, toute la CI en cours d'exécution au moment du commit. Le
-    contenu (633796aa → 9ff4717d) est complet ; verdict CI dès conclusion.
+  - **B / PR #51 @ `602eb3d7` : ✅ PRÊT** — Production CI run 30758853009
+    pass · PR Validation (Quality Gates) run 30758852988 pass · Security
+    Analysis 30758852982 pass · Code Quality 30758853037 pass. Seul échec :
+    Production E2E (repo-wide, hors périmètre).
+  - **D / PR #57 @ `9ff4717d` : ✅ PRÊT** — Production CI run 30759024780
+    pass · PR Validation (Quality Gates) run 30759024769 pass · Parity
+    registries 30759024771 pass · Security Analysis 30759024765 pass · Code
+    Quality 30759024750 pass. Seul échec : Production E2E (repo-wide, hors
+    périmètre). Tête = v6 rebasée sur le main courant (contenu identique à
+    633796aa).
 - Seul rouge universel : Production E2E/Playwright (repo-wide, aussi sur main).
 
 # DEMANDE
