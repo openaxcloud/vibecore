@@ -537,7 +537,14 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
    * the operator is installed (a missing CRD just makes apply fail).
    */
   const DB_ROLLBACK_NAMESPACE = 'project-databases';
-  const DB_ROLLBACK_KINDS = new Set(['Cluster', 'ScheduledBackup', 'Backup']);
+  /*
+   * Isolated tier applies Cluster + ScheduledBackup (+ on-demand Backup). Shared
+   * (free) tier applies Pooler + Database CRDs on the shared cluster. All are
+   * CloudNativePG kinds the manager's Role already grants (poolers/databases in
+   * database-rbac.yaml); omitting Pooler/Database here 403'd every shared-tier
+   * provision, so free-tier projects never got a database.
+   */
+  const DB_ROLLBACK_KINDS = new Set(['Cluster', 'ScheduledBackup', 'Backup', 'Pooler', 'Database']);
 
   const dbResourceGuard = (kind: string, namespace: string, reply: any): boolean => {
     if (namespace !== DB_ROLLBACK_NAMESPACE || !DB_ROLLBACK_KINDS.has(kind)) {
