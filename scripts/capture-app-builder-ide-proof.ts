@@ -788,6 +788,12 @@ async function waitForPreview(page: Page, evidenceRoot: string) {
           await topRunButton.click({ noWaitAfter: true });
         }
 
+        const refreshPreviewButton = page.getByRole('button', { name: 'Refresh preview' }).first();
+
+        if (await refreshPreviewButton.isVisible().catch(() => false)) {
+          await refreshPreviewButton.click({ noWaitAfter: true });
+        }
+
         await expect
           .poll(readPreviewText, {
             message: 'Preview must render substantial application content after the guarded runtime restart',
