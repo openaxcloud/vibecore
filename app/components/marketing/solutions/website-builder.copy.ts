@@ -84,20 +84,20 @@ export const WEBSITE_BUILDER_COPY = {
       promptText: 'Build a showcase website for my architecture firm, with a portfolio, contact page, and blog.',
       outputs: [
         {
-          title: 'Responsive pages',
-          body: 'Home, portfolio, project detail, studio, and contact pages render across desktop, tablet, and mobile from real components and routes.',
+          title: 'Five responsive views',
+          body: 'Home, Projects, Studio, Journal, and Contact render from editable React and TypeScript source, with navigation that opens each view inside Webview.',
         },
         {
-          title: 'Structured content',
-          body: 'Projects, images, studio details, and enquiries are modeled as editable content the team can extend without breaking the layout.',
+          title: 'A portfolio visitors explore',
+          body: 'The Projects view opens as “Selected work”, with local project filters and detail links over realistic fictional studio content.',
         },
         {
-          title: 'Working contact flow',
-          body: 'The enquiry form validates input and exposes a submission hook in code. Connect that hook to your chosen form or email service before accepting real enquiries.',
+          title: 'An honest local contact flow',
+          body: 'The contact form returns a local confirmation in the browser. It never presents that state as an email or submitted enquiry.',
         },
         {
-          title: 'Preview and publishing',
-          body: 'E-Code runs the site in Preview across screen sizes. Supported static builds continue through guided publishing to a live URL; other projects stay exportable for any host.',
+          title: 'Agent, files, and Webview together',
+          body: 'E-Code keeps the brief and Agent exchange beside the generated files while the architecture site runs in the real Webview tab.',
         },
       ],
     },
@@ -115,9 +115,9 @@ export const WEBSITE_BUILDER_COPY = {
         alt: 'Real E-Code workspace showing an architecture-studio website prompt, Agent activity, generated React files, and the portfolio homepage running in Webview.',
       },
       iteration: {
-        title: 'A compile failure becomes a plain-language repair request',
-        body: 'The follow-up describes the source error to the Agent in the same workspace. The repaired architecture homepage returns in Webview with the project files still open for inspection; this proves the correction loop, not first-pass perfection.',
-        alt: 'Real E-Code Website Builder workspace showing a compile-error repair prompt, the generated architecture-site files, and the restored portfolio homepage in Webview.',
+        title: 'A second prompt turns Projects into an explorable view',
+        body: 'The follow-up asks the Agent to add Projects navigation, a “Selected work” heading, working filters, and project detail links. The capture shows that updated local view in the same Webview; it does not demonstrate a CMS, database, or deployed contact service.',
+        alt: 'Real E-Code Website Builder workspace showing the Projects iteration prompt, generated Meridian Studio files, and the Selected work view with local project filters in Webview.',
       },
       cta: {
         label: 'Inspect the architecture-site run',
@@ -132,11 +132,11 @@ export const WEBSITE_BUILDER_COPY = {
       items: [
         {
           title: 'Website source you can inspect',
-          body: 'Real routes, components, styles, and page content remain readable, versionable, and exportable as a complete project.',
+          body: 'The generated views, navigation, components, styles, and page content remain readable, versionable, and exportable as a complete project.',
         },
         {
-          title: 'Visible content schema and form adapter',
-          body: 'Project entries, media fields, studio details, and the enquiry hook live in the code. Wire them to your CMS, database, and delivery service before using real content or submissions.',
+          title: 'Visible content and local form state',
+          body: 'Project entries, studio details, filters, and the local contact confirmation live in the code. A real CMS, database, or submission service requires a separate connection that this capture does not show.',
         },
         {
           title: 'A responsive site running in Preview',
@@ -171,7 +171,7 @@ export const WEBSITE_BUILDER_COPY = {
         },
         {
           title: 'Forms and enquiries',
-          body: 'Contact and lead-capture interfaces with validation plus an explicit integration point for your delivery service.',
+          body: 'A contact interface with a local confirmation that stays explicitly separate from email or form delivery.',
         },
         { title: 'SEO and social metadata', body: 'Titles, descriptions, and Open Graph tags generated per page.' },
         {
@@ -209,7 +209,7 @@ export const WEBSITE_BUILDER_COPY = {
       items: [
         {
           title: 'Do I get real code or a locked template?',
-          body: 'You get editable source files — components, routes, styles, and content — that you can read, version, and export. There is no proprietary template lock-in.',
+          body: 'You get editable source files — views, navigation, components, styles, and content — that you can read, version, and export. There is no proprietary template lock-in.',
         },
         {
           title: 'Is the site responsive?',
@@ -276,7 +276,7 @@ export const WEBSITE_BUILDER_COPY = {
     },
     demo: {
       badge: 'Données fictives',
-      brand: 'Studio Meridian',
+      brand: 'Atelier Méridien',
       brandType: 'Agence d’architecture fictive',
       nav: ['Projets', 'Studio', 'Contact'],
       eyebrow: 'Sélection d’exemple',
@@ -334,20 +334,20 @@ export const WEBSITE_BUILDER_COPY = {
       promptText: 'Fais-moi un site vitrine pour mon cabinet d’architecte, avec portfolio, contact et blog.',
       outputs: [
         {
-          title: 'Pages responsives',
-          body: 'Accueil, portfolio, détail de projet, studio et contact s’affichent sur desktop, tablette et mobile à partir de vrais composants et routes.',
+          title: 'Cinq vues responsives',
+          body: 'Accueil, Projets, Studio, Journal et Contact s’affichent depuis une source React et TypeScript modifiable, avec une navigation qui ouvre chaque vue dans la Webview.',
         },
         {
-          title: 'Contenu structuré',
-          body: 'Projets, images, détails du studio et demandes sont modélisés comme un contenu modifiable que l’équipe peut étendre sans casser la mise en page.',
+          title: 'Un portfolio à parcourir',
+          body: 'La vue Projets s’ouvre sous le titre « Projets sélectionnés », avec des filtres locaux et des liens de fiches sur un contenu de studio fictif réaliste.',
         },
         {
-          title: 'Parcours de contact fonctionnel',
-          body: 'Le formulaire valide les entrées et expose un point de branchement dans le code. Connectez-le au service de formulaire ou d’email choisi avant de recevoir de vraies demandes.',
+          title: 'Un parcours de contact local explicite',
+          body: 'Le formulaire affiche une confirmation locale dans le navigateur. Il ne présente jamais cet état comme un email ni comme une demande réellement envoyée.',
         },
         {
-          title: 'Aperçu et publication',
-          body: 'E-Code exécute le site dans l’aperçu à toutes les tailles d’écran. Les builds statiques pris en charge se publient vers une URL en ligne ; les autres projets restent exportables pour tout hébergeur.',
+          title: 'Agent, fichiers et Webview réunis',
+          body: 'E-Code garde le brief et l’échange avec l’Agent à côté des fichiers générés pendant que le site d’architecture tourne dans la vraie Webview.',
         },
       ],
     },
@@ -365,9 +365,9 @@ export const WEBSITE_BUILDER_COPY = {
         alt: 'Vrai workspace E-Code montrant le prompt d’un site de cabinet d’architecture, l’activité de l’Agent, les fichiers React générés et le portfolio actif dans la Webview.',
       },
       iteration: {
-        title: 'Une erreur de compilation devient une demande de réparation en langage courant',
-        body: 'Le suivi décrit l’erreur source à l’Agent dans le même workspace. La page d’accueil d’architecture réparée revient dans la Webview avec les fichiers toujours ouverts à l’inspection ; cette capture prouve la boucle de correction, pas une réussite garantie au premier essai.',
-        alt: 'Vrai workspace Website Builder E-Code montrant un prompt de réparation, les fichiers générés du site d’architecture et le portfolio rétabli dans la Webview.',
+        title: 'Un second prompt transforme Projets en vue explorable',
+        body: 'Le suivi demande à l’Agent une navigation Projets, le titre « Projets sélectionnés », des filtres fonctionnels et des liens de fiches. La capture montre cette vue locale mise à jour dans la même Webview ; elle ne démontre ni CMS, ni base, ni service de contact déployé.',
+        alt: 'Vrai workspace Website Builder E-Code montrant le prompt d’itération Projets, les fichiers d’Atelier Méridien et la vue Projets sélectionnés avec filtres locaux dans la Webview.',
       },
       cta: {
         label: 'Inspecter le run du site d’architecture',
@@ -382,11 +382,11 @@ export const WEBSITE_BUILDER_COPY = {
       items: [
         {
           title: 'La source du site reste inspectable',
-          body: 'De vraies routes, des composants, des styles et le contenu des pages restent lisibles, versionnables et exportables comme un projet complet.',
+          body: 'Les vues générées, la navigation, les composants, les styles et le contenu des pages restent lisibles, versionnables et exportables comme un projet complet.',
         },
         {
-          title: 'Schéma de contenu et adaptateur de formulaire visibles',
-          body: 'Les fiches projet, les champs média, les informations du studio et le point de branchement des demandes vivent dans le code. Reliez-les à votre CMS, votre base et votre service d’envoi avant d’utiliser de vrais contenus ou formulaires.',
+          title: 'Contenu et état local du formulaire visibles',
+          body: 'Les fiches projet, les informations du studio, les filtres et la confirmation locale du contact vivent dans le code. Un vrai CMS, une base ou un service d’envoi exige une connexion séparée que cette capture ne montre pas.',
         },
         {
           title: 'Le site responsive tourne dans l’aperçu',
@@ -422,7 +422,7 @@ export const WEBSITE_BUILDER_COPY = {
         },
         {
           title: 'Formulaires et demandes',
-          body: 'Interfaces de contact et de capture de leads avec validation et point d’intégration explicite pour votre service d’envoi.',
+          body: 'Une interface de contact avec confirmation locale, explicitement séparée d’un envoi de formulaire ou d’email.',
         },
         { title: 'SEO et métadonnées sociales', body: 'Titres, descriptions et balises Open Graph générés par page.' },
         {
@@ -466,7 +466,7 @@ export const WEBSITE_BUILDER_COPY = {
       items: [
         {
           title: 'J’obtiens du vrai code ou un template verrouillé ?',
-          body: 'Vous obtenez des fichiers source modifiables — composants, routes, styles et contenu — que vous lisez, versionnez et exportez. Aucun verrouillage propriétaire.',
+          body: 'Vous obtenez des fichiers source modifiables — vues, navigation, composants, styles et contenu — que vous lisez, versionnez et exportez. Aucun verrouillage propriétaire.',
         },
         {
           title: 'Le site est-il responsive ?',
