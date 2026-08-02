@@ -49,7 +49,7 @@ type CaptureSession = {
 const APP_BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:5173';
 const API_BASE_URL = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
 const GENERATION_TIMEOUT_MS = 12 * 60 * 1000;
-const PREVIEW_TIMEOUT_MS = 8 * 60 * 1000;
+const PREVIEW_TIMEOUT_MS = 15 * 60 * 1000;
 const PREVIEW_RESTART_TIMEOUT_MS = 3 * 60 * 1000;
 
 const PREVIEW_RUNTIME_ERROR_PATTERN =
