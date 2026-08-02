@@ -1328,7 +1328,6 @@ async function main() {
       );
       await context.close();
       context = undefined!;
-      await unlink(captureSessionPath).catch(() => undefined);
 
       return;
     }
