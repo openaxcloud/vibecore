@@ -298,14 +298,14 @@ function ProofLinkBand({
           data-testid="solution-ide-proof-gallery"
         >
           <SolutionProofVisual
-            asset={assets.idePreview}
+            asset={assets.preview}
             content={copy.proofLink.preview}
             disclaimer={copy.proofLink.disclaimer}
             openFullSizeLabel={copy.proofLink.openFullSizeLabel}
             testId="solution-ide-preview"
           />
           <SolutionProofVisual
-            asset={assets.ideIteration}
+            asset={assets.iteration}
             content={copy.proofLink.iteration}
             disclaimer={copy.proofLink.disclaimer}
             openFullSizeLabel={copy.proofLink.openFullSizeLabel}
