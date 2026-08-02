@@ -1144,7 +1144,7 @@ async function prepareIdeCapture(page: Page, bubble: ReturnType<Page['locator']>
     await closePreviewLogsButton.click();
   }
 
-  await bubble.scrollIntoViewIfNeeded();
+  await bubble.evaluate((element) => element.scrollIntoView({ block: 'start', inline: 'nearest' }));
   await page.evaluate(`document.activeElement && document.activeElement.blur();`);
   await page.evaluate(`document.fonts && document.fonts.ready`);
 }
