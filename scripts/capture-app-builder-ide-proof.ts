@@ -1175,12 +1175,19 @@ async function main() {
 
     const page = await context.newPage();
     const consoleErrors: string[] = [];
+    const previewConsoleErrors: string[] = [];
     const pageErrors: string[] = [];
 
     page.setDefaultNavigationTimeout(180_000);
     page.on('console', (message) => {
       if (message.type() === 'error') {
         consoleErrors.push(message.text());
+
+        const locationUrl = message.location().url;
+
+        if (locationUrl && !locationUrl.startsWith(APP_BASE_URL) && !locationUrl.startsWith(API_BASE_URL)) {
+          previewConsoleErrors.push(message.text());
+        }
       }
     });
     page.on('pageerror', (error) => pageErrors.push(error.message));
@@ -1449,6 +1456,14 @@ async function main() {
       }
     }
 
+    if (problemDetailCount > 0) {
+      throw new Error(`Generated project still exposes ${problemDetailCount} IDE problems`);
+    }
+
+    if (previewConsoleErrors.length > 0) {
+      throw new Error(`Generated Preview emitted ${previewConsoleErrors.length} console errors`);
+    }
+
     process.stdout.write(
       JSON.stringify(
         {
@@ -1458,6 +1473,7 @@ async function main() {
           generatedFileCount: generatedFiles.length,
           previewTextSample: previewText.slice(0, 240),
           consoleErrorCount: consoleErrors.length,
+          previewConsoleErrorCount: previewConsoleErrors.length,
           pageErrorCount: pageErrors.length,
           previewOutput,
           iterationOutput,
