@@ -178,3 +178,36 @@ receipts:
     keyDefectRaised: "vérificateur v6 fail-OPEN sur l'ABSENCE de mergedCommit/repoCommit/runUrl (checkAttestationFields ne contrôle que s'ils existent) — LS-16/18/V3-14 refusés tant que ces champs ne sont pas rendus OBLIGATOIRES + non vides + test négatif de SUPPRESSION par champ + nouveau roll post-merge"
     refusalReasonsLocation: "docs/parity/incoming/REPONSE_EXPERT_V4_20260723.md (§4/§6/§7 verbatim) + P0_REGISTRY.refusalReason + CONTRACT_REGISTRY"
     completeness: COMPLETE
+
+  - reviewReceiptId: RR-20260731-CODEX-08
+    reviewerType: AUTOMATED_LLM
+    reviewerIdentity: "OpenAI-Codex"
+    reviewerModelVersion: "GPT-5 (Codex)"
+    reviewedAt: "2026-07-31"
+    auditedCommits: "ceux du dossier V5 revu : 7287c27d (attestation v7, PR #54 mergée) ; 16498462 (WIF PR #55) ; dca0bec6 (purge DB PR #51) ; ee0df5a7 (purge physique PR #52) ; 6d57a401 (nix mergé) + 5148e0e5 (PR #57) ; a26f06fe (DR PR #36)"
+    inputDocuments:
+      - path: docs/parity/DOSSIER_EXPERT_V5_20260731.md
+        sha256: "c63695661d16924513c7b61c5807e471798dfc71998b5dd2c80bb2084a2b2f51"
+        note: "hash déclaré par l'agent — le reçu le marque DECLARED_NOT_RECOMPUTED"
+    responsePath: docs/parity/incoming/REPONSE_EXPERT_V5_20260731.md
+    responseHash: "sha256:bcdd1d20c1d9872f2b8cb842d8d64409faa672aa9fd38fae2ac2bf4e230bacd8"
+    expertAnnouncedHash: "sha256:d1e99781601d8dd75e7b030caf6567463407544115c5a749845785266e94635d"
+    hashDiscrepancyNote: >
+      ÉCART DÉCLARÉ, pas caché : le hash annoncé par l'expert (d1e99781…) ne
+      correspond PAS au fichier committé (bcdd1d20…). Cause structurelle : le
+      fichier committé CONTIENT sa propre ligne « SHA-256 du reçu : d1e99781… »
+      — un document ne peut jamais hasher à une valeur qu'il contient
+      (auto-référence). Le responseHash enregistré est celui RECOMPUTABLE du
+      fichier committé (sha256sum docs/parity/incoming/REPONSE_EXPERT_V5_20260731.md).
+      Le hash annoncé couvre vraisemblablement l'original côté expert avant
+      insertion de cette ligne ; à réconcilier avec lui si nécessaire.
+    summary: "3 P0 attestation SIGNÉS (LS-16, LS-18, V3-14) ; A2-09 REFUSÉ ; lots purge #51 + #52 REFUSÉS ; CTR-RUNTIME-NIX REFUSÉ ; CTR-OPERATIONS-DR non soumis en signature entière ; 2 sous-preuves acceptées à portée limitée"
+    decisions:
+      accepted: [P0-LS-16, P0-LS-18, P0-V3-14]
+      refused: [P0-A2-09]
+      codeLotsRefused: 2   # PR-51-ACCOUNT-PURGE-DB, PR-52-ACCOUNT-PURGE-PHYSICAL
+      contractsRefused: 1  # CTR-RUNTIME-NIX
+      notSubmittedForWholeContractSignature: [CTR-OPERATIONS-DR]
+      individualEvidenceAcceptedWithScope: [EVID-DR-SNAPSHOT-001, NIX-REVOKED-GENERATION-FAILED-410-AND-RESTORE-READY-200]
+    refusalReasonsLocation: "docs/parity/incoming/REPONSE_EXPERT_V5_20260731.md (verbatim) + P0_REGISTRY.refusalReason + CONTRACT_REGISTRY"
+    completeness: COMPLETE

@@ -5,9 +5,9 @@ import type { SupportedLanguage } from '~/lib/i18n/language';
  *
  * These pages reuse the App Builder gabarit's structure (hero, problem, build,
  * deliverables, capabilities, use cases, FAQ, CTA) but render an inline, fully
- * responsive product demonstration mock instead of static captures, and point to
- * the App Builder page for the one real, captured E-Code IDE proof rather than
- * fabricating a per-use-case generation record.
+ * responsive product demonstration mock, then show the localized App Builder
+ * IDE captures as a clearly-labelled reference proof of the real E-Code build
+ * loop. The page-specific mock is never presented as a generation record.
  */
 
 export type ActionCopy = Readonly<{ label: string; ariaLabel: string }>;
@@ -75,6 +75,11 @@ export type SolutionCopy = Readonly<{
     title: string;
     body: string;
     cta: ActionCopy;
+    galleryLabel: string;
+    disclaimer: string;
+    openFullSizeLabel: string;
+    preview: ContentItem & Readonly<{ alt: string }>;
+    iteration: ContentItem & Readonly<{ alt: string }>;
   }>;
   deliverables: Readonly<{ eyebrow: string; title: string; intro: string; items: SixItems }>;
   features: Readonly<{ eyebrow: string; title: string; intro: string; items: SixItems }>;

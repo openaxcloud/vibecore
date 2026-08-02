@@ -78,9 +78,13 @@ contracts:
     refusalReasonV1: "format lock incompatible + rotation inconnue"
     refusalReasonV2: "format ecode.lock et rotation/révocation des générations restent des dépendances ouvertes"
     reviewReceiptIdV2: RR-20260721-CODEX-04
-    refusalReasonV3: "lock pas prouvé immuable + enforcement incomplet"
+    refusalReasonV3: "lock pas prouvé immuable + enforcement incomplet (pin optionnel, rollback sans pin, validation partielle du catalogue, négatif live bloqué)"
     refusalReasonV4: "négatif live révocation pas EXÉCUTÉ + config prod restaurée non vérifiée"
-    refusalReasonV5: "RR-08 : code typé non capturé dans l artefact, référence morte .log, sur-revendication UI"
+    refusalReasonV5: "8.1 code typé non capturé : le contrat affirme ECODE_LOCK_GENERATION_REVOKED mais publish réduit à ecodeLockError = error.message — l artefact est un message textuel, pas un code typé ; 8.2 référence morte : contrat/README référencent live-revocation-EXECUTED.log alors que le fichier réel est .txt ; 8.3 sur-revendication UI : le README décrit UI → control plane alors que ce sont des appels HTTP directs"
+    reviewReceiptIdV5: RR-20260731-CODEX-08
+    acceptedIndividualEvidence:
+      - evidenceId: NIX-REVOKED-GENERATION-FAILED-410-AND-RESTORE-READY-200
+        scope: "PORTÉE LIMITÉE (reçu RR-08) : sous-preuve fonctionnelle recevable — lock gen-2 → READY/200 ; révoquée → FAILED/410 ; restaurée → READY/200 ; pas de repli silencieux. Ne signe PAS le contrat."
     hardeningStatus: HARDENED_PENDING_REVIEW
     anchor: "v6 (RR-08): code typé PRESERVÉ (describeEcodeLockFailure) + test qui EXIGE ECODE_LOCK_GENERATION_REVOKED + capture LIVE 31/07 du code littéral (409 rr08-409-revoked-code.json) ; refs .txt réparées ; UI dé-revendiquée (appels HTTP directs). Antérieur : négatif live 23/07 (révoquée→FAILED/410, restaurée→READY/200)"
     expectedReviewer: OpenAI-Codex
@@ -125,6 +129,11 @@ contracts:
     file: OPERATIONS_DR.md
     contractVersion: 1
     refusalReasonV1: "SLO/astreinte/chaos/RTO-RPO non prouvés"
+    notSubmittedForWholeContractSignature: true   # décision RR-08 — aucun reviewer sur le contrat entier
+    remainingObligations: "astreinte outillée ; réplication cross-région ; RTO applicatif complet (reçu RR-08)"
+    acceptedIndividualEvidence:
+      - evidenceId: EVID-DR-SNAPSHOT-001
+        scope: "PORTÉE LIMITÉE (reçu RR-08) : policy Terraform quotidienne rétention 7 j + attache observée sur les disques PRÉSENTS + snapshot compatible scheduler + script idempotent. LIMITES verbatim : pas de CronJob d attache continue démontré (NE PAS prétendre couverture automatique des futurs disques) ; archiver aussi la sortie JSON brute gcloud compute snapshots describe / Cloud Audit Logs. Ne signe PAS le contrat."
     hardeningStatus: BLOCKED_ON_CHANTIER
     blockedBy: "exercices réels DR/restauration (PR-DR-01/02/03, WI-0051) — un plan non testé n'est pas un plan"
     expectedReviewer: OpenAI-Codex

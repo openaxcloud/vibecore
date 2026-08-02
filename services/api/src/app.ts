@@ -222,6 +222,8 @@ import {
   deploymentProviders,
   detectFramework,
   redactDeploymentLog,
+  staticDeployDedicatedOrigin,
+  isDedicatedStaticDeployHost,
   type CreateDeploymentRequest,
   type RunStaticBuildResult,
   type StaticBuildLog,
@@ -8300,7 +8302,41 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * ambient authority. allow-forms/allow-popups keep ordinary static sites
      * working. nosniff stops content-type confusion on the served bytes.
      */
-    reply.header('content-security-policy', 'sandbox allow-scripts allow-forms allow-popups allow-modals');
+    /*
+     * LAUNCH-BLOCKER fix (2026-08-01): serve the app from its OWN origin.
+     * On the API origin the document must stay in an opaque sandbox (ambient
+     * cookie authority), which breaks localStorage and blanks every storage-
+     * using SPA. Requests that land on the API host are therefore REDIRECTED to
+     * the deployment's dedicated origin `s-<id>.<previewDomain>`, where the
+     * session cookie (host-only on the API host) is never sent and CORS is a
+     * strict allowlist — there the sandbox keeps `allow-same-origin` and the app
+     * boots. Deployments created before this fix keep working: their stored
+     * API-origin URL now redirects here.
+     */
+    const dedicatedOrigin = staticDeployDedicatedOrigin(deploymentId);
+    const onDedicatedHost = isDedicatedStaticDeployHost(
+      request.headers.host,
+      deploymentId,
+      request.headers['x-forwarded-host'] as string | undefined,
+    );
+
+    if (dedicatedOrigin && !onDedicatedHost) {
+      const search = request.url.includes('?') ? request.url.slice(request.url.indexOf('?')) : '';
+
+      return reply.redirect(`${dedicatedOrigin}/${normalizedRequest}${search}`, 302);
+    }
+
+    /*
+     * `allow-same-origin` is granted ONLY on the dedicated origin. The Host a
+     * browser sends is derived from the URL it navigated to and cannot be forged
+     * by page JS, so a document loaded from the API origin never obtains it.
+     */
+    reply.header(
+      'content-security-policy',
+      onDedicatedHost
+        ? 'sandbox allow-scripts allow-forms allow-popups allow-modals allow-same-origin'
+        : 'sandbox allow-scripts allow-forms allow-popups allow-modals',
+    );
     reply.header('x-content-type-options', 'nosniff');
 
     /*
@@ -16050,7 +16086,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return;
     }
 
-    if (authorized.organizationId) {
+    /*
+     * The IDE's always-on managed shell (the "bolt" terminal running the dev
+     * server / installs / agent commands) is workspace infrastructure — like
+     * Replit's built-in Console — not a user-opened interactive terminal, so it
+     * must NOT consume the user-facing `terminals.concurrent` quota. Without this,
+     * a free-tier org (limit 1) has that single slot permanently taken by the
+     * managed shell, and every user-opened terminal is 429'd on connect and
+     * flaps forever ("terminal never connects"). User terminals stay metered.
+     */
+    const isManagedTerminal = (request.query as { managed?: unknown } | undefined)?.managed === '1';
+
+    if (authorized.organizationId && !isManagedTerminal) {
       const organizationId = authorized.organizationId;
 
       /*

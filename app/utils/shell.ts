@@ -185,6 +185,14 @@ export class BoltShell {
         cols: terminal.cols ?? 80,
         rows: terminal.rows ?? 15,
       },
+
+      /*
+       * The always-on managed shell (dev server / installs / agent commands).
+       * Flagged so the API does not charge it against `terminals.concurrent` —
+       * otherwise on the free tier (limit 1) it occupies the only slot and every
+       * user-opened terminal is 429'd on connect, flapping forever.
+       */
+      managed: true,
     });
 
     let isInteractive = false;

@@ -5,7 +5,10 @@ const route = makeSolutionRoute(
   {
     slug: 'freelancers',
     canonicalUrl: 'https://e-code.ai/solutions/freelancers',
-    ogImage: { en: 'https://e-code.ai/assets/og-default.png', fr: 'https://e-code.ai/assets/og-default.png' },
+    ogImage: {
+      en: 'https://e-code.ai/assets/og/solutions/freelancers-en.png',
+      fr: 'https://e-code.ai/assets/og/solutions/freelancers-fr.png',
+    },
   },
   FREELANCERS_COPY,
 );

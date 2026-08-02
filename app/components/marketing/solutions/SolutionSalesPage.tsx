@@ -5,6 +5,7 @@ import {
   Clock3,
   Code2,
   Database,
+  ExternalLink,
   FileCode2,
   KeyRound,
   MessageSquareText,
@@ -20,6 +21,11 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 
 import './solution-sales.css';
+import {
+  APP_BUILDER_VISUAL_ASSETS,
+  resolveAppBuilderVisualLanguage,
+  type AppBuilderVisualAsset,
+} from './app-builder.visuals';
 import type { SolutionCopy } from './solution-copy';
 import { EcodeExactPublicShell as PublicShell } from '~/components/marketing/ecode-exact/EcodeExactShell';
 import type { SupportedLanguage } from '~/lib/i18n/language';
@@ -61,7 +67,7 @@ export function SolutionSalesPage({ copy, language }: { copy: SolutionCopy; lang
         <Hero copy={copy} language={language} />
         <ProblemSection copy={copy} />
         <BuildSection copy={copy} />
-        <ProofLinkBand copy={copy} />
+        <ProofLinkBand copy={copy} language={language} />
         <DeliverablesSection copy={copy} />
         <FeaturesSection copy={copy} />
         <UseCasesSection copy={copy} />
@@ -247,21 +253,104 @@ function BuildSection({ copy }: { copy: SolutionCopy }) {
   );
 }
 
-function ProofLinkBand({ copy }: { copy: SolutionCopy }) {
+function ProofLinkBand({ copy, language }: { copy: SolutionCopy; language: SupportedLanguage }) {
+  const visualLanguage = resolveAppBuilderVisualLanguage(language);
+  const assets = APP_BUILDER_VISUAL_ASSETS[visualLanguage];
+
   return (
     <section className="sol-proof-link" aria-label={copy.aria.proofLinkLabel} data-testid="solution-proof-link">
       <div className="container-responsive sol-proof-link__layout">
-        <div>
-          <p className="sol-eyebrow">
-            <Sparkles aria-hidden />
-            {copy.proofLink.eyebrow}
-          </p>
-          <h2>{copy.proofLink.title}</h2>
-          <p>{copy.proofLink.body}</p>
+        <div className="sol-proof-link__intro">
+          <div>
+            <p className="sol-eyebrow">
+              <Sparkles aria-hidden />
+              {copy.proofLink.eyebrow}
+            </p>
+            <h2>{copy.proofLink.title}</h2>
+            <p>{copy.proofLink.body}</p>
+          </div>
+          <ActionLink
+            to={`/solutions/app-builder?lang=${visualLanguage}`}
+            action={copy.proofLink.cta}
+            variant="secondary"
+          />
         </div>
-        <ActionLink to="/solutions/app-builder" action={copy.proofLink.cta} variant="secondary" />
+
+        <div
+          className="sol-proof-link__gallery"
+          role="group"
+          aria-label={copy.proofLink.galleryLabel}
+          data-testid="solution-ide-proof-gallery"
+        >
+          <SolutionProofVisual
+            asset={assets.idePreview}
+            content={copy.proofLink.preview}
+            disclaimer={copy.proofLink.disclaimer}
+            openFullSizeLabel={copy.proofLink.openFullSizeLabel}
+            testId="solution-ide-preview"
+          />
+          <SolutionProofVisual
+            asset={assets.ideIteration}
+            content={copy.proofLink.iteration}
+            disclaimer={copy.proofLink.disclaimer}
+            openFullSizeLabel={copy.proofLink.openFullSizeLabel}
+            testId="solution-ide-iteration"
+          />
+        </div>
       </div>
     </section>
+  );
+}
+
+function SolutionProofVisual({
+  asset,
+  content,
+  disclaimer,
+  openFullSizeLabel,
+  testId,
+}: {
+  asset: AppBuilderVisualAsset;
+  content: SolutionCopy['proofLink']['preview'];
+  disclaimer: string;
+  openFullSizeLabel: string;
+  testId: string;
+}) {
+  const captionId = `${testId}-caption`;
+
+  return (
+    <figure
+      className="sol-product-visual sol-product-visual--ide-reference"
+      aria-describedby={captionId}
+      data-visual-language={asset.language}
+      data-testid={testId}
+    >
+      <div className="sol-product-visual__media">
+        <img
+          src={asset.src}
+          width={asset.width}
+          height={asset.height}
+          alt={content.alt}
+          loading="lazy"
+          decoding="async"
+        />
+      </div>
+      <figcaption id={captionId}>
+        <span>{disclaimer}</span>
+        <strong>{content.title}</strong>
+        <p>{content.body}</p>
+        <a
+          className="sol-product-visual__full-size"
+          href={asset.src}
+          target="_blank"
+          rel="noopener"
+          aria-label={`${openFullSizeLabel}: ${content.title}`}
+          data-testid={`${testId}-open-full-size`}
+        >
+          <span>{openFullSizeLabel}</span>
+          <ExternalLink aria-hidden />
+        </a>
+      </figcaption>
+    </figure>
   );
 }
 

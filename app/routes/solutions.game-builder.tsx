@@ -5,7 +5,10 @@ const route = makeSolutionRoute(
   {
     slug: 'game-builder',
     canonicalUrl: 'https://e-code.ai/solutions/game-builder',
-    ogImage: { en: 'https://e-code.ai/assets/og-default.png', fr: 'https://e-code.ai/assets/og-default.png' },
+    ogImage: {
+      en: 'https://e-code.ai/assets/og/solutions/game-builder-en.png',
+      fr: 'https://e-code.ai/assets/og/solutions/game-builder-fr.png',
+    },
   },
   GAME_BUILDER_COPY,
 );

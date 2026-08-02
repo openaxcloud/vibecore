@@ -88,11 +88,11 @@ export default function DashboardTemplatesPage() {
       description="Create production workspaces from curated starters with persistent files, runtime defaults and audit-visible project activity."
       actions={
         <>
-          <LinkButton to="/projects/new" variant="outline">
-            Blank project
+          <LinkButton to="/import/empty" variant="outline">
+            Empty project
           </LinkButton>
-          <LinkButton to="/import-github" variant="outline">
-            Import GitHub
+          <LinkButton to="/import" variant="outline">
+            Import
           </LinkButton>
         </>
       }

@@ -1,7 +1,7 @@
 import { FileArchive } from 'lucide-react';
 import { useRef, useState } from 'react';
 import type { MetaFunction } from 'react-router';
-import { Form, useActionData, useNavigation } from 'react-router';
+import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
 import { AppShell } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import {
@@ -41,6 +41,19 @@ function base64FromArrayBuffer(buffer: ArrayBuffer) {
   return btoa(binary);
 }
 
+/*
+ * A Bolt / Lovable / Base44 / Previous-Agent export IS a bundle of files, so it
+ * imports through the exact same proven zip pipeline (disposable staging +
+ * secret scan). The `?source=` param only reframes the copy so the hub tile
+ * lands on an honestly-labelled screen — the import path is identical.
+ */
+const EXPORT_SOURCE_LABELS: Record<string, string> = {
+  bolt: 'Bolt',
+  lovable: 'Lovable',
+  base44: 'Base44',
+  'previous-agent-export': 'Previous Agent export',
+};
+
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const organization = await firstOrganizationOrNull(request);
 
@@ -48,7 +61,9 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     return redirect('/');
   }
 
-  return null;
+  const source = new URL(request.url).searchParams.get('source') ?? '';
+
+  return { sourceLabel: EXPORT_SOURCE_LABELS[source] ?? null };
 }
 
 export async function action({ request }: EnterpriseActionArgs) {
@@ -85,6 +100,7 @@ export async function action({ request }: EnterpriseActionArgs) {
 
 export default function ImportZipPage() {
   const actionData = useActionData<typeof action>() as { error?: string } | undefined;
+  const { sourceLabel } = useLoaderData<typeof loader>();
   const navigation = useNavigation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState('');
@@ -108,7 +124,14 @@ export default function ImportZipPage() {
   };
 
   return (
-    <AppShell title="Import zip" description="Upload an archive and convert it into a persistent E-Code project.">
+    <AppShell
+      title={sourceLabel ? `Import ${sourceLabel}` : 'Import zip'}
+      description={
+        sourceLabel
+          ? `Upload your ${sourceLabel} export (.zip). Files are staged and scanned for secrets before they land in a persistent E-Code project.`
+          : 'Upload an archive and convert it into a persistent E-Code project.'
+      }
+    >
       <Form
         className="w-full max-w-full rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 sm:p-6"
         method="post"

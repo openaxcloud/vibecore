@@ -1,6 +1,7 @@
 import { useStore } from '@nanostores/react';
 import {
   BarChart3,
+  Boxes,
   ChevronDown,
   Cog,
   Gamepad2,
@@ -328,6 +329,12 @@ const heroAttachShortcuts: Array<{
     icon: ImagePlus,
     label: 'Design palette',
     hint: 'Drop a Figma export or design screenshots inside a zip archive',
+  },
+  {
+    to: '/import',
+    icon: Boxes,
+    label: 'All import sources',
+    hint: 'Import from GitHub, Bitbucket, ZIP, a spreadsheet, a builder export, or start empty',
   },
 ];
 

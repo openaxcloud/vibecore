@@ -11,17 +11,17 @@ export const CHATBOT_BUILDER_COPY = {
     seo: {
       title: 'Chatbot & AI Agent Builder with Real Code | E-Code',
       description:
-        'Describe the assistant you need. E-Code turns it into a conversational agent in editable source files — reviewable prompts, tools, memory, and audit boundaries — that answers from your knowledge base and hands off to a human when unsure.',
+        'Describe the support assistant you need. E-Code creates an editable agent project with reviewable prompts, tool boundaries, source adapters, and handoff logic. Connect and test your own model, documentation, and support destination before launch.',
     },
     hero: {
       eyebrow: 'Chatbot & AI Agent Builder for real assistants',
-      title: 'Turn your documentation into a support assistant you fully own',
+      title: 'Shape a support assistant you can inspect before it answers customers',
       subtitle:
-        'Describe how the assistant should answer, which sources it can use, and when it should escalate. E-Code turns that into a conversational agent in editable source code — with reviewable prompts, tools, memory, and audit boundaries. Inspect every file, run it in Preview, refine it through the Agent, and keep the logic yours.',
+        'Describe how the assistant answers, which sources it may use, and when it hands off. E-Code structures that behavior in editable source code with prompts, tool contracts, a documentation adapter, and escalation states. Run the interface in Preview, inspect every file, then connect and test the model and services you choose.',
       primaryCta: { label: 'Describe your assistant', ariaLabel: 'Describe your chatbot with E-Code' },
       secondaryCta: { label: 'See how it builds', ariaLabel: 'See how E-Code builds the assistant from a prompt' },
       microcopy:
-        'Start from the questions your team already answers. The prompt, the tools, the memory, and the running Preview stay visible as the assistant evolves.',
+        'Start from the questions your team already answers. Prompts, tool contracts, modeled conversation state, and the running interface remain visible while you iterate.',
     },
     languageSwitch: { label: 'Choose the Chatbot Builder page language', english: 'English', french: 'Français' },
     demo: {
@@ -73,7 +73,7 @@ export const CHATBOT_BUILDER_COPY = {
         },
       ],
       bridge:
-        'E-Code starts from the assistant you describe and produces its prompt, tools, memory, and escalation rules in real source files. You inspect the logic, run it in Preview, and request the next change without leaving the code behind.',
+        'E-Code starts from the assistant you describe and lays out its prompt, tool contracts, conversation state, and escalation branches in real source files. You inspect the project, run its interface in Preview, and request the next change without hiding the behavior in a closed builder.',
     },
     build: {
       eyebrow: 'One prompt starts the assistant',
@@ -81,7 +81,7 @@ export const CHATBOT_BUILDER_COPY = {
       intro:
         'The request below reads like a note from a support lead. The four items map its implementation scope in real source files, not a locked bot builder.',
       label: 'Example prompt',
-      promptText: 'Build a support chatbot that answers from our documentation and hands off to a human when unsure.',
+      promptText: 'Build an assistant that answers my customers’ questions from my documentation.',
       outputs: [
         {
           title: 'Reviewable prompt and tools',
@@ -89,53 +89,67 @@ export const CHATBOT_BUILDER_COPY = {
         },
         {
           title: 'Knowledge base answers',
-          body: 'The assistant retrieves from a modeled documentation source and cites what it used, so every answer traces back to a document.',
+          body: 'A documentation adapter and citation UI model how answers map to sources. You still connect the real corpus and model, then test retrieval quality and citation accuracy.',
         },
         {
           title: 'Human handoff on low confidence',
-          body: 'Escalation is a working rule: when confidence is low or the question is out of scope, the conversation hands off to a human agent.',
+          body: 'A routing branch models low-confidence and out-of-scope handoff. Connect it to the support destination your team uses and test that no conversation is lost.',
         },
         {
           title: 'Preview and audit boundaries',
-          body: 'E-Code runs the assistant in Preview across screen sizes. Memory, sources, and escalation logic stay inspectable rather than hidden in a closed service.',
+          body: 'E-Code runs the project interface in Preview across screen sizes. This verifies the generated surface and flow, not a live model, document connection, or production support integration.',
         },
       ],
     },
     proofLink: {
       eyebrow: 'Prompt → agent → Preview',
-      title: 'Want to see a real E-Code build end to end?',
-      body: 'The App Builder page shows a captured, real E-Code workspace — the prompt, the agent’s plan, the generated files, and the running Preview — for a booking application. The same build loop applies to a conversational assistant like this one.',
+      title: 'See the workflow in a real E-Code run, without pretending this chatbot was captured',
+      body: 'The two IDE images below come from the real App Builder salon-booking run. They document the E-Code loop — prompt, Agent plan, generated files, Preview, then correction — while the HelpDesk Copilot above remains a separately authored scenario with fictional data.',
+      galleryLabel: 'Real IDE reference from the App Builder salon run for the Chatbot Builder workflow',
+      disclaimer:
+        'Reference captures: real E-Code App Builder salon run · fictional salon records · chatbot demonstration scripted with fictional data · not a chatbot generation record',
+      openFullSizeLabel: 'Open the App Builder IDE reference at full size',
+      preview: {
+        title: 'A real prompt, generated file tree, and Preview shown together',
+        body: 'This App Builder reference shows the salon prompt and generated booking project inside the real E-Code IDE. It proves the visible prompt-to-Preview workspace flow; it does not show a chatbot, a connected language model, document retrieval, or support handoff.',
+        alt: 'Real E-Code App Builder IDE reference showing the salon booking prompt, generated project files, and booking dashboard in the Preview tab; no chatbot is shown.',
+      },
+      iteration: {
+        title: 'A real correction request stays beside the running project',
+        body: 'The second salon-run capture records a follow-up about a router runtime error and the updated booking Preview. It demonstrates visible Agent iteration, not a successful chatbot generation or a first-pass guarantee.',
+        alt: 'Real E-Code App Builder iteration reference showing a router-error correction prompt beside salon project files and the booking Preview; this is not a chatbot generation.',
+      },
       cta: { label: 'See the real IDE proof', ariaLabel: 'See the real E-Code IDE proof on the App Builder page' },
     },
     deliverables: {
       eyebrow: 'What you receive',
-      title: 'An assistant you own, inspect, and keep evolving',
+      title: 'A reviewable assistant project, from source to live static surface',
       intro:
-        'The project stays inspectable from the first generated file through Preview and export. Prompts, tools, memory, and escalation rules are code you can read, version, and change.',
+        'Source, knowledge-adapter boundary, responsive Preview, and publishing path stay visible. Static interface builds follow E-Code’s supported publishing flow; a model-backed chatbot still needs its own connected services and runtime.',
       items: [
         {
-          title: 'Editable source files',
-          body: 'Real prompt, tools, memory, and routing you can read, version, and change directly.',
+          title: 'Source you can inspect and export',
+          body: 'Prompts, conversation UI, state, and routing live in editable files you can review, version, and take outside E-Code.',
         },
         {
-          title: 'Knowledge base model',
-          body: 'A documentation source modeled as content the assistant retrieves from and cites.',
+          title: 'Visible knowledge connection point',
+          body: 'The documentation adapter and citation model remain explicit in code. No corpus or language model is attached by this page; connect yours and evaluate retrieval before use.',
         },
         {
-          title: 'Reviewable tool boundaries',
-          body: 'Every tool the assistant can call is declared in code you can audit and constrain.',
+          title: 'Running responsive Preview',
+          body: 'Exercise the chat interface from phone to desktop in Preview. That confirms the rendered flow, not live document retrieval, model output, authentication, or support delivery.',
         },
         {
-          title: 'Human handoff flow',
-          body: 'Escalation to a human on low confidence, defined as a rule you can test and adjust.',
+          title: 'Guided publishing for supported static builds',
+          body: 'When the assistant surface qualifies as a supported static build, E-Code guides the build and publishing steps without presenting unconnected server behavior as deployed.',
         },
         {
-          title: 'Responsive chat surface',
-          body: 'Desktop, tablet, and mobile chat layouts verified in Preview before you publish.',
+          title: 'Live URL with a clear runtime boundary',
+          body: 'Publish the supported static interface to an E-Code live URL. A chatbot that calls a model, reads documents, or stores conversations requires the exported project and an appropriate deployed backend runtime.',
         },
         {
-          title: 'Agent-ready iteration',
-          body: 'Ask the Agent for the next change and review the diff against the running assistant.',
+          title: 'Iteration through the Agent conversation',
+          body: 'Continue in plain language, inspect the resulting file changes, and rerun Preview after each adjustment to the assistant experience.',
         },
       ],
     },
@@ -146,7 +160,7 @@ export const CHATBOT_BUILDER_COPY = {
       items: [
         {
           title: 'Answers from your docs',
-          body: 'Retrieve from a modeled knowledge base and cite the documents used in each reply.',
+          body: 'Start with a source-adapter contract and citation presentation, then connect your corpus and test every retrieval path.',
         },
         {
           title: 'Reviewable prompts',
@@ -158,20 +172,23 @@ export const CHATBOT_BUILDER_COPY = {
         },
         {
           title: 'Memory you can inspect',
-          body: 'Conversation and context memory is modeled explicitly, never a hidden black box.',
+          body: 'Conversation state is modeled in the project so you can review what is retained and replace it with an appropriate store.',
         },
-        { title: 'Human handoff', body: 'Escalate to an agent when confidence is low or the request is out of scope.' },
         {
-          title: 'Own the code',
-          body: 'Export the project or keep building — the prompt, tools, and logic stay yours.',
+          title: 'Human handoff',
+          body: 'Define the branch for low-confidence or out-of-scope requests, then connect and test the real support queue.',
+        },
+        {
+          title: 'Exportable project',
+          body: 'Export the source files or keep building in E-Code; review the terms of every model and external service you add.',
         },
       ],
     },
     useCases: {
       eyebrow: 'Who builds with it',
-      title: 'Assistants teams ship with the Chatbot Builder',
+      title: 'Four support-assistant patterns to shape in editable code',
       intro:
-        'From a documentation copilot to an internal task agent, the same loop produces a real, reviewable assistant.',
+        'These are practical starting points for an editable assistant project; each needs its own source connection, model evaluation, and operational testing.',
       items: [
         {
           title: 'Documentation support bots',
@@ -198,7 +215,7 @@ export const CHATBOT_BUILDER_COPY = {
       items: [
         {
           title: 'Do I get real code or a locked bot builder?',
-          body: 'You get editable source files — the prompt, tools, memory, and routing — that you can read, version, and export. There is no proprietary bot lock-in.',
+          body: 'You get editable source files for prompts, tools, state, and routing that you can read, version, and export. Any model, vector store, or support service you connect remains governed by that provider’s terms.',
         },
         {
           title: 'Does it answer from my own documentation?',
@@ -206,7 +223,7 @@ export const CHATBOT_BUILDER_COPY = {
         },
         {
           title: 'Can it hand off to a human?',
-          body: 'Yes. Escalation on low confidence or out-of-scope questions is a rule defined in code, so you can test and adjust when the assistant hands off.',
+          body: 'The project can model escalation on low confidence or out-of-scope questions. A real handoff requires connecting your support destination and testing delivery, ownership, retries, and failure states.',
         },
         {
           title: 'Can I connect a real model or knowledge base?',
@@ -220,7 +237,7 @@ export const CHATBOT_BUILDER_COPY = {
     },
     finalCta: {
       title: 'Describe your assistant and see it running',
-      body: 'Turn the questions your team answers into a conversational assistant in real source code — with reviewable prompts, tools, memory, and handoff — and run it in Preview.',
+      body: 'Turn the questions your team answers into an editable conversational project with reviewable prompts, tool contracts, state, and handoff logic. Preview the interface, then connect and test the external services it depends on.',
       primaryCta: { label: 'Describe your assistant', ariaLabel: 'Describe your chatbot with E-Code' },
       secondaryCta: { label: 'See how it builds', ariaLabel: 'See how E-Code builds the assistant from a prompt' },
     },
@@ -243,20 +260,20 @@ export const CHATBOT_BUILDER_COPY = {
     seo: {
       title: 'Générateur de chatbot et d’agent IA avec vrai code | E-Code',
       description:
-        'Décrivez l’assistant dont vous avez besoin. E-Code en fait un agent conversationnel dans des fichiers source modifiables — prompts, outils, mémoire et limites d’audit relisibles — qui répond à partir de votre base de connaissances et transfère à un humain en cas de doute.',
+        'Décrivez l’assistant de support recherché. E-Code crée un projet d’agent modifiable avec prompts, limites d’outils, adaptateurs de sources et logique de transfert relisibles. Connectez puis testez votre modèle, votre documentation et votre destination de support avant le lancement.',
     },
     hero: {
       eyebrow: 'Générateur de chatbot et d’agent IA pour de vrais assistants',
-      title: 'Transformez votre documentation en un assistant de support que vous possédez',
+      title: 'Façonnez un assistant de support à relire avant qu’il réponde aux clients',
       subtitle:
-        'Décrivez comment l’assistant doit répondre, quelles sources il peut utiliser et quand il doit escalader. E-Code en fait un agent conversationnel dans un vrai code source modifiable — avec des prompts, des outils, une mémoire et des limites d’audit relisibles. Inspectez chaque fichier, exécutez-le dans l’aperçu, affinez-le avec l’Agent et gardez la logique vôtre.',
+        'Décrivez comment l’assistant répond, quelles sources il peut consulter et quand il transfère. E-Code structure ce comportement dans un code source modifiable avec prompts, contrats d’outils, adaptateur documentaire et états d’escalade. Exécutez l’interface dans l’aperçu, inspectez chaque fichier, puis branchez et testez le modèle et les services choisis.',
       primaryCta: { label: 'Décrivez votre assistant', ariaLabel: 'Décrivez votre chatbot avec E-Code' },
       secondaryCta: {
         label: 'Voir la construction',
         ariaLabel: 'Voir comment E-Code construit l’assistant à partir d’un prompt',
       },
       microcopy:
-        'Partez des questions auxquelles votre équipe répond déjà. Le prompt, les outils, la mémoire et l’aperçu actif restent visibles à mesure que l’assistant évolue.',
+        'Partez des questions auxquelles votre équipe répond déjà. Prompts, contrats d’outils, état de conversation modélisé et interface active restent visibles pendant l’itération.',
     },
     languageSwitch: {
       label: 'Choisir la langue de la page Générateur de chatbot',
@@ -316,7 +333,7 @@ export const CHATBOT_BUILDER_COPY = {
         },
       ],
       bridge:
-        'E-Code part de l’assistant que vous décrivez et produit son prompt, ses outils, sa mémoire et ses règles d’escalade dans de vrais fichiers source. Vous inspectez la logique, l’exécutez dans l’aperçu et demandez le changement suivant sans abandonner le code.',
+        'E-Code part de l’assistant décrit et pose son prompt, ses contrats d’outils, son état de conversation et ses branches d’escalade dans de vrais fichiers source. Vous inspectez le projet, exécutez son interface dans l’aperçu et demandez le changement suivant sans masquer le comportement dans un créateur fermé.',
     },
     build: {
       eyebrow: 'Un prompt lance l’assistant',
@@ -324,8 +341,7 @@ export const CHATBOT_BUILDER_COPY = {
       intro:
         'La demande ci-dessous se lit comme un mot d’un responsable support. Les quatre éléments cartographient son périmètre d’implémentation dans de vrais fichiers source, pas un créateur de bot verrouillé.',
       label: 'Exemple de prompt',
-      promptText:
-        'Construis un chatbot de support qui répond à partir de notre documentation et transfère à un humain en cas de doute.',
+      promptText: 'Un assistant qui répond aux questions de mes clients à partir de ma documentation.',
       outputs: [
         {
           title: 'Prompt et outils relisibles',
@@ -333,22 +349,36 @@ export const CHATBOT_BUILDER_COPY = {
         },
         {
           title: 'Réponses depuis la base de connaissances',
-          body: 'L’assistant récupère depuis une source de documentation modélisée et cite ce qu’il a utilisé, pour que chaque réponse remonte à un document.',
+          body: 'Un adaptateur documentaire et une interface de citations modélisent le lien entre réponses et sources. Vous branchez encore le vrai corpus et le modèle, puis testez la qualité de récupération et l’exactitude des citations.',
         },
         {
           title: 'Transfert humain en cas de doute',
-          body: 'L’escalade est une règle fonctionnelle : quand la confiance est faible ou la question hors périmètre, la conversation est transférée à un agent humain.',
+          body: 'Une branche de routage modélise le transfert quand la confiance est faible ou la question hors périmètre. Reliez-la à votre outil de support et vérifiez qu’aucune conversation ne se perd.',
         },
         {
           title: 'Aperçu et limites d’audit',
-          body: 'E-Code exécute l’assistant dans l’aperçu à toutes les tailles d’écran. Mémoire, sources et logique d’escalade restent inspectables plutôt que masquées dans un service fermé.',
+          body: 'E-Code exécute l’interface du projet dans l’aperçu à toutes les tailles d’écran. Cela vérifie la surface et le parcours générés, pas un modèle actif, une documentation connectée ni une intégration de support en production.',
         },
       ],
     },
     proofLink: {
       eyebrow: 'Prompt → agent → aperçu',
-      title: 'Envie de voir une vraie génération E-Code de bout en bout ?',
-      body: 'La page App Builder montre un vrai workspace E-Code capturé — le prompt, le plan de l’agent, les fichiers générés et l’aperçu actif — pour une application de réservation. La même boucle de construction s’applique à un assistant conversationnel comme celui-ci.',
+      title: 'Observez le flux dans une vraie exécution E-Code, sans faire passer cette démo pour une capture',
+      body: 'Les deux images IDE ci-dessous proviennent de la véritable exécution App Builder du salon de coiffure. Elles documentent la boucle E-Code — prompt, plan de l’Agent, fichiers générés, aperçu puis correction — tandis que HelpDesk Copilot reste un scénario créé séparément avec des données fictives.',
+      galleryLabel: 'Référence IDE réelle du run salon App Builder pour illustrer le flux Générateur de chatbot',
+      disclaimer:
+        'Captures de référence : vrai run salon dans E-Code App Builder · fiches salon fictives · démonstration chatbot scénarisée avec données fictives · pas une trace de génération chatbot',
+      openFullSizeLabel: 'Ouvrir la référence IDE App Builder en taille réelle',
+      preview: {
+        title: 'Un vrai prompt, l’arborescence générée et l’aperçu réunis',
+        body: 'Cette référence App Builder montre le prompt salon et le projet de réservation généré dans le véritable IDE E-Code. Elle prouve le flux visible du prompt vers l’aperçu ; elle ne montre ni chatbot, ni modèle de langage connecté, ni recherche documentaire, ni transfert au support.',
+        alt: 'Référence IDE réelle E-Code App Builder montrant le prompt de réservation du salon, les fichiers générés et le tableau de bord dans l’onglet d’aperçu ; aucun chatbot n’est affiché.',
+      },
+      iteration: {
+        title: 'Une vraie demande de correction reste visible auprès du projet actif',
+        body: 'La seconde capture du run salon consigne le suivi d’une erreur d’exécution du routeur et l’aperçu de réservation mis à jour. Elle démontre l’itération visible avec l’Agent, pas la génération réussie d’un chatbot ni une garantie de réussite au premier essai.',
+        alt: 'Référence d’itération E-Code réelle affichant une demande de correction d’erreur de routeur, les fichiers du projet salon et l’aperçu de réservation ; il ne s’agit pas d’une génération chatbot.',
+      },
       cta: {
         label: 'Voir la preuve IDE réelle',
         ariaLabel: 'Voir la preuve IDE réelle E-Code sur la page App Builder',
@@ -356,33 +386,33 @@ export const CHATBOT_BUILDER_COPY = {
     },
     deliverables: {
       eyebrow: 'Ce que vous recevez',
-      title: 'Un assistant que vous possédez, inspectez et faites évoluer',
+      title: 'Un projet d’assistant relisible, du code jusqu’à l’interface statique en ligne',
       intro:
-        'Le projet reste inspectable du premier fichier généré jusqu’à l’aperçu et l’export. Prompts, outils, mémoire et règles d’escalade sont du code que vous lisez, versionnez et modifiez.',
+        'La source, la frontière de l’adaptateur documentaire, l’aperçu responsive et le chemin de publication restent visibles. Les interfaces statiques suivent la publication prise en charge par E-Code ; un chatbot relié à un modèle exige encore ses services et son runtime.',
       items: [
         {
-          title: 'Fichiers source modifiables',
-          body: 'De vrais prompt, outils, mémoire et routage que vous lisez, versionnez et modifiez directement.',
+          title: 'Source ouverte à la relecture et à l’export',
+          body: 'Prompts, interface de conversation, état et routage vivent dans des fichiers modifiables que vous relisez, versionnez et emportez hors d’E-Code.',
         },
         {
-          title: 'Modèle de base de connaissances',
-          body: 'Une source de documentation modélisée comme un contenu que l’assistant récupère et cite.',
+          title: 'Point de branchement documentaire explicite',
+          body: 'L’adaptateur de documentation et le modèle de citations restent visibles dans le code. Cette page ne branche ni corpus ni modèle de langage : connectez les vôtres et évaluez la récupération avant usage.',
         },
         {
-          title: 'Limites d’outils relisibles',
-          body: 'Chaque outil que l’assistant peut appeler est déclaré dans un code que vous auditez et contraignez.',
+          title: 'Aperçu de conversation actif et adaptable',
+          body: 'Testez l’interface du téléphone au desktop dans l’aperçu. Cela confirme le rendu du parcours, pas une recherche documentaire active, une réponse modèle, une authentification ou une livraison au support.',
         },
         {
-          title: 'Parcours de transfert humain',
-          body: 'Escalade vers un humain en cas de confiance faible, définie comme une règle que vous testez et ajustez.',
+          title: 'Publication assistée des builds statiques pris en charge',
+          body: 'Quand la surface de l’assistant correspond à un build statique pris en charge, E-Code guide sa construction et sa publication sans présenter un comportement serveur non connecté comme déployé.',
         },
         {
-          title: 'Surface de chat responsive',
-          body: 'Mises en page de chat desktop, tablette et mobile vérifiées dans l’aperçu avant publication.',
+          title: 'URL E-Code pour l’interface, runtime séparé pour l’agent',
+          body: 'Publiez l’interface statique compatible sur une URL E-Code. Un chatbot qui appelle un modèle, lit des documents ou conserve des échanges requiert le projet exporté et un runtime backend adapté réellement déployé.',
         },
         {
-          title: 'Itération avec l’Agent',
-          body: 'Demandez le changement suivant à l’Agent et relisez le diff face à l’assistant actif.',
+          title: 'Itération en poursuivant l’échange avec l’Agent',
+          body: 'Formulez la suite avec vos mots, examinez les fichiers modifiés et relancez l’aperçu après chaque ajustement de l’expérience conversationnelle.',
         },
       ],
     },
@@ -394,7 +424,7 @@ export const CHATBOT_BUILDER_COPY = {
       items: [
         {
           title: 'Réponses depuis vos docs',
-          body: 'Récupérez depuis une base de connaissances modélisée et citez les documents utilisés dans chaque réponse.',
+          body: 'Partez d’un contrat d’adaptateur de sources et d’un affichage de citations, puis branchez votre corpus et testez chaque chemin de récupération.',
         },
         {
           title: 'Prompts relisibles',
@@ -406,23 +436,23 @@ export const CHATBOT_BUILDER_COPY = {
         },
         {
           title: 'Mémoire inspectable',
-          body: 'La mémoire de conversation et de contexte est modélisée explicitement, jamais une boîte noire cachée.',
+          body: 'L’état de conversation est modélisé dans le projet afin de relire ce qui est conservé et de choisir un stockage adapté.',
         },
         {
           title: 'Transfert humain',
-          body: 'Escaladez vers un agent quand la confiance est faible ou la demande hors périmètre.',
+          body: 'Définissez la branche pour les demandes incertaines ou hors périmètre, puis connectez et testez la vraie file de support.',
         },
         {
-          title: 'Possédez le code',
-          body: 'Exportez le projet ou continuez à construire — le prompt, les outils et la logique restent les vôtres.',
+          title: 'Projet exportable',
+          body: 'Exportez les fichiers source ou poursuivez dans E-Code ; relisez les conditions de chaque modèle et service externe ajouté.',
         },
       ],
     },
     useCases: {
       eyebrow: 'Qui construit avec',
-      title: 'Les assistants que les équipes livrent avec le Générateur de chatbot',
+      title: 'Quatre scénarios d’assistant de support à structurer dans du code modifiable',
       intro:
-        'D’un copilote de documentation à un agent de tâches interne, la même boucle produit un vrai assistant relisible.',
+        'Ces scénarios constituent des points de départ concrets pour un projet d’assistant modifiable ; chacun demande sa connexion aux sources, son évaluation modèle et ses tests d’exploitation.',
       items: [
         {
           title: 'Bots de support documentation',
@@ -449,7 +479,7 @@ export const CHATBOT_BUILDER_COPY = {
       items: [
         {
           title: 'J’obtiens du vrai code ou un créateur de bot verrouillé ?',
-          body: 'Vous obtenez des fichiers source modifiables — le prompt, les outils, la mémoire et le routage — que vous lisez, versionnez et exportez. Aucun verrouillage propriétaire.',
+          body: 'Vous obtenez des fichiers source modifiables pour les prompts, outils, états et routages, que vous lisez, versionnez et exportez. Tout modèle, stockage vectoriel ou service de support branché reste soumis aux conditions de son fournisseur.',
         },
         {
           title: 'Répond-il à partir de ma propre documentation ?',
@@ -457,7 +487,7 @@ export const CHATBOT_BUILDER_COPY = {
         },
         {
           title: 'Peut-il transférer à un humain ?',
-          body: 'Oui. L’escalade en cas de confiance faible ou de question hors périmètre est une règle définie dans le code, que vous testez et ajustez quand l’assistant transfère.',
+          body: 'Le projet peut modéliser une escalade quand la confiance est faible ou la question hors périmètre. Un transfert réel exige de brancher votre outil de support puis de tester livraison, attribution, reprises et états d’échec.',
         },
         {
           title: 'Puis-je connecter un vrai modèle ou une base de connaissances ?',
@@ -471,7 +501,7 @@ export const CHATBOT_BUILDER_COPY = {
     },
     finalCta: {
       title: 'Décrivez votre assistant et voyez-le tourner',
-      body: 'Transformez les questions auxquelles votre équipe répond en un assistant conversationnel dans du vrai code source — avec prompts, outils, mémoire et transfert relisibles — et exécutez-le dans l’aperçu.',
+      body: 'Transformez les questions traitées par votre équipe en un projet conversationnel modifiable avec prompts, contrats d’outils, état et logique de transfert relisibles. Prévisualisez l’interface, puis branchez et testez ses services externes.',
       primaryCta: { label: 'Décrivez votre assistant', ariaLabel: 'Décrivez votre chatbot avec E-Code' },
       secondaryCta: {
         label: 'Voir la construction',

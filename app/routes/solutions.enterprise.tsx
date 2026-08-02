@@ -5,7 +5,10 @@ const route = makeSolutionRoute(
   {
     slug: 'enterprise',
     canonicalUrl: 'https://e-code.ai/solutions/enterprise',
-    ogImage: { en: 'https://e-code.ai/assets/og-default.png', fr: 'https://e-code.ai/assets/og-default.png' },
+    ogImage: {
+      en: 'https://e-code.ai/assets/og/solutions/enterprise-en.png',
+      fr: 'https://e-code.ai/assets/og/solutions/enterprise-fr.png',
+    },
   },
   ENTERPRISE_COPY,
 );

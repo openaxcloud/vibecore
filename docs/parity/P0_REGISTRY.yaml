@@ -334,13 +334,13 @@ p0s:
     source: "Audit v3 (2026-07-16), P0-14"
     priority: 14
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewNote: "REFUSÉ au reçu RR-20260723-CODEX-07 (motif verbatim) : la chaîne documentaire revendique une authentification complète de provenance mais accepte encore une attestation sans mergedCommit/repoCommit/runUrl — le maillon d'attestation n'est pas fail-closed ; l'ensemble génération→drift-check→validation→authentification ne peut être signé comme chaîne complète. Un run vivant et vert ne corrige pas ce défaut LOGIQUE du vérificateur"
-    reviewReceiptId: RR-20260723-CODEX-07
-    reviewVerdict: REFUSED
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260731-CODEX-08 — chaîne complète cohérente et reproductible : génération → drift-check → validation → authentification fail-closed v7 → substitution/suppression par champ → roll post-merge"
+    reviewReceiptId: RR-20260731-CODEX-08
+    reviewVerdict: SIGNED
     reviewCommit: "57febeab"
     commit: "97759a77"
-    reviewer: UNKNOWN
+    reviewer: OpenAI-Codex
     evidenceId: docs/parity/APPROVAL_STATUS.json
     proof: "Registres + schémas + validateur (exit 0/1 prouvé, test négatif 3 violations) + CI parity-registries verte + APPROVAL_STATUS généré avec drift-check (édition manuelle = build cassé)."
     dependances: []
@@ -543,8 +543,8 @@ p0s:
     priority: 9
     owner: platform
     status: OPEN
-    reviewNote: "REFUSÉ au reçu RR-20260723-CODEX-07 (motif verbatim) : les autres réserves V3 sont substantiellement traitées (gh obligatoire, run corrélé par nonce, négatif GKE 401/403 à contenu contrôlé, 3 chemins rejoués) mais repro.sh installe le trap de teardown APRÈS gcloud projects create + billing link : si la liaison billing échoue sous set -e, le script sort avant le trap et peut laisser le projet actif — la correction annoncée « trap dès la 1re ressource » n'est pas présente"
-    reviewReceiptId: RR-20260723-CODEX-07
+    reviewNote: "REFUSÉ au reçu RR-20260731-CODEX-08 (motif verbatim) : teardown() traite tout échec de gcloud projects describe comme une absence → saute la suppression. Correction exigée : distinguer un vrai NOT_FOUND authentifié ; retry sur transitoire ; tenter delete même si état illisible ; échouer le reçu de nettoyage si l'état final n'est ni DELETE_REQUESTED ni NOT_FOUND authentifié ; test négatif simulant une erreur transitoire de describe."
+    reviewReceiptId: RR-20260731-CODEX-08
     remediationTrack: CHANTIER
     refusalReason: "WIF prouvé GKE seulement, pas les 3 chemins"
     refusalType: PREUVE_INSUFFISANTE
@@ -556,7 +556,7 @@ p0s:
     proof: "§4.4 REMPLACÉ, ancré GCP-13 (citation exacte « In GKE, Google Cloud manages the workload identity pool and provider for you and doesn't require an external identity provider ») : 3 chemins — GKE→WIF for GKE (recommandé, aucun IdP externe) ; hors GCP→IAM WIF externe ; Cloud Run→service identity + impersonation courte. Zéro clé persistante partout."
     dependances: []
     conditionDeCloture: "Compléter l'évidence : WIF prouvé GKE seulement, pas les 3 chemins ; puis re-soumission au relecteur"
-    nextAction: "Revue humaine"
+    nextAction: "Session WIF : describe fail-closed (NOT_FOUND authentifié seul = absence, retry transitoire, delete tenté même si état illisible, reçu de nettoyage échoue sinon) + test négatif describe transitoire ; puis re-soumission"
     targetDate: "2026-07-20"
   - p0Id: P0-A2-10
     title: "Décision Gallery incohérente"
@@ -997,17 +997,17 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 16
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewNote: "REFUSÉ au reçu RR-20260723-CODEX-07 (motif verbatim) : le run post-merge 30005939249 et le commit bot ee0aedd1 sont réels, mais le vérificateur v6 reste FAIL-OPEN sur l'absence de mergedCommit/repoCommit/runUrl (checkAttestationFields ne les contrôle que s'ils existent ; validate-registries ne les exige pas ; les tests négatifs falsifient des valeurs présentes sans tester leur SUPPRESSION) — une attestation amputée peut passer. Exigé : champs obligatoires non vides (validateur ET vérificateur), rejet de l'absence, négatif par suppression, nouveau roll post-merge"
-    reviewReceiptId: RR-20260723-CODEX-07
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260731-CODEX-08 — vérificateur v7 fail-closed (mergedCommit/repoCommit/runUrl OBLIGATOIRES et non vides, vérificateur ET validateur), négatifs par suppression §3c, roll post-merge vivant run 30193204381 @ 7287c27d"
+    reviewReceiptId: RR-20260731-CODEX-08
     remediationTrack: QUICK
     refusalReason: "Les trois champs existent et le run 29756163626 est vert, mais .github/workflows/parity-registries.yml ne roule pas CI_ATTESTATION et ne génère/publie pas DOCUMENT_MANIFEST après chaque merge ; a4a9f71c est un commit manuel postérieur. Le validateur accepte en outre un runId, commit et timestamp fictifs après régénération. L'exemple manuel est prouvé, pas l'automatisation ni la garantie de provenance annoncées."
     refusalType: DESACCORD
-    reviewVerdict: REFUSED
+    reviewVerdict: SIGNED
     reviewedRemediationCommit: "af24d4fe48015e6041c8e11b240b1f2d54f333d1"
     reviewCommit: "cf5c67a513322ba0c248b900ea88c50b5e128ac6"
     commit: b598e79042dce0af91c376a810c61320fd988013
-    reviewer: UNKNOWN
+    reviewer: OpenAI-Codex
     evidenceId: docs/parity/DOCUMENT_MANIFEST.yaml
     proof: "REMÉDIÉ v2 (21/07) : l'AUTOMATISATION existe — job roll-attestation dans parity-registries.yml (déclenché à chaque push main) : écrit SON PROPRE run id/commit/timestamp, régénère TOUTES les vues, valide, commit bot ; plus de commit manuel. Anti-fictif : le validateur vérifie que runCommit/mergedCommit EXISTENT dans l'historique git (git cat-file). PREUVE RÉELLE au premier merge post-PR. PRÊT À RE-SOUMETTRE."
     dependances: []
@@ -1042,13 +1042,13 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 18
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    reviewNote: "REFUSÉ au reçu RR-20260723-CODEX-07 (motif verbatim) : mergedCommit reste FACULTATIF dans le chemin de validation ; sa suppression n'est ni rejetée ni testée. Le mécanisme ne prouve pas fail-closed que les vues ont été recalculées sur le commit mergé — une édition retirant mergedCommit garderait un contrôle vert. Même correction que LS-16 + nouveau roll post-merge"
-    reviewReceiptId: RR-20260723-CODEX-07
-    reviewVerdict: REFUSED
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260731-CODEX-08 — mergedCommit authentifié fail-closed avec la même force que runCommit ; recalcul attesté sur le commit mergé prouvé par le roll v7"
+    reviewReceiptId: RR-20260731-CODEX-08
+    reviewVerdict: SIGNED
     reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
-    reviewer: UNKNOWN
+    reviewer: OpenAI-Codex
     evidenceId: docs/parity/CI_ATTESTATION.yaml
     proof: "FAIT : PR #15 mergée (d3925b16) ; run CI Parity registries 29733640863 VERT au commit mergé ; APPROVAL_STATUS/PARITY_STATUS/DOCUMENT_MANIFEST régénérés à ce commit ; attestation datée dans CI_ATTESTATION.yaml."
     dependances: []
