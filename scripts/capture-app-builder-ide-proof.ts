@@ -686,7 +686,7 @@ async function waitForPreview(page: Page, evidenceRoot: string) {
   }
 
   if (
-    /internal server error|failed to resolve import|cannot find module|vite error|unexpected token|uncaught typeerror|plugin:vite/i.test(
+    /internal server error|failed to resolve import|cannot find module|vite error|unexpected token|uncaught typeerror|plugin:vite|preview_upstream_unreachable|dev server on port .*not reachable|starting, or it crashed/i.test(
       previewText,
     )
   ) {
