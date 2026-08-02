@@ -3,7 +3,7 @@ import type { SolutionCopyByLanguage } from './solution-copy';
 /**
  * SOL-02 — Website Builder. Declined from the App Builder gabarit, centered on a
  * fictional architecture studio marketing site. All demo data is fictional and
- * labeled; the one real captured E-Code IDE proof lives on /solutions/app-builder.
+ * labeled; the embedded IDE images come from the separately verified App Builder run.
  */
 export const WEBSITE_BUILDER_COPY = {
   en: {
@@ -14,7 +14,7 @@ export const WEBSITE_BUILDER_COPY = {
     },
     hero: {
       eyebrow: 'Website Builder for real content sites',
-      title: 'Turn your studio and its work into a site you fully own',
+      title: 'Turn your studio and its work into a site you can inspect and shape',
       subtitle:
         'Describe the pages, the story, and the work you want to show. E-Code turns that into a responsive marketing site in editable source code. Inspect every file, run the site in Preview, refine it through the Agent, and publish supported static builds to a live URL.',
       primaryCta: { label: 'Describe your site', ariaLabel: 'Describe your website with E-Code' },
@@ -53,7 +53,7 @@ export const WEBSITE_BUILDER_COPY = {
       alt: 'Architecture studio website demonstration with a featured project list and a project enquiry panel.',
     },
     problem: {
-      eyebrow: 'From template lock-in to a site you own',
+      eyebrow: 'From template lock-in to source you control',
       title: 'Site builders look easy until the content and the brand fight the template',
       intro:
         'A studio needs a site that shows its work exactly the way it wants. Template builders start fast, then constrain layout, typography, and structure, and the exported result rarely maps to code the team can keep evolving.',
@@ -68,7 +68,7 @@ export const WEBSITE_BUILDER_COPY = {
         },
         {
           title: 'Hand-off leaves you dependent',
-          body: 'When a freelancer or agency ships the site, the smallest change waits on someone else, and the underlying code is often not yours to keep.',
+          body: 'When a freelancer or agency ships the site, the smallest change waits on someone else, and the underlying code is often unavailable to inspect or export.',
         },
       ],
       bridge:
@@ -80,8 +80,7 @@ export const WEBSITE_BUILDER_COPY = {
       intro:
         'The request below reads like a note from a studio owner. The four items map its implementation scope in real source files, not a locked template.',
       label: 'Example prompt',
-      promptText:
-        'Build a website for my architecture studio with a project portfolio, a studio profile, and a contact form.',
+      promptText: 'Build a showcase website for my architecture firm, with a portfolio, contact page, and blog.',
       outputs: [
         {
           title: 'Responsive pages',
@@ -93,7 +92,7 @@ export const WEBSITE_BUILDER_COPY = {
         },
         {
           title: 'Working contact flow',
-          body: 'The enquiry form validates input and models submission handling, so the contact path is a working journey rather than a static block.',
+          body: 'The enquiry form validates input and exposes a submission hook in code. Connect that hook to your chosen form or email service before accepting real enquiries.',
         },
         {
           title: 'Preview and publishing',
@@ -102,40 +101,57 @@ export const WEBSITE_BUILDER_COPY = {
       ],
     },
     proofLink: {
-      eyebrow: 'Prompt → agent → Preview',
-      title: 'Want to see a real E-Code build end to end?',
+      eyebrow: 'The site-building workflow, captured in the IDE',
+      title: 'See how the prompt, Agent, files, and Webview stay together',
       body: 'The App Builder page shows a captured, real E-Code workspace — the prompt, the agent’s plan, the generated files, and the running Preview — for a booking application. The same build loop applies to a content site like this one.',
-      cta: { label: 'See the real IDE proof', ariaLabel: 'See the real E-Code IDE proof on the App Builder page' },
+      galleryLabel: 'Real workflow reference: the salon booking workspace',
+      disclaimer:
+        'Evidence note: these two images come from the real App Builder salon run. The Meridian Studio website above is a scripted layout with fictional content, not a captured E-Code generation.',
+      openFullSizeLabel: 'Open the booking-workspace evidence at full size',
+      preview: {
+        title: 'The salon application running beside its source files',
+        body: 'This first capture shows the real booking prompt, the Agent plan, the project tree, and the working salon dashboard together inside the E-Code IDE.',
+        alt: 'Real E-Code App Builder workspace with a salon booking prompt and agent plan on the left, the running booking dashboard in the Webview, and editable project files on the right.',
+      },
+      iteration: {
+        title: 'A runtime correction requested in the same workspace',
+        body: 'The second capture records the follow-up prompt used to diagnose a React context error while keeping the booking Preview visible for verification.',
+        alt: 'Real E-Code App Builder workspace showing a prompt to repair a React context runtime error beside the salon booking Webview and generated file tree.',
+      },
+      cta: {
+        label: 'Inspect the captured build workflow',
+        ariaLabel: 'Inspect the real E-Code App Builder workflow used as a Website Builder reference',
+      },
     },
     deliverables: {
       eyebrow: 'What you receive',
-      title: 'A responsive site you own and keep evolving',
+      title: 'A responsive site you can inspect, export, and keep evolving',
       intro:
         'The project stays inspectable from the first generated file through Preview and export. Supported static builds add a live release through guided publishing without hiding the code.',
       items: [
         {
-          title: 'Editable source files',
-          body: 'Real components, routes, styles, and content you can read, version, and change directly.',
+          title: 'Website source you can inspect',
+          body: 'Real routes, components, styles, and page content remain readable, versionable, and exportable as a complete project.',
         },
         {
-          title: 'Structured content model',
-          body: 'Projects, media, and studio details modeled as content you can extend safely.',
+          title: 'Visible content schema and form adapter',
+          body: 'Project entries, media fields, studio details, and the enquiry hook live in the code. Wire them to your CMS, database, and delivery service before using real content or submissions.',
         },
         {
-          title: 'Responsive layouts',
-          body: 'Desktop, tablet, and mobile layouts verified in Preview before you publish.',
+          title: 'A responsive site running in Preview',
+          body: 'Open the portfolio and contact journey in the active Preview, then inspect its desktop, tablet, and phone layouts while you refine the site.',
         },
         {
-          title: 'Guided publishing',
-          body: 'Supported static builds ship to a live URL through a guided release flow.',
+          title: 'Guided release for supported static sites',
+          body: 'When the website matches a supported static build, E-Code takes it through the guided publishing flow without hiding the source.',
         },
         {
-          title: 'Accessible foundations',
-          body: 'Semantic structure, focus states, and readable contrast built into the generated markup.',
+          title: 'An E-Code URL or an exportable server project',
+          body: 'A supported static site receives a live E-Code URL after publishing. If the project needs a server runtime, export the source and deploy it with your chosen host.',
         },
         {
-          title: 'Agent-ready iteration',
-          body: 'Ask the Agent for the next change and review the diff against the running site.',
+          title: 'Keep briefing the Agent',
+          body: 'Continue the conversation to add a case study, reshape the navigation, or revise a form, then review the change against the running site.',
         },
       ],
     },
@@ -154,7 +170,7 @@ export const WEBSITE_BUILDER_COPY = {
         },
         {
           title: 'Forms and enquiries',
-          body: 'Contact and lead-capture flows with validation and submission handling.',
+          body: 'Contact and lead-capture interfaces with validation plus an explicit integration point for your delivery service.',
         },
         { title: 'SEO and social metadata', body: 'Titles, descriptions, and Open Graph tags generated per page.' },
         {
@@ -162,8 +178,8 @@ export const WEBSITE_BUILDER_COPY = {
           body: 'Layouts adapt from wide desktop to phone without a separate mobile build.',
         },
         {
-          title: 'Own the code',
-          body: 'Export the project or publish supported static builds — the source stays yours.',
+          title: 'Keep the source accessible',
+          body: 'Export the project or publish supported static builds while retaining editable source files.',
         },
       ],
     },
@@ -224,7 +240,7 @@ export const WEBSITE_BUILDER_COPY = {
       problemLabel: 'The website building problem',
       buildLabel: 'How the Website Builder works',
       outputListLabel: 'Website build outputs',
-      proofLinkLabel: 'See the real E-Code IDE proof',
+      proofLinkLabel: 'Inspect the Website Builder workflow evidence',
       deliverablesLabel: 'What the Website Builder delivers',
       featuresLabel: 'Website Builder capabilities',
       useCasesLabel: 'Website Builder use cases',
@@ -240,7 +256,7 @@ export const WEBSITE_BUILDER_COPY = {
     },
     hero: {
       eyebrow: 'Générateur de site pour de vrais sites de contenu',
-      title: 'Transformez votre studio et son travail en un site que vous possédez',
+      title: 'Transformez votre studio et son travail en un site que vous inspectez et façonnez',
       subtitle:
         'Décrivez les pages, le récit et le travail à montrer. E-Code en fait un site vitrine responsive dans un vrai code source modifiable. Inspectez chaque fichier, exécutez le site dans l’aperçu, affinez-le avec l’Agent et publiez les builds statiques pris en charge vers une URL en ligne.',
       primaryCta: { label: 'Décrivez votre site', ariaLabel: 'Décrivez votre site web avec E-Code' },
@@ -285,7 +301,7 @@ export const WEBSITE_BUILDER_COPY = {
       alt: 'Démonstration de site d’agence d’architecture avec une liste de projets mis en avant et un panneau de demande de projet.',
     },
     problem: {
-      eyebrow: 'Du carcan des templates à un site que vous possédez',
+      eyebrow: 'Du carcan des templates à une source que vous maîtrisez',
       title: 'Les créateurs de site paraissent simples jusqu’à ce que le contenu et la marque se heurtent au template',
       intro:
         'Un studio a besoin d’un site qui montre son travail exactement comme il le souhaite. Les créateurs de sites démarrent vite, puis contraignent la mise en page, la typographie et la structure, et l’export correspond rarement à un code que l’équipe peut faire évoluer.',
@@ -300,7 +316,7 @@ export const WEBSITE_BUILDER_COPY = {
         },
         {
           title: 'La livraison vous rend dépendant',
-          body: 'Quand un freelance ou une agence livre le site, le moindre changement attend quelqu’un d’autre, et le code sous-jacent n’est souvent pas le vôtre.',
+          body: 'Quand un freelance ou une agence livre le site, le moindre changement attend quelqu’un d’autre, et le code sous-jacent reste souvent impossible à inspecter ou à exporter.',
         },
       ],
       bridge:
@@ -312,8 +328,7 @@ export const WEBSITE_BUILDER_COPY = {
       intro:
         'La demande ci-dessous se lit comme un mot d’un propriétaire de studio. Les quatre éléments cartographient son périmètre d’implémentation dans de vrais fichiers source, pas un template verrouillé.',
       label: 'Exemple de prompt',
-      promptText:
-        'Construis un site pour mon agence d’architecture avec un portfolio de projets, une page studio et un formulaire de contact.',
+      promptText: 'Fais-moi un site vitrine pour mon cabinet d’architecte, avec portfolio, contact et blog.',
       outputs: [
         {
           title: 'Pages responsives',
@@ -325,7 +340,7 @@ export const WEBSITE_BUILDER_COPY = {
         },
         {
           title: 'Parcours de contact fonctionnel',
-          body: 'Le formulaire valide les entrées et modélise le traitement de l’envoi, pour un parcours de contact réel plutôt qu’un bloc statique.',
+          body: 'Le formulaire valide les entrées et expose un point de branchement dans le code. Connectez-le au service de formulaire ou d’email choisi avant de recevoir de vraies demandes.',
         },
         {
           title: 'Aperçu et publication',
@@ -334,43 +349,57 @@ export const WEBSITE_BUILDER_COPY = {
       ],
     },
     proofLink: {
-      eyebrow: 'Prompt → agent → aperçu',
-      title: 'Envie de voir une vraie génération E-Code de bout en bout ?',
+      eyebrow: 'Le workflow de création de site, capturé dans l’IDE',
+      title: 'Voyez le prompt, l’Agent, les fichiers et la Webview rester réunis',
       body: 'La page App Builder montre un vrai workspace E-Code capturé — le prompt, le plan de l’agent, les fichiers générés et l’aperçu actif — pour une application de réservation. La même boucle de construction s’applique à un site de contenu comme celui-ci.',
+      galleryLabel: 'Référence réelle du workflow : le workspace de réservation du salon',
+      disclaimer:
+        'Note de preuve : ces deux images proviennent du vrai run App Builder du salon. Le site Studio Meridian présenté plus haut est une mise en page scénarisée avec du contenu fictif, pas la capture d’une génération E-Code.',
+      openFullSizeLabel: 'Ouvrir la preuve du workspace de réservation en grand',
+      preview: {
+        title: 'L’application du salon active à côté de ses fichiers source',
+        body: 'Cette première capture réunit dans l’IDE E-Code le vrai prompt de réservation, le plan de l’Agent, l’arborescence du projet et le tableau de bord du salon en fonctionnement.',
+        alt: 'Vrai workspace App Builder E-Code avec le prompt et le plan de l’agent pour un salon à gauche, le tableau de bord de réservation actif dans la Webview et les fichiers modifiables à droite.',
+      },
+      iteration: {
+        title: 'Une correction runtime demandée sans quitter le workspace',
+        body: 'La seconde capture conserve l’aperçu de réservation visible pendant qu’un prompt de suivi demande le diagnostic d’une erreur de contexte React.',
+        alt: 'Vrai workspace App Builder E-Code montrant un prompt de réparation d’une erreur runtime React à côté de la Webview du salon et de l’arborescence générée.',
+      },
       cta: {
-        label: 'Voir la preuve IDE réelle',
-        ariaLabel: 'Voir la preuve IDE réelle E-Code sur la page App Builder',
+        label: 'Inspecter le workflow capturé',
+        ariaLabel: 'Inspecter le vrai workflow App Builder E-Code utilisé comme référence du Générateur de site',
       },
     },
     deliverables: {
       eyebrow: 'Ce que vous recevez',
-      title: 'Un site responsive que vous possédez et faites évoluer',
+      title: 'Un site responsive que vous inspectez, exportez et faites évoluer',
       intro:
         'Le projet reste inspectable du premier fichier généré jusqu’à l’aperçu et l’export. Les builds statiques pris en charge ajoutent une mise en ligne guidée sans masquer le code.',
       items: [
         {
-          title: 'Fichiers source modifiables',
-          body: 'De vrais composants, routes, styles et contenus que vous lisez, versionnez et modifiez directement.',
+          title: 'La source du site reste inspectable',
+          body: 'De vraies routes, des composants, des styles et le contenu des pages restent lisibles, versionnables et exportables comme un projet complet.',
         },
         {
-          title: 'Modèle de contenu structuré',
-          body: 'Projets, médias et détails du studio modélisés comme un contenu que vous étendez sans risque.',
+          title: 'Schéma de contenu et adaptateur de formulaire visibles',
+          body: 'Les fiches projet, les champs média, les informations du studio et le point de branchement des demandes vivent dans le code. Reliez-les à votre CMS, votre base et votre service d’envoi avant d’utiliser de vrais contenus ou formulaires.',
         },
         {
-          title: 'Mises en page responsives',
-          body: 'Desktop, tablette et mobile vérifiés dans l’aperçu avant publication.',
+          title: 'Le site responsive tourne dans l’aperçu',
+          body: 'Ouvrez le portfolio et le parcours de contact dans l’aperçu actif, puis inspectez les mises en page desktop, tablette et mobile pendant vos ajustements.',
         },
         {
-          title: 'Publication guidée',
-          body: 'Les builds statiques pris en charge sont mis en ligne via un parcours de publication guidé.',
+          title: 'Mise en ligne guidée des sites statiques pris en charge',
+          body: 'Quand le site correspond à un build statique compatible, E-Code l’accompagne dans le parcours de publication sans masquer sa source.',
         },
         {
-          title: 'Bases accessibles',
-          body: 'Structure sémantique, états de focus et contraste lisible intégrés au balisage généré.',
+          title: 'Une URL E-Code ou un projet serveur exportable',
+          body: 'Un site statique pris en charge reçoit une URL E-Code en ligne après publication. Si le projet exige un runtime serveur, exportez sa source et déployez-la chez l’hébergeur choisi.',
         },
         {
-          title: 'Itération avec l’Agent',
-          body: 'Demandez le changement suivant à l’Agent et relisez le diff face au site actif.',
+          title: 'Continuez à briefer l’Agent',
+          body: 'Poursuivez la conversation pour ajouter une étude de cas, revoir la navigation ou modifier un formulaire, puis contrôlez le changement face au site actif.',
         },
       ],
     },
@@ -390,7 +419,7 @@ export const WEBSITE_BUILDER_COPY = {
         },
         {
           title: 'Formulaires et demandes',
-          body: 'Parcours de contact et de capture de leads avec validation et traitement de l’envoi.',
+          body: 'Interfaces de contact et de capture de leads avec validation et point d’intégration explicite pour votre service d’envoi.',
         },
         { title: 'SEO et métadonnées sociales', body: 'Titres, descriptions et balises Open Graph générés par page.' },
         {
@@ -398,8 +427,8 @@ export const WEBSITE_BUILDER_COPY = {
           body: 'Les mises en page s’adaptent du grand écran au téléphone sans build mobile séparé.',
         },
         {
-          title: 'Possédez le code',
-          body: 'Exportez le projet ou publiez les builds statiques pris en charge — la source reste la vôtre.',
+          title: 'Gardez la source accessible',
+          body: 'Exportez le projet ou publiez les builds statiques pris en charge tout en conservant des fichiers source modifiables.',
         },
       ],
     },
@@ -470,7 +499,7 @@ export const WEBSITE_BUILDER_COPY = {
       problemLabel: 'Le problème de la création de site',
       buildLabel: 'Comment fonctionne le Générateur de site',
       outputListLabel: 'Résultats de la génération de site',
-      proofLinkLabel: 'Voir la preuve IDE réelle E-Code',
+      proofLinkLabel: 'Inspecter la preuve du workflow Générateur de site',
       deliverablesLabel: 'Ce que livre le Générateur de site',
       featuresLabel: 'Capacités du Générateur de site',
       useCasesLabel: 'Cas d’usage du Générateur de site',

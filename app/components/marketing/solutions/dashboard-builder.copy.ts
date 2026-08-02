@@ -2,8 +2,8 @@ import type { SolutionCopyByLanguage } from './solution-copy';
 
 /**
  * SOL-03 — Dashboard Builder. Declined from the App Builder gabarit, centered on a
- * fictional connected sales dashboard. All demo data is fictional and labeled; the
- * one real captured E-Code IDE proof lives on /solutions/app-builder.
+ * fictional sales dashboard. All demo data is fictional and labeled; the embedded
+ * IDE images come from the separately verified App Builder run.
  */
 export const DASHBOARD_BUILDER_COPY = {
   en: {
@@ -13,7 +13,7 @@ export const DASHBOARD_BUILDER_COPY = {
         'Describe the KPIs, tables, and filters your team needs. E-Code turns it into a data-rich dashboard in editable source files with a running Preview, project export, and code you extend to connect your own data and authentication.',
     },
     hero: {
-      eyebrow: 'Dashboard Builder for connected data',
+      eyebrow: 'Dashboard Builder ready for your data',
       title: 'Turn your sales numbers into a dashboard your team actually uses',
       subtitle:
         'Describe the KPIs, the pipeline view, and the filters you need. E-Code turns that into a data-rich dashboard in editable source code. Inspect every file, run it in Preview, refine it through the Agent, and extend the code to connect your own data and team access.',
@@ -29,7 +29,7 @@ export const DASHBOARD_BUILDER_COPY = {
       brandType: 'Revenue operations',
       nav: ['Overview', 'Pipeline', 'Team'],
       eyebrow: 'This quarter',
-      title: 'Every deal, KPI, and forecast in one connected view.',
+      title: 'Every deal, KPI, and forecast in one consolidated view.',
       intro:
         'A responsive dashboard that presents open opportunities, key metrics, and a forecast path in one clear layout.',
       primaryHeading: 'Open opportunities',
@@ -53,7 +53,7 @@ export const DASHBOARD_BUILDER_COPY = {
       alt: 'Sales dashboard demonstration with an open opportunities table and a key metrics panel.',
     },
     problem: {
-      eyebrow: 'From spreadsheet sprawl to a dashboard you own',
+      eyebrow: 'From spreadsheet sprawl to an inspectable dashboard',
       title: 'Reporting looks solved until the spreadsheet becomes the product',
       intro:
         'A revenue team needs one view of the numbers that every rep and manager trusts. Spreadsheets and generic BI tools start fast, then fracture into tabs, break on refresh, and never become a real interface the team can shape.',
@@ -80,8 +80,7 @@ export const DASHBOARD_BUILDER_COPY = {
       intro:
         'The request below reads like a note from a sales leader. The four items map its implementation scope in real source files, not a locked BI template.',
       label: 'Example prompt',
-      promptText:
-        'Build a sales dashboard with KPIs, a pipeline table, filters, and team access, connected to our data.',
+      promptText: 'Build a dashboard for my sales, connected to my database, with charts and filters.',
       outputs: [
         {
           title: 'KPI and chart components',
@@ -102,40 +101,57 @@ export const DASHBOARD_BUILDER_COPY = {
       ],
     },
     proofLink: {
-      eyebrow: 'Prompt → agent → Preview',
-      title: 'Want to see a real E-Code build end to end?',
+      eyebrow: 'Request → source files → running interface',
+      title: 'See the E-Code workspace behind the workflow claim',
       body: 'The App Builder page shows a captured, real E-Code workspace — the prompt, the agent’s plan, the generated files, and the running Preview — for a booking application. The same build loop applies to a data dashboard like this one.',
-      cta: { label: 'See the real IDE proof', ariaLabel: 'See the real E-Code IDE proof on the App Builder page' },
+      galleryLabel: 'Inspect the real IDE workflow used as evidence',
+      disclaimer:
+        'What these images prove: they capture the real App Builder salon run inside E-Code. PipelineIQ is a separate scripted dashboard with invented figures; it does not show a generated dashboard, a live database connection, or deployed access control.',
+      openFullSizeLabel: 'View the complete salon-workspace capture',
+      preview: {
+        title: 'Prompt, project files, and live Preview in one IDE',
+        body: 'The first salon-run capture makes the workflow tangible: the request and Agent plan remain visible while the generated interface runs in the Webview and its source stays open for inspection.',
+        alt: 'Real E-Code App Builder workspace showing a salon booking request, agent plan, running dashboard Preview, and the project source-file tree.',
+      },
+      iteration: {
+        title: 'A failed runtime becomes the next plain-language instruction',
+        body: 'The second capture records a real correction prompt for a React context error, with the same workspace available to inspect files and confirm the repaired Preview.',
+        alt: 'Real E-Code App Builder workspace showing a React context error correction prompt beside the salon dashboard Webview and source files.',
+      },
+      cta: {
+        label: 'Inspect the real workspace reference',
+        ariaLabel: 'Inspect the real E-Code App Builder workspace used as Dashboard Builder workflow evidence',
+      },
     },
     deliverables: {
       eyebrow: 'What you receive',
-      title: 'A data-rich dashboard you own and keep evolving',
+      title: 'A data-rich dashboard you can inspect and keep evolving',
       intro:
         'The project stays inspectable from the first generated file through Preview and export. The charts, tables, filters, and access scaffolding are real code you extend to your own data — no hidden BI layer.',
       items: [
         {
-          title: 'Editable source files',
-          body: 'Real components, routes, styles, and chart code you can read, version, and change directly.',
+          title: 'Reporting source you can audit and export',
+          body: 'Chart components, table logic, filters, routes, and styles remain readable, versionable, and exportable instead of disappearing inside a BI layer.',
         },
         {
-          title: 'KPI and chart components',
-          body: 'Metric tiles and charts modeled as components you can restyle and extend.',
+          title: 'An explicit data contract',
+          body: 'Fields, sample records, query boundaries, and adapters stay visible in code. Replace the fictional pipeline data by wiring your database or API, and connect identity separately.',
         },
         {
-          title: 'Filterable data tables',
-          body: 'Sortable, filterable tables for pipeline and record views, ready to wire to your data.',
+          title: 'A responsive dashboard in active Preview',
+          body: 'Open KPIs, pipeline rows, charts, and filters in the running Preview and inspect their behavior across desktop, tablet, and phone layouts.',
         },
         {
-          title: 'Authentication scaffolding',
-          body: 'Sign-in and role-aware access generated as code you extend to your identity provider.',
+          title: 'A guided path for supported static releases',
+          body: 'A dashboard frontend that qualifies as a supported static build can move through E-Code’s guided publishing flow after review.',
         },
         {
-          title: 'Responsive layouts',
-          body: 'Desktop, tablet, and mobile layouts verified in Preview before you extend the data.',
+          title: 'An E-Code live URL or a server-ready export',
+          body: 'Supported static dashboards receive an E-Code live URL after publishing. Projects that require server queries or protected APIs stay exportable for deployment with their runtime.',
         },
         {
-          title: 'Agent-ready iteration',
-          body: 'Ask the Agent for the next metric or view and review the diff against the running dashboard.',
+          title: 'Add the next decision view through conversation',
+          body: 'Keep talking to the Agent to add a KPI, segment, or drill-down, then compare the updated code with the dashboard still running in Preview.',
         },
       ],
     },
@@ -165,8 +181,8 @@ export const DASHBOARD_BUILDER_COPY = {
           body: 'Layouts adapt from wide desktop to phone without a separate mobile build.',
         },
         {
-          title: 'Own the code',
-          body: 'Export the project and connect your own data — the source and the queries stay yours.',
+          title: 'Keep the code accessible',
+          body: 'Export the project and connect your data while keeping the source and query code editable.',
         },
       ],
     },
@@ -181,7 +197,7 @@ export const DASHBOARD_BUILDER_COPY = {
         },
         {
           title: 'Operations and KPI monitors',
-          body: 'Live status boards for delivery, support, and service metrics.',
+          body: 'Status boards for delivery, support, and service metrics, ready to wire to operational data.',
         },
         {
           title: 'Finance and reporting views',
@@ -233,7 +249,7 @@ export const DASHBOARD_BUILDER_COPY = {
       problemLabel: 'The dashboard building problem',
       buildLabel: 'How the Dashboard Builder works',
       outputListLabel: 'Dashboard build outputs',
-      proofLinkLabel: 'See the real E-Code IDE proof',
+      proofLinkLabel: 'Inspect the Dashboard Builder workflow evidence',
       deliverablesLabel: 'What the Dashboard Builder delivers',
       featuresLabel: 'Dashboard Builder capabilities',
       useCasesLabel: 'Dashboard Builder use cases',
@@ -248,7 +264,7 @@ export const DASHBOARD_BUILDER_COPY = {
         'Décrivez les indicateurs, tableaux et filtres dont votre équipe a besoin. E-Code les transforme en un tableau de bord riche en données dans des fichiers source modifiables, avec un aperçu actif, l’export du projet et du code que vous étendez pour connecter vos propres données et l’authentification.',
     },
     hero: {
-      eyebrow: 'Générateur de tableau de bord pour données connectées',
+      eyebrow: 'Générateur de tableau de bord prêt pour vos données',
       title: 'Transformez vos chiffres commerciaux en un tableau de bord que votre équipe utilise vraiment',
       subtitle:
         'Décrivez les indicateurs, la vue pipeline et les filtres dont vous avez besoin. E-Code en fait un tableau de bord riche en données dans un vrai code source modifiable. Inspectez chaque fichier, exécutez-le dans l’aperçu, affinez-le avec l’Agent et étendez le code pour connecter vos propres données et un accès équipe.',
@@ -271,7 +287,7 @@ export const DASHBOARD_BUILDER_COPY = {
       brandType: 'Opérations commerciales',
       nav: ['Vue d’ensemble', 'Pipeline', 'Équipe'],
       eyebrow: 'Ce trimestre',
-      title: 'Chaque affaire, indicateur et prévision dans une vue connectée.',
+      title: 'Chaque affaire, indicateur et prévision dans une vue consolidée.',
       intro:
         'Un tableau de bord responsive qui présente les opportunités ouvertes, les indicateurs clés et un parcours de prévision dans une mise en page claire.',
       primaryHeading: 'Opportunités ouvertes',
@@ -295,7 +311,7 @@ export const DASHBOARD_BUILDER_COPY = {
       alt: 'Démonstration de tableau de bord commercial avec un tableau d’opportunités ouvertes et un panneau d’indicateurs clés.',
     },
     problem: {
-      eyebrow: 'De la prolifération de tableurs à un tableau de bord que vous possédez',
+      eyebrow: 'De la prolifération de tableurs à un tableau de bord inspectable',
       title: 'Le reporting paraît résolu jusqu’à ce que le tableur devienne le produit',
       intro:
         'Une équipe commerciale a besoin d’une vue unique des chiffres à laquelle chaque commercial et manager fait confiance. Les tableurs et outils de BI génériques démarrent vite, puis se fragmentent en onglets, cassent à l’actualisation et ne deviennent jamais une vraie interface que l’équipe peut façonner.',
@@ -322,8 +338,7 @@ export const DASHBOARD_BUILDER_COPY = {
       intro:
         'La demande ci-dessous se lit comme un mot d’un responsable commercial. Les quatre éléments cartographient son périmètre d’implémentation dans de vrais fichiers source, pas un template de BI verrouillé.',
       label: 'Exemple de prompt',
-      promptText:
-        'Construis un tableau de bord commercial avec des indicateurs, un pipeline, des filtres et un accès équipe, connecté à nos données.',
+      promptText: 'Un tableau de bord de mes ventes, connecté à ma base, avec graphiques et filtres.',
       outputs: [
         {
           title: 'Composants d’indicateurs et de graphiques',
@@ -344,43 +359,58 @@ export const DASHBOARD_BUILDER_COPY = {
       ],
     },
     proofLink: {
-      eyebrow: 'Prompt → agent → aperçu',
-      title: 'Envie de voir une vraie génération E-Code de bout en bout ?',
+      eyebrow: 'Demande → fichiers source → interface active',
+      title: 'Voyez le workspace E-Code qui étaye la promesse du workflow',
       body: 'La page App Builder montre un vrai workspace E-Code capturé — le prompt, le plan de l’agent, les fichiers générés et l’aperçu actif — pour une application de réservation. La même boucle de construction s’applique à un tableau de bord de données comme celui-ci.',
+      galleryLabel: 'Inspectez le vrai workflow IDE utilisé comme preuve',
+      disclaimer:
+        'Ce que prouvent ces images : elles capturent le vrai run App Builder du salon dans E-Code. PipelineIQ est un tableau de bord scénarisé distinct, avec des chiffres inventés ; il ne montre ni tableau de bord généré, ni base active, ni contrôle d’accès déployé.',
+      openFullSizeLabel: 'Afficher la capture complète du workspace salon',
+      preview: {
+        title: 'Prompt, fichiers projet et aperçu actif dans le même IDE',
+        body: 'La première capture du run salon rend le flux concret : la demande et le plan de l’Agent restent visibles pendant que l’interface générée tourne dans la Webview et que sa source reste inspectable.',
+        alt: 'Vrai workspace App Builder E-Code montrant une demande de réservation pour salon, le plan de l’agent, le tableau de bord actif dans l’aperçu et l’arborescence source.',
+      },
+      iteration: {
+        title: 'Une panne runtime devient l’instruction suivante en langage courant',
+        body: 'La seconde capture enregistre un vrai prompt de correction d’une erreur de contexte React, avec le même workspace pour inspecter les fichiers et confirmer l’aperçu réparé.',
+        alt: 'Vrai workspace App Builder E-Code montrant un prompt de correction d’erreur de contexte React à côté de la Webview du salon et des fichiers source.',
+      },
       cta: {
-        label: 'Voir la preuve IDE réelle',
-        ariaLabel: 'Voir la preuve IDE réelle E-Code sur la page App Builder',
+        label: 'Inspecter la vraie référence du workspace',
+        ariaLabel:
+          'Inspecter le vrai workspace App Builder E-Code utilisé comme preuve du workflow Générateur de tableau de bord',
       },
     },
     deliverables: {
       eyebrow: 'Ce que vous recevez',
-      title: 'Un tableau de bord riche en données que vous possédez et faites évoluer',
+      title: 'Un tableau de bord riche en données que vous inspectez et faites évoluer',
       intro:
         'Le projet reste inspectable du premier fichier généré jusqu’à l’aperçu et l’export. Les graphiques, tableaux, filtres et l’échafaudage d’accès sont du vrai code que vous étendez à vos propres données — aucune couche de BI cachée.',
       items: [
         {
-          title: 'Fichiers source modifiables',
-          body: 'De vrais composants, routes, styles et code de graphiques que vous lisez, versionnez et modifiez directement.',
+          title: 'Une source de reporting auditable et exportable',
+          body: 'Les composants de graphiques, la logique des tableaux, les filtres, les routes et les styles restent lisibles, versionnables et exportables au lieu de disparaître dans une couche de BI.',
         },
         {
-          title: 'Composants d’indicateurs et graphiques',
-          body: 'Tuiles de mesure et graphiques modélisés comme des composants que vous restylez et étendez.',
+          title: 'Un contrat de données explicite',
+          body: 'Les champs, les enregistrements d’exemple, les frontières de requêtes et les adaptateurs restent visibles dans le code. Remplacez le pipeline fictif en branchant votre base ou votre API, puis connectez l’identité séparément.',
         },
         {
-          title: 'Tableaux de données filtrables',
-          body: 'Tableaux triables et filtrables pour le pipeline et les vues d’enregistrements, prêts à brancher à vos données.',
+          title: 'Un tableau de bord responsive dans l’aperçu actif',
+          body: 'Ouvrez les indicateurs, les lignes du pipeline, les graphiques et les filtres dans l’aperçu en fonctionnement, puis inspectez leur comportement sur desktop, tablette et mobile.',
         },
         {
-          title: 'Échafaudage d’authentification',
-          body: 'Connexion et accès selon les rôles générés en code que vous branchez à votre fournisseur d’identité.',
+          title: 'Un parcours guidé pour les publications statiques compatibles',
+          body: 'Un frontend de tableau de bord reconnu comme build statique pris en charge suit le parcours de publication guidée E-Code après vérification.',
         },
         {
-          title: 'Mises en page responsives',
-          body: 'Desktop, tablette et mobile vérifiés dans l’aperçu avant de brancher les données.',
+          title: 'Une URL E-Code en ligne ou un export prêt pour le serveur',
+          body: 'Les tableaux de bord statiques pris en charge reçoivent une URL E-Code après publication. Les projets avec requêtes serveur ou API protégées restent exportables pour être déployés avec leur runtime.',
         },
         {
-          title: 'Itération avec l’Agent',
-          body: 'Demandez l’indicateur ou la vue suivante à l’Agent et relisez le diff face au tableau de bord actif.',
+          title: 'Ajoutez la prochaine vue de décision par la conversation',
+          body: 'Continuez à parler à l’Agent pour ajouter un indicateur, un segment ou une exploration, puis comparez le code mis à jour au tableau de bord toujours actif dans l’aperçu.',
         },
       ],
     },
@@ -411,8 +441,8 @@ export const DASHBOARD_BUILDER_COPY = {
           body: 'Les mises en page s’adaptent du grand écran au téléphone sans build mobile séparé.',
         },
         {
-          title: 'Possédez le code',
-          body: 'Exportez le projet et connectez vos propres données — la source et les requêtes restent les vôtres.',
+          title: 'Gardez le code accessible',
+          body: 'Exportez le projet et connectez vos données en conservant la source et le code des requêtes modifiables.',
         },
       ],
     },
@@ -428,7 +458,7 @@ export const DASHBOARD_BUILDER_COPY = {
         },
         {
           title: 'Moniteurs d’opérations et de KPI',
-          body: 'Tableaux d’état en direct pour la livraison, le support et les métriques de service.',
+          body: 'Tableaux d’état pour la livraison, le support et les métriques de service, prêts à brancher aux données opérationnelles.',
         },
         {
           title: 'Vues finance et reporting',
@@ -483,7 +513,7 @@ export const DASHBOARD_BUILDER_COPY = {
       problemLabel: 'Le problème de la création de tableau de bord',
       buildLabel: 'Comment fonctionne le Générateur de tableau de bord',
       outputListLabel: 'Résultats de la génération de tableau de bord',
-      proofLinkLabel: 'Voir la preuve IDE réelle E-Code',
+      proofLinkLabel: 'Inspecter la preuve du workflow Générateur de tableau de bord',
       deliverablesLabel: 'Ce que livre le Générateur de tableau de bord',
       featuresLabel: 'Capacités du Générateur de tableau de bord',
       useCasesLabel: 'Cas d’usage du Générateur de tableau de bord',

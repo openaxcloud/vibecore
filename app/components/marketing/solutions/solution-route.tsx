@@ -161,7 +161,7 @@ export function makeSolutionRoute(config: SolutionRouteConfig, copy: SolutionCop
   const meta: MetaFunction = ({ data }) => {
     const language = (data as { language?: BilingualLanguage } | undefined)?.language ?? 'en';
     const pageCopy = copy[language];
-    const imageAlt = pageCopy.demo.alt;
+    const imageAlt = `${pageCopy.hero.title} — E-Code`;
     const ogImage = config.ogImage[language];
 
     const alternateLocales = (['en', 'fr'] as const)
@@ -180,6 +180,9 @@ export function makeSolutionRoute(config: SolutionRouteConfig, copy: SolutionCop
       { property: 'og:title', content: pageCopy.seo.title },
       { property: 'og:description', content: pageCopy.seo.description },
       { property: 'og:image', content: ogImage },
+      { property: 'og:image:type', content: 'image/png' },
+      { property: 'og:image:width', content: '1200' },
+      { property: 'og:image:height', content: '630' },
       { property: 'og:image:alt', content: imageAlt },
       { name: 'twitter:card', content: 'summary_large_image' },
       { name: 'twitter:title', content: pageCopy.seo.title },

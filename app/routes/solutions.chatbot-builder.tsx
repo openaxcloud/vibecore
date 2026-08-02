@@ -5,7 +5,10 @@ const route = makeSolutionRoute(
   {
     slug: 'chatbot-builder',
     canonicalUrl: 'https://e-code.ai/solutions/chatbot-builder',
-    ogImage: { en: 'https://e-code.ai/assets/og-default.png', fr: 'https://e-code.ai/assets/og-default.png' },
+    ogImage: {
+      en: 'https://e-code.ai/assets/og/solutions/chatbot-builder-en.png',
+      fr: 'https://e-code.ai/assets/og/solutions/chatbot-builder-fr.png',
+    },
   },
   CHATBOT_BUILDER_COPY,
 );

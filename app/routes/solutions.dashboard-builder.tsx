@@ -5,7 +5,10 @@ const route = makeSolutionRoute(
   {
     slug: 'dashboard-builder',
     canonicalUrl: 'https://e-code.ai/solutions/dashboard-builder',
-    ogImage: { en: 'https://e-code.ai/assets/og-default.png', fr: 'https://e-code.ai/assets/og-default.png' },
+    ogImage: {
+      en: 'https://e-code.ai/assets/og/solutions/dashboard-builder-en.png',
+      fr: 'https://e-code.ai/assets/og/solutions/dashboard-builder-fr.png',
+    },
   },
   DASHBOARD_BUILDER_COPY,
 );

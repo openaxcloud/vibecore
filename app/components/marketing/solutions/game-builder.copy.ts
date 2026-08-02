@@ -3,20 +3,20 @@ import type { SolutionCopyByLanguage } from './solution-copy';
 /**
  * SOL — Game Builder. Declined from the App Builder gabarit, centered on a
  * fictional multiplayer quiz game. All demo data is fictional and labeled; the
- * one real captured E-Code IDE proof lives on /solutions/app-builder.
+ * embedded IDE images come from the separately verified App Builder run.
  */
 export const GAME_BUILDER_COPY = {
   en: {
     seo: {
       title: 'Game Builder with Real Code | E-Code',
       description:
-        'Describe the game you want to play in the browser. E-Code turns it into a canvas game loop and real-time multiplayer in editable source files, with a running Preview you can play-test, project export, and publishing for supported static builds.',
+        'Describe the browser game you want to test. E-Code turns it into an editable game loop, multiplayer interface, and state model with a running Preview, project export, and clear integration points for a real-time service.',
     },
     hero: {
-      eyebrow: 'Game Builder for real browser games',
-      title: 'Turn a game idea into a multiplayer experience you fully own',
+      eyebrow: 'Game Builder for playable browser prototypes',
+      title: 'Turn a game idea into a browser build you can play and inspect',
       subtitle:
-        'Describe the game, the rounds, and how players compete. E-Code turns that into a canvas game loop and real-time multiplayer in editable source code. Inspect every file, play-test the game in Preview, refine it through the Agent, and publish supported static builds to a live URL.',
+        'Describe the game, the rounds, and how players compete. E-Code turns that into an editable game loop, lobby interface, scoring rules, and multiplayer state model. Play the local flow in Preview, refine it through the Agent, and connect a real-time service before inviting remote players.',
       primaryCta: { label: 'Describe your game', ariaLabel: 'Describe your game with E-Code' },
       secondaryCta: { label: 'See how it builds', ariaLabel: 'See how E-Code builds the game from a prompt' },
       microcopy:
@@ -31,7 +31,7 @@ export const GAME_BUILDER_COPY = {
       eyebrow: 'Round 3 of 5',
       title: 'Which capital sits on the Bosphorus strait?',
       intro:
-        'A responsive quiz game that runs a lobby, live questions, and a real-time scoreboard in one clear round loop.',
+        'A responsive quiz concept that presents a lobby, timed questions, and a shared-score interface in one clear round loop.',
       primaryHeading: 'Live scoreboard',
       primaryRows: [
         { label: 'Nadia', meta: '1,240 pts', status: 'Leading' },
@@ -53,14 +53,14 @@ export const GAME_BUILDER_COPY = {
       alt: 'Multiplayer quiz game demonstration with a live scoreboard and a current-question panel.',
     },
     problem: {
-      eyebrow: 'From engine lock-in to a game you own',
+      eyebrow: 'From engine lock-in to an inspectable game loop',
       title: 'Game makers look easy until multiplayer state and play-testing fight the tool',
       intro:
         'A live quiz game needs a tight loop: a lobby that fills, questions that fire in sync, and a scoreboard that updates for everyone at once. No-code game tools start fast, then hide the game loop and the networking, and the exported result rarely maps to code the team can keep evolving.',
       obstacles: [
         {
           title: 'The game loop stays hidden',
-          body: 'Drag-and-drop makers own the render loop and timing, so custom scoring, round pacing, and animations mean fighting the tool instead of writing the loop.',
+          body: 'Drag-and-drop makers hide the render loop and timing, so custom scoring, round pacing, and animations mean fighting the tool instead of editing the loop.',
         },
         {
           title: 'Multiplayer state drifts out of sync',
@@ -72,7 +72,7 @@ export const GAME_BUILDER_COPY = {
         },
       ],
       bridge:
-        'E-Code starts from the game you describe and produces a real canvas loop with real-time multiplayer in source files. You inspect the state, play-test it in Preview, and request the next change without leaving the code behind.',
+        'E-Code starts from the game you describe and produces an editable browser loop, rules, and multiplayer state model in source files. You test the local flow in Preview, connect networking where the code exposes it, and request the next change without leaving the project.',
     },
     build: {
       eyebrow: 'One prompt starts the game',
@@ -80,15 +80,15 @@ export const GAME_BUILDER_COPY = {
       intro:
         'The request below reads like a note from a game designer. The four items map its implementation scope in real source files, not a locked engine.',
       label: 'Example prompt',
-      promptText: 'Build a multiplayer quiz game with a lobby, live questions, and a live scoreboard.',
+      promptText: 'Build a multiplayer quiz game with real-time scoring and a leaderboard.',
       outputs: [
         {
           title: 'Canvas game loop',
           body: 'A real render-and-update loop drives rounds, timers, and animations across desktop, tablet, and mobile from editable components.',
         },
         {
-          title: 'Real-time multiplayer',
-          body: 'A lobby, synchronized questions, and a shared scoreboard are modeled as live state the team can extend without desyncing players.',
+          title: 'Multiplayer state model',
+          body: 'Lobby, question, timer, and scoreboard states are modeled in editable code with explicit integration points for a real-time backend. Remote synchronization is not active until that service is connected.',
         },
         {
           title: 'Scoring and rounds',
@@ -96,73 +96,94 @@ export const GAME_BUILDER_COPY = {
         },
         {
           title: 'Preview and publishing',
-          body: 'E-Code runs the game in Preview so you can play-test across screen sizes. Supported static builds continue through guided publishing to a live URL; other projects stay exportable for any host.',
+          body: 'E-Code runs the local game flow in Preview across screen sizes. Supported static frontends can follow guided publishing; remote matches still require the real-time service you connect.',
         },
       ],
     },
     proofLink: {
-      eyebrow: 'Prompt → agent → Preview',
-      title: 'Want to see a real E-Code build end to end?',
+      eyebrow: 'From plain-language instruction to a running Preview',
+      title: 'See the IDE loop behind an E-Code build',
       body: 'The App Builder page shows a captured, real E-Code workspace — the prompt, the agent’s plan, the generated files, and the running Preview — for a booking application. The same build loop applies to an interactive game like this one.',
-      cta: { label: 'See the real IDE proof', ariaLabel: 'See the real E-Code IDE proof on the App Builder page' },
+      galleryLabel: 'Real IDE evidence beside the quiz concept',
+      disclaimer:
+        'Proof boundary: both screenshots belong to the real App Builder salon run and demonstrate the E-Code workflow. TriviaClash is a scripted, fictional match view; it is not a recorded Game Builder run or evidence of a connected multiplayer server.',
+      openFullSizeLabel: 'Open the salon-run IDE capture at full resolution',
+      preview: {
+        title: 'A working application inside the E-Code Webview',
+        body: 'The captured salon run places the user prompt, Agent plan, editable files, and running application on one screen—the same surfaces used to build and test a browser game.',
+        alt: 'Real E-Code App Builder capture with the salon prompt and agent tasks, a running booking dashboard in the Webview, and the source-file library.',
+      },
+      iteration: {
+        title: 'The Agent receives a concrete runtime repair request',
+        body: 'This genuine follow-up shows an error described in plain language so the Agent can inspect the code, preserve the working routes, and verify the Preview again.',
+        alt: 'Real E-Code App Builder capture with a React runtime repair prompt, the salon application Webview, and its editable source files in the IDE.',
+      },
+      cta: {
+        label: 'Open the recorded build workflow',
+        ariaLabel: 'Open the recorded E-Code App Builder workflow used as Game Builder evidence',
+      },
     },
     deliverables: {
       eyebrow: 'What you receive',
-      title: 'A playable game you own and keep evolving',
+      title: 'A playable game foundation you can inspect and keep evolving',
       intro:
         'The project stays inspectable from the first generated file through Preview and export. Supported static builds add a live release through guided publishing without hiding the code.',
       items: [
         {
-          title: 'Editable source files',
-          body: 'Real components, game loop, state, and styles you can read, version, and change directly.',
+          title: 'Game code you can open and export',
+          body: 'The render loop, round rules, interface components, state, and styles stay readable, versionable, and portable outside E-Code.',
         },
         {
-          title: 'Real-time state model',
-          body: 'Lobby, questions, timers, and scores modeled as live state you can extend safely.',
+          title: 'A match-state adapter, not a hidden server',
+          body: 'Lobby, question, timer, and leaderboard state is explicit in the source. Connect that model to a real-time backend before expecting synchronized remote players.',
         },
         {
-          title: 'Responsive game screens',
-          body: 'Desktop, tablet, and mobile layouts verified by play-testing in Preview before you publish.',
+          title: 'A playable Preview at every target size',
+          body: 'Run the local round flow in the active Preview and test its controls and scoreboard layouts on desktop, tablet, and mobile.',
         },
         {
-          title: 'Guided publishing',
-          body: 'Supported static builds ship to a live URL through a guided release flow.',
+          title: 'Guided publishing for the static frontend',
+          body: 'Supported static game builds move through E-Code’s guided release path once the play-test is ready to share.',
         },
         {
-          title: 'Accessible foundations',
-          body: 'Semantic structure, focus states, and readable contrast built into the generated markup.',
+          title: 'A live playtest link with a clear server boundary',
+          body: 'A supported static frontend publishes to an E-Code live URL. Games that depend on a server remain exportable so you can deploy the frontend and connected runtime together.',
         },
         {
-          title: 'Agent-ready iteration',
-          body: 'Ask the Agent for the next change and review the diff against the running game.',
+          title: 'Tune the next round by talking to the Agent',
+          body: 'Ask for a new scoring rule, shorter timer, or another question type, then play the updated local flow without restarting the project.',
         },
       ],
     },
     features: {
       eyebrow: 'Built for real browser games',
-      title: 'Everything a live game needs, in code you control',
-      intro: 'The Game Builder path keeps game logic, multiplayer state, and publishing in one inspectable workflow.',
+      title: 'The browser-game loop, rules, and screens in code you control',
+      intro:
+        'The Game Builder path keeps game logic, connection-ready state, and frontend publishing in one inspectable workflow.',
       items: [
         {
           title: 'Canvas and game loop',
           body: 'A real render-and-update loop for rounds, timers, and animations you can tune.',
         },
         {
-          title: 'Real-time multiplayer',
-          body: 'A lobby and synchronized game state so every player sees the same match.',
+          title: 'Connection-ready multiplayer',
+          body: 'Lobby and match state with integration points for the service that synchronizes remote players.',
         },
         {
           title: 'Scoring and rounds',
           body: 'Answer handling, per-round scoring, and win conditions modeled as game rules.',
         },
-        { title: 'Play-test in Preview', body: 'Run real rounds in Preview across screen sizes before you publish.' },
+        {
+          title: 'Play-test in Preview',
+          body: 'Run the local round flow in Preview across screen sizes before you publish.',
+        },
         {
           title: 'Responsive by default',
           body: 'Game screens adapt from wide desktop to phone without a separate mobile build.',
         },
         {
-          title: 'Own the code',
-          body: 'Export the project or publish supported static builds — the source stays yours.',
+          title: 'Keep the source accessible',
+          body: 'Export the project or publish supported static frontends while retaining editable source files.',
         },
       ],
     },
@@ -173,15 +194,15 @@ export const GAME_BUILDER_COPY = {
       items: [
         {
           title: 'Multiplayer quiz and trivia',
-          body: 'Live quiz nights with a lobby, timed questions, and a shared scoreboard.',
+          body: 'Lobby, timed-question, and shared-score flows ready to connect to a real-time match service.',
         },
         {
           title: 'Classroom and training games',
-          body: 'Interactive challenges that keep a group engaged with real-time scoring.',
+          body: 'Interactive challenge interfaces with scoring rules and a scoreboard ready for synchronized data.',
         },
         {
           title: 'Event and campaign games',
-          body: 'Branded browser games with lobbies and leaderboards ready to share.',
+          body: 'Branded browser-game frontends with lobbies and leaderboards you can wire to event infrastructure.',
         },
         {
           title: 'Casual arcade experiences',
@@ -200,11 +221,11 @@ export const GAME_BUILDER_COPY = {
         },
         {
           title: 'Is the multiplayer real?',
-          body: 'The generated project models a lobby and synchronized game state in code you can inspect and extend. The inline demonstration on this page uses fictional data and no connected backend.',
+          body: 'Not in the inline demonstration: it uses fictional match data and no connected backend. The generated source can model the lobby and match state, but remote players need a real-time service that you connect, secure, and test.',
         },
         {
           title: 'Can I play-test before publishing?',
-          body: 'Yes. E-Code runs the game in Preview so you can play real rounds across desktop, tablet, and mobile before you publish.',
+          body: 'Yes. E-Code runs the local round flow in Preview across desktop, tablet, and mobile. Testing a remote match starts after you connect its networking service.',
         },
         {
           title: 'Can I connect a real-time backend or database?',
@@ -217,8 +238,8 @@ export const GAME_BUILDER_COPY = {
       ],
     },
     finalCta: {
-      title: 'Describe your game and play it running',
-      body: 'Turn the game you have in mind into a canvas loop with real-time multiplayer in real source code, play-test it in Preview, and publish supported static builds.',
+      title: 'Describe your game and play its first rounds',
+      body: 'Turn the game you have in mind into an editable browser loop, lobby, and scoring system, play-test the local flow in Preview, then connect the service that powers remote matches.',
       primaryCta: { label: 'Describe your game', ariaLabel: 'Describe your game with E-Code' },
       secondaryCta: { label: 'See how it builds', ariaLabel: 'See how E-Code builds the game from a prompt' },
     },
@@ -229,7 +250,7 @@ export const GAME_BUILDER_COPY = {
       problemLabel: 'The game building problem',
       buildLabel: 'How the Game Builder works',
       outputListLabel: 'Game build outputs',
-      proofLinkLabel: 'See the real E-Code IDE proof',
+      proofLinkLabel: 'Open the Game Builder workflow evidence',
       deliverablesLabel: 'What the Game Builder delivers',
       featuresLabel: 'Game Builder capabilities',
       useCasesLabel: 'Game Builder use cases',
@@ -241,13 +262,13 @@ export const GAME_BUILDER_COPY = {
     seo: {
       title: 'Générateur de jeu avec vrai code | E-Code',
       description:
-        'Décrivez le jeu auquel vous voulez jouer dans le navigateur. E-Code le transforme en une boucle de jeu sur canvas et un multijoueur en temps réel dans des fichiers source modifiables, avec un aperçu actif que vous pouvez tester en jeu, l’export du projet et la publication des builds statiques pris en charge.',
+        'Décrivez le jeu web que vous voulez tester. E-Code le transforme en boucle de jeu, interface multijoueur et modèle d’état modifiables, avec un aperçu actif, l’export du projet et des points de branchement clairs pour un service temps réel.',
     },
     hero: {
-      eyebrow: 'Générateur de jeu pour de vrais jeux dans le navigateur',
-      title: 'Transformez une idée de jeu en une expérience multijoueur que vous possédez',
+      eyebrow: 'Générateur de jeu pour prototypes web jouables',
+      title: 'Transformez une idée de jeu en un build web que vous jouez et inspectez',
       subtitle:
-        'Décrivez le jeu, les manches et la façon dont les joueurs s’affrontent. E-Code en fait une boucle de jeu sur canvas et un multijoueur en temps réel dans un vrai code source modifiable. Inspectez chaque fichier, testez le jeu dans l’aperçu, affinez-le avec l’Agent et publiez les builds statiques pris en charge vers une URL en ligne.',
+        'Décrivez le jeu, les manches et la façon dont les joueurs s’affrontent. E-Code en fait une boucle modifiable, une interface de salon, des règles de score et un modèle d’état multijoueur. Jouez le parcours local dans l’aperçu, affinez-le avec l’Agent, puis connectez un service temps réel avant d’inviter des joueurs distants.',
       primaryCta: { label: 'Décrivez votre jeu', ariaLabel: 'Décrivez votre jeu avec E-Code' },
       secondaryCta: {
         label: 'Voir la construction',
@@ -265,7 +286,7 @@ export const GAME_BUILDER_COPY = {
       eyebrow: 'Manche 3 sur 5',
       title: 'Quelle capitale se trouve sur le détroit du Bosphore ?',
       intro:
-        'Un jeu de quiz responsive qui gère un salon d’attente, des questions en direct et un classement en temps réel dans une boucle de manches claire.',
+        'Un concept de quiz responsive qui présente un salon, des questions chronométrées et une interface de score partagé dans une boucle de manches claire.',
       primaryHeading: 'Classement en direct',
       primaryRows: [
         { label: 'Nadia', meta: '1 240 pts', status: 'En tête' },
@@ -287,7 +308,7 @@ export const GAME_BUILDER_COPY = {
       alt: 'Démonstration de jeu de quiz multijoueur avec un classement en direct et un panneau de question en cours.',
     },
     problem: {
-      eyebrow: 'Du carcan du moteur à un jeu que vous possédez',
+      eyebrow: 'Du carcan du moteur à une boucle de jeu inspectable',
       title:
         'Les créateurs de jeu paraissent simples jusqu’à ce que l’état multijoueur et le test en jeu se heurtent à l’outil',
       intro:
@@ -295,7 +316,7 @@ export const GAME_BUILDER_COPY = {
       obstacles: [
         {
           title: 'La boucle de jeu reste masquée',
-          body: 'Les créateurs par glisser-déposer possèdent la boucle de rendu et le minutage, donc un score sur mesure, un rythme de manches et des animations reviennent à lutter contre l’outil au lieu d’écrire la boucle.',
+          body: 'Les créateurs par glisser-déposer masquent la boucle de rendu et le minutage, donc un score sur mesure, un rythme de manches et des animations reviennent à lutter contre l’outil au lieu de modifier la boucle.',
         },
         {
           title: 'L’état multijoueur se désynchronise',
@@ -307,7 +328,7 @@ export const GAME_BUILDER_COPY = {
         },
       ],
       bridge:
-        'E-Code part du jeu que vous décrivez et produit une vraie boucle sur canvas avec un multijoueur en temps réel dans des fichiers source. Vous inspectez l’état, le testez en jeu dans l’aperçu et demandez le changement suivant sans abandonner le code.',
+        'E-Code part du jeu que vous décrivez et produit une boucle web, des règles et un modèle d’état multijoueur modifiables dans les fichiers source. Vous testez le parcours local dans l’aperçu, branchez le réseau aux endroits exposés par le code et demandez le changement suivant sans quitter le projet.',
     },
     build: {
       eyebrow: 'Un prompt lance le jeu',
@@ -315,16 +336,15 @@ export const GAME_BUILDER_COPY = {
       intro:
         'La demande ci-dessous se lit comme un mot d’un concepteur de jeu. Les quatre éléments cartographient son périmètre d’implémentation dans de vrais fichiers source, pas un moteur verrouillé.',
       label: 'Exemple de prompt',
-      promptText:
-        'Construis un jeu de quiz multijoueur avec un salon d’attente, des questions en direct et un classement en temps réel.',
+      promptText: 'Crée un jeu de quiz multijoueur avec score en temps réel et classement.',
       outputs: [
         {
           title: 'Boucle de jeu sur canvas',
           body: 'Une vraie boucle de rendu et de mise à jour anime les manches, les chronos et les animations sur desktop, tablette et mobile à partir de composants modifiables.',
         },
         {
-          title: 'Multijoueur en temps réel',
-          body: 'Un salon, des questions synchronisées et un classement partagé sont modélisés comme un état actif que l’équipe peut étendre sans désynchroniser les joueurs.',
+          title: 'Modèle d’état multijoueur',
+          body: 'Les états du salon, de la question, du chrono et du classement vivent dans un code modifiable avec des points de branchement explicites pour un backend temps réel. La synchronisation distante ne démarre qu’une fois ce service connecté.',
         },
         {
           title: 'Score et manches',
@@ -332,64 +352,78 @@ export const GAME_BUILDER_COPY = {
         },
         {
           title: 'Aperçu et publication',
-          body: 'E-Code exécute le jeu dans l’aperçu pour le tester en jeu à toutes les tailles d’écran. Les builds statiques pris en charge se publient vers une URL en ligne ; les autres projets restent exportables pour tout hébergeur.',
+          body: 'E-Code exécute le parcours local dans l’aperçu à toutes les tailles d’écran. Les frontends statiques pris en charge suivent la publication guidée ; les parties distantes exigent toujours le service temps réel que vous connectez.',
         },
       ],
     },
     proofLink: {
-      eyebrow: 'Prompt → agent → aperçu',
-      title: 'Envie de voir une vraie génération E-Code de bout en bout ?',
+      eyebrow: 'De l’instruction en langage courant à l’aperçu actif',
+      title: 'Découvrez la boucle IDE derrière une construction E-Code',
       body: 'La page App Builder montre un vrai workspace E-Code capturé — le prompt, le plan de l’agent, les fichiers générés et l’aperçu actif — pour une application de réservation. La même boucle de construction s’applique à un jeu interactif comme celui-ci.',
+      galleryLabel: 'Preuve IDE réelle en regard du concept de quiz',
+      disclaimer:
+        'Périmètre de la preuve : les deux captures appartiennent au vrai run App Builder du salon et montrent le workflow E-Code. TriviaClash reste une vue de partie scénarisée et fictive ; ce n’est ni un run Game Builder enregistré, ni la preuve d’un serveur multijoueur connecté.',
+      openFullSizeLabel: 'Ouvrir la capture IDE du run salon en pleine résolution',
+      preview: {
+        title: 'Une application fonctionnelle dans la Webview E-Code',
+        body: 'Le run salon capturé réunit le prompt utilisateur, le plan de l’Agent, les fichiers modifiables et l’application active sur un même écran — les mêmes surfaces qui servent à construire et tester un jeu web.',
+        alt: 'Vraie capture App Builder E-Code avec le prompt salon et les tâches de l’agent, un tableau de bord de réservation actif dans la Webview et la bibliothèque de fichiers source.',
+      },
+      iteration: {
+        title: 'L’Agent reçoit une demande précise de réparation runtime',
+        body: 'Ce vrai suivi formule une erreur en langage courant pour que l’Agent inspecte le code, préserve les routes fonctionnelles et vérifie à nouveau l’aperçu.',
+        alt: 'Vraie capture App Builder E-Code avec un prompt de réparation runtime React, la Webview de l’application salon et ses fichiers source modifiables dans l’IDE.',
+      },
       cta: {
-        label: 'Voir la preuve IDE réelle',
-        ariaLabel: 'Voir la preuve IDE réelle E-Code sur la page App Builder',
+        label: 'Ouvrir le workflow de construction enregistré',
+        ariaLabel: 'Ouvrir le workflow App Builder E-Code enregistré et utilisé comme preuve du Générateur de jeu',
       },
     },
     deliverables: {
       eyebrow: 'Ce que vous recevez',
-      title: 'Un jeu jouable que vous possédez et faites évoluer',
+      title: 'Une base de jeu jouable que vous inspectez et faites évoluer',
       intro:
         'Le projet reste inspectable du premier fichier généré jusqu’à l’aperçu et l’export. Les builds statiques pris en charge ajoutent une mise en ligne guidée sans masquer le code.',
       items: [
         {
-          title: 'Fichiers source modifiables',
-          body: 'De vrais composants, boucle de jeu, état et styles que vous lisez, versionnez et modifiez directement.',
+          title: 'Un code de jeu ouvert et exportable',
+          body: 'La boucle de rendu, les règles de manche, les composants d’interface, l’état et les styles restent lisibles, versionnables et transportables hors d’E-Code.',
         },
         {
-          title: 'Modèle d’état en temps réel',
-          body: 'Salon, questions, chronos et scores modélisés comme un état actif que vous étendez sans risque.',
+          title: 'Un adaptateur d’état de partie, pas un serveur caché',
+          body: 'Les états du salon, de la question, du chrono et du classement apparaissent dans la source. Branchez ce modèle à un backend temps réel avant d’attendre une synchronisation entre joueurs distants.',
         },
         {
-          title: 'Écrans de jeu responsives',
-          body: 'Desktop, tablette et mobile vérifiés en testant le jeu dans l’aperçu avant publication.',
+          title: 'Un aperçu jouable à chaque format cible',
+          body: 'Exécutez le parcours local des manches dans l’aperçu actif et testez les contrôles et le classement sur desktop, tablette et mobile.',
         },
         {
-          title: 'Publication guidée',
-          body: 'Les builds statiques pris en charge sont mis en ligne via un parcours de publication guidé.',
+          title: 'Publication guidée du frontend statique',
+          body: 'Les builds statiques de jeu pris en charge suivent le parcours de mise en ligne E-Code quand le test en jeu est prêt à être partagé.',
         },
         {
-          title: 'Bases accessibles',
-          body: 'Structure sémantique, états de focus et contraste lisible intégrés au balisage généré.',
+          title: 'Un lien de test en ligne avec une frontière serveur claire',
+          body: 'Un frontend statique pris en charge se publie sur une URL E-Code. Les jeux qui dépendent d’un serveur restent exportables afin de déployer ensemble le frontend et le runtime connecté.',
         },
         {
-          title: 'Itération avec l’Agent',
-          body: 'Demandez le changement suivant à l’Agent et relisez le diff face au jeu actif.',
+          title: 'Réglez la manche suivante avec l’Agent',
+          body: 'Demandez une nouvelle règle de score, un chrono plus court ou un autre type de question, puis jouez le parcours local mis à jour sans recréer le projet.',
         },
       ],
     },
     features: {
       eyebrow: 'Pensé pour de vrais jeux dans le navigateur',
-      title: 'Tout ce dont un jeu en direct a besoin, dans un code que vous maîtrisez',
+      title: 'La boucle, les règles et les écrans du jeu web dans un code que vous maîtrisez',
       intro:
-        'Le parcours Générateur de jeu garde la logique de jeu, l’état multijoueur et la publication dans un seul flux inspectable.',
+        'Le parcours Générateur de jeu garde la logique, l’état prêt à connecter et la publication du frontend dans un seul flux inspectable.',
       items: [
         {
           title: 'Canvas et boucle de jeu',
           body: 'Une vraie boucle de rendu et de mise à jour pour les manches, chronos et animations que vous réglez.',
         },
         {
-          title: 'Multijoueur en temps réel',
-          body: 'Un salon et un état de jeu synchronisé pour que chaque joueur voie la même partie.',
+          title: 'Multijoueur prêt à connecter',
+          body: 'Un salon et un état de partie avec les points d’intégration du service qui synchronise les joueurs distants.',
         },
         {
           title: 'Score et manches',
@@ -397,15 +431,15 @@ export const GAME_BUILDER_COPY = {
         },
         {
           title: 'Test en jeu dans l’aperçu',
-          body: 'Jouez de vraies manches dans l’aperçu à toutes les tailles d’écran avant de publier.',
+          body: 'Jouez le parcours local dans l’aperçu à toutes les tailles d’écran avant de publier.',
         },
         {
           title: 'Responsive par défaut',
           body: 'Les écrans de jeu s’adaptent du grand écran au téléphone sans build mobile séparé.',
         },
         {
-          title: 'Possédez le code',
-          body: 'Exportez le projet ou publiez les builds statiques pris en charge — la source reste la vôtre.',
+          title: 'Gardez la source accessible',
+          body: 'Exportez le projet ou publiez les frontends statiques pris en charge tout en conservant des fichiers source modifiables.',
         },
       ],
     },
@@ -416,15 +450,15 @@ export const GAME_BUILDER_COPY = {
       items: [
         {
           title: 'Quiz et trivia multijoueur',
-          body: 'Soirées quiz en direct avec un salon, des questions chronométrées et un classement partagé.',
+          body: 'Parcours de salon, questions chronométrées et score partagé prêts à brancher à un service de partie temps réel.',
         },
         {
           title: 'Jeux en classe et formation',
-          body: 'Défis interactifs qui gardent un groupe engagé avec un score en temps réel.',
+          body: 'Interfaces de défis interactifs avec règles de score et classement prêt pour des données synchronisées.',
         },
         {
           title: 'Jeux d’événement et campagne',
-          body: 'Jeux de marque dans le navigateur avec salons et classements prêts à partager.',
+          body: 'Frontends de jeux de marque avec salons et classements à brancher à l’infrastructure de l’événement.',
         },
         {
           title: 'Expériences arcade casual',
@@ -443,11 +477,11 @@ export const GAME_BUILDER_COPY = {
         },
         {
           title: 'Le multijoueur est-il réel ?',
-          body: 'Le projet généré modélise un salon et un état de jeu synchronisé dans un code que vous inspectez et étendez. La démonstration intégrée de cette page utilise des données fictives et aucun backend connecté.',
+          body: 'Pas dans la démonstration intégrée : elle utilise des données de partie fictives et aucun backend connecté. La source générée peut modéliser le salon et l’état de partie, mais les joueurs distants exigent un service temps réel que vous connectez, sécurisez et testez.',
         },
         {
           title: 'Puis-je tester le jeu avant de publier ?',
-          body: 'Oui. E-Code exécute le jeu dans l’aperçu pour jouer de vraies manches sur desktop, tablette et mobile avant de publier.',
+          body: 'Oui. E-Code exécute le parcours local des manches dans l’aperçu sur desktop, tablette et mobile. Le test d’une partie distante commence après le branchement du service réseau.',
         },
         {
           title: 'Puis-je connecter un backend temps réel ou une base ?',
@@ -460,8 +494,8 @@ export const GAME_BUILDER_COPY = {
       ],
     },
     finalCta: {
-      title: 'Décrivez votre jeu et jouez-le en direct',
-      body: 'Transformez le jeu que vous avez en tête en une boucle sur canvas avec un multijoueur en temps réel dans du vrai code source, testez-le dans l’aperçu et publiez les builds statiques pris en charge.',
+      title: 'Décrivez votre jeu et jouez ses premières manches',
+      body: 'Transformez le jeu que vous avez en tête en une boucle web, un salon et un système de score modifiables, testez le parcours local dans l’aperçu, puis connectez le service qui anime les parties distantes.',
       primaryCta: { label: 'Décrivez votre jeu', ariaLabel: 'Décrivez votre jeu avec E-Code' },
       secondaryCta: {
         label: 'Voir la construction',
@@ -475,7 +509,7 @@ export const GAME_BUILDER_COPY = {
       problemLabel: 'Le problème de la création de jeu',
       buildLabel: 'Comment fonctionne le Générateur de jeu',
       outputListLabel: 'Résultats de la génération de jeu',
-      proofLinkLabel: 'Voir la preuve IDE réelle E-Code',
+      proofLinkLabel: 'Ouvrir la preuve du workflow Générateur de jeu',
       deliverablesLabel: 'Ce que livre le Générateur de jeu',
       featuresLabel: 'Capacités du Générateur de jeu',
       useCasesLabel: 'Cas d’usage du Générateur de jeu',

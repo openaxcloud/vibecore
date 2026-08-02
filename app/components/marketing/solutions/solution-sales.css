@@ -1484,7 +1484,11 @@
   display: grid;
   gap: 1.1rem;
   padding: 1.2rem;
-  background: linear-gradient(180deg, var(--ecode-surface), color-mix(in srgb, var(--ecode-surface-secondary) 40%, var(--ecode-surface)));
+  background: linear-gradient(
+    180deg,
+    var(--ecode-surface),
+    color-mix(in srgb, var(--ecode-surface-secondary) 40%, var(--ecode-surface))
+  );
 }
 
 .sol-demo__topbar {
@@ -1617,8 +1621,8 @@
   font-weight: 700;
   padding: 0.12rem 0.45rem;
   border-radius: 999px;
-  color: var(--status-success-text, #16a34a);
-  background: color-mix(in srgb, var(--status-success-text, #16a34a) 14%, transparent);
+  color: var(--status-success-text);
+  background: color-mix(in srgb, var(--status-success-text) 14%, transparent);
 }
 
 .sol-demo__aside dl {
@@ -1692,9 +1696,15 @@
 
 .sol-proof-link__layout {
   display: grid;
-  gap: 1.5rem;
+  gap: 2rem;
   padding-block: 3.25rem;
+}
+
+.sol-proof-link__intro {
+  display: grid;
+  min-width: 0;
   align-items: center;
+  gap: 1.5rem;
 }
 
 .sol-proof-link__layout h2 {
@@ -1705,12 +1715,32 @@
   margin-top: 0.5rem;
 }
 
-.sol-proof-link__layout > div > p {
+.sol-proof-link__intro > div > p {
   margin-top: 0.6rem;
   font-size: 0.95rem;
   line-height: 1.6;
   color: var(--ecode-text-secondary);
   max-width: 60ch;
+}
+
+.sol-proof-link__gallery {
+  display: grid;
+  min-width: 0;
+  gap: 1rem;
+}
+
+.sol-product-visual--ide-reference {
+  border-color: var(--status-info-border);
+  box-shadow: 0 24px 64px color-mix(in srgb, var(--ecode-background) 72%, transparent);
+}
+
+.sol-product-visual--ide-reference .sol-product-visual__media {
+  aspect-ratio: 8 / 5;
+}
+
+.sol-product-visual--ide-reference img {
+  height: 100%;
+  object-fit: contain;
 }
 
 @media (min-width: 640px) {
@@ -1721,7 +1751,12 @@
 }
 
 @media (min-width: 900px) {
-  .sol-proof-link__layout {
+  .sol-proof-link__intro {
     grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .sol-proof-link__gallery {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
   }
 }

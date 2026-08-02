@@ -57,7 +57,7 @@ export async function action({ request }: EnterpriseActionArgs) {
   }
 
   if (parsed.headers.length * parsed.rows.length > MAX_CELLS) {
-    return { error: `That sheet is too large to import here (over ${MAX_CELLS.toLocaleString()} cells).` };
+    return { error: `That sheet is too large to import here (over ${MAX_CELLS.toLocaleString('en-US')} cells).` };
   }
 
   const name = body.name?.trim() || 'Spreadsheet app';

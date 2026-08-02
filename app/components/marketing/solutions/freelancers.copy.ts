@@ -17,7 +17,7 @@ export const FREELANCERS_COPY = {
       eyebrow: 'E-Code for freelancers and independent studios',
       title: 'Deliver client projects faster, with a handoff that stays clean',
       subtitle:
-        'Describe the client brief once and E-Code turns it into a working app in editable source code. Start from your own repeatable patterns, share a preview link for review, iterate through the Agent, and hand off the source the client actually owns.',
+        'Describe the client brief once and E-Code turns it into a working app in editable source code. Start from your own repeatable patterns, share a preview link for review, iterate through the Agent, and hand off an exported project the client can inspect and continue.',
       primaryCta: { label: 'Start a client project', ariaLabel: 'Start a client project with E-Code' },
       secondaryCta: { label: 'See how it builds', ariaLabel: 'See how E-Code builds a client project from a prompt' },
       microcopy:
@@ -73,7 +73,7 @@ export const FREELANCERS_COPY = {
         },
       ],
       bridge:
-        'E-Code starts each project from the patterns you describe and produces a working app in real source files. You share a preview link for review, iterate against it, and hand off editable code the client can run and keep.',
+        'E-Code starts each project from the patterns you describe and produces a working app in real source files. You share a preview link for review, iterate against it, and hand off an exported codebase with the setup information the client needs to continue.',
     },
     build: {
       eyebrow: 'One prompt starts the client project',
@@ -98,45 +98,59 @@ export const FREELANCERS_COPY = {
         },
         {
           title: 'Source-code handoff',
-          body: 'E-Code runs the app in Preview and exports the full project. Supported builds continue through guided publishing; the source stays the client’s to keep.',
+          body: 'E-Code runs the app in Preview and exports the project files. Supported builds also use guided publishing; source ownership and reuse remain governed by the applicable E-Code terms and your client agreement.',
         },
       ],
     },
     proofLink: {
       eyebrow: 'Prompt → agent → Preview',
-      title: 'Want to see a real E-Code build end to end?',
-      body: 'The App Builder page shows a captured, real E-Code workspace — the prompt, the agent’s plan, the generated files, and the running Preview — for a booking application. The same build loop applies to a client project like this one.',
+      title: 'Review the real prompt-to-Preview workflow before a client handoff',
+      body: 'These are authentic captures from the App Builder salon-booking run. They show the prompt, agent exchange, files, and running Preview a freelancer reviews inside E-Code; they do not present the fictional client-delivery board above as a captured generation.',
+      galleryLabel: 'Real salon-booking run used as client-delivery workflow evidence',
+      disclaimer:
+        'Both IDE images document the real App Builder reference run. The freelancer project board on this page is a scripted demonstration with fictional client data, not a generation log or client engagement.',
+      openFullSizeLabel: 'Open the client-delivery workflow reference at full size',
+      preview: {
+        title: 'The client brief stays beside the working result',
+        body: 'The real reference capture shows the salon request, agent conversation, generated project files, and booking Preview in the same E-Code workspace.',
+        alt: 'Real E-Code App Builder salon run showing the request, agent conversation, generated files, and booking app Preview as workflow evidence for freelancers.',
+      },
+      iteration: {
+        title: 'A review note becomes a visible iteration',
+        body: 'The follow-up capture records the next instruction and updated Preview together, illustrating the review loop before exported-source handoff.',
+        alt: 'Real E-Code App Builder salon follow-up showing the next instruction and updated booking Preview inside the IDE.',
+      },
       cta: { label: 'See the real IDE proof', ariaLabel: 'See the real E-Code IDE proof on the App Builder page' },
     },
     deliverables: {
       eyebrow: 'What you receive',
       title: 'A client project you can review, ship, and hand off',
       intro:
-        'The project stays inspectable from the first generated file through Preview and export. Shareable preview links carry review; the source-code handoff leaves the client independent.',
+        'The project stays inspectable from the first generated file through Preview and export. Shareable preview links carry review; an exported-source handoff reduces the client’s dependency on your workspace.',
       items: [
         {
-          title: 'Editable source files',
-          body: 'Real components, routes, styles, and content the client can read, run, version, and keep.',
+          title: 'Source prepared for handoff',
+          body: 'The client build consists of inspectable components, routes, styles, and logic you export, document, and transfer under the terms of the engagement.',
         },
         {
-          title: 'Reusable project templates',
-          body: 'Base structure and screens you can carry from one client engagement into the next.',
+          title: 'Client integration map',
+          body: 'Schemas, adapters, environment references, and secret names show where client data and services connect. Real credentials stay outside source and each database, identity, email, or payment provider still needs configuration.',
         },
         {
-          title: 'Shareable preview links',
-          body: 'A running preview URL to share for client review at each round of feedback.',
+          title: 'Responsive review Preview',
+          body: 'The compatible project runs in Preview across desktop, tablet, and mobile, giving the client one current interface to review instead of a folder of screenshots.',
         },
         {
-          title: 'Responsive layouts',
-          body: 'Desktop, tablet, and mobile layouts verified in Preview before you deliver.',
+          title: 'Guided publishing for static work',
+          body: 'Supported static sites and frontends follow the guided E-Code publishing flow, with final content, domains, analytics, and client acceptance handled as named delivery steps.',
         },
         {
-          title: 'Clean handoff pack',
-          body: 'Exported source, the preview link, and setup notes so the client can run it without you.',
+          title: 'Live static URL and runtime handoff',
+          body: 'A supported static build receives a live E-Code-hosted URL for review or delivery. Apps with server logic remain exportable and need the client’s selected runtime, accounts, secrets, and operating setup.',
         },
         {
-          title: 'Agent-ready iteration',
-          body: 'Ask the Agent for the next change and review the diff against the running app.',
+          title: 'Feedback turned into an Agent change',
+          body: 'Paste the client’s next revision into the Agent conversation, then compare the changed files and refreshed Preview before sending the next review link.',
         },
       ],
     },
@@ -156,7 +170,7 @@ export const FREELANCERS_COPY = {
         },
         {
           title: 'Source-code handoff',
-          body: 'Export the full project so the client owns editable code they can run and change.',
+          body: 'Export the project files so the client receives an editable codebase and a clear continuation point.',
         },
         {
           title: 'Iterate with the Agent',
@@ -167,8 +181,8 @@ export const FREELANCERS_COPY = {
           body: 'Layouts adapt from wide desktop to phone without a separate mobile build.',
         },
         {
-          title: 'Own and export the code',
-          body: 'Export any project or publish supported builds — the source stays the client’s.',
+          title: 'Exportable project files',
+          body: 'Export the project or publish supported builds; the client’s ownership and reuse rights follow your agreement and the applicable E-Code terms.',
         },
       ],
     },
@@ -179,7 +193,7 @@ export const FREELANCERS_COPY = {
       items: [
         {
           title: 'Client web apps and portals',
-          body: 'Dashboards and sign-in flows delivered as editable code the client keeps.',
+          body: 'Dashboards and sign-in flows delivered as editable project files for the client’s next development step.',
         },
         {
           title: 'Marketing and landing pages',
@@ -202,7 +216,7 @@ export const FREELANCERS_COPY = {
       items: [
         {
           title: 'Does the client get real code or a locked project?',
-          body: 'They get editable source files — components, routes, styles, and content — that they can read, run, version, and export. There is no proprietary lock-in.',
+          body: 'You export editable source files — components, routes, styles, and content — rather than handing over only a screenshot or hosted mock. Ownership and permitted reuse follow the applicable E-Code terms and your client agreement.',
         },
         {
           title: 'How do clients review the work?',
@@ -210,11 +224,11 @@ export const FREELANCERS_COPY = {
         },
         {
           title: 'What does the handoff include?',
-          body: 'The exported source project, the preview link, and setup notes so the client can run and change it without depending on you.',
+          body: 'The exported source project, the preview link, and setup notes. External credentials, provider accounts, and production environment configuration remain explicit client handoff items.',
         },
         {
           title: 'Can I reuse a project across clients?',
-          body: 'Yes. The generated structure is code you can lift into the next engagement. You are responsible for what you reuse and for each client’s own data.',
+          body: 'The exported structure is technically reusable. You remain responsible for licenses, your client agreements, confidential material, and removing every client’s data before reuse.',
         },
         {
           title: 'Can I connect a database or external services?',
@@ -224,7 +238,7 @@ export const FREELANCERS_COPY = {
     },
     finalCta: {
       title: 'Start a client project and share it today',
-      body: 'Turn a client brief into a working app in real source code, share a preview link for review, and hand off editable code the client owns.',
+      body: 'Turn a client brief into a working app in real source code, share a preview link for review, and hand off an editable, exported project.',
       primaryCta: { label: 'Start a client project', ariaLabel: 'Start a client project with E-Code' },
       secondaryCta: { label: 'See how it builds', ariaLabel: 'See how E-Code builds a client project from a prompt' },
     },
@@ -253,7 +267,7 @@ export const FREELANCERS_COPY = {
       eyebrow: 'E-Code pour freelances et studios indépendants',
       title: 'Livrez vos projets clients plus vite, avec un transfert qui reste propre',
       subtitle:
-        'Décrivez le brief client une fois et E-Code en fait une application fonctionnelle dans un vrai code source modifiable. Partez de vos propres modèles réutilisables, partagez un lien d’aperçu pour la revue, itérez avec l’Agent et transmettez le code source que le client possède vraiment.',
+        'Décrivez le brief client une fois et E-Code en fait une application fonctionnelle dans un vrai code source modifiable. Partez de vos propres modèles réutilisables, partagez un lien d’aperçu pour la revue, itérez avec l’Agent et transmettez un projet exporté que le client peut inspecter et poursuivre.',
       primaryCta: { label: 'Démarrer un projet client', ariaLabel: 'Démarrer un projet client avec E-Code' },
       secondaryCta: {
         label: 'Voir la construction',
@@ -312,7 +326,7 @@ export const FREELANCERS_COPY = {
         },
       ],
       bridge:
-        'E-Code part des modèles que vous décrivez et produit une application fonctionnelle dans de vrais fichiers source. Vous partagez un lien d’aperçu pour la revue, itérez face à lui et transmettez un code modifiable que le client peut exécuter et conserver.',
+        'E-Code part des modèles que vous décrivez et produit une application fonctionnelle dans de vrais fichiers source. Vous partagez un lien d’aperçu pour la revue, itérez face à lui et transmettez une base de code exportée avec les informations d’installation nécessaires pour poursuivre.',
     },
     build: {
       eyebrow: 'Un prompt lance le projet client',
@@ -337,14 +351,28 @@ export const FREELANCERS_COPY = {
         },
         {
           title: 'Transfert du code source',
-          body: 'E-Code exécute l’application dans l’aperçu et exporte le projet complet. Les builds pris en charge continuent via la publication guidée ; la source reste celle du client.',
+          body: 'E-Code exécute l’application dans l’aperçu et exporte les fichiers du projet. Les builds pris en charge utilisent aussi la publication guidée ; la propriété et la réutilisation de la source suivent les conditions E-Code applicables et votre contrat client.',
         },
       ],
     },
     proofLink: {
       eyebrow: 'Prompt → agent → aperçu',
-      title: 'Envie de voir une vraie génération E-Code de bout en bout ?',
-      body: 'La page App Builder montre un vrai workspace E-Code capturé — le prompt, le plan de l’agent, les fichiers générés et l’aperçu actif — pour une application de réservation. La même boucle de construction s’applique à un projet client comme celui-ci.',
+      title: 'Relisez le vrai parcours du prompt à l’aperçu avant un transfert client',
+      body: 'Voici de vraies captures du run App Builder du salon de coiffure. Elles montrent le prompt, l’échange avec l’agent, les fichiers et l’aperçu actif qu’un freelance relit dans E-Code ; elles ne présentent pas le tableau de livraison client fictif ci-dessus comme une génération capturée.',
+      galleryLabel: 'Vrai run de réservation du salon utilisé comme preuve du parcours de livraison client',
+      disclaimer:
+        'Les deux images IDE documentent le vrai run App Builder de référence. Le tableau de projets freelance de cette page est une démonstration scénarisée avec des données clients fictives, pas un journal de génération ni une mission client.',
+      openFullSizeLabel: 'Ouvrir la référence du parcours de livraison client en plein format',
+      preview: {
+        title: 'Le brief client reste à côté du résultat fonctionnel',
+        body: 'La vraie capture de référence montre la demande du salon, la conversation avec l’agent, les fichiers projet générés et l’aperçu de réservation dans le même workspace E-Code.',
+        alt: 'Vrai run App Builder E-Code du salon montrant la demande, la conversation avec l’agent, les fichiers générés et l’aperçu de réservation comme preuve de parcours pour les freelances.',
+      },
+      iteration: {
+        title: 'Une note de revue devient une itération visible',
+        body: 'La capture de suivi conserve ensemble l’instruction suivante et l’aperçu mis à jour, pour illustrer la boucle de revue avant le transfert de la source exportée.',
+        alt: 'Vrai suivi App Builder E-Code du salon montrant l’instruction suivante et l’aperçu de réservation mis à jour dans l’IDE.',
+      },
       cta: {
         label: 'Voir la preuve IDE réelle',
         ariaLabel: 'Voir la preuve IDE réelle E-Code sur la page App Builder',
@@ -354,31 +382,31 @@ export const FREELANCERS_COPY = {
       eyebrow: 'Ce que vous recevez',
       title: 'Un projet client que vous pouvez relire, livrer et transmettre',
       intro:
-        'Le projet reste inspectable du premier fichier généré jusqu’à l’aperçu et l’export. Les liens d’aperçu partageables portent la revue ; le transfert du code source rend le client indépendant.',
+        'Le projet reste inspectable du premier fichier généré jusqu’à l’aperçu et l’export. Les liens d’aperçu partageables portent la revue ; le transfert de la source exportée réduit la dépendance du client à votre workspace.',
       items: [
         {
-          title: 'Fichiers source modifiables',
-          body: 'De vrais composants, routes, styles et contenus que le client lit, exécute, versionne et conserve.',
+          title: 'Source préparée pour le transfert',
+          body: 'Le projet client se compose de composants, routes, styles et logique inspectables que vous exportez, documentez et transmettez selon les conditions de la mission.',
         },
         {
-          title: 'Modèles de projet réutilisables',
-          body: 'Structure et écrans de base que vous reprenez d’une mission client à la suivante.',
+          title: 'Carte des intégrations client',
+          body: 'Schémas, adaptateurs, références d’environnement et noms de secrets indiquent où brancher données et services du client. Les vrais identifiants restent hors de la source et chaque base, fournisseur d’identité, email ou paiement exige encore sa configuration.',
         },
         {
-          title: 'Liens d’aperçu partageables',
-          body: 'Une URL d’aperçu active à partager pour la revue client à chaque tour de retours.',
+          title: 'Aperçu responsive pour la revue',
+          body: 'Le projet compatible tourne dans l’aperçu sur desktop, tablette et mobile, pour donner au client une interface courante unique à relire plutôt qu’un dossier de captures.',
         },
         {
-          title: 'Mises en page responsives',
-          body: 'Desktop, tablette et mobile vérifiés dans l’aperçu avant la livraison.',
+          title: 'Publication guidée des projets statiques',
+          body: 'Les sites et frontends statiques pris en charge suivent le parcours de publication guidée E-Code, avec contenu final, domaines, analytics et validation client traités comme des étapes de livraison nommées.',
         },
         {
-          title: 'Dossier de transfert propre',
-          body: 'Source exportée, lien d’aperçu et notes d’installation pour que le client l’exécute sans vous.',
+          title: 'URL statique en ligne et relais runtime',
+          body: 'Un build statique pris en charge reçoit une URL en ligne hébergée par E-Code pour la revue ou la livraison. Les apps avec logique serveur restent exportables et exigent le runtime, les comptes, les secrets et l’exploitation choisis par le client.',
         },
         {
-          title: 'Itération avec l’Agent',
-          body: 'Demandez le changement suivant à l’Agent et relisez le diff face à l’application active.',
+          title: 'Retour client transformé en changement Agent',
+          body: 'Collez la prochaine révision du client dans la conversation avec l’Agent, puis comparez les fichiers modifiés et l’aperçu actualisé avant d’envoyer le prochain lien de revue.',
         },
       ],
     },
@@ -398,7 +426,7 @@ export const FREELANCERS_COPY = {
         },
         {
           title: 'Transfert du code source',
-          body: 'Exportez le projet complet pour que le client possède un code modifiable qu’il peut exécuter et changer.',
+          body: 'Exportez les fichiers du projet pour que le client reçoive une base de code modifiable et un point de reprise clair.',
         },
         {
           title: 'Itérer avec l’Agent',
@@ -409,8 +437,8 @@ export const FREELANCERS_COPY = {
           body: 'Les mises en page s’adaptent du grand écran au téléphone sans build mobile séparé.',
         },
         {
-          title: 'Possédez et exportez le code',
-          body: 'Exportez tout projet ou publiez les builds pris en charge — la source reste celle du client.',
+          title: 'Fichiers projet exportables',
+          body: 'Exportez le projet ou publiez les builds pris en charge ; les droits de propriété et de réutilisation du client suivent votre accord et les conditions E-Code applicables.',
         },
       ],
     },
@@ -422,7 +450,7 @@ export const FREELANCERS_COPY = {
       items: [
         {
           title: 'Apps web et portails clients',
-          body: 'Tableaux de bord et parcours de connexion livrés en code modifiable que le client conserve.',
+          body: 'Tableaux de bord et parcours de connexion livrés sous forme de fichiers projet modifiables pour la prochaine étape de développement du client.',
         },
         {
           title: 'Pages vitrines et d’atterrissage',
@@ -445,7 +473,7 @@ export const FREELANCERS_COPY = {
       items: [
         {
           title: 'Le client obtient-il du vrai code ou un projet verrouillé ?',
-          body: 'Il obtient des fichiers source modifiables — composants, routes, styles et contenu — qu’il peut lire, exécuter, versionner et exporter. Aucun verrouillage propriétaire.',
+          body: 'Vous exportez des fichiers source modifiables — composants, routes, styles et contenu — au lieu de transmettre seulement une capture ou une maquette hébergée. La propriété et la réutilisation autorisée suivent les conditions E-Code applicables et votre contrat client.',
         },
         {
           title: 'Comment les clients relisent-ils le travail ?',
@@ -453,11 +481,11 @@ export const FREELANCERS_COPY = {
         },
         {
           title: 'Que contient le transfert ?',
-          body: 'Le projet source exporté, le lien d’aperçu et les notes d’installation pour que le client l’exécute et le modifie sans dépendre de vous.',
+          body: 'Le projet source exporté, le lien d’aperçu et les notes d’installation. Les identifiants externes, les comptes fournisseurs et la configuration de l’environnement de production restent des éléments explicites du transfert client.',
         },
         {
           title: 'Puis-je réutiliser un projet entre clients ?',
-          body: 'Oui. La structure générée est un code que vous reprenez dans la mission suivante. Vous restez responsable de ce que vous réutilisez et des données propres à chaque client.',
+          body: 'La structure exportée est techniquement réutilisable. Vous restez responsable des licences, de vos contrats clients, des éléments confidentiels et de la suppression de toutes les données du client avant réutilisation.',
         },
         {
           title: 'Puis-je connecter une base ou des services externes ?',
@@ -467,7 +495,7 @@ export const FREELANCERS_COPY = {
     },
     finalCta: {
       title: 'Démarrez un projet client et partagez-le aujourd’hui',
-      body: 'Transformez un brief client en une application fonctionnelle dans du vrai code source, partagez un lien d’aperçu pour la revue et transmettez un code modifiable que le client possède.',
+      body: 'Transformez un brief client en une application fonctionnelle dans du vrai code source, partagez un lien d’aperçu pour la revue et transmettez un projet modifiable et exporté.',
       primaryCta: { label: 'Démarrer un projet client', ariaLabel: 'Démarrer un projet client avec E-Code' },
       secondaryCta: {
         label: 'Voir la construction',

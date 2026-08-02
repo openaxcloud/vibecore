@@ -11,13 +11,13 @@ export const ENTERPRISE_COPY = {
     seo: {
       title: 'Enterprise Rollout with Governance | E-Code',
       description:
-        'Roll out E-Code across an engineering organization with SSO, SCIM provisioning, role-based access, audit export, private runtime planning, and governed deploys. A capability-driven rollout, not a template.',
+        'Plan an E-Code rollout around SSO and SCIM integration, role-based access, audit export, deployment approvals, and runtime requirements — with tenant validation before production enablement.',
     },
     hero: {
       eyebrow: 'Enterprise rollout for governed engineering teams',
       title: 'Roll out E-Code across your org with identity, governance, and control',
       subtitle:
-        'Bring E-Code to a whole engineering organization without giving up control. Connect SSO and SCIM, assign roles, export audit events, plan a private runtime, and keep deployments governed — with the same real, inspectable code your teams already build with.',
+        'Bring E-Code to a whole engineering organization through a controlled rollout. Scope SSO and SCIM integration, role boundaries, audit export, deployment approvals, and runtime topology against your environment, then validate each production control before enablement.',
       primaryCta: { label: 'Plan your rollout', ariaLabel: 'Plan your E-Code enterprise rollout' },
       secondaryCta: { label: 'See how governance works', ariaLabel: 'See how E-Code governance and controls work' },
       microcopy:
@@ -73,7 +73,7 @@ export const ENTERPRISE_COPY = {
         },
       ],
       bridge:
-        'E-Code brings the rollout under existing controls: SSO and SCIM for identity, roles for access, exportable audit events, private runtime planning, and governed deploys — over the same real source code your teams already build with.',
+        'The E-Code enterprise rollout maps identity integration, roles, audit export, runtime requirements, and deployment approvals to your existing controls. Configuration and tenant validation precede production enablement.',
     },
     build: {
       eyebrow: 'One request frames the rollout',
@@ -86,15 +86,15 @@ export const ENTERPRISE_COPY = {
       outputs: [
         {
           title: 'Identity and provisioning',
-          body: 'SSO connects E-Code to your identity provider, and SCIM provisioning keeps membership in sync with the directory as people join, move, and leave.',
+          body: 'E-Code includes SAML/OIDC and SCIM configuration paths. Your identity metadata, role mapping, joiner/leaver behavior, and tenant connection are validated before they govern production access.',
         },
         {
           title: 'Governance and access',
-          body: 'Role-based access defines who can build, review, and ship, and an exportable audit trail records identity, access, and deploy events for review.',
+          body: 'Role-based access scopes build, review, deploy, and administration actions. The rollout verifies which identity, access, and deployment events enter the audit export required by your review process.',
         },
         {
           title: 'Controlled delivery',
-          body: 'Private runtime planning and governed deploys keep where code runs and how it ships under platform-team control across environments.',
+          body: 'Runtime isolation is an architecture and rollout decision, not a default entitlement. Deployment roles and approval paths are configured and tested against the environments in scope.',
         },
         {
           title: 'Rollout support',
@@ -104,39 +104,53 @@ export const ENTERPRISE_COPY = {
     },
     proofLink: {
       eyebrow: 'Prompt → agent → Preview',
-      title: 'Want to see a real E-Code build end to end?',
-      body: 'The App Builder page shows a captured, real E-Code workspace — the prompt, the agent’s plan, the generated files, and the running Preview — for a booking application. The same real build loop is what your teams run under the controls described here.',
+      title: 'Inspect the real IDE workflow before planning an organization rollout',
+      body: 'These two captures come from the real App Builder salon-booking run: the prompt, the agent, the generated files, and the running Preview all appear inside E-Code. They prove the build workflow; they do not claim that the fictional organization console above came from that run.',
+      galleryLabel: 'Real IDE evidence from the App Builder salon-booking reference run',
+      disclaimer:
+        'Reference evidence only: both images are genuine captures of the App Builder salon run. The Enterprise console on this page is a scripted role demonstration with fictional organization data, not a generation log.',
+      openFullSizeLabel: 'Open the enterprise workflow reference at full size',
+      preview: {
+        title: 'A real workspace moves from prompt to running Preview',
+        body: 'The first reference capture shows the salon prompt, the agent conversation, the generated project tree, and the booking app running together in the E-Code IDE.',
+        alt: 'Real E-Code App Builder salon run showing the agent, generated project files, and booking application in the Preview tab, used as workflow evidence for the Enterprise page.',
+      },
+      iteration: {
+        title: 'The same workspace records the next requested change',
+        body: 'The second reference capture shows a follow-up instruction and the updated Preview, illustrating the inspectable iteration loop an enterprise rollout governs.',
+        alt: 'Real E-Code App Builder salon run after an iteration, with the follow-up agent exchange and updated Preview visible inside the IDE.',
+      },
       cta: { label: 'See the real IDE proof', ariaLabel: 'See the real E-Code IDE proof on the App Builder page' },
     },
     deliverables: {
       eyebrow: 'What your organization receives',
-      title: 'A governed rollout you administer centrally',
+      title: 'Inspectable project output, from source review to governed delivery',
       intro:
-        'The rollout stays inspectable and accountable from identity through delivery. Central administration, audit export, and deploy governance sit over the same real source code your teams build with.',
+        'Every generated project exposes what teams review, what platform owners still connect, and which publishing path applies. Enterprise controls remain visible around the work without turning a demo into proof of production readiness.',
       items: [
         {
-          title: 'SSO sign-in',
-          body: 'Connect E-Code to your identity provider so access follows your organization’s single sign-on.',
+          title: 'Inspectable, exportable source',
+          body: 'Teams receive real components, routes, styles, and configuration files that reviewers inspect in the workspace and export for their versioning and delivery process.',
         },
         {
-          title: 'SCIM provisioning',
-          body: 'Keep membership in sync with your directory as people are added, updated, and deprovisioned.',
+          title: 'Visible data and integration boundaries',
+          body: 'Schemas, adapters, environment references, and secret names stay visible in the project. Databases, identity providers, and internal services still require approved connections and tenant validation; credentials never belong in generated source.',
         },
         {
-          title: 'Role-based access',
-          body: 'Assign roles that define who can build, review, deploy, and administer across teams.',
+          title: 'Reviewable responsive Preview',
+          body: 'A compatible build runs in Preview across desktop, tablet, and mobile so product, platform, and security reviewers inspect the same current interface before a release decision.',
         },
         {
-          title: 'Audit export',
-          body: 'Export identity, access, and deploy events to your own review and monitoring workflow.',
+          title: 'Guided static publishing',
+          body: 'Supported static builds follow E-Code’s guided publishing flow. Enterprise roles, approval points, and target-environment checks remain explicit rollout configuration.',
         },
         {
-          title: 'Private runtime planning',
-          body: 'Plan isolated runtime for where workspaces execute, scoped to your environment requirements.',
+          title: 'Live static URL or runtime handoff',
+          body: 'A supported static release receives a live E-Code-hosted URL. Projects that depend on server processes remain exportable and need an agreed runtime, networking, secrets, and operational model.',
         },
         {
-          title: 'Governed deploys and support',
-          body: 'Keep deployments under review controls, with a guided rollout and a support path for your teams.',
+          title: 'Conversation-led iteration',
+          body: 'A team continues the Agent conversation to request a policy, interface, or workflow change, then reviews the updated files, diff, and running Preview before accepting it.',
         },
       ],
     },
@@ -148,24 +162,24 @@ export const ENTERPRISE_COPY = {
       items: [
         {
           title: 'Single sign-on',
-          body: 'Bring E-Code access under your identity provider so the directory stays the source of truth.',
+          body: 'Use the SAML/OIDC configuration path and validate your provider’s metadata, claims, and role mapping before production use.',
         },
         {
           title: 'Directory provisioning',
-          body: 'SCIM keeps members and roles aligned with your directory automatically.',
+          body: 'SCIM synchronizes supported membership changes after tenant configuration and live provisioning tests succeed.',
         },
         { title: 'Roles and permissions', body: 'Role boundaries scope who can build, review, ship, and administer.' },
         {
           title: 'Audit trail export',
-          body: 'Exportable events for identity, access, and deploys feed your review process.',
+          body: 'Verify exported identity, access, and deployment event coverage against the evidence your review process requires.',
         },
         {
           title: 'Runtime isolation planning',
-          body: 'Plan private runtime so where code executes matches your environment controls.',
+          body: 'Assess a private runtime topology against networking, secrets, capacity, operations, and support requirements before adding it to scope.',
         },
         {
           title: 'Deploy governance',
-          body: 'Keep releases under approval controls without hiding the underlying code.',
+          body: 'Configure and test roles and review points around supported release paths without hiding the underlying source.',
         },
       ],
     },
@@ -181,11 +195,11 @@ export const ENTERPRISE_COPY = {
         },
         {
           title: 'Security and compliance teams',
-          body: 'Enforce SSO, role boundaries, and an exportable audit trail across engineering.',
+          body: 'Validate SSO, role boundaries, and audit evidence against internal access and review requirements.',
         },
         {
           title: 'Regulated organizations',
-          body: 'Adopt E-Code where access, audit, and runtime control are non-negotiable requirements.',
+          body: 'Evaluate E-Code through documented identity, audit, runtime, and deployment requirements without inferring a certification from this page.',
         },
         {
           title: 'Multi-team engineering orgs',
@@ -200,11 +214,11 @@ export const ENTERPRISE_COPY = {
       items: [
         {
           title: 'Does E-Code support SSO and SCIM?',
-          body: 'Yes. SSO connects sign-in to your identity provider and SCIM keeps membership in sync with your directory. These are configured as part of a rollout with your platform team.',
+          body: 'E-Code includes SAML/OIDC configuration and SCIM provisioning paths. Production support for your organization is confirmed only after provider metadata, claims, role mapping, provisioning, and deprovisioning pass validation in your tenant.',
         },
         {
           title: 'Can I export an audit trail?',
-          body: 'Identity, access, and deploy events can be exported to your own review and monitoring workflow. The inline demonstration on this page uses fictional data and no connected backend.',
+          body: 'The enterprise scope includes audit export, with event coverage and destination verified against your review workflow. The inline demonstration on this page uses fictional data and proves no connected export.',
         },
         {
           title: 'Is E-Code certified for a specific compliance standard?',
@@ -212,17 +226,17 @@ export const ENTERPRISE_COPY = {
         },
         {
           title: 'Can workspaces run on a private runtime?',
-          body: 'Private runtime is a planning capability scoped to your environment. Where and how it applies is defined during the rollout with your platform team rather than assumed by default.',
+          body: 'This page promises private-runtime planning, not an enabled private environment. Topology, availability, networking, operations, support, and commercial scope are confirmed during the rollout before any implementation commitment.',
         },
         {
           title: 'How do deployments stay governed?',
-          body: 'Role-based access and deploy controls keep who can ship and how releases proceed under review, over the same real source code your teams build and export.',
+          body: 'The rollout configures roles and review points for the supported deployment paths, then tests who may release and how approval proceeds in the environments included in scope.',
         },
       ],
     },
     finalCta: {
       title: 'Plan your governed E-Code rollout',
-      body: 'Bring E-Code to your organization under SSO, roles, audit export, private runtime planning, and governed deploys — over the same real source code your teams already build with.',
+      body: 'Map identity, roles, audit export, runtime requirements, and deployment approvals to your environment, then validate every production control before enablement.',
       primaryCta: { label: 'Plan your rollout', ariaLabel: 'Plan your E-Code enterprise rollout' },
       secondaryCta: { label: 'See how governance works', ariaLabel: 'See how E-Code governance and controls work' },
     },
@@ -245,13 +259,13 @@ export const ENTERPRISE_COPY = {
     seo: {
       title: 'Déploiement entreprise avec gouvernance | E-Code',
       description:
-        'Déployez E-Code dans toute une organisation d’ingénierie avec le SSO, le provisionnement SCIM, des accès par rôle, l’export d’audit, la planification d’un runtime privé et des déploiements gouvernés. Un déploiement piloté par les capacités, pas un template.',
+        'Planifiez un déploiement E-Code autour de l’intégration SSO et SCIM, des accès par rôle, de l’export d’audit, des approbations de livraison et des exigences runtime, avec validation du tenant avant activation en production.',
     },
     hero: {
       eyebrow: 'Déploiement entreprise pour des équipes d’ingénierie gouvernées',
       title: 'Déployez E-Code dans toute votre organisation avec identité, gouvernance et contrôle',
       subtitle:
-        'Amenez E-Code à toute une organisation d’ingénierie sans renoncer au contrôle. Connectez le SSO et le SCIM, attribuez des rôles, exportez les événements d’audit, planifiez un runtime privé et gardez les déploiements gouvernés — avec le même vrai code inspectable que vos équipes utilisent déjà.',
+        'Amenez E-Code à toute une organisation d’ingénierie par un déploiement contrôlé. Cadrez l’intégration SSO et SCIM, les frontières de rôles, l’export d’audit, les approbations de livraison et la topologie runtime selon votre environnement, puis validez chaque contrôle avant activation en production.',
       primaryCta: { label: 'Planifiez votre déploiement', ariaLabel: 'Planifiez votre déploiement entreprise E-Code' },
       secondaryCta: {
         label: 'Voir la gouvernance',
@@ -311,7 +325,7 @@ export const ENTERPRISE_COPY = {
         },
       ],
       bridge:
-        'E-Code place le déploiement sous les contrôles existants : SSO et SCIM pour l’identité, rôles pour l’accès, événements d’audit exportables, planification d’un runtime privé et déploiements gouvernés — sur le même vrai code source que vos équipes utilisent déjà.',
+        'Le déploiement entreprise E-Code aligne l’intégration d’identité, les rôles, l’export d’audit, les exigences runtime et les approbations de livraison sur vos contrôles existants. La configuration et la validation du tenant précèdent l’activation en production.',
     },
     build: {
       eyebrow: 'Une demande cadre le déploiement',
@@ -324,15 +338,15 @@ export const ENTERPRISE_COPY = {
       outputs: [
         {
           title: 'Identité et provisionnement',
-          body: 'Le SSO relie E-Code à votre fournisseur d’identité, et le provisionnement SCIM garde l’appartenance synchronisée avec l’annuaire à mesure que les personnes arrivent, changent et partent.',
+          body: 'E-Code inclut des parcours de configuration SAML/OIDC et SCIM. Vos métadonnées d’identité, le mapping des rôles, les arrivées et départs, et la connexion du tenant sont validés avant de gouverner les accès de production.',
         },
         {
           title: 'Gouvernance et accès',
-          body: 'Les accès par rôle définissent qui peut construire, relire et livrer, et une piste d’audit exportable enregistre les événements d’identité, d’accès et de déploiement à des fins de revue.',
+          body: 'Les accès par rôle cadrent les actions de construction, revue, déploiement et administration. Le déploiement vérifie quels événements d’identité, d’accès et de livraison entrent dans l’export exigé par votre processus de revue.',
         },
         {
           title: 'Livraison contrôlée',
-          body: 'La planification d’un runtime privé et les déploiements gouvernés maintiennent l’endroit où le code s’exécute et la façon dont il est livré sous le contrôle de l’équipe plateforme, à travers les environnements.',
+          body: 'L’isolation du runtime est une décision d’architecture et de déploiement, pas un droit activé par défaut. Les rôles et parcours d’approbation sont configurés et testés selon les environnements du périmètre.',
         },
         {
           title: 'Support au déploiement',
@@ -342,8 +356,22 @@ export const ENTERPRISE_COPY = {
     },
     proofLink: {
       eyebrow: 'Prompt → agent → aperçu',
-      title: 'Envie de voir une vraie génération E-Code de bout en bout ?',
-      body: 'La page App Builder montre un vrai workspace E-Code capturé — le prompt, le plan de l’agent, les fichiers générés et l’aperçu actif — pour une application de réservation. C’est la même vraie boucle de construction que vos équipes exécutent sous les contrôles décrits ici.',
+      title: 'Inspectez le vrai parcours IDE avant de planifier un déploiement organisationnel',
+      body: 'Ces deux captures viennent du vrai run App Builder du salon de coiffure : le prompt, l’agent, les fichiers générés et l’aperçu actif apparaissent ensemble dans E-Code. Elles prouvent le parcours de construction ; elles ne prétendent pas que la console d’organisation fictive ci-dessus vient de ce run.',
+      galleryLabel: 'Preuves IDE réelles du run de référence App Builder du salon',
+      disclaimer:
+        'Preuve de référence uniquement : les deux images sont de vraies captures du run App Builder du salon. La console Entreprise de cette page est une démonstration scénarisée avec des données d’organisation fictives, pas un journal de génération.',
+      openFullSizeLabel: 'Ouvrir la référence du parcours entreprise en plein format',
+      preview: {
+        title: 'Un vrai workspace passe du prompt à l’aperçu actif',
+        body: 'La première capture de référence montre le prompt du salon, l’échange avec l’agent, l’arborescence générée et l’application de réservation qui tourne dans l’IDE E-Code.',
+        alt: 'Vrai run App Builder E-Code du salon montrant l’agent, les fichiers projet générés et l’application de réservation dans l’onglet Aperçu, utilisé comme preuve de parcours pour la page Entreprise.',
+      },
+      iteration: {
+        title: 'Le même workspace conserve la modification demandée ensuite',
+        body: 'La seconde capture de référence montre une instruction de suivi et l’aperçu mis à jour, soit la boucle d’itération inspectable qu’un déploiement entreprise encadre.',
+        alt: 'Vrai run App Builder E-Code du salon après une itération, avec l’échange de suivi de l’agent et l’aperçu mis à jour visibles dans l’IDE.',
+      },
       cta: {
         label: 'Voir la preuve IDE réelle',
         ariaLabel: 'Voir la preuve IDE réelle E-Code sur la page App Builder',
@@ -351,33 +379,33 @@ export const ENTERPRISE_COPY = {
     },
     deliverables: {
       eyebrow: 'Ce que reçoit votre organisation',
-      title: 'Un déploiement gouverné que vous administrez de façon centralisée',
+      title: 'Une sortie projet inspectable, de la revue du code à la livraison gouvernée',
       intro:
-        'Le déploiement reste inspectable et traçable de l’identité jusqu’à la livraison. L’administration centrale, l’export d’audit et la gouvernance des déploiements se posent sur le même vrai code source que vos équipes utilisent.',
+        'Chaque projet généré expose ce que les équipes relisent, ce que la plateforme doit encore connecter et le parcours de publication applicable. Les contrôles entreprise entourent le travail sans transformer une démo en preuve d’aptitude à la production.',
       items: [
         {
-          title: 'Connexion SSO',
-          body: 'Reliez E-Code à votre fournisseur d’identité pour que l’accès suive le SSO de votre organisation.',
+          title: 'Source inspectable et exportable',
+          body: 'Les équipes reçoivent de vrais composants, routes, styles et fichiers de configuration que les relecteurs inspectent dans le workspace puis exportent vers leur processus de versionnement et de livraison.',
         },
         {
-          title: 'Provisionnement SCIM',
-          body: 'Gardez l’appartenance synchronisée avec votre annuaire à mesure que les personnes sont ajoutées, mises à jour et déprovisionnées.',
+          title: 'Frontières données et intégrations visibles',
+          body: 'Schémas, adaptateurs, références d’environnement et noms de secrets restent visibles dans le projet. Bases, fournisseurs d’identité et services internes exigent encore des connexions approuvées et la validation du tenant ; les identifiants n’ont pas leur place dans la source générée.',
         },
         {
-          title: 'Accès par rôle',
-          body: 'Attribuez des rôles qui définissent qui peut construire, relire, déployer et administrer entre les équipes.',
+          title: 'Aperçu responsive à relire',
+          body: 'Un build compatible tourne dans l’aperçu sur desktop, tablette et mobile pour que produit, plateforme et sécurité inspectent la même interface courante avant toute décision de livraison.',
         },
         {
-          title: 'Export d’audit',
-          body: 'Exportez les événements d’identité, d’accès et de déploiement vers votre propre flux de revue et de supervision.',
+          title: 'Publication statique guidée',
+          body: 'Les builds statiques pris en charge suivent le parcours de publication guidée E-Code. Rôles entreprise, points d’approbation et contrôles de l’environnement cible restent une configuration explicite du déploiement.',
         },
         {
-          title: 'Planification de runtime privé',
-          body: 'Planifiez un runtime isolé pour l’exécution des workspaces, cadré sur les exigences de votre environnement.',
+          title: 'URL statique en ligne ou relais runtime',
+          body: 'Une livraison statique prise en charge reçoit une URL en ligne hébergée par E-Code. Les projets dépendants de processus serveur restent exportables et exigent un modèle convenu de runtime, réseau, secrets et exploitation.',
         },
         {
-          title: 'Déploiements gouvernés et support',
-          body: 'Gardez les déploiements sous contrôles de revue, avec un déploiement guidé et un canal de support pour vos équipes.',
+          title: 'Itération pilotée par la conversation',
+          body: 'Une équipe poursuit la conversation avec l’Agent pour demander un changement de politique, d’interface ou de workflow, puis relit les fichiers, le diff et l’aperçu mis à jour avant de l’accepter.',
         },
       ],
     },
@@ -389,11 +417,11 @@ export const ENTERPRISE_COPY = {
       items: [
         {
           title: 'Authentification unique',
-          body: 'Placez l’accès E-Code sous votre fournisseur d’identité pour que l’annuaire reste la source de vérité.',
+          body: 'Utilisez le parcours de configuration SAML/OIDC et validez les métadonnées, claims et mapping des rôles de votre fournisseur avant l’usage en production.',
         },
         {
           title: 'Provisionnement par annuaire',
-          body: 'Le SCIM garde membres et rôles alignés sur votre annuaire automatiquement.',
+          body: 'Le SCIM synchronise les changements d’appartenance pris en charge après réussite de la configuration du tenant et des tests réels de provisionnement.',
         },
         {
           title: 'Rôles et permissions',
@@ -401,15 +429,15 @@ export const ENTERPRISE_COPY = {
         },
         {
           title: 'Export de piste d’audit',
-          body: 'Des événements exportables d’identité, d’accès et de déploiement alimentent votre processus de revue.',
+          body: 'Vérifiez la couverture des événements exportés d’identité, d’accès et de livraison selon les preuves exigées par votre processus de revue.',
         },
         {
           title: 'Planification d’isolation runtime',
-          body: 'Planifiez un runtime privé pour que l’exécution du code corresponde à vos contrôles d’environnement.',
+          body: 'Évaluez une topologie runtime privée selon les exigences de réseau, secrets, capacité, exploitation et support avant de l’ajouter au périmètre.',
         },
         {
           title: 'Gouvernance des déploiements',
-          body: 'Gardez les livraisons sous contrôles d’approbation sans masquer le code sous-jacent.',
+          body: 'Configurez et testez rôles et points de revue autour des parcours de livraison pris en charge sans masquer la source sous-jacente.',
         },
       ],
     },
@@ -425,11 +453,11 @@ export const ENTERPRISE_COPY = {
         },
         {
           title: 'Équipes sécurité et conformité',
-          body: 'Imposez le SSO, les frontières de rôles et une piste d’audit exportable à toute l’ingénierie.',
+          body: 'Validez le SSO, les frontières de rôles et les preuves d’audit selon les exigences internes d’accès et de revue.',
         },
         {
           title: 'Organisations régulées',
-          body: 'Adoptez E-Code là où l’accès, l’audit et le contrôle du runtime sont des exigences non négociables.',
+          body: 'Évaluez E-Code à travers des exigences documentées d’identité, d’audit, de runtime et de livraison sans déduire une certification de cette page.',
         },
         {
           title: 'Organisations multi-équipes',
@@ -444,11 +472,11 @@ export const ENTERPRISE_COPY = {
       items: [
         {
           title: 'E-Code prend-il en charge le SSO et le SCIM ?',
-          body: 'Oui. Le SSO relie la connexion à votre fournisseur d’identité et le SCIM garde l’appartenance synchronisée avec votre annuaire. Ils se configurent dans le cadre d’un déploiement avec votre équipe plateforme.',
+          body: 'E-Code inclut des parcours de configuration SAML/OIDC et de provisionnement SCIM. La prise en charge en production pour votre organisation n’est confirmée qu’après validation des métadonnées, claims, mappings de rôles, provisionnement et déprovisionnement dans votre tenant.',
         },
         {
           title: 'Puis-je exporter une piste d’audit ?',
-          body: 'Les événements d’identité, d’accès et de déploiement peuvent être exportés vers votre propre flux de revue et de supervision. La démonstration intégrée de cette page utilise des données fictives et aucun backend connecté.',
+          body: 'Le périmètre entreprise inclut l’export d’audit, avec couverture des événements et destination vérifiées selon votre flux de revue. La démonstration intégrée utilise des données fictives et ne prouve aucun export connecté.',
         },
         {
           title: 'E-Code est-il certifié pour une norme de conformité précise ?',
@@ -456,17 +484,17 @@ export const ENTERPRISE_COPY = {
         },
         {
           title: 'Les workspaces peuvent-ils tourner sur un runtime privé ?',
-          body: 'Le runtime privé est une capacité de planification cadrée sur votre environnement. Où et comment il s’applique se définit pendant le déploiement avec votre équipe plateforme, pas par défaut.',
+          body: 'Cette page promet la planification d’un runtime privé, pas un environnement privé activé. Topologie, disponibilité, réseau, exploitation, support et périmètre commercial sont confirmés pendant le déploiement avant tout engagement d’implémentation.',
         },
         {
           title: 'Comment les déploiements restent-ils gouvernés ?',
-          body: 'Les accès par rôle et les contrôles de déploiement gardent sous revue qui peut livrer et comment les livraisons se déroulent, sur le même vrai code source que vos équipes construisent et exportent.',
+          body: 'Le déploiement configure les rôles et points de revue pour les parcours de livraison pris en charge, puis teste qui peut livrer et comment l’approbation se déroule dans les environnements du périmètre.',
         },
       ],
     },
     finalCta: {
       title: 'Planifiez votre déploiement E-Code gouverné',
-      body: 'Amenez E-Code à votre organisation sous SSO, rôles, export d’audit, planification d’un runtime privé et déploiements gouvernés — sur le même vrai code source que vos équipes utilisent déjà.',
+      body: 'Alignez identité, rôles, export d’audit, exigences runtime et approbations de livraison sur votre environnement, puis validez chaque contrôle de production avant activation.',
       primaryCta: { label: 'Planifiez votre déploiement', ariaLabel: 'Planifiez votre déploiement entreprise E-Code' },
       secondaryCta: {
         label: 'Voir la gouvernance',
