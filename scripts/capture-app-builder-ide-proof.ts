@@ -288,7 +288,7 @@ function repairPromptFor(slug: CaptureSlug, scenario: SolutionScenario, attempt:
 
   const basePrompt =
     configuredPrompt ??
-    `The actual Webview is blank or contains a runtime error. Inspect the exact saved project files and current Vite diagnostics. Replace every empty or truncated runtime file, remove accidental prose, markdown, boltArtifact, and boltAction wrappers from source files, then fix all blocking TypeScript and runtime errors. Preserve this app's identity and verified local-only scope: ${appIdentity}. Remove remote image, font, script, and stylesheet URLs; use code-drawn or bundled local assets. Start the dev server and only report success after the actual Webview contains the app. Do not add any external service, secret, or unsupported claim.`;
+    `The actual Webview is blank or contains a runtime error. Inspect the exact saved project files, current Vite diagnostics, and every entry in the IDE Problems panel. Replace every empty or truncated runtime file, remove accidental prose, markdown, boltArtifact, and boltAction wrappers from source files, then fix every TypeScript, import, syntax, test, and runtime error until Problems shows zero errors. Preserve this app's identity and verified local-only scope: ${appIdentity}. Remove remote image, font, script, and stylesheet URLs; use code-drawn or bundled local assets. Run typecheck, start the dev server, and only report success after the actual Webview contains the app. Do not add any external service, secret, or unsupported claim.`;
 
   if (attempt === 1) {
     return basePrompt;
