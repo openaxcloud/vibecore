@@ -492,7 +492,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
      */
     const terminalPath = `/workspaces/${this.#requireWorkspaceId()}/terminal?sessionId=${encodeURIComponent(
       terminalId,
-    )}&cols=${cols}&rows=${rows}`;
+    )}&cols=${cols}&rows=${rows}${request.managed ? '&managed=1' : ''}`;
 
     let stopped = false;
     let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
