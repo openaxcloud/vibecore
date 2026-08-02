@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { chmod, mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 
@@ -571,7 +571,7 @@ async function waitForProjectToSettle(
         const stopGenerationButton = agentPanel.getByRole('button', { name: 'Stop generation' }).first();
         const generationStillRunning = await stopGenerationButton.isVisible().catch(() => false);
 
-        if (Boolean(revision) && stableChecks >= 24 && generationStillRunning) {
+        if (Boolean(revision) && stableChecks >= 12 && generationStillRunning) {
           const stopped = await stopGenerationButton
             .click()
             .then(() => true)
@@ -601,7 +601,15 @@ async function waitForProjectToSettle(
 async function projectFilesRevision(page: Page, projectId: string, token: string) {
   const projectState = await readProjectIdeState(page, projectId, token);
 
-  return projectState?.version === undefined ? undefined : String(projectState.version);
+  if (!projectState?.files.length) {
+    return undefined;
+  }
+
+  const files = [...projectState.files]
+    .sort((left, right) => (left.path ?? '').localeCompare(right.path ?? ''))
+    .map((file) => ({ path: file.path ?? '', content: file.content ?? '' }));
+
+  return createHash('sha256').update(JSON.stringify(files)).digest('hex');
 }
 
 async function submitAgentPrompt(agentPanel: ReturnType<Page['getByTestId']>, prompt: string) {
