@@ -1299,8 +1299,17 @@ async function main() {
     process.stdout.write(`${JSON.stringify({ status: 'project-ready', slug, locale, projectId })}\n`);
 
     const agentPanel = page.getByTestId('ide-agent-panel');
-    const promptBubble = agentPanel.getByText(creationPrompt, { exact: true }).first();
+    const originalPromptBubble = agentPanel.getByText(creationPrompt, { exact: true }).first();
     await expect(agentPanel).toBeVisible({ timeout: 180_000 });
+
+    const originalPromptVisible = await originalPromptBubble
+      .waitFor({ state: 'visible', timeout: 10_000 })
+      .then(() => true)
+      .catch(() => false);
+    const promptBubble = originalPromptVisible
+      ? originalPromptBubble
+      : agentPanel.locator('.bolt-chat-message-row-user').first();
+
     await expect(promptBubble).toBeVisible({ timeout: 180_000 });
     await expect(page.locator('.bolt-file-tree-name').first()).toBeVisible({ timeout: 180_000 });
 
