@@ -84,7 +84,21 @@ Session QA mintée server-side (kubectl exec api pod), nettoyée en fin de preuv
 - **RPL-SK-001.4 — UI responsive live** : panneau Skills ouvert dans l'IDE prod (cookie `vc_session`), affichant provenance (badges Github/Catalog), verdicts (✓ Approved / ⊘ Revoked), boutons Approve/Revoke/Uninstall et le journal d'audit (dont `install-rejected pyenv`). **8 captures** `responsive/skills-{1440x900,1024x768,768x1024,390x844}-{dark,light}.png` — le panneau s'adapte aux 4 largeurs et aux 2 thèmes (layout mobile natif à 390px).
 - **RPL-SK-001.1 — parser déployé exercé live** : le chemin d'install audite via `parseSkillManifest` déployé (le refus pyenv et l'install anthropics passent par le parser). Skill réel `.agents/skills/commit-helper/` livré sur main.
 
-### Réserve honnête (non ✅ Testé live)
+## RPL-SK-001.2 — progressive disclosure CÂBLÉE + prouvée LIVE (2026-07-31, merge `04288e8f` PR #75)
 
-- **RPL-SK-001.2 (progressive disclosure)** : le module `skill-disclosure.ts` est implémenté, unit-testé (4 tests) et prouvé par script (`L1 → L2 → L3` à la demande), mais **n'est encore importé par aucun chemin runtime** — l'injection de contexte agent (`project-skills.ts`) envoie toujours les instructions complètes. La disclosure est donc prouvée au niveau module/tests, **pas** en flux prod. Suite : câbler `skill-disclosure` dans `project-skills.ts`.
+Le module de disclosure est désormais **câblé au chemin agent live** : `app/lib/.server/llm/skill-disclosure.ts` (jumeau runtime de `services/api/src/skill-disclosure.ts`) est consommé par `retrieveSkillsForAgentContext` (`project-skills.ts`), lui-même appelé par `api.chat.ts`. Le dernier message utilisateur pilote le chargement L2 ; une annotation `skillDisclosure` + un log `[skill-disclosure]` sont émis par tour.
+
+**Preuve live prod** (session QA, 2 skills installés, génération réelle `/api/chat`, prompt matchant un seul) :
+```
+[skill-disclosure] installed=2 triggered=1(goldbergyoni/nodebestpractices)
+  bytesByLevel={"1":218,"2":50354,"3":0}
+  trace=[ {seq:1,L1,"Node.js Best Practices",107B},
+          {seq:2,L1,"Anthropic Skills",111B},
+          {seq:3,L2,"Node.js Best Practices",50354B} ]
+annotation: {"type":"skillDisclosure","triggered":["goldbergyoni/nodebestpractices"]}
+```
+→ **L1 pour les DEUX skills, L2 uniquement pour le skill pertinent** (le body d'Anthropic Skills n'est jamais entré dans le prompt). 13 tests (6 disclosure + 7 project-skills). Détail : `disclosure-live-proof.txt`.
+
+### Réserve restante
+
 - **RPL-SK-001.1** : la matérialisation d'un dossier `.agents/skills/<name>/` dans un workspace réel reste prouvée par `loadSkillFromFiles` (tests), pas par un flux UI live.
