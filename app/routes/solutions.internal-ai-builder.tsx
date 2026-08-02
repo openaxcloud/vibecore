@@ -5,7 +5,10 @@ const route = makeSolutionRoute(
   {
     slug: 'internal-ai-builder',
     canonicalUrl: 'https://e-code.ai/solutions/internal-ai-builder',
-    ogImage: { en: 'https://e-code.ai/assets/og-default.png', fr: 'https://e-code.ai/assets/og-default.png' },
+    ogImage: {
+      en: 'https://e-code.ai/assets/og/solutions/internal-ai-builder-en.png',
+      fr: 'https://e-code.ai/assets/og/solutions/internal-ai-builder-fr.png',
+    },
   },
   INTERNAL_AI_BUILDER_COPY,
 );

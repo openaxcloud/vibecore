@@ -5,7 +5,10 @@ const route = makeSolutionRoute(
   {
     slug: 'website-builder',
     canonicalUrl: 'https://e-code.ai/solutions/website-builder',
-    ogImage: { en: 'https://e-code.ai/assets/og-default.png', fr: 'https://e-code.ai/assets/og-default.png' },
+    ogImage: {
+      en: 'https://e-code.ai/assets/og/solutions/website-builder-en.png',
+      fr: 'https://e-code.ai/assets/og/solutions/website-builder-fr.png',
+    },
   },
   WEBSITE_BUILDER_COPY,
 );
