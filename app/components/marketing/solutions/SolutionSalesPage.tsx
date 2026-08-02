@@ -21,12 +21,13 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 
 import './solution-sales.css';
-import {
-  APP_BUILDER_VISUAL_ASSETS,
-  resolveAppBuilderVisualLanguage,
-  type AppBuilderVisualAsset,
-} from './app-builder.visuals';
 import type { SolutionCopy } from './solution-copy';
+import {
+  getSolutionProofVisuals,
+  resolveSolutionProofVisualLanguage,
+  type SolutionProofVisualAsset,
+  type SolutionProofVisualSlug,
+} from './solution-proof.visuals';
 import { EcodeExactPublicShell as PublicShell } from '~/components/marketing/ecode-exact/EcodeExactShell';
 import type { SupportedLanguage } from '~/lib/i18n/language';
 
@@ -51,14 +52,23 @@ const featureIcons = [
   Code2,
 ] as const satisfies readonly LucideIcon[];
 
-export function SolutionSalesPage({ copy, language }: { copy: SolutionCopy; language: SupportedLanguage }) {
+export function SolutionSalesPage({
+  copy,
+  language,
+  solutionSlug,
+}: {
+  copy: SolutionCopy;
+  language: SupportedLanguage;
+  solutionSlug: SolutionProofVisualSlug;
+}) {
   const direction = language === 'ar' ? 'rtl' : 'ltr';
 
   return (
     <PublicShell language={language}>
       <main
         className="sol-sales"
-        data-ecode-marketing-page={`solution-${copy.demo.brand.toLowerCase().replace(/\s+/g, '-')}`}
+        data-ecode-marketing-page={`solution-${solutionSlug}`}
+        data-solution-slug={solutionSlug}
         data-testid="solution-page"
         aria-label={copy.aria.pageLabel}
         lang={language}
@@ -67,7 +77,7 @@ export function SolutionSalesPage({ copy, language }: { copy: SolutionCopy; lang
         <Hero copy={copy} language={language} />
         <ProblemSection copy={copy} />
         <BuildSection copy={copy} />
-        <ProofLinkBand copy={copy} language={language} />
+        <ProofLinkBand copy={copy} language={language} solutionSlug={solutionSlug} />
         <DeliverablesSection copy={copy} />
         <FeaturesSection copy={copy} />
         <UseCasesSection copy={copy} />
@@ -253,9 +263,17 @@ function BuildSection({ copy }: { copy: SolutionCopy }) {
   );
 }
 
-function ProofLinkBand({ copy, language }: { copy: SolutionCopy; language: SupportedLanguage }) {
-  const visualLanguage = resolveAppBuilderVisualLanguage(language);
-  const assets = APP_BUILDER_VISUAL_ASSETS[visualLanguage];
+function ProofLinkBand({
+  copy,
+  language,
+  solutionSlug,
+}: {
+  copy: SolutionCopy;
+  language: SupportedLanguage;
+  solutionSlug: SolutionProofVisualSlug;
+}) {
+  const visualLanguage = resolveSolutionProofVisualLanguage(language);
+  const assets = getSolutionProofVisuals(solutionSlug, visualLanguage);
 
   return (
     <section className="sol-proof-link" aria-label={copy.aria.proofLinkLabel} data-testid="solution-proof-link">
@@ -269,14 +287,11 @@ function ProofLinkBand({ copy, language }: { copy: SolutionCopy; language: Suppo
             <h2>{copy.proofLink.title}</h2>
             <p>{copy.proofLink.body}</p>
           </div>
-          <ActionLink
-            to={`/solutions/app-builder?lang=${visualLanguage}`}
-            action={copy.proofLink.cta}
-            variant="secondary"
-          />
+          <ActionLink to="#solution-ide-proof-gallery" action={copy.proofLink.cta} variant="secondary" />
         </div>
 
         <div
+          id="solution-ide-proof-gallery"
           className="sol-proof-link__gallery"
           role="group"
           aria-label={copy.proofLink.galleryLabel}
@@ -309,7 +324,7 @@ function SolutionProofVisual({
   openFullSizeLabel,
   testId,
 }: {
-  asset: AppBuilderVisualAsset;
+  asset: SolutionProofVisualAsset;
   content: SolutionCopy['proofLink']['preview'];
   disclaimer: string;
   openFullSizeLabel: string;
@@ -322,6 +337,7 @@ function SolutionProofVisual({
       className="sol-product-visual sol-product-visual--ide-reference"
       aria-describedby={captionId}
       data-visual-language={asset.language}
+      data-visual-solution={asset.slug}
       data-testid={testId}
     >
       <div className="sol-product-visual__media">

@@ -1,3 +1,4 @@
+import type { SolutionProofVisualSlug } from './solution-proof.visuals';
 import type { SupportedLanguage } from '~/lib/i18n/language';
 
 /**
@@ -5,9 +6,9 @@ import type { SupportedLanguage } from '~/lib/i18n/language';
  *
  * These pages reuse the App Builder gabarit's structure (hero, problem, build,
  * deliverables, capabilities, use cases, FAQ, CTA) but render an inline, fully
- * responsive product demonstration mock, then show the localized App Builder
- * IDE captures as a clearly-labelled reference proof of the real E-Code build
- * loop. The page-specific mock is never presented as a generation record.
+ * responsive product demonstration mock, then show localized, solution-specific
+ * IDE captures as clearly-labelled proof of the real E-Code build loop. The
+ * page-specific mock is never presented as a generation record.
  */
 
 export type ActionCopy = Readonly<{ label: string; ariaLabel: string }>;
@@ -116,7 +117,7 @@ export function toBilingual(language: SupportedLanguage): BilingualLanguage {
 
 /** Metadata used by the shared route helper for each declined solution. */
 export type SolutionRouteConfig = Readonly<{
-  slug: string;
+  slug: SolutionProofVisualSlug;
   canonicalUrl: string;
   ogImage: Readonly<{ en: string; fr: string }>;
 }>;

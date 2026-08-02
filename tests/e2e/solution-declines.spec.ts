@@ -83,10 +83,14 @@ async function expectTouchTargets(page: Page) {
   expect(undersized, 'every visible solution-page target must measure at least 44×44 CSS pixels').toEqual([]);
 }
 
-async function expectProofImages(page: Page, language: (typeof LANGUAGES)[number]) {
+async function expectProofImages(
+  page: Page,
+  slug: (typeof SOLUTIONS)[number]['slug'],
+  language: (typeof LANGUAGES)[number],
+) {
   const expectedSources = [
-    `/assets/solutions/app-builder/${language}/ide-agent-preview.png`,
-    `/assets/solutions/app-builder/${language}/ide-agent-iteration.png`,
+    `/assets/solutions/${slug}/${language}/ide-agent-preview.png`,
+    `/assets/solutions/${slug}/${language}/ide-agent-iteration.png`,
   ];
 
   const images = page.locator('[data-testid="solution-ide-proof-gallery"] img');
@@ -101,6 +105,7 @@ async function expectProofImages(page: Page, language: (typeof LANGUAGES)[number
     await expect(image).toHaveAttribute('height', '900');
     await expect(image).toHaveAttribute('loading', 'lazy');
     await expect(image).toHaveAttribute('decoding', 'async');
+    await expect(image.locator('xpath=ancestor::figure')).toHaveAttribute('data-visual-solution', slug);
 
     const alt = await image.getAttribute('alt');
 
@@ -190,7 +195,7 @@ test.describe('declined solution sales pages', () => {
 
             await expectNoHorizontalOverflow(page, viewport.width);
             await expectTouchTargets(page);
-            await expectProofImages(page, language);
+            await expectProofImages(page, solution.slug, language);
 
             await page.evaluate(() => {
               if (document.activeElement instanceof HTMLElement) {
