@@ -1,10 +1,9 @@
 import type { SolutionCopyByLanguage } from './solution-copy';
 
 /**
- * SOL — Startups. Declined from the App Builder gabarit, centered on a fictional
- * seed-stage startup shipping an MVP from prototype to production. All demo data
- * is fictional and labeled; the one real captured E-Code IDE proof lives on
- * /solutions/app-builder.
+ * SOL — Startups. Dedicated seed-stage MVP story in EN and FR. All product and
+ * traction data is fictional and labeled; proof claims stop at the captured Agent
+ * exchange, generated files, Webview, and local demo interactions.
  */
 export const STARTUPS_COPY = {
   en: {
@@ -27,31 +26,32 @@ export const STARTUPS_COPY = {
     demo: {
       badge: 'Fictional demo data',
       brand: 'Launchpad',
-      brandType: 'Seed-stage startup',
+      brandType: 'Fictional product concept',
       nav: ['Product', 'Waitlist', 'Metrics'],
-      eyebrow: 'Launch week',
-      title: 'MVP checklist',
+      eyebrow: 'Sample launch plan',
+      title: 'Local MVP checklist',
       intro:
-        'A responsive product screen that pairs the MVP milestones with early traction, ready to walk through in a demo.',
-      primaryHeading: 'MVP checklist',
+        'A responsive local product scenario that pairs fictional milestones with demo-only states; it does not report traction, stored sign-ups, or a production launch.',
+      primaryHeading: 'Fictional MVP states',
       primaryRows: [
-        { label: 'Landing + waitlist', meta: 'shipped · preview live', status: 'Live' },
-        { label: 'Product dashboard', meta: 'in review · preview live' },
-        { label: 'Sign-in and accounts', meta: 'in progress · preview live' },
+        { label: 'Landing + waitlist', meta: 'local route · demo state', status: 'UI ready' },
+        { label: 'Product dashboard', meta: 'local route · review state' },
+        { label: 'Sign-in and accounts', meta: 'screen scaffold · no provider' },
       ],
-      asideHeading: 'Traction',
+      asideHeading: 'Demo boundaries',
       asideRows: [
-        { label: 'Signups', value: '1,284' },
-        { label: 'Preview', value: 'Live' },
-        { label: 'Days to demo', value: '6' },
+        { label: 'Waitlist records', value: 'Local fixtures' },
+        { label: 'Preview state', value: 'Current IDE run' },
+        { label: 'Next milestone', value: 'Sample only' },
       ],
-      asideCta: 'Share preview link',
-      disclaimer: 'Inline responsive demonstration · fictional startup data · not a generation record',
+      asideCta: 'Preview share control',
+      disclaimer:
+        'Scripted local interface · fictional product and milestones · no stored sign-ups, real accounts, analytics, funding, or production launch · not a generation record',
       caption: {
-        title: 'An MVP that reads like a real product on demo day',
-        body: 'This inline demonstration shows a launch checklist, a traction panel, and a shareable preview action in one responsive layout.',
+        title: 'An MVP walkthrough that keeps traction and production claims out',
+        body: 'This local interface demonstrates a launch checklist, explicit demo boundaries, and the presentation of a share control without claiming an external share occurred.',
       },
-      alt: 'Startup MVP demonstration with a launch checklist and an early-traction panel.',
+      alt: 'Scripted local startup MVP interface with fictional milestones, local fixtures, and an unverified share-control preview.',
     },
     problem: {
       eyebrow: 'From throwaway prototype to a product you can raise on',
@@ -103,24 +103,27 @@ export const STARTUPS_COPY = {
       ],
     },
     proofLink: {
-      eyebrow: 'Prompt → agent → Preview',
-      title: 'See the real build loop behind a prompt-led product demo',
-      body: 'The images below are genuine captures from the App Builder salon-booking run. They show how a plain-language request becomes files and a running Preview inside E-Code; they are workflow evidence, not a claim that the fictional startup dashboard above was generated in this recorded run.',
-      galleryLabel: 'Real App Builder reference captures for the startup build workflow',
+      eyebrow: 'Founder brief → Agent → MVP Webview',
+      title: 'Inspect the startup demo generated from one product brief',
+      body: 'These dedicated E-Code captures show the founder prompt, the Agent exchange, the generated landing-page and dashboard files, and the MVP running in Webview inside the same project.',
+      galleryLabel: 'Captured startup-MVP generation and local demo flow inside E-Code',
       disclaimer:
-        'The captured run builds the salon-booking reference app. This page’s startup launch screen is a scripted demonstration with fictional traction data and is not a generation record.',
-      openFullSizeLabel: 'Open the startup build reference at full size',
+        'Captured E-Code generation · fictional product and traction data · waitlist and account behavior stays local to the demo · no persistent database, production authentication, email delivery, analytics, or production deployment is demonstrated',
+      openFullSizeLabel: 'Open the startup-MVP capture at full size',
       preview: {
-        title: 'A founder-style request becomes an inspectable project',
-        body: 'In the real reference run, E-Code keeps the salon prompt, agent response, generated file tree, and working booking Preview in one workspace.',
-        alt: 'Real E-Code App Builder salon run with the agent prompt, generated source tree, and booking app open in the Preview tab, shown as reference evidence on the Startups page.',
+        title: 'The landing page and product shell run beside their files',
+        body: 'The first capture keeps the MVP brief and Agent activity visible while Webview renders the waitlist landing page, product navigation, and dashboard shell from generated source.',
+        alt: 'Real E-Code Startups workspace showing an MVP prompt, Agent activity, generated landing-page and dashboard files, and the startup product running in Webview.',
       },
       iteration: {
-        title: 'The next instruction updates the app in place',
-        body: 'The real follow-up capture keeps the agent exchange beside the refreshed Preview, showing the loop a startup uses to refine a demo while retaining the code.',
-        alt: 'Real E-Code App Builder salon iteration showing a follow-up prompt and the refreshed booking Preview inside the IDE.',
+        title: 'A founder follow-up becomes a visible demo change',
+        body: 'The second capture keeps the next instruction beside the updated MVP and its source. A local confirmation or navigation state proves the demo interaction; it does not prove stored sign-ups, real accounts, or production readiness.',
+        alt: 'Real E-Code Startups iteration showing a founder follow-up prompt, generated MVP files, and an updated local waitlist or product state in Webview.',
       },
-      cta: { label: 'See the real IDE proof', ariaLabel: 'See the real E-Code IDE proof on the App Builder page' },
+      cta: {
+        label: 'Inspect the captured MVP run',
+        ariaLabel: 'Inspect the captured E-Code startup-MVP generation and local demo interaction',
+      },
     },
     deliverables: {
       eyebrow: 'What you receive',
@@ -187,17 +190,21 @@ export const STARTUPS_COPY = {
     },
     useCases: {
       eyebrow: 'Who builds with it',
-      title: 'What founding teams ship with the Startups path',
-      intro: 'From a pre-seed waitlist to a demo-day product, the same loop produces a real, responsive MVP.',
+      title: 'MVP foundations founding teams can demonstrate and harden',
+      intro:
+        'From a pre-seed waitlist to a demo-day product, the loop produces responsive source and working local flows; traction, customer data, and production readiness require separate evidence.',
       items: [
         {
           title: 'Pre-seed waitlist and landing',
-          body: 'Validate demand with a working landing page and waitlist before the product exists.',
+          body: 'Present the proposition with a working landing page and local waitlist confirmation; connect storage before counting sign-ups or claiming demand.',
         },
-        { title: 'Investor and demo-day MVP', body: 'A clickable product with real flows to walk through in a pitch.' },
+        {
+          title: 'Investor and demo-day MVP',
+          body: 'A clickable product interface with local flows to walk through, clearly separated from live customer or traction evidence.',
+        },
         {
           title: 'Internal product prototype',
-          body: 'A working dashboard to test an idea with early users before committing engineering.',
+          body: 'A running dashboard interface to test the product journey before connecting production data and accounts.',
         },
         {
           title: 'First release candidate',
@@ -276,31 +283,32 @@ export const STARTUPS_COPY = {
     demo: {
       badge: 'Données fictives',
       brand: 'Launchpad',
-      brandType: 'Startup en amorçage',
+      brandType: 'Concept produit fictif',
       nav: ['Produit', 'Liste d’attente', 'Métriques'],
-      eyebrow: 'Semaine de lancement',
-      title: 'Checklist du MVP',
+      eyebrow: 'Plan de lancement d’exemple',
+      title: 'Checklist locale du MVP',
       intro:
-        'Un écran produit responsive qui associe les jalons du MVP à la traction initiale, prêt à dérouler en démonstration.',
-      primaryHeading: 'Checklist du MVP',
+        'Un scénario produit local et responsive qui associe des jalons fictifs à des états de démo ; il ne rapporte ni traction, ni inscription stockée, ni lancement en production.',
+      primaryHeading: 'États fictifs du MVP',
       primaryRows: [
-        { label: 'Page d’attente + liste', meta: 'livré · aperçu en ligne', status: 'En ligne' },
-        { label: 'Tableau de bord produit', meta: 'en revue · aperçu en ligne' },
-        { label: 'Connexion et comptes', meta: 'en cours · aperçu en ligne' },
+        { label: 'Page d’attente + liste', meta: 'route locale · état de démo', status: 'UI prête' },
+        { label: 'Tableau de bord produit', meta: 'route locale · état de revue' },
+        { label: 'Connexion et comptes', meta: 'écrans échafaudés · aucun fournisseur' },
       ],
-      asideHeading: 'Traction',
+      asideHeading: 'Frontières de la démo',
       asideRows: [
-        { label: 'Inscriptions', value: '1 284' },
-        { label: 'Aperçu', value: 'En ligne' },
-        { label: 'Jours avant la démo', value: '6' },
+        { label: 'Fiches d’attente', value: 'Fixtures locales' },
+        { label: 'État de l’aperçu', value: 'Run IDE courant' },
+        { label: 'Prochain jalon', value: 'Exemple seul' },
       ],
-      asideCta: 'Partager l’aperçu',
-      disclaimer: 'Démonstration responsive intégrée · données de startup fictives · pas une trace de génération',
+      asideCta: 'Prévisualiser le contrôle de partage',
+      disclaimer:
+        'Interface locale scénarisée · produit et jalons fictifs · aucune inscription stockée, compte réel, analytics, levée ni production · pas une trace de génération',
       caption: {
-        title: 'Un MVP qui se lit comme un vrai produit le jour de la démo',
-        body: 'Cette démonstration intégrée présente une checklist de lancement, un panneau de traction et une action de partage d’aperçu dans une mise en page responsive.',
+        title: 'Un parcours MVP qui exclut toute promesse de traction ou de production',
+        body: 'Cette interface locale présente une checklist de lancement, les frontières explicites de la démo et un contrôle de partage sans prétendre qu’un partage externe a eu lieu.',
       },
-      alt: 'Démonstration de MVP de startup avec une checklist de lancement et un panneau de traction initiale.',
+      alt: 'Interface locale scénarisée de MVP avec jalons fictifs, fixtures locales et contrôle de partage non vérifié.',
     },
     problem: {
       eyebrow: 'Du prototype jetable à un produit sur lequel lever des fonds',
@@ -352,26 +360,26 @@ export const STARTUPS_COPY = {
       ],
     },
     proofLink: {
-      eyebrow: 'Prompt → agent → aperçu',
-      title: 'Voyez la vraie boucle de construction derrière une démo produit lancée par prompt',
-      body: 'Les images ci-dessous sont de vraies captures du run App Builder du salon de coiffure. Elles montrent comment une demande en langage courant devient des fichiers et un aperçu actif dans E-Code ; elles prouvent le parcours, pas que le tableau de bord fictif de startup ci-dessus a été généré pendant ce run enregistré.',
-      galleryLabel: 'Vraies captures App Builder de référence pour le parcours startup',
+      eyebrow: 'Brief fondateur → Agent → Webview du MVP',
+      title: 'Inspectez la démo startup générée à partir d’un seul brief produit',
+      body: 'Ces captures E-Code dédiées montrent le prompt du fondateur, l’échange avec l’Agent, les fichiers générés de la landing page et du tableau de bord et le MVP actif dans la Webview du même projet.',
+      galleryLabel: 'Génération capturée du MVP startup et parcours local dans E-Code',
       disclaimer:
-        'Le run capturé construit l’application de référence du salon. L’écran de lancement startup de cette page est une démonstration scénarisée avec des données de traction fictives, pas un journal de génération.',
-      openFullSizeLabel: 'Ouvrir la référence de construction startup en plein format',
+        'Génération E-Code capturée · produit et traction fictifs · comportement de la liste d’attente et des comptes limité à la démo locale · aucune base persistante, authentification de production, livraison d’email, analytics ni production démontrée',
+      openFullSizeLabel: 'Ouvrir la capture du MVP startup en grand',
       preview: {
-        title: 'Une demande de fondateur devient un projet inspectable',
-        body: 'Dans le vrai run de référence, E-Code garde le prompt du salon, la réponse de l’agent, l’arborescence générée et l’aperçu de réservation fonctionnel dans un même workspace.',
-        alt: 'Vrai run App Builder E-Code du salon avec le prompt de l’agent, l’arborescence source générée et l’application de réservation ouverte dans l’onglet Aperçu, montré comme preuve de référence sur la page Startups.',
+        title: 'La landing page et le produit tournent à côté de leurs fichiers',
+        body: 'La première capture conserve le brief du MVP et l’activité de l’Agent pendant que la Webview affiche la landing page de liste d’attente, la navigation produit et le tableau de bord issus de la source générée.',
+        alt: 'Vrai workspace Startups E-Code montrant un prompt de MVP, l’activité de l’Agent, les fichiers générés de landing page et de tableau de bord et le produit actif dans la Webview.',
       },
       iteration: {
-        title: 'L’instruction suivante met l’application à jour sur place',
-        body: 'La vraie capture de suivi garde l’échange avec l’agent à côté de l’aperçu actualisé, soit la boucle qu’une startup utilise pour affiner une démo tout en conservant le code.',
-        alt: 'Vraie itération App Builder E-Code du salon montrant un prompt de suivi et l’aperçu de réservation actualisé dans l’IDE.',
+        title: 'Un suivi du fondateur devient un changement visible dans la démo',
+        body: 'La seconde capture conserve l’instruction suivante auprès du MVP mis à jour et de sa source. Une confirmation ou une navigation locale prouve l’interaction de la démo ; elle ne prouve ni inscription stockée, ni vrai compte, ni préparation à la production.',
+        alt: 'Vraie itération Startups E-Code montrant un prompt de suivi du fondateur, les fichiers du MVP et un état local mis à jour de la liste d’attente ou du produit dans la Webview.',
       },
       cta: {
-        label: 'Voir la preuve IDE réelle',
-        ariaLabel: 'Voir la preuve IDE réelle E-Code sur la page App Builder',
+        label: 'Inspecter le run capturé du MVP',
+        ariaLabel: 'Inspecter la génération E-Code capturée du MVP startup et son interaction locale',
       },
     },
     deliverables: {
@@ -440,21 +448,21 @@ export const STARTUPS_COPY = {
     },
     useCases: {
       eyebrow: 'Qui construit avec',
-      title: 'Ce que les équipes fondatrices livrent avec le parcours Startups',
+      title: 'Les bases de MVP que les équipes fondatrices peuvent démontrer puis durcir',
       intro:
-        'D’une liste d’attente en pré-amorçage à un produit de demo day, la même boucle produit un vrai MVP responsive.',
+        'D’une liste d’attente en pré-amorçage à un produit de demo day, la boucle produit une source responsive et des parcours locaux actifs ; traction, données clients et aptitude à la production demandent des preuves séparées.',
       items: [
         {
           title: 'Liste d’attente et page en pré-amorçage',
-          body: 'Validez la demande avec une page d’accueil fonctionnelle et une liste d’attente avant que le produit n’existe.',
+          body: 'Présentez la proposition avec une page fonctionnelle et une confirmation locale de liste d’attente ; branchez le stockage avant de compter des inscriptions ou d’affirmer une demande.',
         },
         {
           title: 'MVP investisseurs et demo day',
-          body: 'Un produit cliquable avec de vrais parcours à dérouler dans un pitch.',
+          body: 'Une interface produit cliquable avec des parcours locaux à dérouler, clairement séparée de toute preuve de clients ou de traction.',
         },
         {
           title: 'Prototype produit interne',
-          body: 'Un tableau de bord fonctionnel pour tester une idée avec les premiers utilisateurs avant d’engager l’ingénierie.',
+          body: 'Une interface de tableau de bord active pour tester le parcours produit avant de brancher données et comptes de production.',
         },
         {
           title: 'Premier candidat à la mise en ligne',

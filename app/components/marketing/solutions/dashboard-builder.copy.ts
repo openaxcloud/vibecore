@@ -1,9 +1,9 @@
 import type { SolutionCopyByLanguage } from './solution-copy';
 
 /**
- * SOL-03 — Dashboard Builder. Declined from the App Builder gabarit, centered on a
- * fictional sales dashboard. All demo data is fictional and labeled; the embedded
- * IDE images come from the separately verified App Builder run.
+ * SOL-03 — Dashboard Builder. Dedicated sales-analytics story in EN and FR.
+ * All metrics are fictional and labeled; proof claims stop at the captured Agent
+ * exchange, generated files, Webview, and local filters over sample data.
  */
 export const DASHBOARD_BUILDER_COPY = {
   en: {
@@ -26,31 +26,32 @@ export const DASHBOARD_BUILDER_COPY = {
     demo: {
       badge: 'Fictional demo data',
       brand: 'PipelineIQ',
-      brandType: 'Revenue operations',
+      brandType: 'Sample revenue dashboard',
       nav: ['Overview', 'Pipeline', 'Team'],
-      eyebrow: 'This quarter',
+      eyebrow: 'Sample quarter',
       title: 'Every deal, KPI, and forecast in one consolidated view.',
       intro:
         'A responsive dashboard that presents open opportunities, key metrics, and a forecast path in one clear layout.',
-      primaryHeading: 'Open opportunities',
+      primaryHeading: 'Fictional opportunities',
       primaryRows: [
-        { label: 'Northwind Traders', meta: '€48k · Negotiation', status: 'Closing' },
-        { label: 'Atlas Logistics', meta: '€32k · Proposal' },
-        { label: 'Beacon Retail Group', meta: '€19k · Discovery' },
+        { label: 'Northwind Traders', meta: '€48k sample · Negotiation', status: 'Sample stage' },
+        { label: 'Atlas Logistics', meta: '€32k sample · Proposal' },
+        { label: 'Beacon Retail Group', meta: '€19k sample · Discovery' },
       ],
-      asideHeading: 'Key metrics',
+      asideHeading: 'Sample metrics',
       asideRows: [
-        { label: 'Pipeline', value: '€420k' },
-        { label: 'Win rate', value: '38%' },
-        { label: 'Avg. deal', value: '€24k' },
+        { label: 'Fictional pipeline', value: '€420k sample' },
+        { label: 'Fictional win rate', value: '38% sample' },
+        { label: 'Fictional avg. deal', value: '€24k sample' },
       ],
-      asideCta: 'Open forecast',
-      disclaimer: 'Inline responsive demonstration · fictional pipeline data · not a generation record',
+      asideCta: 'Open sample forecast',
+      disclaimer:
+        'Local interface over fictional records · no CRM, database, identity provider, live refresh, or production forecast · not a generation record',
       caption: {
-        title: 'A dashboard that reads like a real revenue tool',
-        body: 'This inline demonstration shows a KPI row, an opportunity table, and a forecast panel in one responsive layout.',
+        title: 'A sales-dashboard scenario grounded in local sample records',
+        body: 'This local interface demonstrates a KPI row, opportunity table, and forecast panel without presenting the sample figures as business results.',
       },
-      alt: 'Sales dashboard demonstration with an open opportunities table and a key metrics panel.',
+      alt: 'Local sales dashboard interface with fictional opportunity values and explicitly labeled sample metrics.',
     },
     problem: {
       eyebrow: 'From spreadsheet sprawl to an inspectable dashboard',
@@ -101,26 +102,26 @@ export const DASHBOARD_BUILDER_COPY = {
       ],
     },
     proofLink: {
-      eyebrow: 'Request → source files → running interface',
-      title: 'See the E-Code workspace behind the workflow claim',
-      body: 'The App Builder page shows a captured, real E-Code workspace — the prompt, the agent’s plan, the generated files, and the running Preview — for a booking application. The same build loop applies to a data dashboard like this one.',
-      galleryLabel: 'Inspect the real IDE workflow used as evidence',
+      eyebrow: 'Sales metrics → Agent → filterable Webview',
+      title: 'Inspect a sales dashboard generated inside E-Code',
+      body: 'These dedicated captures show the dashboard request, the Agent exchange, generated chart and table files, and the resulting sales interface running in Webview with local sample data.',
+      galleryLabel: 'Captured sales-dashboard generation and local filtering inside E-Code',
       disclaimer:
-        'What these images prove: they capture the real App Builder salon run inside E-Code. PipelineIQ is a separate scripted dashboard with invented figures; it does not show a generated dashboard, a live database connection, or deployed access control.',
-      openFullSizeLabel: 'View the complete salon-workspace capture',
+        'Captured E-Code generation · fictional sales figures and opportunities · filters operate on local sample data · no external database, production authentication, live refresh, or deployed access control is demonstrated',
+      openFullSizeLabel: 'Open the sales-dashboard capture at full size',
       preview: {
-        title: 'Prompt, project files, and live Preview in one IDE',
-        body: 'The first salon-run capture makes the workflow tangible: the request and Agent plan remain visible while the generated interface runs in the Webview and its source stays open for inspection.',
-        alt: 'Real E-Code App Builder workspace showing a salon booking request, agent plan, running dashboard Preview, and the project source-file tree.',
+        title: 'Charts and pipeline rows run beside their source',
+        body: 'The first capture keeps the sales-leader prompt and Agent activity beside the generated components while Webview renders KPI cards, charts, filters, and pipeline rows from fictional local records.',
+        alt: 'Real E-Code Dashboard Builder workspace showing a sales-dashboard prompt, Agent activity, generated chart files, and KPI cards with a pipeline table running in Webview.',
       },
       iteration: {
-        title: 'A failed runtime becomes the next plain-language instruction',
-        body: 'The second capture records a real correction prompt for a React context error, with the same workspace available to inspect files and confirm the repaired Preview.',
-        alt: 'Real E-Code App Builder workspace showing a React context error correction prompt beside the salon dashboard Webview and source files.',
+        title: 'The next prompt refines the data view in place',
+        body: 'The follow-up capture shows the instruction beside the updated dashboard and its files. The visible filter state proves a local interface interaction over sample records; it does not prove that a database query or access policy ran.',
+        alt: 'Real E-Code Dashboard Builder iteration showing a follow-up prompt, generated dashboard files, and an updated local sales filter state in Webview.',
       },
       cta: {
-        label: 'Inspect the real workspace reference',
-        ariaLabel: 'Inspect the real E-Code App Builder workspace used as Dashboard Builder workflow evidence',
+        label: 'Inspect the captured dashboard run',
+        ariaLabel: 'Inspect the captured E-Code sales-dashboard generation and local filter state',
       },
     },
     deliverables: {
@@ -188,12 +189,13 @@ export const DASHBOARD_BUILDER_COPY = {
     },
     useCases: {
       eyebrow: 'Who builds with it',
-      title: 'Dashboards teams ship with the Dashboard Builder',
-      intro: 'From a sales pipeline to an ops control room, the same loop produces a real, responsive dashboard.',
+      title: 'Dashboard foundations teams connect to each operational domain',
+      intro:
+        'From a sales pipeline to an ops control room, the loop produces a responsive data interface over local fixtures; production figures, refresh, identity, and permissions arrive through separately tested connections.',
       items: [
         {
           title: 'Sales and revenue dashboards',
-          body: 'Pipeline, forecast, and win-rate views for reps and managers.',
+          body: 'Pipeline, forecast, and win-rate views to wire to the team’s verified sales records.',
         },
         {
           title: 'Operations and KPI monitors',
@@ -201,11 +203,11 @@ export const DASHBOARD_BUILDER_COPY = {
         },
         {
           title: 'Finance and reporting views',
-          body: 'Budget, spend, and cash dashboards with filters and drill-downs.',
+          body: 'Budget, spend, and cash-flow interfaces with local filters, ready for an approved finance-data connection.',
         },
         {
           title: 'Internal admin consoles',
-          body: 'Role-aware tables and metrics for teams managing their own records.',
+          body: 'Role-aware table and metric interfaces whose authorization still requires enforced server-side checks.',
         },
       ],
     },
@@ -284,31 +286,32 @@ export const DASHBOARD_BUILDER_COPY = {
     demo: {
       badge: 'Données fictives',
       brand: 'PipelineIQ',
-      brandType: 'Opérations commerciales',
+      brandType: 'Tableau commercial d’exemple',
       nav: ['Vue d’ensemble', 'Pipeline', 'Équipe'],
-      eyebrow: 'Ce trimestre',
+      eyebrow: 'Trimestre d’exemple',
       title: 'Chaque affaire, indicateur et prévision dans une vue consolidée.',
       intro:
         'Un tableau de bord responsive qui présente les opportunités ouvertes, les indicateurs clés et un parcours de prévision dans une mise en page claire.',
-      primaryHeading: 'Opportunités ouvertes',
+      primaryHeading: 'Opportunités fictives',
       primaryRows: [
-        { label: 'Northwind Traders', meta: '48 k€ · Négociation', status: 'En clôture' },
-        { label: 'Atlas Logistics', meta: '32 k€ · Proposition' },
-        { label: 'Beacon Retail Group', meta: '19 k€ · Découverte' },
+        { label: 'Northwind Traders', meta: '48 k€ fictifs · Négociation', status: 'Étape d’exemple' },
+        { label: 'Atlas Logistics', meta: '32 k€ fictifs · Proposition' },
+        { label: 'Beacon Retail Group', meta: '19 k€ fictifs · Découverte' },
       ],
-      asideHeading: 'Indicateurs clés',
+      asideHeading: 'Indicateurs d’exemple',
       asideRows: [
-        { label: 'Pipeline', value: '420 k€' },
-        { label: 'Taux de gain', value: '38 %' },
-        { label: 'Affaire moy.', value: '24 k€' },
+        { label: 'Pipeline fictif', value: '420 k€ fictifs' },
+        { label: 'Taux de gain fictif', value: '38 % fictifs' },
+        { label: 'Affaire moy. fictive', value: '24 k€ fictifs' },
       ],
-      asideCta: 'Ouvrir la prévision',
-      disclaimer: 'Démonstration responsive intégrée · données de pipeline fictives · pas une trace de génération',
+      asideCta: 'Ouvrir la prévision d’exemple',
+      disclaimer:
+        'Interface locale sur fiches fictives · aucun CRM, base, fournisseur d’identité, rafraîchissement live ni prévision de production · pas une trace de génération',
       caption: {
-        title: 'Un tableau de bord qui se lit comme un vrai outil commercial',
-        body: 'Cette démonstration intégrée présente une ligne d’indicateurs, un tableau d’opportunités et un panneau de prévision dans une mise en page responsive.',
+        title: 'Un scénario de tableau commercial fondé sur des fiches locales d’exemple',
+        body: 'Cette interface locale présente une ligne d’indicateurs, un tableau d’opportunités et un panneau de prévision sans faire passer les chiffres fictifs pour des résultats.',
       },
-      alt: 'Démonstration de tableau de bord commercial avec un tableau d’opportunités ouvertes et un panneau d’indicateurs clés.',
+      alt: 'Interface locale de tableau de bord commercial avec opportunités fictives et indicateurs explicitement marqués comme exemples.',
     },
     problem: {
       eyebrow: 'De la prolifération de tableurs à un tableau de bord inspectable',
@@ -359,27 +362,26 @@ export const DASHBOARD_BUILDER_COPY = {
       ],
     },
     proofLink: {
-      eyebrow: 'Demande → fichiers source → interface active',
-      title: 'Voyez le workspace E-Code qui étaye la promesse du workflow',
-      body: 'La page App Builder montre un vrai workspace E-Code capturé — le prompt, le plan de l’agent, les fichiers générés et l’aperçu actif — pour une application de réservation. La même boucle de construction s’applique à un tableau de bord de données comme celui-ci.',
-      galleryLabel: 'Inspectez le vrai workflow IDE utilisé comme preuve',
+      eyebrow: 'Indicateurs de vente → Agent → Webview filtrable',
+      title: 'Inspectez un tableau de bord commercial généré dans E-Code',
+      body: 'Ces captures dédiées montrent la demande de tableau de bord, l’échange avec l’Agent, les fichiers de graphiques et tableaux générés et l’interface commerciale active dans la Webview avec des données locales d’exemple.',
+      galleryLabel: 'Génération capturée du tableau de bord et filtrage local dans E-Code',
       disclaimer:
-        'Ce que prouvent ces images : elles capturent le vrai run App Builder du salon dans E-Code. PipelineIQ est un tableau de bord scénarisé distinct, avec des chiffres inventés ; il ne montre ni tableau de bord généré, ni base active, ni contrôle d’accès déployé.',
-      openFullSizeLabel: 'Afficher la capture complète du workspace salon',
+        'Génération E-Code capturée · chiffres et opportunités fictifs · filtres appliqués aux données locales d’exemple · aucune base externe, authentification de production, actualisation live ni contrôle d’accès déployé démontré',
+      openFullSizeLabel: 'Ouvrir la capture du tableau de bord commercial en grand',
       preview: {
-        title: 'Prompt, fichiers projet et aperçu actif dans le même IDE',
-        body: 'La première capture du run salon rend le flux concret : la demande et le plan de l’Agent restent visibles pendant que l’interface générée tourne dans la Webview et que sa source reste inspectable.',
-        alt: 'Vrai workspace App Builder E-Code montrant une demande de réservation pour salon, le plan de l’agent, le tableau de bord actif dans l’aperçu et l’arborescence source.',
+        title: 'Les graphiques et le pipeline tournent à côté de leur source',
+        body: 'La première capture conserve le prompt du responsable commercial et l’activité de l’Agent auprès des composants générés pendant que la Webview affiche indicateurs, graphiques, filtres et opportunités à partir de fiches locales fictives.',
+        alt: 'Vrai workspace Dashboard Builder E-Code montrant un prompt de tableau de bord commercial, l’activité de l’Agent, les fichiers de graphiques générés et les indicateurs avec pipeline dans la Webview.',
       },
       iteration: {
-        title: 'Une panne runtime devient l’instruction suivante en langage courant',
-        body: 'La seconde capture enregistre un vrai prompt de correction d’une erreur de contexte React, avec le même workspace pour inspecter les fichiers et confirmer l’aperçu réparé.',
-        alt: 'Vrai workspace App Builder E-Code montrant un prompt de correction d’erreur de contexte React à côté de la Webview du salon et des fichiers source.',
+        title: 'Le prompt suivant affine la vue de données sur place',
+        body: 'La capture de suivi montre l’instruction auprès du tableau de bord mis à jour et de ses fichiers. Le filtre visible prouve une interaction locale sur des fiches d’exemple ; il ne prouve ni requête vers une base ni exécution d’une règle d’accès.',
+        alt: 'Vraie itération Dashboard Builder E-Code montrant un prompt de suivi, les fichiers générés et un filtre commercial local mis à jour dans la Webview.',
       },
       cta: {
-        label: 'Inspecter la vraie référence du workspace',
-        ariaLabel:
-          'Inspecter le vrai workspace App Builder E-Code utilisé comme preuve du workflow Générateur de tableau de bord',
+        label: 'Inspecter le run capturé du tableau de bord',
+        ariaLabel: 'Inspecter la génération E-Code capturée du tableau de bord commercial et son filtre local',
       },
     },
     deliverables: {
@@ -448,13 +450,13 @@ export const DASHBOARD_BUILDER_COPY = {
     },
     useCases: {
       eyebrow: 'Qui construit avec',
-      title: 'Les tableaux de bord que les équipes livrent avec le Générateur de tableau de bord',
+      title: 'Les bases de tableaux de bord que les équipes relient à chaque domaine opérationnel',
       intro:
-        'D’un pipeline commercial à une salle de contrôle des opérations, la même boucle produit un vrai tableau de bord responsive.',
+        'D’un pipeline commercial à une salle de contrôle des opérations, la boucle produit une interface de données responsive sur fixtures locales ; chiffres de production, actualisation, identité et permissions passent par des connexions testées séparément.',
       items: [
         {
           title: 'Tableaux de bord commerciaux',
-          body: 'Vues pipeline, prévision et taux de gain pour les commerciaux et les managers.',
+          body: 'Vues pipeline, prévision et taux de gain à brancher aux fiches commerciales vérifiées de l’équipe.',
         },
         {
           title: 'Moniteurs d’opérations et de KPI',
@@ -462,11 +464,11 @@ export const DASHBOARD_BUILDER_COPY = {
         },
         {
           title: 'Vues finance et reporting',
-          body: 'Tableaux de bord budget, dépenses et trésorerie avec filtres et explorations.',
+          body: 'Interfaces budget, dépenses et trésorerie avec filtres locaux, prêtes pour une connexion approuvée aux données finance.',
         },
         {
           title: 'Consoles d’administration internes',
-          body: 'Tableaux et indicateurs selon les rôles pour les équipes qui gèrent leurs propres enregistrements.',
+          body: 'Interfaces de tableaux et d’indicateurs selon les rôles, dont l’autorisation exige encore des contrôles serveur appliqués.',
         },
       ],
     },

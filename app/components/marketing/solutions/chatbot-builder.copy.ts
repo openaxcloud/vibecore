@@ -1,10 +1,9 @@
 import type { SolutionCopyByLanguage } from './solution-copy';
 
 /**
- * SOL — Chatbot / AI Agent Builder. Declined from the App Builder gabarit,
- * centered on a fictional documentation support assistant. All demo data is
- * fictional and labeled; the one real captured E-Code IDE proof lives on
- * /solutions/app-builder.
+ * SOL — Chatbot / AI Agent Builder. Dedicated documentation-support story in
+ * EN and FR. All support content is fictional and labeled; proof claims stop at
+ * the captured Agent exchange, generated files, Webview, and scripted local reply.
  */
 export const CHATBOT_BUILDER_COPY = {
   en: {
@@ -27,31 +26,36 @@ export const CHATBOT_BUILDER_COPY = {
     demo: {
       badge: 'Fictional demo data',
       brand: 'HelpDesk Copilot',
-      brandType: 'Support assistant',
+      brandType: 'Scripted support prototype',
       nav: ['Chat', 'Sources', 'Handoff'],
-      eyebrow: 'Live conversation',
-      title: 'Assistant replies with sources',
+      eyebrow: 'Scripted conversation',
+      title: 'Sample replies with source labels',
       intro:
-        'A support assistant that answers from documentation, cites what it used, and escalates to a human when confidence is low.',
-      primaryHeading: 'Assistant replies with sources',
+        'A local interface that presents prewritten replies, fictional source labels, and a handoff UI state without calling a model, corpus, or support queue.',
+      primaryHeading: 'Scripted local replies',
       primaryRows: [
-        { label: 'Your plan renews on the 1st of each month.', meta: 'cited: billing.md' },
-        { label: 'Reset your API key from Settings → Security.', meta: 'cited: api-keys.md' },
-        { label: 'I’m not fully sure — connecting you to an agent.', meta: 'confidence: low', status: 'Handoff' },
+        { label: 'Your plan renews on the 1st of each month.', meta: 'sample source label: billing.md' },
+        { label: 'Reset your API key from Settings → Security.', meta: 'sample source label: api-keys.md' },
+        {
+          label: 'I’m not fully sure — show the handoff option.',
+          meta: 'scripted low-confidence state',
+          status: 'UI only',
+        },
       ],
-      asideHeading: 'Answer sources',
+      asideHeading: 'Local demo state',
       asideRows: [
-        { label: 'Documents', value: '128' },
-        { label: 'Confidence', value: 'High' },
-        { label: 'Escalations today', value: '4' },
+        { label: 'Sources', value: 'Sample files' },
+        { label: 'Reply mode', value: 'Scripted' },
+        { label: 'Handoff', value: 'UI state only' },
       ],
-      asideCta: 'Escalate to agent',
-      disclaimer: 'Inline responsive demonstration · fictional assistant data · not a generation record',
+      asideCta: 'Preview handoff state',
+      disclaimer:
+        'Scripted local interface · fictional replies and source labels · no model, retrieval, live documents, or support handoff · not a generation record',
       caption: {
-        title: 'A support assistant that reads like a real product',
-        body: 'This inline demonstration shows a conversation thread with cited answers, a handoff on low confidence, and an answer-sources panel in one responsive layout.',
+        title: 'A support-assistant interface with every external boundary exposed',
+        body: 'This local scenario demonstrates a conversation, sample source labels, and a handoff UI state without presenting scripted output as model reasoning or retrieval.',
       },
-      alt: 'Support assistant demonstration with a conversation thread citing documentation and an answer-sources panel.',
+      alt: 'Scripted local support-assistant interface with fictional replies, sample source labels, and a handoff UI state only.',
     },
     problem: {
       eyebrow: 'From an opaque bot to an assistant you can audit',
@@ -102,24 +106,27 @@ export const CHATBOT_BUILDER_COPY = {
       ],
     },
     proofLink: {
-      eyebrow: 'Prompt → agent → Preview',
-      title: 'See the workflow in a real E-Code run, without pretending this chatbot was captured',
-      body: 'The two IDE images below come from the real App Builder salon-booking run. They document the E-Code loop — prompt, Agent plan, generated files, Preview, then correction — while the HelpDesk Copilot above remains a separately authored scenario with fictional data.',
-      galleryLabel: 'Real IDE reference from the App Builder salon run for the Chatbot Builder workflow',
+      eyebrow: 'Support brief → Agent → assistant Webview',
+      title: 'Inspect the support assistant generated for this page',
+      body: 'These dedicated E-Code captures show the customer-support prompt, the Agent exchange, the generated conversation and documentation files, and the assistant interface running in Webview.',
+      galleryLabel: 'Captured support-assistant generation and local conversation inside E-Code',
       disclaimer:
-        'Reference captures: real E-Code App Builder salon run · fictional salon records · chatbot demonstration scripted with fictional data · not a chatbot generation record',
-      openFullSizeLabel: 'Open the App Builder IDE reference at full size',
+        'Captured E-Code generation · fictional help articles and conversations · answers run from scripted local sample data · no connected language model, RAG pipeline, live documentation source, or support handoff is demonstrated',
+      openFullSizeLabel: 'Open the support-assistant capture at full size',
       preview: {
-        title: 'A real prompt, generated file tree, and Preview shown together',
-        body: 'This App Builder reference shows the salon prompt and generated booking project inside the real E-Code IDE. It proves the visible prompt-to-Preview workspace flow; it does not show a chatbot, a connected language model, document retrieval, or support handoff.',
-        alt: 'Real E-Code App Builder IDE reference showing the salon booking prompt, generated project files, and booking dashboard in the Preview tab; no chatbot is shown.',
+        title: 'The assistant interface runs beside its prompt and files',
+        body: 'The first capture keeps the support request and Agent activity beside the generated source while Webview renders the conversation, suggested questions, and fictional documentation references.',
+        alt: 'Real E-Code Chatbot Builder workspace showing a documentation-support prompt, Agent activity, generated assistant files, and a customer-help conversation running in Webview.',
       },
       iteration: {
-        title: 'A real correction request stays beside the running project',
-        body: 'The second salon-run capture records a follow-up about a router runtime error and the updated booking Preview. It demonstrates visible Agent iteration, not a successful chatbot generation or a first-pass guarantee.',
-        alt: 'Real E-Code App Builder iteration reference showing a router-error correction prompt beside salon project files and the booking Preview; this is not a chatbot generation.',
+        title: 'A local question exposes the answer state for review',
+        body: 'The follow-up capture shows the next instruction and a scripted local answer with its sample references in the same Webview. It proves the generated interaction and iteration loop, not model reasoning or document retrieval.',
+        alt: 'Real E-Code Chatbot Builder iteration showing a follow-up prompt, generated assistant files, and a scripted local support answer with sample references in Webview.',
       },
-      cta: { label: 'See the real IDE proof', ariaLabel: 'See the real E-Code IDE proof on the App Builder page' },
+      cta: {
+        label: 'Inspect the captured assistant run',
+        ariaLabel: 'Inspect the captured E-Code support-assistant generation and scripted local reply',
+      },
     },
     deliverables: {
       eyebrow: 'What you receive',
@@ -192,19 +199,19 @@ export const CHATBOT_BUILDER_COPY = {
       items: [
         {
           title: 'Documentation support bots',
-          body: 'Answer customer questions from product docs and escalate on low confidence.',
+          body: 'Model source-backed replies and a low-confidence branch, then connect and evaluate retrieval and support delivery.',
         },
         {
           title: 'Internal help desks',
-          body: 'Assistants that answer IT, HR, or ops questions from internal knowledge bases.',
+          body: 'Structure IT, HR, or operations answer flows around an explicit knowledge adapter and access boundary.',
         },
         {
           title: 'Task and workflow agents',
-          body: 'Agents that call bounded tools to complete steps and report back for review.',
+          body: 'Declare bounded tool contracts and review states before connecting any system that performs a real action.',
         },
         {
           title: 'Onboarding assistants',
-          body: 'Guided assistants that walk new users through setup with cited sources.',
+          body: 'Build a guided setup interface with sample citations, then connect and verify the approved onboarding sources.',
         },
       ],
     },
@@ -283,35 +290,42 @@ export const CHATBOT_BUILDER_COPY = {
     demo: {
       badge: 'Données fictives',
       brand: 'HelpDesk Copilot',
-      brandType: 'Assistant de support',
+      brandType: 'Prototype de support scénarisé',
       nav: ['Conversation', 'Sources', 'Transfert'],
-      eyebrow: 'Conversation en direct',
-      title: 'L’assistant répond avec ses sources',
+      eyebrow: 'Conversation scénarisée',
+      title: 'Réponses d’exemple avec libellés de sources',
       intro:
-        'Un assistant de support qui répond à partir de la documentation, cite ce qu’il a utilisé et escalade à un humain quand la confiance est faible.',
-      primaryHeading: 'L’assistant répond avec ses sources',
+        'Une interface locale qui présente des réponses préécrites, des libellés de sources fictifs et un état visuel de transfert sans appeler de modèle, de corpus ni de file support.',
+      primaryHeading: 'Réponses locales scénarisées',
       primaryRows: [
-        { label: 'Votre offre se renouvelle le 1er de chaque mois.', meta: 'cité : billing.md' },
-        { label: 'Réinitialisez votre clé API depuis Réglages → Sécurité.', meta: 'cité : api-keys.md' },
         {
-          label: 'Je ne suis pas certain — je vous mets en relation avec un agent.',
-          meta: 'confiance : faible',
-          status: 'Transfert',
+          label: 'Votre offre se renouvelle le 1er de chaque mois.',
+          meta: 'libellé de source d’exemple : billing.md',
+        },
+        {
+          label: 'Réinitialisez votre clé API depuis Réglages → Sécurité.',
+          meta: 'libellé de source d’exemple : api-keys.md',
+        },
+        {
+          label: 'Je ne suis pas certain — afficher l’option de transfert.',
+          meta: 'état de faible confiance scénarisé',
+          status: 'Interface seule',
         },
       ],
-      asideHeading: 'Sources de la réponse',
+      asideHeading: 'État local de la démo',
       asideRows: [
-        { label: 'Documents', value: '128' },
-        { label: 'Confiance', value: 'Élevée' },
-        { label: 'Escalades aujourd’hui', value: '4' },
+        { label: 'Sources', value: 'Fichiers d’exemple' },
+        { label: 'Mode de réponse', value: 'Scénarisé' },
+        { label: 'Transfert', value: 'État visuel seul' },
       ],
-      asideCta: 'Escalader à un agent',
-      disclaimer: 'Démonstration responsive intégrée · données d’assistant fictives · pas une trace de génération',
+      asideCta: 'Prévisualiser le transfert',
+      disclaimer:
+        'Interface locale scénarisée · réponses et sources fictives · aucun modèle, recherche, document actif ni transfert au support · pas une trace de génération',
       caption: {
-        title: 'Un assistant de support qui se lit comme un vrai produit',
-        body: 'Cette démonstration intégrée présente un fil de conversation avec des réponses citées, un transfert en cas de confiance faible et un panneau des sources de la réponse dans une mise en page responsive.',
+        title: 'Une interface d’assistant dont chaque frontière externe reste explicite',
+        body: 'Ce scénario local présente une conversation, des libellés de sources d’exemple et un état visuel de transfert sans faire passer les réponses scénarisées pour du raisonnement ou de la recherche.',
       },
-      alt: 'Démonstration d’assistant de support avec un fil de conversation citant la documentation et un panneau des sources de la réponse.',
+      alt: 'Interface locale scénarisée d’assistant support avec réponses fictives, libellés de sources d’exemple et simple état visuel de transfert.',
     },
     problem: {
       eyebrow: 'D’un bot opaque à un assistant que vous pouvez auditer',
@@ -362,26 +376,26 @@ export const CHATBOT_BUILDER_COPY = {
       ],
     },
     proofLink: {
-      eyebrow: 'Prompt → agent → aperçu',
-      title: 'Observez le flux dans une vraie exécution E-Code, sans faire passer cette démo pour une capture',
-      body: 'Les deux images IDE ci-dessous proviennent de la véritable exécution App Builder du salon de coiffure. Elles documentent la boucle E-Code — prompt, plan de l’Agent, fichiers générés, aperçu puis correction — tandis que HelpDesk Copilot reste un scénario créé séparément avec des données fictives.',
-      galleryLabel: 'Référence IDE réelle du run salon App Builder pour illustrer le flux Générateur de chatbot',
+      eyebrow: 'Brief support → Agent → Webview de l’assistant',
+      title: 'Inspectez l’assistant support généré pour cette page',
+      body: 'Ces captures E-Code dédiées montrent le prompt du support client, l’échange avec l’Agent, les fichiers de conversation et de documentation générés et l’interface de l’assistant active dans la Webview.',
+      galleryLabel: 'Génération capturée de l’assistant support et conversation locale dans E-Code',
       disclaimer:
-        'Captures de référence : vrai run salon dans E-Code App Builder · fiches salon fictives · démonstration chatbot scénarisée avec données fictives · pas une trace de génération chatbot',
-      openFullSizeLabel: 'Ouvrir la référence IDE App Builder en taille réelle',
+        'Génération E-Code capturée · articles d’aide et conversations fictifs · réponses issues de données locales scénarisées · aucun modèle de langage, pipeline RAG, corpus documentaire actif ni transfert au support connecté démontré',
+      openFullSizeLabel: 'Ouvrir la capture de l’assistant support en taille réelle',
       preview: {
-        title: 'Un vrai prompt, l’arborescence générée et l’aperçu réunis',
-        body: 'Cette référence App Builder montre le prompt salon et le projet de réservation généré dans le véritable IDE E-Code. Elle prouve le flux visible du prompt vers l’aperçu ; elle ne montre ni chatbot, ni modèle de langage connecté, ni recherche documentaire, ni transfert au support.',
-        alt: 'Référence IDE réelle E-Code App Builder montrant le prompt de réservation du salon, les fichiers générés et le tableau de bord dans l’onglet d’aperçu ; aucun chatbot n’est affiché.',
+        title: 'L’interface de l’assistant tourne à côté de son prompt et de ses fichiers',
+        body: 'La première capture conserve la demande support et l’activité de l’Agent auprès de la source générée pendant que la Webview affiche la conversation, les questions suggérées et les références documentaires fictives.',
+        alt: 'Vrai workspace Chatbot Builder E-Code montrant un prompt d’assistant documentaire, l’activité de l’Agent, les fichiers générés et une conversation d’aide client active dans la Webview.',
       },
       iteration: {
-        title: 'Une vraie demande de correction reste visible auprès du projet actif',
-        body: 'La seconde capture du run salon consigne le suivi d’une erreur d’exécution du routeur et l’aperçu de réservation mis à jour. Elle démontre l’itération visible avec l’Agent, pas la génération réussie d’un chatbot ni une garantie de réussite au premier essai.',
-        alt: 'Référence d’itération E-Code réelle affichant une demande de correction d’erreur de routeur, les fichiers du projet salon et l’aperçu de réservation ; il ne s’agit pas d’une génération chatbot.',
+        title: 'Une question locale expose l’état de réponse à relire',
+        body: 'La capture de suivi montre l’instruction suivante et une réponse locale scénarisée avec ses références d’exemple dans la même Webview. Elle prouve l’interaction générée et la boucle d’itération, pas le raisonnement d’un modèle ni la recherche documentaire.',
+        alt: 'Vraie itération Chatbot Builder E-Code montrant un prompt de suivi, les fichiers de l’assistant et une réponse support locale scénarisée avec des références d’exemple dans la Webview.',
       },
       cta: {
-        label: 'Voir la preuve IDE réelle',
-        ariaLabel: 'Voir la preuve IDE réelle E-Code sur la page App Builder',
+        label: 'Inspecter le run capturé de l’assistant',
+        ariaLabel: 'Inspecter la génération E-Code capturée de l’assistant support et sa réponse locale scénarisée',
       },
     },
     deliverables: {
@@ -456,19 +470,19 @@ export const CHATBOT_BUILDER_COPY = {
       items: [
         {
           title: 'Bots de support documentation',
-          body: 'Répondez aux questions clients à partir des docs produit et escaladez en cas de doute.',
+          body: 'Modélisez les réponses sourcées et une branche de doute, puis branchez et évaluez la recherche et la livraison au support.',
         },
         {
           title: 'Help desks internes',
-          body: 'Des assistants qui répondent aux questions IT, RH ou ops depuis des bases de connaissances internes.',
+          body: 'Structurez les parcours de réponse IT, RH ou ops autour d’un adaptateur de connaissances et d’une frontière d’accès explicites.',
         },
         {
           title: 'Agents de tâches et de workflow',
-          body: 'Des agents qui appellent des outils bornés pour réaliser des étapes et rendre compte pour relecture.',
+          body: 'Déclarez les contrats d’outils bornés et les états de revue avant de connecter un système qui exécute une action réelle.',
         },
         {
           title: 'Assistants d’onboarding',
-          body: 'Des assistants guidés qui accompagnent les nouveaux utilisateurs dans la configuration avec des sources citées.',
+          body: 'Construisez une interface guidée avec citations d’exemple, puis branchez et vérifiez les sources d’onboarding approuvées.',
         },
       ],
     },

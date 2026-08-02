@@ -1,9 +1,9 @@
 import type { SolutionCopyByLanguage } from './solution-copy';
 
 /**
- * SOL — Game Builder. Declined from the App Builder gabarit, centered on a
- * fictional multiplayer quiz game. All demo data is fictional and labeled; the
- * embedded IDE images come from the separately verified App Builder run.
+ * SOL — Game Builder. Dedicated browser-quiz story in EN and FR. All player
+ * names and scores are fictional and labeled; proof claims stop at the captured
+ * Agent exchange, generated files, Webview, and local game state.
  */
 export const GAME_BUILDER_COPY = {
   en: {
@@ -26,31 +26,32 @@ export const GAME_BUILDER_COPY = {
     demo: {
       badge: 'Fictional demo data',
       brand: 'TriviaClash',
-      brandType: 'Live multiplayer quiz',
+      brandType: 'Local quiz prototype',
       nav: ['Lobby', 'Play', 'Leaderboard'],
-      eyebrow: 'Round 3 of 5',
+      eyebrow: 'Scripted round 3 of 5',
       title: 'Which capital sits on the Bosphorus strait?',
       intro:
         'A responsive quiz concept that presents a lobby, timed questions, and a shared-score interface in one clear round loop.',
-      primaryHeading: 'Live scoreboard',
+      primaryHeading: 'Local sample scoreboard',
       primaryRows: [
-        { label: 'Nadia', meta: '1,240 pts', status: 'Leading' },
-        { label: 'Marco', meta: '1,180 pts' },
-        { label: 'Priya', meta: '1,095 pts' },
+        { label: 'Nadia', meta: '1,240 sample pts', status: 'Sample lead' },
+        { label: 'Marco', meta: '1,180 sample pts' },
+        { label: 'Priya', meta: '1,095 sample pts' },
       ],
       asideHeading: 'Current question',
       asideRows: [
         { label: 'Category', value: 'Geography' },
-        { label: 'Time left', value: '0:12' },
-        { label: 'Players', value: '24' },
+        { label: 'Local timer', value: '0:12 sample' },
+        { label: 'Sample players', value: '3 local' },
       ],
-      asideCta: 'Submit answer',
-      disclaimer: 'Inline responsive demonstration · fictional match data · not a generation record',
+      asideCta: 'Test local answer',
+      disclaimer:
+        'Scripted local interface · fictional players, timer, and scores · no remote match, synchronized clients, or persistent leaderboard · not a generation record',
       caption: {
-        title: 'A game screen that plays like a real match',
-        body: 'This inline demonstration shows a live scoreboard, the current question panel, and an answer control in one responsive layout.',
+        title: 'A playable local round with an explicit network boundary',
+        body: 'This scripted interface demonstrates a local scoreboard, current-question state, and answer control in one responsive layout.',
       },
-      alt: 'Multiplayer quiz game demonstration with a live scoreboard and a current-question panel.',
+      alt: 'Scripted local quiz interface with fictional player scores and a current-question panel; no remote multiplayer is shown.',
     },
     problem: {
       eyebrow: 'From engine lock-in to an inspectable game loop',
@@ -101,26 +102,26 @@ export const GAME_BUILDER_COPY = {
       ],
     },
     proofLink: {
-      eyebrow: 'From plain-language instruction to a running Preview',
-      title: 'See the IDE loop behind an E-Code build',
-      body: 'The App Builder page shows a captured, real E-Code workspace — the prompt, the agent’s plan, the generated files, and the running Preview — for a booking application. The same build loop applies to an interactive game like this one.',
-      galleryLabel: 'Real IDE evidence beside the quiz concept',
+      eyebrow: 'Quiz rules → Agent → playable Webview',
+      title: 'Play the quiz the Agent assembled inside the IDE',
+      body: 'These dedicated E-Code captures show the quiz prompt, the Agent exchange, the generated game files, and a local round running in Webview without leaving the project.',
+      galleryLabel: 'Captured quiz-game generation and local play inside E-Code',
       disclaimer:
-        'Proof boundary: both screenshots belong to the real App Builder salon run and demonstrate the E-Code workflow. TriviaClash is a scripted, fictional match view; it is not a recorded Game Builder run or evidence of a connected multiplayer server.',
-      openFullSizeLabel: 'Open the salon-run IDE capture at full resolution',
+        'Captured E-Code generation · fictional players, questions, and scores · local browser state only · no network multiplayer, real-time server, account system, or persistent leaderboard is demonstrated',
+      openFullSizeLabel: 'Open the quiz-game capture at full resolution',
       preview: {
-        title: 'A working application inside the E-Code Webview',
-        body: 'The captured salon run places the user prompt, Agent plan, editable files, and running application on one screen—the same surfaces used to build and test a browser game.',
-        alt: 'Real E-Code App Builder capture with the salon prompt and agent tasks, a running booking dashboard in the Webview, and the source-file library.',
+        title: 'A local quiz round runs beside the editable game files',
+        body: 'The first capture keeps the original multiplayer-quiz request and Agent activity visible while Webview renders the question, timer, answers, score, and local leaderboard from generated source.',
+        alt: 'Real E-Code Game Builder workspace showing a multiplayer quiz prompt, Agent activity, generated game files, and a local question with score and leaderboard running in Webview.',
       },
       iteration: {
-        title: 'The Agent receives a concrete runtime repair request',
-        body: 'This genuine follow-up shows an error described in plain language so the Agent can inspect the code, preserve the working routes, and verify the Preview again.',
-        alt: 'Real E-Code App Builder capture with a React runtime repair prompt, the salon application Webview, and its editable source files in the IDE.',
+        title: 'The next instruction changes the playable round in place',
+        body: 'The follow-up capture records the next prompt beside the updated local quiz state. It proves that the Agent edits the same game and that local answer and score behavior remains visible; it does not prove synchronization between remote players.',
+        alt: 'Real E-Code Game Builder iteration showing a follow-up prompt, generated quiz files, and the updated local question and score state in Webview.',
       },
       cta: {
-        label: 'Open the recorded build workflow',
-        ariaLabel: 'Open the recorded E-Code App Builder workflow used as Game Builder evidence',
+        label: 'Inspect the captured quiz run',
+        ariaLabel: 'Inspect the captured E-Code quiz-game generation and local play state',
       },
     },
     deliverables: {
@@ -189,8 +190,9 @@ export const GAME_BUILDER_COPY = {
     },
     useCases: {
       eyebrow: 'Who builds with it',
-      title: 'Games teams ship with the Game Builder',
-      intro: 'From a live quiz night to a classroom challenge, the same loop produces a real, playable game.',
+      title: 'Playable game foundations teams extend for each audience',
+      intro:
+        'From a quiz-night concept to a classroom challenge, the loop produces a playable local game foundation; remote synchronization and persistence begin only after the required services are connected and tested.',
       items: [
         {
           title: 'Multiplayer quiz and trivia',
@@ -281,31 +283,32 @@ export const GAME_BUILDER_COPY = {
     demo: {
       badge: 'Données fictives',
       brand: 'TriviaClash',
-      brandType: 'Quiz multijoueur en direct',
+      brandType: 'Prototype de quiz local',
       nav: ['Salon', 'Jouer', 'Classement'],
-      eyebrow: 'Manche 3 sur 5',
+      eyebrow: 'Manche scénarisée 3 sur 5',
       title: 'Quelle capitale se trouve sur le détroit du Bosphore ?',
       intro:
         'Un concept de quiz responsive qui présente un salon, des questions chronométrées et une interface de score partagé dans une boucle de manches claire.',
-      primaryHeading: 'Classement en direct',
+      primaryHeading: 'Classement local d’exemple',
       primaryRows: [
-        { label: 'Nadia', meta: '1 240 pts', status: 'En tête' },
-        { label: 'Marco', meta: '1 180 pts' },
-        { label: 'Priya', meta: '1 095 pts' },
+        { label: 'Nadia', meta: '1 240 pts fictifs', status: 'Tête d’exemple' },
+        { label: 'Marco', meta: '1 180 pts fictifs' },
+        { label: 'Priya', meta: '1 095 pts fictifs' },
       ],
       asideHeading: 'Question en cours',
       asideRows: [
         { label: 'Catégorie', value: 'Géographie' },
-        { label: 'Temps restant', value: '0:12' },
-        { label: 'Joueurs', value: '24' },
+        { label: 'Chrono local', value: '0:12 fictif' },
+        { label: 'Joueurs d’exemple', value: '3 locaux' },
       ],
-      asideCta: 'Valider la réponse',
-      disclaimer: 'Démonstration responsive intégrée · données de partie fictives · pas une trace de génération',
+      asideCta: 'Tester la réponse locale',
+      disclaimer:
+        'Interface locale scénarisée · joueurs, chrono et scores fictifs · aucune partie distante, synchronisation réseau ni classement persistant · pas une trace de génération',
       caption: {
-        title: 'Un écran de jeu qui se joue comme une vraie partie',
-        body: 'Cette démonstration intégrée présente un classement en direct, le panneau de la question en cours et un contrôle de réponse dans une mise en page responsive.',
+        title: 'Une manche locale jouable avec une frontière réseau explicite',
+        body: 'Cette interface scénarisée présente un classement local, l’état de la question en cours et un contrôle de réponse dans une mise en page responsive.',
       },
-      alt: 'Démonstration de jeu de quiz multijoueur avec un classement en direct et un panneau de question en cours.',
+      alt: 'Interface locale scénarisée de quiz avec scores fictifs et panneau de question ; aucun multijoueur distant affiché.',
     },
     problem: {
       eyebrow: 'Du carcan du moteur à une boucle de jeu inspectable',
@@ -357,26 +360,26 @@ export const GAME_BUILDER_COPY = {
       ],
     },
     proofLink: {
-      eyebrow: 'De l’instruction en langage courant à l’aperçu actif',
-      title: 'Découvrez la boucle IDE derrière une construction E-Code',
-      body: 'La page App Builder montre un vrai workspace E-Code capturé — le prompt, le plan de l’agent, les fichiers générés et l’aperçu actif — pour une application de réservation. La même boucle de construction s’applique à un jeu interactif comme celui-ci.',
-      galleryLabel: 'Preuve IDE réelle en regard du concept de quiz',
+      eyebrow: 'Règles du quiz → Agent → Webview jouable',
+      title: 'Jouez au quiz assemblé par l’Agent dans l’IDE',
+      body: 'Ces captures E-Code dédiées montrent le prompt du quiz, l’échange avec l’Agent, les fichiers du jeu générés et une manche locale active dans la Webview, sans quitter le projet.',
+      galleryLabel: 'Génération capturée du jeu de quiz et partie locale dans E-Code',
       disclaimer:
-        'Périmètre de la preuve : les deux captures appartiennent au vrai run App Builder du salon et montrent le workflow E-Code. TriviaClash reste une vue de partie scénarisée et fictive ; ce n’est ni un run Game Builder enregistré, ni la preuve d’un serveur multijoueur connecté.',
-      openFullSizeLabel: 'Ouvrir la capture IDE du run salon en pleine résolution',
+        'Génération E-Code capturée · joueurs, questions et scores fictifs · état local du navigateur uniquement · aucun multijoueur réseau, serveur temps réel, système de comptes ni classement persistant démontré',
+      openFullSizeLabel: 'Ouvrir la capture du jeu de quiz en pleine résolution',
       preview: {
-        title: 'Une application fonctionnelle dans la Webview E-Code',
-        body: 'Le run salon capturé réunit le prompt utilisateur, le plan de l’Agent, les fichiers modifiables et l’application active sur un même écran — les mêmes surfaces qui servent à construire et tester un jeu web.',
-        alt: 'Vraie capture App Builder E-Code avec le prompt salon et les tâches de l’agent, un tableau de bord de réservation actif dans la Webview et la bibliothèque de fichiers source.',
+        title: 'Une manche locale tourne à côté des fichiers modifiables du jeu',
+        body: 'La première capture conserve la demande initiale de quiz multijoueur et l’activité de l’Agent pendant que la Webview affiche la question, le chrono, les réponses, le score et le classement local issus de la source générée.',
+        alt: 'Vrai workspace Game Builder E-Code montrant un prompt de quiz multijoueur, l’activité de l’Agent, les fichiers générés et une question locale avec score et classement dans la Webview.',
       },
       iteration: {
-        title: 'L’Agent reçoit une demande précise de réparation runtime',
-        body: 'Ce vrai suivi formule une erreur en langage courant pour que l’Agent inspecte le code, préserve les routes fonctionnelles et vérifie à nouveau l’aperçu.',
-        alt: 'Vraie capture App Builder E-Code avec un prompt de réparation runtime React, la Webview de l’application salon et ses fichiers source modifiables dans l’IDE.',
+        title: 'L’instruction suivante modifie la manche jouable sur place',
+        body: 'La capture de suivi conserve le nouveau prompt auprès de l’état local du quiz mis à jour. Elle prouve que l’Agent modifie le même jeu et que les réponses et le score locaux restent visibles ; elle ne prouve aucune synchronisation entre joueurs distants.',
+        alt: 'Vraie itération Game Builder E-Code montrant un prompt de suivi, les fichiers du quiz et l’état local mis à jour de la question et du score dans la Webview.',
       },
       cta: {
-        label: 'Ouvrir le workflow de construction enregistré',
-        ariaLabel: 'Ouvrir le workflow App Builder E-Code enregistré et utilisé comme preuve du Générateur de jeu',
+        label: 'Inspecter le run capturé du quiz',
+        ariaLabel: 'Inspecter la génération E-Code capturée du jeu de quiz et son état de partie local',
       },
     },
     deliverables: {
@@ -445,8 +448,9 @@ export const GAME_BUILDER_COPY = {
     },
     useCases: {
       eyebrow: 'Qui construit avec',
-      title: 'Les jeux que les équipes livrent avec le Générateur de jeu',
-      intro: 'D’une soirée quiz en direct à un défi en classe, la même boucle produit un vrai jeu jouable.',
+      title: 'Les bases de jeux jouables que les équipes étendent pour chaque public',
+      intro:
+        'D’un concept de soirée quiz à un défi en classe, la boucle produit une base de jeu local jouable ; synchronisation distante et persistance commencent seulement après branchement et test des services requis.',
       items: [
         {
           title: 'Quiz et trivia multijoueur',

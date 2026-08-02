@@ -1,9 +1,9 @@
 import type { SolutionCopyByLanguage } from './solution-copy';
 
 /**
- * SOL — Internal AI Builder. Declined from the App Builder gabarit, centered on a
- * fictional private HR procedures assistant. All demo data is fictional and
- * labeled; the one real captured E-Code IDE proof lives on /solutions/app-builder.
+ * SOL — Internal AI Builder. Dedicated HR-procedure assistant story in EN and
+ * FR. All procedures and employee details are fictional and labeled; proof claims
+ * stop at the captured Agent exchange, generated files, Webview, and local search.
  */
 export const INTERNAL_AI_BUILDER_COPY = {
   en: {
@@ -29,31 +29,32 @@ export const INTERNAL_AI_BUILDER_COPY = {
     demo: {
       badge: 'Fictional demo data',
       brand: 'PeopleOps Assistant',
-      brandType: 'Internal HR tool',
+      brandType: 'Scripted HR interface',
       nav: ['Ask', 'Approvals', 'Audit'],
-      eyebrow: 'Private workspace',
-      title: 'Answer HR policy questions and route approvals in one place.',
+      eyebrow: 'Local procedure demo',
+      title: 'Review a policy-search and approval interface before connecting internal systems.',
       intro:
-        'A private internal assistant that answers procedure questions and moves approval requests to the right owner.',
-      primaryHeading: 'Recent requests',
+        'A local interface that demonstrates procedure answers and approval states with fictional fixtures; no employee identity, private corpus, or workflow engine is connected.',
+      primaryHeading: 'Fictional request states',
       primaryRows: [
-        { label: 'Parental leave — policy', meta: 'M. Dubois · Sales', status: 'Approved' },
-        { label: 'Remote work — exception', meta: 'A. Laurent · Support' },
-        { label: 'Expense limit — clarification', meta: 'S. Moreau · Finance' },
+        { label: 'Parental leave — policy', meta: 'Sample requester · Sales', status: 'UI: approved' },
+        { label: 'Remote work — exception', meta: 'Sample requester · Support' },
+        { label: 'Expense limit — clarification', meta: 'Sample requester · Finance' },
       ],
-      asideHeading: 'Governance',
+      asideHeading: 'Governance placeholders',
       asideRows: [
-        { label: 'Access', value: 'Role-based' },
-        { label: 'Audit log', value: 'On' },
-        { label: 'Data', value: 'Private only' },
+        { label: 'Access controls', value: 'UI concept' },
+        { label: 'Audit view', value: 'Sample entries' },
+        { label: 'Procedure data', value: 'Local fixtures' },
       ],
-      asideCta: 'Open audit trail',
-      disclaimer: 'Inline responsive demonstration · fictional HR data · not a generation record',
+      asideCta: 'Review sample audit view',
+      disclaimer:
+        'Scripted local interface · fictional HR requests and controls · no authentication, private corpus, approval workflow, or audit service · not a generation record',
       caption: {
-        title: 'A private assistant that reads like a real internal tool',
-        body: 'This inline demonstration shows a request list, an approvals view, and a governance panel in one responsive layout.',
+        title: 'An internal-tool scenario with explicit identity and data boundaries',
+        body: 'This local interface demonstrates a request list, approval-state UI, and governance panel without claiming real access enforcement or workflow execution.',
       },
-      alt: 'Internal HR assistant demonstration with a recent requests list and a governance panel showing access, audit, and data controls.',
+      alt: 'Scripted local HR-assistant interface with fictional requests and sample access, audit, and data control labels.',
     },
     problem: {
       eyebrow: 'From scattered procedures to a governed internal tool',
@@ -104,24 +105,27 @@ export const INTERNAL_AI_BUILDER_COPY = {
       ],
     },
     proofLink: {
-      eyebrow: 'Prompt → agent → Preview',
-      title: 'Use a documented E-Code run as workflow evidence, not as an internal-security claim',
-      body: 'These IDE captures belong to the real App Builder salon-booking run. They show a prompt, Agent activity, generated files, Preview, and a correction cycle inside E-Code. The PeopleOps Assistant shown above is a scripted, fictional interface and was not captured from an internal-AI generation.',
-      galleryLabel: 'Documented App Builder salon workspace used as Internal AI Builder workflow evidence',
+      eyebrow: 'HR workflow → Agent → internal-tool Webview',
+      title: 'Inspect the procedure assistant generated inside E-Code',
+      body: 'These dedicated captures show the HR-procedure prompt, the Agent exchange, the generated search and workflow files, and the internal-assistant interface running in Webview with fictional local procedures.',
+      galleryLabel: 'Captured HR-assistant generation and local procedure search inside E-Code',
       disclaimer:
-        'Workflow reference from the real E-Code salon run · salon records fictional · PeopleOps scenario and HR records fictional · not an internal-agent generation record · no private source or identity provider demonstrated',
-      openFullSizeLabel: 'Inspect the full-size salon workflow capture',
+        'Captured E-Code generation · fictional HR procedures and requests · local sample search only · no private document source, RAG pipeline, authentication, enforced roles, immutable audit log, or production deployment is demonstrated',
+      openFullSizeLabel: 'Open the HR-assistant capture at full size',
       preview: {
-        title: 'The real workspace keeps the request, files, and running app in view',
-        body: 'This salon App Builder capture verifies the E-Code workspace and its generated booking Preview. It does not demonstrate an HR assistant, a private-document connection, authentication, role enforcement, or a production audit store.',
-        alt: 'Documented E-Code App Builder salon workspace with the booking request, generated files, and application Preview; it provides no evidence of private HR data or access controls.',
+        title: 'Procedure search runs beside the generated workflow files',
+        body: 'The first capture keeps the operations brief and Agent activity visible while Webview renders the PeopleOps search, sample procedure cards, and request-routing interface from local fictional data.',
+        alt: 'Real E-Code Internal AI Builder workspace showing an HR-procedure prompt, Agent activity, generated workflow files, and a PeopleOps procedure-search interface running in Webview.',
       },
       iteration: {
-        title: 'The captured run also records a runtime correction',
-        body: 'A second App Builder image shows the Agent receiving a router-error follow-up beside the salon project. That is evidence of an inspectable repair loop, not evidence that the fictional PeopleOps access and audit flows were generated or security-tested.',
-        alt: 'Documented E-Code salon-run correction with a router-error follow-up, project files, and booking Preview; no internal AI security flow is depicted.',
+        title: 'A local procedure query exposes the result state',
+        body: 'The follow-up capture shows the next instruction beside updated local search results and their generated source. It proves the interface interaction and Agent iteration, not access enforcement, private retrieval, or audit integrity.',
+        alt: 'Real E-Code Internal AI Builder iteration showing a follow-up prompt, generated HR-assistant files, and updated local procedure-search results in Webview.',
       },
-      cta: { label: 'See the real IDE proof', ariaLabel: 'See the real E-Code IDE proof on the App Builder page' },
+      cta: {
+        label: 'Inspect the captured HR-assistant run',
+        ariaLabel: 'Inspect the captured E-Code HR-assistant generation and local procedure search',
+      },
     },
     deliverables: {
       eyebrow: 'What you receive',
@@ -195,19 +199,19 @@ export const INTERNAL_AI_BUILDER_COPY = {
       items: [
         {
           title: 'HR procedures assistant',
-          body: 'Answer policy questions and route leave, exception, and approval requests.',
+          body: 'Model policy-search results and leave, exception, and approval routes before connecting the private corpus and workflow engine.',
         },
         {
           title: 'Internal help desk',
-          body: 'Surface IT, finance, and operations procedures with routing to the right owner.',
+          body: 'Structure IT, finance, and operations procedure views with an explicit, still-unconnected owner-routing boundary.',
         },
         {
           title: 'Onboarding and knowledge tools',
-          body: 'Guide new hires through processes grounded in your internal documentation.',
+          body: 'Build the guided process interface, then connect approved documentation and validate access before employee use.',
         },
         {
           title: 'Approval and request flows',
-          body: 'Model structured request paths with owners, states, and an audit trail.',
+          body: 'Model request paths, owners, states, and audit-event shapes without presenting them as persisted or enforced.',
         },
       ],
     },
@@ -289,31 +293,32 @@ export const INTERNAL_AI_BUILDER_COPY = {
     demo: {
       badge: 'Données fictives',
       brand: 'PeopleOps Assistant',
-      brandType: 'Outil RH interne',
+      brandType: 'Interface RH scénarisée',
       nav: ['Demander', 'Approbations', 'Audit'],
-      eyebrow: 'Espace privé',
-      title: 'Répondez aux questions de politique RH et acheminez les approbations au même endroit.',
+      eyebrow: 'Démo locale de procédures',
+      title: 'Relisez une interface de recherche et d’approbation avant de connecter les systèmes internes.',
       intro:
-        'Un assistant interne privé qui répond aux questions de procédure et achemine les demandes d’approbation vers le bon responsable.',
-      primaryHeading: 'Demandes récentes',
+        'Une interface locale qui démontre des réponses de procédure et des états d’approbation sur des fixtures fictives ; aucune identité employé, corpus privé ni moteur de workflow connecté.',
+      primaryHeading: 'États de demandes fictifs',
       primaryRows: [
-        { label: 'Congé parental — politique', meta: 'M. Dubois · Ventes', status: 'Approuvé' },
-        { label: 'Télétravail — exception', meta: 'A. Laurent · Support' },
-        { label: 'Plafond de dépenses — clarification', meta: 'S. Moreau · Finance' },
+        { label: 'Congé parental — politique', meta: 'Demandeur fictif · Ventes', status: 'UI : approuvé' },
+        { label: 'Télétravail — exception', meta: 'Demandeur fictif · Support' },
+        { label: 'Plafond de dépenses — clarification', meta: 'Demandeur fictif · Finance' },
       ],
-      asideHeading: 'Gouvernance',
+      asideHeading: 'Repères de gouvernance',
       asideRows: [
-        { label: 'Accès', value: 'Par rôle' },
-        { label: 'Journal d’audit', value: 'Activé' },
-        { label: 'Données', value: 'Privées uniquement' },
+        { label: 'Contrôles d’accès', value: 'Concept UI' },
+        { label: 'Vue d’audit', value: 'Entrées d’exemple' },
+        { label: 'Données procédure', value: 'Fixtures locales' },
       ],
-      asideCta: 'Ouvrir le journal d’audit',
-      disclaimer: 'Démonstration responsive intégrée · données RH fictives · pas une trace de génération',
+      asideCta: 'Relire la vue d’audit d’exemple',
+      disclaimer:
+        'Interface locale scénarisée · demandes et contrôles RH fictifs · aucune authentification, corpus privé, approbation ni service d’audit · pas une trace de génération',
       caption: {
-        title: 'Un assistant privé qui se lit comme un vrai outil interne',
-        body: 'Cette démonstration intégrée présente une liste de demandes, une vue des approbations et un panneau de gouvernance dans une mise en page responsive.',
+        title: 'Un scénario d’outil interne aux frontières d’identité et de données explicites',
+        body: 'Cette interface locale présente une liste de demandes, des états visuels d’approbation et un panneau de gouvernance sans prétendre appliquer des accès ni exécuter un workflow réel.',
       },
-      alt: 'Démonstration d’assistant RH interne avec une liste de demandes récentes et un panneau de gouvernance affichant les contrôles d’accès, d’audit et de données.',
+      alt: 'Interface locale scénarisée d’assistant RH avec demandes fictives et libellés d’exemple pour les contrôles d’accès, d’audit et de données.',
     },
     problem: {
       eyebrow: 'Des procédures éparses à un outil interne gouverné',
@@ -364,26 +369,26 @@ export const INTERNAL_AI_BUILDER_COPY = {
       ],
     },
     proofLink: {
-      eyebrow: 'Prompt → agent → aperçu',
-      title: 'Prenez un run E-Code documenté comme preuve du flux, pas comme promesse de sécurité interne',
-      body: 'Ces captures IDE appartiennent au véritable run App Builder de réservation du salon. Elles montrent dans E-Code un prompt, l’activité de l’Agent, les fichiers générés, l’aperçu et un cycle de correction. PeopleOps Assistant ci-dessus reste une interface scénarisée et fictive, non capturée lors d’une génération d’IA interne.',
-      galleryLabel: 'Workspace salon App Builder documenté, utilisé comme preuve du flux Générateur d’IA interne',
+      eyebrow: 'Workflow RH → Agent → Webview de l’outil interne',
+      title: 'Inspectez l’assistant de procédures généré dans E-Code',
+      body: 'Ces captures dédiées montrent le prompt sur les procédures RH, l’échange avec l’Agent, les fichiers de recherche et de workflow générés et l’interface de l’assistant interne active dans la Webview avec des procédures locales fictives.',
+      galleryLabel: 'Génération capturée de l’assistant RH et recherche locale dans E-Code',
       disclaimer:
-        'Référence issue du vrai run salon E-Code · données salon fictives · scénario PeopleOps et données RH fictifs · pas une trace de génération d’agent interne · aucune source privée ni fournisseur d’identité démontré',
-      openFullSizeLabel: 'Examiner la capture complète du flux salon',
+        'Génération E-Code capturée · procédures et demandes RH fictives · recherche locale d’exemple uniquement · aucune source documentaire privée, pipeline RAG, authentification, rôle appliqué, piste d’audit immuable ni production démontré',
+      openFullSizeLabel: 'Ouvrir la capture de l’assistant RH en grand',
       preview: {
-        title: 'Le vrai workspace garde demande, fichiers et app active dans la même vue',
-        body: 'Cette capture salon App Builder vérifie l’espace E-Code et son aperçu de réservation généré. Elle ne démontre ni assistant RH, ni connexion à des documents privés, ni authentification, ni application des rôles, ni stockage d’audit de production.',
-        alt: 'Workspace salon E-Code App Builder documenté avec la demande de réservation, les fichiers générés et l’aperçu de l’application ; aucune donnée RH privée ni contrôle d’accès n’y est prouvé.',
+        title: 'La recherche de procédures tourne à côté des fichiers du workflow',
+        body: 'La première capture conserve le brief des opérations et l’activité de l’Agent pendant que la Webview affiche la recherche PeopleOps, des fiches de procédure d’exemple et le parcours des demandes à partir de données locales fictives.',
+        alt: 'Vrai workspace Internal AI Builder E-Code montrant un prompt de procédures RH, l’activité de l’Agent, les fichiers de workflow générés et une interface de recherche PeopleOps active dans la Webview.',
       },
       iteration: {
-        title: 'Le run capturé consigne aussi une correction d’exécution',
-        body: 'Une seconde image App Builder montre l’Agent recevant un suivi d’erreur de routeur auprès du projet salon. Elle prouve une boucle de réparation inspectable, pas la génération ni les tests de sécurité des flux fictifs d’accès et d’audit PeopleOps.',
-        alt: 'Correction documentée du run salon E-Code avec suivi d’erreur de routeur, fichiers du projet et aperçu de réservation ; aucun flux de sécurité IA interne n’est représenté.',
+        title: 'Une requête locale expose l’état des résultats',
+        body: 'La capture de suivi montre l’instruction suivante auprès des résultats locaux mis à jour et de leur source générée. Elle prouve l’interaction de l’interface et l’itération de l’Agent, pas l’application des accès, la recherche privée ni l’intégrité d’un audit.',
+        alt: 'Vraie itération Internal AI Builder E-Code montrant un prompt de suivi, les fichiers de l’assistant RH et des résultats locaux de procédure mis à jour dans la Webview.',
       },
       cta: {
-        label: 'Voir la preuve IDE réelle',
-        ariaLabel: 'Voir la preuve IDE réelle E-Code sur la page App Builder',
+        label: 'Inspecter le run capturé de l’assistant RH',
+        ariaLabel: 'Inspecter la génération E-Code capturée de l’assistant RH et sa recherche locale de procédures',
       },
     },
     deliverables: {
@@ -458,19 +463,19 @@ export const INTERNAL_AI_BUILDER_COPY = {
       items: [
         {
           title: 'Assistant de procédures RH',
-          body: 'Répondez aux questions de politique et acheminez les demandes de congé, d’exception et d’approbation.',
+          body: 'Modélisez les résultats de recherche et les parcours de congé, d’exception et d’approbation avant de brancher le corpus privé et le moteur de workflow.',
         },
         {
           title: 'Help desk interne',
-          body: 'Faites remonter les procédures IT, finance et opérations avec acheminement vers le bon responsable.',
+          body: 'Structurez les vues de procédures IT, finance et opérations avec une frontière explicite, encore non connectée, vers le bon responsable.',
         },
         {
           title: 'Outils d’onboarding et de savoir',
-          body: 'Guidez les nouvelles recrues à travers des processus ancrés dans votre documentation interne.',
+          body: 'Construisez l’interface guidée, puis branchez la documentation approuvée et validez les accès avant tout usage employé.',
         },
         {
           title: 'Flux d’approbation et de demande',
-          body: 'Modélisez des parcours de demande structurés avec responsables, états et journal d’audit.',
+          body: 'Modélisez parcours, responsables, états et formes d’événements d’audit sans les présenter comme persistés ou appliqués.',
         },
       ],
     },
