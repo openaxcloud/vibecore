@@ -10,20 +10,20 @@ export const INTERNAL_AI_BUILDER_COPY = {
     seo: {
       title: 'Internal AI Builder with Real Code | E-Code',
       description:
-        'Describe the internal assistant your team needs. E-Code turns it into a private AI tool in editable source files, with secure project context, approval routing, and enterprise observability — running in Preview and exportable as code you own.',
+        'Describe the internal assistant your team needs. E-Code creates an editable project that models procedure sources, approval states, access rules, and audit events. Connect identity and private data, then complete security testing before deployment.',
     },
     hero: {
       eyebrow: 'Internal AI Builder for private team tools',
-      title: 'Bring a private AI assistant to your team, in code you own',
+      title: 'Structure an internal assistant before you connect private company data',
       subtitle:
-        'Describe the internal workflow you want to automate — answering policy questions, routing approvals, surfacing procedures. E-Code turns it into a private AI tool in editable source code, wired to your project context. Inspect every file, run it in Preview, refine it through the Agent, and keep governance and audit visible throughout.',
+        'Describe the internal workflow you want to automate — policy questions, approval routing, procedure lookup. E-Code turns that scope into editable source code with source adapters, roles, states, and audit-event models you can inspect. Run the interface in Preview, then connect identity, storage, private procedures, and review every control before rollout.',
       primaryCta: { label: 'Describe your assistant', ariaLabel: 'Describe your internal AI assistant with E-Code' },
       secondaryCta: {
         label: 'See how it builds',
         ariaLabel: 'See how E-Code builds the internal assistant from a prompt',
       },
       microcopy:
-        'Start from the internal task your team repeats every week. Source files, the running Preview, and access controls stay visible as the tool evolves.',
+        'Start from the internal task your team repeats every week. Source files, the running interface, and proposed access rules remain visible while the tool evolves.',
     },
     languageSwitch: { label: 'Choose the Internal AI Builder page language', english: 'English', french: 'Français' },
     demo: {
@@ -59,15 +59,15 @@ export const INTERNAL_AI_BUILDER_COPY = {
       eyebrow: 'From scattered procedures to a governed internal tool',
       title: 'Internal AI looks easy until private context, access, and audit get real',
       intro:
-        'A team wants an assistant that answers from its own procedures and routes work to the right owner. Generic chatbots ignore private context, off-the-shelf tools hold your data on their terms, and neither gives you the access controls and audit trail an internal tool needs.',
+        'A team wants an assistant that uses its procedures and routes work to the right owner. A generic chat surface does not automatically connect trusted internal sources, enforce company identity, or create the durable audit record an internal tool needs.',
       obstacles: [
         {
           title: 'Generic assistants ignore your context',
-          body: 'A public model answers from the open web, not your procedures, so its answers drift from how your team actually works.',
+          body: 'Without an explicit, tested source connection, a model does not know which approved procedure applies and may answer outside the company’s operating rules.',
         },
         {
-          title: 'Off-the-shelf tools own your data',
-          body: 'Internal documents flow into a vendor platform on its terms, and you inherit its access model rather than defining your own.',
+          title: 'Hosted tools impose their data path',
+          body: 'A vendor platform brings its own storage, retention, and access model. Security teams still need to verify where documents go and who can retrieve them.',
         },
         {
           title: 'Governance is an afterthought',
@@ -75,7 +75,7 @@ export const INTERNAL_AI_BUILDER_COPY = {
         },
       ],
       bridge:
-        'E-Code starts from the workflow you describe and produces a private assistant in real source files, wired to your project context. You inspect the logic, run it in Preview, and keep access and audit visible as the tool evolves.',
+        'E-Code starts from the workflow you describe and creates an internal-assistant project in real source files. You inspect the modeled source, access, routing, and audit paths in Preview, then connect the systems and enforce the controls required by your environment.',
     },
     build: {
       eyebrow: 'One prompt starts the assistant',
@@ -83,89 +83,115 @@ export const INTERNAL_AI_BUILDER_COPY = {
       intro:
         'The request below reads like a note from an operations lead. The four items map its implementation scope in real source files, with governance in view from the start.',
       label: 'Example prompt',
-      promptText:
-        'Build an internal assistant that answers HR policy questions and routes approval requests, using our private procedures.',
+      promptText: 'Build an internal agent that searches our HR procedures, available only to my teams.',
       outputs: [
         {
           title: 'Private context grounding',
-          body: 'The assistant is wired to answer from your own procedures as project context, so responses reflect your team, not the open web.',
+          body: 'A source-adapter boundary models where approved procedures enter the assistant. Your documents are not connected by this page; choose the source, permissions, and retrieval checks before use.',
         },
         {
           title: 'Approval routing',
-          body: 'Requests are modeled with owners, states, and a routing path, so an approval moves to the right person rather than stalling.',
+          body: 'Requests are modeled with owners, states, and a routing path. Connect persistence and notifications, then test reassignment, retries, and failure handling.',
         },
         {
           title: 'Access and audit',
-          body: 'Role-based access and an audit log are modeled into the tool, so who can ask, approve, and read stays governed and traceable.',
+          body: 'Role checks and audit events are represented in source code for review. They are not proof of enforced authentication, immutable logging, or authorization coverage.',
         },
         {
           title: 'Preview and export',
-          body: 'E-Code runs the assistant in Preview across screen sizes. The project stays exportable as source you host under your own controls.',
+          body: 'E-Code runs the project interface in Preview across screen sizes and keeps the source exportable. Preview does not certify a private or production-ready deployment.',
         },
       ],
     },
     proofLink: {
       eyebrow: 'Prompt → agent → Preview',
-      title: 'Want to see a real E-Code build end to end?',
-      body: 'The App Builder page shows a captured, real E-Code workspace — the prompt, the agent’s plan, the generated files, and the running Preview — for a booking application. The same build loop applies to an internal tool like this one.',
+      title: 'Use a documented E-Code run as workflow evidence, not as an internal-security claim',
+      body: 'These IDE captures belong to the real App Builder salon-booking run. They show a prompt, Agent activity, generated files, Preview, and a correction cycle inside E-Code. The PeopleOps Assistant shown above is a scripted, fictional interface and was not captured from an internal-AI generation.',
+      galleryLabel: 'Documented App Builder salon workspace used as Internal AI Builder workflow evidence',
+      disclaimer:
+        'Workflow reference from the real E-Code salon run · salon records fictional · PeopleOps scenario and HR records fictional · not an internal-agent generation record · no private source or identity provider demonstrated',
+      openFullSizeLabel: 'Inspect the full-size salon workflow capture',
+      preview: {
+        title: 'The real workspace keeps the request, files, and running app in view',
+        body: 'This salon App Builder capture verifies the E-Code workspace and its generated booking Preview. It does not demonstrate an HR assistant, a private-document connection, authentication, role enforcement, or a production audit store.',
+        alt: 'Documented E-Code App Builder salon workspace with the booking request, generated files, and application Preview; it provides no evidence of private HR data or access controls.',
+      },
+      iteration: {
+        title: 'The captured run also records a runtime correction',
+        body: 'A second App Builder image shows the Agent receiving a router-error follow-up beside the salon project. That is evidence of an inspectable repair loop, not evidence that the fictional PeopleOps access and audit flows were generated or security-tested.',
+        alt: 'Documented E-Code salon-run correction with a router-error follow-up, project files, and booking Preview; no internal AI security flow is depicted.',
+      },
       cta: { label: 'See the real IDE proof', ariaLabel: 'See the real E-Code IDE proof on the App Builder page' },
     },
     deliverables: {
       eyebrow: 'What you receive',
-      title: 'A private assistant you own and keep evolving',
+      title: 'A traceable internal-tool project with honest deployment boundaries',
       intro:
-        'The project stays inspectable from the first generated file through Preview and export. Access, routing, and audit are modeled in code you can read, not hidden behind a vendor console.',
+        'The generated project exposes its source, procedure-adapter seam, responsive workspace, and release options. A static review surface can publish through E-Code; private data operations still belong in a separately secured runtime.',
       items: [
         {
-          title: 'Editable source files',
-          body: 'Real components, routes, logic, and content you can read, version, and change directly.',
+          title: 'Reviewable, portable project files',
+          body: 'Components, routes, workflow state, and policy structures remain readable and exportable for your repository and review process.',
         },
         {
-          title: 'Private context wiring',
-          body: 'The assistant is grounded in your procedures as project context, editable as code.',
+          title: 'Procedure adapter in plain sight',
+          body: 'The connection seam for approved procedures is visible in the source. Add the real store only after defining permissions and validating retrieval against your own documents.',
         },
         {
-          title: 'Approval workflows',
-          body: 'Requests, owners, and states modeled so approvals route to the right person.',
+          title: 'Responsive workspace running in Preview',
+          body: 'Review request and policy screens across mobile, tablet, and desktop. Preview demonstrates the interface, not connected private documents, company authentication, or enforced authorization.',
         },
         {
-          title: 'Role-based access',
-          body: 'Who can ask, approve, and read is modeled into the tool, not bolted on later.',
+          title: 'Guided release for supported static builds',
+          body: 'E-Code guides publishing when the generated internal-tool surface is a supported static build. That path does not turn modeled data or security rules into running backend services.',
         },
-        { title: 'Audit trail', body: 'An audit log models a traceable record of requests, answers, and approvals.' },
         {
-          title: 'Agent-ready iteration',
-          body: 'Ask the Agent for the next change and review the diff against the running tool.',
+          title: 'E-Code URL for static review',
+          body: 'Put a compatible static review surface on an E-Code live URL. Any private lookup, approval write, identity check, or durable event requires the exported code and a backend runtime deployed under the required controls.',
+        },
+        {
+          title: 'Agent conversation as the change loop',
+          body: 'Describe the next policy or workflow adjustment, review the affected source files, and verify the updated interface in Preview before advancing.',
         },
       ],
     },
     features: {
       eyebrow: 'Built for private internal tools',
-      title: 'Everything an internal assistant needs, in code you control',
+      title: 'The internal workflow in code, with security work kept explicit',
       intro:
-        'The Internal AI Builder path keeps private context, governance, and iteration in one inspectable workflow.',
+        'The Internal AI Builder path keeps source boundaries, governance rules, and iteration visible without claiming that a Preview supplies production security.',
       items: [
         {
           title: 'Procedure-grounded answers',
-          body: 'Responses draw on your own procedures as project context, not the open web.',
+          body: 'A retrieval boundary identifies the connection point for approved procedures; grounding quality still requires evaluation against your corpus.',
         },
-        { title: 'Approval routing', body: 'Requests move through owners and states to the right decision-maker.' },
-        { title: 'Role-based access', body: 'Define who can ask, approve, and read, as logic you can inspect.' },
-        { title: 'Audit observability', body: 'An audit log models a traceable record of activity across the tool.' },
+        {
+          title: 'Approval routing',
+          body: 'Owners and states express the intended path; persistence, notifications, and failure recovery remain integrations to test.',
+        },
+        {
+          title: 'Access-rule scaffolding',
+          body: 'Define who may ask, approve, and read as inspectable policy logic, then enforce it through real authentication and server checks.',
+        },
+        {
+          title: 'Audit event scaffolding',
+          body: 'Model the events that matter, then route them to tamper-resistant storage with the retention and access rules your organization requires.',
+        },
         {
           title: 'Responsive by default',
           body: 'The interface adapts from wide desktop to phone without a separate mobile build.',
         },
         {
-          title: 'Own the code',
-          body: 'Export the project and host it under your own controls — the source stays yours.',
+          title: 'Exportable source',
+          body: 'Export the project for your chosen hosting path, then apply your organization’s deployment, privacy, and security controls.',
         },
       ],
     },
     useCases: {
       eyebrow: 'Who builds with it',
-      title: 'Internal tools teams ship with the Internal AI Builder',
-      intro: 'From an HR procedures assistant to an internal help desk, the same loop produces a real, governed tool.',
+      title: 'Four internal workflows to structure before rollout',
+      intro:
+        'From HR procedure search to request intake, these scenarios define inspectable starting points; governance becomes real only after identity, data, audit, and security validation.',
       items: [
         {
           title: 'HR procedures assistant',
@@ -192,19 +218,19 @@ export const INTERNAL_AI_BUILDER_COPY = {
       items: [
         {
           title: 'Do I get real code or a locked platform?',
-          body: 'You get editable source files — components, routes, logic, and content — that you can read, version, and export. There is no proprietary platform lock-in.',
+          body: 'You get editable source files for components, routes, policy logic, and content that you can read, version, and export. Connected models, identity providers, data stores, and hosts keep their own terms and constraints.',
         },
         {
           title: 'How does it use our private procedures?',
-          body: 'The generated assistant is wired to answer from your procedures as project context, editable as code. The inline demonstration on this page uses fictional data and no connected data source.',
+          body: 'The project can model an adapter for procedure retrieval, but this page connects no documents, model, or data source. You choose the corpus and provider, restrict access, and evaluate retrieval and answers before employees use it.',
         },
         {
           title: 'Can I control access and see an audit trail?',
-          body: 'Role-based access and an audit log are modeled into the generated tool as logic you can inspect and extend. You define and host the controls yourself.',
+          body: 'The project can model roles, policy checks, and audit events as inspectable code. That is scaffolding, not enforced authentication or an immutable audit trail; connect the required services and test every server-side authorization path.',
         },
         {
           title: 'Is my data private?',
-          body: 'The project is code you host under your own controls, so private data stays where you put it. E-Code does not claim any specific compliance certification for your deployment.',
+          body: 'Not by default. Privacy depends on the model, storage, identity, logging, network, and hosting choices in your deployment. The page demo contains only fictional data, and E-Code does not claim a compliance certification for your resulting system.',
         },
         {
           title: 'How do I change the assistant later?',
@@ -214,7 +240,7 @@ export const INTERNAL_AI_BUILDER_COPY = {
     },
     finalCta: {
       title: 'Describe your assistant and see it running',
-      body: 'Turn the internal workflow you have in mind into a private AI tool in real source code, run it in Preview, and keep access and audit in view.',
+      body: 'Turn the internal workflow you have in mind into an editable project, run its interface in Preview, and inspect source, access rules, and audit events before connecting private data or rolling it out.',
       primaryCta: { label: 'Describe your assistant', ariaLabel: 'Describe your internal AI assistant with E-Code' },
       secondaryCta: {
         label: 'See how it builds',
@@ -240,20 +266,20 @@ export const INTERNAL_AI_BUILDER_COPY = {
     seo: {
       title: 'Générateur d’IA interne avec vrai code | E-Code',
       description:
-        'Décrivez l’assistant interne dont votre équipe a besoin. E-Code le transforme en un outil d’IA privé dans des fichiers source modifiables, avec un contexte projet sécurisé, l’acheminement des approbations et l’observabilité d’entreprise — exécuté dans l’aperçu et exportable comme un code que vous possédez.',
+        'Décrivez l’assistant interne attendu. E-Code crée un projet modifiable qui modélise les sources de procédures, les états d’approbation, les règles d’accès et les événements d’audit. Connectez l’identité et les données privées, puis terminez les tests de sécurité avant déploiement.',
     },
     hero: {
       eyebrow: 'Générateur d’IA interne pour des outils d’équipe privés',
-      title: 'Offrez à votre équipe un assistant IA privé, dans un code que vous possédez',
+      title: 'Structurez un assistant interne avant de brancher les données privées de l’entreprise',
       subtitle:
-        'Décrivez le flux interne que vous voulez automatiser — répondre aux questions de politique, acheminer les approbations, faire remonter les procédures. E-Code en fait un outil d’IA privé dans un vrai code source modifiable, câblé à votre contexte projet. Inspectez chaque fichier, exécutez-le dans l’aperçu, affinez-le avec l’Agent et gardez la gouvernance et l’audit visibles de bout en bout.',
+        'Décrivez le flux interne à automatiser — questions de politique, approbations, recherche de procédures. E-Code transforme ce périmètre en code source modifiable avec adaptateurs de sources, rôles, états et modèles d’événements d’audit. Exécutez l’interface dans l’aperçu, puis branchez identité, stockage et procédures privées, et relisez chaque contrôle avant le déploiement.',
       primaryCta: { label: 'Décrivez votre assistant', ariaLabel: 'Décrivez votre assistant IA interne avec E-Code' },
       secondaryCta: {
         label: 'Voir la construction',
         ariaLabel: 'Voir comment E-Code construit l’assistant interne à partir d’un prompt',
       },
       microcopy:
-        'Partez de la tâche interne que votre équipe répète chaque semaine. Les fichiers source, l’aperçu actif et les contrôles d’accès restent visibles à mesure que l’outil évolue.',
+        'Partez de la tâche interne répétée chaque semaine. Les fichiers source, l’interface active et les règles d’accès proposées restent visibles à mesure que l’outil évolue.',
     },
     languageSwitch: {
       label: 'Choisir la langue de la page Générateur d’IA interne',
@@ -293,15 +319,15 @@ export const INTERNAL_AI_BUILDER_COPY = {
       eyebrow: 'Des procédures éparses à un outil interne gouverné',
       title: 'L’IA interne paraît simple jusqu’à ce que le contexte privé, l’accès et l’audit deviennent réels',
       intro:
-        'Une équipe veut un assistant qui répond à partir de ses propres procédures et achemine le travail au bon responsable. Les chatbots génériques ignorent le contexte privé, les outils clés en main gardent vos données à leurs conditions, et aucun n’offre les contrôles d’accès et la traçabilité qu’un outil interne exige.',
+        'Une équipe veut un assistant qui utilise ses procédures et achemine le travail au bon responsable. Une interface de chat générique ne connecte pas automatiquement des sources internes fiables, n’applique pas l’identité de l’entreprise et ne crée pas le journal durable qu’un outil interne exige.',
       obstacles: [
         {
           title: 'Les assistants génériques ignorent votre contexte',
-          body: 'Un modèle public répond à partir du web ouvert, pas de vos procédures, et ses réponses s’éloignent de la façon dont votre équipe travaille réellement.',
+          body: 'Sans connexion aux sources explicite et testée, un modèle ignore quelle procédure approuvée s’applique et peut répondre hors des règles opérationnelles de l’entreprise.',
         },
         {
-          title: 'Les outils clés en main possèdent vos données',
-          body: 'Les documents internes partent dans une plateforme éditeur à ses conditions, et vous héritez de son modèle d’accès au lieu de définir le vôtre.',
+          title: 'Les outils hébergés imposent leur chemin de données',
+          body: 'Une plateforme éditeur apporte son propre stockage, sa rétention et son modèle d’accès. L’équipe sécurité doit toujours vérifier où vont les documents et qui peut les récupérer.',
         },
         {
           title: 'La gouvernance passe après',
@@ -309,7 +335,7 @@ export const INTERNAL_AI_BUILDER_COPY = {
         },
       ],
       bridge:
-        'E-Code part du flux que vous décrivez et produit un assistant privé dans de vrais fichiers source, câblé à votre contexte projet. Vous inspectez la logique, l’exécutez dans l’aperçu et gardez l’accès et l’audit visibles à mesure que l’outil évolue.',
+        'E-Code part du flux décrit et crée un projet d’assistant interne dans de vrais fichiers source. Vous inspectez les chemins modélisés de sources, d’accès, d’acheminement et d’audit dans l’aperçu, puis branchez les systèmes et appliquez les contrôles requis par votre environnement.',
     },
     build: {
       eyebrow: 'Un prompt lance l’assistant',
@@ -317,31 +343,44 @@ export const INTERNAL_AI_BUILDER_COPY = {
       intro:
         'La demande ci-dessous se lit comme un mot d’un responsable des opérations. Les quatre éléments cartographient son périmètre d’implémentation dans de vrais fichiers source, avec la gouvernance en vue dès le départ.',
       label: 'Exemple de prompt',
-      promptText:
-        'Construis un assistant interne qui répond aux questions de politique RH et achemine les demandes d’approbation, à partir de nos procédures privées.',
+      promptText: 'Un agent interne qui cherche dans nos procédures RH, réservé à mes équipes.',
       outputs: [
         {
           title: 'Ancrage au contexte privé',
-          body: 'L’assistant est câblé pour répondre à partir de vos propres procédures comme contexte projet, pour des réponses qui reflètent votre équipe, pas le web ouvert.',
+          body: 'Une frontière d’adaptateur modélise l’entrée des procédures approuvées dans l’assistant. Cette page ne connecte pas vos documents : choisissez la source, les permissions et les vérifications de récupération avant usage.',
         },
         {
           title: 'Acheminement des approbations',
-          body: 'Les demandes sont modélisées avec des responsables, des états et un parcours d’acheminement, pour qu’une approbation aille à la bonne personne plutôt que de stagner.',
+          body: 'Les demandes sont modélisées avec responsables, états et parcours. Branchez la persistance et les notifications, puis testez réattribution, reprises et gestion des échecs.',
         },
         {
           title: 'Accès et audit',
-          body: 'Un accès par rôle et un journal d’audit sont modélisés dans l’outil, pour que qui peut demander, approuver et lire reste gouverné et traçable.',
+          body: 'Les contrôles de rôle et événements d’audit sont représentés dans le code source pour relecture. Ils ne prouvent ni authentification appliquée, ni journal immuable, ni couverture complète des autorisations.',
         },
         {
           title: 'Aperçu et export',
-          body: 'E-Code exécute l’assistant dans l’aperçu à toutes les tailles d’écran. Le projet reste exportable comme une source que vous hébergez sous vos propres contrôles.',
+          body: 'E-Code exécute l’interface du projet dans l’aperçu à toutes les tailles d’écran et garde la source exportable. L’aperçu ne certifie ni confidentialité ni aptitude à la production.',
         },
       ],
     },
     proofLink: {
       eyebrow: 'Prompt → agent → aperçu',
-      title: 'Envie de voir une vraie génération E-Code de bout en bout ?',
-      body: 'La page App Builder montre un vrai workspace E-Code capturé — le prompt, le plan de l’agent, les fichiers générés et l’aperçu actif — pour une application de réservation. La même boucle de construction s’applique à un outil interne comme celui-ci.',
+      title: 'Prenez un run E-Code documenté comme preuve du flux, pas comme promesse de sécurité interne',
+      body: 'Ces captures IDE appartiennent au véritable run App Builder de réservation du salon. Elles montrent dans E-Code un prompt, l’activité de l’Agent, les fichiers générés, l’aperçu et un cycle de correction. PeopleOps Assistant ci-dessus reste une interface scénarisée et fictive, non capturée lors d’une génération d’IA interne.',
+      galleryLabel: 'Workspace salon App Builder documenté, utilisé comme preuve du flux Générateur d’IA interne',
+      disclaimer:
+        'Référence issue du vrai run salon E-Code · données salon fictives · scénario PeopleOps et données RH fictifs · pas une trace de génération d’agent interne · aucune source privée ni fournisseur d’identité démontré',
+      openFullSizeLabel: 'Examiner la capture complète du flux salon',
+      preview: {
+        title: 'Le vrai workspace garde demande, fichiers et app active dans la même vue',
+        body: 'Cette capture salon App Builder vérifie l’espace E-Code et son aperçu de réservation généré. Elle ne démontre ni assistant RH, ni connexion à des documents privés, ni authentification, ni application des rôles, ni stockage d’audit de production.',
+        alt: 'Workspace salon E-Code App Builder documenté avec la demande de réservation, les fichiers générés et l’aperçu de l’application ; aucune donnée RH privée ni contrôle d’accès n’y est prouvé.',
+      },
+      iteration: {
+        title: 'Le run capturé consigne aussi une correction d’exécution',
+        body: 'Une seconde image App Builder montre l’Agent recevant un suivi d’erreur de routeur auprès du projet salon. Elle prouve une boucle de réparation inspectable, pas la génération ni les tests de sécurité des flux fictifs d’accès et d’audit PeopleOps.',
+        alt: 'Correction documentée du run salon E-Code avec suivi d’erreur de routeur, fichiers du projet et aperçu de réservation ; aucun flux de sécurité IA interne n’est représenté.',
+      },
       cta: {
         label: 'Voir la preuve IDE réelle',
         ariaLabel: 'Voir la preuve IDE réelle E-Code sur la page App Builder',
@@ -349,72 +388,73 @@ export const INTERNAL_AI_BUILDER_COPY = {
     },
     deliverables: {
       eyebrow: 'Ce que vous recevez',
-      title: 'Un assistant privé que vous possédez et faites évoluer',
+      title: 'Un projet d’outil interne traçable, avec des limites de déploiement franches',
       intro:
-        'Le projet reste inspectable du premier fichier généré jusqu’à l’aperçu et l’export. Accès, acheminement et audit sont modélisés dans un code que vous lisez, pas cachés derrière une console éditeur.',
+        'Le projet généré expose sa source, la jonction vers les procédures, l’espace responsive et ses options de mise en ligne. Une surface statique de revue se publie via E-Code ; les opérations sur données privées restent dans un runtime sécurisé séparément.',
       items: [
         {
-          title: 'Fichiers source modifiables',
-          body: 'De vrais composants, routes, logiques et contenus que vous lisez, versionnez et modifiez directement.',
+          title: 'Fichiers de projet relisibles et transportables',
+          body: 'Composants, routes, états de flux et structures de politique restent lisibles et exportables vers votre dépôt et votre processus de revue.',
         },
         {
-          title: 'Câblage du contexte privé',
-          body: 'L’assistant est ancré dans vos procédures comme contexte projet, modifiable comme du code.',
+          title: 'Adaptateur de procédures visible dans la source',
+          body: 'La jonction vers les procédures approuvées apparaît dans le code. Ajoutez le vrai stockage seulement après avoir défini les permissions et validé la récupération sur vos documents.',
         },
         {
-          title: 'Flux d’approbation',
-          body: 'Demandes, responsables et états modélisés pour que les approbations aillent à la bonne personne.',
+          title: 'Espace responsive actif dans l’aperçu',
+          body: 'Examinez les écrans de demande et de politique sur mobile, tablette et desktop. L’aperçu démontre l’interface, pas des documents privés connectés, l’authentification d’entreprise ni des autorisations appliquées.',
         },
         {
-          title: 'Accès par rôle',
-          body: 'Qui peut demander, approuver et lire est modélisé dans l’outil, pas ajouté après coup.',
+          title: 'Mise en ligne guidée pour les builds statiques compatibles',
+          body: 'E-Code accompagne la publication lorsque la surface générée de l’outil interne constitue un build statique pris en charge. Ce parcours ne transforme pas les données ou règles de sécurité modélisées en services backend actifs.',
         },
         {
-          title: 'Journal d’audit',
-          body: 'Un journal d’audit modélise un enregistrement traçable des demandes, réponses et approbations.',
+          title: 'URL E-Code consacrée à la revue statique',
+          body: 'Placez une surface statique compatible sur une URL E-Code active. Recherche privée, écriture d’approbation, contrôle d’identité et événement durable exigent le code exporté et un runtime backend déployé avec les contrôles requis.',
         },
         {
-          title: 'Itération avec l’Agent',
-          body: 'Demandez le changement suivant à l’Agent et relisez le diff face à l’outil actif.',
+          title: 'Conversation avec l’Agent comme boucle de changement',
+          body: 'Décrivez l’ajustement suivant de politique ou de flux, relisez les fichiers source concernés et vérifiez l’interface actualisée dans l’aperçu avant d’avancer.',
         },
       ],
     },
     features: {
       eyebrow: 'Pensé pour des outils internes privés',
-      title: 'Tout ce dont un assistant interne a besoin, dans un code que vous maîtrisez',
+      title: 'Le flux interne dans le code, avec le travail de sécurité explicite',
       intro:
-        'Le parcours Générateur d’IA interne garde le contexte privé, la gouvernance et l’itération dans un seul flux inspectable.',
+        'Le parcours Générateur d’IA interne garde frontières de sources, règles de gouvernance et itération visibles, sans prétendre qu’un aperçu fournit la sécurité de production.',
       items: [
         {
           title: 'Réponses ancrées aux procédures',
-          body: 'Les réponses s’appuient sur vos propres procédures comme contexte projet, pas sur le web ouvert.',
+          body: 'Une frontière de récupération indique où brancher les procédures approuvées ; la qualité de l’ancrage reste à évaluer sur votre corpus.',
         },
         {
           title: 'Acheminement des approbations',
-          body: 'Les demandes passent par des responsables et des états jusqu’au bon décideur.',
+          body: 'Responsables et états expriment le chemin prévu ; persistance, notifications et reprise sur erreur restent des intégrations à tester.',
         },
         {
-          title: 'Accès par rôle',
-          body: 'Définissez qui peut demander, approuver et lire, comme une logique que vous inspectez.',
+          title: 'Structure des règles d’accès',
+          body: 'Définissez qui peut demander, approuver et lire dans une logique inspectable, puis appliquez-la avec une vraie authentification et des contrôles serveur.',
         },
         {
-          title: 'Observabilité d’audit',
-          body: 'Un journal d’audit modélise un enregistrement traçable de l’activité dans tout l’outil.',
+          title: 'Structure des événements d’audit',
+          body: 'Modélisez les événements utiles, puis acheminez-les vers un stockage résistant à l’altération avec la rétention et les accès exigés par votre organisation.',
         },
         {
           title: 'Responsive par défaut',
           body: 'L’interface s’adapte du grand écran au téléphone sans build mobile séparé.',
         },
         {
-          title: 'Possédez le code',
-          body: 'Exportez le projet et hébergez-le sous vos propres contrôles — la source reste la vôtre.',
+          title: 'Source exportable',
+          body: 'Exportez le projet vers l’hébergement choisi, puis appliquez les contrôles de déploiement, de confidentialité et de sécurité de votre organisation.',
         },
       ],
     },
     useCases: {
       eyebrow: 'Qui construit avec',
-      title: 'Les outils internes que les équipes livrent avec le Générateur d’IA interne',
-      intro: 'D’un assistant de procédures RH à un help desk interne, la même boucle produit un vrai outil gouverné.',
+      title: 'Quatre flux internes à structurer avant le déploiement aux équipes',
+      intro:
+        'De la recherche de procédures RH à la saisie de demandes, ces scénarios fournissent des bases inspectables ; la gouvernance devient réelle après validation de l’identité, des données, de l’audit et de la sécurité.',
       items: [
         {
           title: 'Assistant de procédures RH',
@@ -441,19 +481,19 @@ export const INTERNAL_AI_BUILDER_COPY = {
       items: [
         {
           title: 'J’obtiens du vrai code ou une plateforme verrouillée ?',
-          body: 'Vous obtenez des fichiers source modifiables — composants, routes, logique et contenu — que vous lisez, versionnez et exportez. Aucun verrouillage propriétaire.',
+          body: 'Vous obtenez des fichiers source modifiables pour les composants, routes, règles et contenus, que vous lisez, versionnez et exportez. Les modèles, fournisseurs d’identité, bases et hébergeurs connectés conservent leurs propres conditions et contraintes.',
         },
         {
           title: 'Comment utilise-t-il nos procédures privées ?',
-          body: 'L’assistant généré est câblé pour répondre à partir de vos procédures comme contexte projet, modifiable comme du code. La démonstration intégrée de cette page utilise des données fictives et aucune source de données connectée.',
+          body: 'Le projet peut modéliser un adaptateur de recherche dans les procédures, mais cette page ne connecte ni documents, ni modèle, ni source de données. Vous choisissez corpus et fournisseur, limitez les accès, puis évaluez récupération et réponses avant usage par les équipes.',
         },
         {
           title: 'Puis-je contrôler l’accès et voir un journal d’audit ?',
-          body: 'Un accès par rôle et un journal d’audit sont modélisés dans l’outil généré comme une logique que vous inspectez et étendez. Vous définissez et hébergez les contrôles vous-même.',
+          body: 'Le projet peut modéliser rôles, contrôles de politique et événements d’audit dans du code inspectable. Il s’agit d’une structure, pas d’une authentification appliquée ni d’un journal immuable : branchez les services requis et testez chaque autorisation côté serveur.',
         },
         {
           title: 'Mes données sont-elles privées ?',
-          body: 'Le projet est un code que vous hébergez sous vos propres contrôles, donc les données privées restent où vous les placez. E-Code ne revendique aucune certification de conformité spécifique pour votre déploiement.',
+          body: 'Pas par défaut. La confidentialité dépend du modèle, du stockage, de l’identité, des journaux, du réseau et de l’hébergement choisis. La démo de cette page contient seulement des données fictives et E-Code ne revendique aucune certification pour le système obtenu.',
         },
         {
           title: 'Comment modifier l’assistant ensuite ?',
@@ -463,7 +503,7 @@ export const INTERNAL_AI_BUILDER_COPY = {
     },
     finalCta: {
       title: 'Décrivez votre assistant et voyez-le tourner',
-      body: 'Transformez le flux interne que vous avez en tête en un outil d’IA privé dans du vrai code source, exécutez-le dans l’aperçu et gardez l’accès et l’audit en vue.',
+      body: 'Transformez le flux interne envisagé en un projet modifiable, exécutez son interface dans l’aperçu et inspectez sources, règles d’accès et événements d’audit avant de connecter des données privées ou de le déployer aux équipes.',
       primaryCta: { label: 'Décrivez votre assistant', ariaLabel: 'Décrivez votre assistant IA interne avec E-Code' },
       secondaryCta: {
         label: 'Voir la construction',
