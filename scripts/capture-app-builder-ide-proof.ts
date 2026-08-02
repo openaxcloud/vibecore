@@ -757,6 +757,16 @@ async function waitForPreview(page: Page, evidenceRoot: string) {
         .catch(() => false);
 
       if (!renderedBeforeRestart) {
+        const getPreviewRunningButton = page
+          .getByTestId('ide-agent-panel')
+          .getByRole('button', { name: 'Get preview running' })
+          .first();
+
+        if (await getPreviewRunningButton.isVisible().catch(() => false)) {
+          await getPreviewRunningButton.click({ noWaitAfter: true });
+          await getPreviewRunningButton.waitFor({ state: 'hidden', timeout: 60_000 }).catch(() => undefined);
+        }
+
         const reinstallDependenciesButton = page.getByRole('button', { name: 'Reinstall dependencies' }).first();
 
         if (await reinstallDependenciesButton.isVisible().catch(() => false)) {
