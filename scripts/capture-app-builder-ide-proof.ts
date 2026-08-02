@@ -719,6 +719,13 @@ async function waitForPreview(page: Page, evidenceRoot: string) {
     .catch(() => false);
 
   if (!existingPreviewAttached) {
+    const reinstallDependenciesButton = page.getByRole('button', { name: 'Reinstall dependencies' }).first();
+
+    if (await reinstallDependenciesButton.isVisible().catch(() => false)) {
+      await reinstallDependenciesButton.click({ noWaitAfter: true });
+      await reinstallDependenciesButton.waitFor({ state: 'hidden', timeout: 180_000 }).catch(() => undefined);
+    }
+
     const previewRunButton = page.getByRole('button', { name: 'Run to preview your app' }).first();
 
     const previewRunVisible = await previewRunButton
@@ -750,6 +757,13 @@ async function waitForPreview(page: Page, evidenceRoot: string) {
         .catch(() => false);
 
       if (!renderedBeforeRestart) {
+        const reinstallDependenciesButton = page.getByRole('button', { name: 'Reinstall dependencies' }).first();
+
+        if (await reinstallDependenciesButton.isVisible().catch(() => false)) {
+          await reinstallDependenciesButton.click({ noWaitAfter: true });
+          await reinstallDependenciesButton.waitFor({ state: 'hidden', timeout: 180_000 }).catch(() => undefined);
+        }
+
         const topRunButton = page.getByTestId('button-run-stop');
         const topRunLabel = (await topRunButton.textContent().catch(() => ''))?.trim() ?? '';
 
