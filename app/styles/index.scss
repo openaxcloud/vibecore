@@ -14553,6 +14553,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-main-panes {
+  position: relative; // RPL-IDE-001.3 — anchor for absolutely-positioned floating panes
   display: flex;
   min-width: 0;
   min-height: 0;
@@ -14560,20 +14561,138 @@ body :where(.lucide, svg[data-lucide]) {
   transition: height var(--vc-animation-split-panel);
 }
 
+// RPL-IDE-001.2 — resizable split container (react-resizable-panels PanelGroup).
 .bolt-project-pane-split {
-  display: grid;
   min-width: 0;
   min-height: 0;
   flex: 1;
+  width: 100%;
   height: 100%;
 }
 
-.bolt-project-pane-split[data-direction='horizontal'] {
-  grid-template-columns: minmax(260px, 1fr) 1px minmax(260px, 1fr);
+// RPL-IDE-001.2 — draggable divider (PanelResizeHandle). Generous hit-area over
+// a thin visible line; orientation follows the split direction.
+.bolt-project-pane-split-divider {
+  position: relative;
+  flex: 0 0 auto;
+  background: var(--vc-ide-border-subtle);
+  transition: background 150ms ease-out;
 }
 
-.bolt-project-pane-split-divider {
-  background: var(--vc-ide-border-subtle);
+.bolt-project-pane-split[data-direction='horizontal'] > .bolt-project-pane-split-divider {
+  width: 1px;
+  cursor: col-resize;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0 -3px;
+  }
+}
+
+.bolt-project-pane-split[data-direction='vertical'] > .bolt-project-pane-split-divider {
+  height: 1px;
+  cursor: row-resize;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -3px 0;
+  }
+}
+
+.bolt-project-pane-split-divider:hover,
+.bolt-project-pane-split-divider[data-resize-handle-active] {
+  background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 40%);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--vc-ide-accent-action), transparent 76%);
+}
+
+// RPL-IDE-001.3 — floating pane frame.
+.bolt-project-floating-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 280px;
+  min-height: 180px;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 1px solid var(--vc-ide-border-subtle);
+  background: var(--vc-ide-bg-app);
+  box-shadow:
+    0 12px 32px color-mix(in srgb, #000, transparent 76%),
+    0 2px 8px color-mix(in srgb, #000, transparent 82%);
+}
+
+.bolt-project-floating-pane[data-active='true'] {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-action), transparent 40%);
+  box-shadow:
+    0 16px 40px color-mix(in srgb, #000, transparent 70%),
+    0 0 0 1px color-mix(in srgb, var(--vc-ide-accent-action), transparent 60%);
+}
+
+.bolt-project-floating-pane-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  cursor: grab;
+  user-select: none;
+  border-bottom: 1px solid var(--vc-ide-border-subtle);
+  background: var(--vc-ide-bg-subtle, var(--vc-ide-bg-app));
+  font-size: 12px;
+  color: var(--vc-ide-text-secondary);
+}
+
+.bolt-project-floating-pane-header:active {
+  cursor: grabbing;
+}
+
+.bolt-project-floating-pane-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.bolt-project-floating-pane-dock {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--vc-ide-border-subtle);
+  background: transparent;
+  color: var(--vc-ide-text-secondary);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--vc-ide-accent-action);
+    border-color: color-mix(in srgb, var(--vc-ide-accent-action), transparent 60%);
+  }
+}
+
+.bolt-project-floating-pane-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.bolt-project-floating-pane-resize {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  background: linear-gradient(
+    135deg,
+    transparent 0 50%,
+    color-mix(in srgb, var(--vc-ide-border-strong, var(--vc-ide-border-subtle)), transparent 20%) 50% 100%
+  );
 }
 
 .bolt-project-bottom-terminal-shell {

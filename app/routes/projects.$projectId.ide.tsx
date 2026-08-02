@@ -65,7 +65,7 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
   ];
 };
 
-const IDE_CLIENT_SEARCH_PARAMS = new Set(['panel', 'commit']);
+const IDE_CLIENT_SEARCH_PARAMS = new Set(['panel', 'commit', 'peWindow']);
 
 function routeKeyWithoutClientIdeParams(url: URL) {
   const searchParams = new URLSearchParams(url.search);

@@ -55,9 +55,9 @@ Spécification de référence : `outputs/REPLIT_PARITY.md` et documentation Repl
 
 | ID | Point | 📤 Dispatché | 💻 Codé | ✅ Testé live | Preuve |
 |---|---|:---:|:---:|:---:|---|
-| RPL-IDE-001.1 | Une Window (onglet navigateur) contient un ou plusieurs panes et peut être ouverte dans une nouvelle window | ✅ | ☐ | ☐ | Action réelle depuis Options + état cohérent multi-écrans attendu |
-| RPL-IDE-001.2 | Un pane contient un ou plusieurs tabs, supporte split horizontal/vertical et redimensionnement | ✅ | ☐ | ☐ | Captures et interactions web/tablette/mobile attendues |
-| RPL-IDE-001.3 | Un pane peut passer en position flottante puis revenir en position fixe | ✅ | ☐ | ☐ | Capture du pane flottant + retour docké attendue |
+| RPL-IDE-001.1 | Une Window (onglet navigateur) contient un ou plusieurs panes et peut être ouverte dans une nouvelle window | ✅ | ✅ | ☐ | Codé PR #73 (open-in-new-window `?peWindow`, persistance par fenêtre, sync cross-onglets `subscribeProjectIdeMemory`). ⏳ Preuve live multi-écrans en attente du lot final |
+| RPL-IDE-001.2 | Un pane contient un ou plusieurs tabs, supporte split horizontal/vertical et redimensionnement | ✅ | ✅ | ☐ | Codé PR #73 (split H **et** V, dividers redimensionnables `PanelGroup` ratio persisté). ⏳ Captures web/tablette/mobile en attente |
+| RPL-IDE-001.3 | Un pane peut passer en position flottante puis revenir en position fixe | ✅ | ✅ | ☐ | Codé PR #73 (`FloatingPaneFrame` drag+resize, dock avec restauration d'origine). ⏳ Capture flottant + retour docké en attente |
 | RPL-IDE-001.4 | Un tab contient exactement un outil, se réordonne et se déplace entre panes | ✅ | ☐ | ☐ | Déplacement réel d'un tab d'un pane à l'autre attendu |
 | RPL-IDE-001.5 | Tools dock gauche avec raccourcis et popup All tools recherchable ouvrant l'outil dans un tab | ✅ | ☐ | ☐ | Recherche et ouverture d'un outil réel attendues |
 | RPL-IDE-001.6 | Menu Options (⋮) en haut à droite du tab actif pour gérer window, pane et tab | ✅ | ☐ | ☐ | Actions réelles visibles et accessibles au clavier attendues |

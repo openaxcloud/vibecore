@@ -18,6 +18,15 @@ import { Copy, Download, Trash2, Users } from 'lucide-react';
 import React, { lazy, Suspense, type RefCallback, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Bar } from 'react-chartjs-2';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import {
+  bringFloatingPaneToFront as engineBringFloatingPaneToFront,
+  dockPane as engineDockPane,
+  floatPane as engineFloatPane,
+  setSplitRatio as engineSetSplitRatio,
+  splitPane as engineSplitPane,
+  updateFloatingBounds as engineUpdateFloatingBounds,
+  type ProjectEditorWindowState,
+} from '~/lib/project-editor-layout';
 import { ClientOnly } from 'remix-utils/client-only';
 import { toast } from 'react-toastify';
 
@@ -76,6 +85,7 @@ import { Preview } from '~/components/workbench/Preview';
 import { Search } from '~/components/workbench/Search';
 import { LockManager } from '~/components/workbench/LockManager';
 import { ProjectAgentRunStatus } from '~/components/project-ide/ProjectAgentRunStatus';
+import { FloatingPaneFrame } from '~/components/project-ide/FloatingPaneFrame';
 import { ProjectEditorToolbar } from '~/components/project-ide/ProjectEditorToolbar';
 import { ProjectOverviewPanel } from '~/components/project-ide/ProjectOverviewPanel';
 import {
@@ -132,6 +142,7 @@ import { useMobileIdePersistence } from '~/lib/hooks/useMobileIdePersistence';
 import { useProjectChatBranches } from '~/lib/hooks/useProjectChatBranches';
 import {
   getProjectIdeMemory,
+  getProjectIdeMemorySync,
   saveProjectIdeMemory,
   subscribeProjectIdeMemory,
   type ProjectIdeMemory,
@@ -748,11 +759,25 @@ type IdePaneLeaf = { type: 'leaf'; id: string; tabs: IdePaneTab[]; activeTabId?:
 type IdePaneSplit = {
   type: 'split';
   id: string;
-  direction: 'horizontal';
+
+  /** RPL-IDE-001.2: horizontal or vertical split. */
+  direction: 'horizontal' | 'vertical';
+
+  /** Fraction occupied by `first`, clamped 0.1–0.9. Undefined = default 50/50. */
+  ratio?: number;
   first: IdePaneNode;
   second: IdePaneNode;
 };
 type IdePaneNode = IdePaneLeaf | IdePaneSplit;
+
+/** RPL-IDE-001.3: a pane popped out of the docked tree into a floating window. */
+type IdeFloatingPane = {
+  id: string;
+  pane: IdePaneLeaf;
+  bounds: { x: number; y: number; width: number; height: number };
+  zIndex: number;
+  dockOrigin?: unknown;
+};
 
 function runtimeStatusText(input: {
   workspaceStatus?: { status?: string; ports?: Array<{ port?: number; ready?: boolean }> } | null;
@@ -1538,7 +1563,10 @@ function normalizePaneTree(node: any): IdePaneNode {
     return {
       type: 'split',
       id: typeof node.id === 'string' ? node.id : 'pane-split-root',
-      direction: 'horizontal',
+      direction: node.direction === 'vertical' ? 'vertical' : 'horizontal',
+      ...(typeof node.ratio === 'number' && Number.isFinite(node.ratio)
+        ? { ratio: Math.min(0.9, Math.max(0.1, node.ratio)) }
+        : {}),
       first: normalizePaneTree(node.first),
       second: normalizePaneTree(node.second),
     };
@@ -1554,6 +1582,46 @@ function normalizePaneTree(node: any): IdePaneNode {
     tabs,
     activeTabId,
   };
+}
+
+function normalizeFloatingPanes(input: unknown): IdeFloatingPane[] {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+
+  const result: IdeFloatingPane[] = [];
+
+  for (const entry of input) {
+    const floating = entry as Partial<IdeFloatingPane> | undefined;
+    const pane = floating?.pane as any;
+
+    if (!floating || !pane || pane.type !== 'leaf' || !Array.isArray(pane.tabs) || pane.tabs.length === 0) {
+      continue;
+    }
+
+    const normalizedPane = normalizePaneTree(pane);
+
+    if (normalizedPane.type !== 'leaf') {
+      continue;
+    }
+
+    const bounds = floating.bounds ?? { x: 72, y: 72, width: 720, height: 480 };
+
+    result.push({
+      id: typeof floating.id === 'string' ? floating.id : `floating-${pane.id ?? 'pane'}`,
+      pane: { ...normalizedPane, id: typeof pane.id === 'string' ? pane.id : normalizedPane.id },
+      bounds: {
+        x: Number.isFinite(bounds.x) ? bounds.x : 72,
+        y: Number.isFinite(bounds.y) ? bounds.y : 72,
+        width: Number.isFinite(bounds.width) ? Math.max(280, bounds.width) : 720,
+        height: Number.isFinite(bounds.height) ? Math.max(180, bounds.height) : 480,
+      },
+      zIndex: typeof floating.zIndex === 'number' ? floating.zIndex : result.length + 1,
+      ...(floating.dockOrigin ? { dockOrigin: floating.dockOrigin } : {}),
+    });
+  }
+
+  return result;
 }
 
 function isIdeRightPanel(panel: string): panel is IdeRightPanel {
@@ -1811,6 +1879,75 @@ function flattenTabs(node: IdePaneNode): IdePaneTab[] {
   }
 
   return [...flattenTabs(node.first), ...flattenTabs(node.second)];
+}
+
+function countLeaves(node: IdePaneNode | null): number {
+  if (!node) {
+    return 0;
+  }
+
+  return node.type === 'leaf' ? 1 : countLeaves(node.first) + countLeaves(node.second);
+}
+
+function flattenPaneLeafIds(node: IdePaneNode | null): string[] {
+  if (!node) {
+    return [];
+  }
+
+  return node.type === 'leaf' ? [node.id] : [...flattenPaneLeafIds(node.first), ...flattenPaneLeafIds(node.second)];
+}
+
+/**
+ * RPL-IDE-001.1/.2/.3 — the docked pane tree, floating panes and active pane of
+ * a single browser window. Structurally identical to the pure engine's
+ * `ProjectEditorWindowState`; the app-side tool union (`IdeWorkspacePanel`) is a
+ * subset of the engine's, so the cast at the engine boundary is sound.
+ */
+type IdeWindowState = {
+  root: IdePaneNode | null;
+  floatingPanes: IdeFloatingPane[];
+  activePaneId: string;
+  maximizedPaneId?: string;
+};
+
+/**
+ * Bridge to the pure layout engine. We keep the app's own pane state as the
+ * source of truth (incremental, no wholesale rewrite) and delegate the tree
+ * transforms — split H/V, resize, float, dock (with origin restore) — to the
+ * tested engine, casting at the single boundary here.
+ */
+function runProjectEditorWindowOp(
+  state: IdeWindowState,
+  op: (windowState: ProjectEditorWindowState) => ProjectEditorWindowState,
+): IdeWindowState {
+  const engineInput = {
+    id: 'window',
+    root: state.root,
+    floatingPanes: state.floatingPanes,
+    activePaneId: state.activePaneId,
+    ...(state.maximizedPaneId ? { maximizedPaneId: state.maximizedPaneId } : {}),
+  } as unknown as ProjectEditorWindowState;
+
+  const next = op(engineInput);
+
+  return {
+    root: (next.root as unknown as IdePaneNode | null) ?? null,
+    floatingPanes: next.floatingPanes as unknown as IdeFloatingPane[],
+    activePaneId: next.activePaneId,
+    maximizedPaneId: next.maximizedPaneId,
+  };
+}
+
+const PROJECT_EDITOR_WINDOW_PARAM = 'peWindow';
+const DEFAULT_PROJECT_EDITOR_WINDOW = 'window-main';
+
+/** Structural signature of a window layout, excluding volatile timestamps. */
+function projectEditorLayoutSignature(
+  root: IdePaneNode | null,
+  floatingPanes: IdeFloatingPane[],
+  activePaneId: string,
+): string {
+  return JSON.stringify({ root, floatingPanes, activePaneId });
 }
 
 function HeaderTip({
@@ -2898,6 +3035,24 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [paneTree, setPaneTree] = useState<IdePaneNode>(() => cloneDefaultPaneTree());
     const [activePaneId, setActivePaneId] = useState('pane-main');
     const [paneDropTarget, setPaneDropTarget] = useState<string | null>(null);
+
+    /** RPL-IDE-001.3 — panes popped out of the docked tree in this window. */
+    const [floatingPanes, setFloatingPanes] = useState<IdeFloatingPane[]>([]);
+
+    /** RPL-IDE-001.1 — last layout signature applied, to skip redundant cross-tab echoes. */
+    const projectEditorWindowSyncRef = useRef<string>('');
+
+    /**
+     * RPL-IDE-001.1 — this browser tab's Project Editor window id. `window-main`
+     * is the primary; secondary windows opened via "Open in new window" carry a
+     * `?peWindow=<id>` param and persist their layout independently.
+     */
+    const projectEditorWindowId = useMemo(
+      () => searchParams.get(PROJECT_EDITOR_WINDOW_PARAM) || DEFAULT_PROJECT_EDITOR_WINDOW,
+      [searchParams],
+    );
+
+    const isSecondaryProjectEditorWindow = projectEditorWindowId !== DEFAULT_PROJECT_EDITOR_WINDOW;
 
     const [agentWidth, setAgentWidth] = useState(() =>
       defaultProjectAgentPanelWidth(typeof window === 'undefined' ? undefined : window.innerWidth),
@@ -4204,11 +4359,45 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             setActiveWorkspacePanel(ui.activeWorkspacePanel);
           }
 
-          if (ui?.paneTree && typeof ui.paneTree === 'object') {
-            setPaneTree(normalizePaneTree(ui.paneTree));
+          /*
+           * RPL-IDE-001.1 — restore this window's own layout slice. window-main
+           * keeps reading the legacy top-level fields; secondary windows read
+           * their entry from the per-window map.
+           */
+          const windowSlice = isSecondaryProjectEditorWindow
+            ? ui?.projectEditorWindows?.[projectEditorWindowId]
+            : { paneTree: ui?.paneTree, activePaneId: ui?.activePaneId, floatingPanes: ui?.floatingPanes };
+
+          const restoredTree =
+            windowSlice?.paneTree && typeof windowSlice.paneTree === 'object'
+              ? normalizePaneTree(windowSlice.paneTree)
+              : undefined;
+
+          if (restoredTree) {
+            setPaneTree(restoredTree);
           }
 
-          setActivePaneId('pane-main');
+          const restoredFloating = normalizeFloatingPanes(windowSlice?.floatingPanes);
+          setFloatingPanes(restoredFloating);
+
+          const dockedLeafIds = new Set(restoredTree ? flattenPaneLeafIds(restoredTree) : flattenPaneLeafIds(paneTree));
+          restoredFloating.forEach((floating) => dockedLeafIds.add(floating.pane.id));
+
+          const restoredActivePaneId =
+            typeof windowSlice?.activePaneId === 'string' && dockedLeafIds.has(windowSlice.activePaneId)
+              ? windowSlice.activePaneId
+              : restoredTree
+                ? (findFirstLeaf(restoredTree)?.id ?? 'pane-main')
+                : 'pane-main';
+          setActivePaneId(restoredActivePaneId);
+
+          if (restoredTree) {
+            projectEditorWindowSyncRef.current = projectEditorLayoutSignature(
+              restoredTree,
+              restoredFloating,
+              restoredActivePaneId,
+            );
+          }
 
           if (typeof ui?.agentWidth === 'number') {
             setAgentWidth(clampProjectAgentPanelWidth(ui.agentWidth));
@@ -4574,6 +4763,19 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
 
       const saveTimer = window.setTimeout(() => {
+        /*
+         * RPL-IDE-001.1 — persist this window's layout slice, merging the
+         * per-window map so sibling windows opened in other tabs survive.
+         */
+        const existingWindows = getProjectIdeMemorySync(projectId, currentWorkspaceId)?.ui?.projectEditorWindows ?? {};
+
+        const windowSlice = {
+          paneTree,
+          activePaneId,
+          floatingPanes,
+          updatedAt: new Date().toISOString(),
+        };
+
         saveProjectIdeMemory(
           projectId,
           {
@@ -4585,8 +4787,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               rightPanelWidth,
               workspaceTabs,
               activeWorkspacePanel,
-              paneTree,
-              activePaneId,
+
+              /*
+               * Only the primary window owns the legacy top-level fields; a
+               * secondary window must never clobber window-main's tree.
+               */
+              ...(isSecondaryProjectEditorWindow ? {} : { paneTree, activePaneId, floatingPanes }),
+              projectEditorWindows: { ...existingWindows, [projectEditorWindowId]: windowSlice },
               agentWidth,
               terminalBottomOpen,
               terminalBottomHeight,
@@ -4622,6 +4829,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       activeWorkspacePanel,
       paneTree,
       activePaneId,
+      floatingPanes,
+      projectEditorWindowId,
+      isSecondaryProjectEditorWindow,
       agentWidth,
       terminalBottomOpen,
       terminalBottomHeight,
@@ -4634,6 +4844,55 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       backendLockedItems,
       backendDeletedPaths,
     ]);
+
+    /**
+     * RPL-IDE-001.1 — cross-tab coherence. Storage events only fire in OTHER
+     * tabs, so this never echoes our own writes. When another tab persists THIS
+     * window's slice (e.g. the same window open on a second screen), mirror it;
+     * distinct windows write distinct map keys, so their slices stay untouched.
+     */
+    useEffect(() => {
+      if (!projectIdeMode || !projectId) {
+        return undefined;
+      }
+
+      const unsubscribe = subscribeProjectIdeMemory(
+        projectId,
+        (memory) => {
+          const slice = isSecondaryProjectEditorWindow
+            ? memory.ui?.projectEditorWindows?.[projectEditorWindowId]
+            : {
+                paneTree: memory.ui?.paneTree,
+                activePaneId: memory.ui?.activePaneId,
+                floatingPanes: memory.ui?.floatingPanes,
+              };
+
+          if (!slice?.paneTree || typeof slice.paneTree !== 'object') {
+            return;
+          }
+
+          const nextTree = normalizePaneTree(slice.paneTree);
+          const nextFloating = normalizeFloatingPanes(slice.floatingPanes);
+
+          const nextActive =
+            typeof slice.activePaneId === 'string' ? slice.activePaneId : (findFirstLeaf(nextTree)?.id ?? 'pane-main');
+
+          const signature = projectEditorLayoutSignature(nextTree, nextFloating, nextActive);
+
+          if (signature === projectEditorWindowSyncRef.current) {
+            return;
+          }
+
+          projectEditorWindowSyncRef.current = signature;
+          setPaneTree(nextTree);
+          setFloatingPanes(nextFloating);
+          setActivePaneId(nextActive);
+        },
+        currentWorkspaceId,
+      );
+
+      return unsubscribe;
+    }, [projectId, projectIdeMode, currentWorkspaceId, projectEditorWindowId, isSecondaryProjectEditorWindow]);
 
     const openWorkspacePanel = useCallback(
       (
@@ -6596,49 +6855,147 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       );
     }, []);
 
-    const splitPaneRight = useCallback((paneId: string, tabId?: string) => {
-      let nextActivePaneId: string | undefined;
+    /**
+     * RPL-IDE-001.1/.2/.3 — apply a pure-engine transform to this window's live
+     * state (docked tree + floating panes + active pane) and fan the result back
+     * into the three React atoms atomically.
+     */
+    const applyProjectEditorWindowOp = useCallback(
+      (op: (windowState: ProjectEditorWindowState) => ProjectEditorWindowState) => {
+        const next = runProjectEditorWindowOp({ root: paneTree, floatingPanes, activePaneId }, op);
 
-      setPaneTree((currentTree) =>
-        updateLeaf(currentTree, paneId, (leaf) => {
-          const targetTab =
-            leaf.tabs.find((tab) => tab.id === tabId) ??
-            leaf.tabs.find((tab) => tab.id === leaf.activeTabId) ??
-            leaf.tabs[leaf.tabs.length - 1];
+        if (next.root) {
+          setPaneTree(next.root);
+        }
 
-          if (!targetTab || leaf.tabs.length < 2) {
-            return leaf;
-          }
+        setFloatingPanes(next.floatingPanes);
+        setActivePaneId(next.activePaneId);
+      },
+      [paneTree, floatingPanes, activePaneId],
+    );
 
-          const remainingTabs = leaf.tabs.filter((tab) => tab.id !== targetTab.id);
-          const nextPaneId = `pane-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-          nextActivePaneId = nextPaneId;
+    /** RPL-IDE-001.2 — split a pane horizontally or vertically (engine-backed). */
+    const splitActivePane = useCallback(
+      (paneId: string, direction: 'horizontal' | 'vertical', tabId?: string) => {
+        applyProjectEditorWindowOp((windowState) => engineSplitPane(windowState, { paneId, direction, tabId }));
+      },
+      [applyProjectEditorWindowOp],
+    );
 
-          return {
-            type: 'split',
-            id: `split-${leaf.id}-${nextPaneId}`,
-            direction: 'horizontal',
-            first: {
-              ...leaf,
-              tabs: remainingTabs,
-              activeTabId: remainingTabs.some((tab) => tab.id === leaf.activeTabId)
-                ? leaf.activeTabId
-                : remainingTabs[remainingTabs.length - 1]?.id,
+    const splitPaneRight = useCallback(
+      (paneId: string, tabId?: string) => splitActivePane(paneId, 'horizontal', tabId),
+      [splitActivePane],
+    );
+
+    const splitPaneDown = useCallback(
+      (paneId: string, tabId?: string) => splitActivePane(paneId, 'vertical', tabId),
+      [splitActivePane],
+    );
+
+    /** RPL-IDE-001.2 — persist a resized split ratio. */
+    const setPaneSplitRatio = useCallback(
+      (splitId: string, ratio: number) => {
+        setPaneTree((currentTree) => {
+          const next = runProjectEditorWindowOp({ root: currentTree, floatingPanes, activePaneId }, (windowState) =>
+            engineSetSplitRatio(windowState, splitId, ratio),
+          );
+
+          return next.root ?? currentTree;
+        });
+      },
+      [floatingPanes, activePaneId],
+    );
+
+    /** RPL-IDE-001.3 — float a docked pane, or dock a floating one back to origin. */
+    const togglePaneFloating = useCallback(
+      (paneId: string) => {
+        const isFloating = floatingPanes.some((floating) => floating.pane.id === paneId);
+
+        if (isFloating) {
+          applyProjectEditorWindowOp((windowState) => engineDockPane(windowState, { paneId }));
+          return;
+        }
+
+        // Keep at least one docked pane so the workspace never goes blank.
+        if (countLeaves(paneTree) < 2) {
+          return;
+        }
+
+        applyProjectEditorWindowOp((windowState) => engineFloatPane(windowState, { paneId }));
+      },
+      [applyProjectEditorWindowOp, floatingPanes, paneTree],
+    );
+
+    /** RPL-IDE-001.3 — move/resize a floating pane frame. */
+    const changeFloatingPaneBounds = useCallback(
+      (paneId: string, bounds: { x: number; y: number; width: number; height: number }) => {
+        setFloatingPanes((current) => {
+          const next = runProjectEditorWindowOp(
+            { root: paneTree, floatingPanes: current, activePaneId },
+            (windowState) => engineUpdateFloatingBounds(windowState, paneId, bounds),
+          );
+
+          return next.floatingPanes;
+        });
+      },
+      [paneTree, activePaneId],
+    );
+
+    /** RPL-IDE-001.3 — raise a floating pane above its siblings. */
+    const focusFloatingPane = useCallback(
+      (paneId: string) => {
+        applyProjectEditorWindowOp((windowState) => engineBringFloatingPaneToFront(windowState, paneId));
+      },
+      [applyProjectEditorWindowOp],
+    );
+
+    /**
+     * RPL-IDE-001.1 — open the Project Editor in a new browser window/tab. The
+     * new window carries a distinct `peWindow` id and starts from a seeded
+     * layout (the chosen tab, or a fresh editor) persisted independently so both
+     * screens stay coherent across reloads. The seed is merged into the existing
+     * per-window map (see the shallow-merge caveat) so sibling windows survive.
+     */
+    const openProjectEditorWindow = useCallback(
+      (sourceTab?: IdePaneTab) => {
+        if (typeof window === 'undefined' || !projectId) {
+          return;
+        }
+
+        const newWindowId = `window-${Date.now().toString(36)}-${Math.random().toString(16).slice(2, 6)}`;
+
+        const seedTab = makePaneTab(sourceTab?.panel ?? 'editor', {
+          ...(sourceTab?.filePath ? { filePath: sourceTab.filePath } : {}),
+        });
+
+        const seedPane: IdePaneLeaf = { type: 'leaf', id: 'pane-main', tabs: [seedTab], activeTabId: seedTab.id };
+
+        const existingWindows = getProjectIdeMemorySync(projectId, currentWorkspaceId)?.ui?.projectEditorWindows ?? {};
+
+        saveProjectIdeMemory(
+          projectId,
+          {
+            ui: {
+              projectEditorWindows: {
+                ...existingWindows,
+                [newWindowId]: {
+                  paneTree: seedPane,
+                  activePaneId: 'pane-main',
+                  floatingPanes: [],
+                  updatedAt: new Date().toISOString(),
+                },
+              },
             },
-            second: {
-              type: 'leaf',
-              id: nextPaneId,
-              tabs: [targetTab],
-              activeTabId: targetTab.id,
-            },
-          };
-        }),
-      );
+          },
+          currentWorkspaceId,
+        ).catch((error) => console.error('Failed to seed new Project Editor window', error));
 
-      if (nextActivePaneId) {
-        setActivePaneId(nextActivePaneId);
-      }
-    }, []);
+        const url = new URL(window.location.href);
+        url.searchParams.set(PROJECT_EDITOR_WINDOW_PARAM, newWindowId);
+        window.open(url.toString(), '_blank', 'noopener');
+      },
+      [projectId, currentWorkspaceId],
+    );
 
     const swapPaneTabs = useCallback(
       (sourcePaneId: string, sourceTabId: string, targetPaneId: string, targetTabId?: string) => {
@@ -6988,6 +7345,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               onCloseAll={() => closePaneTabs(leaf.id, 'all')}
               onCloseSaved={() => closePaneTabs(leaf.id, 'saved')}
               onSplitActiveRight={(tabId) => splitPaneRight(leaf.id, tabId)}
+              onSplitActiveDown={(tabId) => splitPaneDown(leaf.id, tabId)}
+              onToggleFloating={() => togglePaneFloating(leaf.id)}
+              onOpenNewWindow={(tabId) => openProjectEditorWindow(leaf.tabs.find((tab) => tab.id === tabId))}
+              isFloating={floatingPanes.some((floating) => floating.pane.id === leaf.id)}
               onSwapTab={(sourcePaneId, sourceTabId, targetTabId) =>
                 swapPaneTabs(sourcePaneId, sourceTabId, leaf.id, targetTabId)
               }
@@ -7059,6 +7420,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         renderPaneContent,
         selectPaneTab,
         splitPaneRight,
+        splitPaneDown,
+        togglePaneFloating,
+        openProjectEditorWindow,
+        floatingPanes,
         scrollPositions,
         swapPaneTabs,
         unsavedFiles,
@@ -7071,15 +7436,41 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           return renderPaneLeaf(node);
         }
 
+        const ratio = Math.min(0.9, Math.max(0.1, node.ratio ?? 0.5));
+
         return (
-          <div key={node.id} className="bolt-project-pane-split" data-direction={node.direction}>
-            {renderPaneNode(node.first)}
-            <div className="bolt-project-pane-split-divider" aria-hidden />
-            {renderPaneNode(node.second)}
-          </div>
+          <PanelGroup
+            key={node.id}
+            id={`project-pane-split-${node.id}`}
+            className="bolt-project-pane-split"
+            data-direction={node.direction}
+            direction={node.direction}
+            onLayout={(sizes) => {
+              const nextRatio = Math.min(0.9, Math.max(0.1, (sizes[0] ?? 50) / 100));
+
+              // Ignore layout echoes that don't materially move the divider.
+              if (Math.abs(nextRatio - ratio) < 0.004) {
+                return;
+              }
+
+              setPaneSplitRatio(node.id, nextRatio);
+            }}
+          >
+            <Panel id={`${node.id}-first`} order={1} defaultSize={ratio * 100} minSize={15}>
+              {renderPaneNode(node.first)}
+            </Panel>
+            <PanelResizeHandle
+              className="bolt-project-pane-split-divider"
+              aria-label={node.direction === 'horizontal' ? 'Resize panes horizontally' : 'Resize panes vertically'}
+              data-testid={`pane-resize-${node.id}`}
+            />
+            <Panel id={`${node.id}-second`} order={2} defaultSize={(1 - ratio) * 100} minSize={15}>
+              {renderPaneNode(node.second)}
+            </Panel>
+          </PanelGroup>
         );
       },
-      [renderPaneLeaf],
+      [renderPaneLeaf, setPaneSplitRatio],
     );
 
     const ideRailToolItems = [
@@ -7252,6 +7643,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   <div className="bolt-project-main-stack">
                     <div
                       className="bolt-project-main-panes"
+                      data-window-id={projectEditorWindowId}
                       style={
                         {
                           '--project-terminal-bottom-height': terminalBottomOpen ? `${terminalBottomHeight}px` : '0px',
@@ -7259,6 +7651,27 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       }
                     >
                       {renderPaneNode(paneTree)}
+                      {floatingPanes.map((floating) => {
+                        const activeTab =
+                          floating.pane.tabs.find((tab) => tab.id === floating.pane.activeTabId) ??
+                          floating.pane.tabs[0];
+
+                        return (
+                          <FloatingPaneFrame
+                            key={floating.id}
+                            paneId={floating.pane.id}
+                            title={activeTab ? panelTitle(activeTab.panel) : 'Project Editor'}
+                            bounds={floating.bounds}
+                            zIndex={20 + floating.zIndex}
+                            active={activePaneId === floating.pane.id}
+                            onBoundsChange={(bounds) => changeFloatingPaneBounds(floating.pane.id, bounds)}
+                            onDock={() => togglePaneFloating(floating.pane.id)}
+                            onFocus={() => focusFloatingPane(floating.pane.id)}
+                          >
+                            {renderPaneLeaf(floating.pane)}
+                          </FloatingPaneFrame>
+                        );
+                      })}
                     </div>
                     {terminalBottomOpen && (
                       <div
@@ -10931,6 +11344,10 @@ function IdeTabBar({
   onCloseAll,
   onCloseSaved,
   onSplitActiveRight,
+  onSplitActiveDown,
+  onToggleFloating,
+  onOpenNewWindow,
+  isFloating,
   onSwapTab,
   onDragEnd,
   onTogglePin,
@@ -10960,6 +11377,10 @@ function IdeTabBar({
   onCloseAll?: () => void;
   onCloseSaved?: () => void;
   onSplitActiveRight?: (tabId?: string) => void;
+  onSplitActiveDown?: (tabId?: string) => void;
+  onToggleFloating?: () => void;
+  onOpenNewWindow?: (tabId?: string) => void;
+  isFloating?: boolean;
   onSwapTab?: (sourcePaneId: string, sourceTabId: string, targetTabId?: string) => void;
   onDragEnd?: () => void;
   onTogglePin?: (tabId?: string) => void;
@@ -11439,6 +11860,37 @@ function IdeTabBar({
               >
                 Split active right
               </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onSplitActiveDown?.(activeTabId ?? tabs[0]?.id);
+                  setActionsOpen(false);
+                }}
+              >
+                Split active down
+              </button>
+              {onToggleFloating ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onToggleFloating();
+                    setActionsOpen(false);
+                  }}
+                >
+                  {isFloating ? 'Dock pane' : 'Float pane'}
+                </button>
+              ) : null}
+              {onOpenNewWindow ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onOpenNewWindow(activeTabId ?? tabs[0]?.id);
+                    setActionsOpen(false);
+                  }}
+                >
+                  Open in new window
+                </button>
+              ) : null}
             </div>
           )}
         </div>

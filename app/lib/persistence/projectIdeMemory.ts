@@ -49,12 +49,34 @@ export type ProjectIdePaneLeaf = {
 export type ProjectIdePaneSplit = {
   type: 'split';
   id: string;
-  direction: 'horizontal';
+
+  /**
+   * RPL-IDE-001.2: panes split horizontally AND vertically. Older persisted
+   * layouts only stored `'horizontal'`; the field stays a superset so existing
+   * JSON keeps loading (additive migration).
+   */
+  direction: 'horizontal' | 'vertical';
+
+  /** Fraction occupied by `first`, clamped 0.1–0.9. Absent on legacy 50/50 splits. */
+  ratio?: number;
   first: ProjectIdePaneNode;
   second: ProjectIdePaneNode;
 };
 
 export type ProjectIdePaneNode = ProjectIdePaneLeaf | ProjectIdePaneSplit;
+
+/**
+ * RPL-IDE-001.3: a pane that has been popped out of the docked tree into a
+ * floating position within the window. `dockOrigin` lets it return to exactly
+ * where it came from.
+ */
+export interface ProjectIdeFloatingPane {
+  id: string;
+  pane: ProjectIdePaneLeaf;
+  bounds: { x: number; y: number; width: number; height: number };
+  zIndex: number;
+  dockOrigin?: unknown;
+}
 
 export interface ProjectIdeMemory {
   chat?: {
@@ -103,6 +125,26 @@ export interface ProjectIdeMemory {
     activeWorkspacePanel?: ProjectIdeWorkspacePanel;
     paneTree?: ProjectIdePaneNode;
     activePaneId?: string;
+
+    /** RPL-IDE-001.3: floating panes of the primary (window-main) window. */
+    floatingPanes?: ProjectIdeFloatingPane[];
+
+    /**
+     * RPL-IDE-001.1: per-window Project Editor layouts. Each browser tab/window
+     * (keyed by its `peWindow` id) persists its own docked tree + floating panes
+     * so multiple screens stay coherent and independent across reloads. The
+     * legacy `paneTree`/`activePaneId`/`floatingPanes` above remain the source of
+     * truth for `window-main` (back-compat); secondary windows live only here.
+     */
+    projectEditorWindows?: Record<
+      string,
+      {
+        paneTree?: ProjectIdePaneNode;
+        activePaneId?: string;
+        floatingPanes?: ProjectIdeFloatingPane[];
+        updatedAt?: string;
+      }
+    >;
     agentWidth?: number;
     terminalBottomOpen?: boolean;
     terminalBottomHeight?: number;
