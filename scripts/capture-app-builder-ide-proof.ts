@@ -571,18 +571,27 @@ async function waitForProjectToSettle(
         const stopGenerationButton = agentPanel.getByRole('button', { name: 'Stop generation' }).first();
         const generationStillRunning = await stopGenerationButton.isVisible().catch(() => false);
 
-        if (Boolean(revision) && stableChecks >= 12 && generationStillRunning) {
-          const stopped = await stopGenerationButton
-            .click()
-            .then(() => true)
-            .catch(() => false);
+        if (Boolean(revision) && stableChecks >= 12) {
+          if (generationStillRunning) {
+            const stopped = await stopGenerationButton
+              .click()
+              .then(() => true)
+              .catch(() => false);
 
-          if (stopped) {
+            if (!stopped) {
+              return false;
+            }
+
             await expect(stopGenerationButton).toBeHidden({ timeout: 60_000 });
-            await expect(composer).toBeEnabled({ timeout: 60_000 });
-
-            return true;
           }
+
+          if (!(await composer.isEnabled().catch(() => false))) {
+            await page.reload({ waitUntil: 'domcontentloaded', timeout: 180_000 });
+            await expect(agentPanel).toBeVisible({ timeout: 180_000 });
+            await expect(composer).toBeEnabled({ timeout: 60_000 });
+          }
+
+          return true;
         }
 
         return (
