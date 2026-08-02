@@ -638,7 +638,7 @@ async function submitAgentPrompt(agentPanel: ReturnType<Page['getByTestId']>, pr
   }
 
   if (preferredAgentMode) {
-    const modeButton = agentPanel.getByRole('button', { name: preferredAgentMode, exact: true }).first();
+    const modeButton = agentPanel.getByText(preferredAgentMode, { exact: true }).first();
 
     await expect(modeButton).toBeVisible({ timeout: 60_000 });
     await modeButton.click();
