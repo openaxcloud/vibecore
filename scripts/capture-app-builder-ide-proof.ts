@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { mkdir } from 'node:fs/promises';
+import { chmod, mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 
 import { chromium, expect, type Page } from '@playwright/test';
@@ -38,6 +38,12 @@ type PreviewImageLike = {
   naturalHeight: number;
   naturalWidth: number;
   src: string;
+};
+
+type CaptureSession = {
+  email: string;
+  password: string;
+  projectId?: string;
 };
 
 const APP_BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:5173';
@@ -316,14 +322,24 @@ async function waitForRateLimitReset(responseText: string, retryAfter: string | 
   await new Promise((resolveWait) => setTimeout(resolveWait, waitMs));
 }
 
-async function authenticate(page: Page, slug: CaptureSlug, locale: CaptureLocale, copy: SolutionScenario) {
+async function authenticate(
+  page: Page,
+  slug: CaptureSlug,
+  locale: CaptureLocale,
+  copy: SolutionScenario,
+  resumeSession?: CaptureSession,
+) {
   const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
   const existingEmail =
-    process.env.SOLUTION_PROOF_EMAIL?.trim() ?? appBuilderFallback(slug, process.env.APP_BUILDER_PROOF_EMAIL);
+    resumeSession?.email ??
+    process.env.SOLUTION_PROOF_EMAIL?.trim() ??
+    appBuilderFallback(slug, process.env.APP_BUILDER_PROOF_EMAIL);
 
   const existingPassword =
-    process.env.SOLUTION_PROOF_PASSWORD?.trim() ?? appBuilderFallback(slug, process.env.APP_BUILDER_PROOF_PASSWORD);
+    resumeSession?.password ??
+    process.env.SOLUTION_PROOF_PASSWORD?.trim() ??
+    appBuilderFallback(slug, process.env.APP_BUILDER_PROOF_PASSWORD);
 
   const registrationPassword = `Ecode-${randomBytes(24).toString('base64url')}-9a!`;
 
@@ -333,6 +349,8 @@ async function authenticate(page: Page, slug: CaptureSlug, locale: CaptureLocale
 
   let responseText = '';
   let payload: { token: string } | undefined;
+  let authenticatedEmail = existingEmail;
+  let authenticatedPassword = existingPassword;
 
   if (existingEmail) {
     const response = await page.request.post(`${API_BASE_URL}/auth/login`, {
@@ -364,6 +382,8 @@ async function authenticate(page: Page, slug: CaptureSlug, locale: CaptureLocale
 
     if (response.ok()) {
       payload = JSON.parse(responseText) as { token: string };
+      authenticatedEmail = registrationEmail;
+      authenticatedPassword = registrationPassword;
       break;
     }
 
@@ -377,6 +397,10 @@ async function authenticate(page: Page, slug: CaptureSlug, locale: CaptureLocale
 
   if (!payload) {
     throw new Error(`Registration did not return a session: ${responseText}`);
+  }
+
+  if (!authenticatedEmail || !authenticatedPassword) {
+    throw new Error('Authentication did not retain resumable proof credentials');
   }
 
   await page.context().addCookies([
@@ -395,7 +419,23 @@ async function authenticate(page: Page, slug: CaptureSlug, locale: CaptureLocale
     },
   ]);
 
-  return { token: payload.token };
+  return { token: payload.token, email: authenticatedEmail, password: authenticatedPassword };
+}
+
+async function readCaptureSession(path: string) {
+  const payload = JSON.parse(await readFile(path, 'utf8')) as Partial<CaptureSession>;
+
+  if (!payload.email || !payload.password || !payload.projectId) {
+    throw new Error('The local proof session is incomplete and cannot be resumed');
+  }
+
+  return payload as CaptureSession & { projectId: string };
+}
+
+async function persistCaptureSession(path: string, session: CaptureSession & { projectId: string }) {
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(path, `${JSON.stringify(session)}\n`, { encoding: 'utf8', mode: 0o600 });
+  await chmod(path, 0o600);
 }
 
 async function resolveProjectId(page: Page, token: string) {
@@ -1065,12 +1105,20 @@ async function main() {
   const creationPrompt = creationPromptFor(copy);
   const repairOnly = process.argv.includes('--repair-only');
   const iterationOnly = process.argv.includes('--iteration-only');
+  const resume = process.argv.includes('--resume');
 
-  const existingEmail =
+  const outputRoot = resolve(process.cwd(), 'public/assets/solutions', slug, locale);
+  const evidenceRoot = resolve(process.cwd(), 'outputs/solutions', slug, 'ide-proof', locale);
+  const captureSessionPath = resolve(evidenceRoot, '.capture-session.json');
+  const resumeSession = resume ? await readCaptureSession(captureSessionPath) : undefined;
+
+  const configuredEmail =
     process.env.SOLUTION_PROOF_EMAIL?.trim() ?? appBuilderFallback(slug, process.env.APP_BUILDER_PROOF_EMAIL);
 
   const existingProjectId =
-    process.env.SOLUTION_PROOF_PROJECT_ID?.trim() ?? appBuilderFallback(slug, process.env.APP_BUILDER_PROOF_PROJECT_ID);
+    process.env.SOLUTION_PROOF_PROJECT_ID?.trim() ??
+    appBuilderFallback(slug, process.env.APP_BUILDER_PROOF_PROJECT_ID) ??
+    resumeSession?.projectId;
   const iterationPrompt =
     process.env.SOLUTION_PROOF_ITERATION_PROMPT?.trim() ??
     appBuilderFallback(slug, process.env.APP_BUILDER_PROOF_ITERATION_PROMPT) ??
@@ -1079,10 +1127,7 @@ async function main() {
     process.env.SOLUTION_PROOF_BROWSER_PROFILE?.trim() ??
     appBuilderFallback(slug, process.env.APP_BUILDER_PROOF_BROWSER_PROFILE);
 
-  const outputRoot = resolve(process.cwd(), 'public/assets/solutions', slug, locale);
-  const evidenceRoot = resolve(process.cwd(), 'outputs/solutions', slug, 'ide-proof', locale);
-
-  if (existingProjectId && !existingEmail) {
+  if (existingProjectId && !configuredEmail && !resumeSession) {
     throw new Error('SOLUTION_PROOF_EMAIL is required when SOLUTION_PROOF_PROJECT_ID is provided');
   }
 
@@ -1123,7 +1168,7 @@ async function main() {
     });
     page.on('pageerror', (error) => pageErrors.push(error.message));
 
-    const { token } = await authenticate(page, slug, locale, copy);
+    const { token, email, password } = await authenticate(page, slug, locale, copy, resumeSession);
 
     let projectId = existingProjectId;
 
@@ -1173,6 +1218,10 @@ async function main() {
 
     if (!projectId) {
       throw new Error('No project id available for capture');
+    }
+
+    if (!configuredEmail) {
+      await persistCaptureSession(captureSessionPath, { email, password, projectId });
     }
 
     process.stdout.write(`${JSON.stringify({ status: 'project-ready', slug, locale, projectId })}\n`);
@@ -1229,6 +1278,7 @@ async function main() {
       );
       await context.close();
       context = undefined!;
+      await unlink(captureSessionPath).catch(() => undefined);
 
       return;
     }
@@ -1406,6 +1456,7 @@ async function main() {
 
     await context.close();
     context = undefined!;
+    await unlink(captureSessionPath).catch(() => undefined);
   } finally {
     await context?.close();
     await browser?.close();
