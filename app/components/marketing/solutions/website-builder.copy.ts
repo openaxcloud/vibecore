@@ -10,7 +10,7 @@ export const WEBSITE_BUILDER_COPY = {
     seo: {
       title: 'Website Builder with Real Code | E-Code',
       description:
-        'Describe the pages, sections, and content your site needs. E-Code turns it into a responsive site in editable source files with a running Preview, project export, and publishing for supported static builds.',
+        'Describe your architecture studio site. E-Code generates editable source and a running Preview; contact delivery, CMS data, and production setup stay separate.',
     },
     hero: {
       eyebrow: 'Website Builder for real content sites',
@@ -254,7 +254,7 @@ export const WEBSITE_BUILDER_COPY = {
     seo: {
       title: 'Générateur de site web avec vrai code | E-Code',
       description:
-        'Décrivez les pages, les sections et le contenu de votre site. E-Code les transforme en un site responsive dans des fichiers source modifiables, avec un aperçu actif, l’export du projet et la publication des builds statiques pris en charge.',
+        'Décrivez le site de votre cabinet d’architecture. E-Code génère le code modifiable et l’aperçu actif ; contact, CMS et mise en production restent séparés.',
     },
     hero: {
       eyebrow: 'Générateur de site pour de vrais sites de contenu',

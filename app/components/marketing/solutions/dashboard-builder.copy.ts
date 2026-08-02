@@ -10,7 +10,7 @@ export const DASHBOARD_BUILDER_COPY = {
     seo: {
       title: 'Dashboard Builder with Real Code | E-Code',
       description:
-        'Describe the revenue KPIs, pipeline stages, charts, and filters your team needs. E-Code generates PipelineIQ in editable React and TypeScript files and runs its local sample dataset in Webview.',
+        'Describe PipelineIQ. E-Code generates editable sales charts, pipeline stages, and working filters over fictional local data; no external database is connected.',
     },
     hero: {
       eyebrow: 'Dashboard Builder ready for your data',
@@ -264,7 +264,7 @@ export const DASHBOARD_BUILDER_COPY = {
     seo: {
       title: 'Générateur de tableau de bord avec vrai code | E-Code',
       description:
-        'Décrivez les indicateurs de chiffre d’affaires, étapes du pipeline, graphiques et filtres utiles. E-Code génère PipelineIQ dans des fichiers React et TypeScript modifiables et exécute son jeu de données local dans la Webview.',
+        'Décrivez PipelineIQ. E-Code génère graphiques de vente, pipeline et filtres actifs sur des données locales fictives ; aucune base externe n’est connectée.',
     },
     hero: {
       eyebrow: 'Générateur de tableau de bord prêt pour vos données',

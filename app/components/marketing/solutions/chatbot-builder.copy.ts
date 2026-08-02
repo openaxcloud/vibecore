@@ -10,7 +10,7 @@ export const CHATBOT_BUILDER_COPY = {
     seo: {
       title: 'Chatbot & AI Agent Builder with Real Code | E-Code',
       description:
-        'Describe the support-assistant experience you need. E-Code generates an editable React interface with suggested questions, deterministic local replies, source cards, and an escalation state running in Webview.',
+        'Describe HelpDesk Copilot. E-Code generates editable support flows, local answers, source cards, and escalation UI; no model or live corpus is connected.',
     },
     hero: {
       eyebrow: 'Chatbot & AI Agent Builder for real assistants',
@@ -268,7 +268,7 @@ export const CHATBOT_BUILDER_COPY = {
     seo: {
       title: 'Générateur de chatbot et d’agent IA avec vrai code | E-Code',
       description:
-        'Décrivez l’expérience d’assistant support recherchée. E-Code génère une interface React modifiable avec questions suggérées, réponses locales déterministes, cartes sources et état d’escalade actif dans la Webview.',
+        'Décrivez HelpDesk Copilot. E-Code génère un support modifiable, des réponses locales, des sources et l’escalade ; aucun modèle ni corpus n’est connecté.',
     },
     hero: {
       eyebrow: 'Générateur de chatbot et d’agent IA pour de vrais assistants',
