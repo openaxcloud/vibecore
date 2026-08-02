@@ -10,13 +10,13 @@ export const GAME_BUILDER_COPY = {
     seo: {
       title: 'Game Builder with Real Code | E-Code',
       description:
-        'Describe the browser game you want to test. E-Code turns it into an editable game loop, multiplayer interface, and state model with a running Preview, project export, and clear integration points for a real-time service.',
+        'Describe the browser quiz you want to test. E-Code generates an editable React game with a lobby, timed questions, local scoring, and a leaderboard running in Webview. Remote multiplayer remains a separate backend connection.',
     },
     hero: {
       eyebrow: 'Game Builder for playable browser prototypes',
       title: 'Turn a game idea into a browser build you can play and inspect',
       subtitle:
-        'Describe the game, the rounds, and how players compete. E-Code turns that into an editable game loop, lobby interface, scoring rules, and multiplayer state model. Play the local flow in Preview, refine it through the Agent, and connect a real-time service before inviting remote players.',
+        'Describe the quiz, the timed rounds, and the leaderboard. E-Code generates the React and TypeScript files, opens TriviaClash in Webview, and keeps the Agent conversation beside the running game. The captured flow uses fictional players and browser-local state; remote players need a backend you connect and test.',
       primaryCta: { label: 'Describe your game', ariaLabel: 'Describe your game with E-Code' },
       secondaryCta: { label: 'See how it builds', ariaLabel: 'See how E-Code builds the game from a prompt' },
       microcopy:
@@ -73,7 +73,7 @@ export const GAME_BUILDER_COPY = {
         },
       ],
       bridge:
-        'E-Code starts from the game you describe and produces an editable browser loop, rules, and multiplayer state model in source files. You test the local flow in Preview, connect networking where the code exposes it, and request the next change without leaving the project.',
+        'E-Code starts from the quiz you describe and produces editable React and TypeScript source for its lobby, questions, timer, score, and leaderboard. You test that local browser flow in Preview and request the next change without leaving the project. No network service hides behind the demo.',
     },
     build: {
       eyebrow: 'One prompt starts the game',
@@ -84,40 +84,40 @@ export const GAME_BUILDER_COPY = {
       promptText: 'Build a multiplayer quiz game with real-time scoring and a leaderboard.',
       outputs: [
         {
-          title: 'Canvas game loop',
-          body: 'A real render-and-update loop drives rounds, timers, and animations across desktop, tablet, and mobile from editable components.',
+          title: 'A working local lobby',
+          body: 'TriviaClash opens on a dark arcade lobby with fictional players, a visible local-only notice, and an orange Start quiz action.',
         },
         {
-          title: 'Multiplayer state model',
-          body: 'Lobby, question, timer, and scoreboard states are modeled in editable code with explicit integration points for a real-time backend. Remote synchronization is not active until that service is connected.',
+          title: 'Timed questions in React state',
+          body: 'Starting the quiz opens Question 1. Answer selection, countdown, score updates, and the final leaderboard run from browser-local state in editable React and TypeScript files.',
         },
         {
-          title: 'Scoring and rounds',
-          body: 'Answer handling, per-round scoring, and win conditions are modeled as working game rules rather than a static screen.',
+          title: 'Fictional score and leaderboard data',
+          body: 'Player names, points, and rankings are realistic sample content for the local playtest. They are not remote accounts, synchronized match results, or persistent records.',
         },
         {
-          title: 'Preview and publishing',
-          body: 'E-Code runs the local game flow in Preview across screen sizes. Supported static frontends can follow guided publishing; remote matches still require the real-time service you connect.',
+          title: 'Agent, files, and playable Webview',
+          body: 'The original prompt, Agent work, generated game files, and running Webview stay visible in one IDE while the local lobby changes into the first question.',
         },
       ],
     },
     proofLink: {
       eyebrow: 'Quiz rules → Agent → playable Webview',
       title: 'Play the quiz the Agent assembled inside the IDE',
-      body: 'These dedicated E-Code captures show the quiz prompt, the Agent exchange, the generated game files, and a local round running in Webview without leaving the project.',
+      body: 'These dedicated E-Code captures show the TriviaClash prompt, the Agent exchange, the generated React and TypeScript files, then the local lobby and first question running in Webview.',
       galleryLabel: 'Captured quiz-game generation and local play inside E-Code',
       disclaimer:
         'Captured E-Code generation · fictional players, questions, and scores · local browser state only · no network multiplayer, real-time server, account system, or persistent leaderboard is demonstrated',
       openFullSizeLabel: 'Open the quiz-game capture at full resolution',
       preview: {
-        title: 'A local quiz round runs beside the editable game files',
-        body: 'The first capture keeps the original multiplayer-quiz request and Agent activity visible while Webview renders the question, timer, answers, score, and local leaderboard from generated source.',
-        alt: 'Real E-Code Game Builder workspace showing a multiplayer quiz prompt, Agent activity, generated game files, and a local question with score and leaderboard running in Webview.',
+        title: 'TriviaClash opens on its local lobby',
+        body: 'The first capture keeps the original quiz request and Agent activity visible beside the generated files while Webview renders TriviaClash’s dark lobby, fictional players, local-only disclosure, and Start quiz action.',
+        alt: 'Real E-Code Game Builder workspace showing the TriviaClash prompt, Agent activity, generated React files, and the dark local lobby with a Start quiz button in Webview.',
       },
       iteration: {
-        title: 'The next instruction changes the playable round in place',
-        body: 'The follow-up capture records the next prompt beside the updated local quiz state. It proves that the Agent edits the same game and that local answer and score behavior remains visible; it does not prove synchronization between remote players.',
-        alt: 'Real E-Code Game Builder iteration showing a follow-up prompt, generated quiz files, and the updated local question and score state in Webview.',
+        title: 'The next prompt opens Question 1 in the same Webview',
+        body: 'The follow-up asks for a testable Start quiz flow, answer choices, countdown, local scoring, and a final leaderboard. The capture shows the verified Start quiz transition to Question 1; it does not prove answer scoring, persistence, or synchronization between remote players.',
+        alt: 'Real E-Code Game Builder iteration showing the testable-flow prompt, generated TriviaClash files, and Question 1 opened from the local lobby in Webview.',
       },
       cta: {
         label: 'Inspect the captured quiz run',
@@ -132,11 +132,11 @@ export const GAME_BUILDER_COPY = {
       items: [
         {
           title: 'Game code you can open and export',
-          body: 'The render loop, round rules, interface components, state, and styles stay readable, versionable, and portable outside E-Code.',
+          body: 'The lobby, question views, local state, answer controls, timer presentation, leaderboard, and styles stay readable, versionable, and portable outside E-Code.',
         },
         {
-          title: 'A match-state adapter, not a hidden server',
-          body: 'Lobby, question, timer, and leaderboard state is explicit in the source. Connect that model to a real-time backend before expecting synchronized remote players.',
+          title: 'Local match state, not a hidden server',
+          body: 'Lobby, question, timer, score, and leaderboard behavior runs locally in the browser. The captured project includes no network multiplayer backend or persistent store.',
         },
         {
           title: 'A playable Preview at every target size',
@@ -158,25 +158,25 @@ export const GAME_BUILDER_COPY = {
     },
     features: {
       eyebrow: 'Built for real browser games',
-      title: 'The browser-game loop, rules, and screens in code you control',
+      title: 'Trivia lobby, timed rounds, and local scores in code you control',
       intro:
-        'The Game Builder path keeps game logic, connection-ready state, and frontend publishing in one inspectable workflow.',
+        'The Game Builder path keeps TriviaClash’s generated source, local game states, and running Webview in one inspectable workflow.',
       items: [
         {
-          title: 'Canvas and game loop',
-          body: 'A real render-and-update loop for rounds, timers, and animations you can tune.',
+          title: 'Lobby to Question 1',
+          body: 'A working Start quiz transition takes the local game from its player lobby into the first timed question.',
         },
         {
-          title: 'Connection-ready multiplayer',
-          body: 'Lobby and match state with integration points for the service that synchronizes remote players.',
+          title: 'Explicitly local multiplayer-style UI',
+          body: 'Fictional players share one browser state for the demo. No network connection or synchronized client behavior is implied.',
         },
         {
           title: 'Scoring and rounds',
           body: 'Answer handling, per-round scoring, and win conditions modeled as game rules.',
         },
         {
-          title: 'Play-test in Preview',
-          body: 'Run the local round flow in Preview across screen sizes before you publish.',
+          title: 'Play-test in Webview',
+          body: 'Run the local lobby and question flow in E-Code’s real Webview while the Agent prompt and files remain available for inspection.',
         },
         {
           title: 'Responsive by default',
@@ -207,8 +207,8 @@ export const GAME_BUILDER_COPY = {
           body: 'Branded browser-game frontends with lobbies and leaderboards you can wire to event infrastructure.',
         },
         {
-          title: 'Casual arcade experiences',
-          body: 'Canvas-based games with a game loop, input handling, and score tracking.',
+          title: 'Team trivia playtests',
+          body: 'Prototype lobby copy, question pacing, local scoring, and leaderboard presentation before adding any remote-match service.',
         },
       ],
     },
@@ -219,7 +219,7 @@ export const GAME_BUILDER_COPY = {
       items: [
         {
           title: 'Do I get real code or a locked engine?',
-          body: 'You get editable source files — components, the game loop, state, and styles — that you can read, version, and export. There is no proprietary engine lock-in.',
+          body: 'You get editable React and TypeScript source for the lobby, questions, local state, controls, and styles. The captured TriviaClash project is not a video or a static mockup.',
         },
         {
           title: 'Is the multiplayer real?',
@@ -264,13 +264,13 @@ export const GAME_BUILDER_COPY = {
     seo: {
       title: 'Générateur de jeu avec vrai code | E-Code',
       description:
-        'Décrivez le jeu web que vous voulez tester. E-Code le transforme en boucle de jeu, interface multijoueur et modèle d’état modifiables, avec un aperçu actif, l’export du projet et des points de branchement clairs pour un service temps réel.',
+        'Décrivez le quiz web que vous voulez tester. E-Code génère un jeu React modifiable avec lobby, questions chronométrées, score local et classement actif dans la Webview. Le multijoueur distant reste une connexion backend séparée.',
     },
     hero: {
       eyebrow: 'Générateur de jeu pour prototypes web jouables',
       title: 'Transformez une idée de jeu en un build web que vous jouez et inspectez',
       subtitle:
-        'Décrivez le jeu, les manches et la façon dont les joueurs s’affrontent. E-Code en fait une boucle modifiable, une interface de salon, des règles de score et un modèle d’état multijoueur. Jouez le parcours local dans l’aperçu, affinez-le avec l’Agent, puis connectez un service temps réel avant d’inviter des joueurs distants.',
+        'Décrivez le quiz, les manches chronométrées et le classement. E-Code génère les fichiers React et TypeScript, ouvre TriviaClash dans la Webview et garde la conversation avec l’Agent à côté du jeu actif. Le parcours capturé utilise des joueurs fictifs et un état local au navigateur ; les joueurs distants exigent un backend connecté et testé.',
       primaryCta: { label: 'Décrivez votre jeu', ariaLabel: 'Décrivez votre jeu avec E-Code' },
       secondaryCta: {
         label: 'Voir la construction',
@@ -284,11 +284,11 @@ export const GAME_BUILDER_COPY = {
       badge: 'Données fictives',
       brand: 'TriviaClash',
       brandType: 'Prototype de quiz local',
-      nav: ['Salon', 'Jouer', 'Classement'],
+      nav: ['Lobby', 'Jouer', 'Classement'],
       eyebrow: 'Manche scénarisée 3 sur 5',
       title: 'Quelle capitale se trouve sur le détroit du Bosphore ?',
       intro:
-        'Un concept de quiz responsive qui présente un salon, des questions chronométrées et une interface de score partagé dans une boucle de manches claire.',
+        'Un concept de quiz responsive qui présente un lobby, des questions chronométrées et une interface de score partagé dans une boucle de manches claire.',
       primaryHeading: 'Classement local d’exemple',
       primaryRows: [
         { label: 'Nadia', meta: '1 240 pts fictifs', status: 'Tête d’exemple' },
@@ -315,7 +315,7 @@ export const GAME_BUILDER_COPY = {
       title:
         'Les créateurs de jeu paraissent simples jusqu’à ce que l’état multijoueur et le test en jeu se heurtent à l’outil',
       intro:
-        'Un jeu de quiz en direct a besoin d’une boucle serrée : un salon qui se remplit, des questions qui se déclenchent en synchronie et un classement qui se met à jour pour tout le monde en même temps. Les outils no-code démarrent vite, puis masquent la boucle de jeu et le réseau, et l’export correspond rarement à un code que l’équipe peut faire évoluer.',
+        'Un jeu de quiz en direct a besoin d’une boucle serrée : une salle de jeu qui se remplit, des questions qui se déclenchent en synchronie et un classement qui se met à jour pour tout le monde en même temps. Les outils no-code démarrent vite, puis masquent la boucle de jeu et le réseau, et l’export correspond rarement à un code que l’équipe peut faire évoluer.',
       obstacles: [
         {
           title: 'La boucle de jeu reste masquée',
@@ -331,7 +331,7 @@ export const GAME_BUILDER_COPY = {
         },
       ],
       bridge:
-        'E-Code part du jeu que vous décrivez et produit une boucle web, des règles et un modèle d’état multijoueur modifiables dans les fichiers source. Vous testez le parcours local dans l’aperçu, branchez le réseau aux endroits exposés par le code et demandez le changement suivant sans quitter le projet.',
+        'E-Code part du quiz décrit et produit une source React et TypeScript modifiable pour le lobby, les questions, le chrono, le score et le classement. Vous testez ce parcours local dans l’aperçu et demandez le changement suivant sans quitter le projet. Aucun service réseau ne se cache derrière la démo.',
     },
     build: {
       eyebrow: 'Un prompt lance le jeu',
@@ -342,40 +342,40 @@ export const GAME_BUILDER_COPY = {
       promptText: 'Crée un jeu de quiz multijoueur avec score en temps réel et classement.',
       outputs: [
         {
-          title: 'Boucle de jeu sur canvas',
-          body: 'Une vraie boucle de rendu et de mise à jour anime les manches, les chronos et les animations sur desktop, tablette et mobile à partir de composants modifiables.',
+          title: 'Un lobby local fonctionnel',
+          body: 'TriviaClash s’ouvre sur un lobby arcade sombre avec des joueurs fictifs, une limite locale visible et une action orange « Démarrer le quiz ».',
         },
         {
-          title: 'Modèle d’état multijoueur',
-          body: 'Les états du salon, de la question, du chrono et du classement vivent dans un code modifiable avec des points de branchement explicites pour un backend temps réel. La synchronisation distante ne démarre qu’une fois ce service connecté.',
+          title: 'Des questions chronométrées en état React',
+          body: 'Le démarrage ouvre Question 1. Choix de réponse, compte à rebours, mise à jour du score et classement final fonctionnent depuis un état local au navigateur dans les fichiers React et TypeScript modifiables.',
         },
         {
-          title: 'Score et manches',
-          body: 'Le traitement des réponses, le score par manche et les conditions de victoire sont modélisés comme de vraies règles de jeu plutôt qu’un écran statique.',
+          title: 'Scores et classement fictifs',
+          body: 'Noms de joueurs, points et rangs constituent un contenu d’exemple réaliste pour le test local. Ce ne sont ni des comptes distants, ni des résultats synchronisés, ni des données persistantes.',
         },
         {
-          title: 'Aperçu et publication',
-          body: 'E-Code exécute le parcours local dans l’aperçu à toutes les tailles d’écran. Les frontends statiques pris en charge suivent la publication guidée ; les parties distantes exigent toujours le service temps réel que vous connectez.',
+          title: 'Agent, fichiers et Webview jouable',
+          body: 'Le prompt initial, le travail de l’Agent, les fichiers générés et la Webview active restent visibles dans le même IDE pendant que le lobby local ouvre la première question.',
         },
       ],
     },
     proofLink: {
       eyebrow: 'Règles du quiz → Agent → Webview jouable',
       title: 'Jouez au quiz assemblé par l’Agent dans l’IDE',
-      body: 'Ces captures E-Code dédiées montrent le prompt du quiz, l’échange avec l’Agent, les fichiers du jeu générés et une manche locale active dans la Webview, sans quitter le projet.',
+      body: 'Ces captures E-Code dédiées montrent le prompt TriviaClash, l’échange avec l’Agent, les fichiers React et TypeScript générés, puis le lobby local et la première question actifs dans la Webview.',
       galleryLabel: 'Génération capturée du jeu de quiz et partie locale dans E-Code',
       disclaimer:
         'Génération E-Code capturée · joueurs, questions et scores fictifs · état local du navigateur uniquement · aucun multijoueur réseau, serveur temps réel, système de comptes ni classement persistant démontré',
       openFullSizeLabel: 'Ouvrir la capture du jeu de quiz en pleine résolution',
       preview: {
-        title: 'Une manche locale tourne à côté des fichiers modifiables du jeu',
-        body: 'La première capture conserve la demande initiale de quiz multijoueur et l’activité de l’Agent pendant que la Webview affiche la question, le chrono, les réponses, le score et le classement local issus de la source générée.',
-        alt: 'Vrai workspace Game Builder E-Code montrant un prompt de quiz multijoueur, l’activité de l’Agent, les fichiers générés et une question locale avec score et classement dans la Webview.',
+        title: 'TriviaClash s’ouvre sur son lobby local',
+        body: 'La première capture garde la demande initiale et l’activité de l’Agent auprès des fichiers générés pendant que la Webview affiche le lobby sombre de TriviaClash, ses joueurs fictifs, la limite locale et l’action « Démarrer le quiz ».',
+        alt: 'Vrai workspace Game Builder E-Code montrant le prompt TriviaClash, l’activité de l’Agent, les fichiers React générés et le lobby local sombre avec le bouton Démarrer le quiz dans la Webview.',
       },
       iteration: {
-        title: 'L’instruction suivante modifie la manche jouable sur place',
-        body: 'La capture de suivi conserve le nouveau prompt auprès de l’état local du quiz mis à jour. Elle prouve que l’Agent modifie le même jeu et que les réponses et le score locaux restent visibles ; elle ne prouve aucune synchronisation entre joueurs distants.',
-        alt: 'Vraie itération Game Builder E-Code montrant un prompt de suivi, les fichiers du quiz et l’état local mis à jour de la question et du score dans la Webview.',
+        title: 'Le prompt suivant ouvre Question 1 dans la même Webview',
+        body: 'Le suivi demande un démarrage testable, des choix de réponse, un compte à rebours, un score local et un classement final. La capture montre la transition vérifiée de « Démarrer le quiz » vers Question 1 ; elle ne prouve ni calcul du score, ni persistance, ni synchronisation entre joueurs distants.',
+        alt: 'Vraie itération Game Builder E-Code montrant le prompt de parcours testable, les fichiers TriviaClash et Question 1 ouverte depuis le lobby local dans la Webview.',
       },
       cta: {
         label: 'Inspecter le run capturé du quiz',
@@ -390,11 +390,11 @@ export const GAME_BUILDER_COPY = {
       items: [
         {
           title: 'Un code de jeu ouvert et exportable',
-          body: 'La boucle de rendu, les règles de manche, les composants d’interface, l’état et les styles restent lisibles, versionnables et transportables hors d’E-Code.',
+          body: 'Le lobby, les vues de questions, l’état local, les contrôles de réponse, la présentation du chrono, le classement et les styles restent lisibles, versionnables et transportables hors d’E-Code.',
         },
         {
-          title: 'Un adaptateur d’état de partie, pas un serveur caché',
-          body: 'Les états du salon, de la question, du chrono et du classement apparaissent dans la source. Branchez ce modèle à un backend temps réel avant d’attendre une synchronisation entre joueurs distants.',
+          title: 'Un état de partie local, pas un serveur caché',
+          body: 'Lobby, question, chrono, score et classement fonctionnent localement dans le navigateur. Le projet capturé n’inclut ni backend multijoueur réseau ni stockage persistant.',
         },
         {
           title: 'Un aperçu jouable à chaque format cible',
@@ -416,25 +416,25 @@ export const GAME_BUILDER_COPY = {
     },
     features: {
       eyebrow: 'Pensé pour de vrais jeux dans le navigateur',
-      title: 'La boucle, les règles et les écrans du jeu web dans un code que vous maîtrisez',
+      title: 'Lobby de quiz, manches chronométrées et scores locaux dans un code que vous maîtrisez',
       intro:
-        'Le parcours Générateur de jeu garde la logique, l’état prêt à connecter et la publication du frontend dans un seul flux inspectable.',
+        'Le parcours Générateur de jeu garde la source générée de TriviaClash, ses états locaux et la Webview active dans un seul flux inspectable.',
       items: [
         {
-          title: 'Canvas et boucle de jeu',
-          body: 'Une vraie boucle de rendu et de mise à jour pour les manches, chronos et animations que vous réglez.',
+          title: 'Du lobby à Question 1',
+          body: 'La transition « Démarrer le quiz » fait passer le jeu local du lobby des joueurs à la première question chronométrée.',
         },
         {
-          title: 'Multijoueur prêt à connecter',
-          body: 'Un salon et un état de partie avec les points d’intégration du service qui synchronise les joueurs distants.',
+          title: 'Interface multijoueur locale explicite',
+          body: 'Les joueurs fictifs partagent un seul état navigateur pour la démo. Aucune connexion réseau ni synchronisation de clients n’est sous-entendue.',
         },
         {
           title: 'Score et manches',
           body: 'Traitement des réponses, score par manche et conditions de victoire modélisés comme des règles de jeu.',
         },
         {
-          title: 'Test en jeu dans l’aperçu',
-          body: 'Jouez le parcours local dans l’aperçu à toutes les tailles d’écran avant de publier.',
+          title: 'Test en jeu dans la Webview',
+          body: 'Jouez le lobby et la question dans la vraie Webview E-Code pendant que le prompt Agent et les fichiers restent inspectables.',
         },
         {
           title: 'Responsive par défaut',
@@ -454,7 +454,7 @@ export const GAME_BUILDER_COPY = {
       items: [
         {
           title: 'Quiz et trivia multijoueur',
-          body: 'Parcours de salon, questions chronométrées et score partagé prêts à brancher à un service de partie temps réel.',
+          body: 'Parcours de lobby, questions chronométrées et score partagé prêts à brancher à un service de partie temps réel.',
         },
         {
           title: 'Jeux en classe et formation',
@@ -462,11 +462,11 @@ export const GAME_BUILDER_COPY = {
         },
         {
           title: 'Jeux d’événement et campagne',
-          body: 'Frontends de jeux de marque avec salons et classements à brancher à l’infrastructure de l’événement.',
+          body: 'Frontends de jeux de marque avec salles de jeu et classements à brancher à l’infrastructure de l’événement.',
         },
         {
-          title: 'Expériences arcade casual',
-          body: 'Jeux sur canvas avec boucle de jeu, gestion des entrées et suivi du score.',
+          title: 'Tests de quiz en équipe',
+          body: 'Prototypez le texte du lobby, le rythme des questions, le score local et le classement avant d’ajouter un service de partie distante.',
         },
       ],
     },
@@ -477,11 +477,11 @@ export const GAME_BUILDER_COPY = {
       items: [
         {
           title: 'J’obtiens du vrai code ou un moteur verrouillé ?',
-          body: 'Vous obtenez des fichiers source modifiables — composants, boucle de jeu, état et styles — que vous lisez, versionnez et exportez. Aucun verrouillage propriétaire de moteur.',
+          body: 'Vous obtenez une source React et TypeScript modifiable pour le lobby, les questions, l’état local, les contrôles et les styles. Le projet TriviaClash capturé n’est ni une vidéo ni une maquette statique.',
         },
         {
           title: 'Le multijoueur est-il réel ?',
-          body: 'Pas dans la démonstration intégrée : elle utilise des données de partie fictives et aucun backend connecté. La source générée peut modéliser le salon et l’état de partie, mais les joueurs distants exigent un service temps réel que vous connectez, sécurisez et testez.',
+          body: 'Pas dans la démonstration intégrée : elle utilise des données de partie fictives et aucun backend connecté. La source générée peut modéliser le lobby et l’état de partie, mais les joueurs distants exigent un service temps réel que vous connectez, sécurisez et testez.',
         },
         {
           title: 'Puis-je tester le jeu avant de publier ?',
@@ -499,7 +499,7 @@ export const GAME_BUILDER_COPY = {
     },
     finalCta: {
       title: 'Décrivez votre jeu et jouez ses premières manches',
-      body: 'Transformez le jeu que vous avez en tête en une boucle web, un salon et un système de score modifiables, testez le parcours local dans l’aperçu, puis connectez le service qui anime les parties distantes.',
+      body: 'Transformez le jeu que vous avez en tête en une boucle web, un lobby et un système de score modifiables, testez le parcours local dans l’aperçu, puis connectez le service qui anime les parties distantes.',
       primaryCta: { label: 'Décrivez votre jeu', ariaLabel: 'Décrivez votre jeu avec E-Code' },
       secondaryCta: {
         label: 'Voir la construction',
