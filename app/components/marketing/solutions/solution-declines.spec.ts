@@ -7,10 +7,15 @@ import { FREELANCERS_COPY } from './freelancers.copy';
 import { GAME_BUILDER_COPY } from './game-builder.copy';
 import { INTERNAL_AI_BUILDER_COPY } from './internal-ai-builder.copy';
 import type { SolutionCopy, SolutionCopyByLanguage } from './solution-copy';
+import {
+  getSolutionProofVisuals,
+  SOLUTION_PROOF_VISUAL_SLUGS,
+  type SolutionProofVisualSlug,
+} from './solution-proof.visuals';
 import { STARTUPS_COPY } from './startups.copy';
 import { WEBSITE_BUILDER_COPY } from './website-builder.copy';
 
-const DECLINES: Record<string, SolutionCopyByLanguage> = {
+const DECLINES = {
   'website-builder': WEBSITE_BUILDER_COPY,
   'game-builder': GAME_BUILDER_COPY,
   'dashboard-builder': DASHBOARD_BUILDER_COPY,
@@ -19,12 +24,12 @@ const DECLINES: Record<string, SolutionCopyByLanguage> = {
   enterprise: ENTERPRISE_COPY,
   startups: STARTUPS_COPY,
   freelancers: FREELANCERS_COPY,
-};
+} as const satisfies Record<SolutionProofVisualSlug, SolutionCopyByLanguage>;
 
 const HONEST_BADGE = { en: 'Fictional demo data', fr: 'Données fictives' } as const;
 const HONEST_DISCLAIMER = { en: 'not a generation record', fr: 'pas une trace de génération' } as const;
 
-const REQUIRED_PROMPTS: Readonly<Partial<Record<keyof typeof DECLINES, Readonly<Record<'en' | 'fr', string>>>>> = {
+const REQUIRED_PROMPTS: Readonly<Partial<Record<SolutionProofVisualSlug, Readonly<Record<'en' | 'fr', string>>>>> = {
   'website-builder': {
     en: 'Build a showcase website for my architecture firm, with a portfolio, contact page, and blog.',
     fr: 'Fais-moi un site vitrine pour mon cabinet d’architecte, avec portfolio, contact et blog.',
@@ -62,7 +67,9 @@ function assertStructure(copy: SolutionCopy) {
 }
 
 describe('declined solution sales pages (SOL-02 → SOL-09)', () => {
-  for (const [slug, byLanguage] of Object.entries(DECLINES)) {
+  for (const slug of SOLUTION_PROOF_VISUAL_SLUGS) {
+    const byLanguage = DECLINES[slug];
+
     describe(slug, () => {
       for (const language of ['en', 'fr'] as const) {
         const copy = byLanguage[language];
@@ -76,17 +83,23 @@ describe('declined solution sales pages (SOL-02 → SOL-09)', () => {
           expect(copy.demo.disclaimer.toLowerCase()).toContain(HONEST_DISCLAIMER[language].toLowerCase());
         });
 
-        it(`${language}: separates the real App Builder reference capture from the scripted page demo`, () => {
+        it(`${language}: describes dedicated IDE evidence without falling back to the App Builder salon`, () => {
           const proof = JSON.stringify(copy.proofLink).toLowerCase();
 
-          const appBuilderReference = /app builder|salon/.test(proof);
-
-          const scriptedDemo = language === 'fr' ? /scénaris|ficti/.test(proof) : /scripted|fictional/.test(proof);
-
-          expect(appBuilderReference).toBe(true);
-          expect(scriptedDemo).toBe(true);
+          expect(proof).not.toMatch(/app builder|salon/);
+          expect(proof).toMatch(language === 'fr' ? /captur|preuve|réel|vrai/ : /captur|evidence|real/);
           expect(copy.proofLink.galleryLabel.length).toBeGreaterThan(20);
           expect(copy.proofLink.openFullSizeLabel.length).toBeGreaterThan(0);
+        });
+
+        it(`${language}: resolves two dedicated, unique IDE asset paths for its route slug`, () => {
+          const assets = getSolutionProofVisuals(slug, language);
+
+          expect(assets.preview.src).toBe(`/assets/solutions/${slug}/${language}/ide-agent-preview.png`);
+          expect(assets.iteration.src).toBe(`/assets/solutions/${slug}/${language}/ide-agent-iteration.png`);
+          expect(assets.preview.src).not.toBe(assets.iteration.src);
+          expect(assets.preview.slug).toBe(slug);
+          expect(assets.iteration.slug).toBe(slug);
         });
 
         it(`${language}: fills every headline and body`, () => {
