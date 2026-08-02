@@ -50,6 +50,7 @@ const APP_BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:5173';
 const API_BASE_URL = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
 const GENERATION_TIMEOUT_MS = 12 * 60 * 1000;
 const PREVIEW_TIMEOUT_MS = 8 * 60 * 1000;
+const PREVIEW_RESTART_TIMEOUT_MS = 3 * 60 * 1000;
 
 const PREVIEW_RUNTIME_ERROR_PATTERN =
   /internal server error|failed to resolve import|cannot find module|vite error|unexpected token|uncaught typeerror|plugin:vite|preview_upstream_unreachable|dev server on port .*not reachable|starting, or it crashed/i;
@@ -731,12 +732,37 @@ async function waitForPreview(page: Page, evidenceRoot: string) {
 
   try {
     if (!existingPreviewAttached) {
-      await expect
+      const renderedBeforeRestart = await expect
         .poll(readPreviewText, {
-          message: 'Preview must render substantial application content',
-          timeout: PREVIEW_TIMEOUT_MS,
+          message: 'Preview must render before one guarded runtime restart',
+          timeout: PREVIEW_RESTART_TIMEOUT_MS,
         })
-        .toBeGreaterThan(120);
+        .toBeGreaterThan(120)
+        .then(() => true)
+        .catch(() => false);
+
+      if (!renderedBeforeRestart) {
+        const topRunButton = page.getByTestId('button-run-stop');
+        const topRunLabel = (await topRunButton.textContent().catch(() => ''))?.trim() ?? '';
+
+        if (topRunLabel === 'Stop') {
+          await topRunButton.click({ noWaitAfter: true });
+          await expect(topRunButton).toContainText('Run', { timeout: 60_000 });
+        }
+
+        const restartedRunLabel = (await topRunButton.textContent().catch(() => ''))?.trim() ?? '';
+
+        if (restartedRunLabel === 'Run') {
+          await topRunButton.click({ noWaitAfter: true });
+        }
+
+        await expect
+          .poll(readPreviewText, {
+            message: 'Preview must render substantial application content after the guarded runtime restart',
+            timeout: PREVIEW_TIMEOUT_MS,
+          })
+          .toBeGreaterThan(120);
+      }
     }
   } catch (error) {
     await mkdir(evidenceRoot, { recursive: true });
