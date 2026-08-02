@@ -525,7 +525,15 @@ async function waitForProjectToSettle(
           .isVisible()
           .catch(() => false);
 
-        return Boolean(revision) && stableChecks >= 7 && composerReady && completedProgress;
+        const generationStillRunning = await agentPanel
+          .getByRole('button', { name: 'Stop generation' })
+          .first()
+          .isVisible()
+          .catch(() => false);
+
+        return (
+          Boolean(revision) && stableChecks >= 7 && composerReady && (completedProgress || !generationStillRunning)
+        );
       },
       {
         message,
