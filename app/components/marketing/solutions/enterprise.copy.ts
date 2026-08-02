@@ -11,7 +11,7 @@ export const ENTERPRISE_COPY = {
     seo: {
       title: 'Enterprise Rollout with Governance | E-Code',
       description:
-        'Plan an E-Code rollout around SSO and SCIM integration, role-based access, audit export, deployment approvals, and runtime requirements — with tenant validation before production enablement.',
+        'Plan an E-Code rollout and inspect a local release-governance workspace. SSO, RBAC, audit export, approvals, and deployments require tenant validation.',
     },
     hero: {
       eyebrow: 'Enterprise rollout for governed engineering teams',
@@ -264,7 +264,7 @@ export const ENTERPRISE_COPY = {
     seo: {
       title: 'Déploiement entreprise avec gouvernance | E-Code',
       description:
-        'Planifiez un déploiement E-Code autour de l’intégration SSO et SCIM, des accès par rôle, de l’export d’audit, des approbations de livraison et des exigences runtime, avec validation du tenant avant activation en production.',
+        'Planifiez E-Code et inspectez un espace local de gouvernance des versions. SSO, RBAC, audit, approbations et déploiements exigent la validation du tenant.',
     },
     hero: {
       eyebrow: 'Déploiement entreprise pour des équipes d’ingénierie gouvernées',

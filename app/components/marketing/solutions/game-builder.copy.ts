@@ -10,7 +10,7 @@ export const GAME_BUILDER_COPY = {
     seo: {
       title: 'Game Builder with Real Code | E-Code',
       description:
-        'Describe the browser quiz you want to test. E-Code generates an editable React game with a lobby, timed questions, local scoring, and a leaderboard running in Webview. Remote multiplayer remains a separate backend connection.',
+        'Describe TriviaClash. E-Code generates an editable browser quiz with lobby, timed questions, local scores, and leaderboard; remote multiplayer needs a backend.',
     },
     hero: {
       eyebrow: 'Game Builder for playable browser prototypes',
@@ -264,7 +264,7 @@ export const GAME_BUILDER_COPY = {
     seo: {
       title: 'Générateur de jeu avec vrai code | E-Code',
       description:
-        'Décrivez le quiz web que vous voulez tester. E-Code génère un jeu React modifiable avec lobby, questions chronométrées, score local et classement actif dans la Webview. Le multijoueur distant reste une connexion backend séparée.',
+        'Décrivez TriviaClash. E-Code génère un quiz web modifiable avec lobby, questions, scores et classement locaux ; le multijoueur distant exige un backend.',
     },
     hero: {
       eyebrow: 'Générateur de jeu pour prototypes web jouables',

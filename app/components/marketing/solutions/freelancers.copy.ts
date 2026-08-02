@@ -11,7 +11,7 @@ export const FREELANCERS_COPY = {
     seo: {
       title: 'Deliver Client Projects Faster | E-Code for Freelancers',
       description:
-        'Start each client project from repeatable templates, share preview links for review, and hand off editable source code. E-Code turns a brief into a working app in real files with a running Preview, project export, and publishing for supported builds.',
+        'Describe Studio Ferro. E-Code generates an editable delivery workspace with Preview and export; client reviews, payments, approvals, and email stay unconnected.',
     },
     hero: {
       eyebrow: 'E-Code for freelancers and independent studios',
@@ -266,7 +266,7 @@ export const FREELANCERS_COPY = {
     seo: {
       title: 'Livrez vos projets clients plus vite | E-Code pour freelances',
       description:
-        'Démarrez chaque projet client depuis des modèles réutilisables, partagez des liens d’aperçu pour la revue et transmettez un code source modifiable. E-Code transforme un brief en une application fonctionnelle dans de vrais fichiers, avec un aperçu actif, l’export du projet et la publication des builds pris en charge.',
+        'Décrivez Studio Ferro. E-Code génère un espace de livraison modifiable avec aperçu et export ; revues, paiements, validations et emails restent déconnectés.',
     },
     hero: {
       eyebrow: 'E-Code pour freelances et studios indépendants',

@@ -11,7 +11,7 @@ export const STARTUPS_COPY = {
     seo: {
       title: 'Ship a Startup MVP Fast with Real Code | E-Code',
       description:
-        'Describe the MVP your startup needs to demo. E-Code turns it into editable source files with a hosted Preview, a shareable review link, project export, and guided publishing for supported builds.',
+        'Describe Launchpad. E-Code generates an editable launch cockpit and hosted Preview; analytics, persistence, email, billing, and production stay unconnected.',
     },
     hero: {
       eyebrow: 'For startups shipping an MVP',
@@ -265,7 +265,7 @@ export const STARTUPS_COPY = {
     seo: {
       title: 'Lancez un MVP de startup avec du vrai code | E-Code',
       description:
-        'Décrivez le MVP que votre startup doit démontrer. E-Code le transforme en fichiers source modifiables avec un aperçu hébergé, un lien de revue partageable, l’export du projet et la publication guidée pour les builds pris en charge.',
+        'Décrivez Launchpad. E-Code génère un cockpit local modifiable et un aperçu hébergé ; analytics, persistance, email, billing et production restent déconnectés.',
     },
     hero: {
       eyebrow: 'Pour les startups qui lancent un MVP',

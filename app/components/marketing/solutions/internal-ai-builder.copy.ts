@@ -10,7 +10,7 @@ export const INTERNAL_AI_BUILDER_COPY = {
     seo: {
       title: 'Internal AI Builder with Real Code | E-Code',
       description:
-        'Describe the internal assistant your team needs. E-Code creates an editable project that models procedure sources, approval states, access rules, and audit events. Connect identity and private data, then complete security testing before deployment.',
+        'Describe PeopleOps. E-Code generates local procedure search with cited answers in editable source; identity, private data, and permissions require testing.',
     },
     hero: {
       eyebrow: 'Internal AI Builder for private team tools',
@@ -270,7 +270,7 @@ export const INTERNAL_AI_BUILDER_COPY = {
     seo: {
       title: 'Générateur d’IA interne avec vrai code | E-Code',
       description:
-        'Décrivez l’assistant interne attendu. E-Code crée un projet modifiable qui modélise les sources de procédures, les états d’approbation, les règles d’accès et les événements d’audit. Connectez l’identité et les données privées, puis terminez les tests de sécurité avant déploiement.',
+        'Décrivez PeopleOps. E-Code génère une recherche locale de procédures avec réponses citées ; identité, sources privées et droits exigent connexion et tests.',
     },
     hero: {
       eyebrow: 'Générateur d’IA interne pour des outils d’équipe privés',
