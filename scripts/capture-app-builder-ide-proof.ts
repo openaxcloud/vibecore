@@ -45,6 +45,9 @@ const API_BASE_URL = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'ht
 const GENERATION_TIMEOUT_MS = 12 * 60 * 1000;
 const PREVIEW_TIMEOUT_MS = 8 * 60 * 1000;
 
+const PREVIEW_RUNTIME_ERROR_PATTERN =
+  /internal server error|failed to resolve import|cannot find module|vite error|unexpected token|uncaught typeerror|plugin:vite|preview_upstream_unreachable|dev server on port .*not reachable|starting, or it crashed/i;
+
 const SOLUTION_SCENARIOS = {
   'app-builder': {
     en: {
@@ -637,7 +640,7 @@ async function waitForPreview(page: Page, evidenceRoot: string) {
   const readPreviewText = async () => {
     previewText = (await body.innerText().catch(() => '')).replace(/\s+/g, ' ').trim();
 
-    return previewText.length;
+    return PREVIEW_RUNTIME_ERROR_PATTERN.test(previewText) ? 0 : previewText.length;
   };
 
   const existingPreviewAttached = await expect
@@ -696,11 +699,7 @@ async function waitForPreview(page: Page, evidenceRoot: string) {
     });
   }
 
-  if (
-    /internal server error|failed to resolve import|cannot find module|vite error|unexpected token|uncaught typeerror|plugin:vite|preview_upstream_unreachable|dev server on port .*not reachable|starting, or it crashed/i.test(
-      previewText,
-    )
-  ) {
+  if (PREVIEW_RUNTIME_ERROR_PATTERN.test(previewText)) {
     throw new Error(`Preview contains a runtime error: ${previewText.slice(0, 500)}`);
   }
 
