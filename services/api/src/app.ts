@@ -16085,7 +16085,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return;
     }
 
-    if (authorized.organizationId) {
+    /*
+     * The IDE's always-on managed shell (the "bolt" terminal running the dev
+     * server / installs / agent commands) is workspace infrastructure — like
+     * Replit's built-in Console — not a user-opened interactive terminal, so it
+     * must NOT consume the user-facing `terminals.concurrent` quota. Without this,
+     * a free-tier org (limit 1) has that single slot permanently taken by the
+     * managed shell, and every user-opened terminal is 429'd on connect and
+     * flaps forever ("terminal never connects"). User terminals stay metered.
+     */
+    const isManagedTerminal = (request.query as { managed?: unknown } | undefined)?.managed === '1';
+
+    if (authorized.organizationId && !isManagedTerminal) {
       const organizationId = authorized.organizationId;
 
       /*

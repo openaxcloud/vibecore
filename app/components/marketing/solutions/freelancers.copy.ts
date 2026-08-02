@@ -216,7 +216,7 @@ export const FREELANCERS_COPY = {
       items: [
         {
           title: 'Does the client get real code or a locked project?',
-          body: 'You export editable source files — components, routes, styles, and content — rather than handing over only a screenshot or hosted mock. Ownership and permitted reuse follow the applicable E-Code terms and your client agreement.',
+          body: 'You export editable source files — components, routes, styles, and content — rather than handing over only a screenshot or a hosted preview. Ownership and permitted reuse follow the applicable E-Code terms and your client agreement.',
         },
         {
           title: 'How do clients review the work?',

@@ -629,6 +629,27 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
     expect(logs).toEqual(['server ready']);
   });
 
+  it('marks the managed shell with managed=1 so the API skips the terminals.concurrent quota', async () => {
+    FakeWebSocket.instances = [];
+
+    const adapter = new RemoteKubernetesRuntimeAdapter({
+      baseUrl: 'https://runtime.example.com',
+      authToken: () => 'token-456',
+      workspaceId: 'ws-1',
+      fetchImpl: createFetchMock() as typeof fetch,
+      WebSocketImpl: FakeWebSocket,
+    });
+
+    // A user-opened terminal must NOT carry the managed flag (it stays metered).
+    await adapter.openTerminal({ terminal: { cols: 80, rows: 24 } });
+    expect(FakeWebSocket.instances[0].url).not.toContain('managed=1');
+
+    // The IDE's always-on managed shell carries managed=1 so it is not charged
+    // against terminals.concurrent (otherwise free-tier limit 1 flaps forever).
+    await adapter.openTerminal({ terminal: { cols: 80, rows: 24 }, managed: true });
+    expect(FakeWebSocket.instances[1].url).toContain('&managed=1');
+  });
+
   it('reconnects watch sockets and terminal sockets after disconnects', async () => {
     vi.useFakeTimers();
     FakeWebSocket.instances = [];
