@@ -1,10 +1,9 @@
 import type { SolutionCopyByLanguage } from './solution-copy';
 
 /**
- * SOL — Freelancers. Declined from the App Builder gabarit, centered on a
- * fictional independent developer delivering client projects with a clean
- * handoff. All demo data is fictional and labeled; the one real captured
- * E-Code IDE proof lives on /solutions/app-builder.
+ * SOL — Freelancers. Dedicated client-delivery story in EN and FR. All clients,
+ * projects, and review states are fictional and labeled; proof claims stop at the
+ * captured Agent exchange, generated files, Webview, and local portal interaction.
  */
 export const FREELANCERS_COPY = {
   en: {
@@ -27,31 +26,32 @@ export const FREELANCERS_COPY = {
     demo: {
       badge: 'Fictional demo data',
       brand: 'Studio Ferro',
-      brandType: 'Independent developer',
+      brandType: 'Fictional delivery scenario',
       nav: ['Projects', 'Previews', 'Handoff'],
-      eyebrow: 'Client delivery',
-      title: 'Ship each client project on a repeatable path to handoff.',
+      eyebrow: 'Local client-delivery demo',
+      title: 'Review a repeatable project-to-handoff interface.',
       intro:
-        'A responsive delivery view that tracks active client projects, the preview links shared for review, and the handoff pack.',
-      primaryHeading: 'Active client projects',
+        'A responsive local scenario with fictional projects, review states, preview controls, and a handoff checklist; it does not record real client delivery.',
+      primaryHeading: 'Fictional client projects',
       primaryRows: [
-        { label: 'Boutique — storefront', meta: 'preview shared · v3', status: 'Delivered' },
-        { label: 'Clinic — booking portal', meta: 'preview shared · v2' },
-        { label: 'Agency — landing page', meta: 'in build · v1' },
+        { label: 'Boutique — storefront', meta: 'sample review state · v3', status: 'UI: delivered' },
+        { label: 'Clinic — booking portal', meta: 'sample review state · v2' },
+        { label: 'Agency — landing page', meta: 'local build state · v1' },
       ],
-      asideHeading: 'Handoff',
+      asideHeading: 'Handoff controls',
       asideRows: [
-        { label: 'Source', value: 'Exported' },
-        { label: 'Preview link', value: 'Shared' },
-        { label: 'Docs', value: 'Included' },
+        { label: 'Source', value: 'Export control' },
+        { label: 'Preview link', value: 'Share control' },
+        { label: 'Docs', value: 'Checklist UI' },
       ],
-      asideCta: 'Send handoff pack',
-      disclaimer: 'Inline responsive demonstration · fictional freelancer data · not a generation record',
+      asideCta: 'Preview handoff flow',
+      disclaimer:
+        'Scripted local interface · fictional clients and states · no link sent, source transferred, payment processed, email delivered, or client acceptance · not a generation record',
       caption: {
-        title: 'A delivery view that reads like a real client pipeline',
-        body: 'This inline demonstration shows active client projects, the preview links shared for review, and a source-code handoff pack in one responsive layout.',
+        title: 'A delivery workflow scenario without invented client activity',
+        body: 'This local interface demonstrates project-state cards, preview and export controls, and a handoff checklist without claiming that a real share or transfer occurred.',
       },
-      alt: 'Freelancer client-delivery demonstration with a list of active client projects and a handoff panel.',
+      alt: 'Scripted local freelancer interface with fictional projects and unverified preview-share, source-export, and handoff controls.',
     },
     problem: {
       eyebrow: 'From one-off builds to a repeatable delivery path',
@@ -103,24 +103,27 @@ export const FREELANCERS_COPY = {
       ],
     },
     proofLink: {
-      eyebrow: 'Prompt → agent → Preview',
-      title: 'Review the real prompt-to-Preview workflow before a client handoff',
-      body: 'These are authentic captures from the App Builder salon-booking run. They show the prompt, agent exchange, files, and running Preview a freelancer reviews inside E-Code; they do not present the fictional client-delivery board above as a captured generation.',
-      galleryLabel: 'Real salon-booking run used as client-delivery workflow evidence',
+      eyebrow: 'Client brief → Agent → delivery-portal Webview',
+      title: 'Inspect the client portal generated for this freelance workflow',
+      body: 'These dedicated E-Code captures show the client brief, the Agent exchange, the generated portal and delivery files, and the client-facing project view running in Webview.',
+      galleryLabel: 'Captured client-portal generation and local review flow inside E-Code',
       disclaimer:
-        'Both IDE images document the real App Builder reference run. The freelancer project board on this page is a scripted demonstration with fictional client data, not a generation log or client engagement.',
-      openFullSizeLabel: 'Open the client-delivery workflow reference at full size',
+        'Captured E-Code generation · fictional clients, projects, and review states · local portal behavior only · no production authentication, email, payment, externally verified share access, or completed source handoff is demonstrated',
+      openFullSizeLabel: 'Open the client-portal capture at full size',
       preview: {
-        title: 'The client brief stays beside the working result',
-        body: 'The real reference capture shows the salon request, agent conversation, generated project files, and booking Preview in the same E-Code workspace.',
-        alt: 'Real E-Code App Builder salon run showing the request, agent conversation, generated files, and booking app Preview as workflow evidence for freelancers.',
+        title: 'The client brief stays beside the running portal',
+        body: 'The first capture keeps the delivery request and Agent activity beside the generated source while Webview renders the project overview, review status, preview entry, and handoff checklist from fictional local data.',
+        alt: 'Real E-Code Freelancers workspace showing a client-portal brief, Agent activity, generated delivery files, and a project review and handoff view running in Webview.',
       },
       iteration: {
-        title: 'A review note becomes a visible iteration',
-        body: 'The follow-up capture records the next instruction and updated Preview together, illustrating the review loop before exported-source handoff.',
-        alt: 'Real E-Code App Builder salon follow-up showing the next instruction and updated booking Preview inside the IDE.',
+        title: 'A review note becomes a visible portal update',
+        body: 'The follow-up capture keeps the next instruction beside the updated local project state and generated files. It proves the Agent iteration and in-browser review flow, not that a real client received a link or accepted a handoff.',
+        alt: 'Real E-Code Freelancers iteration showing a client review prompt, generated portal files, and an updated local project status in Webview.',
       },
-      cta: { label: 'See the real IDE proof', ariaLabel: 'See the real E-Code IDE proof on the App Builder page' },
+      cta: {
+        label: 'Inspect the captured client run',
+        ariaLabel: 'Inspect the captured E-Code client-portal generation and local review state',
+      },
     },
     deliverables: {
       eyebrow: 'What you receive',
@@ -188,24 +191,25 @@ export const FREELANCERS_COPY = {
     },
     useCases: {
       eyebrow: 'Who builds with it',
-      title: 'Projects freelancers ship with E-Code',
-      intro: 'From a client portal to a launch page, the same loop produces a real, responsive app ready to hand off.',
+      title: 'Project foundations freelancers prepare for review and handoff',
+      intro:
+        'From a client portal to a launch page, the loop produces responsive source and a running interface; client acceptance, external sharing, service connections, and the final transfer remain verifiable delivery steps.',
       items: [
         {
           title: 'Client web apps and portals',
-          body: 'Dashboards and sign-in flows delivered as editable project files for the client’s next development step.',
+          body: 'Dashboard and sign-in interfaces delivered as editable project files, with identity and server enforcement still explicit integration work.',
         },
         {
           title: 'Marketing and landing pages',
-          body: 'Responsive sites with lead capture, shared for review before they go live.',
+          body: 'Responsive sites with a validated form UI and delivery hook, ready for review before any live submission service is connected.',
         },
         {
           title: 'Internal tools for clients',
-          body: 'Small back-office apps that model a real workflow rather than a static prototype.',
+          body: 'Small back-office interfaces that model a client workflow while keeping persistence, identity, and authorization boundaries visible.',
         },
         {
           title: 'Prototypes for pitches',
-          body: 'A running preview link that turns a proposal into something the client can click.',
+          body: 'A running preview link to review the proposed journey; client opening and acceptance are confirmed outside the scripted page demo.',
         },
       ],
     },
@@ -280,31 +284,32 @@ export const FREELANCERS_COPY = {
     demo: {
       badge: 'Données fictives',
       brand: 'Studio Ferro',
-      brandType: 'Développeur indépendant',
+      brandType: 'Scénario de livraison fictif',
       nav: ['Projets', 'Aperçus', 'Transfert'],
-      eyebrow: 'Livraison client',
-      title: 'Livrez chaque projet client sur un parcours répétable jusqu’au transfert.',
+      eyebrow: 'Démo locale de livraison client',
+      title: 'Relisez une interface répétable du projet au transfert.',
       intro:
-        'Une vue de livraison responsive qui suit les projets clients actifs, les liens d’aperçu partagés pour la revue et le dossier de transfert.',
-      primaryHeading: 'Projets clients actifs',
+        'Un scénario local responsive avec des projets, états de revue, contrôles d’aperçu et checklist de transfert fictifs ; il ne consigne aucune livraison client réelle.',
+      primaryHeading: 'Projets clients fictifs',
       primaryRows: [
-        { label: 'Boutique — vitrine', meta: 'aperçu partagé · v3', status: 'Livré' },
-        { label: 'Clinique — portail de réservation', meta: 'aperçu partagé · v2' },
-        { label: 'Agence — page d’atterrissage', meta: 'en construction · v1' },
+        { label: 'Boutique — vitrine', meta: 'état de revue fictif · v3', status: 'UI : livré' },
+        { label: 'Clinique — portail de réservation', meta: 'état de revue fictif · v2' },
+        { label: 'Agence — page d’atterrissage', meta: 'état de build local · v1' },
       ],
-      asideHeading: 'Transfert',
+      asideHeading: 'Contrôles de transfert',
       asideRows: [
-        { label: 'Source', value: 'Exporté' },
-        { label: 'Lien d’aperçu', value: 'Partagé' },
-        { label: 'Docs', value: 'Inclus' },
+        { label: 'Source', value: 'Contrôle d’export' },
+        { label: 'Lien d’aperçu', value: 'Contrôle de partage' },
+        { label: 'Docs', value: 'Checklist UI' },
       ],
-      asideCta: 'Envoyer le dossier de transfert',
-      disclaimer: 'Démonstration responsive intégrée · données de freelance fictives · pas une trace de génération',
+      asideCta: 'Prévisualiser le transfert',
+      disclaimer:
+        'Interface locale scénarisée · clients et états fictifs · aucun lien envoyé, code transmis, paiement traité, email livré ni accord client · pas une trace de génération',
       caption: {
-        title: 'Une vue de livraison qui se lit comme un vrai pipeline client',
-        body: 'Cette démonstration intégrée présente les projets clients actifs, les liens d’aperçu partagés pour la revue et un dossier de transfert du code source dans une mise en page responsive.',
+        title: 'Un scénario de livraison sans activité client inventée',
+        body: 'Cette interface locale présente des cartes d’état, des contrôles d’aperçu et d’export, et une checklist de transfert sans prétendre qu’un partage ou transfert réel a eu lieu.',
       },
-      alt: 'Démonstration de livraison client pour freelance avec une liste de projets clients actifs et un panneau de transfert.',
+      alt: 'Interface locale scénarisée pour freelance avec projets fictifs et contrôles non vérifiés de partage, export et transfert.',
     },
     problem: {
       eyebrow: 'Des builds ponctuels à un parcours de livraison répétable',
@@ -356,26 +361,26 @@ export const FREELANCERS_COPY = {
       ],
     },
     proofLink: {
-      eyebrow: 'Prompt → agent → aperçu',
-      title: 'Relisez le vrai parcours du prompt à l’aperçu avant un transfert client',
-      body: 'Voici de vraies captures du run App Builder du salon de coiffure. Elles montrent le prompt, l’échange avec l’agent, les fichiers et l’aperçu actif qu’un freelance relit dans E-Code ; elles ne présentent pas le tableau de livraison client fictif ci-dessus comme une génération capturée.',
-      galleryLabel: 'Vrai run de réservation du salon utilisé comme preuve du parcours de livraison client',
+      eyebrow: 'Brief client → Agent → Webview du portail de livraison',
+      title: 'Inspectez le portail client généré pour ce workflow freelance',
+      body: 'Ces captures E-Code dédiées montrent le brief client, l’échange avec l’Agent, les fichiers générés du portail et de la livraison et la vue projet destinée au client active dans la Webview.',
+      galleryLabel: 'Génération capturée du portail client et parcours de revue local dans E-Code',
       disclaimer:
-        'Les deux images IDE documentent le vrai run App Builder de référence. Le tableau de projets freelance de cette page est une démonstration scénarisée avec des données clients fictives, pas un journal de génération ni une mission client.',
-      openFullSizeLabel: 'Ouvrir la référence du parcours de livraison client en plein format',
+        'Génération E-Code capturée · clients, projets et états de revue fictifs · comportement local du portail uniquement · aucune authentification de production, email, paiement, ouverture externe du lien ni remise effective de la source démontrée',
+      openFullSizeLabel: 'Ouvrir la capture du portail client en grand',
       preview: {
-        title: 'Le brief client reste à côté du résultat fonctionnel',
-        body: 'La vraie capture de référence montre la demande du salon, la conversation avec l’agent, les fichiers projet générés et l’aperçu de réservation dans le même workspace E-Code.',
-        alt: 'Vrai run App Builder E-Code du salon montrant la demande, la conversation avec l’agent, les fichiers générés et l’aperçu de réservation comme preuve de parcours pour les freelances.',
+        title: 'Le brief client reste à côté du portail actif',
+        body: 'La première capture conserve la demande de livraison et l’activité de l’Agent auprès de la source générée pendant que la Webview affiche le projet, son état de revue, l’entrée d’aperçu et la checklist de transfert à partir de données locales fictives.',
+        alt: 'Vrai workspace Freelances E-Code montrant un brief de portail client, l’activité de l’Agent, les fichiers de livraison générés et une vue de revue et de transfert active dans la Webview.',
       },
       iteration: {
-        title: 'Une note de revue devient une itération visible',
-        body: 'La capture de suivi conserve ensemble l’instruction suivante et l’aperçu mis à jour, pour illustrer la boucle de revue avant le transfert de la source exportée.',
-        alt: 'Vrai suivi App Builder E-Code du salon montrant l’instruction suivante et l’aperçu de réservation mis à jour dans l’IDE.',
+        title: 'Une note de revue devient une mise à jour visible du portail',
+        body: 'La capture de suivi conserve l’instruction suivante auprès de l’état local du projet mis à jour et des fichiers générés. Elle prouve l’itération de l’Agent et le parcours de revue dans le navigateur, pas qu’un vrai client a reçu le lien ou accepté le transfert.',
+        alt: 'Vraie itération Freelances E-Code montrant un prompt de revue client, les fichiers générés du portail et un état local du projet mis à jour dans la Webview.',
       },
       cta: {
-        label: 'Voir la preuve IDE réelle',
-        ariaLabel: 'Voir la preuve IDE réelle E-Code sur la page App Builder',
+        label: 'Inspecter le run capturé du projet client',
+        ariaLabel: 'Inspecter la génération E-Code capturée du portail client et son état de revue local',
       },
     },
     deliverables: {
@@ -444,25 +449,25 @@ export const FREELANCERS_COPY = {
     },
     useCases: {
       eyebrow: 'Qui construit avec',
-      title: 'Les projets que les freelances livrent avec E-Code',
+      title: 'Les bases de projets que les freelances préparent pour revue et transfert',
       intro:
-        'D’un portail client à une page de lancement, la même boucle produit une vraie application responsive prête à transmettre.',
+        'D’un portail client à une page de lancement, la boucle produit une source responsive et une interface active ; validation client, partage externe, branchements de services et transfert final restent des étapes de livraison vérifiables.',
       items: [
         {
           title: 'Apps web et portails clients',
-          body: 'Tableaux de bord et parcours de connexion livrés sous forme de fichiers projet modifiables pour la prochaine étape de développement du client.',
+          body: 'Interfaces de tableau de bord et de connexion livrées sous forme de fichiers modifiables, l’identité et les contrôles serveur restant du travail d’intégration explicite.',
         },
         {
           title: 'Pages vitrines et d’atterrissage',
-          body: 'Sites responsives avec capture de leads, partagés pour la revue avant la mise en ligne.',
+          body: 'Sites responsives avec interface de formulaire validée et point d’envoi, prêts pour revue avant tout branchement à un service de soumission actif.',
         },
         {
           title: 'Outils internes pour clients',
-          body: 'Petites applications de back-office qui modélisent un vrai workflow plutôt qu’une maquette statique.',
+          body: 'Petites interfaces de back-office qui modélisent un workflow client tout en rendant visibles les frontières de persistance, d’identité et d’autorisation.',
         },
         {
           title: 'Prototypes pour propositions',
-          body: 'Un lien d’aperçu actif qui transforme une proposition en quelque chose que le client peut cliquer.',
+          body: 'Un lien d’aperçu actif pour relire le parcours proposé ; ouverture et validation par le client se confirment hors de la démo scénarisée de la page.',
         },
       ],
     },

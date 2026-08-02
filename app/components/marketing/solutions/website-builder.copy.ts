@@ -1,9 +1,9 @@
 import type { SolutionCopyByLanguage } from './solution-copy';
 
 /**
- * SOL-02 — Website Builder. Declined from the App Builder gabarit, centered on a
- * fictional architecture studio marketing site. All demo data is fictional and
- * labeled; the embedded IDE images come from the separately verified App Builder run.
+ * SOL-02 — Website Builder. Dedicated architecture-studio story in EN and FR.
+ * All studio content is fictional and labeled; proof claims stop at the captured
+ * Agent exchange, generated files, Webview, and local form behavior.
  */
 export const WEBSITE_BUILDER_COPY = {
   en: {
@@ -26,31 +26,32 @@ export const WEBSITE_BUILDER_COPY = {
     demo: {
       badge: 'Fictional demo data',
       brand: 'Meridian Studio',
-      brandType: 'Architecture practice',
+      brandType: 'Fictional architecture practice',
       nav: ['Projects', 'Studio', 'Contact'],
-      eyebrow: 'Selected work',
+      eyebrow: 'Sample selected work',
       title: 'Buildings shaped by light, place, and material.',
       intro:
         'A responsive portfolio site that presents projects, the studio, and an enquiry path in one clear journey.',
-      primaryHeading: 'Featured projects',
+      primaryHeading: 'Fictional project entries',
       primaryRows: [
         { label: 'Coastal House, Biarritz', meta: 'Residential · 2025', status: 'Featured' },
         { label: 'Riverside Pavilion', meta: 'Public · 2024' },
         { label: 'Atelier Extension', meta: 'Renovation · 2024' },
       ],
-      asideHeading: 'Start a project',
+      asideHeading: 'Sample enquiry',
       asideRows: [
         { label: 'Project type', value: 'New build' },
         { label: 'Location', value: 'Nouvelle-Aquitaine' },
         { label: 'Timeline', value: 'Q3 2026' },
       ],
-      asideCta: 'Request a consultation',
-      disclaimer: 'Inline responsive demonstration · fictional studio data · not a generation record',
+      asideCta: 'Preview enquiry form',
+      disclaimer:
+        'Scripted local interface · fictional studio, projects, dates, and enquiry · no submitted request or external service · not a generation record',
       caption: {
-        title: 'A content site that reads like a real practice',
-        body: 'This inline demonstration shows a portfolio grid, studio profile entry, and an enquiry form in one responsive layout.',
+        title: 'A local architecture-site scenario with clearly fictional content',
+        body: 'This scripted interface demonstrates a portfolio grid, studio profile entry, and local enquiry-form state in one responsive layout.',
       },
-      alt: 'Architecture studio website demonstration with a featured project list and a project enquiry panel.',
+      alt: 'Scripted local architecture website interface with fictional project entries and a sample enquiry panel.',
     },
     problem: {
       eyebrow: 'From template lock-in to source you control',
@@ -101,26 +102,26 @@ export const WEBSITE_BUILDER_COPY = {
       ],
     },
     proofLink: {
-      eyebrow: 'The site-building workflow, captured in the IDE',
-      title: 'See how the prompt, Agent, files, and Webview stay together',
-      body: 'The App Builder page shows a captured, real E-Code workspace — the prompt, the agent’s plan, the generated files, and the running Preview — for a booking application. The same build loop applies to a content site like this one.',
-      galleryLabel: 'Real workflow reference: the salon booking workspace',
+      eyebrow: 'Architecture brief → Agent → Webview',
+      title: 'Watch an architecture portfolio become a running site',
+      body: 'These dedicated E-Code captures keep the architecture-studio prompt, the Agent exchange, the generated React and TypeScript files, and the site running in Webview inside one workspace.',
+      galleryLabel: 'Captured architecture-portfolio generation inside E-Code',
       disclaimer:
-        'Evidence note: these two images come from the real App Builder salon run. The Meridian Studio website above is a scripted layout with fictional content, not a captured E-Code generation.',
-      openFullSizeLabel: 'Open the booking-workspace evidence at full size',
+        'Captured E-Code generation · fictional studio copy and local sample content · the contact form confirms locally only · no email delivery, CMS, external database, or production deployment is demonstrated',
+      openFullSizeLabel: 'Open the architecture-site capture at full size',
       preview: {
-        title: 'The salon application running beside its source files',
-        body: 'This first capture shows the real booking prompt, the Agent plan, the project tree, and the working salon dashboard together inside the E-Code IDE.',
-        alt: 'Real E-Code App Builder workspace with a salon booking prompt and agent plan on the left, the running booking dashboard in the Webview, and editable project files on the right.',
+        title: 'The architecture homepage runs beside its source files',
+        body: 'The first capture shows the original studio brief and Agent work beside the generated project tree and the responsive portfolio homepage running in E-Code Webview.',
+        alt: 'Real E-Code workspace showing an architecture-studio website prompt, Agent activity, generated React files, and the portfolio homepage running in Webview.',
       },
       iteration: {
-        title: 'A runtime correction requested in the same workspace',
-        body: 'The second capture records the follow-up prompt used to diagnose a React context error while keeping the booking Preview visible for verification.',
-        alt: 'Real E-Code App Builder workspace showing a prompt to repair a React context runtime error beside the salon booking Webview and generated file tree.',
+        title: 'A compile failure becomes a plain-language repair request',
+        body: 'The follow-up describes the source error to the Agent in the same workspace. The repaired architecture homepage returns in Webview with the project files still open for inspection; this proves the correction loop, not first-pass perfection.',
+        alt: 'Real E-Code Website Builder workspace showing a compile-error repair prompt, the generated architecture-site files, and the restored portfolio homepage in Webview.',
       },
       cta: {
-        label: 'Inspect the captured build workflow',
-        ariaLabel: 'Inspect the real E-Code App Builder workflow used as a Website Builder reference',
+        label: 'Inspect the architecture-site run',
+        ariaLabel: 'Inspect the captured E-Code architecture-site generation',
       },
     },
     deliverables: {
@@ -185,8 +186,9 @@ export const WEBSITE_BUILDER_COPY = {
     },
     useCases: {
       eyebrow: 'Who builds with it',
-      title: 'Sites teams ship with the Website Builder',
-      intro: 'From a studio portfolio to a product launch page, the same loop produces a real, responsive site.',
+      title: 'Website foundations teams shape for distinct content needs',
+      intro:
+        'From a studio portfolio to a product launch page, the same loop produces responsive source and a running site; content services, submissions, and release checks stay explicit.',
       items: [
         { title: 'Studio and portfolio sites', body: 'Architects, designers, and agencies presenting selected work.' },
         {
@@ -195,7 +197,7 @@ export const WEBSITE_BUILDER_COPY = {
         },
         {
           title: 'Launch and campaign pages',
-          body: 'Focused pages with lead capture and social metadata ready to share.',
+          body: 'Focused pages with a validated form interface, a delivery-service hook, and social metadata ready to review.',
         },
         { title: 'Docs and content surfaces', body: 'Readable, structured content sites that stay easy to update.' },
       ],
@@ -275,30 +277,31 @@ export const WEBSITE_BUILDER_COPY = {
     demo: {
       badge: 'Données fictives',
       brand: 'Studio Meridian',
-      brandType: 'Agence d’architecture',
+      brandType: 'Agence d’architecture fictive',
       nav: ['Projets', 'Studio', 'Contact'],
-      eyebrow: 'Travaux sélectionnés',
+      eyebrow: 'Sélection d’exemple',
       title: 'Des bâtiments façonnés par la lumière, le lieu et la matière.',
       intro: 'Un site portfolio responsive qui présente les projets, le studio et un parcours de contact clair.',
-      primaryHeading: 'Projets mis en avant',
+      primaryHeading: 'Fiches projet fictives',
       primaryRows: [
         { label: 'Maison littorale, Biarritz', meta: 'Résidentiel · 2025', status: 'À la une' },
         { label: 'Pavillon des berges', meta: 'Public · 2024' },
         { label: 'Extension d’atelier', meta: 'Rénovation · 2024' },
       ],
-      asideHeading: 'Démarrer un projet',
+      asideHeading: 'Demande d’exemple',
       asideRows: [
         { label: 'Type de projet', value: 'Construction neuve' },
         { label: 'Lieu', value: 'Nouvelle-Aquitaine' },
         { label: 'Échéance', value: 'T3 2026' },
       ],
-      asideCta: 'Demander un rendez-vous',
-      disclaimer: 'Démonstration responsive intégrée · données de studio fictives · pas une trace de génération',
+      asideCta: 'Prévisualiser le formulaire',
+      disclaimer:
+        'Interface locale scénarisée · studio, projets, dates et demande fictifs · aucun formulaire envoyé ni service externe · pas une trace de génération',
       caption: {
-        title: 'Un site de contenu qui se lit comme une vraie agence',
-        body: 'Cette démonstration intégrée présente une grille de projets, une entrée de profil du studio et un formulaire de contact dans une mise en page responsive.',
+        title: 'Un scénario local de site d’architecture au contenu clairement fictif',
+        body: 'Cette interface scénarisée présente une grille de projets, un profil de studio et l’état local d’un formulaire de contact dans une mise en page responsive.',
       },
-      alt: 'Démonstration de site d’agence d’architecture avec une liste de projets mis en avant et un panneau de demande de projet.',
+      alt: 'Interface locale scénarisée de site d’architecture avec des projets fictifs et un panneau de demande d’exemple.',
     },
     problem: {
       eyebrow: 'Du carcan des templates à une source que vous maîtrisez',
@@ -349,26 +352,26 @@ export const WEBSITE_BUILDER_COPY = {
       ],
     },
     proofLink: {
-      eyebrow: 'Le workflow de création de site, capturé dans l’IDE',
-      title: 'Voyez le prompt, l’Agent, les fichiers et la Webview rester réunis',
-      body: 'La page App Builder montre un vrai workspace E-Code capturé — le prompt, le plan de l’agent, les fichiers générés et l’aperçu actif — pour une application de réservation. La même boucle de construction s’applique à un site de contenu comme celui-ci.',
-      galleryLabel: 'Référence réelle du workflow : le workspace de réservation du salon',
+      eyebrow: 'Brief d’architecture → Agent → Webview',
+      title: 'Regardez un portfolio d’architecture devenir un site actif',
+      body: 'Ces captures E-Code dédiées réunissent dans un même workspace le prompt du cabinet d’architecture, l’échange avec l’Agent, les fichiers React et TypeScript générés et le site actif dans la Webview.',
+      galleryLabel: 'Génération capturée du portfolio d’architecture dans E-Code',
       disclaimer:
-        'Note de preuve : ces deux images proviennent du vrai run App Builder du salon. Le site Studio Meridian présenté plus haut est une mise en page scénarisée avec du contenu fictif, pas la capture d’une génération E-Code.',
-      openFullSizeLabel: 'Ouvrir la preuve du workspace de réservation en grand',
+        'Génération E-Code capturée · textes du studio et contenu local fictifs · le formulaire confirme uniquement dans l’interface locale · aucun envoi d’email, CMS, base externe ni déploiement de production démontré',
+      openFullSizeLabel: 'Ouvrir la capture du site d’architecture en grand',
       preview: {
-        title: 'L’application du salon active à côté de ses fichiers source',
-        body: 'Cette première capture réunit dans l’IDE E-Code le vrai prompt de réservation, le plan de l’Agent, l’arborescence du projet et le tableau de bord du salon en fonctionnement.',
-        alt: 'Vrai workspace App Builder E-Code avec le prompt et le plan de l’agent pour un salon à gauche, le tableau de bord de réservation actif dans la Webview et les fichiers modifiables à droite.',
+        title: 'La page d’accueil du cabinet tourne à côté de ses fichiers source',
+        body: 'La première capture montre le brief initial et le travail de l’Agent auprès de l’arborescence générée et de la page d’accueil responsive active dans la Webview E-Code.',
+        alt: 'Vrai workspace E-Code montrant le prompt d’un site de cabinet d’architecture, l’activité de l’Agent, les fichiers React générés et le portfolio actif dans la Webview.',
       },
       iteration: {
-        title: 'Une correction runtime demandée sans quitter le workspace',
-        body: 'La seconde capture conserve l’aperçu de réservation visible pendant qu’un prompt de suivi demande le diagnostic d’une erreur de contexte React.',
-        alt: 'Vrai workspace App Builder E-Code montrant un prompt de réparation d’une erreur runtime React à côté de la Webview du salon et de l’arborescence générée.',
+        title: 'Une erreur de compilation devient une demande de réparation en langage courant',
+        body: 'Le suivi décrit l’erreur source à l’Agent dans le même workspace. La page d’accueil d’architecture réparée revient dans la Webview avec les fichiers toujours ouverts à l’inspection ; cette capture prouve la boucle de correction, pas une réussite garantie au premier essai.',
+        alt: 'Vrai workspace Website Builder E-Code montrant un prompt de réparation, les fichiers générés du site d’architecture et le portfolio rétabli dans la Webview.',
       },
       cta: {
-        label: 'Inspecter le workflow capturé',
-        ariaLabel: 'Inspecter le vrai workflow App Builder E-Code utilisé comme référence du Générateur de site',
+        label: 'Inspecter le run du site d’architecture',
+        ariaLabel: 'Inspecter la génération E-Code capturée du site d’architecture',
       },
     },
     deliverables: {
@@ -434,9 +437,9 @@ export const WEBSITE_BUILDER_COPY = {
     },
     useCases: {
       eyebrow: 'Qui construit avec',
-      title: 'Les sites que les équipes livrent avec le Générateur de site',
+      title: 'Les bases de sites que les équipes façonnent selon chaque besoin de contenu',
       intro:
-        'D’un portfolio de studio à une page de lancement produit, la même boucle produit un vrai site responsive.',
+        'D’un portfolio de studio à une page de lancement produit, la même boucle produit une source responsive et un site actif ; services de contenu, envois de formulaires et contrôles de mise en ligne restent explicites.',
       items: [
         {
           title: 'Sites studio et portfolio',
@@ -448,7 +451,7 @@ export const WEBSITE_BUILDER_COPY = {
         },
         {
           title: 'Pages de lancement et campagnes',
-          body: 'Pages ciblées avec capture de leads et métadonnées sociales prêtes à partager.',
+          body: 'Pages ciblées avec interface de formulaire validée, point de branchement vers un service d’envoi et métadonnées sociales à relire.',
         },
         {
           title: 'Docs et surfaces de contenu',

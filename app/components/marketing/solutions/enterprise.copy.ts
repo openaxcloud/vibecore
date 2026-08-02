@@ -1,10 +1,9 @@
 import type { SolutionCopyByLanguage } from './solution-copy';
 
 /**
- * SOL — Enterprise. Declined from the App Builder gabarit, centered on a governed
- * organization rollout of E-Code (SSO, SCIM, roles, audit export, private runtime
- * planning, governed deploys and support). All demo data is fictional and labeled;
- * the one real captured E-Code IDE proof lives on /solutions/app-builder.
+ * SOL — Enterprise. Dedicated organization-rollout story in EN and FR. All
+ * organization, identity, and audit entries are fictional and labeled; proof claims
+ * stop at the captured Agent exchange, generated files, Webview, and local console UI.
  */
 export const ENTERPRISE_COPY = {
   en: {
@@ -27,31 +26,32 @@ export const ENTERPRISE_COPY = {
     demo: {
       badge: 'Fictional demo data',
       brand: 'Northwind Platform',
-      brandType: 'Platform engineering',
+      brandType: 'Fictional platform team',
       nav: ['Members', 'Audit', 'Deploys'],
-      eyebrow: 'Organization console',
-      title: 'Recent audit events',
+      eyebrow: 'Local console concept',
+      title: 'Sample governance event cards',
       intro:
-        'A responsive organization console that surfaces identity, audit events, and controls in one governed view.',
-      primaryHeading: 'Recent audit events',
+        'A local frontend scenario for reviewing organization, identity, audit, and release-control layouts before any enterprise service is connected.',
+      primaryHeading: 'Fictional event entries',
       primaryRows: [
-        { label: 'Role changed — Engineering', meta: 'admin · 12:04', status: 'SSO' },
-        { label: 'Member provisioned — Platform', meta: 'scim-sync · 11:47' },
-        { label: 'Deploy approved — Payments API', meta: 'release-owner · 11:20' },
+        { label: 'Role-change event card', meta: 'fictional actor · sample time', status: 'UI sample' },
+        { label: 'Provisioning event card', meta: 'fictional connector · sample time' },
+        { label: 'Release-approval event card', meta: 'fictional owner · sample time' },
       ],
-      asideHeading: 'Controls',
+      asideHeading: 'Integration boundaries',
       asideRows: [
-        { label: 'Identity / SSO', value: 'SCIM' },
-        { label: 'Audit export', value: 'Enabled' },
-        { label: 'Runtime', value: 'Private planning' },
+        { label: 'SSO / SCIM', value: 'Integration point' },
+        { label: 'Audit export', value: 'Sample control' },
+        { label: 'Private runtime', value: 'Architecture note' },
       ],
-      asideCta: 'Export audit log',
-      disclaimer: 'Inline responsive demonstration · fictional organization data · not a generation record',
+      asideCta: 'Review sample audit screen',
+      disclaimer:
+        'Scripted local frontend · fictional events and control states · no SSO, SCIM, RBAC, audit export, deployment approval, or private runtime · not a generation record',
       caption: {
-        title: 'An org console that reads like a real governed rollout',
-        body: 'This inline demonstration shows an audit event feed, identity and control status, and an audit export action in one responsive layout.',
+        title: 'A governance-console concept that does not imitate operational evidence',
+        body: 'This local interface demonstrates an event-feed layout, integration boundaries, and a sample export control without claiming that any enterprise control executed.',
       },
-      alt: 'Enterprise organization console demonstration with a recent audit event list and an identity controls panel.',
+      alt: 'Scripted local enterprise-console interface with fictional event cards and unconnected SSO, SCIM, audit, deployment, and runtime controls.',
     },
     problem: {
       eyebrow: 'From ungoverned adoption to a controlled rollout',
@@ -103,24 +103,27 @@ export const ENTERPRISE_COPY = {
       ],
     },
     proofLink: {
-      eyebrow: 'Prompt → agent → Preview',
-      title: 'Inspect the real IDE workflow before planning an organization rollout',
-      body: 'These two captures come from the real App Builder salon-booking run: the prompt, the agent, the generated files, and the running Preview all appear inside E-Code. They prove the build workflow; they do not claim that the fictional organization console above came from that run.',
-      galleryLabel: 'Real IDE evidence from the App Builder salon-booking reference run',
+      eyebrow: 'Platform brief → Agent → rollout-console Webview',
+      title: 'Inspect the organization console generated for this rollout scenario',
+      body: 'These dedicated E-Code captures show the platform-team request, the Agent exchange, the generated organization-console files, and a local governance view running in Webview.',
+      galleryLabel: 'Captured organization-console generation and local governance view inside E-Code',
       disclaimer:
-        'Reference evidence only: both images are genuine captures of the App Builder salon run. The Enterprise console on this page is a scripted role demonstration with fictional organization data, not a generation log.',
-      openFullSizeLabel: 'Open the enterprise workflow reference at full size',
+        'Captured E-Code generation · fictional members, events, and control states · local frontend demonstration only · no connected SSO or SCIM, enforced RBAC, audit export, deployment approval, or private runtime is demonstrated',
+      openFullSizeLabel: 'Open the organization-console capture at full size',
       preview: {
-        title: 'A real workspace moves from prompt to running Preview',
-        body: 'The first reference capture shows the salon prompt, the agent conversation, the generated project tree, and the booking app running together in the E-Code IDE.',
-        alt: 'Real E-Code App Builder salon run showing the agent, generated project files, and booking application in the Preview tab, used as workflow evidence for the Enterprise page.',
+        title: 'The rollout console runs beside its generated source',
+        body: 'The first capture keeps the platform brief and Agent activity beside the project tree while Webview renders fictional members, audit events, deployment entries, and control summaries.',
+        alt: 'Real E-Code Enterprise workspace showing an organization-rollout prompt, Agent activity, generated console files, and a fictional governance dashboard running in Webview.',
       },
       iteration: {
-        title: 'The same workspace records the next requested change',
-        body: 'The second reference capture shows a follow-up instruction and the updated Preview, illustrating the inspectable iteration loop an enterprise rollout governs.',
-        alt: 'Real E-Code App Builder salon run after an iteration, with the follow-up agent exchange and updated Preview visible inside the IDE.',
+        title: 'The next instruction refines a governance view in place',
+        body: 'The follow-up capture keeps the requested console change beside the updated local interface and source files. It proves Agent iteration on the UI, not operation of the enterprise controls named in the fictional records.',
+        alt: 'Real E-Code Enterprise iteration showing a follow-up prompt, generated organization-console files, and an updated local governance view in Webview.',
       },
-      cta: { label: 'See the real IDE proof', ariaLabel: 'See the real E-Code IDE proof on the App Builder page' },
+      cta: {
+        label: 'Inspect the captured console run',
+        ariaLabel: 'Inspect the captured E-Code organization-console generation and local governance view',
+      },
     },
     deliverables: {
       eyebrow: 'What your organization receives',
@@ -278,31 +281,32 @@ export const ENTERPRISE_COPY = {
     demo: {
       badge: 'Données fictives',
       brand: 'Northwind Platform',
-      brandType: 'Ingénierie de plateforme',
+      brandType: 'Équipe plateforme fictive',
       nav: ['Membres', 'Audit', 'Déploiements'],
-      eyebrow: 'Console d’organisation',
-      title: 'Événements d’audit récents',
+      eyebrow: 'Concept local de console',
+      title: 'Cartes d’événements de gouvernance d’exemple',
       intro:
-        'Une console d’organisation responsive qui présente l’identité, les événements d’audit et les contrôles dans une vue gouvernée.',
-      primaryHeading: 'Événements d’audit récents',
+        'Un scénario frontend local pour relire les mises en page d’organisation, d’identité, d’audit et de contrôle des releases avant tout branchement à un service entreprise.',
+      primaryHeading: 'Entrées d’événements fictives',
       primaryRows: [
-        { label: 'Rôle modifié — Ingénierie', meta: 'admin · 12:04', status: 'SSO' },
-        { label: 'Membre provisionné — Plateforme', meta: 'scim-sync · 11:47' },
-        { label: 'Déploiement approuvé — API Paiements', meta: 'release-owner · 11:20' },
+        { label: 'Carte de changement de rôle', meta: 'acteur fictif · heure d’exemple', status: 'Exemple UI' },
+        { label: 'Carte de provisionnement', meta: 'connecteur fictif · heure d’exemple' },
+        { label: 'Carte d’approbation de release', meta: 'responsable fictif · heure d’exemple' },
       ],
-      asideHeading: 'Contrôles',
+      asideHeading: 'Frontières d’intégration',
       asideRows: [
-        { label: 'Identité / SSO', value: 'SCIM' },
-        { label: 'Export d’audit', value: 'Activé' },
-        { label: 'Runtime', value: 'Planification privée' },
+        { label: 'SSO / SCIM', value: 'Point d’intégration' },
+        { label: 'Export d’audit', value: 'Contrôle d’exemple' },
+        { label: 'Runtime privé', value: 'Note d’architecture' },
       ],
-      asideCta: 'Exporter le journal d’audit',
-      disclaimer: 'Démonstration responsive intégrée · données d’organisation fictives · pas une trace de génération',
+      asideCta: 'Relire l’écran d’audit d’exemple',
+      disclaimer:
+        'Frontend local scénarisé · événements et contrôles fictifs · aucun SSO, SCIM, RBAC, export d’audit, approbation de déploiement ni runtime privé · pas une trace de génération',
       caption: {
-        title: 'Une console d’organisation qui se lit comme un vrai déploiement gouverné',
-        body: 'Cette démonstration intégrée présente un flux d’événements d’audit, l’état de l’identité et des contrôles, et une action d’export d’audit dans une mise en page responsive.',
+        title: 'Un concept de console de gouvernance qui n’imite pas une preuve opérationnelle',
+        body: 'Cette interface locale présente une mise en page de flux d’événements, les frontières d’intégration et un contrôle d’export d’exemple sans prétendre qu’un contrôle entreprise s’est exécuté.',
       },
-      alt: 'Démonstration de console d’organisation entreprise avec une liste d’événements d’audit récents et un panneau de contrôles d’identité.',
+      alt: 'Interface locale scénarisée de console entreprise avec événements fictifs et contrôles SSO, SCIM, audit, déploiement et runtime non connectés.',
     },
     problem: {
       eyebrow: 'De l’adoption non gouvernée à un déploiement contrôlé',
@@ -355,26 +359,27 @@ export const ENTERPRISE_COPY = {
       ],
     },
     proofLink: {
-      eyebrow: 'Prompt → agent → aperçu',
-      title: 'Inspectez le vrai parcours IDE avant de planifier un déploiement organisationnel',
-      body: 'Ces deux captures viennent du vrai run App Builder du salon de coiffure : le prompt, l’agent, les fichiers générés et l’aperçu actif apparaissent ensemble dans E-Code. Elles prouvent le parcours de construction ; elles ne prétendent pas que la console d’organisation fictive ci-dessus vient de ce run.',
-      galleryLabel: 'Preuves IDE réelles du run de référence App Builder du salon',
+      eyebrow: 'Brief plateforme → Agent → Webview de la console',
+      title: 'Inspectez la console d’organisation générée pour ce scénario de déploiement',
+      body: 'Ces captures E-Code dédiées montrent la demande de l’équipe plateforme, l’échange avec l’Agent, les fichiers générés de la console d’organisation et une vue locale de gouvernance active dans la Webview.',
+      galleryLabel: 'Génération capturée de la console d’organisation et vue locale dans E-Code',
       disclaimer:
-        'Preuve de référence uniquement : les deux images sont de vraies captures du run App Builder du salon. La console Entreprise de cette page est une démonstration scénarisée avec des données d’organisation fictives, pas un journal de génération.',
-      openFullSizeLabel: 'Ouvrir la référence du parcours entreprise en plein format',
+        'Génération E-Code capturée · membres, événements et états de contrôle fictifs · démonstration frontend locale uniquement · aucun SSO ou SCIM connecté, RBAC appliqué, export d’audit, approbation de déploiement ni runtime privé démontré',
+      openFullSizeLabel: 'Ouvrir la capture de la console d’organisation en grand',
       preview: {
-        title: 'Un vrai workspace passe du prompt à l’aperçu actif',
-        body: 'La première capture de référence montre le prompt du salon, l’échange avec l’agent, l’arborescence générée et l’application de réservation qui tourne dans l’IDE E-Code.',
-        alt: 'Vrai run App Builder E-Code du salon montrant l’agent, les fichiers projet générés et l’application de réservation dans l’onglet Aperçu, utilisé comme preuve de parcours pour la page Entreprise.',
+        title: 'La console de déploiement tourne à côté de sa source générée',
+        body: 'La première capture conserve le brief plateforme et l’activité de l’Agent auprès de l’arborescence pendant que la Webview affiche membres, événements d’audit, déploiements et états de contrôle fictifs.',
+        alt: 'Vrai workspace Entreprise E-Code montrant un prompt de déploiement organisationnel, l’activité de l’Agent, les fichiers générés de la console et un tableau de gouvernance fictif dans la Webview.',
       },
       iteration: {
-        title: 'Le même workspace conserve la modification demandée ensuite',
-        body: 'La seconde capture de référence montre une instruction de suivi et l’aperçu mis à jour, soit la boucle d’itération inspectable qu’un déploiement entreprise encadre.',
-        alt: 'Vrai run App Builder E-Code du salon après une itération, avec l’échange de suivi de l’agent et l’aperçu mis à jour visibles dans l’IDE.',
+        title: 'L’instruction suivante affine une vue de gouvernance sur place',
+        body: 'La capture de suivi conserve la modification demandée auprès de l’interface locale mise à jour et des fichiers source. Elle prouve l’itération de l’Agent sur l’UI, pas le fonctionnement des contrôles entreprise nommés dans les fiches fictives.',
+        alt: 'Vraie itération Entreprise E-Code montrant un prompt de suivi, les fichiers générés de la console d’organisation et une vue locale de gouvernance mise à jour dans la Webview.',
       },
       cta: {
-        label: 'Voir la preuve IDE réelle',
-        ariaLabel: 'Voir la preuve IDE réelle E-Code sur la page App Builder',
+        label: 'Inspecter le run capturé de la console',
+        ariaLabel:
+          'Inspecter la génération E-Code capturée de la console d’organisation et sa vue locale de gouvernance',
       },
     },
     deliverables: {
