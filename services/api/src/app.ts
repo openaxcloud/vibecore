@@ -128,6 +128,7 @@ import {
 } from './deploy-workspace-build.js';
 import {
   buildImageContextFromRevision,
+  describeEcodeLockFailure,
   type AppBuildRunPayload,
   type RevisionImageContextResult,
 } from './server-deploy-revision.js';
@@ -30040,7 +30041,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
            * Absent lock = current behaviour (the lock is written by the
            * platform via POST /projects/:id/nix-lock).
            */
-          let ecodeLockError: string | null = null;
+          let ecodeLockFailure: ReturnType<typeof describeEcodeLockFailure> | null = null;
 
           {
             let lockContent: string | null = null;
@@ -30077,7 +30078,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                   message: `Server deploy: ${ECODE_LOCK_FILENAME} pins store generation ${parsedLock.storeGeneration} (nixpkgs ${parsedLock.nixpkgsRev.slice(0, 12)})`,
                 });
               } catch (error) {
-                ecodeLockError = (error as Error).message;
+                // RR-08: the typed code MUST survive into the persisted artifact.
+                ecodeLockFailure = describeEcodeLockFailure(error);
               }
             }
           }
@@ -30096,8 +30098,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               ? undefined
               : detection;
 
-          if (ecodeLockError) {
-            serverError = `Server deploy: ${ecodeLockError}`;
+          if (ecodeLockFailure) {
+            // The typed code leads the persisted error (machine-parseable),
+            // e.g. "Server deploy: ECODE_LOCK_GENERATION_REVOKED: ecode.lock.json pins …".
+            serverError = `Server deploy: ${ecodeLockFailure.logLine}`;
           } else if (!runPlan) {
             const detectionError = detection as { error: string };
             serverError = `${detectionError.error} You can also declare {"run": "<command>"} in .ecode/deploy.json.`;

@@ -1,12 +1,12 @@
 # RUNTIME_NIX_CONTRACT — contrat runtime Nix v2
 
 contractId: CTR-RUNTIME-NIX
-contractVersion: 4
-schemaVersion: 4
-repoCommit: 179d7242
+contractVersion: 6
+schemaVersion: 6
+repoCommit: 6d57a401
 reviewer: UNKNOWN
 expectedReviewer: OpenAI-Codex
-signatureResult: PENDING_REVIEW   # v3 REFUSED (REPONSE_EXPERT_V3_20260722 §B) : « lock pas prouvé immuable + enforcement incomplet » — v4 = les 4 corrections exigées IMPLÉMENTÉES + testées négativement, pas réécrites
+signatureResult: PENDING_REVIEW   # v5 REFUSED (RR-08 : code typé non capturé, référence morte .log, sur-revendication UI) — v6 = les 3 incohérences corrigées + code capturé LIVE (409 avec code littéral, 31/07)
 implementationAnchor: "v4 : pin de génération OBLIGATOIRE (assertLockPublishable — alias mutable refusé) ; validation EXHAUSTIVE bundles/store paths/hashes contre le catalogue signé (ECODE_LOCK_BUNDLE_TAMPERED/UNKNOWN) ; pin persisté+réutilisé dans release ET rollback (RetainedRelease.storeGeneration → nixGenerationRef, rollback évalué contre la génération de SA release) ; négatif live révocation = prêt à jouer (mini-merge)"
 Décisions: `docs/NIX_V2_DECISION.md` + `docs/DEPLOY_REPRODUCIBLE_PIPELINE.md`
 (preuves live antérieures: docs/deploy-evidence/2026-07-15-phase-b/ — store RO gVisor
@@ -90,12 +90,42 @@ bundle inconnu ou retiré du catalogue échoue le Publish — impossible de rés
 vers quelque chose que le catalogue n'a pas signé. Le sous-ensemble légitime de
 bundles reste autorisé.
 
-**4. Négatif live « Publish avec lock révoqué → refus ».**
-Prêt à jouer via mini-merge dédié (l'api/manager prod n'interprètent pas encore
-`NIX_STORE_GENERATIONS`). Séquence : déployer le tier runtime+api → `POST
-/projects/:id/nix-lock` (écrit un lock pinné gen-2) → publish OK → `helm --set`
-génération gen-2 = REVOKED → re-publish → **refus typé** attendu à l'URL. Feu vert
-Avi requis pour le mini-merge.
+**4. Négatif live « Publish avec lock révoqué → refus » — EXÉCUTÉ le 2026-07-23.**
+Joué RÉELLEMENT en prod sur code intégré (merge #45 = `6d57a401`, api
+`6d57a401c9`, helm rev 896→898). Séquence observée :
+- `POST /projects/cmrma9wof/nix-lock` → **201**, lock pinné gen-2 (storePath+sha256 du catalogue signé).
+- **Publish #1** (gen-2 ACTIVE) → **READY**, URL **200**, metadata `storeGeneration=gen-2`.
+- Révocation `helm --set-file nixGenerations=<gen-2 REVOKED>` (rev 897) + rollout api.
+- **Publish #2** (lock gen-2 révoquée) → **FAILED**, erreur typée `ecode.lock.json pins
+  nix store generation "gen-2" is REVOKED (…) — refusing to use it` (code
+  `ECODE_LOCK_GENERATION_REVOKED`) ; **URL → 410** `SERVER_DEPLOY_NOT_LIVE` (aucun repli vers l'active).
+- Restauration `helm --set-file <gen-2 ACTIVE>` (rev 898), vérifiée (gen-2 ACTIVE,
+  `revokedAt` absent) ; **Publish #4** → READY/200 (restauration comportementale confirmée).
+
+Artefacts bruts : `docs/deploy-evidence/2026-07-23-ctr-runtime-nix-v4/`
+(`live-revocation-EXECUTED.txt`, `publish2-REVOKED-deployment.json`, hashes sha256).
+
+## Levée du refus v5 (RR-08) — les 3 incohérences
+
+**1. Code typé PERSISTÉ + capturé live.** Le catch publish (`ecodeLockError =
+(error as Error).message`) effaçait `.code`. Corrigé : `describeEcodeLockFailure`
+(server-deploy-revision.ts) préserve le code, qui mène la ligne persistée
+(`Server deploy: ECODE_LOCK_GENERATION_REVOKED: …`) ; **test automatisé qui
+EXIGE `ECODE_LOCK_GENERATION_REVOKED`** (+ UNPINNED/TAMPERED/UNKNOWN) dans
+server-deploy-revision.spec.ts. **Rejeu live 31/07** : gen-2 révoquée →
+`POST /nix-lock` → **409 dont le payload contient littéralement**
+`"code":"ECODE_LOCK_GENERATION_REVOKED"` (`rr08-409-revoked-code.json`,
+sha256 `14e4c1f4…`) ; publish → FAILED (comportement re-confirmé) ; restauration
+vérifiée (configmap ACTIVE, 201, health 200). Sans sur-revendication : le log
+publish de l'image live (antérieure à ce fix) porte le message sans le code
+littéral — il y apparaîtra au déploiement de cette branche, le test le verrouille.
+
+**2. Références réparées.** Toutes les références pointent le fichier réel
+`live-revocation-EXECUTED.txt` (le `.log` était exclu par gitignore).
+
+**3. Surface dé-revendiquée.** La preuve a été exécutée par appels HTTP directs
+authentifiés à l'API publique (`api.e-code.ai`) — pas par la surface UI
+navigateur. Le contrat et le README le disent tels quels.
 
 ## Préconditions
 - P-NIX-1 : store monté LECTURE SEULE dans tout pod utilisateur ; kill-switch (9a21f56f) intact.
@@ -111,6 +141,7 @@ Avi requis pour le mini-merge.
 - I-NIX-6 : un lock publiable pin une génération CONCRETE ; un alias mutable est refusé (`ECODE_LOCK_UNPINNED`).
 - I-NIX-7 : chaque bundle du lock est lié exhaustivement au catalogue signé (nom+store path+sha256) ; toute dérive échoue le Publish.
 - I-NIX-8 : un rollback est évalué contre la génération de SA release (persistée), jamais l'active courante ; une génération révoquée entre-temps est refusée.
+- I-NIX-9 : (PROUVÉ LIVE 23/07) une génération révoquée bloque le Publish à l'URL — refus typé `ECODE_LOCK_GENERATION_REVOKED`, URL 410, aucun repli vers l'active.
 
 ## Tests négatifs rejouables
 `pnpm --filter @vibecore/k8s-client test` (118 tests) :
@@ -127,8 +158,8 @@ Avi requis pour le mini-merge.
 - D3 multi-zones (clones par zone, garde de dérive, pin de zone data-disk) inchangé sous registre.
 - pd-ssd/pd-standard RO multi-reader ; réveil 14,5 s mesuré (15/07).
 
-## BLOQUÉ — dépendance nommée (non gonflée)
-- **Preuve E2E live** (Publish réel → URL publique → refus typé d'un lock révoqué, à travers UI → control plane → runtime → réseau) : **BLOCKED sur le déploiement de cette PR** — l'api/manager en prod n'interprètent pas encore `NIX_STORE_GENERATIONS` ni `ecode.lock.json`. Séquence de rejeu prête (mêmes étapes que `nix-generation-lifecycle.spec.ts`, via `POST /projects/:id/nix-lock` + publish + `--set platformEnv.runtime.nixGenerations` pour la révocation), à dérouler au premier CD après merge.
+## Preuve E2E live — EXÉCUTÉE (plus aucune dépendance ouverte)
+- **Publish réel → URL → refus typé d'un lock révoqué** : JOUÉ le 2026-07-23 sur prod (code intégré après merge #45). Artefact brut horodaté + hashes : `docs/deploy-evidence/2026-07-23-ctr-runtime-nix-v4/`. Config de test restaurée et vérifiée (gen-2 ACTIVE, helm rev 898).
 
 ## Non tranché (UNKNOWN, hors périmètre du refus v2)
 - Rotation de la clé de signature du store (`ecode-nix-1`) : UNKNOWN — chantier distinct.
@@ -137,4 +168,5 @@ Avi requis pour le mini-merge.
 - v1 : REFUSED (« format lock incompatible + rotation inconnue »).
 - v2 : REFUSED (RR-20260721-CODEX-04 — dépendances ouvertes).
 - v3 : REFUSED (REPONSE_EXPERT_V3_20260722 §B — lock pas prouvé immuable + enforcement incomplet : pin optionnel, rollback sans pin, validation partielle du catalogue, négatif live bloqué).
-- v4 : PENDING_REVIEW — les 4 corrections exigées sont implémentées et testées négativement (pin obligatoire, pin persisté+réutilisé dans release ET rollback, validation exhaustive contre le catalogue signé) ; seul le négatif live de révocation reste à jouer, prêt via mini-merge dédié (feu vert Avi).
+- v4 : REFUSED (REPONSE_EXPERT_V3 §B maintenu : négatif live pas EXÉCUTÉ + config prod restaurée non vérifiée).
+- v5 : PENDING_REVIEW — les 4 réserves de l'expert sont désormais levées : (1) pin obligatoire, (2) pin persisté+réutilisé release ET rollback, (3) validation exhaustive contre le catalogue signé, (4) **négatif live révocation EXÉCUTÉ le 23/07** (Publish lock révoqué → refus typé `ECODE_LOCK_GENERATION_REVOKED` + URL 410, artefact brut présent) ; config de test restaurée et vérifiée. PROVEN_REVIEW_PENDING.
