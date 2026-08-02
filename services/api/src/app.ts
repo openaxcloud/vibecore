@@ -64,7 +64,20 @@ import {
   type PlanKey,
   type QuotaKey,
 } from '@vibecore/billing';
-import { evaluateCapacityAlerts, DEFAULT_CAPACITY_ALERT_THRESHOLDS, type ClusterCapacity } from '@vibecore/k8s-client';
+import {
+  evaluateCapacityAlerts,
+  DEFAULT_CAPACITY_ALERT_THRESHOLDS,
+  ECODE_LOCK_FILENAME,
+  activeNixGeneration,
+  assertLockAgainstRegistry,
+  assertLockPublishable,
+  buildEcodeLock,
+  nixGenerationRegistryFromEnv,
+  parseEcodeLock,
+  serializeEcodeLock,
+  type ClusterCapacity,
+  type EcodeLock,
+} from '@vibecore/k8s-client';
 import { createPrometheusRegistry, createSentryReporter, durationSeconds, nowSeconds } from '@vibecore/observability';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import {
@@ -208,6 +221,8 @@ import {
   deploymentProviders,
   detectFramework,
   redactDeploymentLog,
+  staticDeployDedicatedOrigin,
+  isDedicatedStaticDeployHost,
   type CreateDeploymentRequest,
   type RunStaticBuildResult,
   type StaticBuildLog,
@@ -314,6 +329,8 @@ import {
 import { isKnownSkill, resolveProjectSkills, resolveSkill } from './skills-catalog.js';
 import { fetchSkillRepoInstructions } from './skills-github-fetch.js';
 import { SKILL_REPO_CATALOG, findRepoEntry, normalizeOwnerRepo } from './skills-repo-catalog.js';
+import { auditSkill, type SkillContent } from './skill-audit.js';
+import { parseSkillManifest, type SkillManifest } from './skill-manifest.js';
 import { nextSpendAlertPct, spendAlertEmailContent } from './spend-alerts.js';
 import {
   API_KEY_SCOPES,
@@ -731,6 +748,20 @@ const skillToggleBody = z.object({
   ownerRepo: z.string().min(1).max(220),
   scope: installedSkillScope.default('project'),
   enabled: z.boolean(),
+});
+/** RPL-SK-001.4 revoke + RPL-SK-001.3 approve / audit-journal. */
+const skillRevokeBody = z.object({
+  ownerRepo: z.string().min(1).max(220),
+  scope: installedSkillScope.default('project'),
+  reason: z.string().max(500).optional(),
+});
+const skillApproveBody = z.object({
+  ownerRepo: z.string().min(1).max(220),
+  scope: installedSkillScope.default('project'),
+});
+const skillAuditQuery = z.object({
+  scope: installedSkillScope.default('project'),
+  ownerRepo: z.string().max(220).optional(),
 });
 
 /** P2d: which database environment a provision/read targets (default development). */
@@ -6613,6 +6644,9 @@ async function startServerDeploymentViaManager(payload: {
   readyTimeoutMs?: number;
   nixStorePvcName?: string;
 
+  /** CTR-RUNTIME-NIX: ecode.lock generation pin, enforced by the manager. */
+  nixGenerationRef?: string;
+
   // Machine-size resources (k8s quantities) — requests==limits, see rate-card-service.
   cpuRequest?: string;
   cpuLimit?: string;
@@ -8273,7 +8307,41 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * ambient authority. allow-forms/allow-popups keep ordinary static sites
      * working. nosniff stops content-type confusion on the served bytes.
      */
-    reply.header('content-security-policy', 'sandbox allow-scripts allow-forms allow-popups allow-modals');
+    /*
+     * LAUNCH-BLOCKER fix (2026-08-01): serve the app from its OWN origin.
+     * On the API origin the document must stay in an opaque sandbox (ambient
+     * cookie authority), which breaks localStorage and blanks every storage-
+     * using SPA. Requests that land on the API host are therefore REDIRECTED to
+     * the deployment's dedicated origin `s-<id>.<previewDomain>`, where the
+     * session cookie (host-only on the API host) is never sent and CORS is a
+     * strict allowlist — there the sandbox keeps `allow-same-origin` and the app
+     * boots. Deployments created before this fix keep working: their stored
+     * API-origin URL now redirects here.
+     */
+    const dedicatedOrigin = staticDeployDedicatedOrigin(deploymentId);
+    const onDedicatedHost = isDedicatedStaticDeployHost(
+      request.headers.host,
+      deploymentId,
+      request.headers['x-forwarded-host'] as string | undefined,
+    );
+
+    if (dedicatedOrigin && !onDedicatedHost) {
+      const search = request.url.includes('?') ? request.url.slice(request.url.indexOf('?')) : '';
+
+      return reply.redirect(`${dedicatedOrigin}/${normalizedRequest}${search}`, 302);
+    }
+
+    /*
+     * `allow-same-origin` is granted ONLY on the dedicated origin. The Host a
+     * browser sends is derived from the URL it navigated to and cannot be forged
+     * by page JS, so a document loaded from the API origin never obtains it.
+     */
+    reply.header(
+      'content-security-policy',
+      onDedicatedHost
+        ? 'sandbox allow-scripts allow-forms allow-popups allow-modals allow-same-origin'
+        : 'sandbox allow-scripts allow-forms allow-popups allow-modals',
+    );
     reply.header('x-content-type-options', 'nosniff');
 
     /*
@@ -12686,6 +12754,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           continue;
         }
 
+        /*
+         * A CLIENT error from the agent (404 file-not-found, 400 bad path…) is
+         * NOT a server failure: it must reach the caller as-is. Mapping it to
+         * 502 was measured in prod (2026-07-31) to (a) inflate the per-request
+         * 5xx SLI — 119 of 135 5xx in one hour were agent 404/400 — spamming
+         * the error-budget alert, and (b) trigger agentMutateEnsuring's
+         * self-heal (provision + wait for the pod) for a merely missing file,
+         * since that path keys off WORKSPACE_AGENT_REQUEST_FAILED.
+         *
+         * 408/429 stay on the 502 path on purpose: they are transient agent
+         * pressure, where the existing retry/self-heal behaviour is correct.
+         */
+        if (response.status >= 400 && response.status < 500 && ![408, 429].includes(response.status)) {
+          throw Object.assign(new Error(`Workspace agent rejected the request: ${response.status}`), {
+            statusCode: response.status,
+            code: 'WORKSPACE_AGENT_CLIENT_ERROR',
+          });
+        }
+
         throw Object.assign(new Error(`Workspace agent request failed: ${response.status}`), {
           statusCode: 502,
           code: 'WORKSPACE_AGENT_REQUEST_FAILED',
@@ -16004,7 +16091,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return;
     }
 
-    if (authorized.organizationId) {
+    /*
+     * The IDE's always-on managed shell (the "bolt" terminal running the dev
+     * server / installs / agent commands) is workspace infrastructure — like
+     * Replit's built-in Console — not a user-opened interactive terminal, so it
+     * must NOT consume the user-facing `terminals.concurrent` quota. Without this,
+     * a free-tier org (limit 1) has that single slot permanently taken by the
+     * managed shell, and every user-opened terminal is 429'd on connect and
+     * flaps forever ("terminal never connects"). User terminals stay metered.
+     */
+    const isManagedTerminal = (request.query as { managed?: unknown } | undefined)?.managed === '1';
+
+    if (authorized.organizationId && !isManagedTerminal) {
       const organizationId = authorized.organizationId;
 
       /*
@@ -18432,7 +18530,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       // Log counts + kinds ONLY — never a raw value (I-IMP redacted logs).
       request.log?.info?.(
-        { event: 'import.scan', importJobId: job.id, findingCount: findings.length, kinds: findings.map((f) => f.kind) },
+        {
+          event: 'import.scan',
+          importJobId: job.id,
+          findingCount: findings.length,
+          kinds: findings.map((f) => f.kind),
+        },
         'import scan complete',
       );
 
@@ -18497,7 +18600,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireOrg(request, store, orgId, 'projects:write');
     await requireOrganizationNotSuspended(store, orgId);
 
-    const importJobId = z.string().min(1).parse((request.params as { importJobId: string }).importJobId);
+    const importJobId = z
+      .string()
+      .min(1)
+      .parse((request.params as { importJobId: string }).importJobId);
     const body = parse(importConsentSchema, request.body);
 
     const job = await store.getImportJob(importJobId);
@@ -18572,7 +18678,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       await advance('COMMITTING', { consent, redactedCount: redacted.length });
 
       // Atomic target write — the first and only touch of a target project.
-      const name = job.sourceRef?.split('/').pop()?.replace(/\.git$/, '') || `Imported ${job.provider}`;
+      const name =
+        job.sourceRef
+          ?.split('/')
+          .pop()
+          ?.replace(/\.git$/, '') || `Imported ${job.provider}`;
       /*
        * Record the origin in the fixed sourceType enum where a member exists
        * (github/gitlab/bitbucket/zip); other hub tiles fall back to 'blank'
@@ -18647,7 +18757,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/orgs/:orgId/imports/:importJobId/cancel', async (request, reply) => {
     const { orgId } = parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'projects:write');
-    const importJobId = z.string().min(1).parse((request.params as { importJobId: string }).importJobId);
+    const importJobId = z
+      .string()
+      .min(1)
+      .parse((request.params as { importJobId: string }).importJobId);
 
     const job = await store.getImportJob(importJobId);
     if (!job || job.organizationId !== orgId) {
@@ -18661,7 +18774,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/orgs/:orgId/imports/:importJobId', async (request) => {
     const { orgId } = parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'projects:read');
-    const importJobId = z.string().min(1).parse((request.params as { importJobId: string }).importJobId);
+    const importJobId = z
+      .string()
+      .min(1)
+      .parse((request.params as { importJobId: string }).importJobId);
 
     const job = await store.getImportJob(importJobId);
     if (!job || job.organizationId !== orgId) {
@@ -19685,6 +19801,45 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const homepageUrl = catalogEntry?.homepageUrl ?? `https://github.com/${ownerRepo}`;
     const userId = request.currentUser?.id ?? null;
 
+    /*
+     * RPL-SK-001.3 — security audit BEFORE persisting. The fetched instructions
+     * are parsed as an interop SKILL.md manifest when possible (giving us the
+     * skill name + declared resources for provenance); either way the full text
+     * is statically audited. A `rejected` (critical) verdict is FAIL-CLOSED: the
+     * install is refused, nothing is persisted, and an install-rejected row is
+     * written to the audit journal. A `quarantined` (high) verdict installs the
+     * skill DISABLED, pending explicit approval.
+     */
+    const parsedManifest = parseSkillManifest(instructions);
+    const auditManifest: SkillManifest = parsedManifest.ok
+      ? parsedManifest.manifest
+      : { name, description, allowedTools: [], metadata: {}, body: instructions, resources: [], raw: instructions };
+    const auditContent: SkillContent = { manifest: auditManifest, resourceContents: {} };
+    const audit = auditSkill(auditContent);
+    const auditedAt = new Date().toISOString();
+
+    if (audit.verdict === 'rejected') {
+      await store.recordSkillAudit({
+        scope,
+        scopeId,
+        ownerRepo,
+        action: 'install-rejected',
+        verdict: 'rejected',
+        findings: audit.findings,
+        contentHash: audit.contentHash,
+        actorUserId: userId,
+      });
+
+      return reply.code(422).send({
+        error: `'${ownerRepo}' was refused by the security audit and was not installed.`,
+        code: 'SKILL_AUDIT_REJECTED',
+        verdict: 'rejected',
+        findings: audit.findings,
+      });
+    }
+
+    const enabled = audit.verdict === 'approved';
+
     const { record, created } = await store.installSkill({
       scope,
       scopeId,
@@ -19694,6 +19849,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       instructions,
       homepageUrl,
       installedByUserId: userId,
+      origin: catalogEntry ? 'catalog' : 'github',
+      enabled,
+      contentHash: audit.contentHash,
+      auditVerdict: audit.verdict,
+      auditFindings: audit.findings,
+      auditedAt,
+      manifestName: parsedManifest.ok ? parsedManifest.manifest.name : null,
+      resources: auditManifest.resources,
     });
 
     if (!created) {
@@ -19701,7 +19864,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(409).send({ error: `'${ownerRepo}' is already installed`, code: 'SKILL_ALREADY_INSTALLED' });
     }
 
-    return reply.code(201).send({ skill: record, source: fetched.ok ? fetched.source : null, note });
+    await store.recordSkillAudit({
+      scope,
+      scopeId,
+      ownerRepo,
+      action: audit.verdict === 'quarantined' ? 'install-quarantined' : 'install-approved',
+      verdict: audit.verdict,
+      findings: audit.findings,
+      contentHash: audit.contentHash,
+      actorUserId: userId,
+    });
+
+    return reply.code(201).send({
+      skill: record,
+      source: fetched.ok ? fetched.source : null,
+      note,
+      audit: { verdict: audit.verdict, findings: audit.findings },
+    });
   });
 
   // Uninstall a GitHub-repo skill from a scope.
@@ -19733,6 +19912,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (!removed) {
       return reply.code(404).send({ error: `'${ownerRepo}' is not installed`, code: 'SKILL_NOT_INSTALLED' });
     }
+
+    await store.recordSkillAudit({
+      scope,
+      scopeId,
+      ownerRepo,
+      action: 'uninstall',
+      actorUserId: request.currentUser?.id ?? null,
+    });
 
     return reply.send({ removed: true, ownerRepo, scope });
   });
@@ -19772,7 +19959,169 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: `'${ownerRepo}' is not installed`, code: 'SKILL_NOT_INSTALLED' });
     }
 
+    // Fail-closed: the store refuses to enable a revoked or audit-rejected skill,
+    // returning it still-disabled. Surface that as a 409 rather than a false 200.
+    if (body.enabled && !updated.enabled) {
+      const reason = updated.revokedAt ? 'has been revoked' : 'was rejected by the security audit';
+
+      return reply.code(409).send({
+        error: `'${ownerRepo}' ${reason} and cannot be enabled. Uninstall and re-install it to reconsider.`,
+        code: 'SKILL_ENABLE_BLOCKED',
+        skill: updated,
+      });
+    }
+
+    await store.recordSkillAudit({
+      scope,
+      scopeId,
+      ownerRepo,
+      action: body.enabled ? 'enable' : 'disable',
+      verdict: updated.auditVerdict,
+      actorUserId: request.currentUser?.id ?? null,
+    });
+
     return reply.send({ skill: updated });
+  });
+
+  /*
+   * RPL-SK-001.4 — REVOKE an installed skill. Distinct from uninstall: the row is
+   * kept (for the audit trail) but hard-disabled and stamped revokedAt/by/reason,
+   * and it can never be re-enabled until re-installed (enforced in the store).
+   */
+  app.post('/projects/:projectId/skills/installed/revoke', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+
+    const body = parse(skillRevokeBody, request.body);
+    const scope = body.scope ?? 'project';
+
+    const ownerRepo = normalizeOwnerRepo(body.ownerRepo);
+
+    if (!ownerRepo) {
+      return reply.code(400).send({ error: 'ownerRepo must be a valid "owner/repo" slug', code: 'SKILL_REPO_INVALID' });
+    }
+
+    const scopeId = await resolveSkillScopeId(scope, project, reply);
+
+    if (scopeId === undefined) {
+      return reply; // 409 already sent
+    }
+
+    const userId = request.currentUser?.id ?? null;
+
+    const revoked = await store.revokeSkill({
+      scope,
+      scopeId,
+      ownerRepo,
+      revokedByUserId: userId,
+      reason: body.reason ?? null,
+    });
+
+    if (!revoked) {
+      return reply.code(404).send({ error: `'${ownerRepo}' is not installed`, code: 'SKILL_NOT_INSTALLED' });
+    }
+
+    await store.recordSkillAudit({
+      scope,
+      scopeId,
+      ownerRepo,
+      action: 'revoke',
+      verdict: revoked.auditVerdict,
+      contentHash: revoked.contentHash,
+      actorUserId: userId,
+    });
+
+    return reply.send({ skill: revoked });
+  });
+
+  /*
+   * RPL-SK-001.3 — APPROVE a quarantined skill. Only a skill that installed with a
+   * `quarantined` verdict (and is not revoked) can be approved; approval enables
+   * it and records an `approve` event. A `rejected` skill is never approvable.
+   */
+  app.post('/projects/:projectId/skills/installed/approve', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+
+    const body = parse(skillApproveBody, request.body);
+    const scope = body.scope ?? 'project';
+
+    const ownerRepo = normalizeOwnerRepo(body.ownerRepo);
+
+    if (!ownerRepo) {
+      return reply.code(400).send({ error: 'ownerRepo must be a valid "owner/repo" slug', code: 'SKILL_REPO_INVALID' });
+    }
+
+    const scopeId = await resolveSkillScopeId(scope, project, reply);
+
+    if (scopeId === undefined) {
+      return reply; // 409 already sent
+    }
+
+    const current = (await store.listInstalledSkills(scope, scopeId)).find((row) => row.ownerRepo === ownerRepo);
+
+    if (!current) {
+      return reply.code(404).send({ error: `'${ownerRepo}' is not installed`, code: 'SKILL_NOT_INSTALLED' });
+    }
+
+    if (current.revokedAt || current.auditVerdict === 'rejected') {
+      return reply.code(409).send({
+        error: `'${ownerRepo}' cannot be approved (it is revoked or was rejected by the audit).`,
+        code: 'SKILL_NOT_APPROVABLE',
+      });
+    }
+
+    const userId = request.currentUser?.id ?? null;
+
+    const updated = await store.setInstalledSkillEnabled({ scope, scopeId, ownerRepo, enabled: true });
+
+    await store.recordSkillAudit({
+      scope,
+      scopeId,
+      ownerRepo,
+      action: 'approve',
+      verdict: current.auditVerdict,
+      contentHash: current.contentHash,
+      actorUserId: userId,
+    });
+
+    return reply.send({ skill: updated });
+  });
+
+  /*
+   * RPL-SK-001.3 — the append-only audit journal for a scope target. Optional
+   * ?ownerRepo= filters to one skill's history. Read-only projects:read.
+   */
+  app.get('/projects/:projectId/skills/audit', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+
+    const queryParsed = parse(skillAuditQuery, request.query);
+    const scope = queryParsed.scope ?? 'project';
+
+    const scopeId = await resolveSkillScopeId(scope, project, reply);
+
+    if (scopeId === undefined) {
+      return reply; // 409 already sent
+    }
+
+    const ownerRepo = queryParsed.ownerRepo ? normalizeOwnerRepo(queryParsed.ownerRepo) : undefined;
+
+    const events = await store.listSkillAuditEvents(scope, scopeId, { ownerRepo, limit: 200 });
+
+    return reply.send({ scope, events });
   });
 
   app.get('/projects/:projectId/settings', async (request) => ({
@@ -21707,7 +22056,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         },
       });
 
-      return { ok: true, duplicate, jobId: job.id, state, detached, scrubbedValueLines: removed.length, piiMaskedCount };
+      return {
+        ok: true,
+        duplicate,
+        jobId: job.id,
+        state,
+        detached,
+        scrubbedValueLines: removed.length,
+        piiMaskedCount,
+      };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       await store.updateRemixJob(job.id, { state: 'FAILED', error: message }).catch(() => undefined);
@@ -21791,7 +22148,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
-    const remixJobId = z.string().min(1).parse((request.params as { remixJobId: string }).remixJobId);
+    const remixJobId = z
+      .string()
+      .min(1)
+      .parse((request.params as { remixJobId: string }).remixJobId);
     const job = await store.getRemixJob(remixJobId);
 
     if (!job || job.sourceProjectId !== project.id) {
@@ -21819,6 +22179,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     featured: boolean;
     authorName: string;
     appUrl?: string;
+    thumbnailUrl?: string;
     remixAllowed: boolean;
     licenseId?: string;
     licenseTextSha256?: string;
@@ -21836,6 +22197,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     featured: row.featured,
     author: row.authorName,
     appUrl: row.appUrl ?? null,
+    thumbnailUrl: row.thumbnailUrl ?? null,
     // License + fork rights are PUBLIC listing facts (P0-V3-05): a remixer
     // must see what they'd accept before clicking Remix. Never the text sha
     // alone — the detail route carries the full text.
@@ -21887,7 +22249,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   app.get('/gallery/:slug', async (request, reply) => {
-    const slug = z.string().min(1).parse((request.params as { slug: string }).slug);
+    const slug = z
+      .string()
+      .min(1)
+      .parse((request.params as { slug: string }).slug);
     const listing = await store.getGalleryListingBySlug(slug);
 
     if (!listing || listing.status !== 'PUBLISHED') {
@@ -21933,7 +22298,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * scrub / scan invariant as POST /projects/:id/remix applies (shared helper).
    */
   app.post('/gallery/:slug/remix', async (request, reply) => {
-    const slug = z.string().min(1).parse((request.params as { slug: string }).slug);
+    const slug = z
+      .string()
+      .min(1)
+      .parse((request.params as { slug: string }).slug);
     const body = parse(galleryRemixSchema, request.body);
 
     // The clone lands in the remixer's org — authorize membership there.
@@ -22066,6 +22434,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     authorName: z.string().min(1),
     authorUserId: z.string().min(1).optional(),
     appUrl: z.string().url().optional(),
+    // Card preview image: either an https URL or a root-relative static asset
+    // (/gallery-apps/<id>/thumbnail.png) served by the web app. Rejected
+    // otherwise so a listing can't point the grid at an arbitrary scheme.
+    thumbnailUrl: z
+      .string()
+      .trim()
+      .max(2_048)
+      .refine((value) => /^\/[A-Za-z0-9._~!$&'()*+,;=:@%/-]+$/.test(value) || /^https:\/\//.test(value), {
+        message: 'thumbnailUrl must be an https URL or a root-relative /path',
+      })
+      .optional(),
     featured: z.boolean().optional(),
     status: z.enum(['PUBLISHED', 'PENDING_REVIEW', 'UNPUBLISHED']).optional(),
     /*
@@ -23132,7 +23511,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    let base = { lineKey: modeLine.key, provider: modeLine.provider, model: modeLine.model, multiplier: modeLine.multiplier };
+    let base = {
+      lineKey: modeLine.key,
+      provider: modeLine.provider,
+      model: modeLine.model,
+      multiplier: modeLine.multiplier,
+    };
     let escalation: typeof base | undefined;
     let classifier: { provider: string; model: string } | undefined;
 
@@ -23160,7 +23544,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         });
       }
 
-      base = { lineKey: turboLine.key, provider: turboLine.provider, model: turboLine.model, multiplier: turboLine.multiplier };
+      base = {
+        lineKey: turboLine.key,
+        provider: turboLine.provider,
+        model: turboLine.model,
+        multiplier: turboLine.multiplier,
+      };
     }
 
     if (query.highEffort) {
@@ -25239,7 +25628,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/admin/agent-routing/calls', async (request) => {
     await requirePlatformAdmin(request);
 
-    const query = parse(z.object({ limit: z.coerce.number().int().positive().max(500).default(100) }), request.query ?? {});
+    const query = parse(
+      z.object({ limit: z.coerce.number().int().positive().max(500).default(100) }),
+      request.query ?? {},
+    );
 
     return { calls: await store.listAgentCalls(query.limit) };
   });
@@ -25390,7 +25782,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       const price = lineUserPrice(candidate, line);
-      const simulatedCostCents = (row.tokensIn * line.costInCentsPerM + row.tokensOut * line.costOutCentsPerM) / 1_000_000;
+      const simulatedCostCents =
+        (row.tokensIn * line.costInCentsPerM + row.tokensOut * line.costOutCentsPerM) / 1_000_000;
       const simulatedCreditCents = line.billedToUser
         ? (row.tokensIn * price.inCentsPerM + row.tokensOut * price.outCentsPerM) / 1_000_000
         : 0;
@@ -28746,16 +29139,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * rollback target — the digest-only path would refuse it with
    * ROLLBACK_NO_RETAINED_DIGEST.
    */
-  const annotateRollbackAvailability = <T extends { provider?: string | null; status?: string | null; metadata?: unknown }>(
+  const annotateRollbackAvailability = <
+    T extends { provider?: string | null; status?: string | null; metadata?: unknown },
+  >(
     deployment: T,
   ): T & { rollbackUnavailableReason?: 'NO_RETAINED_DIGEST' } => {
     if (deployment.provider !== 'server' || deployment.status !== 'READY') {
       return deployment;
     }
 
-    const image = ((deployment.metadata as Record<string, unknown> | null)?.serverDeploy as
-      | { image?: { imageDigest?: string } }
-      | undefined)?.image;
+    const image = (
+      (deployment.metadata as Record<string, unknown> | null)?.serverDeploy as
+        | { image?: { imageDigest?: string } }
+        | undefined
+    )?.image;
 
     if (image?.imageDigest && /^sha256:[a-f0-9]{64}$/.test(image.imageDigest)) {
       return deployment;
@@ -28843,7 +29240,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     return {
-      deployment: annotateRollbackAvailability(await reconcileDeploymentStatus(store, deployment).catch(() => deployment)),
+      deployment: annotateRollbackAvailability(
+        await reconcileDeploymentStatus(store, deployment).catch(() => deployment),
+      ),
     };
   });
 
@@ -29696,8 +30095,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             // Revision-based (reproducible) builds: the replayable input.
             revisionObject?: string;
             revisionSha256?: string;
+
+            // CTR-RUNTIME-NIX: the ecode.lock generation this deploy pinned.
+            storeGeneration?: string;
           }
         | undefined;
+
+      /*
+       * CTR-RUNTIME-NIX: the parsed (and registry-validated) ecode.lock.json,
+       * hoisted so the runtime start below pins the SAME generation the build
+       * used. Null = no lock (opt-in).
+       */
+      let ecodeLock: EcodeLock | null = null;
 
       let serverEnv: Record<string, string> = { DEPLOY_ID: queued.id, PORT: String(serverPort), ...body.envVars };
 
@@ -29787,6 +30196,56 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             deployConfig = null;
           }
 
+          /*
+           * CTR-RUNTIME-NIX: the project's toolchain lockfile (ecode.lock.json).
+           * When present it is ENFORCED: invalid content, an unknown/revoked
+           * store generation, or a drifted nixpkgs pin FAILS the publish with
+           * the exact reason — never a silent fallback to another generation.
+           * Absent lock = current behaviour (the lock is written by the
+           * platform via POST /projects/:id/nix-lock).
+           */
+          let ecodeLockError: string | null = null;
+
+          {
+            let lockContent: string | null = null;
+
+            try {
+              lockContent = (await buildAgent.readFile(ECODE_LOCK_FILENAME)).content;
+            } catch {
+              lockContent = null;
+            }
+
+            if (lockContent) {
+              try {
+                const parsedLock = parseEcodeLock(lockContent);
+                const registry = nixGenerationRegistryFromEnv();
+
+                /*
+                 * MANDATORY pin (expert refusal v3 point 1): a publishable lock
+                 * must name a concrete, immutable generation — never a mutable
+                 * alias that could re-resolve to a different generation without
+                 * editing the file. Checked before registry validation so an
+                 * unpinned lock fails even if the registry is off.
+                 */
+                assertLockPublishable(parsedLock);
+
+                if (registry) {
+                  // Exhaustive catalog binding runs inside assertLockAgainstRegistry (point 3).
+                  assertLockAgainstRegistry(parsedLock, registry);
+                }
+
+                ecodeLock = parsedLock;
+                buildProgress.onLog({
+                  timestamp: nowIso(),
+                  level: 'info',
+                  message: `Server deploy: ${ECODE_LOCK_FILENAME} pins store generation ${parsedLock.storeGeneration} (nixpkgs ${parsedLock.nixpkgsRev.slice(0, 12)})`,
+                });
+              } catch (error) {
+                ecodeLockError = (error as Error).message;
+              }
+            }
+          }
+
           const runPlan: ServerRuntimePlan | undefined = deployConfig
             ? {
                 framework: 'node', // label only — the declared commands drive everything
@@ -29801,7 +30260,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               ? undefined
               : detection;
 
-          if (!runPlan) {
+          if (ecodeLockError) {
+            serverError = `Server deploy: ${ecodeLockError}`;
+          } else if (!runPlan) {
             const detectionError = detection as { error: string };
             serverError = `${detectionError.error} You can also declare {"run": "<command>"} in .ecode/deploy.json.`;
           } else {
@@ -29868,6 +30329,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                       installCommand: packageJson ? `${runPlan.install.command} ${runPlan.install.args.join(' ')}` : '',
                       buildCommand: runPlan.buildCommand,
                       nixStorePvcName: nixStorePvcForProject(project.id),
+                      nixGenerationRef: ecodeLock?.storeGeneration,
                       timeoutSeconds: Number(process.env.SERVER_DEPLOY_APP_BUILD_TIMEOUT_S) || 600,
                       runAppBuild: runAppBuildViaManager,
                       onLog: (level, line) => buildProgress.onLog({ timestamp: nowIso(), level, message: line }),
@@ -29926,6 +30388,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                       ...(context.revisionSha256
                         ? { revisionObject: context.revisionObject, revisionSha256: context.revisionSha256 }
                         : {}),
+                      ...(ecodeLock ? { storeGeneration: ecodeLock.storeGeneration } : {}),
                     };
                     buildProgress.onLog({
                       timestamp: nowIso(),
@@ -30021,6 +30484,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
              * which every real web app answers (overridable per install).
              */
             healthPath: process.env.SERVER_DEPLOY_HEALTH_PATH || '/',
+
+            // CTR-RUNTIME-NIX: the runtime pod pins the lock's generation too.
+            ...(ecodeLock ? { nixGenerationRef: ecodeLock.storeGeneration } : {}),
 
             // A Nix-enabled project keeps its /nix toolchain at runtime.
             nixStorePvcName: nixStorePvcForProject(project.id),
@@ -30336,6 +30802,105 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return ready;
   };
+
+  /*
+   * CTR-RUNTIME-NIX — the ONLY legitimate writer of ecode.lock.json. Composes
+   * the lock from the generation registry (the ACTIVE generation by default,
+   * or an explicit usable generation), writes the CANONICAL bytes into the
+   * project workspace (where the revision snapshot picks it up) and into
+   * durable project storage. 503 when no registry is configured; a revoked or
+   * unknown generation is a typed 409 — the platform never writes a lock it
+   * would itself refuse at publish time.
+   */
+  app.post('/projects/:projectId/nix-lock', async (request, reply) => {
+    const { projectId } = parse(projectParams, request.params);
+    const body = parse(
+      z.object({
+        generation: z.string().min(1).optional(),
+        bundles: z.array(z.string().min(1)).optional(),
+      }),
+      request.body ?? {},
+    );
+    const project = await requireProject(request, store, projectId, 'projects:write');
+
+    const registry = (() => {
+      try {
+        return nixGenerationRegistryFromEnv();
+      } catch (error) {
+        throw Object.assign(new Error(`nix generation registry misconfigured: ${(error as Error).message}`), {
+          statusCode: 503,
+          code: 'NIX_GENERATIONS_INVALID',
+        });
+      }
+    })();
+
+    if (!registry) {
+      return reply
+        .code(503)
+        .send({ error: 'No nix generation registry configured', code: 'NIX_GENERATIONS_UNAVAILABLE' });
+    }
+
+    let lock;
+
+    try {
+      const generation = body.generation
+        ? assertLockAgainstRegistry(
+            // Compose-then-assert keeps ONE enforcement path for reads and writes.
+            buildEcodeLock(
+              (() => {
+                const found = registry.generations.find((gen) => gen.id === body.generation);
+
+                if (!found) {
+                  throw Object.assign(new Error(`unknown store generation "${body.generation}"`), {
+                    code: 'NIX_GENERATION_UNKNOWN',
+                  });
+                }
+
+                return found;
+              })(),
+              body.bundles,
+            ),
+            registry,
+          )
+        : activeNixGeneration(registry);
+
+      if (!generation) {
+        return reply
+          .code(409)
+          .send({ error: 'No ACTIVE store generation in the registry', code: 'NIX_GENERATION_NONE_ACTIVE' });
+      }
+
+      lock = buildEcodeLock(generation, body.bundles);
+
+      // The write-side runs the SAME gates as the publish-side read: a concrete
+      // generation pin (point 1) AND exhaustive catalog binding (point 3). The
+      // platform never writes a lock it would itself refuse at publish time.
+      assertLockPublishable(lock);
+      assertLockAgainstRegistry(lock, registry);
+    } catch (error) {
+      const code = (error as { code?: string }).code ?? 'ECODE_LOCK_INVALID';
+
+      return reply.code(409).send({ error: (error as Error).message, code });
+    }
+
+    const content = serializeEcodeLock(lock);
+    const workspaceId = runtimeWorkspaceId(project.id, request.currentUser!.id);
+    const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
+
+    await agentMutateEnsuring(request, authorized, '/files/write', {
+      method: 'POST',
+      body: JSON.stringify({ path: ECODE_LOCK_FILENAME, content }),
+    });
+    await projectStorage.writeFiles(project.id, [{ path: ECODE_LOCK_FILENAME, content }]);
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'runtime.nix-lock.write',
+      resourceType: 'projectFile',
+      resourceId: ECODE_LOCK_FILENAME,
+    });
+
+    return reply.code(201).send({ lock });
+  });
 
   app.post('/projects/:projectId/deployments', async (request, reply) => {
     const project = await requireProject(
@@ -31772,7 +32337,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (willServerDigestRollback) {
       try {
         const serverMeta = (target.metadata as Record<string, unknown>)?.serverDeploy as
-          | { image?: { imageRef?: string; imageUri?: string; imageDigest?: string }; secretPolicy?: string }
+          | {
+              image?: { imageRef?: string; imageUri?: string; imageDigest?: string; storeGeneration?: string };
+              secretPolicy?: string;
+            }
           | undefined;
 
         const image = serverMeta?.image ?? {};
@@ -31783,6 +32351,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           imageRef: (image.imageRef ?? image.imageUri ?? '').replace(/:[^:/]+$/, ''),
           imageDigest: image.imageDigest ?? '',
           createdAt: new Date().toISOString(),
+          // CTR-RUNTIME-NIX point 2: carry the ORIGINAL release's pinned generation.
+          ...(image.storeGeneration ? { storeGeneration: image.storeGeneration } : {}),
         };
 
         /*
@@ -31825,6 +32395,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           env: rbEnv,
           healthPath: process.env.SERVER_DEPLOY_HEALTH_PATH || '/',
           nixStorePvcName: nixStorePvcForProject(project.id),
+          /*
+           * Re-pin the ORIGINAL release's generation (expert refusal v3 point 2):
+           * the rollback is evaluated against the generation THAT release used,
+           * not the current active one. The manager's placement runs this ref
+           * through the revocation gate — a rollback onto a since-REVOKED
+           * generation is refused, never silently downgraded to active.
+           */
+          ...(plan.storeGeneration ? { nixGenerationRef: plan.storeGeneration } : {}),
         });
 
         const ok = Boolean(started?.ready);
@@ -31843,7 +32421,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               applied: Boolean(started),
               rolledBackFromDigest: plan.imageDigest,
               secretPolicy: secretResolution.policy,
-              image: { imageRef: retained.imageRef, imageUri: plan.pullRef, imageDigest: plan.imageDigest },
+              // Persist the re-pinned generation so a rollback-of-a-rollback carries it too.
+              image: {
+                imageRef: retained.imageRef,
+                imageUri: plan.pullRef,
+                imageDigest: plan.imageDigest,
+                ...(plan.storeGeneration ? { storeGeneration: plan.storeGeneration } : {}),
+              },
             },
           },
           logs: [

@@ -101,6 +101,8 @@ import type {
   InstalledSkillRecord,
   InstalledSkillScope,
   InstallSkillInput,
+  SkillAuditEventRecord,
+  RecordSkillAuditInput,
 } from './store.js';
 
 function now() {
@@ -109,6 +111,21 @@ function now() {
 
 function toIso(value: Date | string | null | undefined) {
   return value ? new Date(value).toISOString() : undefined;
+}
+
+/** Parse a JSON column that should hold an array; tolerate null/garbage → []. */
+function parseJsonArray<T>(value: string | null | undefined): T[] {
+  if (!value) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+
+    return Array.isArray(parsed) ? (parsed as T[]) : [];
+  } catch {
+    return [];
+  }
 }
 
 type PrismaKnownRequestError = Error & { readonly code: string };
@@ -1982,6 +1999,7 @@ export class PrismaApiStore implements ApiStore {
     authorName: string;
     authorUserId: string | null;
     appUrl: string | null;
+    thumbnailUrl: string | null;
     remixAllowed: boolean;
     licenseId: string | null;
     licenseText: string | null;
@@ -2006,6 +2024,7 @@ export class PrismaApiStore implements ApiStore {
       authorName: row.authorName,
       authorUserId: row.authorUserId ?? undefined,
       appUrl: row.appUrl ?? undefined,
+      thumbnailUrl: row.thumbnailUrl ?? undefined,
       remixAllowed: row.remixAllowed,
       licenseId: row.licenseId ?? undefined,
       licenseText: row.licenseText ?? undefined,
@@ -2031,6 +2050,7 @@ export class PrismaApiStore implements ApiStore {
     authorName: string;
     authorUserId?: string;
     appUrl?: string;
+    thumbnailUrl?: string;
     remixAllowed?: boolean;
     licenseId?: string;
     licenseText?: string;
@@ -2054,16 +2074,14 @@ export class PrismaApiStore implements ApiStore {
         authorName: input.authorName,
         authorUserId: input.authorUserId ?? null,
         appUrl: input.appUrl ?? null,
+        thumbnailUrl: input.thumbnailUrl ?? null,
         remixAllowed: input.remixAllowed ?? false, // FAIL-CLOSED : jamais remixable sans choix explicite
         licenseId: input.licenseId ?? null,
         licenseText: input.licenseText ?? null,
         licenseTextSha256: input.licenseTextSha256 ?? null,
         piiConsentVersion: input.piiConsentVersion ?? null,
-
-        /*
-         * A row published at creation records publishedAt so the detail page
-         * can show a real date; a PENDING_REVIEW row leaves it null.
-         */
+        // A row published at creation records publishedAt so the detail page
+        // can show a real date; a PENDING_REVIEW row leaves it null.
         publishedAt: input.publishedAt ? new Date(input.publishedAt) : status === 'PUBLISHED' ? new Date() : null,
       },
     });
@@ -2841,6 +2859,14 @@ export class PrismaApiStore implements ApiStore {
         instructions: input.instructions,
         homepageUrl: input.homepageUrl ?? null,
         installedByUserId: input.installedByUserId ?? null,
+        origin: input.origin ?? 'github',
+        enabled: input.enabled ?? true,
+        contentHash: input.contentHash ?? null,
+        auditVerdict: input.auditVerdict ?? null,
+        auditFindings: input.auditFindings ? JSON.stringify(input.auditFindings) : null,
+        auditedAt: input.auditedAt ? new Date(input.auditedAt) : null,
+        manifestName: input.manifestName ?? null,
+        resourcesJson: input.resources ? JSON.stringify(input.resources) : null,
       },
     });
 
@@ -2859,22 +2885,95 @@ export class PrismaApiStore implements ApiStore {
     ownerRepo: string;
     enabled: boolean;
   }): Promise<InstalledSkillRecord | undefined> {
-    const result = await this.prisma.installedSkill.updateMany({
-      where: { scope: input.scope, scopeId: input.scopeId, ownerRepo: input.ownerRepo },
-      data: { enabled: input.enabled },
-    });
-
-    if (result.count === 0) {
-      return undefined;
-    }
-
-    const row = await this.prisma.installedSkill.findUnique({
+    const current = await this.prisma.installedSkill.findUnique({
       where: {
         scope_scopeId_ownerRepo: { scope: input.scope, scopeId: input.scopeId, ownerRepo: input.ownerRepo },
       },
     });
 
-    return row ? this.#toInstalledSkill(row) : undefined;
+    if (!current) {
+      return undefined;
+    }
+
+    // Fail-closed enforcement: a revoked or audit-rejected skill can never be
+    // enabled. Return the unchanged row so the caller sees it stayed disabled.
+    const blocked = current.revokedAt !== null || current.auditVerdict === 'rejected';
+
+    if (input.enabled && blocked) {
+      return this.#toInstalledSkill(current);
+    }
+
+    const row = await this.prisma.installedSkill.update({
+      where: {
+        scope_scopeId_ownerRepo: { scope: input.scope, scopeId: input.scopeId, ownerRepo: input.ownerRepo },
+      },
+      data: { enabled: input.enabled },
+    });
+
+    return this.#toInstalledSkill(row);
+  }
+
+  async revokeSkill(input: {
+    scope: InstalledSkillScope;
+    scopeId: string;
+    ownerRepo: string;
+    revokedByUserId?: string | null;
+    reason?: string | null;
+  }): Promise<InstalledSkillRecord | undefined> {
+    const existing = await this.prisma.installedSkill.findUnique({
+      where: {
+        scope_scopeId_ownerRepo: { scope: input.scope, scopeId: input.scopeId, ownerRepo: input.ownerRepo },
+      },
+    });
+
+    if (!existing) {
+      return undefined;
+    }
+
+    const row = await this.prisma.installedSkill.update({
+      where: {
+        scope_scopeId_ownerRepo: { scope: input.scope, scopeId: input.scopeId, ownerRepo: input.ownerRepo },
+      },
+      data: {
+        enabled: false,
+        revokedAt: existing.revokedAt ?? new Date(),
+        revokedByUserId: input.revokedByUserId ?? existing.revokedByUserId ?? null,
+        revokeReason: input.reason ?? existing.revokeReason ?? null,
+      },
+    });
+
+    return this.#toInstalledSkill(row);
+  }
+
+  async recordSkillAudit(input: RecordSkillAuditInput): Promise<SkillAuditEventRecord> {
+    const row = await this.prisma.skillAuditEvent.create({
+      data: {
+        scope: input.scope,
+        scopeId: input.scopeId,
+        ownerRepo: input.ownerRepo,
+        action: input.action,
+        verdict: input.verdict ?? null,
+        findingsJson: input.findings ? JSON.stringify(input.findings) : null,
+        contentHash: input.contentHash ?? null,
+        actorUserId: input.actorUserId ?? null,
+      },
+    });
+
+    return this.#toSkillAuditEvent(row);
+  }
+
+  async listSkillAuditEvents(
+    scope: InstalledSkillScope,
+    scopeId: string,
+    options: { ownerRepo?: string; limit?: number } = {},
+  ): Promise<SkillAuditEventRecord[]> {
+    const rows = await this.prisma.skillAuditEvent.findMany({
+      where: { scope, scopeId, ...(options.ownerRepo ? { ownerRepo: options.ownerRepo } : {}) },
+      orderBy: { createdAt: 'desc' },
+      take: Math.min(Math.max(options.limit ?? 100, 1), 500),
+    });
+
+    return rows.map((row) => this.#toSkillAuditEvent(row));
   }
 
   async countInstallsByRepo(): Promise<Record<string, number>> {
@@ -2905,6 +3004,16 @@ export class PrismaApiStore implements ApiStore {
     installedByUserId: string | null;
     createdAt: Date;
     updatedAt: Date;
+    origin?: string | null;
+    contentHash?: string | null;
+    auditVerdict?: string | null;
+    auditFindings?: string | null;
+    auditedAt?: Date | null;
+    manifestName?: string | null;
+    resourcesJson?: string | null;
+    revokedAt?: Date | null;
+    revokedByUserId?: string | null;
+    revokeReason?: string | null;
   }): InstalledSkillRecord {
     return {
       id: row.id,
@@ -2919,6 +3028,42 @@ export class PrismaApiStore implements ApiStore {
       installedByUserId: row.installedByUserId,
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
+      origin: row.origin ?? 'github',
+      contentHash: row.contentHash ?? null,
+      auditVerdict: (row.auditVerdict as InstalledSkillRecord['auditVerdict']) ?? null,
+      auditFindings: parseJsonArray<InstalledSkillRecord['auditFindings'][number]>(row.auditFindings),
+      auditedAt: row.auditedAt ? row.auditedAt.toISOString() : null,
+      manifestName: row.manifestName ?? null,
+      resources: parseJsonArray<InstalledSkillRecord['resources'][number]>(row.resourcesJson),
+      revokedAt: row.revokedAt ? row.revokedAt.toISOString() : null,
+      revokedByUserId: row.revokedByUserId ?? null,
+      revokeReason: row.revokeReason ?? null,
+    };
+  }
+
+  #toSkillAuditEvent(row: {
+    id: string;
+    scope: string;
+    scopeId: string;
+    ownerRepo: string;
+    action: string;
+    verdict: string | null;
+    findingsJson: string | null;
+    contentHash: string | null;
+    actorUserId: string | null;
+    createdAt: Date;
+  }): SkillAuditEventRecord {
+    return {
+      id: row.id,
+      scope: row.scope as InstalledSkillScope,
+      scopeId: row.scopeId,
+      ownerRepo: row.ownerRepo,
+      action: row.action,
+      verdict: (row.verdict as SkillAuditEventRecord['verdict']) ?? null,
+      findings: parseJsonArray<SkillAuditEventRecord['findings'][number]>(row.findingsJson),
+      contentHash: row.contentHash,
+      actorUserId: row.actorUserId,
+      createdAt: row.createdAt.toISOString(),
     };
   }
 

@@ -74,13 +74,21 @@ contracts:
     signatureResult: REFUSED_V1
   - contractId: CTR-RUNTIME-NIX
     file: RUNTIME_NIX_CONTRACT.md
-    contractVersion: 2
+    contractVersion: 4
     refusalReasonV1: "format lock incompatible + rotation inconnue"
+    refusalReasonV2: "format ecode.lock et rotation/révocation des générations restent des dépendances ouvertes"
+    reviewReceiptIdV2: RR-20260721-CODEX-04
+    refusalReasonV3: "lock pas prouvé immuable + enforcement incomplet (pin optionnel, rollback sans pin, validation partielle du catalogue, négatif live bloqué)"
+    refusalReasonV5: "8.1 code typé non capturé : le contrat affirme ECODE_LOCK_GENERATION_REVOKED mais publish réduit à ecodeLockError = error.message — l artefact est un message textuel, pas un code typé ; 8.2 référence morte : contrat/README référencent live-revocation-EXECUTED.log alors que le fichier réel est .txt ; 8.3 sur-revendication UI : le README décrit UI → control plane alors que ce sont des appels HTTP directs"
+    reviewReceiptIdV5: RR-20260731-CODEX-08
+    acceptedIndividualEvidence:
+      - evidenceId: NIX-REVOKED-GENERATION-FAILED-410-AND-RESTORE-READY-200
+        scope: "PORTÉE LIMITÉE (reçu RR-08) : sous-preuve fonctionnelle recevable — lock gen-2 → READY/200 ; révoquée → FAILED/410 ; restaurée → READY/200 ; pas de repli silencieux. Ne signe PAS le contrat."
     hardeningStatus: HARDENED_PENDING_REVIEW
-    anchor: "store RO gVisor prouvé (preuve négative), gen v2, réveil 14,5s"
+    anchor: "v4 CORRIGE les 4 points: (1) pin de génération OBLIGATOIRE (assertLockPublishable, alias mutable refusé ECODE_LOCK_UNPINNED) ; (2) pin persisté+réutilisé dans release ET rollback (RetainedRelease.storeGeneration → RollbackPlan → nixGenerationRef, rollback évalué contre la génération de SA release) ; (3) validation EXHAUSTIVE bundles/store paths/hashes vs catalogue signé (ECODE_LOCK_BUNDLE_TAMPERED/UNKNOWN) ; tests négatifs sur le vrai gen-2 ; (4) négatif live révocation prêt via mini-merge"
     expectedReviewer: OpenAI-Codex
     signatureResult: PENDING_REVIEW
-    openDependencies: "format ecode.lock + rotation des générations (chantier)"
+    openDependencies: "négatif live révocation (Publish → refus) = prêt à jouer via mini-merge dédié (feu vert Avi) ; l'api/manager prod n'interprètent pas encore NIX_STORE_GENERATIONS"
   - contractId: CTR-PROJECT-FACTORY
     file: PROJECT_FACTORY_CONTRACT.md
     contractVersion: 1
@@ -120,6 +128,11 @@ contracts:
     file: OPERATIONS_DR.md
     contractVersion: 1
     refusalReasonV1: "SLO/astreinte/chaos/RTO-RPO non prouvés"
+    notSubmittedForWholeContractSignature: true   # décision RR-08 — aucun reviewer sur le contrat entier
+    remainingObligations: "astreinte outillée ; réplication cross-région ; RTO applicatif complet (reçu RR-08)"
+    acceptedIndividualEvidence:
+      - evidenceId: EVID-DR-SNAPSHOT-001
+        scope: "PORTÉE LIMITÉE (reçu RR-08) : policy Terraform quotidienne rétention 7 j + attache observée sur les disques PRÉSENTS + snapshot compatible scheduler + script idempotent. LIMITES verbatim : pas de CronJob d attache continue démontré (NE PAS prétendre couverture automatique des futurs disques) ; archiver aussi la sortie JSON brute gcloud compute snapshots describe / Cloud Audit Logs. Ne signe PAS le contrat."
     hardeningStatus: BLOCKED_ON_CHANTIER
     blockedBy: "exercices réels DR/restauration (PR-DR-01/02/03, WI-0051) — un plan non testé n'est pas un plan"
     expectedReviewer: OpenAI-Codex

@@ -81,3 +81,7 @@ docs/instructions/Roadmap.md
 !DESIGN_AUDIT_LIVE.md
 .qodo
 .vibecore-audit/
+.rebuild/
+
+# responsive-matrix verification output (local only)
+scratch-matrix/

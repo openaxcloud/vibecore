@@ -70,6 +70,7 @@ import { EmptyState } from '~/components/ui/EmptyState';
 import { InputDialog } from '~/components/ui/InputDialog';
 import { PanelBoundary, PanelErrorBoundary, PanelLoading, ZoneErrorBoundary } from '~/components/ui/PanelBoundary';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
+import { EditorHistoryOverlay } from '~/components/workbench/EditorHistoryOverlay';
 import { FileTree } from '~/components/workbench/FileTree';
 import { Preview } from '~/components/workbench/Preview';
 import { Search } from '~/components/workbench/Search';
@@ -6711,7 +6712,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         if (panel === 'editor') {
           return (
             <div
-              className="bolt-project-editor-tool min-h-0 flex-1 overflow-hidden"
+              className="bolt-project-editor-tool relative min-h-0 flex-1 overflow-hidden"
               data-testid="responsive-code-editor"
             >
               <ProjectEditorToolbar
@@ -6772,6 +6773,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   onOpenTool={openIdeTool}
                   onOpenFile={(filePath) => openProjectFile(filePath, { preview: false })}
                 />
+              )}
+              {/* File History — bottom-right toggle + standalone panel (independent of Git) */}
+              {currentDocument && !currentDocument.isBinary && (
+                <EditorHistoryOverlay filePath={currentDocument.filePath} content={currentDocument.value} />
               )}
             </div>
           );
@@ -14636,7 +14641,17 @@ interface SkillCatalogEntry {
   installedInWorkspace: boolean;
 }
 
-/** An installed GitHub-repo skill row (F#27). */
+/** A security-audit finding (RPL-SK-001.3). */
+interface SkillAuditFinding {
+  code: string;
+  severity: 'critical' | 'high' | 'medium' | 'low' | 'info';
+  title: string;
+  detail: string;
+  location: string;
+  evidence: string;
+}
+
+/** An installed GitHub-repo / interop skill row (F#27 + RPL-SK-001). */
 interface InstalledSkill {
   id: string;
   ownerRepo: string;
@@ -14646,6 +14661,27 @@ interface InstalledSkill {
   homepageUrl?: string | null;
   enabled: boolean;
   scope: string;
+
+  // RPL-SK-001.3/.4 provenance + audit + revoke.
+  origin?: string;
+  contentHash?: string | null;
+  auditVerdict?: 'approved' | 'quarantined' | 'rejected' | null;
+  auditFindings?: SkillAuditFinding[];
+  auditedAt?: string | null;
+  manifestName?: string | null;
+  resources?: Array<{ path: string; kind: string; bytes: number }>;
+  revokedAt?: string | null;
+  revokeReason?: string | null;
+}
+
+/** A row in the skill audit journal (RPL-SK-001.3). */
+interface SkillAuditEvent {
+  id: string;
+  ownerRepo: string;
+  action: string;
+  verdict?: string | null;
+  contentHash?: string | null;
+  createdAt: string;
 }
 
 /*
@@ -14676,6 +14712,7 @@ function ProjectSkillsPanel({
   const catalog = (data?.catalog ?? []) as SkillCatalogEntry[];
   const installedProject = (data?.installedProject ?? []) as InstalledSkill[];
   const installedWorkspace = (data?.installedWorkspace ?? []) as InstalledSkill[];
+  const auditEvents = (data?.auditEvents ?? []) as SkillAuditEvent[];
   const hasWorkspace = Boolean(data?.hasWorkspace);
 
   const [tab, setTab] = useState<SkillsTab>('project');
@@ -14757,6 +14794,18 @@ function ProjectSkillsPanel({
         { intent: skill.enabled ? 'disable-installed' : 'enable-installed', ownerRepo: skill.ownerRepo, scope },
         `t:${scope}:${skill.ownerRepo}`,
       ),
+    [submit],
+  );
+
+  const revokeInstalled = useCallback(
+    (ownerRepo: string, scope: SkillInstallScope) =>
+      submit({ intent: 'revoke', ownerRepo, scope }, `r:${scope}:${ownerRepo}`),
+    [submit],
+  );
+
+  const approveInstalled = useCallback(
+    (ownerRepo: string, scope: SkillInstallScope) =>
+      submit({ intent: 'approve', ownerRepo, scope }, `a:${scope}:${ownerRepo}`),
     [submit],
   );
 
@@ -14870,7 +14919,11 @@ function ProjectSkillsPanel({
             onConfirm={setConfirming}
             onToggle={toggleInstalled}
             onUninstall={uninstall}
+            onRevoke={revokeInstalled}
+            onApprove={approveInstalled}
           />
+
+          <SkillAuditLog events={auditEvents} />
         </section>
       ) : null}
 
@@ -14894,6 +14947,8 @@ function ProjectSkillsPanel({
               onConfirm={setConfirming}
               onToggle={toggleInstalled}
               onUninstall={uninstall}
+              onRevoke={revokeInstalled}
+              onApprove={approveInstalled}
             />
           )}
         </section>
@@ -15014,6 +15069,113 @@ function ProjectSkillsPanel({
 }
 
 /** Shared list of installed GitHub-repo skills with toggle + confirm-uninstall + chevron detail. */
+/** The append-only skill audit journal for the project scope (RPL-SK-001.3). */
+function SkillAuditLog({ events }: { events: SkillAuditEvent[] }) {
+  const [open, setOpen] = useState(false);
+
+  if (!events.length) {
+    return null;
+  }
+
+  const actionStyle: Record<string, string> = {
+    'install-rejected': 'text-[var(--vc-ide-accent-error)]',
+    'install-quarantined': 'text-[var(--vc-ide-accent-warning,#d97706)]',
+    revoke: 'text-[var(--vc-ide-accent-error)]',
+  };
+
+  return (
+    <div className="grid gap-2">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className="flex items-center gap-2 text-left text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary"
+        aria-expanded={open}
+      >
+        <span className={`i-ph:caret-right transition-transform ${open ? 'rotate-90' : ''}`} />
+        Audit log
+        <span className="opacity-70">{events.length}</span>
+      </button>
+
+      {open ? (
+        <ul className="grid gap-1">
+          {events.map((event) => (
+            <li
+              key={event.id}
+              className="flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded border border-bolt-elements-borderColor px-2 py-1 text-[11px]"
+            >
+              <span className={`font-medium ${actionStyle[event.action] ?? 'text-bolt-elements-textPrimary'}`}>
+                {event.action}
+              </span>
+              <span className="text-bolt-elements-textSecondary">{event.ownerRepo}</span>
+              {event.verdict ? <span className="text-bolt-elements-textTertiary">({event.verdict})</span> : null}
+              <span className="ml-auto text-bolt-elements-textTertiary">
+                {new Date(event.createdAt).toLocaleString()}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
+/** Provenance + audit-state badges for an installed skill (RPL-SK-001.4). */
+function SkillProvenanceBadges({ skill }: { skill: InstalledSkill }) {
+  const verdict = skill.revokedAt ? 'revoked' : (skill.auditVerdict ?? null);
+
+  const verdictStyle: Record<string, string> = {
+    approved: 'border-[var(--vc-ide-accent-success,#16a34a)]/50 text-[var(--vc-ide-accent-success,#16a34a)]',
+    quarantined: 'border-[var(--vc-ide-accent-warning,#d97706)]/50 text-[var(--vc-ide-accent-warning,#d97706)]',
+    rejected: 'border-[var(--vc-ide-accent-error)]/50 text-[var(--vc-ide-accent-error)]',
+    revoked: 'border-[var(--vc-ide-accent-error)]/50 text-[var(--vc-ide-accent-error)]',
+  };
+
+  const verdictIcon: Record<string, string> = {
+    approved: 'i-ph:shield-check',
+    quarantined: 'i-ph:warning',
+    rejected: 'i-ph:prohibit',
+    revoked: 'i-ph:seal-warning',
+  };
+
+  return (
+    <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px]">
+      {verdict ? (
+        <span
+          className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 font-medium capitalize ${
+            verdictStyle[verdict] ?? 'border-bolt-elements-borderColor text-bolt-elements-textSecondary'
+          }`}
+          title="Security-audit verdict"
+        >
+          <span className={verdictIcon[verdict] ?? 'i-ph:shield'} />
+          {verdict}
+        </span>
+      ) : null}
+      {skill.origin ? (
+        <span
+          className="inline-flex items-center gap-1 rounded bg-bolt-elements-background-depth-3 px-1.5 py-0.5 capitalize text-bolt-elements-textTertiary"
+          title="Where this skill came from"
+        >
+          <span className="i-ph:git-fork" />
+          {skill.origin}
+        </span>
+      ) : null}
+      {skill.auditFindings && skill.auditFindings.length ? (
+        <span className="text-bolt-elements-textTertiary">
+          {skill.auditFindings.length} finding{skill.auditFindings.length === 1 ? '' : 's'}
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
+const SEVERITY_STYLE: Record<string, string> = {
+  critical: 'text-[var(--vc-ide-accent-error)]',
+  high: 'text-[var(--vc-ide-accent-warning,#d97706)]',
+  medium: 'text-bolt-elements-textSecondary',
+  low: 'text-bolt-elements-textTertiary',
+  info: 'text-bolt-elements-textTertiary',
+};
+
 function InstalledSkillsList({
   title,
   emptyLabel,
@@ -15027,6 +15189,8 @@ function InstalledSkillsList({
   onConfirm,
   onToggle,
   onUninstall,
+  onRevoke,
+  onApprove,
 }: {
   title: string;
   emptyLabel: string;
@@ -15040,6 +15204,8 @@ function InstalledSkillsList({
   onConfirm: (key: string | null) => void;
   onToggle: (skill: InstalledSkill, scope: SkillInstallScope) => void | Promise<unknown>;
   onUninstall: (ownerRepo: string, scope: SkillInstallScope) => void | Promise<unknown>;
+  onRevoke: (ownerRepo: string, scope: SkillInstallScope) => void | Promise<unknown>;
+  onApprove: (ownerRepo: string, scope: SkillInstallScope) => void | Promise<unknown>;
 }) {
   return (
     <div className="grid gap-2">
@@ -15067,23 +15233,48 @@ function InstalledSkillsList({
                   <span className="min-w-0">
                     <strong className="block truncate text-sm text-bolt-elements-textPrimary">{skill.name}</strong>
                     <span className="block truncate text-xs text-bolt-elements-textTertiary">{skill.ownerRepo}</span>
+                    <SkillProvenanceBadges skill={skill} />
                   </span>
                 </button>
 
                 <div className="flex shrink-0 items-center gap-1.5">
+                  {skill.auditVerdict === 'quarantined' && !skill.revokedAt ? (
+                    <button
+                      type="button"
+                      onClick={() => void onApprove(skill.ownerRepo, scope)}
+                      disabled={busy || pending === `a:${rowKey}`}
+                      className="rounded-md border border-[var(--vc-ide-accent-warning,#d97706)]/60 px-3 py-1.5 text-xs font-medium text-[var(--vc-ide-accent-warning,#d97706)] transition-colors hover:bg-[var(--vc-ide-accent-warning,#d97706)]/10 disabled:opacity-60"
+                      title="Approve this quarantined skill and enable it"
+                    >
+                      {pending === `a:${rowKey}` ? '…' : 'Approve'}
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     onClick={() => void onToggle(skill, scope)}
-                    disabled={busy || pending === `t:${rowKey}`}
+                    disabled={busy || pending === `t:${rowKey}` || Boolean(skill.revokedAt)}
                     className={`rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-60 ${
                       skill.enabled
                         ? 'border-bolt-elements-focus bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary'
                         : 'border-bolt-elements-borderColor text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3'
                     }`}
                     aria-pressed={skill.enabled}
+                    title={skill.revokedAt ? 'Revoked — re-install to reconsider' : undefined}
                   >
                     {pending === `t:${rowKey}` ? '…' : skill.enabled ? 'Enabled' : 'Disabled'}
                   </button>
+
+                  {!skill.revokedAt ? (
+                    <button
+                      type="button"
+                      onClick={() => void onRevoke(skill.ownerRepo, scope)}
+                      disabled={busy || pending === `r:${rowKey}`}
+                      className="rounded-md border border-[var(--vc-ide-accent-error)]/50 px-3 py-1.5 text-xs font-medium text-[var(--vc-ide-accent-error)] transition-colors hover:bg-[var(--vc-ide-accent-error)]/10 disabled:opacity-60"
+                      title="Revoke: hard-disable and keep for the audit trail"
+                    >
+                      {pending === `r:${rowKey}` ? '…' : 'Revoke'}
+                    </button>
+                  ) : null}
 
                   {isConfirming ? (
                     <>
@@ -15128,7 +15319,69 @@ function InstalledSkillsList({
                       {skill.homepageUrl.replace(/^https?:\/\//, '')}
                     </a>
                   ) : null}
-                  <pre className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap rounded bg-bolt-elements-background-depth-2 p-2 text-xs text-bolt-elements-textSecondary">
+
+                  {/* Provenance (RPL-SK-001.4): integrity hash, manifest name, resources. */}
+                  <dl className="mt-1 grid grid-cols-[auto,1fr] gap-x-3 gap-y-0.5 text-[11px] text-bolt-elements-textTertiary">
+                    {skill.contentHash ? (
+                      <>
+                        <dt>Content hash</dt>
+                        <dd className="truncate font-mono" title={skill.contentHash}>
+                          sha256:{skill.contentHash.slice(0, 16)}…
+                        </dd>
+                      </>
+                    ) : null}
+                    {skill.manifestName ? (
+                      <>
+                        <dt>Manifest</dt>
+                        <dd className="truncate">{skill.manifestName}</dd>
+                      </>
+                    ) : null}
+                    {skill.auditedAt ? (
+                      <>
+                        <dt>Audited</dt>
+                        <dd>{new Date(skill.auditedAt).toLocaleString()}</dd>
+                      </>
+                    ) : null}
+                    {skill.revokedAt ? (
+                      <>
+                        <dt>Revoked</dt>
+                        <dd className="text-[var(--vc-ide-accent-error)]">
+                          {new Date(skill.revokedAt).toLocaleString()}
+                          {skill.revokeReason ? ` — ${skill.revokeReason}` : ''}
+                        </dd>
+                      </>
+                    ) : null}
+                  </dl>
+
+                  {skill.resources && skill.resources.length ? (
+                    <div className="mt-1.5 text-[11px] text-bolt-elements-textTertiary">
+                      <span className="font-medium">Bundled resources (loaded on demand):</span>{' '}
+                      {skill.resources.map((resource) => resource.path).join(', ')}
+                    </div>
+                  ) : null}
+
+                  {/* Audit findings (RPL-SK-001.3). */}
+                  {skill.auditFindings && skill.auditFindings.length ? (
+                    <ul className="mt-2 grid gap-1.5">
+                      {skill.auditFindings.map((finding, index) => (
+                        <li
+                          key={`${finding.code}:${index}`}
+                          className="rounded border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-2 py-1.5 text-[11px]"
+                        >
+                          <span className={`font-semibold uppercase ${SEVERITY_STYLE[finding.severity] ?? ''}`}>
+                            {finding.severity}
+                          </span>{' '}
+                          <span className="text-bolt-elements-textPrimary">{finding.title}</span>
+                          <span className="block text-bolt-elements-textSecondary">{finding.detail}</span>
+                          <span className="mt-0.5 block text-bolt-elements-textTertiary">
+                            {finding.location}: <code className="font-mono">{finding.evidence}</code>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+
+                  <pre className="mt-1.5 max-h-48 overflow-auto whitespace-pre-wrap rounded bg-bolt-elements-background-depth-2 p-2 text-xs text-bolt-elements-textSecondary">
                     {skill.instructions}
                   </pre>
                 </div>

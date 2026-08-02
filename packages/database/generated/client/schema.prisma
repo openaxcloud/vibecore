@@ -450,9 +450,54 @@ model InstalledSkill {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
+  // RPL-SK-001.3/.4 — provenance + security-audit + revoke state.
+  // origin: where the skill came from ('catalog' | 'github' | 'workspace-file' | 'builtin').
+  origin          String    @default("github")
+  // sha256 of the audited disclosed surface (body + resources) — provenance integrity.
+  contentHash     String?
+  // Latest audit verdict: 'approved' | 'quarantined' | 'rejected'. A 'rejected' skill
+  // is never persisted enabled; a 'quarantined' one is disabled pending approval.
+  auditVerdict    String?
+  // JSON array of AuditFinding for the UI's audit panel.
+  auditFindings   String?
+  auditedAt       DateTime?
+  // Parsed interop-manifest fields (agentskills.io) when the skill is a real SKILL.md.
+  manifestName    String?
+  // JSON array of {path, kind, bytes} for progressive-disclosure L3 resources.
+  resourcesJson   String?
+  // Revoke is distinct from uninstall: the row stays for audit but is hard-disabled
+  // and cannot be re-enabled until re-installed.
+  revokedAt       DateTime?
+  revokedByUserId String?
+  revokeReason    String?
+
   @@unique([scope, scopeId, ownerRepo])
   @@index([scope, scopeId])
   @@index([ownerRepo])
+}
+
+// Append-only audit journal for interoperable Agent Skills (RPL-SK-001.3). Every
+// consequential skill event — an install being approved/quarantined/REJECTED, a
+// manual approval, an enable/disable, a revoke, an uninstall — writes one immutable
+// row here so the security history of a project's skills is fully reconstructable.
+// No FK (polymorphic scope like InstalledSkill); never updated after insert.
+model SkillAuditEvent {
+  id           String   @id @default(cuid())
+  scope        String
+  scopeId      String
+  ownerRepo    String
+  // 'install-approved' | 'install-quarantined' | 'install-rejected' | 'approve'
+  // | 'revoke' | 'enable' | 'disable' | 'uninstall'
+  action       String
+  verdict      String?
+  findingsJson String?
+  contentHash  String?
+  actorUserId  String?
+  createdAt    DateTime @default(now())
+
+  @@index([scope, scopeId])
+  @@index([ownerRepo])
+  @@index([createdAt])
 }
 
 model ProjectEnvironment {
@@ -2411,6 +2456,10 @@ model GalleryListing {
   authorUserId      String?
   /// Outbound "View App" link to the deployed app (may be null pre-deploy).
   appUrl            String?
+  /// Card preview image (a real rendered screenshot). Root-relative static
+  /// asset (/gallery-apps/<id>/thumbnail.png) or an https URL; null renders
+  /// the text-only card.
+  thumbnailUrl      String?
   /// FAIL-CLOSED (directive 20/07) : un projet publié ordinaire est
   /// ALL_RIGHTS_RESERVED, non-remixable. remixAllowed ne passe true qu'avec
   /// une licence EXPLICITE + confirmation des droits + politique PII acceptée.

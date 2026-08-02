@@ -155,6 +155,11 @@ platformEnv:
     # reach the release via a one-time --set (see D3 runbook/evidence).
     nixStorePvcZones: 'europe-west9-a=nix-store-v2-pvc,europe-west9-b=nix-store-v2-b-pvc'
     nixGenerationHash: 'sha256:3029b5810ba485844f1029132f3f00652075e1e2c0cbb454992d3a94aa8fd5d5'
+    # CTR-RUNTIME-NIX: le REGISTRE de générations (rotation/révocation) — quand
+    # il est posé, il remplace le trio legacy ci-dessus comme source de vérité
+    # (une seule entrée ACTIVE; REVOKED = refus typé partout). Données gen-2
+    # relevées sur le store LIVE le 2026-07-22 (catalog.json + manifests hashés).
+    nixGenerations: '{"schemaVersion":1,"generations":[{"id":"gen-2","status":"ACTIVE","catalogSha256":"sha256:3029b5810ba485844f1029132f3f00652075e1e2c0cbb454992d3a94aa8fd5d5","nixVersion":"2.34.8","nixpkgs":{"channel":"nixos-26.05","rev":"8eeec934ae0dbeca3d7868c059568a65c08b2fc3"},"storePublicKey":"ecode-nix-1:J/eP9X5r7KWkjAVGioyGv79KFmnHTDCo+qGDoy3LoVk=","zones":{"europe-west9-a":"nix-store-v2-pvc","europe-west9-b":"nix-store-v2-b-pvc"},"bundles":[{"name":"go","storePath":"/nix/store/wj08cpff4x0fql7mkvp01jfs8lvik2wj-ecode-env-go","sha256":"d1f15e4f642e565bcfc1e5044b60b4c1ff80666aba5bec2e6140d4a4f39d4bf5"},{"name":"nodejs22","storePath":"/nix/store/c0dyns39xzkgblqwzda20pz5smm18rlx-ecode-env-nodejs-22","sha256":"6f133d267d14cd8fc84cff74a1ecbda164fbda867851cbf82d990d3cdeedd402"},{"name":"python312","storePath":"/nix/store/vyv024fnqmzz1aklrysgd3vmwixgplgg-ecode-env-python-3.12","sha256":"ac06cde244ee0a2a7f0c400848245a75123cf408277cc22caf06540563a083ce"}],"publishedAt":"2026-07-15T15:43:48Z"}]}'
     # D2 (approved 2026-07-17): server rollback re-deploys the retained image
     # BY DIGEST, permanently — previously `kubectl set env` only, which the
     # next helm upgrade wiped, silently reviving the URL-copy pseudo-rollback.

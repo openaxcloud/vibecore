@@ -104,6 +104,11 @@ export type ProjectSkill = $Result.DefaultSelection<Prisma.$ProjectSkillPayload>
  */
 export type InstalledSkill = $Result.DefaultSelection<Prisma.$InstalledSkillPayload>
 /**
+ * Model SkillAuditEvent
+ * 
+ */
+export type SkillAuditEvent = $Result.DefaultSelection<Prisma.$SkillAuditEventPayload>
+/**
  * Model ProjectEnvironment
  * 
  */
@@ -1312,6 +1317,16 @@ export class PrismaClient<
     * ```
     */
   get installedSkill(): Prisma.InstalledSkillDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.skillAuditEvent`: Exposes CRUD operations for the **SkillAuditEvent** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more SkillAuditEvents
+    * const skillAuditEvents = await prisma.skillAuditEvent.findMany()
+    * ```
+    */
+  get skillAuditEvent(): Prisma.SkillAuditEventDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.projectEnvironment`: Exposes CRUD operations for the **ProjectEnvironment** model.
@@ -2754,6 +2769,7 @@ export namespace Prisma {
     AgentRepairEvent: 'AgentRepairEvent',
     ProjectSkill: 'ProjectSkill',
     InstalledSkill: 'InstalledSkill',
+    SkillAuditEvent: 'SkillAuditEvent',
     ProjectEnvironment: 'ProjectEnvironment',
     ProjectSecret: 'ProjectSecret',
     ProjectEnvVar: 'ProjectEnvVar',
@@ -2868,7 +2884,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "remixJob" | "importJob" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "remixJob" | "importJob" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -4185,6 +4201,80 @@ export namespace Prisma {
           count: {
             args: Prisma.InstalledSkillCountArgs<ExtArgs>
             result: $Utils.Optional<InstalledSkillCountAggregateOutputType> | number
+          }
+        }
+      }
+      SkillAuditEvent: {
+        payload: Prisma.$SkillAuditEventPayload<ExtArgs>
+        fields: Prisma.SkillAuditEventFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.SkillAuditEventFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SkillAuditEventPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.SkillAuditEventFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SkillAuditEventPayload>
+          }
+          findFirst: {
+            args: Prisma.SkillAuditEventFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SkillAuditEventPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.SkillAuditEventFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SkillAuditEventPayload>
+          }
+          findMany: {
+            args: Prisma.SkillAuditEventFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SkillAuditEventPayload>[]
+          }
+          create: {
+            args: Prisma.SkillAuditEventCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SkillAuditEventPayload>
+          }
+          createMany: {
+            args: Prisma.SkillAuditEventCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.SkillAuditEventCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SkillAuditEventPayload>[]
+          }
+          delete: {
+            args: Prisma.SkillAuditEventDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SkillAuditEventPayload>
+          }
+          update: {
+            args: Prisma.SkillAuditEventUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SkillAuditEventPayload>
+          }
+          deleteMany: {
+            args: Prisma.SkillAuditEventDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.SkillAuditEventUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.SkillAuditEventUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SkillAuditEventPayload>[]
+          }
+          upsert: {
+            args: Prisma.SkillAuditEventUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SkillAuditEventPayload>
+          }
+          aggregate: {
+            args: Prisma.SkillAuditEventAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateSkillAuditEvent>
+          }
+          groupBy: {
+            args: Prisma.SkillAuditEventGroupByArgs<ExtArgs>
+            result: $Utils.Optional<SkillAuditEventGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.SkillAuditEventCountArgs<ExtArgs>
+            result: $Utils.Optional<SkillAuditEventCountAggregateOutputType> | number
           }
         }
       }
@@ -11640,6 +11730,7 @@ export namespace Prisma {
     agentRepairEvent?: AgentRepairEventOmit
     projectSkill?: ProjectSkillOmit
     installedSkill?: InstalledSkillOmit
+    skillAuditEvent?: SkillAuditEventOmit
     projectEnvironment?: ProjectEnvironmentOmit
     projectSecret?: ProjectSecretOmit
     projectEnvVar?: ProjectEnvVarOmit
@@ -34830,6 +34921,16 @@ export namespace Prisma {
     installedByUserId: string | null
     createdAt: Date | null
     updatedAt: Date | null
+    origin: string | null
+    contentHash: string | null
+    auditVerdict: string | null
+    auditFindings: string | null
+    auditedAt: Date | null
+    manifestName: string | null
+    resourcesJson: string | null
+    revokedAt: Date | null
+    revokedByUserId: string | null
+    revokeReason: string | null
   }
 
   export type InstalledSkillMaxAggregateOutputType = {
@@ -34845,6 +34946,16 @@ export namespace Prisma {
     installedByUserId: string | null
     createdAt: Date | null
     updatedAt: Date | null
+    origin: string | null
+    contentHash: string | null
+    auditVerdict: string | null
+    auditFindings: string | null
+    auditedAt: Date | null
+    manifestName: string | null
+    resourcesJson: string | null
+    revokedAt: Date | null
+    revokedByUserId: string | null
+    revokeReason: string | null
   }
 
   export type InstalledSkillCountAggregateOutputType = {
@@ -34860,6 +34971,16 @@ export namespace Prisma {
     installedByUserId: number
     createdAt: number
     updatedAt: number
+    origin: number
+    contentHash: number
+    auditVerdict: number
+    auditFindings: number
+    auditedAt: number
+    manifestName: number
+    resourcesJson: number
+    revokedAt: number
+    revokedByUserId: number
+    revokeReason: number
     _all: number
   }
 
@@ -34877,6 +34998,16 @@ export namespace Prisma {
     installedByUserId?: true
     createdAt?: true
     updatedAt?: true
+    origin?: true
+    contentHash?: true
+    auditVerdict?: true
+    auditFindings?: true
+    auditedAt?: true
+    manifestName?: true
+    resourcesJson?: true
+    revokedAt?: true
+    revokedByUserId?: true
+    revokeReason?: true
   }
 
   export type InstalledSkillMaxAggregateInputType = {
@@ -34892,6 +35023,16 @@ export namespace Prisma {
     installedByUserId?: true
     createdAt?: true
     updatedAt?: true
+    origin?: true
+    contentHash?: true
+    auditVerdict?: true
+    auditFindings?: true
+    auditedAt?: true
+    manifestName?: true
+    resourcesJson?: true
+    revokedAt?: true
+    revokedByUserId?: true
+    revokeReason?: true
   }
 
   export type InstalledSkillCountAggregateInputType = {
@@ -34907,6 +35048,16 @@ export namespace Prisma {
     installedByUserId?: true
     createdAt?: true
     updatedAt?: true
+    origin?: true
+    contentHash?: true
+    auditVerdict?: true
+    auditFindings?: true
+    auditedAt?: true
+    manifestName?: true
+    resourcesJson?: true
+    revokedAt?: true
+    revokedByUserId?: true
+    revokeReason?: true
     _all?: true
   }
 
@@ -34995,6 +35146,16 @@ export namespace Prisma {
     installedByUserId: string | null
     createdAt: Date
     updatedAt: Date
+    origin: string
+    contentHash: string | null
+    auditVerdict: string | null
+    auditFindings: string | null
+    auditedAt: Date | null
+    manifestName: string | null
+    resourcesJson: string | null
+    revokedAt: Date | null
+    revokedByUserId: string | null
+    revokeReason: string | null
     _count: InstalledSkillCountAggregateOutputType | null
     _min: InstalledSkillMinAggregateOutputType | null
     _max: InstalledSkillMaxAggregateOutputType | null
@@ -35027,6 +35188,16 @@ export namespace Prisma {
     installedByUserId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    origin?: boolean
+    contentHash?: boolean
+    auditVerdict?: boolean
+    auditFindings?: boolean
+    auditedAt?: boolean
+    manifestName?: boolean
+    resourcesJson?: boolean
+    revokedAt?: boolean
+    revokedByUserId?: boolean
+    revokeReason?: boolean
   }, ExtArgs["result"]["installedSkill"]>
 
   export type InstalledSkillSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -35042,6 +35213,16 @@ export namespace Prisma {
     installedByUserId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    origin?: boolean
+    contentHash?: boolean
+    auditVerdict?: boolean
+    auditFindings?: boolean
+    auditedAt?: boolean
+    manifestName?: boolean
+    resourcesJson?: boolean
+    revokedAt?: boolean
+    revokedByUserId?: boolean
+    revokeReason?: boolean
   }, ExtArgs["result"]["installedSkill"]>
 
   export type InstalledSkillSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -35057,6 +35238,16 @@ export namespace Prisma {
     installedByUserId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    origin?: boolean
+    contentHash?: boolean
+    auditVerdict?: boolean
+    auditFindings?: boolean
+    auditedAt?: boolean
+    manifestName?: boolean
+    resourcesJson?: boolean
+    revokedAt?: boolean
+    revokedByUserId?: boolean
+    revokeReason?: boolean
   }, ExtArgs["result"]["installedSkill"]>
 
   export type InstalledSkillSelectScalar = {
@@ -35072,9 +35263,19 @@ export namespace Prisma {
     installedByUserId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    origin?: boolean
+    contentHash?: boolean
+    auditVerdict?: boolean
+    auditFindings?: boolean
+    auditedAt?: boolean
+    manifestName?: boolean
+    resourcesJson?: boolean
+    revokedAt?: boolean
+    revokedByUserId?: boolean
+    revokeReason?: boolean
   }
 
-  export type InstalledSkillOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "scope" | "scopeId" | "ownerRepo" | "name" | "description" | "instructions" | "homepageUrl" | "enabled" | "installedByUserId" | "createdAt" | "updatedAt", ExtArgs["result"]["installedSkill"]>
+  export type InstalledSkillOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "scope" | "scopeId" | "ownerRepo" | "name" | "description" | "instructions" | "homepageUrl" | "enabled" | "installedByUserId" | "createdAt" | "updatedAt" | "origin" | "contentHash" | "auditVerdict" | "auditFindings" | "auditedAt" | "manifestName" | "resourcesJson" | "revokedAt" | "revokedByUserId" | "revokeReason", ExtArgs["result"]["installedSkill"]>
 
   export type $InstalledSkillPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "InstalledSkill"
@@ -35092,6 +35293,16 @@ export namespace Prisma {
       installedByUserId: string | null
       createdAt: Date
       updatedAt: Date
+      origin: string
+      contentHash: string | null
+      auditVerdict: string | null
+      auditFindings: string | null
+      auditedAt: Date | null
+      manifestName: string | null
+      resourcesJson: string | null
+      revokedAt: Date | null
+      revokedByUserId: string | null
+      revokeReason: string | null
     }, ExtArgs["result"]["installedSkill"]>
     composites: {}
   }
@@ -35527,6 +35738,16 @@ export namespace Prisma {
     readonly installedByUserId: FieldRef<"InstalledSkill", 'String'>
     readonly createdAt: FieldRef<"InstalledSkill", 'DateTime'>
     readonly updatedAt: FieldRef<"InstalledSkill", 'DateTime'>
+    readonly origin: FieldRef<"InstalledSkill", 'String'>
+    readonly contentHash: FieldRef<"InstalledSkill", 'String'>
+    readonly auditVerdict: FieldRef<"InstalledSkill", 'String'>
+    readonly auditFindings: FieldRef<"InstalledSkill", 'String'>
+    readonly auditedAt: FieldRef<"InstalledSkill", 'DateTime'>
+    readonly manifestName: FieldRef<"InstalledSkill", 'String'>
+    readonly resourcesJson: FieldRef<"InstalledSkill", 'String'>
+    readonly revokedAt: FieldRef<"InstalledSkill", 'DateTime'>
+    readonly revokedByUserId: FieldRef<"InstalledSkill", 'String'>
+    readonly revokeReason: FieldRef<"InstalledSkill", 'String'>
   }
     
 
@@ -35895,6 +36116,1071 @@ export namespace Prisma {
      * Omit specific fields from the InstalledSkill
      */
     omit?: InstalledSkillOmit<ExtArgs> | null
+  }
+
+
+  /**
+   * Model SkillAuditEvent
+   */
+
+  export type AggregateSkillAuditEvent = {
+    _count: SkillAuditEventCountAggregateOutputType | null
+    _min: SkillAuditEventMinAggregateOutputType | null
+    _max: SkillAuditEventMaxAggregateOutputType | null
+  }
+
+  export type SkillAuditEventMinAggregateOutputType = {
+    id: string | null
+    scope: string | null
+    scopeId: string | null
+    ownerRepo: string | null
+    action: string | null
+    verdict: string | null
+    findingsJson: string | null
+    contentHash: string | null
+    actorUserId: string | null
+    createdAt: Date | null
+  }
+
+  export type SkillAuditEventMaxAggregateOutputType = {
+    id: string | null
+    scope: string | null
+    scopeId: string | null
+    ownerRepo: string | null
+    action: string | null
+    verdict: string | null
+    findingsJson: string | null
+    contentHash: string | null
+    actorUserId: string | null
+    createdAt: Date | null
+  }
+
+  export type SkillAuditEventCountAggregateOutputType = {
+    id: number
+    scope: number
+    scopeId: number
+    ownerRepo: number
+    action: number
+    verdict: number
+    findingsJson: number
+    contentHash: number
+    actorUserId: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type SkillAuditEventMinAggregateInputType = {
+    id?: true
+    scope?: true
+    scopeId?: true
+    ownerRepo?: true
+    action?: true
+    verdict?: true
+    findingsJson?: true
+    contentHash?: true
+    actorUserId?: true
+    createdAt?: true
+  }
+
+  export type SkillAuditEventMaxAggregateInputType = {
+    id?: true
+    scope?: true
+    scopeId?: true
+    ownerRepo?: true
+    action?: true
+    verdict?: true
+    findingsJson?: true
+    contentHash?: true
+    actorUserId?: true
+    createdAt?: true
+  }
+
+  export type SkillAuditEventCountAggregateInputType = {
+    id?: true
+    scope?: true
+    scopeId?: true
+    ownerRepo?: true
+    action?: true
+    verdict?: true
+    findingsJson?: true
+    contentHash?: true
+    actorUserId?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type SkillAuditEventAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which SkillAuditEvent to aggregate.
+     */
+    where?: SkillAuditEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SkillAuditEvents to fetch.
+     */
+    orderBy?: SkillAuditEventOrderByWithRelationInput | SkillAuditEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: SkillAuditEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SkillAuditEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SkillAuditEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned SkillAuditEvents
+    **/
+    _count?: true | SkillAuditEventCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: SkillAuditEventMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: SkillAuditEventMaxAggregateInputType
+  }
+
+  export type GetSkillAuditEventAggregateType<T extends SkillAuditEventAggregateArgs> = {
+        [P in keyof T & keyof AggregateSkillAuditEvent]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateSkillAuditEvent[P]>
+      : GetScalarType<T[P], AggregateSkillAuditEvent[P]>
+  }
+
+
+
+
+  export type SkillAuditEventGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: SkillAuditEventWhereInput
+    orderBy?: SkillAuditEventOrderByWithAggregationInput | SkillAuditEventOrderByWithAggregationInput[]
+    by: SkillAuditEventScalarFieldEnum[] | SkillAuditEventScalarFieldEnum
+    having?: SkillAuditEventScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: SkillAuditEventCountAggregateInputType | true
+    _min?: SkillAuditEventMinAggregateInputType
+    _max?: SkillAuditEventMaxAggregateInputType
+  }
+
+  export type SkillAuditEventGroupByOutputType = {
+    id: string
+    scope: string
+    scopeId: string
+    ownerRepo: string
+    action: string
+    verdict: string | null
+    findingsJson: string | null
+    contentHash: string | null
+    actorUserId: string | null
+    createdAt: Date
+    _count: SkillAuditEventCountAggregateOutputType | null
+    _min: SkillAuditEventMinAggregateOutputType | null
+    _max: SkillAuditEventMaxAggregateOutputType | null
+  }
+
+  type GetSkillAuditEventGroupByPayload<T extends SkillAuditEventGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<SkillAuditEventGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof SkillAuditEventGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], SkillAuditEventGroupByOutputType[P]>
+            : GetScalarType<T[P], SkillAuditEventGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type SkillAuditEventSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    scope?: boolean
+    scopeId?: boolean
+    ownerRepo?: boolean
+    action?: boolean
+    verdict?: boolean
+    findingsJson?: boolean
+    contentHash?: boolean
+    actorUserId?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["skillAuditEvent"]>
+
+  export type SkillAuditEventSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    scope?: boolean
+    scopeId?: boolean
+    ownerRepo?: boolean
+    action?: boolean
+    verdict?: boolean
+    findingsJson?: boolean
+    contentHash?: boolean
+    actorUserId?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["skillAuditEvent"]>
+
+  export type SkillAuditEventSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    scope?: boolean
+    scopeId?: boolean
+    ownerRepo?: boolean
+    action?: boolean
+    verdict?: boolean
+    findingsJson?: boolean
+    contentHash?: boolean
+    actorUserId?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["skillAuditEvent"]>
+
+  export type SkillAuditEventSelectScalar = {
+    id?: boolean
+    scope?: boolean
+    scopeId?: boolean
+    ownerRepo?: boolean
+    action?: boolean
+    verdict?: boolean
+    findingsJson?: boolean
+    contentHash?: boolean
+    actorUserId?: boolean
+    createdAt?: boolean
+  }
+
+  export type SkillAuditEventOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "scope" | "scopeId" | "ownerRepo" | "action" | "verdict" | "findingsJson" | "contentHash" | "actorUserId" | "createdAt", ExtArgs["result"]["skillAuditEvent"]>
+
+  export type $SkillAuditEventPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "SkillAuditEvent"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      scope: string
+      scopeId: string
+      ownerRepo: string
+      action: string
+      verdict: string | null
+      findingsJson: string | null
+      contentHash: string | null
+      actorUserId: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["skillAuditEvent"]>
+    composites: {}
+  }
+
+  type SkillAuditEventGetPayload<S extends boolean | null | undefined | SkillAuditEventDefaultArgs> = $Result.GetResult<Prisma.$SkillAuditEventPayload, S>
+
+  type SkillAuditEventCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<SkillAuditEventFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: SkillAuditEventCountAggregateInputType | true
+    }
+
+  export interface SkillAuditEventDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['SkillAuditEvent'], meta: { name: 'SkillAuditEvent' } }
+    /**
+     * Find zero or one SkillAuditEvent that matches the filter.
+     * @param {SkillAuditEventFindUniqueArgs} args - Arguments to find a SkillAuditEvent
+     * @example
+     * // Get one SkillAuditEvent
+     * const skillAuditEvent = await prisma.skillAuditEvent.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends SkillAuditEventFindUniqueArgs>(args: SelectSubset<T, SkillAuditEventFindUniqueArgs<ExtArgs>>): Prisma__SkillAuditEventClient<$Result.GetResult<Prisma.$SkillAuditEventPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one SkillAuditEvent that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {SkillAuditEventFindUniqueOrThrowArgs} args - Arguments to find a SkillAuditEvent
+     * @example
+     * // Get one SkillAuditEvent
+     * const skillAuditEvent = await prisma.skillAuditEvent.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends SkillAuditEventFindUniqueOrThrowArgs>(args: SelectSubset<T, SkillAuditEventFindUniqueOrThrowArgs<ExtArgs>>): Prisma__SkillAuditEventClient<$Result.GetResult<Prisma.$SkillAuditEventPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first SkillAuditEvent that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SkillAuditEventFindFirstArgs} args - Arguments to find a SkillAuditEvent
+     * @example
+     * // Get one SkillAuditEvent
+     * const skillAuditEvent = await prisma.skillAuditEvent.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends SkillAuditEventFindFirstArgs>(args?: SelectSubset<T, SkillAuditEventFindFirstArgs<ExtArgs>>): Prisma__SkillAuditEventClient<$Result.GetResult<Prisma.$SkillAuditEventPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first SkillAuditEvent that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SkillAuditEventFindFirstOrThrowArgs} args - Arguments to find a SkillAuditEvent
+     * @example
+     * // Get one SkillAuditEvent
+     * const skillAuditEvent = await prisma.skillAuditEvent.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends SkillAuditEventFindFirstOrThrowArgs>(args?: SelectSubset<T, SkillAuditEventFindFirstOrThrowArgs<ExtArgs>>): Prisma__SkillAuditEventClient<$Result.GetResult<Prisma.$SkillAuditEventPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more SkillAuditEvents that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SkillAuditEventFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all SkillAuditEvents
+     * const skillAuditEvents = await prisma.skillAuditEvent.findMany()
+     * 
+     * // Get first 10 SkillAuditEvents
+     * const skillAuditEvents = await prisma.skillAuditEvent.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const skillAuditEventWithIdOnly = await prisma.skillAuditEvent.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends SkillAuditEventFindManyArgs>(args?: SelectSubset<T, SkillAuditEventFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SkillAuditEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a SkillAuditEvent.
+     * @param {SkillAuditEventCreateArgs} args - Arguments to create a SkillAuditEvent.
+     * @example
+     * // Create one SkillAuditEvent
+     * const SkillAuditEvent = await prisma.skillAuditEvent.create({
+     *   data: {
+     *     // ... data to create a SkillAuditEvent
+     *   }
+     * })
+     * 
+     */
+    create<T extends SkillAuditEventCreateArgs>(args: SelectSubset<T, SkillAuditEventCreateArgs<ExtArgs>>): Prisma__SkillAuditEventClient<$Result.GetResult<Prisma.$SkillAuditEventPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many SkillAuditEvents.
+     * @param {SkillAuditEventCreateManyArgs} args - Arguments to create many SkillAuditEvents.
+     * @example
+     * // Create many SkillAuditEvents
+     * const skillAuditEvent = await prisma.skillAuditEvent.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends SkillAuditEventCreateManyArgs>(args?: SelectSubset<T, SkillAuditEventCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many SkillAuditEvents and returns the data saved in the database.
+     * @param {SkillAuditEventCreateManyAndReturnArgs} args - Arguments to create many SkillAuditEvents.
+     * @example
+     * // Create many SkillAuditEvents
+     * const skillAuditEvent = await prisma.skillAuditEvent.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many SkillAuditEvents and only return the `id`
+     * const skillAuditEventWithIdOnly = await prisma.skillAuditEvent.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends SkillAuditEventCreateManyAndReturnArgs>(args?: SelectSubset<T, SkillAuditEventCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SkillAuditEventPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a SkillAuditEvent.
+     * @param {SkillAuditEventDeleteArgs} args - Arguments to delete one SkillAuditEvent.
+     * @example
+     * // Delete one SkillAuditEvent
+     * const SkillAuditEvent = await prisma.skillAuditEvent.delete({
+     *   where: {
+     *     // ... filter to delete one SkillAuditEvent
+     *   }
+     * })
+     * 
+     */
+    delete<T extends SkillAuditEventDeleteArgs>(args: SelectSubset<T, SkillAuditEventDeleteArgs<ExtArgs>>): Prisma__SkillAuditEventClient<$Result.GetResult<Prisma.$SkillAuditEventPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one SkillAuditEvent.
+     * @param {SkillAuditEventUpdateArgs} args - Arguments to update one SkillAuditEvent.
+     * @example
+     * // Update one SkillAuditEvent
+     * const skillAuditEvent = await prisma.skillAuditEvent.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends SkillAuditEventUpdateArgs>(args: SelectSubset<T, SkillAuditEventUpdateArgs<ExtArgs>>): Prisma__SkillAuditEventClient<$Result.GetResult<Prisma.$SkillAuditEventPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more SkillAuditEvents.
+     * @param {SkillAuditEventDeleteManyArgs} args - Arguments to filter SkillAuditEvents to delete.
+     * @example
+     * // Delete a few SkillAuditEvents
+     * const { count } = await prisma.skillAuditEvent.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends SkillAuditEventDeleteManyArgs>(args?: SelectSubset<T, SkillAuditEventDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more SkillAuditEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SkillAuditEventUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many SkillAuditEvents
+     * const skillAuditEvent = await prisma.skillAuditEvent.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends SkillAuditEventUpdateManyArgs>(args: SelectSubset<T, SkillAuditEventUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more SkillAuditEvents and returns the data updated in the database.
+     * @param {SkillAuditEventUpdateManyAndReturnArgs} args - Arguments to update many SkillAuditEvents.
+     * @example
+     * // Update many SkillAuditEvents
+     * const skillAuditEvent = await prisma.skillAuditEvent.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more SkillAuditEvents and only return the `id`
+     * const skillAuditEventWithIdOnly = await prisma.skillAuditEvent.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends SkillAuditEventUpdateManyAndReturnArgs>(args: SelectSubset<T, SkillAuditEventUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SkillAuditEventPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one SkillAuditEvent.
+     * @param {SkillAuditEventUpsertArgs} args - Arguments to update or create a SkillAuditEvent.
+     * @example
+     * // Update or create a SkillAuditEvent
+     * const skillAuditEvent = await prisma.skillAuditEvent.upsert({
+     *   create: {
+     *     // ... data to create a SkillAuditEvent
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the SkillAuditEvent we want to update
+     *   }
+     * })
+     */
+    upsert<T extends SkillAuditEventUpsertArgs>(args: SelectSubset<T, SkillAuditEventUpsertArgs<ExtArgs>>): Prisma__SkillAuditEventClient<$Result.GetResult<Prisma.$SkillAuditEventPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of SkillAuditEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SkillAuditEventCountArgs} args - Arguments to filter SkillAuditEvents to count.
+     * @example
+     * // Count the number of SkillAuditEvents
+     * const count = await prisma.skillAuditEvent.count({
+     *   where: {
+     *     // ... the filter for the SkillAuditEvents we want to count
+     *   }
+     * })
+    **/
+    count<T extends SkillAuditEventCountArgs>(
+      args?: Subset<T, SkillAuditEventCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], SkillAuditEventCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a SkillAuditEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SkillAuditEventAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends SkillAuditEventAggregateArgs>(args: Subset<T, SkillAuditEventAggregateArgs>): Prisma.PrismaPromise<GetSkillAuditEventAggregateType<T>>
+
+    /**
+     * Group by SkillAuditEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SkillAuditEventGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends SkillAuditEventGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: SkillAuditEventGroupByArgs['orderBy'] }
+        : { orderBy?: SkillAuditEventGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, SkillAuditEventGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetSkillAuditEventGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the SkillAuditEvent model
+   */
+  readonly fields: SkillAuditEventFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for SkillAuditEvent.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__SkillAuditEventClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the SkillAuditEvent model
+   */
+  interface SkillAuditEventFieldRefs {
+    readonly id: FieldRef<"SkillAuditEvent", 'String'>
+    readonly scope: FieldRef<"SkillAuditEvent", 'String'>
+    readonly scopeId: FieldRef<"SkillAuditEvent", 'String'>
+    readonly ownerRepo: FieldRef<"SkillAuditEvent", 'String'>
+    readonly action: FieldRef<"SkillAuditEvent", 'String'>
+    readonly verdict: FieldRef<"SkillAuditEvent", 'String'>
+    readonly findingsJson: FieldRef<"SkillAuditEvent", 'String'>
+    readonly contentHash: FieldRef<"SkillAuditEvent", 'String'>
+    readonly actorUserId: FieldRef<"SkillAuditEvent", 'String'>
+    readonly createdAt: FieldRef<"SkillAuditEvent", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * SkillAuditEvent findUnique
+   */
+  export type SkillAuditEventFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SkillAuditEvent
+     */
+    select?: SkillAuditEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SkillAuditEvent
+     */
+    omit?: SkillAuditEventOmit<ExtArgs> | null
+    /**
+     * Filter, which SkillAuditEvent to fetch.
+     */
+    where: SkillAuditEventWhereUniqueInput
+  }
+
+  /**
+   * SkillAuditEvent findUniqueOrThrow
+   */
+  export type SkillAuditEventFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SkillAuditEvent
+     */
+    select?: SkillAuditEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SkillAuditEvent
+     */
+    omit?: SkillAuditEventOmit<ExtArgs> | null
+    /**
+     * Filter, which SkillAuditEvent to fetch.
+     */
+    where: SkillAuditEventWhereUniqueInput
+  }
+
+  /**
+   * SkillAuditEvent findFirst
+   */
+  export type SkillAuditEventFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SkillAuditEvent
+     */
+    select?: SkillAuditEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SkillAuditEvent
+     */
+    omit?: SkillAuditEventOmit<ExtArgs> | null
+    /**
+     * Filter, which SkillAuditEvent to fetch.
+     */
+    where?: SkillAuditEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SkillAuditEvents to fetch.
+     */
+    orderBy?: SkillAuditEventOrderByWithRelationInput | SkillAuditEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for SkillAuditEvents.
+     */
+    cursor?: SkillAuditEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SkillAuditEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SkillAuditEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of SkillAuditEvents.
+     */
+    distinct?: SkillAuditEventScalarFieldEnum | SkillAuditEventScalarFieldEnum[]
+  }
+
+  /**
+   * SkillAuditEvent findFirstOrThrow
+   */
+  export type SkillAuditEventFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SkillAuditEvent
+     */
+    select?: SkillAuditEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SkillAuditEvent
+     */
+    omit?: SkillAuditEventOmit<ExtArgs> | null
+    /**
+     * Filter, which SkillAuditEvent to fetch.
+     */
+    where?: SkillAuditEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SkillAuditEvents to fetch.
+     */
+    orderBy?: SkillAuditEventOrderByWithRelationInput | SkillAuditEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for SkillAuditEvents.
+     */
+    cursor?: SkillAuditEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SkillAuditEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SkillAuditEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of SkillAuditEvents.
+     */
+    distinct?: SkillAuditEventScalarFieldEnum | SkillAuditEventScalarFieldEnum[]
+  }
+
+  /**
+   * SkillAuditEvent findMany
+   */
+  export type SkillAuditEventFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SkillAuditEvent
+     */
+    select?: SkillAuditEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SkillAuditEvent
+     */
+    omit?: SkillAuditEventOmit<ExtArgs> | null
+    /**
+     * Filter, which SkillAuditEvents to fetch.
+     */
+    where?: SkillAuditEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SkillAuditEvents to fetch.
+     */
+    orderBy?: SkillAuditEventOrderByWithRelationInput | SkillAuditEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing SkillAuditEvents.
+     */
+    cursor?: SkillAuditEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SkillAuditEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SkillAuditEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of SkillAuditEvents.
+     */
+    distinct?: SkillAuditEventScalarFieldEnum | SkillAuditEventScalarFieldEnum[]
+  }
+
+  /**
+   * SkillAuditEvent create
+   */
+  export type SkillAuditEventCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SkillAuditEvent
+     */
+    select?: SkillAuditEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SkillAuditEvent
+     */
+    omit?: SkillAuditEventOmit<ExtArgs> | null
+    /**
+     * The data needed to create a SkillAuditEvent.
+     */
+    data: XOR<SkillAuditEventCreateInput, SkillAuditEventUncheckedCreateInput>
+  }
+
+  /**
+   * SkillAuditEvent createMany
+   */
+  export type SkillAuditEventCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many SkillAuditEvents.
+     */
+    data: SkillAuditEventCreateManyInput | SkillAuditEventCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * SkillAuditEvent createManyAndReturn
+   */
+  export type SkillAuditEventCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SkillAuditEvent
+     */
+    select?: SkillAuditEventSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the SkillAuditEvent
+     */
+    omit?: SkillAuditEventOmit<ExtArgs> | null
+    /**
+     * The data used to create many SkillAuditEvents.
+     */
+    data: SkillAuditEventCreateManyInput | SkillAuditEventCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * SkillAuditEvent update
+   */
+  export type SkillAuditEventUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SkillAuditEvent
+     */
+    select?: SkillAuditEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SkillAuditEvent
+     */
+    omit?: SkillAuditEventOmit<ExtArgs> | null
+    /**
+     * The data needed to update a SkillAuditEvent.
+     */
+    data: XOR<SkillAuditEventUpdateInput, SkillAuditEventUncheckedUpdateInput>
+    /**
+     * Choose, which SkillAuditEvent to update.
+     */
+    where: SkillAuditEventWhereUniqueInput
+  }
+
+  /**
+   * SkillAuditEvent updateMany
+   */
+  export type SkillAuditEventUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update SkillAuditEvents.
+     */
+    data: XOR<SkillAuditEventUpdateManyMutationInput, SkillAuditEventUncheckedUpdateManyInput>
+    /**
+     * Filter which SkillAuditEvents to update
+     */
+    where?: SkillAuditEventWhereInput
+    /**
+     * Limit how many SkillAuditEvents to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * SkillAuditEvent updateManyAndReturn
+   */
+  export type SkillAuditEventUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SkillAuditEvent
+     */
+    select?: SkillAuditEventSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the SkillAuditEvent
+     */
+    omit?: SkillAuditEventOmit<ExtArgs> | null
+    /**
+     * The data used to update SkillAuditEvents.
+     */
+    data: XOR<SkillAuditEventUpdateManyMutationInput, SkillAuditEventUncheckedUpdateManyInput>
+    /**
+     * Filter which SkillAuditEvents to update
+     */
+    where?: SkillAuditEventWhereInput
+    /**
+     * Limit how many SkillAuditEvents to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * SkillAuditEvent upsert
+   */
+  export type SkillAuditEventUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SkillAuditEvent
+     */
+    select?: SkillAuditEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SkillAuditEvent
+     */
+    omit?: SkillAuditEventOmit<ExtArgs> | null
+    /**
+     * The filter to search for the SkillAuditEvent to update in case it exists.
+     */
+    where: SkillAuditEventWhereUniqueInput
+    /**
+     * In case the SkillAuditEvent found by the `where` argument doesn't exist, create a new SkillAuditEvent with this data.
+     */
+    create: XOR<SkillAuditEventCreateInput, SkillAuditEventUncheckedCreateInput>
+    /**
+     * In case the SkillAuditEvent was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<SkillAuditEventUpdateInput, SkillAuditEventUncheckedUpdateInput>
+  }
+
+  /**
+   * SkillAuditEvent delete
+   */
+  export type SkillAuditEventDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SkillAuditEvent
+     */
+    select?: SkillAuditEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SkillAuditEvent
+     */
+    omit?: SkillAuditEventOmit<ExtArgs> | null
+    /**
+     * Filter which SkillAuditEvent to delete.
+     */
+    where: SkillAuditEventWhereUniqueInput
+  }
+
+  /**
+   * SkillAuditEvent deleteMany
+   */
+  export type SkillAuditEventDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which SkillAuditEvents to delete
+     */
+    where?: SkillAuditEventWhereInput
+    /**
+     * Limit how many SkillAuditEvents to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * SkillAuditEvent without action
+   */
+  export type SkillAuditEventDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SkillAuditEvent
+     */
+    select?: SkillAuditEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SkillAuditEvent
+     */
+    omit?: SkillAuditEventOmit<ExtArgs> | null
   }
 
 
@@ -140191,6 +141477,7 @@ export namespace Prisma {
     authorName: string | null
     authorUserId: string | null
     appUrl: string | null
+    thumbnailUrl: string | null
     remixAllowed: boolean | null
     licenseId: string | null
     licenseText: string | null
@@ -140215,6 +141502,7 @@ export namespace Prisma {
     authorName: string | null
     authorUserId: string | null
     appUrl: string | null
+    thumbnailUrl: string | null
     remixAllowed: boolean | null
     licenseId: string | null
     licenseText: string | null
@@ -140240,6 +141528,7 @@ export namespace Prisma {
     authorName: number
     authorUserId: number
     appUrl: number
+    thumbnailUrl: number
     remixAllowed: number
     licenseId: number
     licenseText: number
@@ -140276,6 +141565,7 @@ export namespace Prisma {
     authorName?: true
     authorUserId?: true
     appUrl?: true
+    thumbnailUrl?: true
     remixAllowed?: true
     licenseId?: true
     licenseText?: true
@@ -140300,6 +141590,7 @@ export namespace Prisma {
     authorName?: true
     authorUserId?: true
     appUrl?: true
+    thumbnailUrl?: true
     remixAllowed?: true
     licenseId?: true
     licenseText?: true
@@ -140325,6 +141616,7 @@ export namespace Prisma {
     authorName?: true
     authorUserId?: true
     appUrl?: true
+    thumbnailUrl?: true
     remixAllowed?: true
     licenseId?: true
     licenseText?: true
@@ -140437,6 +141729,7 @@ export namespace Prisma {
     authorName: string
     authorUserId: string | null
     appUrl: string | null
+    thumbnailUrl: string | null
     remixAllowed: boolean
     licenseId: string | null
     licenseText: string | null
@@ -140481,6 +141774,7 @@ export namespace Prisma {
     authorName?: boolean
     authorUserId?: boolean
     appUrl?: boolean
+    thumbnailUrl?: boolean
     remixAllowed?: boolean
     licenseId?: boolean
     licenseText?: boolean
@@ -140508,6 +141802,7 @@ export namespace Prisma {
     authorName?: boolean
     authorUserId?: boolean
     appUrl?: boolean
+    thumbnailUrl?: boolean
     remixAllowed?: boolean
     licenseId?: boolean
     licenseText?: boolean
@@ -140535,6 +141830,7 @@ export namespace Prisma {
     authorName?: boolean
     authorUserId?: boolean
     appUrl?: boolean
+    thumbnailUrl?: boolean
     remixAllowed?: boolean
     licenseId?: boolean
     licenseText?: boolean
@@ -140562,6 +141858,7 @@ export namespace Prisma {
     authorName?: boolean
     authorUserId?: boolean
     appUrl?: boolean
+    thumbnailUrl?: boolean
     remixAllowed?: boolean
     licenseId?: boolean
     licenseText?: boolean
@@ -140573,7 +141870,7 @@ export namespace Prisma {
     publishedAt?: boolean
   }
 
-  export type GalleryListingOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "slug" | "title" | "description" | "category" | "tags" | "status" | "featured" | "sourceProjectId" | "sourceSnapshotId" | "authorName" | "authorUserId" | "appUrl" | "remixAllowed" | "licenseId" | "licenseText" | "licenseTextSha256" | "piiConsentVersion" | "viewCount" | "useCount" | "createdAt" | "publishedAt", ExtArgs["result"]["galleryListing"]>
+  export type GalleryListingOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "slug" | "title" | "description" | "category" | "tags" | "status" | "featured" | "sourceProjectId" | "sourceSnapshotId" | "authorName" | "authorUserId" | "appUrl" | "thumbnailUrl" | "remixAllowed" | "licenseId" | "licenseText" | "licenseTextSha256" | "piiConsentVersion" | "viewCount" | "useCount" | "createdAt" | "publishedAt", ExtArgs["result"]["galleryListing"]>
   export type GalleryListingInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     sourceProject?: boolean | ProjectDefaultArgs<ExtArgs>
     author?: boolean | GalleryListing$authorArgs<ExtArgs>
@@ -140622,6 +141919,12 @@ export namespace Prisma {
        * Outbound "View App" link to the deployed app (may be null pre-deploy).
        */
       appUrl: string | null
+      /**
+       * Card preview image (a real rendered screenshot). Root-relative static
+       * asset (/gallery-apps/<id>/thumbnail.png) or an https URL; null renders
+       * the text-only card.
+       */
+      thumbnailUrl: string | null
       /**
        * FAIL-CLOSED (directive 20/07) : un projet publié ordinaire est
        * ALL_RIGHTS_RESERVED, non-remixable. remixAllowed ne passe true qu'avec
@@ -141089,6 +142392,7 @@ export namespace Prisma {
     readonly authorName: FieldRef<"GalleryListing", 'String'>
     readonly authorUserId: FieldRef<"GalleryListing", 'String'>
     readonly appUrl: FieldRef<"GalleryListing", 'String'>
+    readonly thumbnailUrl: FieldRef<"GalleryListing", 'String'>
     readonly remixAllowed: FieldRef<"GalleryListing", 'Boolean'>
     readonly licenseId: FieldRef<"GalleryListing", 'String'>
     readonly licenseText: FieldRef<"GalleryListing", 'String'>
@@ -148646,10 +149950,36 @@ export namespace Prisma {
     enabled: 'enabled',
     installedByUserId: 'installedByUserId',
     createdAt: 'createdAt',
-    updatedAt: 'updatedAt'
+    updatedAt: 'updatedAt',
+    origin: 'origin',
+    contentHash: 'contentHash',
+    auditVerdict: 'auditVerdict',
+    auditFindings: 'auditFindings',
+    auditedAt: 'auditedAt',
+    manifestName: 'manifestName',
+    resourcesJson: 'resourcesJson',
+    revokedAt: 'revokedAt',
+    revokedByUserId: 'revokedByUserId',
+    revokeReason: 'revokeReason'
   };
 
   export type InstalledSkillScalarFieldEnum = (typeof InstalledSkillScalarFieldEnum)[keyof typeof InstalledSkillScalarFieldEnum]
+
+
+  export const SkillAuditEventScalarFieldEnum: {
+    id: 'id',
+    scope: 'scope',
+    scopeId: 'scopeId',
+    ownerRepo: 'ownerRepo',
+    action: 'action',
+    verdict: 'verdict',
+    findingsJson: 'findingsJson',
+    contentHash: 'contentHash',
+    actorUserId: 'actorUserId',
+    createdAt: 'createdAt'
+  };
+
+  export type SkillAuditEventScalarFieldEnum = (typeof SkillAuditEventScalarFieldEnum)[keyof typeof SkillAuditEventScalarFieldEnum]
 
 
   export const ProjectEnvironmentScalarFieldEnum: {
@@ -150079,6 +151409,7 @@ export namespace Prisma {
     authorName: 'authorName',
     authorUserId: 'authorUserId',
     appUrl: 'appUrl',
+    thumbnailUrl: 'thumbnailUrl',
     remixAllowed: 'remixAllowed',
     licenseId: 'licenseId',
     licenseText: 'licenseText',
@@ -152193,6 +153524,16 @@ export namespace Prisma {
     installedByUserId?: StringNullableFilter<"InstalledSkill"> | string | null
     createdAt?: DateTimeFilter<"InstalledSkill"> | Date | string
     updatedAt?: DateTimeFilter<"InstalledSkill"> | Date | string
+    origin?: StringFilter<"InstalledSkill"> | string
+    contentHash?: StringNullableFilter<"InstalledSkill"> | string | null
+    auditVerdict?: StringNullableFilter<"InstalledSkill"> | string | null
+    auditFindings?: StringNullableFilter<"InstalledSkill"> | string | null
+    auditedAt?: DateTimeNullableFilter<"InstalledSkill"> | Date | string | null
+    manifestName?: StringNullableFilter<"InstalledSkill"> | string | null
+    resourcesJson?: StringNullableFilter<"InstalledSkill"> | string | null
+    revokedAt?: DateTimeNullableFilter<"InstalledSkill"> | Date | string | null
+    revokedByUserId?: StringNullableFilter<"InstalledSkill"> | string | null
+    revokeReason?: StringNullableFilter<"InstalledSkill"> | string | null
   }
 
   export type InstalledSkillOrderByWithRelationInput = {
@@ -152208,6 +153549,16 @@ export namespace Prisma {
     installedByUserId?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    origin?: SortOrder
+    contentHash?: SortOrderInput | SortOrder
+    auditVerdict?: SortOrderInput | SortOrder
+    auditFindings?: SortOrderInput | SortOrder
+    auditedAt?: SortOrderInput | SortOrder
+    manifestName?: SortOrderInput | SortOrder
+    resourcesJson?: SortOrderInput | SortOrder
+    revokedAt?: SortOrderInput | SortOrder
+    revokedByUserId?: SortOrderInput | SortOrder
+    revokeReason?: SortOrderInput | SortOrder
   }
 
   export type InstalledSkillWhereUniqueInput = Prisma.AtLeast<{
@@ -152227,6 +153578,16 @@ export namespace Prisma {
     installedByUserId?: StringNullableFilter<"InstalledSkill"> | string | null
     createdAt?: DateTimeFilter<"InstalledSkill"> | Date | string
     updatedAt?: DateTimeFilter<"InstalledSkill"> | Date | string
+    origin?: StringFilter<"InstalledSkill"> | string
+    contentHash?: StringNullableFilter<"InstalledSkill"> | string | null
+    auditVerdict?: StringNullableFilter<"InstalledSkill"> | string | null
+    auditFindings?: StringNullableFilter<"InstalledSkill"> | string | null
+    auditedAt?: DateTimeNullableFilter<"InstalledSkill"> | Date | string | null
+    manifestName?: StringNullableFilter<"InstalledSkill"> | string | null
+    resourcesJson?: StringNullableFilter<"InstalledSkill"> | string | null
+    revokedAt?: DateTimeNullableFilter<"InstalledSkill"> | Date | string | null
+    revokedByUserId?: StringNullableFilter<"InstalledSkill"> | string | null
+    revokeReason?: StringNullableFilter<"InstalledSkill"> | string | null
   }, "id" | "scope_scopeId_ownerRepo">
 
   export type InstalledSkillOrderByWithAggregationInput = {
@@ -152242,6 +153603,16 @@ export namespace Prisma {
     installedByUserId?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    origin?: SortOrder
+    contentHash?: SortOrderInput | SortOrder
+    auditVerdict?: SortOrderInput | SortOrder
+    auditFindings?: SortOrderInput | SortOrder
+    auditedAt?: SortOrderInput | SortOrder
+    manifestName?: SortOrderInput | SortOrder
+    resourcesJson?: SortOrderInput | SortOrder
+    revokedAt?: SortOrderInput | SortOrder
+    revokedByUserId?: SortOrderInput | SortOrder
+    revokeReason?: SortOrderInput | SortOrder
     _count?: InstalledSkillCountOrderByAggregateInput
     _max?: InstalledSkillMaxOrderByAggregateInput
     _min?: InstalledSkillMinOrderByAggregateInput
@@ -152263,6 +153634,93 @@ export namespace Prisma {
     installedByUserId?: StringNullableWithAggregatesFilter<"InstalledSkill"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"InstalledSkill"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"InstalledSkill"> | Date | string
+    origin?: StringWithAggregatesFilter<"InstalledSkill"> | string
+    contentHash?: StringNullableWithAggregatesFilter<"InstalledSkill"> | string | null
+    auditVerdict?: StringNullableWithAggregatesFilter<"InstalledSkill"> | string | null
+    auditFindings?: StringNullableWithAggregatesFilter<"InstalledSkill"> | string | null
+    auditedAt?: DateTimeNullableWithAggregatesFilter<"InstalledSkill"> | Date | string | null
+    manifestName?: StringNullableWithAggregatesFilter<"InstalledSkill"> | string | null
+    resourcesJson?: StringNullableWithAggregatesFilter<"InstalledSkill"> | string | null
+    revokedAt?: DateTimeNullableWithAggregatesFilter<"InstalledSkill"> | Date | string | null
+    revokedByUserId?: StringNullableWithAggregatesFilter<"InstalledSkill"> | string | null
+    revokeReason?: StringNullableWithAggregatesFilter<"InstalledSkill"> | string | null
+  }
+
+  export type SkillAuditEventWhereInput = {
+    AND?: SkillAuditEventWhereInput | SkillAuditEventWhereInput[]
+    OR?: SkillAuditEventWhereInput[]
+    NOT?: SkillAuditEventWhereInput | SkillAuditEventWhereInput[]
+    id?: StringFilter<"SkillAuditEvent"> | string
+    scope?: StringFilter<"SkillAuditEvent"> | string
+    scopeId?: StringFilter<"SkillAuditEvent"> | string
+    ownerRepo?: StringFilter<"SkillAuditEvent"> | string
+    action?: StringFilter<"SkillAuditEvent"> | string
+    verdict?: StringNullableFilter<"SkillAuditEvent"> | string | null
+    findingsJson?: StringNullableFilter<"SkillAuditEvent"> | string | null
+    contentHash?: StringNullableFilter<"SkillAuditEvent"> | string | null
+    actorUserId?: StringNullableFilter<"SkillAuditEvent"> | string | null
+    createdAt?: DateTimeFilter<"SkillAuditEvent"> | Date | string
+  }
+
+  export type SkillAuditEventOrderByWithRelationInput = {
+    id?: SortOrder
+    scope?: SortOrder
+    scopeId?: SortOrder
+    ownerRepo?: SortOrder
+    action?: SortOrder
+    verdict?: SortOrderInput | SortOrder
+    findingsJson?: SortOrderInput | SortOrder
+    contentHash?: SortOrderInput | SortOrder
+    actorUserId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type SkillAuditEventWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: SkillAuditEventWhereInput | SkillAuditEventWhereInput[]
+    OR?: SkillAuditEventWhereInput[]
+    NOT?: SkillAuditEventWhereInput | SkillAuditEventWhereInput[]
+    scope?: StringFilter<"SkillAuditEvent"> | string
+    scopeId?: StringFilter<"SkillAuditEvent"> | string
+    ownerRepo?: StringFilter<"SkillAuditEvent"> | string
+    action?: StringFilter<"SkillAuditEvent"> | string
+    verdict?: StringNullableFilter<"SkillAuditEvent"> | string | null
+    findingsJson?: StringNullableFilter<"SkillAuditEvent"> | string | null
+    contentHash?: StringNullableFilter<"SkillAuditEvent"> | string | null
+    actorUserId?: StringNullableFilter<"SkillAuditEvent"> | string | null
+    createdAt?: DateTimeFilter<"SkillAuditEvent"> | Date | string
+  }, "id">
+
+  export type SkillAuditEventOrderByWithAggregationInput = {
+    id?: SortOrder
+    scope?: SortOrder
+    scopeId?: SortOrder
+    ownerRepo?: SortOrder
+    action?: SortOrder
+    verdict?: SortOrderInput | SortOrder
+    findingsJson?: SortOrderInput | SortOrder
+    contentHash?: SortOrderInput | SortOrder
+    actorUserId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: SkillAuditEventCountOrderByAggregateInput
+    _max?: SkillAuditEventMaxOrderByAggregateInput
+    _min?: SkillAuditEventMinOrderByAggregateInput
+  }
+
+  export type SkillAuditEventScalarWhereWithAggregatesInput = {
+    AND?: SkillAuditEventScalarWhereWithAggregatesInput | SkillAuditEventScalarWhereWithAggregatesInput[]
+    OR?: SkillAuditEventScalarWhereWithAggregatesInput[]
+    NOT?: SkillAuditEventScalarWhereWithAggregatesInput | SkillAuditEventScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"SkillAuditEvent"> | string
+    scope?: StringWithAggregatesFilter<"SkillAuditEvent"> | string
+    scopeId?: StringWithAggregatesFilter<"SkillAuditEvent"> | string
+    ownerRepo?: StringWithAggregatesFilter<"SkillAuditEvent"> | string
+    action?: StringWithAggregatesFilter<"SkillAuditEvent"> | string
+    verdict?: StringNullableWithAggregatesFilter<"SkillAuditEvent"> | string | null
+    findingsJson?: StringNullableWithAggregatesFilter<"SkillAuditEvent"> | string | null
+    contentHash?: StringNullableWithAggregatesFilter<"SkillAuditEvent"> | string | null
+    actorUserId?: StringNullableWithAggregatesFilter<"SkillAuditEvent"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"SkillAuditEvent"> | Date | string
   }
 
   export type ProjectEnvironmentWhereInput = {
@@ -159509,6 +160967,7 @@ export namespace Prisma {
     authorName?: StringFilter<"GalleryListing"> | string
     authorUserId?: StringNullableFilter<"GalleryListing"> | string | null
     appUrl?: StringNullableFilter<"GalleryListing"> | string | null
+    thumbnailUrl?: StringNullableFilter<"GalleryListing"> | string | null
     remixAllowed?: BoolFilter<"GalleryListing"> | boolean
     licenseId?: StringNullableFilter<"GalleryListing"> | string | null
     licenseText?: StringNullableFilter<"GalleryListing"> | string | null
@@ -159536,6 +160995,7 @@ export namespace Prisma {
     authorName?: SortOrder
     authorUserId?: SortOrderInput | SortOrder
     appUrl?: SortOrderInput | SortOrder
+    thumbnailUrl?: SortOrderInput | SortOrder
     remixAllowed?: SortOrder
     licenseId?: SortOrderInput | SortOrder
     licenseText?: SortOrderInput | SortOrder
@@ -159566,6 +161026,7 @@ export namespace Prisma {
     authorName?: StringFilter<"GalleryListing"> | string
     authorUserId?: StringNullableFilter<"GalleryListing"> | string | null
     appUrl?: StringNullableFilter<"GalleryListing"> | string | null
+    thumbnailUrl?: StringNullableFilter<"GalleryListing"> | string | null
     remixAllowed?: BoolFilter<"GalleryListing"> | boolean
     licenseId?: StringNullableFilter<"GalleryListing"> | string | null
     licenseText?: StringNullableFilter<"GalleryListing"> | string | null
@@ -159593,6 +161054,7 @@ export namespace Prisma {
     authorName?: SortOrder
     authorUserId?: SortOrderInput | SortOrder
     appUrl?: SortOrderInput | SortOrder
+    thumbnailUrl?: SortOrderInput | SortOrder
     remixAllowed?: SortOrder
     licenseId?: SortOrderInput | SortOrder
     licenseText?: SortOrderInput | SortOrder
@@ -159626,6 +161088,7 @@ export namespace Prisma {
     authorName?: StringWithAggregatesFilter<"GalleryListing"> | string
     authorUserId?: StringNullableWithAggregatesFilter<"GalleryListing"> | string | null
     appUrl?: StringNullableWithAggregatesFilter<"GalleryListing"> | string | null
+    thumbnailUrl?: StringNullableWithAggregatesFilter<"GalleryListing"> | string | null
     remixAllowed?: BoolWithAggregatesFilter<"GalleryListing"> | boolean
     licenseId?: StringNullableWithAggregatesFilter<"GalleryListing"> | string | null
     licenseText?: StringNullableWithAggregatesFilter<"GalleryListing"> | string | null
@@ -161788,6 +163251,16 @@ export namespace Prisma {
     installedByUserId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    origin?: string
+    contentHash?: string | null
+    auditVerdict?: string | null
+    auditFindings?: string | null
+    auditedAt?: Date | string | null
+    manifestName?: string | null
+    resourcesJson?: string | null
+    revokedAt?: Date | string | null
+    revokedByUserId?: string | null
+    revokeReason?: string | null
   }
 
   export type InstalledSkillUncheckedCreateInput = {
@@ -161803,6 +163276,16 @@ export namespace Prisma {
     installedByUserId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    origin?: string
+    contentHash?: string | null
+    auditVerdict?: string | null
+    auditFindings?: string | null
+    auditedAt?: Date | string | null
+    manifestName?: string | null
+    resourcesJson?: string | null
+    revokedAt?: Date | string | null
+    revokedByUserId?: string | null
+    revokeReason?: string | null
   }
 
   export type InstalledSkillUpdateInput = {
@@ -161818,6 +163301,16 @@ export namespace Prisma {
     installedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    origin?: StringFieldUpdateOperationsInput | string
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+    auditVerdict?: NullableStringFieldUpdateOperationsInput | string | null
+    auditFindings?: NullableStringFieldUpdateOperationsInput | string | null
+    auditedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    manifestName?: NullableStringFieldUpdateOperationsInput | string | null
+    resourcesJson?: NullableStringFieldUpdateOperationsInput | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    revokedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    revokeReason?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type InstalledSkillUncheckedUpdateInput = {
@@ -161833,6 +163326,16 @@ export namespace Prisma {
     installedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    origin?: StringFieldUpdateOperationsInput | string
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+    auditVerdict?: NullableStringFieldUpdateOperationsInput | string | null
+    auditFindings?: NullableStringFieldUpdateOperationsInput | string | null
+    auditedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    manifestName?: NullableStringFieldUpdateOperationsInput | string | null
+    resourcesJson?: NullableStringFieldUpdateOperationsInput | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    revokedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    revokeReason?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type InstalledSkillCreateManyInput = {
@@ -161848,6 +163351,16 @@ export namespace Prisma {
     installedByUserId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    origin?: string
+    contentHash?: string | null
+    auditVerdict?: string | null
+    auditFindings?: string | null
+    auditedAt?: Date | string | null
+    manifestName?: string | null
+    resourcesJson?: string | null
+    revokedAt?: Date | string | null
+    revokedByUserId?: string | null
+    revokeReason?: string | null
   }
 
   export type InstalledSkillUpdateManyMutationInput = {
@@ -161863,6 +163376,16 @@ export namespace Prisma {
     installedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    origin?: StringFieldUpdateOperationsInput | string
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+    auditVerdict?: NullableStringFieldUpdateOperationsInput | string | null
+    auditFindings?: NullableStringFieldUpdateOperationsInput | string | null
+    auditedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    manifestName?: NullableStringFieldUpdateOperationsInput | string | null
+    resourcesJson?: NullableStringFieldUpdateOperationsInput | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    revokedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    revokeReason?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type InstalledSkillUncheckedUpdateManyInput = {
@@ -161878,6 +163401,107 @@ export namespace Prisma {
     installedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    origin?: StringFieldUpdateOperationsInput | string
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+    auditVerdict?: NullableStringFieldUpdateOperationsInput | string | null
+    auditFindings?: NullableStringFieldUpdateOperationsInput | string | null
+    auditedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    manifestName?: NullableStringFieldUpdateOperationsInput | string | null
+    resourcesJson?: NullableStringFieldUpdateOperationsInput | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    revokedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    revokeReason?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type SkillAuditEventCreateInput = {
+    id?: string
+    scope: string
+    scopeId: string
+    ownerRepo: string
+    action: string
+    verdict?: string | null
+    findingsJson?: string | null
+    contentHash?: string | null
+    actorUserId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type SkillAuditEventUncheckedCreateInput = {
+    id?: string
+    scope: string
+    scopeId: string
+    ownerRepo: string
+    action: string
+    verdict?: string | null
+    findingsJson?: string | null
+    contentHash?: string | null
+    actorUserId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type SkillAuditEventUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    scope?: StringFieldUpdateOperationsInput | string
+    scopeId?: StringFieldUpdateOperationsInput | string
+    ownerRepo?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    verdict?: NullableStringFieldUpdateOperationsInput | string | null
+    findingsJson?: NullableStringFieldUpdateOperationsInput | string | null
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SkillAuditEventUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    scope?: StringFieldUpdateOperationsInput | string
+    scopeId?: StringFieldUpdateOperationsInput | string
+    ownerRepo?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    verdict?: NullableStringFieldUpdateOperationsInput | string | null
+    findingsJson?: NullableStringFieldUpdateOperationsInput | string | null
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SkillAuditEventCreateManyInput = {
+    id?: string
+    scope: string
+    scopeId: string
+    ownerRepo: string
+    action: string
+    verdict?: string | null
+    findingsJson?: string | null
+    contentHash?: string | null
+    actorUserId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type SkillAuditEventUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    scope?: StringFieldUpdateOperationsInput | string
+    scopeId?: StringFieldUpdateOperationsInput | string
+    ownerRepo?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    verdict?: NullableStringFieldUpdateOperationsInput | string | null
+    findingsJson?: NullableStringFieldUpdateOperationsInput | string | null
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SkillAuditEventUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    scope?: StringFieldUpdateOperationsInput | string
+    scopeId?: StringFieldUpdateOperationsInput | string
+    ownerRepo?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    verdict?: NullableStringFieldUpdateOperationsInput | string | null
+    findingsJson?: NullableStringFieldUpdateOperationsInput | string | null
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ProjectEnvironmentCreateInput = {
@@ -169842,6 +171466,7 @@ export namespace Prisma {
     sourceSnapshotId: string
     authorName: string
     appUrl?: string | null
+    thumbnailUrl?: string | null
     remixAllowed?: boolean
     licenseId?: string | null
     licenseText?: string | null
@@ -169869,6 +171494,7 @@ export namespace Prisma {
     authorName: string
     authorUserId?: string | null
     appUrl?: string | null
+    thumbnailUrl?: string | null
     remixAllowed?: boolean
     licenseId?: string | null
     licenseText?: string | null
@@ -169892,6 +171518,7 @@ export namespace Prisma {
     sourceSnapshotId?: StringFieldUpdateOperationsInput | string
     authorName?: StringFieldUpdateOperationsInput | string
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     remixAllowed?: BoolFieldUpdateOperationsInput | boolean
     licenseId?: NullableStringFieldUpdateOperationsInput | string | null
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
@@ -169919,6 +171546,7 @@ export namespace Prisma {
     authorName?: StringFieldUpdateOperationsInput | string
     authorUserId?: NullableStringFieldUpdateOperationsInput | string | null
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     remixAllowed?: BoolFieldUpdateOperationsInput | boolean
     licenseId?: NullableStringFieldUpdateOperationsInput | string | null
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
@@ -169944,6 +171572,7 @@ export namespace Prisma {
     authorName: string
     authorUserId?: string | null
     appUrl?: string | null
+    thumbnailUrl?: string | null
     remixAllowed?: boolean
     licenseId?: string | null
     licenseText?: string | null
@@ -169967,6 +171596,7 @@ export namespace Prisma {
     sourceSnapshotId?: StringFieldUpdateOperationsInput | string
     authorName?: StringFieldUpdateOperationsInput | string
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     remixAllowed?: BoolFieldUpdateOperationsInput | boolean
     licenseId?: NullableStringFieldUpdateOperationsInput | string | null
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
@@ -169992,6 +171622,7 @@ export namespace Prisma {
     authorName?: StringFieldUpdateOperationsInput | string
     authorUserId?: NullableStringFieldUpdateOperationsInput | string | null
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     remixAllowed?: BoolFieldUpdateOperationsInput | boolean
     licenseId?: NullableStringFieldUpdateOperationsInput | string | null
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
@@ -172199,6 +173830,16 @@ export namespace Prisma {
     installedByUserId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    origin?: SortOrder
+    contentHash?: SortOrder
+    auditVerdict?: SortOrder
+    auditFindings?: SortOrder
+    auditedAt?: SortOrder
+    manifestName?: SortOrder
+    resourcesJson?: SortOrder
+    revokedAt?: SortOrder
+    revokedByUserId?: SortOrder
+    revokeReason?: SortOrder
   }
 
   export type InstalledSkillMaxOrderByAggregateInput = {
@@ -172214,6 +173855,16 @@ export namespace Prisma {
     installedByUserId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    origin?: SortOrder
+    contentHash?: SortOrder
+    auditVerdict?: SortOrder
+    auditFindings?: SortOrder
+    auditedAt?: SortOrder
+    manifestName?: SortOrder
+    resourcesJson?: SortOrder
+    revokedAt?: SortOrder
+    revokedByUserId?: SortOrder
+    revokeReason?: SortOrder
   }
 
   export type InstalledSkillMinOrderByAggregateInput = {
@@ -172229,6 +173880,55 @@ export namespace Prisma {
     installedByUserId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    origin?: SortOrder
+    contentHash?: SortOrder
+    auditVerdict?: SortOrder
+    auditFindings?: SortOrder
+    auditedAt?: SortOrder
+    manifestName?: SortOrder
+    resourcesJson?: SortOrder
+    revokedAt?: SortOrder
+    revokedByUserId?: SortOrder
+    revokeReason?: SortOrder
+  }
+
+  export type SkillAuditEventCountOrderByAggregateInput = {
+    id?: SortOrder
+    scope?: SortOrder
+    scopeId?: SortOrder
+    ownerRepo?: SortOrder
+    action?: SortOrder
+    verdict?: SortOrder
+    findingsJson?: SortOrder
+    contentHash?: SortOrder
+    actorUserId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type SkillAuditEventMaxOrderByAggregateInput = {
+    id?: SortOrder
+    scope?: SortOrder
+    scopeId?: SortOrder
+    ownerRepo?: SortOrder
+    action?: SortOrder
+    verdict?: SortOrder
+    findingsJson?: SortOrder
+    contentHash?: SortOrder
+    actorUserId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type SkillAuditEventMinOrderByAggregateInput = {
+    id?: SortOrder
+    scope?: SortOrder
+    scopeId?: SortOrder
+    ownerRepo?: SortOrder
+    action?: SortOrder
+    verdict?: SortOrder
+    findingsJson?: SortOrder
+    contentHash?: SortOrder
+    actorUserId?: SortOrder
+    createdAt?: SortOrder
   }
 
   export type ProjectEnvironmentProjectIdNameCompoundUniqueInput = {
@@ -176593,6 +178293,7 @@ export namespace Prisma {
     authorName?: SortOrder
     authorUserId?: SortOrder
     appUrl?: SortOrder
+    thumbnailUrl?: SortOrder
     remixAllowed?: SortOrder
     licenseId?: SortOrder
     licenseText?: SortOrder
@@ -176622,6 +178323,7 @@ export namespace Prisma {
     authorName?: SortOrder
     authorUserId?: SortOrder
     appUrl?: SortOrder
+    thumbnailUrl?: SortOrder
     remixAllowed?: SortOrder
     licenseId?: SortOrder
     licenseText?: SortOrder
@@ -176646,6 +178348,7 @@ export namespace Prisma {
     authorName?: SortOrder
     authorUserId?: SortOrder
     appUrl?: SortOrder
+    thumbnailUrl?: SortOrder
     remixAllowed?: SortOrder
     licenseId?: SortOrder
     licenseText?: SortOrder
@@ -185113,6 +186816,7 @@ export namespace Prisma {
     sourceSnapshotId: string
     authorName: string
     appUrl?: string | null
+    thumbnailUrl?: string | null
     remixAllowed?: boolean
     licenseId?: string | null
     licenseText?: string | null
@@ -185138,6 +186842,7 @@ export namespace Prisma {
     sourceSnapshotId: string
     authorName: string
     appUrl?: string | null
+    thumbnailUrl?: string | null
     remixAllowed?: boolean
     licenseId?: string | null
     licenseText?: string | null
@@ -186149,6 +187854,7 @@ export namespace Prisma {
     authorName?: StringFilter<"GalleryListing"> | string
     authorUserId?: StringNullableFilter<"GalleryListing"> | string | null
     appUrl?: StringNullableFilter<"GalleryListing"> | string | null
+    thumbnailUrl?: StringNullableFilter<"GalleryListing"> | string | null
     remixAllowed?: BoolFilter<"GalleryListing"> | boolean
     licenseId?: StringNullableFilter<"GalleryListing"> | string | null
     licenseText?: StringNullableFilter<"GalleryListing"> | string | null
@@ -190278,6 +191984,7 @@ export namespace Prisma {
     sourceSnapshotId: string
     authorName: string
     appUrl?: string | null
+    thumbnailUrl?: string | null
     remixAllowed?: boolean
     licenseId?: string | null
     licenseText?: string | null
@@ -190303,6 +192010,7 @@ export namespace Prisma {
     authorName: string
     authorUserId?: string | null
     appUrl?: string | null
+    thumbnailUrl?: string | null
     remixAllowed?: boolean
     licenseId?: string | null
     licenseText?: string | null
@@ -211635,6 +213343,7 @@ export namespace Prisma {
     sourceSnapshotId: string
     authorName: string
     appUrl?: string | null
+    thumbnailUrl?: string | null
     remixAllowed?: boolean
     licenseId?: string | null
     licenseText?: string | null
@@ -212245,6 +213954,7 @@ export namespace Prisma {
     sourceSnapshotId?: StringFieldUpdateOperationsInput | string
     authorName?: StringFieldUpdateOperationsInput | string
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     remixAllowed?: BoolFieldUpdateOperationsInput | boolean
     licenseId?: NullableStringFieldUpdateOperationsInput | string | null
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
@@ -212270,6 +213980,7 @@ export namespace Prisma {
     sourceSnapshotId?: StringFieldUpdateOperationsInput | string
     authorName?: StringFieldUpdateOperationsInput | string
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     remixAllowed?: BoolFieldUpdateOperationsInput | boolean
     licenseId?: NullableStringFieldUpdateOperationsInput | string | null
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
@@ -212294,6 +214005,7 @@ export namespace Prisma {
     sourceSnapshotId?: StringFieldUpdateOperationsInput | string
     authorName?: StringFieldUpdateOperationsInput | string
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     remixAllowed?: BoolFieldUpdateOperationsInput | boolean
     licenseId?: NullableStringFieldUpdateOperationsInput | string | null
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
@@ -214473,6 +216185,7 @@ export namespace Prisma {
     authorName: string
     authorUserId?: string | null
     appUrl?: string | null
+    thumbnailUrl?: string | null
     remixAllowed?: boolean
     licenseId?: string | null
     licenseText?: string | null
@@ -214831,6 +216544,7 @@ export namespace Prisma {
     sourceSnapshotId?: StringFieldUpdateOperationsInput | string
     authorName?: StringFieldUpdateOperationsInput | string
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     remixAllowed?: BoolFieldUpdateOperationsInput | boolean
     licenseId?: NullableStringFieldUpdateOperationsInput | string | null
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
@@ -214856,6 +216570,7 @@ export namespace Prisma {
     authorName?: StringFieldUpdateOperationsInput | string
     authorUserId?: NullableStringFieldUpdateOperationsInput | string | null
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     remixAllowed?: BoolFieldUpdateOperationsInput | boolean
     licenseId?: NullableStringFieldUpdateOperationsInput | string | null
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
@@ -214880,6 +216595,7 @@ export namespace Prisma {
     authorName?: StringFieldUpdateOperationsInput | string
     authorUserId?: NullableStringFieldUpdateOperationsInput | string | null
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     remixAllowed?: BoolFieldUpdateOperationsInput | boolean
     licenseId?: NullableStringFieldUpdateOperationsInput | string | null
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null

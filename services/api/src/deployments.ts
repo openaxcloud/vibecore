@@ -708,6 +708,20 @@ export function serverDeployHost(deploymentId: string) {
 
 export function buildDeploymentUrl(project: ProjectRecord, deployment: DeploymentRecord) {
   if (deployment.provider === 'static') {
+    /*
+     * Prefer the deployment's DEDICATED origin (`s-<id>.<previewDomain>`): on the
+     * API origin the artifact must be served in an opaque sandbox, which breaks
+     * localStorage and renders storage-using SPAs blank (LAUNCH-BLOCKER
+     * 2026-08-01). Falls back to the legacy same-origin URL when no preview
+     * domain is configured (local dev/tests); that URL keeps working either way
+     * because the route redirects to the dedicated origin when one exists.
+     */
+    const dedicated = staticDeployDedicatedOrigin(deployment.id);
+
+    if (dedicated) {
+      return `${dedicated}/`;
+    }
+
     return `${staticDeployPublicBaseUrl()}/static-deployments/${deployment.id}/`;
   }
 
@@ -1481,4 +1495,75 @@ export function createDeploymentLogs(
     level: 'info' as const,
     message: redactDeploymentLog(message, input.envVars),
   }));
+}
+
+/* ---------------------------------------------------------------------------
+ * LAUNCH-BLOCKER (2026-08-01): a deployed static app rendered BLANK for
+ * anonymous visitors.
+ *
+ * Measured cause: the public artifact route is served from the SAME origin as
+ * the authenticated API (`STATIC_DEPLOY_BASE_URL` unset ⇒ fallback
+ * `PUBLIC_API_BASE_URL` = https://api.e-code.ai), which forces a hard
+ * `Content-Security-Policy: sandbox` WITHOUT `allow-same-origin` to strip the
+ * ambient cookie authority. That puts the document in an OPAQUE origin, where
+ * `localStorage`/`sessionStorage` throw SecurityError — every SPA that touches
+ * storage during boot dies before painting, leaving `#root` empty. Reproduced
+ * in a real browser with the exact prod headers: opaque ⇒ SecurityError + empty
+ * root; with `allow-same-origin` ⇒ the app renders.
+ *
+ * Fix: give each deployment its OWN origin `s-<deploymentId>.<previewDomain>`
+ * (the same shape the server deploys already use with `d-<id>`). The session
+ * cookie is host-only on the API host (verified live: `Path=/; Secure;
+ * HttpOnly; SameSite=Lax`, no Domain) and CORS is a strict allowlist, so a
+ * different origin carries NO ambient authority — the sandbox can then keep
+ * `allow-same-origin` (storage works) while cross-origin isolation is what
+ * actually protects the API.
+ */
+
+/** Host label prefix for a static deployment's dedicated origin. */
+export const STATIC_DEPLOY_HOST_PREFIX = 's-';
+
+/**
+ * Dedicated public origin of a static deployment, e.g.
+ * `https://s-<deploymentId>.preview.e-code.ai`. Returns null when no preview
+ * domain is configured (local dev / tests), so callers fall back to the legacy
+ * same-origin URL instead of emitting a broken host.
+ */
+export function staticDeployDedicatedOrigin(deploymentId: string): string | null {
+  const domain = process.env.PREVIEW_DOMAIN?.trim().replace(/^\.+|\.+$/g, '');
+
+  if (!domain || !/^[a-z0-9]{6,}$/i.test(deploymentId)) {
+    return null;
+  }
+
+  return `https://${STATIC_DEPLOY_HOST_PREFIX}${deploymentId.toLowerCase()}.${domain.toLowerCase()}`;
+}
+
+/**
+ * True when the incoming Host is the deployment's dedicated origin. The Host a
+ * browser sends is derived from the URL it navigated to and cannot be forged by
+ * page JS, so this is a safe signal for relaxing the sandbox: a document loaded
+ * from the API origin always reports the API host and therefore stays opaque.
+ */
+export function isDedicatedStaticDeployHost(
+  hostHeader: string | undefined,
+  deploymentId: string,
+  forwardedHost?: string | undefined,
+): boolean {
+  const origin = staticDeployDedicatedOrigin(deploymentId);
+
+  /*
+   * The preview-proxy reaches this route over the in-cluster Service, so the
+   * literal Host is the internal name; it forwards the PUBLIC host as
+   * `x-forwarded-host`. Neither header can be set by page JS on a top-level
+   * navigation, so a document loaded from the API origin can never claim the
+   * dedicated host and thus never obtains `allow-same-origin`.
+   */
+  const candidate = (forwardedHost ?? hostHeader ?? '').split(',')[0];
+
+  if (!origin || !candidate) {
+    return false;
+  }
+
+  return candidate.split(':')[0].trim().toLowerCase() === new URL(origin).hostname;
 }

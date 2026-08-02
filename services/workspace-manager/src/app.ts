@@ -74,6 +74,10 @@ const appBuildSchema = z.object({
 
   // Same /nix RO mount contract as workspaces + app pods (kill-switch gated).
   nixStorePvcName: z.string().min(1).optional(),
+
+  // CTR-RUNTIME-NIX: ecode.lock pin (generation id or catalog hash), resolved
+  // through the registry's revocation gate — REVOKED/unknown throws typed.
+  nixGenerationRef: z.string().min(1).optional(),
 });
 
 /** Body for POST /server-deployments/start (Replit-parity durable runtime). */
@@ -96,6 +100,9 @@ const serverStartSchema = z.object({
 
   // Same /nix RO mount as the workspace the app was snapshotted from (see startSchema).
   nixStorePvcName: z.string().min(1).optional(),
+
+  // Same ecode.lock generation pin as app-builds (CTR-RUNTIME-NIX).
+  nixGenerationRef: z.string().min(1).optional(),
 
   /*
    * Machine size resources (rate-card catalogue, resolved by the api):
@@ -293,7 +300,7 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
      * build pod mounts the store clone of a zone with live capacity and is
      * pinned there (plus the generation drift guard).
      */
-    const nixPlacement = await manager.resolveNixStorePlacement(body.nixStorePvcName);
+    const nixPlacement = await manager.resolveNixStorePlacement(body.nixStorePvcName, undefined, body.nixGenerationRef);
 
     return runAppBuild(manager.k8s, { ...body, ...nixPlacement, namespace: runtimeNamespace() });
   });
@@ -530,7 +537,14 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
    * the operator is installed (a missing CRD just makes apply fail).
    */
   const DB_ROLLBACK_NAMESPACE = 'project-databases';
-  const DB_ROLLBACK_KINDS = new Set(['Cluster', 'ScheduledBackup', 'Backup']);
+  /*
+   * Isolated tier applies Cluster + ScheduledBackup (+ on-demand Backup). Shared
+   * (free) tier applies Pooler + Database CRDs on the shared cluster. All are
+   * CloudNativePG kinds the manager's Role already grants (poolers/databases in
+   * database-rbac.yaml); omitting Pooler/Database here 403'd every shared-tier
+   * provision, so free-tier projects never got a database.
+   */
+  const DB_ROLLBACK_KINDS = new Set(['Cluster', 'ScheduledBackup', 'Backup', 'Pooler', 'Database']);
 
   const dbResourceGuard = (kind: string, namespace: string, reply: any): boolean => {
     if (namespace !== DB_ROLLBACK_NAMESPACE || !DB_ROLLBACK_KINDS.has(kind)) {
