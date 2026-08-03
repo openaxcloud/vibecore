@@ -81,3 +81,23 @@ export function runtimeFilesMissingFromPersisted(tree: unknown, persistedPaths: 
     return normalized.length > 0 && !present.has(normalized);
   });
 }
+
+/** A file body as either the persisted ProjectFile or the agent `/files/read` reply. */
+export interface EncodedFileBody {
+  content: string;
+  encoding?: string;
+}
+
+/**
+ * Byte-exact equality between a persisted file body and the runtime's `/files/read`
+ * reply, normalising each side's declared encoding (utf8 default, or base64 for
+ * binary) to raw bytes before comparing. Used to detect CONTENT divergence — the
+ * failure mode observed live where the runtime's package.json was a 200-byte stub
+ * (name/scripts only) while the persisted ide-state carried the full dependency set,
+ * so `npm install` found nothing to install and `vite` was never present.
+ */
+export function persistedFileContentMatches(persisted: EncodedFileBody, runtime: EncodedFileBody): boolean {
+  const toBuffer = (body: EncodedFileBody) => Buffer.from(body.content, body.encoding === 'base64' ? 'base64' : 'utf8');
+
+  return toBuffer(persisted).equals(toBuffer(runtime));
+}

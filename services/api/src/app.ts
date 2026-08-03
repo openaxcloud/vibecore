@@ -310,7 +310,7 @@ import {
 } from './rate-card-service.js';
 import { resolveRollbackImage, resolveRollbackSecrets, type SecretPolicy } from './release-rollback.js';
 import { computeWorkspaceRestorePlan, isPortReadyFromProbe, type PortProbeResult } from './runtime-readiness.js';
-import { runtimeFilesMissingFromPersisted } from './runtime-reseed.js';
+import { flattenRuntimeTreeFilePaths, normalizeRuntimePath, persistedFileContentMatches } from './runtime-reseed.js';
 import { describeCron } from './scheduled-tasks-cron.js';
 import {
   PostgresScheduledTaskRepository,
@@ -13356,26 +13356,28 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    *     adapter re-provisions a GC'd/reaped pod on the first agent 502 (see
    *     RemoteKubernetesRuntimeAdapter.#ensureWorkspaceReprovisioned) to serve a
    *     background terminal / file / preview op — the new pod comes up EMPTY.
-   *   - Even a warm pod can be MISSING a specific persisted file (observed live: the
-   *     runtime carried src/, index.html, tsconfig but NOT package.json while the
-   *     persisted ide-state had all of them) → `npm run dev` → ENOENT package.json,
-   *     `sh: vite: not found`, blank Preview. This is the core "files saved by the
-   *     agent are not the files that run" flakiness.
+   *   - A file can be MISSING: the runtime carried src/, index.html, tsconfig but not
+   *     package.json → `npm run dev` → ENOENT package.json.
+   *   - A file can be present but its CONTENT DIVERGED (observed live: the runtime's
+   *     package.json was a 200-byte stub with name/scripts only, while the persisted
+   *     ide-state carried the full dependency set → `npm install` found nothing to
+   *     install → `sh: vite: not found`, blank Preview). This is the core "files
+   *     saved by the agent are not the files that run" flakiness.
    *
    * Reconcile it at the source: whenever a start/restart brings a pod to RUNNING,
-   * ADD every persisted file that is absent from the runtime tree, from the
-   * authoritative persisted ide-state (the same source /export/zip derives).
-   * PURELY ADDITIVE — an existing runtime file (possibly a newer edit) is never
-   * overwritten and a runtime-only file is left untouched, so a stale persisted
-   * snapshot can only restore a missing file, never clobber live state. No-ops on a
-   * warm pod that already carries every file (the common reattach path — one cheap
-   * /files/tree call). Best-effort: never fail the start if the agent is briefly
-   * unreachable or a write blips — the client reseed and the next op still reconcile.
+   * bring the runtime back in line with the authoritative persisted ide-state (the
+   * same source /export/zip derives) — WRITE every persisted file that is either
+   * absent from the runtime or present with different bytes. Scope is exactly the
+   * persisted file set: a runtime-only file (build output, npm-created lockfile,
+   * node_modules) is never touched, only paths the editor's own state owns. No-ops on
+   * a warm pod already in sync (the common reattach path). Best-effort: never fail
+   * the start if the agent is briefly unreachable or a write blips — the client
+   * reseed and the next op still reconcile.
    */
   const reconcileRuntimeSeedFromPersisted = async (
     workspaceId: string,
     projectId: string,
-  ): Promise<{ seeded: boolean; reason: string; fileCount?: number }> => {
+  ): Promise<{ seeded: boolean; reason: string; missing?: number; diverged?: number }> => {
     let existingTree: unknown;
 
     try {
@@ -13401,21 +13403,54 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { seeded: false, reason: 'no-persisted-files' };
     }
 
-    const missing = new Set(
-      runtimeFilesMissingFromPersisted(
-        existingTree,
-        files.map((file) => file.path),
-      ),
-    );
+    const present = flattenRuntimeTreeFilePaths(existingTree);
 
-    if (missing.size === 0) {
-      return { seeded: false, reason: 'already-synced' };
-    }
-
-    let written = 0;
+    let missing = 0;
+    let diverged = 0;
 
     for (const file of files) {
-      if (!missing.has(file.path)) {
+      const normalized = normalizeRuntimePath(file.path);
+
+      if (!normalized) {
+        continue;
+      }
+
+      let needsWrite: boolean;
+
+      if (!present.has(normalized)) {
+        needsWrite = true;
+        missing += 1;
+      } else {
+        /*
+         * Present in the runtime — compare bytes against persisted. A mismatch is
+         * the stripped-package.json divergence; a matching file is skipped (the
+         * warm-reattach no-op). A read failure (race, transient) is treated as
+         * "leave it" rather than blindly overwrite.
+         */
+        let runtimeBody: { content?: string; encoding?: string } | undefined;
+
+        try {
+          runtimeBody = await agentRequest<{ content?: string; encoding?: string }>(
+            workspaceId,
+            `/files/read?path=${encodeURIComponent(file.path)}`,
+          );
+        } catch {
+          continue;
+        }
+
+        if (typeof runtimeBody?.content !== 'string') {
+          continue;
+        }
+
+        if (persistedFileContentMatches(file, { content: runtimeBody.content, encoding: runtimeBody.encoding })) {
+          continue;
+        }
+
+        needsWrite = true;
+        diverged += 1;
+      }
+
+      if (!needsWrite) {
         continue;
       }
 
@@ -13424,18 +13459,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           method: 'POST',
           body: JSON.stringify({ path: file.path, content: file.content, encoding: file.encoding }),
         });
-        written += 1;
       } catch (error) {
         /*
-         * A mid-seed failure leaves the pod partially reconciled; still strictly
-         * better than a missing file, and the next reconcile completes it. Don't
-         * abort the whole start — log and keep going.
+         * A mid-reconcile failure leaves the pod partially repaired; still strictly
+         * better, and the next reconcile completes it. Don't abort the whole start —
+         * log and keep going. (Roll back the counter so the metric stays honest.)
          */
+        if (present.has(normalized)) {
+          diverged -= 1;
+        } else {
+          missing -= 1;
+        }
+
         app.log.warn({ err: error, workspaceId, path: file.path }, 'runtime reseed: file write failed');
       }
     }
 
-    return { seeded: written > 0, reason: 'restored-missing-from-persisted', fileCount: written };
+    if (missing === 0 && diverged === 0) {
+      return { seeded: false, reason: 'already-synced' };
+    }
+
+    return { seeded: true, reason: 'reconciled-from-persisted', missing, diverged };
   };
 
   /*
@@ -13449,8 +13493,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       if (result.seeded) {
         metrics.increment('workspace_runtime_reseed_total', { reason: result.reason });
         app.log.info(
-          { workspaceId, projectId, fileCount: result.fileCount },
-          'runtime reseed: seeded empty pod from persisted ide-state',
+          { workspaceId, projectId, missing: result.missing, diverged: result.diverged },
+          'runtime reseed: reconciled runtime toward persisted ide-state',
         );
       }
     } catch (error) {

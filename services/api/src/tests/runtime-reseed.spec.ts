@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   flattenRuntimeTreeFilePaths,
   normalizeRuntimePath,
+  persistedFileContentMatches,
   runtimeFilesMissingFromPersisted,
 } from '../runtime-reseed.js';
 
@@ -96,5 +97,33 @@ describe('runtimeFilesMissingFromPersisted', () => {
   it('normalizes ./ and / prefixes on both sides before diffing', () => {
     const tree = [{ path: './package.json', type: 'file' }];
     expect(runtimeFilesMissingFromPersisted(tree, ['/package.json', 'src/main.tsx'])).toEqual(['src/main.tsx']);
+  });
+});
+
+describe('persistedFileContentMatches', () => {
+  it('is true for byte-identical utf8 bodies (warm no-op, no rewrite)', () => {
+    const body = { content: '{\n  "name": "app"\n}\n' };
+    expect(persistedFileContentMatches(body, { content: body.content, encoding: 'utf8' })).toBe(true);
+  });
+
+  it('is false for the live divergence: full persisted package.json vs stripped runtime stub', () => {
+    const persisted = {
+      content: JSON.stringify({ name: 'app', dependencies: { react: '^18' }, devDependencies: { vite: '^5' } }),
+    };
+    const runtimeStub = { content: JSON.stringify({ name: 'app', scripts: { dev: 'vite' } }), encoding: 'utf8' };
+    expect(persistedFileContentMatches(persisted, runtimeStub)).toBe(false);
+  });
+
+  it('compares across encodings by decoding to raw bytes (base64 runtime vs utf8 persisted)', () => {
+    const text = 'hello world';
+    const persisted = { content: text }; // utf8 default
+    const runtimeBase64 = { content: Buffer.from(text, 'utf8').toString('base64'), encoding: 'base64' };
+    expect(persistedFileContentMatches(persisted, runtimeBase64)).toBe(true);
+  });
+
+  it('detects a real binary difference across base64 bodies', () => {
+    const a = { content: Buffer.from([0, 1, 2, 3]).toString('base64'), encoding: 'base64' };
+    const b = { content: Buffer.from([0, 1, 2, 9]).toString('base64'), encoding: 'base64' };
+    expect(persistedFileContentMatches(a, b)).toBe(false);
   });
 });
