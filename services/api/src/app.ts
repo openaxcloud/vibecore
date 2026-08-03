@@ -310,7 +310,7 @@ import {
 } from './rate-card-service.js';
 import { resolveRollbackImage, resolveRollbackSecrets, type SecretPolicy } from './release-rollback.js';
 import { computeWorkspaceRestorePlan, isPortReadyFromProbe, type PortProbeResult } from './runtime-readiness.js';
-import { runtimeWorkspaceTreeHasProjectFiles } from './runtime-reseed.js';
+import { runtimeFilesMissingFromPersisted } from './runtime-reseed.js';
 import { describeCron } from './scheduled-tasks-cron.js';
 import {
   PostgresScheduledTaskRepository,
@@ -13350,34 +13350,36 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * Server-side runtime reseed reconciliation.
    *
    * The client (ProjectWorkspaceProvider) seeds a freshly-provisioned pod from the
-   * persisted project files. But a pod reached OUTSIDE a live IDE session is never
-   * client-seeded: the remote adapter re-provisions a GC'd/reaped pod on the first
-   * agent 502 (see RemoteKubernetesRuntimeAdapter.#ensureWorkspaceReprovisioned) to
-   * serve a background terminal / file / preview op — the new pod comes up with an
-   * EMPTY /workspace and the op runs against nothing (`npm run dev` → ENOENT
-   * package.json; `sh: vite: not found`). That is the core "files saved by the agent
-   * are not the files that run" flakiness.
+   * persisted project files, but the runtime pod diverges from persisted in ways the
+   * client never repairs from a background op:
+   *   - A pod reached OUTSIDE a live IDE session is never client-seeded: the remote
+   *     adapter re-provisions a GC'd/reaped pod on the first agent 502 (see
+   *     RemoteKubernetesRuntimeAdapter.#ensureWorkspaceReprovisioned) to serve a
+   *     background terminal / file / preview op — the new pod comes up EMPTY.
+   *   - Even a warm pod can be MISSING a specific persisted file (observed live: the
+   *     runtime carried src/, index.html, tsconfig but NOT package.json while the
+   *     persisted ide-state had all of them) → `npm run dev` → ENOENT package.json,
+   *     `sh: vite: not found`, blank Preview. This is the core "files saved by the
+   *     agent are not the files that run" flakiness.
    *
    * Reconcile it at the source: whenever a start/restart brings a pod to RUNNING,
-   * if its /workspace is empty of project files, seed it from the authoritative
-   * persisted ide-state (the same source /export/zip derives). Content-driven, not
-   * flag-driven, so it fires for cold start, re-provision-after-GC, and a wiped PVC
-   * alike, and no-ops on a warm pod that already carries its files (the common
-   * reattach path). Best-effort: never fail the start if the agent is briefly
-   * unreachable or a write blips — the client reseed and the next runtime op still
-   * reconcile.
+   * ADD every persisted file that is absent from the runtime tree, from the
+   * authoritative persisted ide-state (the same source /export/zip derives).
+   * PURELY ADDITIVE — an existing runtime file (possibly a newer edit) is never
+   * overwritten and a runtime-only file is left untouched, so a stale persisted
+   * snapshot can only restore a missing file, never clobber live state. No-ops on a
+   * warm pod that already carries every file (the common reattach path — one cheap
+   * /files/tree call). Best-effort: never fail the start if the agent is briefly
+   * unreachable or a write blips — the client reseed and the next op still reconcile.
    */
   const reconcileRuntimeSeedFromPersisted = async (
     workspaceId: string,
     projectId: string,
   ): Promise<{ seeded: boolean; reason: string; fileCount?: number }> => {
-    let existingTree: Array<{ path: string; type: 'file' | 'directory' }>;
+    let existingTree: unknown;
 
     try {
-      existingTree = await agentRequest<Array<{ path: string; type: 'file' | 'directory' }>>(
-        workspaceId,
-        '/files/tree?path=.',
-      );
+      existingTree = await agentRequest<unknown>(workspaceId, '/files/tree?path=.');
     } catch {
       /*
        * Agent not reachable yet (cold pod still coming up) — skip. The client
@@ -13385,16 +13387,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * reconcile. Must never turn a successful provision into a failed start.
        */
       return { seeded: false, reason: 'agent-unreachable' };
-    }
-
-    /*
-     * Empty = no top-level entries at all. listTree already prunes node_modules /
-     * .git / dist, but a genuinely seeded workspace still has package.json, src/,
-     * etc. at the root. A single non-hidden entry means the pod already carries
-     * files (warm reattach / PVC survived) → nothing to do.
-     */
-    if (runtimeWorkspaceTreeHasProjectFiles(existingTree)) {
-      return { seeded: false, reason: 'already-populated' };
     }
 
     let files: ProjectFile[];
@@ -13409,9 +13401,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { seeded: false, reason: 'no-persisted-files' };
     }
 
+    const missing = new Set(
+      runtimeFilesMissingFromPersisted(
+        existingTree,
+        files.map((file) => file.path),
+      ),
+    );
+
+    if (missing.size === 0) {
+      return { seeded: false, reason: 'already-synced' };
+    }
+
     let written = 0;
 
     for (const file of files) {
+      if (!missing.has(file.path)) {
+        continue;
+      }
+
       try {
         await agentRequest(workspaceId, '/files/write', {
           method: 'POST',
@@ -13420,15 +13427,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         written += 1;
       } catch (error) {
         /*
-         * A mid-seed failure leaves the pod partially seeded; that is still
-         * strictly better than empty and the next reconcile completes it. Don't
+         * A mid-seed failure leaves the pod partially reconciled; still strictly
+         * better than a missing file, and the next reconcile completes it. Don't
          * abort the whole start — log and keep going.
          */
         app.log.warn({ err: error, workspaceId, path: file.path }, 'runtime reseed: file write failed');
       }
     }
 
-    return { seeded: written > 0, reason: 'seeded-from-persisted', fileCount: written };
+    return { seeded: written > 0, reason: 'restored-missing-from-persisted', fileCount: written };
   };
 
   /*
