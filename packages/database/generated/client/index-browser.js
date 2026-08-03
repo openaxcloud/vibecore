@@ -1592,6 +1592,30 @@ exports.Prisma.LedgerReconciliationRunScalarFieldEnum = {
   metadata: 'metadata'
 };
 
+exports.Prisma.DBMigrationExecutionScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  organizationId: 'organizationId',
+  environment: 'environment',
+  state: 'state',
+  idempotencyKey: 'idempotencyKey',
+  activeLock: 'activeLock',
+  backupId: 'backupId',
+  backupVerifiedAt: 'backupVerifiedAt',
+  backupVerificationMethod: 'backupVerificationMethod',
+  backwardCompatible: 'backwardCompatible',
+  forwardCompatible: 'forwardCompatible',
+  statementsSha256: 'statementsSha256',
+  statementCount: 'statementCount',
+  appliedStatements: 'appliedStatements',
+  deploymentId: 'deploymentId',
+  createdByUserId: 'createdByUserId',
+  error: 'error',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1897,7 +1921,8 @@ exports.Prisma.ModelName = {
   LedgerEntry: 'LedgerEntry',
   LedgerReservation: 'LedgerReservation',
   LedgerFxRate: 'LedgerFxRate',
-  LedgerReconciliationRun: 'LedgerReconciliationRun'
+  LedgerReconciliationRun: 'LedgerReconciliationRun',
+  DBMigrationExecution: 'DBMigrationExecution'
 };
 
 /**

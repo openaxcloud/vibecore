@@ -1,0 +1,35 @@
+
+ RUN  v3.2.6 /Users/hb/dev/vibecore/.claude/worktrees/p0-v3-11/services/api
+
+ ✓ src/db-migration-execution.spec.ts > P0-V3-11 — chemin nominal > exécute PLANNED→…→COMMITTED, vérifie le backup puis applique 5ms
+ ✓ src/db-migration-execution.spec.ts > P0-V3-11 — chemin nominal > attend l'aboutissement du backup au lieu de se fier à la soumission 0ms
+ ✓ src/db-migration-execution.spec.ts > P0-V3-11 — NÉGATIF : sans backup vérifié, refus > REFUSE d'appliquer quand le backup n'aboutit jamais (timeout) 0ms
+ ✓ src/db-migration-execution.spec.ts > P0-V3-11 — NÉGATIF : sans backup vérifié, refus > REFUSE quand le backup part en échec (phase failed) 0ms
+ ✓ src/db-migration-execution.spec.ts > P0-V3-11 — NÉGATIF : sans backup vérifié, refus > REFUSE quand le backup ne peut même pas être lancé 0ms
+ ✓ src/db-migration-execution.spec.ts > P0-V3-11 — NÉGATIF : sans backup vérifié, refus > le provisionneur INERTE ne vaut jamais un backup (garde anti-régression) 49ms
+ ✓ src/db-migration-execution.spec.ts > P0-V3-11 — NÉGATIF : concurrence > REFUSE une 2e migration active sur le même (projet, environnement) 23ms
+ ✓ src/db-migration-execution.spec.ts > P0-V3-11 — NÉGATIF : concurrence > un autre ENVIRONNEMENT n est pas bloqué par le verrou de production 0ms
+ ✓ src/db-migration-execution.spec.ts > P0-V3-11 — idempotence > rejouer la même clé ne ré-applique RIEN 0ms
+ ✓ src/db-migration-execution.spec.ts > P0-V3-11 — idempotence > un lot MODIFIÉ produit une empreinte différente 0ms
+ ✓ src/db-migration-execution.spec.ts > P0-V3-11 — échec pendant l application > échec applicatif → FAILED_SAFE, verrou libéré, base annoncée intacte 0ms
+ ✓ src/db-migration-execution.spec.ts > P0-V3-11 — échec pendant l application > COMMIT non confirmé → MANUAL_RECOVERY, jamais un FAILED_SAFE présumé 0ms
+ ✓ src/db-migration-execution.spec.ts > P0-V3-11 — moteur > REFUSE un moteur sans DDL transactionnel plutôt que de prétendre le supporter 0ms
+ ✓ src/db-migration-execution.spec.ts > P0-V3-11 — briques > isLockConflict reconnaît Prisma P2002 et Postgres 23505 0ms
+ ✓ src/db-migration-execution.spec.ts > P0-V3-11 — briques > waitForVerifiedBackup ne conclut jamais au succès sur une phase inconnue 0ms
+ ✓ src/tests/db-migration-applier.integration.spec.ts > P0-V3-11 — applicateur sur vrai PostgreSQL > applique un lot et enregistre le registre dans la même transaction 119ms
+ ✓ src/tests/db-migration-applier.integration.spec.ts > P0-V3-11 — applicateur sur vrai PostgreSQL > rejouer le même lot ne ré-applique rien (idempotence au niveau BASE) 37ms
+ ✓ src/tests/db-migration-applier.integration.spec.ts > P0-V3-11 — applicateur sur vrai PostgreSQL > LE POINT : un lot qui échoue à mi-parcours ne laisse AUCUNE trace — pas de schéma à moitié muté 95ms
+ ✓ src/tests/db-migration-applier.integration.spec.ts > P0-V3-11 — applicateur sur vrai PostgreSQL > n applique QUE les migrations nouvelles quand le lot s allonge 49ms
+ ✓ src/tests/db-migration-publish.spec.ts > P0-V3-11 — migration au publish > publie APRÈS avoir verrouillé, vérifié le backup et appliqué 187ms
+ ✓ src/tests/db-migration-applier.integration.spec.ts > P0-V3-11 — publish RÉEL contre un vrai PostgreSQL > publie et applique RÉELLEMENT le schéma, avec verrou et backup vérifié 1405ms
+ ✓ src/tests/db-migration-publish.spec.ts > P0-V3-11 — migration au publish > NÉGATIF : backup non vérifié → publish REFUSÉ (409) et RIEN n'est publié 55ms
+ ✓ src/tests/db-migration-publish.spec.ts > P0-V3-11 — migration au publish > NÉGATIF : une 2e migration concurrente → publish REFUSÉ (409) 71ms
+ ✓ src/tests/db-migration-publish.spec.ts > P0-V3-11 — migration au publish > NÉGATIF : migrations déclarées mais base production injoignable → refus 44ms
+ ✓ src/tests/db-migration-publish.spec.ts > P0-V3-11 — migration au publish > un projet SANS migration publie normalement (aucune pénalité) 53ms
+ ✓ src/tests/db-migration-publish.spec.ts > P0-V3-11 — migration au publish > republier le MÊME déploiement ne ré-applique pas les migrations 73ms
+
+ Test Files  3 passed (3)
+      Tests  26 passed (26)
+   Start at  02:00:52
+   Duration  2.27s (transform 889ms, setup 0ms, collect 1.64s, tests 2.27s, environment 0ms, prepare 208ms)
+

@@ -109,9 +109,9 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: DATABASE_CONTRACT.md
-    sha256: "25d9404ccca14c2411d8fa568c879fb7edd7bdd91e8cda2f985100e6e5ac0b4e"
-    schemaVersion: 1
-    repoCommit: ca299f87
+    sha256: "902f3ee8c2a64b0f947dee5a7e38aa8b14054b7d6880f72b68e08e3b3c4b0ca0"
+    schemaVersion: 2
+    repoCommit: f40e75c3
     reviewer: UNKNOWN
   - file: DECISION_REGISTRY.yaml
     sha256: "ca8c4d083a35ace55a16cf6dd2480c304d88328a4b3d64af7a942975aa5f7b70"
@@ -224,7 +224,7 @@ documents:
     repoCommit: d1063912
     reviewer: UNKNOWN
   - file: P0_REGISTRY.yaml
-    sha256: "ac2b5bc6a30f1f268ebef48840a5dc44ede2a0a7f7f6d164372c0e74a812a4b4"
+    sha256: "3cc11d54aa0d5edeb05393fd48be5706590bb18b40f69f63fa60d007e52ba812"
     schemaVersion: 1
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN
