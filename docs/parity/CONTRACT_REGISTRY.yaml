@@ -82,6 +82,8 @@ contracts:
     refusalReasonV4: "négatif live révocation pas EXÉCUTÉ + config prod restaurée non vérifiée"
     refusalReasonV5: "8.1 code typé non capturé : le contrat affirme ECODE_LOCK_GENERATION_REVOKED mais publish réduit à ecodeLockError = error.message — l artefact est un message textuel, pas un code typé ; 8.2 référence morte : contrat/README référencent live-revocation-EXECUTED.log alors que le fichier réel est .txt ; 8.3 sur-revendication UI : le README décrit UI → control plane alors que ce sont des appels HTTP directs"
     reviewReceiptIdV5: RR-20260731-CODEX-08
+    refusalReasonV6: "Refs .log corrigées, revendication UI retirée, code typé préservé + tests. MAIS la preuve live du code typé porte sur le 409 de /nix-lock, PAS sur un publish exécuté avec l image contenant le correctif (le publish live a tourné sur une image antérieure, statut/log ne contient que le message). Une preuve future après déploiement ne vaut pas une preuve présente. Correction : 1) merger/déployer le correctif ; 2) rejouer ACTIVE→READY/200, REVOKED→publish FAILED avec statut/log du deployment contenant littéralement ECODE_LOCK_GENERATION_REVOKED + URL 410, restauration→READY/200 ; 3) archiver artefacts + hashes."
+    reviewReceiptIdV6: RR-20260802-CODEX-09
     acceptedIndividualEvidence:
       - evidenceId: NIX-REVOKED-GENERATION-FAILED-410-AND-RESTORE-READY-200
         scope: "PORTÉE LIMITÉE (reçu RR-08) : sous-preuve fonctionnelle recevable — lock gen-2 → READY/200 ; révoquée → FAILED/410 ; restaurée → READY/200 ; pas de repli silencieux. Ne signe PAS le contrat."

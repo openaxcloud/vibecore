@@ -2,7 +2,7 @@
 # (P0-A2-01 / P0-LS-16). Ne jamais éditer à la main — drift-check en CI. Le
 # champ validation reflète le dernier run du validateur sur l'arbre.
 schemaVersion: 1
-fileCount: 170
+fileCount: 171
 generatedAt: "2026-08-03T06:39:58Z"
 generatedFromCommit: 05319065be56feba85a140ff63e382c3fffcf9fc
 mergedCommit: 05319065be56feba85a140ff63e382c3fffcf9fc
@@ -89,7 +89,7 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: CONTRACT_REGISTRY.yaml
-    sha256: "6246dc49112caf50057a9e1dd865a289f0a7f0c0fe2bae6d5da2d0b952905c82"
+    sha256: "5260660790d0867e201d18040b103875466bc2eed80915ea98c2e50606100803"
     schemaVersion: 1
     repoCommit: 1692f981
     reviewer: UNKNOWN
@@ -224,7 +224,7 @@ documents:
     repoCommit: d1063912
     reviewer: UNKNOWN
   - file: P0_REGISTRY.yaml
-    sha256: "94aba5d3129acac52587e36cf29d59dbf75517063f2f9a9e30bca8817fd0b907"
+    sha256: "ac2b5bc6a30f1f268ebef48840a5dc44ede2a0a7f7f6d164372c0e74a812a4b4"
     schemaVersion: 1
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN
@@ -324,7 +324,7 @@ documents:
     repoCommit: null
     reviewer: UNKNOWN
   - file: REVIEW_RECEIPT_REGISTRY.yaml
-    sha256: "b689e0a2ea8d1778de07c3cfda3563c6b98ddf29177a964c93d892af717c919f"
+    sha256: "c33d22838196884d8c0f6c0183a943a5f611be1d349da7f02ea399beef96db3a"
     schemaVersion: 1
     repoCommit: a4a9f71c
     reviewer: UNKNOWN
@@ -443,6 +443,11 @@ documents:
     schemaVersion: null
     repoCommit: null
     reviewer: OpenAI-Codex
+  - file: incoming/REPONSE_EXPERT_V6_20260802.md
+    sha256: "db1b175a1c672d784199dbe721cafbf76e3de00b65a44cf8428c68a69e0051dc"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
   - file: livescan-2026-07-20/ai-agent.links.txt
     sha256: "74b0a1bf9aef62343eb3dccf3ef742aeb58c56d8bcf3f68a0d0edaae60d2e3d8"
     schemaVersion: null

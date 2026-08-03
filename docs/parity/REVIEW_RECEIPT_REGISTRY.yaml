@@ -211,3 +211,31 @@ receipts:
       individualEvidenceAcceptedWithScope: [EVID-DR-SNAPSHOT-001, NIX-REVOKED-GENERATION-FAILED-410-AND-RESTORE-READY-200]
     refusalReasonsLocation: "docs/parity/incoming/REPONSE_EXPERT_V5_20260731.md (verbatim) + P0_REGISTRY.refusalReason + CONTRACT_REGISTRY"
     completeness: COMPLETE
+
+  - reviewReceiptId: RR-20260802-CODEX-09
+    reviewerType: AUTOMATED_LLM
+    reviewerIdentity: "OpenAI-Codex"
+    reviewerModelVersion: "GPT-5 (Codex)"
+    reviewedAt: "2026-08-02"
+    auditedCommits:   # §Références auditées du reçu (têtes V6 des 4 branches)
+      wifPr55Head: "53eb488f0e7aeb71dc1614a290bc7cb8a6bc28c6"
+      purgeDbPr51Head: "602eb3d73567d3a9a222e9382bd6c95d6d7a2184"
+      purgePhysicalPr52Head: "2627afd0847361e7bf577e0d3051db721c765e62"
+      runtimeNixPr57Head: "9ff4717d6f41b95052aaa2b0257f7b6515625826"
+    inputDocuments:
+      - path: docs/parity/DOSSIER_EXPERT_V6_20260802.md
+        sha256: "7e9e0e717fc4535e3ad65813ae73ff436bb1e41a4e528368a6a2a4f361eb7a16"
+        note: "hash transmis par l agent (branche docs/dossier-expert-v6 @ 6d2dc3d0) ; le reçu ne recite pas de hash du dossier"
+    responsePath: docs/parity/incoming/REPONSE_EXPERT_V6_20260802.md
+    responseHash: "sha256:db1b175a1c672d784199dbe721cafbf76e3de00b65a44cf8428c68a69e0051dc"
+    summary: "AUCUN P0 signé ; A2-09 REFUSÉ (NOTFOUND ambigu = auth prouvée mais pas l autorisation projects.get) ; lot purge DB PR #51 ACCEPTÉ à portée ciblée (réserves RR-08 ChatShare + audit ciblé LEVÉES, sans signature de contrat) ; lot purge physique PR #52 REFUSÉ (guard topologie APRÈS suppression externe + gel non relâché garanti) ; CTR-RUNTIME-NIX REFUSÉ (preuve live du code typé = 409 /nix-lock, pas un publish sur image corrigée). Aucun refus fondé sur le seul rouge Playwright."
+    decisions:
+      accepted: []
+      refused: [P0-A2-09]
+      contractsAccepted: []
+      contractsRefused: [CTR-RUNTIME-NIX]
+      codeLotsAccepted: [PR-51-ACCOUNT-PURGE-DB-RR08-FIX]   # portée ciblée, réserves RR-08 (ChatShare public + audit ciblant le sujet) LEVÉES ; AUCUNE signature de contrat, AUCUN CLOSED
+      codeLotsRefused: [PR-52-ACCOUNT-PURGE-PHYSICAL-RR08-FIX]
+    keyDefectRaised: "A2-09 : un token valide (gcloud auth print-access-token) prouve l authentification, PAS l autorisation resourcemanager.projects.get — le message combiné « not found or permission denied » ne peut jamais valoir absence vérifiée ; #52 : le guard de topologie intervient APRÈS l effacement externe irréversible (rollback DB ne restaure pas un bucket détruit) ; NIX : une preuve future après déploiement ne vaut pas une preuve présente"
+    refusalReasonsLocation: "docs/parity/incoming/REPONSE_EXPERT_V6_20260802.md (§A/§C/§D verbatim) + P0_REGISTRY.reviewNote + CONTRACT_REGISTRY.refusalReasonV6"
+    completeness: COMPLETE

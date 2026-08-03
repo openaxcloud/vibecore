@@ -543,8 +543,8 @@ p0s:
     priority: 9
     owner: platform
     status: OPEN
-    reviewNote: "REFUSÉ au reçu RR-20260731-CODEX-08 (motif verbatim) : teardown() traite tout échec de gcloud projects describe comme une absence → saute la suppression. Correction exigée : distinguer un vrai NOT_FOUND authentifié ; retry sur transitoire ; tenter delete même si état illisible ; échouer le reçu de nettoyage si l'état final n'est ni DELETE_REQUESTED ni NOT_FOUND authentifié ; test négatif simulant une erreur transitoire de describe."
-    reviewReceiptId: RR-20260731-CODEX-08
+    reviewNote: "REFUSÉ au reçu RR-20260802-CODEX-09 (motif verbatim) : Le teardown classe comme NOTFOUND le message ambigu « Project [x] not found or permission denied » dès que gcloud auth print-access-token réussit. Un token valide prouve l'authentification, pas l'autorisation resourcemanager.projects.get. Un projet existant mais invisible peut être déclaré absent et recevoir CLEANUP_RECEIPT=OK. Correction : 1) ne jamais traiter le message combiné comme absence vérifiée ; 2) NOTFOUND seulement sur vrai HTTP 404 / statut NOT_FOUND structuré non ambigu ; 3) UNKNOWN sur toute réponse ambiguë ; 4) test token valide + projet existant + principal sans projects.get/projects.delete → reçu FAILED. (Refus précédent RR-20260731-CODEX-08 : describe traité comme absence — corrigé en PR #55 mais la classification NOTFOUND reste ambiguë.)"
+    reviewReceiptId: RR-20260802-CODEX-09
     remediationTrack: CHANTIER
     refusalReason: "WIF prouvé GKE seulement, pas les 3 chemins"
     refusalType: PREUVE_INSUFFISANTE
@@ -556,7 +556,7 @@ p0s:
     proof: "§4.4 REMPLACÉ, ancré GCP-13 (citation exacte « In GKE, Google Cloud manages the workload identity pool and provider for you and doesn't require an external identity provider ») : 3 chemins — GKE→WIF for GKE (recommandé, aucun IdP externe) ; hors GCP→IAM WIF externe ; Cloud Run→service identity + impersonation courte. Zéro clé persistante partout."
     dependances: []
     conditionDeCloture: "Compléter l'évidence : WIF prouvé GKE seulement, pas les 3 chemins ; puis re-soumission au relecteur"
-    nextAction: "Session WIF : describe fail-closed (NOT_FOUND authentifié seul = absence, retry transitoire, delete tenté même si état illisible, reçu de nettoyage échoue sinon) + test négatif describe transitoire ; puis re-soumission"
+    nextAction: "Session WIF : NOTFOUND uniquement sur vrai HTTP 404 / statut NOT_FOUND structuré non ambigu (jamais le message combiné not-found-or-permission-denied) ; UNKNOWN sur toute réponse ambiguë ; test négatif token valide + projet existant + principal sans projects.get/projects.delete → reçu FAILED ; puis re-soumission"
     targetDate: "2026-07-20"
   - p0Id: P0-A2-10
     title: "Décision Gallery incohérente"
