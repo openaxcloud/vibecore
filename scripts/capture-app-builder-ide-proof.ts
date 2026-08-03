@@ -589,6 +589,50 @@ async function readRuntimePreviewPorts(page: Page, projectId: string, token: str
   }
 }
 
+async function probeRuntimePreview(page: Page, projectId: string, token: string, port = 5173) {
+  try {
+    const workspacesResponse = await page.request.get(
+      `${API_BASE_URL}/projects/${encodeURIComponent(projectId)}/workspaces`,
+      {
+        headers: { authorization: `Bearer ${token}` },
+        timeout: 20_000,
+      },
+    );
+
+    if (!workspacesResponse.ok()) {
+      return false;
+    }
+
+    const workspacesPayload = (await workspacesResponse.json()) as {
+      workspaces?: Array<{ id?: string; status?: string }>;
+    };
+    const workspace =
+      workspacesPayload.workspaces?.find((entry) => entry.status === 'RUNNING') ?? workspacesPayload.workspaces?.[0];
+
+    if (!workspace?.id) {
+      return false;
+    }
+
+    const response = await page.request.get(
+      `${API_BASE_URL}/api/runtime/workspaces/${encodeURIComponent(workspace.id)}/preview/${port}/proxy`,
+      {
+        headers: { authorization: `Bearer ${token}` },
+        timeout: 20_000,
+      },
+    );
+
+    if (!response.ok()) {
+      return false;
+    }
+
+    const html = await response.text();
+
+    return /<html|<div[^>]+id=["']root["']|<script/i.test(html) && html.length > 120;
+  } catch {
+    return false;
+  }
+}
+
 async function waitForProjectToSettle(
   page: Page,
   agentPanel: ReturnType<Page['getByTestId']>,
@@ -842,13 +886,22 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
     process.stdout.write(`${JSON.stringify({ status: 'preview-terminal-start-requested' })}\n`);
 
     await expect
-      .poll(() => terminalRows.innerText().catch(() => ''), {
-        message: 'The real IDE Terminal must report a running or already-bound Vite server',
-        timeout: PREVIEW_RESTART_TIMEOUT_MS,
-      })
-      .toMatch(
-        /(?:VITE\s+v\d|Local:\s+https?:\/\/|ready in\s+\d+\s*ms|Port 5173 is already in use|\[vite\]\s+hmr update)/i,
-      );
+      .poll(
+        async () => {
+          const rows = await terminalRows.innerText().catch(() => '');
+
+          return (
+            /(?:VITE\s+v\d|Local:\s+https?:\/\/|ready in\s+\d+\s*ms|Port 5173 is already in use|\[vite\]\s+hmr update)/i.test(
+              rows,
+            ) || (await probeRuntimePreview(page, projectId, token))
+          );
+        },
+        {
+          message: 'The real IDE Terminal or runtime proxy must confirm a running Vite server',
+          timeout: PREVIEW_RESTART_TIMEOUT_MS,
+        },
+      )
+      .toBe(true);
 
     const readyRuntimePorts = await readRuntimePreviewPorts(page, projectId, token);
 
@@ -962,8 +1015,12 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
 
     if (!renderedOnFirstAttach) {
       const iframeSource = await iframe.getAttribute('src').catch(() => null);
+      const runtimePreviewReachable = await probeRuntimePreview(page, projectId, token);
 
-      if (!iframeSource || iframeSource === 'about:blank' || (await readPreviewText()) === 0) {
+      if (
+        !runtimePreviewReachable &&
+        (!iframeSource || iframeSource === 'about:blank' || (await readPreviewText()) === 0)
+      ) {
         await startPreviewFromTerminal();
       }
 
