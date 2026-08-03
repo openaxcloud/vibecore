@@ -9,10 +9,10 @@ import { loader } from './solutions.$slug';
  * engines settle on the canonical URL instead of hitting a dead page.
  */
 
-function callLoader(slug: string) {
+function callLoader(slug: string, search = '') {
   return loader({
     params: { slug },
-    request: new Request(`https://e-code.ai/solutions/${slug}`),
+    request: new Request(`https://e-code.ai/solutions/${slug}${search}`),
     context: {},
   } as never);
 }
@@ -32,6 +32,22 @@ describe('solutions.$slug loader — legacy slug redirects', () => {
     const response = thrown as Response;
     expect(response.status).toBe(308);
     expect(response.headers.get('Location')).toBe('/solutions/internal-ai-builder');
+  });
+
+  it('preserves the complete query string when redirecting the internal-ai alias', () => {
+    let thrown: unknown;
+
+    try {
+      callLoader('internal-ai', '?lang=fr&utm_source=legacy');
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(Response);
+
+    const response = thrown as Response;
+    expect(response.status).toBe(308);
+    expect(response.headers.get('Location')).toBe('/solutions/internal-ai-builder?lang=fr&utm_source=legacy');
   });
 
   it('still serves the canonical internal-ai-builder page (no redirect)', () => {

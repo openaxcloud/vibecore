@@ -24,13 +24,15 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => [
   },
 ];
 
-export function loader({ params }: LoaderFunctionArgs) {
+export function loader({ params, request }: LoaderFunctionArgs) {
   const slug = params.slug ?? '';
 
   const canonical = SOLUTION_SLUG_ALIASES[slug];
 
   if (canonical) {
-    throw redirect(`/solutions/${canonical}`, 308);
+    const { search } = new URL(request.url);
+
+    throw redirect(`/solutions/${canonical}${search}`, 308);
   }
 
   const page = solutionPages[slug as keyof typeof solutionPages];
