@@ -437,16 +437,52 @@ export async function withProjectLock<T>(projectId: string, fn: () => Promise<T>
   }
 }
 
+/*
+ * A stale NFS/overlay file handle (ESTALE) is TRANSIENT: it appears when the
+ * backing mount is re-pointed (a pod moving during a redeploy) while an fd is
+ * open, and it clears as soon as the path is re-resolved. Measured in prod
+ * 2026-08-03: bursts of `listProjectFilesIncludingIdeState` 500s during
+ * rollouts, all `errno -116` (ESTALE) on read. Node does not always map -116 to
+ * the string code 'ESTALE' (the raw entry showed code "Unknown system error
+ * -116"), so we match BOTH the mapped code and the raw errno.
+ *
+ * Retry is scoped to ESTALE only — ENOENT (a concurrent delete) must still fall
+ * through to the existing TOCTOU skip, never be retried.
+ */
+export function isStaleHandle(error: unknown): boolean {
+  const e = error as NodeJS.ErrnoException | undefined;
+
+  return e?.code === 'ESTALE' || e?.errno === -116;
+}
+
+export async function withStaleRetry<T>(op: () => Promise<T>, attempts = 3): Promise<T> {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await op();
+    } catch (error) {
+      if (!isStaleHandle(error) || attempt >= attempts) {
+        throw error;
+      }
+
+      // Short backoff (20ms, 40ms): a stale handle resolves on re-open, so a
+      // couple of quick retries lisse the redeploy blip without slowing reads.
+      await new Promise((resolve) => setTimeout(resolve, 20 * attempt));
+    }
+  }
+}
+
 async function walkFiles(root: string, current = ''): Promise<ProjectFile[]> {
   const dir = join(root, current);
 
-  const entries = await readdir(dir, { withFileTypes: true }).catch((error: NodeJS.ErrnoException) => {
-    if (error.code === 'ENOENT') {
-      return [];
-    }
+  const entries = await withStaleRetry(() => readdir(dir, { withFileTypes: true })).catch(
+    (error: NodeJS.ErrnoException) => {
+      if (error.code === 'ENOENT') {
+        return [];
+      }
 
-    throw error;
-  });
+      throw error;
+    },
+  );
 
   const files: ProjectFile[] = [];
 
@@ -478,13 +514,13 @@ async function walkFiles(root: string, current = ''): Promise<ProjectFile[]> {
        * /projects/:projectId/dashboard).
        */
       try {
-        const metadata = await stat(fullPath);
+        const metadata = await withStaleRetry(() => stat(fullPath));
 
         /*
          * Read raw bytes and detect binary, so non-text assets (images, fonts, wasm)
          * survive instead of being lossily decoded as UTF-8 (git-import corruption).
          */
-        const { content, encoding } = encodeFileBuffer(await readFile(fullPath));
+        const { content, encoding } = encodeFileBuffer(await withStaleRetry(() => readFile(fullPath)));
         files.push({ path: child, content, encoding, updatedAt: metadata.mtime.toISOString() });
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
