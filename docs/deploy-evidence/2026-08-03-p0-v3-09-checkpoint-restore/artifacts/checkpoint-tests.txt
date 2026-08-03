@@ -1,0 +1,63 @@
+
+ RUN  v3.2.6 /Users/hb/dev/vibecore/.claude/worktrees/p0-v3-09/services/api
+
+ ✓ src/lifecycle-state-machines.spec.ts > checkpoint two-phase barrier (audit v4 D) > accepts the full normative path PREPARING→…→COMMITTED 4ms
+ ✓ src/lifecycle-state-machines.spec.ts > checkpoint two-phase barrier (audit v4 D) > REFUSES snapshotting before the barrier is established (the illusion-of-consistency bug) 2ms
+ ✓ src/lifecycle-state-machines.spec.ts > checkpoint two-phase barrier (audit v4 D) > allows ABORTING from any non-terminal state, then CLEANED / MANUAL_INTERVENTION 2ms
+ ✓ src/lifecycle-state-machines.spec.ts > checkpoint two-phase barrier (audit v4 D) > quiesce is inadmissible without a finite timeout AND a guaranteed thaw 0ms
+ ✓ src/lifecycle-state-machines.spec.ts > checkpoint two-phase barrier (audit v4 D) > manifest is visible ONLY after every component verifies under the SAME barrier 1ms
+ ✓ src/lifecycle-state-machines.spec.ts > DB migration execution (audit v4 E) > accepts PLANNED→…→COMMITTED 0ms
+ ✓ src/lifecycle-state-machines.spec.ts > DB migration execution (audit v4 E) > REFUSES applying before the backup is verified 0ms
+ ✓ src/lifecycle-state-machines.spec.ts > DB migration execution (audit v4 E) > allows FAILED_SAFE / FORWARD_FIX_REQUIRED / MANUAL_RECOVERY from any non-terminal state 0ms
+ ✓ src/lifecycle-state-machines.spec.ts > DB migration execution (audit v4 E) > enforces exactly ONE active migration per environment 2ms
+ ✓ src/lifecycle-state-machines.spec.ts > promotion → release (audit v4 C) > accepts PROMOTION_PREPARED→…→PROMOTION_COMMITTED 2ms
+ ✓ src/lifecycle-state-machines.spec.ts > promotion → release (audit v4 C) > REFUSES committing a promotion that skipped a gate 0ms
+ ✓ src/lifecycle-state-machines.spec.ts > promotion → release (audit v4 C) > an aborted promotion may only be CLEANED — never committed (never becomes a release) 3ms
+ ✓ src/lifecycle-state-machines.spec.ts > promotion → release (audit v4 C) > a release may be cut ONLY from a committed, fully-attested promotion 0ms
+ ✓ src/checkpoint-consistency.spec.ts > niveau de cohérence — jamais au-dessus du prouvé > les FICHIERS ne dépassent JAMAIS crash-consistent, même sans écrivain in-pod 7ms
+ ✓ src/checkpoint-consistency.spec.ts > niveau de cohérence — jamais au-dessus du prouvé > sans barrière garantie sur tous les replicas, AUCUN niveau n est revendiqué 0ms
+ ✓ src/checkpoint-consistency.spec.ts > niveau de cohérence — jamais au-dessus du prouvé > la BASE est crash-consistent et déclare l absence d instant commun 0ms
+ ✓ src/checkpoint-consistency.spec.ts > niveau de cohérence — jamais au-dessus du prouvé > agrège au composant le PLUS FAIBLE, jamais au plus fort 0ms
+ ✓ src/checkpoint-consistency.spec.ts > niveau de cohérence — jamais au-dessus du prouvé > déclare l atomicité inter-composants FAUSSE (snapshots séquentiels) 2ms
+ ✓ src/checkpoint-consistency.spec.ts > niveau de cohérence — jamais au-dessus du prouvé > aucun chemin ne peut rendre un niveau de la liste interdite 5ms
+ ✓ src/checkpoint-consistency.spec.ts > niveau de cohérence — jamais au-dessus du prouvé > sans composant, le niveau est UNKNOWN — pas un succès par défaut 0ms
+ ✓ src/checkpoint-consistency.spec.ts > portée de capture — les limites structurelles sont écrites > dit que la source est la copie API, pas le volume vif du pod 0ms
+ ✓ src/checkpoint-consistency.spec.ts > portée de capture — les limites structurelles sont écrites > énumère les écrivains hors de portée au lieu de les taire 0ms
+ ✓ src/tests/checkpoint-restore-proof.spec.ts > P0-V3-09 — restore RÉEL prouvé par le contenu > créer → checkpoint → casser → restore → les données D ORIGINE sont retrouvées 10251ms
+ ✓ src/tests/checkpoint-routes.spec.ts > Checkpoint PROJET coordonné — câblage réel (plan §15, CTR-CHECKPOINT) > exécute la machine complète et produit un manifeste COMPLET et vérifié 35780ms
+ ✓ src/tests/checkpoint-restore-proof.spec.ts > P0-V3-09 — restore RÉEL prouvé par le contenu > le restore laisse un POINT DE RETOUR exploitable (on peut revenir à l état cassé) 24418ms
+ ✓ src/tests/checkpoint-routes.spec.ts > Checkpoint PROJET coordonné — câblage réel (plan §15, CTR-CHECKPOINT) > GÈLE les écritures pendant la barrière (423) et les DÉGÈLE après 9522ms
+ ✓ src/tests/checkpoint-restore-proof.spec.ts > P0-V3-09 — restore RÉEL prouvé par le contenu > REFUSE de restaurer un checkpoint non COMMITTED (404) — jamais depuis un état partiel 10100ms
+ ✓ src/tests/checkpoint-routes.spec.ts > Checkpoint PROJET coordonné — câblage réel (plan §15, CTR-CHECKPOINT) > DÉGEL GARANTI sur le chemin d'échec : snapshot qui explose → CLEANED + barrière levée 968ms
+ ✓ src/tests/checkpoint-routes.spec.ts > Checkpoint PROJET coordonné — câblage réel (plan §15, CTR-CHECKPOINT) > RESTORE VÉRIFIÉ : le contenu restauré re-hash exactement le manifeste, dans un projet JETABLE 167ms
+ ✓ src/tests/checkpoint-routes.spec.ts > Checkpoint PROJET coordonné — câblage réel (plan §15, CTR-CHECKPOINT) > un snapshot de POD seul n'est JAMAIS un checkpoint projet (admissibilité) 0ms
+ ✓ src/tests/checkpoint-restore-proof.spec.ts > P0-V3-09 — le manifeste ne sur-revendique pas > annonce crash-consistent, JAMAIS application/transaction-consistent 910ms
+ ✓ src/tests/checkpoint-restore-proof.spec.ts > P0-V3-09 — le manifeste ne sur-revendique pas > déclare explicitement l ABSENCE d atomicité inter-composants 130ms
+ ✓ src/tests/checkpoint-restore-proof.spec.ts > P0-V3-09 — le manifeste ne sur-revendique pas > la vérification du composant FILES nomme sa MÉTHODE (pas un booléen nu) 7855ms
+ ✓ src/tests/checkpoint-restore-proof.spec.ts > P0-V3-09 — la barrière est PARTAGÉE et posée au point d étranglement > une barrière posée par un replica gèle les écritures vues par un AUTRE replica 8057ms
+ ✓ src/tests/checkpoint-restore-proof.spec.ts > P0-V3-09 — la barrière est PARTAGÉE et posée au point d étranglement > un bail EXPIRÉ dégèle tout seul (le processus porteur peut mourir en vol) 5058ms
+ ✓ src/tests/checkpoint-restore-proof.spec.ts > P0-V3-09 — la barrière est PARTAGÉE et posée au point d étranglement > la barrière tient AUSSI sur une route qui n a jamais eu de garde explicite 5476ms
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+
+Vitest caught 1 unhandled error during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+
+⎯⎯⎯⎯⎯⎯ Unhandled Error ⎯⎯⎯⎯⎯⎯⎯
+Error: [vitest-worker]: Timeout calling "onTaskUpdate"
+ ❯ Object.onTimeoutError ../../../../../node_modules/.pnpm/vitest@3.2.6_@types+debug@4.1.12_@types+node@25.6.0_jsdom@26.1.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vitest/dist/chunks/rpc.-pEldfrD.js:53:10
+ ❯ Timeout._onTimeout ../../../../../node_modules/.pnpm/vitest@3.2.6_@types+debug@4.1.12_@types+node@25.6.0_jsdom@26.1.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vitest/dist/chunks/index.B521nVV-.js:59:62
+ ❯ listOnTimeout node:internal/timers:608:17
+ ❯ processTimers node:internal/timers:543:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+
+ Test Files  4 passed (4)
+      Tests  36 passed (36)
+     Errors  1 error
+   Start at  15:39:38
+   Duration  231.41s (transform 85.10s, setup 0ms, collect 304.00s, tests 120.21s, environment 0ms, prepare 3.00s)
+
+close timed out after 10000ms
+Tests closed successfully but something prevents Vite server from exiting
+You can try to identify the cause by enabling "hanging-process" reporter. See https://vitest.dev/config/#reporters

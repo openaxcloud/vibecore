@@ -241,10 +241,10 @@ p0s:
     commit: "b8186f2f"
     reviewer: UNKNOWN
     evidenceId: docs/parity/CHECKPOINT_CONTRACT.md
-    proof: "SPEC UNIQUEMENT : protocole barrière 2 phases (BARRIER_ESTABLISHED avant SNAPSHOTTING), niveaux crash/application/transaction-consistent, quiesce avec dégel obligatoire ; transition CHECKPOINT_SNAPSHOT_BEFORE_BARRIER refusée par test. Implémentation non commencée — un contrat n'est pas une capacité."
-    dependances: [UNK-CHECKPOINT-IMPL]
-    conditionDeCloture: "Corriger le claim/la preuve : barrière 2 phases prouvée mais pas le niveau « transaction-consistent » revendiqué ; puis re-soumission au relecteur"
-    nextAction: "Implémentation volume+DB+manifest avec preuve de restore"
+    proof: "v3 (PR feat/p0-v3-09-checkpoint-restore) — CLAIM REDESCENDU AU PROUVÉ : le niveau n'est plus écrit à la main mais DÉRIVÉ de la portée réelle de la barrière (checkpoint-consistency.ts) ; le manifeste annonce crash-consistent, porte crossComponentAtomic=false et notClaimed=[application-consistent, transaction-consistent] ; un test échoue si un niveau interdit apparaît dans un manifeste. PREUVE DE RESTORE RÉELLE : créer→checkpoint→casser (valeur modifiée + fichier supprimé + fichier parasite)→POST /checkpoints/:id/restore→contenu d'origine retrouvé, vérifié en relisant le stockage et par re-hash contre le manifeste. CORRECTIFS : barrière persistée en base (elle était une Map in-process alors que l'API tourne en 2 replicas → invisible aux autres, elle ne gelait rien) et appliquée au point d'étranglement du stockage (elle ne couvrait que 2 des ~35 routes mutantes, dont aucune des écritures parties de handlers GET). NON PROUVÉ, dit tel quel : couverture BASE (le backup CNPG est soumis mais ni attendu ni rejoué → exclu des composants vérifiés), gel des écrivains in-pod, instant commun fichiers↔base. 27 tests verts."
+    dependances: [UNK-CHECKPOINT-DB-PITR, UNK-CHECKPOINT-POD-FREEZE]
+    conditionDeCloture: "Signature expert de CTR-CHECKPOINT v3. Le point RESTE OUVERT : la couverture base et le gel in-pod ne sont pas prouvés — seul le composant FICHIERS est restauré et vérifié."
+    nextAction: "Re-soumission au relecteur (CTR-CHECKPOINT v3) ; puis restore PITR CNPG réel pour la couverture base"
     targetDate: "2026-09-30"
   - p0Id: P0-V3-10
     title: "Contrat Nix incomplet et pin mal classé"
