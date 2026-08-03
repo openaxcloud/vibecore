@@ -846,7 +846,9 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
         message: 'The real IDE Terminal must report a running or already-bound Vite server',
         timeout: PREVIEW_RESTART_TIMEOUT_MS,
       })
-      .toMatch(/(?:VITE\s+v\d|Local:\s+https?:\/\/|ready in\s+\d+\s*ms|Port 5173 is already in use)/i);
+      .toMatch(
+        /(?:VITE\s+v\d|Local:\s+https?:\/\/|ready in\s+\d+\s*ms|Port 5173 is already in use|\[vite\]\s+hmr update)/i,
+      );
 
     const readyRuntimePorts = await readRuntimePreviewPorts(page, projectId, token);
 
