@@ -7,6 +7,7 @@ import { FREELANCERS_COPY } from '~/components/marketing/solutions/freelancers.c
 import { GAME_BUILDER_COPY } from '~/components/marketing/solutions/game-builder.copy';
 import { INTERNAL_AI_BUILDER_COPY } from '~/components/marketing/solutions/internal-ai-builder.copy';
 import type { SolutionCopyByLanguage } from '~/components/marketing/solutions/solution-copy';
+import { SOLUTION_PROOF_VISUAL_SLOTS } from '~/components/marketing/solutions/solution-proof.visuals';
 import { STARTUPS_COPY } from '~/components/marketing/solutions/startups.copy';
 import { WEBSITE_BUILDER_COPY } from '~/components/marketing/solutions/website-builder.copy';
 
@@ -88,24 +89,34 @@ async function expectProofImages(
   slug: (typeof SOLUTIONS)[number]['slug'],
   language: (typeof LANGUAGES)[number],
 ) {
-  const expectedSources = [
-    `/assets/solutions/${slug}/${language}/ide-agent-preview.png`,
-    `/assets/solutions/${slug}/${language}/ide-agent-iteration.png`,
-  ];
+  const filenames = {
+    prompt: 'ide-agent-prompt.png',
+    preview: 'ide-agent-preview.png',
+    webviewOverview: 'ide-webview-overview.png',
+    iteration: 'ide-agent-iteration.png',
+    webviewIteration: 'ide-webview-iteration.png',
+    files: 'ide-agent-files.png',
+  } as const;
+  const expectedSources = SOLUTION_PROOF_VISUAL_SLOTS.map(
+    (slot) => `/assets/solutions/${slug}/${language}/${filenames[slot]}`,
+  );
 
-  const images = page.locator('[data-testid="solution-ide-proof-gallery"] img');
+  const figures = page.locator('[data-real-solution-proof="true"]');
+  const images = figures.locator('img');
 
-  await expect(images).toHaveCount(2);
+  await expect(images).toHaveCount(6);
 
   for (const [index, source] of expectedSources.entries()) {
     const image = images.nth(index);
+    const slot = SOLUTION_PROOF_VISUAL_SLOTS[index];
 
     await expect(image).toHaveAttribute('src', source);
     await expect(image).toHaveAttribute('width', '1440');
     await expect(image).toHaveAttribute('height', '900');
-    await expect(image).toHaveAttribute('loading', 'lazy');
+    await expect(image).toHaveAttribute('loading', index === 0 ? 'eager' : 'lazy');
     await expect(image).toHaveAttribute('decoding', 'async');
-    await expect(image.locator('xpath=ancestor::figure')).toHaveAttribute('data-visual-solution', slug);
+    await expect(figures.nth(index)).toHaveAttribute('data-visual-solution', slug);
+    await expect(figures.nth(index)).toHaveAttribute('data-visual-slot', slot);
 
     const alt = await image.getAttribute('alt');
 
@@ -171,7 +182,7 @@ test.describe('declined solution sales pages', () => {
             await expect(page.getByTestId('solution-hero').getByRole('heading', { level: 1 })).toHaveText(
               copy.hero.title,
             );
-            await expect(page.getByTestId('solution-demo')).toContainText(copy.demo.disclaimer);
+            await expect(page.getByTestId('solution-ide-prompt')).toContainText(copy.proofLink.disclaimer);
             await expect(page.getByTestId('solution-problem').locator('article')).toHaveCount(3);
             await expect(page.getByTestId('solution-build').locator('blockquote')).toHaveText(copy.build.promptText);
             await expect(page.getByTestId('solution-build').locator('.sol-output-grid > li')).toHaveCount(4);
