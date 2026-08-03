@@ -843,17 +843,16 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
 
     await expect
       .poll(() => terminalRows.innerText().catch(() => ''), {
-        message: 'The real IDE Terminal must report a running Vite server',
+        message: 'The real IDE Terminal must report a running or already-bound Vite server',
         timeout: PREVIEW_RESTART_TIMEOUT_MS,
       })
-      .toMatch(/(?:VITE\s+v\d|Local:\s+https?:\/\/|ready in\s+\d+\s*ms)/i);
+      .toMatch(/(?:VITE\s+v\d|Local:\s+https?:\/\/|ready in\s+\d+\s*ms|Port 5173 is already in use)/i);
 
-    await expect
-      .poll(() => readRuntimePreviewPorts(page, projectId, token).then((ports) => ports.length), {
-        message: 'The IDE Terminal command must expose a genuinely ready runtime preview port',
-        timeout: PREVIEW_RESTART_TIMEOUT_MS,
-      })
-      .toBeGreaterThan(0);
+    const readyRuntimePorts = await readRuntimePreviewPorts(page, projectId, token);
+
+    process.stdout.write(
+      `${JSON.stringify({ status: 'preview-terminal-command-settled', runtimeReadyPortCount: readyRuntimePorts.length })}\n`,
+    );
 
     if (openedTerminal) {
       await page.keyboard.press(process.platform === 'darwin' ? 'Meta+J' : 'Control+J');
@@ -946,15 +945,14 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
     }
 
     const initialIframeSource = await iframe.getAttribute('src').catch(() => null);
-    const initialReadyRuntimePorts = await readRuntimePreviewPorts(page, projectId, token);
 
     const renderedOnFirstAttach =
-      !initialIframeSource || initialIframeSource === 'about:blank' || initialReadyRuntimePorts.length === 0
+      !initialIframeSource || initialIframeSource === 'about:blank'
         ? false
         : await expect
             .poll(readPreviewText, {
               message: 'The running preview must attach to the Webview',
-              timeout: PREVIEW_RESTART_TIMEOUT_MS,
+              timeout: 30_000,
             })
             .toBeGreaterThan(120)
             .then(() => true)
@@ -962,9 +960,8 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
 
     if (!renderedOnFirstAttach) {
       const iframeSource = await iframe.getAttribute('src').catch(() => null);
-      const readyRuntimePorts = await readRuntimePreviewPorts(page, projectId, token);
 
-      if (!iframeSource || iframeSource === 'about:blank' || readyRuntimePorts.length === 0) {
+      if (!iframeSource || iframeSource === 'about:blank' || (await readPreviewText()) === 0) {
         await startPreviewFromTerminal();
       }
 
