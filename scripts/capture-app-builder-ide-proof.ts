@@ -750,6 +750,7 @@ async function waitForPreview(page: Page, evidenceRoot: string) {
 
       if (await previewRunButton.isVisible().catch(() => false)) {
         await previewRunButton.click({ noWaitAfter: true });
+        process.stdout.write(`${JSON.stringify({ status: 'preview-start-requested' })}\n`);
         return true;
       }
 
@@ -771,6 +772,7 @@ async function waitForPreview(page: Page, evidenceRoot: string) {
 
       if (await reinstallDependenciesButton.isVisible().catch(() => false)) {
         await reinstallDependenciesButton.click({ noWaitAfter: true });
+        process.stdout.write(`${JSON.stringify({ status: 'preview-dependencies-reinstall-requested' })}\n`);
       }
 
       await expect
@@ -789,7 +791,21 @@ async function waitForPreview(page: Page, evidenceRoot: string) {
         .toBe(true);
 
       await startPreviewIfStopped();
-      await expect(iframe).toBeVisible({ timeout: PREVIEW_RESTART_TIMEOUT_MS });
+
+      const attachedAfterDependencyRecovery = await iframe
+        .waitFor({ state: 'visible', timeout: 90_000 })
+        .then(() => true)
+        .catch(() => false);
+
+      if (!attachedAfterDependencyRecovery) {
+        process.stdout.write(`${JSON.stringify({ status: 'preview-ide-reload-requested' })}\n`);
+        await page.reload({ waitUntil: 'domcontentloaded', timeout: 180_000 });
+        await expect(webviewButton).toBeVisible({ timeout: 180_000 });
+        await webviewButton.click();
+        await waitForPreviewSurface();
+        await startPreviewIfStopped();
+        await expect(iframe).toBeVisible({ timeout: PREVIEW_RESTART_TIMEOUT_MS });
+      }
     }
 
     const renderedOnFirstAttach = await expect
@@ -806,6 +822,7 @@ async function waitForPreview(page: Page, evidenceRoot: string) {
 
       if (await refreshPreviewButton.isVisible().catch(() => false)) {
         await refreshPreviewButton.click({ noWaitAfter: true });
+        process.stdout.write(`${JSON.stringify({ status: 'preview-refresh-requested' })}\n`);
       }
 
       const renderedAfterRefresh = await expect
@@ -818,6 +835,7 @@ async function waitForPreview(page: Page, evidenceRoot: string) {
         .catch(() => false);
 
       if (!renderedAfterRefresh) {
+        process.stdout.write(`${JSON.stringify({ status: 'preview-final-ide-reload-requested' })}\n`);
         await page.reload({ waitUntil: 'domcontentloaded', timeout: 180_000 });
         await expect(webviewButton).toBeVisible({ timeout: 180_000 });
         await webviewButton.click();
