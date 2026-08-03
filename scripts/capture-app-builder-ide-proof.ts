@@ -850,14 +850,19 @@ async function waitForPreview(page: Page, evidenceRoot: string) {
       }
     }
 
-    const renderedOnFirstAttach = await expect
-      .poll(readPreviewText, {
-        message: 'The running preview must attach to the Webview',
-        timeout: PREVIEW_RESTART_TIMEOUT_MS,
-      })
-      .toBeGreaterThan(120)
-      .then(() => true)
-      .catch(() => false);
+    const initialIframeSource = await iframe.getAttribute('src').catch(() => null);
+
+    const renderedOnFirstAttach =
+      !initialIframeSource || initialIframeSource === 'about:blank'
+        ? false
+        : await expect
+            .poll(readPreviewText, {
+              message: 'The running preview must attach to the Webview',
+              timeout: PREVIEW_RESTART_TIMEOUT_MS,
+            })
+            .toBeGreaterThan(120)
+            .then(() => true)
+            .catch(() => false);
 
     if (!renderedOnFirstAttach) {
       const iframeSource = await iframe.getAttribute('src').catch(() => null);
