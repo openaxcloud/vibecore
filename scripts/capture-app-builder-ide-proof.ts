@@ -279,7 +279,7 @@ function creationPromptFor(slug: CaptureSlug, scenario: SolutionScenario) {
   const runtimeContract =
     slug === 'app-builder'
       ? ''
-      : ' Keep the generated runtime deliberately reliable: a Vite React TypeScript frontend with a complete package.json dev script, index.html, src/main.tsx, and src/styles.css. Keep all working UI and local state in those files unless another source file is essential. Do not add tests, a backend, a router package, a component library, or any dependency beyond React, React DOM, TypeScript, and Vite. Bind Vite to 0.0.0.0. Save only complete valid source files and make the first rendered route immediately show the named product.';
+      : ' Keep the generated runtime deliberately reliable: a Vite React TypeScript frontend with a complete package.json dev script, index.html, src/main.tsx, and src/styles.css. Keep the entire working UI and local state in src/main.tsx and src/styles.css; do not create App.tsx or extra component files. Do not add tests, a backend, a router package, a component library, or any dependency beyond React, React DOM, TypeScript, and Vite. Bind Vite to 0.0.0.0. Save only complete valid source files. Never include antml, boltArtifact, boltAction, XML, or markdown wrappers in a saved file. Make the first rendered route immediately show the named product.';
 
   return `${scenario.prompt} Do not leave a generic starter or reuse unrelated template copy; the visible product name, content, and workflows must match this brief. Draw interface visuals in code or use bundled local assets only. Do not hotlink remote images, stock-photo services, fonts, scripts, or stylesheets.${runtimeContract}`;
 }
@@ -300,6 +300,43 @@ function repairPromptFor(slug: CaptureSlug, scenario: SolutionScenario, attempt:
   }
 
   return `${basePrompt} This is repair attempt ${attempt}; the previous repair still left the Webview invalid. Do not trust the previous success message. Re-read the exact current file contents and verify visible Webview text before answering.`;
+}
+
+function escapedPattern(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+async function selectCreationModel(page: Page) {
+  const providerName = process.env.SOLUTION_PROOF_AI_PROVIDER?.trim();
+  const modelName = process.env.SOLUTION_PROOF_AI_MODEL?.trim();
+
+  if (!providerName && !modelName) {
+    return;
+  }
+
+  if (providerName) {
+    const providerCombobox = page.getByTestId('ai-provider-dropdown').getByRole('combobox', { name: 'AI provider' });
+
+    await expect(providerCombobox).toBeVisible({ timeout: 60_000 });
+    await providerCombobox.click();
+    await page
+      .getByRole('option', { name: new RegExp(escapedPattern(providerName), 'i') })
+      .first()
+      .click();
+    await expect(providerCombobox).toContainText(new RegExp(escapedPattern(providerName), 'i'));
+  }
+
+  if (modelName) {
+    const modelCombobox = page.getByTestId('ai-model-dropdown').getByRole('combobox', { name: 'AI model' });
+
+    await expect(modelCombobox).toBeVisible({ timeout: 60_000 });
+    await modelCombobox.click();
+    await page
+      .getByRole('option', { name: new RegExp(escapedPattern(modelName), 'i') })
+      .first()
+      .click();
+    await expect(modelCombobox).toContainText(new RegExp(escapedPattern(modelName), 'i'));
+  }
 }
 
 function readLocale(): CaptureLocale {
@@ -540,6 +577,26 @@ async function readProjectIdeState(page: Page, projectId: string, token: string)
     };
   } catch {
     return undefined;
+  }
+}
+
+async function assertGeneratedSourcesAreUnwrapped(page: Page, projectId: string, token: string) {
+  const projectState = await readProjectIdeState(page, projectId, token);
+
+  if (!projectState) {
+    throw new Error('The generated IDE state is unavailable before preview verification');
+  }
+
+  const invalidPaths = projectState.files.flatMap((file) => {
+    const path = file.path ?? '';
+    const content = file.content ?? '';
+    const isRuntimeSource = /(?:^|\/)(?:package|tsconfig(?:\.node)?)\.json$|\.(?:css|html|jsx?|tsx?)$/i.test(path);
+
+    return isRuntimeSource && /<\/?antml>|<\/?bolt(?:Artifact|Action)\b|```/i.test(content) ? [path] : [];
+  });
+
+  if (invalidPaths.length > 0) {
+    throw new Error(`Generated source contains response-wrapper markers: ${invalidPaths.join(', ')}`);
   }
 }
 
@@ -800,6 +857,8 @@ async function repairGeneratedPreview(
 }
 
 async function waitForPreview(page: Page, evidenceRoot: string, projectId: string, token: string) {
+  await assertGeneratedSourcesAreUnwrapped(page, projectId, token);
+
   const webviewButton = page.getByRole('button', { name: 'Webview' }).first();
 
   await expect(webviewButton).toBeVisible({ timeout: 60_000 });
@@ -1568,6 +1627,8 @@ async function main() {
           page.getByTestId('ai-model-dropdown').getByRole('combobox', { name: 'AI model' }),
         ).not.toContainText('No option available');
       }
+
+      await selectCreationModel(page);
 
       await promptField.fill(creationPrompt);
       await page.getByRole('button', { name: 'Create project' }).click();
