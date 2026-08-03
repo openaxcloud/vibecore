@@ -49,7 +49,7 @@ type CaptureSession = {
 const APP_BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:5173';
 const API_BASE_URL = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
 const GENERATION_TIMEOUT_MS = 12 * 60 * 1000;
-const PREVIEW_TIMEOUT_MS = 15 * 60 * 1000;
+const PREVIEW_TIMEOUT_MS = Number(process.env.SOLUTION_PROOF_PREVIEW_TIMEOUT_MS ?? 5 * 60 * 1000);
 const PREVIEW_RESTART_TIMEOUT_MS = 3 * 60 * 1000;
 
 const PREVIEW_RUNTIME_ERROR_PATTERN =
@@ -275,8 +275,13 @@ function appBuilderFallback(slug: CaptureSlug, value: string | undefined) {
   return slug === 'app-builder' ? value?.trim() : undefined;
 }
 
-function creationPromptFor(scenario: SolutionScenario) {
-  return `${scenario.prompt} Do not leave a generic starter or reuse unrelated template copy; the visible product name, content, and workflows must match this brief. Draw interface visuals in code or use bundled local assets only. Do not hotlink remote images, stock-photo services, fonts, scripts, or stylesheets.`;
+function creationPromptFor(slug: CaptureSlug, scenario: SolutionScenario) {
+  const runtimeContract =
+    slug === 'app-builder'
+      ? ''
+      : ' Keep the generated runtime deliberately reliable: a Vite React TypeScript frontend with a complete package.json dev script, index.html, src/main.tsx, and src/styles.css. Keep all working UI and local state in those files unless another source file is essential. Do not add tests, a backend, a router package, a component library, or any dependency beyond React, React DOM, TypeScript, and Vite. Bind Vite to 0.0.0.0. Save only complete valid source files and make the first rendered route immediately show the named product.';
+
+  return `${scenario.prompt} Do not leave a generic starter or reuse unrelated template copy; the visible product name, content, and workflows must match this brief. Draw interface visuals in code or use bundled local assets only. Do not hotlink remote images, stock-photo services, fonts, scripts, or stylesheets.${runtimeContract}`;
 }
 
 function repairPromptFor(slug: CaptureSlug, scenario: SolutionScenario, attempt: number) {
@@ -625,9 +630,14 @@ async function projectFilesRevision(page: Page, projectId: string, token: string
 async function submitAgentPrompt(agentPanel: ReturnType<Page['getByTestId']>, prompt: string) {
   const composer = agentPanel.getByRole('textbox', { name: 'Agent prompt' });
   const stopButton = agentPanel.getByRole('button', { name: 'Stop generation' }).first();
+  const quotaBlock = agentPanel.getByText(/quota exceeded|usage limit reached|insufficient credits/i).last();
   const preferredAgentMode = process.env.SOLUTION_PROOF_AGENT_MODE?.trim();
 
   await expect(composer).toBeVisible({ timeout: 60_000 });
+
+  if (await quotaBlock.isVisible().catch(() => false)) {
+    throw new Error('The proof account has no remaining Agent quota');
+  }
 
   if (await stopButton.isVisible().catch(() => false)) {
     const completedProgress = agentPanel.locator('[aria-label*="Agent Done"][aria-label*="100%"]').last();
@@ -647,6 +657,15 @@ async function submitAgentPrompt(agentPanel: ReturnType<Page['getByTestId']>, pr
   await composer.fill(prompt);
   await expect(composer).toHaveValue(prompt);
   await composer.press('Enter');
+
+  if (
+    await quotaBlock
+      .waitFor({ state: 'visible', timeout: 10_000 })
+      .then(() => true)
+      .catch(() => false)
+  ) {
+    throw new Error('The proof account exhausted its Agent quota before updating the project');
+  }
 
   return composer;
 }
@@ -696,9 +715,8 @@ async function waitForPreview(page: Page, evidenceRoot: string) {
   await expect(webviewButton).toBeVisible({ timeout: 60_000 });
   await webviewButton.click();
 
+  const previewNotRunningState = page.getByTestId('preview-not-running-state');
   const iframe = page.locator('iframe[data-testid="preview-iframe"]:visible').last();
-  await expect(iframe).toBeVisible({ timeout: PREVIEW_TIMEOUT_MS });
-
   const body = page.frameLocator('iframe[data-testid="preview-iframe"]:visible').last().locator('body');
 
   let previewText = '';
@@ -709,94 +727,113 @@ async function waitForPreview(page: Page, evidenceRoot: string) {
     return PREVIEW_RUNTIME_ERROR_PATTERN.test(previewText) ? 0 : previewText.length;
   };
 
-  const existingPreviewAttached = await expect
-    .poll(readPreviewText, {
-      message: 'Attach to an already-running project preview before starting another dev server',
-      timeout: 60_000,
-    })
-    .toBeGreaterThan(120)
-    .then(() => true)
-    .catch(() => false);
+  try {
+    const waitForPreviewSurface = () =>
+      expect
+        .poll(
+          async () =>
+            (await iframe.isVisible().catch(() => false)) ||
+            (await previewNotRunningState.isVisible().catch(() => false)),
+          {
+            message: 'Webview must expose either its running iframe or the explicit preview start state',
+            timeout: 60_000,
+          },
+        )
+        .toBe(true);
 
-  if (!existingPreviewAttached) {
-    const reinstallDependenciesButton = page.getByRole('button', { name: 'Reinstall dependencies' }).first();
+    const startPreviewIfStopped = async () => {
+      if (!(await previewNotRunningState.isVisible().catch(() => false))) {
+        return false;
+      }
 
-    if (await reinstallDependenciesButton.isVisible().catch(() => false)) {
-      await reinstallDependenciesButton.click({ noWaitAfter: true });
-      await reinstallDependenciesButton.waitFor({ state: 'hidden', timeout: 180_000 }).catch(() => undefined);
-    }
+      const previewRunButton = previewNotRunningState.getByRole('button', { name: 'Run to preview your app' }).first();
 
-    const previewRunButton = page.getByRole('button', { name: 'Run to preview your app' }).first();
+      if (await previewRunButton.isVisible().catch(() => false)) {
+        await previewRunButton.click({ noWaitAfter: true });
+        return true;
+      }
 
-    const previewRunVisible = await previewRunButton
-      .waitFor({ state: 'visible', timeout: 15_000 })
+      return false;
+    };
+
+    await waitForPreviewSurface();
+    await startPreviewIfStopped();
+
+    const attachedAfterStart = await iframe
+      .waitFor({ state: 'visible', timeout: 90_000 })
       .then(() => true)
       .catch(() => false);
 
-    if (previewRunVisible) {
-      await previewRunButton.click({ noWaitAfter: true });
-    } else {
-      const topRunButton = page.getByTestId('button-run-stop');
-      const topRunLabel = (await topRunButton.textContent().catch(() => ''))?.trim() ?? '';
+    if (!attachedAfterStart) {
+      const reinstallDependenciesButton = previewNotRunningState
+        .getByRole('button', { name: 'Reinstall dependencies' })
+        .first();
 
-      if (topRunLabel === 'Run') {
-        await topRunButton.click({ noWaitAfter: true });
+      if (await reinstallDependenciesButton.isVisible().catch(() => false)) {
+        await reinstallDependenciesButton.click({ noWaitAfter: true });
       }
-    }
-  }
 
-  try {
-    if (!existingPreviewAttached) {
-      const renderedBeforeRestart = await expect
+      await expect
+        .poll(
+          async () =>
+            (await iframe.isVisible().catch(() => false)) ||
+            (await previewNotRunningState
+              .getByRole('button', { name: 'Run to preview your app' })
+              .isVisible()
+              .catch(() => false)),
+          {
+            message: 'Dependency recovery must expose a runnable preview or attach its iframe',
+            timeout: PREVIEW_RESTART_TIMEOUT_MS,
+          },
+        )
+        .toBe(true);
+
+      await startPreviewIfStopped();
+      await expect(iframe).toBeVisible({ timeout: PREVIEW_RESTART_TIMEOUT_MS });
+    }
+
+    const renderedOnFirstAttach = await expect
+      .poll(readPreviewText, {
+        message: 'The running preview must attach to the Webview',
+        timeout: PREVIEW_RESTART_TIMEOUT_MS,
+      })
+      .toBeGreaterThan(120)
+      .then(() => true)
+      .catch(() => false);
+
+    if (!renderedOnFirstAttach) {
+      const refreshPreviewButton = page.getByRole('button', { name: 'Refresh preview' }).first();
+
+      if (await refreshPreviewButton.isVisible().catch(() => false)) {
+        await refreshPreviewButton.click({ noWaitAfter: true });
+      }
+
+      const renderedAfterRefresh = await expect
         .poll(readPreviewText, {
-          message: 'Preview must render before one guarded runtime restart',
+          message: 'The refreshed Webview must render substantial application content',
           timeout: PREVIEW_RESTART_TIMEOUT_MS,
         })
         .toBeGreaterThan(120)
         .then(() => true)
         .catch(() => false);
 
-      if (!renderedBeforeRestart) {
-        const getPreviewRunningButton = page
-          .getByTestId('ide-agent-panel')
-          .getByRole('button', { name: 'Get preview running' })
-          .first();
+      if (!renderedAfterRefresh) {
+        await page.reload({ waitUntil: 'domcontentloaded', timeout: 180_000 });
+        await expect(webviewButton).toBeVisible({ timeout: 180_000 });
+        await webviewButton.click();
+        await waitForPreviewSurface();
+        await startPreviewIfStopped();
+        await expect(iframe).toBeVisible({ timeout: PREVIEW_RESTART_TIMEOUT_MS });
 
-        if (await getPreviewRunningButton.isVisible().catch(() => false)) {
-          await getPreviewRunningButton.click({ noWaitAfter: true });
-          await getPreviewRunningButton.waitFor({ state: 'hidden', timeout: 60_000 }).catch(() => undefined);
-        }
+        const refreshedAfterReloadButton = page.getByRole('button', { name: 'Refresh preview' }).first();
 
-        const reinstallDependenciesButton = page.getByRole('button', { name: 'Reinstall dependencies' }).first();
-
-        if (await reinstallDependenciesButton.isVisible().catch(() => false)) {
-          await reinstallDependenciesButton.click({ noWaitAfter: true });
-          await reinstallDependenciesButton.waitFor({ state: 'hidden', timeout: 180_000 }).catch(() => undefined);
-        }
-
-        const topRunButton = page.getByTestId('button-run-stop');
-        const topRunLabel = (await topRunButton.textContent().catch(() => ''))?.trim() ?? '';
-
-        if (topRunLabel === 'Stop') {
-          await topRunButton.click({ noWaitAfter: true });
-          await expect(topRunButton).toContainText('Run', { timeout: 60_000 });
-        }
-
-        const restartedRunLabel = (await topRunButton.textContent().catch(() => ''))?.trim() ?? '';
-
-        if (restartedRunLabel === 'Run') {
-          await topRunButton.click({ noWaitAfter: true });
-        }
-
-        const refreshPreviewButton = page.getByRole('button', { name: 'Refresh preview' }).first();
-
-        if (await refreshPreviewButton.isVisible().catch(() => false)) {
-          await refreshPreviewButton.click({ noWaitAfter: true });
+        if (await refreshedAfterReloadButton.isVisible().catch(() => false)) {
+          await refreshedAfterReloadButton.click({ noWaitAfter: true });
         }
 
         await expect
           .poll(readPreviewText, {
-            message: 'Preview must render substantial application content after the guarded runtime restart',
+            message: 'The reloaded IDE must attach the running application to Webview',
             timeout: PREVIEW_TIMEOUT_MS,
           })
           .toBeGreaterThan(120);
@@ -1183,7 +1220,7 @@ async function main() {
   const slug = readSlug();
   const locale = readLocale();
   const copy: SolutionScenario = SOLUTION_SCENARIOS[slug][locale];
-  const creationPrompt = creationPromptFor(copy);
+  const creationPrompt = creationPromptFor(slug, copy);
   const repairOnly = process.argv.includes('--repair-only');
   const iterationOnly = process.argv.includes('--iteration-only');
   const resume = process.argv.includes('--resume');
