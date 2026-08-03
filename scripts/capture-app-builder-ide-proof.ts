@@ -792,7 +792,7 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
         async () => {
           const rows = await terminalRows.innerText().catch(() => '');
 
-          return !/connecting to workspace/i.test(rows) && /[$#]\s*$/m.test(rows);
+          return /[$#]\s*$/m.test(rows);
         },
         {
           message: 'The IDE Terminal must expose an interactive workspace prompt before starting Vite',
@@ -801,8 +801,17 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
       )
       .toBe(true);
 
-    await terminalScreen.click();
+    const terminalInput = page.locator('.xterm:visible').last().locator('textarea.xterm-helper-textarea');
+
+    await terminalInput.focus();
+    await expect(terminalInput).toBeFocused();
     await page.keyboard.type('npm run dev -- --host 0.0.0.0');
+    await expect
+      .poll(() => terminalRows.innerText().catch(() => ''), {
+        message: 'The IDE Terminal must echo the requested Vite command before execution',
+        timeout: 30_000,
+      })
+      .toContain('npm run dev -- --host 0.0.0.0');
     await page.keyboard.press('Enter');
     process.stdout.write(`${JSON.stringify({ status: 'preview-terminal-start-requested' })}\n`);
 
