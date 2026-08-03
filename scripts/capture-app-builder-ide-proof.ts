@@ -751,6 +751,7 @@ async function waitForPreview(page: Page, evidenceRoot: string) {
       if (await previewRunButton.isVisible().catch(() => false)) {
         await previewRunButton.click({ noWaitAfter: true });
         process.stdout.write(`${JSON.stringify({ status: 'preview-start-requested' })}\n`);
+
         return true;
       }
 
