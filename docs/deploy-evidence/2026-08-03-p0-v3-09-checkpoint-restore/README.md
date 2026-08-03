@@ -75,6 +75,29 @@ silencieux.
 | Suite complète `services/api` | **1328 vert**, 35 skipped, 1 échec **pré-existant** (`vitest-config-discovery`, flake `onTaskUpdate`) — corrigé ici en reprenant `3ae0927a` |
 | `tsc --noEmit -p tsconfig.json` | **0 erreur** |
 
+### CI sur la PR #78
+
+`Production CI` (**Install, test, build, scan** — typecheck + tests + build) :
+**success**. `Quality Gates`, `Release Validation`, `Validate registries`,
+CodeQL js/ts, gitleaks, `Validate PR Title` : verts.
+
+Deux échecs ont été rattrapés par la CI et corrigés :
+
+1. **Typecheck** — `ConsistencyLevel` (qui contient `transaction-consistent`)
+   n'était pas assignable au niveau d'un composant. Mon typecheck local avait
+   été joué AVANT les derniers correctifs et ne l'avait pas vu. Corrigé en
+   portant l'invariant dans le type (`DeclarableLevel`) plutôt qu'en castant :
+   émettre un niveau interdit ne compile plus.
+2. **Registres** — `CONTRACT_REGISTRY` exigeait l'accord fichier↔registre
+   (CTR-CHECKPOINT v2 → v3) et `DOCUMENT_MANIFEST` devait être régénéré.
+
+⚠️ **Piège worktree** (coûte des heures si non identifié) : `tsc` sortait 17
+erreurs locales fantômes (`projectCheckpoint`, `thumbnailUrl` introuvables).
+`services/api/node_modules/@vibecore/*` pointe vers `../../../../packages/…`,
+résolu depuis le checkout PRINCIPAL, et la résolution imbriquée gagne sur la
+racine : `tsc` lisait le client Prisma de `main`. Après shadow du `node_modules`
+imbriqué → **0 erreur**. Signe distinctif : la CI ne voyait PAS ces erreurs.
+
 Note build : `npm run build` échoue en local sur `TS5112` (tsc local plus récent
 que celui de CI) **sur `main` aussi** — pré-existant, non lié à ce lot. Le
 `tsconfig.json` du service porte des options **identiques** à la ligne de build
