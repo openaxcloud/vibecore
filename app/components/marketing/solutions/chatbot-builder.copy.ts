@@ -17,8 +17,8 @@ export const CHATBOT_BUILDER_COPY = {
       title: 'Build the support flow before you connect a model to customer questions',
       subtitle:
         'Describe the questions, answer layout, cited source cards, and escalation state. E-Code generates HelpDesk Copilot in editable React and TypeScript, opens it in Webview, and keeps the Agent conversation beside the files. The captured answer is deterministic and local; it does not call a language model, vector database, live corpus, or support queue.',
-      primaryCta: { label: 'Describe your assistant', ariaLabel: 'Describe your chatbot with E-Code' },
-      secondaryCta: { label: 'See how it builds', ariaLabel: 'See how E-Code builds the assistant from a prompt' },
+      primaryCta: { label: 'Describe your support assistant', ariaLabel: 'Describe your chatbot with E-Code' },
+      secondaryCta: { label: 'See the support flow', ariaLabel: 'See how E-Code builds the assistant from a prompt' },
       microcopy:
         'Start from the questions your team already answers. The creation prompt, generated conversation source, and running local interface remain visible while you iterate.',
     },
@@ -45,7 +45,7 @@ export const CHATBOT_BUILDER_COPY = {
       asideHeading: 'Local demo state',
       asideRows: [
         { label: 'Documentation', value: 'Fictional local set' },
-        { label: 'Reply mode', value: 'Deterministic' },
+        { label: 'Reply mode', value: 'Deterministic reply' },
         { label: 'Escalation', value: 'UI option only' },
       ],
       asideCta: 'Preview handoff state',
@@ -80,11 +80,11 @@ export const CHATBOT_BUILDER_COPY = {
         'E-Code starts from the support experience you describe and produces its suggested-question, conversation, citation-card, and escalation interface in real source files. You inspect the project, run its deterministic local answer in Preview, and request the next change without presenting a scripted prototype as a connected AI service.',
     },
     build: {
-      eyebrow: 'One prompt starts the assistant',
+      eyebrow: 'One prompt starts the support flow',
       title: 'Describe the behavior, not the framework',
       intro:
         'The request below reads like a note from a support lead. The four items map its implementation scope in real source files, not a locked bot builder.',
-      label: 'Example prompt',
+      label: 'Customer-support brief',
       promptText: 'Build an assistant that answers my customers’ questions from my documentation.',
       outputs: [
         {
@@ -100,7 +100,7 @@ export const CHATBOT_BUILDER_COPY = {
           body: 'The answer exposes an escalation option for review. It is an interface state only and sends nothing to a person or support platform.',
         },
         {
-          title: 'Agent, files, and Webview together',
+          title: 'Support prompt, answer source, and Webview together',
           body: 'E-Code shows the customer-support prompt and Agent work beside the generated files while the verified question-to-answer interaction runs in the real Webview.',
         },
       ],
@@ -129,7 +129,7 @@ export const CHATBOT_BUILDER_COPY = {
       },
     },
     deliverables: {
-      eyebrow: 'What you receive',
+      eyebrow: 'What HelpDesk Copilot includes',
       title: 'A reviewable assistant project, from source to live static surface',
       intro:
         'HelpDesk Copilot’s interface source, fictional local documents, deterministic reply state, and responsive Preview stay visible. A model-backed assistant still needs separately connected and tested services and runtime.',
@@ -193,7 +193,7 @@ export const CHATBOT_BUILDER_COPY = {
       ],
     },
     useCases: {
-      eyebrow: 'Who builds with it',
+      eyebrow: 'Support flows to prototype',
       title: 'Four support-assistant patterns to shape in editable code',
       intro:
         'These are practical interface prototypes built from local scripted content; each needs its own source connection, model evaluation, and operational testing before customer use.',
@@ -217,7 +217,7 @@ export const CHATBOT_BUILDER_COPY = {
       ],
     },
     faq: {
-      eyebrow: 'Common questions',
+      eyebrow: 'Support-assistant questions',
       title: 'Chatbot Builder, answered honestly',
       intro: 'What the Chatbot Builder path produces, and where its boundaries are.',
       items: [
@@ -238,16 +238,16 @@ export const CHATBOT_BUILDER_COPY = {
           body: 'Yes, in the exported source you extend. Nothing in these captures connects a language model, vector store, live document source, or RAG pipeline.',
         },
         {
-          title: 'How do I change the assistant later?',
+          title: 'How do I refine the support assistant later?',
           body: 'Edit the generated conversation source directly or ask the E-Code Agent for the next question, answer state, citation layout, or escalation change, then verify it in Webview.',
         },
       ],
     },
     finalCta: {
-      title: 'Describe your assistant and see it running',
+      title: 'Describe one support question and run the answer flow',
       body: 'Turn one real support question into an editable conversation interface, verify its local answer, source card, and escalation state in Webview, then connect and test the services required for customer use.',
-      primaryCta: { label: 'Describe your assistant', ariaLabel: 'Describe your chatbot with E-Code' },
-      secondaryCta: { label: 'See how it builds', ariaLabel: 'See how E-Code builds the assistant from a prompt' },
+      primaryCta: { label: 'Describe your support assistant', ariaLabel: 'Describe your chatbot with E-Code' },
+      secondaryCta: { label: 'See the support flow', ariaLabel: 'See how E-Code builds the assistant from a prompt' },
     },
     aria: {
       pageLabel: 'Chatbot Builder solution page',
@@ -256,7 +256,7 @@ export const CHATBOT_BUILDER_COPY = {
       problemLabel: 'The chatbot building problem',
       buildLabel: 'How the Chatbot Builder works',
       outputListLabel: 'Chatbot build outputs',
-      proofLinkLabel: 'See the real E-Code IDE proof',
+      proofLinkLabel: 'Inspect the support-assistant IDE evidence',
       deliverablesLabel: 'What the Chatbot Builder delivers',
       featuresLabel: 'Chatbot Builder capabilities',
       useCasesLabel: 'Chatbot Builder use cases',
@@ -275,9 +275,9 @@ export const CHATBOT_BUILDER_COPY = {
       title: 'Construisez le parcours support avant de connecter un modèle aux questions clients',
       subtitle:
         'Décrivez les questions, la mise en page de la réponse, les cartes sources citées et l’état d’escalade. E-Code génère HelpDesk Copilot en React et TypeScript modifiables, l’ouvre dans la Webview et garde la conversation avec l’Agent auprès des fichiers. La réponse capturée est déterministe et locale ; elle n’appelle ni modèle de langage, ni base vectorielle, ni corpus actif, ni file support.',
-      primaryCta: { label: 'Décrivez votre assistant', ariaLabel: 'Décrivez votre chatbot avec E-Code' },
+      primaryCta: { label: 'Décrivez votre assistant support', ariaLabel: 'Décrivez votre chatbot avec E-Code' },
       secondaryCta: {
-        label: 'Voir la construction',
+        label: 'Voir le parcours support',
         ariaLabel: 'Voir comment E-Code construit l’assistant à partir d’un prompt',
       },
       microcopy:
@@ -313,7 +313,7 @@ export const CHATBOT_BUILDER_COPY = {
       asideHeading: 'État local de la démo',
       asideRows: [
         { label: 'Documentation', value: 'Jeu local fictif' },
-        { label: 'Mode de réponse', value: 'Déterministe' },
+        { label: 'Mode de réponse', value: 'Réponse déterministe' },
         { label: 'Escalade', value: 'Option visuelle seule' },
       ],
       asideCta: 'Prévisualiser le transfert',
@@ -348,11 +348,11 @@ export const CHATBOT_BUILDER_COPY = {
         'E-Code part de l’expérience support décrite et produit ses questions suggérées, sa conversation, ses cartes de citation et son option d’escalade dans de vrais fichiers source. Vous inspectez le projet, exécutez sa réponse locale déterministe dans l’aperçu et demandez le changement suivant sans faire passer un prototype scénarisé pour un service IA connecté.',
     },
     build: {
-      eyebrow: 'Un prompt lance l’assistant',
+      eyebrow: 'Un prompt lance le parcours support',
       title: 'Décrivez le comportement, pas le framework',
       intro:
         'La demande ci-dessous se lit comme un mot d’un responsable support. Les quatre éléments cartographient son périmètre d’implémentation dans de vrais fichiers source, pas un créateur de bot verrouillé.',
-      label: 'Exemple de prompt',
+      label: 'Brief du support client',
       promptText: 'Un assistant qui répond aux questions de mes clients à partir de ma documentation.',
       outputs: [
         {
@@ -368,7 +368,7 @@ export const CHATBOT_BUILDER_COPY = {
           body: 'La réponse expose une option d’escalade à relire. Cet état d’interface n’envoie rien à une personne ni à une plateforme de support.',
         },
         {
-          title: 'Agent, fichiers et Webview réunis',
+          title: 'Prompt support, source de réponse et Webview réunis',
           body: 'E-Code montre le prompt du support client et le travail de l’Agent auprès des fichiers générés pendant que l’interaction vérifiée entre question et réponse tourne dans la vraie Webview.',
         },
       ],
@@ -397,7 +397,7 @@ export const CHATBOT_BUILDER_COPY = {
       },
     },
     deliverables: {
-      eyebrow: 'Ce que vous recevez',
+      eyebrow: 'Ce que comprend HelpDesk Copilot',
       title: 'Un projet d’assistant relisible, du code jusqu’à l’interface statique en ligne',
       intro:
         'La source de HelpDesk Copilot, les documents locaux fictifs, l’état de réponse déterministe et l’aperçu responsive restent visibles. Un assistant relié à un modèle exige encore des services et un runtime connectés et testés séparément.',
@@ -461,7 +461,7 @@ export const CHATBOT_BUILDER_COPY = {
       ],
     },
     useCases: {
-      eyebrow: 'Qui construit avec',
+      eyebrow: 'Parcours support à prototyper',
       title: 'Quatre scénarios d’assistant de support à structurer dans du code modifiable',
       intro:
         'Ces scénarios sont des prototypes d’interface fondés sur un contenu local scénarisé ; chacun exige sa connexion aux sources, son évaluation modèle et ses tests d’exploitation avant tout usage client.',
@@ -485,7 +485,7 @@ export const CHATBOT_BUILDER_COPY = {
       ],
     },
     faq: {
-      eyebrow: 'Questions fréquentes',
+      eyebrow: 'Questions sur l’assistant support',
       title: 'Le Générateur de chatbot, en toute honnêteté',
       intro: 'Ce que produit le parcours Générateur de chatbot, et où sont ses limites.',
       items: [
@@ -506,17 +506,17 @@ export const CHATBOT_BUILDER_COPY = {
           body: 'Oui, en étendant la source exportée. Ces captures ne connectent aucun modèle de langage, stockage vectoriel, corpus actif ni pipeline RAG.',
         },
         {
-          title: 'Comment modifier l’assistant ensuite ?',
+          title: 'Comment faire évoluer l’assistant support ensuite ?',
           body: 'Modifiez directement la source de conversation générée ou demandez à l’Agent E-Code la question, l’état de réponse, la mise en page des citations ou l’escalade suivante, puis vérifiez-la dans la Webview.',
         },
       ],
     },
     finalCta: {
-      title: 'Décrivez votre assistant et voyez-le tourner',
+      title: 'Décrivez une question support et exécutez le parcours de réponse',
       body: 'Transformez une vraie question support en interface conversationnelle modifiable, vérifiez sa réponse locale, sa carte source et son état d’escalade dans la Webview, puis branchez et testez les services nécessaires à un usage client.',
-      primaryCta: { label: 'Décrivez votre assistant', ariaLabel: 'Décrivez votre chatbot avec E-Code' },
+      primaryCta: { label: 'Décrivez votre assistant support', ariaLabel: 'Décrivez votre chatbot avec E-Code' },
       secondaryCta: {
-        label: 'Voir la construction',
+        label: 'Voir le parcours support',
         ariaLabel: 'Voir comment E-Code construit l’assistant à partir d’un prompt',
       },
     },
@@ -527,7 +527,7 @@ export const CHATBOT_BUILDER_COPY = {
       problemLabel: 'Le problème de la création de chatbot',
       buildLabel: 'Comment fonctionne le Générateur de chatbot',
       outputListLabel: 'Résultats de la génération de chatbot',
-      proofLinkLabel: 'Voir la preuve IDE réelle E-Code',
+      proofLinkLabel: 'Inspecter la preuve IDE de l’assistant support',
       deliverablesLabel: 'Ce que livre le Générateur de chatbot',
       featuresLabel: 'Capacités du Générateur de chatbot',
       useCasesLabel: 'Cas d’usage du Générateur de chatbot',

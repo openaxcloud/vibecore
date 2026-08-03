@@ -18,7 +18,10 @@ export const DASHBOARD_BUILDER_COPY = {
       subtitle:
         'Describe the revenue charts, pipeline stages, date and region filters, and deals table you need. E-Code generates PipelineIQ in editable source code, runs it against clearly labeled local sample data, and keeps the Agent, files, and Webview visible while you refine the dashboard.',
       primaryCta: { label: 'Describe your dashboard', ariaLabel: 'Describe your dashboard with E-Code' },
-      secondaryCta: { label: 'See how it builds', ariaLabel: 'See how E-Code builds the dashboard from a prompt' },
+      secondaryCta: {
+        label: 'See the dashboard workflow',
+        ariaLabel: 'See how E-Code builds the dashboard from a prompt',
+      },
       microcopy:
         'Start from the metrics you already track. Source files, the running Preview, and the chart and filter components stay visible as the dashboard evolves.',
     },
@@ -80,7 +83,7 @@ export const DASHBOARD_BUILDER_COPY = {
       title: 'Describe the metrics, not the charting library',
       intro:
         'The request below reads like a note from a sales leader. The four items map its implementation scope in real source files, not a locked BI template.',
-      label: 'Example prompt',
+      label: 'Sales dashboard brief',
       promptText: 'Build a dashboard for my sales, connected to my database, with charts and filters.',
       outputs: [
         {
@@ -125,7 +128,7 @@ export const DASHBOARD_BUILDER_COPY = {
       },
     },
     deliverables: {
-      eyebrow: 'What you receive',
+      eyebrow: 'What PipelineIQ includes',
       title: 'A data-rich dashboard you can inspect and keep evolving',
       intro:
         'The project stays inspectable from the first generated file through Preview and export. PipelineIQ’s charts, deals table, date and region filters, and target variance are real code over local fixtures — no hidden BI layer or connected database.',
@@ -179,8 +182,8 @@ export const DASHBOARD_BUILDER_COPY = {
           body: 'The Apply filters action changes the rendered state and displays “Filters applied” inside Webview.',
         },
         {
-          title: 'Responsive by default',
-          body: 'Layouts adapt from wide desktop to phone without a separate mobile build.',
+          title: 'Responsive revenue views',
+          body: 'KPI cards, pipeline stages, charts, filters, and deal rows reorganize for a wall display, laptop review, or phone check-in.',
         },
         {
           title: 'Local-data boundary in view',
@@ -189,7 +192,7 @@ export const DASHBOARD_BUILDER_COPY = {
       ],
     },
     useCases: {
-      eyebrow: 'Who builds with it',
+      eyebrow: 'Dashboard patterns to build',
       title: 'Dashboard foundations teams connect to each operational domain',
       intro:
         'From a sales pipeline to an ops control room, the loop produces a responsive data interface over local fixtures; production figures, refresh, identity, and permissions arrive through separately tested connections.',
@@ -213,7 +216,7 @@ export const DASHBOARD_BUILDER_COPY = {
       ],
     },
     faq: {
-      eyebrow: 'Common questions',
+      eyebrow: 'Sales-dashboard questions',
       title: 'Dashboard Builder, answered honestly',
       intro: 'What the Dashboard Builder path produces, and where its boundaries are.',
       items: [
@@ -243,7 +246,10 @@ export const DASHBOARD_BUILDER_COPY = {
       title: 'Describe your dashboard and see it running',
       body: 'Turn your revenue KPIs, pipeline stages, deals, and regional filters into editable source, then verify the local-data flow in Webview before connecting any production system.',
       primaryCta: { label: 'Describe your dashboard', ariaLabel: 'Describe your dashboard with E-Code' },
-      secondaryCta: { label: 'See how it builds', ariaLabel: 'See how E-Code builds the dashboard from a prompt' },
+      secondaryCta: {
+        label: 'See the dashboard workflow',
+        ariaLabel: 'See how E-Code builds the dashboard from a prompt',
+      },
     },
     aria: {
       pageLabel: 'Dashboard Builder solution page',
@@ -273,7 +279,7 @@ export const DASHBOARD_BUILDER_COPY = {
         'Décrivez les graphiques de chiffre d’affaires, les étapes du pipeline, les filtres de date et région, et le tableau des affaires. E-Code génère PipelineIQ dans un code source modifiable, l’exécute sur un jeu de données local clairement signalé et garde Agent, fichiers et Webview visibles pendant vos ajustements.',
       primaryCta: { label: 'Décrivez votre tableau de bord', ariaLabel: 'Décrivez votre tableau de bord avec E-Code' },
       secondaryCta: {
-        label: 'Voir la construction',
+        label: 'Voir le parcours du tableau de bord',
         ariaLabel: 'Voir comment E-Code construit le tableau de bord à partir d’un prompt',
       },
       microcopy:
@@ -341,7 +347,7 @@ export const DASHBOARD_BUILDER_COPY = {
       title: 'Décrivez les indicateurs, pas la librairie de graphiques',
       intro:
         'La demande ci-dessous se lit comme un mot d’un responsable commercial. Les quatre éléments cartographient son périmètre d’implémentation dans de vrais fichiers source, pas un template de BI verrouillé.',
-      label: 'Exemple de prompt',
+      label: 'Brief du tableau de bord commercial',
       promptText: 'Un tableau de bord de mes ventes, connecté à ma base, avec graphiques et filtres.',
       outputs: [
         {
@@ -386,7 +392,7 @@ export const DASHBOARD_BUILDER_COPY = {
       },
     },
     deliverables: {
-      eyebrow: 'Ce que vous recevez',
+      eyebrow: 'Ce que comprend PipelineIQ',
       title: 'Un tableau de bord riche en données que vous inspectez et faites évoluer',
       intro:
         'Le projet reste inspectable du premier fichier généré jusqu’à l’aperçu et l’export. Les graphiques, affaires, filtres de date et région, et écarts de PipelineIQ sont du vrai code sur fixtures locales — aucune couche BI cachée ni base connectée.',
@@ -440,8 +446,8 @@ export const DASHBOARD_BUILDER_COPY = {
           body: 'L’action « Appliquer les filtres » change l’état affiché et présente « Filtres appliqués » dans la Webview.',
         },
         {
-          title: 'Responsive par défaut',
-          body: 'Les mises en page s’adaptent du grand écran au téléphone sans build mobile séparé.',
+          title: 'Vues commerciales responsives',
+          body: 'Cartes KPI, étapes du pipeline, graphiques, filtres et lignes d’affaires se réorganisent pour écran mural, revue sur laptop ou contrôle mobile.',
         },
         {
           title: 'Limite des données locales visible',
@@ -450,7 +456,7 @@ export const DASHBOARD_BUILDER_COPY = {
       ],
     },
     useCases: {
-      eyebrow: 'Qui construit avec',
+      eyebrow: 'Modèles de tableaux de bord à construire',
       title: 'Les bases de tableaux de bord que les équipes relient à chaque domaine opérationnel',
       intro:
         'D’un pipeline commercial à une salle de contrôle des opérations, la boucle produit une interface de données responsive sur fixtures locales ; chiffres de production, actualisation, identité et permissions passent par des connexions testées séparément.',
@@ -474,7 +480,7 @@ export const DASHBOARD_BUILDER_COPY = {
       ],
     },
     faq: {
-      eyebrow: 'Questions fréquentes',
+      eyebrow: 'Questions sur le tableau de bord commercial',
       title: 'Le Générateur de tableau de bord, en toute honnêteté',
       intro: 'Ce que produit le parcours Générateur de tableau de bord, et où sont ses limites.',
       items: [
@@ -505,7 +511,7 @@ export const DASHBOARD_BUILDER_COPY = {
       body: 'Transformez vos indicateurs de chiffre d’affaires, étapes du pipeline, affaires et filtres régionaux en une source modifiable, puis vérifiez le parcours local dans la Webview avant toute connexion de production.',
       primaryCta: { label: 'Décrivez votre tableau de bord', ariaLabel: 'Décrivez votre tableau de bord avec E-Code' },
       secondaryCta: {
-        label: 'Voir la construction',
+        label: 'Voir le parcours du tableau de bord',
         ariaLabel: 'Voir comment E-Code construit le tableau de bord à partir d’un prompt',
       },
     },

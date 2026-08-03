@@ -41,7 +41,7 @@ export const ENTERPRISE_COPY = {
       ],
       asideHeading: 'Demonstration boundaries',
       asideRows: [
-        { label: 'SSO / RBAC', value: 'UI demo only' },
+        { label: 'SSO / RBAC', value: 'Enterprise UI demo' },
         { label: 'Audit timeline', value: 'Local events' },
         { label: 'Deployment', value: 'Not connected' },
       ],
@@ -81,7 +81,7 @@ export const ENTERPRISE_COPY = {
       title: 'Describe the release decision your platform team needs to make',
       intro:
         'This platform-team request becomes Northwind Control in editable React and TypeScript files. The generated Webview keeps every release record local and marks enterprise integrations as demonstrations.',
-      label: 'Example prompt',
+      label: 'Platform rollout brief',
       promptText:
         'Create Northwind Control, a product release governance workspace for an enterprise software team. Include release readiness, approval checklist, environment status, ownership, and a local audit activity timeline. Treat SSO, RBAC, audit export, and deployment as interface demonstrations only; do not claim live enterprise integrations. Build accessible responsive React and TypeScript with graphite, steel blue, and orange actions. No purple.',
       outputs: [
@@ -146,7 +146,7 @@ export const ENTERPRISE_COPY = {
           body: 'A compatible build runs in Preview across desktop, tablet, and mobile so product, platform, and security reviewers inspect the same current interface before a release decision.',
         },
         {
-          title: 'Guided static publishing',
+          title: 'Governed static publishing',
           body: 'Supported static builds follow E-Code’s guided publishing flow. Enterprise roles, approval points, and target-environment checks remain explicit rollout configuration.',
         },
         {
@@ -154,7 +154,7 @@ export const ENTERPRISE_COPY = {
           body: 'A supported static release receives a live E-Code-hosted URL. Projects that depend on server processes remain exportable and need an agreed runtime, networking, secrets, and operational model.',
         },
         {
-          title: 'Conversation-led iteration',
+          title: 'Governed Agent iteration',
           body: 'A team continues the Agent conversation to request a policy, interface, or workflow change, then reviews the updated files, diff, and running Preview before accepting it.',
         },
       ],
@@ -213,7 +213,7 @@ export const ENTERPRISE_COPY = {
       ],
     },
     faq: {
-      eyebrow: 'Common questions',
+      eyebrow: 'Enterprise-rollout questions',
       title: 'Enterprise rollout, answered honestly',
       intro: 'What a governed E-Code rollout provides, and where its boundaries are.',
       items: [
@@ -252,7 +252,7 @@ export const ENTERPRISE_COPY = {
       problemLabel: 'The enterprise rollout problem',
       buildLabel: 'How the Enterprise rollout works',
       outputListLabel: 'Enterprise rollout outputs',
-      proofLinkLabel: 'See the real E-Code IDE proof',
+      proofLinkLabel: 'Inspect the enterprise-governance IDE evidence',
       deliverablesLabel: 'What the Enterprise rollout delivers',
       featuresLabel: 'Enterprise capabilities',
       useCasesLabel: 'Enterprise use cases',
@@ -297,7 +297,7 @@ export const ENTERPRISE_COPY = {
       ],
       asideHeading: 'Limites de démonstration',
       asideRows: [
-        { label: 'SSO / RBAC', value: 'Démo UI seule' },
+        { label: 'SSO / RBAC', value: 'Démo UI entreprise' },
         { label: 'Journal d’activité', value: 'Événements locaux' },
         { label: 'Déploiement', value: 'Non connecté' },
       ],
@@ -338,7 +338,7 @@ export const ENTERPRISE_COPY = {
       title: 'Décrivez la décision de mise en production de votre équipe plateforme',
       intro:
         'Cette demande d’équipe plateforme devient Northwind Control dans des fichiers React et TypeScript modifiables. La Webview générée garde chaque fiche de version locale et signale les intégrations entreprise comme des démonstrations.',
-      label: 'Exemple de prompt',
+      label: 'Brief du déploiement plateforme',
       promptText:
         'Crée Northwind Control, un espace de gouvernance des mises en production pour une équipe logicielle d’entreprise. Ajoute la préparation de version, une checklist d’approbation, l’état des environnements, les responsables et un journal d’activité local. Présente le SSO, RBAC, export d’audit et déploiement uniquement comme démonstrations d’interface ; ne prétends pas avoir d’intégrations actives. React et TypeScript accessibles et responsive, graphite, bleu acier et actions orange. Aucun violet.',
       outputs: [
@@ -403,7 +403,7 @@ export const ENTERPRISE_COPY = {
           body: 'Un build compatible tourne dans l’aperçu sur desktop, tablette et mobile pour que produit, plateforme et sécurité inspectent la même interface courante avant toute décision de livraison.',
         },
         {
-          title: 'Publication statique guidée',
+          title: 'Publication statique gouvernée',
           body: 'Les builds statiques pris en charge suivent le parcours de publication guidée E-Code. Rôles entreprise, points d’approbation et contrôles de l’environnement cible restent une configuration explicite du déploiement.',
         },
         {
@@ -473,7 +473,7 @@ export const ENTERPRISE_COPY = {
       ],
     },
     faq: {
-      eyebrow: 'Questions fréquentes',
+      eyebrow: 'Questions sur le déploiement entreprise',
       title: 'Le déploiement entreprise, en toute honnêteté',
       intro: 'Ce que fournit un déploiement E-Code gouverné, et où sont ses limites.',
       items: [
@@ -515,7 +515,7 @@ export const ENTERPRISE_COPY = {
       problemLabel: 'Le problème du déploiement entreprise',
       buildLabel: 'Comment fonctionne le déploiement Entreprise',
       outputListLabel: 'Résultats du déploiement Entreprise',
-      proofLinkLabel: 'Voir la preuve IDE réelle E-Code',
+      proofLinkLabel: 'Inspecter la preuve IDE de gouvernance entreprise',
       deliverablesLabel: 'Ce que livre le déploiement Entreprise',
       featuresLabel: 'Capacités Entreprise',
       useCasesLabel: 'Cas d’usage Entreprise',
