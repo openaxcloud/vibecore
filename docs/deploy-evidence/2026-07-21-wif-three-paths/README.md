@@ -88,6 +88,12 @@ teardown joué par le trap (`teardown-trace.txt` : cluster/run/AR/pool/2 SAs sup
 > facturation stoppée, coût **~0 $**.
 
 ## Correction RR-20260723-CODEX-08 (RR-08) §P0-A2-09 — teardown FAIL-CLOSED
+> ⚠️ **Superseded par RR-09 (ci-dessous)** : la classification décrite ici s'appuyait sur
+> le **texte** d'erreur + `gcloud auth print-access-token` pour conclure `NOTFOUND`. RR-09 a
+> refusé ce critère (un jeton valide ≠ autorisation `projects.get`). La logique effective est
+> désormais celle de la section RR-09 (statut HTTP structuré). Ce bloc est conservé pour la
+> traçabilité du refus.
+
 Le refus RR-08 vise la garde `if gcloud projects describe … ; then … else "absent"` :
 **tout** échec de `describe` (réseau / API / auth / quota) était lu comme « projet absent »
 → la suppression était **sautée** → un flap pouvait laisser le projet **actif**. La preuve
@@ -113,7 +119,43 @@ saine ; `delete_fails_active` prouve que le reçu **ne passe pas** sur un projet
 - Cas négatif billing-fail — `replay-20260731T151804Z-rr08-negative-billingfail/` :
   `DESCRIBE_CLASSIFICATION=PRESENT:ACTIVE` → delete tenté → `PROJECT_STATE=DELETE_REQUESTED`,
   `CLEANUP_RECEIPT=OK` (projet `ecode-wif-proof-511088`, `describe` indépendant = `DELETE_REQUESTED`).
-- 3 chemins rejoués — `replay-20260731T151929Z-rr08/` (projet frais `ecode-wif-proof-511173`) :
+- 3 chemins rejoués — `replay-20260731T154358Z-rr08/` (projet frais `ecode-wif-proof-512642`) :
+  Cloud Run 200/403 ; GitHub OIDC nonce-vérifié `success` ; GKE 200 / négatif 403+corps ;
+  teardown fail-closed → `CLEANUP_RECEIPT=OK`, `PROJECT_STATE=DELETE_REQUESTED`.
+
+## Correction RR-20260723-CODEX-09 (RR-09) §P0-A2-09 — NOTFOUND sur STATUT HTTP structuré
+Le refus RR-09 vise le critère `NOTFOUND` de RR-08 : conclure « absent » sur le message
+ambigu « project **not found or permission denied** » dès que `gcloud auth print-access-token`
+réussit est **faux** — un jeton valide prouve l'**authentification**, pas l'**autorisation**
+`projects.get`. Un principal authentifié mais **sans** droit de lecture sur un projet
+**existant** reçoit ce même message et aurait été classé « absent » → suppression sautée.
+
+Corrigé — `classify_project_state` (dans `teardown-lib.sh`) interroge **Cloud Resource
+Manager v1 `projects.get`** et classe sur le **code HTTP structuré**, jamais sur le texte :
+- `200` → `PRESENT:<lifecycleState>` ;
+- `404` **ET** `error.status == NOT_FOUND` → `NOTFOUND` (vrai absent, non ambigu) ;
+- `401` / `403` / `404` sans statut structuré → **`UNKNOWN`** (jamais « absent ») ;
+- `000` / `408` / `429` / `5xx` → transitoire → retry borné → `UNKNOWN`.
+
+Le `delete` est **tenté même en `UNKNOWN`**, et le reçu n'émet `CLEANUP_RECEIPT=OK` que sur
+`DELETE_REQUESTED` ou `NOT_FOUND` structuré (404) — sinon `FAILED` + `exit != 0`.
+
+> Fait GCP vérifié live : `GET /v1/projects/<inexistant>` renvoie **HTTP 403 PERMISSION_DENIED**
+> (pas 404). L'ambiguïté 403 reste donc `UNKNOWN` → delete tenté → reçu fail-closed. C'est le
+> comportement maximalement prudent voulu par RR-09.
+
+**Test à injection de fautes** — `teardown-lib.spec.sh` (mocks `gcloud` **et** `curl`),
+`rr08-teardown-faultinjection/spec-output.txt` : **PASS=31 FAIL=0**. Cas ajoutés RR-09 :
+`ambiguous_403` (403 « not found or permission denied » → **PAS** NOTFOUND, reçu FAILED) ;
+**`exists_no_getdelete`** (jeton VALIDE + projet EXISTANT + principal **sans** `projects.get`
+NI `projects.delete` : GET 403, delete 403 → **reçu FAILED, pas OK**) ; `ambiguous_404_no_status`
+(404 sans statut → PAS NOTFOUND) ; `notfound_structured_404` (seul cas concluant NOTFOUND).
+
+**Preuves live (2026-08-03, teardown RR-09 REST)** :
+- Négatif billing-fail — `replay-20260803T064401Z-rr09-negative-billingfail/` :
+  `DESCRIBE_CLASSIFICATION=PRESENT:ACTIVE` (via CRM 200) → delete → `PROJECT_STATE=DELETE_REQUESTED`,
+  `CLEANUP_RECEIPT=OK` (projet `ecode-wif-proof-739444`).
+- 3 chemins — `replay-20260803T064443Z-rr09/` (projet frais `ecode-wif-proof-739484`) :
   Cloud Run 200/403 ; GitHub OIDC nonce-vérifié `success` ; GKE 200 / négatif 403+corps ;
   teardown fail-closed → `CLEANUP_RECEIPT=OK`, `PROJECT_STATE=DELETE_REQUESTED`.
 

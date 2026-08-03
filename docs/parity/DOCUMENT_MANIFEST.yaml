@@ -224,7 +224,7 @@ documents:
     repoCommit: d1063912
     reviewer: UNKNOWN
   - file: P0_REGISTRY.yaml
-    sha256: "0bd7624db8b03fa369b6d8315973a67cee1f129b31ce7debce83bd240d14d9e0"
+    sha256: "67f9bd83648b608613388192c05754ce66a138b8b5c747f1a96b5920dd559f0a"
     schemaVersion: 1
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN
