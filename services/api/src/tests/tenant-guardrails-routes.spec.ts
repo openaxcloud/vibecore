@@ -29,10 +29,10 @@ const auth = (token: string) => ({ authorization: `Bearer ${token}` });
 
 /**
  * `emailVerified` is what moves the tenant between reputation tiers (UNTRUSTED →
- * BASIC); `planKey` keeps the plan quota out of the way so a refusal can only
- * have come from the guardrail.
+ * BASIC). The org is put on `team` so the PLAN quota stays out of the way and a
+ * refusal can only have come from the guardrail.
  */
-async function setup(options: { emailVerified?: boolean; planKey?: string } = {}) {
+async function setup(options: { emailVerified?: boolean } = {}) {
   const store = new TestApiStore();
   const app = await buildApiApp({ store, emailProvider: new QuietEmailProvider() });
 
@@ -49,7 +49,7 @@ async function setup(options: { emailVerified?: boolean; planKey?: string } = {}
   const org = await store.createOrganization({ name: 'Guard Org', slug: 'guard-org', ownerUserId: user.id });
 
   await store.createSession({ userId: user.id, token: 'tg-token', expiresAt: new Date(Date.now() + 3600_000) });
-  await store.upsertSubscription({ organizationId: org.id, planKey: options.planKey ?? 'team', status: 'ACTIVE' });
+  await store.upsertSubscription({ organizationId: org.id, planKey: 'team', status: 'ACTIVE' });
 
   return { app, store, org, user, token: 'tg-token' };
 }
