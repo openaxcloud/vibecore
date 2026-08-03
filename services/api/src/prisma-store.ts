@@ -153,6 +153,33 @@ function storageTopologyFingerprint(topology: {
   });
 }
 
+/*
+ * Account-purge topology guarantee (RR-09). Two freeze sets + a per-user plan
+ * record form a RECOVERABLE state machine: acquired (membership + object storage
+ * frozen, plan recorded) BEFORE the irreversible external GCS/PVC erasure, and
+ * released on EVERY exit (success / drift / any throw) so no freeze is ever left
+ * behind. A leftover plan (process crashed mid-erasure) is reconciled — its
+ * freezes released — at the start of the next purge-executor pass.
+ *   - MEMBERSHIP: block sole↔shared flips while the erasure runs (addMember /
+ *     removeMember refuse a frozen org), so the deletion only ever touches
+ *     buckets that are provably sole under the guarantee.
+ *   - OBJECT_STORAGE: MUST match app.ts OBJECT_STORAGE_PURGE_FROZEN_KEY — the
+ *     request routes read the same set to refuse writes to a purging project.
+ */
+const MEMBERSHIP_PURGE_FROZEN_KEY = 'membership.purgeFrozenOrgIds';
+const OBJECT_STORAGE_PURGE_FROZEN_KEY = 'objectStorage.purgeFrozenProjectIds';
+const PURGE_PLAN_KEY_PREFIX = 'purge.plan.';
+const purgePlanKey = (userId: string) => `${PURGE_PLAN_KEY_PREFIX}${userId}`;
+
+/** The topology-locked plan the external erasure is authorized to act on. */
+interface PurgeGuarantee {
+  userId: string;
+  fingerprint: string;
+  orgIds: string[];
+  bucketProjectIds: string[];
+  workspaceProjectIds: string[];
+}
+
 type PrismaKnownRequestError = Error & { readonly code: string };
 
 /**
@@ -510,6 +537,159 @@ export class PrismaApiStore implements ApiStore {
     return { orgIds, soleOrgIds, sharedOrgIds, bucketProjectIds, workspaceProjectIds, fingerprint };
   }
 
+  /* ---------------- account-purge topology guarantee (RR-09) ---------------- */
+
+  /** Add/remove an id in a system-setting id-array, using the CALLER's tx. */
+  private async mutateIdSetInTx(
+    tx: Prisma.TransactionClient,
+    key: string,
+    change: { add?: string; remove?: string },
+  ): Promise<void> {
+    await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', `system-setting:${key}`);
+    const existing = await tx.systemSetting.findUnique({ where: { key } });
+    const set = new Set(
+      Array.isArray(existing?.value)
+        ? (existing!.value as unknown[]).filter((item): item is string => typeof item === 'string')
+        : [],
+    );
+
+    if (change.add) {
+      set.add(change.add);
+    }
+
+    if (change.remove) {
+      set.delete(change.remove);
+    }
+
+    const next = [...set];
+    await tx.systemSetting.upsert({
+      where: { key },
+      create: { key, value: next as Prisma.InputJsonValue },
+      update: { value: next as Prisma.InputJsonValue },
+    });
+  }
+
+  /**
+   * RR-09 (1)(2)(3): acquire the topology GUARANTEE before any external deletion.
+   * In ONE tx under the per-user advisory lock: compute the authoritative
+   * sole/shared topology AND freeze it — membership for every org the subject
+   * belongs to (so no join/leave can flip sole↔shared while the erasure runs) and
+   * object storage for the sole-org buckets we are about to erase — then record a
+   * recoverable plan. Because the read and the freeze are atomic, the erasure that
+   * follows is guaranteed to act only on buckets that are sole under this lock.
+   */
+  private async acquirePurgeGuarantee(userId: string): Promise<PurgeGuarantee> {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', `account-purge:${userId}`);
+
+      const topology = await this.resolveStorageTopology(tx, userId);
+
+      for (const orgId of topology.orgIds) {
+        await this.mutateIdSetInTx(tx, MEMBERSHIP_PURGE_FROZEN_KEY, { add: orgId });
+      }
+
+      for (const projectId of topology.bucketProjectIds) {
+        await this.mutateIdSetInTx(tx, OBJECT_STORAGE_PURGE_FROZEN_KEY, { add: projectId });
+      }
+
+      await tx.systemSetting.upsert({
+        where: { key: purgePlanKey(userId) },
+        create: {
+          key: purgePlanKey(userId),
+          value: { orgIds: topology.orgIds, projectIds: topology.bucketProjectIds } as Prisma.InputJsonValue,
+        },
+        update: {
+          value: { orgIds: topology.orgIds, projectIds: topology.bucketProjectIds } as Prisma.InputJsonValue,
+        },
+      });
+
+      return {
+        userId,
+        fingerprint: topology.fingerprint,
+        orgIds: topology.orgIds,
+        bucketProjectIds: topology.bucketProjectIds,
+        workspaceProjectIds: topology.workspaceProjectIds,
+      };
+    });
+  }
+
+  /**
+   * RR-09 (4)(6): release the guarantee — unfreeze membership + object storage and
+   * clear the plan — GUARANTEED on every exit (success / drift / any throw), so no
+   * freeze is ever left behind. Best-effort per id so one failure can't strand the
+   * rest; the reconciler is the backstop for a process that dies before this runs.
+   */
+  private async releasePurgeGuarantee(guarantee: PurgeGuarantee): Promise<void> {
+    for (const orgId of guarantee.orgIds) {
+      await this.mutateSystemSettingIds(MEMBERSHIP_PURGE_FROZEN_KEY, { remove: orgId }).catch(() => undefined);
+    }
+
+    for (const projectId of guarantee.bucketProjectIds) {
+      await this.mutateSystemSettingIds(OBJECT_STORAGE_PURGE_FROZEN_KEY, { remove: projectId }).catch(() => undefined);
+    }
+
+    await this.prisma.systemSetting
+      .delete({ where: { key: purgePlanKey(guarantee.userId) } })
+      .catch(() => undefined);
+  }
+
+  /**
+   * RR-09 (4): recover from a crash. Any purge plan still present at the start of a
+   * purge-executor pass belongs to a run that died before releasing — release its
+   * freezes so a legitimate org/project is never left frozen forever. The current
+   * pass re-acquires a fresh guarantee for any user still ready_to_purge.
+   */
+  async reconcilePurgeFreezes(): Promise<{ reconciled: number }> {
+    const settings = await this.listSystemSettings();
+    const plans = settings.filter((setting) => setting.key.startsWith(PURGE_PLAN_KEY_PREFIX));
+    let reconciled = 0;
+
+    for (const plan of plans) {
+      const value = (plan.value ?? {}) as { orgIds?: unknown; projectIds?: unknown };
+      const orgIds = Array.isArray(value.orgIds) ? value.orgIds.filter((id): id is string => typeof id === 'string') : [];
+      const projectIds = Array.isArray(value.projectIds)
+        ? value.projectIds.filter((id): id is string => typeof id === 'string')
+        : [];
+
+      for (const orgId of orgIds) {
+        await this.mutateSystemSettingIds(MEMBERSHIP_PURGE_FROZEN_KEY, { remove: orgId }).catch(() => undefined);
+      }
+
+      for (const projectId of projectIds) {
+        await this.mutateSystemSettingIds(OBJECT_STORAGE_PURGE_FROZEN_KEY, { remove: projectId }).catch(() => undefined);
+      }
+
+      await this.prisma.systemSetting.delete({ where: { key: plan.key } }).catch(() => undefined);
+      reconciled += 1;
+    }
+
+    return { reconciled };
+  }
+
+  /**
+   * RR-09 (2): refuse a membership mutation for an org whose membership is frozen
+   * by an in-flight account purge. Takes the same advisory lock the guarantee uses
+   * to write the freeze set, so a mutation either serializes BEFORE the freeze
+   * (and is then reflected in the guarantee's topology) or sees it and is refused
+   * — never interleaving to flip sole↔shared mid-erasure. Call inside the caller's tx.
+   */
+  private async assertOrgMembershipNotPurgeFrozen(tx: Prisma.TransactionClient, organizationId: string): Promise<void> {
+    await tx.$executeRawUnsafe(
+      'SELECT pg_advisory_xact_lock(hashtext($1))',
+      `system-setting:${MEMBERSHIP_PURGE_FROZEN_KEY}`,
+    );
+    const existing = await tx.systemSetting.findUnique({ where: { key: MEMBERSHIP_PURGE_FROZEN_KEY } });
+    const frozen = Array.isArray(existing?.value)
+      ? (existing!.value as unknown[]).filter((item): item is string => typeof item === 'string')
+      : [];
+
+    if (frozen.includes(organizationId)) {
+      throw new Error(
+        `MEMBERSHIP_FROZEN_FOR_PURGE: organization ${organizationId} membership is frozen during an account purge`,
+      );
+    }
+  }
+
   async purgeUserAccount(
     input: { userId: string; nowMs?: number },
     deps?: PurgeStorageDeps,
@@ -519,19 +699,22 @@ export class PrismaApiStore implements ApiStore {
     const nowIso = new Date(nowMs).toISOString();
 
     /*
-     * PHYSICAL ERASURE GATE (§16.12) — runs BEFORE the DB transaction because
-     * GCS/PVC deletes are external, non-transactional I/O (they can't live inside
-     * a Postgres tx). It is idempotent, so this pre-step is safe if the tx later
-     * retries. FAIL-CLOSED: if any bucket/volume can't be proven erased we throw
-     * here and never enter the tx, so purgedAt is never stamped. Only runs when
-     * the account is actually ready_to_purge, to avoid touching storage during a
-     * not-due / already-purged call.
+     * PHYSICAL ERASURE GATE (§16.12 + RR-09) — GCS/PVC deletes are external,
+     * non-transactional I/O, so they run before the DB tx. RR-09 order:
+     *   (1) ACQUIRE a topology GUARANTEE — freeze membership + object storage and
+     *       record the authoritative sole/shared topology, atomically under the
+     *       advisory lock — BEFORE any deletion;
+     *   (2) ERASE only the guaranteed-sole buckets/PVCs (idempotent, fail-closed);
+     *   (3) FINALIZE (DB tx): deletes + tombstone, with a drift backstop;
+     *   (4) RELEASE the guarantee in `finally` — ALWAYS, so no freeze is stranded.
+     * Only runs when the account is actually ready_to_purge.
      */
     let physicalClasses: PurgeClassReport[] = [];
-    // Fingerprint of the topology the external erasure acted on (RR-08 #3). Null
-    // when no physical erasure ran (dry-run / no storage deps): nothing external
-    // was touched, so there is no stale-inventory risk to guard against.
-    let erasedTopologyFingerprint: string | null = null;
+    // The topology guarantee the external erasure acted under (RR-09). Null when
+    // no physical erasure ran (dry-run / no storage deps): nothing external was
+    // touched, so there is no guarantee to acquire, drift to guard, or freeze to
+    // release.
+    let guarantee: PurgeGuarantee | null = null;
 
     if (deps?.eraseStorage) {
       const pre = await this.prisma.user.findUnique({ where: { id: userId }, select: { preferences: true } });
@@ -550,10 +733,17 @@ export class PrismaApiStore implements ApiStore {
       });
 
       if (preStatus === 'ready_to_purge') {
-        const preTopology = await this.resolveStorageTopology(this.prisma, userId);
+        // (1) acquire the guarantee BEFORE deleting anything external.
+        guarantee = await this.acquirePurgeGuarantee(userId);
+      }
+    }
+
+    try {
+      // (2) erase ONLY under an acquired guarantee, on its locked inventory.
+      if (guarantee && deps?.eraseStorage) {
         const erasure = await deps.eraseStorage({
-          bucketProjectIds: preTopology.bucketProjectIds,
-          workspaceProjectIds: preTopology.workspaceProjectIds,
+          bucketProjectIds: guarantee.bucketProjectIds,
+          workspaceProjectIds: guarantee.workspaceProjectIds,
         });
 
         if (!erasure.verified) {
@@ -564,12 +754,13 @@ export class PrismaApiStore implements ApiStore {
         }
 
         physicalClasses = erasure.classes;
-        erasedTopologyFingerprint = preTopology.fingerprint;
       }
-    }
 
-    return this.prisma.$transaction(
-      async (tx) => {
+      const erasedTopologyFingerprint = guarantee?.fingerprint ?? null;
+
+      // (3) finalize.
+      return await this.prisma.$transaction(
+        async (tx) => {
         await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', `account-purge:${userId}`);
 
         const user = await tx.user.findUnique({ where: { id: userId } });
@@ -614,15 +805,13 @@ export class PrismaApiStore implements ApiStore {
         const { orgIds, soleOrgIds, sharedOrgIds } = topology;
 
         /*
-         * RR-08 #3 — TOPOLOGY DRIFT GUARD. The external erasure already ran, on
-         * the PRE-transaction topology. If a membership race shifted it while we
-         * erased — a co-member left (shared→sole) or joined (sole→shared) — then
-         * finalizing now would either strand a newly-sole org's bucket (never
-         * erased) or have destroyed a newly-shared org's bucket. Re-verify the
-         * exact same topology here, BEFORE any delete or the tombstone, and ABORT
-         * on drift: the tx rolls back, purgedAt is never stamped, the account
-         * stays queued, and the next run recomputes a fresh inventory and
-         * re-erases (idempotent). Never finalize on a stale inventory.
+         * TOPOLOGY DRIFT BACKSTOP (RR-08 #3 / RR-09). The guarantee froze
+         * membership before the erasure, so the topology CANNOT have shifted while
+         * we erased — this re-verify should never fire. It remains as defence in
+         * depth against the razor-thin window between the guarantee's topology read
+         * and its freeze commit: if anything drifted, ABORT before any delete or the
+         * tombstone. The tx rolls back, purgedAt is never stamped, the freeze is
+         * released (finally), and the next run re-acquires a fresh guarantee.
          */
         if (erasedTopologyFingerprint !== null && topology.fingerprint !== erasedTopologyFingerprint) {
           throw new Error(
@@ -958,8 +1147,15 @@ export class PrismaApiStore implements ApiStore {
 
         return { outcome: 'purged' as const, proof };
       },
-      { timeout: 120_000, maxWait: 20_000 },
-    );
+        { timeout: 120_000, maxWait: 20_000 },
+      );
+    } finally {
+      // (4) RR-09 — RELEASE the guarantee on EVERY exit (purged / drift / any
+      // throw), so membership + object-storage freezes are never left behind.
+      if (guarantee) {
+        await this.releasePurgeGuarantee(guarantee);
+      }
+    }
   }
 
   async findUserByEmail(email: string) {
@@ -1238,11 +1434,19 @@ export class PrismaApiStore implements ApiStore {
   async addMember(input: { organizationId: string; userId: string; roleKey: string }) {
     const role = await this.ensureRole(input.roleKey);
 
-    const membership = await this.prisma.organizationMember.upsert({
-      where: { organizationId_userId: { organizationId: input.organizationId, userId: input.userId } },
-      create: { organizationId: input.organizationId, userId: input.userId, roleId: role.id },
-      update: { roleId: role.id },
-      include: { role: true },
+    // RR-09 (2): refuse a join while this org's membership is frozen by an
+    // in-flight account purge, so the sole→shared flip can't happen mid-erasure.
+    // The assertion + the upsert share one tx (and the freeze-set advisory lock)
+    // so the check and the write cannot straddle a concurrent guarantee.
+    const membership = await this.prisma.$transaction(async (tx) => {
+      await this.assertOrgMembershipNotPurgeFrozen(tx, input.organizationId);
+
+      return tx.organizationMember.upsert({
+        where: { organizationId_userId: { organizationId: input.organizationId, userId: input.userId } },
+        create: { organizationId: input.organizationId, userId: input.userId, roleId: role.id },
+        update: { roleId: role.id },
+        include: { role: true },
+      });
     });
 
     return mapMembership(membership);
@@ -1266,24 +1470,35 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async removeMember(organizationId: string, userId: string) {
-    const membership = await this.prisma.organizationMember.findUnique({
-      where: { organizationId_userId: { organizationId, userId } },
-      include: { role: true },
+    /*
+     * RR-09 (2): refuse a leave while this org's membership is frozen by an
+     * in-flight account purge, so a co-member leaving can't flip the subject's
+     * org shared→sole mid-erasure and strand its bucket. The freeze check and the
+     * delete share one tx (and the freeze-set advisory lock).
+     *
+     * Delete via deleteMany gated on count rather than delete({ where: { id } }):
+     * between the lookup and this write a concurrent removeMember() can delete the
+     * same row, and delete() would then throw an unhandled P2025. deleteMany
+     * returns count 0 in that case, which we surface as "already gone".
+     */
+    const membership = await this.prisma.$transaction(async (tx) => {
+      await this.assertOrgMembershipNotPurgeFrozen(tx, organizationId);
+
+      const found = await tx.organizationMember.findUnique({
+        where: { organizationId_userId: { organizationId, userId } },
+        include: { role: true },
+      });
+
+      if (!found) {
+        return undefined;
+      }
+
+      const deleted = await tx.organizationMember.deleteMany({ where: { id: found.id } });
+
+      return deleted.count === 0 ? undefined : found;
     });
 
     if (!membership) {
-      return undefined;
-    }
-
-    /*
-     * Delete via deleteMany gated on count rather than delete({ where: { id } }):
-     * between the lookup above and this write a concurrent removeMember() can
-     * delete the same row, and delete() would then throw an unhandled P2025.
-     * deleteMany returns count 0 in that case, which we surface as "already gone".
-     */
-    const deleted = await this.prisma.organizationMember.deleteMany({ where: { id: membership.id } });
-
-    if (deleted.count === 0) {
       return undefined;
     }
 

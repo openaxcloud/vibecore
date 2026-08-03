@@ -1265,6 +1265,8 @@ export interface ApiStore {
    * retained counts + post-purge 0-rows verification) on success.
    */
   purgeUserAccount(input: { userId: string; nowMs?: number }, deps?: PurgeStorageDeps): Promise<PurgeUserAccountResult>;
+  /** RR-09: release any account-purge freeze left behind by a crashed run. */
+  reconcilePurgeFreezes(): Promise<{ reconciled: number }>;
   findUserByEmail(email: string): Promise<UserRecord | undefined>;
   findUserById(id: string): Promise<UserRecord | undefined>;
   /**
