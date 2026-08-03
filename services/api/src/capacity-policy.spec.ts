@@ -1,12 +1,20 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  CLOUD_RUN_MAX_JOBS_PER_PROJECT_REGION,
+  CLOUD_RUN_MAX_SERVICES_PER_PROJECT_REGION,
+  CLOUD_RUN_MAX_WORKER_POOLS_PER_PROJECT_REGION,
   DEFAULT_CAPACITY_POLICY,
+  DEFAULT_TENANT_CAPACITY_POLICY,
   GCP_FOLDER_CREATE_PER_SECOND,
   GCP_MAX_FOLDERS_PER_PARENT,
+  admitServicePlacement,
   estimateProvisioning,
   fitsUnderParentCap,
+  planProjectPool,
+  requiredProjectShards,
   requiredShardCount,
+  servicesPerShardProject,
   shardForTenant,
 } from './capacity-policy.js';
 
@@ -68,5 +76,58 @@ describe('the throughput wall the audit missed', () => {
     const { folderPerTenant } = estimateProvisioning(30, policy);
     expect(folderPerTenant.rateLimitedSeconds).toBe(300); // 5 min
     expect(folderPerTenant.admissible).toBe(true);
+  });
+});
+
+describe('Cloud Run tenant capacity (claim GCP-15)', () => {
+  it('encodes the verified 1000-per-project-per-region quotas', () => {
+    expect(CLOUD_RUN_MAX_SERVICES_PER_PROJECT_REGION).toBe(1000);
+    expect(CLOUD_RUN_MAX_JOBS_PER_PROJECT_REGION).toBe(1000);
+    expect(CLOUD_RUN_MAX_WORKER_POOLS_PER_PROJECT_REGION).toBe(1000);
+  });
+
+  it('never plans to run a project at 100% of its quota', () => {
+    expect(DEFAULT_TENANT_CAPACITY_POLICY.serviceUtilisationCeiling).toBeLessThan(1);
+    expect(servicesPerShardProject()).toBe(800); // 1000 * 0.8
+    expect(servicesPerShardProject()).toBeLessThan(CLOUD_RUN_MAX_SERVICES_PER_PROJECT_REGION);
+  });
+
+  it('sizes shard projects from the service count', () => {
+    expect(requiredProjectShards(0)).toBe(0);
+    expect(requiredProjectShards(800)).toBe(1);
+    expect(requiredProjectShards(801)).toBe(2); // the ceiling actually bites
+    expect(requiredProjectShards(5000)).toBe(7); // ceil(5000/800)
+  });
+
+  it('NEGATIVE: a shard project at its utilisation ceiling refuses the next service', () => {
+    const ceiling = servicesPerShardProject();
+
+    expect(admitServicePlacement(ceiling - 1).admissible).toBe(true);
+
+    const refused = admitServicePlacement(ceiling);
+    expect(refused.admissible).toBe(false);
+    expect(refused.reason).toMatch(/ceiling is 800 of 1000/);
+  });
+});
+
+describe('pre-created project pool (claim GCP-14)', () => {
+  it('refills once the pool hits the low-water mark', () => {
+    const healthy = planProjectPool({ free: 8 });
+    expect(healthy.belowLowWaterMark).toBe(false);
+    expect(healthy.createNow).toBe(0);
+    expect(healthy.canServeFromPool).toBe(true);
+
+    const lowWater = DEFAULT_TENANT_CAPACITY_POLICY.projectPoolLowWaterMark;
+    const low = planProjectPool({ free: lowWater });
+    expect(low.belowLowWaterMark).toBe(true);
+    // free=3, target=10 → create 7 to get back to target.
+    expect(low.createNow).toBe(DEFAULT_TENANT_CAPACITY_POLICY.projectPoolTargetSize - lowWater);
+  });
+
+  it('NEGATIVE: an empty pool cannot serve a tenant without paying creation latency', () => {
+    const empty = planProjectPool({ free: 0 });
+    expect(empty.canServeFromPool).toBe(false);
+    expect(empty.belowLowWaterMark).toBe(true);
+    expect(empty.createNow).toBe(DEFAULT_TENANT_CAPACITY_POLICY.projectPoolTargetSize);
   });
 });

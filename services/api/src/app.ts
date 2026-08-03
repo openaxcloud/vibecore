@@ -356,6 +356,13 @@ import {
   higherConsequence,
   permissionsForAction,
 } from './strike-system.js';
+import {
+  type GuardedAction,
+  type ReputationTier,
+  deriveReputationTier,
+  evaluateTenantAdmission,
+  resolveBillingAccountBinding,
+} from './tenant-guardrails.js';
 import { createThumbnailCapturer, ThumbnailCapturer, type ThumbnailLogger } from './thumbnail-capture.js';
 
 declare module 'fastify' {
@@ -14195,6 +14202,187 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
   };
 
+  /*
+   * ===== Multi-tenant anti-abuse guardrails (P0-A2-14 — ./tenant-guardrails.ts) =====
+   *
+   * The plan quota (`ensureQuota` above) answers "did they buy this?". These
+   * guardrails answer "do we trust them with it?" — a separate question, because
+   * a stolen card buys plan quota just fine. Both walls apply; the effective
+   * limit is the lower of the two.
+   *
+   * Rollout: OFF by default. With TENANT_GUARDRAILS_ENABLED unset the decision is
+   * still computed and a would-block is audited + counted, so the blast radius is
+   * measurable BEFORE the wall goes live. Set to 'true' to enforce.
+   */
+  const tenantGuardrailsEnabled = process.env.TENANT_GUARDRAILS_ENABLED === 'true';
+  const firstPartyOrgIds = new Set(
+    (process.env.FIRST_PARTY_ORG_IDS ?? '')
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean),
+  );
+  const TENANT_BURST_WINDOW_MS = 60 * 60 * 1000;
+
+  const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+  /** Which UsageEvent type carries the rolling-hour create count for an action. */
+  const burstUsageKey: Record<GuardedAction, QuotaKey> = {
+    'project.create': 'projects.count',
+    'deployment.create': 'deployments.count',
+    'workspace.start': 'workspaces.active',
+  };
+
+  const resolveTenantReputation = async (request: any, organizationId: string) => {
+    /*
+     * Error handling is deliberately asymmetric. TRUST signals fail CLOSED (a
+     * failed lookup must not promote a tenant), while COUNTERS fail OPEN (a DB
+     * blip must not turn every create into a 429 — that is a self-inflicted
+     * outage, and the plan quota still guards the same call).
+     */
+    const [organization, user, customer, billing, abuseEvents] = await Promise.all([
+      store.getOrganization(organizationId).catch(() => undefined),
+      request.currentUser?.id ? store.findUserById(request.currentUser.id).catch(() => undefined) : undefined,
+      store.getBillingCustomer(organizationId).catch(() => undefined),
+      billingState(organizationId).catch(() => undefined),
+      store.listAbuseEvents({ organizationId }).catch(() => []),
+    ]);
+
+    const now = Date.now();
+    const createdMs = organization?.createdAt ? Date.parse(organization.createdAt) : Number.NaN;
+    const accountAgeDays = Number.isFinite(createdMs) ? Math.floor((now - createdMs) / MS_PER_DAY) : 0;
+
+    const activeStrikes = user
+      ? strikeView(readStrikeRecords(user.preferences as Record<string, unknown> | undefined), now).activeStrikes
+      : 0;
+
+    const recentSevereAbuseEvents = abuseEvents.filter((event) => {
+      if (!['high', 'critical'].includes(String(event.severity))) {
+        return false;
+      }
+
+      const ms = Date.parse(String(event.createdAt));
+
+      return !Number.isFinite(ms) || now - ms <= 7 * MS_PER_DAY;
+    }).length;
+
+    const billingAccountBound = Boolean(customer?.externalId);
+
+    const tier = deriveReputationTier({
+      firstParty: firstPartyOrgIds.has(organizationId),
+      emailVerified: Boolean(user?.emailVerifiedAt),
+      billingAccountBound,
+      subscriptionActive: ['ACTIVE', 'TRIALING'].includes(String(billing?.subscription?.status)),
+      accountAgeDays,
+      activeStrikes,
+      recentSevereAbuseEvents,
+    });
+
+    const binding = resolveBillingAccountBinding({
+      organizationId,
+      tier,
+      customer: customer ? { provider: customer.provider, externalId: customer.externalId } : null,
+      delinquent: String(billing?.subscription?.status) === 'PAST_DUE',
+    });
+
+    return { tier, binding };
+  };
+
+  const ensureTenantAdmission = async (request: any, organizationId: string, action: GuardedAction) => {
+    let refusal: { statusCode: number; code?: string; reason?: string } | undefined;
+
+    try {
+      const reputation = await resolveTenantReputation(request, organizationId);
+      const tier: ReputationTier = reputation.tier;
+
+      const since = new Date(Date.now() - TENANT_BURST_WINDOW_MS);
+      const [projects, concurrentWorkspaces, recent] = await Promise.all([
+        usageForQuota(organizationId, 'projects.count', request).catch(() => 0),
+        usageForQuota(organizationId, 'workspaces.active', request).catch(() => 0),
+        store.sumUsage(organizationId, burstUsageKey[action], since).catch(() => 0),
+      ]);
+
+      const override = await store.getQuotaOverride(organizationId, burstUsageKey[action]).catch(() => undefined);
+
+      const decision = evaluateTenantAdmission({
+        action,
+        tier,
+        binding: reputation.binding,
+        usage: { projects, concurrentWorkspaces },
+        recentCreates: { [action]: recent },
+        overrideActive: isQuotaOverrideActive(override),
+      });
+
+      if (decision.allowed) {
+        return undefined;
+      }
+
+      /*
+       * Telemetry must NEVER be able to disable the control. An unregistered
+       * metric name throws, and before this was isolated the throw unwound into
+       * the catch below and silently turned enforcement off — the guardrail
+       * looked wired and refused nothing. Observability is best-effort here.
+       */
+      try {
+        request.observabilityMetrics?.increment?.('tenant_guardrail_refusals_total', {
+          action,
+          tier,
+          code: String(decision.code),
+          enforced: String(tenantGuardrailsEnabled),
+        });
+      } catch (metricError) {
+        request.log?.warn?.({ err: metricError }, 'tenant guardrail metric emit failed');
+      }
+
+      await audit(request, store, {
+        organizationId,
+        action: 'tenant.guardrail.refused',
+        resourceType: 'tenantGuardrail',
+        resourceId: action,
+        metadata: {
+          tier,
+          code: decision.code,
+          reason: decision.reason,
+          bindingState: reputation.binding.state,
+          billingAccountKey: reputation.binding.billingAccountKey,
+          enforced: tenantGuardrailsEnabled,
+        },
+      }).catch(() => undefined);
+
+      if (decision.abuseSignal) {
+        await recordAbuseSignal(request, store, {
+          organizationId,
+          userId: request.currentUser?.id,
+          type: decision.abuseSignal.type,
+          severity: decision.abuseSignal.severity,
+          reason: decision.abuseSignal.reason,
+          action: decision.abuseSignal.action,
+        }).catch(() => undefined);
+      }
+
+      refusal = { statusCode: decision.statusCode ?? 429, code: decision.code, reason: decision.reason };
+    } catch (error: any) {
+      /*
+       * A bug or an outage inside the guardrail must never take down project
+       * creation — the plan quota still guards this same call. Log and let it
+       * through rather than converting an internal fault into a tenant-visible
+       * 429. The refusal itself is thrown BELOW, outside this catch, so a real
+       * refusal can never be swallowed here.
+       */
+      request.log?.warn?.({ err: error, organizationId, action }, 'tenant guardrail evaluation failed');
+
+      return undefined;
+    }
+
+    if (refusal && tenantGuardrailsEnabled) {
+      throw Object.assign(new Error(refusal.reason ?? 'tenant admission refused'), {
+        statusCode: refusal.statusCode,
+        code: refusal.code,
+      });
+    }
+
+    return refusal;
+  };
+
   const usageAbuseTriggerTypes = new Set<QuotaKey>(['ai.messages', 'previews.public', 'workspaces.active']);
 
   const evaluateUsageAbuse = async (request: any, organizationId: string, triggerType: QuotaKey) => {
@@ -14563,6 +14751,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        */
       output = {
         deployment: await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
+          await ensureTenantAdmission(request, project.organizationId, 'deployment.create');
           await ensureQuota(request, project.organizationId, 'deployments.count');
           return store.createDeployment({ projectId: project.id, provider: input.provider ?? 'manual' });
         }),
@@ -18180,6 +18369,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * projects.count check via TOCTOU.
      */
     const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
+      await ensureTenantAdmission(request, orgId, 'project.create');
       await ensureQuota(request, orgId, 'projects.count');
 
       return store.createProject({
@@ -18278,6 +18468,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     // Serialize quota + create (projects.count TOCTOU).
     const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
+      await ensureTenantAdmission(request, orgId, 'project.create');
       await ensureQuota(request, orgId, 'projects.count');
 
       return store.createProject({
@@ -18342,6 +18533,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     // Serialize quota + create (projects.count TOCTOU).
     const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
+      await ensureTenantAdmission(request, orgId, 'project.create');
       await ensureQuota(request, orgId, 'projects.count');
 
       return store.createProject({
@@ -18689,6 +18881,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         ? (job.provider as 'github' | 'gitlab' | 'bitbucket' | 'zip')
         : ('blank' as const);
       const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
+        await ensureTenantAdmission(request, orgId, 'project.create');
         await ensureQuota(request, orgId, 'projects.count');
         return store.createProject({
           organizationId: orgId,
@@ -18810,6 +19003,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * Cheap pre-check to reject an over-quota org before the (slow) clone; the
      * authoritative atomic check is inside the serialized block below.
      */
+    await ensureTenantAdmission(request, orgId, 'project.create');
     await ensureQuota(request, orgId, 'projects.count');
 
     const imported = await gitProvider.importRepository({ repositoryUrl: body.repositoryUrl, branch: body.branch });
@@ -18827,6 +19021,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * the advisory-lock transaction).
      */
     const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
+      await ensureTenantAdmission(request, orgId, 'project.create');
       await ensureQuota(request, orgId, 'projects.count');
 
       return store.createProject({
@@ -18875,6 +19070,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(githubImportSchema, request.body);
     await requireOrg(request, store, orgId, 'projects:write');
     await requireOrganizationNotSuspended(store, orgId);
+    await ensureTenantAdmission(request, orgId, 'project.create');
     await ensureQuota(request, orgId, 'projects.count');
 
     const imported = await gitProvider.importRepository({ repositoryUrl: body.repositoryUrl, branch: body.branch });
@@ -18888,6 +19084,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'Imported project';
 
     const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
+      await ensureTenantAdmission(request, orgId, 'project.create');
       await ensureQuota(request, orgId, 'projects.count');
 
       return store.createProject({
@@ -18937,6 +19134,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     // Serialize quota + create (projects.count TOCTOU).
     const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
+      await ensureTenantAdmission(request, orgId, 'project.create');
       await ensureQuota(request, orgId, 'projects.count');
 
       return store.createProject({
@@ -30849,6 +31047,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * by project+workspace (concurrent same-project builds share the build CWD).
      */
     const createResult = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
+      await ensureTenantAdmission(request, project.organizationId, 'deployment.create');
       await ensureQuota(request, project.organizationId, 'deployments.count');
 
       const inFlight = await findInFlightDeploymentForCwd(store, project.id, secondaryWorkspaceId);
@@ -31796,6 +31995,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * clobber the shared build CWD / double-consume quota.
      */
     const redeployResult = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
+      await ensureTenantAdmission(request, project.organizationId, 'deployment.create');
       await ensureQuota(request, project.organizationId, 'deployments.count');
 
       const inFlight = await findInFlightDeploymentForCwd(store, project.id, secondaryWorkspaceId);
@@ -32095,6 +32295,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const willServerDigestRollback = !willTriggerProviderRollback && target.provider === 'server';
 
     const rollback = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
+      await ensureTenantAdmission(request, project.organizationId, 'deployment.create');
       await ensureQuota(request, project.organizationId, 'deployments.count');
 
       return store.createDeployment({
