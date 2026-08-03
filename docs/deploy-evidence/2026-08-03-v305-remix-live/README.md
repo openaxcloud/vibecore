@@ -62,6 +62,18 @@ L'enforcement est **serveur** : ces appels sont des POST directs sur l'API, sans
 présents, et `piiMaskedCount=2` renvoyé par l'API concorde avec les 2 marqueurs trouvés.
 Une archive vide ou tronquée ne pourrait pas satisfaire ces trois conditions.
 
+### 3bis. Scan résiduel du clone prod — ce qui reste dedans
+
+Fouille indépendante du clone produit, toutes catégories confondues :
+
+- emails survivants : **aucun** · téléphones format international : **aucun** · IP : `0.0.0.0` (adresse
+  de bind du serveur, pas une donnée personnelle)
+
+Autrement dit la source `storefront` ne portait **qu'une seule** catégorie de PII (`card`).
+C'est pourquoi la preuve prod ci-dessus ne couvre que `card` : ce n'est pas une réserve de
+prudence, c'est ce que la source contenait. Prouver `email`/`phone`/`iban` en prod supposerait
+de **publier un listing porteur de PII dans la gallery publique** — non fait, en attente d'arbitrage.
+
 ## 4. Limites — à lire avant toute signature
 
 Ce qui est prouvé ici est **plus étroit** que « le clone ne contient aucune PII » :
