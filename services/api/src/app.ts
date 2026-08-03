@@ -310,6 +310,15 @@ import {
 } from './rate-card-service.js';
 import { resolveRollbackImage, resolveRollbackSecrets, type SecretPolicy } from './release-rollback.js';
 import { computeWorkspaceRestorePlan, isPortReadyFromProbe, type PortProbeResult } from './runtime-readiness.js';
+import { aggregatePreviewReadiness } from './runtime-readiness.js';
+import {
+  recordPreviewBeacon,
+  readClientBeacon,
+  recordLifecycleFromStatus,
+  captureWorkspacePostMortem,
+  getWorkspaceDiagnostics,
+  type PreviewBeaconStatus,
+} from './workspace-diagnostics.js';
 import { flattenRuntimeTreeFilePaths, normalizeRuntimePath, persistedFileContentMatches } from './runtime-reseed.js';
 import { describeCron } from './scheduled-tasks-cron.js';
 import {
@@ -7754,6 +7763,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     options.mcpMarketplace ??
     (store instanceof PrismaApiStore ? createDefaultMcpMarketplaceService(store.prisma) : undefined);
 
+  // BLOCKER #5/#6: persisted readiness beacons + workspace diagnostics live on
+  // the Prisma client. Undefined off Prisma (tests) — helpers are best-effort.
+  const diagnosticsDb = store instanceof PrismaApiStore ? store.prisma : undefined;
+
   const projectStorage = options.projectStorage ?? new LocalProjectStorage();
   const gitProvider = options.gitProvider ?? new GitCliProvider();
   const staticBuildRunner = options.staticBuildRunner ?? runStaticBuild;
@@ -12875,6 +12888,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await store
       .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'STARTING' })
       .catch(() => undefined);
+
+    emitLifecycle(authorized.workspaceId, 'STARTING', 'provision');
   };
 
   // Ensure the workspace agent is reachable, provisioning + waiting if needed.
@@ -13219,6 +13234,56 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     return isPortReadyFromProbe(probe);
+  };
+
+  /*
+   * BLOCKER #6: append a timestamped lifecycle event (best-effort, never throws).
+   * The lifecycle machine drops illegal edges, so this is safe to call opportunist-
+   * ically on every status change.
+   */
+  const emitLifecycle = (workspaceId: string, status: string, reason?: string): void => {
+    if (!diagnosticsDb) {
+      return;
+    }
+
+    void recordLifecycleFromStatus(diagnosticsDb, workspaceId, status, reason).catch(() => undefined);
+  };
+
+  /*
+   * BLOCKER #6: on stop/fail, freeze the last-known runtime state into a
+   * post-mortem (ports/processes from the agent while it may still answer,
+   * Problems = fresh readiness beacons, a tail of manager logs) + a STOPPED/FAILED
+   * lifecycle event. Fully best-effort — the workspace is already stopping.
+   */
+  const captureStopDiagnostics = async (workspaceId: string, reason: string, finalState: string): Promise<void> => {
+    if (!diagnosticsDb) {
+      return;
+    }
+
+    const db = diagnosticsDb;
+
+    const [ports, processes, problems, logsTail] = await Promise.all([
+      agentRequest<{ ports: unknown }>(workspaceId, '/ports').then((r) => r.ports).catch(() => undefined),
+      agentRequest<{ processes: unknown }>(workspaceId, '/processes').then((r) => r.processes).catch(() => undefined),
+      db.previewReadinessBeacon
+        .findMany({ where: { workspaceId } })
+        .then((rows) => rows.map((r) => ({ port: r.port, status: r.status, detail: r.detail, at: r.reportedAt })))
+        .catch(() => undefined),
+      managerRequest<{ logs?: string[] }>(`/workspaces/${workspaceId}/logs`)
+        .then((r) => (r.logs ?? []).slice(-100).join('\n'))
+        .catch(() => undefined),
+    ]);
+
+    await captureWorkspacePostMortem(db, workspaceId, {
+      reason,
+      finalState,
+      ports,
+      processes,
+      problems,
+      logsTail,
+    }).catch(() => undefined);
+
+    emitLifecycle(workspaceId, finalState, reason);
   };
 
   /*
@@ -15036,10 +15101,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       await store
         .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'FAILED' })
         .catch(() => undefined);
+
+      if (diagnosticsDb) {
+        void captureStopDiagnostics(authorized.workspaceId, 'start.failed', 'FAILED');
+      }
     } else if (managerWorkspace?.status !== 'STOPPED') {
       await store
         .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'RUNNING' })
         .catch(() => undefined);
+
+      emitLifecycle(authorized.workspaceId, 'RUNNING', 'agent.reachable');
 
       /*
        * Pod is up — seed it from the persisted files if it came up empty (cold
@@ -15083,6 +15154,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await store
       .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'STOPPED' })
       .catch(() => undefined);
+
+    /*
+     * BLOCKER #6: freeze a post-mortem BEFORE the pod is fully gone — the last
+     * ports/processes we can still read from the agent, the Problems (fresh
+     * readiness beacons), and a tail of runtime logs — plus a timestamped
+     * STOPPED lifecycle event. Entirely best-effort: never blocks the stop.
+     */
+    if (diagnosticsDb) {
+      void captureStopDiagnostics(authorized.workspaceId, 'user.stop', 'STOPPED');
+    }
 
     await audit(request, store, {
       organizationId: authorized.organizationId,
@@ -15711,22 +15792,68 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       localFallback = true;
     }
 
-    return Promise.all(
-      result.ports.map(async (port) => ({
-        ...port,
-        type: 'open',
+    /*
+     * BLOCKER #5: readiness is only honest when the four actors AGREE. Load the
+     * manager-side workspace status ONCE (not per port); the port probe covers
+     * PORT + PROXY (it traverses the agent route), the agent's processId covers
+     * PROCESS, and the persisted client beacon covers "app never mounted / console
+     * error". Any single "no" ⇒ not ready, so a bound-but-blank preview no longer
+     * latches ready and disarms the auto-reload recovery.
+     */
+    const managerStatus = await store
+      .getWorkspace(authorized.workspaceId)
+      .then((w) => w?.status as string | undefined)
+      .catch(() => undefined);
 
-        /*
-         * Drive readiness from an HTTP probe so the Preview's not-ready -> ready
-         * auto-reload edge can fire. The local-runtime fallback serves the dev
-         * server directly on the host (no agent to probe through), so report it
-         * ready immediately rather than probing a port that has no agent route.
-         */
-        ready: localFallback ? true : await probePortReady(authorized.workspaceId, port.port),
-        url: previewUrlForWorkspacePort(authorized.workspaceId, port.port),
-      })),
+    return Promise.all(
+      result.ports.map(async (port) => {
+        if (localFallback) {
+          // Local-runtime fallback serves the dev server directly on the host
+          // (no agent to probe through) — report ready without probing.
+          return { ...port, type: 'open', ready: true, url: previewUrlForWorkspacePort(authorized.workspaceId, port.port) };
+        }
+
+        const portReady = await probePortReady(authorized.workspaceId, port.port);
+        const clientBeacon = diagnosticsDb
+          ? await readClientBeacon(diagnosticsDb, authorized.workspaceId, port.port).catch(() => 'none' as const)
+          : ('none' as const);
+
+        const verdict = aggregatePreviewReadiness({
+          portReady,
+          hasLiveProcess: Boolean(port.processId),
+          managerStatus,
+          clientBeacon,
+        });
+
+        return {
+          ...port,
+          type: 'open',
+          ready: verdict.ready,
+          ...(verdict.blockedBy ? { notReadyReason: verdict.blockedBy } : {}),
+          url: previewUrlForWorkspacePort(authorized.workspaceId, port.port),
+        };
+      }),
     );
   });
+  /*
+   * BLOCKER #6: reconstruct WHY a workspace died after the pod is gone — the
+   * timestamped lifecycle trail + the post-mortem snapshots (last ports /
+   * processes / Problems / logs). Read-only, workspace-scoped.
+   */
+  app.get('/api/runtime/workspaces/:workspaceId/diagnostics', async (request) => {
+    const { workspaceId } = parse(workspaceParams, request.params);
+    const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
+
+    if (!diagnosticsDb) {
+      return { lifecycle: [], postMortems: [] };
+    }
+
+    return getWorkspaceDiagnostics(diagnosticsDb, authorized.workspaceId).catch(() => ({
+      lifecycle: [],
+      postMortems: [],
+    }));
+  });
+
   app.get('/api/runtime/workspaces/:workspaceId/preview/:port', async (request, reply) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const port = Number((request.params as { port: string }).port);
@@ -27341,6 +27468,37 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     return { private: isPrivate };
+  });
+
+  /*
+   * BLOCKER #5: the in-preview reporter beacons "blank DOM / console error" to
+   * the preview-proxy, which relays it here (proxy secret). We persist it so the
+   * /ports readiness check across ANY api replica drops `ready` for that port.
+   */
+  app.post('/internal/preview/beacon', async (request, reply) => {
+    requirePreviewProxySecret(request);
+
+    const body = parse(
+      z.object({
+        workspaceId: z.string().min(1).max(128),
+        port: z.coerce.number().int().positive().max(65535),
+        status: z.enum(['ok', 'blank', 'error']),
+        detail: z.string().max(500).optional(),
+      }),
+      request.body ?? {},
+    );
+
+    if (diagnosticsDb) {
+      await recordPreviewBeacon(
+        diagnosticsDb,
+        body.workspaceId,
+        body.port,
+        body.status as PreviewBeaconStatus,
+        body.detail,
+      ).catch(() => undefined);
+    }
+
+    return reply.code(204).send();
   });
 
   app.post('/internal/inactivity-gc', async (request, reply) => {
