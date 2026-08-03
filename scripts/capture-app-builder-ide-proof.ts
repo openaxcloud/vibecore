@@ -727,6 +727,47 @@ async function waitForPreview(page: Page, evidenceRoot: string) {
     return PREVIEW_RUNTIME_ERROR_PATTERN.test(previewText) ? 0 : previewText.length;
   };
 
+  const startPreviewFromTerminal = async () => {
+    const terminalTabs = page.getByTestId('terminal-tabs-bar');
+    const openedTerminal = !(await terminalTabs.isVisible().catch(() => false));
+
+    if (openedTerminal) {
+      await page.keyboard.press(process.platform === 'darwin' ? 'Meta+J' : 'Control+J');
+    }
+
+    await expect(terminalTabs).toBeVisible({ timeout: 60_000 });
+
+    const terminalScreen = page.locator('.xterm-screen:visible').last();
+    const terminalRows = page.locator('.xterm-rows:visible').last();
+
+    await expect(terminalScreen).toBeVisible({ timeout: 60_000 });
+    await expect
+      .poll(() => terminalRows.innerText().catch(() => ''), {
+        message: 'The IDE Terminal must expose an interactive workspace shell before starting Vite',
+        timeout: PREVIEW_RESTART_TIMEOUT_MS,
+      })
+      .toMatch(/(?:\/workspace|[$#]\s*$)/m);
+
+    await terminalScreen.click();
+    await page.keyboard.type('npm run dev -- --host 0.0.0.0');
+    await page.keyboard.press('Enter');
+    process.stdout.write(`${JSON.stringify({ status: 'preview-terminal-start-requested' })}\n`);
+
+    await expect
+      .poll(() => terminalRows.innerText().catch(() => ''), {
+        message: 'The real IDE Terminal must report a running Vite server',
+        timeout: PREVIEW_RESTART_TIMEOUT_MS,
+      })
+      .toMatch(/(?:VITE|Local:|ready in|5173)/i);
+
+    if (openedTerminal) {
+      await page.keyboard.press(process.platform === 'darwin' ? 'Meta+J' : 'Control+J');
+      await expect(terminalTabs).toBeHidden({ timeout: 60_000 });
+    }
+
+    await webviewButton.click();
+  };
+
   try {
     const waitForPreviewSurface = () =>
       expect
@@ -819,6 +860,12 @@ async function waitForPreview(page: Page, evidenceRoot: string) {
       .catch(() => false);
 
     if (!renderedOnFirstAttach) {
+      const iframeSource = await iframe.getAttribute('src').catch(() => null);
+
+      if (!iframeSource || iframeSource === 'about:blank') {
+        await startPreviewFromTerminal();
+      }
+
       const refreshPreviewButton = page.getByRole('button', { name: 'Refresh preview' }).first();
 
       if (await refreshPreviewButton.isVisible().catch(() => false)) {
