@@ -1,0 +1,27 @@
+# Admission test harness for the cosign signature policy (B7).
+#
+# Used with `kubectl apply --dry-run=server` so the full admission chain runs
+# (PodSecurity -> Kyverno verifyImages) without creating anything in the
+# cluster. The image is overridden on the command line; securityContext is
+# whatever ns/vibecore's `restricted` PodSecurity level demands, so the only
+# thing that can differ between a pass and a fail is the signature check.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sigtest
+  namespace: vibecore
+spec:
+  restartPolicy: Never
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: sigtest
+      image: PLACEHOLDER
+      command: ["/bin/false"]
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
