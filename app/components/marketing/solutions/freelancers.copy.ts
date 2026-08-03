@@ -19,7 +19,10 @@ export const FREELANCERS_COPY = {
       subtitle:
         'Describe the client brief once and E-Code turns it into a working app in editable source code. Start from your own repeatable patterns, share a preview link for review, iterate through the Agent, and hand off an exported project the client can inspect and continue.',
       primaryCta: { label: 'Start a client project', ariaLabel: 'Start a client project with E-Code' },
-      secondaryCta: { label: 'See how it builds', ariaLabel: 'See how E-Code builds a client project from a prompt' },
+      secondaryCta: {
+        label: 'See the client-delivery flow',
+        ariaLabel: 'See how E-Code builds a client project from a prompt',
+      },
       microcopy:
         'Begin from the brief you already have. Source files, the running Preview, and a shareable preview link stay visible as the work moves toward handoff.',
     },
@@ -81,7 +84,7 @@ export const FREELANCERS_COPY = {
       title: 'Describe the delivery workflow you repeat for every client',
       intro:
         'This freelancer brief becomes Studio Ferro in editable React and TypeScript files. E-Code runs the client-delivery workspace in Webview while every project and commercial record stays fictional and local.',
-      label: 'Example prompt',
+      label: 'Client-delivery brief',
       promptText:
         'Create Studio Ferro, a client delivery workspace for a freelance designer. Include project status, deliverables, feedback threads, proposal, invoice status, time log, and a client approval flow using realistic fictional local data. Do not claim real payments, signatures, emails, or client authentication. Build accessible responsive React and TypeScript with clay, ink, sage, and orange actions. No purple.',
       outputs: [
@@ -127,7 +130,7 @@ export const FREELANCERS_COPY = {
       },
     },
     deliverables: {
-      eyebrow: 'What you receive',
+      eyebrow: 'What the client handoff includes',
       title: 'A client project you can review, ship, and hand off',
       intro:
         'The project stays inspectable from the first generated file through Preview and export. Shareable preview links carry review; an exported-source handoff reduces the client’s dependency on your workspace.',
@@ -181,8 +184,8 @@ export const FREELANCERS_COPY = {
           body: 'Request the next change and review the diff against the running Preview.',
         },
         {
-          title: 'Responsive by default',
-          body: 'Layouts adapt from wide desktop to phone without a separate mobile build.',
+          title: 'Responsive client deliverables',
+          body: 'Project status, feedback threads, invoice state, time logs, and approval controls remain usable in a desktop review or a client’s phone check.',
         },
         {
           title: 'Exportable project files',
@@ -191,7 +194,7 @@ export const FREELANCERS_COPY = {
       ],
     },
     useCases: {
-      eyebrow: 'Who builds with it',
+      eyebrow: 'Client projects to deliver',
       title: 'Project foundations freelancers prepare for review and handoff',
       intro:
         'From a client portal to a launch page, the loop produces responsive source and a running interface; client acceptance, external sharing, service connections, and the final transfer remain verifiable delivery steps.',
@@ -215,7 +218,7 @@ export const FREELANCERS_COPY = {
       ],
     },
     faq: {
-      eyebrow: 'Common questions',
+      eyebrow: 'Freelance-delivery questions',
       title: 'E-Code for freelancers, answered honestly',
       intro: 'What the Freelancers path produces, and where its boundaries are.',
       items: [
@@ -245,7 +248,10 @@ export const FREELANCERS_COPY = {
       title: 'Start a client project and share it today',
       body: 'Turn a client brief into a working app in real source code, share a preview link for review, and hand off an editable, exported project.',
       primaryCta: { label: 'Start a client project', ariaLabel: 'Start a client project with E-Code' },
-      secondaryCta: { label: 'See how it builds', ariaLabel: 'See how E-Code builds a client project from a prompt' },
+      secondaryCta: {
+        label: 'See the client-delivery flow',
+        ariaLabel: 'See how E-Code builds a client project from a prompt',
+      },
     },
     aria: {
       pageLabel: 'Freelancers solution page',
@@ -254,7 +260,7 @@ export const FREELANCERS_COPY = {
       problemLabel: 'The client delivery problem',
       buildLabel: 'How E-Code works for freelancers',
       outputListLabel: 'Client project build outputs',
-      proofLinkLabel: 'See the real E-Code IDE proof',
+      proofLinkLabel: 'Inspect the client-delivery IDE evidence',
       deliverablesLabel: 'What E-Code delivers for freelancers',
       featuresLabel: 'Freelancer delivery capabilities',
       useCasesLabel: 'Freelancer use cases',
@@ -275,7 +281,7 @@ export const FREELANCERS_COPY = {
         'Décrivez le brief client une fois et E-Code en fait une application fonctionnelle dans un vrai code source modifiable. Partez de vos propres modèles réutilisables, partagez un lien d’aperçu pour la revue, itérez avec l’Agent et transmettez un projet exporté que le client peut inspecter et poursuivre.',
       primaryCta: { label: 'Démarrer un projet client', ariaLabel: 'Démarrer un projet client avec E-Code' },
       secondaryCta: {
-        label: 'Voir la construction',
+        label: 'Voir le parcours de livraison client',
         ariaLabel: 'Voir comment E-Code construit un projet client à partir d’un prompt',
       },
       microcopy:
@@ -339,7 +345,7 @@ export const FREELANCERS_COPY = {
       title: 'Décrivez le parcours de livraison répété pour chaque client',
       intro:
         'Ce brief freelance devient Studio Ferro dans des fichiers React et TypeScript modifiables. E-Code exécute l’espace de livraison dans la Webview, avec chaque projet et fiche commerciale conservés en données locales fictives.',
-      label: 'Exemple de prompt',
+      label: 'Brief de livraison client',
       promptText:
         'Crée Studio Ferro, un espace de livraison client pour un designer freelance. Ajoute statut du projet, livrables, fils de feedback, proposition, état de facture, suivi du temps et parcours de validation client avec des données locales fictives réalistes. Ne prétends pas avoir de paiements, signatures, emails ou authentification client réels. React et TypeScript accessibles et responsive, argile, encre, sauge et actions orange. Aucun violet.',
       outputs: [
@@ -386,7 +392,7 @@ export const FREELANCERS_COPY = {
       },
     },
     deliverables: {
-      eyebrow: 'Ce que vous recevez',
+      eyebrow: 'Ce que comprend le transfert client',
       title: 'Un projet client que vous pouvez relire, livrer et transmettre',
       intro:
         'Le projet reste inspectable du premier fichier généré jusqu’à l’aperçu et l’export. Les liens d’aperçu partageables portent la revue ; le transfert de la source exportée réduit la dépendance du client à votre workspace.',
@@ -440,8 +446,8 @@ export const FREELANCERS_COPY = {
           body: 'Demandez le changement suivant et relisez le diff face à l’aperçu actif.',
         },
         {
-          title: 'Responsive par défaut',
-          body: 'Les mises en page s’adaptent du grand écran au téléphone sans build mobile séparé.',
+          title: 'Livrables client responsives',
+          body: 'Statut du projet, fils de feedback, état de facture, temps et contrôles de validation restent utilisables en revue desktop ou sur le téléphone du client.',
         },
         {
           title: 'Fichiers projet exportables',
@@ -450,7 +456,7 @@ export const FREELANCERS_COPY = {
       ],
     },
     useCases: {
-      eyebrow: 'Qui construit avec',
+      eyebrow: 'Projets clients à livrer',
       title: 'Les bases de projets que les freelances préparent pour revue et transfert',
       intro:
         'D’un portail client à une page de lancement, la boucle produit une source responsive et une interface active ; validation client, partage externe, branchements de services et transfert final restent des étapes de livraison vérifiables.',
@@ -474,7 +480,7 @@ export const FREELANCERS_COPY = {
       ],
     },
     faq: {
-      eyebrow: 'Questions fréquentes',
+      eyebrow: 'Questions sur la livraison freelance',
       title: 'E-Code pour freelances, en toute honnêteté',
       intro: 'Ce que produit le parcours Freelances, et où sont ses limites.',
       items: [
@@ -505,7 +511,7 @@ export const FREELANCERS_COPY = {
       body: 'Transformez un brief client en une application fonctionnelle dans du vrai code source, partagez un lien d’aperçu pour la revue et transmettez un projet modifiable et exporté.',
       primaryCta: { label: 'Démarrer un projet client', ariaLabel: 'Démarrer un projet client avec E-Code' },
       secondaryCta: {
-        label: 'Voir la construction',
+        label: 'Voir le parcours de livraison client',
         ariaLabel: 'Voir comment E-Code construit un projet client à partir d’un prompt',
       },
     },
@@ -516,7 +522,7 @@ export const FREELANCERS_COPY = {
       problemLabel: 'Le problème de la livraison client',
       buildLabel: 'Comment E-Code fonctionne pour les freelances',
       outputListLabel: 'Résultats de la génération du projet client',
-      proofLinkLabel: 'Voir la preuve IDE réelle E-Code',
+      proofLinkLabel: 'Inspecter la preuve IDE de livraison client',
       deliverablesLabel: 'Ce que livre E-Code pour les freelances',
       featuresLabel: 'Capacités de livraison pour freelances',
       useCasesLabel: 'Cas d’usage freelances',

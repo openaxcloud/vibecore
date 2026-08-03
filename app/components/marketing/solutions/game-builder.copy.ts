@@ -18,7 +18,7 @@ export const GAME_BUILDER_COPY = {
       subtitle:
         'Describe the quiz, the timed rounds, and the leaderboard. E-Code generates the React and TypeScript files, opens TriviaClash in Webview, and keeps the Agent conversation beside the running game. The captured flow uses fictional players and browser-local state; remote players need a backend you connect and test.',
       primaryCta: { label: 'Describe your game', ariaLabel: 'Describe your game with E-Code' },
-      secondaryCta: { label: 'See how it builds', ariaLabel: 'See how E-Code builds the game from a prompt' },
+      secondaryCta: { label: 'See the playable loop', ariaLabel: 'See how E-Code builds the game from a prompt' },
       microcopy:
         'Start from the game you already have in mind. Source files, the running Preview, and publishing controls stay visible as the game evolves.',
     },
@@ -80,7 +80,7 @@ export const GAME_BUILDER_COPY = {
       title: 'Describe the rounds, not the engine',
       intro:
         'The request below reads like a note from a game designer. The four items map its implementation scope in real source files, not a locked engine.',
-      label: 'Example prompt',
+      label: 'Quiz game brief',
       promptText: 'Build a multiplayer quiz game with real-time scoring and a leaderboard.',
       outputs: [
         {
@@ -125,10 +125,10 @@ export const GAME_BUILDER_COPY = {
       },
     },
     deliverables: {
-      eyebrow: 'What you receive',
+      eyebrow: 'What the playable quiz includes',
       title: 'A playable game foundation you can inspect and keep evolving',
       intro:
-        'The project stays inspectable from the first generated file through Preview and export. Supported static builds add a live release through guided publishing without hiding the code.',
+        'TriviaClash stays inspectable from lobby state and timed-question logic through local scoring, Preview, and export. Supported static quiz builds add guided publishing while the multiplayer boundary remains explicit.',
       items: [
         {
           title: 'Game code you can open and export',
@@ -179,17 +179,17 @@ export const GAME_BUILDER_COPY = {
           body: 'Run the local lobby and question flow in E-Code’s real Webview while the Agent prompt and files remain available for inspection.',
         },
         {
-          title: 'Responsive by default',
+          title: 'Responsive play surface',
           body: 'Game screens adapt from wide desktop to phone without a separate mobile build.',
         },
         {
-          title: 'Keep the source accessible',
+          title: 'Own the game-loop source',
           body: 'Export the project or publish supported static frontends while retaining editable source files.',
         },
       ],
     },
     useCases: {
-      eyebrow: 'Who builds with it',
+      eyebrow: 'Game formats to play-test',
       title: 'Playable game foundations teams extend for each audience',
       intro:
         'From a quiz-night concept to a classroom challenge, the loop produces a playable local game foundation; remote synchronization and persistence begin only after the required services are connected and tested.',
@@ -213,7 +213,7 @@ export const GAME_BUILDER_COPY = {
       ],
     },
     faq: {
-      eyebrow: 'Common questions',
+      eyebrow: 'Quiz-game questions',
       title: 'Game Builder, answered honestly',
       intro: 'What the Game Builder path produces, and where its boundaries are.',
       items: [
@@ -235,7 +235,7 @@ export const GAME_BUILDER_COPY = {
         },
         {
           title: 'How do I change the game later?',
-          body: 'Edit the files directly or ask the Agent for the next change and review the diff against the running Preview.',
+          body: 'Edit the lobby and round logic directly or ask the Agent for another question type, scoring rule, or leaderboard state, then play-test the diff in Preview.',
         },
       ],
     },
@@ -243,7 +243,7 @@ export const GAME_BUILDER_COPY = {
       title: 'Describe your game and play its first rounds',
       body: 'Turn the game you have in mind into an editable browser loop, lobby, and scoring system, play-test the local flow in Preview, then connect the service that powers remote matches.',
       primaryCta: { label: 'Describe your game', ariaLabel: 'Describe your game with E-Code' },
-      secondaryCta: { label: 'See how it builds', ariaLabel: 'See how E-Code builds the game from a prompt' },
+      secondaryCta: { label: 'See the playable loop', ariaLabel: 'See how E-Code builds the game from a prompt' },
     },
     aria: {
       pageLabel: 'Game Builder solution page',
@@ -273,7 +273,7 @@ export const GAME_BUILDER_COPY = {
         'Décrivez le quiz, les manches chronométrées et le classement. E-Code génère les fichiers React et TypeScript, ouvre TriviaClash dans la Webview et garde la conversation avec l’Agent à côté du jeu actif. Le parcours capturé utilise des joueurs fictifs et un état local au navigateur ; les joueurs distants exigent un backend connecté et testé.',
       primaryCta: { label: 'Décrivez votre jeu', ariaLabel: 'Décrivez votre jeu avec E-Code' },
       secondaryCta: {
-        label: 'Voir la construction',
+        label: 'Voir la boucle jouable',
         ariaLabel: 'Voir comment E-Code construit le jeu à partir d’un prompt',
       },
       microcopy:
@@ -338,7 +338,7 @@ export const GAME_BUILDER_COPY = {
       title: 'Décrivez les manches, pas le moteur',
       intro:
         'La demande ci-dessous se lit comme un mot d’un concepteur de jeu. Les quatre éléments cartographient son périmètre d’implémentation dans de vrais fichiers source, pas un moteur verrouillé.',
-      label: 'Exemple de prompt',
+      label: 'Brief du jeu de quiz',
       promptText: 'Crée un jeu de quiz multijoueur avec score en temps réel et classement.',
       outputs: [
         {
@@ -383,10 +383,10 @@ export const GAME_BUILDER_COPY = {
       },
     },
     deliverables: {
-      eyebrow: 'Ce que vous recevez',
+      eyebrow: 'Ce que comprend le quiz jouable',
       title: 'Une base de jeu jouable que vous inspectez et faites évoluer',
       intro:
-        'Le projet reste inspectable du premier fichier généré jusqu’à l’aperçu et l’export. Les builds statiques pris en charge ajoutent une mise en ligne guidée sans masquer le code.',
+        'TriviaClash reste inspectable, de l’état du lobby et des questions chronométrées jusqu’au score local, à l’aperçu et à l’export. Les quiz statiques pris en charge ajoutent une publication guidée tout en gardant explicite la frontière multijoueur.',
       items: [
         {
           title: 'Un code de jeu ouvert et exportable',
@@ -437,17 +437,17 @@ export const GAME_BUILDER_COPY = {
           body: 'Jouez le lobby et la question dans la vraie Webview E-Code pendant que le prompt Agent et les fichiers restent inspectables.',
         },
         {
-          title: 'Responsive par défaut',
+          title: 'Surface de jeu responsive',
           body: 'Les écrans de jeu s’adaptent du grand écran au téléphone sans build mobile séparé.',
         },
         {
-          title: 'Gardez la source accessible',
+          title: 'Maîtrisez la source de la boucle de jeu',
           body: 'Exportez le projet ou publiez les frontends statiques pris en charge tout en conservant des fichiers source modifiables.',
         },
       ],
     },
     useCases: {
-      eyebrow: 'Qui construit avec',
+      eyebrow: 'Formats de jeu à tester',
       title: 'Les bases de jeux jouables que les équipes étendent pour chaque public',
       intro:
         'D’un concept de soirée quiz à un défi en classe, la boucle produit une base de jeu local jouable ; synchronisation distante et persistance commencent seulement après branchement et test des services requis.',
@@ -471,7 +471,7 @@ export const GAME_BUILDER_COPY = {
       ],
     },
     faq: {
-      eyebrow: 'Questions fréquentes',
+      eyebrow: 'Questions sur le jeu de quiz',
       title: 'Le Générateur de jeu, en toute honnêteté',
       intro: 'Ce que produit le parcours Générateur de jeu, et où sont ses limites.',
       items: [
@@ -493,7 +493,7 @@ export const GAME_BUILDER_COPY = {
         },
         {
           title: 'Comment modifier le jeu ensuite ?',
-          body: 'Modifiez les fichiers directement ou demandez le changement suivant à l’Agent et relisez le diff face à l’aperçu actif.',
+          body: 'Modifiez directement le lobby et les manches ou demandez à l’Agent un type de question, une règle de score ou un état de classement, puis testez le diff dans l’aperçu.',
         },
       ],
     },
@@ -502,7 +502,7 @@ export const GAME_BUILDER_COPY = {
       body: 'Transformez le jeu que vous avez en tête en une boucle web, un lobby et un système de score modifiables, testez le parcours local dans l’aperçu, puis connectez le service qui anime les parties distantes.',
       primaryCta: { label: 'Décrivez votre jeu', ariaLabel: 'Décrivez votre jeu avec E-Code' },
       secondaryCta: {
-        label: 'Voir la construction',
+        label: 'Voir la boucle jouable',
         ariaLabel: 'Voir comment E-Code construit le jeu à partir d’un prompt',
       },
     },

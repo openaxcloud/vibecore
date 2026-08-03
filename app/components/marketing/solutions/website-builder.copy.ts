@@ -18,7 +18,7 @@ export const WEBSITE_BUILDER_COPY = {
       subtitle:
         'Describe the pages, the story, and the work you want to show. E-Code turns that into a responsive marketing site in editable source code. Inspect every file, run the site in Preview, refine it through the Agent, and publish supported static builds to a live URL.',
       primaryCta: { label: 'Describe your site', ariaLabel: 'Describe your website with E-Code' },
-      secondaryCta: { label: 'See how it builds', ariaLabel: 'See how E-Code builds the website from a prompt' },
+      secondaryCta: { label: 'See the site workflow', ariaLabel: 'See how E-Code builds the website from a prompt' },
       microcopy:
         'Start from the pages you already have in mind. Source files, the running Preview, and publishing controls stay visible as the site evolves.',
     },
@@ -80,7 +80,7 @@ export const WEBSITE_BUILDER_COPY = {
       title: 'Describe the pages, not the framework',
       intro:
         'The request below reads like a note from a studio owner. The four items map its implementation scope in real source files, not a locked template.',
-      label: 'Example prompt',
+      label: 'Architecture studio brief',
       promptText: 'Build a showcase website for my architecture firm, with a portfolio, contact page, and blog.',
       outputs: [
         {
@@ -96,7 +96,7 @@ export const WEBSITE_BUILDER_COPY = {
           body: 'The contact form returns a local confirmation in the browser. It never presents that state as an email or submitted enquiry.',
         },
         {
-          title: 'Agent, files, and Webview together',
+          title: 'Studio brief, generated files, and Webview together',
           body: 'E-Code keeps the brief and Agent exchange beside the generated files while the architecture site runs in the real Webview tab.',
         },
       ],
@@ -125,10 +125,10 @@ export const WEBSITE_BUILDER_COPY = {
       },
     },
     deliverables: {
-      eyebrow: 'What you receive',
+      eyebrow: 'What your architecture site includes',
       title: 'A responsive site you can inspect, export, and keep evolving',
       intro:
-        'The project stays inspectable from the first generated file through Preview and export. Supported static builds add a live release through guided publishing without hiding the code.',
+        'Meridian Studio stays inspectable from its portfolio components and journal routes through Preview and export. Supported static sites add a guided live release without hiding the editorial source.',
       items: [
         {
           title: 'Website source you can inspect',
@@ -175,17 +175,17 @@ export const WEBSITE_BUILDER_COPY = {
         },
         { title: 'SEO and social metadata', body: 'Titles, descriptions, and Open Graph tags generated per page.' },
         {
-          title: 'Responsive by default',
-          body: 'Layouts adapt from wide desktop to phone without a separate mobile build.',
+          title: 'Responsive portfolio layouts',
+          body: 'Project grids, case-study pages, journal entries, and the contact layout reflow from studio desktop to a client’s phone.',
         },
         {
-          title: 'Keep the source accessible',
+          title: 'Keep the editorial source open',
           body: 'Export the project or publish supported static builds while retaining editable source files.',
         },
       ],
     },
     useCases: {
-      eyebrow: 'Who builds with it',
+      eyebrow: 'Sites to shape from a brief',
       title: 'Website foundations teams shape for distinct content needs',
       intro:
         'From a studio portfolio to a product launch page, the same loop produces responsive source and a running site; content services, submissions, and release checks stay explicit.',
@@ -203,7 +203,7 @@ export const WEBSITE_BUILDER_COPY = {
       ],
     },
     faq: {
-      eyebrow: 'Common questions',
+      eyebrow: 'Architecture-site questions',
       title: 'Website Builder, answered honestly',
       intro: 'What the Website Builder path produces, and where its boundaries are.',
       items: [
@@ -225,7 +225,7 @@ export const WEBSITE_BUILDER_COPY = {
         },
         {
           title: 'How do I change the site later?',
-          body: 'Edit the files directly or ask the Agent for the next change and review the diff against the running Preview.',
+          body: 'Edit the studio files directly or ask the Agent for another project, journal entry, or contact-state change, then compare the diff with the running site.',
         },
       ],
     },
@@ -233,7 +233,7 @@ export const WEBSITE_BUILDER_COPY = {
       title: 'Describe your site and see it running',
       body: 'Turn the pages you have in mind into a responsive site in real source code, run it in Preview, and publish supported static builds.',
       primaryCta: { label: 'Describe your site', ariaLabel: 'Describe your website with E-Code' },
-      secondaryCta: { label: 'See how it builds', ariaLabel: 'See how E-Code builds the site from a prompt' },
+      secondaryCta: { label: 'See the site workflow', ariaLabel: 'See how E-Code builds the site from a prompt' },
     },
     aria: {
       pageLabel: 'Website Builder solution page',
@@ -263,7 +263,7 @@ export const WEBSITE_BUILDER_COPY = {
         'Décrivez les pages, le récit et le travail à montrer. E-Code en fait un site vitrine responsive dans un vrai code source modifiable. Inspectez chaque fichier, exécutez le site dans l’aperçu, affinez-le avec l’Agent et publiez les builds statiques pris en charge vers une URL en ligne.',
       primaryCta: { label: 'Décrivez votre site', ariaLabel: 'Décrivez votre site web avec E-Code' },
       secondaryCta: {
-        label: 'Voir la construction',
+        label: 'Voir le parcours du site',
         ariaLabel: 'Voir comment E-Code construit le site à partir d’un prompt',
       },
       microcopy:
@@ -330,7 +330,7 @@ export const WEBSITE_BUILDER_COPY = {
       title: 'Décrivez les pages, pas le framework',
       intro:
         'La demande ci-dessous se lit comme un mot d’un propriétaire de studio. Les quatre éléments cartographient son périmètre d’implémentation dans de vrais fichiers source, pas un template verrouillé.',
-      label: 'Exemple de prompt',
+      label: 'Brief du cabinet d’architecture',
       promptText: 'Fais-moi un site vitrine pour mon cabinet d’architecte, avec portfolio, contact et blog.',
       outputs: [
         {
@@ -346,7 +346,7 @@ export const WEBSITE_BUILDER_COPY = {
           body: 'Le formulaire affiche une confirmation locale dans le navigateur. Il ne présente jamais cet état comme un email ni comme une demande réellement envoyée.',
         },
         {
-          title: 'Agent, fichiers et Webview réunis',
+          title: 'Brief du studio, fichiers générés et Webview réunis',
           body: 'E-Code garde le brief et l’échange avec l’Agent à côté des fichiers générés pendant que le site d’architecture tourne dans la vraie Webview.',
         },
       ],
@@ -375,10 +375,10 @@ export const WEBSITE_BUILDER_COPY = {
       },
     },
     deliverables: {
-      eyebrow: 'Ce que vous recevez',
+      eyebrow: 'Ce que comprend votre site d’architecture',
       title: 'Un site responsive que vous inspectez, exportez et faites évoluer',
       intro:
-        'Le projet reste inspectable du premier fichier généré jusqu’à l’aperçu et l’export. Les builds statiques pris en charge ajoutent une mise en ligne guidée sans masquer le code.',
+        'Atelier Méridien reste inspectable, de ses composants portfolio et routes de journal jusqu’à l’aperçu et l’export. Les sites statiques pris en charge ajoutent une mise en ligne guidée sans masquer la source éditoriale.',
       items: [
         {
           title: 'La source du site reste inspectable',
@@ -426,17 +426,17 @@ export const WEBSITE_BUILDER_COPY = {
         },
         { title: 'SEO et métadonnées sociales', body: 'Titres, descriptions et balises Open Graph générés par page.' },
         {
-          title: 'Responsive par défaut',
-          body: 'Les mises en page s’adaptent du grand écran au téléphone sans build mobile séparé.',
+          title: 'Mises en page portfolio responsives',
+          body: 'Grilles de projets, études de cas, articles du journal et contact se recomposent du desktop du studio au téléphone d’un client.',
         },
         {
-          title: 'Gardez la source accessible',
+          title: 'Gardez la source éditoriale ouverte',
           body: 'Exportez le projet ou publiez les builds statiques pris en charge tout en conservant des fichiers source modifiables.',
         },
       ],
     },
     useCases: {
-      eyebrow: 'Qui construit avec',
+      eyebrow: 'Sites à façonner depuis un brief',
       title: 'Les bases de sites que les équipes façonnent selon chaque besoin de contenu',
       intro:
         'D’un portfolio de studio à une page de lancement produit, la même boucle produit une source responsive et un site actif ; services de contenu, envois de formulaires et contrôles de mise en ligne restent explicites.',
@@ -460,7 +460,7 @@ export const WEBSITE_BUILDER_COPY = {
       ],
     },
     faq: {
-      eyebrow: 'Questions fréquentes',
+      eyebrow: 'Questions sur le site d’architecture',
       title: 'Le Générateur de site, en toute honnêteté',
       intro: 'Ce que produit le parcours Générateur de site, et où sont ses limites.',
       items: [
@@ -482,7 +482,7 @@ export const WEBSITE_BUILDER_COPY = {
         },
         {
           title: 'Comment modifier le site ensuite ?',
-          body: 'Modifiez les fichiers directement ou demandez le changement suivant à l’Agent et relisez le diff face à l’aperçu actif.',
+          body: 'Modifiez directement les fichiers du studio ou demandez à l’Agent un nouveau projet, un article ou un état de contact, puis comparez le diff au site actif.',
         },
       ],
     },
@@ -491,7 +491,7 @@ export const WEBSITE_BUILDER_COPY = {
       body: 'Transformez les pages que vous avez en tête en un site responsive dans du vrai code source, exécutez-le dans l’aperçu et publiez les builds statiques pris en charge.',
       primaryCta: { label: 'Décrivez votre site', ariaLabel: 'Décrivez votre site web avec E-Code' },
       secondaryCta: {
-        label: 'Voir la construction',
+        label: 'Voir le parcours du site',
         ariaLabel: 'Voir comment E-Code construit le site à partir d’un prompt',
       },
     },
