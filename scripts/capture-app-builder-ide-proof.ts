@@ -543,6 +543,52 @@ async function readProjectIdeState(page: Page, projectId: string, token: string)
   }
 }
 
+async function readRuntimePreviewPorts(page: Page, projectId: string, token: string) {
+  try {
+    const workspacesResponse = await page.request.get(
+      `${API_BASE_URL}/projects/${encodeURIComponent(projectId)}/workspaces`,
+      {
+        headers: { authorization: `Bearer ${token}` },
+        timeout: 20_000,
+      },
+    );
+
+    if (!workspacesResponse.ok()) {
+      return [];
+    }
+
+    const workspacesPayload = (await workspacesResponse.json()) as {
+      workspaces?: Array<{ id?: string; status?: string }>;
+    };
+    const workspace =
+      workspacesPayload.workspaces?.find((entry) => entry.status === 'RUNNING') ?? workspacesPayload.workspaces?.[0];
+
+    if (!workspace?.id) {
+      return [];
+    }
+
+    const portsResponse = await page.request.get(
+      `${API_BASE_URL}/api/runtime/workspaces/${encodeURIComponent(workspace.id)}/ports`,
+      {
+        headers: { authorization: `Bearer ${token}` },
+        timeout: 20_000,
+      },
+    );
+
+    if (!portsResponse.ok()) {
+      return [];
+    }
+
+    const portsPayload = (await portsResponse.json()) as {
+      ports?: Array<{ port?: number; ready?: boolean; type?: string }>;
+    };
+
+    return (portsPayload.ports ?? []).filter((port) => port.ready === true && typeof port.port === 'number');
+  } catch {
+    return [];
+  }
+}
+
 async function waitForProjectToSettle(
   page: Page,
   agentPanel: ReturnType<Page['getByTestId']>,
@@ -709,7 +755,7 @@ async function repairGeneratedPreview(
   return repairBubble;
 }
 
-async function waitForPreview(page: Page, evidenceRoot: string) {
+async function waitForPreview(page: Page, evidenceRoot: string, projectId: string, token: string) {
   const webviewButton = page.getByRole('button', { name: 'Webview' }).first();
 
   await expect(webviewButton).toBeVisible({ timeout: 60_000 });
@@ -866,8 +912,9 @@ async function waitForPreview(page: Page, evidenceRoot: string) {
 
     if (!renderedOnFirstAttach) {
       const iframeSource = await iframe.getAttribute('src').catch(() => null);
+      const readyRuntimePorts = await readRuntimePreviewPorts(page, projectId, token);
 
-      if (!iframeSource || iframeSource === 'about:blank') {
+      if (!iframeSource || iframeSource === 'about:blank' || readyRuntimePorts.length === 0) {
         await startPreviewFromTerminal();
       }
 
@@ -1463,7 +1510,7 @@ async function main() {
     if (repairOnly) {
       const repairPrompt = repairPromptFor(slug, copy, 1);
       const repairBubble = await repairGeneratedPreview(page, agentPanel, projectId, token, repairPrompt);
-      const { previewText } = await waitForPreview(page, evidenceRoot);
+      const { previewText } = await waitForPreview(page, evidenceRoot, projectId, token);
 
       await repairBubble.scrollIntoViewIfNeeded();
       await page.screenshot({
@@ -1493,7 +1540,7 @@ async function main() {
 
     for (let attempt = 0; attempt <= 3; attempt += 1) {
       try {
-        ({ previewText } = await waitForPreview(page, evidenceRoot));
+        ({ previewText } = await waitForPreview(page, evidenceRoot, projectId, token));
         break;
       } catch (previewError) {
         if (iterationOnly || attempt === 3) {
@@ -1529,7 +1576,7 @@ async function main() {
       const identityRepairPrompt = `The visible Webview is still an unrelated generic template and does not implement the requested ${copy.expectedTerms[0]} product. Replace all generic starter branding, copy, sample metrics, and workflows with the dedicated brief from my original prompt. The rendered interface must visibly contain these exact theme terms: ${copy.expectedTerms.join(', ')}. Use only realistic fictional local sample content, label limitations clearly, and remove fabricated performance, adoption, revenue, customer, or delivery claims. Keep every asset local, keep primary actions orange, and use no purple. Verify the actual Webview before answering.`;
 
       await repairGeneratedPreview(page, agentPanel, projectId, token, identityRepairPrompt);
-      ({ previewText } = await waitForPreview(page, evidenceRoot));
+      ({ previewText } = await waitForPreview(page, evidenceRoot, projectId, token));
       await verifyScenarioIdentity(page, copy, 60_000);
     }
 
@@ -1546,7 +1593,7 @@ async function main() {
         const themeRepairPrompt = `The actual Webview for ${copy.expectedTerms[0]} does not match the requested palette. Preserve every existing workflow and local-only limitation, remove every purple, violet, mauve, and pink accent, and use orange for visible primary actions. ${copy.requiresDarkCanvas ? 'Render the entire application on a deliberate dark full-canvas surface with styled controls; do not leave browser-default white UI.' : ''} Keep all images, fonts, scripts, and styles local. Verify the rendered Webview before reporting success.`;
 
         await repairGeneratedPreview(page, agentPanel, projectId, token, themeRepairPrompt);
-        ({ previewText } = await waitForPreview(page, evidenceRoot));
+        ({ previewText } = await waitForPreview(page, evidenceRoot, projectId, token));
         await verifyScenarioAppearance(page, copy);
         initialAccentAudit = await waitForOrangePreview(page, evidenceRoot);
       }
@@ -1589,7 +1636,7 @@ async function main() {
       );
       process.stdout.write(`${JSON.stringify({ status: 'orange-iteration-settled', locale })}\n`);
 
-      ({ previewText } = await waitForPreview(page, evidenceRoot));
+      ({ previewText } = await waitForPreview(page, evidenceRoot, projectId, token));
       await verifyScenarioAppearance(page, copy);
       accentAudit = await waitForOrangePreview(page, evidenceRoot);
       scenarioAudit = await verifyScenarioPreview(page, copy, evidenceRoot);
