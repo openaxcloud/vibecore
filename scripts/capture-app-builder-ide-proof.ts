@@ -897,9 +897,10 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
     }
 
     const initialIframeSource = await iframe.getAttribute('src').catch(() => null);
+    const initialReadyRuntimePorts = await readRuntimePreviewPorts(page, projectId, token);
 
     const renderedOnFirstAttach =
-      !initialIframeSource || initialIframeSource === 'about:blank'
+      !initialIframeSource || initialIframeSource === 'about:blank' || initialReadyRuntimePorts.length === 0
         ? false
         : await expect
             .poll(readPreviewText, {
