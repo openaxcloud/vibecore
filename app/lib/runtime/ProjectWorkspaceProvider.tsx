@@ -16,7 +16,44 @@ import { workbenchStore } from '~/lib/stores/workbench';
  * no entry and cold-seeds. Module scope so it survives provider remounts within
  * the same page load, and is naturally empty on a full reload.
  */
-const seededWorkspaceSessions = new Set<string>();
+const seededWorkspaceSessions = new Map<string, string | undefined>();
+
+/**
+ * Cheap "persisted files revision" for a project: the ETag of the persisted
+ * ide-state, which is `"${ideState.version}"` and bumps on every persist —
+ * including the file manifest (state.files.entries). Used to decide whether a
+ * warm pod may be reattached: the pod is only adopted AS-IS when the persisted
+ * revision still equals the one it was seeded from. If the persisted files
+ * changed since the seed (e.g. a cross-device / another-tab edit that the warm
+ * pod never received), the revision differs and we reseed so the running
+ * workspace reflects the persisted files instead of serving a stale tree.
+ * Returns undefined on any failure so the caller falls back to the prior
+ * (marker-only) behaviour rather than forcing a spurious reseed.
+ */
+export async function fetchPersistedProjectRevision(projectId: string): Promise<string | undefined> {
+  try {
+    const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/ide-state`, {
+      credentials: 'include',
+      headers: { accept: 'application/json' },
+    });
+
+    if (!response.ok) {
+      return undefined;
+    }
+
+    const etag = response.headers.get('etag');
+
+    if (etag) {
+      return etag;
+    }
+
+    const body = (await response.json()) as { ideState?: { version?: number | string } | null };
+
+    return body.ideState?.version != null ? String(body.ideState.version) : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 export interface ProjectWorkspaceProviderProps extends PropsWithChildren {
   projectId: string;
@@ -120,7 +157,22 @@ export function ProjectWorkspaceProvider({
          * pod's forwarded dev-server port (listPorts repopulates the previews store).
          */
         const sessionAlreadySeeded = seededWorkspaceSessions.has(sessionId);
+        const seededRevision = seededWorkspaceSessions.get(sessionId);
         await workbenchStore.refreshRuntimePorts().catch(() => undefined);
+
+        if (cancelled) {
+          await stopRemoteWorkspace(runtime, activeWorkspaceId ?? session.id);
+          return;
+        }
+
+        /*
+         * Read the current persisted files revision so the warm-reattach decision
+         * can tell "the pod is still current" from "the persisted files changed
+         * since this pod was seeded". Fetched on every mount: on a warm remount it
+         * gates reattach-vs-reseed; on a cold seed it is the revision we record as
+         * the seeded baseline (one lightweight GET, dwarfed by the reseed itself).
+         */
+        const currentRevision = await fetchPersistedProjectRevision(projectId);
 
         if (cancelled) {
           await stopRemoteWorkspace(runtime, activeWorkspaceId ?? session.id);
@@ -133,14 +185,17 @@ export function ProjectWorkspaceProvider({
           hasLivePort: hasLivePreviewPort(workbenchStore.previews.get()),
 
           /*
-           * Storage-freshness (cross-device staleness) is NOT cheaply knowable
-           * here: the project-storage export endpoint exposes no reliable updatedAt
-           * and the pod's last-seed time isn't tracked. We therefore rely on the
-           * same-page-session marker, which is correct for the dominant StrictMode/
-           * route-return remount case; a genuinely new page-session (a fresh load,
-           * possibly with cross-device edits) has no marker and reseeds. Left
-           * undefined (treated as "not newer") rather than invented.
+           * The persisted files changed after this pod was seeded (another tab or
+           * device edited the project, or the Agent persisted new files, while the
+           * warm pod kept the old tree). When KNOWN newer, reattaching would serve
+           * a stale runtime — so reseed. Only asserted when BOTH revisions are
+           * known; if either is undefined (fetch failed, or first seed of this
+           * session) it stays undefined and the marker-only behaviour applies.
            */
+          storageNewerThanSeed:
+            seededRevision !== undefined && currentRevision !== undefined
+              ? currentRevision !== seededRevision
+              : undefined,
         });
 
         if (reattachWarmWorkspace) {
@@ -221,7 +276,7 @@ export function ProjectWorkspaceProvider({
            * above, so a retry still reseeds), so a later remount within this page-
            * session reattaches to a genuinely-seeded, warm pod.
            */
-          seededWorkspaceSessions.add(sessionId);
+          seededWorkspaceSessions.set(sessionId, currentRevision);
         }
 
         /*
