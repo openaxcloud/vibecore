@@ -806,6 +806,7 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
   await webviewButton.click();
 
   const previewNotRunningState = page.getByTestId('preview-not-running-state');
+  const previewErrorAlert = page.getByRole('alert', { name: 'Preview Error' }).last();
   const iframe = page.locator('iframe[data-testid="preview-iframe"]:visible').last();
   const body = page.frameLocator('iframe[data-testid="preview-iframe"]:visible').last().locator('body');
 
@@ -815,6 +816,16 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
     previewText = (await body.innerText().catch(() => '')).replace(/\s+/g, ' ').trim();
 
     return PREVIEW_RUNTIME_ERROR_PATTERN.test(previewText) ? 0 : previewText.length;
+  };
+
+  const throwIfVisiblePreviewError = async () => {
+    if (!(await previewErrorAlert.isVisible().catch(() => false))) {
+      return;
+    }
+
+    const detail = (await previewErrorAlert.innerText()).replace(/\s+/g, ' ').trim();
+
+    throw new Error(`The IDE surfaced a Preview Error before rendering the app: ${detail.slice(0, 500)}`);
   };
 
   const startPreviewFromTerminal = async () => {
@@ -1014,6 +1025,8 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
             .catch(() => false);
 
     if (!renderedOnFirstAttach) {
+      await throwIfVisiblePreviewError();
+
       const iframeSource = await iframe.getAttribute('src').catch(() => null);
       const runtimePreviewReachable = await probeRuntimePreview(page, projectId, token);
 
@@ -1034,13 +1047,14 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
       const renderedAfterRefresh = await expect
         .poll(readPreviewText, {
           message: 'The refreshed Webview must render substantial application content',
-          timeout: PREVIEW_RESTART_TIMEOUT_MS,
+          timeout: 30_000,
         })
         .toBeGreaterThan(120)
         .then(() => true)
         .catch(() => false);
 
       if (!renderedAfterRefresh) {
+        await throwIfVisiblePreviewError();
         process.stdout.write(`${JSON.stringify({ status: 'preview-final-ide-reload-requested' })}\n`);
         await page.reload({ waitUntil: 'domcontentloaded', timeout: 180_000 });
         await expect(webviewButton).toBeVisible({ timeout: 180_000 });
