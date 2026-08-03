@@ -194,10 +194,23 @@ steps:
   # tooling is fetched from an unpinned URL is not much of a control. Runs from
   # the start (waitFor '-') so it costs no wall-clock.
   - id: fetch-cosign
-    name: ghcr.io/sigstore/cosign/cosign:v2.4.3
+    name: gcr.io/cloud-builders/docker
     waitFor: ['-']
-    entrypoint: cp
-    args: ['/ko-app/cosign', '/workspace/cosign']
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        # The official cosign image is distroless: no shell, no coreutils, so
+        # `entrypoint: cp` cannot work. Lift the binary out of a created (never
+        # started) container instead. Still pinned to a released tag, which is
+        # the point — we do not curl an unpinned tarball into a build that
+        # exists to make artifacts trustworthy.
+        docker pull ghcr.io/sigstore/cosign/cosign:v2.4.3
+        cid="$(docker create ghcr.io/sigstore/cosign/cosign:v2.4.3)"
+        docker cp "$cid:/ko-app/cosign" /workspace/cosign
+        docker rm "$cid"
+        /workspace/cosign version
 
   # Cloud Build only pushes the `images:` list AFTER every step has finished, so
   # without an explicit push here there would be nothing in the registry for

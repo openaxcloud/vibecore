@@ -90,10 +90,23 @@ steps:
 
   # ---- sign image (B7) — see infra/cloudbuild/runtime-tier.yaml for rationale ----
   - id: fetch-cosign
-    name: ghcr.io/sigstore/cosign/cosign:v2.4.3
+    name: gcr.io/cloud-builders/docker
     waitFor: ['-']
-    entrypoint: cp
-    args: ['/ko-app/cosign', '/workspace/cosign']
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        # The official cosign image is distroless: no shell, no coreutils, so
+        # `entrypoint: cp` cannot work. Lift the binary out of a created (never
+        # started) container instead. Still pinned to a released tag, which is
+        # the point — we do not curl an unpinned tarball into a build that
+        # exists to make artifacts trustworthy.
+        docker pull ghcr.io/sigstore/cosign/cosign:v2.4.3
+        cid="$(docker create ghcr.io/sigstore/cosign/cosign:v2.4.3)"
+        docker cp "$cid:/ko-app/cosign" /workspace/cosign
+        docker rm "$cid"
+        /workspace/cosign version
 
   - id: push-image
     name: gcr.io/cloud-builders/docker
