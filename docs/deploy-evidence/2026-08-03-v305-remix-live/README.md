@@ -102,6 +102,23 @@ Ce qui est prouvé ici est **plus étroit** que « le clone ne contient aucune P
 9. `Production E2E` ne se déclenche **pas** sur push `main` (PR / dispatch / `stable` seulement) :
    le test remix ne garde pas les pushes sur main.
 
+## 4bis. État CI de la PR de preuve (#77)
+
+15 checks verts, 4 skipped, **1 rouge : `Playwright local stack`** — et il faut être précis
+sur ce que ça veut dire.
+
+- **Le test qui porte la preuve est VERT** :
+  `✓ 29 [chromium] › tests/e2e/gallery-remix-license.spec.ts:75:1 › gallery remix shows the
+  versioned license, requires explicit consent, and masks PII in the clone`
+  (run `30811026615`). C'est la preuve CI-stack (email + phone) qui complète la preuve prod (`card`).
+- **Le rouge est PRÉ-EXISTANT et sans rapport** : 51 failed / 183 passed, sur `dashboard`,
+  `mobile-device-matrix`, `public-homepage`, `platform-typography`, `preview-runtime`… Le même
+  job est rouge sur les autres PR ouvertes (#76, #55). Cette PR est **docs-only** (8 fichiers,
+  tous sous `docs/`) : elle ne peut pas changer le comportement applicatif.
+
+Ce rouge n'est donc **pas** une régression de ce lot, mais il ne doit pas être maquillé : la
+suite Playwright locale est globalement cassée sur le repo, et c'est un problème distinct à traiter.
+
 ## 5. Données créées en prod par cette preuve
 
 - utilisateur QA `v305-proof-1785757269-21269@local.test` + org `cmsd5rrz601mn0n82bjsaa0xu`
