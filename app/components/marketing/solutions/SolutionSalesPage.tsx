@@ -24,8 +24,10 @@ import './solution-sales.css';
 import type { SolutionCopy } from './solution-copy';
 import {
   getSolutionProofVisuals,
-  resolveSolutionProofVisualLanguage,
+  getSolutionProofVisualContent,
   type SolutionProofVisualAsset,
+  type SolutionProofVisualContent,
+  type SolutionProofVisualSet,
   type SolutionProofVisualSlug,
 } from './solution-proof.visuals';
 import { EcodeExactPublicShell as PublicShell } from '~/components/marketing/ecode-exact/EcodeExactShell';
@@ -62,6 +64,8 @@ export function SolutionSalesPage({
   solutionSlug: SolutionProofVisualSlug;
 }) {
   const direction = language === 'ar' ? 'rtl' : 'ltr';
+  const assets = getSolutionProofVisuals(solutionSlug, language);
+  const visualContent = getSolutionProofVisualContent(copy);
 
   return (
     <PublicShell language={language}>
@@ -74,12 +78,12 @@ export function SolutionSalesPage({
         lang={language}
         dir={direction}
       >
-        <Hero copy={copy} language={language} />
+        <Hero copy={copy} language={language} asset={assets.prompt} content={visualContent.prompt} />
         <ProblemSection copy={copy} />
-        <BuildSection copy={copy} />
-        <ProofLinkBand copy={copy} language={language} solutionSlug={solutionSlug} />
+        <BuildSection copy={copy} assets={assets} visualContent={visualContent} />
+        <ProofLinkBand copy={copy} assets={assets} visualContent={visualContent} />
         <DeliverablesSection copy={copy} />
-        <FeaturesSection copy={copy} />
+        <FeaturesSection copy={copy} asset={assets.files} content={visualContent.files} />
         <UseCasesSection copy={copy} />
         <FaqSection copy={copy} />
         <FinalCta copy={copy} />
@@ -88,7 +92,17 @@ export function SolutionSalesPage({
   );
 }
 
-function Hero({ copy, language }: { copy: SolutionCopy; language: SupportedLanguage }) {
+function Hero({
+  copy,
+  language,
+  asset,
+  content,
+}: {
+  copy: SolutionCopy;
+  language: SupportedLanguage;
+  asset: SolutionProofVisualAsset;
+  content: SolutionProofVisualContent;
+}) {
   return (
     <section className="sol-hero" aria-label={copy.aria.heroLabel} data-testid="solution-hero">
       <div className="sol-hero__grid" aria-hidden />
@@ -110,76 +124,16 @@ function Hero({ copy, language }: { copy: SolutionCopy; language: SupportedLangu
             {copy.hero.microcopy}
           </p>
         </div>
-        <DemoMock copy={copy} />
+        <SolutionProofVisual
+          asset={asset}
+          content={content}
+          disclaimer={copy.proofLink.disclaimer}
+          className="sol-product-visual--hero"
+          eager
+          testId="solution-ide-prompt"
+        />
       </div>
     </section>
-  );
-}
-
-function DemoMock({ copy }: { copy: SolutionCopy }) {
-  const { demo } = copy;
-
-  return (
-    <figure className="sol-demo" aria-describedby="solution-demo-caption" data-testid="solution-demo">
-      <div className="sol-demo__frame">
-        <div className="sol-demo__chrome" aria-hidden>
-          <span className="sol-demo__dot" />
-          <span className="sol-demo__dot" />
-          <span className="sol-demo__dot" />
-          <span className="sol-demo__url">{demo.brand.toLowerCase().replace(/[^a-z0-9]+/g, '')}.example.test</span>
-        </div>
-        <div className="sol-demo__body" role="img" aria-label={demo.alt}>
-          <div className="sol-demo__topbar">
-            <div className="sol-demo__brand">
-              <strong>{demo.brand}</strong>
-              <span>{demo.brandType}</span>
-            </div>
-            <nav className="sol-demo__nav" aria-hidden>
-              {demo.nav.map((item) => (
-                <span key={item}>{item}</span>
-              ))}
-              <span className="sol-demo__badge">{demo.badge}</span>
-            </nav>
-          </div>
-          <div className="sol-demo__hero">
-            <p className="sol-demo__hero-eyebrow">{demo.eyebrow}</p>
-            <h3>{demo.title}</h3>
-            <p>{demo.intro}</p>
-          </div>
-          <div className="sol-demo__split">
-            <div className="sol-demo__panel">
-              <p className="sol-demo__panel-heading">{demo.primaryHeading}</p>
-              <ul className="sol-demo__rows">
-                {demo.primaryRows.map((row) => (
-                  <li key={row.label}>
-                    <span className="sol-demo__row-main">{row.label}</span>
-                    <span className="sol-demo__row-meta">{row.meta}</span>
-                    {row.status ? <span className="sol-demo__row-status">{row.status}</span> : null}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <aside className="sol-demo__aside">
-              <p className="sol-demo__aside-heading">{demo.asideHeading}</p>
-              <dl>
-                {demo.asideRows.map((row) => (
-                  <div key={row.label}>
-                    <dt>{row.label}</dt>
-                    <dd>{row.value}</dd>
-                  </div>
-                ))}
-              </dl>
-              <span className="sol-demo__aside-cta">{demo.asideCta}</span>
-            </aside>
-          </div>
-        </div>
-      </div>
-      <figcaption id="solution-demo-caption">
-        <span>{demo.disclaimer}</span>
-        <strong>{demo.caption.title}</strong>
-        <p>{demo.caption.body}</p>
-      </figcaption>
-    </figure>
   );
 }
 
@@ -216,7 +170,15 @@ function ProblemSection({ copy }: { copy: SolutionCopy }) {
   );
 }
 
-function BuildSection({ copy }: { copy: SolutionCopy }) {
+function BuildSection({
+  copy,
+  assets,
+  visualContent,
+}: {
+  copy: SolutionCopy;
+  assets: SolutionProofVisualSet;
+  visualContent: Readonly<Record<'preview' | 'webviewOverview', SolutionProofVisualContent>>;
+}) {
   return (
     <section
       id="build"
@@ -258,6 +220,30 @@ function BuildSection({ copy }: { copy: SolutionCopy }) {
             })}
           </ol>
         </div>
+
+        <div
+          className="sol-visual-gallery"
+          role="group"
+          aria-label={`${copy.proofLink.galleryLabel}: ${visualContent.preview.title}`}
+          data-testid="solution-build-visual-gallery"
+        >
+          <SolutionProofVisual
+            asset={assets.preview}
+            content={visualContent.preview}
+            disclaimer={copy.proofLink.disclaimer}
+            className="sol-product-visual--build-preview"
+            openFullSizeLabel={copy.proofLink.openFullSizeLabel}
+            testId="solution-ide-preview"
+          />
+          <SolutionProofVisual
+            asset={assets.webviewOverview}
+            content={visualContent.webviewOverview}
+            disclaimer={copy.proofLink.disclaimer}
+            className="sol-product-visual--webview-overview"
+            openFullSizeLabel={copy.proofLink.openFullSizeLabel}
+            testId="solution-webview-overview"
+          />
+        </div>
       </div>
     </section>
   );
@@ -265,16 +251,13 @@ function BuildSection({ copy }: { copy: SolutionCopy }) {
 
 function ProofLinkBand({
   copy,
-  language,
-  solutionSlug,
+  assets,
+  visualContent,
 }: {
   copy: SolutionCopy;
-  language: SupportedLanguage;
-  solutionSlug: SolutionProofVisualSlug;
+  assets: SolutionProofVisualSet;
+  visualContent: Readonly<Record<'iteration' | 'webviewIteration', SolutionProofVisualContent>>;
 }) {
-  const visualLanguage = resolveSolutionProofVisualLanguage(language);
-  const assets = getSolutionProofVisuals(solutionSlug, visualLanguage);
-
   return (
     <section className="sol-proof-link" aria-label={copy.aria.proofLinkLabel} data-testid="solution-proof-link">
       <div className="container-responsive sol-proof-link__layout">
@@ -298,18 +281,20 @@ function ProofLinkBand({
           data-testid="solution-ide-proof-gallery"
         >
           <SolutionProofVisual
-            asset={assets.preview}
-            content={copy.proofLink.preview}
-            disclaimer={copy.proofLink.disclaimer}
-            openFullSizeLabel={copy.proofLink.openFullSizeLabel}
-            testId="solution-ide-preview"
-          />
-          <SolutionProofVisual
             asset={assets.iteration}
-            content={copy.proofLink.iteration}
+            content={visualContent.iteration}
             disclaimer={copy.proofLink.disclaimer}
+            className="sol-product-visual--ide-iteration"
             openFullSizeLabel={copy.proofLink.openFullSizeLabel}
             testId="solution-ide-iteration"
+          />
+          <SolutionProofVisual
+            asset={assets.webviewIteration}
+            content={visualContent.webviewIteration}
+            disclaimer={copy.proofLink.disclaimer}
+            className="sol-product-visual--webview-iteration"
+            openFullSizeLabel={copy.proofLink.openFullSizeLabel}
+            testId="solution-webview-iteration"
           />
         </div>
       </div>
@@ -319,34 +304,42 @@ function ProofLinkBand({
 
 function SolutionProofVisual({
   asset,
+  className = '',
   content,
   disclaimer,
+  eager = false,
   openFullSizeLabel,
   testId,
 }: {
   asset: SolutionProofVisualAsset;
-  content: SolutionCopy['proofLink']['preview'];
+  className?: string;
+  content: SolutionProofVisualContent;
   disclaimer: string;
-  openFullSizeLabel: string;
+  eager?: boolean;
+  openFullSizeLabel?: string;
   testId: string;
 }) {
   const captionId = `${testId}-caption`;
+  const imagePriority = { fetchpriority: eager ? 'high' : 'low' };
 
   return (
     <figure
-      className="sol-product-visual sol-product-visual--ide-reference"
+      className={`sol-product-visual sol-product-visual--ide-reference ${className}`.trim()}
       aria-describedby={captionId}
+      data-real-solution-proof="true"
       data-visual-language={asset.language}
+      data-visual-slot={asset.slot}
       data-visual-solution={asset.slug}
       data-testid={testId}
     >
       <div className="sol-product-visual__media">
         <img
+          {...imagePriority}
           src={asset.src}
           width={asset.width}
           height={asset.height}
           alt={content.alt}
-          loading="lazy"
+          loading={eager ? 'eager' : 'lazy'}
           decoding="async"
         />
       </div>
@@ -354,17 +347,19 @@ function SolutionProofVisual({
         <span>{disclaimer}</span>
         <strong>{content.title}</strong>
         <p>{content.body}</p>
-        <a
-          className="sol-product-visual__full-size"
-          href={asset.src}
-          target="_blank"
-          rel="noopener"
-          aria-label={`${openFullSizeLabel}: ${content.title}`}
-          data-testid={`${testId}-open-full-size`}
-        >
-          <span>{openFullSizeLabel}</span>
-          <ExternalLink aria-hidden />
-        </a>
+        {openFullSizeLabel ? (
+          <a
+            className="sol-product-visual__full-size"
+            href={asset.src}
+            target="_blank"
+            rel="noopener"
+            aria-label={`${openFullSizeLabel}: ${content.title}`}
+            data-testid={`${testId}-open-full-size`}
+          >
+            <span>{openFullSizeLabel}</span>
+            <ExternalLink aria-hidden />
+          </a>
+        ) : null}
       </figcaption>
     </figure>
   );
@@ -403,7 +398,15 @@ function DeliverablesSection({ copy }: { copy: SolutionCopy }) {
   );
 }
 
-function FeaturesSection({ copy }: { copy: SolutionCopy }) {
+function FeaturesSection({
+  copy,
+  asset,
+  content,
+}: {
+  copy: SolutionCopy;
+  asset: SolutionProofVisualAsset;
+  content: SolutionProofVisualContent;
+}) {
   return (
     <section
       className="sol-section sol-section--features"
@@ -413,6 +416,14 @@ function FeaturesSection({ copy }: { copy: SolutionCopy }) {
       <div className="container-responsive sol-features-layout">
         <div className="sol-features-intro">
           <SectionHeading eyebrow={copy.features.eyebrow} title={copy.features.title} intro={copy.features.intro} />
+          <SolutionProofVisual
+            asset={asset}
+            content={content}
+            disclaimer={copy.proofLink.disclaimer}
+            className="sol-product-visual--feature"
+            openFullSizeLabel={copy.proofLink.openFullSizeLabel}
+            testId="solution-ide-files"
+          />
         </div>
         <div className="sol-features-list">
           {copy.features.items.map((item, index) => {

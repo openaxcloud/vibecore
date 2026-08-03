@@ -48,7 +48,7 @@
     linear-gradient(var(--marketing-grid-line) 1px, transparent 1px),
     linear-gradient(90deg, var(--marketing-grid-line) 1px, transparent 1px);
   background-size: 42px 42px;
-  mask-image: linear-gradient(to bottom, black, transparent 88%);
+  mask-image: linear-gradient(to bottom, var(--ecode-text), transparent 88%);
   pointer-events: none;
 }
 
@@ -1684,7 +1684,7 @@
 }
 
 /* ------------------------------------------------------------------ */
-/* Honest "see the real build" band pointing to the App Builder proof  */
+/* Honest, solution-specific Agent iteration and Webview evidence       */
 /* ------------------------------------------------------------------ */
 .sol-proof-link {
   border-block: 1px solid var(--ecode-border);

@@ -9,6 +9,7 @@ import { INTERNAL_AI_BUILDER_COPY } from './internal-ai-builder.copy';
 import type { SolutionCopy, SolutionCopyByLanguage } from './solution-copy';
 import {
   getSolutionProofVisuals,
+  SOLUTION_PROOF_VISUAL_SLOTS,
   SOLUTION_PROOF_VISUAL_SLUGS,
   type SolutionProofVisualSlug,
 } from './solution-proof.visuals';
@@ -92,14 +93,22 @@ describe('declined solution sales pages (SOL-02 → SOL-09)', () => {
           expect(copy.proofLink.openFullSizeLabel.length).toBeGreaterThan(0);
         });
 
-        it(`${language}: resolves two dedicated, unique IDE asset paths for its route slug`, () => {
+        it(`${language}: resolves six dedicated, unique proof asset paths for its route slug`, () => {
           const assets = getSolutionProofVisuals(slug, language);
+          const sources = SOLUTION_PROOF_VISUAL_SLOTS.map((slot) => assets[slot].src);
 
+          expect(assets.prompt.src).toBe(`/assets/solutions/${slug}/${language}/ide-agent-prompt.png`);
           expect(assets.preview.src).toBe(`/assets/solutions/${slug}/${language}/ide-agent-preview.png`);
+          expect(assets.webviewOverview.src).toBe(`/assets/solutions/${slug}/${language}/ide-webview-overview.png`);
           expect(assets.iteration.src).toBe(`/assets/solutions/${slug}/${language}/ide-agent-iteration.png`);
-          expect(assets.preview.src).not.toBe(assets.iteration.src);
-          expect(assets.preview.slug).toBe(slug);
-          expect(assets.iteration.slug).toBe(slug);
+          expect(assets.webviewIteration.src).toBe(`/assets/solutions/${slug}/${language}/ide-webview-iteration.png`);
+          expect(assets.files.src).toBe(`/assets/solutions/${slug}/${language}/ide-agent-files.png`);
+          expect(new Set(sources).size).toBe(6);
+
+          for (const slot of SOLUTION_PROOF_VISUAL_SLOTS) {
+            expect(assets[slot].slug).toBe(slug);
+            expect(assets[slot].language).toBe(language);
+          }
         });
 
         it(`${language}: fills every headline and body`, () => {
