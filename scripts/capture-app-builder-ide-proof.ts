@@ -788,11 +788,18 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
 
     await expect(terminalScreen).toBeVisible({ timeout: 60_000 });
     await expect
-      .poll(() => terminalRows.innerText().catch(() => ''), {
-        message: 'The IDE Terminal must expose an interactive workspace shell before starting Vite',
-        timeout: PREVIEW_RESTART_TIMEOUT_MS,
-      })
-      .toMatch(/(?:\/workspace|[$#]\s*$)/m);
+      .poll(
+        async () => {
+          const rows = await terminalRows.innerText().catch(() => '');
+
+          return !/connecting to workspace/i.test(rows) && /[$#]\s*$/m.test(rows);
+        },
+        {
+          message: 'The IDE Terminal must expose an interactive workspace prompt before starting Vite',
+          timeout: PREVIEW_RESTART_TIMEOUT_MS,
+        },
+      )
+      .toBe(true);
 
     await terminalScreen.click();
     await page.keyboard.type('npm run dev -- --host 0.0.0.0');
@@ -804,7 +811,14 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
         message: 'The real IDE Terminal must report a running Vite server',
         timeout: PREVIEW_RESTART_TIMEOUT_MS,
       })
-      .toMatch(/(?:VITE|Local:|ready in|5173)/i);
+      .toMatch(/(?:VITE\s+v\d|Local:\s+https?:\/\/|ready in\s+\d+\s*ms)/i);
+
+    await expect
+      .poll(() => readRuntimePreviewPorts(page, projectId, token).then((ports) => ports.length), {
+        message: 'The IDE Terminal command must expose a genuinely ready runtime preview port',
+        timeout: PREVIEW_RESTART_TIMEOUT_MS,
+      })
+      .toBeGreaterThan(0);
 
     if (openedTerminal) {
       await page.keyboard.press(process.platform === 'darwin' ? 'Meta+J' : 'Control+J');
