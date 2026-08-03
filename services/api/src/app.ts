@@ -310,6 +310,7 @@ import {
 } from './rate-card-service.js';
 import { resolveRollbackImage, resolveRollbackSecrets, type SecretPolicy } from './release-rollback.js';
 import { computeWorkspaceRestorePlan, isPortReadyFromProbe, type PortProbeResult } from './runtime-readiness.js';
+import { runtimeWorkspaceTreeHasProjectFiles } from './runtime-reseed.js';
 import { describeCron } from './scheduled-tasks-cron.js';
 import {
   PostgresScheduledTaskRepository,
@@ -13345,6 +13346,111 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
   };
 
+  /*
+   * Server-side runtime reseed reconciliation.
+   *
+   * The client (ProjectWorkspaceProvider) seeds a freshly-provisioned pod from the
+   * persisted project files. But a pod reached OUTSIDE a live IDE session is never
+   * client-seeded: the remote adapter re-provisions a GC'd/reaped pod on the first
+   * agent 502 (see RemoteKubernetesRuntimeAdapter.#ensureWorkspaceReprovisioned) to
+   * serve a background terminal / file / preview op — the new pod comes up with an
+   * EMPTY /workspace and the op runs against nothing (`npm run dev` → ENOENT
+   * package.json; `sh: vite: not found`). That is the core "files saved by the agent
+   * are not the files that run" flakiness.
+   *
+   * Reconcile it at the source: whenever a start/restart brings a pod to RUNNING,
+   * if its /workspace is empty of project files, seed it from the authoritative
+   * persisted ide-state (the same source /export/zip derives). Content-driven, not
+   * flag-driven, so it fires for cold start, re-provision-after-GC, and a wiped PVC
+   * alike, and no-ops on a warm pod that already carries its files (the common
+   * reattach path). Best-effort: never fail the start if the agent is briefly
+   * unreachable or a write blips — the client reseed and the next runtime op still
+   * reconcile.
+   */
+  const reconcileRuntimeSeedFromPersisted = async (
+    workspaceId: string,
+    projectId: string,
+  ): Promise<{ seeded: boolean; reason: string; fileCount?: number }> => {
+    let existingTree: Array<{ path: string; type: 'file' | 'directory' }>;
+
+    try {
+      existingTree = await agentRequest<Array<{ path: string; type: 'file' | 'directory' }>>(
+        workspaceId,
+        '/files/tree?path=.',
+      );
+    } catch {
+      /*
+       * Agent not reachable yet (cold pod still coming up) — skip. The client
+       * reseed or a later runtime op (which re-provisions and re-enters here) will
+       * reconcile. Must never turn a successful provision into a failed start.
+       */
+      return { seeded: false, reason: 'agent-unreachable' };
+    }
+
+    /*
+     * Empty = no top-level entries at all. listTree already prunes node_modules /
+     * .git / dist, but a genuinely seeded workspace still has package.json, src/,
+     * etc. at the root. A single non-hidden entry means the pod already carries
+     * files (warm reattach / PVC survived) → nothing to do.
+     */
+    if (runtimeWorkspaceTreeHasProjectFiles(existingTree)) {
+      return { seeded: false, reason: 'already-populated' };
+    }
+
+    let files: ProjectFile[];
+
+    try {
+      files = await ensureProjectStorageFromIdeState(store, projectStorage, projectId);
+    } catch {
+      return { seeded: false, reason: 'persisted-read-failed' };
+    }
+
+    if (!files.length) {
+      return { seeded: false, reason: 'no-persisted-files' };
+    }
+
+    let written = 0;
+
+    for (const file of files) {
+      try {
+        await agentRequest(workspaceId, '/files/write', {
+          method: 'POST',
+          body: JSON.stringify({ path: file.path, content: file.content, encoding: file.encoding }),
+        });
+        written += 1;
+      } catch (error) {
+        /*
+         * A mid-seed failure leaves the pod partially seeded; that is still
+         * strictly better than empty and the next reconcile completes it. Don't
+         * abort the whole start — log and keep going.
+         */
+        app.log.warn({ err: error, workspaceId, path: file.path }, 'runtime reseed: file write failed');
+      }
+    }
+
+    return { seeded: written > 0, reason: 'seeded-from-persisted', fileCount: written };
+  };
+
+  /*
+   * Fire the reseed reconciliation without ever letting it break the start/restart
+   * response. Records a metric so the flaky-loop fix is observable in prod.
+   */
+  const reconcileRuntimeSeedSafe = async (workspaceId: string, projectId: string) => {
+    try {
+      const result = await reconcileRuntimeSeedFromPersisted(workspaceId, projectId);
+
+      if (result.seeded) {
+        metrics.increment('workspace_runtime_reseed_total', { reason: result.reason });
+        app.log.info(
+          { workspaceId, projectId, fileCount: result.fileCount },
+          'runtime reseed: seeded empty pod from persisted ide-state',
+        );
+      }
+    } catch (error) {
+      app.log.warn({ err: error, workspaceId, projectId }, 'runtime reseed reconciliation failed');
+    }
+  };
+
   const localRuntimeFallbackEnabled = () => {
     const explicit = process.env.WORKSPACE_LOCAL_RUNTIME_FALLBACK;
 
@@ -14883,6 +14989,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       await store
         .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'RUNNING' })
         .catch(() => undefined);
+
+      /*
+       * Pod is up — seed it from the persisted files if it came up empty (cold
+       * provision / re-provision-after-GC / wiped PVC). No-ops on a warm pod that
+       * already carries its files. Best-effort; never blocks the start response.
+       */
+      await reconcileRuntimeSeedSafe(authorized.workspaceId, authorized.projectId);
     }
 
     return runtimeSession(
@@ -15089,6 +15202,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       await store
         .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'RUNNING' })
         .catch(() => undefined);
+
+      // Restart can reprovision onto a fresh pod; reseed it from persisted if empty.
+      await reconcileRuntimeSeedSafe(authorized.workspaceId, authorized.projectId);
     }
 
     return runtimeSession(authorized.workspaceId, managerWorkspace?.status === 'FAILED' ? 'failed' : 'running', {
