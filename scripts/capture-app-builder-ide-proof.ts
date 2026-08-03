@@ -1584,6 +1584,10 @@ async function main() {
     let previewText = '';
     let lastRepairBubble: ReturnType<typeof agentPanel.locator> | undefined;
     let lastRepairPrompt: string | undefined;
+    let iterationRepairBubble: ReturnType<typeof agentPanel.locator> | undefined;
+    let iterationRepairPrompt: string | undefined;
+
+    const iterationBrief = iterationPrompt ? `${iterationPrompt} ` : '';
 
     for (let attempt = 0; attempt <= 3; attempt += 1) {
       try {
@@ -1620,9 +1624,10 @@ async function main() {
     try {
       await verifyScenarioIdentity(page, copy);
     } catch {
-      const identityRepairPrompt = `The visible Webview is still an unrelated generic template and does not implement the requested ${copy.expectedTerms[0]} product. Replace all generic starter branding, copy, sample metrics, and workflows with the dedicated brief from my original prompt. The rendered interface must visibly contain these exact theme terms: ${copy.expectedTerms.join(', ')}. Use only realistic fictional local sample content, label limitations clearly, and remove fabricated performance, adoption, revenue, customer, or delivery claims. Keep every asset local, keep primary actions orange, and use no purple. Verify the actual Webview before answering.`;
+      const identityRepairPrompt = `${iterationBrief}The visible Webview is still an unrelated generic template and does not implement the requested ${copy.expectedTerms[0]} product. Replace all generic starter branding, copy, sample metrics, and workflows with the dedicated brief from my original prompt. The rendered interface must visibly contain these exact theme terms: ${copy.expectedTerms.join(', ')}. Use only realistic fictional local sample content, label limitations clearly, and remove fabricated performance, adoption, revenue, customer, or delivery claims. Keep every asset local, keep primary actions orange, and use no purple. Verify the actual Webview before answering.`;
 
-      await repairGeneratedPreview(page, agentPanel, projectId, token, identityRepairPrompt);
+      iterationRepairBubble = await repairGeneratedPreview(page, agentPanel, projectId, token, identityRepairPrompt);
+      iterationRepairPrompt = identityRepairPrompt;
       ({ previewText } = await waitForPreview(page, evidenceRoot, projectId, token));
       await verifyScenarioIdentity(page, copy, 60_000);
     }
@@ -1637,9 +1642,10 @@ async function main() {
         await verifyScenarioAppearance(page, copy);
         initialAccentAudit = await waitForOrangePreview(page, evidenceRoot, 60_000);
       } catch {
-        const themeRepairPrompt = `The actual Webview for ${copy.expectedTerms[0]} does not match the requested palette. Preserve every existing workflow and local-only limitation, remove every purple, violet, mauve, and pink accent, and use orange for visible primary actions. ${copy.requiresDarkCanvas ? 'Render the entire application on a deliberate dark full-canvas surface with styled controls; do not leave browser-default white UI.' : ''} Keep all images, fonts, scripts, and styles local. Verify the rendered Webview before reporting success.`;
+        const themeRepairPrompt = `${iterationBrief}The actual Webview for ${copy.expectedTerms[0]} does not match the requested palette. Preserve every existing workflow and local-only limitation, remove every purple, violet, mauve, and pink accent, and use orange for visible primary actions. ${copy.requiresDarkCanvas ? 'Render the entire application on a deliberate dark full-canvas surface with styled controls; do not leave browser-default white UI.' : ''} Keep all images, fonts, scripts, and styles local. Verify the rendered Webview before reporting success.`;
 
-        await repairGeneratedPreview(page, agentPanel, projectId, token, themeRepairPrompt);
+        iterationRepairBubble = await repairGeneratedPreview(page, agentPanel, projectId, token, themeRepairPrompt);
+        iterationRepairPrompt = themeRepairPrompt;
         ({ previewText } = await waitForPreview(page, evidenceRoot, projectId, token));
         await verifyScenarioAppearance(page, copy);
         initialAccentAudit = await waitForOrangePreview(page, evidenceRoot);
@@ -1655,32 +1661,42 @@ async function main() {
     let iterationOutput: string | undefined;
 
     if (iterationPrompt) {
-      const initialRevision = await projectFilesRevision(page, projectId, token);
-      const previousLastBubble = agentPanel.locator('.bolt-chat-message-row-user').last();
-      const previousIterationText = (await previousLastBubble.innerText().catch(() => '')).replace(/\s+/g, ' ').trim();
+      if (iterationRepairBubble && iterationRepairPrompt) {
+        iterationBubble = iterationRepairBubble;
+        await expect(iterationBubble).toBeVisible({ timeout: 60_000 });
+        await expect(iterationBubble).toContainText(iterationPrompt.slice(0, 80), { timeout: 60_000 });
+      } else {
+        const initialRevision = await projectFilesRevision(page, projectId, token);
+        const previousLastBubble = agentPanel.locator('.bolt-chat-message-row-user').last();
 
-      if (!previousIterationText.includes(iterationPrompt.slice(0, 80))) {
-        await submitAgentPrompt(agentPanel, iterationPrompt);
+        const previousIterationText = (await previousLastBubble.innerText().catch(() => ''))
+          .replace(/\s+/g, ' ')
+          .trim();
+
+        if (!previousIterationText.includes(iterationPrompt.slice(0, 80))) {
+          await submitAgentPrompt(agentPanel, iterationPrompt);
+        }
+
+        iterationBubble = agentPanel.locator('.bolt-chat-message-row-user').last();
+        await expect(iterationBubble).toBeVisible({ timeout: 60_000 });
+        await expect(iterationBubble).toContainText(iterationPrompt.slice(0, 80), { timeout: 60_000 });
+
+        await expect
+          .poll(() => projectFilesRevision(page, projectId, token), {
+            message: 'The orange-theme iteration must update at least one generated project file',
+            intervals: [1_000, 2_000, 3_000],
+            timeout: GENERATION_TIMEOUT_MS,
+          })
+          .not.toBe(initialRevision);
+        await waitForProjectToSettle(
+          page,
+          agentPanel,
+          projectId,
+          token,
+          'Orange-theme files must stabilize and the agent composer must become active again',
+        );
       }
 
-      iterationBubble = agentPanel.locator('.bolt-chat-message-row-user').last();
-      await expect(iterationBubble).toBeVisible({ timeout: 60_000 });
-      await expect(iterationBubble).toContainText(iterationPrompt.slice(0, 80), { timeout: 60_000 });
-
-      await expect
-        .poll(() => projectFilesRevision(page, projectId, token), {
-          message: 'The orange-theme iteration must update at least one generated project file',
-          intervals: [1_000, 2_000, 3_000],
-          timeout: GENERATION_TIMEOUT_MS,
-        })
-        .not.toBe(initialRevision);
-      await waitForProjectToSettle(
-        page,
-        agentPanel,
-        projectId,
-        token,
-        'Orange-theme files must stabilize and the agent composer must become active again',
-      );
       process.stdout.write(`${JSON.stringify({ status: 'orange-iteration-settled', locale })}\n`);
 
       ({ previewText } = await waitForPreview(page, evidenceRoot, projectId, token));
