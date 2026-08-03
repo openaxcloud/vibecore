@@ -85,3 +85,5 @@ docs/instructions/Roadmap.md
 
 # responsive-matrix verification output (local only)
 scratch-matrix/
+
+.blk-*.mjs
