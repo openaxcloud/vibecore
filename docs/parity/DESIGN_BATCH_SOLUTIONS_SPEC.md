@@ -4,7 +4,7 @@
 
 Refondre les neuf pages Solutions marketing sans toucher au shell IDE, à la preview/webview, à `Chat.client.tsx`, à `BaseChat.tsx`, au LLM, à `workspace-agent`, à `preview-proxy`, au backend, aux migrations ou à l'infrastructure.
 
-Ordre de livraison : SOL-01 App Builder, validation du propriétaire produit, puis SOL-02 à SOL-09. Les huit pages suivantes ne démarrent pas avant cette validation.
+Ordre de livraison : SOL-01 App Builder, validation du commanditaire, puis SOL-02 à SOL-09. Les huit pages suivantes ne démarrent pas avant cette validation.
 
 Les images de démonstration sont de vraies captures raster issues d'un rendu navigateur déterministe, jamais de simples schémas présentés comme des captures. App Builder fournit quatre écrans distincts en anglais et quatre en français, plus un sélecteur EN/FR persistant et des images Open Graph localisées. Chaque légende précise qu'il s'agit d'une démonstration exécutable avec données fictives ; elle ne prétend pas que la génération E-Code a été vérifiée si ce n'est pas le cas.
 
