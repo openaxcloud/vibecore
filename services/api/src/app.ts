@@ -7092,18 +7092,14 @@ function createWorkspaceVolumeEraser(): WorkspaceVolumeErasurePort {
 const OBJECT_STORAGE_PURGE_FROZEN_KEY = 'objectStorage.purgeFrozenProjectIds';
 
 /*
- * Write barrier (reserve #1 + #3): freeze ALL of the subject's write paths BEFORE
- * the erasure, so nothing can be recreated between erase/verify and the tombstone:
- *   - object storage: mark each bucket project purge-frozen so upload-url /
- *     ensure-bucket / move refuse (reserve #3);
- *   - workspaces: workspace-manager `POST /workspaces/:id/freeze` (revoke token +
- *     stop pod).
+ * Workspace write barrier (reserve #1): freeze each of the subject's workspaces
+ * BEFORE the erasure — workspace-manager `POST /workspaces/:id/freeze` (revoke
+ * token + stop pod) — so a pod can't recreate files between erase/verify and the
+ * tombstone. The OBJECT-STORAGE freeze (and the membership freeze) is now acquired
+ * earlier, inside the store's topology guarantee (RR-09), before this runs.
  * FAIL-CLOSED: throws on ANY failure (freeze not acquired) so the erasure aborts.
  */
-function createWriteBarrier(
-  workspaceIdsFor: (inv: StorageErasureInventory) => string[],
-  freezeObjectStorage: (projectIds: string[]) => Promise<void>,
-): WriteBarrierPort {
+function createWriteBarrier(workspaceIdsFor: (inv: StorageErasureInventory) => string[]): WriteBarrierPort {
   const authHeaders = () => {
     const secret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
 
@@ -7112,10 +7108,7 @@ function createWriteBarrier(
 
   return {
     async freeze(inventory: StorageErasureInventory) {
-      // (a) revoke object-storage write paths first (reserve #3). Throws on failure.
-      await freezeObjectStorage(inventory.bucketProjectIds);
-
-      // (b) freeze each workspace (reserve #1). Throws on any failure.
+      // Freeze each workspace (reserve #1). Throws on any failure.
       for (const workspaceId of workspaceIdsFor(inventory)) {
         const response = await fetch(`${workspaceManagerUrl()}/workspaces/${encodeURIComponent(workspaceId)}/freeze`, {
           method: 'POST',
@@ -29623,6 +29616,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     ids = ids.slice(0, body.take ?? 500);
 
+    /*
+     * RR-09 (4): recover from a crash. Release any purge freeze left behind by a
+     * run that died between acquiring its topology guarantee and releasing it, so
+     * a legitimate org/project is never frozen forever. Users still ready_to_purge
+     * re-acquire a fresh guarantee below.
+     */
+    const reconciled = await store.reconcilePurgeFreezes();
+
     let ready = 0;
     let purged = 0;
     let alreadyPurged = 0;
@@ -29688,14 +29689,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                       // projects it freezes; the freeze guard would refuse them.
                       objectStorage: resolveRawObjectStorage(),
                       workspaceVolumes: createWorkspaceVolumeEraser(),
-                      writeBarrier: createWriteBarrier(
-                        (inv) => inv.workspaceIds,
-                        async (projectIds) => {
-                          for (const projectId of projectIds) {
-                            await store.mutateSystemSettingIds(OBJECT_STORAGE_PURGE_FROZEN_KEY, { add: projectId });
-                          }
-                        },
-                      ),
+                      // Object-storage + membership freeze is acquired earlier, in
+                      // the store's topology guarantee (RR-09); this barrier now
+                      // only freezes the workspaces.
+                      writeBarrier: createWriteBarrier((inv) => inv.workspaceIds),
                       log: app.log as unknown as { warn(o: unknown, m?: string): void },
                     },
                   ),
@@ -29742,7 +29739,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
     }
 
-    return { enabled, scanned: ids.length, ready, purged, alreadyPurged, notDue, stale, failed };
+    return {
+      enabled,
+      scanned: ids.length,
+      ready,
+      purged,
+      alreadyPurged,
+      notDue,
+      stale,
+      failed,
+      reconciledFreezes: reconciled.reconciled,
+    };
   });
 
   /*

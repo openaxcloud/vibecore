@@ -327,6 +327,11 @@ export class TestApiStore implements ApiStore {
    * the single-threaded test runtime observe exactly-once purge semantics like
    * the advisory-locked Postgres implementation.
    */
+  /** RR-09: no durable freeze state in the in-memory store, so nothing to reconcile. */
+  async reconcilePurgeFreezes(): Promise<{ reconciled: number }> {
+    return { reconciled: 0 };
+  }
+
   async purgeUserAccount(
     input: { userId: string; nowMs?: number },
     deps?: PurgeStorageDeps,
