@@ -1,12 +1,12 @@
 # RUNTIME_NIX_CONTRACT — contrat runtime Nix v2
 
 contractId: CTR-RUNTIME-NIX
-contractVersion: 6
-schemaVersion: 6
+contractVersion: 7
+schemaVersion: 7
 repoCommit: 6d57a401
 reviewer: UNKNOWN
 expectedReviewer: OpenAI-Codex
-signatureResult: PENDING_REVIEW   # v5 REFUSED (RR-08 : code typé non capturé, référence morte .log, sur-revendication UI) — v6 = les 3 incohérences corrigées + code capturé LIVE (409 avec code littéral, 31/07)
+signatureResult: PENDING_REVIEW   # v6 REFUSED (RR-09 : code typé prouvé sur 409 /nix-lock, pas sur un publish image corrigée) — v7 = code capturé DANS LE LOG DU DEPLOYMENT publish sur image corrigée (03/08)
 implementationAnchor: "v4 : pin de génération OBLIGATOIRE (assertLockPublishable — alias mutable refusé) ; validation EXHAUSTIVE bundles/store paths/hashes contre le catalogue signé (ECODE_LOCK_BUNDLE_TAMPERED/UNKNOWN) ; pin persisté+réutilisé dans release ET rollback (RetainedRelease.storeGeneration → nixGenerationRef, rollback évalué contre la génération de SA release) ; négatif live révocation = prêt à jouer (mini-merge)"
 Décisions: `docs/NIX_V2_DECISION.md` + `docs/DEPLOY_REPRODUCIBLE_PIPELINE.md`
 (preuves live antérieures: docs/deploy-evidence/2026-07-15-phase-b/ — store RO gVisor
@@ -127,6 +127,24 @@ littéral — il y apparaîtra au déploiement de cette branche, le test le verr
 authentifiés à l'API publique (`api.e-code.ai`) — pas par la surface UI
 navigateur. Le contrat et le README le disent tels quels.
 
+## Levée du refus v6 (RR-09) — code typé dans le STATUT du deployment, sur image corrigée
+
+RR-08 acceptait la sous-preuve mais RR-09 exigeait que le code typé provienne d'un
+**publish exécuté sur l'image CORRIGÉE déployée**, pas du 409 de `/nix-lock`. FAIT
+le 2026-08-03 (merge #57 = `05319065`, image api `05319065be` avec
+`describeEcodeLockFailure` dans `/runtime/dist/app.js`, CD vert) :
+- **Publish #1** (gen-2 ACTIVE) → READY/200.
+- Révocation `helm --set-file <gen-2 REVOKED>` (rev 927).
+- **Publish #2** (lock gen-2 révoquée) → **FAILED** ; le **log error du DEPLOYMENT**
+  contient LITTÉRALEMENT `ECODE_LOCK_GENERATION_REVOKED` (le code MÈNE la ligne :
+  `Server deploy: ECODE_LOCK_GENERATION_REVOKED: ecode.lock.json pins … is REVOKED …`) ;
+  **URL → 410** `SERVER_DEPLOY_NOT_LIVE`.
+- Restauration gen-2 ACTIVE (rev 928), **vérifiée** (revokedAt absent) ; **Publish #3** → READY/200.
+- Prod-safe : registre déployé == `values-prod.yaml` de main (doc canonique égal), health 200/200, session QA supprimée.
+
+Artefacts : `docs/deploy-evidence/2026-08-03-rr09-code-in-deployment/`
+(`rr09-EXECUTED.txt`, `rr09-publish2-REVOKED-deployment.json` sha256 `2f2c065f…`).
+
 ## Préconditions
 - P-NIX-1 : store monté LECTURE SEULE dans tout pod utilisateur ; kill-switch (9a21f56f) intact.
 - P-NIX-2 : toute génération est versionnée (gen-N) et publiée **atomiquement** (le parse rejette tout document à activation non unique).
@@ -169,4 +187,6 @@ navigateur. Le contrat et le README le disent tels quels.
 - v2 : REFUSED (RR-20260721-CODEX-04 — dépendances ouvertes).
 - v3 : REFUSED (REPONSE_EXPERT_V3_20260722 §B — lock pas prouvé immuable + enforcement incomplet : pin optionnel, rollback sans pin, validation partielle du catalogue, négatif live bloqué).
 - v4 : REFUSED (REPONSE_EXPERT_V3 §B maintenu : négatif live pas EXÉCUTÉ + config prod restaurée non vérifiée).
-- v5 : PENDING_REVIEW — les 4 réserves de l'expert sont désormais levées : (1) pin obligatoire, (2) pin persisté+réutilisé release ET rollback, (3) validation exhaustive contre le catalogue signé, (4) **négatif live révocation EXÉCUTÉ le 23/07** (Publish lock révoqué → refus typé `ECODE_LOCK_GENERATION_REVOKED` + URL 410, artefact brut présent) ; config de test restaurée et vérifiée. PROVEN_REVIEW_PENDING.
+- v5 : REFUSED (RR-08 : code typé non capturé dans l'artefact, référence morte .log, sur-revendication UI).
+- v6 : REFUSED (RR-09 : code typé prouvé sur le 409 /nix-lock, PAS sur un publish exécuté avec l'image corrigée).
+- v7 : PENDING_REVIEW — code typé `ECODE_LOCK_GENERATION_REVOKED` capturé DANS LE LOG DU DEPLOYMENT d'un publish sur l'image corrigée déployée (03/08, merge #57 `05319065`), URL 410, ACTIVE→READY/200, restauration vérifiée, prod == main. PROVEN_REVIEW_PENDING.
