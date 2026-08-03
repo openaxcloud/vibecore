@@ -83,6 +83,7 @@ export interface StripTransportMarkupResult {
  */
 export function stripTransportMarkup(content: string): StripTransportMarkupResult {
   const samples: string[] = [];
+
   let stripped = 0;
 
   const record = (match: string) => {

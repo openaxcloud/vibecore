@@ -1,8 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { sanitizeFileContent } from '~/utils/sanitize-file-content';
-
 import { StreamingMessageParser } from './message-parser';
+import { sanitizeFileContent } from '~/utils/sanitize-file-content';
 
 /*
  * BUG-AGENT-TRANSPORT-MARKUP (P0 file contamination) — repro against the
