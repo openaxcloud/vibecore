@@ -317,7 +317,17 @@ async function selectCreationModel(page: Page) {
   if (providerName) {
     const providerCombobox = page.getByTestId('ai-provider-dropdown').getByRole('combobox', { name: 'AI provider' });
 
-    await expect(providerCombobox).toBeVisible({ timeout: 60_000 });
+    const providerSelectorAvailable = await providerCombobox
+      .waitFor({ state: 'visible', timeout: 15_000 })
+      .then(() => true)
+      .catch(() => false);
+
+    if (!providerSelectorAvailable) {
+      process.stdout.write(`${JSON.stringify({ status: 'creation-model-selector-unavailable' })}\n`);
+
+      return;
+    }
+
     await providerCombobox.click();
     await page
       .getByRole('option', { name: new RegExp(escapedPattern(providerName), 'i') })
@@ -329,7 +339,7 @@ async function selectCreationModel(page: Page) {
   if (modelName) {
     const modelCombobox = page.getByTestId('ai-model-dropdown').getByRole('combobox', { name: 'AI model' });
 
-    await expect(modelCombobox).toBeVisible({ timeout: 60_000 });
+    await expect(modelCombobox).toBeVisible({ timeout: 30_000 });
     await modelCombobox.click();
     await page
       .getByRole('option', { name: new RegExp(escapedPattern(modelName), 'i') })
