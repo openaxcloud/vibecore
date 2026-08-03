@@ -327,7 +327,11 @@ jobs:
       - name: Vulnerability gate on built images (blocking)
         run: |
           set -euo pipefail
-          TRIVY_VERSION=0.58.1
+          # Keep this pinned, and verify the asset actually exists before
+          # bumping: release asset names are not stable across versions, and a
+          # 404 here fails the gate for the wrong reason (curl -sSfL is silent
+          # about it until tar chokes).
+          TRIVY_VERSION=0.72.0
           curl -sSfL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" \
             | tar -xz -C /tmp trivy
           sudo install /tmp/trivy /usr/local/bin/trivy
