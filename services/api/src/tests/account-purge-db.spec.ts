@@ -338,96 +338,196 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
   });
 
   /*
-   * RR-08 #3 — TOPOLOGY DRIFT. The external GCS/PVC erasure runs on the
-   * PRE-transaction topology; the tx re-derives it under the advisory lock and
-   * must ABORT (never stamp purgedAt) if a membership race shifted sole↔shared
-   * while the erasure ran. The `eraseStorage` hook IS that window — it is invoked
-   * after the inventory is taken and before the tx — so mutating membership
-   * inside it faithfully reproduces the race, deterministically.
+   * RR-09 — the topology GUARANTEE is acquired BEFORE the irreversible external
+   * erasure: membership + object storage are frozen and the authoritative
+   * sole/shared topology is recorded atomically under the advisory lock. So the
+   * deletion only ever touches buckets that are sole UNDER THE LOCK, membership
+   * cannot flip while the erasure runs, and the freeze is released on every exit.
+   * The `eraseStorage` hook is the during-erasure window (it runs after the
+   * guarantee, before the finalize tx), so membership mutations attempted inside
+   * it must be refused.
    */
 
-  it('(6) shared→sole during external erasure ABORTS the purge (never finalizes on stale inventory)', async () => {
+  const MEMBERSHIP_FROZEN = 'membership.purgeFrozenOrgIds';
+  const OBJECT_STORAGE_FROZEN = 'objectStorage.purgeFrozenProjectIds';
+
+  async function frozenSet(store: PrismaApiStore, key: string): Promise<string[]> {
+    const value = (await store.listSystemSettings()).find((s) => s.key === key)?.value;
+
+    return Array.isArray(value) ? (value as string[]) : [];
+  }
+
+  async function makeShared(store: PrismaApiStore, prisma: ReturnType<typeof createDatabaseClient>, orgId: string, ownerUserId: string) {
+    const owner = (await prisma.organizationMember.findFirst({ where: { organizationId: orgId, userId: ownerUserId } }))!;
+    const co = await store.createUser({
+      email: `co-${suffix()}@example.com`,
+      name: 'Co Member',
+      passwordHash: hashPassword('password123'),
+    });
+    await prisma.organizationMember.create({ data: { organizationId: orgId, userId: co.id, roleId: owner.roleId } });
+
+    return co;
+  }
+
+  it('(6) sole→shared: a bucket shared under the guarantee is NEVER erased (bucket survives)', async () => {
     const prisma = createDatabaseClient();
 
     try {
       const store = new PrismaApiStore(prisma);
       const { user, org, project } = await seedAccount(store);
-
-      // Make the org SHARED: add a second member (reuse the owner's role).
-      const owner = (await prisma.organizationMember.findFirst({
-        where: { organizationId: org.id, userId: user.id },
-      }))!;
-      const other = await store.createUser({
-        email: `co-${suffix()}@example.com`,
-        name: 'Co Member',
-        passwordHash: hashPassword('password123'),
-      });
-      await prisma.organizationMember.create({
-        data: { organizationId: org.id, userId: other.id, roleId: owner.roleId },
-      });
-
+      await makeShared(store, prisma, org.id, user.id); // org is SHARED at guarantee time
       await requestElapsedDeletion(store, user.id);
 
-      // During the external erasure the co-member LEAVES → the org becomes SOLE,
-      // so its bucket (excluded pre-tx as shared) would now need erasing.
-      const eraseStorage = async () => {
-        await prisma.organizationMember.deleteMany({ where: { organizationId: org.id, userId: other.id } });
+      let captured: PurgeStorageInventory | undefined;
+      const eraseStorage = async (inv: PurgeStorageInventory) => {
+        captured = inv;
 
         return { classes: [], verified: true };
       };
 
-      await expect(store.purgeUserAccount({ userId: user.id }, { eraseStorage })).rejects.toThrow(
-        /ACCOUNT_PURGE_TOPOLOGY_DRIFT/,
-      );
+      const result = await store.purgeUserAccount({ userId: user.id }, { eraseStorage });
+      expect(result.outcome).toBe('purged');
 
-      // Fail-closed: NOT finalized. No tombstone, storage rows intact.
-      const after = await prisma.user.findUnique({ where: { id: user.id } });
-      expect((after!.preferences as { accountDeletion?: { purgedAt?: string } }).accountDeletion?.purgedAt).toBeUndefined();
-      expect(await prisma.session.count({ where: { userId: user.id } })).toBe(1);
+      // The shared org's bucket is NEVER handed to the erasure → never deleted.
+      expect(captured!.bucketProjectIds).not.toContain(project.id);
+      // The shared org + its project survive (retained for the co-member).
       expect(await prisma.project.count({ where: { id: project.id } })).toBe(1);
+      expect(await prisma.organization.count({ where: { id: org.id } })).toBe(1);
+      // No residual freeze after the successful purge.
+      expect(await frozenSet(store, OBJECT_STORAGE_FROZEN)).not.toContain(project.id);
+      expect(await frozenSet(store, MEMBERSHIP_FROZEN)).not.toContain(org.id);
     } finally {
       await prisma.$disconnect();
     }
   });
 
-  it('(7) sole→shared during external erasure ABORTS the purge (never destroys a now-shared org)', async () => {
+  it('(7) shared→sole is PREVENTED: a co-member cannot leave while the org is purge-frozen', async () => {
+    const prisma = createDatabaseClient();
+
+    try {
+      const store = new PrismaApiStore(prisma);
+      const { user, org } = await seedAccount(store);
+      const co = await makeShared(store, prisma, org.id, user.id);
+      await requestElapsedDeletion(store, user.id);
+
+      let leaveError: unknown;
+      const eraseStorage = async () => {
+        // Co-member tries to leave during the erasure → must be REFUSED.
+        leaveError = await store
+          .removeMember(org.id, co.id)
+          .then(() => null)
+          .catch((e) => e);
+
+        return { classes: [], verified: true };
+      };
+
+      const result = await store.purgeUserAccount({ userId: user.id }, { eraseStorage });
+      expect(result.outcome).toBe('purged');
+      expect(String(leaveError)).toMatch(/MEMBERSHIP_FROZEN_FOR_PURGE/);
+      // The leave was blocked → the co-member is still a member.
+      expect(await prisma.organizationMember.count({ where: { organizationId: org.id, userId: co.id } })).toBe(1);
+    } finally {
+      await prisma.$disconnect();
+    }
+  });
+
+  it('(8) sole→shared is PREVENTED: a new member cannot join while the org is purge-frozen', async () => {
+    const prisma = createDatabaseClient();
+
+    try {
+      const store = new PrismaApiStore(prisma);
+      const { user, org, project } = await seedAccount(store); // SOLE org
+      const joiner = await store.createUser({
+        email: `join-${suffix()}@example.com`,
+        name: 'Late Joiner',
+        passwordHash: hashPassword('password123'),
+      });
+      await requestElapsedDeletion(store, user.id);
+
+      let joinError: unknown;
+      let captured: PurgeStorageInventory | undefined;
+      const eraseStorage = async (inv: PurgeStorageInventory) => {
+        captured = inv;
+        joinError = await store
+          .addMember({ organizationId: org.id, userId: joiner.id, roleKey: 'member' })
+          .then(() => null)
+          .catch((e) => e);
+
+        return { classes: [], verified: true };
+      };
+
+      const result = await store.purgeUserAccount({ userId: user.id }, { eraseStorage });
+      expect(result.outcome).toBe('purged');
+      expect(String(joinError)).toMatch(/MEMBERSHIP_FROZEN_FOR_PURGE/);
+      // The join was blocked → the sole bucket was correctly in the erase set.
+      expect(captured!.bucketProjectIds).toContain(project.id);
+      expect(await prisma.organizationMember.count({ where: { organizationId: org.id, userId: joiner.id } })).toBe(0);
+    } finally {
+      await prisma.$disconnect();
+    }
+  });
+
+  it('(9) NO residual freeze after a FAILED purge (guaranteed release on throw)', async () => {
+    const prisma = createDatabaseClient();
+
+    try {
+      const store = new PrismaApiStore(prisma);
+      const { user, org, project } = await seedAccount(store);
+      await requestElapsedDeletion(store, user.id);
+
+      // Physical erasure reports NOT verified → the purge throws fail-closed.
+      const eraseStorage = async () => ({ classes: [], verified: false });
+
+      await expect(store.purgeUserAccount({ userId: user.id }, { eraseStorage })).rejects.toThrow(
+        /ACCOUNT_PURGE_PHYSICAL_INCOMPLETE/,
+      );
+
+      // RR-09 (6): both freeze sets released, plan cleared — nothing left behind.
+      expect(await frozenSet(store, MEMBERSHIP_FROZEN)).not.toContain(org.id);
+      expect(await frozenSet(store, OBJECT_STORAGE_FROZEN)).not.toContain(project.id);
+      const plan = (await store.listSystemSettings()).find((s) => s.key === `purge.plan.${user.id}`);
+      expect(plan?.value ?? null).toBeNull();
+      // The org is writable again: a member can join now that the freeze is gone.
+      const joiner = await store.createUser({
+        email: `after-${suffix()}@example.com`,
+        name: 'After',
+        passwordHash: hashPassword('password123'),
+      });
+      await expect(store.addMember({ organizationId: org.id, userId: joiner.id, roleKey: 'member' })).resolves.toBeTruthy();
+    } finally {
+      await prisma.$disconnect();
+    }
+  });
+
+  it('(10) reconciler releases a freeze left behind by a crashed run (recoverable state machine)', async () => {
     const prisma = createDatabaseClient();
 
     try {
       const store = new PrismaApiStore(prisma);
       const { user, org, project } = await seedAccount(store);
 
-      // Pre-tx the org is SOLE (owner only) → its bucket is in the erase inventory.
-      const owner = (await prisma.organizationMember.findFirst({
-        where: { organizationId: org.id, userId: user.id },
-      }))!;
+      // Simulate a crash mid-erasure: a plan + freezes persisted but never released.
+      await store.mutateSystemSettingIds(MEMBERSHIP_FROZEN, { add: org.id });
+      await store.mutateSystemSettingIds(OBJECT_STORAGE_FROZEN, { add: project.id });
+      await store.setSystemSetting({ key: `purge.plan.${user.id}`, value: { orgIds: [org.id], projectIds: [project.id] } });
+
+      // The org is frozen — a join is refused…
       const joiner = await store.createUser({
-        email: `join-${suffix()}@example.com`,
-        name: 'Late Joiner',
+        email: `recon-${suffix()}@example.com`,
+        name: 'Recon',
         passwordHash: hashPassword('password123'),
       });
-
-      await requestElapsedDeletion(store, user.id);
-
-      // During the external erasure a new member JOINS → the org becomes SHARED,
-      // so it must NOT be deleted/tombstoned on the now-stale sole inventory.
-      const eraseStorage = async () => {
-        await prisma.organizationMember.create({
-          data: { organizationId: org.id, userId: joiner.id, roleId: owner.roleId },
-        });
-
-        return { classes: [], verified: true };
-      };
-
-      await expect(store.purgeUserAccount({ userId: user.id }, { eraseStorage })).rejects.toThrow(
-        /ACCOUNT_PURGE_TOPOLOGY_DRIFT/,
+      await expect(store.addMember({ organizationId: org.id, userId: joiner.id, roleKey: 'member' })).rejects.toThrow(
+        /MEMBERSHIP_FROZEN_FOR_PURGE/,
       );
 
-      // Fail-closed: the now-shared org and its project survive; no tombstone.
-      const after = await prisma.user.findUnique({ where: { id: user.id } });
-      expect((after!.preferences as { accountDeletion?: { purgedAt?: string } }).accountDeletion?.purgedAt).toBeUndefined();
-      expect(await prisma.project.count({ where: { id: project.id } })).toBe(1);
-      expect(await prisma.organizationMember.count({ where: { organizationId: org.id, userId: joiner.id } })).toBe(1);
+      // …until the reconciler releases the stale freeze.
+      const { reconciled } = await store.reconcilePurgeFreezes();
+      expect(reconciled).toBeGreaterThanOrEqual(1);
+      expect(await frozenSet(store, MEMBERSHIP_FROZEN)).not.toContain(org.id);
+      expect(await frozenSet(store, OBJECT_STORAGE_FROZEN)).not.toContain(project.id);
+      expect((await store.listSystemSettings()).find((s) => s.key === `purge.plan.${user.id}`)).toBeUndefined();
+      await expect(store.addMember({ organizationId: org.id, userId: joiner.id, roleKey: 'member' })).resolves.toBeTruthy();
     } finally {
       await prisma.$disconnect();
     }

@@ -48,6 +48,41 @@ local `kind` cluster satisfies "real k8s" at $0, so no cost sign-off was needed.
 No persistent keys: GCS uses ADC (the reviewer's gcloud login), k8s uses the
 local kind kubeconfig.
 
+## Round 4 — RR-09: guarantee BEFORE the irreversible deletion
+
+RR-09 found the RR-08 drift guard fired too late — AFTER the irreversible GCS/PVC
+deletion — so in the sole→shared case the bucket was already destroyed and the
+guard only blocked the tombstone; and the object-storage freeze was never
+released, leaving a residual freeze on abort. Reordered and hardened:
+
+1. **Topology GUARANTEE acquired BEFORE any external deletion.**
+   `acquirePurgeGuarantee(userId)` runs first, in ONE tx under the per-user
+   advisory lock: it computes the authoritative sole/shared topology AND freezes
+   it — membership for every org the subject belongs to, object storage for the
+   sole-org buckets — atomically, then records a recoverable plan. The erasure
+   then runs on THIS locked inventory, so it only ever deletes buckets that are
+   sole under the guarantee.
+2. **Membership mutations blocked during erasure.** `addMember` / `removeMember`
+   take the freeze-set advisory lock and refuse (`MEMBERSHIP_FROZEN_FOR_PURGE`)
+   for a frozen org, so no join/leave can flip sole↔shared mid-erasure.
+3. **Delete only after the guarantee.** `deps.eraseStorage` is invoked only once
+   a guarantee is held, on `guarantee.bucketProjectIds`.
+4. **Recoverable freeze state machine, guaranteed release.**
+   `releasePurgeGuarantee` runs in a `finally` on EVERY exit (purged / drift /
+   throw) — unfreeze membership + object storage, clear the plan. A plan left by
+   a crashed run is released by `reconcilePurgeFreezes()` at the start of the next
+   purge-executor pass (surfaced as `reconciledFreezes`).
+5. **sole→shared: the bucket is NEVER deleted** — a bucket shared under the
+   guarantee is excluded from the erase inventory (a join before the guarantee),
+   or the join is refused (a join during erasure).
+
+Proof (real Postgres, `tests/account-purge-db.spec.ts`): (6) shared org's bucket
+never handed to the erasure + survives; (7) co-member cannot leave while frozen;
+(8) new member cannot join while frozen; (9) NO residual freeze after a failed
+purge (guaranteed release on throw) + org writable again; (10) reconciler
+releases a crashed run's freeze. The RR-08 drift check remains as a defence-in-
+depth backstop for the razor-thin read→freeze window.
+
 ## Round 3 — RR-08: two blocking paths closed (fail-closed)
 
 The reviewer (RR-08) found two more holes. Both are fixed fail-closed with
