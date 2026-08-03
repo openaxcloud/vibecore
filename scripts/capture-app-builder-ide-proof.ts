@@ -805,6 +805,32 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
 
     await terminalInput.focus();
     await expect(terminalInput).toBeFocused();
+
+    await page.keyboard.type('npm install --no-audit --no-fund');
+    await expect
+      .poll(() => terminalRows.innerText().catch(() => ''), {
+        message: 'The IDE Terminal must echo the dependency installation command before execution',
+        timeout: 30_000,
+      })
+      .toContain('npm install --no-audit --no-fund');
+    await page.keyboard.press('Enter');
+    process.stdout.write(`${JSON.stringify({ status: 'preview-terminal-install-requested' })}\n`);
+
+    await expect
+      .poll(() => terminalRows.innerText().catch(() => ''), {
+        message: 'The real IDE Terminal must complete the project dependency installation',
+        timeout: PREVIEW_TIMEOUT_MS,
+      })
+      .toMatch(/(?:(?:added|changed|removed)\s+\d+\s+packages?|up to date)/i);
+    await expect
+      .poll(() => terminalRows.innerText().catch(() => ''), {
+        message: 'The IDE Terminal must return to an interactive prompt after installing dependencies',
+        timeout: 60_000,
+      })
+      .toMatch(/[$#]\s*$/m);
+
+    await terminalInput.focus();
+    await expect(terminalInput).toBeFocused();
     await page.keyboard.type('npm run dev -- --host 0.0.0.0');
     await expect
       .poll(() => terminalRows.innerText().catch(() => ''), {
