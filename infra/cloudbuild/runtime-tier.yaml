@@ -31,9 +31,14 @@ substitutions:
   _REPO: vibecore-prod-containers
   _SHORT_SHA: dev
   # Cosign signing key (B7). The Cloud Build service account
-  # (267592214411-compute@developer.gserviceaccount.com) holds
-  # roles/cloudkms.signerVerifier on this key and nothing else; the private key
-  # material never leaves Cloud KMS.
+  # (267592214411-compute@developer.gserviceaccount.com) holds exactly two roles
+  # on this key and nothing else; the private key material never leaves KMS.
+  #   roles/cloudkms.signerVerifier — use a key version to sign
+  #   roles/cloudkms.viewer         — read the key's metadata
+  # Both are required. signerVerifier alone fails with
+  # "Permission 'cloudkms.cryptoKeys.get' denied ... getting fetching default
+  # hash function": cosign reads the key's default hash algorithm before it can
+  # sign, and that is a cryptoKeys.get on the key itself, not on a version.
   _KMS_KEYRING: ecode-supply-chain
   _KMS_KEY: cosign-images
 options:
