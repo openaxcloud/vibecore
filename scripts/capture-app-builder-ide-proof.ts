@@ -1523,6 +1523,19 @@ async function prepareIdeCapture(page: Page, bubble: ReturnType<Page['locator']>
   await page.evaluate(`document.fonts && document.fonts.ready`);
 }
 
+async function selectPreviewDevice(page: Page, device: 'desktop' | 'tablet' | 'mobile') {
+  const deviceSelect = page.getByRole('combobox', { name: 'Preview device' }).last();
+
+  await expect(deviceSelect).toBeVisible({ timeout: 60_000 });
+  await deviceSelect.selectOption(device);
+  await expect(deviceSelect).toHaveValue(device);
+  await expect(page.locator(`.bolt-project-webview-frame[data-preview-device="${device}"]:visible`).last()).toBeVisible(
+    {
+      timeout: 60_000,
+    },
+  );
+}
+
 async function main() {
   const slug = readSlug();
   const locale = readLocale();
@@ -1776,7 +1789,9 @@ async function main() {
       await verifyScenarioIdentity(page, copy, 60_000);
     }
 
+    const promptOutput = resolve(outputRoot, 'ide-agent-prompt.png');
     const previewOutput = resolve(outputRoot, 'ide-agent-preview.png');
+    const webviewOverviewOutput = resolve(outputRoot, 'ide-webview-overview.png');
     await mkdir(dirname(previewOutput), { recursive: true });
 
     let initialAccentAudit: { orangeActionCount: number; orangeCount: number; purpleCount: number } | undefined;
@@ -1795,14 +1810,30 @@ async function main() {
         initialAccentAudit = await waitForOrangePreview(page, evidenceRoot);
       }
 
+      await selectPreviewDevice(page, 'desktop');
       await prepareIdeCapture(page, promptBubble);
+      await page.screenshot({ path: promptOutput, animations: 'disabled', caret: 'hide' });
+
+      const completedAgentBubble = agentPanel.locator('.bolt-chat-message-row-assistant').last();
+
+      const previewBubble = (await completedAgentBubble.isVisible().catch(() => false))
+        ? completedAgentBubble
+        : promptBubble;
+
+      await prepareIdeCapture(page, previewBubble);
       await page.screenshot({ path: previewOutput, animations: 'disabled', caret: 'hide' });
+
+      await selectPreviewDevice(page, 'tablet');
+      await prepareIdeCapture(page, promptBubble);
+      await page.screenshot({ path: webviewOverviewOutput, animations: 'disabled', caret: 'hide' });
+      await selectPreviewDevice(page, 'desktop');
     }
 
     let iterationBubble: ReturnType<typeof agentPanel.locator> | undefined;
     let accentAudit = initialAccentAudit;
     let scenarioAudit: Awaited<ReturnType<typeof verifyScenarioPreview>>;
     let iterationOutput: string | undefined;
+    let webviewIterationOutput: string | undefined;
 
     if (iterationPrompt) {
       if (iterationRepairBubble && iterationRepairPrompt) {
@@ -1850,6 +1881,12 @@ async function main() {
       await prepareIdeCapture(page, iterationBubble);
       iterationOutput = resolve(outputRoot, 'ide-agent-iteration.png');
       await page.screenshot({ path: iterationOutput, animations: 'disabled', caret: 'hide' });
+
+      await selectPreviewDevice(page, 'mobile');
+      await prepareIdeCapture(page, iterationBubble);
+      webviewIterationOutput = resolve(outputRoot, 'ide-webview-iteration.png');
+      await page.screenshot({ path: webviewIterationOutput, animations: 'disabled', caret: 'hide' });
+      await selectPreviewDevice(page, 'desktop');
     } else {
       scenarioAudit = await verifyScenarioPreview(page, copy, evidenceRoot);
     }
@@ -1860,7 +1897,9 @@ async function main() {
       await editorButton.click();
 
       const appFile = page
-        .locator('.bolt-file-tree-name[title="App.tsx"], .bolt-file-tree-name[title="App.jsx"]')
+        .locator(
+          '.bolt-file-tree-name[title="App.tsx"], .bolt-file-tree-name[title="App.jsx"], .bolt-file-tree-name[title="main.tsx"], .bolt-file-tree-name[title="main.jsx"]',
+        )
         .first();
 
       if (await appFile.isVisible().catch(() => false)) {
@@ -1910,7 +1949,10 @@ async function main() {
           previewConsoleErrorCount: previewConsoleErrors.length,
           pageErrorCount: pageErrors.length,
           previewOutput,
+          promptOutput,
+          webviewOverviewOutput,
           iterationOutput,
+          webviewIterationOutput,
           accentAudit,
           scenarioAudit,
           problemsSummary,
@@ -1923,7 +1965,10 @@ async function main() {
 
     await context.close();
     context = undefined!;
-    await unlink(captureSessionPath).catch(() => undefined);
+
+    if (process.env.SOLUTION_PROOF_KEEP_SESSION !== '1') {
+      await unlink(captureSessionPath).catch(() => undefined);
+    }
   } finally {
     await context?.close();
     await browser?.close();
