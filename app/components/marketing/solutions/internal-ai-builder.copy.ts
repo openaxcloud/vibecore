@@ -17,9 +17,12 @@ export const INTERNAL_AI_BUILDER_COPY = {
       title: 'Structure an internal assistant before you connect private company data',
       subtitle:
         'Describe the internal workflow you want to automate — policy questions, approval routing, procedure lookup. E-Code turns that scope into editable source code with source adapters, roles, states, and audit-event models you can inspect. Run the interface in Preview, then connect identity, storage, private procedures, and review every control before rollout.',
-      primaryCta: { label: 'Describe your assistant', ariaLabel: 'Describe your internal AI assistant with E-Code' },
+      primaryCta: {
+        label: 'Describe your internal agent',
+        ariaLabel: 'Describe your internal AI assistant with E-Code',
+      },
       secondaryCta: {
-        label: 'See how it builds',
+        label: 'See the internal workflow',
         ariaLabel: 'See how E-Code builds the internal assistant from a prompt',
       },
       microcopy:
@@ -44,8 +47,8 @@ export const INTERNAL_AI_BUILDER_COPY = {
       asideHeading: 'Visible boundaries',
       asideRows: [
         { label: 'Policy library', value: 'Local fixtures' },
-        { label: 'Permissions', value: 'UI demo only' },
-        { label: 'Answer path', value: 'Deterministic' },
+        { label: 'Permissions', value: 'Permissions UI only' },
+        { label: 'Answer path', value: 'Deterministic search' },
       ],
       asideCta: 'Open annual-leave result',
       disclaimer:
@@ -79,11 +82,11 @@ export const INTERNAL_AI_BUILDER_COPY = {
         'E-Code starts from the workflow you describe and creates an internal-assistant project in real source files. You inspect the modeled source, access, routing, and audit paths in Preview, then connect the systems and enforce the controls required by your environment.',
     },
     build: {
-      eyebrow: 'One prompt starts the assistant',
+      eyebrow: 'One prompt starts the HR procedure search',
       title: 'Describe the workflow, not the plumbing',
       intro:
         'The request below states the starting need. The captured Agent prompt scopes it as PeopleOps with a fictional local library and explicit demo-permission limits before E-Code creates the editable React and TypeScript files and running Webview.',
-      label: 'Example prompt',
+      label: 'Internal HR workflow brief',
       promptText: 'Build an internal agent that searches our HR procedures, available only to my teams.',
       outputs: [
         {
@@ -128,7 +131,7 @@ export const INTERNAL_AI_BUILDER_COPY = {
       },
     },
     deliverables: {
-      eyebrow: 'What you receive',
+      eyebrow: 'What PeopleOps includes',
       title: 'A traceable internal-tool project with honest deployment boundaries',
       intro:
         'The generated project exposes its source, procedure-adapter seam, responsive workspace, and release options. A static review surface can publish through E-Code; private data operations still belong in a separately secured runtime.',
@@ -182,17 +185,17 @@ export const INTERNAL_AI_BUILDER_COPY = {
           body: 'Model the events that matter, then route them to tamper-resistant storage with the retention and access rules your organization requires.',
         },
         {
-          title: 'Responsive by default',
+          title: 'Responsive employee workspace',
           body: 'The interface adapts from wide desktop to phone without a separate mobile build.',
         },
         {
-          title: 'Exportable source',
+          title: 'Exportable procedure-tool source',
           body: 'Export the project for your chosen hosting path, then apply your organization’s deployment, privacy, and security controls.',
         },
       ],
     },
     useCases: {
-      eyebrow: 'Who builds with it',
+      eyebrow: 'Internal workflows to structure',
       title: 'Four internal workflows to structure before rollout',
       intro:
         'From HR procedure search to request intake, these scenarios define inspectable starting points; governance becomes real only after identity, data, audit, and security validation.',
@@ -216,7 +219,7 @@ export const INTERNAL_AI_BUILDER_COPY = {
       ],
     },
     faq: {
-      eyebrow: 'Common questions',
+      eyebrow: 'Questions about internal AI',
       title: 'Internal AI Builder, answered honestly',
       intro: 'What the Internal AI Builder path produces, and where its boundaries are.',
       items: [
@@ -237,17 +240,20 @@ export const INTERNAL_AI_BUILDER_COPY = {
           body: 'Not by default. Privacy depends on the model, storage, identity, logging, network, and hosting choices in your deployment. The page demo contains only fictional data, and E-Code does not claim a compliance certification for your resulting system.',
         },
         {
-          title: 'How do I change the assistant later?',
-          body: 'Edit the files directly or ask the Agent for the next change and review the diff against the running Preview.',
+          title: 'How do I evolve the internal agent later?',
+          body: 'Edit the PeopleOps procedure cards and local answer logic directly or ask the Agent for another policy path, citation, or feedback state, then verify the diff in Preview.',
         },
       ],
     },
     finalCta: {
-      title: 'Describe your assistant and see it running',
+      title: 'Describe the internal procedure flow and test it locally',
       body: 'Turn the internal workflow you have in mind into an editable project, run its interface in Preview, and inspect source, access rules, and audit events before connecting private data or rolling it out.',
-      primaryCta: { label: 'Describe your assistant', ariaLabel: 'Describe your internal AI assistant with E-Code' },
+      primaryCta: {
+        label: 'Describe your internal agent',
+        ariaLabel: 'Describe your internal AI assistant with E-Code',
+      },
       secondaryCta: {
-        label: 'See how it builds',
+        label: 'See the internal workflow',
         ariaLabel: 'See how E-Code builds the internal assistant from a prompt',
       },
     },
@@ -258,7 +264,7 @@ export const INTERNAL_AI_BUILDER_COPY = {
       problemLabel: 'The internal AI tooling problem',
       buildLabel: 'How the Internal AI Builder works',
       outputListLabel: 'Internal assistant build outputs',
-      proofLinkLabel: 'See the real E-Code IDE proof',
+      proofLinkLabel: 'Inspect the internal-agent IDE evidence',
       deliverablesLabel: 'What the Internal AI Builder delivers',
       featuresLabel: 'Internal AI Builder capabilities',
       useCasesLabel: 'Internal AI Builder use cases',
@@ -277,9 +283,12 @@ export const INTERNAL_AI_BUILDER_COPY = {
       title: 'Structurez un assistant interne avant de brancher les données privées de l’entreprise',
       subtitle:
         'Décrivez le flux interne à automatiser — questions de politique, approbations, recherche de procédures. E-Code transforme ce périmètre en code source modifiable avec adaptateurs de sources, rôles, états et modèles d’événements d’audit. Exécutez l’interface dans l’aperçu, puis branchez identité, stockage et procédures privées, et relisez chaque contrôle avant le déploiement.',
-      primaryCta: { label: 'Décrivez votre assistant', ariaLabel: 'Décrivez votre assistant IA interne avec E-Code' },
+      primaryCta: {
+        label: 'Décrivez votre agent interne',
+        ariaLabel: 'Décrivez votre assistant IA interne avec E-Code',
+      },
       secondaryCta: {
-        label: 'Voir la construction',
+        label: 'Voir le workflow interne',
         ariaLabel: 'Voir comment E-Code construit l’assistant interne à partir d’un prompt',
       },
       microcopy:
@@ -308,8 +317,8 @@ export const INTERNAL_AI_BUILDER_COPY = {
       asideHeading: 'Limites visibles',
       asideRows: [
         { label: 'Bibliothèque', value: 'Fixtures locales' },
-        { label: 'Permissions', value: 'Démo UI seule' },
-        { label: 'Réponse', value: 'Déterministe' },
+        { label: 'Permissions', value: 'UI de permissions uniquement' },
+        { label: 'Réponse', value: 'Recherche déterministe' },
       ],
       asideCta: 'Ouvrir le résultat congés',
       disclaimer:
@@ -343,11 +352,11 @@ export const INTERNAL_AI_BUILDER_COPY = {
         'E-Code part du flux décrit et crée un projet d’assistant interne dans de vrais fichiers source. Vous inspectez les chemins modélisés de sources, d’accès, d’acheminement et d’audit dans l’aperçu, puis branchez les systèmes et appliquez les contrôles requis par votre environnement.',
     },
     build: {
-      eyebrow: 'Un prompt lance l’assistant',
+      eyebrow: 'Un prompt lance la recherche dans les procédures RH',
       title: 'Décrivez le flux, pas la tuyauterie',
       intro:
         'La demande ci-dessous pose le besoin initial. Le prompt Agent capturé le cadre comme PeopleOps avec une bibliothèque locale fictive et des permissions limitées à la démo, avant la création des fichiers React et TypeScript modifiables et de la Webview active.',
-      label: 'Exemple de prompt',
+      label: 'Brief du workflow RH interne',
       promptText: 'Un agent interne qui cherche dans nos procédures RH, réservé à mes équipes.',
       outputs: [
         {
@@ -392,7 +401,7 @@ export const INTERNAL_AI_BUILDER_COPY = {
       },
     },
     deliverables: {
-      eyebrow: 'Ce que vous recevez',
+      eyebrow: 'Ce que comprend PeopleOps',
       title: 'Un projet d’outil interne traçable, avec des limites de déploiement franches',
       intro:
         'Le projet généré expose sa source, la jonction vers les procédures, l’espace responsive et ses options de mise en ligne. Une surface statique de revue se publie via E-Code ; les opérations sur données privées restent dans un runtime sécurisé séparément.',
@@ -446,17 +455,17 @@ export const INTERNAL_AI_BUILDER_COPY = {
           body: 'Modélisez les événements utiles, puis acheminez-les vers un stockage résistant à l’altération avec la rétention et les accès exigés par votre organisation.',
         },
         {
-          title: 'Responsive par défaut',
+          title: 'Espace salarié responsive',
           body: 'L’interface s’adapte du grand écran au téléphone sans build mobile séparé.',
         },
         {
-          title: 'Source exportable',
+          title: 'Source exportable de l’outil de procédures',
           body: 'Exportez le projet vers l’hébergement choisi, puis appliquez les contrôles de déploiement, de confidentialité et de sécurité de votre organisation.',
         },
       ],
     },
     useCases: {
-      eyebrow: 'Qui construit avec',
+      eyebrow: 'Workflows internes à structurer',
       title: 'Quatre flux internes à structurer avant le déploiement aux équipes',
       intro:
         'De la recherche de procédures RH à la saisie de demandes, ces scénarios fournissent des bases inspectables ; la gouvernance devient réelle après validation de l’identité, des données, de l’audit et de la sécurité.',
@@ -480,7 +489,7 @@ export const INTERNAL_AI_BUILDER_COPY = {
       ],
     },
     faq: {
-      eyebrow: 'Questions fréquentes',
+      eyebrow: 'Questions sur l’IA interne',
       title: 'Le Générateur d’IA interne, en toute honnêteté',
       intro: 'Ce que produit le parcours Générateur d’IA interne, et où sont ses limites.',
       items: [
@@ -501,17 +510,20 @@ export const INTERNAL_AI_BUILDER_COPY = {
           body: 'Pas par défaut. La confidentialité dépend du modèle, du stockage, de l’identité, des journaux, du réseau et de l’hébergement choisis. La démo de cette page contient seulement des données fictives et E-Code ne revendique aucune certification pour le système obtenu.',
         },
         {
-          title: 'Comment modifier l’assistant ensuite ?',
-          body: 'Modifiez les fichiers directement ou demandez le changement suivant à l’Agent et relisez le diff face à l’aperçu actif.',
+          title: 'Comment faire évoluer l’agent interne ensuite ?',
+          body: 'Modifiez directement les cartes de procédures et la logique de réponse locale de PeopleOps ou demandez à l’Agent un autre parcours, une citation ou un état de feedback, puis vérifiez le diff dans l’aperçu.',
         },
       ],
     },
     finalCta: {
-      title: 'Décrivez votre assistant et voyez-le tourner',
+      title: 'Décrivez le parcours de procédure interne et testez-le localement',
       body: 'Transformez le flux interne envisagé en un projet modifiable, exécutez son interface dans l’aperçu et inspectez sources, règles d’accès et événements d’audit avant de connecter des données privées ou de le déployer aux équipes.',
-      primaryCta: { label: 'Décrivez votre assistant', ariaLabel: 'Décrivez votre assistant IA interne avec E-Code' },
+      primaryCta: {
+        label: 'Décrivez votre agent interne',
+        ariaLabel: 'Décrivez votre assistant IA interne avec E-Code',
+      },
       secondaryCta: {
-        label: 'Voir la construction',
+        label: 'Voir le workflow interne',
         ariaLabel: 'Voir comment E-Code construit l’assistant interne à partir d’un prompt',
       },
     },
@@ -522,7 +534,7 @@ export const INTERNAL_AI_BUILDER_COPY = {
       problemLabel: 'Le problème de l’outillage IA interne',
       buildLabel: 'Comment fonctionne le Générateur d’IA interne',
       outputListLabel: 'Résultats de la génération de l’assistant interne',
-      proofLinkLabel: 'Voir la preuve IDE réelle E-Code',
+      proofLinkLabel: 'Inspecter la preuve IDE de l’agent interne',
       deliverablesLabel: 'Ce que livre le Générateur d’IA interne',
       featuresLabel: 'Capacités du Générateur d’IA interne',
       useCasesLabel: 'Cas d’usage du Générateur d’IA interne',
