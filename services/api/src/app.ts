@@ -13190,9 +13190,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           signal: controller.signal,
         });
 
-        // Drain the body so the socket returns to the pool; we only need the status.
-        await response.body?.cancel().catch(() => undefined);
-        probe = { kind: 'response', status: response.status };
+        /*
+         * Read the body (not just drain it): a bound-but-not-serving dev server
+         * answers 200 with zero bytes, and treating that as ready is part of the
+         * "port open + blank webview" lie. Capped so a large document can't cost
+         * us more than the first chunk — we only need "is it non-empty".
+         */
+        let bodyBytes = 0;
+
+        const reader = response.body?.getReader();
+
+        if (reader) {
+          try {
+            const first = await reader.read();
+            bodyBytes = first.value?.byteLength ?? 0;
+          } finally {
+            await reader.cancel().catch(() => undefined);
+          }
+        }
+
+        probe = { kind: 'response', status: response.status, bodyBytes };
       } finally {
         clearTimeout(timer);
       }
@@ -16383,8 +16400,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const wasKnown = known.has(port);
         const wasReady = readyState.get(port) ?? false;
 
-        // Emit on first appearance, or when an already-open port flips to ready.
-        if (!wasKnown || (!wasReady && ready)) {
+        /*
+         * Emit on first appearance, or on EITHER readiness edge. The
+         * ready -> not-ready arm is what makes a preview that stops serving
+         * (dev server crashed, upstream started 5xx-ing) visible to the client:
+         * without it the IDE kept `ready: true` forever and reported a healthy
+         * preview over a dead app (SOLUTIONS_REAL_PROOF_BLOCKERS.md §5).
+         */
+        if (!wasKnown || wasReady !== ready) {
           emit(descriptor, 'open', ready);
         }
 
