@@ -40,12 +40,25 @@ export type ConsistencyLevel =
  * `checkpoint-consistency.spec.ts` échoue si un niveau d'ici apparaît dans un
  * manifeste — la sur-revendication devient une erreur de CI, pas une revue.
  */
-export const NEVER_CLAIMED: readonly ConsistencyLevel[] = [
+/*
+ * `satisfies` et non une annotation : une annotation `readonly ConsistencyLevel[]`
+ * élargirait le tuple et `DeclarableLevel` retomberait sur `never`. Ici les
+ * littéraux sont préservés ET validés contre ConsistencyLevel.
+ */
+export const NEVER_CLAIMED = [
   // Exigerait de quiescer les écrivains in-pod (dev server / terminal / agent).
   'application-consistent',
   // Exigerait en plus un instant commun fichiers↔base sous la même barrière.
   'transaction-consistent',
-] as const;
+] as const satisfies readonly ConsistencyLevel[];
+
+/**
+ * Les seuls niveaux que ce module a le droit de RENDRE. Exprimer l'interdiction
+ * dans le type — et pas seulement dans un test — fait échouer la compilation si
+ * quelqu'un tente d'émettre un niveau de `NEVER_CLAIMED` : la sur-revendication
+ * devient inexprimable, au lieu d'être rattrapée après coup.
+ */
+export type DeclarableLevel = Exclude<ConsistencyLevel, (typeof NEVER_CLAIMED)[number]>;
 
 /** Ce que la barrière atteint pour un projet donné, au moment du checkpoint. */
 export interface BarrierScope {
@@ -88,7 +101,7 @@ export const CAPTURE_SCOPE = {
 } as const;
 
 export interface ConsistencyDeclaration {
-  level: ConsistencyLevel;
+  level: DeclarableLevel;
   /** Pourquoi ce niveau et pas un autre — repris tel quel dans le manifeste. */
   basis: string;
   /** Écrivains NON gelés, énumérés. Vide ⇒ rien ne pouvait écrire. */
@@ -146,7 +159,7 @@ export function declareDatabaseConsistency(scope: BarrierScope): ConsistencyDecl
 
 export interface CheckpointConsistency {
   /** Le plus faible des composants — jamais le plus fort. */
-  level: ConsistencyLevel;
+  level: DeclarableLevel;
   basis: string;
   /**
    * `true` seulement si tous les composants sont capturés au MÊME instant

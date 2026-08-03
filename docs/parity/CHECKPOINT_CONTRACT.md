@@ -3,7 +3,7 @@
 contractId: CTR-CHECKPOINT
 contractVersion: 3
 schemaVersion: 3
-repoCommit: PENDING
+repoCommit: 912c9b33
 reviewer: UNKNOWN
 expectedReviewer: OpenAI-Codex
 signatureResult: PENDING_REVIEW   # v1 REFUSED (« tests unitaires mais aucun câblage réel ») ; v2 REFUSED sur P0-V3-09 (« barrière 2 phases prouvée mais pas le niveau transaction-consistent revendiqué ») ; v3 = niveau redescendu au prouvé + restore réel + barrière partagée
