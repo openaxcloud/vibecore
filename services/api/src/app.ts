@@ -310,6 +310,14 @@ import {
   resolveDeployMachineSize,
 } from './rate-card-service.js';
 import { resolveRollbackImage, resolveRollbackSecrets, type SecretPolicy } from './release-rollback.js';
+import {
+  ACCESS_GATE_CSP,
+  accessConfigFromMetadata,
+  accessCookieName,
+  accessGateHtml,
+  computeAccessToken,
+  isAccessTokenValid,
+} from './deployment-access.js';
 import { computeWorkspaceRestorePlan, isPortReadyFromProbe, type PortProbeResult } from './runtime-readiness.js';
 import { aggregatePreviewReadiness } from './runtime-readiness.js';
 import {
@@ -8191,6 +8199,54 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * Security: every requested path is resolved via path.resolve and must
    * stay strictly inside the snapshot directory; anything that would
    * escape (../, absolute paths, symlinks pointing outside) returns 403.
+   * P104: the password gate. A visitor POSTs the deployment password here; on a
+   * match we set the deterministic access cookie (proof-of-password) that the
+   * serve route checks. Public (no session) — a deployment is visited by anyone
+   * with the password. Wrong/absent password ⇒ 401, never a cookie.
+   */
+  app.post('/static-deployments/:deploymentId/__access', async (request, reply) => {
+    const deploymentId = ((request.params as { deploymentId?: string }).deploymentId ?? '').trim();
+
+    if (!/^[A-Za-z0-9_-]{1,80}$/.test(deploymentId)) {
+      return reply.code(400).send({ error: 'Invalid deployment id', code: 'STATIC_DEPLOY_INVALID_ID' });
+    }
+
+    const body = (request.body ?? {}) as { password?: unknown };
+    const password = typeof body.password === 'string' ? body.password : '';
+
+    const ownerStatus = await store.getDeploymentOwnerStatus(deploymentId);
+
+    if (!ownerStatus || ownerStatus.projectDeletedAt || ownerStatus.status === 'CANCELED') {
+      return reply.code(404).send({ error: 'Static deployment artifact not found', code: 'STATIC_DEPLOY_ARTIFACT_NOT_FOUND' });
+    }
+
+    const access = accessConfigFromMetadata(ownerStatus.metadata);
+
+    // Not gated: nothing to unlock. Report OK so a stale gate form degrades gracefully.
+    if (access.mode !== 'password' || !access.passwordHash) {
+      return reply.code(200).send({ ok: true, gated: false });
+    }
+
+    if (!password || !verifyPassword(password, access.passwordHash)) {
+      reply.header('cache-control', 'no-store');
+
+      return reply.code(401).send({ error: 'Incorrect password', code: 'DEPLOYMENT_PASSWORD_INCORRECT' });
+    }
+
+    const token = computeAccessToken(chatShareTokenSecret(), deploymentId, access.passwordHash);
+
+    reply.setCookie(accessCookieName(deploymentId), token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 12,
+    });
+
+    return reply.code(200).send({ ok: true, gated: true });
+  });
+
+  /*
    * SPA routes (anything that does not resolve to a real file) fall back
    * to index.html so client-side routers work.
    */
@@ -8230,6 +8286,35 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply
         .code(404)
         .send({ error: 'Static deployment artifact not found', code: 'STATIC_DEPLOY_ARTIFACT_NOT_FOUND' });
+    }
+
+    /*
+     * P104: password-protected deployments (the pricing page advertises them).
+     * A gated deployment serves NO byte to a visitor without a valid access
+     * cookie — the cookie is a deterministic HMAC over (deploymentId, passwordHash)
+     * set by the /__access gate, so it can be verified with no session store and a
+     * password change invalidates it. Browsers get an HTML gate (401); other
+     * clients a JSON 401.
+     */
+    const access = accessConfigFromMetadata(ownerStatus.metadata);
+
+    if (access.mode === 'password' && access.passwordHash) {
+      const expected = computeAccessToken(chatShareTokenSecret(), deploymentId, access.passwordHash);
+      const provided = request.cookies?.[accessCookieName(deploymentId)];
+
+      if (!isAccessTokenValid(provided, expected)) {
+        reply.header('cache-control', 'no-store');
+
+        if ((request.headers.accept ?? '').includes('text/html')) {
+          return reply
+            .code(401)
+            .header('content-security-policy', ACCESS_GATE_CSP)
+            .type('text/html; charset=utf-8')
+            .send(accessGateHtml());
+        }
+
+        return reply.code(401).send({ error: 'Password required', code: 'DEPLOYMENT_PASSWORD_REQUIRED' });
+      }
     }
 
     let decodedPath: string;
@@ -32013,6 +32098,54 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply;
   });
+  /*
+   * P104: set a deployment's access mode. Owner-only. `password` protects the
+   * deployment behind the /__access gate (hash stored, never the plaintext);
+   * `public` clears it. Rotating or clearing the password invalidates every
+   * previously-issued access cookie for free (the cookie is bound to the hash).
+   */
+  app.post('/projects/:projectId/deployments/:deploymentId/access', async (request, reply) => {
+    const { projectId, deploymentId } = parse(deploymentActionParams, request.params);
+    const body = parse(
+      z.object({
+        mode: z.enum(['public', 'password']),
+        password: z.string().min(4).max(200).optional(),
+      }),
+      request.body ?? {},
+    );
+
+    if (body.mode === 'password' && !body.password) {
+      return reply.code(400).send({ error: 'A password is required for mode=password', code: 'DEPLOYMENT_ACCESS_PASSWORD_REQUIRED' });
+    }
+
+    const project = await requireProject(request, store, projectId, 'projects:write');
+    const deployment = await store.getDeployment(project.id, deploymentId);
+
+    if (!deployment) {
+      return reply.code(404).send({ error: 'Deployment not found', code: 'DEPLOYMENT_NOT_FOUND' });
+    }
+
+    const metadata = { ...(deployment.metadata as Record<string, unknown>) };
+
+    if (body.mode === 'password') {
+      metadata.access = { mode: 'password', passwordHash: hashPassword(body.password!) };
+    } else {
+      delete metadata.access;
+    }
+
+    const updated = await store.updateDeployment(project.id, deployment.id, { metadata });
+
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'deployment.access.set',
+      resourceType: 'deployment',
+      resourceId: deployment.id,
+      metadata: { mode: body.mode },
+    });
+
+    return { deployment: updated, accessMode: body.mode };
+  });
+
   app.post('/projects/:projectId/deployments/:deploymentId/cancel', async (request, reply) => {
     const { projectId, deploymentId } = parse(deploymentActionParams, request.params);
     const project = await requireProject(request, store, projectId, 'projects:write');
