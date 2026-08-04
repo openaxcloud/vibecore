@@ -1866,17 +1866,7 @@ export interface ApiStore {
   getDeployment(projectId: string, deploymentId: string): Promise<DeploymentRecord | undefined>;
   getDeploymentOwnerStatus(
     deploymentId: string,
-  ): Promise<
-    | {
-        projectId: string;
-        status: string;
-        projectDeletedAt: Date | string | null;
-        // P104: the metadata JSON so the static-serve path can read the access
-        // config (metadata.access) without a second query.
-        metadata?: Record<string, unknown>;
-      }
-    | undefined
-  >;
+  ): Promise<{ projectId: string; status: string; projectDeletedAt: Date | string | null } | undefined>;
   updateDeployment(
     projectId: string,
     deploymentId: string,
