@@ -89,13 +89,25 @@ Non-régression vérifiée : republier l'app **déjà** publiée → 201 (pas
 d'auto-blocage). Compte jetable **supprimé** après coup (Organization = 0,
 User = 0).
 
-## 5. Artefacts
+## 5. Nettoyage d'une duplication trouvée en chemin
+
+Le cap plat de 20 (`assertConcurrentPublishedApps`, flag-gaté) a été **retiré du
+chemin publish** : le cap par plan le subsume (1 pour Starter, 20 pour les plans
+payants = la borne dure Replit). Garder les deux laissait un chemin dormant en
+production et deux sources de vérité pour la même règle.
+
+Trois tests encodaient l'ancien comportement — dont un intitulé « does not
+enforce the cap while the credit model is dormant », c'est-à-dire le défaut
+lui-même. Ils ont été **réécrits sur le fond**, pas ajustés : ils seedaient 20
+apps publiées sur un compte **Starter**, état que l'offre rend impossible.
+
+## 6. Artefacts
 
 | Fichier | SHA-256 |
 |---|---|
 | `artifacts/live-proof.txt` | `63522ef3f6bb602a22cd18884a36c464495fc96d1db9c71e3cd3d7517b6403ff` |
 
-## 6. Non fait / non revendiqué
+## 7. Non fait / non revendiqué
 
 - `parallelAgents`, `viewers`, `badgeRemovable`, `publishRegions` restent
   **non appliqués** (déclarés seulement) — hors périmètre de ce lot.

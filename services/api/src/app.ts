@@ -30,7 +30,6 @@ import {
 import {
   StripeBillingClient,
   assertQuota,
-  assertConcurrentPublishedApps,
   assertPublishedAppEntitlement,
   EntitlementError,
   aiModelCatalog,
@@ -32126,10 +32125,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       throw error;
     }
 
-    // Borne dure tous plans confondus (20 apps concurrentes), conservée telle quelle.
-    if (process.env.BILLING_CREDITS_ENABLED === 'true') {
-      assertConcurrentPublishedApps({ active: activeOthers });
-    }
+    /*
+     * Le cap plat de 20 (`assertConcurrentPublishedApps`, flag-gaté) n'est plus
+     * appelé ici : le cap par plan ci-dessus le SUBSUME — 1 pour Starter, 20
+     * pour les plans payants, soit la borne dure Replit « 20 apps concurrentes,
+     * tous plans ». Garder les deux laissait un chemin dormant en production et
+     * deux sources de vérité pour la même règle.
+     */
 
     const publishUrl = source.url ?? source.previewUrl ?? buildDeploymentUrl(project, source);
     const published = await store.createDeployment(buildPublishedDeploymentInput(source, publishUrl));

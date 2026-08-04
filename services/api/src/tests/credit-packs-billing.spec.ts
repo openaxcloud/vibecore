@@ -182,7 +182,7 @@ describe('Credit-pack purchase (Replit parity)', () => {
     });
   });
 
-  describe('concurrent published-app cap (20) on publish', () => {
+  describe("cap d'apps publiées PAR PLAN au publish (EX-05)", () => {
     async function seedPublishedApps(store: TestApiStore, organizationId: string, count: number) {
       for (let index = 0; index < count; index += 1) {
         const project = await store.createProject({
@@ -200,10 +200,42 @@ describe('Credit-pack purchase (Replit parity)', () => {
       }
     }
 
-    it('blocks publishing the 21st app when the credit model is live', async () => {
-      process.env.BILLING_CREDITS_ENABLED = 'true';
+    it('REFUSE la 2e app publiée sur STARTER (cap de plan = 1)', async () => {
+      /*
+       * Le compte de `setup()` n'a aucun abonnement : il est donc Starter. Une
+       * seule app publiée — c'est le chiffre Replit vérifié pour ce plan.
+       */
       const { app, store, org, token } = await setup();
       try {
+        await seedPublishedApps(store, org.id, 1);
+
+        const project = await store.createProject({ organizationId: org.id, name: 'App 2', slug: 'app-2' });
+        const source = await store.createDeployment({
+          projectId: project.id,
+          provider: 'static',
+          environment: 'preview',
+          status: 'READY',
+          url: 'https://preview-2.example/',
+        });
+
+        const res = await app.inject({
+          method: 'POST',
+          url: `/projects/${project.id}/deployments/${source.id}/publish`,
+          headers: { authorization: `Bearer ${token}` },
+        });
+        // 402 : la limite se lève en changeant de plan, pas en attendant.
+        expect(res.statusCode).toBe(402);
+        expect(res.json().code).toBe('PLAN_PUBLISHED_APP_LIMIT');
+        expect(res.json()).toMatchObject({ plan: 'starter', cap: 1 });
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('REFUSE la 21e app sur un plan PAYANT (borne dure 20, tous plans)', async () => {
+      const { app, store, org, token } = await setup();
+      try {
+        await store.upsertSubscription({ organizationId: org.id, planKey: 'pro', status: 'ACTIVE' });
         await seedPublishedApps(store, org.id, 20);
 
         const project = await store.createProject({ organizationId: org.id, name: 'App 21', slug: 'app-21' });
@@ -220,18 +252,18 @@ describe('Credit-pack purchase (Replit parity)', () => {
           url: `/projects/${project.id}/deployments/${source.id}/publish`,
           headers: { authorization: `Bearer ${token}` },
         });
-        expect(res.statusCode).toBe(429);
-        expect(res.json().code).toBe('APP_LIMIT_EXCEEDED');
+        expect(res.statusCode).toBe(402);
+        expect(res.json()).toMatchObject({ code: 'PLAN_PUBLISHED_APP_LIMIT', plan: 'pro', cap: 20 });
       } finally {
         await app.close();
       }
     });
 
-    it('still allows re-publishing an already-published app at the cap', async () => {
-      process.env.BILLING_CREDITS_ENABLED = 'true';
+    it('autorise TOUJOURS de republier une app déjà publiée, même au plafond', async () => {
       const { app, store, org, token } = await setup();
       try {
-        // 19 other apps + this one already published = 20 at the cap.
+        await store.upsertSubscription({ organizationId: org.id, planKey: 'pro', status: 'ACTIVE' });
+        // 19 autres apps + celle-ci déjà publiée = 20, soit le plafond.
         await seedPublishedApps(store, org.id, 19);
         const project = await store.createProject({ organizationId: org.id, name: 'App 20', slug: 'app-20' });
         await store.createDeployment({
@@ -260,19 +292,24 @@ describe('Credit-pack purchase (Replit parity)', () => {
       }
     });
 
-    it('does not enforce the cap while the credit model is dormant', async () => {
+    it("le cap s'applique MÊME quand le modèle de crédits est dormant", async () => {
+      /*
+       * Anciennement, ce cap était derrière BILLING_CREDITS_ENABLED — flag NON
+       * DÉFINI en production, donc jamais appliqué. Un entitlement décrit
+       * l'OFFRE, pas le modèle de facturation : il ne doit pas en dépendre.
+       */
       delete (process.env as Record<string, string | undefined>).BILLING_CREDITS_ENABLED;
       const { app, store, org, token } = await setup();
       try {
-        await seedPublishedApps(store, org.id, 25);
+        await seedPublishedApps(store, org.id, 1);
 
-        const project = await store.createProject({ organizationId: org.id, name: 'App 26', slug: 'app-26' });
+        const project = await store.createProject({ organizationId: org.id, name: 'App 2', slug: 'app-2' });
         const source = await store.createDeployment({
           projectId: project.id,
           provider: 'static',
           environment: 'preview',
           status: 'READY',
-          url: 'https://preview-26.example/',
+          url: 'https://preview-2.example/',
         });
 
         const res = await app.inject({
@@ -280,7 +317,8 @@ describe('Credit-pack purchase (Replit parity)', () => {
           url: `/projects/${project.id}/deployments/${source.id}/publish`,
           headers: { authorization: `Bearer ${token}` },
         });
-        expect(res.statusCode).toBe(201);
+        expect(res.statusCode).toBe(402);
+        expect(res.json().code).toBe('PLAN_PUBLISHED_APP_LIMIT');
       } finally {
         await app.close();
       }
