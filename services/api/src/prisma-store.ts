@@ -1286,6 +1286,10 @@ export class PrismaApiStore implements ApiStore {
     licenseText: string | null;
     licenseTextSha256: string | null;
     piiConsentVersion: string | null;
+    rightsConfirmedAt: Date | null;
+    rightsConfirmedBy: string | null;
+    piiPolicyAcceptedAt: Date | null;
+    piiPolicyAcceptedBy: string | null;
     viewCount: number;
     useCount: number;
     createdAt: Date;
@@ -1311,6 +1315,10 @@ export class PrismaApiStore implements ApiStore {
       licenseText: row.licenseText ?? undefined,
       licenseTextSha256: row.licenseTextSha256 ?? undefined,
       piiConsentVersion: row.piiConsentVersion ?? undefined,
+      rightsConfirmedAt: row.rightsConfirmedAt ?? undefined,
+      rightsConfirmedBy: row.rightsConfirmedBy ?? undefined,
+      piiPolicyAcceptedAt: row.piiPolicyAcceptedAt ?? undefined,
+      piiPolicyAcceptedBy: row.piiPolicyAcceptedBy ?? undefined,
       viewCount: row.viewCount,
       useCount: row.useCount,
       createdAt: row.createdAt.toISOString(),
@@ -1337,6 +1345,10 @@ export class PrismaApiStore implements ApiStore {
     licenseText?: string;
     licenseTextSha256?: string;
     piiConsentVersion?: string;
+    rightsConfirmedAt?: Date;
+    rightsConfirmedBy?: string;
+    piiPolicyAcceptedAt?: Date;
+    piiPolicyAcceptedBy?: string;
     publishedAt?: string;
   }) {
     const status = input.status ?? 'PUBLISHED';
@@ -1360,6 +1372,11 @@ export class PrismaApiStore implements ApiStore {
         licenseText: input.licenseText ?? null,
         licenseTextSha256: input.licenseTextSha256 ?? null,
         piiConsentVersion: input.piiConsentVersion ?? null,
+        // Trace auditable des confirmations de curation (P0-V3-05, réserve #8).
+        rightsConfirmedAt: input.rightsConfirmedAt ?? null,
+        rightsConfirmedBy: input.rightsConfirmedBy ?? null,
+        piiPolicyAcceptedAt: input.piiPolicyAcceptedAt ?? null,
+        piiPolicyAcceptedBy: input.piiPolicyAcceptedBy ?? null,
         // A row published at creation records publishedAt so the detail page
         // can show a real date; a PENDING_REVIEW row leaves it null.
         publishedAt: input.publishedAt ? new Date(input.publishedAt) : status === 'PUBLISHED' ? new Date() : null,

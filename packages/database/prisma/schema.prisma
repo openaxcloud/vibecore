@@ -2478,6 +2478,15 @@ model GalleryListing {
   /// Version of the PII-sharing consent the AUTHOR explicitly gave at curation
   /// (data ships unmasked). Null = no consent → PII is masked on every remix.
   piiConsentVersion String?
+  /// TRACE AUDITABLE des confirmations exigées pour rendre un listing remixable
+  /// (P0-V3-05, réserve #8). Avant la migration 0081 elles étaient validées à la
+  /// curation puis JAMAIS écrites : la confirmation des droits par le curateur
+  /// était inauditable a posteriori. Horodatage + acteur (userId de l'admin qui
+  /// a curé). Null = jamais confirmé.
+  rightsConfirmedAt DateTime?
+  rightsConfirmedBy String?
+  piiPolicyAcceptedAt DateTime?
+  piiPolicyAcceptedBy String?
   viewCount        Int       @default(0)
   useCount         Int       @default(0)
   createdAt        DateTime  @default(now())

@@ -171,6 +171,14 @@ export interface GalleryListingRecord {
   licenseTextSha256?: string;
   /** Author's explicit versioned PII consent; undefined = PII masked on remix. */
   piiConsentVersion?: string;
+  /**
+   * Trace auditable des confirmations exigées à la curation (P0-V3-05,
+   * réserve #8) : quand, et par quel admin. undefined = jamais confirmé.
+   */
+  rightsConfirmedAt?: Date;
+  rightsConfirmedBy?: string;
+  piiPolicyAcceptedAt?: Date;
+  piiPolicyAcceptedBy?: string;
   viewCount: number;
   useCount: number;
   createdAt: string;
@@ -1436,6 +1444,11 @@ export interface ApiStore {
     licenseText?: string;
     licenseTextSha256?: string;
     piiConsentVersion?: string;
+    /** Trace auditable des confirmations de curation (P0-V3-05, réserve #8). */
+    rightsConfirmedAt?: Date;
+    rightsConfirmedBy?: string;
+    piiPolicyAcceptedAt?: Date;
+    piiPolicyAcceptedBy?: string;
     publishedAt?: string;
   }): Promise<GalleryListingRecord>;
   /** Browse published listings, filtered by category / free-text / featured. */

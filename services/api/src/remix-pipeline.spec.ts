@@ -196,3 +196,96 @@ describe('SOURCE_SANITIZED — PII masking (I-RMX-3, P0-V3-05)', () => {
     expect(JSON.stringify(masked)).not.toContain('4242');
   });
 });
+
+/*
+ * P0-V3-05 réserve #2 — NOMS DE PERSONNES.
+ * Avant ce lot, aucun matcher ne couvrait les noms : le clone produit par l'e2e
+ * contenait encore « Jane Doe ». Le masquage se fait sur signal STRUCTUREL
+ * (clé personnelle, ou colonne CSV `name` accompagnée d'une colonne
+ * personnelle), jamais sur de la prose — sinon tout code source y passerait.
+ */
+describe('person-name masking (I-RMX-3)', () => {
+  it('masks the name column of a PERSON csv — name + email + phone', () => {
+    const { files, masked } = maskPiiInFiles([
+      {
+        path: 'seed/customers.csv',
+        content: 'name,email,phone\nJane Doe,jane.doe@acme-corp.fr,+33 6 12 34 56 78\nJean-Pierre Dupont,jp@acme-corp.fr,+33 1 44 55 66 77\n',
+      },
+    ]);
+
+    expect(files[0].content).not.toContain('Jane Doe');
+    expect(files[0].content).not.toContain('Jean-Pierre Dupont');
+    expect(files[0].content).toContain('[PII:name masked on remix]');
+    expect(masked.filter((m) => m.kind === 'name')).toHaveLength(2);
+    expect(scanFilesForPii(files)).toEqual([]);
+  });
+
+  it('LEAVES a product catalogue intact — name + price + stock is not a person', () => {
+    const { files, masked } = maskPiiInFiles([
+      { path: 'data/products.csv', content: 'name,price,stock\nDesk Lamp,4200,7\nOak Stool,8900,3\n' },
+    ]);
+
+    expect(files[0].content).toContain('Desk Lamp');
+    expect(files[0].content).toContain('Oak Stool');
+    expect(masked).toEqual([]);
+  });
+
+  it('masks explicit person keys in JSON — including single-word values', () => {
+    const { files } = maskPiiInFiles([
+      {
+        path: 'fixtures/user.json',
+        content: '{\n  "firstName": "Jane",\n  "lastName": "Doe",\n  "fullName": "Jane Doe",\n  "nom": "Dupont"\n}\n',
+      },
+    ]);
+
+    expect(files[0].content).not.toContain('Jane');
+    expect(files[0].content).not.toContain('Doe');
+    expect(files[0].content).not.toContain('Dupont');
+  });
+
+  it('does NOT mangle package.json, prose, or UI labels', () => {
+    const { files, masked } = maskPiiInFiles([
+      { path: 'package.json', content: '{\n  "name": "meridian-storefront",\n  "version": "1.0.0"\n}\n' },
+      { path: 'README.md', content: '# Meridian Supply Co. — Storefront\nBuilt with React Router and Vite.\n' },
+      { path: 'src/ui.ts', content: 'const displayName = "Dashboard";\nexport const title = "Order Summary";\n' },
+    ]);
+
+    expect(files[0].content).toContain('meridian-storefront');
+    expect(files[1].content).toContain('Meridian Supply Co.');
+    expect(files[1].content).toContain('React Router');
+    expect(files[2].content).toContain('Dashboard');
+    expect(masked).toEqual([]);
+  });
+
+  it('rejects placeholders and non-name values under person keys', () => {
+    const { files, masked } = maskPiiInFiles([
+      {
+        path: 'template.json',
+        content: '{\n  "firstName": "{{first}}",\n  "lastName": "",\n  "contactName": "admin",\n  "ownerName": "user_1"\n}\n',
+      },
+    ]);
+
+    expect(files[0].content).toContain('{{first}}');
+    expect(files[0].content).toContain('admin');
+    expect(masked).toEqual([]);
+  });
+
+  it('the 5 categories together re-scan CLEAN on one person record', () => {
+    const { files, masked } = maskPiiInFiles([
+      {
+        path: 'seed/people.csv',
+        content:
+          'name,email,phone,iban,card\nJane Doe,jane.doe@acme-corp.fr,+33 6 12 34 56 78,FR76 3000 6000 0112 3456 7890 189,4242424242424242\n',
+      },
+    ]);
+
+    const kinds = [...new Set(masked.map((m) => m.kind))].sort();
+    expect(kinds).toEqual(['card', 'email', 'iban', 'name', 'phone']);
+
+    for (const secret of ['Jane Doe', 'jane.doe@acme-corp.fr', '+33 6 12 34 56 78', 'FR76', '4242424242424242']) {
+      expect(files[0].content, secret).not.toContain(secret);
+    }
+
+    expect(scanFilesForPii(files)).toEqual([]);
+  });
+});

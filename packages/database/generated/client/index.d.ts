@@ -141867,6 +141867,10 @@ export namespace Prisma {
     licenseText: string | null
     licenseTextSha256: string | null
     piiConsentVersion: string | null
+    rightsConfirmedAt: Date | null
+    rightsConfirmedBy: string | null
+    piiPolicyAcceptedAt: Date | null
+    piiPolicyAcceptedBy: string | null
     viewCount: number | null
     useCount: number | null
     createdAt: Date | null
@@ -141892,6 +141896,10 @@ export namespace Prisma {
     licenseText: string | null
     licenseTextSha256: string | null
     piiConsentVersion: string | null
+    rightsConfirmedAt: Date | null
+    rightsConfirmedBy: string | null
+    piiPolicyAcceptedAt: Date | null
+    piiPolicyAcceptedBy: string | null
     viewCount: number | null
     useCount: number | null
     createdAt: Date | null
@@ -141918,6 +141926,10 @@ export namespace Prisma {
     licenseText: number
     licenseTextSha256: number
     piiConsentVersion: number
+    rightsConfirmedAt: number
+    rightsConfirmedBy: number
+    piiPolicyAcceptedAt: number
+    piiPolicyAcceptedBy: number
     viewCount: number
     useCount: number
     createdAt: number
@@ -141955,6 +141967,10 @@ export namespace Prisma {
     licenseText?: true
     licenseTextSha256?: true
     piiConsentVersion?: true
+    rightsConfirmedAt?: true
+    rightsConfirmedBy?: true
+    piiPolicyAcceptedAt?: true
+    piiPolicyAcceptedBy?: true
     viewCount?: true
     useCount?: true
     createdAt?: true
@@ -141980,6 +141996,10 @@ export namespace Prisma {
     licenseText?: true
     licenseTextSha256?: true
     piiConsentVersion?: true
+    rightsConfirmedAt?: true
+    rightsConfirmedBy?: true
+    piiPolicyAcceptedAt?: true
+    piiPolicyAcceptedBy?: true
     viewCount?: true
     useCount?: true
     createdAt?: true
@@ -142006,6 +142026,10 @@ export namespace Prisma {
     licenseText?: true
     licenseTextSha256?: true
     piiConsentVersion?: true
+    rightsConfirmedAt?: true
+    rightsConfirmedBy?: true
+    piiPolicyAcceptedAt?: true
+    piiPolicyAcceptedBy?: true
     viewCount?: true
     useCount?: true
     createdAt?: true
@@ -142119,6 +142143,10 @@ export namespace Prisma {
     licenseText: string | null
     licenseTextSha256: string | null
     piiConsentVersion: string | null
+    rightsConfirmedAt: Date | null
+    rightsConfirmedBy: string | null
+    piiPolicyAcceptedAt: Date | null
+    piiPolicyAcceptedBy: string | null
     viewCount: number
     useCount: number
     createdAt: Date
@@ -142164,6 +142192,10 @@ export namespace Prisma {
     licenseText?: boolean
     licenseTextSha256?: boolean
     piiConsentVersion?: boolean
+    rightsConfirmedAt?: boolean
+    rightsConfirmedBy?: boolean
+    piiPolicyAcceptedAt?: boolean
+    piiPolicyAcceptedBy?: boolean
     viewCount?: boolean
     useCount?: boolean
     createdAt?: boolean
@@ -142192,6 +142224,10 @@ export namespace Prisma {
     licenseText?: boolean
     licenseTextSha256?: boolean
     piiConsentVersion?: boolean
+    rightsConfirmedAt?: boolean
+    rightsConfirmedBy?: boolean
+    piiPolicyAcceptedAt?: boolean
+    piiPolicyAcceptedBy?: boolean
     viewCount?: boolean
     useCount?: boolean
     createdAt?: boolean
@@ -142220,6 +142256,10 @@ export namespace Prisma {
     licenseText?: boolean
     licenseTextSha256?: boolean
     piiConsentVersion?: boolean
+    rightsConfirmedAt?: boolean
+    rightsConfirmedBy?: boolean
+    piiPolicyAcceptedAt?: boolean
+    piiPolicyAcceptedBy?: boolean
     viewCount?: boolean
     useCount?: boolean
     createdAt?: boolean
@@ -142248,13 +142288,17 @@ export namespace Prisma {
     licenseText?: boolean
     licenseTextSha256?: boolean
     piiConsentVersion?: boolean
+    rightsConfirmedAt?: boolean
+    rightsConfirmedBy?: boolean
+    piiPolicyAcceptedAt?: boolean
+    piiPolicyAcceptedBy?: boolean
     viewCount?: boolean
     useCount?: boolean
     createdAt?: boolean
     publishedAt?: boolean
   }
 
-  export type GalleryListingOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "slug" | "title" | "description" | "category" | "tags" | "status" | "featured" | "sourceProjectId" | "sourceSnapshotId" | "authorName" | "authorUserId" | "appUrl" | "thumbnailUrl" | "remixAllowed" | "licenseId" | "licenseText" | "licenseTextSha256" | "piiConsentVersion" | "viewCount" | "useCount" | "createdAt" | "publishedAt", ExtArgs["result"]["galleryListing"]>
+  export type GalleryListingOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "slug" | "title" | "description" | "category" | "tags" | "status" | "featured" | "sourceProjectId" | "sourceSnapshotId" | "authorName" | "authorUserId" | "appUrl" | "thumbnailUrl" | "remixAllowed" | "licenseId" | "licenseText" | "licenseTextSha256" | "piiConsentVersion" | "rightsConfirmedAt" | "rightsConfirmedBy" | "piiPolicyAcceptedAt" | "piiPolicyAcceptedBy" | "viewCount" | "useCount" | "createdAt" | "publishedAt", ExtArgs["result"]["galleryListing"]>
   export type GalleryListingInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     sourceProject?: boolean | ProjectDefaultArgs<ExtArgs>
     author?: boolean | GalleryListing$authorArgs<ExtArgs>
@@ -142334,6 +142378,17 @@ export namespace Prisma {
        * (data ships unmasked). Null = no consent → PII is masked on every remix.
        */
       piiConsentVersion: string | null
+      /**
+       * TRACE AUDITABLE des confirmations exigées pour rendre un listing remixable
+       * (P0-V3-05, réserve #8). Avant la migration 0081 elles étaient validées à la
+       * curation puis JAMAIS écrites : la confirmation des droits par le curateur
+       * était inauditable a posteriori. Horodatage + acteur (userId de l'admin qui
+       * a curé). Null = jamais confirmé.
+       */
+      rightsConfirmedAt: Date | null
+      rightsConfirmedBy: string | null
+      piiPolicyAcceptedAt: Date | null
+      piiPolicyAcceptedBy: string | null
       viewCount: number
       useCount: number
       createdAt: Date
@@ -142782,6 +142837,10 @@ export namespace Prisma {
     readonly licenseText: FieldRef<"GalleryListing", 'String'>
     readonly licenseTextSha256: FieldRef<"GalleryListing", 'String'>
     readonly piiConsentVersion: FieldRef<"GalleryListing", 'String'>
+    readonly rightsConfirmedAt: FieldRef<"GalleryListing", 'DateTime'>
+    readonly rightsConfirmedBy: FieldRef<"GalleryListing", 'String'>
+    readonly piiPolicyAcceptedAt: FieldRef<"GalleryListing", 'DateTime'>
+    readonly piiPolicyAcceptedBy: FieldRef<"GalleryListing", 'String'>
     readonly viewCount: FieldRef<"GalleryListing", 'Int'>
     readonly useCount: FieldRef<"GalleryListing", 'Int'>
     readonly createdAt: FieldRef<"GalleryListing", 'DateTime'>
@@ -155084,6 +155143,10 @@ export namespace Prisma {
     licenseText: 'licenseText',
     licenseTextSha256: 'licenseTextSha256',
     piiConsentVersion: 'piiConsentVersion',
+    rightsConfirmedAt: 'rightsConfirmedAt',
+    rightsConfirmedBy: 'rightsConfirmedBy',
+    piiPolicyAcceptedAt: 'piiPolicyAcceptedAt',
+    piiPolicyAcceptedBy: 'piiPolicyAcceptedBy',
     viewCount: 'viewCount',
     useCount: 'useCount',
     createdAt: 'createdAt',
@@ -164690,6 +164753,10 @@ export namespace Prisma {
     licenseText?: StringNullableFilter<"GalleryListing"> | string | null
     licenseTextSha256?: StringNullableFilter<"GalleryListing"> | string | null
     piiConsentVersion?: StringNullableFilter<"GalleryListing"> | string | null
+    rightsConfirmedAt?: DateTimeNullableFilter<"GalleryListing"> | Date | string | null
+    rightsConfirmedBy?: StringNullableFilter<"GalleryListing"> | string | null
+    piiPolicyAcceptedAt?: DateTimeNullableFilter<"GalleryListing"> | Date | string | null
+    piiPolicyAcceptedBy?: StringNullableFilter<"GalleryListing"> | string | null
     viewCount?: IntFilter<"GalleryListing"> | number
     useCount?: IntFilter<"GalleryListing"> | number
     createdAt?: DateTimeFilter<"GalleryListing"> | Date | string
@@ -164718,6 +164785,10 @@ export namespace Prisma {
     licenseText?: SortOrderInput | SortOrder
     licenseTextSha256?: SortOrderInput | SortOrder
     piiConsentVersion?: SortOrderInput | SortOrder
+    rightsConfirmedAt?: SortOrderInput | SortOrder
+    rightsConfirmedBy?: SortOrderInput | SortOrder
+    piiPolicyAcceptedAt?: SortOrderInput | SortOrder
+    piiPolicyAcceptedBy?: SortOrderInput | SortOrder
     viewCount?: SortOrder
     useCount?: SortOrder
     createdAt?: SortOrder
@@ -164749,6 +164820,10 @@ export namespace Prisma {
     licenseText?: StringNullableFilter<"GalleryListing"> | string | null
     licenseTextSha256?: StringNullableFilter<"GalleryListing"> | string | null
     piiConsentVersion?: StringNullableFilter<"GalleryListing"> | string | null
+    rightsConfirmedAt?: DateTimeNullableFilter<"GalleryListing"> | Date | string | null
+    rightsConfirmedBy?: StringNullableFilter<"GalleryListing"> | string | null
+    piiPolicyAcceptedAt?: DateTimeNullableFilter<"GalleryListing"> | Date | string | null
+    piiPolicyAcceptedBy?: StringNullableFilter<"GalleryListing"> | string | null
     viewCount?: IntFilter<"GalleryListing"> | number
     useCount?: IntFilter<"GalleryListing"> | number
     createdAt?: DateTimeFilter<"GalleryListing"> | Date | string
@@ -164777,6 +164852,10 @@ export namespace Prisma {
     licenseText?: SortOrderInput | SortOrder
     licenseTextSha256?: SortOrderInput | SortOrder
     piiConsentVersion?: SortOrderInput | SortOrder
+    rightsConfirmedAt?: SortOrderInput | SortOrder
+    rightsConfirmedBy?: SortOrderInput | SortOrder
+    piiPolicyAcceptedAt?: SortOrderInput | SortOrder
+    piiPolicyAcceptedBy?: SortOrderInput | SortOrder
     viewCount?: SortOrder
     useCount?: SortOrder
     createdAt?: SortOrder
@@ -164811,6 +164890,10 @@ export namespace Prisma {
     licenseText?: StringNullableWithAggregatesFilter<"GalleryListing"> | string | null
     licenseTextSha256?: StringNullableWithAggregatesFilter<"GalleryListing"> | string | null
     piiConsentVersion?: StringNullableWithAggregatesFilter<"GalleryListing"> | string | null
+    rightsConfirmedAt?: DateTimeNullableWithAggregatesFilter<"GalleryListing"> | Date | string | null
+    rightsConfirmedBy?: StringNullableWithAggregatesFilter<"GalleryListing"> | string | null
+    piiPolicyAcceptedAt?: DateTimeNullableWithAggregatesFilter<"GalleryListing"> | Date | string | null
+    piiPolicyAcceptedBy?: StringNullableWithAggregatesFilter<"GalleryListing"> | string | null
     viewCount?: IntWithAggregatesFilter<"GalleryListing"> | number
     useCount?: IntWithAggregatesFilter<"GalleryListing"> | number
     createdAt?: DateTimeWithAggregatesFilter<"GalleryListing"> | Date | string
@@ -175399,6 +175482,10 @@ export namespace Prisma {
     licenseText?: string | null
     licenseTextSha256?: string | null
     piiConsentVersion?: string | null
+    rightsConfirmedAt?: Date | string | null
+    rightsConfirmedBy?: string | null
+    piiPolicyAcceptedAt?: Date | string | null
+    piiPolicyAcceptedBy?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -175427,6 +175514,10 @@ export namespace Prisma {
     licenseText?: string | null
     licenseTextSha256?: string | null
     piiConsentVersion?: string | null
+    rightsConfirmedAt?: Date | string | null
+    rightsConfirmedBy?: string | null
+    piiPolicyAcceptedAt?: Date | string | null
+    piiPolicyAcceptedBy?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -175451,6 +175542,10 @@ export namespace Prisma {
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
     licenseTextSha256?: NullableStringFieldUpdateOperationsInput | string | null
     piiConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    rightsConfirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rightsConfirmedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    piiPolicyAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    piiPolicyAcceptedBy?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -175479,6 +175574,10 @@ export namespace Prisma {
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
     licenseTextSha256?: NullableStringFieldUpdateOperationsInput | string | null
     piiConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    rightsConfirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rightsConfirmedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    piiPolicyAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    piiPolicyAcceptedBy?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -175505,6 +175604,10 @@ export namespace Prisma {
     licenseText?: string | null
     licenseTextSha256?: string | null
     piiConsentVersion?: string | null
+    rightsConfirmedAt?: Date | string | null
+    rightsConfirmedBy?: string | null
+    piiPolicyAcceptedAt?: Date | string | null
+    piiPolicyAcceptedBy?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -175529,6 +175632,10 @@ export namespace Prisma {
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
     licenseTextSha256?: NullableStringFieldUpdateOperationsInput | string | null
     piiConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    rightsConfirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rightsConfirmedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    piiPolicyAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    piiPolicyAcceptedBy?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -175555,6 +175662,10 @@ export namespace Prisma {
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
     licenseTextSha256?: NullableStringFieldUpdateOperationsInput | string | null
     piiConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    rightsConfirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rightsConfirmedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    piiPolicyAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    piiPolicyAcceptedBy?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -182463,6 +182574,10 @@ export namespace Prisma {
     licenseText?: SortOrder
     licenseTextSha256?: SortOrder
     piiConsentVersion?: SortOrder
+    rightsConfirmedAt?: SortOrder
+    rightsConfirmedBy?: SortOrder
+    piiPolicyAcceptedAt?: SortOrder
+    piiPolicyAcceptedBy?: SortOrder
     viewCount?: SortOrder
     useCount?: SortOrder
     createdAt?: SortOrder
@@ -182493,6 +182608,10 @@ export namespace Prisma {
     licenseText?: SortOrder
     licenseTextSha256?: SortOrder
     piiConsentVersion?: SortOrder
+    rightsConfirmedAt?: SortOrder
+    rightsConfirmedBy?: SortOrder
+    piiPolicyAcceptedAt?: SortOrder
+    piiPolicyAcceptedBy?: SortOrder
     viewCount?: SortOrder
     useCount?: SortOrder
     createdAt?: SortOrder
@@ -182518,6 +182637,10 @@ export namespace Prisma {
     licenseText?: SortOrder
     licenseTextSha256?: SortOrder
     piiConsentVersion?: SortOrder
+    rightsConfirmedAt?: SortOrder
+    rightsConfirmedBy?: SortOrder
+    piiPolicyAcceptedAt?: SortOrder
+    piiPolicyAcceptedBy?: SortOrder
     viewCount?: SortOrder
     useCount?: SortOrder
     createdAt?: SortOrder
@@ -191249,6 +191372,10 @@ export namespace Prisma {
     licenseText?: string | null
     licenseTextSha256?: string | null
     piiConsentVersion?: string | null
+    rightsConfirmedAt?: Date | string | null
+    rightsConfirmedBy?: string | null
+    piiPolicyAcceptedAt?: Date | string | null
+    piiPolicyAcceptedBy?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -191275,6 +191402,10 @@ export namespace Prisma {
     licenseText?: string | null
     licenseTextSha256?: string | null
     piiConsentVersion?: string | null
+    rightsConfirmedAt?: Date | string | null
+    rightsConfirmedBy?: string | null
+    piiPolicyAcceptedAt?: Date | string | null
+    piiPolicyAcceptedBy?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -192287,6 +192418,10 @@ export namespace Prisma {
     licenseText?: StringNullableFilter<"GalleryListing"> | string | null
     licenseTextSha256?: StringNullableFilter<"GalleryListing"> | string | null
     piiConsentVersion?: StringNullableFilter<"GalleryListing"> | string | null
+    rightsConfirmedAt?: DateTimeNullableFilter<"GalleryListing"> | Date | string | null
+    rightsConfirmedBy?: StringNullableFilter<"GalleryListing"> | string | null
+    piiPolicyAcceptedAt?: DateTimeNullableFilter<"GalleryListing"> | Date | string | null
+    piiPolicyAcceptedBy?: StringNullableFilter<"GalleryListing"> | string | null
     viewCount?: IntFilter<"GalleryListing"> | number
     useCount?: IntFilter<"GalleryListing"> | number
     createdAt?: DateTimeFilter<"GalleryListing"> | Date | string
@@ -196417,6 +196552,10 @@ export namespace Prisma {
     licenseText?: string | null
     licenseTextSha256?: string | null
     piiConsentVersion?: string | null
+    rightsConfirmedAt?: Date | string | null
+    rightsConfirmedBy?: string | null
+    piiPolicyAcceptedAt?: Date | string | null
+    piiPolicyAcceptedBy?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -196443,6 +196582,10 @@ export namespace Prisma {
     licenseText?: string | null
     licenseTextSha256?: string | null
     piiConsentVersion?: string | null
+    rightsConfirmedAt?: Date | string | null
+    rightsConfirmedBy?: string | null
+    piiPolicyAcceptedAt?: Date | string | null
+    piiPolicyAcceptedBy?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -218277,6 +218420,10 @@ export namespace Prisma {
     licenseText?: string | null
     licenseTextSha256?: string | null
     piiConsentVersion?: string | null
+    rightsConfirmedAt?: Date | string | null
+    rightsConfirmedBy?: string | null
+    piiPolicyAcceptedAt?: Date | string | null
+    piiPolicyAcceptedBy?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -218888,6 +219035,10 @@ export namespace Prisma {
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
     licenseTextSha256?: NullableStringFieldUpdateOperationsInput | string | null
     piiConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    rightsConfirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rightsConfirmedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    piiPolicyAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    piiPolicyAcceptedBy?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -218914,6 +219065,10 @@ export namespace Prisma {
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
     licenseTextSha256?: NullableStringFieldUpdateOperationsInput | string | null
     piiConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    rightsConfirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rightsConfirmedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    piiPolicyAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    piiPolicyAcceptedBy?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -218939,6 +219094,10 @@ export namespace Prisma {
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
     licenseTextSha256?: NullableStringFieldUpdateOperationsInput | string | null
     piiConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    rightsConfirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rightsConfirmedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    piiPolicyAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    piiPolicyAcceptedBy?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -221119,6 +221278,10 @@ export namespace Prisma {
     licenseText?: string | null
     licenseTextSha256?: string | null
     piiConsentVersion?: string | null
+    rightsConfirmedAt?: Date | string | null
+    rightsConfirmedBy?: string | null
+    piiPolicyAcceptedAt?: Date | string | null
+    piiPolicyAcceptedBy?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -221478,6 +221641,10 @@ export namespace Prisma {
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
     licenseTextSha256?: NullableStringFieldUpdateOperationsInput | string | null
     piiConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    rightsConfirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rightsConfirmedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    piiPolicyAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    piiPolicyAcceptedBy?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -221504,6 +221671,10 @@ export namespace Prisma {
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
     licenseTextSha256?: NullableStringFieldUpdateOperationsInput | string | null
     piiConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    rightsConfirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rightsConfirmedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    piiPolicyAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    piiPolicyAcceptedBy?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -221529,6 +221700,10 @@ export namespace Prisma {
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
     licenseTextSha256?: NullableStringFieldUpdateOperationsInput | string | null
     piiConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    rightsConfirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rightsConfirmedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    piiPolicyAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    piiPolicyAcceptedBy?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string

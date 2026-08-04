@@ -2046,6 +2046,10 @@ export class TestApiStore implements ApiStore {
     licenseText?: string;
     licenseTextSha256?: string;
     piiConsentVersion?: string;
+    rightsConfirmedAt?: Date;
+    rightsConfirmedBy?: string;
+    piiPolicyAcceptedAt?: Date;
+    piiPolicyAcceptedBy?: string;
     publishedAt?: string;
   }): Promise<GalleryListingRecord> {
     const status = input.status ?? 'PUBLISHED';
@@ -2069,6 +2073,10 @@ export class TestApiStore implements ApiStore {
       licenseText: input.licenseText,
       licenseTextSha256: input.licenseTextSha256,
       piiConsentVersion: input.piiConsentVersion,
+      rightsConfirmedAt: input.rightsConfirmedAt,
+      rightsConfirmedBy: input.rightsConfirmedBy,
+      piiPolicyAcceptedAt: input.piiPolicyAcceptedAt,
+      piiPolicyAcceptedBy: input.piiPolicyAcceptedBy,
       viewCount: 0,
       useCount: 0,
       createdAt: now(),
