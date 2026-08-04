@@ -312,7 +312,12 @@ import {
   maxSchedulableVcpu,
   resolveDeployMachineSize,
 } from './rate-card-service.js';
-import { resolveRollbackImage, resolveRollbackSecrets, type SecretPolicy } from './release-rollback.js';
+import {
+  assertConfigDigestMatches,
+  resolveRollbackImage,
+  resolveRollbackSecrets,
+  type SecretPolicy,
+} from './release-rollback.js';
 import {
   assertArtifactMatchesManifest,
   configDigest,
@@ -6611,22 +6616,41 @@ function serverDeployRevisionEnabledForProject(projectId: string | undefined): b
 }
 
 /**
- * P0-V3-08: append the immutable ReleaseManifest row for a deployment that just
- * reached READY, so a later rollback is deterministic. Best-effort — a manifest
- * write must NEVER fail an already-succeeded publish — but its absence is caught
- * fail-closed at rollback time (no manifest ⇒ no rollback). Static releases pin a
- * content digest of the served bytes; server releases pin the image sha256 (+ Nix
- * generation). External providers keep their own history, so we skip them.
+ * Outcome of recording a publish's ReleaseManifest. `recorded: true` means a
+ * DURABLE manifest exists and a later rollback of this release is deterministic;
+ * `recorded: false` (with a `reason`) means it is NOT — the caller marks the
+ * deployment READY_NON_ROLLBACKABLE (metadata.rollbackable=false) so nothing ever
+ * presents rollback as safe for it (expert refusal reserve #1).
+ */
+interface ReleaseManifestOutcome {
+  recorded: boolean;
+  reason?: string;
+}
+
+/**
+ * P0-V3-08 (reserve #1 hardening): record the immutable ReleaseManifest row for a
+ * deployment that just reached READY so a later rollback is deterministic.
+ *
+ * Contract change vs. the refused lot: this is NO LONGER a silent best-effort. It
+ * RETURNS whether a durable manifest was written; a swallowed failure used to let
+ * a "successful" publish claim rollbackability it could not honour. The caller
+ * reflects `recorded` onto the deployment (rollbackable flag) so a manifest
+ * failure yields an explicit READY_NON_ROLLBACKABLE state, never a silent lie.
+ *
+ * Static releases pin a content digest of the served bytes; server releases pin
+ * the image sha256 (+ Nix generation) and fingerprint the ACTUAL injected project
+ * secrets (not just the deploy-time env overrides) so the rollback config-digest
+ * invariant is meaningful. External providers keep their own history — skipped.
  */
 async function writeReleaseManifest(
   store: ApiStore,
   logger: { warn: (obj: unknown, msg?: string) => void },
   deployment: DeploymentRecord,
   envVars: Record<string, string> | undefined,
-): Promise<void> {
+): Promise<ReleaseManifestOutcome> {
   try {
     if (deployment.status !== 'READY') {
-      return;
+      return { recorded: false, reason: 'not_ready' };
     }
 
     let artifactKind: 'static-snapshot' | 'server-image';
@@ -6634,17 +6658,26 @@ async function writeReleaseManifest(
     let artifactDigest: string;
     let storeGeneration: string | undefined;
 
+    // The config fingerprint recorded on the manifest. For server releases this
+    // MUST fingerprint the SAME effective config the rollback will recompute at
+    // restore time (the resolved project secrets), otherwise the reserve-#4
+    // config-digest invariant compares apples to oranges. Resolving the secrets
+    // here can throw (unreadable ciphertext / store error): that is caught below
+    // and yields a NON-rollbackable publish rather than a bogus digest.
+    let cfgDigest: string;
+
     if (deployment.provider === 'static') {
       const digest = await computeStaticSnapshotDigest(deployment.id);
 
       if (!digest) {
         logger.warn({ deploymentId: deployment.id }, 'release_manifest.no_static_snapshot');
-        return;
+        return { recorded: false, reason: 'no_static_snapshot' };
       }
 
       artifactKind = 'static-snapshot';
       artifactRef = `static-deployments/${deployment.id}`;
       artifactDigest = digest;
+      cfgDigest = configDigest(envVars ?? {});
     } else if (deployment.provider === 'server') {
       const image = ((deployment.metadata as Record<string, unknown> | undefined)?.serverDeploy as
         | { image?: { imageRef?: string; imageUri?: string; imageDigest?: string; storeGeneration?: string } }
@@ -6655,19 +6688,21 @@ async function writeReleaseManifest(
         // (resolveRollbackImage refuses it) — recording a manifest without one
         // would be a lie, so skip. Rollback then fail-closes on the missing digest.
         logger.warn({ deploymentId: deployment.id }, 'release_manifest.server_no_digest');
-        return;
+        return { recorded: false, reason: 'server_no_digest' };
       }
 
       artifactKind = 'server-image';
       artifactRef = (image.imageRef ?? image.imageUri ?? '').replace(/:[^:/]+$/, '');
       artifactDigest = image.imageDigest;
       storeGeneration = image.storeGeneration;
+      // Fingerprint the actual injected secret set (reserve #4). resolveProjectSecretValues
+      // is the SAME resolver the rollback uses, so the two digests are comparable.
+      cfgDigest = configDigest(await resolveProjectSecretValues(store, deployment.projectId));
     } else {
-      return;
+      return { recorded: false, reason: 'external_provider' };
     }
 
     const environment = deployment.environment ?? 'preview';
-    const cfgDigest = configDigest(envVars ?? {});
 
     await store.withSerializedMutation(`release-manifest:${deployment.projectId}:${environment}`, async () => {
       const latest = await store.listReleaseManifests(deployment.projectId, environment, { take: 1 });
@@ -6686,9 +6721,40 @@ async function writeReleaseManifest(
         configDigest: cfgDigest,
       });
     });
+
+    return { recorded: true };
   } catch (error) {
+    // A manifest write must still NEVER fail an already-succeeded publish, but its
+    // failure is no longer silent: the caller marks the deployment non-rollbackable.
     logger.warn({ err: error, deploymentId: deployment.id }, 'release_manifest.append_failed');
+    return { recorded: false, reason: 'append_failed' };
   }
+}
+
+/**
+ * Reserve #1: after a publish reaches READY, reflect whether a DURABLE rollback
+ * manifest exists onto the deployment itself. `rollbackable:false` (+ reason) is
+ * the explicit READY_NON_ROLLBACKABLE state — the serve path is unaffected, but
+ * no surface may present rollback as safe. Only static/server publishes carry the
+ * flag (external providers manage their own history and are never our rollback
+ * target). Returns the (possibly patched) deployment record to return to the API.
+ */
+async function reflectRollbackability(
+  store: ApiStore,
+  deployment: DeploymentRecord,
+  outcome: ReleaseManifestOutcome,
+): Promise<DeploymentRecord> {
+  if (deployment.status !== 'READY' || (deployment.provider !== 'static' && deployment.provider !== 'server')) {
+    return deployment;
+  }
+
+  return store.updateDeployment(deployment.projectId, deployment.id, {
+    metadata: {
+      ...(deployment.metadata as Record<string, unknown>),
+      rollbackable: outcome.recorded,
+      ...(outcome.recorded ? {} : { rollbackUnavailableReason: outcome.reason ?? 'manifest_unavailable' }),
+    },
+  });
 }
 
 /*
@@ -31148,9 +31214,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       finishedAt: status === 'BUILDING' ? undefined : new Date().toISOString(),
     });
 
-    // P0-V3-08: record the immutable release manifest for a successful publish so
-    // a later rollback is deterministic + fail-closed. Best-effort; never blocks.
-    await writeReleaseManifest(store, app.log, ready, body.envVars);
+    // P0-V3-08 (reserve #1): record the immutable release manifest for a
+    // successful publish so a later rollback is deterministic + fail-closed, then
+    // reflect DURABILITY onto the row: a manifest that could not be written yields
+    // an explicit READY_NON_ROLLBACKABLE state (metadata.rollbackable=false) rather
+    // than a silent "rollbackable" lie. Never blocks the publish itself.
+    const manifestOutcome = await writeReleaseManifest(store, app.log, ready, body.envVars);
+    const published = await reflectRollbackability(store, ready, manifestOutcome);
 
     /*
      * Bill against the PERSISTED status, not the locally-computed `status`. The
@@ -31158,7 +31228,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * the row to CANCELED while the build ran; the final updateDeployment then
      * no-ops (monotonic guard keeps it CANCELED). Don't bill FAILED either.
      */
-    if (shouldRecordDeploymentUsage(ready.status)) {
+    if (shouldRecordDeploymentUsage(published.status)) {
       await recordUsage(request, project.organizationId, 'deployments.count');
     }
 
@@ -31166,25 +31236,30 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       organizationId: project.organizationId,
       action: 'deployment.create',
       resourceType: 'deployment',
-      resourceId: ready.id,
-      metadata: { provider: ready.provider, environment: ready.environment, framework: ready.framework },
+      resourceId: published.id,
+      metadata: { provider: published.provider, environment: published.environment, framework: published.framework },
     });
     await store.recordProjectActivity({
       projectId: project.id,
       actorUserId: request.currentUser?.id,
       action: 'deployment.create',
-      metadata: { deploymentId: ready.id, provider: ready.provider, environment: ready.environment, url: ready.url },
+      metadata: {
+        deploymentId: published.id,
+        provider: published.provider,
+        environment: published.environment,
+        url: published.url,
+      },
     });
 
     /*
      * P11: refresh the project thumbnail from the freshly deployed URL (auto,
      * debounced, inert unless the screenshotter is configured).
      */
-    if (ready.url) {
-      thumbnailCapturer.schedule(project.id, ready.url);
+    if (published.url) {
+      thumbnailCapturer.schedule(project.id, published.url);
     }
 
-    return ready;
+    return published;
   };
 
   /*
@@ -32574,8 +32649,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       finishedAt: redeployStatus === 'BUILDING' ? undefined : new Date().toISOString(),
     });
 
-    // P0-V3-08: a redeploy is a new published version too — record its manifest.
-    await writeReleaseManifest(store, app.log, ready, sourceEnvVars);
+    // P0-V3-08 (reserve #1): a redeploy is a new published version too — record its
+    // manifest durably and reflect rollbackability (READY_NON_ROLLBACKABLE on a
+    // manifest failure) exactly like the create path.
+    const manifestOutcome = await writeReleaseManifest(store, app.log, ready, sourceEnvVars);
+    const published = await reflectRollbackability(store, ready, manifestOutcome);
 
     /*
      * Bill against the PERSISTED status (see create handler): a rebuild canceled
@@ -32583,7 +32661,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * stays CANCELED), so keying on the local redeployStatus would consume quota
      * for a redeploy that serves nothing. Failed rebuilds aren't billed either.
      */
-    if (shouldRecordDeploymentUsage(ready.status)) {
+    if (shouldRecordDeploymentUsage(published.status)) {
       await recordUsage(request, project.organizationId, 'deployments.count');
     }
 
@@ -32591,7 +32669,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       organizationId: project.organizationId,
       action: 'deployment.redeploy',
       resourceType: 'deployment',
-      resourceId: ready.id,
+      resourceId: published.id,
       metadata: { sourceDeploymentId: source.id },
     });
 
@@ -32599,11 +32677,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * P11: refresh the thumbnail from the redeployed URL (auto, debounced, inert
      * unless the screenshotter is configured).
      */
-    if (ready.url) {
-      thumbnailCapturer.schedule(project.id, ready.url);
+    if (published.url) {
+      thumbnailCapturer.schedule(project.id, published.url);
     }
 
-    return reply.code(201).send({ deployment: ready });
+    return reply.code(201).send({ deployment: published });
   });
 
   /*
@@ -32732,6 +32810,61 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         return reply.code(statusCode).send({ error: (error as Error).message, code });
       }
 
+      /*
+       * Reserve #2: the digest we record for — and present as — the restored
+       * release MUST be that of the DESTINATION FINAL bytes, i.e. AFTER
+       * restoreStaticSnapshotInto rewrote index.html for the new id, and computed
+       * BEFORE we flip the row READY. The previous manifest's digest is the SOURCE
+       * bytes (old base path) and is NOT what this deployment serves.
+       *
+       * Reserve #3: NO fallback. If the destination cannot be digested we cannot
+       * prove what we are about to serve — REFUSE (fail-closed), never re-use the
+       * previous manifest's digest as a stand-in.
+       */
+      const restoredDigest = await computeStaticSnapshotDigest(rollback.id);
+
+      if (!restoredDigest) {
+        await store
+          .updateDeployment(project.id, rollback.id, {
+            status: 'FAILED',
+            logs: [
+              ...rollback.logs,
+              {
+                timestamp: new Date().toISOString(),
+                level: 'error',
+                message:
+                  'Rollback destination snapshot could not be digested after restore — refusing to serve/record an unverified rollback.',
+              },
+            ],
+            finishedAt: new Date().toISOString(),
+          })
+          .catch(() => undefined);
+
+        return reply.code(409).send({
+          error:
+            'Rollback destination snapshot could not be digested after restore — refusing to serve an unverified rollback.',
+          code: 'ROLLBACK_DEST_DIGEST_FAILED',
+        });
+      }
+
+      /*
+       * Reserve #1: write the restored release's OWN manifest (digested from the
+       * final served bytes) DURABLY, BEFORE marking READY. If that write fails the
+       * bytes still serve correctly (they were verified), but the deployment is
+       * flagged READY_NON_ROLLBACKABLE so it can never be a blind future rollback
+       * source.
+       */
+      let restoredRollbackable = true;
+      let restoredRollbackReason: string | undefined;
+
+      try {
+        await appendRollbackManifest(rollback.id, 'static-snapshot', `static-deployments/${rollback.id}`, restoredDigest);
+      } catch (error) {
+        restoredRollbackable = false;
+        restoredRollbackReason = 'manifest_append_failed';
+        app.log.warn({ err: error, deploymentId: rollback.id }, 'release_manifest.rollback_append_failed');
+      }
+
       const url = buildDeploymentUrl(project, rollback);
       const ready = await store.updateDeployment(project.id, rollback.id, {
         status: 'READY',
@@ -32739,20 +32872,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         previewUrl: environment !== 'production' ? url : undefined,
         productionUrl: environment === 'production' ? url : undefined,
         finishedAt: new Date().toISOString(),
+        metadata: {
+          ...(rollback.metadata as Record<string, unknown>),
+          rollbackable: restoredRollbackable,
+          restoredArtifactDigest: restoredDigest,
+          ...(restoredRollbackable ? {} : { rollbackUnavailableReason: restoredRollbackReason }),
+        },
         logs: [
           ...rollback.logs,
           {
             timestamp: new Date().toISOString(),
             level: 'info',
-            message: `Rolled back to release v${previous.version} (deployment ${previous.deploymentId}); artifact digest ${previous.artifactDigest} verified byte-identical before restore.`,
+            message: `Rolled back to release v${previous.version} (deployment ${previous.deploymentId}); source digest ${previous.artifactDigest} verified byte-identical before restore, restored bytes digest ${restoredDigest} recorded.`,
           },
         ],
       });
-
-      // The restored copy is a first-class release too — record its OWN manifest
-      // (new monotonic version), digested from the freshly-materialised bytes.
-      const restoredDigest = (await computeStaticSnapshotDigest(rollback.id)) ?? previous.artifactDigest;
-      await appendRollbackManifest(rollback.id, 'static-snapshot', `static-deployments/${rollback.id}`, restoredDigest);
 
       return reply.code(201).send({
         deployment: ready,
@@ -32760,6 +32894,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         restoredFromDeploymentId: previous.deploymentId,
         supersededVersion: current.version,
         verifiedArtifactDigest: previous.artifactDigest,
+        restoredArtifactDigest: restoredDigest,
+        rollbackable: restoredRollbackable,
         url,
       });
     }
@@ -32804,9 +32940,34 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           { revisionExists: false },
         );
 
-        const currentSecrets = await resolveProjectSecretValues(store, project.id).catch(
-          (): Record<string, string> => ({}),
-        );
+        /*
+         * Reserve #4: read the CURRENT project secrets with NO empty-catch. A
+         * previous `.catch(() => ({}))` meant an unreadable secret store silently
+         * deployed the rollback with EMPTY config — worse than refusing. On any
+         * read failure we REFUSE (ROLLBACK_SECRETS_UNREADABLE) via the outer catch.
+         */
+        let currentSecrets: Record<string, string>;
+
+        try {
+          currentSecrets = await resolveProjectSecretValues(store, project.id);
+        } catch (secretError) {
+          throw new RollbackManifestError(
+            `Current project secrets are unreadable (${(secretError as Error).message}) — refusing to roll back with empty/guessed config.`,
+            'ROLLBACK_SECRETS_UNREADABLE',
+          );
+        }
+
+        /*
+         * Reserve #4: DETERMINISTIC config restoration. A rollback re-deploys the
+         * N-1 image but with CURRENT config — which is only correct if the config
+         * has NOT drifted since N-1. We prove that by comparing the manifest's
+         * recorded configDigest (N-1) against the digest of the current secret set.
+         * A mismatch (rotation/added/removed secret) or a missing N-1 digest FAILS
+         * CLOSED — E-Code keeps no ProjectSecret version history to reconstruct N-1,
+         * so a non-deterministic rollback is refused rather than silently served.
+         */
+        assertConfigDigestMatches(configDigest(currentSecrets), previous.configDigest);
+
         const secretResolution = resolveRollbackSecrets({ policy: 'CURRENT', currentSecrets, pinnedSecrets: null });
 
         const rbHost = serverDeployHost(rollback.id);
@@ -33079,9 +33240,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
         const secretPolicy = (serverMeta?.secretPolicy as SecretPolicy) ?? 'CURRENT';
 
-        const currentSecrets = await resolveProjectSecretValues(store, project.id).catch(
-          (): Record<string, string> => ({}),
-        );
+        /*
+         * Reserve #4: NO empty-catch on the secret read. An unreadable secret store
+         * must REFUSE the rollback (ROLLBACK_SECRETS_UNREADABLE → 409), never deploy
+         * it with silently-empty config.
+         */
+        let currentSecrets: Record<string, string>;
+
+        try {
+          currentSecrets = await resolveProjectSecretValues(store, project.id);
+        } catch (secretError) {
+          throw new RollbackManifestError(
+            `Current project secrets are unreadable (${(secretError as Error).message}) — refusing to roll back with empty/guessed config.`,
+            'ROLLBACK_SECRETS_UNREADABLE',
+          );
+        }
 
         const secretResolution = resolveRollbackSecrets({ policy: secretPolicy, currentSecrets, pinnedSecrets: null });
 
