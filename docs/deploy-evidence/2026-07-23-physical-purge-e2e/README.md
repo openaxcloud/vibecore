@@ -48,6 +48,29 @@ local `kind` cluster satisfies "real k8s" at $0, so no cost sign-off was needed.
 No persistent keys: GCS uses ADC (the reviewer's gcloud login), k8s uses the
 local kind kubeconfig.
 
+## Round 6 — CODEX-10 REVIEW_BLOCKED: two deep audits (both found real holes)
+
+**A.1 — global scan of every OrganizationMember mutation path.** Repo-wide there
+are exactly 3 write sites (no raw SQL, no createMany): `addMember` (upsert) and
+`removeMember` (deleteMany) — both already take the membership freeze-set lock, and
+ALL invite / import / admin / SCIM / role routes funnel through them — and the
+**purge tombstone `organizationMember.deleteMany({ where: { userId } })`** in the
+finalize tx, which did NOT take the lock. That was a reopened race: the tombstone
+could flip an org's member count DURING another purge's atomic read→freeze section.
+FIX: the finalize tx now takes `system-setting:membership.purgeFrozenOrgIds` right
+after `account-purge:<userId>` (canonical order), so it serialises with every
+guarantee.
+
+**A.2 — recovery after a partial thaw.** `releasePurgeGuarantee` and
+`reconcilePurgeFreezes` deleted the plan row UNCONDITIONALLY, even when a freeze
+removal failed (swallowed by `.catch`). The plan is the only durable pointer back
+to a frozen id, so a failed thaw + deleted plan = a freeze stranded FOREVER. FIX:
+`deletePurgePlanIfFullyThawed()` re-reads both freeze sets and deletes the plan ONLY
+when neither still contains any of the plan's ids; otherwise the plan is kept for
+the reconciler. Tests (12)(13)(14): membership-thaw fails → plan kept + reconciler
+recovers; object-storage-thaw fails (crash between thaws) → plan kept + recovers;
+the reconciler itself never deletes a plan while a thaw fails.
+
 ## Round 5 — CODEX-10: make the guarantee atomic with the topology read
 
 CODEX-10 found the RR-09 guarantee was NOT atomic with the topology read: the
