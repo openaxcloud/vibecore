@@ -182,105 +182,119 @@ describe('Credit-pack purchase (Replit parity)', () => {
     });
   });
 
-  describe('concurrent published-app cap (20) on publish', () => {
-    async function seedPublishedApps(store: TestApiStore, organizationId: string, count: number) {
-      for (let index = 0; index < count; index += 1) {
-        const project = await store.createProject({
-          organizationId,
-          name: `App ${index}`,
-          slug: `app-${index}`,
-        });
-        await store.createDeployment({
-          projectId: project.id,
-          provider: 'static',
-          environment: 'production',
-          status: 'READY',
-          url: `https://app-${index}.example/`,
-        });
-      }
+  describe("contrat Starter au publish : projets publiés ACTIFS", () => {
+    async function publishableProject(store: any, orgId: string, name: string) {
+      const project = await store.createProject({ organizationId: orgId, name, slug: name.toLowerCase() });
+      const source = await store.createDeployment({
+        projectId: project.id,
+        provider: 'static',
+        environment: 'preview',
+        status: 'READY',
+        url: `https://${name.toLowerCase()}-preview.example/`,
+      });
+
+      return { project, source };
     }
 
-    it('blocks publishing the 21st app when the credit model is live', async () => {
-      process.env.BILLING_CREDITS_ENABLED = 'true';
+    const publish = (app: any, token: string, projectId: string, deploymentId: string) =>
+      app.inject({
+        method: 'POST',
+        url: `/projects/${projectId}/deployments/${deploymentId}/publish`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+
+    it('(a) publier le projet A est AUTORISÉ', async () => {
       const { app, store, org, token } = await setup();
       try {
-        await seedPublishedApps(store, org.id, 20);
-
-        const project = await store.createProject({ organizationId: org.id, name: 'App 21', slug: 'app-21' });
-        const source = await store.createDeployment({
-          projectId: project.id,
-          provider: 'static',
-          environment: 'preview',
-          status: 'READY',
-          url: 'https://preview-21.example/',
-        });
-
-        const res = await app.inject({
-          method: 'POST',
-          url: `/projects/${project.id}/deployments/${source.id}/publish`,
-          headers: { authorization: `Bearer ${token}` },
-        });
-        expect(res.statusCode).toBe(429);
-        expect(res.json().code).toBe('APP_LIMIT_EXCEEDED');
+        const a = await publishableProject(store, org.id, 'ProjA');
+        expect((await publish(app, token, a.project.id, a.source.id)).statusCode).toBe(201);
       } finally {
         await app.close();
       }
     });
 
-    it('still allows re-publishing an already-published app at the cap', async () => {
-      process.env.BILLING_CREDITS_ENABLED = 'true';
+    it('(b) republier A est AUTORISÉ, sans limite artificielle', async () => {
       const { app, store, org, token } = await setup();
       try {
-        // 19 other apps + this one already published = 20 at the cap.
-        await seedPublishedApps(store, org.id, 19);
-        const project = await store.createProject({ organizationId: org.id, name: 'App 20', slug: 'app-20' });
-        await store.createDeployment({
-          projectId: project.id,
-          provider: 'static',
-          environment: 'production',
-          status: 'READY',
-          url: 'https://app-20.example/',
-        });
-        const source = await store.createDeployment({
-          projectId: project.id,
-          provider: 'static',
-          environment: 'preview',
-          status: 'READY',
-          url: 'https://preview-20.example/',
-        });
+        const a = await publishableProject(store, org.id, 'ProjA');
+        expect((await publish(app, token, a.project.id, a.source.id)).statusCode).toBe(201);
 
-        const res = await app.inject({
-          method: 'POST',
-          url: `/projects/${project.id}/deployments/${source.id}/publish`,
-          headers: { authorization: `Bearer ${token}` },
-        });
-        expect(res.statusCode).toBe(201);
+        // Trois republications successives du MÊME projet : toutes doivent passer.
+        for (let i = 0; i < 3; i += 1) {
+          const res = await publish(app, token, a.project.id, a.source.id);
+          expect(res.statusCode).toBe(201);
+        }
       } finally {
         await app.close();
       }
     });
 
-    it('does not enforce the cap while the credit model is dormant', async () => {
+    it('(c) publier un 2e projet DISTINCT est REFUSÉ, avec invitation à monter de plan', async () => {
+      const { app, store, org, token } = await setup();
+      try {
+        const a = await publishableProject(store, org.id, 'ProjA');
+        expect((await publish(app, token, a.project.id, a.source.id)).statusCode).toBe(201);
+
+        const b = await publishableProject(store, org.id, 'ProjB');
+        const res = await publish(app, token, b.project.id, b.source.id);
+
+        expect(res.statusCode).toBe(402);
+        expect(res.json()).toMatchObject({
+          code: 'PLAN_ACTIVE_PUBLISHED_PROJECT_LIMIT',
+          plan: 'starter',
+          cap: 1,
+          upgradeRequired: true,
+        });
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('(d) après expiration de A à 30 jours, republier est AUTORISÉ', async () => {
+      const { app, store, org, token } = await setup();
+      try {
+        const a = await publishableProject(store, org.id, 'ProjA');
+        expect((await publish(app, token, a.project.id, a.source.id)).statusCode).toBe(201);
+
+        // Vieillir toutes les publications de A au-delà du TTL Starter.
+        const old = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000).toISOString();
+        for (const deployment of store.deployments.values()) {
+          if (deployment.projectId === a.project.id && deployment.environment === 'production') {
+            (deployment as any).createdAt = old;
+          }
+        }
+
+        // Le MÊME projet se republie...
+        expect((await publish(app, token, a.project.id, a.source.id)).statusCode).toBe(201);
+
+        // ...et un AUTRE projet redevient publiable une fois A expiré.
+        const { app: app2, store: store2, org: org2, token: token2 } = await setup();
+        try {
+          const a2 = await publishableProject(store2, org2.id, 'ProjA');
+          await publish(app2, token2, a2.project.id, a2.source.id);
+          for (const deployment of store2.deployments.values()) {
+            if (deployment.projectId === a2.project.id && deployment.environment === 'production') {
+              (deployment as any).createdAt = old;
+            }
+          }
+          const b2 = await publishableProject(store2, org2.id, 'ProjB');
+          expect((await publish(app2, token2, b2.project.id, b2.source.id)).statusCode).toBe(201);
+        } finally {
+          await app2.close();
+        }
+      } finally {
+        await app.close();
+      }
+    });
+
+    it("le contrat s'applique MÊME quand le modèle de crédits est dormant", async () => {
       delete (process.env as Record<string, string | undefined>).BILLING_CREDITS_ENABLED;
       const { app, store, org, token } = await setup();
       try {
-        await seedPublishedApps(store, org.id, 25);
-
-        const project = await store.createProject({ organizationId: org.id, name: 'App 26', slug: 'app-26' });
-        const source = await store.createDeployment({
-          projectId: project.id,
-          provider: 'static',
-          environment: 'preview',
-          status: 'READY',
-          url: 'https://preview-26.example/',
-        });
-
-        const res = await app.inject({
-          method: 'POST',
-          url: `/projects/${project.id}/deployments/${source.id}/publish`,
-          headers: { authorization: `Bearer ${token}` },
-        });
-        expect(res.statusCode).toBe(201);
+        const a = await publishableProject(store, org.id, 'ProjA');
+        await publish(app, token, a.project.id, a.source.id);
+        const b = await publishableProject(store, org.id, 'ProjB');
+        expect((await publish(app, token, b.project.id, b.source.id)).statusCode).toBe(402);
       } finally {
         await app.close();
       }

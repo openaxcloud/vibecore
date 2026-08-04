@@ -30,7 +30,8 @@ import {
 import {
   StripeBillingClient,
   assertQuota,
-  assertConcurrentPublishedApps,
+  assertPublishEntitlement,
+  EntitlementError,
   aiModelCatalog,
   availableMachineSizes,
   machineSizeFromCard,
@@ -32088,17 +32089,43 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     /*
-     * Replit-parity concurrent published-app cap (20 live apps/account). Gated
-     * with the rest of the credit model behind BILLING_CREDITS_ENABLED so prod
-     * behaviour is unchanged until the parity billing model is flipped on. We
-     * exclude this project from the count, so re-publishing an already-published
-     * app never trips its own cap — only publishing a NEW (21st) app does.
+     * ---- Contrat Starter : projets publiés ACTIFS (pas « déploiements ») ----
+     *
+     * L'offre gratuite autorise UN projet publié à la fois. Trois conséquences
+     * que le modèle précédent (« cap de déploiements ») ratait :
+     *  - republier le MÊME projet est toujours autorisé — sinon on interdirait
+     *    de corriger un bug en production ;
+     *  - seul un DEUXIÈME projet distinct déclenche l'invitation à monter de
+     *    plan ;
+     *  - une publication Starter s'éteint au bout de 30 jours et cesse alors de
+     *    consommer la place, ce qui permet de republier sans intervention.
+     *
+     * Hors du flag crédits : un entitlement décrit l'OFFRE, pas le modèle de
+     * facturation à l'usage ; derrière un flag non défini, il n'applique rien.
      */
-    if (process.env.BILLING_CREDITS_ENABLED === 'true') {
-      const activeOthers = await store.countPublishedApps(project.organizationId, {
-        excludeProjectId: project.id,
+    const publications = await store.listPublishedProjects(project.organizationId).catch(() => []);
+    const entitlementPlanKey = (await billingState(project.organizationId).catch(() => undefined))?.plan.key;
+
+    try {
+      assertPublishEntitlement({
+        planKey: entitlementPlanKey,
+        targetProjectId: project.id,
+        publications: publications.map((p) => ({ projectId: p.projectId, publishedAt: new Date(p.publishedAt) })),
       });
-      assertConcurrentPublishedApps({ active: activeOthers });
+    } catch (error) {
+      if (error instanceof EntitlementError) {
+        await audit(request, store, {
+          organizationId: project.organizationId,
+          action: 'entitlement.refused',
+          resourceType: 'deployment',
+          resourceId: deploymentId,
+          metadata: { code: error.code, ...error.details },
+        });
+
+        return reply.code(error.statusCode).send({ error: error.message, code: error.code, ...error.details });
+      }
+
+      throw error;
     }
 
     const publishUrl = source.url ?? source.previewUrl ?? buildDeploymentUrl(project, source);

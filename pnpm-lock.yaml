@@ -273,6 +273,9 @@ importers:
       '@unocss/reset':
         specifier: ^0.61.9
         version: 0.61.9
+      '@vibecore/billing':
+        specifier: workspace:*
+        version: link:packages/billing
       '@vibecore/editor':
         specifier: workspace:^
         version: link:packages/editor
