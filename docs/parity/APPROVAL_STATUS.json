@@ -613,7 +613,7 @@
       "declared": "OPEN",
       "derived": "OPEN",
       "hasProof": true,
-      "reviewed": false
+      "reviewed": true
     },
     {
       "p0Id": "P0-A2-10",

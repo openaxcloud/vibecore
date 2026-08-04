@@ -543,20 +543,21 @@ p0s:
     priority: 9
     owner: platform
     status: OPEN
-    reviewNote: "REFUSÉ au reçu RR-20260802-CODEX-09 (motif verbatim) : Le teardown classe comme NOTFOUND le message ambigu « Project [x] not found or permission denied » dès que gcloud auth print-access-token réussit. Un token valide prouve l'authentification, pas l'autorisation resourcemanager.projects.get. Un projet existant mais invisible peut être déclaré absent et recevoir CLEANUP_RECEIPT=OK. Correction : 1) ne jamais traiter le message combiné comme absence vérifiée ; 2) NOTFOUND seulement sur vrai HTTP 404 / statut NOT_FOUND structuré non ambigu ; 3) UNKNOWN sur toute réponse ambiguë ; 4) test token valide + projet existant + principal sans projects.get/projects.delete → reçu FAILED. (Refus précédent RR-20260731-CODEX-08 : describe traité comme absence — corrigé en PR #55 mais la classification NOTFOUND reste ambiguë.)"
-    reviewReceiptId: RR-20260802-CODEX-09
+    previousRefusalReason: "REFUSÉ au reçu RR-20260802-CODEX-09 (motif verbatim) : Le teardown classe comme NOTFOUND le message ambigu « Project [x] not found or permission denied » dès que gcloud auth print-access-token réussit. Un token valide prouve l'authentification, pas l'autorisation resourcemanager.projects.get. Un projet existant mais invisible peut être déclaré absent et recevoir CLEANUP_RECEIPT=OK. Correction : 1) ne jamais traiter le message combiné comme absence vérifiée ; 2) NOTFOUND seulement sur vrai HTTP 404 / statut NOT_FOUND structuré non ambigu ; 3) UNKNOWN sur toute réponse ambiguë ; 4) test token valide + projet existant + principal sans projects.get/projects.delete → reçu FAILED. (Refus précédent RR-20260731-CODEX-08 : describe traité comme absence — corrigé en PR #55 mais la classification NOTFOUND reste ambiguë.)"
+    reviewReceiptId: RR-20260804-CODEX-10
     remediationTrack: CHANTIER
-    refusalReason: "WIF prouvé GKE seulement, pas les 3 chemins"
+    previousRefusalReasonV1: "WIF prouvé GKE seulement, pas les 3 chemins"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
     reviewCommit: "57febeab"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
-    reviewer: UNKNOWN
+    reviewer: OpenAI-Codex
+    reviewedRemediationCommit: "26f1ad8451d1aa222c52486d96d634c7f03adf46"
     evidenceId: docs/parity/baseline/sources/2026-07-20-gke-workload-identity.html
-    proof: "§4.4 REMPLACÉ, ancré GCP-13 (citation exacte « In GKE, Google Cloud manages the workload identity pool and provider for you and doesn't require an external identity provider ») : 3 chemins — GKE→WIF for GKE (recommandé, aucun IdP externe) ; hors GCP→IAM WIF externe ; Cloud Run→service identity + impersonation courte. Zéro clé persistante partout."
+    proof: "SIGNÉ RR-20260804-CODEX-10 : teardown classe sur statut HTTP STRUCTURÉ (CRM v1 projects.get) — NOTFOUND ⇔ 404+NOT_FOUND uniquement, UNKNOWN sur ambigu/403, delete TENTÉ en UNKNOWN, reçu FAILED sinon ; test exists_no_getdelete (token valide + projet existant + principal sans projects.get/delete → reçu FAILED) ; spec PASS=31 FAIL=0 (sha 0da2facd…) ; rejeu live GCP 2026-08-03 projet frais ecode-wif-proof-739484 (3 chemins + négatif billing-fail). Commit 26f1ad84, Production CI run 30792155142 vert."
     dependances: []
-    conditionDeCloture: "Compléter l'évidence : WIF prouvé GKE seulement, pas les 3 chemins ; puis re-soumission au relecteur"
-    nextAction: "Session WIF : NOTFOUND uniquement sur vrai HTTP 404 / statut NOT_FOUND structuré non ambigu (jamais le message combiné not-found-or-permission-denied) ; UNKNOWN sur toute réponse ambiguë ; test négatif token valide + projet existant + principal sans projects.get/projects.delete → reçu FAILED ; puis re-soumission"
+    conditionDeCloture: "Signature ANNONCÉE (RR-20260804-CODEX-10, directive Avi 2026-08-04) — flip CLOSED dès dépôt du texte brut du reçu (garde CI : CLOSED sur reçu INCOMPLETE interdit)"
+    nextAction: "Déposer le texte brut du reçu RR-20260804-CODEX-10 dans docs/parity/incoming/ (hash recomputable) puis flip CLOSED"
     targetDate: "2026-07-20"
   - p0Id: P0-A2-10
     title: "Décision Gallery incohérente"

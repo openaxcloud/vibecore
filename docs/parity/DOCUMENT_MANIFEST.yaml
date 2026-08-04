@@ -29,7 +29,7 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: APPROVAL_STATUS.json
-    sha256: "57c61a7018337220851934b47ae20dc59462f2196e6905c4d1f414c65c153289"
+    sha256: "01892a858c6dc6c7330761ca728e124132e1223143385f4b3d33e07543ddf37b"
     schemaVersion: null
     repoCommit: null
     reviewer: UNKNOWN
@@ -89,7 +89,7 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: CONTRACT_REGISTRY.yaml
-    sha256: "5260660790d0867e201d18040b103875466bc2eed80915ea98c2e50606100803"
+    sha256: "d750e157487db32c8a46d1a3092d15a09c2d84c0defdf914330fe852cf0cd69a"
     schemaVersion: 1
     repoCommit: 1692f981
     reviewer: UNKNOWN
@@ -224,7 +224,7 @@ documents:
     repoCommit: d1063912
     reviewer: UNKNOWN
   - file: P0_REGISTRY.yaml
-    sha256: "08142ea4cd108592021ff40bb7ec9781fc0257b19bbb10ef7cfb78533adb376b"
+    sha256: "b0b68a8a44bcf15061c66e08234ffcf52e5b9779c3bab305f135629b7862fc23"
     schemaVersion: 1
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN
@@ -324,7 +324,7 @@ documents:
     repoCommit: null
     reviewer: UNKNOWN
   - file: REVIEW_RECEIPT_REGISTRY.yaml
-    sha256: "c33d22838196884d8c0f6c0183a943a5f611be1d349da7f02ea399beef96db3a"
+    sha256: "88ff7aaee21b94d56828537cabe18ae0be407b69671a37fba8835db636a42cd9"
     schemaVersion: 1
     repoCommit: a4a9f71c
     reviewer: UNKNOWN

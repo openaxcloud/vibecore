@@ -91,7 +91,8 @@ contracts:
     anchor: "v6 (RR-08): code typé PRÉSERVÉ (describeEcodeLockFailure) + test qui EXIGE ECODE_LOCK_GENERATION_REVOKED + capture LIVE 31/07 du code littéral (409 rr08-409-revoked-code.json) ; refs .txt ; UI dé-revendiquée (appels HTTP directs). Négatif live 23/07 : révoquée→FAILED/410, restaurée→READY/200"
     expectedReviewer: OpenAI-Codex
     signatureResult: PENDING_REVIEW
-    openDependencies: "code littéral dans le log publish = au déploiement de cette branche (test automatisé le verrouille déjà)"
+    announcedSignature: "SIGNATURE ANNONCÉE au reçu RR-20260804-CODEX-10 (directive Avi 2026-08-04) — portée v7 : code typé ECODE_LOCK_GENERATION_REVOKED persisté dans le STATUT/LOG du deployment lors d'un publish sur l'IMAGE DÉPLOYÉE (merge #57 = 05319065, image 05319065be), rejeu live ACTIVE→READY/200 / REVOKED→FAILED+410 / restore→READY/200 (artefact 2f2c065f…, PR #76 @450459a5). Passage à SIGNED dès dépôt du texte brut du reçu (hash recomputable) — même garde que les P0."
+    openDependencies: "texte brut du reçu RR-10 à déposer ; l'api/manager prod n'interprètent pas encore NIX_STORE_GENERATIONS (durcissement post-signature)"
   - contractId: CTR-PROJECT-FACTORY
     file: PROJECT_FACTORY_CONTRACT.md
     contractVersion: 1
