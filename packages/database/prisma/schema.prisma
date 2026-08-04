@@ -822,6 +822,45 @@ model DeploymentEnvironment {
   deployments Deployment[]
 }
 
+// P0-V3-08 deployment rollback manifest: one IMMUTABLE row appended per successful
+// publish. It captures everything a DETERMINISTIC rollback needs so a published
+// deployment can be restored to its previous version for real — independent of any
+// live runtime/snapshot state. `deploymentId` is a plain pointer with NO FK on
+// purpose: the manifest OUTLIVES the deployment row (a deployment can be pruned but
+// its release must remain rollback-addressable). `version` is monotonic per
+// (projectId, environment) so N-1 is unambiguous. A rollback that finds no previous
+// manifest — or an artifact whose bytes no longer match `artifactDigest` — MUST fail
+// closed rather than serve a blind/stale rollback.
+model ReleaseManifest {
+  id           String @id @default(cuid())
+  projectId    String
+  deploymentId String
+  environment  String @default("preview")
+  version      Int
+  provider     String
+
+  // 'static-snapshot' (artifactDigest = sha256 of the served bundle bytes) or
+  // 'server-image' (artifactDigest = the image sha256, artifactRef = bare AR ref).
+  artifactKind   String
+  artifactRef    String
+  artifactDigest String
+
+  // Declared, never faked — NULL when the pipeline doesn't emit it:
+  //  storeGeneration  = the ecode.lock Nix generation the release pinned (server)
+  //  configDigest     = sha256 fingerprint of the effective env/config at publish
+  //  dbMigrationPoint = latest applied DB migration marker at publish (RECORDED for
+  //                     compatibility checks; image rollback never reverts the DB)
+  storeGeneration  String?
+  configDigest     String?
+  dbMigrationPoint String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, environment, version])
+  @@index([projectId, environment])
+  @@index([deploymentId])
+}
+
 // Versioned Rate Card: the priced catalogue (machine sizes, compute-unit and
 // request rates) served to the app and stamped on every metering event. A
 // price change INSERTS a new version and flips `active` — history is never
