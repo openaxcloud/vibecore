@@ -723,7 +723,7 @@ export function buildDeploymentUrl(project: ProjectRecord, deployment: Deploymen
      * its public URL must be the API-origin one. Public static deploys keep the
      * dedicated origin for the same-origin sandbox.
      */
-    const gated = accessConfigFromMetadata(deployment.metadata).mode === 'password';
+    const gated = accessConfigFromMetadata(deployment.metadata).mode !== 'public';
     const dedicated = staticDeployDedicatedOrigin(deployment.id);
 
     if (dedicated && !gated) {

@@ -51,6 +51,14 @@ describe('accessConfigFromMetadata', () => {
     expect(accessConfigFromMetadata({ access: { mode: 'password' } }).mode).toBe('public');
     expect(accessConfigFromMetadata({ access: { mode: 'password', passwordHash: '' } }).mode).toBe('public');
   });
+
+  it('reads a private config (P103)', () => {
+    expect(accessConfigFromMetadata({ access: { mode: 'private' } })).toEqual({ mode: 'private' });
+  });
+
+  it('an unknown mode degrades to public', () => {
+    expect(accessConfigFromMetadata({ access: { mode: 'weird' } }).mode).toBe('public');
+  });
 });
 
 describe('computeAccessToken', () => {

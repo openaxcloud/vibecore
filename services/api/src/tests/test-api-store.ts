@@ -1861,6 +1861,7 @@ export class TestApiStore implements ApiStore {
       status: deployment.status,
       projectDeletedAt: project?.deletedAt ?? null,
       metadata: deployment.metadata as Record<string, unknown> | undefined,
+      organizationId: project?.organizationId ?? undefined,
     };
   }
 

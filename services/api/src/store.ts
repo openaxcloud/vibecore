@@ -1845,6 +1845,9 @@ export interface ApiStore {
         // P104: the metadata JSON so the static-serve path can read the access
         // config (metadata.access) without a second query.
         metadata?: Record<string, unknown>;
+        // P103: the owning organization, so the serve path can check membership
+        // for a private deployment.
+        organizationId?: string;
       }
     | undefined
   >;

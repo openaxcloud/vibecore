@@ -317,6 +317,7 @@ import {
   accessGateHtml,
   computeAccessToken,
   isAccessTokenValid,
+  privateGateHtml,
 } from './deployment-access.js';
 import { computeWorkspaceRestorePlan, isPortReadyFromProbe, type PortProbeResult } from './runtime-readiness.js';
 import { aggregatePreviewReadiness } from './runtime-readiness.js';
@@ -3086,6 +3087,24 @@ async function authenticateApiKey(request: FastifyRequest, reply: FastifyReply, 
     platformAdmin: user.platformAdmin,
   };
   request.apiKeyAuth = { id: apiKey.id, scopes: apiKey.scopes };
+}
+
+/**
+ * P103: softly resolve the viewer's user id from the request's session token,
+ * WITHOUT sending an error (the caller decides what a missing/invalid session
+ * means). Used by the static-serve path to gate a PRIVATE deployment. Only the
+ * session cookie/bearer is honoured — API-key viewers are a follow-up.
+ */
+async function resolveOptionalViewerId(request: FastifyRequest, store: ApiStore): Promise<string | undefined> {
+  const token = bearerToken(request);
+
+  if (!token || token.startsWith(API_KEY_TOKEN_PREFIX)) {
+    return undefined;
+  }
+
+  const session = await store.findSessionByToken(token).catch(() => undefined);
+
+  return session?.userId;
 }
 
 async function requireAuth(request: FastifyRequest, reply: FastifyReply, store: ApiStore) {
@@ -8317,6 +8336,38 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
     }
 
+    /*
+     * P103: a PRIVATE deployment serves NO byte to anyone who is not an
+     * authenticated member of the owning organization. The viewer is resolved
+     * softly from the session cookie/bearer (present on the API origin, where a
+     * private deploy is served — see the redirect skip below); no session, or a
+     * non-member, ⇒ 401. Browsers get a "sign in" page, others a JSON 401.
+     */
+    if (access.mode === 'private') {
+      const viewerId = await resolveOptionalViewerId(request, store);
+      const membership =
+        viewerId && ownerStatus.organizationId
+          ? await store.getMembership(viewerId, ownerStatus.organizationId).catch(() => undefined)
+          : undefined;
+
+      if (!membership) {
+        reply.header('cache-control', 'no-store');
+
+        if ((request.headers.accept ?? '').includes('text/html')) {
+          return reply
+            .code(401)
+            .header('content-security-policy', ACCESS_GATE_CSP)
+            .type('text/html; charset=utf-8')
+            .send(privateGateHtml());
+        }
+
+        return reply.code(401).send({
+          error: "Sign in as a member of this deployment's team to view it.",
+          code: 'DEPLOYMENT_PRIVATE',
+        });
+      }
+    }
+
     let decodedPath: string;
 
     try {
@@ -8429,7 +8480,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * sandbox; a gated app trades that for a working password flow (its localStorage
      * stays opaque on the API origin — an accepted limitation behind a password).
      */
-    if (dedicatedOrigin && !onDedicatedHost && access.mode !== 'password') {
+    if (dedicatedOrigin && !onDedicatedHost && access.mode === 'public') {
       const search = request.url.includes('?') ? request.url.slice(request.url.indexOf('?')) : '';
 
       return reply.redirect(`${dedicatedOrigin}/${normalizedRequest}${search}`, 302);
@@ -32117,7 +32168,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { projectId, deploymentId } = parse(deploymentActionParams, request.params);
     const body = parse(
       z.object({
-        mode: z.enum(['public', 'password']),
+        mode: z.enum(['public', 'password', 'private']),
         password: z.string().min(4).max(200).optional(),
       }),
       request.body ?? {},
@@ -32138,6 +32189,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (body.mode === 'password') {
       metadata.access = { mode: 'password', passwordHash: hashPassword(body.password!) };
+    } else if (body.mode === 'private') {
+      metadata.access = { mode: 'private' };
     } else {
       delete metadata.access;
     }
