@@ -2811,7 +2811,7 @@ export class PrismaApiStore implements ApiStore {
   async getDeploymentOwnerStatus(deploymentId: string) {
     const deployment = await this.prisma.deployment.findUnique({
       where: { id: deploymentId },
-      select: { projectId: true, status: true, project: { select: { deletedAt: true } } },
+      select: { projectId: true, status: true, metadata: true, project: { select: { deletedAt: true } } },
     });
 
     if (!deployment) {
@@ -2822,6 +2822,7 @@ export class PrismaApiStore implements ApiStore {
       projectId: deployment.projectId,
       status: deployment.status,
       projectDeletedAt: deployment.project?.deletedAt ?? null,
+      metadata: (deployment.metadata ?? undefined) as Record<string, unknown> | undefined,
     };
   }
 
