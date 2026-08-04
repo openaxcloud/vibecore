@@ -106,3 +106,65 @@ export function computeWorkspaceRestorePlan(
 
   return { writes: [...restoredFiles], deletes };
 }
+
+/*
+ * BLOCKER #5 — honest preview readiness (SOLUTIONS_REAL_PROOF_BLOCKERS.md §5).
+ *
+ * `isPortReadyFromProbe` proves the PORT alone (a server answered 2xx/3xx with a
+ * non-empty body). But the observed "RUNNING + port open + 0 Problems + blank
+ * webview" lie also needs the OTHER actors to agree. A preview is only honestly
+ * ready when ALL of these hold:
+ *
+ *   - port    : the HTTP probe reached a served app (isPortReadyFromProbe)
+ *   - process : the port is backed by a live dev-server process (the agent
+ *               reported a processId for it) — a stale WorkspacePort row with no
+ *               process is a ghost, not a ready server.
+ *   - manager : the workspace-manager considers the workspace RUNNING — a
+ *               STOPPED/FAILED/STARTING workspace can still have a lingering
+ *               probe hit and must never latch ready.
+ *   - client  : no fresh negative beacon. The browser is the only actor that can
+ *               see the app never mounted (blank DOM) or threw a console error;
+ *               when it reports one, the server must DROP readiness even though
+ *               the port probe passed. `ok` clears it; absence is neutral.
+ *
+ * Any single "no" ⇒ not ready, with the disagreeing signal named for diagnostics
+ * (#6). Deliberately does NOT re-check body substance here — that is the port
+ * probe's job and, for the client, the beacon's job.
+ */
+export type PreviewClientBeacon = 'ok' | 'blank' | 'error' | 'none';
+
+export interface PreviewReadinessSignals {
+  portReady: boolean;
+  hasLiveProcess: boolean;
+  managerStatus: string | undefined;
+  clientBeacon: PreviewClientBeacon;
+}
+
+export interface PreviewReadinessVerdict {
+  ready: boolean;
+  /** The first signal that vetoed readiness, for the diagnostics trail (#6). */
+  blockedBy?: 'port' | 'process' | 'manager' | 'client';
+}
+
+export function aggregatePreviewReadiness(signals: PreviewReadinessSignals): PreviewReadinessVerdict {
+  if (!signals.portReady) {
+    return { ready: false, blockedBy: 'port' };
+  }
+
+  if (!signals.hasLiveProcess) {
+    return { ready: false, blockedBy: 'process' };
+  }
+
+  // The manager may legitimately not know a brand-new workspace yet (undefined);
+  // only a KNOWN non-RUNNING status is a veto. RUNNING or unknown passes here.
+  if (signals.managerStatus !== undefined && signals.managerStatus !== 'RUNNING') {
+    return { ready: false, blockedBy: 'manager' };
+  }
+
+  // A fresh blank/error beacon vetoes; 'ok' and 'none' (no report) do not.
+  if (signals.clientBeacon === 'blank' || signals.clientBeacon === 'error') {
+    return { ready: false, blockedBy: 'client' };
+  }
+
+  return { ready: true };
+}

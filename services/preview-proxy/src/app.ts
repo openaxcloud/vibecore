@@ -615,6 +615,23 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
 
     request.log.warn({ event: 'preview.blank', url }, 'preview served but the app never mounted (#root empty)');
 
+    /*
+     * BLOCKER #5: relay the blank signal to the api so /ports readiness stops
+     * reporting this port ready (the port probe alone can't see a blank DOM).
+     * The beacon lands on the preview host `<ws>-<port>.<previewDomain>`, so the
+     * (workspaceId, port) come straight from the request Host. Best-effort: a
+     * missing api url/secret or a failed POST just falls back to the log above.
+     */
+    const parsedHost = parsePreviewHost(request.headers.host, previewDomain);
+
+    if (parsedHost && apiBaseUrl && proxySharedSecret) {
+      void fetchImpl(`${apiBaseUrl}/internal/preview/beacon`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${proxySharedSecret}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ workspaceId: parsedHost.workspaceId, port: Number(parsedHost.port), status: 'blank' }),
+      }).catch(() => undefined);
+    }
+
     return reply.code(204).send();
   });
 

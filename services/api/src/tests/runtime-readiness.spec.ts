@@ -115,3 +115,50 @@ describe('computeWorkspaceRestorePlan', () => {
     expect(plan.deletes).toEqual([]);
   });
 });
+
+import { aggregatePreviewReadiness } from '../runtime-readiness.js';
+
+describe('aggregatePreviewReadiness (Blocker #5 — the 4 actors must agree)', () => {
+  const ready = { portReady: true, hasLiveProcess: true, managerStatus: 'RUNNING', clientBeacon: 'none' as const };
+
+  it('is ready only when all signals agree', () => {
+    expect(aggregatePreviewReadiness(ready)).toEqual({ ready: true });
+  });
+
+  it('port veto: a failed probe is never ready (even if everything else is fine)', () => {
+    expect(aggregatePreviewReadiness({ ...ready, portReady: false })).toEqual({ ready: false, blockedBy: 'port' });
+  });
+
+  it('process veto: a bound port with no live dev-server process is a ghost', () => {
+    expect(aggregatePreviewReadiness({ ...ready, hasLiveProcess: false })).toEqual({
+      ready: false,
+      blockedBy: 'process',
+    });
+  });
+
+  it('manager veto: a known non-RUNNING workspace is never ready', () => {
+    expect(aggregatePreviewReadiness({ ...ready, managerStatus: 'STOPPED' })).toEqual({
+      ready: false,
+      blockedBy: 'manager',
+    });
+  });
+
+  it('manager unknown (undefined) is neutral — a brand-new workspace still passes', () => {
+    expect(aggregatePreviewReadiness({ ...ready, managerStatus: undefined })).toEqual({ ready: true });
+  });
+
+  it('client veto: a fresh blank/error beacon drops readiness even when the port probe passed', () => {
+    expect(aggregatePreviewReadiness({ ...ready, clientBeacon: 'blank' })).toEqual({
+      ready: false,
+      blockedBy: 'client',
+    });
+    expect(aggregatePreviewReadiness({ ...ready, clientBeacon: 'error' })).toEqual({
+      ready: false,
+      blockedBy: 'client',
+    });
+  });
+
+  it("client 'ok' does not veto (it clears a prior blank)", () => {
+    expect(aggregatePreviewReadiness({ ...ready, clientBeacon: 'ok' })).toEqual({ ready: true });
+  });
+});
