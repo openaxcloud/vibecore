@@ -2811,18 +2811,48 @@ export class PrismaApiStore implements ApiStore {
   async getDeploymentOwnerStatus(deploymentId: string) {
     const deployment = await this.prisma.deployment.findUnique({
       where: { id: deploymentId },
-      select: { projectId: true, status: true, metadata: true, project: { select: { deletedAt: true } } },
+      select: {
+        projectId: true,
+        status: true,
+        metadata: true,
+        createdAt: true,
+        environmentName: true,
+        /*
+         * L'org et son abonnement sont nécessaires ICI : l'extinction à 30 jours
+         * d'une publication Starter se décide dans le chemin de SERVICE, pas
+         * seulement dans le compteur. Une jointure indexée sur un chemin déjà
+         * ponctué d'un findUnique.
+         */
+        project: {
+          select: {
+            deletedAt: true,
+            organizationId: true,
+            organization: {
+              select: {
+                // Relation au PLURIEL : on ne retient que l'abonnement ACTIF.
+                subscriptions: { where: { status: 'ACTIVE' }, select: { status: true, plan: { select: { key: true } } }, take: 1 },
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!deployment) {
       return undefined;
     }
 
+    const subscription = deployment.project?.organization?.subscriptions?.[0];
+
     return {
       projectId: deployment.projectId,
       status: deployment.status,
       projectDeletedAt: deployment.project?.deletedAt ?? null,
       metadata: (deployment.metadata ?? undefined) as Record<string, unknown> | undefined,
+      createdAt: deployment.createdAt.toISOString(),
+      environmentName: deployment.environmentName ?? undefined,
+      organizationId: deployment.project?.organizationId,
+      planKey: subscription?.status === 'ACTIVE' ? subscription.plan?.key : undefined,
     };
   }
 

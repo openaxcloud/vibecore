@@ -1874,6 +1874,16 @@ export interface ApiStore {
         // P104: the metadata JSON so the static-serve path can read the access
         // config (metadata.access) without a second query.
         metadata?: Record<string, unknown>;
+        /*
+         * Nécessaires pour éteindre RÉELLEMENT une publication Starter expirée
+         * dans le chemin de service : sans la date ET le plan, le serveur ne peut
+         * que l'exclure d'un compteur — l'URL, elle, continuerait de répondre.
+         */
+        createdAt?: string;
+        environmentName?: string;
+        organizationId?: string;
+        /** Plan de l'org, uniquement si l'abonnement est ACTIF. */
+        planKey?: string;
       }
     | undefined
   >;
