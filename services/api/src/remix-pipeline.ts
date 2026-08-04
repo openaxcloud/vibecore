@@ -278,8 +278,15 @@ const EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
  */
 const PHONE_RE = /\+\d(?:[\s().-]?\d){7,14}/g;
 
-/** IBAN: 2 letters + 2 check digits + 11-30 alphanumerics (word-bounded). */
-const IBAN_RE = /\b[A-Z]{2}\d{2}(?:\s?[A-Z0-9]{4}){2,7}[A-Z0-9]{0,3}\b/g;
+/**
+ * IBAN: 2 letters + 2 check digits + 11-30 alphanumerics (word-bounded).
+ *
+ * Le groupe FINAL peut faire 1 à 3 caractères ET être séparé par une espace
+ * (« FR76 3000 6000 0112 3456 7890 189 » — le « 189 » est un groupe à part
+ * entière). Sans `\s?` devant ce groupe, le masquage laissait le fragment
+ * terminal en clair — défaut constaté lors de la preuve live du 2026-08-04.
+ */
+const IBAN_RE = /\b[A-Z]{2}\d{2}(?:\s?[A-Z0-9]{4}){2,7}(?:\s?[A-Z0-9]{1,3})?\b/g;
 
 /** Candidate payment-card numbers: 13-19 digits, optional space/dash groups. */
 const CARD_RE = /\b\d(?:[ -]?\d){12,18}\b/g;

@@ -270,6 +270,34 @@ describe('person-name masking (I-RMX-3)', () => {
     expect(masked).toEqual([]);
   });
 
+  it('masks an IBAN ENTIRELY — aucun fragment terminal laissé en clair', () => {
+    // Défaut constaté lors de la preuve live du 2026-08-04 : le masquage
+    // produisait « [PII:iban masked on remix] 189 » — le dernier groupe de
+    // l'IBAN français survivait parce qu'il fait 3 caractères, pas 4.
+    const { files } = maskPiiInFiles([
+      { path: 'seed/accounts.csv', content: 'iban\nFR76 3000 6000 0112 3456 7890 189\n' },
+    ]);
+
+    expect(files[0].content).not.toContain('189');
+    expect(files[0].content.trim().endsWith('[PII:iban masked on remix]')).toBe(true);
+  });
+
+  it('masks IBANs of several national lengths without residue', () => {
+    const ibans = [
+      'FR76 3000 6000 0112 3456 7890 189', // 27 — groupe final de 3
+      'DE89 3704 0044 0532 0130 00', // 22 — groupe final de 2
+      'GB29 NWBK 6016 1331 9268 19', // 22 — groupe final de 2
+      'NL91 ABNA 0417 1643 00', // 18 — groupe final de 2
+      'ES91 2100 0418 4502 0005 1332', // 24 — groupes pleins
+    ];
+
+    for (const iban of ibans) {
+      const { files } = maskPiiInFiles([{ path: 'a.csv', content: `iban\n${iban}\n` }]);
+      const body = files[0].content.split('\n')[1];
+      expect(body, iban).toBe('[PII:iban masked on remix]');
+    }
+  });
+
   it('the 5 categories together re-scan CLEAN on one person record', () => {
     const { files, masked } = maskPiiInFiles([
       {

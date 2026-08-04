@@ -590,6 +590,10 @@ describe('Gallery remix — versioned license + consent + PII masking (P0-V3-05 
       expect(allText, marker).toContain(`[PII:${marker} masked on remix]`);
     }
 
+    // Aucun FRAGMENT résiduel : le dernier groupe de l'IBAN ne doit pas
+    // survivre au masquage (défaut vu en preuve live le 2026-08-04).
+    expect(allText).not.toContain('189');
+
     // RFC 2606 fixture addresses are NOT someone's data — kept.
     expect(allText).toContain('support@example.com');
 

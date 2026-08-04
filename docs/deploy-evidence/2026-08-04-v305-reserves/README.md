@@ -104,3 +104,51 @@ Les 6 autres réserves de l'audit du 03/08 sont **inchangées** et restent décl
 Et une limite propre à ce lot : le masquage des noms **ne couvre pas la prose**. Un nom
 cité dans un commentaire ou un README n'est pas masqué — c'est un choix délibéré, pas un
 oubli, mais il doit être connu de l'expert.
+
+---
+
+# Preuve LIVE PROD exécutée le 2026-08-04 (image `api:e41821f377`)
+
+Transcript complet : `live-prod-transcript.txt` · fouille du clone : `live-clone-scan-e41821f377.txt`
+
+| Réserve | Preuve live | Résultat |
+|---|---|---|
+| #7 licence non dérivable | `POST /admin/gallery-listings` `licenseId="PROPRIETARY — NO DERIVATIVES"` | **400 `REMIX_LICENSE_NOT_DERIVATIVE`** |
+| #7 licence dérivable | même route, `licenseId="mit"` | **201**, persisté **`MIT`** (canonique) |
+| #8 trace auditable | relecture SQL de la ligne après curation | `rightsConfirmedAt/By` + `piiPolicyAcceptedAt/By` **renseignés**, acteur = userId admin |
+| #2 masquage | remix réel puis fouille du clone | **201**, `piiMaskedCount=5`, **les 5 catégories ABSENTES** |
+
+Le clone curé, verbatim :
+
+```
+data/products.csv  | name,price,stock
+data/products.csv  | Desk Lamp,4200,7          <- catalogue produit INTACT
+seed/customers.csv | name,email,phone,iban,card
+seed/customers.csv | [PII:name masked on remix],[PII:email masked on remix],[PII:phone masked on remix],[PII:iban masked on remix] 189,[PII:card masked on remix]
+```
+
+## Exposition publique : 6 secondes, sans PII
+
+Contrainte tenue : **aucun listing porteur de PII n'a été laissé dans la gallery publique.**
+Le listing a été curé en `PENDING_REVIEW` (invisible), publié **6 secondes** le temps de
+l'appel de remix, puis dépublié. Les métadonnées publiques (titre, description, licence)
+n'ont jamais contenu de PII — celle-ci n'existe que dans le snapshot source, ce que le
+masquage neutralise précisément. La PII utilisée est **synthétique**.
+
+## Défaut trouvé PENDANT la preuve
+
+L'extrait verbatim ci-dessus le montre : `[PII:iban masked on remix] **189**`. Le dernier
+groupe de l'IBAN français (3 caractères, pas 4) **survivait**. L'IBAN complet était bien
+introuvable — la recherche de chaîne passait — mais **seule la lecture du contenu curé** a
+révélé le fragment. Un masqueur qui laisse des résidus ne tiendra pas devant un expert.
+
+Corrigé (branche `fix/iban-trailing-group`) : `IBAN_RE` consomme désormais un groupe
+terminal de 1 à 3 caractères précédé d'une espace. Ajouté : 2 tests unitaires couvrant
+5 formats nationaux (FR/DE/GB/NL/ES) et une assertion **anti-résidu** au niveau route et e2e.
+**Ce correctif n'est pas encore déployé en prod** au moment où ces lignes sont écrites.
+
+## Leçon de méthode
+
+Chercher les chaînes exactes ne suffit pas : il faut **relire le contenu curé**. La fouille
+disait « les 5 catégories sont absentes » et c'était vrai ; le fragment d'IBAN n'apparaissait
+que dans l'extrait verbatim. Les assertions anti-résidu ajoutées ferment cet angle mort.

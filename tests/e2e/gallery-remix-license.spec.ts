@@ -225,6 +225,9 @@ test('gallery remix shows the versioned license, requires explicit consent, and 
     expect(allText, marker).toContain(`[PII:${marker} masked on remix]`);
   }
 
+  // Aucun FRAGMENT résiduel : le dernier groupe de l'IBAN ne doit pas survivre.
+  expect(allText).not.toContain('189');
+
   expect(allText).toContain('support@example.com'); // RFC 2606 fixture kept
   // Non-régression : le catalogue produit traverse le remix intact.
   expect(allText).toContain('Desk Lamp');
