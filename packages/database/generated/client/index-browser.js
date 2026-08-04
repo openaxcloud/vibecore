@@ -557,6 +557,22 @@ exports.Prisma.DeploymentEnvironmentScalarFieldEnum = {
   name: 'name'
 };
 
+exports.Prisma.ReleaseManifestScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  deploymentId: 'deploymentId',
+  environment: 'environment',
+  version: 'version',
+  provider: 'provider',
+  artifactKind: 'artifactKind',
+  artifactRef: 'artifactRef',
+  artifactDigest: 'artifactDigest',
+  storeGeneration: 'storeGeneration',
+  configDigest: 'configDigest',
+  dbMigrationPoint: 'dbMigrationPoint',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.RateCardScalarFieldEnum = {
   id: 'id',
   version: 'version',
@@ -1851,6 +1867,7 @@ exports.Prisma.ModelName = {
   ProjectStorageObject: 'ProjectStorageObject',
   Deployment: 'Deployment',
   DeploymentEnvironment: 'DeploymentEnvironment',
+  ReleaseManifest: 'ReleaseManifest',
   RateCard: 'RateCard',
   AuditLog: 'AuditLog',
   SecurityEventResolution: 'SecurityEventResolution',

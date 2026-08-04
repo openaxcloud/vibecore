@@ -43,6 +43,7 @@ import type {
   CollaborationPresenceRecord,
   CustomRoleRecord,
   DeploymentRecord,
+  ReleaseManifestRecord,
   DomainVerificationRecord,
   EmailDeliveryEventRecord,
   EnterpriseSettingsRecord,
@@ -2894,6 +2895,48 @@ export class PrismaApiStore implements ApiStore {
         take: 500,
       })
     ).map(mapDeployment);
+  }
+
+  async createReleaseManifest(input: {
+    projectId: string;
+    deploymentId: string;
+    environment: string;
+    version: number;
+    provider: string;
+    artifactKind: 'static-snapshot' | 'server-image';
+    artifactRef: string;
+    artifactDigest: string;
+    storeGeneration?: string;
+    configDigest?: string;
+    dbMigrationPoint?: string;
+  }) {
+    return mapReleaseManifest(
+      await this.prisma.releaseManifest.create({
+        data: {
+          projectId: input.projectId,
+          deploymentId: input.deploymentId,
+          environment: input.environment,
+          version: input.version,
+          provider: input.provider,
+          artifactKind: input.artifactKind,
+          artifactRef: input.artifactRef,
+          artifactDigest: input.artifactDigest,
+          storeGeneration: input.storeGeneration ?? null,
+          configDigest: input.configDigest ?? null,
+          dbMigrationPoint: input.dbMigrationPoint ?? null,
+        },
+      }),
+    );
+  }
+
+  async listReleaseManifests(projectId: string, environment: string, options?: { take?: number }) {
+    return (
+      await this.prisma.releaseManifest.findMany({
+        where: { projectId, environment },
+        orderBy: { version: 'desc' },
+        take: options?.take ?? 100,
+      })
+    ).map(mapReleaseManifest);
   }
 
   async getActiveRateCard() {
@@ -6232,6 +6275,24 @@ function mapDeployment(deployment: any): DeploymentRecord {
     canceledAt: toIso(deployment.canceledAt),
     createdAt: toIso(deployment.createdAt)!,
     updatedAt: toIso(deployment.updatedAt),
+  };
+}
+
+function mapReleaseManifest(row: any): ReleaseManifestRecord {
+  return {
+    id: row.id,
+    projectId: row.projectId,
+    deploymentId: row.deploymentId,
+    environment: row.environment,
+    version: row.version,
+    provider: row.provider,
+    artifactKind: row.artifactKind,
+    artifactRef: row.artifactRef,
+    artifactDigest: row.artifactDigest,
+    storeGeneration: row.storeGeneration ?? undefined,
+    configDigest: row.configDigest ?? undefined,
+    dbMigrationPoint: row.dbMigrationPoint ?? undefined,
+    createdAt: toIso(row.createdAt)!,
   };
 }
 
