@@ -1573,6 +1573,31 @@ export class TestApiStore implements ApiStore {
     return published.size;
   }
 
+  async listPublishedProjects(organizationId: string) {
+    const projectIds = this.#orgProjectIds(organizationId);
+    const latest = new Map<string, string>();
+
+    for (const deployment of this.deployments.values()) {
+      if (!projectIds.has(deployment.projectId)) {
+        continue;
+      }
+
+      if (deployment.environment !== 'production' || deployment.status !== 'READY') {
+        continue;
+      }
+
+      const at = (deployment as any).createdAt ?? now();
+      const seen = latest.get(deployment.projectId);
+
+      // Publication la PLUS RÉCENTE par projet (comme l'implémentation Prisma).
+      if (!seen || new Date(at).getTime() > new Date(seen).getTime()) {
+        latest.set(deployment.projectId, at);
+      }
+    }
+
+    return [...latest.entries()].map(([projectId, publishedAt]) => ({ projectId, publishedAt }));
+  }
+
   async createSnapshot(input: {
     projectId: string;
     label?: string;

@@ -2475,6 +2475,36 @@ export class PrismaApiStore implements ApiStore {
     return rows.length;
   }
 
+  async listPublishedProjects(organizationId: string) {
+    /*
+     * Une ligne par PROJET, datée de sa publication la plus récente : republier
+     * ne doit pas faire compter le projet deux fois, et l'expiration se calcule
+     * sur la publication la plus récente.
+     */
+    const rows = await this.prisma.deployment.findMany({
+      where: {
+        project: { organizationId, deletedAt: null },
+        environmentName: 'production',
+        status: 'READY',
+      },
+      select: { projectId: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const latest = new Map<string, Date>();
+
+    for (const row of rows) {
+      if (!latest.has(row.projectId)) {
+        latest.set(row.projectId, row.createdAt);
+      }
+    }
+
+    return [...latest.entries()].map(([projectId, publishedAt]) => ({
+      projectId,
+      publishedAt: publishedAt.toISOString(),
+    }));
+  }
+
   async createSnapshot(input: {
     projectId: string;
     label?: string;

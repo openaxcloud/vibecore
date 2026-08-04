@@ -30,7 +30,7 @@ import {
 import {
   StripeBillingClient,
   assertQuota,
-  assertPublishedAppEntitlement,
+  assertPublishEntitlement,
   EntitlementError,
   aiModelCatalog,
   availableMachineSizes,
@@ -32089,26 +32089,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     /*
-     * Cap d'applications publiées, PAR PLAN (EX-05).
+     * ---- Contrat Starter : projets publiés ACTIFS (pas « déploiements ») ----
      *
-     * Deux corrections par rapport à l'état précédent :
-     *  - le cap était plan-INDÉPENDANT (20 pour tout le monde) alors que l'offre
-     *    Starter annonce « 1 app publiée » : un compte gratuit pouvait en publier
-     *    20 ;
-     *  - il était derrière `BILLING_CREDITS_ENABLED`, non défini en production —
-     *    donc jamais exécuté. Un entitlement décrit l'OFFRE, pas le modèle de
-     *    facturation à l'usage : il ne doit pas dépendre de ce flag.
+     * L'offre gratuite autorise UN projet publié à la fois. Trois conséquences
+     * que le modèle précédent (« cap de déploiements ») ratait :
+     *  - republier le MÊME projet est toujours autorisé — sinon on interdirait
+     *    de corriger un bug en production ;
+     *  - seul un DEUXIÈME projet distinct déclenche l'invitation à monter de
+     *    plan ;
+     *  - une publication Starter s'éteint au bout de 30 jours et cesse alors de
+     *    consommer la place, ce qui permet de republier sans intervention.
      *
-     * On exclut ce projet du compte : republier une app déjà en ligne ne doit
-     * jamais déclencher son propre cap.
+     * Hors du flag crédits : un entitlement décrit l'OFFRE, pas le modèle de
+     * facturation à l'usage ; derrière un flag non défini, il n'applique rien.
      */
-    const activeOthers = await store.countPublishedApps(project.organizationId, {
-      excludeProjectId: project.id,
-    });
+    const publications = await store.listPublishedProjects(project.organizationId).catch(() => []);
     const entitlementPlanKey = (await billingState(project.organizationId).catch(() => undefined))?.plan.key;
 
     try {
-      assertPublishedAppEntitlement({ planKey: entitlementPlanKey, active: activeOthers });
+      assertPublishEntitlement({
+        planKey: entitlementPlanKey,
+        targetProjectId: project.id,
+        publications: publications.map((p) => ({ projectId: p.projectId, publishedAt: new Date(p.publishedAt) })),
+      });
     } catch (error) {
       if (error instanceof EntitlementError) {
         await audit(request, store, {
@@ -32124,14 +32127,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       throw error;
     }
-
-    /*
-     * Le cap plat de 20 (`assertConcurrentPublishedApps`, flag-gaté) n'est plus
-     * appelé ici : le cap par plan ci-dessus le SUBSUME — 1 pour Starter, 20
-     * pour les plans payants, soit la borne dure Replit « 20 apps concurrentes,
-     * tous plans ». Garder les deux laissait un chemin dormant en production et
-     * deux sources de vérité pour la même règle.
-     */
 
     const publishUrl = source.url ?? source.previewUrl ?? buildDeploymentUrl(project, source);
     const published = await store.createDeployment(buildPublishedDeploymentInput(source, publishUrl));

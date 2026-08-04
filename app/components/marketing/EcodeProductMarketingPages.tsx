@@ -139,7 +139,7 @@ export const ecodePricingPlans = [
   {
     key: 'free',
     name: 'Starter',
-    description: 'Free daily Agent credits to learn and build',
+    description: 'Free Agent credits every day to learn and ship',
     monthlyCents: 0,
     annualMonthlyCents: 0,
     cta: 'Start for Free',
@@ -147,13 +147,18 @@ export const ecodePricingPlans = [
     enterprise: false,
     icon: <Sparkles className="h-7 w-7" aria-hidden />,
     gradient: 'from-slate-500 to-slate-700',
+    /*
+     * Carte publique Starter : 5 AVANTAGES, AUCUN quota chiffré. Les chiffres
+     * (stockage, bande passante, apps simultanées) sont des limites TECHNIQUES
+     * et vivent dans la rate card versionnée, pas sur une carte de prix.
+     * Rédaction E-Code : on reproduit le comportement, pas la marque.
+     */
     features: [
-      'Free daily Agent credits',
-      'Built-in database',
-      'Publish 1 project',
-      'Private / password deployments',
-      '1 collaborator',
-      '1 agent at a time',
+      'Free Agent credits, refreshed every day',
+      'Full-stack database included',
+      'Build slide decks, videos and animations',
+      'One published project at a time',
+      'Private or password-protected deployments',
     ],
   },
   {
@@ -1384,6 +1389,8 @@ export function EcodePricingPage() {
                 {[
                   ['Monthly price', 'Free', '€25', '€100', 'Custom'],
                   ['Monthly credits', 'Daily', '€25', '€100', 'Custom'],
+                  // Le seul plafond de publication de l'offre gratuite : un projet publié à la fois.
+                  ['Published projects at a time', '1', 'Unlimited', 'Unlimited', 'Unlimited'],
                   ['Collaborators', '1', '5', '15', 'Custom'],
                   ['Viewers', '-', '-', '50', 'Custom'],
                   ['Parallel agents', '1', '2', '10', 'Custom'],
