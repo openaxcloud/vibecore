@@ -1,6 +1,6 @@
 PREUVE LIVE — durcissement entitlement Starter (contre-audit expert)
 ====================================================================
-Base : main @ 35292dc00c328cc31e40fe2ec31abbe374ea3195
+Base : main @ 4e1f4c362270793f9a899cae1ea5c41917fb6a95
 Branche : fix/starter-entitlement-hardening (fix-forward)
 Banc : vraie API (tsx src/server.ts, port 3403) + vrai PostgreSQL 16 (port 55437)
 Compte : créé par le VRAI POST /auth/register ; plan résolu serveur = free/starter
@@ -65,3 +65,18 @@ maxConcurrentRunningWorkloads()         = 20         (workloads en EXÉCUTION)
 La borne « 20 apps simultanées » ne sert plus de plafond de publications : elle
 transformait « illimité » en plafond persistant de 20 projets publiés à vie.
 Test : un plan payant publie un 26e projet distinct -> autorisé.
+
+NOTE DE MERGE (4e1f4c362270793f9a899cae1ea5c41917fb6a95)
+---------------------------------------------------------------
+La branche partait de main @ 35292dc0, ANTÉRIEUR au revert c61bba01
+(« PR #93 protection mot de passe — contre-audit expert P0 SÉCURITÉ »).
+Elle transportait donc le code P104 retiré de main pour défaut de sécurité.
+
+Résolution des 4 conflits : base = version de MAIN, puis réapplication de MES
+seuls ajouts (createdAt / environmentName / organizationId / planKey + le gate
+d'extinction). Le bloc P104 n'a PAS été ressuscité — vérifié : 0 occurrence de
+accessConfigFromMetadata et accessGateHtml dans services/api/src/app.ts.
+
+Une résolution « garder HEAD » aurait silencieusement réintroduit la faille.
+
+Après merge : tsc 0 erreur ; 19/19 (publish + extinction).

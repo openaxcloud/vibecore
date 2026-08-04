@@ -1871,9 +1871,6 @@ export interface ApiStore {
         projectId: string;
         status: string;
         projectDeletedAt: Date | string | null;
-        // P104: the metadata JSON so the static-serve path can read the access
-        // config (metadata.access) without a second query.
-        metadata?: Record<string, unknown>;
         /*
          * Nécessaires pour éteindre RÉELLEMENT une publication Starter expirée
          * dans le chemin de service : sans la date ET le plan, le serveur ne peut

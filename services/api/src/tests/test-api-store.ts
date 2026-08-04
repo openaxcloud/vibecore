@@ -1916,7 +1916,6 @@ export class TestApiStore implements ApiStore {
       environmentName: (deployment as any).environment,
       organizationId: project?.organizationId,
       planKey: subscription?.status === 'ACTIVE' ? subscription.planKey : undefined,
-      metadata: deployment.metadata as Record<string, unknown> | undefined,
     };
   }
 

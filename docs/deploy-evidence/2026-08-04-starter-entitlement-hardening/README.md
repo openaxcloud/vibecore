@@ -1,6 +1,6 @@
 # Durcissement entitlement Starter — réponse au contre-audit expert
 
-Base : **main @ `35292dc00c328cc31e40fe2ec31abbe374ea3195`** · Branche : `fix/starter-entitlement-hardening` (fix-forward)
+Base : **main @ `4e1f4c362270793f9a899cae1ea5c41917fb6a95`** · Branche : `fix/starter-entitlement-hardening` (fix-forward)
 
 Le modèle « 1 projet publié actif » est conservé (jugé conceptuellement juste).
 Les **4 réserves bloquantes** sont corrigées ci-dessous.

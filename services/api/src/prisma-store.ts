@@ -2814,14 +2814,12 @@ export class PrismaApiStore implements ApiStore {
       select: {
         projectId: true,
         status: true,
-        metadata: true,
         createdAt: true,
         environmentName: true,
         /*
          * L'org et son abonnement sont nécessaires ICI : l'extinction à 30 jours
          * d'une publication Starter se décide dans le chemin de SERVICE, pas
-         * seulement dans le compteur. Une jointure indexée sur un chemin déjà
-         * ponctué d'un findUnique.
+         * seulement dans le compteur.
          */
         project: {
           select: {
@@ -2830,7 +2828,11 @@ export class PrismaApiStore implements ApiStore {
             organization: {
               select: {
                 // Relation au PLURIEL : on ne retient que l'abonnement ACTIF.
-                subscriptions: { where: { status: 'ACTIVE' }, select: { status: true, plan: { select: { key: true } } }, take: 1 },
+                subscriptions: {
+                  where: { status: 'ACTIVE' },
+                  select: { status: true, plan: { select: { key: true } } },
+                  take: 1,
+                },
               },
             },
           },
@@ -2848,7 +2850,6 @@ export class PrismaApiStore implements ApiStore {
       projectId: deployment.projectId,
       status: deployment.status,
       projectDeletedAt: deployment.project?.deletedAt ?? null,
-      metadata: (deployment.metadata ?? undefined) as Record<string, unknown> | undefined,
       createdAt: deployment.createdAt.toISOString(),
       environmentName: deployment.environmentName ?? undefined,
       organizationId: deployment.project?.organizationId,
