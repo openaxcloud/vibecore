@@ -1422,11 +1422,14 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
     }
   } catch (error) {
     await mkdir(evidenceRoot, { recursive: true });
-    await page.screenshot({
-      path: resolve(evidenceRoot, '02-preview-failed.png'),
-      animations: 'disabled',
-      caret: 'hide',
-    });
+
+    if (!page.isClosed()) {
+      await page.screenshot({
+        path: resolve(evidenceRoot, '02-preview-failed.png'),
+        animations: 'disabled',
+        caret: 'hide',
+      });
+    }
 
     const diagnosticSummary = await runtimeDiagnosticSummary(page, projectId, token).catch(() => undefined);
 
@@ -1456,51 +1459,76 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
     throw new Error(`Preview contains a runtime error: ${previewText.slice(0, 500)}`);
   }
 
-  const assetAudit = await body.evaluate(async (previewBody) => {
-    const previewDocument = previewBody.ownerDocument;
-    const previewWindow = previewDocument.defaultView;
+  let assetAudit: { brokenImages: string[]; remoteImages: string[]; visibleImageCount: number } = {
+    brokenImages: [],
+    remoteImages: [],
+    visibleImageCount: 0,
+  };
 
-    await previewDocument.fonts?.ready;
-
-    const images = Array.from(previewDocument.querySelectorAll('img')) as unknown as PreviewImageLike[];
-
-    const visibleImages = images.filter((image) => {
-      const bounds = image.getBoundingClientRect();
-      const style = previewWindow?.getComputedStyle(image as never);
-
-      return bounds.width > 0 && bounds.height > 0 && style?.visibility !== 'hidden' && style?.display !== 'none';
-    });
-
-    await Promise.all(
-      visibleImages.map(async (image) => {
-        if (image.complete) {
-          return;
-        }
-
-        await Promise.race([
-          image.decode().catch(() => undefined),
-          new Promise((resolveImage) => setTimeout(resolveImage, 10_000)),
-        ]);
-      }),
-    );
-
-    const brokenImages = visibleImages
-      .filter((image) => image.naturalWidth === 0 || image.naturalHeight === 0)
-      .map((image) => image.currentSrc || image.src);
-    const remoteImages = visibleImages
-      .map((image) => image.currentSrc || image.src)
-      .filter((source) => {
+  await expect
+    .poll(
+      async () => {
         try {
-          const url = new URL(source, previewDocument.location.href);
+          assetAudit = await body.evaluate(async (previewBody) => {
+            const previewDocument = previewBody.ownerDocument;
+            const previewWindow = previewDocument.defaultView;
 
-          return /^https?:$/.test(url.protocol) && url.origin !== previewDocument.location.origin;
-        } catch {
+            await previewDocument.fonts?.ready;
+
+            const images = Array.from(previewDocument.querySelectorAll('img')) as unknown as PreviewImageLike[];
+
+            const visibleImages = images.filter((image) => {
+              const bounds = image.getBoundingClientRect();
+              const style = previewWindow?.getComputedStyle(image as never);
+
+              return (
+                bounds.width > 0 && bounds.height > 0 && style?.visibility !== 'hidden' && style?.display !== 'none'
+              );
+            });
+
+            await Promise.all(
+              visibleImages.map(async (image) => {
+                if (image.complete) {
+                  return;
+                }
+
+                await Promise.race([
+                  image.decode().catch(() => undefined),
+                  new Promise((resolveImage) => setTimeout(resolveImage, 10_000)),
+                ]);
+              }),
+            );
+
+            const brokenImages = visibleImages
+              .filter((image) => image.naturalWidth === 0 || image.naturalHeight === 0)
+              .map((image) => image.currentSrc || image.src);
+            const remoteImages = visibleImages
+              .map((image) => image.currentSrc || image.src)
+              .filter((source) => {
+                try {
+                  const url = new URL(source, previewDocument.location.href);
+
+                  return /^https?:$/.test(url.protocol) && url.origin !== previewDocument.location.origin;
+                } catch {
+                  return true;
+                }
+              });
+
+            return { brokenImages, remoteImages, visibleImageCount: visibleImages.length };
+          });
+
           return true;
+        } catch {
+          return false;
         }
-      });
-
-    return { brokenImages, remoteImages, visibleImageCount: visibleImages.length };
-  });
+      },
+      {
+        message: 'The rendered Webview must stay attached while local asset integrity is audited',
+        intervals: [500, 1_000, 2_000],
+        timeout: 60_000,
+      },
+    )
+    .toBe(true);
 
   if (assetAudit.brokenImages.length > 0) {
     throw new Error(`Preview contains ${assetAudit.brokenImages.length} broken visible images`);
@@ -1684,10 +1712,13 @@ async function verifyScenarioPreview(page: Page, scenario: SolutionScenario, evi
   }
 
   const alternateRole = scenario.interaction.role === 'button' ? 'link' : 'button';
+
   const preferredTarget = frame
     .getByRole(scenario.interaction.role, { name: scenario.interaction.name, exact: true })
     .first();
+
   const alternateTarget = frame.getByRole(alternateRole, { name: scenario.interaction.name, exact: true }).first();
+
   let actualRole: 'button' | 'link' | undefined;
 
   await expect
@@ -1899,11 +1930,28 @@ async function main() {
     timezoneId: 'Europe/Paris',
     viewport: { width: 1440, height: 900 },
   };
+  const chromiumArgs = [
+    '--disable-background-networking',
+    '--disable-component-update',
+    '--disable-dev-shm-usage',
+    '--disable-extensions',
+    '--disable-renderer-backgrounding',
+    '--renderer-process-limit=2',
+  ];
 
-  const browser = browserProfile ? undefined : await chromium.launch({ headless: true });
+  const browserLaunchTimeout = Number(process.env.SOLUTION_PROOF_BROWSER_LAUNCH_TIMEOUT_MS ?? 5 * 60 * 1000);
+
+  const browser = browserProfile
+    ? undefined
+    : await chromium.launch({ args: chromiumArgs, headless: true, timeout: browserLaunchTimeout });
 
   let context = browserProfile
-    ? await chromium.launchPersistentContext(resolve(browserProfile), { headless: true, ...contextOptions })
+    ? await chromium.launchPersistentContext(resolve(browserProfile), {
+        args: chromiumArgs,
+        headless: true,
+        timeout: browserLaunchTimeout,
+        ...contextOptions,
+      })
     : await browser!.newContext(contextOptions);
 
   try {
@@ -1993,12 +2041,40 @@ async function main() {
 
     const agentPanel = page.getByTestId('ide-agent-panel');
     const originalPromptBubble = agentPanel.getByText(creationPrompt, { exact: true }).first();
-    await expect(agentPanel).toBeVisible({ timeout: 180_000 });
+
+    const agentPanelVisible = await agentPanel
+      .waitFor({ state: 'visible', timeout: 180_000 })
+      .then(() => true)
+      .catch(() => false);
+
+    if (!agentPanelVisible) {
+      await mkdir(evidenceRoot, { recursive: true });
+
+      if (!page.isClosed()) {
+        await page.screenshot({
+          path: resolve(evidenceRoot, '01-agent-panel-missing.png'),
+          animations: 'disabled',
+          caret: 'hide',
+        });
+      }
+
+      const surfaceText = (
+        await page
+          .locator('body')
+          .innerText()
+          .catch(() => '')
+      )
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      throw new Error(`The E-Code IDE Agent panel did not load at ${page.url()}: ${surfaceText.slice(0, 500)}`);
+    }
 
     const originalPromptVisible = await originalPromptBubble
       .waitFor({ state: 'visible', timeout: 10_000 })
       .then(() => true)
       .catch(() => false);
+
     let promptBubble = originalPromptVisible
       ? originalPromptBubble
       : agentPanel.locator('.bolt-chat-message-row-user').first();
@@ -2025,6 +2101,7 @@ async function main() {
         process.stdout.write(`${JSON.stringify({ status: 'archived-agent-conversation-restored' })}\n`);
 
         const restoredOriginalPrompt = agentPanel.getByText(creationPrompt, { exact: true }).first();
+
         const restoredExactPromptVisible = await restoredOriginalPrompt
           .waitFor({ state: 'visible', timeout: 60_000 })
           .then(() => true)
