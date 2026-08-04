@@ -1,6 +1,6 @@
 import { hashPassword } from '@vibecore/auth';
 import { createDatabaseClient } from '@vibecore/database';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { ErasureProof, PurgeStorageInventory } from '../account-purge.js';
 import { eraseSubjectStorage } from '../account-storage-purge.js';
@@ -630,6 +630,133 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
         prismaB.$disconnect(),
         prismaC.$disconnect(),
       ]);
+    }
+  });
+
+  /*
+   * RR-20260804-CODEX-10 A.2 — partial-thaw recovery. releasePurgeGuarantee /
+   * reconcilePurgeFreezes must NEVER delete the plan row while a freeze it owns is
+   * still up. The plan is the only durable pointer back to a frozen id, so deleting
+   * it early would strand the freeze forever. The membership/object-storage THAW is
+   * `store.mutateSystemSettingIds(key, { remove })`; we spy it to fail one side and
+   * assert the plan survives + the reconciler recovers.
+   */
+
+  it('(12) A.2: a FAILED membership thaw keeps the plan (freeze not stranded); reconciler recovers', async () => {
+    const prisma = createDatabaseClient();
+
+    try {
+      const store = new PrismaApiStore(prisma);
+      const { user, org, project } = await seedAccount(store);
+      await requestElapsedDeletion(store, user.id);
+
+      // Fail ONLY the membership REMOVE (thaw); adds + the object-storage remove work.
+      const realMutate = store.mutateSystemSettingIds.bind(store);
+      const spy = vi.spyOn(store, 'mutateSystemSettingIds').mockImplementation(async (key, change) => {
+        if (key === MEMBERSHIP_FROZEN && change.remove) {
+          throw new Error('boom: membership thaw failed');
+        }
+
+        return realMutate(key, change);
+      });
+
+      // Physical erase fails → purge throws → finally runs releasePurgeGuarantee.
+      await expect(
+        store.purgeUserAccount({ userId: user.id }, { eraseStorage: async () => ({ classes: [], verified: false }) }),
+      ).rejects.toThrow(/ACCOUNT_PURGE_PHYSICAL_INCOMPLETE/);
+
+      // The membership thaw failed → membership STILL frozen, object-storage lifted,
+      // and the plan is KEPT (never deleted while a freeze it owns remains).
+      expect(await frozenSet(store, MEMBERSHIP_FROZEN)).toContain(org.id);
+      expect(await frozenSet(store, OBJECT_STORAGE_FROZEN)).not.toContain(project.id);
+      expect((await store.listSystemSettings()).find((s) => s.key === `purge.plan.${user.id}`)?.value ?? null).not.toBeNull();
+
+      // Recovery: un-spy → the reconciler lifts the membership freeze AND deletes the plan.
+      spy.mockRestore();
+      const { reconciled } = await store.reconcilePurgeFreezes();
+      expect(reconciled).toBeGreaterThanOrEqual(1);
+      expect(await frozenSet(store, MEMBERSHIP_FROZEN)).not.toContain(org.id);
+      expect((await store.listSystemSettings()).find((s) => s.key === `purge.plan.${user.id}`)).toBeUndefined();
+    } finally {
+      await prisma.$disconnect();
+    }
+  });
+
+  it('(13) A.2: a crash between the two thaws (object-storage thaw fails) keeps the plan; reconciler recovers', async () => {
+    const prisma = createDatabaseClient();
+
+    try {
+      const store = new PrismaApiStore(prisma);
+      const { user, org, project } = await seedAccount(store);
+      await requestElapsedDeletion(store, user.id);
+
+      // Membership thaw succeeds, then the object-storage thaw fails — i.e. a crash
+      // AFTER the first thaw and BEFORE the second completes.
+      const realMutate = store.mutateSystemSettingIds.bind(store);
+      const spy = vi.spyOn(store, 'mutateSystemSettingIds').mockImplementation(async (key, change) => {
+        if (key === OBJECT_STORAGE_FROZEN && change.remove) {
+          throw new Error('boom: object-storage thaw failed');
+        }
+
+        return realMutate(key, change);
+      });
+
+      await expect(
+        store.purgeUserAccount({ userId: user.id }, { eraseStorage: async () => ({ classes: [], verified: false }) }),
+      ).rejects.toThrow(/ACCOUNT_PURGE_PHYSICAL_INCOMPLETE/);
+
+      // Membership lifted, object-storage STILL frozen, and the plan is KEPT.
+      expect(await frozenSet(store, MEMBERSHIP_FROZEN)).not.toContain(org.id);
+      expect(await frozenSet(store, OBJECT_STORAGE_FROZEN)).toContain(project.id);
+      expect((await store.listSystemSettings()).find((s) => s.key === `purge.plan.${user.id}`)?.value ?? null).not.toBeNull();
+
+      // Recovery: the reconciler lifts the object-storage freeze AND deletes the plan.
+      spy.mockRestore();
+      const { reconciled } = await store.reconcilePurgeFreezes();
+      expect(reconciled).toBeGreaterThanOrEqual(1);
+      expect(await frozenSet(store, OBJECT_STORAGE_FROZEN)).not.toContain(project.id);
+      expect((await store.listSystemSettings()).find((s) => s.key === `purge.plan.${user.id}`)).toBeUndefined();
+    } finally {
+      await prisma.$disconnect();
+    }
+  });
+
+  it('(14) A.2: the reconciler itself never deletes a plan while a thaw fails (retries next pass)', async () => {
+    const prisma = createDatabaseClient();
+
+    try {
+      const store = new PrismaApiStore(prisma);
+      const { user, org, project } = await seedAccount(store);
+
+      // Simulate a crashed run: both freezes + a plan persisted, nothing released.
+      await store.mutateSystemSettingIds(MEMBERSHIP_FROZEN, { add: org.id });
+      await store.mutateSystemSettingIds(OBJECT_STORAGE_FROZEN, { add: project.id });
+      await store.setSystemSetting({ key: `purge.plan.${user.id}`, value: { orgIds: [org.id], projectIds: [project.id] } });
+
+      // Fail the object-storage thaw during reconcile.
+      const realMutate = store.mutateSystemSettingIds.bind(store);
+      const spy = vi.spyOn(store, 'mutateSystemSettingIds').mockImplementation(async (key, change) => {
+        if (key === OBJECT_STORAGE_FROZEN && change.remove) {
+          throw new Error('boom: object-storage thaw failed');
+        }
+
+        return realMutate(key, change);
+      });
+
+      const first = await store.reconcilePurgeFreezes();
+      expect(first.reconciled).toBe(0); // could not fully thaw → plan NOT deleted
+      expect(await frozenSet(store, OBJECT_STORAGE_FROZEN)).toContain(project.id); // still frozen
+      expect((await store.listSystemSettings()).find((s) => s.key === `purge.plan.${user.id}`)?.value ?? null).not.toBeNull();
+
+      // Next pass, thaw works → freeze lifted AND plan deleted.
+      spy.mockRestore();
+      const second = await store.reconcilePurgeFreezes();
+      expect(second.reconciled).toBeGreaterThanOrEqual(1);
+      expect(await frozenSet(store, OBJECT_STORAGE_FROZEN)).not.toContain(project.id);
+      expect(await frozenSet(store, MEMBERSHIP_FROZEN)).not.toContain(org.id);
+      expect((await store.listSystemSettings()).find((s) => s.key === `purge.plan.${user.id}`)).toBeUndefined();
+    } finally {
+      await prisma.$disconnect();
     }
   });
 });
