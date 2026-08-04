@@ -14,9 +14,8 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { describe, expect, it } from 'vitest';
-
 import { creditPlanCatalog } from '@vibecore/billing';
+import { describe, expect, it } from 'vitest';
 
 const root = join(__dirname, '..', '..', '..');
 const readSource = (relative: string) => readFileSync(join(root, relative), 'utf8');
@@ -40,8 +39,10 @@ describe('carte publique Starter — 5 avantages, aucun quota chiffré', () => {
     const starter = creditPlanCatalog.find((plan) => plan.key === 'starter')!;
     const joined = starter.features.join(' | ').toLowerCase();
 
-    // crédits Agent quotidiens · base de données · slides/vidéos/animations ·
-    // un projet publié · déploiements privés ou protégés par mot de passe
+    /*
+     * crédits Agent quotidiens · base de données · slides/vidéos/animations ·
+     * un projet publié · déploiements privés ou protégés par mot de passe
+     */
     expect(joined).toMatch(/agent credits/);
     expect(joined).toMatch(/every day|daily/);
     expect(joined).toMatch(/database/);
@@ -54,8 +55,10 @@ describe('carte publique Starter — 5 avantages, aucun quota chiffré', () => {
     const starter = creditPlanCatalog.find((plan) => plan.key === 'starter')!;
 
     for (const feature of starter.features) {
-      // « One published project » est une structure d'offre, pas un quota chiffré :
-      // on interdit les unités (Go/GB/requêtes) et les compteurs numériques.
+      /*
+       * « One published project » est une structure d'offre, pas un quota chiffré :
+       * on interdit les unités (Go/GB/requêtes) et les compteurs numériques.
+       */
       expect(feature).not.toMatch(/\d+\s?(GB|Go|GiB|requests|requêtes|projects|vCPU)/i);
     }
   });
@@ -79,7 +82,9 @@ describe('les deux pages de prix ne publient plus de valeur sans source', () => 
   }
 
   it('les deux pages annoncent UN projet publié à la fois', () => {
-    expect(withoutComments(readSource(MARKETING_PAGE))).toMatch(/One published project at a time|Published projects at a time/);
+    expect(withoutComments(readSource(MARKETING_PAGE))).toMatch(
+      /One published project at a time|Published projects at a time/,
+    );
     expect(withoutComments(readSource(EXACT_PRICING_PAGE))).toMatch(
       /One published project at a time|Published projects at a time/,
     );
@@ -93,8 +98,10 @@ describe('les deux pages de prix ne publient plus de valeur sans source', () => 
   it('la page comparative ne chiffre plus les limites TECHNIQUES Starter', () => {
     const source = withoutComments(readSource(EXACT_PRICING_PAGE));
 
-    // CPU/RAM/stockage/bande passante Starter restent « — » tant qu'ils ne sont
-    // pas capturés en réel : ce ne sont pas des avantages commerciaux.
+    /*
+     * CPU/RAM/stockage/bande passante Starter restent « — » tant qu'ils ne sont
+     * pas capturés en réel : ce ne sont pas des avantages commerciaux.
+     */
     for (const row of ['CPU cores', 'Memory', 'Storage', 'Bandwidth']) {
       const line = source.split('\n').find((l) => l.includes(`'${row}'`));
       expect(line, `ligne manquante pour ${row}`).toBeTruthy();

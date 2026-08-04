@@ -147,6 +147,7 @@ export const ecodePricingPlans = [
     enterprise: false,
     icon: <Sparkles className="h-7 w-7" aria-hidden />,
     gradient: 'from-slate-500 to-slate-700',
+
     /*
      * Carte publique Starter : 5 AVANTAGES, AUCUN quota chiffré. Les chiffres
      * (stockage, bande passante, apps simultanées) sont des limites TECHNIQUES
@@ -1389,6 +1390,7 @@ export function EcodePricingPage() {
                 {[
                   ['Monthly price', 'Free', '€25', '€100', 'Custom'],
                   ['Monthly credits', 'Daily', '€25', '€100', 'Custom'],
+
                   // Le seul plafond de publication de l'offre gratuite : un projet publié à la fois.
                   ['Published projects at a time', '1', 'Unlimited', 'Unlimited', 'Unlimited'],
                   ['Collaborators', '1', '5', '15', 'Custom'],
