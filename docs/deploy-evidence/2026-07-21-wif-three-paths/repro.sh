@@ -7,9 +7,21 @@
 #  (2) run GitHub suivi par NONCE EXACT (jamais « le plus récent ») ;
 #  (3) négatif GKE = refus IAM PRÉCIS 401/403 + contenu de refus contrôlé
 #      (000/404/5xx ne prouve RIEN → échec) ;
-#  (4) trap de teardown installé DÈS la création du projet (aucune ressource
-#      laissée en cas d'erreur intermédiaire) ;
+#  (4) trap de teardown ARMÉ *AVANT* `gcloud projects create` ET
+#      `gcloud billing projects link` (correction expert RR-20260723-CODEX-07) :
+#      si la liaison billing échoue sous set -e, le trap EXIT nettoie quand même
+#      le projet créé. Teardown idempotent ET SÛR si le projet n'existe pas encore.
 #  (5) rejoue les 3 chemins et archive le nouveau run.
+#
+# Corrections expert RR-20260723-CODEX-08 (RR-08) §P0-A2-09 — teardown FAIL-CLOSED
+# (logique dans teardown-lib.sh, testée par mock gcloud dans teardown-lib.spec.sh) :
+#  (a) un échec de `gcloud projects describe` n'est PLUS lu comme « projet absent » :
+#      le motif d'erreur est parsé pour distinguer un NOT_FOUND *authentifié* des
+#      erreurs transitoires / de permission ;
+#  (b) `describe` est RÉESSAYÉ sur erreurs transitoires ;
+#  (c) `gcloud projects delete` est TENTÉ même si l'état est illisible (UNKNOWN) ;
+#  (d) le REÇU de nettoyage ÉCHOUE (exit != 0) si l'état final n'est ni
+#      DELETE_REQUESTED ni un NOT_FOUND authentifié.
 #
 # Projet de TEST dédié (jamais la prod). Zéro clé de service. Coût cible ~0 $.
 # Prérequis : gcloud (admin org), docker, gh (openaxcloud/vibecore), kubectl,
@@ -47,35 +59,63 @@ Q(){ grep -vE "WARNING|Python 3|reinstall|CLOUDSDK|compatible Python|gcloud comp
 fail(){ echo "ASSERTION FAILED: $*" | tee -a "$OUT/run.log"; exit 1; }
 retry(){ local n=0 max="${RETRY_MAX:-8}"; until "$@"; do n=$((n+1)); [ "$n" -ge "$max" ] && return 1; sleep 12; done; }
 
-# ---- 0. provisioning + TRAP TEARDOWN dès la 1re ressource ------------------
+# Logique de teardown FAIL-CLOSED (corrections RR-08 : describe classé/réessayé,
+# delete tenté même si état illisible, reçu de nettoyage fail-closed). Testée en
+# isolation via mock gcloud dans teardown-lib.spec.sh.
+source "$HERE/teardown-lib.sh"
+
+# ---- 0. provisioning : TRAP TEARDOWN armé AVANT toute ressource facturable --
+# Correction expert RR-20260723-CODEX-07 : l'ID du projet est calculé D'ABORD,
+# puis le `trap teardown EXIT` est armé AVANT `gcloud projects create` ET AVANT
+# `gcloud billing projects link`. Ainsi, si la liaison billing échoue sous set -e
+# (le script sortirait immédiatement), le trap EXIT nettoie tout de même le projet
+# déjà créé → 0 ressource facturable résiduelle.
 log "0. idempotence : projets ecode-wif-proof-* ACTIFS ?"
 EXISTING=$(gcloud projects list --filter="projectId:ecode-wif-proof-* AND lifecycleState:ACTIVE" --format="value(projectId)" 2>/dev/null | Q | head -1 || true)
-if [ -n "$EXISTING" ]; then PROJECT="$EXISTING"; log "  réutilise $PROJECT"; else
-  PROJECT="ecode-wif-proof-$(date +%s | tail -c 7)"
-  log "  crée $PROJECT sous folder $FOLDER"
-  gcloud projects create "$PROJECT" --folder="$FOLDER" --name="ECode WIF Proof" 2>&1 | Q | tail -1
-  gcloud billing projects link "$PROJECT" --billing-account="$BILLING" 2>&1 | Q | tail -1
+if [ -n "$EXISTING" ]; then PROJECT="$EXISTING"; PROJECT_PREEXISTING=1; else
+  PROJECT="ecode-wif-proof-$(date +%s | tail -c 7)"; PROJECT_PREEXISTING=0
 fi
 
-# TEARDOWN idempotent, installé MAINTENANT (dès que le projet existe) via trap EXIT :
-# toute erreur intermédiaire (set -e / fail) déclenche le nettoyage → 0 ressource résiduelle.
+# Suppression des sous-ressources (best-effort ; le projects delete emporte le reste).
+_wif_subres_delete(){
+  gcloud container clusters delete "$CLUSTER" --project="$PROJECT" --zone="$ZONE" --quiet 2>&1 | Q | tail -1 || true
+  gcloud run services delete wif-proof --project="$PROJECT" --region="$REGION" --quiet 2>&1 | Q | tail -1 || true
+  gcloud artifacts repositories delete wif-proof --project="$PROJECT" --location="$REGION" --quiet 2>&1 | Q | tail -1 || true
+  gcloud iam workload-identity-pools providers delete github --project="$PROJECT" --location=global --workload-identity-pool=github-pool --quiet 2>&1 | Q | tail -1 || true
+  gcloud iam workload-identity-pools delete github-pool --project="$PROJECT" --location=global --quiet 2>&1 | Q | tail -1 || true
+  for sa in wif-authorized wif-wrong; do gcloud iam service-accounts delete "${sa}@${PROJECT}.iam.gserviceaccount.com" --project="$PROJECT" --quiet 2>&1 | Q | tail -1 || true; done
+}
+
+# TEARDOWN FAIL-CLOSED (RR-08) : un échec de `describe` n'est PLUS lu comme « absent ».
+# wif_teardown_project classe l'état (retry sur transitoire), TENTE le delete même si
+# l'état est illisible, et n'émet CLEANUP_RECEIPT=OK que sur DELETE_REQUESTED ou
+# NOT_FOUND authentifié — sinon le reçu ÉCHOUE et le script sort en erreur (fail-closed).
 TEARDOWN_DONE=0
 teardown(){
   local rc=$?
   [ "$TEARDOWN_DONE" = 1 ] && return; TEARDOWN_DONE=1
+  local trace="$OUT/teardown-trace.txt"
   { echo "# TEARDOWN $(date -u +%FT%TZ) (exit rc=$rc)"
-    gcloud container clusters delete "$CLUSTER" --project="$PROJECT" --zone="$ZONE" --quiet 2>&1 | Q | tail -1 || true
-    gcloud run services delete wif-proof --project="$PROJECT" --region="$REGION" --quiet 2>&1 | Q | tail -1 || true
-    gcloud artifacts repositories delete wif-proof --project="$PROJECT" --location="$REGION" --quiet 2>&1 | Q | tail -1 || true
-    gcloud iam workload-identity-pools providers delete github --project="$PROJECT" --location=global --workload-identity-pool=github-pool --quiet 2>&1 | Q | tail -1 || true
-    gcloud iam workload-identity-pools delete github-pool --project="$PROJECT" --location=global --quiet 2>&1 | Q | tail -1 || true
-    for sa in wif-authorized wif-wrong; do gcloud iam service-accounts delete "${sa}@${PROJECT}.iam.gserviceaccount.com" --project="$PROJECT" --quiet 2>&1 | Q | tail -1 || true; done
-    gcloud projects delete "$PROJECT" --quiet 2>&1 | Q | tail -2 || true
-    echo "PROJECT_STATE=$(gcloud projects describe "$PROJECT" --format="value(lifecycleState)" 2>/dev/null | Q)"
-  } | tee "$OUT/teardown-trace.txt"
+    wif_teardown_project "$PROJECT" _wif_subres_delete
+  } | tee "$trace"
+  # Fail-closed : si le reçu de nettoyage a échoué, propager un exit non-zéro
+  # (sans masquer un rc d'origine déjà non-zéro).
+  if grep -q "CLEANUP_RECEIPT=FAILED" "$trace" 2>/dev/null; then
+    echo "TEARDOWN_FAIL_CLOSED=1 (reçu de nettoyage en échec — projet potentiellement non supprimé)" | tee -a "$trace"
+    [ "$rc" -eq 0 ] && exit 1
+  fi
 }
 trap teardown EXIT
-log "  trap teardown INSTALLÉ (projet $PROJECT sera nettoyé quoi qu'il arrive)"
+log "  trap teardown ARMÉ AVANT create/billing (projet $PROJECT) — nettoyage garanti même si la liaison billing échoue"
+
+# Création + liaison billing APRÈS l'armement du trap : toute erreur ici est rattrapée.
+if [ "$PROJECT_PREEXISTING" = 1 ]; then
+  log "  réutilise $PROJECT (déjà ACTIF)"
+else
+  log "  crée $PROJECT sous folder $FOLDER"
+  gcloud projects create "$PROJECT" --folder="$FOLDER" --name="ECode WIF Proof" 2>&1 | Q | tail -1
+  gcloud billing projects link "$PROJECT" --billing-account="$BILLING" 2>&1 | Q | tail -1
+fi
 
 PN=$(gcloud projects describe "$PROJECT" --format="value(projectNumber)" 2>/dev/null | Q)
 BUCKET="${PROJECT}-secret-data"; AUTH_SA="wif-authorized@${PROJECT}.iam.gserviceaccount.com"; WRONG_SA="wif-wrong@${PROJECT}.iam.gserviceaccount.com"
@@ -178,14 +218,27 @@ kubectl annotate serviceaccount ksa-authorized -n wif "iam.gke.io/gcp-service-ac
 retry gcloud iam service-accounts add-iam-policy-binding "$AUTH_SA" --project="$PROJECT" --role="roles/iam.workloadIdentityUser" \
   --member="serviceAccount:${PROJECT}.svc.id.goog[wif/ksa-authorized]" >/dev/null 2>&1 || fail "grant workloadIdentityUser (GKE KSA)"
 kubectl create serviceaccount ksa-unbound -n wif >/dev/null 2>&1 || true
+# krun_pod POD KSA CMD — crée le pod avec retries et NE PAS avaler l'erreur (un
+# `kubectl run` qui échoue silencieusement donnait « pods not found » → READ_HTTP vide
+# → faux échec de chemin). stderr capturé dans $OUT/POD.run.log.
+krun_pod(){
+  local pod="$1" ksa="$2" cmd="$3" i
+  for i in 1 2 3; do
+    kubectl delete pod "$pod" -n wif --ignore-not-found >/dev/null 2>&1 || true
+    if kubectl run "$pod" -n wif --image=google/cloud-sdk:slim --restart=Never \
+         --overrides="{\"spec\":{\"serviceAccountName\":\"$ksa\"}}" --quiet -- bash -c "$cmd" \
+         > "$OUT/${pod}.run.log" 2>&1; then return 0; fi
+    sleep 12
+  done
+  return 1
+}
 log "  attente propagation IAM GKE (60s)"; sleep 60
 POD_CMD="set -e
 T=\$(curl -s -H 'Metadata-Flavor: Google' 'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token' | python3 -c 'import sys,json;print(json.load(sys.stdin)[\"access_token\"])')
 SA=\$(curl -s -H 'Metadata-Flavor: Google' 'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/email')
 CODE=\$(curl -s -o /tmp/b -w '%{http_code}' -H \"Authorization: Bearer \$T\" 'https://storage.googleapis.com/storage/v1/b/${BUCKET}/o/secret.txt?alt=media')
 echo IDENTITY=\$SA; echo READ_HTTP=\$CODE; echo SECRET_CONTENT=\$(cat /tmp/b)"
-kubectl run gke-authorized -n wif --image=google/cloud-sdk:slim --restart=Never \
-  --overrides="{\"spec\":{\"serviceAccountName\":\"ksa-authorized\"}}" --quiet -- bash -c "$POD_CMD" >/dev/null 2>&1 || true
+krun_pod gke-authorized ksa-authorized "$POD_CMD" || fail "kubectl run gke-authorized a échoué après retries (voir gke-authorized.run.log)"
 kubectl wait --for=jsonpath='{.status.phase}'=Succeeded pod/gke-authorized -n wif --timeout=150s >/dev/null 2>&1 || \
   kubectl wait --for=jsonpath='{.status.phase}'=Failed pod/gke-authorized -n wif --timeout=60s >/dev/null 2>&1 || true
 kubectl logs gke-authorized -n wif > "$OUT/path1-gke-authorized.txt" 2>&1 || true
@@ -203,8 +256,7 @@ echo IDENTITY_EMAIL:\$SA
 CODE=\$(curl -s -m 20 -o /tmp/b -w '%{http_code}' -H \"Authorization: Bearer \$T\" 'https://storage.googleapis.com/storage/v1/b/${BUCKET}/o/secret.txt?alt=media')
 echo BUCKET_READ_HTTP:\$CODE
 echo BUCKET_READ_BODY:\$(head -c 400 /tmp/b)"
-kubectl run gke-unbound -n wif --image=google/cloud-sdk:slim --restart=Never \
-  --overrides="{\"spec\":{\"serviceAccountName\":\"ksa-unbound\"}}" --quiet -- bash -c "$NEG_CMD" >/dev/null 2>&1 || true
+krun_pod gke-unbound ksa-unbound "$NEG_CMD" || fail "kubectl run gke-unbound a échoué après retries (voir gke-unbound.run.log)"
 kubectl wait --for=jsonpath='{.status.phase}'=Succeeded pod/gke-unbound -n wif --timeout=150s >/dev/null 2>&1 || \
   kubectl wait --for=jsonpath='{.status.phase}'=Failed pod/gke-unbound -n wif --timeout=60s >/dev/null 2>&1 || true
 kubectl logs gke-unbound -n wif > "$OUT/path1-gke-negative.txt" 2>&1 || true

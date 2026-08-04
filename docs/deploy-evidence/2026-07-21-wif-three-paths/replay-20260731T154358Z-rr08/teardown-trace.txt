@@ -1,0 +1,12 @@
+# TEARDOWN 2026-07-31T16:02:43Z (exit rc=0)
+DESCRIBE_CLASSIFICATION=PRESENT:ACTIVE (rc=0)
+Deleted [https://container.googleapis.com/v1/projects/ecode-wif-proof-512642/zones/europe-west9-a/clusters/wif-proof-gke].
+Deleted service [wif-proof].
+Deleted repository [wif-proof].
+Deleted workload identity pool provider [github].
+Deleted workload identity pool [github-pool].
+deleted service account [wif-authorized@ecode-wif-proof-512642.iam.gserviceaccount.com]
+deleted service account [wif-wrong@ecode-wif-proof-512642.iam.gserviceaccount.com]
+PROJECT_DELETE_ATTEMPT=ok
+PROJECT_STATE=DELETE_REQUESTED
+CLEANUP_RECEIPT=OK

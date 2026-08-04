@@ -47,6 +47,118 @@ nonce, conclusion=success), **GKE négatif 403 + corps permission-denied**
 (`path1-gke-negative.txt`), **teardown joué par le trap** (`teardown-trace.txt`,
 `PROJECT_STATE=DELETE_REQUESTED`). **0 projet actif restant → ~0 $.**
 
+## Correction RR-20260723-CODEX-07 §P0-A2-09 — trap ARMÉ *AVANT* create/billing
+Le refus V3 disait « trap installé DÈS la création », mais dans les faits le
+`trap teardown EXIT` était armé **après** `gcloud projects create` **ET**
+`gcloud billing projects link`. Sous `set -Eeuo pipefail`, si la **liaison billing
+échoue**, le script sort AVANT l'armement du trap → **projet laissé ACTIF** (ressource
+facturable orpheline). Corrigé :
+- L'ID du projet est calculé **d'abord**, puis `trap teardown EXIT` est armé **AVANT**
+  `gcloud projects create` et `gcloud billing projects link` (`repro.sh` :
+  `teardown()` l.94, `trap` l.108, `create` l.116, `billing link` l.117).
+- Le teardown est **idempotent ET SÛR si le projet n'existe pas encore** : garde
+  `gcloud projects describe` → s'il n'existe pas, `PROJECT_STATE=ABSENT`, aucune erreur.
+  *(⚠️ cette garde binaire a ensuite été refusée — voir RR-08 ci-dessous : un échec de
+  `describe` ≠ « projet absent ».)*
+
+**Preuve du cas négatif billing-fail** (rejoué live 2026-07-23) :
+`replay-20260723T191146Z-negative-billingfail/` — `repro.sh` lancé avec un compte de
+facturation **invalide** (`WIF_BILLING=000000-000000-000000`). `run.log` montre le trap
+armé **avant** le create puis « crée `ecode-wif-proof-833908` » ; la liaison billing
+échoue (`IAM_PERMISSION_DENIED`) sous `set -e` → **le trap EXIT nettoie le projet créé**
+→ `teardown-trace.txt` : `PROJECT_STATE=DELETE_REQUESTED` (vérifié indépendamment :
+`gcloud projects describe` → `DELETE_REQUESTED`, `0` projet `ecode-wif-proof-*` ACTIF).
+Voir `NEGATIVE-CASE-README.md` dans ce dossier. Avec l'ancien ordre, ce même échec aurait
+laissé le projet **ACTIF**.
+
+**3 chemins REJOUÉS après le correctif** (projet frais `ecode-wif-proof-834022`) :
+`replay-20260723T191340Z/` — Cloud Run autorisé 200 + contenu / négatif 403
+(`path3-cloudrun-*.json`) ; GitHub OIDC run **30037477577** nonce-vérifié `success`
+(`path2-github-oidc.txt`, autorisé READ_HTTP=200 + `NEGATIVE_OK`) ; GKE autorisé
+READ_HTTP=200 + contenu / négatif **403 + corps permission-denied**, identité
+`ecode-wif-proof-834022.svc.id.goog` ≠ GSA autorisée (`path1-gke-*.txt`) ;
+teardown joué par le trap (`teardown-trace.txt` : cluster/run/AR/pool/2 SAs supprimés →
+`PROJECT_STATE=DELETE_REQUESTED`). Le diff exact de l'ordre trap↔create est archivé dans
+`trap-order-fix.diff`.
+
+> Note GCP : `gcloud projects describe` (autoritatif) renvoie `DELETE_REQUESTED` dès le
+> teardown ; `gcloud projects list --filter=lifecycleState:ACTIVE` peut encore lister le
+> projet quelques minutes (lag d'index d'eventual-consistency). Les ressources facturables
+> (cluster GKE, Cloud Run, AR, SAs) sont supprimées et le projet est marqué pour purge →
+> facturation stoppée, coût **~0 $**.
+
+## Correction RR-20260723-CODEX-08 (RR-08) §P0-A2-09 — teardown FAIL-CLOSED
+> ⚠️ **Superseded par RR-09 (ci-dessous)** : la classification décrite ici s'appuyait sur
+> le **texte** d'erreur + `gcloud auth print-access-token` pour conclure `NOTFOUND`. RR-09 a
+> refusé ce critère (un jeton valide ≠ autorisation `projects.get`). La logique effective est
+> désormais celle de la section RR-09 (statut HTTP structuré). Ce bloc est conservé pour la
+> traçabilité du refus.
+
+Le refus RR-08 vise la garde `if gcloud projects describe … ; then … else "absent"` :
+**tout** échec de `describe` (réseau / API / auth / quota) était lu comme « projet absent »
+→ la suppression était **sautée** → un flap pouvait laisser le projet **actif**. La preuve
+billing-fail ne couvrait que le cas où `describe` répond bien.
+
+Corrigé — logique extraite dans **`teardown-lib.sh`** (sourcée par `repro.sh`), FAIL-CLOSED :
+1. **Parse du motif d'erreur** : `NOTFOUND` n'est conclu que sur motif not-found **ET** auth
+   prouvée saine (`gcloud auth print-access-token`) ; permission explicite / transitoire /
+   auth non prouvée ⇒ `UNKNOWN`.
+2. **Retry** de `describe` sur erreurs transitoires (réseau/5xx/quota), borné.
+3. **`gcloud projects delete` tenté MÊME quand l'état est `UNKNOWN`** (illisible).
+4. **Reçu fail-closed** : `CLEANUP_RECEIPT=OK` seulement si l'état FINAL est `DELETE_REQUESTED`
+   ou `NOTFOUND` authentifié ; sinon `CLEANUP_RECEIPT=FAILED` → `repro.sh` sort en erreur.
+
+**Test à injection de fautes (exigence 5)** — `teardown-lib.spec.sh` + `rr08-teardown-faultinjection/`
+(`spec-output.txt`, **PASS=23 FAIL=0**) : un **mock `gcloud`** simule chaque panne. Le cas
+`transient_persistent` (erreur réseau à chaque `describe`) prouve que **la suppression est
+tentée quand même** et que le **reçu échoue fail-closed** ; `notfound_auth` vs
+`notfound_auth_broken` prouvent qu'un not-found n'est conclu « absent » **que** si l'auth est
+saine ; `delete_fails_active` prouve que le reçu **ne passe pas** sur un projet resté ACTIF.
+
+**Preuves live (2026-07-31, nouveau teardown)** :
+- Cas négatif billing-fail — `replay-20260731T151804Z-rr08-negative-billingfail/` :
+  `DESCRIBE_CLASSIFICATION=PRESENT:ACTIVE` → delete tenté → `PROJECT_STATE=DELETE_REQUESTED`,
+  `CLEANUP_RECEIPT=OK` (projet `ecode-wif-proof-511088`, `describe` indépendant = `DELETE_REQUESTED`).
+- 3 chemins rejoués — `replay-20260731T154358Z-rr08/` (projet frais `ecode-wif-proof-512642`) :
+  Cloud Run 200/403 ; GitHub OIDC nonce-vérifié `success` ; GKE 200 / négatif 403+corps ;
+  teardown fail-closed → `CLEANUP_RECEIPT=OK`, `PROJECT_STATE=DELETE_REQUESTED`.
+
+## Correction RR-20260723-CODEX-09 (RR-09) §P0-A2-09 — NOTFOUND sur STATUT HTTP structuré
+Le refus RR-09 vise le critère `NOTFOUND` de RR-08 : conclure « absent » sur le message
+ambigu « project **not found or permission denied** » dès que `gcloud auth print-access-token`
+réussit est **faux** — un jeton valide prouve l'**authentification**, pas l'**autorisation**
+`projects.get`. Un principal authentifié mais **sans** droit de lecture sur un projet
+**existant** reçoit ce même message et aurait été classé « absent » → suppression sautée.
+
+Corrigé — `classify_project_state` (dans `teardown-lib.sh`) interroge **Cloud Resource
+Manager v1 `projects.get`** et classe sur le **code HTTP structuré**, jamais sur le texte :
+- `200` → `PRESENT:<lifecycleState>` ;
+- `404` **ET** `error.status == NOT_FOUND` → `NOTFOUND` (vrai absent, non ambigu) ;
+- `401` / `403` / `404` sans statut structuré → **`UNKNOWN`** (jamais « absent ») ;
+- `000` / `408` / `429` / `5xx` → transitoire → retry borné → `UNKNOWN`.
+
+Le `delete` est **tenté même en `UNKNOWN`**, et le reçu n'émet `CLEANUP_RECEIPT=OK` que sur
+`DELETE_REQUESTED` ou `NOT_FOUND` structuré (404) — sinon `FAILED` + `exit != 0`.
+
+> Fait GCP vérifié live : `GET /v1/projects/<inexistant>` renvoie **HTTP 403 PERMISSION_DENIED**
+> (pas 404). L'ambiguïté 403 reste donc `UNKNOWN` → delete tenté → reçu fail-closed. C'est le
+> comportement maximalement prudent voulu par RR-09.
+
+**Test à injection de fautes** — `teardown-lib.spec.sh` (mocks `gcloud` **et** `curl`),
+`rr08-teardown-faultinjection/spec-output.txt` : **PASS=31 FAIL=0**. Cas ajoutés RR-09 :
+`ambiguous_403` (403 « not found or permission denied » → **PAS** NOTFOUND, reçu FAILED) ;
+**`exists_no_getdelete`** (jeton VALIDE + projet EXISTANT + principal **sans** `projects.get`
+NI `projects.delete` : GET 403, delete 403 → **reçu FAILED, pas OK**) ; `ambiguous_404_no_status`
+(404 sans statut → PAS NOTFOUND) ; `notfound_structured_404` (seul cas concluant NOTFOUND).
+
+**Preuves live (2026-08-03, teardown RR-09 REST)** :
+- Négatif billing-fail — `replay-20260803T064401Z-rr09-negative-billingfail/` :
+  `DESCRIBE_CLASSIFICATION=PRESENT:ACTIVE` (via CRM 200) → delete → `PROJECT_STATE=DELETE_REQUESTED`,
+  `CLEANUP_RECEIPT=OK` (projet `ecode-wif-proof-739444`).
+- 3 chemins — `replay-20260803T064443Z-rr09/` (projet frais `ecode-wif-proof-739484`) :
+  Cloud Run 200/403 ; GitHub OIDC nonce-vérifié `success` ; GKE 200 / négatif 403+corps ;
+  teardown fail-closed → `CLEANUP_RECEIPT=OK`, `PROJECT_STATE=DELETE_REQUESTED`.
+
 ## Cadre (sécurité)
 - Projet de TEST dédié `ecode-wif-proof-*`, créé sous le **folder de test
   `780512954993` (ecode-factory-test)** — JAMAIS la prod `vibecore-495216` —
