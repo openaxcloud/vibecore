@@ -101,6 +101,24 @@ model User {
   aiMessageFeedback           AiMessageFeedback[]
   spendLimits                 UserSpendLimit[]
   agentRoutingCards           AgentRoutingCard[]             @relation("AgentRoutingCardAuthor")
+  loginLockout                AccountLockout?
+}
+
+/**
+ * Per-account brute-force / credential-stuffing lock (defence-in-depth on top of
+ * the per-IP login rate limit). One row per user; the failed-login counter is
+ * incremented atomically in a row-locked transaction so concurrent attempts can't
+ * race it. See login-throttle.ts for the pure state machine.
+ */
+model AccountLockout {
+  userId        String    @id
+  failedCount   Int       @default(0)
+  firstFailedAt DateTime?
+  lockedUntil   DateTime?
+  updatedAt     DateTime  @updatedAt
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([lockedUntil])
 }
 
 model Account {
