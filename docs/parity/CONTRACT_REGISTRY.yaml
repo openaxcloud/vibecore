@@ -90,9 +90,13 @@ contracts:
     hardeningStatus: HARDENED_PENDING_REVIEW
     anchor: "v7 (RR-09): code typé ECODE_LOCK_GENERATION_REVOKED capturé DANS LE LOG DU DEPLOYMENT d un publish sur l image CORRIGÉE déployée (merge #57 05319065, api 05319065be) — 03/08 : ACTIVE→READY/200, REVOKED→FAILED (log deployment contient le code littéral)+URL 410, restauré→READY/200, prod==main vérifié. Artefacts docs/deploy-evidence/2026-08-03-rr09-code-in-deployment/"
     expectedReviewer: OpenAI-Codex
-    signatureResult: PENDING_REVIEW
-    announcedSignature: "SIGNATURE ANNONCÉE au reçu RR-20260804-CODEX-10 (directive Avi 2026-08-04) — portée v7 : code typé ECODE_LOCK_GENERATION_REVOKED persisté dans le STATUT/LOG du deployment lors d'un publish sur l'IMAGE DÉPLOYÉE (merge #57 = 05319065, image 05319065be), rejeu live ACTIVE→READY/200 / REVOKED→FAILED+410 / restore→READY/200 (artefact 2f2c065f…, PR #76 @450459a5). Passage à SIGNED dès dépôt du texte brut du reçu (hash recomputable) — même garde que les P0."
-    openDependencies: "texte brut du reçu RR-10 à déposer ; l'api/manager prod n'interprètent pas encore NIX_STORE_GENERATIONS (durcissement post-signature)"
+    signatureResult: SIGNED
+    reviewer: OpenAI-Codex
+    signedAt: "2026-08-04"
+    reviewReceiptId: RR-20260804-CODEX-10
+    reviewReceiptIdV7: RR-20260804-CODEX-10
+    signedScope: "v7 (§D du reçu, verbatim) : « Réserve RR-09 levée. Artefacts : publish sur image corrigée 05319065be — ACTIVE→READY/200 ; REVOKED→FAILED ; log persistant du deployment contient littéralement ECODE_LOCK_GENERATION_REVOKED ; URL du deployment refusé → 410 ; restauration→READY/200. » Reçu COMPLET : docs/parity/incoming/REPONSE_EXPERT_V7_20260804.md (sha256 7832522b…)."
+    openDependencies: "l'api/manager prod n'interprètent pas encore NIX_STORE_GENERATIONS (durcissement post-signature, hors portée signée)"
   - contractId: CTR-PROJECT-FACTORY
     file: PROJECT_FACTORY_CONTRACT.md
     contractVersion: 1
