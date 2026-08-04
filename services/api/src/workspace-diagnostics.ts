@@ -75,22 +75,43 @@ export async function recordLifecycleEvent(
     orderBy: { at: 'desc' },
   });
 
-  const from = (last?.state as WorkspaceLifecycleState | undefined) ?? 'PENDING';
+  /*
+   * Genesis: with no prior event we may legitimately start observing a workspace
+   * mid-life (a warm reopen surfaces straight as RUNNING; a cold provision as
+   * STARTING). Record whatever the first observed state is unconditionally — the
+   * machine only constrains transitions BETWEEN recorded events, not the entry
+   * point. (Previously this defaulted `from` to PENDING and dropped any first
+   * event that wasn't STARTING/FAILED, so a warm reopen recorded nothing at all.)
+   */
+  if (!last) {
+    await db.workspaceLifecycleEvent.create({
+      data: {
+        workspaceId,
+        state: toState,
+        reason: reason ?? null,
+        detail: detail === undefined ? undefined : (detail as object),
+      },
+    });
+
+    return toState;
+  }
+
+  const from = last.state as WorkspaceLifecycleState;
+
+  if (from === toState) {
+    return null;
+  }
 
   try {
     assertWorkspaceLifecycleTransition(from, toState);
   } catch (error) {
     if (error instanceof LifecycleError) {
-      // Illegal edge: keep the trail honest by recording it as-is would corrupt
-      // the machine, so skip. The status itself is still updated by the caller.
+      // Illegal edge between recorded events: recording it would corrupt the
+      // machine, so skip. The status itself is still updated by the caller.
       return null;
     }
 
     throw error;
-  }
-
-  if (from === toState) {
-    return null;
   }
 
   await db.workspaceLifecycleEvent.create({

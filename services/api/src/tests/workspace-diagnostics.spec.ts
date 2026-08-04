@@ -88,10 +88,17 @@ describe('recordLifecycleEvent (#6 append-only transition guard)', () => {
     expect(created).toEqual([]);
   });
 
-  it('defaults an empty history to PENDING and allows PENDING -> STARTING', async () => {
+  it('records the genesis event (empty history) unconditionally — STARTING', async () => {
     const { db, created } = fakeLifecycleDb(null);
     const recorded = await recordLifecycleEvent(db, 'w', 'STARTING');
     expect(recorded).toBe('STARTING');
     expect(created).toEqual([{ state: 'STARTING' }]);
+  });
+
+  it('records a non-STARTING genesis (warm reopen surfaces straight as RUNNING)', async () => {
+    const { db, created } = fakeLifecycleDb(null);
+    const recorded = await recordLifecycleEvent(db, 'w', 'RUNNING');
+    expect(recorded).toBe('RUNNING');
+    expect(created).toEqual([{ state: 'RUNNING' }]);
   });
 });
