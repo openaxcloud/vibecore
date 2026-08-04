@@ -14893,16 +14893,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireOrganizationNotSuspended(store, authorized.organizationId);
 
     /*
-     * BLOCKER #6: seed the lifecycle trail with STARTING at the entry of every
-     * provision/reopen. The cold path also emits STARTING inside
-     * provisionWorkspaceOnDemand, but a WARM reopen reaches the RUNNING emit
-     * below without ever passing through it — so without this, the trail's first
-     * event would be RUNNING and STARTING would be missing. Illegal-from-current
-     * (e.g. RUNNING->STARTING when already running) is dropped by the machine.
-     */
-    emitLifecycle(authorized.workspaceId, 'STARTING', 'provision.request');
-
-    /*
      * Replit-parity service-shutdown limit: suspend workspace provisioning when
      * the org's credits are exhausted and a shutdown cap is configured. Inert
      * unless BILLING_CREDITS_ENABLED=true (SHADOW/default never blocks).
@@ -14981,6 +14971,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           })
         : await ensureRuntimeWorkspaceRecord(workspaceId, project);
     authorized.workspaceId = workspaceRecord.id;
+
+    /*
+     * BLOCKER #6: seed the lifecycle trail with STARTING now that the Workspace
+     * row EXISTS (ensureRuntimeWorkspaceRecord just created/loaded it) — emitting
+     * before this point hit the workspaceId FK and was silently dropped. A warm
+     * reopen already sitting at RUNNING makes RUNNING->STARTING illegal, which the
+     * machine drops; a genuine (re)provision records STARTING as intended.
+     */
+    emitLifecycle(authorized.workspaceId, 'STARTING', 'provision.request');
 
     const workspaceStartAt = nowSeconds();
 
@@ -15412,6 +15411,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           status: managerStatus === 'failed' ? 'FAILED' : 'STOPPED',
         })
         .catch(() => undefined);
+    } else if (managerStatus === 'running') {
+      /*
+       * A cold provision's create returns 'starting' and never reaches its own
+       * RUNNING reconcile; the IDE's status poll is where the pod is actually
+       * observed live. Heal the row to RUNNING (so it stops lagging at
+       * PENDING/STARTING) and record the RUNNING lifecycle transition here (#6).
+       * emitLifecycle is idempotent — repeated polls collapse to a no-op.
+       */
+      await store
+        .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'RUNNING' })
+        .catch(() => undefined);
+
+      emitLifecycle(authorized.workspaceId, 'RUNNING', 'status.running');
     }
 
     return runtimeSession(authorized.workspaceId, managerStatus, { managerWorkspace });
