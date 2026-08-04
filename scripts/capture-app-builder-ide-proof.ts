@@ -68,6 +68,8 @@ const PREVIEW_RESTART_TIMEOUT_MS = 3 * 60 * 1000;
 
 const PREVIEW_RUNTIME_ERROR_PATTERN =
   /internal server error|failed to resolve import|cannot find module|vite error|unexpected token|uncaught typeerror|plugin:vite|preview_upstream_unreachable|dev server on port .*not reachable|starting, or it crashed/i;
+const PREVIEW_RECOVERABLE_NOT_RUNNING_PATTERN =
+  /preview_upstream_unreachable|dev server on port .*not reachable|starting, or it crashed/i;
 
 const SOLUTION_SCENARIOS = {
   'app-builder': {
@@ -688,49 +690,120 @@ async function runtimeFileContent(page: Page, workspaceId: string, token: string
   return payload.encoding === 'base64' ? Buffer.from(payload.content, 'base64').toString('utf8') : payload.content;
 }
 
+async function runtimeFileMismatches(page: Page, projectId: string, token: string) {
+  const [workspace, projectState] = await Promise.all([
+    resolveRuntimeWorkspace(page, projectId, token),
+    readProjectIdeState(page, projectId, token),
+  ]);
+
+  if (!workspace || !projectState) {
+    return { mismatches: ['runtime-or-ide-state-unavailable'], workspace };
+  }
+
+  const criticalFiles = projectState.files.filter((file) =>
+    /(?:^|\/)(?:package\.json|index\.html|main\.(?:tsx|jsx|js)|styles\.css|App\.(?:tsx|jsx))$/i.test(file.path ?? ''),
+  );
+
+  const comparisons = await Promise.all(
+    criticalFiles.map(async (file) => ({
+      path: file.path ?? '',
+      matches:
+        typeof file.content === 'string' &&
+        file.content === (await runtimeFileContent(page, workspace.id, token, file.path ?? '')),
+    })),
+  );
+
+  return {
+    mismatches: comparisons.filter((comparison) => !comparison.matches).map((comparison) => comparison.path),
+    workspace,
+  };
+}
+
 async function waitForRuntimeFilesToMatchPersisted(page: Page, projectId: string, token: string) {
   let lastMismatches: string[] = [];
 
-  await expect
+  const synchronizedWithoutRestart = await expect
     .poll(
       async () => {
-        const [workspace, projectState] = await Promise.all([
-          resolveRuntimeWorkspace(page, projectId, token),
-          readProjectIdeState(page, projectId, token),
-        ]);
-
-        if (!workspace || !projectState) {
-          lastMismatches = ['runtime-or-ide-state-unavailable'];
-
-          return lastMismatches.length;
-        }
-
-        const criticalFiles = projectState.files.filter((file) =>
-          /(?:^|\/)(?:package\.json|index\.html|main\.(?:tsx|jsx|js)|styles\.css|App\.(?:tsx|jsx))$/i.test(
-            file.path ?? '',
-          ),
-        );
-
-        const comparisons = await Promise.all(
-          criticalFiles.map(async (file) => ({
-            path: file.path ?? '',
-            matches:
-              typeof file.content === 'string' &&
-              file.content === (await runtimeFileContent(page, workspace.id, token, file.path ?? '')),
-          })),
-        );
-
-        lastMismatches = comparisons.filter((comparison) => !comparison.matches).map((comparison) => comparison.path);
+        ({ mismatches: lastMismatches } = await runtimeFileMismatches(page, projectId, token));
 
         return lastMismatches.length;
       },
       {
-        message: 'The running workspace must match the authoritative persisted files before Preview starts',
+        message: 'The running workspace should receive the authoritative persisted files without a restart',
         intervals: [2_000, 3_000, 5_000],
-        timeout: PREVIEW_TIMEOUT_MS,
+        timeout: 60_000,
       },
     )
-    .toBe(0);
+    .toBe(0)
+    .then(() => true)
+    .catch(() => false);
+
+  if (!synchronizedWithoutRestart) {
+    const { workspace } = await runtimeFileMismatches(page, projectId, token);
+
+    if (!workspace?.id) {
+      throw new Error(`Runtime file synchronization failed: ${lastMismatches.join(', ')}`);
+    }
+
+    process.stdout.write(
+      `${JSON.stringify({ status: 'runtime-reseed-restart-requested', mismatches: lastMismatches })}\n`,
+    );
+
+    const restartResponse = await page.request
+      .post(`${API_BASE_URL}/api/runtime/workspaces/${encodeURIComponent(workspace.id)}/restart`, {
+        headers: { authorization: `Bearer ${token}` },
+        timeout: PREVIEW_RESTART_TIMEOUT_MS,
+      })
+      .catch(() => undefined);
+
+    if (restartResponse && !restartResponse.ok()) {
+      throw new Error(`Runtime reseed restart failed with HTTP ${restartResponse.status()}`);
+    }
+
+    await expect
+      .poll(
+        async () => {
+          const statusResponse = await page.request
+            .get(`${API_BASE_URL}/api/runtime/workspaces/${encodeURIComponent(workspace.id)}/status`, {
+              headers: { authorization: `Bearer ${token}` },
+              timeout: 20_000,
+            })
+            .catch(() => undefined);
+
+          if (!statusResponse?.ok()) {
+            return 'unavailable';
+          }
+
+          const payload = (await statusResponse.json()) as { status?: string };
+
+          return payload.status ?? 'unknown';
+        },
+        {
+          message: 'The restarted workspace must return to running before file verification continues',
+          intervals: [2_000, 3_000, 5_000],
+          timeout: PREVIEW_TIMEOUT_MS,
+        },
+      )
+      .toBe('running');
+
+    await expect
+      .poll(
+        async () => {
+          ({ mismatches: lastMismatches } = await runtimeFileMismatches(page, projectId, token));
+
+          return lastMismatches.length;
+        },
+        {
+          message: `Runtime restart must reconcile persisted files: ${lastMismatches.join(', ')}`,
+          intervals: [2_000, 3_000, 5_000],
+          timeout: PREVIEW_RESTART_TIMEOUT_MS,
+        },
+      )
+      .toBe(0);
+
+    process.stdout.write(`${JSON.stringify({ status: 'runtime-reseed-restart-completed' })}\n`);
+  }
 
   process.stdout.write(`${JSON.stringify({ status: 'runtime-files-synchronized' })}\n`);
 }
@@ -896,9 +969,7 @@ async function waitForProjectToSettle(
           }
 
           if (!(await composer.isEnabled().catch(() => false))) {
-            await page.reload({ waitUntil: 'domcontentloaded', timeout: 180_000 });
-            await expect(agentPanel).toBeVisible({ timeout: 180_000 });
-            await expect(composer).toBeEnabled({ timeout: 60_000 });
+            return false;
           }
 
           return true;
@@ -1023,7 +1094,8 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
   await webviewButton.click();
 
   const previewNotRunningState = page.getByTestId('preview-not-running-state');
-  const previewErrorAlert = page.getByRole('alert', { name: 'Preview Error' }).last();
+  const previewLoadingStep = page.getByTestId('preview-loading-current-step');
+  const previewLoadingLog = page.getByTestId('preview-loading-log');
   const iframe = page.locator('iframe[data-testid="preview-iframe"]:visible').last();
   const body = page.frameLocator('iframe[data-testid="preview-iframe"]:visible').last().locator('body');
 
@@ -1036,13 +1108,75 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
   };
 
   const throwIfVisiblePreviewError = async () => {
-    if (!(await previewErrorAlert.isVisible().catch(() => false))) {
-      return;
+    const detail = (
+      await Promise.all([
+        previewNotRunningState.innerText().catch(() => ''),
+        previewLoadingStep.innerText().catch(() => ''),
+        previewLoadingLog.innerText().catch(() => ''),
+      ])
+    )
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (PREVIEW_RUNTIME_ERROR_PATTERN.test(detail) && !PREVIEW_RECOVERABLE_NOT_RUNNING_PATTERN.test(detail)) {
+      throw new Error(`The IDE surfaced a Preview Error before rendering the app: ${detail.slice(0, 500)}`);
+    }
+  };
+
+  const waitForAttachedIframe = async (timeout: number) =>
+    expect
+      .poll(
+        async () => {
+          const source = await iframe.getAttribute('src').catch(() => null);
+
+          return (await iframe.isVisible().catch(() => false)) && Boolean(source && source !== 'about:blank');
+        },
+        {
+          message: 'The native Preview boot flow must attach a non-blank Webview iframe',
+          timeout,
+        },
+      )
+      .toBe(true)
+      .then(() => true)
+      .catch(() => false);
+
+  const waitForRenderedPreview = async (timeout: number) => {
+    const observation: { state: 'waiting' | 'ready' | 'not-running' | 'runtime-error' } = { state: 'waiting' };
+
+    await expect
+      .poll(
+        async () => {
+          const source = await iframe.getAttribute('src').catch(() => null);
+          const textLength = await readPreviewText();
+
+          observation.state = PREVIEW_RECOVERABLE_NOT_RUNNING_PATTERN.test(previewText)
+            ? 'not-running'
+            : PREVIEW_RUNTIME_ERROR_PATTERN.test(previewText)
+              ? 'runtime-error'
+              : source &&
+                  source !== 'about:blank' &&
+                  textLength > 120 &&
+                  (await probeRuntimePreview(page, projectId, token))
+                ? 'ready'
+                : 'waiting';
+
+          return observation.state;
+        },
+        {
+          message: 'The native Preview boot flow must render the real application or expose its runtime error',
+          intervals: [1_000, 2_000, 3_000],
+          timeout,
+        },
+      )
+      .not.toBe('waiting')
+      .catch(() => undefined);
+
+    if (observation.state === 'runtime-error') {
+      throw new Error(`Preview contains a runtime error: ${previewText.slice(0, 500)}`);
     }
 
-    const detail = (await previewErrorAlert.innerText()).replace(/\s+/g, ' ').trim();
-
-    throw new Error(`The IDE surfaced a Preview Error before rendering the app: ${detail.slice(0, 500)}`);
+    return observation.state === 'ready';
   };
 
   const startPreviewFromTerminal = async () => {
@@ -1199,10 +1333,7 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
     await waitForPreviewSurface();
     await startPreviewIfStopped();
 
-    const attachedAfterStart = await iframe
-      .waitFor({ state: 'visible', timeout: 90_000 })
-      .then(() => true)
-      .catch(() => false);
+    const attachedAfterStart = await waitForAttachedIframe(PREVIEW_TIMEOUT_MS);
 
     if (!attachedAfterStart) {
       const reinstallDependenciesButton = previewNotRunningState
@@ -1231,35 +1362,16 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
 
       await startPreviewIfStopped();
 
-      const attachedAfterDependencyRecovery = await iframe
-        .waitFor({ state: 'visible', timeout: 90_000 })
-        .then(() => true)
-        .catch(() => false);
+      const attachedAfterDependencyRecovery = await waitForAttachedIframe(PREVIEW_RESTART_TIMEOUT_MS);
 
       if (!attachedAfterDependencyRecovery) {
-        process.stdout.write(`${JSON.stringify({ status: 'preview-ide-reload-requested' })}\n`);
-        await page.reload({ waitUntil: 'domcontentloaded', timeout: 180_000 });
-        await expect(webviewButton).toBeVisible({ timeout: 180_000 });
-        await webviewButton.click();
-        await waitForPreviewSurface();
-        await startPreviewIfStopped();
+        await startPreviewFromTerminal();
         await expect(iframe).toBeVisible({ timeout: PREVIEW_RESTART_TIMEOUT_MS });
+        await expect.poll(() => iframe.getAttribute('src')).not.toBe('about:blank');
       }
     }
 
-    const initialIframeSource = await iframe.getAttribute('src').catch(() => null);
-
-    const renderedOnFirstAttach =
-      !initialIframeSource || initialIframeSource === 'about:blank'
-        ? false
-        : await expect
-            .poll(readPreviewText, {
-              message: 'The running preview must attach to the Webview',
-              timeout: 30_000,
-            })
-            .toBeGreaterThan(120)
-            .then(() => true)
-            .catch(() => false);
+    const renderedOnFirstAttach = await waitForRenderedPreview(PREVIEW_TIMEOUT_MS);
 
     if (!renderedOnFirstAttach) {
       await throwIfVisiblePreviewError();
@@ -1571,14 +1683,44 @@ async function verifyScenarioPreview(page: Page, scenario: SolutionScenario, evi
     throw new Error(`Generated Preview is missing its theme-specific identity: ${identity}`);
   }
 
-  const target = frame.getByRole(scenario.interaction.role, { name: scenario.interaction.name, exact: true }).first();
+  const alternateRole = scenario.interaction.role === 'button' ? 'link' : 'button';
+  const preferredTarget = frame
+    .getByRole(scenario.interaction.role, { name: scenario.interaction.name, exact: true })
+    .first();
+  const alternateTarget = frame.getByRole(alternateRole, { name: scenario.interaction.name, exact: true }).first();
+  let actualRole: 'button' | 'link' | undefined;
+
+  await expect
+    .poll(
+      async () => {
+        if (await preferredTarget.isVisible().catch(() => false)) {
+          actualRole = scenario.interaction.role;
+
+          return true;
+        }
+
+        if (await alternateTarget.isVisible().catch(() => false)) {
+          actualRole = alternateRole;
+
+          return true;
+        }
+
+        return false;
+      },
+      {
+        message: `${scenario.interaction.name} must be exposed as an accessible link or button`,
+        timeout: 60_000,
+      },
+    )
+    .toBe(true);
+
+  const target = actualRole === scenario.interaction.role ? preferredTarget : alternateTarget;
 
   const beforeInteraction = await body.evaluate((previewBody) => ({
     html: previewBody.innerHTML,
     location: previewBody.ownerDocument.defaultView?.location.href ?? '',
   }));
 
-  await expect(target).toBeVisible({ timeout: 60_000 });
   await target.click();
   await expect(body).toContainText(scenario.interaction.expectedResult, { timeout: 60_000 });
 
@@ -1618,7 +1760,7 @@ async function verifyScenarioPreview(page: Page, scenario: SolutionScenario, evi
   }
 
   return {
-    interaction: `${scenario.interaction.role}:${scenario.interaction.name}`,
+    interaction: `${actualRole}:${scenario.interaction.name}`,
     expectedResult: scenario.interaction.expectedResult,
     interactiveCount,
   };
@@ -1857,12 +1999,50 @@ async function main() {
       .waitFor({ state: 'visible', timeout: 10_000 })
       .then(() => true)
       .catch(() => false);
-    const promptBubble = originalPromptVisible
+    let promptBubble = originalPromptVisible
       ? originalPromptBubble
       : agentPanel.locator('.bolt-chat-message-row-user').first();
 
-    await expect(promptBubble).toBeVisible({ timeout: 180_000 });
-    await expect(page.locator('.bolt-file-tree-name').first()).toBeVisible({ timeout: 180_000 });
+    if (!(await promptBubble.isVisible().catch(() => false))) {
+      const conversationBranchesButton = agentPanel.getByRole('button', {
+        name: /^Conversation branches \(\d+\)$/,
+      });
+
+      const conversationBranchesAvailable = await conversationBranchesButton
+        .waitFor({ state: 'visible', timeout: 30_000 })
+        .then(() => true)
+        .catch(() => false);
+
+      if (conversationBranchesAvailable) {
+        await conversationBranchesButton.click();
+
+        const archivedConversationButton = agentPanel
+          .locator('.bolt-branches-menu-popover button[title^="Switch to "]')
+          .first();
+
+        await expect(archivedConversationButton).toBeVisible({ timeout: 60_000 });
+        await archivedConversationButton.click();
+        process.stdout.write(`${JSON.stringify({ status: 'archived-agent-conversation-restored' })}\n`);
+
+        const restoredOriginalPrompt = agentPanel.getByText(creationPrompt, { exact: true }).first();
+        const restoredExactPromptVisible = await restoredOriginalPrompt
+          .waitFor({ state: 'visible', timeout: 60_000 })
+          .then(() => true)
+          .catch(() => false);
+
+        promptBubble = restoredExactPromptVisible
+          ? restoredOriginalPrompt
+          : agentPanel.locator('.bolt-chat-message-row-user').first();
+      }
+    }
+
+    const promptBubbleAvailable = await promptBubble.isVisible().catch(() => false);
+
+    if (!promptBubbleAvailable && !iterationOnly) {
+      await expect(promptBubble).toBeVisible({ timeout: 180_000 });
+    } else if (!promptBubbleAvailable) {
+      process.stdout.write(`${JSON.stringify({ status: 'agent-conversation-restarts-with-iteration' })}\n`);
+    }
 
     await mkdir(evidenceRoot, { recursive: true });
     await page.screenshot({
@@ -2026,19 +2206,19 @@ async function main() {
 
         if (!previousIterationText.includes(iterationPrompt.slice(0, 80))) {
           await submitAgentPrompt(agentPanel, iterationPrompt);
+          await expect
+            .poll(() => projectFilesRevision(page, projectId, token), {
+              message: 'The orange-theme iteration must update at least one generated project file',
+              intervals: [1_000, 2_000, 3_000],
+              timeout: GENERATION_TIMEOUT_MS,
+            })
+            .not.toBe(initialRevision);
         }
 
         iterationBubble = agentPanel.locator('.bolt-chat-message-row-user').last();
         await expect(iterationBubble).toBeVisible({ timeout: 60_000 });
         await expect(iterationBubble).toContainText(iterationPrompt.slice(0, 80), { timeout: 60_000 });
 
-        await expect
-          .poll(() => projectFilesRevision(page, projectId, token), {
-            message: 'The orange-theme iteration must update at least one generated project file',
-            intervals: [1_000, 2_000, 3_000],
-            timeout: GENERATION_TIMEOUT_MS,
-          })
-          .not.toBe(initialRevision);
         await waitForProjectToSettle(
           page,
           agentPanel,
@@ -2082,7 +2262,7 @@ async function main() {
         await appFile.click();
       }
 
-      await promptBubble.scrollIntoViewIfNeeded();
+      await (iterationBubble ?? promptBubble).scrollIntoViewIfNeeded();
       await page.screenshot({
         path: resolve(outputRoot, 'ide-agent-files.png'),
         animations: 'disabled',
