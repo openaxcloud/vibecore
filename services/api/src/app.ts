@@ -8904,7 +8904,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         return reply.code(400).send({ error: 'Invalid password reset token', code: 'AUTH_INVALID_RESET_TOKEN' });
       }
 
-      await store.revokeAllSessions(user.id);
+      /*
+       * consumePasswordReset now revokes every session ATOMICALLY, in the same
+       * transaction as the password change — so there is no window where the
+       * password is changed but a hijacked session is still alive. (Previously the
+       * revoke was a separate post-reset call; a crash in between left the account
+       * recoverable-but-still-compromised.)
+       */
       await audit(request, store, { action: 'auth.password_reset.confirm', resourceType: 'user', resourceId: user.id });
 
       return { reset: true };

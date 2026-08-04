@@ -429,7 +429,19 @@ export class TestApiStore implements ApiStore {
 
     record.usedAt = now();
 
-    return this.updateUser({ userId: record.userId, passwordHash });
+    // Invalidate the user's other outstanding reset tokens (per-user single-use).
+    for (const other of this.passwordResets.values()) {
+      if (other.userId === record.userId && !other.usedAt) {
+        other.usedAt = now();
+      }
+    }
+
+    const user = await this.updateUser({ userId: record.userId, passwordHash });
+
+    // SECURITY: a reset revokes ALL of the user's sessions (kicks out a hijacker).
+    await this.revokeAllSessions(record.userId);
+
+    return user;
   }
 
   async setRecoveryCodes(userId: string, codeHashes: string[]) {

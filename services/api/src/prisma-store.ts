@@ -569,33 +569,61 @@ export class PrismaApiStore implements ApiStore {
 
   async consumePasswordReset(token: string, passwordHash: string) {
     const tokenHash = hashToken(token);
-    const record = await this.prisma.passwordResetToken.findUnique({ where: { tokenHash } });
-
-    if (!record) {
-      return undefined;
-    }
-
-    const consumed = await this.prisma.passwordResetToken.updateMany({
-      where: { tokenHash, usedAt: null, expiresAt: { gt: new Date() } },
-      data: { usedAt: new Date() },
-    });
-
-    if (consumed.count === 0) {
-      return undefined;
-    }
 
     /*
-     * Single-use must be per-user, not just per-token: invalidate every other
-     * outstanding reset token for this user so a previously-issued link (or one
-     * an attacker triggered) can no longer re-reset the password after a
-     * successful reset.
+     * The whole reset is ONE transaction so it is all-or-nothing: consume the
+     * token, invalidate the user's other reset tokens, set the new password, AND
+     * revoke every session. A partial reset (e.g. password changed but sessions
+     * left alive if a later step failed) would leave a hijacked session valid on
+     * the account the victim just tried to recover.
      */
-    await this.prisma.passwordResetToken.updateMany({
-      where: { userId: record.userId, usedAt: null },
-      data: { usedAt: new Date() },
-    });
+    return this.prisma.$transaction(async (tx) => {
+      /*
+       * Atomic single-use: the conditional updateMany row-locks the token. Under
+       * two concurrent confirms, the loser's updateMany re-evaluates the WHERE
+       * after the winner commits (usedAt now set) and matches 0 rows — so exactly
+       * one reset ever succeeds for a given token.
+       */
+      const consumed = await tx.passwordResetToken.updateMany({
+        where: { tokenHash, usedAt: null, expiresAt: { gt: new Date() } },
+        data: { usedAt: new Date() },
+      });
 
-    return this.updateUser({ userId: record.userId, passwordHash });
+      if (consumed.count === 0) {
+        return undefined;
+      }
+
+      const record = await tx.passwordResetToken.findUnique({ where: { tokenHash } });
+
+      if (!record) {
+        return undefined;
+      }
+
+      /*
+       * Single-use must be per-user, not just per-token: invalidate every other
+       * outstanding reset token for this user so a previously-issued link (or one
+       * an attacker triggered) can no longer re-reset the password afterwards.
+       */
+      await tx.passwordResetToken.updateMany({
+        where: { userId: record.userId, usedAt: null },
+        data: { usedAt: new Date() },
+      });
+
+      const user = await tx.user.update({ where: { id: record.userId }, data: { passwordHash } });
+
+      /*
+       * SECURITY: a password reset is unauthenticated (proven only by email
+       * control), so there is no "current session" to keep — revoke ALL of the
+       * user's sessions. This is what kicks a hijacker out of an account being
+       * recovered. findSessionByToken already rejects revokedAt sessions.
+       */
+      await tx.session.updateMany({
+        where: { userId: record.userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+
+      return mapUser(user);
+    });
   }
 
   async setRecoveryCodes(userId: string, codeHashes: string[]) {
