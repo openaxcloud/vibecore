@@ -1182,7 +1182,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
      * has a workspace — degrade that to an empty list.
      */
     try {
-      const [skillsResp, catalogResp, installedProjectResp, installedWorkspaceResp] = await Promise.all([
+      const [skillsResp, catalogResp, installedProjectResp, installedWorkspaceResp, auditResp] = await Promise.all([
         apiRequest(request, `/projects/${projectId}/skills`).catch(() => ({ skills: [] })),
         apiRequest(request, `/projects/${projectId}/skills/catalog`).catch(() => ({
           entries: [],
@@ -1190,6 +1190,9 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
         })),
         apiRequest(request, `/projects/${projectId}/skills/installed?scope=project`).catch(() => ({ skills: [] })),
         apiRequest(request, `/projects/${projectId}/skills/installed?scope=workspace`).catch(() => ({ skills: [] })),
+
+        // RPL-SK-001.3 — the audit journal for the project scope (fails open to []).
+        apiRequest(request, `/projects/${projectId}/skills/audit?scope=project`).catch(() => ({ events: [] })),
       ]);
 
       return json(
@@ -1199,6 +1202,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
           hasWorkspace: Boolean((catalogResp as any)?.hasWorkspace),
           installedProject: (installedProjectResp as any)?.skills ?? [],
           installedWorkspace: (installedWorkspaceResp as any)?.skills ?? [],
+          auditEvents: (auditResp as any)?.events ?? [],
         }),
       );
     } catch (error) {
@@ -1977,7 +1981,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
      * toggle the builtin catalog. Errors bubble as the API's status/code so the
      * panel can surface a clear message (e.g. SKILL_REPO_PRIVATE, SKILL_NO_WORKSPACE).
      */
-    if (['install', 'uninstall', 'enable-installed', 'disable-installed'].includes(intent)) {
+    if (['install', 'uninstall', 'enable-installed', 'disable-installed', 'revoke', 'approve'].includes(intent)) {
       const ownerRepo = (body.ownerRepo ?? '').trim();
       const scope = body.scope === 'workspace' ? 'workspace' : 'project';
 
@@ -1997,6 +2001,25 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       if (intent === 'uninstall') {
         const result = await apiRequest(request, `/projects/${projectId}/skills/installed`, {
           method: 'DELETE',
+          body: JSON.stringify({ ownerRepo, scope }),
+        });
+
+        return json({ ok: true, ...(result as any) });
+      }
+
+      // RPL-SK-001.4 revoke + RPL-SK-001.3 approve.
+      if (intent === 'revoke') {
+        const result = await apiRequest(request, `/projects/${projectId}/skills/installed/revoke`, {
+          method: 'POST',
+          body: JSON.stringify({ ownerRepo, scope, reason: (body.reason ?? '').trim() || undefined }),
+        });
+
+        return json({ ok: true, ...(result as any) });
+      }
+
+      if (intent === 'approve') {
+        const result = await apiRequest(request, `/projects/${projectId}/skills/installed/approve`, {
+          method: 'POST',
           body: JSON.stringify({ ownerRepo, scope }),
         });
 

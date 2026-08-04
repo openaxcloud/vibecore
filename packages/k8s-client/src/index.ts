@@ -21,6 +21,15 @@ export * from './scheduled-job.js';
  */
 export * from './app-build.js';
 
+/*
+ * Nix store generation registry (rotation/révocation) + ecode.lock.json
+ * (per-project toolchain lockfile) — CTR-RUNTIME-NIX. Pure domain modules;
+ * consumed by the api (lock enforcement at publish) and the manager
+ * (generation-aware store placement).
+ */
+export * from './nix-generations.js';
+export * from './ecode-lock.js';
+
 const execFile = promisify(execFileCallback);
 
 /*

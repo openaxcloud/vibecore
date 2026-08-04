@@ -1,7 +1,10 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import {
+  activeNixGeneration,
+  assertNixGenerationUsable,
   chooseNixStoreZone,
+  nixGenerationRegistryFromEnv,
   parseNixStorePvcZones,
   serverDeploymentName,
   workspaceAgentSecret,
@@ -320,22 +323,66 @@ export class WorkspaceManager {
   async resolveNixStorePlacement(
     requestedPvcName: string | undefined,
     pinnedZone?: string,
+
+    /*
+     * CTR-RUNTIME-NIX: an ecode.lock.json pin (generation id or catalog hash).
+     * Resolved through the generation registry's revocation gate — a REVOKED
+     * or unknown generation THROWS a typed error up to the caller (the publish
+     * fails with the reason), never falls back to another generation.
+     */
+    generationRef?: string,
   ): Promise<{ nixStorePvcName?: string; nixStoreZone?: string; nixStoreGenerationHash?: string }> {
-    const fallback = requestedPvcName ?? process.env.NIX_STORE_PVC_NAME;
-    const generationHash = process.env.NIX_STORE_GENERATION_HASH || undefined;
+    const registry = nixGenerationRegistryFromEnv();
+
+    let fallback: string | undefined;
+    let generationHash: string | undefined;
+    let zones: ReturnType<typeof parseNixStorePvcZones>;
+
+    if (registry) {
+      /*
+       * Registry mode (NIX_STORE_GENERATIONS set): rotation = which entry is
+       * ACTIVE; révocation = assertNixGenerationUsable throws. The legacy
+       * env trio (PVC/ZONES/HASH) is ignored — ONE source of truth.
+       */
+      const generation = generationRef
+        ? assertNixGenerationUsable(registry, generationRef)
+        : activeNixGeneration(registry);
+
+      if (!generation) {
+        // Registry present but nothing ACTIVE = store disabled by rotation
+        // document. An explicit non-clone PVC (operator experiment) may still
+        // pass through, ungoverned and WITHOUT a generation hash.
+        return requestedPvcName ? { nixStorePvcName: requestedPvcName } : {};
+      }
+
+      zones = Object.entries(generation.zones).map(([zone, pvcName]) => ({ zone, pvcName }));
+      generationHash = generation.catalogSha256;
+      fallback = requestedPvcName ?? zones[0]?.pvcName;
+    } else {
+      // Legacy env mode — byte-for-byte the pre-registry behaviour.
+      fallback = requestedPvcName ?? process.env.NIX_STORE_PVC_NAME;
+      generationHash = process.env.NIX_STORE_GENERATION_HASH || undefined;
+      zones = parseNixStorePvcZones(process.env.NIX_STORE_PVC_ZONES);
+    }
 
     if (!fallback) {
       return {};
     }
 
-    const zones = parseNixStorePvcZones(process.env.NIX_STORE_PVC_ZONES);
-
     /*
      * Only substitute when the requested PVC is one of the declared zonal
      * clones — an explicit one-off PVC (spike disk, an operator experiment)
-     * must never be silently rewritten to a different disk.
+     * must never be silently rewritten to a different disk. In registry mode
+     * an unknown disk also drops the generation hash: the guard would only
+     * block a disk the registry never governed.
      */
     if (zones.length === 0 || !zones.some((z) => z.pvcName === fallback)) {
+      const governed = zones.some((z) => z.pvcName === fallback);
+
+      if (registry && !governed && requestedPvcName) {
+        return { nixStorePvcName: fallback };
+      }
+
       return { nixStorePvcName: fallback, ...(generationHash ? { nixStoreGenerationHash: generationHash } : {}) };
     }
 
@@ -727,6 +774,9 @@ export class WorkspaceManager {
      */
     nixStorePvcName?: string;
 
+    /** CTR-RUNTIME-NIX: ecode.lock generation pin (id or catalog hash). */
+    nixGenerationRef?: string;
+
     // Machine-size resources (k8s quantities), applied verbatim on the container.
     cpuRequest?: string;
     cpuLimit?: string;
@@ -781,7 +831,7 @@ export class WorkspaceManager {
       // Per-request opt-in wins; cluster-wide kill switch as fallback (mirrors
       // startWorkspace). D3: the placement resolver substitutes the per-zone
       // clone + zone pin + generation guard when the multi-zone map is set.
-      ...(await this.resolveNixStorePlacement(input.nixStorePvcName)),
+      ...(await this.resolveNixStorePlacement(input.nixStorePvcName, undefined, input.nixGenerationRef)),
       cpuRequest: input.cpuRequest,
       cpuLimit: input.cpuLimit,
       memoryRequest: input.memoryRequest,

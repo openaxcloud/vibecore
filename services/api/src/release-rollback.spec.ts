@@ -86,6 +86,28 @@ describe('resolveRollbackImage (I-REL-1 / I-REL-2)', () => {
       ['fromDeploymentId', 'imageDigest', 'pullRef', 'resolvedWithoutLiveRevision'].sort(),
     );
   });
+
+  // Expert refusal v3, point 2 — the ORIGINAL release's generation pin is carried.
+  it('carries the release generation pin from retainRelease → RetainedRelease → RollbackPlan', () => {
+    const rel = retainRelease({
+      deploymentId: 'dep-v1',
+      projectId: 'proj123',
+      imageUri: IMAGE_URI,
+      digest: DIGEST,
+      createdAt: '2026-07-16T00:00:00Z',
+      storeGeneration: 'gen-2',
+    });
+    expect(rel.storeGeneration).toBe('gen-2');
+
+    const plan = resolveRollbackImage(rel, { revisionExists: false });
+    // The rollback re-pins gen-2 (the release's generation), NOT the current active.
+    expect(plan.storeGeneration).toBe('gen-2');
+  });
+
+  it('a release built without a lock carries no generation pin (rollback runs ungoverned, as the original did)', () => {
+    const plan = resolveRollbackImage(retained(), { revisionExists: true });
+    expect(plan.storeGeneration).toBeUndefined();
+  });
 });
 
 describe('resolveRollbackSecrets — rollback after secret rotation', () => {

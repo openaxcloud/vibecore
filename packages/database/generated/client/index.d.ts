@@ -104,6 +104,11 @@ export type ProjectSkill = $Result.DefaultSelection<Prisma.$ProjectSkillPayload>
  */
 export type InstalledSkill = $Result.DefaultSelection<Prisma.$InstalledSkillPayload>
 /**
+ * Model SkillAuditEvent
+ * 
+ */
+export type SkillAuditEvent = $Result.DefaultSelection<Prisma.$SkillAuditEventPayload>
+/**
  * Model ProjectEnvironment
  * 
  */
@@ -701,6 +706,21 @@ export type LedgerFxRate = $Result.DefaultSelection<Prisma.$LedgerFxRatePayload>
  * 
  */
 export type LedgerReconciliationRun = $Result.DefaultSelection<Prisma.$LedgerReconciliationRunPayload>
+/**
+ * Model PreviewReadinessBeacon
+ * 
+ */
+export type PreviewReadinessBeacon = $Result.DefaultSelection<Prisma.$PreviewReadinessBeaconPayload>
+/**
+ * Model WorkspaceLifecycleEvent
+ * 
+ */
+export type WorkspaceLifecycleEvent = $Result.DefaultSelection<Prisma.$WorkspaceLifecycleEventPayload>
+/**
+ * Model WorkspacePostMortem
+ * 
+ */
+export type WorkspacePostMortem = $Result.DefaultSelection<Prisma.$WorkspacePostMortemPayload>
 
 /**
  * Enums
@@ -1312,6 +1332,16 @@ export class PrismaClient<
     * ```
     */
   get installedSkill(): Prisma.InstalledSkillDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.skillAuditEvent`: Exposes CRUD operations for the **SkillAuditEvent** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more SkillAuditEvents
+    * const skillAuditEvents = await prisma.skillAuditEvent.findMany()
+    * ```
+    */
+  get skillAuditEvent(): Prisma.SkillAuditEventDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.projectEnvironment`: Exposes CRUD operations for the **ProjectEnvironment** model.
@@ -2302,6 +2332,36 @@ export class PrismaClient<
     * ```
     */
   get ledgerReconciliationRun(): Prisma.LedgerReconciliationRunDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.previewReadinessBeacon`: Exposes CRUD operations for the **PreviewReadinessBeacon** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PreviewReadinessBeacons
+    * const previewReadinessBeacons = await prisma.previewReadinessBeacon.findMany()
+    * ```
+    */
+  get previewReadinessBeacon(): Prisma.PreviewReadinessBeaconDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.workspaceLifecycleEvent`: Exposes CRUD operations for the **WorkspaceLifecycleEvent** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more WorkspaceLifecycleEvents
+    * const workspaceLifecycleEvents = await prisma.workspaceLifecycleEvent.findMany()
+    * ```
+    */
+  get workspaceLifecycleEvent(): Prisma.WorkspaceLifecycleEventDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.workspacePostMortem`: Exposes CRUD operations for the **WorkspacePostMortem** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more WorkspacePostMortems
+    * const workspacePostMortems = await prisma.workspacePostMortem.findMany()
+    * ```
+    */
+  get workspacePostMortem(): Prisma.WorkspacePostMortemDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -2754,6 +2814,7 @@ export namespace Prisma {
     AgentRepairEvent: 'AgentRepairEvent',
     ProjectSkill: 'ProjectSkill',
     InstalledSkill: 'InstalledSkill',
+    SkillAuditEvent: 'SkillAuditEvent',
     ProjectEnvironment: 'ProjectEnvironment',
     ProjectSecret: 'ProjectSecret',
     ProjectEnvVar: 'ProjectEnvVar',
@@ -2852,7 +2913,10 @@ export namespace Prisma {
     LedgerEntry: 'LedgerEntry',
     LedgerReservation: 'LedgerReservation',
     LedgerFxRate: 'LedgerFxRate',
-    LedgerReconciliationRun: 'LedgerReconciliationRun'
+    LedgerReconciliationRun: 'LedgerReconciliationRun',
+    PreviewReadinessBeacon: 'PreviewReadinessBeacon',
+    WorkspaceLifecycleEvent: 'WorkspaceLifecycleEvent',
+    WorkspacePostMortem: 'WorkspacePostMortem'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -2868,7 +2932,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "remixJob" | "importJob" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "remixJob" | "importJob" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -4185,6 +4249,80 @@ export namespace Prisma {
           count: {
             args: Prisma.InstalledSkillCountArgs<ExtArgs>
             result: $Utils.Optional<InstalledSkillCountAggregateOutputType> | number
+          }
+        }
+      }
+      SkillAuditEvent: {
+        payload: Prisma.$SkillAuditEventPayload<ExtArgs>
+        fields: Prisma.SkillAuditEventFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.SkillAuditEventFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SkillAuditEventPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.SkillAuditEventFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SkillAuditEventPayload>
+          }
+          findFirst: {
+            args: Prisma.SkillAuditEventFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SkillAuditEventPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.SkillAuditEventFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SkillAuditEventPayload>
+          }
+          findMany: {
+            args: Prisma.SkillAuditEventFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SkillAuditEventPayload>[]
+          }
+          create: {
+            args: Prisma.SkillAuditEventCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SkillAuditEventPayload>
+          }
+          createMany: {
+            args: Prisma.SkillAuditEventCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.SkillAuditEventCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SkillAuditEventPayload>[]
+          }
+          delete: {
+            args: Prisma.SkillAuditEventDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SkillAuditEventPayload>
+          }
+          update: {
+            args: Prisma.SkillAuditEventUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SkillAuditEventPayload>
+          }
+          deleteMany: {
+            args: Prisma.SkillAuditEventDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.SkillAuditEventUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.SkillAuditEventUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SkillAuditEventPayload>[]
+          }
+          upsert: {
+            args: Prisma.SkillAuditEventUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SkillAuditEventPayload>
+          }
+          aggregate: {
+            args: Prisma.SkillAuditEventAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateSkillAuditEvent>
+          }
+          groupBy: {
+            args: Prisma.SkillAuditEventGroupByArgs<ExtArgs>
+            result: $Utils.Optional<SkillAuditEventGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.SkillAuditEventCountArgs<ExtArgs>
+            result: $Utils.Optional<SkillAuditEventCountAggregateOutputType> | number
           }
         }
       }
@@ -11514,6 +11652,228 @@ export namespace Prisma {
           }
         }
       }
+      PreviewReadinessBeacon: {
+        payload: Prisma.$PreviewReadinessBeaconPayload<ExtArgs>
+        fields: Prisma.PreviewReadinessBeaconFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PreviewReadinessBeaconFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PreviewReadinessBeaconPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PreviewReadinessBeaconFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PreviewReadinessBeaconPayload>
+          }
+          findFirst: {
+            args: Prisma.PreviewReadinessBeaconFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PreviewReadinessBeaconPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PreviewReadinessBeaconFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PreviewReadinessBeaconPayload>
+          }
+          findMany: {
+            args: Prisma.PreviewReadinessBeaconFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PreviewReadinessBeaconPayload>[]
+          }
+          create: {
+            args: Prisma.PreviewReadinessBeaconCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PreviewReadinessBeaconPayload>
+          }
+          createMany: {
+            args: Prisma.PreviewReadinessBeaconCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PreviewReadinessBeaconCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PreviewReadinessBeaconPayload>[]
+          }
+          delete: {
+            args: Prisma.PreviewReadinessBeaconDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PreviewReadinessBeaconPayload>
+          }
+          update: {
+            args: Prisma.PreviewReadinessBeaconUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PreviewReadinessBeaconPayload>
+          }
+          deleteMany: {
+            args: Prisma.PreviewReadinessBeaconDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PreviewReadinessBeaconUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.PreviewReadinessBeaconUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PreviewReadinessBeaconPayload>[]
+          }
+          upsert: {
+            args: Prisma.PreviewReadinessBeaconUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PreviewReadinessBeaconPayload>
+          }
+          aggregate: {
+            args: Prisma.PreviewReadinessBeaconAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePreviewReadinessBeacon>
+          }
+          groupBy: {
+            args: Prisma.PreviewReadinessBeaconGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PreviewReadinessBeaconGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PreviewReadinessBeaconCountArgs<ExtArgs>
+            result: $Utils.Optional<PreviewReadinessBeaconCountAggregateOutputType> | number
+          }
+        }
+      }
+      WorkspaceLifecycleEvent: {
+        payload: Prisma.$WorkspaceLifecycleEventPayload<ExtArgs>
+        fields: Prisma.WorkspaceLifecycleEventFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.WorkspaceLifecycleEventFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspaceLifecycleEventPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.WorkspaceLifecycleEventFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspaceLifecycleEventPayload>
+          }
+          findFirst: {
+            args: Prisma.WorkspaceLifecycleEventFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspaceLifecycleEventPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.WorkspaceLifecycleEventFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspaceLifecycleEventPayload>
+          }
+          findMany: {
+            args: Prisma.WorkspaceLifecycleEventFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspaceLifecycleEventPayload>[]
+          }
+          create: {
+            args: Prisma.WorkspaceLifecycleEventCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspaceLifecycleEventPayload>
+          }
+          createMany: {
+            args: Prisma.WorkspaceLifecycleEventCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.WorkspaceLifecycleEventCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspaceLifecycleEventPayload>[]
+          }
+          delete: {
+            args: Prisma.WorkspaceLifecycleEventDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspaceLifecycleEventPayload>
+          }
+          update: {
+            args: Prisma.WorkspaceLifecycleEventUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspaceLifecycleEventPayload>
+          }
+          deleteMany: {
+            args: Prisma.WorkspaceLifecycleEventDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.WorkspaceLifecycleEventUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.WorkspaceLifecycleEventUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspaceLifecycleEventPayload>[]
+          }
+          upsert: {
+            args: Prisma.WorkspaceLifecycleEventUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspaceLifecycleEventPayload>
+          }
+          aggregate: {
+            args: Prisma.WorkspaceLifecycleEventAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateWorkspaceLifecycleEvent>
+          }
+          groupBy: {
+            args: Prisma.WorkspaceLifecycleEventGroupByArgs<ExtArgs>
+            result: $Utils.Optional<WorkspaceLifecycleEventGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.WorkspaceLifecycleEventCountArgs<ExtArgs>
+            result: $Utils.Optional<WorkspaceLifecycleEventCountAggregateOutputType> | number
+          }
+        }
+      }
+      WorkspacePostMortem: {
+        payload: Prisma.$WorkspacePostMortemPayload<ExtArgs>
+        fields: Prisma.WorkspacePostMortemFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.WorkspacePostMortemFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspacePostMortemPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.WorkspacePostMortemFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspacePostMortemPayload>
+          }
+          findFirst: {
+            args: Prisma.WorkspacePostMortemFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspacePostMortemPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.WorkspacePostMortemFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspacePostMortemPayload>
+          }
+          findMany: {
+            args: Prisma.WorkspacePostMortemFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspacePostMortemPayload>[]
+          }
+          create: {
+            args: Prisma.WorkspacePostMortemCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspacePostMortemPayload>
+          }
+          createMany: {
+            args: Prisma.WorkspacePostMortemCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.WorkspacePostMortemCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspacePostMortemPayload>[]
+          }
+          delete: {
+            args: Prisma.WorkspacePostMortemDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspacePostMortemPayload>
+          }
+          update: {
+            args: Prisma.WorkspacePostMortemUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspacePostMortemPayload>
+          }
+          deleteMany: {
+            args: Prisma.WorkspacePostMortemDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.WorkspacePostMortemUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.WorkspacePostMortemUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspacePostMortemPayload>[]
+          }
+          upsert: {
+            args: Prisma.WorkspacePostMortemUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspacePostMortemPayload>
+          }
+          aggregate: {
+            args: Prisma.WorkspacePostMortemAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateWorkspacePostMortem>
+          }
+          groupBy: {
+            args: Prisma.WorkspacePostMortemGroupByArgs<ExtArgs>
+            result: $Utils.Optional<WorkspacePostMortemGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.WorkspacePostMortemCountArgs<ExtArgs>
+            result: $Utils.Optional<WorkspacePostMortemCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -11640,6 +12000,7 @@ export namespace Prisma {
     agentRepairEvent?: AgentRepairEventOmit
     projectSkill?: ProjectSkillOmit
     installedSkill?: InstalledSkillOmit
+    skillAuditEvent?: SkillAuditEventOmit
     projectEnvironment?: ProjectEnvironmentOmit
     projectSecret?: ProjectSecretOmit
     projectEnvVar?: ProjectEnvVarOmit
@@ -11739,6 +12100,9 @@ export namespace Prisma {
     ledgerReservation?: LedgerReservationOmit
     ledgerFxRate?: LedgerFxRateOmit
     ledgerReconciliationRun?: LedgerReconciliationRunOmit
+    previewReadinessBeacon?: PreviewReadinessBeaconOmit
+    workspaceLifecycleEvent?: WorkspaceLifecycleEventOmit
+    workspacePostMortem?: WorkspacePostMortemOmit
   }
 
   /* Types for Logging */
@@ -12751,12 +13115,18 @@ export namespace Prisma {
     sessions: number
     ports: number
     snapshots: number
+    readinessBeacons: number
+    lifecycleEvents: number
+    postMortems: number
   }
 
   export type WorkspaceCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     sessions?: boolean | WorkspaceCountOutputTypeCountSessionsArgs
     ports?: boolean | WorkspaceCountOutputTypeCountPortsArgs
     snapshots?: boolean | WorkspaceCountOutputTypeCountSnapshotsArgs
+    readinessBeacons?: boolean | WorkspaceCountOutputTypeCountReadinessBeaconsArgs
+    lifecycleEvents?: boolean | WorkspaceCountOutputTypeCountLifecycleEventsArgs
+    postMortems?: boolean | WorkspaceCountOutputTypeCountPostMortemsArgs
   }
 
   // Custom InputTypes
@@ -12789,6 +13159,27 @@ export namespace Prisma {
    */
   export type WorkspaceCountOutputTypeCountSnapshotsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: FileSnapshotWhereInput
+  }
+
+  /**
+   * WorkspaceCountOutputType without action
+   */
+  export type WorkspaceCountOutputTypeCountReadinessBeaconsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PreviewReadinessBeaconWhereInput
+  }
+
+  /**
+   * WorkspaceCountOutputType without action
+   */
+  export type WorkspaceCountOutputTypeCountLifecycleEventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: WorkspaceLifecycleEventWhereInput
+  }
+
+  /**
+   * WorkspaceCountOutputType without action
+   */
+  export type WorkspaceCountOutputTypeCountPostMortemsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: WorkspacePostMortemWhereInput
   }
 
 
@@ -34830,6 +35221,16 @@ export namespace Prisma {
     installedByUserId: string | null
     createdAt: Date | null
     updatedAt: Date | null
+    origin: string | null
+    contentHash: string | null
+    auditVerdict: string | null
+    auditFindings: string | null
+    auditedAt: Date | null
+    manifestName: string | null
+    resourcesJson: string | null
+    revokedAt: Date | null
+    revokedByUserId: string | null
+    revokeReason: string | null
   }
 
   export type InstalledSkillMaxAggregateOutputType = {
@@ -34845,6 +35246,16 @@ export namespace Prisma {
     installedByUserId: string | null
     createdAt: Date | null
     updatedAt: Date | null
+    origin: string | null
+    contentHash: string | null
+    auditVerdict: string | null
+    auditFindings: string | null
+    auditedAt: Date | null
+    manifestName: string | null
+    resourcesJson: string | null
+    revokedAt: Date | null
+    revokedByUserId: string | null
+    revokeReason: string | null
   }
 
   export type InstalledSkillCountAggregateOutputType = {
@@ -34860,6 +35271,16 @@ export namespace Prisma {
     installedByUserId: number
     createdAt: number
     updatedAt: number
+    origin: number
+    contentHash: number
+    auditVerdict: number
+    auditFindings: number
+    auditedAt: number
+    manifestName: number
+    resourcesJson: number
+    revokedAt: number
+    revokedByUserId: number
+    revokeReason: number
     _all: number
   }
 
@@ -34877,6 +35298,16 @@ export namespace Prisma {
     installedByUserId?: true
     createdAt?: true
     updatedAt?: true
+    origin?: true
+    contentHash?: true
+    auditVerdict?: true
+    auditFindings?: true
+    auditedAt?: true
+    manifestName?: true
+    resourcesJson?: true
+    revokedAt?: true
+    revokedByUserId?: true
+    revokeReason?: true
   }
 
   export type InstalledSkillMaxAggregateInputType = {
@@ -34892,6 +35323,16 @@ export namespace Prisma {
     installedByUserId?: true
     createdAt?: true
     updatedAt?: true
+    origin?: true
+    contentHash?: true
+    auditVerdict?: true
+    auditFindings?: true
+    auditedAt?: true
+    manifestName?: true
+    resourcesJson?: true
+    revokedAt?: true
+    revokedByUserId?: true
+    revokeReason?: true
   }
 
   export type InstalledSkillCountAggregateInputType = {
@@ -34907,6 +35348,16 @@ export namespace Prisma {
     installedByUserId?: true
     createdAt?: true
     updatedAt?: true
+    origin?: true
+    contentHash?: true
+    auditVerdict?: true
+    auditFindings?: true
+    auditedAt?: true
+    manifestName?: true
+    resourcesJson?: true
+    revokedAt?: true
+    revokedByUserId?: true
+    revokeReason?: true
     _all?: true
   }
 
@@ -34995,6 +35446,16 @@ export namespace Prisma {
     installedByUserId: string | null
     createdAt: Date
     updatedAt: Date
+    origin: string
+    contentHash: string | null
+    auditVerdict: string | null
+    auditFindings: string | null
+    auditedAt: Date | null
+    manifestName: string | null
+    resourcesJson: string | null
+    revokedAt: Date | null
+    revokedByUserId: string | null
+    revokeReason: string | null
     _count: InstalledSkillCountAggregateOutputType | null
     _min: InstalledSkillMinAggregateOutputType | null
     _max: InstalledSkillMaxAggregateOutputType | null
@@ -35027,6 +35488,16 @@ export namespace Prisma {
     installedByUserId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    origin?: boolean
+    contentHash?: boolean
+    auditVerdict?: boolean
+    auditFindings?: boolean
+    auditedAt?: boolean
+    manifestName?: boolean
+    resourcesJson?: boolean
+    revokedAt?: boolean
+    revokedByUserId?: boolean
+    revokeReason?: boolean
   }, ExtArgs["result"]["installedSkill"]>
 
   export type InstalledSkillSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -35042,6 +35513,16 @@ export namespace Prisma {
     installedByUserId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    origin?: boolean
+    contentHash?: boolean
+    auditVerdict?: boolean
+    auditFindings?: boolean
+    auditedAt?: boolean
+    manifestName?: boolean
+    resourcesJson?: boolean
+    revokedAt?: boolean
+    revokedByUserId?: boolean
+    revokeReason?: boolean
   }, ExtArgs["result"]["installedSkill"]>
 
   export type InstalledSkillSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -35057,6 +35538,16 @@ export namespace Prisma {
     installedByUserId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    origin?: boolean
+    contentHash?: boolean
+    auditVerdict?: boolean
+    auditFindings?: boolean
+    auditedAt?: boolean
+    manifestName?: boolean
+    resourcesJson?: boolean
+    revokedAt?: boolean
+    revokedByUserId?: boolean
+    revokeReason?: boolean
   }, ExtArgs["result"]["installedSkill"]>
 
   export type InstalledSkillSelectScalar = {
@@ -35072,9 +35563,19 @@ export namespace Prisma {
     installedByUserId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    origin?: boolean
+    contentHash?: boolean
+    auditVerdict?: boolean
+    auditFindings?: boolean
+    auditedAt?: boolean
+    manifestName?: boolean
+    resourcesJson?: boolean
+    revokedAt?: boolean
+    revokedByUserId?: boolean
+    revokeReason?: boolean
   }
 
-  export type InstalledSkillOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "scope" | "scopeId" | "ownerRepo" | "name" | "description" | "instructions" | "homepageUrl" | "enabled" | "installedByUserId" | "createdAt" | "updatedAt", ExtArgs["result"]["installedSkill"]>
+  export type InstalledSkillOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "scope" | "scopeId" | "ownerRepo" | "name" | "description" | "instructions" | "homepageUrl" | "enabled" | "installedByUserId" | "createdAt" | "updatedAt" | "origin" | "contentHash" | "auditVerdict" | "auditFindings" | "auditedAt" | "manifestName" | "resourcesJson" | "revokedAt" | "revokedByUserId" | "revokeReason", ExtArgs["result"]["installedSkill"]>
 
   export type $InstalledSkillPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "InstalledSkill"
@@ -35092,6 +35593,16 @@ export namespace Prisma {
       installedByUserId: string | null
       createdAt: Date
       updatedAt: Date
+      origin: string
+      contentHash: string | null
+      auditVerdict: string | null
+      auditFindings: string | null
+      auditedAt: Date | null
+      manifestName: string | null
+      resourcesJson: string | null
+      revokedAt: Date | null
+      revokedByUserId: string | null
+      revokeReason: string | null
     }, ExtArgs["result"]["installedSkill"]>
     composites: {}
   }
@@ -35527,6 +36038,16 @@ export namespace Prisma {
     readonly installedByUserId: FieldRef<"InstalledSkill", 'String'>
     readonly createdAt: FieldRef<"InstalledSkill", 'DateTime'>
     readonly updatedAt: FieldRef<"InstalledSkill", 'DateTime'>
+    readonly origin: FieldRef<"InstalledSkill", 'String'>
+    readonly contentHash: FieldRef<"InstalledSkill", 'String'>
+    readonly auditVerdict: FieldRef<"InstalledSkill", 'String'>
+    readonly auditFindings: FieldRef<"InstalledSkill", 'String'>
+    readonly auditedAt: FieldRef<"InstalledSkill", 'DateTime'>
+    readonly manifestName: FieldRef<"InstalledSkill", 'String'>
+    readonly resourcesJson: FieldRef<"InstalledSkill", 'String'>
+    readonly revokedAt: FieldRef<"InstalledSkill", 'DateTime'>
+    readonly revokedByUserId: FieldRef<"InstalledSkill", 'String'>
+    readonly revokeReason: FieldRef<"InstalledSkill", 'String'>
   }
     
 
@@ -35895,6 +36416,1071 @@ export namespace Prisma {
      * Omit specific fields from the InstalledSkill
      */
     omit?: InstalledSkillOmit<ExtArgs> | null
+  }
+
+
+  /**
+   * Model SkillAuditEvent
+   */
+
+  export type AggregateSkillAuditEvent = {
+    _count: SkillAuditEventCountAggregateOutputType | null
+    _min: SkillAuditEventMinAggregateOutputType | null
+    _max: SkillAuditEventMaxAggregateOutputType | null
+  }
+
+  export type SkillAuditEventMinAggregateOutputType = {
+    id: string | null
+    scope: string | null
+    scopeId: string | null
+    ownerRepo: string | null
+    action: string | null
+    verdict: string | null
+    findingsJson: string | null
+    contentHash: string | null
+    actorUserId: string | null
+    createdAt: Date | null
+  }
+
+  export type SkillAuditEventMaxAggregateOutputType = {
+    id: string | null
+    scope: string | null
+    scopeId: string | null
+    ownerRepo: string | null
+    action: string | null
+    verdict: string | null
+    findingsJson: string | null
+    contentHash: string | null
+    actorUserId: string | null
+    createdAt: Date | null
+  }
+
+  export type SkillAuditEventCountAggregateOutputType = {
+    id: number
+    scope: number
+    scopeId: number
+    ownerRepo: number
+    action: number
+    verdict: number
+    findingsJson: number
+    contentHash: number
+    actorUserId: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type SkillAuditEventMinAggregateInputType = {
+    id?: true
+    scope?: true
+    scopeId?: true
+    ownerRepo?: true
+    action?: true
+    verdict?: true
+    findingsJson?: true
+    contentHash?: true
+    actorUserId?: true
+    createdAt?: true
+  }
+
+  export type SkillAuditEventMaxAggregateInputType = {
+    id?: true
+    scope?: true
+    scopeId?: true
+    ownerRepo?: true
+    action?: true
+    verdict?: true
+    findingsJson?: true
+    contentHash?: true
+    actorUserId?: true
+    createdAt?: true
+  }
+
+  export type SkillAuditEventCountAggregateInputType = {
+    id?: true
+    scope?: true
+    scopeId?: true
+    ownerRepo?: true
+    action?: true
+    verdict?: true
+    findingsJson?: true
+    contentHash?: true
+    actorUserId?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type SkillAuditEventAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which SkillAuditEvent to aggregate.
+     */
+    where?: SkillAuditEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SkillAuditEvents to fetch.
+     */
+    orderBy?: SkillAuditEventOrderByWithRelationInput | SkillAuditEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: SkillAuditEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SkillAuditEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SkillAuditEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned SkillAuditEvents
+    **/
+    _count?: true | SkillAuditEventCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: SkillAuditEventMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: SkillAuditEventMaxAggregateInputType
+  }
+
+  export type GetSkillAuditEventAggregateType<T extends SkillAuditEventAggregateArgs> = {
+        [P in keyof T & keyof AggregateSkillAuditEvent]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateSkillAuditEvent[P]>
+      : GetScalarType<T[P], AggregateSkillAuditEvent[P]>
+  }
+
+
+
+
+  export type SkillAuditEventGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: SkillAuditEventWhereInput
+    orderBy?: SkillAuditEventOrderByWithAggregationInput | SkillAuditEventOrderByWithAggregationInput[]
+    by: SkillAuditEventScalarFieldEnum[] | SkillAuditEventScalarFieldEnum
+    having?: SkillAuditEventScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: SkillAuditEventCountAggregateInputType | true
+    _min?: SkillAuditEventMinAggregateInputType
+    _max?: SkillAuditEventMaxAggregateInputType
+  }
+
+  export type SkillAuditEventGroupByOutputType = {
+    id: string
+    scope: string
+    scopeId: string
+    ownerRepo: string
+    action: string
+    verdict: string | null
+    findingsJson: string | null
+    contentHash: string | null
+    actorUserId: string | null
+    createdAt: Date
+    _count: SkillAuditEventCountAggregateOutputType | null
+    _min: SkillAuditEventMinAggregateOutputType | null
+    _max: SkillAuditEventMaxAggregateOutputType | null
+  }
+
+  type GetSkillAuditEventGroupByPayload<T extends SkillAuditEventGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<SkillAuditEventGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof SkillAuditEventGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], SkillAuditEventGroupByOutputType[P]>
+            : GetScalarType<T[P], SkillAuditEventGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type SkillAuditEventSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    scope?: boolean
+    scopeId?: boolean
+    ownerRepo?: boolean
+    action?: boolean
+    verdict?: boolean
+    findingsJson?: boolean
+    contentHash?: boolean
+    actorUserId?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["skillAuditEvent"]>
+
+  export type SkillAuditEventSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    scope?: boolean
+    scopeId?: boolean
+    ownerRepo?: boolean
+    action?: boolean
+    verdict?: boolean
+    findingsJson?: boolean
+    contentHash?: boolean
+    actorUserId?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["skillAuditEvent"]>
+
+  export type SkillAuditEventSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    scope?: boolean
+    scopeId?: boolean
+    ownerRepo?: boolean
+    action?: boolean
+    verdict?: boolean
+    findingsJson?: boolean
+    contentHash?: boolean
+    actorUserId?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["skillAuditEvent"]>
+
+  export type SkillAuditEventSelectScalar = {
+    id?: boolean
+    scope?: boolean
+    scopeId?: boolean
+    ownerRepo?: boolean
+    action?: boolean
+    verdict?: boolean
+    findingsJson?: boolean
+    contentHash?: boolean
+    actorUserId?: boolean
+    createdAt?: boolean
+  }
+
+  export type SkillAuditEventOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "scope" | "scopeId" | "ownerRepo" | "action" | "verdict" | "findingsJson" | "contentHash" | "actorUserId" | "createdAt", ExtArgs["result"]["skillAuditEvent"]>
+
+  export type $SkillAuditEventPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "SkillAuditEvent"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      scope: string
+      scopeId: string
+      ownerRepo: string
+      action: string
+      verdict: string | null
+      findingsJson: string | null
+      contentHash: string | null
+      actorUserId: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["skillAuditEvent"]>
+    composites: {}
+  }
+
+  type SkillAuditEventGetPayload<S extends boolean | null | undefined | SkillAuditEventDefaultArgs> = $Result.GetResult<Prisma.$SkillAuditEventPayload, S>
+
+  type SkillAuditEventCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<SkillAuditEventFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: SkillAuditEventCountAggregateInputType | true
+    }
+
+  export interface SkillAuditEventDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['SkillAuditEvent'], meta: { name: 'SkillAuditEvent' } }
+    /**
+     * Find zero or one SkillAuditEvent that matches the filter.
+     * @param {SkillAuditEventFindUniqueArgs} args - Arguments to find a SkillAuditEvent
+     * @example
+     * // Get one SkillAuditEvent
+     * const skillAuditEvent = await prisma.skillAuditEvent.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends SkillAuditEventFindUniqueArgs>(args: SelectSubset<T, SkillAuditEventFindUniqueArgs<ExtArgs>>): Prisma__SkillAuditEventClient<$Result.GetResult<Prisma.$SkillAuditEventPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one SkillAuditEvent that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {SkillAuditEventFindUniqueOrThrowArgs} args - Arguments to find a SkillAuditEvent
+     * @example
+     * // Get one SkillAuditEvent
+     * const skillAuditEvent = await prisma.skillAuditEvent.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends SkillAuditEventFindUniqueOrThrowArgs>(args: SelectSubset<T, SkillAuditEventFindUniqueOrThrowArgs<ExtArgs>>): Prisma__SkillAuditEventClient<$Result.GetResult<Prisma.$SkillAuditEventPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first SkillAuditEvent that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SkillAuditEventFindFirstArgs} args - Arguments to find a SkillAuditEvent
+     * @example
+     * // Get one SkillAuditEvent
+     * const skillAuditEvent = await prisma.skillAuditEvent.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends SkillAuditEventFindFirstArgs>(args?: SelectSubset<T, SkillAuditEventFindFirstArgs<ExtArgs>>): Prisma__SkillAuditEventClient<$Result.GetResult<Prisma.$SkillAuditEventPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first SkillAuditEvent that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SkillAuditEventFindFirstOrThrowArgs} args - Arguments to find a SkillAuditEvent
+     * @example
+     * // Get one SkillAuditEvent
+     * const skillAuditEvent = await prisma.skillAuditEvent.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends SkillAuditEventFindFirstOrThrowArgs>(args?: SelectSubset<T, SkillAuditEventFindFirstOrThrowArgs<ExtArgs>>): Prisma__SkillAuditEventClient<$Result.GetResult<Prisma.$SkillAuditEventPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more SkillAuditEvents that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SkillAuditEventFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all SkillAuditEvents
+     * const skillAuditEvents = await prisma.skillAuditEvent.findMany()
+     * 
+     * // Get first 10 SkillAuditEvents
+     * const skillAuditEvents = await prisma.skillAuditEvent.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const skillAuditEventWithIdOnly = await prisma.skillAuditEvent.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends SkillAuditEventFindManyArgs>(args?: SelectSubset<T, SkillAuditEventFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SkillAuditEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a SkillAuditEvent.
+     * @param {SkillAuditEventCreateArgs} args - Arguments to create a SkillAuditEvent.
+     * @example
+     * // Create one SkillAuditEvent
+     * const SkillAuditEvent = await prisma.skillAuditEvent.create({
+     *   data: {
+     *     // ... data to create a SkillAuditEvent
+     *   }
+     * })
+     * 
+     */
+    create<T extends SkillAuditEventCreateArgs>(args: SelectSubset<T, SkillAuditEventCreateArgs<ExtArgs>>): Prisma__SkillAuditEventClient<$Result.GetResult<Prisma.$SkillAuditEventPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many SkillAuditEvents.
+     * @param {SkillAuditEventCreateManyArgs} args - Arguments to create many SkillAuditEvents.
+     * @example
+     * // Create many SkillAuditEvents
+     * const skillAuditEvent = await prisma.skillAuditEvent.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends SkillAuditEventCreateManyArgs>(args?: SelectSubset<T, SkillAuditEventCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many SkillAuditEvents and returns the data saved in the database.
+     * @param {SkillAuditEventCreateManyAndReturnArgs} args - Arguments to create many SkillAuditEvents.
+     * @example
+     * // Create many SkillAuditEvents
+     * const skillAuditEvent = await prisma.skillAuditEvent.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many SkillAuditEvents and only return the `id`
+     * const skillAuditEventWithIdOnly = await prisma.skillAuditEvent.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends SkillAuditEventCreateManyAndReturnArgs>(args?: SelectSubset<T, SkillAuditEventCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SkillAuditEventPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a SkillAuditEvent.
+     * @param {SkillAuditEventDeleteArgs} args - Arguments to delete one SkillAuditEvent.
+     * @example
+     * // Delete one SkillAuditEvent
+     * const SkillAuditEvent = await prisma.skillAuditEvent.delete({
+     *   where: {
+     *     // ... filter to delete one SkillAuditEvent
+     *   }
+     * })
+     * 
+     */
+    delete<T extends SkillAuditEventDeleteArgs>(args: SelectSubset<T, SkillAuditEventDeleteArgs<ExtArgs>>): Prisma__SkillAuditEventClient<$Result.GetResult<Prisma.$SkillAuditEventPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one SkillAuditEvent.
+     * @param {SkillAuditEventUpdateArgs} args - Arguments to update one SkillAuditEvent.
+     * @example
+     * // Update one SkillAuditEvent
+     * const skillAuditEvent = await prisma.skillAuditEvent.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends SkillAuditEventUpdateArgs>(args: SelectSubset<T, SkillAuditEventUpdateArgs<ExtArgs>>): Prisma__SkillAuditEventClient<$Result.GetResult<Prisma.$SkillAuditEventPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more SkillAuditEvents.
+     * @param {SkillAuditEventDeleteManyArgs} args - Arguments to filter SkillAuditEvents to delete.
+     * @example
+     * // Delete a few SkillAuditEvents
+     * const { count } = await prisma.skillAuditEvent.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends SkillAuditEventDeleteManyArgs>(args?: SelectSubset<T, SkillAuditEventDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more SkillAuditEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SkillAuditEventUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many SkillAuditEvents
+     * const skillAuditEvent = await prisma.skillAuditEvent.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends SkillAuditEventUpdateManyArgs>(args: SelectSubset<T, SkillAuditEventUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more SkillAuditEvents and returns the data updated in the database.
+     * @param {SkillAuditEventUpdateManyAndReturnArgs} args - Arguments to update many SkillAuditEvents.
+     * @example
+     * // Update many SkillAuditEvents
+     * const skillAuditEvent = await prisma.skillAuditEvent.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more SkillAuditEvents and only return the `id`
+     * const skillAuditEventWithIdOnly = await prisma.skillAuditEvent.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends SkillAuditEventUpdateManyAndReturnArgs>(args: SelectSubset<T, SkillAuditEventUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SkillAuditEventPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one SkillAuditEvent.
+     * @param {SkillAuditEventUpsertArgs} args - Arguments to update or create a SkillAuditEvent.
+     * @example
+     * // Update or create a SkillAuditEvent
+     * const skillAuditEvent = await prisma.skillAuditEvent.upsert({
+     *   create: {
+     *     // ... data to create a SkillAuditEvent
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the SkillAuditEvent we want to update
+     *   }
+     * })
+     */
+    upsert<T extends SkillAuditEventUpsertArgs>(args: SelectSubset<T, SkillAuditEventUpsertArgs<ExtArgs>>): Prisma__SkillAuditEventClient<$Result.GetResult<Prisma.$SkillAuditEventPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of SkillAuditEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SkillAuditEventCountArgs} args - Arguments to filter SkillAuditEvents to count.
+     * @example
+     * // Count the number of SkillAuditEvents
+     * const count = await prisma.skillAuditEvent.count({
+     *   where: {
+     *     // ... the filter for the SkillAuditEvents we want to count
+     *   }
+     * })
+    **/
+    count<T extends SkillAuditEventCountArgs>(
+      args?: Subset<T, SkillAuditEventCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], SkillAuditEventCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a SkillAuditEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SkillAuditEventAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends SkillAuditEventAggregateArgs>(args: Subset<T, SkillAuditEventAggregateArgs>): Prisma.PrismaPromise<GetSkillAuditEventAggregateType<T>>
+
+    /**
+     * Group by SkillAuditEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SkillAuditEventGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends SkillAuditEventGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: SkillAuditEventGroupByArgs['orderBy'] }
+        : { orderBy?: SkillAuditEventGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, SkillAuditEventGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetSkillAuditEventGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the SkillAuditEvent model
+   */
+  readonly fields: SkillAuditEventFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for SkillAuditEvent.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__SkillAuditEventClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the SkillAuditEvent model
+   */
+  interface SkillAuditEventFieldRefs {
+    readonly id: FieldRef<"SkillAuditEvent", 'String'>
+    readonly scope: FieldRef<"SkillAuditEvent", 'String'>
+    readonly scopeId: FieldRef<"SkillAuditEvent", 'String'>
+    readonly ownerRepo: FieldRef<"SkillAuditEvent", 'String'>
+    readonly action: FieldRef<"SkillAuditEvent", 'String'>
+    readonly verdict: FieldRef<"SkillAuditEvent", 'String'>
+    readonly findingsJson: FieldRef<"SkillAuditEvent", 'String'>
+    readonly contentHash: FieldRef<"SkillAuditEvent", 'String'>
+    readonly actorUserId: FieldRef<"SkillAuditEvent", 'String'>
+    readonly createdAt: FieldRef<"SkillAuditEvent", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * SkillAuditEvent findUnique
+   */
+  export type SkillAuditEventFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SkillAuditEvent
+     */
+    select?: SkillAuditEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SkillAuditEvent
+     */
+    omit?: SkillAuditEventOmit<ExtArgs> | null
+    /**
+     * Filter, which SkillAuditEvent to fetch.
+     */
+    where: SkillAuditEventWhereUniqueInput
+  }
+
+  /**
+   * SkillAuditEvent findUniqueOrThrow
+   */
+  export type SkillAuditEventFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SkillAuditEvent
+     */
+    select?: SkillAuditEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SkillAuditEvent
+     */
+    omit?: SkillAuditEventOmit<ExtArgs> | null
+    /**
+     * Filter, which SkillAuditEvent to fetch.
+     */
+    where: SkillAuditEventWhereUniqueInput
+  }
+
+  /**
+   * SkillAuditEvent findFirst
+   */
+  export type SkillAuditEventFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SkillAuditEvent
+     */
+    select?: SkillAuditEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SkillAuditEvent
+     */
+    omit?: SkillAuditEventOmit<ExtArgs> | null
+    /**
+     * Filter, which SkillAuditEvent to fetch.
+     */
+    where?: SkillAuditEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SkillAuditEvents to fetch.
+     */
+    orderBy?: SkillAuditEventOrderByWithRelationInput | SkillAuditEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for SkillAuditEvents.
+     */
+    cursor?: SkillAuditEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SkillAuditEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SkillAuditEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of SkillAuditEvents.
+     */
+    distinct?: SkillAuditEventScalarFieldEnum | SkillAuditEventScalarFieldEnum[]
+  }
+
+  /**
+   * SkillAuditEvent findFirstOrThrow
+   */
+  export type SkillAuditEventFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SkillAuditEvent
+     */
+    select?: SkillAuditEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SkillAuditEvent
+     */
+    omit?: SkillAuditEventOmit<ExtArgs> | null
+    /**
+     * Filter, which SkillAuditEvent to fetch.
+     */
+    where?: SkillAuditEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SkillAuditEvents to fetch.
+     */
+    orderBy?: SkillAuditEventOrderByWithRelationInput | SkillAuditEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for SkillAuditEvents.
+     */
+    cursor?: SkillAuditEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SkillAuditEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SkillAuditEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of SkillAuditEvents.
+     */
+    distinct?: SkillAuditEventScalarFieldEnum | SkillAuditEventScalarFieldEnum[]
+  }
+
+  /**
+   * SkillAuditEvent findMany
+   */
+  export type SkillAuditEventFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SkillAuditEvent
+     */
+    select?: SkillAuditEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SkillAuditEvent
+     */
+    omit?: SkillAuditEventOmit<ExtArgs> | null
+    /**
+     * Filter, which SkillAuditEvents to fetch.
+     */
+    where?: SkillAuditEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SkillAuditEvents to fetch.
+     */
+    orderBy?: SkillAuditEventOrderByWithRelationInput | SkillAuditEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing SkillAuditEvents.
+     */
+    cursor?: SkillAuditEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SkillAuditEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SkillAuditEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of SkillAuditEvents.
+     */
+    distinct?: SkillAuditEventScalarFieldEnum | SkillAuditEventScalarFieldEnum[]
+  }
+
+  /**
+   * SkillAuditEvent create
+   */
+  export type SkillAuditEventCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SkillAuditEvent
+     */
+    select?: SkillAuditEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SkillAuditEvent
+     */
+    omit?: SkillAuditEventOmit<ExtArgs> | null
+    /**
+     * The data needed to create a SkillAuditEvent.
+     */
+    data: XOR<SkillAuditEventCreateInput, SkillAuditEventUncheckedCreateInput>
+  }
+
+  /**
+   * SkillAuditEvent createMany
+   */
+  export type SkillAuditEventCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many SkillAuditEvents.
+     */
+    data: SkillAuditEventCreateManyInput | SkillAuditEventCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * SkillAuditEvent createManyAndReturn
+   */
+  export type SkillAuditEventCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SkillAuditEvent
+     */
+    select?: SkillAuditEventSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the SkillAuditEvent
+     */
+    omit?: SkillAuditEventOmit<ExtArgs> | null
+    /**
+     * The data used to create many SkillAuditEvents.
+     */
+    data: SkillAuditEventCreateManyInput | SkillAuditEventCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * SkillAuditEvent update
+   */
+  export type SkillAuditEventUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SkillAuditEvent
+     */
+    select?: SkillAuditEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SkillAuditEvent
+     */
+    omit?: SkillAuditEventOmit<ExtArgs> | null
+    /**
+     * The data needed to update a SkillAuditEvent.
+     */
+    data: XOR<SkillAuditEventUpdateInput, SkillAuditEventUncheckedUpdateInput>
+    /**
+     * Choose, which SkillAuditEvent to update.
+     */
+    where: SkillAuditEventWhereUniqueInput
+  }
+
+  /**
+   * SkillAuditEvent updateMany
+   */
+  export type SkillAuditEventUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update SkillAuditEvents.
+     */
+    data: XOR<SkillAuditEventUpdateManyMutationInput, SkillAuditEventUncheckedUpdateManyInput>
+    /**
+     * Filter which SkillAuditEvents to update
+     */
+    where?: SkillAuditEventWhereInput
+    /**
+     * Limit how many SkillAuditEvents to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * SkillAuditEvent updateManyAndReturn
+   */
+  export type SkillAuditEventUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SkillAuditEvent
+     */
+    select?: SkillAuditEventSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the SkillAuditEvent
+     */
+    omit?: SkillAuditEventOmit<ExtArgs> | null
+    /**
+     * The data used to update SkillAuditEvents.
+     */
+    data: XOR<SkillAuditEventUpdateManyMutationInput, SkillAuditEventUncheckedUpdateManyInput>
+    /**
+     * Filter which SkillAuditEvents to update
+     */
+    where?: SkillAuditEventWhereInput
+    /**
+     * Limit how many SkillAuditEvents to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * SkillAuditEvent upsert
+   */
+  export type SkillAuditEventUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SkillAuditEvent
+     */
+    select?: SkillAuditEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SkillAuditEvent
+     */
+    omit?: SkillAuditEventOmit<ExtArgs> | null
+    /**
+     * The filter to search for the SkillAuditEvent to update in case it exists.
+     */
+    where: SkillAuditEventWhereUniqueInput
+    /**
+     * In case the SkillAuditEvent found by the `where` argument doesn't exist, create a new SkillAuditEvent with this data.
+     */
+    create: XOR<SkillAuditEventCreateInput, SkillAuditEventUncheckedCreateInput>
+    /**
+     * In case the SkillAuditEvent was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<SkillAuditEventUpdateInput, SkillAuditEventUncheckedUpdateInput>
+  }
+
+  /**
+   * SkillAuditEvent delete
+   */
+  export type SkillAuditEventDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SkillAuditEvent
+     */
+    select?: SkillAuditEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SkillAuditEvent
+     */
+    omit?: SkillAuditEventOmit<ExtArgs> | null
+    /**
+     * Filter which SkillAuditEvent to delete.
+     */
+    where: SkillAuditEventWhereUniqueInput
+  }
+
+  /**
+   * SkillAuditEvent deleteMany
+   */
+  export type SkillAuditEventDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which SkillAuditEvents to delete
+     */
+    where?: SkillAuditEventWhereInput
+    /**
+     * Limit how many SkillAuditEvents to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * SkillAuditEvent without action
+   */
+  export type SkillAuditEventDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SkillAuditEvent
+     */
+    select?: SkillAuditEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SkillAuditEvent
+     */
+    omit?: SkillAuditEventOmit<ExtArgs> | null
   }
 
 
@@ -46038,6 +47624,9 @@ export namespace Prisma {
     ports?: boolean | Workspace$portsArgs<ExtArgs>
     snapshots?: boolean | Workspace$snapshotsArgs<ExtArgs>
     ideState?: boolean | Workspace$ideStateArgs<ExtArgs>
+    readinessBeacons?: boolean | Workspace$readinessBeaconsArgs<ExtArgs>
+    lifecycleEvents?: boolean | Workspace$lifecycleEventsArgs<ExtArgs>
+    postMortems?: boolean | Workspace$postMortemsArgs<ExtArgs>
     _count?: boolean | WorkspaceCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["workspace"]>
 
@@ -46089,6 +47678,9 @@ export namespace Prisma {
     ports?: boolean | Workspace$portsArgs<ExtArgs>
     snapshots?: boolean | Workspace$snapshotsArgs<ExtArgs>
     ideState?: boolean | Workspace$ideStateArgs<ExtArgs>
+    readinessBeacons?: boolean | Workspace$readinessBeaconsArgs<ExtArgs>
+    lifecycleEvents?: boolean | Workspace$lifecycleEventsArgs<ExtArgs>
+    postMortems?: boolean | Workspace$postMortemsArgs<ExtArgs>
     _count?: boolean | WorkspaceCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type WorkspaceIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -46106,6 +47698,9 @@ export namespace Prisma {
       ports: Prisma.$WorkspacePortPayload<ExtArgs>[]
       snapshots: Prisma.$FileSnapshotPayload<ExtArgs>[]
       ideState: Prisma.$WorkspaceIdeStatePayload<ExtArgs> | null
+      readinessBeacons: Prisma.$PreviewReadinessBeaconPayload<ExtArgs>[]
+      lifecycleEvents: Prisma.$WorkspaceLifecycleEventPayload<ExtArgs>[]
+      postMortems: Prisma.$WorkspacePostMortemPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -46517,6 +48112,9 @@ export namespace Prisma {
     ports<T extends Workspace$portsArgs<ExtArgs> = {}>(args?: Subset<T, Workspace$portsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkspacePortPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     snapshots<T extends Workspace$snapshotsArgs<ExtArgs> = {}>(args?: Subset<T, Workspace$snapshotsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FileSnapshotPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     ideState<T extends Workspace$ideStateArgs<ExtArgs> = {}>(args?: Subset<T, Workspace$ideStateArgs<ExtArgs>>): Prisma__WorkspaceIdeStateClient<$Result.GetResult<Prisma.$WorkspaceIdeStatePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    readinessBeacons<T extends Workspace$readinessBeaconsArgs<ExtArgs> = {}>(args?: Subset<T, Workspace$readinessBeaconsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PreviewReadinessBeaconPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    lifecycleEvents<T extends Workspace$lifecycleEventsArgs<ExtArgs> = {}>(args?: Subset<T, Workspace$lifecycleEventsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkspaceLifecycleEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    postMortems<T extends Workspace$postMortemsArgs<ExtArgs> = {}>(args?: Subset<T, Workspace$postMortemsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkspacePostMortemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -47045,6 +48643,78 @@ export namespace Prisma {
      */
     include?: WorkspaceIdeStateInclude<ExtArgs> | null
     where?: WorkspaceIdeStateWhereInput
+  }
+
+  /**
+   * Workspace.readinessBeacons
+   */
+  export type Workspace$readinessBeaconsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PreviewReadinessBeacon
+     */
+    select?: PreviewReadinessBeaconSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PreviewReadinessBeacon
+     */
+    omit?: PreviewReadinessBeaconOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PreviewReadinessBeaconInclude<ExtArgs> | null
+    where?: PreviewReadinessBeaconWhereInput
+    orderBy?: PreviewReadinessBeaconOrderByWithRelationInput | PreviewReadinessBeaconOrderByWithRelationInput[]
+    cursor?: PreviewReadinessBeaconWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PreviewReadinessBeaconScalarFieldEnum | PreviewReadinessBeaconScalarFieldEnum[]
+  }
+
+  /**
+   * Workspace.lifecycleEvents
+   */
+  export type Workspace$lifecycleEventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspaceLifecycleEvent
+     */
+    select?: WorkspaceLifecycleEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspaceLifecycleEvent
+     */
+    omit?: WorkspaceLifecycleEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspaceLifecycleEventInclude<ExtArgs> | null
+    where?: WorkspaceLifecycleEventWhereInput
+    orderBy?: WorkspaceLifecycleEventOrderByWithRelationInput | WorkspaceLifecycleEventOrderByWithRelationInput[]
+    cursor?: WorkspaceLifecycleEventWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: WorkspaceLifecycleEventScalarFieldEnum | WorkspaceLifecycleEventScalarFieldEnum[]
+  }
+
+  /**
+   * Workspace.postMortems
+   */
+  export type Workspace$postMortemsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspacePostMortem
+     */
+    select?: WorkspacePostMortemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspacePostMortem
+     */
+    omit?: WorkspacePostMortemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspacePostMortemInclude<ExtArgs> | null
+    where?: WorkspacePostMortemWhereInput
+    orderBy?: WorkspacePostMortemOrderByWithRelationInput | WorkspacePostMortemOrderByWithRelationInput[]
+    cursor?: WorkspacePostMortemWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: WorkspacePostMortemScalarFieldEnum | WorkspacePostMortemScalarFieldEnum[]
   }
 
   /**
@@ -140191,11 +141861,16 @@ export namespace Prisma {
     authorName: string | null
     authorUserId: string | null
     appUrl: string | null
+    thumbnailUrl: string | null
     remixAllowed: boolean | null
     licenseId: string | null
     licenseText: string | null
     licenseTextSha256: string | null
     piiConsentVersion: string | null
+    rightsConfirmedAt: Date | null
+    rightsConfirmedBy: string | null
+    piiPolicyAcceptedAt: Date | null
+    piiPolicyAcceptedBy: string | null
     viewCount: number | null
     useCount: number | null
     createdAt: Date | null
@@ -140215,11 +141890,16 @@ export namespace Prisma {
     authorName: string | null
     authorUserId: string | null
     appUrl: string | null
+    thumbnailUrl: string | null
     remixAllowed: boolean | null
     licenseId: string | null
     licenseText: string | null
     licenseTextSha256: string | null
     piiConsentVersion: string | null
+    rightsConfirmedAt: Date | null
+    rightsConfirmedBy: string | null
+    piiPolicyAcceptedAt: Date | null
+    piiPolicyAcceptedBy: string | null
     viewCount: number | null
     useCount: number | null
     createdAt: Date | null
@@ -140240,11 +141920,16 @@ export namespace Prisma {
     authorName: number
     authorUserId: number
     appUrl: number
+    thumbnailUrl: number
     remixAllowed: number
     licenseId: number
     licenseText: number
     licenseTextSha256: number
     piiConsentVersion: number
+    rightsConfirmedAt: number
+    rightsConfirmedBy: number
+    piiPolicyAcceptedAt: number
+    piiPolicyAcceptedBy: number
     viewCount: number
     useCount: number
     createdAt: number
@@ -140276,11 +141961,16 @@ export namespace Prisma {
     authorName?: true
     authorUserId?: true
     appUrl?: true
+    thumbnailUrl?: true
     remixAllowed?: true
     licenseId?: true
     licenseText?: true
     licenseTextSha256?: true
     piiConsentVersion?: true
+    rightsConfirmedAt?: true
+    rightsConfirmedBy?: true
+    piiPolicyAcceptedAt?: true
+    piiPolicyAcceptedBy?: true
     viewCount?: true
     useCount?: true
     createdAt?: true
@@ -140300,11 +141990,16 @@ export namespace Prisma {
     authorName?: true
     authorUserId?: true
     appUrl?: true
+    thumbnailUrl?: true
     remixAllowed?: true
     licenseId?: true
     licenseText?: true
     licenseTextSha256?: true
     piiConsentVersion?: true
+    rightsConfirmedAt?: true
+    rightsConfirmedBy?: true
+    piiPolicyAcceptedAt?: true
+    piiPolicyAcceptedBy?: true
     viewCount?: true
     useCount?: true
     createdAt?: true
@@ -140325,11 +142020,16 @@ export namespace Prisma {
     authorName?: true
     authorUserId?: true
     appUrl?: true
+    thumbnailUrl?: true
     remixAllowed?: true
     licenseId?: true
     licenseText?: true
     licenseTextSha256?: true
     piiConsentVersion?: true
+    rightsConfirmedAt?: true
+    rightsConfirmedBy?: true
+    piiPolicyAcceptedAt?: true
+    piiPolicyAcceptedBy?: true
     viewCount?: true
     useCount?: true
     createdAt?: true
@@ -140437,11 +142137,16 @@ export namespace Prisma {
     authorName: string
     authorUserId: string | null
     appUrl: string | null
+    thumbnailUrl: string | null
     remixAllowed: boolean
     licenseId: string | null
     licenseText: string | null
     licenseTextSha256: string | null
     piiConsentVersion: string | null
+    rightsConfirmedAt: Date | null
+    rightsConfirmedBy: string | null
+    piiPolicyAcceptedAt: Date | null
+    piiPolicyAcceptedBy: string | null
     viewCount: number
     useCount: number
     createdAt: Date
@@ -140481,11 +142186,16 @@ export namespace Prisma {
     authorName?: boolean
     authorUserId?: boolean
     appUrl?: boolean
+    thumbnailUrl?: boolean
     remixAllowed?: boolean
     licenseId?: boolean
     licenseText?: boolean
     licenseTextSha256?: boolean
     piiConsentVersion?: boolean
+    rightsConfirmedAt?: boolean
+    rightsConfirmedBy?: boolean
+    piiPolicyAcceptedAt?: boolean
+    piiPolicyAcceptedBy?: boolean
     viewCount?: boolean
     useCount?: boolean
     createdAt?: boolean
@@ -140508,11 +142218,16 @@ export namespace Prisma {
     authorName?: boolean
     authorUserId?: boolean
     appUrl?: boolean
+    thumbnailUrl?: boolean
     remixAllowed?: boolean
     licenseId?: boolean
     licenseText?: boolean
     licenseTextSha256?: boolean
     piiConsentVersion?: boolean
+    rightsConfirmedAt?: boolean
+    rightsConfirmedBy?: boolean
+    piiPolicyAcceptedAt?: boolean
+    piiPolicyAcceptedBy?: boolean
     viewCount?: boolean
     useCount?: boolean
     createdAt?: boolean
@@ -140535,11 +142250,16 @@ export namespace Prisma {
     authorName?: boolean
     authorUserId?: boolean
     appUrl?: boolean
+    thumbnailUrl?: boolean
     remixAllowed?: boolean
     licenseId?: boolean
     licenseText?: boolean
     licenseTextSha256?: boolean
     piiConsentVersion?: boolean
+    rightsConfirmedAt?: boolean
+    rightsConfirmedBy?: boolean
+    piiPolicyAcceptedAt?: boolean
+    piiPolicyAcceptedBy?: boolean
     viewCount?: boolean
     useCount?: boolean
     createdAt?: boolean
@@ -140562,18 +142282,23 @@ export namespace Prisma {
     authorName?: boolean
     authorUserId?: boolean
     appUrl?: boolean
+    thumbnailUrl?: boolean
     remixAllowed?: boolean
     licenseId?: boolean
     licenseText?: boolean
     licenseTextSha256?: boolean
     piiConsentVersion?: boolean
+    rightsConfirmedAt?: boolean
+    rightsConfirmedBy?: boolean
+    piiPolicyAcceptedAt?: boolean
+    piiPolicyAcceptedBy?: boolean
     viewCount?: boolean
     useCount?: boolean
     createdAt?: boolean
     publishedAt?: boolean
   }
 
-  export type GalleryListingOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "slug" | "title" | "description" | "category" | "tags" | "status" | "featured" | "sourceProjectId" | "sourceSnapshotId" | "authorName" | "authorUserId" | "appUrl" | "remixAllowed" | "licenseId" | "licenseText" | "licenseTextSha256" | "piiConsentVersion" | "viewCount" | "useCount" | "createdAt" | "publishedAt", ExtArgs["result"]["galleryListing"]>
+  export type GalleryListingOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "slug" | "title" | "description" | "category" | "tags" | "status" | "featured" | "sourceProjectId" | "sourceSnapshotId" | "authorName" | "authorUserId" | "appUrl" | "thumbnailUrl" | "remixAllowed" | "licenseId" | "licenseText" | "licenseTextSha256" | "piiConsentVersion" | "rightsConfirmedAt" | "rightsConfirmedBy" | "piiPolicyAcceptedAt" | "piiPolicyAcceptedBy" | "viewCount" | "useCount" | "createdAt" | "publishedAt", ExtArgs["result"]["galleryListing"]>
   export type GalleryListingInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     sourceProject?: boolean | ProjectDefaultArgs<ExtArgs>
     author?: boolean | GalleryListing$authorArgs<ExtArgs>
@@ -140623,6 +142348,12 @@ export namespace Prisma {
        */
       appUrl: string | null
       /**
+       * Card preview image (a real rendered screenshot). Root-relative static
+       * asset (/gallery-apps/<id>/thumbnail.png) or an https URL; null renders
+       * the text-only card.
+       */
+      thumbnailUrl: string | null
+      /**
        * FAIL-CLOSED (directive 20/07) : un projet publié ordinaire est
        * ALL_RIGHTS_RESERVED, non-remixable. remixAllowed ne passe true qu'avec
        * une licence EXPLICITE + confirmation des droits + politique PII acceptée.
@@ -140647,6 +142378,17 @@ export namespace Prisma {
        * (data ships unmasked). Null = no consent → PII is masked on every remix.
        */
       piiConsentVersion: string | null
+      /**
+       * TRACE AUDITABLE des confirmations exigées pour rendre un listing remixable
+       * (P0-V3-05, réserve #8). Avant la migration 0081 elles étaient validées à la
+       * curation puis JAMAIS écrites : la confirmation des droits par le curateur
+       * était inauditable a posteriori. Horodatage + acteur (userId de l'admin qui
+       * a curé). Null = jamais confirmé.
+       */
+      rightsConfirmedAt: Date | null
+      rightsConfirmedBy: string | null
+      piiPolicyAcceptedAt: Date | null
+      piiPolicyAcceptedBy: string | null
       viewCount: number
       useCount: number
       createdAt: Date
@@ -141089,11 +142831,16 @@ export namespace Prisma {
     readonly authorName: FieldRef<"GalleryListing", 'String'>
     readonly authorUserId: FieldRef<"GalleryListing", 'String'>
     readonly appUrl: FieldRef<"GalleryListing", 'String'>
+    readonly thumbnailUrl: FieldRef<"GalleryListing", 'String'>
     readonly remixAllowed: FieldRef<"GalleryListing", 'Boolean'>
     readonly licenseId: FieldRef<"GalleryListing", 'String'>
     readonly licenseText: FieldRef<"GalleryListing", 'String'>
     readonly licenseTextSha256: FieldRef<"GalleryListing", 'String'>
     readonly piiConsentVersion: FieldRef<"GalleryListing", 'String'>
+    readonly rightsConfirmedAt: FieldRef<"GalleryListing", 'DateTime'>
+    readonly rightsConfirmedBy: FieldRef<"GalleryListing", 'String'>
+    readonly piiPolicyAcceptedAt: FieldRef<"GalleryListing", 'DateTime'>
+    readonly piiPolicyAcceptedBy: FieldRef<"GalleryListing", 'String'>
     readonly viewCount: FieldRef<"GalleryListing", 'Int'>
     readonly useCount: FieldRef<"GalleryListing", 'Int'>
     readonly createdAt: FieldRef<"GalleryListing", 'DateTime'>
@@ -148374,6 +150121,3291 @@ export namespace Prisma {
 
 
   /**
+   * Model PreviewReadinessBeacon
+   */
+
+  export type AggregatePreviewReadinessBeacon = {
+    _count: PreviewReadinessBeaconCountAggregateOutputType | null
+    _avg: PreviewReadinessBeaconAvgAggregateOutputType | null
+    _sum: PreviewReadinessBeaconSumAggregateOutputType | null
+    _min: PreviewReadinessBeaconMinAggregateOutputType | null
+    _max: PreviewReadinessBeaconMaxAggregateOutputType | null
+  }
+
+  export type PreviewReadinessBeaconAvgAggregateOutputType = {
+    port: number | null
+  }
+
+  export type PreviewReadinessBeaconSumAggregateOutputType = {
+    port: number | null
+  }
+
+  export type PreviewReadinessBeaconMinAggregateOutputType = {
+    id: string | null
+    workspaceId: string | null
+    port: number | null
+    status: string | null
+    detail: string | null
+    reportedAt: Date | null
+  }
+
+  export type PreviewReadinessBeaconMaxAggregateOutputType = {
+    id: string | null
+    workspaceId: string | null
+    port: number | null
+    status: string | null
+    detail: string | null
+    reportedAt: Date | null
+  }
+
+  export type PreviewReadinessBeaconCountAggregateOutputType = {
+    id: number
+    workspaceId: number
+    port: number
+    status: number
+    detail: number
+    reportedAt: number
+    _all: number
+  }
+
+
+  export type PreviewReadinessBeaconAvgAggregateInputType = {
+    port?: true
+  }
+
+  export type PreviewReadinessBeaconSumAggregateInputType = {
+    port?: true
+  }
+
+  export type PreviewReadinessBeaconMinAggregateInputType = {
+    id?: true
+    workspaceId?: true
+    port?: true
+    status?: true
+    detail?: true
+    reportedAt?: true
+  }
+
+  export type PreviewReadinessBeaconMaxAggregateInputType = {
+    id?: true
+    workspaceId?: true
+    port?: true
+    status?: true
+    detail?: true
+    reportedAt?: true
+  }
+
+  export type PreviewReadinessBeaconCountAggregateInputType = {
+    id?: true
+    workspaceId?: true
+    port?: true
+    status?: true
+    detail?: true
+    reportedAt?: true
+    _all?: true
+  }
+
+  export type PreviewReadinessBeaconAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PreviewReadinessBeacon to aggregate.
+     */
+    where?: PreviewReadinessBeaconWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PreviewReadinessBeacons to fetch.
+     */
+    orderBy?: PreviewReadinessBeaconOrderByWithRelationInput | PreviewReadinessBeaconOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PreviewReadinessBeaconWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PreviewReadinessBeacons from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PreviewReadinessBeacons.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PreviewReadinessBeacons
+    **/
+    _count?: true | PreviewReadinessBeaconCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: PreviewReadinessBeaconAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PreviewReadinessBeaconSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PreviewReadinessBeaconMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PreviewReadinessBeaconMaxAggregateInputType
+  }
+
+  export type GetPreviewReadinessBeaconAggregateType<T extends PreviewReadinessBeaconAggregateArgs> = {
+        [P in keyof T & keyof AggregatePreviewReadinessBeacon]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePreviewReadinessBeacon[P]>
+      : GetScalarType<T[P], AggregatePreviewReadinessBeacon[P]>
+  }
+
+
+
+
+  export type PreviewReadinessBeaconGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PreviewReadinessBeaconWhereInput
+    orderBy?: PreviewReadinessBeaconOrderByWithAggregationInput | PreviewReadinessBeaconOrderByWithAggregationInput[]
+    by: PreviewReadinessBeaconScalarFieldEnum[] | PreviewReadinessBeaconScalarFieldEnum
+    having?: PreviewReadinessBeaconScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PreviewReadinessBeaconCountAggregateInputType | true
+    _avg?: PreviewReadinessBeaconAvgAggregateInputType
+    _sum?: PreviewReadinessBeaconSumAggregateInputType
+    _min?: PreviewReadinessBeaconMinAggregateInputType
+    _max?: PreviewReadinessBeaconMaxAggregateInputType
+  }
+
+  export type PreviewReadinessBeaconGroupByOutputType = {
+    id: string
+    workspaceId: string
+    port: number
+    status: string
+    detail: string | null
+    reportedAt: Date
+    _count: PreviewReadinessBeaconCountAggregateOutputType | null
+    _avg: PreviewReadinessBeaconAvgAggregateOutputType | null
+    _sum: PreviewReadinessBeaconSumAggregateOutputType | null
+    _min: PreviewReadinessBeaconMinAggregateOutputType | null
+    _max: PreviewReadinessBeaconMaxAggregateOutputType | null
+  }
+
+  type GetPreviewReadinessBeaconGroupByPayload<T extends PreviewReadinessBeaconGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PreviewReadinessBeaconGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PreviewReadinessBeaconGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PreviewReadinessBeaconGroupByOutputType[P]>
+            : GetScalarType<T[P], PreviewReadinessBeaconGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PreviewReadinessBeaconSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    workspaceId?: boolean
+    port?: boolean
+    status?: boolean
+    detail?: boolean
+    reportedAt?: boolean
+    workspace?: boolean | WorkspaceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["previewReadinessBeacon"]>
+
+  export type PreviewReadinessBeaconSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    workspaceId?: boolean
+    port?: boolean
+    status?: boolean
+    detail?: boolean
+    reportedAt?: boolean
+    workspace?: boolean | WorkspaceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["previewReadinessBeacon"]>
+
+  export type PreviewReadinessBeaconSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    workspaceId?: boolean
+    port?: boolean
+    status?: boolean
+    detail?: boolean
+    reportedAt?: boolean
+    workspace?: boolean | WorkspaceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["previewReadinessBeacon"]>
+
+  export type PreviewReadinessBeaconSelectScalar = {
+    id?: boolean
+    workspaceId?: boolean
+    port?: boolean
+    status?: boolean
+    detail?: boolean
+    reportedAt?: boolean
+  }
+
+  export type PreviewReadinessBeaconOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "workspaceId" | "port" | "status" | "detail" | "reportedAt", ExtArgs["result"]["previewReadinessBeacon"]>
+  export type PreviewReadinessBeaconInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    workspace?: boolean | WorkspaceDefaultArgs<ExtArgs>
+  }
+  export type PreviewReadinessBeaconIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    workspace?: boolean | WorkspaceDefaultArgs<ExtArgs>
+  }
+  export type PreviewReadinessBeaconIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    workspace?: boolean | WorkspaceDefaultArgs<ExtArgs>
+  }
+
+  export type $PreviewReadinessBeaconPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PreviewReadinessBeacon"
+    objects: {
+      workspace: Prisma.$WorkspacePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      workspaceId: string
+      port: number
+      status: string
+      detail: string | null
+      reportedAt: Date
+    }, ExtArgs["result"]["previewReadinessBeacon"]>
+    composites: {}
+  }
+
+  type PreviewReadinessBeaconGetPayload<S extends boolean | null | undefined | PreviewReadinessBeaconDefaultArgs> = $Result.GetResult<Prisma.$PreviewReadinessBeaconPayload, S>
+
+  type PreviewReadinessBeaconCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<PreviewReadinessBeaconFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: PreviewReadinessBeaconCountAggregateInputType | true
+    }
+
+  export interface PreviewReadinessBeaconDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PreviewReadinessBeacon'], meta: { name: 'PreviewReadinessBeacon' } }
+    /**
+     * Find zero or one PreviewReadinessBeacon that matches the filter.
+     * @param {PreviewReadinessBeaconFindUniqueArgs} args - Arguments to find a PreviewReadinessBeacon
+     * @example
+     * // Get one PreviewReadinessBeacon
+     * const previewReadinessBeacon = await prisma.previewReadinessBeacon.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PreviewReadinessBeaconFindUniqueArgs>(args: SelectSubset<T, PreviewReadinessBeaconFindUniqueArgs<ExtArgs>>): Prisma__PreviewReadinessBeaconClient<$Result.GetResult<Prisma.$PreviewReadinessBeaconPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one PreviewReadinessBeacon that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {PreviewReadinessBeaconFindUniqueOrThrowArgs} args - Arguments to find a PreviewReadinessBeacon
+     * @example
+     * // Get one PreviewReadinessBeacon
+     * const previewReadinessBeacon = await prisma.previewReadinessBeacon.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PreviewReadinessBeaconFindUniqueOrThrowArgs>(args: SelectSubset<T, PreviewReadinessBeaconFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PreviewReadinessBeaconClient<$Result.GetResult<Prisma.$PreviewReadinessBeaconPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first PreviewReadinessBeacon that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PreviewReadinessBeaconFindFirstArgs} args - Arguments to find a PreviewReadinessBeacon
+     * @example
+     * // Get one PreviewReadinessBeacon
+     * const previewReadinessBeacon = await prisma.previewReadinessBeacon.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PreviewReadinessBeaconFindFirstArgs>(args?: SelectSubset<T, PreviewReadinessBeaconFindFirstArgs<ExtArgs>>): Prisma__PreviewReadinessBeaconClient<$Result.GetResult<Prisma.$PreviewReadinessBeaconPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first PreviewReadinessBeacon that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PreviewReadinessBeaconFindFirstOrThrowArgs} args - Arguments to find a PreviewReadinessBeacon
+     * @example
+     * // Get one PreviewReadinessBeacon
+     * const previewReadinessBeacon = await prisma.previewReadinessBeacon.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PreviewReadinessBeaconFindFirstOrThrowArgs>(args?: SelectSubset<T, PreviewReadinessBeaconFindFirstOrThrowArgs<ExtArgs>>): Prisma__PreviewReadinessBeaconClient<$Result.GetResult<Prisma.$PreviewReadinessBeaconPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more PreviewReadinessBeacons that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PreviewReadinessBeaconFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PreviewReadinessBeacons
+     * const previewReadinessBeacons = await prisma.previewReadinessBeacon.findMany()
+     * 
+     * // Get first 10 PreviewReadinessBeacons
+     * const previewReadinessBeacons = await prisma.previewReadinessBeacon.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const previewReadinessBeaconWithIdOnly = await prisma.previewReadinessBeacon.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PreviewReadinessBeaconFindManyArgs>(args?: SelectSubset<T, PreviewReadinessBeaconFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PreviewReadinessBeaconPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a PreviewReadinessBeacon.
+     * @param {PreviewReadinessBeaconCreateArgs} args - Arguments to create a PreviewReadinessBeacon.
+     * @example
+     * // Create one PreviewReadinessBeacon
+     * const PreviewReadinessBeacon = await prisma.previewReadinessBeacon.create({
+     *   data: {
+     *     // ... data to create a PreviewReadinessBeacon
+     *   }
+     * })
+     * 
+     */
+    create<T extends PreviewReadinessBeaconCreateArgs>(args: SelectSubset<T, PreviewReadinessBeaconCreateArgs<ExtArgs>>): Prisma__PreviewReadinessBeaconClient<$Result.GetResult<Prisma.$PreviewReadinessBeaconPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many PreviewReadinessBeacons.
+     * @param {PreviewReadinessBeaconCreateManyArgs} args - Arguments to create many PreviewReadinessBeacons.
+     * @example
+     * // Create many PreviewReadinessBeacons
+     * const previewReadinessBeacon = await prisma.previewReadinessBeacon.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PreviewReadinessBeaconCreateManyArgs>(args?: SelectSubset<T, PreviewReadinessBeaconCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PreviewReadinessBeacons and returns the data saved in the database.
+     * @param {PreviewReadinessBeaconCreateManyAndReturnArgs} args - Arguments to create many PreviewReadinessBeacons.
+     * @example
+     * // Create many PreviewReadinessBeacons
+     * const previewReadinessBeacon = await prisma.previewReadinessBeacon.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PreviewReadinessBeacons and only return the `id`
+     * const previewReadinessBeaconWithIdOnly = await prisma.previewReadinessBeacon.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PreviewReadinessBeaconCreateManyAndReturnArgs>(args?: SelectSubset<T, PreviewReadinessBeaconCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PreviewReadinessBeaconPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a PreviewReadinessBeacon.
+     * @param {PreviewReadinessBeaconDeleteArgs} args - Arguments to delete one PreviewReadinessBeacon.
+     * @example
+     * // Delete one PreviewReadinessBeacon
+     * const PreviewReadinessBeacon = await prisma.previewReadinessBeacon.delete({
+     *   where: {
+     *     // ... filter to delete one PreviewReadinessBeacon
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PreviewReadinessBeaconDeleteArgs>(args: SelectSubset<T, PreviewReadinessBeaconDeleteArgs<ExtArgs>>): Prisma__PreviewReadinessBeaconClient<$Result.GetResult<Prisma.$PreviewReadinessBeaconPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one PreviewReadinessBeacon.
+     * @param {PreviewReadinessBeaconUpdateArgs} args - Arguments to update one PreviewReadinessBeacon.
+     * @example
+     * // Update one PreviewReadinessBeacon
+     * const previewReadinessBeacon = await prisma.previewReadinessBeacon.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PreviewReadinessBeaconUpdateArgs>(args: SelectSubset<T, PreviewReadinessBeaconUpdateArgs<ExtArgs>>): Prisma__PreviewReadinessBeaconClient<$Result.GetResult<Prisma.$PreviewReadinessBeaconPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more PreviewReadinessBeacons.
+     * @param {PreviewReadinessBeaconDeleteManyArgs} args - Arguments to filter PreviewReadinessBeacons to delete.
+     * @example
+     * // Delete a few PreviewReadinessBeacons
+     * const { count } = await prisma.previewReadinessBeacon.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PreviewReadinessBeaconDeleteManyArgs>(args?: SelectSubset<T, PreviewReadinessBeaconDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PreviewReadinessBeacons.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PreviewReadinessBeaconUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PreviewReadinessBeacons
+     * const previewReadinessBeacon = await prisma.previewReadinessBeacon.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PreviewReadinessBeaconUpdateManyArgs>(args: SelectSubset<T, PreviewReadinessBeaconUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PreviewReadinessBeacons and returns the data updated in the database.
+     * @param {PreviewReadinessBeaconUpdateManyAndReturnArgs} args - Arguments to update many PreviewReadinessBeacons.
+     * @example
+     * // Update many PreviewReadinessBeacons
+     * const previewReadinessBeacon = await prisma.previewReadinessBeacon.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more PreviewReadinessBeacons and only return the `id`
+     * const previewReadinessBeaconWithIdOnly = await prisma.previewReadinessBeacon.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends PreviewReadinessBeaconUpdateManyAndReturnArgs>(args: SelectSubset<T, PreviewReadinessBeaconUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PreviewReadinessBeaconPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one PreviewReadinessBeacon.
+     * @param {PreviewReadinessBeaconUpsertArgs} args - Arguments to update or create a PreviewReadinessBeacon.
+     * @example
+     * // Update or create a PreviewReadinessBeacon
+     * const previewReadinessBeacon = await prisma.previewReadinessBeacon.upsert({
+     *   create: {
+     *     // ... data to create a PreviewReadinessBeacon
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PreviewReadinessBeacon we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PreviewReadinessBeaconUpsertArgs>(args: SelectSubset<T, PreviewReadinessBeaconUpsertArgs<ExtArgs>>): Prisma__PreviewReadinessBeaconClient<$Result.GetResult<Prisma.$PreviewReadinessBeaconPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of PreviewReadinessBeacons.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PreviewReadinessBeaconCountArgs} args - Arguments to filter PreviewReadinessBeacons to count.
+     * @example
+     * // Count the number of PreviewReadinessBeacons
+     * const count = await prisma.previewReadinessBeacon.count({
+     *   where: {
+     *     // ... the filter for the PreviewReadinessBeacons we want to count
+     *   }
+     * })
+    **/
+    count<T extends PreviewReadinessBeaconCountArgs>(
+      args?: Subset<T, PreviewReadinessBeaconCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PreviewReadinessBeaconCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PreviewReadinessBeacon.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PreviewReadinessBeaconAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PreviewReadinessBeaconAggregateArgs>(args: Subset<T, PreviewReadinessBeaconAggregateArgs>): Prisma.PrismaPromise<GetPreviewReadinessBeaconAggregateType<T>>
+
+    /**
+     * Group by PreviewReadinessBeacon.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PreviewReadinessBeaconGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PreviewReadinessBeaconGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PreviewReadinessBeaconGroupByArgs['orderBy'] }
+        : { orderBy?: PreviewReadinessBeaconGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PreviewReadinessBeaconGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPreviewReadinessBeaconGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PreviewReadinessBeacon model
+   */
+  readonly fields: PreviewReadinessBeaconFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PreviewReadinessBeacon.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PreviewReadinessBeaconClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    workspace<T extends WorkspaceDefaultArgs<ExtArgs> = {}>(args?: Subset<T, WorkspaceDefaultArgs<ExtArgs>>): Prisma__WorkspaceClient<$Result.GetResult<Prisma.$WorkspacePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PreviewReadinessBeacon model
+   */
+  interface PreviewReadinessBeaconFieldRefs {
+    readonly id: FieldRef<"PreviewReadinessBeacon", 'String'>
+    readonly workspaceId: FieldRef<"PreviewReadinessBeacon", 'String'>
+    readonly port: FieldRef<"PreviewReadinessBeacon", 'Int'>
+    readonly status: FieldRef<"PreviewReadinessBeacon", 'String'>
+    readonly detail: FieldRef<"PreviewReadinessBeacon", 'String'>
+    readonly reportedAt: FieldRef<"PreviewReadinessBeacon", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PreviewReadinessBeacon findUnique
+   */
+  export type PreviewReadinessBeaconFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PreviewReadinessBeacon
+     */
+    select?: PreviewReadinessBeaconSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PreviewReadinessBeacon
+     */
+    omit?: PreviewReadinessBeaconOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PreviewReadinessBeaconInclude<ExtArgs> | null
+    /**
+     * Filter, which PreviewReadinessBeacon to fetch.
+     */
+    where: PreviewReadinessBeaconWhereUniqueInput
+  }
+
+  /**
+   * PreviewReadinessBeacon findUniqueOrThrow
+   */
+  export type PreviewReadinessBeaconFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PreviewReadinessBeacon
+     */
+    select?: PreviewReadinessBeaconSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PreviewReadinessBeacon
+     */
+    omit?: PreviewReadinessBeaconOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PreviewReadinessBeaconInclude<ExtArgs> | null
+    /**
+     * Filter, which PreviewReadinessBeacon to fetch.
+     */
+    where: PreviewReadinessBeaconWhereUniqueInput
+  }
+
+  /**
+   * PreviewReadinessBeacon findFirst
+   */
+  export type PreviewReadinessBeaconFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PreviewReadinessBeacon
+     */
+    select?: PreviewReadinessBeaconSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PreviewReadinessBeacon
+     */
+    omit?: PreviewReadinessBeaconOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PreviewReadinessBeaconInclude<ExtArgs> | null
+    /**
+     * Filter, which PreviewReadinessBeacon to fetch.
+     */
+    where?: PreviewReadinessBeaconWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PreviewReadinessBeacons to fetch.
+     */
+    orderBy?: PreviewReadinessBeaconOrderByWithRelationInput | PreviewReadinessBeaconOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PreviewReadinessBeacons.
+     */
+    cursor?: PreviewReadinessBeaconWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PreviewReadinessBeacons from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PreviewReadinessBeacons.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PreviewReadinessBeacons.
+     */
+    distinct?: PreviewReadinessBeaconScalarFieldEnum | PreviewReadinessBeaconScalarFieldEnum[]
+  }
+
+  /**
+   * PreviewReadinessBeacon findFirstOrThrow
+   */
+  export type PreviewReadinessBeaconFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PreviewReadinessBeacon
+     */
+    select?: PreviewReadinessBeaconSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PreviewReadinessBeacon
+     */
+    omit?: PreviewReadinessBeaconOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PreviewReadinessBeaconInclude<ExtArgs> | null
+    /**
+     * Filter, which PreviewReadinessBeacon to fetch.
+     */
+    where?: PreviewReadinessBeaconWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PreviewReadinessBeacons to fetch.
+     */
+    orderBy?: PreviewReadinessBeaconOrderByWithRelationInput | PreviewReadinessBeaconOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PreviewReadinessBeacons.
+     */
+    cursor?: PreviewReadinessBeaconWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PreviewReadinessBeacons from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PreviewReadinessBeacons.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PreviewReadinessBeacons.
+     */
+    distinct?: PreviewReadinessBeaconScalarFieldEnum | PreviewReadinessBeaconScalarFieldEnum[]
+  }
+
+  /**
+   * PreviewReadinessBeacon findMany
+   */
+  export type PreviewReadinessBeaconFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PreviewReadinessBeacon
+     */
+    select?: PreviewReadinessBeaconSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PreviewReadinessBeacon
+     */
+    omit?: PreviewReadinessBeaconOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PreviewReadinessBeaconInclude<ExtArgs> | null
+    /**
+     * Filter, which PreviewReadinessBeacons to fetch.
+     */
+    where?: PreviewReadinessBeaconWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PreviewReadinessBeacons to fetch.
+     */
+    orderBy?: PreviewReadinessBeaconOrderByWithRelationInput | PreviewReadinessBeaconOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PreviewReadinessBeacons.
+     */
+    cursor?: PreviewReadinessBeaconWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PreviewReadinessBeacons from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PreviewReadinessBeacons.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PreviewReadinessBeacons.
+     */
+    distinct?: PreviewReadinessBeaconScalarFieldEnum | PreviewReadinessBeaconScalarFieldEnum[]
+  }
+
+  /**
+   * PreviewReadinessBeacon create
+   */
+  export type PreviewReadinessBeaconCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PreviewReadinessBeacon
+     */
+    select?: PreviewReadinessBeaconSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PreviewReadinessBeacon
+     */
+    omit?: PreviewReadinessBeaconOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PreviewReadinessBeaconInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PreviewReadinessBeacon.
+     */
+    data: XOR<PreviewReadinessBeaconCreateInput, PreviewReadinessBeaconUncheckedCreateInput>
+  }
+
+  /**
+   * PreviewReadinessBeacon createMany
+   */
+  export type PreviewReadinessBeaconCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PreviewReadinessBeacons.
+     */
+    data: PreviewReadinessBeaconCreateManyInput | PreviewReadinessBeaconCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PreviewReadinessBeacon createManyAndReturn
+   */
+  export type PreviewReadinessBeaconCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PreviewReadinessBeacon
+     */
+    select?: PreviewReadinessBeaconSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PreviewReadinessBeacon
+     */
+    omit?: PreviewReadinessBeaconOmit<ExtArgs> | null
+    /**
+     * The data used to create many PreviewReadinessBeacons.
+     */
+    data: PreviewReadinessBeaconCreateManyInput | PreviewReadinessBeaconCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PreviewReadinessBeaconIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PreviewReadinessBeacon update
+   */
+  export type PreviewReadinessBeaconUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PreviewReadinessBeacon
+     */
+    select?: PreviewReadinessBeaconSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PreviewReadinessBeacon
+     */
+    omit?: PreviewReadinessBeaconOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PreviewReadinessBeaconInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PreviewReadinessBeacon.
+     */
+    data: XOR<PreviewReadinessBeaconUpdateInput, PreviewReadinessBeaconUncheckedUpdateInput>
+    /**
+     * Choose, which PreviewReadinessBeacon to update.
+     */
+    where: PreviewReadinessBeaconWhereUniqueInput
+  }
+
+  /**
+   * PreviewReadinessBeacon updateMany
+   */
+  export type PreviewReadinessBeaconUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PreviewReadinessBeacons.
+     */
+    data: XOR<PreviewReadinessBeaconUpdateManyMutationInput, PreviewReadinessBeaconUncheckedUpdateManyInput>
+    /**
+     * Filter which PreviewReadinessBeacons to update
+     */
+    where?: PreviewReadinessBeaconWhereInput
+    /**
+     * Limit how many PreviewReadinessBeacons to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * PreviewReadinessBeacon updateManyAndReturn
+   */
+  export type PreviewReadinessBeaconUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PreviewReadinessBeacon
+     */
+    select?: PreviewReadinessBeaconSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PreviewReadinessBeacon
+     */
+    omit?: PreviewReadinessBeaconOmit<ExtArgs> | null
+    /**
+     * The data used to update PreviewReadinessBeacons.
+     */
+    data: XOR<PreviewReadinessBeaconUpdateManyMutationInput, PreviewReadinessBeaconUncheckedUpdateManyInput>
+    /**
+     * Filter which PreviewReadinessBeacons to update
+     */
+    where?: PreviewReadinessBeaconWhereInput
+    /**
+     * Limit how many PreviewReadinessBeacons to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PreviewReadinessBeaconIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PreviewReadinessBeacon upsert
+   */
+  export type PreviewReadinessBeaconUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PreviewReadinessBeacon
+     */
+    select?: PreviewReadinessBeaconSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PreviewReadinessBeacon
+     */
+    omit?: PreviewReadinessBeaconOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PreviewReadinessBeaconInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PreviewReadinessBeacon to update in case it exists.
+     */
+    where: PreviewReadinessBeaconWhereUniqueInput
+    /**
+     * In case the PreviewReadinessBeacon found by the `where` argument doesn't exist, create a new PreviewReadinessBeacon with this data.
+     */
+    create: XOR<PreviewReadinessBeaconCreateInput, PreviewReadinessBeaconUncheckedCreateInput>
+    /**
+     * In case the PreviewReadinessBeacon was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PreviewReadinessBeaconUpdateInput, PreviewReadinessBeaconUncheckedUpdateInput>
+  }
+
+  /**
+   * PreviewReadinessBeacon delete
+   */
+  export type PreviewReadinessBeaconDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PreviewReadinessBeacon
+     */
+    select?: PreviewReadinessBeaconSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PreviewReadinessBeacon
+     */
+    omit?: PreviewReadinessBeaconOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PreviewReadinessBeaconInclude<ExtArgs> | null
+    /**
+     * Filter which PreviewReadinessBeacon to delete.
+     */
+    where: PreviewReadinessBeaconWhereUniqueInput
+  }
+
+  /**
+   * PreviewReadinessBeacon deleteMany
+   */
+  export type PreviewReadinessBeaconDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PreviewReadinessBeacons to delete
+     */
+    where?: PreviewReadinessBeaconWhereInput
+    /**
+     * Limit how many PreviewReadinessBeacons to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * PreviewReadinessBeacon without action
+   */
+  export type PreviewReadinessBeaconDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PreviewReadinessBeacon
+     */
+    select?: PreviewReadinessBeaconSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PreviewReadinessBeacon
+     */
+    omit?: PreviewReadinessBeaconOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PreviewReadinessBeaconInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model WorkspaceLifecycleEvent
+   */
+
+  export type AggregateWorkspaceLifecycleEvent = {
+    _count: WorkspaceLifecycleEventCountAggregateOutputType | null
+    _min: WorkspaceLifecycleEventMinAggregateOutputType | null
+    _max: WorkspaceLifecycleEventMaxAggregateOutputType | null
+  }
+
+  export type WorkspaceLifecycleEventMinAggregateOutputType = {
+    id: string | null
+    workspaceId: string | null
+    state: string | null
+    reason: string | null
+    at: Date | null
+  }
+
+  export type WorkspaceLifecycleEventMaxAggregateOutputType = {
+    id: string | null
+    workspaceId: string | null
+    state: string | null
+    reason: string | null
+    at: Date | null
+  }
+
+  export type WorkspaceLifecycleEventCountAggregateOutputType = {
+    id: number
+    workspaceId: number
+    state: number
+    reason: number
+    detail: number
+    at: number
+    _all: number
+  }
+
+
+  export type WorkspaceLifecycleEventMinAggregateInputType = {
+    id?: true
+    workspaceId?: true
+    state?: true
+    reason?: true
+    at?: true
+  }
+
+  export type WorkspaceLifecycleEventMaxAggregateInputType = {
+    id?: true
+    workspaceId?: true
+    state?: true
+    reason?: true
+    at?: true
+  }
+
+  export type WorkspaceLifecycleEventCountAggregateInputType = {
+    id?: true
+    workspaceId?: true
+    state?: true
+    reason?: true
+    detail?: true
+    at?: true
+    _all?: true
+  }
+
+  export type WorkspaceLifecycleEventAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which WorkspaceLifecycleEvent to aggregate.
+     */
+    where?: WorkspaceLifecycleEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WorkspaceLifecycleEvents to fetch.
+     */
+    orderBy?: WorkspaceLifecycleEventOrderByWithRelationInput | WorkspaceLifecycleEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: WorkspaceLifecycleEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WorkspaceLifecycleEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WorkspaceLifecycleEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned WorkspaceLifecycleEvents
+    **/
+    _count?: true | WorkspaceLifecycleEventCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: WorkspaceLifecycleEventMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: WorkspaceLifecycleEventMaxAggregateInputType
+  }
+
+  export type GetWorkspaceLifecycleEventAggregateType<T extends WorkspaceLifecycleEventAggregateArgs> = {
+        [P in keyof T & keyof AggregateWorkspaceLifecycleEvent]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateWorkspaceLifecycleEvent[P]>
+      : GetScalarType<T[P], AggregateWorkspaceLifecycleEvent[P]>
+  }
+
+
+
+
+  export type WorkspaceLifecycleEventGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: WorkspaceLifecycleEventWhereInput
+    orderBy?: WorkspaceLifecycleEventOrderByWithAggregationInput | WorkspaceLifecycleEventOrderByWithAggregationInput[]
+    by: WorkspaceLifecycleEventScalarFieldEnum[] | WorkspaceLifecycleEventScalarFieldEnum
+    having?: WorkspaceLifecycleEventScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: WorkspaceLifecycleEventCountAggregateInputType | true
+    _min?: WorkspaceLifecycleEventMinAggregateInputType
+    _max?: WorkspaceLifecycleEventMaxAggregateInputType
+  }
+
+  export type WorkspaceLifecycleEventGroupByOutputType = {
+    id: string
+    workspaceId: string
+    state: string
+    reason: string | null
+    detail: JsonValue | null
+    at: Date
+    _count: WorkspaceLifecycleEventCountAggregateOutputType | null
+    _min: WorkspaceLifecycleEventMinAggregateOutputType | null
+    _max: WorkspaceLifecycleEventMaxAggregateOutputType | null
+  }
+
+  type GetWorkspaceLifecycleEventGroupByPayload<T extends WorkspaceLifecycleEventGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<WorkspaceLifecycleEventGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof WorkspaceLifecycleEventGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], WorkspaceLifecycleEventGroupByOutputType[P]>
+            : GetScalarType<T[P], WorkspaceLifecycleEventGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type WorkspaceLifecycleEventSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    workspaceId?: boolean
+    state?: boolean
+    reason?: boolean
+    detail?: boolean
+    at?: boolean
+    workspace?: boolean | WorkspaceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["workspaceLifecycleEvent"]>
+
+  export type WorkspaceLifecycleEventSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    workspaceId?: boolean
+    state?: boolean
+    reason?: boolean
+    detail?: boolean
+    at?: boolean
+    workspace?: boolean | WorkspaceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["workspaceLifecycleEvent"]>
+
+  export type WorkspaceLifecycleEventSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    workspaceId?: boolean
+    state?: boolean
+    reason?: boolean
+    detail?: boolean
+    at?: boolean
+    workspace?: boolean | WorkspaceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["workspaceLifecycleEvent"]>
+
+  export type WorkspaceLifecycleEventSelectScalar = {
+    id?: boolean
+    workspaceId?: boolean
+    state?: boolean
+    reason?: boolean
+    detail?: boolean
+    at?: boolean
+  }
+
+  export type WorkspaceLifecycleEventOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "workspaceId" | "state" | "reason" | "detail" | "at", ExtArgs["result"]["workspaceLifecycleEvent"]>
+  export type WorkspaceLifecycleEventInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    workspace?: boolean | WorkspaceDefaultArgs<ExtArgs>
+  }
+  export type WorkspaceLifecycleEventIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    workspace?: boolean | WorkspaceDefaultArgs<ExtArgs>
+  }
+  export type WorkspaceLifecycleEventIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    workspace?: boolean | WorkspaceDefaultArgs<ExtArgs>
+  }
+
+  export type $WorkspaceLifecycleEventPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "WorkspaceLifecycleEvent"
+    objects: {
+      workspace: Prisma.$WorkspacePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      workspaceId: string
+      state: string
+      reason: string | null
+      detail: Prisma.JsonValue | null
+      at: Date
+    }, ExtArgs["result"]["workspaceLifecycleEvent"]>
+    composites: {}
+  }
+
+  type WorkspaceLifecycleEventGetPayload<S extends boolean | null | undefined | WorkspaceLifecycleEventDefaultArgs> = $Result.GetResult<Prisma.$WorkspaceLifecycleEventPayload, S>
+
+  type WorkspaceLifecycleEventCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<WorkspaceLifecycleEventFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: WorkspaceLifecycleEventCountAggregateInputType | true
+    }
+
+  export interface WorkspaceLifecycleEventDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['WorkspaceLifecycleEvent'], meta: { name: 'WorkspaceLifecycleEvent' } }
+    /**
+     * Find zero or one WorkspaceLifecycleEvent that matches the filter.
+     * @param {WorkspaceLifecycleEventFindUniqueArgs} args - Arguments to find a WorkspaceLifecycleEvent
+     * @example
+     * // Get one WorkspaceLifecycleEvent
+     * const workspaceLifecycleEvent = await prisma.workspaceLifecycleEvent.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends WorkspaceLifecycleEventFindUniqueArgs>(args: SelectSubset<T, WorkspaceLifecycleEventFindUniqueArgs<ExtArgs>>): Prisma__WorkspaceLifecycleEventClient<$Result.GetResult<Prisma.$WorkspaceLifecycleEventPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one WorkspaceLifecycleEvent that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {WorkspaceLifecycleEventFindUniqueOrThrowArgs} args - Arguments to find a WorkspaceLifecycleEvent
+     * @example
+     * // Get one WorkspaceLifecycleEvent
+     * const workspaceLifecycleEvent = await prisma.workspaceLifecycleEvent.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends WorkspaceLifecycleEventFindUniqueOrThrowArgs>(args: SelectSubset<T, WorkspaceLifecycleEventFindUniqueOrThrowArgs<ExtArgs>>): Prisma__WorkspaceLifecycleEventClient<$Result.GetResult<Prisma.$WorkspaceLifecycleEventPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first WorkspaceLifecycleEvent that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkspaceLifecycleEventFindFirstArgs} args - Arguments to find a WorkspaceLifecycleEvent
+     * @example
+     * // Get one WorkspaceLifecycleEvent
+     * const workspaceLifecycleEvent = await prisma.workspaceLifecycleEvent.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends WorkspaceLifecycleEventFindFirstArgs>(args?: SelectSubset<T, WorkspaceLifecycleEventFindFirstArgs<ExtArgs>>): Prisma__WorkspaceLifecycleEventClient<$Result.GetResult<Prisma.$WorkspaceLifecycleEventPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first WorkspaceLifecycleEvent that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkspaceLifecycleEventFindFirstOrThrowArgs} args - Arguments to find a WorkspaceLifecycleEvent
+     * @example
+     * // Get one WorkspaceLifecycleEvent
+     * const workspaceLifecycleEvent = await prisma.workspaceLifecycleEvent.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends WorkspaceLifecycleEventFindFirstOrThrowArgs>(args?: SelectSubset<T, WorkspaceLifecycleEventFindFirstOrThrowArgs<ExtArgs>>): Prisma__WorkspaceLifecycleEventClient<$Result.GetResult<Prisma.$WorkspaceLifecycleEventPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more WorkspaceLifecycleEvents that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkspaceLifecycleEventFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all WorkspaceLifecycleEvents
+     * const workspaceLifecycleEvents = await prisma.workspaceLifecycleEvent.findMany()
+     * 
+     * // Get first 10 WorkspaceLifecycleEvents
+     * const workspaceLifecycleEvents = await prisma.workspaceLifecycleEvent.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const workspaceLifecycleEventWithIdOnly = await prisma.workspaceLifecycleEvent.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends WorkspaceLifecycleEventFindManyArgs>(args?: SelectSubset<T, WorkspaceLifecycleEventFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkspaceLifecycleEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a WorkspaceLifecycleEvent.
+     * @param {WorkspaceLifecycleEventCreateArgs} args - Arguments to create a WorkspaceLifecycleEvent.
+     * @example
+     * // Create one WorkspaceLifecycleEvent
+     * const WorkspaceLifecycleEvent = await prisma.workspaceLifecycleEvent.create({
+     *   data: {
+     *     // ... data to create a WorkspaceLifecycleEvent
+     *   }
+     * })
+     * 
+     */
+    create<T extends WorkspaceLifecycleEventCreateArgs>(args: SelectSubset<T, WorkspaceLifecycleEventCreateArgs<ExtArgs>>): Prisma__WorkspaceLifecycleEventClient<$Result.GetResult<Prisma.$WorkspaceLifecycleEventPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many WorkspaceLifecycleEvents.
+     * @param {WorkspaceLifecycleEventCreateManyArgs} args - Arguments to create many WorkspaceLifecycleEvents.
+     * @example
+     * // Create many WorkspaceLifecycleEvents
+     * const workspaceLifecycleEvent = await prisma.workspaceLifecycleEvent.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends WorkspaceLifecycleEventCreateManyArgs>(args?: SelectSubset<T, WorkspaceLifecycleEventCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many WorkspaceLifecycleEvents and returns the data saved in the database.
+     * @param {WorkspaceLifecycleEventCreateManyAndReturnArgs} args - Arguments to create many WorkspaceLifecycleEvents.
+     * @example
+     * // Create many WorkspaceLifecycleEvents
+     * const workspaceLifecycleEvent = await prisma.workspaceLifecycleEvent.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many WorkspaceLifecycleEvents and only return the `id`
+     * const workspaceLifecycleEventWithIdOnly = await prisma.workspaceLifecycleEvent.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends WorkspaceLifecycleEventCreateManyAndReturnArgs>(args?: SelectSubset<T, WorkspaceLifecycleEventCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkspaceLifecycleEventPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a WorkspaceLifecycleEvent.
+     * @param {WorkspaceLifecycleEventDeleteArgs} args - Arguments to delete one WorkspaceLifecycleEvent.
+     * @example
+     * // Delete one WorkspaceLifecycleEvent
+     * const WorkspaceLifecycleEvent = await prisma.workspaceLifecycleEvent.delete({
+     *   where: {
+     *     // ... filter to delete one WorkspaceLifecycleEvent
+     *   }
+     * })
+     * 
+     */
+    delete<T extends WorkspaceLifecycleEventDeleteArgs>(args: SelectSubset<T, WorkspaceLifecycleEventDeleteArgs<ExtArgs>>): Prisma__WorkspaceLifecycleEventClient<$Result.GetResult<Prisma.$WorkspaceLifecycleEventPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one WorkspaceLifecycleEvent.
+     * @param {WorkspaceLifecycleEventUpdateArgs} args - Arguments to update one WorkspaceLifecycleEvent.
+     * @example
+     * // Update one WorkspaceLifecycleEvent
+     * const workspaceLifecycleEvent = await prisma.workspaceLifecycleEvent.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends WorkspaceLifecycleEventUpdateArgs>(args: SelectSubset<T, WorkspaceLifecycleEventUpdateArgs<ExtArgs>>): Prisma__WorkspaceLifecycleEventClient<$Result.GetResult<Prisma.$WorkspaceLifecycleEventPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more WorkspaceLifecycleEvents.
+     * @param {WorkspaceLifecycleEventDeleteManyArgs} args - Arguments to filter WorkspaceLifecycleEvents to delete.
+     * @example
+     * // Delete a few WorkspaceLifecycleEvents
+     * const { count } = await prisma.workspaceLifecycleEvent.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends WorkspaceLifecycleEventDeleteManyArgs>(args?: SelectSubset<T, WorkspaceLifecycleEventDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more WorkspaceLifecycleEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkspaceLifecycleEventUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many WorkspaceLifecycleEvents
+     * const workspaceLifecycleEvent = await prisma.workspaceLifecycleEvent.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends WorkspaceLifecycleEventUpdateManyArgs>(args: SelectSubset<T, WorkspaceLifecycleEventUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more WorkspaceLifecycleEvents and returns the data updated in the database.
+     * @param {WorkspaceLifecycleEventUpdateManyAndReturnArgs} args - Arguments to update many WorkspaceLifecycleEvents.
+     * @example
+     * // Update many WorkspaceLifecycleEvents
+     * const workspaceLifecycleEvent = await prisma.workspaceLifecycleEvent.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more WorkspaceLifecycleEvents and only return the `id`
+     * const workspaceLifecycleEventWithIdOnly = await prisma.workspaceLifecycleEvent.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends WorkspaceLifecycleEventUpdateManyAndReturnArgs>(args: SelectSubset<T, WorkspaceLifecycleEventUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkspaceLifecycleEventPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one WorkspaceLifecycleEvent.
+     * @param {WorkspaceLifecycleEventUpsertArgs} args - Arguments to update or create a WorkspaceLifecycleEvent.
+     * @example
+     * // Update or create a WorkspaceLifecycleEvent
+     * const workspaceLifecycleEvent = await prisma.workspaceLifecycleEvent.upsert({
+     *   create: {
+     *     // ... data to create a WorkspaceLifecycleEvent
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the WorkspaceLifecycleEvent we want to update
+     *   }
+     * })
+     */
+    upsert<T extends WorkspaceLifecycleEventUpsertArgs>(args: SelectSubset<T, WorkspaceLifecycleEventUpsertArgs<ExtArgs>>): Prisma__WorkspaceLifecycleEventClient<$Result.GetResult<Prisma.$WorkspaceLifecycleEventPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of WorkspaceLifecycleEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkspaceLifecycleEventCountArgs} args - Arguments to filter WorkspaceLifecycleEvents to count.
+     * @example
+     * // Count the number of WorkspaceLifecycleEvents
+     * const count = await prisma.workspaceLifecycleEvent.count({
+     *   where: {
+     *     // ... the filter for the WorkspaceLifecycleEvents we want to count
+     *   }
+     * })
+    **/
+    count<T extends WorkspaceLifecycleEventCountArgs>(
+      args?: Subset<T, WorkspaceLifecycleEventCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], WorkspaceLifecycleEventCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a WorkspaceLifecycleEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkspaceLifecycleEventAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends WorkspaceLifecycleEventAggregateArgs>(args: Subset<T, WorkspaceLifecycleEventAggregateArgs>): Prisma.PrismaPromise<GetWorkspaceLifecycleEventAggregateType<T>>
+
+    /**
+     * Group by WorkspaceLifecycleEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkspaceLifecycleEventGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends WorkspaceLifecycleEventGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: WorkspaceLifecycleEventGroupByArgs['orderBy'] }
+        : { orderBy?: WorkspaceLifecycleEventGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, WorkspaceLifecycleEventGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetWorkspaceLifecycleEventGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the WorkspaceLifecycleEvent model
+   */
+  readonly fields: WorkspaceLifecycleEventFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for WorkspaceLifecycleEvent.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__WorkspaceLifecycleEventClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    workspace<T extends WorkspaceDefaultArgs<ExtArgs> = {}>(args?: Subset<T, WorkspaceDefaultArgs<ExtArgs>>): Prisma__WorkspaceClient<$Result.GetResult<Prisma.$WorkspacePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the WorkspaceLifecycleEvent model
+   */
+  interface WorkspaceLifecycleEventFieldRefs {
+    readonly id: FieldRef<"WorkspaceLifecycleEvent", 'String'>
+    readonly workspaceId: FieldRef<"WorkspaceLifecycleEvent", 'String'>
+    readonly state: FieldRef<"WorkspaceLifecycleEvent", 'String'>
+    readonly reason: FieldRef<"WorkspaceLifecycleEvent", 'String'>
+    readonly detail: FieldRef<"WorkspaceLifecycleEvent", 'Json'>
+    readonly at: FieldRef<"WorkspaceLifecycleEvent", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * WorkspaceLifecycleEvent findUnique
+   */
+  export type WorkspaceLifecycleEventFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspaceLifecycleEvent
+     */
+    select?: WorkspaceLifecycleEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspaceLifecycleEvent
+     */
+    omit?: WorkspaceLifecycleEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspaceLifecycleEventInclude<ExtArgs> | null
+    /**
+     * Filter, which WorkspaceLifecycleEvent to fetch.
+     */
+    where: WorkspaceLifecycleEventWhereUniqueInput
+  }
+
+  /**
+   * WorkspaceLifecycleEvent findUniqueOrThrow
+   */
+  export type WorkspaceLifecycleEventFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspaceLifecycleEvent
+     */
+    select?: WorkspaceLifecycleEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspaceLifecycleEvent
+     */
+    omit?: WorkspaceLifecycleEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspaceLifecycleEventInclude<ExtArgs> | null
+    /**
+     * Filter, which WorkspaceLifecycleEvent to fetch.
+     */
+    where: WorkspaceLifecycleEventWhereUniqueInput
+  }
+
+  /**
+   * WorkspaceLifecycleEvent findFirst
+   */
+  export type WorkspaceLifecycleEventFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspaceLifecycleEvent
+     */
+    select?: WorkspaceLifecycleEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspaceLifecycleEvent
+     */
+    omit?: WorkspaceLifecycleEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspaceLifecycleEventInclude<ExtArgs> | null
+    /**
+     * Filter, which WorkspaceLifecycleEvent to fetch.
+     */
+    where?: WorkspaceLifecycleEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WorkspaceLifecycleEvents to fetch.
+     */
+    orderBy?: WorkspaceLifecycleEventOrderByWithRelationInput | WorkspaceLifecycleEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for WorkspaceLifecycleEvents.
+     */
+    cursor?: WorkspaceLifecycleEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WorkspaceLifecycleEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WorkspaceLifecycleEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of WorkspaceLifecycleEvents.
+     */
+    distinct?: WorkspaceLifecycleEventScalarFieldEnum | WorkspaceLifecycleEventScalarFieldEnum[]
+  }
+
+  /**
+   * WorkspaceLifecycleEvent findFirstOrThrow
+   */
+  export type WorkspaceLifecycleEventFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspaceLifecycleEvent
+     */
+    select?: WorkspaceLifecycleEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspaceLifecycleEvent
+     */
+    omit?: WorkspaceLifecycleEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspaceLifecycleEventInclude<ExtArgs> | null
+    /**
+     * Filter, which WorkspaceLifecycleEvent to fetch.
+     */
+    where?: WorkspaceLifecycleEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WorkspaceLifecycleEvents to fetch.
+     */
+    orderBy?: WorkspaceLifecycleEventOrderByWithRelationInput | WorkspaceLifecycleEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for WorkspaceLifecycleEvents.
+     */
+    cursor?: WorkspaceLifecycleEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WorkspaceLifecycleEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WorkspaceLifecycleEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of WorkspaceLifecycleEvents.
+     */
+    distinct?: WorkspaceLifecycleEventScalarFieldEnum | WorkspaceLifecycleEventScalarFieldEnum[]
+  }
+
+  /**
+   * WorkspaceLifecycleEvent findMany
+   */
+  export type WorkspaceLifecycleEventFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspaceLifecycleEvent
+     */
+    select?: WorkspaceLifecycleEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspaceLifecycleEvent
+     */
+    omit?: WorkspaceLifecycleEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspaceLifecycleEventInclude<ExtArgs> | null
+    /**
+     * Filter, which WorkspaceLifecycleEvents to fetch.
+     */
+    where?: WorkspaceLifecycleEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WorkspaceLifecycleEvents to fetch.
+     */
+    orderBy?: WorkspaceLifecycleEventOrderByWithRelationInput | WorkspaceLifecycleEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing WorkspaceLifecycleEvents.
+     */
+    cursor?: WorkspaceLifecycleEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WorkspaceLifecycleEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WorkspaceLifecycleEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of WorkspaceLifecycleEvents.
+     */
+    distinct?: WorkspaceLifecycleEventScalarFieldEnum | WorkspaceLifecycleEventScalarFieldEnum[]
+  }
+
+  /**
+   * WorkspaceLifecycleEvent create
+   */
+  export type WorkspaceLifecycleEventCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspaceLifecycleEvent
+     */
+    select?: WorkspaceLifecycleEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspaceLifecycleEvent
+     */
+    omit?: WorkspaceLifecycleEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspaceLifecycleEventInclude<ExtArgs> | null
+    /**
+     * The data needed to create a WorkspaceLifecycleEvent.
+     */
+    data: XOR<WorkspaceLifecycleEventCreateInput, WorkspaceLifecycleEventUncheckedCreateInput>
+  }
+
+  /**
+   * WorkspaceLifecycleEvent createMany
+   */
+  export type WorkspaceLifecycleEventCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many WorkspaceLifecycleEvents.
+     */
+    data: WorkspaceLifecycleEventCreateManyInput | WorkspaceLifecycleEventCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * WorkspaceLifecycleEvent createManyAndReturn
+   */
+  export type WorkspaceLifecycleEventCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspaceLifecycleEvent
+     */
+    select?: WorkspaceLifecycleEventSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspaceLifecycleEvent
+     */
+    omit?: WorkspaceLifecycleEventOmit<ExtArgs> | null
+    /**
+     * The data used to create many WorkspaceLifecycleEvents.
+     */
+    data: WorkspaceLifecycleEventCreateManyInput | WorkspaceLifecycleEventCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspaceLifecycleEventIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * WorkspaceLifecycleEvent update
+   */
+  export type WorkspaceLifecycleEventUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspaceLifecycleEvent
+     */
+    select?: WorkspaceLifecycleEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspaceLifecycleEvent
+     */
+    omit?: WorkspaceLifecycleEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspaceLifecycleEventInclude<ExtArgs> | null
+    /**
+     * The data needed to update a WorkspaceLifecycleEvent.
+     */
+    data: XOR<WorkspaceLifecycleEventUpdateInput, WorkspaceLifecycleEventUncheckedUpdateInput>
+    /**
+     * Choose, which WorkspaceLifecycleEvent to update.
+     */
+    where: WorkspaceLifecycleEventWhereUniqueInput
+  }
+
+  /**
+   * WorkspaceLifecycleEvent updateMany
+   */
+  export type WorkspaceLifecycleEventUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update WorkspaceLifecycleEvents.
+     */
+    data: XOR<WorkspaceLifecycleEventUpdateManyMutationInput, WorkspaceLifecycleEventUncheckedUpdateManyInput>
+    /**
+     * Filter which WorkspaceLifecycleEvents to update
+     */
+    where?: WorkspaceLifecycleEventWhereInput
+    /**
+     * Limit how many WorkspaceLifecycleEvents to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * WorkspaceLifecycleEvent updateManyAndReturn
+   */
+  export type WorkspaceLifecycleEventUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspaceLifecycleEvent
+     */
+    select?: WorkspaceLifecycleEventSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspaceLifecycleEvent
+     */
+    omit?: WorkspaceLifecycleEventOmit<ExtArgs> | null
+    /**
+     * The data used to update WorkspaceLifecycleEvents.
+     */
+    data: XOR<WorkspaceLifecycleEventUpdateManyMutationInput, WorkspaceLifecycleEventUncheckedUpdateManyInput>
+    /**
+     * Filter which WorkspaceLifecycleEvents to update
+     */
+    where?: WorkspaceLifecycleEventWhereInput
+    /**
+     * Limit how many WorkspaceLifecycleEvents to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspaceLifecycleEventIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * WorkspaceLifecycleEvent upsert
+   */
+  export type WorkspaceLifecycleEventUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspaceLifecycleEvent
+     */
+    select?: WorkspaceLifecycleEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspaceLifecycleEvent
+     */
+    omit?: WorkspaceLifecycleEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspaceLifecycleEventInclude<ExtArgs> | null
+    /**
+     * The filter to search for the WorkspaceLifecycleEvent to update in case it exists.
+     */
+    where: WorkspaceLifecycleEventWhereUniqueInput
+    /**
+     * In case the WorkspaceLifecycleEvent found by the `where` argument doesn't exist, create a new WorkspaceLifecycleEvent with this data.
+     */
+    create: XOR<WorkspaceLifecycleEventCreateInput, WorkspaceLifecycleEventUncheckedCreateInput>
+    /**
+     * In case the WorkspaceLifecycleEvent was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<WorkspaceLifecycleEventUpdateInput, WorkspaceLifecycleEventUncheckedUpdateInput>
+  }
+
+  /**
+   * WorkspaceLifecycleEvent delete
+   */
+  export type WorkspaceLifecycleEventDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspaceLifecycleEvent
+     */
+    select?: WorkspaceLifecycleEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspaceLifecycleEvent
+     */
+    omit?: WorkspaceLifecycleEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspaceLifecycleEventInclude<ExtArgs> | null
+    /**
+     * Filter which WorkspaceLifecycleEvent to delete.
+     */
+    where: WorkspaceLifecycleEventWhereUniqueInput
+  }
+
+  /**
+   * WorkspaceLifecycleEvent deleteMany
+   */
+  export type WorkspaceLifecycleEventDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which WorkspaceLifecycleEvents to delete
+     */
+    where?: WorkspaceLifecycleEventWhereInput
+    /**
+     * Limit how many WorkspaceLifecycleEvents to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * WorkspaceLifecycleEvent without action
+   */
+  export type WorkspaceLifecycleEventDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspaceLifecycleEvent
+     */
+    select?: WorkspaceLifecycleEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspaceLifecycleEvent
+     */
+    omit?: WorkspaceLifecycleEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspaceLifecycleEventInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model WorkspacePostMortem
+   */
+
+  export type AggregateWorkspacePostMortem = {
+    _count: WorkspacePostMortemCountAggregateOutputType | null
+    _min: WorkspacePostMortemMinAggregateOutputType | null
+    _max: WorkspacePostMortemMaxAggregateOutputType | null
+  }
+
+  export type WorkspacePostMortemMinAggregateOutputType = {
+    id: string | null
+    workspaceId: string | null
+    reason: string | null
+    finalState: string | null
+    logsTail: string | null
+    capturedAt: Date | null
+  }
+
+  export type WorkspacePostMortemMaxAggregateOutputType = {
+    id: string | null
+    workspaceId: string | null
+    reason: string | null
+    finalState: string | null
+    logsTail: string | null
+    capturedAt: Date | null
+  }
+
+  export type WorkspacePostMortemCountAggregateOutputType = {
+    id: number
+    workspaceId: number
+    reason: number
+    finalState: number
+    ports: number
+    processes: number
+    problems: number
+    logsTail: number
+    capturedAt: number
+    _all: number
+  }
+
+
+  export type WorkspacePostMortemMinAggregateInputType = {
+    id?: true
+    workspaceId?: true
+    reason?: true
+    finalState?: true
+    logsTail?: true
+    capturedAt?: true
+  }
+
+  export type WorkspacePostMortemMaxAggregateInputType = {
+    id?: true
+    workspaceId?: true
+    reason?: true
+    finalState?: true
+    logsTail?: true
+    capturedAt?: true
+  }
+
+  export type WorkspacePostMortemCountAggregateInputType = {
+    id?: true
+    workspaceId?: true
+    reason?: true
+    finalState?: true
+    ports?: true
+    processes?: true
+    problems?: true
+    logsTail?: true
+    capturedAt?: true
+    _all?: true
+  }
+
+  export type WorkspacePostMortemAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which WorkspacePostMortem to aggregate.
+     */
+    where?: WorkspacePostMortemWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WorkspacePostMortems to fetch.
+     */
+    orderBy?: WorkspacePostMortemOrderByWithRelationInput | WorkspacePostMortemOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: WorkspacePostMortemWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WorkspacePostMortems from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WorkspacePostMortems.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned WorkspacePostMortems
+    **/
+    _count?: true | WorkspacePostMortemCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: WorkspacePostMortemMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: WorkspacePostMortemMaxAggregateInputType
+  }
+
+  export type GetWorkspacePostMortemAggregateType<T extends WorkspacePostMortemAggregateArgs> = {
+        [P in keyof T & keyof AggregateWorkspacePostMortem]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateWorkspacePostMortem[P]>
+      : GetScalarType<T[P], AggregateWorkspacePostMortem[P]>
+  }
+
+
+
+
+  export type WorkspacePostMortemGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: WorkspacePostMortemWhereInput
+    orderBy?: WorkspacePostMortemOrderByWithAggregationInput | WorkspacePostMortemOrderByWithAggregationInput[]
+    by: WorkspacePostMortemScalarFieldEnum[] | WorkspacePostMortemScalarFieldEnum
+    having?: WorkspacePostMortemScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: WorkspacePostMortemCountAggregateInputType | true
+    _min?: WorkspacePostMortemMinAggregateInputType
+    _max?: WorkspacePostMortemMaxAggregateInputType
+  }
+
+  export type WorkspacePostMortemGroupByOutputType = {
+    id: string
+    workspaceId: string
+    reason: string
+    finalState: string
+    ports: JsonValue | null
+    processes: JsonValue | null
+    problems: JsonValue | null
+    logsTail: string | null
+    capturedAt: Date
+    _count: WorkspacePostMortemCountAggregateOutputType | null
+    _min: WorkspacePostMortemMinAggregateOutputType | null
+    _max: WorkspacePostMortemMaxAggregateOutputType | null
+  }
+
+  type GetWorkspacePostMortemGroupByPayload<T extends WorkspacePostMortemGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<WorkspacePostMortemGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof WorkspacePostMortemGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], WorkspacePostMortemGroupByOutputType[P]>
+            : GetScalarType<T[P], WorkspacePostMortemGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type WorkspacePostMortemSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    workspaceId?: boolean
+    reason?: boolean
+    finalState?: boolean
+    ports?: boolean
+    processes?: boolean
+    problems?: boolean
+    logsTail?: boolean
+    capturedAt?: boolean
+    workspace?: boolean | WorkspaceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["workspacePostMortem"]>
+
+  export type WorkspacePostMortemSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    workspaceId?: boolean
+    reason?: boolean
+    finalState?: boolean
+    ports?: boolean
+    processes?: boolean
+    problems?: boolean
+    logsTail?: boolean
+    capturedAt?: boolean
+    workspace?: boolean | WorkspaceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["workspacePostMortem"]>
+
+  export type WorkspacePostMortemSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    workspaceId?: boolean
+    reason?: boolean
+    finalState?: boolean
+    ports?: boolean
+    processes?: boolean
+    problems?: boolean
+    logsTail?: boolean
+    capturedAt?: boolean
+    workspace?: boolean | WorkspaceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["workspacePostMortem"]>
+
+  export type WorkspacePostMortemSelectScalar = {
+    id?: boolean
+    workspaceId?: boolean
+    reason?: boolean
+    finalState?: boolean
+    ports?: boolean
+    processes?: boolean
+    problems?: boolean
+    logsTail?: boolean
+    capturedAt?: boolean
+  }
+
+  export type WorkspacePostMortemOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "workspaceId" | "reason" | "finalState" | "ports" | "processes" | "problems" | "logsTail" | "capturedAt", ExtArgs["result"]["workspacePostMortem"]>
+  export type WorkspacePostMortemInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    workspace?: boolean | WorkspaceDefaultArgs<ExtArgs>
+  }
+  export type WorkspacePostMortemIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    workspace?: boolean | WorkspaceDefaultArgs<ExtArgs>
+  }
+  export type WorkspacePostMortemIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    workspace?: boolean | WorkspaceDefaultArgs<ExtArgs>
+  }
+
+  export type $WorkspacePostMortemPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "WorkspacePostMortem"
+    objects: {
+      workspace: Prisma.$WorkspacePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      workspaceId: string
+      reason: string
+      finalState: string
+      ports: Prisma.JsonValue | null
+      processes: Prisma.JsonValue | null
+      problems: Prisma.JsonValue | null
+      logsTail: string | null
+      capturedAt: Date
+    }, ExtArgs["result"]["workspacePostMortem"]>
+    composites: {}
+  }
+
+  type WorkspacePostMortemGetPayload<S extends boolean | null | undefined | WorkspacePostMortemDefaultArgs> = $Result.GetResult<Prisma.$WorkspacePostMortemPayload, S>
+
+  type WorkspacePostMortemCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<WorkspacePostMortemFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: WorkspacePostMortemCountAggregateInputType | true
+    }
+
+  export interface WorkspacePostMortemDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['WorkspacePostMortem'], meta: { name: 'WorkspacePostMortem' } }
+    /**
+     * Find zero or one WorkspacePostMortem that matches the filter.
+     * @param {WorkspacePostMortemFindUniqueArgs} args - Arguments to find a WorkspacePostMortem
+     * @example
+     * // Get one WorkspacePostMortem
+     * const workspacePostMortem = await prisma.workspacePostMortem.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends WorkspacePostMortemFindUniqueArgs>(args: SelectSubset<T, WorkspacePostMortemFindUniqueArgs<ExtArgs>>): Prisma__WorkspacePostMortemClient<$Result.GetResult<Prisma.$WorkspacePostMortemPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one WorkspacePostMortem that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {WorkspacePostMortemFindUniqueOrThrowArgs} args - Arguments to find a WorkspacePostMortem
+     * @example
+     * // Get one WorkspacePostMortem
+     * const workspacePostMortem = await prisma.workspacePostMortem.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends WorkspacePostMortemFindUniqueOrThrowArgs>(args: SelectSubset<T, WorkspacePostMortemFindUniqueOrThrowArgs<ExtArgs>>): Prisma__WorkspacePostMortemClient<$Result.GetResult<Prisma.$WorkspacePostMortemPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first WorkspacePostMortem that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkspacePostMortemFindFirstArgs} args - Arguments to find a WorkspacePostMortem
+     * @example
+     * // Get one WorkspacePostMortem
+     * const workspacePostMortem = await prisma.workspacePostMortem.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends WorkspacePostMortemFindFirstArgs>(args?: SelectSubset<T, WorkspacePostMortemFindFirstArgs<ExtArgs>>): Prisma__WorkspacePostMortemClient<$Result.GetResult<Prisma.$WorkspacePostMortemPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first WorkspacePostMortem that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkspacePostMortemFindFirstOrThrowArgs} args - Arguments to find a WorkspacePostMortem
+     * @example
+     * // Get one WorkspacePostMortem
+     * const workspacePostMortem = await prisma.workspacePostMortem.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends WorkspacePostMortemFindFirstOrThrowArgs>(args?: SelectSubset<T, WorkspacePostMortemFindFirstOrThrowArgs<ExtArgs>>): Prisma__WorkspacePostMortemClient<$Result.GetResult<Prisma.$WorkspacePostMortemPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more WorkspacePostMortems that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkspacePostMortemFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all WorkspacePostMortems
+     * const workspacePostMortems = await prisma.workspacePostMortem.findMany()
+     * 
+     * // Get first 10 WorkspacePostMortems
+     * const workspacePostMortems = await prisma.workspacePostMortem.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const workspacePostMortemWithIdOnly = await prisma.workspacePostMortem.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends WorkspacePostMortemFindManyArgs>(args?: SelectSubset<T, WorkspacePostMortemFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkspacePostMortemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a WorkspacePostMortem.
+     * @param {WorkspacePostMortemCreateArgs} args - Arguments to create a WorkspacePostMortem.
+     * @example
+     * // Create one WorkspacePostMortem
+     * const WorkspacePostMortem = await prisma.workspacePostMortem.create({
+     *   data: {
+     *     // ... data to create a WorkspacePostMortem
+     *   }
+     * })
+     * 
+     */
+    create<T extends WorkspacePostMortemCreateArgs>(args: SelectSubset<T, WorkspacePostMortemCreateArgs<ExtArgs>>): Prisma__WorkspacePostMortemClient<$Result.GetResult<Prisma.$WorkspacePostMortemPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many WorkspacePostMortems.
+     * @param {WorkspacePostMortemCreateManyArgs} args - Arguments to create many WorkspacePostMortems.
+     * @example
+     * // Create many WorkspacePostMortems
+     * const workspacePostMortem = await prisma.workspacePostMortem.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends WorkspacePostMortemCreateManyArgs>(args?: SelectSubset<T, WorkspacePostMortemCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many WorkspacePostMortems and returns the data saved in the database.
+     * @param {WorkspacePostMortemCreateManyAndReturnArgs} args - Arguments to create many WorkspacePostMortems.
+     * @example
+     * // Create many WorkspacePostMortems
+     * const workspacePostMortem = await prisma.workspacePostMortem.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many WorkspacePostMortems and only return the `id`
+     * const workspacePostMortemWithIdOnly = await prisma.workspacePostMortem.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends WorkspacePostMortemCreateManyAndReturnArgs>(args?: SelectSubset<T, WorkspacePostMortemCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkspacePostMortemPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a WorkspacePostMortem.
+     * @param {WorkspacePostMortemDeleteArgs} args - Arguments to delete one WorkspacePostMortem.
+     * @example
+     * // Delete one WorkspacePostMortem
+     * const WorkspacePostMortem = await prisma.workspacePostMortem.delete({
+     *   where: {
+     *     // ... filter to delete one WorkspacePostMortem
+     *   }
+     * })
+     * 
+     */
+    delete<T extends WorkspacePostMortemDeleteArgs>(args: SelectSubset<T, WorkspacePostMortemDeleteArgs<ExtArgs>>): Prisma__WorkspacePostMortemClient<$Result.GetResult<Prisma.$WorkspacePostMortemPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one WorkspacePostMortem.
+     * @param {WorkspacePostMortemUpdateArgs} args - Arguments to update one WorkspacePostMortem.
+     * @example
+     * // Update one WorkspacePostMortem
+     * const workspacePostMortem = await prisma.workspacePostMortem.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends WorkspacePostMortemUpdateArgs>(args: SelectSubset<T, WorkspacePostMortemUpdateArgs<ExtArgs>>): Prisma__WorkspacePostMortemClient<$Result.GetResult<Prisma.$WorkspacePostMortemPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more WorkspacePostMortems.
+     * @param {WorkspacePostMortemDeleteManyArgs} args - Arguments to filter WorkspacePostMortems to delete.
+     * @example
+     * // Delete a few WorkspacePostMortems
+     * const { count } = await prisma.workspacePostMortem.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends WorkspacePostMortemDeleteManyArgs>(args?: SelectSubset<T, WorkspacePostMortemDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more WorkspacePostMortems.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkspacePostMortemUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many WorkspacePostMortems
+     * const workspacePostMortem = await prisma.workspacePostMortem.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends WorkspacePostMortemUpdateManyArgs>(args: SelectSubset<T, WorkspacePostMortemUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more WorkspacePostMortems and returns the data updated in the database.
+     * @param {WorkspacePostMortemUpdateManyAndReturnArgs} args - Arguments to update many WorkspacePostMortems.
+     * @example
+     * // Update many WorkspacePostMortems
+     * const workspacePostMortem = await prisma.workspacePostMortem.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more WorkspacePostMortems and only return the `id`
+     * const workspacePostMortemWithIdOnly = await prisma.workspacePostMortem.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends WorkspacePostMortemUpdateManyAndReturnArgs>(args: SelectSubset<T, WorkspacePostMortemUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkspacePostMortemPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one WorkspacePostMortem.
+     * @param {WorkspacePostMortemUpsertArgs} args - Arguments to update or create a WorkspacePostMortem.
+     * @example
+     * // Update or create a WorkspacePostMortem
+     * const workspacePostMortem = await prisma.workspacePostMortem.upsert({
+     *   create: {
+     *     // ... data to create a WorkspacePostMortem
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the WorkspacePostMortem we want to update
+     *   }
+     * })
+     */
+    upsert<T extends WorkspacePostMortemUpsertArgs>(args: SelectSubset<T, WorkspacePostMortemUpsertArgs<ExtArgs>>): Prisma__WorkspacePostMortemClient<$Result.GetResult<Prisma.$WorkspacePostMortemPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of WorkspacePostMortems.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkspacePostMortemCountArgs} args - Arguments to filter WorkspacePostMortems to count.
+     * @example
+     * // Count the number of WorkspacePostMortems
+     * const count = await prisma.workspacePostMortem.count({
+     *   where: {
+     *     // ... the filter for the WorkspacePostMortems we want to count
+     *   }
+     * })
+    **/
+    count<T extends WorkspacePostMortemCountArgs>(
+      args?: Subset<T, WorkspacePostMortemCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], WorkspacePostMortemCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a WorkspacePostMortem.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkspacePostMortemAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends WorkspacePostMortemAggregateArgs>(args: Subset<T, WorkspacePostMortemAggregateArgs>): Prisma.PrismaPromise<GetWorkspacePostMortemAggregateType<T>>
+
+    /**
+     * Group by WorkspacePostMortem.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkspacePostMortemGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends WorkspacePostMortemGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: WorkspacePostMortemGroupByArgs['orderBy'] }
+        : { orderBy?: WorkspacePostMortemGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, WorkspacePostMortemGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetWorkspacePostMortemGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the WorkspacePostMortem model
+   */
+  readonly fields: WorkspacePostMortemFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for WorkspacePostMortem.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__WorkspacePostMortemClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    workspace<T extends WorkspaceDefaultArgs<ExtArgs> = {}>(args?: Subset<T, WorkspaceDefaultArgs<ExtArgs>>): Prisma__WorkspaceClient<$Result.GetResult<Prisma.$WorkspacePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the WorkspacePostMortem model
+   */
+  interface WorkspacePostMortemFieldRefs {
+    readonly id: FieldRef<"WorkspacePostMortem", 'String'>
+    readonly workspaceId: FieldRef<"WorkspacePostMortem", 'String'>
+    readonly reason: FieldRef<"WorkspacePostMortem", 'String'>
+    readonly finalState: FieldRef<"WorkspacePostMortem", 'String'>
+    readonly ports: FieldRef<"WorkspacePostMortem", 'Json'>
+    readonly processes: FieldRef<"WorkspacePostMortem", 'Json'>
+    readonly problems: FieldRef<"WorkspacePostMortem", 'Json'>
+    readonly logsTail: FieldRef<"WorkspacePostMortem", 'String'>
+    readonly capturedAt: FieldRef<"WorkspacePostMortem", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * WorkspacePostMortem findUnique
+   */
+  export type WorkspacePostMortemFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspacePostMortem
+     */
+    select?: WorkspacePostMortemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspacePostMortem
+     */
+    omit?: WorkspacePostMortemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspacePostMortemInclude<ExtArgs> | null
+    /**
+     * Filter, which WorkspacePostMortem to fetch.
+     */
+    where: WorkspacePostMortemWhereUniqueInput
+  }
+
+  /**
+   * WorkspacePostMortem findUniqueOrThrow
+   */
+  export type WorkspacePostMortemFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspacePostMortem
+     */
+    select?: WorkspacePostMortemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspacePostMortem
+     */
+    omit?: WorkspacePostMortemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspacePostMortemInclude<ExtArgs> | null
+    /**
+     * Filter, which WorkspacePostMortem to fetch.
+     */
+    where: WorkspacePostMortemWhereUniqueInput
+  }
+
+  /**
+   * WorkspacePostMortem findFirst
+   */
+  export type WorkspacePostMortemFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspacePostMortem
+     */
+    select?: WorkspacePostMortemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspacePostMortem
+     */
+    omit?: WorkspacePostMortemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspacePostMortemInclude<ExtArgs> | null
+    /**
+     * Filter, which WorkspacePostMortem to fetch.
+     */
+    where?: WorkspacePostMortemWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WorkspacePostMortems to fetch.
+     */
+    orderBy?: WorkspacePostMortemOrderByWithRelationInput | WorkspacePostMortemOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for WorkspacePostMortems.
+     */
+    cursor?: WorkspacePostMortemWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WorkspacePostMortems from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WorkspacePostMortems.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of WorkspacePostMortems.
+     */
+    distinct?: WorkspacePostMortemScalarFieldEnum | WorkspacePostMortemScalarFieldEnum[]
+  }
+
+  /**
+   * WorkspacePostMortem findFirstOrThrow
+   */
+  export type WorkspacePostMortemFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspacePostMortem
+     */
+    select?: WorkspacePostMortemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspacePostMortem
+     */
+    omit?: WorkspacePostMortemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspacePostMortemInclude<ExtArgs> | null
+    /**
+     * Filter, which WorkspacePostMortem to fetch.
+     */
+    where?: WorkspacePostMortemWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WorkspacePostMortems to fetch.
+     */
+    orderBy?: WorkspacePostMortemOrderByWithRelationInput | WorkspacePostMortemOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for WorkspacePostMortems.
+     */
+    cursor?: WorkspacePostMortemWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WorkspacePostMortems from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WorkspacePostMortems.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of WorkspacePostMortems.
+     */
+    distinct?: WorkspacePostMortemScalarFieldEnum | WorkspacePostMortemScalarFieldEnum[]
+  }
+
+  /**
+   * WorkspacePostMortem findMany
+   */
+  export type WorkspacePostMortemFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspacePostMortem
+     */
+    select?: WorkspacePostMortemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspacePostMortem
+     */
+    omit?: WorkspacePostMortemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspacePostMortemInclude<ExtArgs> | null
+    /**
+     * Filter, which WorkspacePostMortems to fetch.
+     */
+    where?: WorkspacePostMortemWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WorkspacePostMortems to fetch.
+     */
+    orderBy?: WorkspacePostMortemOrderByWithRelationInput | WorkspacePostMortemOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing WorkspacePostMortems.
+     */
+    cursor?: WorkspacePostMortemWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WorkspacePostMortems from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WorkspacePostMortems.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of WorkspacePostMortems.
+     */
+    distinct?: WorkspacePostMortemScalarFieldEnum | WorkspacePostMortemScalarFieldEnum[]
+  }
+
+  /**
+   * WorkspacePostMortem create
+   */
+  export type WorkspacePostMortemCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspacePostMortem
+     */
+    select?: WorkspacePostMortemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspacePostMortem
+     */
+    omit?: WorkspacePostMortemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspacePostMortemInclude<ExtArgs> | null
+    /**
+     * The data needed to create a WorkspacePostMortem.
+     */
+    data: XOR<WorkspacePostMortemCreateInput, WorkspacePostMortemUncheckedCreateInput>
+  }
+
+  /**
+   * WorkspacePostMortem createMany
+   */
+  export type WorkspacePostMortemCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many WorkspacePostMortems.
+     */
+    data: WorkspacePostMortemCreateManyInput | WorkspacePostMortemCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * WorkspacePostMortem createManyAndReturn
+   */
+  export type WorkspacePostMortemCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspacePostMortem
+     */
+    select?: WorkspacePostMortemSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspacePostMortem
+     */
+    omit?: WorkspacePostMortemOmit<ExtArgs> | null
+    /**
+     * The data used to create many WorkspacePostMortems.
+     */
+    data: WorkspacePostMortemCreateManyInput | WorkspacePostMortemCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspacePostMortemIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * WorkspacePostMortem update
+   */
+  export type WorkspacePostMortemUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspacePostMortem
+     */
+    select?: WorkspacePostMortemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspacePostMortem
+     */
+    omit?: WorkspacePostMortemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspacePostMortemInclude<ExtArgs> | null
+    /**
+     * The data needed to update a WorkspacePostMortem.
+     */
+    data: XOR<WorkspacePostMortemUpdateInput, WorkspacePostMortemUncheckedUpdateInput>
+    /**
+     * Choose, which WorkspacePostMortem to update.
+     */
+    where: WorkspacePostMortemWhereUniqueInput
+  }
+
+  /**
+   * WorkspacePostMortem updateMany
+   */
+  export type WorkspacePostMortemUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update WorkspacePostMortems.
+     */
+    data: XOR<WorkspacePostMortemUpdateManyMutationInput, WorkspacePostMortemUncheckedUpdateManyInput>
+    /**
+     * Filter which WorkspacePostMortems to update
+     */
+    where?: WorkspacePostMortemWhereInput
+    /**
+     * Limit how many WorkspacePostMortems to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * WorkspacePostMortem updateManyAndReturn
+   */
+  export type WorkspacePostMortemUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspacePostMortem
+     */
+    select?: WorkspacePostMortemSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspacePostMortem
+     */
+    omit?: WorkspacePostMortemOmit<ExtArgs> | null
+    /**
+     * The data used to update WorkspacePostMortems.
+     */
+    data: XOR<WorkspacePostMortemUpdateManyMutationInput, WorkspacePostMortemUncheckedUpdateManyInput>
+    /**
+     * Filter which WorkspacePostMortems to update
+     */
+    where?: WorkspacePostMortemWhereInput
+    /**
+     * Limit how many WorkspacePostMortems to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspacePostMortemIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * WorkspacePostMortem upsert
+   */
+  export type WorkspacePostMortemUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspacePostMortem
+     */
+    select?: WorkspacePostMortemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspacePostMortem
+     */
+    omit?: WorkspacePostMortemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspacePostMortemInclude<ExtArgs> | null
+    /**
+     * The filter to search for the WorkspacePostMortem to update in case it exists.
+     */
+    where: WorkspacePostMortemWhereUniqueInput
+    /**
+     * In case the WorkspacePostMortem found by the `where` argument doesn't exist, create a new WorkspacePostMortem with this data.
+     */
+    create: XOR<WorkspacePostMortemCreateInput, WorkspacePostMortemUncheckedCreateInput>
+    /**
+     * In case the WorkspacePostMortem was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<WorkspacePostMortemUpdateInput, WorkspacePostMortemUncheckedUpdateInput>
+  }
+
+  /**
+   * WorkspacePostMortem delete
+   */
+  export type WorkspacePostMortemDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspacePostMortem
+     */
+    select?: WorkspacePostMortemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspacePostMortem
+     */
+    omit?: WorkspacePostMortemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspacePostMortemInclude<ExtArgs> | null
+    /**
+     * Filter which WorkspacePostMortem to delete.
+     */
+    where: WorkspacePostMortemWhereUniqueInput
+  }
+
+  /**
+   * WorkspacePostMortem deleteMany
+   */
+  export type WorkspacePostMortemDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which WorkspacePostMortems to delete
+     */
+    where?: WorkspacePostMortemWhereInput
+    /**
+     * Limit how many WorkspacePostMortems to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * WorkspacePostMortem without action
+   */
+  export type WorkspacePostMortemDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkspacePostMortem
+     */
+    select?: WorkspacePostMortemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkspacePostMortem
+     */
+    omit?: WorkspacePostMortemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkspacePostMortemInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -148646,10 +153678,36 @@ export namespace Prisma {
     enabled: 'enabled',
     installedByUserId: 'installedByUserId',
     createdAt: 'createdAt',
-    updatedAt: 'updatedAt'
+    updatedAt: 'updatedAt',
+    origin: 'origin',
+    contentHash: 'contentHash',
+    auditVerdict: 'auditVerdict',
+    auditFindings: 'auditFindings',
+    auditedAt: 'auditedAt',
+    manifestName: 'manifestName',
+    resourcesJson: 'resourcesJson',
+    revokedAt: 'revokedAt',
+    revokedByUserId: 'revokedByUserId',
+    revokeReason: 'revokeReason'
   };
 
   export type InstalledSkillScalarFieldEnum = (typeof InstalledSkillScalarFieldEnum)[keyof typeof InstalledSkillScalarFieldEnum]
+
+
+  export const SkillAuditEventScalarFieldEnum: {
+    id: 'id',
+    scope: 'scope',
+    scopeId: 'scopeId',
+    ownerRepo: 'ownerRepo',
+    action: 'action',
+    verdict: 'verdict',
+    findingsJson: 'findingsJson',
+    contentHash: 'contentHash',
+    actorUserId: 'actorUserId',
+    createdAt: 'createdAt'
+  };
+
+  export type SkillAuditEventScalarFieldEnum = (typeof SkillAuditEventScalarFieldEnum)[keyof typeof SkillAuditEventScalarFieldEnum]
 
 
   export const ProjectEnvironmentScalarFieldEnum: {
@@ -150079,11 +155137,16 @@ export namespace Prisma {
     authorName: 'authorName',
     authorUserId: 'authorUserId',
     appUrl: 'appUrl',
+    thumbnailUrl: 'thumbnailUrl',
     remixAllowed: 'remixAllowed',
     licenseId: 'licenseId',
     licenseText: 'licenseText',
     licenseTextSha256: 'licenseTextSha256',
     piiConsentVersion: 'piiConsentVersion',
+    rightsConfirmedAt: 'rightsConfirmedAt',
+    rightsConfirmedBy: 'rightsConfirmedBy',
+    piiPolicyAcceptedAt: 'piiPolicyAcceptedAt',
+    piiPolicyAcceptedBy: 'piiPolicyAcceptedBy',
     viewCount: 'viewCount',
     useCount: 'useCount',
     createdAt: 'createdAt',
@@ -150184,6 +155247,45 @@ export namespace Prisma {
   };
 
   export type LedgerReconciliationRunScalarFieldEnum = (typeof LedgerReconciliationRunScalarFieldEnum)[keyof typeof LedgerReconciliationRunScalarFieldEnum]
+
+
+  export const PreviewReadinessBeaconScalarFieldEnum: {
+    id: 'id',
+    workspaceId: 'workspaceId',
+    port: 'port',
+    status: 'status',
+    detail: 'detail',
+    reportedAt: 'reportedAt'
+  };
+
+  export type PreviewReadinessBeaconScalarFieldEnum = (typeof PreviewReadinessBeaconScalarFieldEnum)[keyof typeof PreviewReadinessBeaconScalarFieldEnum]
+
+
+  export const WorkspaceLifecycleEventScalarFieldEnum: {
+    id: 'id',
+    workspaceId: 'workspaceId',
+    state: 'state',
+    reason: 'reason',
+    detail: 'detail',
+    at: 'at'
+  };
+
+  export type WorkspaceLifecycleEventScalarFieldEnum = (typeof WorkspaceLifecycleEventScalarFieldEnum)[keyof typeof WorkspaceLifecycleEventScalarFieldEnum]
+
+
+  export const WorkspacePostMortemScalarFieldEnum: {
+    id: 'id',
+    workspaceId: 'workspaceId',
+    reason: 'reason',
+    finalState: 'finalState',
+    ports: 'ports',
+    processes: 'processes',
+    problems: 'problems',
+    logsTail: 'logsTail',
+    capturedAt: 'capturedAt'
+  };
+
+  export type WorkspacePostMortemScalarFieldEnum = (typeof WorkspacePostMortemScalarFieldEnum)[keyof typeof WorkspacePostMortemScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -152193,6 +157295,16 @@ export namespace Prisma {
     installedByUserId?: StringNullableFilter<"InstalledSkill"> | string | null
     createdAt?: DateTimeFilter<"InstalledSkill"> | Date | string
     updatedAt?: DateTimeFilter<"InstalledSkill"> | Date | string
+    origin?: StringFilter<"InstalledSkill"> | string
+    contentHash?: StringNullableFilter<"InstalledSkill"> | string | null
+    auditVerdict?: StringNullableFilter<"InstalledSkill"> | string | null
+    auditFindings?: StringNullableFilter<"InstalledSkill"> | string | null
+    auditedAt?: DateTimeNullableFilter<"InstalledSkill"> | Date | string | null
+    manifestName?: StringNullableFilter<"InstalledSkill"> | string | null
+    resourcesJson?: StringNullableFilter<"InstalledSkill"> | string | null
+    revokedAt?: DateTimeNullableFilter<"InstalledSkill"> | Date | string | null
+    revokedByUserId?: StringNullableFilter<"InstalledSkill"> | string | null
+    revokeReason?: StringNullableFilter<"InstalledSkill"> | string | null
   }
 
   export type InstalledSkillOrderByWithRelationInput = {
@@ -152208,6 +157320,16 @@ export namespace Prisma {
     installedByUserId?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    origin?: SortOrder
+    contentHash?: SortOrderInput | SortOrder
+    auditVerdict?: SortOrderInput | SortOrder
+    auditFindings?: SortOrderInput | SortOrder
+    auditedAt?: SortOrderInput | SortOrder
+    manifestName?: SortOrderInput | SortOrder
+    resourcesJson?: SortOrderInput | SortOrder
+    revokedAt?: SortOrderInput | SortOrder
+    revokedByUserId?: SortOrderInput | SortOrder
+    revokeReason?: SortOrderInput | SortOrder
   }
 
   export type InstalledSkillWhereUniqueInput = Prisma.AtLeast<{
@@ -152227,6 +157349,16 @@ export namespace Prisma {
     installedByUserId?: StringNullableFilter<"InstalledSkill"> | string | null
     createdAt?: DateTimeFilter<"InstalledSkill"> | Date | string
     updatedAt?: DateTimeFilter<"InstalledSkill"> | Date | string
+    origin?: StringFilter<"InstalledSkill"> | string
+    contentHash?: StringNullableFilter<"InstalledSkill"> | string | null
+    auditVerdict?: StringNullableFilter<"InstalledSkill"> | string | null
+    auditFindings?: StringNullableFilter<"InstalledSkill"> | string | null
+    auditedAt?: DateTimeNullableFilter<"InstalledSkill"> | Date | string | null
+    manifestName?: StringNullableFilter<"InstalledSkill"> | string | null
+    resourcesJson?: StringNullableFilter<"InstalledSkill"> | string | null
+    revokedAt?: DateTimeNullableFilter<"InstalledSkill"> | Date | string | null
+    revokedByUserId?: StringNullableFilter<"InstalledSkill"> | string | null
+    revokeReason?: StringNullableFilter<"InstalledSkill"> | string | null
   }, "id" | "scope_scopeId_ownerRepo">
 
   export type InstalledSkillOrderByWithAggregationInput = {
@@ -152242,6 +157374,16 @@ export namespace Prisma {
     installedByUserId?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    origin?: SortOrder
+    contentHash?: SortOrderInput | SortOrder
+    auditVerdict?: SortOrderInput | SortOrder
+    auditFindings?: SortOrderInput | SortOrder
+    auditedAt?: SortOrderInput | SortOrder
+    manifestName?: SortOrderInput | SortOrder
+    resourcesJson?: SortOrderInput | SortOrder
+    revokedAt?: SortOrderInput | SortOrder
+    revokedByUserId?: SortOrderInput | SortOrder
+    revokeReason?: SortOrderInput | SortOrder
     _count?: InstalledSkillCountOrderByAggregateInput
     _max?: InstalledSkillMaxOrderByAggregateInput
     _min?: InstalledSkillMinOrderByAggregateInput
@@ -152263,6 +157405,93 @@ export namespace Prisma {
     installedByUserId?: StringNullableWithAggregatesFilter<"InstalledSkill"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"InstalledSkill"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"InstalledSkill"> | Date | string
+    origin?: StringWithAggregatesFilter<"InstalledSkill"> | string
+    contentHash?: StringNullableWithAggregatesFilter<"InstalledSkill"> | string | null
+    auditVerdict?: StringNullableWithAggregatesFilter<"InstalledSkill"> | string | null
+    auditFindings?: StringNullableWithAggregatesFilter<"InstalledSkill"> | string | null
+    auditedAt?: DateTimeNullableWithAggregatesFilter<"InstalledSkill"> | Date | string | null
+    manifestName?: StringNullableWithAggregatesFilter<"InstalledSkill"> | string | null
+    resourcesJson?: StringNullableWithAggregatesFilter<"InstalledSkill"> | string | null
+    revokedAt?: DateTimeNullableWithAggregatesFilter<"InstalledSkill"> | Date | string | null
+    revokedByUserId?: StringNullableWithAggregatesFilter<"InstalledSkill"> | string | null
+    revokeReason?: StringNullableWithAggregatesFilter<"InstalledSkill"> | string | null
+  }
+
+  export type SkillAuditEventWhereInput = {
+    AND?: SkillAuditEventWhereInput | SkillAuditEventWhereInput[]
+    OR?: SkillAuditEventWhereInput[]
+    NOT?: SkillAuditEventWhereInput | SkillAuditEventWhereInput[]
+    id?: StringFilter<"SkillAuditEvent"> | string
+    scope?: StringFilter<"SkillAuditEvent"> | string
+    scopeId?: StringFilter<"SkillAuditEvent"> | string
+    ownerRepo?: StringFilter<"SkillAuditEvent"> | string
+    action?: StringFilter<"SkillAuditEvent"> | string
+    verdict?: StringNullableFilter<"SkillAuditEvent"> | string | null
+    findingsJson?: StringNullableFilter<"SkillAuditEvent"> | string | null
+    contentHash?: StringNullableFilter<"SkillAuditEvent"> | string | null
+    actorUserId?: StringNullableFilter<"SkillAuditEvent"> | string | null
+    createdAt?: DateTimeFilter<"SkillAuditEvent"> | Date | string
+  }
+
+  export type SkillAuditEventOrderByWithRelationInput = {
+    id?: SortOrder
+    scope?: SortOrder
+    scopeId?: SortOrder
+    ownerRepo?: SortOrder
+    action?: SortOrder
+    verdict?: SortOrderInput | SortOrder
+    findingsJson?: SortOrderInput | SortOrder
+    contentHash?: SortOrderInput | SortOrder
+    actorUserId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type SkillAuditEventWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: SkillAuditEventWhereInput | SkillAuditEventWhereInput[]
+    OR?: SkillAuditEventWhereInput[]
+    NOT?: SkillAuditEventWhereInput | SkillAuditEventWhereInput[]
+    scope?: StringFilter<"SkillAuditEvent"> | string
+    scopeId?: StringFilter<"SkillAuditEvent"> | string
+    ownerRepo?: StringFilter<"SkillAuditEvent"> | string
+    action?: StringFilter<"SkillAuditEvent"> | string
+    verdict?: StringNullableFilter<"SkillAuditEvent"> | string | null
+    findingsJson?: StringNullableFilter<"SkillAuditEvent"> | string | null
+    contentHash?: StringNullableFilter<"SkillAuditEvent"> | string | null
+    actorUserId?: StringNullableFilter<"SkillAuditEvent"> | string | null
+    createdAt?: DateTimeFilter<"SkillAuditEvent"> | Date | string
+  }, "id">
+
+  export type SkillAuditEventOrderByWithAggregationInput = {
+    id?: SortOrder
+    scope?: SortOrder
+    scopeId?: SortOrder
+    ownerRepo?: SortOrder
+    action?: SortOrder
+    verdict?: SortOrderInput | SortOrder
+    findingsJson?: SortOrderInput | SortOrder
+    contentHash?: SortOrderInput | SortOrder
+    actorUserId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: SkillAuditEventCountOrderByAggregateInput
+    _max?: SkillAuditEventMaxOrderByAggregateInput
+    _min?: SkillAuditEventMinOrderByAggregateInput
+  }
+
+  export type SkillAuditEventScalarWhereWithAggregatesInput = {
+    AND?: SkillAuditEventScalarWhereWithAggregatesInput | SkillAuditEventScalarWhereWithAggregatesInput[]
+    OR?: SkillAuditEventScalarWhereWithAggregatesInput[]
+    NOT?: SkillAuditEventScalarWhereWithAggregatesInput | SkillAuditEventScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"SkillAuditEvent"> | string
+    scope?: StringWithAggregatesFilter<"SkillAuditEvent"> | string
+    scopeId?: StringWithAggregatesFilter<"SkillAuditEvent"> | string
+    ownerRepo?: StringWithAggregatesFilter<"SkillAuditEvent"> | string
+    action?: StringWithAggregatesFilter<"SkillAuditEvent"> | string
+    verdict?: StringNullableWithAggregatesFilter<"SkillAuditEvent"> | string | null
+    findingsJson?: StringNullableWithAggregatesFilter<"SkillAuditEvent"> | string | null
+    contentHash?: StringNullableWithAggregatesFilter<"SkillAuditEvent"> | string | null
+    actorUserId?: StringNullableWithAggregatesFilter<"SkillAuditEvent"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"SkillAuditEvent"> | Date | string
   }
 
   export type ProjectEnvironmentWhereInput = {
@@ -152904,6 +158133,9 @@ export namespace Prisma {
     ports?: WorkspacePortListRelationFilter
     snapshots?: FileSnapshotListRelationFilter
     ideState?: XOR<WorkspaceIdeStateNullableScalarRelationFilter, WorkspaceIdeStateWhereInput> | null
+    readinessBeacons?: PreviewReadinessBeaconListRelationFilter
+    lifecycleEvents?: WorkspaceLifecycleEventListRelationFilter
+    postMortems?: WorkspacePostMortemListRelationFilter
   }
 
   export type WorkspaceOrderByWithRelationInput = {
@@ -152922,6 +158154,9 @@ export namespace Prisma {
     ports?: WorkspacePortOrderByRelationAggregateInput
     snapshots?: FileSnapshotOrderByRelationAggregateInput
     ideState?: WorkspaceIdeStateOrderByWithRelationInput
+    readinessBeacons?: PreviewReadinessBeaconOrderByRelationAggregateInput
+    lifecycleEvents?: WorkspaceLifecycleEventOrderByRelationAggregateInput
+    postMortems?: WorkspacePostMortemOrderByRelationAggregateInput
   }
 
   export type WorkspaceWhereUniqueInput = Prisma.AtLeast<{
@@ -152943,6 +158178,9 @@ export namespace Prisma {
     ports?: WorkspacePortListRelationFilter
     snapshots?: FileSnapshotListRelationFilter
     ideState?: XOR<WorkspaceIdeStateNullableScalarRelationFilter, WorkspaceIdeStateWhereInput> | null
+    readinessBeacons?: PreviewReadinessBeaconListRelationFilter
+    lifecycleEvents?: WorkspaceLifecycleEventListRelationFilter
+    postMortems?: WorkspacePostMortemListRelationFilter
   }, "id">
 
   export type WorkspaceOrderByWithAggregationInput = {
@@ -159509,11 +164747,16 @@ export namespace Prisma {
     authorName?: StringFilter<"GalleryListing"> | string
     authorUserId?: StringNullableFilter<"GalleryListing"> | string | null
     appUrl?: StringNullableFilter<"GalleryListing"> | string | null
+    thumbnailUrl?: StringNullableFilter<"GalleryListing"> | string | null
     remixAllowed?: BoolFilter<"GalleryListing"> | boolean
     licenseId?: StringNullableFilter<"GalleryListing"> | string | null
     licenseText?: StringNullableFilter<"GalleryListing"> | string | null
     licenseTextSha256?: StringNullableFilter<"GalleryListing"> | string | null
     piiConsentVersion?: StringNullableFilter<"GalleryListing"> | string | null
+    rightsConfirmedAt?: DateTimeNullableFilter<"GalleryListing"> | Date | string | null
+    rightsConfirmedBy?: StringNullableFilter<"GalleryListing"> | string | null
+    piiPolicyAcceptedAt?: DateTimeNullableFilter<"GalleryListing"> | Date | string | null
+    piiPolicyAcceptedBy?: StringNullableFilter<"GalleryListing"> | string | null
     viewCount?: IntFilter<"GalleryListing"> | number
     useCount?: IntFilter<"GalleryListing"> | number
     createdAt?: DateTimeFilter<"GalleryListing"> | Date | string
@@ -159536,11 +164779,16 @@ export namespace Prisma {
     authorName?: SortOrder
     authorUserId?: SortOrderInput | SortOrder
     appUrl?: SortOrderInput | SortOrder
+    thumbnailUrl?: SortOrderInput | SortOrder
     remixAllowed?: SortOrder
     licenseId?: SortOrderInput | SortOrder
     licenseText?: SortOrderInput | SortOrder
     licenseTextSha256?: SortOrderInput | SortOrder
     piiConsentVersion?: SortOrderInput | SortOrder
+    rightsConfirmedAt?: SortOrderInput | SortOrder
+    rightsConfirmedBy?: SortOrderInput | SortOrder
+    piiPolicyAcceptedAt?: SortOrderInput | SortOrder
+    piiPolicyAcceptedBy?: SortOrderInput | SortOrder
     viewCount?: SortOrder
     useCount?: SortOrder
     createdAt?: SortOrder
@@ -159566,11 +164814,16 @@ export namespace Prisma {
     authorName?: StringFilter<"GalleryListing"> | string
     authorUserId?: StringNullableFilter<"GalleryListing"> | string | null
     appUrl?: StringNullableFilter<"GalleryListing"> | string | null
+    thumbnailUrl?: StringNullableFilter<"GalleryListing"> | string | null
     remixAllowed?: BoolFilter<"GalleryListing"> | boolean
     licenseId?: StringNullableFilter<"GalleryListing"> | string | null
     licenseText?: StringNullableFilter<"GalleryListing"> | string | null
     licenseTextSha256?: StringNullableFilter<"GalleryListing"> | string | null
     piiConsentVersion?: StringNullableFilter<"GalleryListing"> | string | null
+    rightsConfirmedAt?: DateTimeNullableFilter<"GalleryListing"> | Date | string | null
+    rightsConfirmedBy?: StringNullableFilter<"GalleryListing"> | string | null
+    piiPolicyAcceptedAt?: DateTimeNullableFilter<"GalleryListing"> | Date | string | null
+    piiPolicyAcceptedBy?: StringNullableFilter<"GalleryListing"> | string | null
     viewCount?: IntFilter<"GalleryListing"> | number
     useCount?: IntFilter<"GalleryListing"> | number
     createdAt?: DateTimeFilter<"GalleryListing"> | Date | string
@@ -159593,11 +164846,16 @@ export namespace Prisma {
     authorName?: SortOrder
     authorUserId?: SortOrderInput | SortOrder
     appUrl?: SortOrderInput | SortOrder
+    thumbnailUrl?: SortOrderInput | SortOrder
     remixAllowed?: SortOrder
     licenseId?: SortOrderInput | SortOrder
     licenseText?: SortOrderInput | SortOrder
     licenseTextSha256?: SortOrderInput | SortOrder
     piiConsentVersion?: SortOrderInput | SortOrder
+    rightsConfirmedAt?: SortOrderInput | SortOrder
+    rightsConfirmedBy?: SortOrderInput | SortOrder
+    piiPolicyAcceptedAt?: SortOrderInput | SortOrder
+    piiPolicyAcceptedBy?: SortOrderInput | SortOrder
     viewCount?: SortOrder
     useCount?: SortOrder
     createdAt?: SortOrder
@@ -159626,11 +164884,16 @@ export namespace Prisma {
     authorName?: StringWithAggregatesFilter<"GalleryListing"> | string
     authorUserId?: StringNullableWithAggregatesFilter<"GalleryListing"> | string | null
     appUrl?: StringNullableWithAggregatesFilter<"GalleryListing"> | string | null
+    thumbnailUrl?: StringNullableWithAggregatesFilter<"GalleryListing"> | string | null
     remixAllowed?: BoolWithAggregatesFilter<"GalleryListing"> | boolean
     licenseId?: StringNullableWithAggregatesFilter<"GalleryListing"> | string | null
     licenseText?: StringNullableWithAggregatesFilter<"GalleryListing"> | string | null
     licenseTextSha256?: StringNullableWithAggregatesFilter<"GalleryListing"> | string | null
     piiConsentVersion?: StringNullableWithAggregatesFilter<"GalleryListing"> | string | null
+    rightsConfirmedAt?: DateTimeNullableWithAggregatesFilter<"GalleryListing"> | Date | string | null
+    rightsConfirmedBy?: StringNullableWithAggregatesFilter<"GalleryListing"> | string | null
+    piiPolicyAcceptedAt?: DateTimeNullableWithAggregatesFilter<"GalleryListing"> | Date | string | null
+    piiPolicyAcceptedBy?: StringNullableWithAggregatesFilter<"GalleryListing"> | string | null
     viewCount?: IntWithAggregatesFilter<"GalleryListing"> | number
     useCount?: IntWithAggregatesFilter<"GalleryListing"> | number
     createdAt?: DateTimeWithAggregatesFilter<"GalleryListing"> | Date | string
@@ -160113,6 +165376,204 @@ export namespace Prisma {
     discrepancies?: JsonNullableWithAggregatesFilter<"LedgerReconciliationRun">
     runAt?: DateTimeWithAggregatesFilter<"LedgerReconciliationRun"> | Date | string
     metadata?: JsonNullableWithAggregatesFilter<"LedgerReconciliationRun">
+  }
+
+  export type PreviewReadinessBeaconWhereInput = {
+    AND?: PreviewReadinessBeaconWhereInput | PreviewReadinessBeaconWhereInput[]
+    OR?: PreviewReadinessBeaconWhereInput[]
+    NOT?: PreviewReadinessBeaconWhereInput | PreviewReadinessBeaconWhereInput[]
+    id?: StringFilter<"PreviewReadinessBeacon"> | string
+    workspaceId?: StringFilter<"PreviewReadinessBeacon"> | string
+    port?: IntFilter<"PreviewReadinessBeacon"> | number
+    status?: StringFilter<"PreviewReadinessBeacon"> | string
+    detail?: StringNullableFilter<"PreviewReadinessBeacon"> | string | null
+    reportedAt?: DateTimeFilter<"PreviewReadinessBeacon"> | Date | string
+    workspace?: XOR<WorkspaceScalarRelationFilter, WorkspaceWhereInput>
+  }
+
+  export type PreviewReadinessBeaconOrderByWithRelationInput = {
+    id?: SortOrder
+    workspaceId?: SortOrder
+    port?: SortOrder
+    status?: SortOrder
+    detail?: SortOrderInput | SortOrder
+    reportedAt?: SortOrder
+    workspace?: WorkspaceOrderByWithRelationInput
+  }
+
+  export type PreviewReadinessBeaconWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    workspaceId_port?: PreviewReadinessBeaconWorkspaceIdPortCompoundUniqueInput
+    AND?: PreviewReadinessBeaconWhereInput | PreviewReadinessBeaconWhereInput[]
+    OR?: PreviewReadinessBeaconWhereInput[]
+    NOT?: PreviewReadinessBeaconWhereInput | PreviewReadinessBeaconWhereInput[]
+    workspaceId?: StringFilter<"PreviewReadinessBeacon"> | string
+    port?: IntFilter<"PreviewReadinessBeacon"> | number
+    status?: StringFilter<"PreviewReadinessBeacon"> | string
+    detail?: StringNullableFilter<"PreviewReadinessBeacon"> | string | null
+    reportedAt?: DateTimeFilter<"PreviewReadinessBeacon"> | Date | string
+    workspace?: XOR<WorkspaceScalarRelationFilter, WorkspaceWhereInput>
+  }, "id" | "workspaceId_port">
+
+  export type PreviewReadinessBeaconOrderByWithAggregationInput = {
+    id?: SortOrder
+    workspaceId?: SortOrder
+    port?: SortOrder
+    status?: SortOrder
+    detail?: SortOrderInput | SortOrder
+    reportedAt?: SortOrder
+    _count?: PreviewReadinessBeaconCountOrderByAggregateInput
+    _avg?: PreviewReadinessBeaconAvgOrderByAggregateInput
+    _max?: PreviewReadinessBeaconMaxOrderByAggregateInput
+    _min?: PreviewReadinessBeaconMinOrderByAggregateInput
+    _sum?: PreviewReadinessBeaconSumOrderByAggregateInput
+  }
+
+  export type PreviewReadinessBeaconScalarWhereWithAggregatesInput = {
+    AND?: PreviewReadinessBeaconScalarWhereWithAggregatesInput | PreviewReadinessBeaconScalarWhereWithAggregatesInput[]
+    OR?: PreviewReadinessBeaconScalarWhereWithAggregatesInput[]
+    NOT?: PreviewReadinessBeaconScalarWhereWithAggregatesInput | PreviewReadinessBeaconScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PreviewReadinessBeacon"> | string
+    workspaceId?: StringWithAggregatesFilter<"PreviewReadinessBeacon"> | string
+    port?: IntWithAggregatesFilter<"PreviewReadinessBeacon"> | number
+    status?: StringWithAggregatesFilter<"PreviewReadinessBeacon"> | string
+    detail?: StringNullableWithAggregatesFilter<"PreviewReadinessBeacon"> | string | null
+    reportedAt?: DateTimeWithAggregatesFilter<"PreviewReadinessBeacon"> | Date | string
+  }
+
+  export type WorkspaceLifecycleEventWhereInput = {
+    AND?: WorkspaceLifecycleEventWhereInput | WorkspaceLifecycleEventWhereInput[]
+    OR?: WorkspaceLifecycleEventWhereInput[]
+    NOT?: WorkspaceLifecycleEventWhereInput | WorkspaceLifecycleEventWhereInput[]
+    id?: StringFilter<"WorkspaceLifecycleEvent"> | string
+    workspaceId?: StringFilter<"WorkspaceLifecycleEvent"> | string
+    state?: StringFilter<"WorkspaceLifecycleEvent"> | string
+    reason?: StringNullableFilter<"WorkspaceLifecycleEvent"> | string | null
+    detail?: JsonNullableFilter<"WorkspaceLifecycleEvent">
+    at?: DateTimeFilter<"WorkspaceLifecycleEvent"> | Date | string
+    workspace?: XOR<WorkspaceScalarRelationFilter, WorkspaceWhereInput>
+  }
+
+  export type WorkspaceLifecycleEventOrderByWithRelationInput = {
+    id?: SortOrder
+    workspaceId?: SortOrder
+    state?: SortOrder
+    reason?: SortOrderInput | SortOrder
+    detail?: SortOrderInput | SortOrder
+    at?: SortOrder
+    workspace?: WorkspaceOrderByWithRelationInput
+  }
+
+  export type WorkspaceLifecycleEventWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: WorkspaceLifecycleEventWhereInput | WorkspaceLifecycleEventWhereInput[]
+    OR?: WorkspaceLifecycleEventWhereInput[]
+    NOT?: WorkspaceLifecycleEventWhereInput | WorkspaceLifecycleEventWhereInput[]
+    workspaceId?: StringFilter<"WorkspaceLifecycleEvent"> | string
+    state?: StringFilter<"WorkspaceLifecycleEvent"> | string
+    reason?: StringNullableFilter<"WorkspaceLifecycleEvent"> | string | null
+    detail?: JsonNullableFilter<"WorkspaceLifecycleEvent">
+    at?: DateTimeFilter<"WorkspaceLifecycleEvent"> | Date | string
+    workspace?: XOR<WorkspaceScalarRelationFilter, WorkspaceWhereInput>
+  }, "id">
+
+  export type WorkspaceLifecycleEventOrderByWithAggregationInput = {
+    id?: SortOrder
+    workspaceId?: SortOrder
+    state?: SortOrder
+    reason?: SortOrderInput | SortOrder
+    detail?: SortOrderInput | SortOrder
+    at?: SortOrder
+    _count?: WorkspaceLifecycleEventCountOrderByAggregateInput
+    _max?: WorkspaceLifecycleEventMaxOrderByAggregateInput
+    _min?: WorkspaceLifecycleEventMinOrderByAggregateInput
+  }
+
+  export type WorkspaceLifecycleEventScalarWhereWithAggregatesInput = {
+    AND?: WorkspaceLifecycleEventScalarWhereWithAggregatesInput | WorkspaceLifecycleEventScalarWhereWithAggregatesInput[]
+    OR?: WorkspaceLifecycleEventScalarWhereWithAggregatesInput[]
+    NOT?: WorkspaceLifecycleEventScalarWhereWithAggregatesInput | WorkspaceLifecycleEventScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"WorkspaceLifecycleEvent"> | string
+    workspaceId?: StringWithAggregatesFilter<"WorkspaceLifecycleEvent"> | string
+    state?: StringWithAggregatesFilter<"WorkspaceLifecycleEvent"> | string
+    reason?: StringNullableWithAggregatesFilter<"WorkspaceLifecycleEvent"> | string | null
+    detail?: JsonNullableWithAggregatesFilter<"WorkspaceLifecycleEvent">
+    at?: DateTimeWithAggregatesFilter<"WorkspaceLifecycleEvent"> | Date | string
+  }
+
+  export type WorkspacePostMortemWhereInput = {
+    AND?: WorkspacePostMortemWhereInput | WorkspacePostMortemWhereInput[]
+    OR?: WorkspacePostMortemWhereInput[]
+    NOT?: WorkspacePostMortemWhereInput | WorkspacePostMortemWhereInput[]
+    id?: StringFilter<"WorkspacePostMortem"> | string
+    workspaceId?: StringFilter<"WorkspacePostMortem"> | string
+    reason?: StringFilter<"WorkspacePostMortem"> | string
+    finalState?: StringFilter<"WorkspacePostMortem"> | string
+    ports?: JsonNullableFilter<"WorkspacePostMortem">
+    processes?: JsonNullableFilter<"WorkspacePostMortem">
+    problems?: JsonNullableFilter<"WorkspacePostMortem">
+    logsTail?: StringNullableFilter<"WorkspacePostMortem"> | string | null
+    capturedAt?: DateTimeFilter<"WorkspacePostMortem"> | Date | string
+    workspace?: XOR<WorkspaceScalarRelationFilter, WorkspaceWhereInput>
+  }
+
+  export type WorkspacePostMortemOrderByWithRelationInput = {
+    id?: SortOrder
+    workspaceId?: SortOrder
+    reason?: SortOrder
+    finalState?: SortOrder
+    ports?: SortOrderInput | SortOrder
+    processes?: SortOrderInput | SortOrder
+    problems?: SortOrderInput | SortOrder
+    logsTail?: SortOrderInput | SortOrder
+    capturedAt?: SortOrder
+    workspace?: WorkspaceOrderByWithRelationInput
+  }
+
+  export type WorkspacePostMortemWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: WorkspacePostMortemWhereInput | WorkspacePostMortemWhereInput[]
+    OR?: WorkspacePostMortemWhereInput[]
+    NOT?: WorkspacePostMortemWhereInput | WorkspacePostMortemWhereInput[]
+    workspaceId?: StringFilter<"WorkspacePostMortem"> | string
+    reason?: StringFilter<"WorkspacePostMortem"> | string
+    finalState?: StringFilter<"WorkspacePostMortem"> | string
+    ports?: JsonNullableFilter<"WorkspacePostMortem">
+    processes?: JsonNullableFilter<"WorkspacePostMortem">
+    problems?: JsonNullableFilter<"WorkspacePostMortem">
+    logsTail?: StringNullableFilter<"WorkspacePostMortem"> | string | null
+    capturedAt?: DateTimeFilter<"WorkspacePostMortem"> | Date | string
+    workspace?: XOR<WorkspaceScalarRelationFilter, WorkspaceWhereInput>
+  }, "id">
+
+  export type WorkspacePostMortemOrderByWithAggregationInput = {
+    id?: SortOrder
+    workspaceId?: SortOrder
+    reason?: SortOrder
+    finalState?: SortOrder
+    ports?: SortOrderInput | SortOrder
+    processes?: SortOrderInput | SortOrder
+    problems?: SortOrderInput | SortOrder
+    logsTail?: SortOrderInput | SortOrder
+    capturedAt?: SortOrder
+    _count?: WorkspacePostMortemCountOrderByAggregateInput
+    _max?: WorkspacePostMortemMaxOrderByAggregateInput
+    _min?: WorkspacePostMortemMinOrderByAggregateInput
+  }
+
+  export type WorkspacePostMortemScalarWhereWithAggregatesInput = {
+    AND?: WorkspacePostMortemScalarWhereWithAggregatesInput | WorkspacePostMortemScalarWhereWithAggregatesInput[]
+    OR?: WorkspacePostMortemScalarWhereWithAggregatesInput[]
+    NOT?: WorkspacePostMortemScalarWhereWithAggregatesInput | WorkspacePostMortemScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"WorkspacePostMortem"> | string
+    workspaceId?: StringWithAggregatesFilter<"WorkspacePostMortem"> | string
+    reason?: StringWithAggregatesFilter<"WorkspacePostMortem"> | string
+    finalState?: StringWithAggregatesFilter<"WorkspacePostMortem"> | string
+    ports?: JsonNullableWithAggregatesFilter<"WorkspacePostMortem">
+    processes?: JsonNullableWithAggregatesFilter<"WorkspacePostMortem">
+    problems?: JsonNullableWithAggregatesFilter<"WorkspacePostMortem">
+    logsTail?: StringNullableWithAggregatesFilter<"WorkspacePostMortem"> | string | null
+    capturedAt?: DateTimeWithAggregatesFilter<"WorkspacePostMortem"> | Date | string
   }
 
   export type UserCreateInput = {
@@ -161788,6 +167249,16 @@ export namespace Prisma {
     installedByUserId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    origin?: string
+    contentHash?: string | null
+    auditVerdict?: string | null
+    auditFindings?: string | null
+    auditedAt?: Date | string | null
+    manifestName?: string | null
+    resourcesJson?: string | null
+    revokedAt?: Date | string | null
+    revokedByUserId?: string | null
+    revokeReason?: string | null
   }
 
   export type InstalledSkillUncheckedCreateInput = {
@@ -161803,6 +167274,16 @@ export namespace Prisma {
     installedByUserId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    origin?: string
+    contentHash?: string | null
+    auditVerdict?: string | null
+    auditFindings?: string | null
+    auditedAt?: Date | string | null
+    manifestName?: string | null
+    resourcesJson?: string | null
+    revokedAt?: Date | string | null
+    revokedByUserId?: string | null
+    revokeReason?: string | null
   }
 
   export type InstalledSkillUpdateInput = {
@@ -161818,6 +167299,16 @@ export namespace Prisma {
     installedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    origin?: StringFieldUpdateOperationsInput | string
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+    auditVerdict?: NullableStringFieldUpdateOperationsInput | string | null
+    auditFindings?: NullableStringFieldUpdateOperationsInput | string | null
+    auditedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    manifestName?: NullableStringFieldUpdateOperationsInput | string | null
+    resourcesJson?: NullableStringFieldUpdateOperationsInput | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    revokedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    revokeReason?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type InstalledSkillUncheckedUpdateInput = {
@@ -161833,6 +167324,16 @@ export namespace Prisma {
     installedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    origin?: StringFieldUpdateOperationsInput | string
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+    auditVerdict?: NullableStringFieldUpdateOperationsInput | string | null
+    auditFindings?: NullableStringFieldUpdateOperationsInput | string | null
+    auditedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    manifestName?: NullableStringFieldUpdateOperationsInput | string | null
+    resourcesJson?: NullableStringFieldUpdateOperationsInput | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    revokedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    revokeReason?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type InstalledSkillCreateManyInput = {
@@ -161848,6 +167349,16 @@ export namespace Prisma {
     installedByUserId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    origin?: string
+    contentHash?: string | null
+    auditVerdict?: string | null
+    auditFindings?: string | null
+    auditedAt?: Date | string | null
+    manifestName?: string | null
+    resourcesJson?: string | null
+    revokedAt?: Date | string | null
+    revokedByUserId?: string | null
+    revokeReason?: string | null
   }
 
   export type InstalledSkillUpdateManyMutationInput = {
@@ -161863,6 +167374,16 @@ export namespace Prisma {
     installedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    origin?: StringFieldUpdateOperationsInput | string
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+    auditVerdict?: NullableStringFieldUpdateOperationsInput | string | null
+    auditFindings?: NullableStringFieldUpdateOperationsInput | string | null
+    auditedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    manifestName?: NullableStringFieldUpdateOperationsInput | string | null
+    resourcesJson?: NullableStringFieldUpdateOperationsInput | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    revokedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    revokeReason?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type InstalledSkillUncheckedUpdateManyInput = {
@@ -161878,6 +167399,107 @@ export namespace Prisma {
     installedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    origin?: StringFieldUpdateOperationsInput | string
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+    auditVerdict?: NullableStringFieldUpdateOperationsInput | string | null
+    auditFindings?: NullableStringFieldUpdateOperationsInput | string | null
+    auditedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    manifestName?: NullableStringFieldUpdateOperationsInput | string | null
+    resourcesJson?: NullableStringFieldUpdateOperationsInput | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    revokedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    revokeReason?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type SkillAuditEventCreateInput = {
+    id?: string
+    scope: string
+    scopeId: string
+    ownerRepo: string
+    action: string
+    verdict?: string | null
+    findingsJson?: string | null
+    contentHash?: string | null
+    actorUserId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type SkillAuditEventUncheckedCreateInput = {
+    id?: string
+    scope: string
+    scopeId: string
+    ownerRepo: string
+    action: string
+    verdict?: string | null
+    findingsJson?: string | null
+    contentHash?: string | null
+    actorUserId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type SkillAuditEventUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    scope?: StringFieldUpdateOperationsInput | string
+    scopeId?: StringFieldUpdateOperationsInput | string
+    ownerRepo?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    verdict?: NullableStringFieldUpdateOperationsInput | string | null
+    findingsJson?: NullableStringFieldUpdateOperationsInput | string | null
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SkillAuditEventUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    scope?: StringFieldUpdateOperationsInput | string
+    scopeId?: StringFieldUpdateOperationsInput | string
+    ownerRepo?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    verdict?: NullableStringFieldUpdateOperationsInput | string | null
+    findingsJson?: NullableStringFieldUpdateOperationsInput | string | null
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SkillAuditEventCreateManyInput = {
+    id?: string
+    scope: string
+    scopeId: string
+    ownerRepo: string
+    action: string
+    verdict?: string | null
+    findingsJson?: string | null
+    contentHash?: string | null
+    actorUserId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type SkillAuditEventUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    scope?: StringFieldUpdateOperationsInput | string
+    scopeId?: StringFieldUpdateOperationsInput | string
+    ownerRepo?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    verdict?: NullableStringFieldUpdateOperationsInput | string | null
+    findingsJson?: NullableStringFieldUpdateOperationsInput | string | null
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SkillAuditEventUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    scope?: StringFieldUpdateOperationsInput | string
+    scopeId?: StringFieldUpdateOperationsInput | string
+    ownerRepo?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    verdict?: NullableStringFieldUpdateOperationsInput | string | null
+    findingsJson?: NullableStringFieldUpdateOperationsInput | string | null
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ProjectEnvironmentCreateInput = {
@@ -162524,6 +168146,9 @@ export namespace Prisma {
     ports?: WorkspacePortCreateNestedManyWithoutWorkspaceInput
     snapshots?: FileSnapshotCreateNestedManyWithoutWorkspaceInput
     ideState?: WorkspaceIdeStateCreateNestedOneWithoutWorkspaceInput
+    readinessBeacons?: PreviewReadinessBeaconCreateNestedManyWithoutWorkspaceInput
+    lifecycleEvents?: WorkspaceLifecycleEventCreateNestedManyWithoutWorkspaceInput
+    postMortems?: WorkspacePostMortemCreateNestedManyWithoutWorkspaceInput
   }
 
   export type WorkspaceUncheckedCreateInput = {
@@ -162541,6 +168166,9 @@ export namespace Prisma {
     ports?: WorkspacePortUncheckedCreateNestedManyWithoutWorkspaceInput
     snapshots?: FileSnapshotUncheckedCreateNestedManyWithoutWorkspaceInput
     ideState?: WorkspaceIdeStateUncheckedCreateNestedOneWithoutWorkspaceInput
+    readinessBeacons?: PreviewReadinessBeaconUncheckedCreateNestedManyWithoutWorkspaceInput
+    lifecycleEvents?: WorkspaceLifecycleEventUncheckedCreateNestedManyWithoutWorkspaceInput
+    postMortems?: WorkspacePostMortemUncheckedCreateNestedManyWithoutWorkspaceInput
   }
 
   export type WorkspaceUpdateInput = {
@@ -162558,6 +168186,9 @@ export namespace Prisma {
     ports?: WorkspacePortUpdateManyWithoutWorkspaceNestedInput
     snapshots?: FileSnapshotUpdateManyWithoutWorkspaceNestedInput
     ideState?: WorkspaceIdeStateUpdateOneWithoutWorkspaceNestedInput
+    readinessBeacons?: PreviewReadinessBeaconUpdateManyWithoutWorkspaceNestedInput
+    lifecycleEvents?: WorkspaceLifecycleEventUpdateManyWithoutWorkspaceNestedInput
+    postMortems?: WorkspacePostMortemUpdateManyWithoutWorkspaceNestedInput
   }
 
   export type WorkspaceUncheckedUpdateInput = {
@@ -162575,6 +168206,9 @@ export namespace Prisma {
     ports?: WorkspacePortUncheckedUpdateManyWithoutWorkspaceNestedInput
     snapshots?: FileSnapshotUncheckedUpdateManyWithoutWorkspaceNestedInput
     ideState?: WorkspaceIdeStateUncheckedUpdateOneWithoutWorkspaceNestedInput
+    readinessBeacons?: PreviewReadinessBeaconUncheckedUpdateManyWithoutWorkspaceNestedInput
+    lifecycleEvents?: WorkspaceLifecycleEventUncheckedUpdateManyWithoutWorkspaceNestedInput
+    postMortems?: WorkspacePostMortemUncheckedUpdateManyWithoutWorkspaceNestedInput
   }
 
   export type WorkspaceCreateManyInput = {
@@ -169842,11 +175476,16 @@ export namespace Prisma {
     sourceSnapshotId: string
     authorName: string
     appUrl?: string | null
+    thumbnailUrl?: string | null
     remixAllowed?: boolean
     licenseId?: string | null
     licenseText?: string | null
     licenseTextSha256?: string | null
     piiConsentVersion?: string | null
+    rightsConfirmedAt?: Date | string | null
+    rightsConfirmedBy?: string | null
+    piiPolicyAcceptedAt?: Date | string | null
+    piiPolicyAcceptedBy?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -169869,11 +175508,16 @@ export namespace Prisma {
     authorName: string
     authorUserId?: string | null
     appUrl?: string | null
+    thumbnailUrl?: string | null
     remixAllowed?: boolean
     licenseId?: string | null
     licenseText?: string | null
     licenseTextSha256?: string | null
     piiConsentVersion?: string | null
+    rightsConfirmedAt?: Date | string | null
+    rightsConfirmedBy?: string | null
+    piiPolicyAcceptedAt?: Date | string | null
+    piiPolicyAcceptedBy?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -169892,11 +175536,16 @@ export namespace Prisma {
     sourceSnapshotId?: StringFieldUpdateOperationsInput | string
     authorName?: StringFieldUpdateOperationsInput | string
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     remixAllowed?: BoolFieldUpdateOperationsInput | boolean
     licenseId?: NullableStringFieldUpdateOperationsInput | string | null
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
     licenseTextSha256?: NullableStringFieldUpdateOperationsInput | string | null
     piiConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    rightsConfirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rightsConfirmedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    piiPolicyAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    piiPolicyAcceptedBy?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -169919,11 +175568,16 @@ export namespace Prisma {
     authorName?: StringFieldUpdateOperationsInput | string
     authorUserId?: NullableStringFieldUpdateOperationsInput | string | null
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     remixAllowed?: BoolFieldUpdateOperationsInput | boolean
     licenseId?: NullableStringFieldUpdateOperationsInput | string | null
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
     licenseTextSha256?: NullableStringFieldUpdateOperationsInput | string | null
     piiConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    rightsConfirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rightsConfirmedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    piiPolicyAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    piiPolicyAcceptedBy?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -169944,11 +175598,16 @@ export namespace Prisma {
     authorName: string
     authorUserId?: string | null
     appUrl?: string | null
+    thumbnailUrl?: string | null
     remixAllowed?: boolean
     licenseId?: string | null
     licenseText?: string | null
     licenseTextSha256?: string | null
     piiConsentVersion?: string | null
+    rightsConfirmedAt?: Date | string | null
+    rightsConfirmedBy?: string | null
+    piiPolicyAcceptedAt?: Date | string | null
+    piiPolicyAcceptedBy?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -169967,11 +175626,16 @@ export namespace Prisma {
     sourceSnapshotId?: StringFieldUpdateOperationsInput | string
     authorName?: StringFieldUpdateOperationsInput | string
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     remixAllowed?: BoolFieldUpdateOperationsInput | boolean
     licenseId?: NullableStringFieldUpdateOperationsInput | string | null
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
     licenseTextSha256?: NullableStringFieldUpdateOperationsInput | string | null
     piiConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    rightsConfirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rightsConfirmedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    piiPolicyAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    piiPolicyAcceptedBy?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -169992,11 +175656,16 @@ export namespace Prisma {
     authorName?: StringFieldUpdateOperationsInput | string
     authorUserId?: NullableStringFieldUpdateOperationsInput | string | null
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     remixAllowed?: BoolFieldUpdateOperationsInput | boolean
     licenseId?: NullableStringFieldUpdateOperationsInput | string | null
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
     licenseTextSha256?: NullableStringFieldUpdateOperationsInput | string | null
     piiConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    rightsConfirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rightsConfirmedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    piiPolicyAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    piiPolicyAcceptedBy?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -170535,6 +176204,213 @@ export namespace Prisma {
     discrepancies?: NullableJsonNullValueInput | InputJsonValue
     runAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type PreviewReadinessBeaconCreateInput = {
+    id?: string
+    port: number
+    status: string
+    detail?: string | null
+    reportedAt?: Date | string
+    workspace: WorkspaceCreateNestedOneWithoutReadinessBeaconsInput
+  }
+
+  export type PreviewReadinessBeaconUncheckedCreateInput = {
+    id?: string
+    workspaceId: string
+    port: number
+    status: string
+    detail?: string | null
+    reportedAt?: Date | string
+  }
+
+  export type PreviewReadinessBeaconUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    port?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    detail?: NullableStringFieldUpdateOperationsInput | string | null
+    reportedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    workspace?: WorkspaceUpdateOneRequiredWithoutReadinessBeaconsNestedInput
+  }
+
+  export type PreviewReadinessBeaconUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workspaceId?: StringFieldUpdateOperationsInput | string
+    port?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    detail?: NullableStringFieldUpdateOperationsInput | string | null
+    reportedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PreviewReadinessBeaconCreateManyInput = {
+    id?: string
+    workspaceId: string
+    port: number
+    status: string
+    detail?: string | null
+    reportedAt?: Date | string
+  }
+
+  export type PreviewReadinessBeaconUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    port?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    detail?: NullableStringFieldUpdateOperationsInput | string | null
+    reportedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PreviewReadinessBeaconUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workspaceId?: StringFieldUpdateOperationsInput | string
+    port?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    detail?: NullableStringFieldUpdateOperationsInput | string | null
+    reportedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkspaceLifecycleEventCreateInput = {
+    id?: string
+    state: string
+    reason?: string | null
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    at?: Date | string
+    workspace: WorkspaceCreateNestedOneWithoutLifecycleEventsInput
+  }
+
+  export type WorkspaceLifecycleEventUncheckedCreateInput = {
+    id?: string
+    workspaceId: string
+    state: string
+    reason?: string | null
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    at?: Date | string
+  }
+
+  export type WorkspaceLifecycleEventUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    at?: DateTimeFieldUpdateOperationsInput | Date | string
+    workspace?: WorkspaceUpdateOneRequiredWithoutLifecycleEventsNestedInput
+  }
+
+  export type WorkspaceLifecycleEventUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workspaceId?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkspaceLifecycleEventCreateManyInput = {
+    id?: string
+    workspaceId: string
+    state: string
+    reason?: string | null
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    at?: Date | string
+  }
+
+  export type WorkspaceLifecycleEventUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkspaceLifecycleEventUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workspaceId?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkspacePostMortemCreateInput = {
+    id?: string
+    reason: string
+    finalState: string
+    ports?: NullableJsonNullValueInput | InputJsonValue
+    processes?: NullableJsonNullValueInput | InputJsonValue
+    problems?: NullableJsonNullValueInput | InputJsonValue
+    logsTail?: string | null
+    capturedAt?: Date | string
+    workspace: WorkspaceCreateNestedOneWithoutPostMortemsInput
+  }
+
+  export type WorkspacePostMortemUncheckedCreateInput = {
+    id?: string
+    workspaceId: string
+    reason: string
+    finalState: string
+    ports?: NullableJsonNullValueInput | InputJsonValue
+    processes?: NullableJsonNullValueInput | InputJsonValue
+    problems?: NullableJsonNullValueInput | InputJsonValue
+    logsTail?: string | null
+    capturedAt?: Date | string
+  }
+
+  export type WorkspacePostMortemUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    finalState?: StringFieldUpdateOperationsInput | string
+    ports?: NullableJsonNullValueInput | InputJsonValue
+    processes?: NullableJsonNullValueInput | InputJsonValue
+    problems?: NullableJsonNullValueInput | InputJsonValue
+    logsTail?: NullableStringFieldUpdateOperationsInput | string | null
+    capturedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    workspace?: WorkspaceUpdateOneRequiredWithoutPostMortemsNestedInput
+  }
+
+  export type WorkspacePostMortemUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workspaceId?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    finalState?: StringFieldUpdateOperationsInput | string
+    ports?: NullableJsonNullValueInput | InputJsonValue
+    processes?: NullableJsonNullValueInput | InputJsonValue
+    problems?: NullableJsonNullValueInput | InputJsonValue
+    logsTail?: NullableStringFieldUpdateOperationsInput | string | null
+    capturedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkspacePostMortemCreateManyInput = {
+    id?: string
+    workspaceId: string
+    reason: string
+    finalState: string
+    ports?: NullableJsonNullValueInput | InputJsonValue
+    processes?: NullableJsonNullValueInput | InputJsonValue
+    problems?: NullableJsonNullValueInput | InputJsonValue
+    logsTail?: string | null
+    capturedAt?: Date | string
+  }
+
+  export type WorkspacePostMortemUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    finalState?: StringFieldUpdateOperationsInput | string
+    ports?: NullableJsonNullValueInput | InputJsonValue
+    processes?: NullableJsonNullValueInput | InputJsonValue
+    problems?: NullableJsonNullValueInput | InputJsonValue
+    logsTail?: NullableStringFieldUpdateOperationsInput | string | null
+    capturedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkspacePostMortemUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workspaceId?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    finalState?: StringFieldUpdateOperationsInput | string
+    ports?: NullableJsonNullValueInput | InputJsonValue
+    processes?: NullableJsonNullValueInput | InputJsonValue
+    problems?: NullableJsonNullValueInput | InputJsonValue
+    logsTail?: NullableStringFieldUpdateOperationsInput | string | null
+    capturedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type StringFilter<$PrismaModel = never> = {
@@ -172199,6 +178075,16 @@ export namespace Prisma {
     installedByUserId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    origin?: SortOrder
+    contentHash?: SortOrder
+    auditVerdict?: SortOrder
+    auditFindings?: SortOrder
+    auditedAt?: SortOrder
+    manifestName?: SortOrder
+    resourcesJson?: SortOrder
+    revokedAt?: SortOrder
+    revokedByUserId?: SortOrder
+    revokeReason?: SortOrder
   }
 
   export type InstalledSkillMaxOrderByAggregateInput = {
@@ -172214,6 +178100,16 @@ export namespace Prisma {
     installedByUserId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    origin?: SortOrder
+    contentHash?: SortOrder
+    auditVerdict?: SortOrder
+    auditFindings?: SortOrder
+    auditedAt?: SortOrder
+    manifestName?: SortOrder
+    resourcesJson?: SortOrder
+    revokedAt?: SortOrder
+    revokedByUserId?: SortOrder
+    revokeReason?: SortOrder
   }
 
   export type InstalledSkillMinOrderByAggregateInput = {
@@ -172229,6 +178125,55 @@ export namespace Prisma {
     installedByUserId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    origin?: SortOrder
+    contentHash?: SortOrder
+    auditVerdict?: SortOrder
+    auditFindings?: SortOrder
+    auditedAt?: SortOrder
+    manifestName?: SortOrder
+    resourcesJson?: SortOrder
+    revokedAt?: SortOrder
+    revokedByUserId?: SortOrder
+    revokeReason?: SortOrder
+  }
+
+  export type SkillAuditEventCountOrderByAggregateInput = {
+    id?: SortOrder
+    scope?: SortOrder
+    scopeId?: SortOrder
+    ownerRepo?: SortOrder
+    action?: SortOrder
+    verdict?: SortOrder
+    findingsJson?: SortOrder
+    contentHash?: SortOrder
+    actorUserId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type SkillAuditEventMaxOrderByAggregateInput = {
+    id?: SortOrder
+    scope?: SortOrder
+    scopeId?: SortOrder
+    ownerRepo?: SortOrder
+    action?: SortOrder
+    verdict?: SortOrder
+    findingsJson?: SortOrder
+    contentHash?: SortOrder
+    actorUserId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type SkillAuditEventMinOrderByAggregateInput = {
+    id?: SortOrder
+    scope?: SortOrder
+    scopeId?: SortOrder
+    ownerRepo?: SortOrder
+    action?: SortOrder
+    verdict?: SortOrder
+    findingsJson?: SortOrder
+    contentHash?: SortOrder
+    actorUserId?: SortOrder
+    createdAt?: SortOrder
   }
 
   export type ProjectEnvironmentProjectIdNameCompoundUniqueInput = {
@@ -172584,11 +178529,41 @@ export namespace Prisma {
     isNot?: WorkspaceIdeStateWhereInput | null
   }
 
+  export type PreviewReadinessBeaconListRelationFilter = {
+    every?: PreviewReadinessBeaconWhereInput
+    some?: PreviewReadinessBeaconWhereInput
+    none?: PreviewReadinessBeaconWhereInput
+  }
+
+  export type WorkspaceLifecycleEventListRelationFilter = {
+    every?: WorkspaceLifecycleEventWhereInput
+    some?: WorkspaceLifecycleEventWhereInput
+    none?: WorkspaceLifecycleEventWhereInput
+  }
+
+  export type WorkspacePostMortemListRelationFilter = {
+    every?: WorkspacePostMortemWhereInput
+    some?: WorkspacePostMortemWhereInput
+    none?: WorkspacePostMortemWhereInput
+  }
+
   export type WorkspaceSessionOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
   export type WorkspacePortOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type PreviewReadinessBeaconOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type WorkspaceLifecycleEventOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type WorkspacePostMortemOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -176593,11 +182568,16 @@ export namespace Prisma {
     authorName?: SortOrder
     authorUserId?: SortOrder
     appUrl?: SortOrder
+    thumbnailUrl?: SortOrder
     remixAllowed?: SortOrder
     licenseId?: SortOrder
     licenseText?: SortOrder
     licenseTextSha256?: SortOrder
     piiConsentVersion?: SortOrder
+    rightsConfirmedAt?: SortOrder
+    rightsConfirmedBy?: SortOrder
+    piiPolicyAcceptedAt?: SortOrder
+    piiPolicyAcceptedBy?: SortOrder
     viewCount?: SortOrder
     useCount?: SortOrder
     createdAt?: SortOrder
@@ -176622,11 +182602,16 @@ export namespace Prisma {
     authorName?: SortOrder
     authorUserId?: SortOrder
     appUrl?: SortOrder
+    thumbnailUrl?: SortOrder
     remixAllowed?: SortOrder
     licenseId?: SortOrder
     licenseText?: SortOrder
     licenseTextSha256?: SortOrder
     piiConsentVersion?: SortOrder
+    rightsConfirmedAt?: SortOrder
+    rightsConfirmedBy?: SortOrder
+    piiPolicyAcceptedAt?: SortOrder
+    piiPolicyAcceptedBy?: SortOrder
     viewCount?: SortOrder
     useCount?: SortOrder
     createdAt?: SortOrder
@@ -176646,11 +182631,16 @@ export namespace Prisma {
     authorName?: SortOrder
     authorUserId?: SortOrder
     appUrl?: SortOrder
+    thumbnailUrl?: SortOrder
     remixAllowed?: SortOrder
     licenseId?: SortOrder
     licenseText?: SortOrder
     licenseTextSha256?: SortOrder
     piiConsentVersion?: SortOrder
+    rightsConfirmedAt?: SortOrder
+    rightsConfirmedBy?: SortOrder
+    piiPolicyAcceptedAt?: SortOrder
+    piiPolicyAcceptedBy?: SortOrder
     viewCount?: SortOrder
     useCount?: SortOrder
     createdAt?: SortOrder
@@ -177069,6 +183059,101 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumLedgerReconciliationStatusFilter<$PrismaModel>
     _max?: NestedEnumLedgerReconciliationStatusFilter<$PrismaModel>
+  }
+
+  export type PreviewReadinessBeaconWorkspaceIdPortCompoundUniqueInput = {
+    workspaceId: string
+    port: number
+  }
+
+  export type PreviewReadinessBeaconCountOrderByAggregateInput = {
+    id?: SortOrder
+    workspaceId?: SortOrder
+    port?: SortOrder
+    status?: SortOrder
+    detail?: SortOrder
+    reportedAt?: SortOrder
+  }
+
+  export type PreviewReadinessBeaconAvgOrderByAggregateInput = {
+    port?: SortOrder
+  }
+
+  export type PreviewReadinessBeaconMaxOrderByAggregateInput = {
+    id?: SortOrder
+    workspaceId?: SortOrder
+    port?: SortOrder
+    status?: SortOrder
+    detail?: SortOrder
+    reportedAt?: SortOrder
+  }
+
+  export type PreviewReadinessBeaconMinOrderByAggregateInput = {
+    id?: SortOrder
+    workspaceId?: SortOrder
+    port?: SortOrder
+    status?: SortOrder
+    detail?: SortOrder
+    reportedAt?: SortOrder
+  }
+
+  export type PreviewReadinessBeaconSumOrderByAggregateInput = {
+    port?: SortOrder
+  }
+
+  export type WorkspaceLifecycleEventCountOrderByAggregateInput = {
+    id?: SortOrder
+    workspaceId?: SortOrder
+    state?: SortOrder
+    reason?: SortOrder
+    detail?: SortOrder
+    at?: SortOrder
+  }
+
+  export type WorkspaceLifecycleEventMaxOrderByAggregateInput = {
+    id?: SortOrder
+    workspaceId?: SortOrder
+    state?: SortOrder
+    reason?: SortOrder
+    at?: SortOrder
+  }
+
+  export type WorkspaceLifecycleEventMinOrderByAggregateInput = {
+    id?: SortOrder
+    workspaceId?: SortOrder
+    state?: SortOrder
+    reason?: SortOrder
+    at?: SortOrder
+  }
+
+  export type WorkspacePostMortemCountOrderByAggregateInput = {
+    id?: SortOrder
+    workspaceId?: SortOrder
+    reason?: SortOrder
+    finalState?: SortOrder
+    ports?: SortOrder
+    processes?: SortOrder
+    problems?: SortOrder
+    logsTail?: SortOrder
+    capturedAt?: SortOrder
+  }
+
+  export type WorkspacePostMortemMaxOrderByAggregateInput = {
+    id?: SortOrder
+    workspaceId?: SortOrder
+    reason?: SortOrder
+    finalState?: SortOrder
+    logsTail?: SortOrder
+    capturedAt?: SortOrder
+  }
+
+  export type WorkspacePostMortemMinOrderByAggregateInput = {
+    id?: SortOrder
+    workspaceId?: SortOrder
+    reason?: SortOrder
+    finalState?: SortOrder
+    logsTail?: SortOrder
+    capturedAt?: SortOrder
   }
 
   export type AccountCreateNestedManyWithoutUserInput = {
@@ -181612,6 +187697,27 @@ export namespace Prisma {
     connect?: WorkspaceIdeStateWhereUniqueInput
   }
 
+  export type PreviewReadinessBeaconCreateNestedManyWithoutWorkspaceInput = {
+    create?: XOR<PreviewReadinessBeaconCreateWithoutWorkspaceInput, PreviewReadinessBeaconUncheckedCreateWithoutWorkspaceInput> | PreviewReadinessBeaconCreateWithoutWorkspaceInput[] | PreviewReadinessBeaconUncheckedCreateWithoutWorkspaceInput[]
+    connectOrCreate?: PreviewReadinessBeaconCreateOrConnectWithoutWorkspaceInput | PreviewReadinessBeaconCreateOrConnectWithoutWorkspaceInput[]
+    createMany?: PreviewReadinessBeaconCreateManyWorkspaceInputEnvelope
+    connect?: PreviewReadinessBeaconWhereUniqueInput | PreviewReadinessBeaconWhereUniqueInput[]
+  }
+
+  export type WorkspaceLifecycleEventCreateNestedManyWithoutWorkspaceInput = {
+    create?: XOR<WorkspaceLifecycleEventCreateWithoutWorkspaceInput, WorkspaceLifecycleEventUncheckedCreateWithoutWorkspaceInput> | WorkspaceLifecycleEventCreateWithoutWorkspaceInput[] | WorkspaceLifecycleEventUncheckedCreateWithoutWorkspaceInput[]
+    connectOrCreate?: WorkspaceLifecycleEventCreateOrConnectWithoutWorkspaceInput | WorkspaceLifecycleEventCreateOrConnectWithoutWorkspaceInput[]
+    createMany?: WorkspaceLifecycleEventCreateManyWorkspaceInputEnvelope
+    connect?: WorkspaceLifecycleEventWhereUniqueInput | WorkspaceLifecycleEventWhereUniqueInput[]
+  }
+
+  export type WorkspacePostMortemCreateNestedManyWithoutWorkspaceInput = {
+    create?: XOR<WorkspacePostMortemCreateWithoutWorkspaceInput, WorkspacePostMortemUncheckedCreateWithoutWorkspaceInput> | WorkspacePostMortemCreateWithoutWorkspaceInput[] | WorkspacePostMortemUncheckedCreateWithoutWorkspaceInput[]
+    connectOrCreate?: WorkspacePostMortemCreateOrConnectWithoutWorkspaceInput | WorkspacePostMortemCreateOrConnectWithoutWorkspaceInput[]
+    createMany?: WorkspacePostMortemCreateManyWorkspaceInputEnvelope
+    connect?: WorkspacePostMortemWhereUniqueInput | WorkspacePostMortemWhereUniqueInput[]
+  }
+
   export type WorkspaceSessionUncheckedCreateNestedManyWithoutWorkspaceInput = {
     create?: XOR<WorkspaceSessionCreateWithoutWorkspaceInput, WorkspaceSessionUncheckedCreateWithoutWorkspaceInput> | WorkspaceSessionCreateWithoutWorkspaceInput[] | WorkspaceSessionUncheckedCreateWithoutWorkspaceInput[]
     connectOrCreate?: WorkspaceSessionCreateOrConnectWithoutWorkspaceInput | WorkspaceSessionCreateOrConnectWithoutWorkspaceInput[]
@@ -181637,6 +187743,27 @@ export namespace Prisma {
     create?: XOR<WorkspaceIdeStateCreateWithoutWorkspaceInput, WorkspaceIdeStateUncheckedCreateWithoutWorkspaceInput>
     connectOrCreate?: WorkspaceIdeStateCreateOrConnectWithoutWorkspaceInput
     connect?: WorkspaceIdeStateWhereUniqueInput
+  }
+
+  export type PreviewReadinessBeaconUncheckedCreateNestedManyWithoutWorkspaceInput = {
+    create?: XOR<PreviewReadinessBeaconCreateWithoutWorkspaceInput, PreviewReadinessBeaconUncheckedCreateWithoutWorkspaceInput> | PreviewReadinessBeaconCreateWithoutWorkspaceInput[] | PreviewReadinessBeaconUncheckedCreateWithoutWorkspaceInput[]
+    connectOrCreate?: PreviewReadinessBeaconCreateOrConnectWithoutWorkspaceInput | PreviewReadinessBeaconCreateOrConnectWithoutWorkspaceInput[]
+    createMany?: PreviewReadinessBeaconCreateManyWorkspaceInputEnvelope
+    connect?: PreviewReadinessBeaconWhereUniqueInput | PreviewReadinessBeaconWhereUniqueInput[]
+  }
+
+  export type WorkspaceLifecycleEventUncheckedCreateNestedManyWithoutWorkspaceInput = {
+    create?: XOR<WorkspaceLifecycleEventCreateWithoutWorkspaceInput, WorkspaceLifecycleEventUncheckedCreateWithoutWorkspaceInput> | WorkspaceLifecycleEventCreateWithoutWorkspaceInput[] | WorkspaceLifecycleEventUncheckedCreateWithoutWorkspaceInput[]
+    connectOrCreate?: WorkspaceLifecycleEventCreateOrConnectWithoutWorkspaceInput | WorkspaceLifecycleEventCreateOrConnectWithoutWorkspaceInput[]
+    createMany?: WorkspaceLifecycleEventCreateManyWorkspaceInputEnvelope
+    connect?: WorkspaceLifecycleEventWhereUniqueInput | WorkspaceLifecycleEventWhereUniqueInput[]
+  }
+
+  export type WorkspacePostMortemUncheckedCreateNestedManyWithoutWorkspaceInput = {
+    create?: XOR<WorkspacePostMortemCreateWithoutWorkspaceInput, WorkspacePostMortemUncheckedCreateWithoutWorkspaceInput> | WorkspacePostMortemCreateWithoutWorkspaceInput[] | WorkspacePostMortemUncheckedCreateWithoutWorkspaceInput[]
+    connectOrCreate?: WorkspacePostMortemCreateOrConnectWithoutWorkspaceInput | WorkspacePostMortemCreateOrConnectWithoutWorkspaceInput[]
+    createMany?: WorkspacePostMortemCreateManyWorkspaceInputEnvelope
+    connect?: WorkspacePostMortemWhereUniqueInput | WorkspacePostMortemWhereUniqueInput[]
   }
 
   export type EnumWorkspaceStatusFieldUpdateOperationsInput = {
@@ -181703,6 +187830,48 @@ export namespace Prisma {
     update?: XOR<XOR<WorkspaceIdeStateUpdateToOneWithWhereWithoutWorkspaceInput, WorkspaceIdeStateUpdateWithoutWorkspaceInput>, WorkspaceIdeStateUncheckedUpdateWithoutWorkspaceInput>
   }
 
+  export type PreviewReadinessBeaconUpdateManyWithoutWorkspaceNestedInput = {
+    create?: XOR<PreviewReadinessBeaconCreateWithoutWorkspaceInput, PreviewReadinessBeaconUncheckedCreateWithoutWorkspaceInput> | PreviewReadinessBeaconCreateWithoutWorkspaceInput[] | PreviewReadinessBeaconUncheckedCreateWithoutWorkspaceInput[]
+    connectOrCreate?: PreviewReadinessBeaconCreateOrConnectWithoutWorkspaceInput | PreviewReadinessBeaconCreateOrConnectWithoutWorkspaceInput[]
+    upsert?: PreviewReadinessBeaconUpsertWithWhereUniqueWithoutWorkspaceInput | PreviewReadinessBeaconUpsertWithWhereUniqueWithoutWorkspaceInput[]
+    createMany?: PreviewReadinessBeaconCreateManyWorkspaceInputEnvelope
+    set?: PreviewReadinessBeaconWhereUniqueInput | PreviewReadinessBeaconWhereUniqueInput[]
+    disconnect?: PreviewReadinessBeaconWhereUniqueInput | PreviewReadinessBeaconWhereUniqueInput[]
+    delete?: PreviewReadinessBeaconWhereUniqueInput | PreviewReadinessBeaconWhereUniqueInput[]
+    connect?: PreviewReadinessBeaconWhereUniqueInput | PreviewReadinessBeaconWhereUniqueInput[]
+    update?: PreviewReadinessBeaconUpdateWithWhereUniqueWithoutWorkspaceInput | PreviewReadinessBeaconUpdateWithWhereUniqueWithoutWorkspaceInput[]
+    updateMany?: PreviewReadinessBeaconUpdateManyWithWhereWithoutWorkspaceInput | PreviewReadinessBeaconUpdateManyWithWhereWithoutWorkspaceInput[]
+    deleteMany?: PreviewReadinessBeaconScalarWhereInput | PreviewReadinessBeaconScalarWhereInput[]
+  }
+
+  export type WorkspaceLifecycleEventUpdateManyWithoutWorkspaceNestedInput = {
+    create?: XOR<WorkspaceLifecycleEventCreateWithoutWorkspaceInput, WorkspaceLifecycleEventUncheckedCreateWithoutWorkspaceInput> | WorkspaceLifecycleEventCreateWithoutWorkspaceInput[] | WorkspaceLifecycleEventUncheckedCreateWithoutWorkspaceInput[]
+    connectOrCreate?: WorkspaceLifecycleEventCreateOrConnectWithoutWorkspaceInput | WorkspaceLifecycleEventCreateOrConnectWithoutWorkspaceInput[]
+    upsert?: WorkspaceLifecycleEventUpsertWithWhereUniqueWithoutWorkspaceInput | WorkspaceLifecycleEventUpsertWithWhereUniqueWithoutWorkspaceInput[]
+    createMany?: WorkspaceLifecycleEventCreateManyWorkspaceInputEnvelope
+    set?: WorkspaceLifecycleEventWhereUniqueInput | WorkspaceLifecycleEventWhereUniqueInput[]
+    disconnect?: WorkspaceLifecycleEventWhereUniqueInput | WorkspaceLifecycleEventWhereUniqueInput[]
+    delete?: WorkspaceLifecycleEventWhereUniqueInput | WorkspaceLifecycleEventWhereUniqueInput[]
+    connect?: WorkspaceLifecycleEventWhereUniqueInput | WorkspaceLifecycleEventWhereUniqueInput[]
+    update?: WorkspaceLifecycleEventUpdateWithWhereUniqueWithoutWorkspaceInput | WorkspaceLifecycleEventUpdateWithWhereUniqueWithoutWorkspaceInput[]
+    updateMany?: WorkspaceLifecycleEventUpdateManyWithWhereWithoutWorkspaceInput | WorkspaceLifecycleEventUpdateManyWithWhereWithoutWorkspaceInput[]
+    deleteMany?: WorkspaceLifecycleEventScalarWhereInput | WorkspaceLifecycleEventScalarWhereInput[]
+  }
+
+  export type WorkspacePostMortemUpdateManyWithoutWorkspaceNestedInput = {
+    create?: XOR<WorkspacePostMortemCreateWithoutWorkspaceInput, WorkspacePostMortemUncheckedCreateWithoutWorkspaceInput> | WorkspacePostMortemCreateWithoutWorkspaceInput[] | WorkspacePostMortemUncheckedCreateWithoutWorkspaceInput[]
+    connectOrCreate?: WorkspacePostMortemCreateOrConnectWithoutWorkspaceInput | WorkspacePostMortemCreateOrConnectWithoutWorkspaceInput[]
+    upsert?: WorkspacePostMortemUpsertWithWhereUniqueWithoutWorkspaceInput | WorkspacePostMortemUpsertWithWhereUniqueWithoutWorkspaceInput[]
+    createMany?: WorkspacePostMortemCreateManyWorkspaceInputEnvelope
+    set?: WorkspacePostMortemWhereUniqueInput | WorkspacePostMortemWhereUniqueInput[]
+    disconnect?: WorkspacePostMortemWhereUniqueInput | WorkspacePostMortemWhereUniqueInput[]
+    delete?: WorkspacePostMortemWhereUniqueInput | WorkspacePostMortemWhereUniqueInput[]
+    connect?: WorkspacePostMortemWhereUniqueInput | WorkspacePostMortemWhereUniqueInput[]
+    update?: WorkspacePostMortemUpdateWithWhereUniqueWithoutWorkspaceInput | WorkspacePostMortemUpdateWithWhereUniqueWithoutWorkspaceInput[]
+    updateMany?: WorkspacePostMortemUpdateManyWithWhereWithoutWorkspaceInput | WorkspacePostMortemUpdateManyWithWhereWithoutWorkspaceInput[]
+    deleteMany?: WorkspacePostMortemScalarWhereInput | WorkspacePostMortemScalarWhereInput[]
+  }
+
   export type WorkspaceSessionUncheckedUpdateManyWithoutWorkspaceNestedInput = {
     create?: XOR<WorkspaceSessionCreateWithoutWorkspaceInput, WorkspaceSessionUncheckedCreateWithoutWorkspaceInput> | WorkspaceSessionCreateWithoutWorkspaceInput[] | WorkspaceSessionUncheckedCreateWithoutWorkspaceInput[]
     connectOrCreate?: WorkspaceSessionCreateOrConnectWithoutWorkspaceInput | WorkspaceSessionCreateOrConnectWithoutWorkspaceInput[]
@@ -181753,6 +187922,48 @@ export namespace Prisma {
     delete?: WorkspaceIdeStateWhereInput | boolean
     connect?: WorkspaceIdeStateWhereUniqueInput
     update?: XOR<XOR<WorkspaceIdeStateUpdateToOneWithWhereWithoutWorkspaceInput, WorkspaceIdeStateUpdateWithoutWorkspaceInput>, WorkspaceIdeStateUncheckedUpdateWithoutWorkspaceInput>
+  }
+
+  export type PreviewReadinessBeaconUncheckedUpdateManyWithoutWorkspaceNestedInput = {
+    create?: XOR<PreviewReadinessBeaconCreateWithoutWorkspaceInput, PreviewReadinessBeaconUncheckedCreateWithoutWorkspaceInput> | PreviewReadinessBeaconCreateWithoutWorkspaceInput[] | PreviewReadinessBeaconUncheckedCreateWithoutWorkspaceInput[]
+    connectOrCreate?: PreviewReadinessBeaconCreateOrConnectWithoutWorkspaceInput | PreviewReadinessBeaconCreateOrConnectWithoutWorkspaceInput[]
+    upsert?: PreviewReadinessBeaconUpsertWithWhereUniqueWithoutWorkspaceInput | PreviewReadinessBeaconUpsertWithWhereUniqueWithoutWorkspaceInput[]
+    createMany?: PreviewReadinessBeaconCreateManyWorkspaceInputEnvelope
+    set?: PreviewReadinessBeaconWhereUniqueInput | PreviewReadinessBeaconWhereUniqueInput[]
+    disconnect?: PreviewReadinessBeaconWhereUniqueInput | PreviewReadinessBeaconWhereUniqueInput[]
+    delete?: PreviewReadinessBeaconWhereUniqueInput | PreviewReadinessBeaconWhereUniqueInput[]
+    connect?: PreviewReadinessBeaconWhereUniqueInput | PreviewReadinessBeaconWhereUniqueInput[]
+    update?: PreviewReadinessBeaconUpdateWithWhereUniqueWithoutWorkspaceInput | PreviewReadinessBeaconUpdateWithWhereUniqueWithoutWorkspaceInput[]
+    updateMany?: PreviewReadinessBeaconUpdateManyWithWhereWithoutWorkspaceInput | PreviewReadinessBeaconUpdateManyWithWhereWithoutWorkspaceInput[]
+    deleteMany?: PreviewReadinessBeaconScalarWhereInput | PreviewReadinessBeaconScalarWhereInput[]
+  }
+
+  export type WorkspaceLifecycleEventUncheckedUpdateManyWithoutWorkspaceNestedInput = {
+    create?: XOR<WorkspaceLifecycleEventCreateWithoutWorkspaceInput, WorkspaceLifecycleEventUncheckedCreateWithoutWorkspaceInput> | WorkspaceLifecycleEventCreateWithoutWorkspaceInput[] | WorkspaceLifecycleEventUncheckedCreateWithoutWorkspaceInput[]
+    connectOrCreate?: WorkspaceLifecycleEventCreateOrConnectWithoutWorkspaceInput | WorkspaceLifecycleEventCreateOrConnectWithoutWorkspaceInput[]
+    upsert?: WorkspaceLifecycleEventUpsertWithWhereUniqueWithoutWorkspaceInput | WorkspaceLifecycleEventUpsertWithWhereUniqueWithoutWorkspaceInput[]
+    createMany?: WorkspaceLifecycleEventCreateManyWorkspaceInputEnvelope
+    set?: WorkspaceLifecycleEventWhereUniqueInput | WorkspaceLifecycleEventWhereUniqueInput[]
+    disconnect?: WorkspaceLifecycleEventWhereUniqueInput | WorkspaceLifecycleEventWhereUniqueInput[]
+    delete?: WorkspaceLifecycleEventWhereUniqueInput | WorkspaceLifecycleEventWhereUniqueInput[]
+    connect?: WorkspaceLifecycleEventWhereUniqueInput | WorkspaceLifecycleEventWhereUniqueInput[]
+    update?: WorkspaceLifecycleEventUpdateWithWhereUniqueWithoutWorkspaceInput | WorkspaceLifecycleEventUpdateWithWhereUniqueWithoutWorkspaceInput[]
+    updateMany?: WorkspaceLifecycleEventUpdateManyWithWhereWithoutWorkspaceInput | WorkspaceLifecycleEventUpdateManyWithWhereWithoutWorkspaceInput[]
+    deleteMany?: WorkspaceLifecycleEventScalarWhereInput | WorkspaceLifecycleEventScalarWhereInput[]
+  }
+
+  export type WorkspacePostMortemUncheckedUpdateManyWithoutWorkspaceNestedInput = {
+    create?: XOR<WorkspacePostMortemCreateWithoutWorkspaceInput, WorkspacePostMortemUncheckedCreateWithoutWorkspaceInput> | WorkspacePostMortemCreateWithoutWorkspaceInput[] | WorkspacePostMortemUncheckedCreateWithoutWorkspaceInput[]
+    connectOrCreate?: WorkspacePostMortemCreateOrConnectWithoutWorkspaceInput | WorkspacePostMortemCreateOrConnectWithoutWorkspaceInput[]
+    upsert?: WorkspacePostMortemUpsertWithWhereUniqueWithoutWorkspaceInput | WorkspacePostMortemUpsertWithWhereUniqueWithoutWorkspaceInput[]
+    createMany?: WorkspacePostMortemCreateManyWorkspaceInputEnvelope
+    set?: WorkspacePostMortemWhereUniqueInput | WorkspacePostMortemWhereUniqueInput[]
+    disconnect?: WorkspacePostMortemWhereUniqueInput | WorkspacePostMortemWhereUniqueInput[]
+    delete?: WorkspacePostMortemWhereUniqueInput | WorkspacePostMortemWhereUniqueInput[]
+    connect?: WorkspacePostMortemWhereUniqueInput | WorkspacePostMortemWhereUniqueInput[]
+    update?: WorkspacePostMortemUpdateWithWhereUniqueWithoutWorkspaceInput | WorkspacePostMortemUpdateWithWhereUniqueWithoutWorkspaceInput[]
+    updateMany?: WorkspacePostMortemUpdateManyWithWhereWithoutWorkspaceInput | WorkspacePostMortemUpdateManyWithWhereWithoutWorkspaceInput[]
+    deleteMany?: WorkspacePostMortemScalarWhereInput | WorkspacePostMortemScalarWhereInput[]
   }
 
   export type WorkspaceCreateNestedOneWithoutIdeStateInput = {
@@ -183981,6 +190192,48 @@ export namespace Prisma {
     set?: $Enums.LedgerReconciliationStatus
   }
 
+  export type WorkspaceCreateNestedOneWithoutReadinessBeaconsInput = {
+    create?: XOR<WorkspaceCreateWithoutReadinessBeaconsInput, WorkspaceUncheckedCreateWithoutReadinessBeaconsInput>
+    connectOrCreate?: WorkspaceCreateOrConnectWithoutReadinessBeaconsInput
+    connect?: WorkspaceWhereUniqueInput
+  }
+
+  export type WorkspaceUpdateOneRequiredWithoutReadinessBeaconsNestedInput = {
+    create?: XOR<WorkspaceCreateWithoutReadinessBeaconsInput, WorkspaceUncheckedCreateWithoutReadinessBeaconsInput>
+    connectOrCreate?: WorkspaceCreateOrConnectWithoutReadinessBeaconsInput
+    upsert?: WorkspaceUpsertWithoutReadinessBeaconsInput
+    connect?: WorkspaceWhereUniqueInput
+    update?: XOR<XOR<WorkspaceUpdateToOneWithWhereWithoutReadinessBeaconsInput, WorkspaceUpdateWithoutReadinessBeaconsInput>, WorkspaceUncheckedUpdateWithoutReadinessBeaconsInput>
+  }
+
+  export type WorkspaceCreateNestedOneWithoutLifecycleEventsInput = {
+    create?: XOR<WorkspaceCreateWithoutLifecycleEventsInput, WorkspaceUncheckedCreateWithoutLifecycleEventsInput>
+    connectOrCreate?: WorkspaceCreateOrConnectWithoutLifecycleEventsInput
+    connect?: WorkspaceWhereUniqueInput
+  }
+
+  export type WorkspaceUpdateOneRequiredWithoutLifecycleEventsNestedInput = {
+    create?: XOR<WorkspaceCreateWithoutLifecycleEventsInput, WorkspaceUncheckedCreateWithoutLifecycleEventsInput>
+    connectOrCreate?: WorkspaceCreateOrConnectWithoutLifecycleEventsInput
+    upsert?: WorkspaceUpsertWithoutLifecycleEventsInput
+    connect?: WorkspaceWhereUniqueInput
+    update?: XOR<XOR<WorkspaceUpdateToOneWithWhereWithoutLifecycleEventsInput, WorkspaceUpdateWithoutLifecycleEventsInput>, WorkspaceUncheckedUpdateWithoutLifecycleEventsInput>
+  }
+
+  export type WorkspaceCreateNestedOneWithoutPostMortemsInput = {
+    create?: XOR<WorkspaceCreateWithoutPostMortemsInput, WorkspaceUncheckedCreateWithoutPostMortemsInput>
+    connectOrCreate?: WorkspaceCreateOrConnectWithoutPostMortemsInput
+    connect?: WorkspaceWhereUniqueInput
+  }
+
+  export type WorkspaceUpdateOneRequiredWithoutPostMortemsNestedInput = {
+    create?: XOR<WorkspaceCreateWithoutPostMortemsInput, WorkspaceUncheckedCreateWithoutPostMortemsInput>
+    connectOrCreate?: WorkspaceCreateOrConnectWithoutPostMortemsInput
+    upsert?: WorkspaceUpsertWithoutPostMortemsInput
+    connect?: WorkspaceWhereUniqueInput
+    update?: XOR<XOR<WorkspaceUpdateToOneWithWhereWithoutPostMortemsInput, WorkspaceUpdateWithoutPostMortemsInput>, WorkspaceUncheckedUpdateWithoutPostMortemsInput>
+  }
+
   export type NestedStringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -185113,11 +191366,16 @@ export namespace Prisma {
     sourceSnapshotId: string
     authorName: string
     appUrl?: string | null
+    thumbnailUrl?: string | null
     remixAllowed?: boolean
     licenseId?: string | null
     licenseText?: string | null
     licenseTextSha256?: string | null
     piiConsentVersion?: string | null
+    rightsConfirmedAt?: Date | string | null
+    rightsConfirmedBy?: string | null
+    piiPolicyAcceptedAt?: Date | string | null
+    piiPolicyAcceptedBy?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -185138,11 +191396,16 @@ export namespace Prisma {
     sourceSnapshotId: string
     authorName: string
     appUrl?: string | null
+    thumbnailUrl?: string | null
     remixAllowed?: boolean
     licenseId?: string | null
     licenseText?: string | null
     licenseTextSha256?: string | null
     piiConsentVersion?: string | null
+    rightsConfirmedAt?: Date | string | null
+    rightsConfirmedBy?: string | null
+    piiPolicyAcceptedAt?: Date | string | null
+    piiPolicyAcceptedBy?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -186149,11 +192412,16 @@ export namespace Prisma {
     authorName?: StringFilter<"GalleryListing"> | string
     authorUserId?: StringNullableFilter<"GalleryListing"> | string | null
     appUrl?: StringNullableFilter<"GalleryListing"> | string | null
+    thumbnailUrl?: StringNullableFilter<"GalleryListing"> | string | null
     remixAllowed?: BoolFilter<"GalleryListing"> | boolean
     licenseId?: StringNullableFilter<"GalleryListing"> | string | null
     licenseText?: StringNullableFilter<"GalleryListing"> | string | null
     licenseTextSha256?: StringNullableFilter<"GalleryListing"> | string | null
     piiConsentVersion?: StringNullableFilter<"GalleryListing"> | string | null
+    rightsConfirmedAt?: DateTimeNullableFilter<"GalleryListing"> | Date | string | null
+    rightsConfirmedBy?: StringNullableFilter<"GalleryListing"> | string | null
+    piiPolicyAcceptedAt?: DateTimeNullableFilter<"GalleryListing"> | Date | string | null
+    piiPolicyAcceptedBy?: StringNullableFilter<"GalleryListing"> | string | null
     viewCount?: IntFilter<"GalleryListing"> | number
     useCount?: IntFilter<"GalleryListing"> | number
     createdAt?: DateTimeFilter<"GalleryListing"> | Date | string
@@ -190278,11 +196546,16 @@ export namespace Prisma {
     sourceSnapshotId: string
     authorName: string
     appUrl?: string | null
+    thumbnailUrl?: string | null
     remixAllowed?: boolean
     licenseId?: string | null
     licenseText?: string | null
     licenseTextSha256?: string | null
     piiConsentVersion?: string | null
+    rightsConfirmedAt?: Date | string | null
+    rightsConfirmedBy?: string | null
+    piiPolicyAcceptedAt?: Date | string | null
+    piiPolicyAcceptedBy?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -190303,11 +196576,16 @@ export namespace Prisma {
     authorName: string
     authorUserId?: string | null
     appUrl?: string | null
+    thumbnailUrl?: string | null
     remixAllowed?: boolean
     licenseId?: string | null
     licenseText?: string | null
     licenseTextSha256?: string | null
     piiConsentVersion?: string | null
+    rightsConfirmedAt?: Date | string | null
+    rightsConfirmedBy?: string | null
+    piiPolicyAcceptedAt?: Date | string | null
+    piiPolicyAcceptedBy?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -190338,6 +196616,9 @@ export namespace Prisma {
     ports?: WorkspacePortCreateNestedManyWithoutWorkspaceInput
     snapshots?: FileSnapshotCreateNestedManyWithoutWorkspaceInput
     ideState?: WorkspaceIdeStateCreateNestedOneWithoutWorkspaceInput
+    readinessBeacons?: PreviewReadinessBeaconCreateNestedManyWithoutWorkspaceInput
+    lifecycleEvents?: WorkspaceLifecycleEventCreateNestedManyWithoutWorkspaceInput
+    postMortems?: WorkspacePostMortemCreateNestedManyWithoutWorkspaceInput
   }
 
   export type WorkspaceUncheckedCreateWithoutProjectInput = {
@@ -190354,6 +196635,9 @@ export namespace Prisma {
     ports?: WorkspacePortUncheckedCreateNestedManyWithoutWorkspaceInput
     snapshots?: FileSnapshotUncheckedCreateNestedManyWithoutWorkspaceInput
     ideState?: WorkspaceIdeStateUncheckedCreateNestedOneWithoutWorkspaceInput
+    readinessBeacons?: PreviewReadinessBeaconUncheckedCreateNestedManyWithoutWorkspaceInput
+    lifecycleEvents?: WorkspaceLifecycleEventUncheckedCreateNestedManyWithoutWorkspaceInput
+    postMortems?: WorkspacePostMortemUncheckedCreateNestedManyWithoutWorkspaceInput
   }
 
   export type WorkspaceCreateOrConnectWithoutProjectInput = {
@@ -196976,6 +203260,90 @@ export namespace Prisma {
     create: XOR<WorkspaceIdeStateCreateWithoutWorkspaceInput, WorkspaceIdeStateUncheckedCreateWithoutWorkspaceInput>
   }
 
+  export type PreviewReadinessBeaconCreateWithoutWorkspaceInput = {
+    id?: string
+    port: number
+    status: string
+    detail?: string | null
+    reportedAt?: Date | string
+  }
+
+  export type PreviewReadinessBeaconUncheckedCreateWithoutWorkspaceInput = {
+    id?: string
+    port: number
+    status: string
+    detail?: string | null
+    reportedAt?: Date | string
+  }
+
+  export type PreviewReadinessBeaconCreateOrConnectWithoutWorkspaceInput = {
+    where: PreviewReadinessBeaconWhereUniqueInput
+    create: XOR<PreviewReadinessBeaconCreateWithoutWorkspaceInput, PreviewReadinessBeaconUncheckedCreateWithoutWorkspaceInput>
+  }
+
+  export type PreviewReadinessBeaconCreateManyWorkspaceInputEnvelope = {
+    data: PreviewReadinessBeaconCreateManyWorkspaceInput | PreviewReadinessBeaconCreateManyWorkspaceInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type WorkspaceLifecycleEventCreateWithoutWorkspaceInput = {
+    id?: string
+    state: string
+    reason?: string | null
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    at?: Date | string
+  }
+
+  export type WorkspaceLifecycleEventUncheckedCreateWithoutWorkspaceInput = {
+    id?: string
+    state: string
+    reason?: string | null
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    at?: Date | string
+  }
+
+  export type WorkspaceLifecycleEventCreateOrConnectWithoutWorkspaceInput = {
+    where: WorkspaceLifecycleEventWhereUniqueInput
+    create: XOR<WorkspaceLifecycleEventCreateWithoutWorkspaceInput, WorkspaceLifecycleEventUncheckedCreateWithoutWorkspaceInput>
+  }
+
+  export type WorkspaceLifecycleEventCreateManyWorkspaceInputEnvelope = {
+    data: WorkspaceLifecycleEventCreateManyWorkspaceInput | WorkspaceLifecycleEventCreateManyWorkspaceInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type WorkspacePostMortemCreateWithoutWorkspaceInput = {
+    id?: string
+    reason: string
+    finalState: string
+    ports?: NullableJsonNullValueInput | InputJsonValue
+    processes?: NullableJsonNullValueInput | InputJsonValue
+    problems?: NullableJsonNullValueInput | InputJsonValue
+    logsTail?: string | null
+    capturedAt?: Date | string
+  }
+
+  export type WorkspacePostMortemUncheckedCreateWithoutWorkspaceInput = {
+    id?: string
+    reason: string
+    finalState: string
+    ports?: NullableJsonNullValueInput | InputJsonValue
+    processes?: NullableJsonNullValueInput | InputJsonValue
+    problems?: NullableJsonNullValueInput | InputJsonValue
+    logsTail?: string | null
+    capturedAt?: Date | string
+  }
+
+  export type WorkspacePostMortemCreateOrConnectWithoutWorkspaceInput = {
+    where: WorkspacePostMortemWhereUniqueInput
+    create: XOR<WorkspacePostMortemCreateWithoutWorkspaceInput, WorkspacePostMortemUncheckedCreateWithoutWorkspaceInput>
+  }
+
+  export type WorkspacePostMortemCreateManyWorkspaceInputEnvelope = {
+    data: WorkspacePostMortemCreateManyWorkspaceInput | WorkspacePostMortemCreateManyWorkspaceInput[]
+    skipDuplicates?: boolean
+  }
+
   export type ProjectUpsertWithoutWorkspacesInput = {
     update: XOR<ProjectUpdateWithoutWorkspacesInput, ProjectUncheckedUpdateWithoutWorkspacesInput>
     create: XOR<ProjectCreateWithoutWorkspacesInput, ProjectUncheckedCreateWithoutWorkspacesInput>
@@ -197170,6 +203538,93 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type PreviewReadinessBeaconUpsertWithWhereUniqueWithoutWorkspaceInput = {
+    where: PreviewReadinessBeaconWhereUniqueInput
+    update: XOR<PreviewReadinessBeaconUpdateWithoutWorkspaceInput, PreviewReadinessBeaconUncheckedUpdateWithoutWorkspaceInput>
+    create: XOR<PreviewReadinessBeaconCreateWithoutWorkspaceInput, PreviewReadinessBeaconUncheckedCreateWithoutWorkspaceInput>
+  }
+
+  export type PreviewReadinessBeaconUpdateWithWhereUniqueWithoutWorkspaceInput = {
+    where: PreviewReadinessBeaconWhereUniqueInput
+    data: XOR<PreviewReadinessBeaconUpdateWithoutWorkspaceInput, PreviewReadinessBeaconUncheckedUpdateWithoutWorkspaceInput>
+  }
+
+  export type PreviewReadinessBeaconUpdateManyWithWhereWithoutWorkspaceInput = {
+    where: PreviewReadinessBeaconScalarWhereInput
+    data: XOR<PreviewReadinessBeaconUpdateManyMutationInput, PreviewReadinessBeaconUncheckedUpdateManyWithoutWorkspaceInput>
+  }
+
+  export type PreviewReadinessBeaconScalarWhereInput = {
+    AND?: PreviewReadinessBeaconScalarWhereInput | PreviewReadinessBeaconScalarWhereInput[]
+    OR?: PreviewReadinessBeaconScalarWhereInput[]
+    NOT?: PreviewReadinessBeaconScalarWhereInput | PreviewReadinessBeaconScalarWhereInput[]
+    id?: StringFilter<"PreviewReadinessBeacon"> | string
+    workspaceId?: StringFilter<"PreviewReadinessBeacon"> | string
+    port?: IntFilter<"PreviewReadinessBeacon"> | number
+    status?: StringFilter<"PreviewReadinessBeacon"> | string
+    detail?: StringNullableFilter<"PreviewReadinessBeacon"> | string | null
+    reportedAt?: DateTimeFilter<"PreviewReadinessBeacon"> | Date | string
+  }
+
+  export type WorkspaceLifecycleEventUpsertWithWhereUniqueWithoutWorkspaceInput = {
+    where: WorkspaceLifecycleEventWhereUniqueInput
+    update: XOR<WorkspaceLifecycleEventUpdateWithoutWorkspaceInput, WorkspaceLifecycleEventUncheckedUpdateWithoutWorkspaceInput>
+    create: XOR<WorkspaceLifecycleEventCreateWithoutWorkspaceInput, WorkspaceLifecycleEventUncheckedCreateWithoutWorkspaceInput>
+  }
+
+  export type WorkspaceLifecycleEventUpdateWithWhereUniqueWithoutWorkspaceInput = {
+    where: WorkspaceLifecycleEventWhereUniqueInput
+    data: XOR<WorkspaceLifecycleEventUpdateWithoutWorkspaceInput, WorkspaceLifecycleEventUncheckedUpdateWithoutWorkspaceInput>
+  }
+
+  export type WorkspaceLifecycleEventUpdateManyWithWhereWithoutWorkspaceInput = {
+    where: WorkspaceLifecycleEventScalarWhereInput
+    data: XOR<WorkspaceLifecycleEventUpdateManyMutationInput, WorkspaceLifecycleEventUncheckedUpdateManyWithoutWorkspaceInput>
+  }
+
+  export type WorkspaceLifecycleEventScalarWhereInput = {
+    AND?: WorkspaceLifecycleEventScalarWhereInput | WorkspaceLifecycleEventScalarWhereInput[]
+    OR?: WorkspaceLifecycleEventScalarWhereInput[]
+    NOT?: WorkspaceLifecycleEventScalarWhereInput | WorkspaceLifecycleEventScalarWhereInput[]
+    id?: StringFilter<"WorkspaceLifecycleEvent"> | string
+    workspaceId?: StringFilter<"WorkspaceLifecycleEvent"> | string
+    state?: StringFilter<"WorkspaceLifecycleEvent"> | string
+    reason?: StringNullableFilter<"WorkspaceLifecycleEvent"> | string | null
+    detail?: JsonNullableFilter<"WorkspaceLifecycleEvent">
+    at?: DateTimeFilter<"WorkspaceLifecycleEvent"> | Date | string
+  }
+
+  export type WorkspacePostMortemUpsertWithWhereUniqueWithoutWorkspaceInput = {
+    where: WorkspacePostMortemWhereUniqueInput
+    update: XOR<WorkspacePostMortemUpdateWithoutWorkspaceInput, WorkspacePostMortemUncheckedUpdateWithoutWorkspaceInput>
+    create: XOR<WorkspacePostMortemCreateWithoutWorkspaceInput, WorkspacePostMortemUncheckedCreateWithoutWorkspaceInput>
+  }
+
+  export type WorkspacePostMortemUpdateWithWhereUniqueWithoutWorkspaceInput = {
+    where: WorkspacePostMortemWhereUniqueInput
+    data: XOR<WorkspacePostMortemUpdateWithoutWorkspaceInput, WorkspacePostMortemUncheckedUpdateWithoutWorkspaceInput>
+  }
+
+  export type WorkspacePostMortemUpdateManyWithWhereWithoutWorkspaceInput = {
+    where: WorkspacePostMortemScalarWhereInput
+    data: XOR<WorkspacePostMortemUpdateManyMutationInput, WorkspacePostMortemUncheckedUpdateManyWithoutWorkspaceInput>
+  }
+
+  export type WorkspacePostMortemScalarWhereInput = {
+    AND?: WorkspacePostMortemScalarWhereInput | WorkspacePostMortemScalarWhereInput[]
+    OR?: WorkspacePostMortemScalarWhereInput[]
+    NOT?: WorkspacePostMortemScalarWhereInput | WorkspacePostMortemScalarWhereInput[]
+    id?: StringFilter<"WorkspacePostMortem"> | string
+    workspaceId?: StringFilter<"WorkspacePostMortem"> | string
+    reason?: StringFilter<"WorkspacePostMortem"> | string
+    finalState?: StringFilter<"WorkspacePostMortem"> | string
+    ports?: JsonNullableFilter<"WorkspacePostMortem">
+    processes?: JsonNullableFilter<"WorkspacePostMortem">
+    problems?: JsonNullableFilter<"WorkspacePostMortem">
+    logsTail?: StringNullableFilter<"WorkspacePostMortem"> | string | null
+    capturedAt?: DateTimeFilter<"WorkspacePostMortem"> | Date | string
+  }
+
   export type WorkspaceCreateWithoutIdeStateInput = {
     id?: string
     name: string
@@ -197184,6 +203639,9 @@ export namespace Prisma {
     sessions?: WorkspaceSessionCreateNestedManyWithoutWorkspaceInput
     ports?: WorkspacePortCreateNestedManyWithoutWorkspaceInput
     snapshots?: FileSnapshotCreateNestedManyWithoutWorkspaceInput
+    readinessBeacons?: PreviewReadinessBeaconCreateNestedManyWithoutWorkspaceInput
+    lifecycleEvents?: WorkspaceLifecycleEventCreateNestedManyWithoutWorkspaceInput
+    postMortems?: WorkspacePostMortemCreateNestedManyWithoutWorkspaceInput
   }
 
   export type WorkspaceUncheckedCreateWithoutIdeStateInput = {
@@ -197200,6 +203658,9 @@ export namespace Prisma {
     sessions?: WorkspaceSessionUncheckedCreateNestedManyWithoutWorkspaceInput
     ports?: WorkspacePortUncheckedCreateNestedManyWithoutWorkspaceInput
     snapshots?: FileSnapshotUncheckedCreateNestedManyWithoutWorkspaceInput
+    readinessBeacons?: PreviewReadinessBeaconUncheckedCreateNestedManyWithoutWorkspaceInput
+    lifecycleEvents?: WorkspaceLifecycleEventUncheckedCreateNestedManyWithoutWorkspaceInput
+    postMortems?: WorkspacePostMortemUncheckedCreateNestedManyWithoutWorkspaceInput
   }
 
   export type WorkspaceCreateOrConnectWithoutIdeStateInput = {
@@ -197232,6 +203693,9 @@ export namespace Prisma {
     sessions?: WorkspaceSessionUpdateManyWithoutWorkspaceNestedInput
     ports?: WorkspacePortUpdateManyWithoutWorkspaceNestedInput
     snapshots?: FileSnapshotUpdateManyWithoutWorkspaceNestedInput
+    readinessBeacons?: PreviewReadinessBeaconUpdateManyWithoutWorkspaceNestedInput
+    lifecycleEvents?: WorkspaceLifecycleEventUpdateManyWithoutWorkspaceNestedInput
+    postMortems?: WorkspacePostMortemUpdateManyWithoutWorkspaceNestedInput
   }
 
   export type WorkspaceUncheckedUpdateWithoutIdeStateInput = {
@@ -197248,6 +203712,9 @@ export namespace Prisma {
     sessions?: WorkspaceSessionUncheckedUpdateManyWithoutWorkspaceNestedInput
     ports?: WorkspacePortUncheckedUpdateManyWithoutWorkspaceNestedInput
     snapshots?: FileSnapshotUncheckedUpdateManyWithoutWorkspaceNestedInput
+    readinessBeacons?: PreviewReadinessBeaconUncheckedUpdateManyWithoutWorkspaceNestedInput
+    lifecycleEvents?: WorkspaceLifecycleEventUncheckedUpdateManyWithoutWorkspaceNestedInput
+    postMortems?: WorkspacePostMortemUncheckedUpdateManyWithoutWorkspaceNestedInput
   }
 
   export type WorkspaceCreateWithoutSessionsInput = {
@@ -197264,6 +203731,9 @@ export namespace Prisma {
     ports?: WorkspacePortCreateNestedManyWithoutWorkspaceInput
     snapshots?: FileSnapshotCreateNestedManyWithoutWorkspaceInput
     ideState?: WorkspaceIdeStateCreateNestedOneWithoutWorkspaceInput
+    readinessBeacons?: PreviewReadinessBeaconCreateNestedManyWithoutWorkspaceInput
+    lifecycleEvents?: WorkspaceLifecycleEventCreateNestedManyWithoutWorkspaceInput
+    postMortems?: WorkspacePostMortemCreateNestedManyWithoutWorkspaceInput
   }
 
   export type WorkspaceUncheckedCreateWithoutSessionsInput = {
@@ -197280,6 +203750,9 @@ export namespace Prisma {
     ports?: WorkspacePortUncheckedCreateNestedManyWithoutWorkspaceInput
     snapshots?: FileSnapshotUncheckedCreateNestedManyWithoutWorkspaceInput
     ideState?: WorkspaceIdeStateUncheckedCreateNestedOneWithoutWorkspaceInput
+    readinessBeacons?: PreviewReadinessBeaconUncheckedCreateNestedManyWithoutWorkspaceInput
+    lifecycleEvents?: WorkspaceLifecycleEventUncheckedCreateNestedManyWithoutWorkspaceInput
+    postMortems?: WorkspacePostMortemUncheckedCreateNestedManyWithoutWorkspaceInput
   }
 
   export type WorkspaceCreateOrConnectWithoutSessionsInput = {
@@ -197312,6 +203785,9 @@ export namespace Prisma {
     ports?: WorkspacePortUpdateManyWithoutWorkspaceNestedInput
     snapshots?: FileSnapshotUpdateManyWithoutWorkspaceNestedInput
     ideState?: WorkspaceIdeStateUpdateOneWithoutWorkspaceNestedInput
+    readinessBeacons?: PreviewReadinessBeaconUpdateManyWithoutWorkspaceNestedInput
+    lifecycleEvents?: WorkspaceLifecycleEventUpdateManyWithoutWorkspaceNestedInput
+    postMortems?: WorkspacePostMortemUpdateManyWithoutWorkspaceNestedInput
   }
 
   export type WorkspaceUncheckedUpdateWithoutSessionsInput = {
@@ -197328,6 +203804,9 @@ export namespace Prisma {
     ports?: WorkspacePortUncheckedUpdateManyWithoutWorkspaceNestedInput
     snapshots?: FileSnapshotUncheckedUpdateManyWithoutWorkspaceNestedInput
     ideState?: WorkspaceIdeStateUncheckedUpdateOneWithoutWorkspaceNestedInput
+    readinessBeacons?: PreviewReadinessBeaconUncheckedUpdateManyWithoutWorkspaceNestedInput
+    lifecycleEvents?: WorkspaceLifecycleEventUncheckedUpdateManyWithoutWorkspaceNestedInput
+    postMortems?: WorkspacePostMortemUncheckedUpdateManyWithoutWorkspaceNestedInput
   }
 
   export type WorkspaceCreateWithoutPortsInput = {
@@ -197344,6 +203823,9 @@ export namespace Prisma {
     sessions?: WorkspaceSessionCreateNestedManyWithoutWorkspaceInput
     snapshots?: FileSnapshotCreateNestedManyWithoutWorkspaceInput
     ideState?: WorkspaceIdeStateCreateNestedOneWithoutWorkspaceInput
+    readinessBeacons?: PreviewReadinessBeaconCreateNestedManyWithoutWorkspaceInput
+    lifecycleEvents?: WorkspaceLifecycleEventCreateNestedManyWithoutWorkspaceInput
+    postMortems?: WorkspacePostMortemCreateNestedManyWithoutWorkspaceInput
   }
 
   export type WorkspaceUncheckedCreateWithoutPortsInput = {
@@ -197360,6 +203842,9 @@ export namespace Prisma {
     sessions?: WorkspaceSessionUncheckedCreateNestedManyWithoutWorkspaceInput
     snapshots?: FileSnapshotUncheckedCreateNestedManyWithoutWorkspaceInput
     ideState?: WorkspaceIdeStateUncheckedCreateNestedOneWithoutWorkspaceInput
+    readinessBeacons?: PreviewReadinessBeaconUncheckedCreateNestedManyWithoutWorkspaceInput
+    lifecycleEvents?: WorkspaceLifecycleEventUncheckedCreateNestedManyWithoutWorkspaceInput
+    postMortems?: WorkspacePostMortemUncheckedCreateNestedManyWithoutWorkspaceInput
   }
 
   export type WorkspaceCreateOrConnectWithoutPortsInput = {
@@ -197392,6 +203877,9 @@ export namespace Prisma {
     sessions?: WorkspaceSessionUpdateManyWithoutWorkspaceNestedInput
     snapshots?: FileSnapshotUpdateManyWithoutWorkspaceNestedInput
     ideState?: WorkspaceIdeStateUpdateOneWithoutWorkspaceNestedInput
+    readinessBeacons?: PreviewReadinessBeaconUpdateManyWithoutWorkspaceNestedInput
+    lifecycleEvents?: WorkspaceLifecycleEventUpdateManyWithoutWorkspaceNestedInput
+    postMortems?: WorkspacePostMortemUpdateManyWithoutWorkspaceNestedInput
   }
 
   export type WorkspaceUncheckedUpdateWithoutPortsInput = {
@@ -197408,6 +203896,9 @@ export namespace Prisma {
     sessions?: WorkspaceSessionUncheckedUpdateManyWithoutWorkspaceNestedInput
     snapshots?: FileSnapshotUncheckedUpdateManyWithoutWorkspaceNestedInput
     ideState?: WorkspaceIdeStateUncheckedUpdateOneWithoutWorkspaceNestedInput
+    readinessBeacons?: PreviewReadinessBeaconUncheckedUpdateManyWithoutWorkspaceNestedInput
+    lifecycleEvents?: WorkspaceLifecycleEventUncheckedUpdateManyWithoutWorkspaceNestedInput
+    postMortems?: WorkspacePostMortemUncheckedUpdateManyWithoutWorkspaceNestedInput
   }
 
   export type ProjectCreateWithoutFileSnapshotsInput = {
@@ -197513,6 +204004,9 @@ export namespace Prisma {
     sessions?: WorkspaceSessionCreateNestedManyWithoutWorkspaceInput
     ports?: WorkspacePortCreateNestedManyWithoutWorkspaceInput
     ideState?: WorkspaceIdeStateCreateNestedOneWithoutWorkspaceInput
+    readinessBeacons?: PreviewReadinessBeaconCreateNestedManyWithoutWorkspaceInput
+    lifecycleEvents?: WorkspaceLifecycleEventCreateNestedManyWithoutWorkspaceInput
+    postMortems?: WorkspacePostMortemCreateNestedManyWithoutWorkspaceInput
   }
 
   export type WorkspaceUncheckedCreateWithoutSnapshotsInput = {
@@ -197529,6 +204023,9 @@ export namespace Prisma {
     sessions?: WorkspaceSessionUncheckedCreateNestedManyWithoutWorkspaceInput
     ports?: WorkspacePortUncheckedCreateNestedManyWithoutWorkspaceInput
     ideState?: WorkspaceIdeStateUncheckedCreateNestedOneWithoutWorkspaceInput
+    readinessBeacons?: PreviewReadinessBeaconUncheckedCreateNestedManyWithoutWorkspaceInput
+    lifecycleEvents?: WorkspaceLifecycleEventUncheckedCreateNestedManyWithoutWorkspaceInput
+    postMortems?: WorkspacePostMortemUncheckedCreateNestedManyWithoutWorkspaceInput
   }
 
   export type WorkspaceCreateOrConnectWithoutSnapshotsInput = {
@@ -197656,6 +204153,9 @@ export namespace Prisma {
     sessions?: WorkspaceSessionUpdateManyWithoutWorkspaceNestedInput
     ports?: WorkspacePortUpdateManyWithoutWorkspaceNestedInput
     ideState?: WorkspaceIdeStateUpdateOneWithoutWorkspaceNestedInput
+    readinessBeacons?: PreviewReadinessBeaconUpdateManyWithoutWorkspaceNestedInput
+    lifecycleEvents?: WorkspaceLifecycleEventUpdateManyWithoutWorkspaceNestedInput
+    postMortems?: WorkspacePostMortemUpdateManyWithoutWorkspaceNestedInput
   }
 
   export type WorkspaceUncheckedUpdateWithoutSnapshotsInput = {
@@ -197672,6 +204172,9 @@ export namespace Prisma {
     sessions?: WorkspaceSessionUncheckedUpdateManyWithoutWorkspaceNestedInput
     ports?: WorkspacePortUncheckedUpdateManyWithoutWorkspaceNestedInput
     ideState?: WorkspaceIdeStateUncheckedUpdateOneWithoutWorkspaceNestedInput
+    readinessBeacons?: PreviewReadinessBeaconUncheckedUpdateManyWithoutWorkspaceNestedInput
+    lifecycleEvents?: WorkspaceLifecycleEventUncheckedUpdateManyWithoutWorkspaceNestedInput
+    postMortems?: WorkspacePostMortemUncheckedUpdateManyWithoutWorkspaceNestedInput
   }
 
   export type ProjectCreateWithoutSnapshotsInput = {
@@ -211484,6 +217987,282 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type WorkspaceCreateWithoutReadinessBeaconsInput = {
+    id?: string
+    name: string
+    status?: $Enums.WorkspaceStatus
+    runtimeMode: string
+    environment?: string
+    gitPath?: string | null
+    gitRepositoryUrl?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    project: ProjectCreateNestedOneWithoutWorkspacesInput
+    sessions?: WorkspaceSessionCreateNestedManyWithoutWorkspaceInput
+    ports?: WorkspacePortCreateNestedManyWithoutWorkspaceInput
+    snapshots?: FileSnapshotCreateNestedManyWithoutWorkspaceInput
+    ideState?: WorkspaceIdeStateCreateNestedOneWithoutWorkspaceInput
+    lifecycleEvents?: WorkspaceLifecycleEventCreateNestedManyWithoutWorkspaceInput
+    postMortems?: WorkspacePostMortemCreateNestedManyWithoutWorkspaceInput
+  }
+
+  export type WorkspaceUncheckedCreateWithoutReadinessBeaconsInput = {
+    id?: string
+    projectId: string
+    name: string
+    status?: $Enums.WorkspaceStatus
+    runtimeMode: string
+    environment?: string
+    gitPath?: string | null
+    gitRepositoryUrl?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sessions?: WorkspaceSessionUncheckedCreateNestedManyWithoutWorkspaceInput
+    ports?: WorkspacePortUncheckedCreateNestedManyWithoutWorkspaceInput
+    snapshots?: FileSnapshotUncheckedCreateNestedManyWithoutWorkspaceInput
+    ideState?: WorkspaceIdeStateUncheckedCreateNestedOneWithoutWorkspaceInput
+    lifecycleEvents?: WorkspaceLifecycleEventUncheckedCreateNestedManyWithoutWorkspaceInput
+    postMortems?: WorkspacePostMortemUncheckedCreateNestedManyWithoutWorkspaceInput
+  }
+
+  export type WorkspaceCreateOrConnectWithoutReadinessBeaconsInput = {
+    where: WorkspaceWhereUniqueInput
+    create: XOR<WorkspaceCreateWithoutReadinessBeaconsInput, WorkspaceUncheckedCreateWithoutReadinessBeaconsInput>
+  }
+
+  export type WorkspaceUpsertWithoutReadinessBeaconsInput = {
+    update: XOR<WorkspaceUpdateWithoutReadinessBeaconsInput, WorkspaceUncheckedUpdateWithoutReadinessBeaconsInput>
+    create: XOR<WorkspaceCreateWithoutReadinessBeaconsInput, WorkspaceUncheckedCreateWithoutReadinessBeaconsInput>
+    where?: WorkspaceWhereInput
+  }
+
+  export type WorkspaceUpdateToOneWithWhereWithoutReadinessBeaconsInput = {
+    where?: WorkspaceWhereInput
+    data: XOR<WorkspaceUpdateWithoutReadinessBeaconsInput, WorkspaceUncheckedUpdateWithoutReadinessBeaconsInput>
+  }
+
+  export type WorkspaceUpdateWithoutReadinessBeaconsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
+    runtimeMode?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    gitPath?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutWorkspacesNestedInput
+    sessions?: WorkspaceSessionUpdateManyWithoutWorkspaceNestedInput
+    ports?: WorkspacePortUpdateManyWithoutWorkspaceNestedInput
+    snapshots?: FileSnapshotUpdateManyWithoutWorkspaceNestedInput
+    ideState?: WorkspaceIdeStateUpdateOneWithoutWorkspaceNestedInput
+    lifecycleEvents?: WorkspaceLifecycleEventUpdateManyWithoutWorkspaceNestedInput
+    postMortems?: WorkspacePostMortemUpdateManyWithoutWorkspaceNestedInput
+  }
+
+  export type WorkspaceUncheckedUpdateWithoutReadinessBeaconsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
+    runtimeMode?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    gitPath?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessions?: WorkspaceSessionUncheckedUpdateManyWithoutWorkspaceNestedInput
+    ports?: WorkspacePortUncheckedUpdateManyWithoutWorkspaceNestedInput
+    snapshots?: FileSnapshotUncheckedUpdateManyWithoutWorkspaceNestedInput
+    ideState?: WorkspaceIdeStateUncheckedUpdateOneWithoutWorkspaceNestedInput
+    lifecycleEvents?: WorkspaceLifecycleEventUncheckedUpdateManyWithoutWorkspaceNestedInput
+    postMortems?: WorkspacePostMortemUncheckedUpdateManyWithoutWorkspaceNestedInput
+  }
+
+  export type WorkspaceCreateWithoutLifecycleEventsInput = {
+    id?: string
+    name: string
+    status?: $Enums.WorkspaceStatus
+    runtimeMode: string
+    environment?: string
+    gitPath?: string | null
+    gitRepositoryUrl?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    project: ProjectCreateNestedOneWithoutWorkspacesInput
+    sessions?: WorkspaceSessionCreateNestedManyWithoutWorkspaceInput
+    ports?: WorkspacePortCreateNestedManyWithoutWorkspaceInput
+    snapshots?: FileSnapshotCreateNestedManyWithoutWorkspaceInput
+    ideState?: WorkspaceIdeStateCreateNestedOneWithoutWorkspaceInput
+    readinessBeacons?: PreviewReadinessBeaconCreateNestedManyWithoutWorkspaceInput
+    postMortems?: WorkspacePostMortemCreateNestedManyWithoutWorkspaceInput
+  }
+
+  export type WorkspaceUncheckedCreateWithoutLifecycleEventsInput = {
+    id?: string
+    projectId: string
+    name: string
+    status?: $Enums.WorkspaceStatus
+    runtimeMode: string
+    environment?: string
+    gitPath?: string | null
+    gitRepositoryUrl?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sessions?: WorkspaceSessionUncheckedCreateNestedManyWithoutWorkspaceInput
+    ports?: WorkspacePortUncheckedCreateNestedManyWithoutWorkspaceInput
+    snapshots?: FileSnapshotUncheckedCreateNestedManyWithoutWorkspaceInput
+    ideState?: WorkspaceIdeStateUncheckedCreateNestedOneWithoutWorkspaceInput
+    readinessBeacons?: PreviewReadinessBeaconUncheckedCreateNestedManyWithoutWorkspaceInput
+    postMortems?: WorkspacePostMortemUncheckedCreateNestedManyWithoutWorkspaceInput
+  }
+
+  export type WorkspaceCreateOrConnectWithoutLifecycleEventsInput = {
+    where: WorkspaceWhereUniqueInput
+    create: XOR<WorkspaceCreateWithoutLifecycleEventsInput, WorkspaceUncheckedCreateWithoutLifecycleEventsInput>
+  }
+
+  export type WorkspaceUpsertWithoutLifecycleEventsInput = {
+    update: XOR<WorkspaceUpdateWithoutLifecycleEventsInput, WorkspaceUncheckedUpdateWithoutLifecycleEventsInput>
+    create: XOR<WorkspaceCreateWithoutLifecycleEventsInput, WorkspaceUncheckedCreateWithoutLifecycleEventsInput>
+    where?: WorkspaceWhereInput
+  }
+
+  export type WorkspaceUpdateToOneWithWhereWithoutLifecycleEventsInput = {
+    where?: WorkspaceWhereInput
+    data: XOR<WorkspaceUpdateWithoutLifecycleEventsInput, WorkspaceUncheckedUpdateWithoutLifecycleEventsInput>
+  }
+
+  export type WorkspaceUpdateWithoutLifecycleEventsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
+    runtimeMode?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    gitPath?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutWorkspacesNestedInput
+    sessions?: WorkspaceSessionUpdateManyWithoutWorkspaceNestedInput
+    ports?: WorkspacePortUpdateManyWithoutWorkspaceNestedInput
+    snapshots?: FileSnapshotUpdateManyWithoutWorkspaceNestedInput
+    ideState?: WorkspaceIdeStateUpdateOneWithoutWorkspaceNestedInput
+    readinessBeacons?: PreviewReadinessBeaconUpdateManyWithoutWorkspaceNestedInput
+    postMortems?: WorkspacePostMortemUpdateManyWithoutWorkspaceNestedInput
+  }
+
+  export type WorkspaceUncheckedUpdateWithoutLifecycleEventsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
+    runtimeMode?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    gitPath?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessions?: WorkspaceSessionUncheckedUpdateManyWithoutWorkspaceNestedInput
+    ports?: WorkspacePortUncheckedUpdateManyWithoutWorkspaceNestedInput
+    snapshots?: FileSnapshotUncheckedUpdateManyWithoutWorkspaceNestedInput
+    ideState?: WorkspaceIdeStateUncheckedUpdateOneWithoutWorkspaceNestedInput
+    readinessBeacons?: PreviewReadinessBeaconUncheckedUpdateManyWithoutWorkspaceNestedInput
+    postMortems?: WorkspacePostMortemUncheckedUpdateManyWithoutWorkspaceNestedInput
+  }
+
+  export type WorkspaceCreateWithoutPostMortemsInput = {
+    id?: string
+    name: string
+    status?: $Enums.WorkspaceStatus
+    runtimeMode: string
+    environment?: string
+    gitPath?: string | null
+    gitRepositoryUrl?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    project: ProjectCreateNestedOneWithoutWorkspacesInput
+    sessions?: WorkspaceSessionCreateNestedManyWithoutWorkspaceInput
+    ports?: WorkspacePortCreateNestedManyWithoutWorkspaceInput
+    snapshots?: FileSnapshotCreateNestedManyWithoutWorkspaceInput
+    ideState?: WorkspaceIdeStateCreateNestedOneWithoutWorkspaceInput
+    readinessBeacons?: PreviewReadinessBeaconCreateNestedManyWithoutWorkspaceInput
+    lifecycleEvents?: WorkspaceLifecycleEventCreateNestedManyWithoutWorkspaceInput
+  }
+
+  export type WorkspaceUncheckedCreateWithoutPostMortemsInput = {
+    id?: string
+    projectId: string
+    name: string
+    status?: $Enums.WorkspaceStatus
+    runtimeMode: string
+    environment?: string
+    gitPath?: string | null
+    gitRepositoryUrl?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sessions?: WorkspaceSessionUncheckedCreateNestedManyWithoutWorkspaceInput
+    ports?: WorkspacePortUncheckedCreateNestedManyWithoutWorkspaceInput
+    snapshots?: FileSnapshotUncheckedCreateNestedManyWithoutWorkspaceInput
+    ideState?: WorkspaceIdeStateUncheckedCreateNestedOneWithoutWorkspaceInput
+    readinessBeacons?: PreviewReadinessBeaconUncheckedCreateNestedManyWithoutWorkspaceInput
+    lifecycleEvents?: WorkspaceLifecycleEventUncheckedCreateNestedManyWithoutWorkspaceInput
+  }
+
+  export type WorkspaceCreateOrConnectWithoutPostMortemsInput = {
+    where: WorkspaceWhereUniqueInput
+    create: XOR<WorkspaceCreateWithoutPostMortemsInput, WorkspaceUncheckedCreateWithoutPostMortemsInput>
+  }
+
+  export type WorkspaceUpsertWithoutPostMortemsInput = {
+    update: XOR<WorkspaceUpdateWithoutPostMortemsInput, WorkspaceUncheckedUpdateWithoutPostMortemsInput>
+    create: XOR<WorkspaceCreateWithoutPostMortemsInput, WorkspaceUncheckedCreateWithoutPostMortemsInput>
+    where?: WorkspaceWhereInput
+  }
+
+  export type WorkspaceUpdateToOneWithWhereWithoutPostMortemsInput = {
+    where?: WorkspaceWhereInput
+    data: XOR<WorkspaceUpdateWithoutPostMortemsInput, WorkspaceUncheckedUpdateWithoutPostMortemsInput>
+  }
+
+  export type WorkspaceUpdateWithoutPostMortemsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
+    runtimeMode?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    gitPath?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutWorkspacesNestedInput
+    sessions?: WorkspaceSessionUpdateManyWithoutWorkspaceNestedInput
+    ports?: WorkspacePortUpdateManyWithoutWorkspaceNestedInput
+    snapshots?: FileSnapshotUpdateManyWithoutWorkspaceNestedInput
+    ideState?: WorkspaceIdeStateUpdateOneWithoutWorkspaceNestedInput
+    readinessBeacons?: PreviewReadinessBeaconUpdateManyWithoutWorkspaceNestedInput
+    lifecycleEvents?: WorkspaceLifecycleEventUpdateManyWithoutWorkspaceNestedInput
+  }
+
+  export type WorkspaceUncheckedUpdateWithoutPostMortemsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
+    runtimeMode?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    gitPath?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessions?: WorkspaceSessionUncheckedUpdateManyWithoutWorkspaceNestedInput
+    ports?: WorkspacePortUncheckedUpdateManyWithoutWorkspaceNestedInput
+    snapshots?: FileSnapshotUncheckedUpdateManyWithoutWorkspaceNestedInput
+    ideState?: WorkspaceIdeStateUncheckedUpdateOneWithoutWorkspaceNestedInput
+    readinessBeacons?: PreviewReadinessBeaconUncheckedUpdateManyWithoutWorkspaceNestedInput
+    lifecycleEvents?: WorkspaceLifecycleEventUncheckedUpdateManyWithoutWorkspaceNestedInput
+  }
+
   export type AccountCreateManyUserInput = {
     id?: string
     provider: string
@@ -211635,11 +218414,16 @@ export namespace Prisma {
     sourceSnapshotId: string
     authorName: string
     appUrl?: string | null
+    thumbnailUrl?: string | null
     remixAllowed?: boolean
     licenseId?: string | null
     licenseText?: string | null
     licenseTextSha256?: string | null
     piiConsentVersion?: string | null
+    rightsConfirmedAt?: Date | string | null
+    rightsConfirmedBy?: string | null
+    piiPolicyAcceptedAt?: Date | string | null
+    piiPolicyAcceptedBy?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -212245,11 +219029,16 @@ export namespace Prisma {
     sourceSnapshotId?: StringFieldUpdateOperationsInput | string
     authorName?: StringFieldUpdateOperationsInput | string
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     remixAllowed?: BoolFieldUpdateOperationsInput | boolean
     licenseId?: NullableStringFieldUpdateOperationsInput | string | null
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
     licenseTextSha256?: NullableStringFieldUpdateOperationsInput | string | null
     piiConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    rightsConfirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rightsConfirmedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    piiPolicyAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    piiPolicyAcceptedBy?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -212270,11 +219059,16 @@ export namespace Prisma {
     sourceSnapshotId?: StringFieldUpdateOperationsInput | string
     authorName?: StringFieldUpdateOperationsInput | string
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     remixAllowed?: BoolFieldUpdateOperationsInput | boolean
     licenseId?: NullableStringFieldUpdateOperationsInput | string | null
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
     licenseTextSha256?: NullableStringFieldUpdateOperationsInput | string | null
     piiConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    rightsConfirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rightsConfirmedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    piiPolicyAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    piiPolicyAcceptedBy?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -212294,11 +219088,16 @@ export namespace Prisma {
     sourceSnapshotId?: StringFieldUpdateOperationsInput | string
     authorName?: StringFieldUpdateOperationsInput | string
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     remixAllowed?: BoolFieldUpdateOperationsInput | boolean
     licenseId?: NullableStringFieldUpdateOperationsInput | string | null
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
     licenseTextSha256?: NullableStringFieldUpdateOperationsInput | string | null
     piiConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    rightsConfirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rightsConfirmedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    piiPolicyAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    piiPolicyAcceptedBy?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -214473,11 +221272,16 @@ export namespace Prisma {
     authorName: string
     authorUserId?: string | null
     appUrl?: string | null
+    thumbnailUrl?: string | null
     remixAllowed?: boolean
     licenseId?: string | null
     licenseText?: string | null
     licenseTextSha256?: string | null
     piiConsentVersion?: string | null
+    rightsConfirmedAt?: Date | string | null
+    rightsConfirmedBy?: string | null
+    piiPolicyAcceptedAt?: Date | string | null
+    piiPolicyAcceptedBy?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -214831,11 +221635,16 @@ export namespace Prisma {
     sourceSnapshotId?: StringFieldUpdateOperationsInput | string
     authorName?: StringFieldUpdateOperationsInput | string
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     remixAllowed?: BoolFieldUpdateOperationsInput | boolean
     licenseId?: NullableStringFieldUpdateOperationsInput | string | null
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
     licenseTextSha256?: NullableStringFieldUpdateOperationsInput | string | null
     piiConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    rightsConfirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rightsConfirmedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    piiPolicyAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    piiPolicyAcceptedBy?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -214856,11 +221665,16 @@ export namespace Prisma {
     authorName?: StringFieldUpdateOperationsInput | string
     authorUserId?: NullableStringFieldUpdateOperationsInput | string | null
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     remixAllowed?: BoolFieldUpdateOperationsInput | boolean
     licenseId?: NullableStringFieldUpdateOperationsInput | string | null
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
     licenseTextSha256?: NullableStringFieldUpdateOperationsInput | string | null
     piiConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    rightsConfirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rightsConfirmedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    piiPolicyAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    piiPolicyAcceptedBy?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -214880,11 +221694,16 @@ export namespace Prisma {
     authorName?: StringFieldUpdateOperationsInput | string
     authorUserId?: NullableStringFieldUpdateOperationsInput | string | null
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     remixAllowed?: BoolFieldUpdateOperationsInput | boolean
     licenseId?: NullableStringFieldUpdateOperationsInput | string | null
     licenseText?: NullableStringFieldUpdateOperationsInput | string | null
     licenseTextSha256?: NullableStringFieldUpdateOperationsInput | string | null
     piiConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    rightsConfirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    rightsConfirmedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    piiPolicyAcceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    piiPolicyAcceptedBy?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -214905,6 +221724,9 @@ export namespace Prisma {
     ports?: WorkspacePortUpdateManyWithoutWorkspaceNestedInput
     snapshots?: FileSnapshotUpdateManyWithoutWorkspaceNestedInput
     ideState?: WorkspaceIdeStateUpdateOneWithoutWorkspaceNestedInput
+    readinessBeacons?: PreviewReadinessBeaconUpdateManyWithoutWorkspaceNestedInput
+    lifecycleEvents?: WorkspaceLifecycleEventUpdateManyWithoutWorkspaceNestedInput
+    postMortems?: WorkspacePostMortemUpdateManyWithoutWorkspaceNestedInput
   }
 
   export type WorkspaceUncheckedUpdateWithoutProjectInput = {
@@ -214921,6 +221743,9 @@ export namespace Prisma {
     ports?: WorkspacePortUncheckedUpdateManyWithoutWorkspaceNestedInput
     snapshots?: FileSnapshotUncheckedUpdateManyWithoutWorkspaceNestedInput
     ideState?: WorkspaceIdeStateUncheckedUpdateOneWithoutWorkspaceNestedInput
+    readinessBeacons?: PreviewReadinessBeaconUncheckedUpdateManyWithoutWorkspaceNestedInput
+    lifecycleEvents?: WorkspaceLifecycleEventUncheckedUpdateManyWithoutWorkspaceNestedInput
+    postMortems?: WorkspacePostMortemUncheckedUpdateManyWithoutWorkspaceNestedInput
   }
 
   export type WorkspaceUncheckedUpdateManyWithoutProjectInput = {
@@ -215576,6 +222401,33 @@ export namespace Prisma {
     createdAt?: Date | string
   }
 
+  export type PreviewReadinessBeaconCreateManyWorkspaceInput = {
+    id?: string
+    port: number
+    status: string
+    detail?: string | null
+    reportedAt?: Date | string
+  }
+
+  export type WorkspaceLifecycleEventCreateManyWorkspaceInput = {
+    id?: string
+    state: string
+    reason?: string | null
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    at?: Date | string
+  }
+
+  export type WorkspacePostMortemCreateManyWorkspaceInput = {
+    id?: string
+    reason: string
+    finalState: string
+    ports?: NullableJsonNullValueInput | InputJsonValue
+    processes?: NullableJsonNullValueInput | InputJsonValue
+    problems?: NullableJsonNullValueInput | InputJsonValue
+    logsTail?: string | null
+    capturedAt?: Date | string
+  }
+
   export type WorkspaceSessionUpdateWithoutWorkspaceInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -215652,6 +222504,87 @@ export namespace Prisma {
     sizeBytes?: IntFieldUpdateOperationsInput | number
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PreviewReadinessBeaconUpdateWithoutWorkspaceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    port?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    detail?: NullableStringFieldUpdateOperationsInput | string | null
+    reportedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PreviewReadinessBeaconUncheckedUpdateWithoutWorkspaceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    port?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    detail?: NullableStringFieldUpdateOperationsInput | string | null
+    reportedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PreviewReadinessBeaconUncheckedUpdateManyWithoutWorkspaceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    port?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    detail?: NullableStringFieldUpdateOperationsInput | string | null
+    reportedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkspaceLifecycleEventUpdateWithoutWorkspaceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkspaceLifecycleEventUncheckedUpdateWithoutWorkspaceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkspaceLifecycleEventUncheckedUpdateManyWithoutWorkspaceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    detail?: NullableJsonNullValueInput | InputJsonValue
+    at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkspacePostMortemUpdateWithoutWorkspaceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    finalState?: StringFieldUpdateOperationsInput | string
+    ports?: NullableJsonNullValueInput | InputJsonValue
+    processes?: NullableJsonNullValueInput | InputJsonValue
+    problems?: NullableJsonNullValueInput | InputJsonValue
+    logsTail?: NullableStringFieldUpdateOperationsInput | string | null
+    capturedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkspacePostMortemUncheckedUpdateWithoutWorkspaceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    finalState?: StringFieldUpdateOperationsInput | string
+    ports?: NullableJsonNullValueInput | InputJsonValue
+    processes?: NullableJsonNullValueInput | InputJsonValue
+    problems?: NullableJsonNullValueInput | InputJsonValue
+    logsTail?: NullableStringFieldUpdateOperationsInput | string | null
+    capturedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkspacePostMortemUncheckedUpdateManyWithoutWorkspaceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    finalState?: StringFieldUpdateOperationsInput | string
+    ports?: NullableJsonNullValueInput | InputJsonValue
+    processes?: NullableJsonNullValueInput | InputJsonValue
+    problems?: NullableJsonNullValueInput | InputJsonValue
+    logsTail?: NullableStringFieldUpdateOperationsInput | string | null
+    capturedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type DeploymentCreateManyEnvironmentInput = {

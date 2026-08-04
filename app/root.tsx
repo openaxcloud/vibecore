@@ -11,6 +11,7 @@ import {
   Scripts,
   ScrollRestoration,
   useLocation,
+  useMatches,
   useNavigation,
   useRouteError,
 } from 'react-router';
@@ -384,8 +385,11 @@ const inlineThemeCode = stripIndents`
  * reapply the same theme and initialize the remaining persisted document state.
  */
 export function Layout({ children }: { children: React.ReactNode }) {
+  const matches = useMatches();
+  const language = resolveDocumentLanguage(matches);
+
   return (
-    <html lang="en" data-theme="dark" suppressHydrationWarning>
+    <html lang={language} dir={language === 'ar' ? 'rtl' : 'ltr'} data-theme="dark" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -418,7 +422,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
  */
 function AppShell({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+  const matches = useMatches();
   const showIdeBootFallback = /^\/projects\/[^/]+\/ide(?:\/|$)/.test(location.pathname);
+
+  const serverRendersRoute = matches.some((match) => {
+    const handle = match.handle;
+
+    return Boolean(
+      handle && typeof handle === 'object' && 'serverRenderedMarketing' in handle && handle.serverRenderedMarketing,
+    );
+  });
+
   const editorServiceWorkerInstalled = useRef(false);
 
   /*
@@ -451,13 +465,20 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <ClientOnly fallback={<AppBootFallback ide={showIdeBootFallback} />}>
-        {() => (
-          <I18nextProvider i18n={getI18nInstance()}>
-            <DndProvider backend={HTML5Backend}>{children}</DndProvider>
-          </I18nextProvider>
-        )}
-      </ClientOnly>
+      {serverRendersRoute ? (
+        <>
+          <ClientOnly fallback={<AppBootFallback ide={false} overlay />}>{() => null}</ClientOnly>
+          {children}
+        </>
+      ) : (
+        <ClientOnly fallback={<AppBootFallback ide={showIdeBootFallback} />}>
+          {() => (
+            <I18nextProvider i18n={getI18nInstance()}>
+              <DndProvider backend={HTML5Backend}>{children}</DndProvider>
+            </I18nextProvider>
+          )}
+        </ClientOnly>
+      )}
       <ClientOnly>{() => <GlobalRouteLoader />}</ClientOnly>
       <ClientOnly>{() => <AppToastContainer />}</ClientOnly>
       <ClientOnly>{() => <GlobalTooltip />}</ClientOnly>
@@ -465,11 +486,29 @@ function AppShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-function AppBootFallback({ ide }: { ide: boolean }) {
+function resolveDocumentLanguage(matches: ReturnType<typeof useMatches>): 'en' | 'fr' | 'es' | 'ar' {
+  for (let index = matches.length - 1; index >= 0; index -= 1) {
+    const data = matches[index]?.data;
+
+    if (!data || typeof data !== 'object' || !('language' in data)) {
+      continue;
+    }
+
+    const language = (data as { language?: unknown }).language;
+
+    if (language === 'en' || language === 'fr' || language === 'es' || language === 'ar') {
+      return language;
+    }
+  }
+
+  return 'en';
+}
+
+function AppBootFallback({ ide, overlay = false }: { ide: boolean; overlay?: boolean }) {
   if (!ide) {
     return (
       <main
-        className="ecode-app-boot-splash"
+        className={`ecode-app-boot-splash${overlay ? ' ecode-app-boot-splash--overlay' : ''}`}
         data-ecode-boot-splash=""
         aria-label="Loading E-Code"
         aria-live="polite"
@@ -673,6 +712,7 @@ export default function App() {
   const location = useLocation();
 
   useEffect(() => {
+    document.documentElement.setAttribute('data-ecode-hydrated', 'true');
     window.dispatchEvent(new Event('ecode:hydrated'));
   }, []);
 
@@ -740,7 +780,7 @@ export default function App() {
        * self-checks via its own fetcher and renders nothing for normal
        * sessions, so it's safe to render unconditionally here.
        */}
-      <ImpersonationBanner />
+      {isPublicMarketingPath(location.pathname) ? null : <ImpersonationBanner />}
       <AppErrorBoundary title="E-Code" boundaryId="app-root">
         <Outlet />
       </AppErrorBoundary>

@@ -43,6 +43,12 @@ const YAML = loadYamlModule();
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, '..', '..');
 const parityRoot = join(repoRoot, 'docs', 'parity');
+// Chemin de l'attestation — surchargé UNIQUEMENT par le repro fail-closed
+// (scripts/parity/repro-attestation-fail-closed.mjs) pour valider une copie
+// amputée hors-arbre. En CI et en usage normal, c'est le fichier réel.
+const attestationPath = process.env.PARITY_ATTESTATION_PATH
+  ? resolve(process.env.PARITY_ATTESTATION_PATH)
+  : join(parityRoot, 'CI_ATTESTATION.yaml');
 
 const errors = [];
 const checked = [];
@@ -854,7 +860,7 @@ function checkHeader(file, doc) {
 /* ---- 12sexies. CI_ATTESTATION — commits RÉELS du repo (anti-fictif, LS-16) */
 {
   const { execSync } = await import('node:child_process');
-  const att = loadYaml(join(parityRoot, 'CI_ATTESTATION.yaml'));
+  const att = loadYaml(attestationPath);
   const a = att.attestation ?? {};
 
   let shallow = false;
@@ -865,7 +871,7 @@ function checkHeader(file, doc) {
     shallow = true; // pas un repo git utilisable → ne pas prétendre vérifier
   }
 
-  for (const field of shallow ? [] : ['runCommit', 'mergedCommit']) {
+  for (const field of shallow ? [] : ['runCommit', 'mergedCommit', 'repoCommit']) {
     const sha = a[field];
 
     if (sha && /^[0-9a-f]{7,40}$/.test(String(sha))) {
@@ -915,10 +921,15 @@ function checkHeader(file, doc) {
       const ct = readFileSync(cp, 'utf8');
 
       const hasId = ct.includes(`contractId: ${c.contractId}`) || ct.includes(`"x-contractId": "${c.contractId}"`);
-      const hasV2 = /contractVersion:\s*2/.test(ct) || /"x-contractVersion":\s*2/.test(ct);
+      // Le fichier doit porter LA MÊME version que le registre (v2, v3, …) —
+      // l'ancien littéral « 2 » refusait toute remédiation ultérieure.
+      const declaredVersion = String(c.contractVersion);
+      const hasVersion =
+        new RegExp(`contractVersion:\\s*${declaredVersion}\\b`).test(ct) ||
+        new RegExp(`"x-contractVersion":\\s*${declaredVersion}\\b`).test(ct);
 
-      if (!hasId || !hasV2) {
-        fail('CONTRACT_REGISTRY.yaml', `${c.contractId}: durci déclaré mais le fichier ne porte pas contractId + contractVersion 2`);
+      if (!hasId || !hasVersion) {
+        fail('CONTRACT_REGISTRY.yaml', `${c.contractId}: durci déclaré mais le fichier ne porte pas contractId + contractVersion ${declaredVersion}`);
       }
     }
 
@@ -1043,7 +1054,7 @@ function checkHeader(file, doc) {
     }
   }
 
-  const attPath = join(parityRoot, 'CI_ATTESTATION.yaml');
+  const attPath = attestationPath;
 
   if (!existsSync(attPath)) {
     fail('CI_ATTESTATION.yaml', 'missing — une attestation CI réelle (runId + date + commit) est requise (P0-A2-13)');
@@ -1058,6 +1069,22 @@ function checkHeader(file, doc) {
       fail('CI_ATTESTATION.yaml', 'runCommit manquant/invalide');
     }
 
+    // RR-20260723-CODEX-07 : mergedCommit, repoCommit et runUrl sont
+    // OBLIGATOIRES et NON VIDES dans le validateur structurel — leur ABSENCE
+    // (champ retiré / vide) est REJETÉE (plus de fail-open ; alignement avec
+    // checkAttestationFields du vérificateur pur).
+    if (!/^[0-9a-f]{7,40}$/.test(String(att.mergedCommit ?? ''))) {
+      fail('CI_ATTESTATION.yaml', 'mergedCommit manquant/vide/invalide — obligatoire, fail-closed (CODEX-07)');
+    }
+
+    if (!/^[0-9a-f]{7,40}$/.test(String(att.repoCommit ?? ''))) {
+      fail('CI_ATTESTATION.yaml', 'repoCommit manquant/vide/invalide — obligatoire, fail-closed (CODEX-07)');
+    }
+
+    if (!/^https:\/\/github\.com\/\S+\/actions\/runs\/\d+/.test(String(att.runUrl ?? ''))) {
+      fail('CI_ATTESTATION.yaml', 'runUrl manquant/vide/invalide — obligatoire, fail-closed (CODEX-07)');
+    }
+
     if (Number.isNaN(Date.parse(att.runDate ?? ''))) {
       fail('CI_ATTESTATION.yaml', 'runDate manquante/invalide');
     }
@@ -1066,7 +1093,7 @@ function checkHeader(file, doc) {
       fail('CI_ATTESTATION.yaml', `attestation non verte (conclusion=${att.conclusion})`);
     }
 
-    checked.push(`CI_ATTESTATION (run ${att.runId} @ ${String(att.runCommit).slice(0, 8)}, ${att.runDate}, ${att.conclusion})`);
+    checked.push(`CI_ATTESTATION (run ${att.runId} @ ${String(att.runCommit).slice(0, 8)}, mergedCommit+repoCommit+runUrl présents, ${att.runDate}, ${att.conclusion})`);
   }
 }
 

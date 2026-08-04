@@ -250,7 +250,7 @@ export function scrubSecretsFromFiles(
  * SOURCE_SANITIZED (I-RMX-3, P0-V3-05) — PII masking before cloning.
  * ------------------------------------------------------------------------- */
 
-export type PiiKind = 'email' | 'phone' | 'iban' | 'card';
+export type PiiKind = 'email' | 'phone' | 'iban' | 'card' | 'name';
 
 export interface PiiFinding {
   path: string;
@@ -318,6 +318,143 @@ const PII_MATCHERS: Array<{ kind: PiiKind; re: RegExp; accept?: (match: string) 
   { kind: 'card', re: CARD_RE, accept: luhnValid },
 ];
 
+/* ------------------------------------------------------------------------- *
+ * NOMS DE PERSONNES (P0-V3-05, réserve #2)
+ *
+ * Un nom n'a pas de forme lexicale distinctive : « Jane Doe » et « Meridian
+ * Supply » sont indiscernables hors contexte. Un regex « deux mots capitalisés »
+ * massacrerait tout code source. On masque donc UNIQUEMENT sur signal
+ * STRUCTUREL, jamais sur de la prose :
+ *
+ *  1. clé explicitement personnelle (firstName, lastName, nom, prenom…) dans
+ *     du JSON/YAML/TS/env — la clé porte à elle seule l'intention ;
+ *  2. colonne CSV/TSV nommée `name`/`nom` — MAIS seulement si le fichier
+ *     contient aussi une colonne personnelle (email, phone, iban, ssn,
+ *     birthdate, address). `name,email,phone` = fiche de personne ;
+ *     `name,price,stock` = catalogue produit, laissé intact.
+ *
+ * Biais assumé : sur signal structurel on masque même une raison sociale
+ * (« name: Acme Corp » dans un fichier de contacts). Sur-masquer une entreprise
+ * coûte infiniment moins cher que laisser fuiter le nom d'une personne.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Clés dont le nom SEUL suffit à établir qu'on tient l'identité d'une personne.
+ * `displayName` en est volontairement EXCLU : c'est massivement un libellé
+ * d'interface (« Dashboard », « Paramètres »), pas une identité.
+ */
+const PERSON_NAME_KEY =
+  /^(?:full[_-]?name|first[_-]?name|last[_-]?name|given[_-]?name|family[_-]?name|middle[_-]?name|sur[_-]?name|contact[_-]?name|customer[_-]?name|owner[_-]?name|patient[_-]?name|employee[_-]?name|holder[_-]?name|beneficiary|nom|pr[eé]nom|nom[_-]?complet|nom[_-]?de[_-]?famille)$/i;
+
+/** Colonnes qui, présentes à côté d'un `name`, prouvent qu'on lit des personnes. */
+const PERSON_CONTEXT_COLUMN =
+  /^(?:e[_-]?mail|mail|courriel|phone|tel|telephone|t[eé]l[eé]phone|mobile|iban|bic|ssn|nir|social[_-]?security|birth[_-]?date|date[_-]?of[_-]?birth|dob|address|adresse|postal[_-]?code|city|ville)$/i;
+
+/** `name` / `nom` nu : personnel seulement si une colonne de contexte l'accompagne. */
+const BARE_NAME_KEY = /^(?:name|nom|nome|nombre)$/i;
+
+/**
+ * Une valeur « qui ressemble à un nom » : un ou plusieurs mots, le premier
+ * commençant par une majuscule, uniquement lettres unicode + apostrophes +
+ * traits d'union + espaces.
+ *
+ * « Jane » ✓ (sous une clé `firstName`, un mot unique EST un nom) ·
+ * « Jane Doe » ✓ · « Jean-Pierre Dupont » ✓ · « O'Brien » ✓
+ * « meridian-storefront » ✗ (minuscule) · « admin » ✗ · « {{first}} » ✗ ·
+ * « user_1 » ✗ · « 42 » ✗ · « » ✗.
+ */
+const PERSON_NAME_VALUE = /^\p{Lu}[\p{L}'’-]*(?:[ ]\p{Lu}?[\p{L}'’-]+)*$/u;
+
+/** `key: "value"` / `key = value` / `"key": "value"` — JSON, YAML, TS, env. */
+const KEY_VALUE_LINE = /^(\s*["'`]?)([\w.$-]+)(["'`]?\s*[:=]\s*)(["'`])([^"'`]*)(["'`])/;
+
+function splitCsvRow(row: string, sep: string): string[] {
+  return row.split(sep).map((cell) => cell.trim());
+}
+
+/** Indices des colonnes CSV à masquer (personnelles), ou [] si le fichier n'est pas des fiches. */
+function personNameColumns(headerCells: string[]): number[] {
+  const stripped = headerCells.map((c) => c.replace(/^["']|["']$/g, ''));
+  const hasPersonContext = stripped.some((c) => PERSON_CONTEXT_COLUMN.test(c));
+
+  return stripped.reduce<number[]>((acc, cell, index) => {
+    if (PERSON_NAME_KEY.test(cell) || (hasPersonContext && BARE_NAME_KEY.test(cell))) {
+      acc.push(index);
+    }
+
+    return acc;
+  }, []);
+}
+
+const NAME_MASK = '[PII:name masked on remix]';
+
+/**
+ * Cœur PARTAGÉ par le masquage et le re-scan : renvoie les lignes réécrites et
+ * les emplacements touchés. Masquer et vérifier empruntent le MÊME chemin, donc
+ * ils ne peuvent pas diverger.
+ */
+function rewritePersonNames(path: string, lines: string[]): { lines: string[]; findings: PiiFinding[] } {
+  const findings: PiiFinding[] = [];
+  const out = [...lines];
+
+  const isCsv = /\.(?:csv|tsv)$/i.test(path);
+  const sep = /\.tsv$/i.test(path) ? '\t' : ',';
+  let csvColumns: number[] = [];
+
+  if (isCsv) {
+    const headerIndex = out.findIndex((l) => l.trim().length > 0);
+
+    if (headerIndex >= 0) {
+      csvColumns = personNameColumns(splitCsvRow(out[headerIndex], sep));
+
+      for (let i = headerIndex + 1; i < out.length && csvColumns.length > 0; i++) {
+        if (!out[i].trim()) {
+          continue;
+        }
+
+        const cells = splitCsvRow(out[i], sep);
+        let touched = false;
+
+        for (const col of csvColumns) {
+          if (cells[col] && cells[col] !== NAME_MASK) {
+            cells[col] = NAME_MASK;
+            touched = true;
+          }
+        }
+
+        if (touched) {
+          out[i] = cells.join(sep);
+          findings.push({ path, kind: 'name', line: i + 1 });
+        }
+      }
+    }
+
+    return { lines: out, findings };
+  }
+
+  for (let i = 0; i < out.length; i++) {
+    const match = KEY_VALUE_LINE.exec(out[i]);
+
+    if (!match) {
+      continue;
+    }
+
+    const [, openQuote, key, middle, valueOpen, value, valueClose] = match;
+
+    if (!PERSON_NAME_KEY.test(key) || !PERSON_NAME_VALUE.test(value)) {
+      continue;
+    }
+
+    out[i] = out[i].replace(
+      `${openQuote}${key}${middle}${valueOpen}${value}${valueClose}`,
+      `${openQuote}${key}${middle}${valueOpen}${NAME_MASK}${valueClose}`,
+    );
+    findings.push({ path, kind: 'name', line: i + 1 });
+  }
+
+  return { lines: out, findings };
+}
+
 /**
  * SOURCE_SANITIZED: mask PII spans out of the source files BEFORE cloning.
  * Deterministic pattern-based pass (emails, intl phone numbers, IBANs,
@@ -338,8 +475,14 @@ export function maskPiiInFiles(files: RemixFile[]): { files: RemixFile[]; masked
       return file; // binary blob — nothing maskable as text
     }
 
-    const lines = file.content.split('\n');
-    let touched = false;
+    // Pré-passe NOMS (signal structurel, cf. rewritePersonNames) : elle tourne
+    // AVANT les matchers lexicaux pour que `name,email,phone` voie encore ses
+    // colonnes email/phone intactes au moment de les masquer à leur tour.
+    const named = rewritePersonNames(file.path, file.content.split('\n'));
+    const lines = named.lines;
+    let touched = named.findings.length > 0;
+
+    masked.push(...named.findings);
 
     const rewritten = lines.map((line, index) => {
       let out = line;
@@ -380,6 +523,10 @@ export function scanFilesForPii(files: RemixFile[]): PiiFinding[] {
     }
 
     const lines = file.content.split('\n');
+
+    // Même chemin que le masquage : ce que rewritePersonNames RÉÉCRIRAIT est
+    // exactement ce que le scan REMONTE, donc un nom non masqué est détecté.
+    findings.push(...rewritePersonNames(file.path, lines).findings);
 
     for (let i = 0; i < lines.length; i++) {
       for (const matcher of PII_MATCHERS) {

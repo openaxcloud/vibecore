@@ -24,6 +24,30 @@ import {
 } from './server-deploy-transfer.js';
 import { assertValidObjectKey } from './object-storage.js';
 
+/*
+ * RR-08 point 1 — the publish path must PRESERVE the typed error code.
+ * `ecodeLockError = (error as Error).message` erased `.code` before anything
+ * persisted it: the deployment artifact only carried prose while the contract
+ * claimed ECODE_LOCK_GENERATION_REVOKED. This helper is the single shaping
+ * point: the code survives into the persisted deployment error/log line
+ * (stable machine-parseable prefix) and is unit-tested to be REQUIRED.
+ */
+export interface EcodeLockFailure {
+  /** Typed code (ECODE_LOCK_GENERATION_REVOKED, ECODE_LOCK_UNPINNED, …). */
+  code: string;
+  message: string;
+
+  /** The exact line persisted into the deployment logs/status. */
+  logLine: string;
+}
+
+export function describeEcodeLockFailure(error: unknown): EcodeLockFailure {
+  const code = (error as { code?: string })?.code ?? 'ECODE_LOCK_INVALID';
+  const message = error instanceof Error ? error.message : String(error);
+
+  return { code, message, logLine: `${code}: ${message}` };
+}
+
 /** Wire payload for the manager's POST /app-builds/run. */
 export interface AppBuildRunPayload {
   deploymentId: string;
@@ -37,6 +61,9 @@ export interface AppBuildRunPayload {
   buildCommand?: string;
   timeoutSeconds: number;
   nixStorePvcName?: string;
+
+  /** CTR-RUNTIME-NIX: ecode.lock generation pin (manager enforces revocation). */
+  nixGenerationRef?: string;
 }
 
 export interface AppBuildRunResult {
@@ -79,6 +106,7 @@ export async function buildImageContextFromRevision(opts: {
   /** Declared/detected build command, or null when the app has no build step. */
   buildCommand: string | null;
   nixStorePvcName?: string;
+  nixGenerationRef?: string;
   timeoutSeconds?: number;
 
   /** Transport to the workspace-manager (injected so this module stays pure). */
@@ -148,6 +176,7 @@ export async function buildImageContextFromRevision(opts: {
       buildCommand: buildCommand || undefined,
       timeoutSeconds,
       nixStorePvcName: opts.nixStorePvcName,
+      nixGenerationRef: opts.nixGenerationRef,
     });
   } catch (error) {
     return {

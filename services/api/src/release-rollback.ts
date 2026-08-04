@@ -46,6 +46,15 @@ export interface RetainedRelease {
   imageRef: string;
   imageDigest: string;
   createdAt: string;
+
+  /*
+   * CTR-RUNTIME-NIX (expert refusal v3, point 2): the Nix store generation the
+   * ORIGINAL release was built and pinned against (from its ecode.lock). A
+   * rollback must re-deploy against THIS generation, not the current active
+   * one — otherwise a rollback to an old release silently runs on a newer (or
+   * revoked) toolchain. Undefined for releases built without a lock.
+   */
+  storeGeneration?: string;
 }
 
 const SHA256_DIGEST = /^sha256:[a-f0-9]{64}$/;
@@ -64,6 +73,9 @@ export function retainRelease(input: {
   imageUri: string;
   digest: string | undefined;
   createdAt: string;
+
+  /** The ecode.lock generation this release pinned, if any (carried into rollback). */
+  storeGeneration?: string;
 }): RetainedRelease {
   if (!input.digest || !SHA256_DIGEST.test(input.digest)) {
     throw new RollbackError(
@@ -88,6 +100,7 @@ export function retainRelease(input: {
     imageRef,
     imageDigest: input.digest,
     createdAt: input.createdAt,
+    ...(input.storeGeneration ? { storeGeneration: input.storeGeneration } : {}),
   };
 }
 
@@ -108,6 +121,14 @@ export interface RollbackPlan {
 
   /** True when resolved despite the current revision being gone (the I-REL-1 case). */
   resolvedWithoutLiveRevision: boolean;
+
+  /*
+   * The store generation the rollback must re-pin (the ORIGINAL release's
+   * generation, expert refusal v3 point 2). Undefined only when the original
+   * release carried no lock — in which case the rollback runs ungoverned,
+   * exactly as the original did.
+   */
+  storeGeneration?: string;
 }
 
 /**
@@ -140,6 +161,7 @@ export function resolveRollbackImage(target: RetainedRelease | null | undefined,
     imageDigest: target.imageDigest,
     fromDeploymentId: target.deploymentId,
     resolvedWithoutLiveRevision: live.revisionExists === false,
+    ...(target.storeGeneration ? { storeGeneration: target.storeGeneration } : {}),
   };
 }
 

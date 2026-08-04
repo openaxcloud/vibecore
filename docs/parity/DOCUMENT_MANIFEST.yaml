@@ -2,15 +2,15 @@
 # (P0-A2-01 / P0-LS-16). Ne jamais éditer à la main — drift-check en CI. Le
 # champ validation reflète le dernier run du validateur sur l'arbre.
 schemaVersion: 1
-fileCount: 164
-generatedAt: "2026-07-22T09:57:03Z"
-generatedFromCommit: 76d3922c35b652395a179e408444cd6a0755d4ef
-mergedCommit: 76d3922c35b652395a179e408444cd6a0755d4ef
+fileCount: 171
+generatedAt: "2026-08-04T10:48:23Z"
+generatedFromCommit: f2199f508ffabe6337fb11b318b3c5b769099e58
+mergedCommit: f2199f508ffabe6337fb11b318b3c5b769099e58
 validation:
   workflow: Parity registries
-  runId: 29909965011
-  runDate: "2026-07-22T09:57:03Z"
-  runCommit: 76d3922c35b652395a179e408444cd6a0755d4ef
+  runId: 30902101813
+  runDate: "2026-08-04T10:48:23Z"
+  runCommit: f2199f508ffabe6337fb11b318b3c5b769099e58
   source: docs/parity/CI_ATTESTATION.yaml
 documents:
   - file: A2_12_DEDUP_SEMANTIQUE_20260720.md
@@ -29,7 +29,7 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: APPROVAL_STATUS.json
-    sha256: "ee5aaa4b1c7852ca2759d706a1b989fe27dd770e07da3b54a1442a9b070f0e3b"
+    sha256: "01892a858c6dc6c7330761ca728e124132e1223143385f4b3d33e07543ddf37b"
     schemaVersion: null
     repoCommit: null
     reviewer: UNKNOWN
@@ -74,9 +74,9 @@ documents:
     repoCommit: 1692f981
     reviewer: UNKNOWN
   - file: CI_ATTESTATION.yaml
-    sha256: "b8080a7d2ceccc379232cb79daabc9abf3389167c5fbd2881abcfa70ec3b6c99"
+    sha256: "444b78333994d93325af8ed2fc98be4166c29b60130f6a5c2fb449acd58cdc53"
     schemaVersion: 1
-    repoCommit: 76d3922c
+    repoCommit: f2199f50
     reviewer: UNKNOWN
   - file: COMPONENT_KIND_REGISTRY.yaml
     sha256: "8c7c016fb581d5ecfecc6b054f834a3b099c32c361229ffdaf84f86b54dc0891"
@@ -89,12 +89,12 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: CONTRACT_REGISTRY.yaml
-    sha256: "cbfbeadcd095860744a75f5ce1e9b74b5de1fc6c4ca8b1a1fb0dafd6236a451a"
+    sha256: "4716f80c7b01a3535ac13951c16cfae84aea7d368a9e51ff251d481e380ee370"
     schemaVersion: 1
     repoCommit: 1692f981
     reviewer: UNKNOWN
   - file: COUNTER_RECONCILIATION_20260720.md
-    sha256: "196cad5535254188237cf85c74e4d71403babb7e369e496ccc58bbd62cfcd20c"
+    sha256: "158cb7376e4dce6bab17bc7fc9d36e127521ae7b73fb111a4ae78bad6ec61dc6"
     schemaVersion: 1
     repoCommit: null
     reviewer: UNKNOWN
@@ -179,7 +179,7 @@ documents:
     repoCommit: af24d4fe
     reviewer: UNKNOWN
   - file: IMPLEMENTATION_STATUS.yaml
-    sha256: "039417d6e64b76e3df2e1abd5b14cf25e56910a8c547aae18a91ccc2511fafa0"
+    sha256: "5cadbed89c440a372cc062f5b609c95a5da0cef638661ce09995f869f3b7d46a"
     schemaVersion: 2
     repoCommit: null
     reviewer: UNKNOWN
@@ -224,7 +224,7 @@ documents:
     repoCommit: d1063912
     reviewer: UNKNOWN
   - file: P0_REGISTRY.yaml
-    sha256: "67f9bd83648b608613388192c05754ce66a138b8b5c747f1a96b5920dd559f0a"
+    sha256: "e6c7a4bc3302352860cfa6f2725b7d1182b1b3171f9cb4811f414a5ecc80d376"
     schemaVersion: 1
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN
@@ -234,9 +234,9 @@ documents:
     repoCommit: af9e4e83
     reviewer: UNKNOWN
   - file: PARITY_STATUS.md
-    sha256: "dee71c09d1e8096bcc97a79607fca06cfa4f8f2c2f4cf35c1d1d435395786c5d"
+    sha256: "ae738e7a67c450fbcfbe4d5d7c8f289da59e11be87371d8ae654827726e2e623"
     schemaVersion: 2
-    repoCommit: 76d3922c
+    repoCommit: f2199f50
     reviewer: UNKNOWN
   - file: PARITY_STATUS_NOTES.md
     sha256: "a14ce6eade730143bea186e3e22042efd9a2b3300248fe80b0faeb32d75f58cd"
@@ -324,12 +324,17 @@ documents:
     repoCommit: null
     reviewer: UNKNOWN
   - file: REVIEW_RECEIPT_REGISTRY.yaml
-    sha256: "6c50709b88542dfaf21363ce11436c8ad377b516b786fb807b423a1be879152e"
+    sha256: "88ff7aaee21b94d56828537cabe18ae0be407b69671a37fba8835db636a42cd9"
     schemaVersion: 1
     repoCommit: a4a9f71c
     reviewer: UNKNOWN
   - file: REVIEW_RESPONSE_RR-20260720-CODEX-02.md
     sha256: "e2563a96c7e2acfa474ab285dfebee193dea08d2ed56302b1e9af10a6f5c3fd9"
+    schemaVersion: 1
+    repoCommit: null
+    reviewer: OpenAI-Codex
+  - file: REVIEW_RESPONSE_RR-20260721-CODEX-03.md
+    sha256: "6acd422d31d2c9a1c91d33cc9248eb5aa738e021a1c19ff9df051ebbd641caa2"
     schemaVersion: 1
     repoCommit: null
     reviewer: OpenAI-Codex
@@ -339,9 +344,9 @@ documents:
     repoCommit: af9e4e83
     reviewer: UNKNOWN
   - file: RUNTIME_NIX_CONTRACT.md
-    sha256: "8b4556a2bcbb82929a05fc6b4fdf68c078f231ea83def1534f46b450bdefcb76"
-    schemaVersion: 2
-    repoCommit: 1692f981
+    sha256: "9e767ed6be16d8aa8c630f09f2c66221df4190d12abf9e6f1aec760e848cd514"
+    schemaVersion: 7
+    repoCommit: 6d57a401
     reviewer: UNKNOWN
   - file: SECURITY_PRIVACY_COMPLIANCE.md
     sha256: "239b5727aeeeffa2cb7fe0bb9233f1e8a89297e3a207cfeee6b55aab77ea6bf3"
@@ -411,6 +416,36 @@ documents:
   - file: history/2026-07-20-PLAN_FINAL_LIVRAISON-superseded.md
     sha256: "8ab9a3efcdccf632d830ef7932a4678a3e2b6396b106934067fd2b8a7bde06ef"
     schemaVersion: 2
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: incoming/PR37_REVIEW_CHECKS_20260721.txt
+    sha256: "49c255f3dc96e47628c53daa9644b9bdf0309b81b66915584b9f461f2c214c5c"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: incoming/REPONSE_EXPERT_PR37_20260721.md
+    sha256: "6d91bcfbb4bbd3f515e48f9b6c6a9e89338a7676b440d65a674242e3b7965b27"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: incoming/REPONSE_EXPERT_PR40_20260722.md
+    sha256: "c32a945d4a4974f1fcb651daeb7447ddeb446b8385c6c4986df9c52c300b9e1f"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: incoming/REPONSE_EXPERT_V3_20260722.md
+    sha256: "9ac5e9b6c2b9f6c3496bab0ddb2f1e3f44b57e93e8be36e7c270a7b5fb663776"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: incoming/REPONSE_EXPERT_V4_20260723.md
+    sha256: "f5771529584d08e25bb146c87415627c90fc4a55f5d2ae1c66eb8ddb512a1ce0"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: OpenAI-Codex
+  - file: incoming/REPONSE_EXPERT_V6_20260802.md
+    sha256: "db1b175a1c672d784199dbe721cafbf76e3de00b65a44cf8428c68a69e0051dc"
+    schemaVersion: null
     repoCommit: null
     reviewer: UNKNOWN
   - file: livescan-2026-07-20/ai-agent.links.txt

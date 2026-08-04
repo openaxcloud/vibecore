@@ -159,6 +159,8 @@ export interface GalleryListingRecord {
   authorName: string;
   authorUserId?: string;
   appUrl?: string;
+  /** Card preview image (real rendered screenshot): root-relative asset or https URL. */
+  thumbnailUrl?: string;
   /** Curation gate: false = view-only listing, remix refused (P0-V3-05). */
   remixAllowed: boolean;
   /** Declared license id (e.g. SPDX "MIT"); undefined = none declared. */
@@ -169,6 +171,14 @@ export interface GalleryListingRecord {
   licenseTextSha256?: string;
   /** Author's explicit versioned PII consent; undefined = PII masked on remix. */
   piiConsentVersion?: string;
+  /**
+   * Trace auditable des confirmations exigées à la curation (P0-V3-05,
+   * réserve #8) : quand, et par quel admin. undefined = jamais confirmé.
+   */
+  rightsConfirmedAt?: Date;
+  rightsConfirmedBy?: string;
+  piiPolicyAcceptedAt?: Date;
+  piiPolicyAcceptedBy?: string;
   viewCount: number;
   useCount: number;
   createdAt: string;
@@ -979,7 +989,26 @@ export interface ProjectSkillOverrideRecord {
 /** Scope target for an installed GitHub-repo skill (F#27). */
 export type InstalledSkillScope = 'project' | 'workspace';
 
-/** An installed GitHub-repo skill row (F#27). */
+/** A security-audit finding attached to an installed skill (RPL-SK-001.3). */
+export interface SkillAuditFinding {
+  code: string;
+  severity: 'critical' | 'high' | 'medium' | 'low' | 'info';
+  title: string;
+  detail: string;
+  location: string;
+  evidence: string;
+}
+
+/** A bundled resource ref for progressive disclosure (RPL-SK-001.2). */
+export interface SkillResourceRecord {
+  path: string;
+  kind: 'reference' | 'script' | 'asset' | 'other';
+  bytes: number;
+}
+
+export type SkillAuditVerdict = 'approved' | 'quarantined' | 'rejected';
+
+/** An installed GitHub-repo / interop skill row (F#27 + RPL-SK-001). */
 export interface InstalledSkillRecord {
   id: string;
   scope: InstalledSkillScope;
@@ -993,6 +1022,17 @@ export interface InstalledSkillRecord {
   installedByUserId: string | null;
   createdAt: string;
   updatedAt: string;
+  // RPL-SK-001.3/.4 provenance + audit + revoke.
+  origin: string;
+  contentHash: string | null;
+  auditVerdict: SkillAuditVerdict | null;
+  auditFindings: SkillAuditFinding[];
+  auditedAt: string | null;
+  manifestName: string | null;
+  resources: SkillResourceRecord[];
+  revokedAt: string | null;
+  revokedByUserId: string | null;
+  revokeReason: string | null;
 }
 
 export interface InstallSkillInput {
@@ -1004,6 +1044,40 @@ export interface InstallSkillInput {
   instructions: string;
   homepageUrl?: string | null;
   installedByUserId?: string | null;
+  // RPL-SK-001 install-time provenance + audit outcome.
+  origin?: string;
+  enabled?: boolean;
+  contentHash?: string | null;
+  auditVerdict?: SkillAuditVerdict | null;
+  auditFindings?: SkillAuditFinding[];
+  auditedAt?: string | null;
+  manifestName?: string | null;
+  resources?: SkillResourceRecord[];
+}
+
+/** A row in the append-only skill audit journal (RPL-SK-001.3). */
+export interface SkillAuditEventRecord {
+  id: string;
+  scope: InstalledSkillScope;
+  scopeId: string;
+  ownerRepo: string;
+  action: string;
+  verdict: SkillAuditVerdict | null;
+  findings: SkillAuditFinding[];
+  contentHash: string | null;
+  actorUserId: string | null;
+  createdAt: string;
+}
+
+export interface RecordSkillAuditInput {
+  scope: InstalledSkillScope;
+  scopeId: string;
+  ownerRepo: string;
+  action: string;
+  verdict?: SkillAuditVerdict | null;
+  findings?: SkillAuditFinding[];
+  contentHash?: string | null;
+  actorUserId?: string | null;
 }
 
 export interface BillingCustomerRecord {
@@ -1364,11 +1438,17 @@ export interface ApiStore {
     authorName: string;
     authorUserId?: string;
     appUrl?: string;
+    thumbnailUrl?: string;
     remixAllowed?: boolean;
     licenseId?: string;
     licenseText?: string;
     licenseTextSha256?: string;
     piiConsentVersion?: string;
+    /** Trace auditable des confirmations de curation (P0-V3-05, réserve #8). */
+    rightsConfirmedAt?: Date;
+    rightsConfirmedBy?: string;
+    piiPolicyAcceptedAt?: Date;
+    piiPolicyAcceptedBy?: string;
     publishedAt?: string;
   }): Promise<GalleryListingRecord>;
   /** Browse published listings, filtered by category / free-text / featured. */
@@ -1593,13 +1673,38 @@ export interface ApiStore {
   installSkill(input: InstallSkillInput): Promise<{ record: InstalledSkillRecord; created: boolean }>;
   /** Uninstall a GitHub-repo skill; resolves true when a row was removed. */
   uninstallSkill(scope: InstalledSkillScope, scopeId: string, ownerRepo: string): Promise<boolean>;
-  /** Toggle an installed skill's enabled flag; undefined when no such row. */
+  /**
+   * Toggle an installed skill's enabled flag; undefined when no such row. A
+   * revoked or audit-rejected skill cannot be enabled — the store refuses it by
+   * resolving to the unchanged (still-disabled) row, so enforcement is not
+   * merely UI-side.
+   */
   setInstalledSkillEnabled(input: {
     scope: InstalledSkillScope;
     scopeId: string;
     ownerRepo: string;
     enabled: boolean;
   }): Promise<InstalledSkillRecord | undefined>;
+  /**
+   * Revoke an installed skill (RPL-SK-001.4): hard-disable it and stamp
+   * revokedAt/by/reason. The row stays for audit; it cannot be re-enabled until
+   * re-installed. Undefined when no such row.
+   */
+  revokeSkill(input: {
+    scope: InstalledSkillScope;
+    scopeId: string;
+    ownerRepo: string;
+    revokedByUserId?: string | null;
+    reason?: string | null;
+  }): Promise<InstalledSkillRecord | undefined>;
+  /** Append one immutable row to the skill audit journal (RPL-SK-001.3). */
+  recordSkillAudit(input: RecordSkillAuditInput): Promise<SkillAuditEventRecord>;
+  /** The audit journal for a scope target, newest first. */
+  listSkillAuditEvents(
+    scope: InstalledSkillScope,
+    scopeId: string,
+    options?: { ownerRepo?: string; limit?: number },
+  ): Promise<SkillAuditEventRecord[]>;
   /** Live install counts per `owner/repo` across all scopes (for the catalog). */
   countInstallsByRepo(): Promise<Record<string, number>>;
   createWorkspace(input: {
