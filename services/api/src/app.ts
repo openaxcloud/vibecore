@@ -14893,6 +14893,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireOrganizationNotSuspended(store, authorized.organizationId);
 
     /*
+     * BLOCKER #6: seed the lifecycle trail with STARTING at the entry of every
+     * provision/reopen. The cold path also emits STARTING inside
+     * provisionWorkspaceOnDemand, but a WARM reopen reaches the RUNNING emit
+     * below without ever passing through it — so without this, the trail's first
+     * event would be RUNNING and STARTING would be missing. Illegal-from-current
+     * (e.g. RUNNING->STARTING when already running) is dropped by the machine.
+     */
+    emitLifecycle(authorized.workspaceId, 'STARTING', 'provision.request');
+
+    /*
      * Replit-parity service-shutdown limit: suspend workspace provisioning when
      * the org's credits are exhausted and a shutdown cap is configured. Inert
      * unless BILLING_CREDITS_ENABLED=true (SHADOW/default never blocks).
@@ -15130,6 +15140,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
 
+    /*
+     * BLOCKER #6: freeze the post-mortem BEFORE we ask the manager to tear the
+     * pod down — this is the ONLY moment the last-known ports/processes and a
+     * tail of runtime logs are still readable from a live agent. Awaited (not
+     * fire-and-forget) so the gather completes before the pod is reclaimed;
+     * fully best-effort so a slow/absent agent never blocks the stop.
+     */
+    if (diagnosticsDb) {
+      await captureStopDiagnostics(authorized.workspaceId, 'user.stop', 'STOPPED').catch(() => undefined);
+    }
+
     try {
       await managerRequest(`/workspaces/${authorized.workspaceId}/stop`, { method: 'POST' });
     } catch (error) {
@@ -15154,16 +15175,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await store
       .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'STOPPED' })
       .catch(() => undefined);
-
-    /*
-     * BLOCKER #6: freeze a post-mortem BEFORE the pod is fully gone — the last
-     * ports/processes we can still read from the agent, the Problems (fresh
-     * readiness beacons), and a tail of runtime logs — plus a timestamped
-     * STOPPED lifecycle event. Entirely best-effort: never blocks the stop.
-     */
-    if (diagnosticsDb) {
-      void captureStopDiagnostics(authorized.workspaceId, 'user.stop', 'STOPPED');
-    }
 
     await audit(request, store, {
       organizationId: authorized.organizationId,
@@ -15800,10 +15811,28 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * error". Any single "no" ⇒ not ready, so a bound-but-blank preview no longer
      * latches ready and disarms the auto-reload recovery.
      */
-    const managerStatus = await store
-      .getWorkspace(authorized.workspaceId)
-      .then((w) => w?.status as string | undefined)
-      .catch(() => undefined);
+    /*
+     * The manager signal must reflect the workspace's LIVE state, not our own
+     * Workspace row — that row legitimately lags at PENDING/STARTING after a cold
+     * provision returned early, so reading it here false-vetoed a genuinely-live
+     * preview as blockedBy:'manager'. Ask the manager directly (same source as
+     * /status). Manager-unreachable → undefined (neutral): let port/process/client
+     * decide rather than vetoing on an unknown.
+     */
+    let managerStatus: string | undefined;
+
+    try {
+      const managerWorkspace = await managerRequest<{ status?: string }>(
+        `/workspaces/${authorized.workspaceId}`,
+      );
+      managerStatus = managerWorkspace?.status;
+    } catch (error) {
+      if (!isRuntimeManagerUnavailable(error)) {
+        throw error;
+      }
+
+      managerStatus = undefined;
+    }
 
     return Promise.all(
       result.ports.map(async (port) => {
