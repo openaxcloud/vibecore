@@ -152,3 +152,74 @@ terminal de 1 à 3 caractères précédé d'une espace. Ajouté : 2 tests unitai
 Chercher les chaînes exactes ne suffit pas : il faut **relire le contenu curé**. La fouille
 disait « les 5 catégories sont absentes » et c'était vrai ; le fragment d'IBAN n'apparaissait
 que dans l'extrait verbatim. Les assertions anti-résidu ajoutées ferment cet angle mort.
+
+---
+
+# Refus expert du correctif IBAN (#89) — corrigé en v3
+
+## Le refus était fondé
+
+Rejeu ciblé de l'expert : `ES91 2100 0418 4502 0005 1332 EUR`. Reproduit sur le code de #89 :
+
+```
+"ES91 2100 0418 4502 0005 1332 EUR"      -> "[MASK]"            <- « EUR » DÉTRUIT
+"FR76 3000 6000 0112 3456 7890 189 EUR"  -> "[MASK] EUR"
+```
+
+`ES` fait **24 caractères**, atteints pile après `1332`. Le groupe optionnel
+`(?:\s?[A-Z0-9]{1,3})?` de la v2 avalait alors ` EUR`. Ce n'est plus une fuite de PII
+mais une **corruption des données voisines** — plus insidieux, car silencieux.
+
+## Pourquoi aucune regex générique ne peut marcher
+
+Un IBAN **n'est pas auto-délimitant** : c'est une suite d'alphanumériques dont seule la
+**longueur nationale** dit où elle s'arrête. Deux tentatives, deux échecs symétriques :
+
+| version | motif du groupe final | défaut |
+|---|---|---|
+| v1 | `[A-Z0-9]{0,3}` (collé) | `FR76 … 189` : fragment terminal **laissé en clair** |
+| v2 | `(?:\s?[A-Z0-9]{1,3})?` | `ES91 … 1332 EUR` : **avale** les données voisines |
+
+Trop court → fuite. Trop long → corruption. Il n'existe pas de réglage intermédiaire :
+il faut **lire le code pays**.
+
+## v3 — détection par longueur de registre
+
+1. **Code pays** lu sur les 2 lettres initiales.
+2. **Longueur nationale exacte** depuis `IBAN_LENGTH_BY_COUNTRY` — table **ISO 13616-1 /
+   Swift IBAN Registry**, `Object.freeze`, avec provenance et date
+   (`IBAN_REGISTRY_PROVENANCE`, figée le 2026-08-04). Pays absent → **jamais masqué**
+   (fail-open assumé : mieux vaut ne pas masquer que corrompre).
+3. **Correspondance normalisé ↔ original** : `ibanSpans()` consomme exactement N
+   alphanumériques en franchissant les espaces internes (y compris **insécables**), et
+   rend les bornes `[start, end)` dans le **texte d'origine**.
+4. **Masquage de la plage exacte** — ni plus, ni moins. Un séparateur n'est jamais
+   consommé en fin ; la borne droite refuse de couper au milieu d'un jeton.
+5. **Checksum ISO 7064 MOD-97-10** (`ibanChecksumValid`) pour écarter les sosies.
+
+## Rejeu — 14/14
+
+`replay-iban-expert.ts` (sortie complète : `replay-iban-expert-output.txt`) :
+
+```
+OK    REFUS EXPERT — EUR doit survivre
+        in  "ES91 2100 0418 4502 0005 1332 EUR"
+        out "[PII:iban masked on remix] EUR"
+...
+14/14 cas conformes
+```
+
+Couverture : devises EUR/USD/GBP/CHF adjacentes · colonnes CSV · tabulation ·
+ponctuation · **deux IBAN dans la même phrase** · espaces **insécables** · forme
+**compacte** · et 4 sosies non masqués (checksum faux, pays inconnu, jeton
+alphanumérique, chaîne plus longue que la longueur nationale).
+
+Tests unitaires : 10 formats nationaux (NO 15 → MT/SC 31), plages sur le texte original,
+provenance de la table, gel de l'objet.
+
+## Contrepartie DÉCLARÉE
+
+Le contrôle MOD-97 est ce qui permet de ne pas masquer un sosie — mais **un IBAN
+comportant une faute de frappe échappe au masquage**. C'est un arbitrage explicite,
+pas un oubli : sans checksum, tout jeton de la bonne longueur commençant par un code
+pays valide serait masqué, ce que le test « sosie » interdit.

@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  IBAN_LENGTH_BY_COUNTRY,
+  IBAN_REGISTRY_PROVENANCE,
   REMIX_STATE_ORDER,
   REMIX_STORAGE_POLICIES,
   RemixInvariantError,
   assertRemixTransition,
   detachCredentials,
+  ibanChecksumValid,
+  ibanSpans,
   luhnValid,
   maskPiiInFiles,
   scanClonedFilesForSecrets,
@@ -134,6 +138,7 @@ describe('SOURCE_SANITIZED — PII masking (I-RMX-3, P0-V3-05)', () => {
     expect(REMIX_STATE_ORDER[detachedIdx + 2]).toBe('CLONING');
     expect(() => assertRemixTransition('CREDENTIALS_DETACHED', 'SOURCE_SANITIZED')).not.toThrow();
     expect(() => assertRemixTransition('SOURCE_SANITIZED', 'CLONING')).not.toThrow();
+
     // Skipping sanitization is an illegal transition, like any skipped step.
     expect(() => assertRemixTransition('CREDENTIALS_DETACHED', 'CLONING')).toThrow(RemixInvariantError);
   });
@@ -185,9 +190,8 @@ describe('SOURCE_SANITIZED — PII masking (I-RMX-3, P0-V3-05)', () => {
   });
 
   it('masked output re-scans CLEAN — findings carry kind + location, never the value', () => {
-    const dirty = [
-      { path: 'seed.csv', content: 'jane@acme-corp.fr,+33612345678,4242424242424242\n' },
-    ];
+    const dirty = [{ path: 'seed.csv', content: 'jane@acme-corp.fr,+33612345678,4242424242424242\n' }];
+
     const { files, masked } = maskPiiInFiles(dirty);
 
     expect(masked.length).toBeGreaterThanOrEqual(3);
@@ -209,7 +213,8 @@ describe('person-name masking (I-RMX-3)', () => {
     const { files, masked } = maskPiiInFiles([
       {
         path: 'seed/customers.csv',
-        content: 'name,email,phone\nJane Doe,jane.doe@acme-corp.fr,+33 6 12 34 56 78\nJean-Pierre Dupont,jp@acme-corp.fr,+33 1 44 55 66 77\n',
+        content:
+          'name,email,phone\nJane Doe,jane.doe@acme-corp.fr,+33 6 12 34 56 78\nJean-Pierre Dupont,jp@acme-corp.fr,+33 1 44 55 66 77\n',
       },
     ]);
 
@@ -261,7 +266,8 @@ describe('person-name masking (I-RMX-3)', () => {
     const { files, masked } = maskPiiInFiles([
       {
         path: 'template.json',
-        content: '{\n  "firstName": "{{first}}",\n  "lastName": "",\n  "contactName": "admin",\n  "ownerName": "user_1"\n}\n',
+        content:
+          '{\n  "firstName": "{{first}}",\n  "lastName": "",\n  "contactName": "admin",\n  "ownerName": "user_1"\n}\n',
       },
     ]);
 
@@ -270,32 +276,110 @@ describe('person-name masking (I-RMX-3)', () => {
     expect(masked).toEqual([]);
   });
 
-  it('masks an IBAN ENTIRELY — aucun fragment terminal laissé en clair', () => {
-    // Défaut constaté lors de la preuve live du 2026-08-04 : le masquage
-    // produisait « [PII:iban masked on remix] 189 » — le dernier groupe de
-    // l'IBAN français survivait parce qu'il fait 3 caractères, pas 4.
-    const { files } = maskPiiInFiles([
-      { path: 'seed/accounts.csv', content: 'iban\nFR76 3000 6000 0112 3456 7890 189\n' },
-    ]);
+  /*
+   * --------------------------------------------------------------------- *
+   * IBAN — refus expert du 2026-08-04 sur la v2 par regex.
+   *
+   * v1 laissait le groupe terminal en clair (« … 189 »).
+   * v2 avalait les données voisines (« ES91 … 1332 EUR » -> « EUR » détruit).
+   * v3 lit le code pays et applique la longueur du registre ISO 13616.
+   * ---------------------------------------------------------------------
+   */
+  describe('IBAN — longueur nationale (ISO 13616), pas de regex générique', () => {
+    const mask = (content: string) => maskPiiInFiles([{ path: 'x.txt', content }]).files[0].content;
 
-    expect(files[0].content).not.toContain('189');
-    expect(files[0].content.trim().endsWith('[PII:iban masked on remix]')).toBe(true);
-  });
+    it("REJEU DU REFUS EXPERT — « ES91 … 1332 EUR » : l'IBAN part, EUR RESTE", () => {
+      const out = mask('ES91 2100 0418 4502 0005 1332 EUR');
 
-  it('masks IBANs of several national lengths without residue', () => {
-    const ibans = [
-      'FR76 3000 6000 0112 3456 7890 189', // 27 — groupe final de 3
-      'DE89 3704 0044 0532 0130 00', // 22 — groupe final de 2
-      'GB29 NWBK 6016 1331 9268 19', // 22 — groupe final de 2
-      'NL91 ABNA 0417 1643 00', // 18 — groupe final de 2
-      'ES91 2100 0418 4502 0005 1332', // 24 — groupes pleins
-    ];
+      expect(out).toBe('[PII:iban masked on remix] EUR');
+      expect(out).toContain('EUR');
+      expect(out).not.toContain('1332');
+    });
 
-    for (const iban of ibans) {
-      const { files } = maskPiiInFiles([{ path: 'a.csv', content: `iban\n${iban}\n` }]);
-      const body = files[0].content.split('\n')[1];
-      expect(body, iban).toBe('[PII:iban masked on remix]');
-    }
+    it('ne mange pas la devise adjacente, quelle qu’elle soit', () => {
+      expect(mask('FR76 3000 6000 0112 3456 7890 189 EUR')).toBe('[PII:iban masked on remix] EUR');
+      expect(mask('GB29 NWBK 6016 1331 9268 19 GBP')).toBe('[PII:iban masked on remix] GBP');
+      expect(mask('DE89 3704 0044 0532 0130 00 USD')).toBe('[PII:iban masked on remix] USD');
+      expect(mask('NL91 ABNA 0417 1643 00 CHF')).toBe('[PII:iban masked on remix] CHF');
+    });
+
+    it('masque intégralement sur 10 formats nationaux (aucun résidu)', () => {
+      const ibans = [
+        'NO93 8601 1117 947', // 15
+        'BE68 5390 0754 7034', // 16
+        'NL91 ABNA 0417 1643 00', // 18
+        'CH93 0076 2011 6238 5295 7', // 21
+        'DE89 3704 0044 0532 0130 00', // 22
+        'GB29 NWBK 6016 1331 9268 19', // 22
+        'ES91 2100 0418 4502 0005 1332', // 24
+        'FR76 3000 6000 0112 3456 7890 189', // 27 — groupe final de 3
+        'IT60 X054 2811 1010 0000 0123 456', // 27 — lettre dans le BBAN
+        'FR14 2004 1010 0505 0001 3M02 606', // 27 — alphanumérique
+      ];
+
+      for (const iban of ibans) {
+        expect(mask(iban), iban).toBe('[PII:iban masked on remix]');
+      }
+    });
+
+    it('respecte la ponctuation et les colonnes CSV', () => {
+      expect(mask('iban,currency,amount\nES91 2100 0418 4502 0005 1332,EUR,1200')).toBe(
+        'iban,currency,amount\n[PII:iban masked on remix],EUR,1200',
+      );
+      expect(mask('IBAN\tES91 2100 0418 4502 0005 1332\tEUR')).toBe('IBAN\t[PII:iban masked on remix]\tEUR');
+      expect(mask('Compte (ES91 2100 0418 4502 0005 1332).')).toBe('Compte ([PII:iban masked on remix]).');
+    });
+
+    it('gère PLUSIEURS IBAN dans la même phrase', () => {
+      expect(mask('Virement de ES91 2100 0418 4502 0005 1332 vers NL91 ABNA 0417 1643 00, 50 EUR.')).toBe(
+        'Virement de [PII:iban masked on remix] vers [PII:iban masked on remix], 50 EUR.',
+      );
+    });
+
+    it('gère les espaces INSÉCABLES et la forme COMPACTE', () => {
+      expect(mask('ES91\u00A02100\u00A00418\u00A04502\u00A00005\u00A01332 EUR')).toBe('[PII:iban masked on remix] EUR');
+      expect(mask('ES912100041845020005133\u202F2 EUR')).toBe('[PII:iban masked on remix] EUR');
+      expect(mask('compact: ES9121000418450200051332 fin')).toBe('compact: [PII:iban masked on remix] fin');
+    });
+
+    it('NE masque PAS un texte alphanumérique qui ressemble à un IBAN', () => {
+      // Bon gabarit, mauvais checksum -> laissé intact (contrepartie déclarée).
+      expect(mask('ES91 2100 0418 4502 0005 1333')).toBe('ES91 2100 0418 4502 0005 1333');
+
+      // Code pays inconnu du registre.
+      expect(mask('ZZ91 2100 0418 4502 0005 1332')).toBe('ZZ91 2100 0418 4502 0005 1332');
+
+      // Jetons quelconques de la bonne longueur.
+      expect(mask('ref ABCD1234EFGH5678IJKL9012 fin')).toBe('ref ABCD1234EFGH5678IJKL9012 fin');
+      expect(mask('sha AB12CDEF34567890ABCDEF12')).toBe('sha AB12CDEF34567890ABCDEF12');
+
+      // Chaîne PLUS LONGUE que la longueur nationale -> pas un IBAN.
+      expect(mask('ES9121000418450200051332EXTRA')).toBe('ES9121000418450200051332EXTRA');
+    });
+
+    it('checksum MOD-97 : accepte les vrais, refuse les altérés', () => {
+      expect(ibanChecksumValid('ES9121000418450200051332')).toBe(true);
+      expect(ibanChecksumValid('FR7630006000011234567890189')).toBe(true);
+      expect(ibanChecksumValid('ES9121000418450200051333')).toBe(false);
+      expect(ibanChecksumValid('nawak')).toBe(false);
+    });
+
+    it('la table du registre est versionnée et porte sa provenance', () => {
+      expect(IBAN_REGISTRY_PROVENANCE).toMatch(/ISO 13616/);
+      expect(IBAN_REGISTRY_PROVENANCE).toMatch(/2026-08-04/);
+      expect(IBAN_LENGTH_BY_COUNTRY.FR).toBe(27);
+      expect(IBAN_LENGTH_BY_COUNTRY.ES).toBe(24);
+      expect(IBAN_LENGTH_BY_COUNTRY.NO).toBe(15);
+      expect(Object.isFrozen(IBAN_LENGTH_BY_COUNTRY)).toBe(true);
+    });
+
+    it('les plages rendues sont celles du texte ORIGINAL', () => {
+      const line = 'x ES91 2100 0418 4502 0005 1332 EUR';
+      const [span] = ibanSpans(line);
+
+      expect(line.slice(span.start, span.end)).toBe('ES91 2100 0418 4502 0005 1332');
+      expect(line.slice(span.end)).toBe(' EUR');
+    });
   });
 
   it('the 5 categories together re-scan CLEAN on one person record', () => {

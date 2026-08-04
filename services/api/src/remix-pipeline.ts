@@ -246,9 +246,11 @@ export function scrubSecretsFromFiles(
   return { files: cleaned, removed };
 }
 
-/* ------------------------------------------------------------------------- *
+/*
+ * ------------------------------------------------------------------------- *
  * SOURCE_SANITIZED (I-RMX-3, P0-V3-05) — PII masking before cloning.
- * ------------------------------------------------------------------------- */
+ * -------------------------------------------------------------------------
+ */
 
 export type PiiKind = 'email' | 'phone' | 'iban' | 'card' | 'name';
 
@@ -278,15 +280,260 @@ const EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
  */
 const PHONE_RE = /\+\d(?:[\s().-]?\d){7,14}/g;
 
-/**
- * IBAN: 2 letters + 2 check digits + 11-30 alphanumerics (word-bounded).
+/*
+ * ------------------------------------------------------------------------- *
+ * IBAN — détection par LONGUEUR NATIONALE, pas par regex
  *
- * Le groupe FINAL peut faire 1 à 3 caractères ET être séparé par une espace
- * (« FR76 3000 6000 0112 3456 7890 189 » — le « 189 » est un groupe à part
- * entière). Sans `\s?` devant ce groupe, le masquage laissait le fragment
- * terminal en clair — défaut constaté lors de la preuve live du 2026-08-04.
+ * Un IBAN n'a PAS de forme auto-délimitante : c'est une suite d'alphanumériques
+ * dont seule la LONGUEUR, fixée par le pays, dit où elle s'arrête. Deux
+ * tentatives par regex ont échoué en production :
+ *
+ *   v1  /(?:\s?[A-Z0-9]{4}){2,7}[A-Z0-9]{0,3}/
+ *       → « FR76 … 7890 189 » : le groupe terminal de 3 caractères SURVIVAIT
+ *         (fragment de PII laissé en clair).
+ *   v2  /(?:\s?[A-Z0-9]{4}){2,7}(?:\s?[A-Z0-9]{1,3})?/
+ *       → « ES91 … 1332 EUR » : ES fait 24 caractères, atteints pile après
+ *         « 1332 » ; le groupe optionnel avalait alors « EUR ».
+ *         CORRUPTION des données voisines (devise, colonne suivante).
+ *
+ * Aucun quantificateur générique ne peut trancher : il faut lire le code pays,
+ * appliquer la longueur du registre, et masquer EXACTEMENT cette plage.
+ * -------------------------------------------------------------------------
  */
-const IBAN_RE = /\b[A-Z]{2}\d{2}(?:\s?[A-Z0-9]{4}){2,7}(?:\s?[A-Z0-9]{1,3})?\b/g;
+
+/**
+ * Longueurs IBAN par pays — registre **ISO 13616-1 / Swift IBAN Registry**.
+ *
+ * Provenance : table figée le **2026-08-04** à partir du registre IBAN publié
+ * par Swift en tant qu'autorité d'enregistrement ISO 13616. Chaque entrée est
+ * la longueur TOTALE de l'IBAN (code pays + clé de contrôle + BBAN).
+ *
+ * Cette table est VERSIONNÉE volontairement : un pays qui rejoint le registre
+ * ou change de longueur doit faire l'objet d'une mise à jour explicite et
+ * datée. Un code pays absent de la table n'est JAMAIS masqué (fail-open assumé
+ * et déclaré : mieux vaut ne pas masquer que corrompre du texte voisin).
+ */
+export const IBAN_REGISTRY_PROVENANCE = 'ISO 13616-1 / Swift IBAN Registry — table figée le 2026-08-04';
+
+export const IBAN_LENGTH_BY_COUNTRY: Readonly<Record<string, number>> = Object.freeze({
+  AD: 24,
+  AE: 23,
+  AL: 28,
+  AT: 20,
+  AZ: 28,
+  BA: 20,
+  BE: 16,
+  BG: 22,
+  BH: 22,
+  BI: 27,
+  BR: 29,
+  BY: 28,
+  CH: 21,
+  CR: 22,
+  CY: 28,
+  CZ: 24,
+  DE: 22,
+  DJ: 27,
+  DK: 18,
+  DO: 28,
+  EE: 20,
+  EG: 29,
+  ES: 24,
+  FI: 18,
+  FK: 18,
+  FO: 18,
+  FR: 27,
+  GB: 22,
+  GE: 22,
+  GI: 23,
+  GL: 18,
+  GR: 27,
+  GT: 28,
+  HN: 28,
+  HR: 21,
+  HU: 28,
+  IE: 22,
+  IL: 23,
+  IQ: 23,
+  IS: 26,
+  IT: 27,
+  JO: 30,
+  KW: 30,
+  KZ: 20,
+  LB: 28,
+  LC: 32,
+  LI: 21,
+  LT: 20,
+  LU: 20,
+  LV: 21,
+  LY: 25,
+  MC: 27,
+  MD: 24,
+  ME: 22,
+  MK: 19,
+  MN: 20,
+  MR: 27,
+  MT: 31,
+  MU: 30,
+  NI: 28,
+  NL: 18,
+  NO: 15,
+  OM: 23,
+  PK: 24,
+  PL: 28,
+  PS: 29,
+  PT: 25,
+  QA: 29,
+  RO: 24,
+  RS: 22,
+  RU: 33,
+  SA: 24,
+  SC: 31,
+  SD: 18,
+  SE: 24,
+  SI: 19,
+  SK: 24,
+  SM: 27,
+  SO: 23,
+  ST: 25,
+  SV: 28,
+  TL: 23,
+  TN: 24,
+  TR: 26,
+  UA: 29,
+  VA: 22,
+  VG: 24,
+  XK: 20,
+  YE: 30,
+});
+
+/**
+ * Séparateurs tolérés À L'INTÉRIEUR d'un IBAN : uniquement des espaces, y
+ * compris insécables. Le trait d'union est volontairement EXCLU — il sépare
+ * bien plus souvent deux champs voisins qu'il ne groupe un IBAN, et le
+ * consommer rejouerait exactement le bug « EUR ».
+ */
+const IBAN_INNER_SEPARATOR = /[ \t\u00A0\u202F\u2007\u2009\u2060]/;
+
+const ALNUM = /[A-Za-z0-9]/;
+
+/**
+ * Checksum ISO 7064 MOD-97-10 : déplace les 4 premiers caractères à la fin,
+ * convertit les lettres (A=10 … Z=35) puis exige un reste de 1.
+ *
+ * C'est ce contrôle qui permet de NE PAS masquer un jeton alphanumérique qui
+ * ressemble à un IBAN par hasard. Contrepartie DÉCLARÉE : un IBAN comportant
+ * une faute de frappe échappe au masquage.
+ */
+export function ibanChecksumValid(compact: string): boolean {
+  const s = compact.toUpperCase();
+
+  if (!/^[A-Z]{2}\d{2}[A-Z0-9]{7,30}$/.test(s)) {
+    return false;
+  }
+
+  let remainder = 0;
+
+  for (const ch of `${s.slice(4)}${s.slice(0, 4)}`) {
+    const digits = ch >= '0' && ch <= '9' ? ch : String(ch.charCodeAt(0) - 55);
+
+    for (const d of digits) {
+      remainder = (remainder * 10 + Number(d)) % 97;
+    }
+  }
+
+  return remainder === 1;
+}
+
+/**
+ * Plages [start, end) des IBAN d'une ligne — la forme NORMALISÉE (sans
+ * espaces) sert au contrôle, mais les bornes rendues sont celles du TEXTE
+ * ORIGINAL, de sorte que le masquage ne touche ni un caractère de plus ni un
+ * de moins.
+ */
+export function ibanSpans(line: string): Array<{ start: number; end: number }> {
+  const spans: Array<{ start: number; end: number }> = [];
+  const candidate = /[A-Za-z]{2}[0-9]{2}/g;
+
+  let match: RegExpExecArray | null;
+
+  while ((match = candidate.exec(line)) !== null) {
+    const start = match.index;
+
+    // Borne GAUCHE : refuser un départ au milieu d'un jeton alphanumérique.
+    if (start > 0 && ALNUM.test(line[start - 1])) {
+      continue;
+    }
+
+    const expected = IBAN_LENGTH_BY_COUNTRY[line.slice(start, start + 2).toUpperCase()];
+
+    if (expected === undefined) {
+      continue;
+    }
+
+    /*
+     * Consommer EXACTEMENT `expected` alphanumériques, en ne franchissant un
+     * séparateur que s'il est suivi d'un alphanumérique (jamais en fin).
+     */
+    let cursor = start;
+    let taken = 0;
+    let compact = '';
+    let end = -1;
+
+    while (cursor < line.length && taken < expected) {
+      const ch = line[cursor];
+
+      if (ALNUM.test(ch)) {
+        compact += ch;
+        taken += 1;
+        cursor += 1;
+
+        if (taken === expected) {
+          end = cursor;
+        }
+
+        continue;
+      }
+
+      if (!IBAN_INNER_SEPARATOR.test(ch)) {
+        break;
+      }
+
+      let peek = cursor;
+
+      while (peek < line.length && IBAN_INNER_SEPARATOR.test(line[peek])) {
+        peek += 1;
+      }
+
+      if (peek >= line.length || !ALNUM.test(line[peek])) {
+        break;
+      }
+
+      cursor = peek;
+    }
+
+    if (taken !== expected || end < 0) {
+      continue;
+    }
+
+    /*
+     * Borne DROITE : le jeton ne doit pas continuer au-delà de la longueur
+     * nationale — sinon ce n'est pas un IBAN mais une chaîne plus longue.
+     */
+    if (end < line.length && ALNUM.test(line[end])) {
+      continue;
+    }
+
+    if (!ibanChecksumValid(compact)) {
+      continue;
+    }
+
+    spans.push({ start, end });
+    candidate.lastIndex = end;
+  }
+
+  return spans;
+}
 
 /** Candidate payment-card numbers: 13-19 digits, optional space/dash groups. */
 const CARD_RE = /\b\d(?:[ -]?\d){12,18}\b/g;
@@ -318,14 +565,30 @@ export function luhnValid(digits: string): boolean {
   return sum % 10 === 0;
 }
 
-const PII_MATCHERS: Array<{ kind: PiiKind; re: RegExp; accept?: (match: string) => boolean }> = [
+interface PiiMatcher {
+  kind: PiiKind;
+
+  /** Détection par motif — suffisant quand la forme est auto-délimitante. */
+  re?: RegExp;
+
+  accept?: (match: string) => boolean;
+
+  /**
+   * Détection par PLAGES — pour les formes dont un regex ne peut pas décider
+   * la fin (IBAN : longueur portée par le code pays, cf. IBAN_LENGTH_BY_COUNTRY).
+   */
+  spans?: (line: string) => Array<{ start: number; end: number }>;
+}
+
+const PII_MATCHERS: PiiMatcher[] = [
   { kind: 'email', re: EMAIL_RE, accept: (m) => !PII_EXEMPT_EMAIL_DOMAIN.test(m) },
   { kind: 'phone', re: PHONE_RE },
-  { kind: 'iban', re: IBAN_RE },
+  { kind: 'iban', spans: ibanSpans },
   { kind: 'card', re: CARD_RE, accept: luhnValid },
 ];
 
-/* ------------------------------------------------------------------------- *
+/*
+ * ------------------------------------------------------------------------- *
  * NOMS DE PERSONNES (P0-V3-05, réserve #2)
  *
  * Un nom n'a pas de forme lexicale distinctive : « Jane Doe » et « Meridian
@@ -343,7 +606,8 @@ const PII_MATCHERS: Array<{ kind: PiiKind; re: RegExp; accept?: (match: string) 
  * Biais assumé : sur signal structurel on masque même une raison sociale
  * (« name: Acme Corp » dans un fichier de contacts). Sur-masquer une entreprise
  * coûte infiniment moins cher que laisser fuiter le nom d'une personne.
- * ------------------------------------------------------------------------- */
+ * -------------------------------------------------------------------------
+ */
 
 /**
  * Clés dont le nom SEUL suffit à établir qu'on tient l'identité d'une personne.
@@ -406,6 +670,7 @@ function rewritePersonNames(path: string, lines: string[]): { lines: string[]; f
 
   const isCsv = /\.(?:csv|tsv)$/i.test(path);
   const sep = /\.tsv$/i.test(path) ? '\t' : ',';
+
   let csvColumns: number[] = [];
 
   if (isCsv) {
@@ -420,6 +685,7 @@ function rewritePersonNames(path: string, lines: string[]): { lines: string[]; f
         }
 
         const cells = splitCsvRow(out[i], sep);
+
         let touched = false;
 
         for (const col of csvColumns) {
@@ -482,11 +748,14 @@ export function maskPiiInFiles(files: RemixFile[]): { files: RemixFile[]; masked
       return file; // binary blob — nothing maskable as text
     }
 
-    // Pré-passe NOMS (signal structurel, cf. rewritePersonNames) : elle tourne
-    // AVANT les matchers lexicaux pour que `name,email,phone` voie encore ses
-    // colonnes email/phone intactes au moment de les masquer à leur tour.
+    /*
+     * Pré-passe NOMS (signal structurel, cf. rewritePersonNames) : elle tourne
+     * AVANT les matchers lexicaux pour que `name,email,phone` voie encore ses
+     * colonnes email/phone intactes au moment de les masquer à leur tour.
+     */
     const named = rewritePersonNames(file.path, file.content.split('\n'));
     const lines = named.lines;
+
     let touched = named.findings.length > 0;
 
     masked.push(...named.findings);
@@ -495,7 +764,21 @@ export function maskPiiInFiles(files: RemixFile[]): { files: RemixFile[]; masked
       let out = line;
 
       for (const matcher of PII_MATCHERS) {
-        out = out.replace(matcher.re, (match) => {
+        if (matcher.spans) {
+          /*
+           * Réécriture À REBOURS : masquer de la fin vers le début garde les
+           * index des plages restantes valides.
+           */
+          for (const span of matcher.spans(out).reverse()) {
+            out = `${out.slice(0, span.start)}[PII:${matcher.kind} masked on remix]${out.slice(span.end)}`;
+            masked.push({ path: file.path, kind: matcher.kind, line: index + 1 });
+            touched = true;
+          }
+
+          continue;
+        }
+
+        out = out.replace(matcher.re!, (match) => {
           if (matcher.accept && !matcher.accept(match)) {
             return match;
           }
@@ -531,13 +814,25 @@ export function scanFilesForPii(files: RemixFile[]): PiiFinding[] {
 
     const lines = file.content.split('\n');
 
-    // Même chemin que le masquage : ce que rewritePersonNames RÉÉCRIRAIT est
-    // exactement ce que le scan REMONTE, donc un nom non masqué est détecté.
+    /*
+     * Même chemin que le masquage : ce que rewritePersonNames RÉÉCRIRAIT est
+     * exactement ce que le scan REMONTE, donc un nom non masqué est détecté.
+     */
     findings.push(...rewritePersonNames(file.path, lines).findings);
 
     for (let i = 0; i < lines.length; i++) {
       for (const matcher of PII_MATCHERS) {
-        for (const match of lines[i].match(matcher.re) ?? []) {
+        if (matcher.spans) {
+          const hits = matcher.spans(lines[i]).length;
+
+          for (let n = 0; n < hits; n += 1) {
+            findings.push({ path: file.path, kind: matcher.kind, line: i + 1 });
+          }
+
+          continue;
+        }
+
+        for (const match of lines[i].match(matcher.re!) ?? []) {
           if (matcher.accept && !matcher.accept(match)) {
             continue;
           }
