@@ -57,7 +57,7 @@ dg() { awk -v c="$1" '$1==c{print $2}' "$WORK/digests"; }
 for c in signed unsigned otherkey; do
   echo "b6b7-$c" > "$WORK/payload-$c"
   printf 'FROM scratch\nCOPY payload-%s /case\n' "$c" > "$WORK/Dockerfile.$c"
-  DOCKER_BUILDKIT=0 docker build -q -f "$WORK/Dockerfile.$c" -t "$REG/app-$c:v1" "$WORK" >/dev/null
+  DOCKER_BUILDKIT=0 docker build -q -f "$WORK/Dockerfile.$c" -t "$REG/app-$c:v1" "$WORK" >/dev/null 2>&1
   docker push "$REG/app-$c:v1" >/dev/null
   echo "$c $(docker inspect --format='{{index .RepoDigests 0}}' "$REG/app-$c:v1")" >> "$WORK/digests"
 done
@@ -126,16 +126,19 @@ done
 
 echo
 echo "### Layer 2 — the ACTUAL Kyverno policy engine (failureAction: Enforce)"
+# kyverno apply exits non-zero when a resource fails an Enforce policy — expected
+# for the unsigned/other-key cases. Capture first, then report, so `set -e`/
+# pipefail does not abort the run on those (intended) failures.
 for c in signed unsigned otherkey; do
   echo "--- case '$c' ---"
-  $KYVERNO apply "$WORK/policy-enforce.yaml" --resource "$WORK/pod-$c.yaml" --registry 2>&1 \
-    | grep -E "pass:|failed to verify|unverified|no signatures" | sed 's/^/    /'
+  out="$($KYVERNO apply "$WORK/policy-enforce.yaml" --resource "$WORK/pod-$c.yaml" --registry 2>&1 || true)"
+  printf '%s\n' "$out" | grep -E "pass:|failed to verify|unverified|no signatures" | sed 's/^/    /' || true
 done
 
 echo
 echo "### Parity — same unsigned image under failureAction: Audit (PROD's phase)"
-$KYVERNO apply "$WORK/policy-audit.yaml" --resource "$WORK/pod-unsigned.yaml" --registry --audit-warn 2>&1 \
-  | grep -E "pass:|audit warning" | sed 's/^/    /'
+out="$($KYVERNO apply "$WORK/policy-audit.yaml" --resource "$WORK/pod-unsigned.yaml" --registry --audit-warn 2>&1 || true)"
+printf '%s\n' "$out" | grep -E "pass:|audit warning" | sed 's/^/    /' || true
 echo "    => Audit: warn only, Pod ADMITTED + PolicyReport. Enforce: Pod REFUSED."
 echo
 echo "DONE."
