@@ -1,10 +1,39 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { buildDeploymentUrl } from './deployments.js';
 import {
   accessConfigFromMetadata,
   accessCookieName,
   computeAccessToken,
   isAccessTokenValid,
 } from './deployment-access.js';
+
+describe('buildDeploymentUrl (P104 gated → API origin, public → dedicated)', () => {
+  const prev = process.env.PREVIEW_DOMAIN;
+  const prevBase = process.env.STATIC_DEPLOY_BASE_URL;
+  beforeEach(() => {
+    process.env.PREVIEW_DOMAIN = 'preview.e-code.test';
+    process.env.STATIC_DEPLOY_BASE_URL = 'https://api.e-code.test';
+  });
+  afterEach(() => {
+    if (prev === undefined) delete process.env.PREVIEW_DOMAIN;
+    else process.env.PREVIEW_DOMAIN = prev;
+    if (prevBase === undefined) delete process.env.STATIC_DEPLOY_BASE_URL;
+    else process.env.STATIC_DEPLOY_BASE_URL = prevBase;
+  });
+
+  const project = { id: 'p1', slug: 'p1', organizationId: 'o1' } as any;
+  const dep = (metadata: unknown) =>
+    ({ id: 'abcdef123456', provider: 'static', environment: 'preview', status: 'READY', metadata } as any);
+
+  it('public static → dedicated s-<id> origin', () => {
+    expect(buildDeploymentUrl(project, dep({}))).toBe('https://s-abcdef123456.preview.e-code.test/');
+  });
+
+  it('password-protected static → API-origin canonical URL', () => {
+    const url = buildDeploymentUrl(project, dep({ access: { mode: 'password', passwordHash: 'h' } }));
+    expect(url).toBe('https://api.e-code.test/static-deployments/abcdef123456/');
+  });
+});
 
 describe('accessConfigFromMetadata', () => {
   it('defaults to public for empty/missing metadata', () => {

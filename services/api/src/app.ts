@@ -8420,7 +8420,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.headers['x-forwarded-host'] as string | undefined,
     );
 
-    if (dedicatedOrigin && !onDedicatedHost) {
+    /*
+     * P104: a password-protected deployment is served + gated ENTIRELY on the API
+     * origin. Redirecting to the dedicated `s-<id>` origin would split the gate
+     * (the access cookie is host-scoped, and the /__access POST is not reachable
+     * through the dedicated origin's proxy), so the visitor could never unlock it.
+     * The dedicated origin exists to give PUBLIC storage-using SPAs a same-origin
+     * sandbox; a gated app trades that for a working password flow (its localStorage
+     * stays opaque on the API origin — an accepted limitation behind a password).
+     */
+    if (dedicatedOrigin && !onDedicatedHost && access.mode !== 'password') {
       const search = request.url.includes('?') ? request.url.slice(request.url.indexOf('?')) : '';
 
       return reply.redirect(`${dedicatedOrigin}/${normalizedRequest}${search}`, 302);
@@ -32133,7 +32142,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       delete metadata.access;
     }
 
-    const updated = await store.updateDeployment(project.id, deployment.id, { metadata });
+    /*
+     * Re-derive the public URL: a gated deployment must advertise the API-origin
+     * URL (where the gate works), a public one the dedicated origin. Only for
+     * static — other providers' URLs are unaffected by access mode.
+     */
+    const nextUrl =
+      deployment.provider === 'static'
+        ? buildDeploymentUrl(project, { ...deployment, metadata })
+        : deployment.url;
+
+    const updated = await store.updateDeployment(project.id, deployment.id, {
+      metadata,
+      ...(nextUrl && nextUrl !== deployment.url ? { url: nextUrl } : {}),
+    });
 
     await audit(request, store, {
       organizationId: project.organizationId,
