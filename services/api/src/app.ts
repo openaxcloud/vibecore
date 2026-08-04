@@ -310,6 +310,16 @@ import {
 } from './rate-card-service.js';
 import { resolveRollbackImage, resolveRollbackSecrets, type SecretPolicy } from './release-rollback.js';
 import { computeWorkspaceRestorePlan, isPortReadyFromProbe, type PortProbeResult } from './runtime-readiness.js';
+import { aggregatePreviewReadiness } from './runtime-readiness.js';
+import {
+  recordPreviewBeacon,
+  readClientBeacon,
+  recordLifecycleFromStatus,
+  captureWorkspacePostMortem,
+  getWorkspaceDiagnostics,
+  type PreviewBeaconStatus,
+} from './workspace-diagnostics.js';
+import { flattenRuntimeTreeFilePaths, normalizeRuntimePath, persistedFileContentMatches } from './runtime-reseed.js';
 import { describeCron } from './scheduled-tasks-cron.js';
 import {
   PostgresScheduledTaskRepository,
@@ -7753,6 +7763,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     options.mcpMarketplace ??
     (store instanceof PrismaApiStore ? createDefaultMcpMarketplaceService(store.prisma) : undefined);
 
+  // BLOCKER #5/#6: persisted readiness beacons + workspace diagnostics live on
+  // the Prisma client. Undefined off Prisma (tests) — helpers are best-effort.
+  const diagnosticsDb = store instanceof PrismaApiStore ? store.prisma : undefined;
+
   const projectStorage = options.projectStorage ?? new LocalProjectStorage();
   const gitProvider = options.gitProvider ?? new GitCliProvider();
   const staticBuildRunner = options.staticBuildRunner ?? runStaticBuild;
@@ -12874,6 +12888,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await store
       .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'STARTING' })
       .catch(() => undefined);
+
+    emitLifecycle(authorized.workspaceId, 'STARTING', 'provision');
   };
 
   // Ensure the workspace agent is reachable, provisioning + waiting if needed.
@@ -13190,9 +13206,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           signal: controller.signal,
         });
 
-        // Drain the body so the socket returns to the pool; we only need the status.
-        await response.body?.cancel().catch(() => undefined);
-        probe = { kind: 'response', status: response.status };
+        /*
+         * Read the body (not just drain it): a bound-but-not-serving dev server
+         * answers 200 with zero bytes, and treating that as ready is part of the
+         * "port open + blank webview" lie. Capped so a large document can't cost
+         * us more than the first chunk — we only need "is it non-empty".
+         */
+        let bodyBytes = 0;
+
+        const reader = response.body?.getReader();
+
+        if (reader) {
+          try {
+            const first = await reader.read();
+            bodyBytes = first.value?.byteLength ?? 0;
+          } finally {
+            await reader.cancel().catch(() => undefined);
+          }
+        }
+
+        probe = { kind: 'response', status: response.status, bodyBytes };
       } finally {
         clearTimeout(timer);
       }
@@ -13201,6 +13234,56 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     return isPortReadyFromProbe(probe);
+  };
+
+  /*
+   * BLOCKER #6: append a timestamped lifecycle event (best-effort, never throws).
+   * The lifecycle machine drops illegal edges, so this is safe to call opportunist-
+   * ically on every status change.
+   */
+  const emitLifecycle = (workspaceId: string, status: string, reason?: string): void => {
+    if (!diagnosticsDb) {
+      return;
+    }
+
+    void recordLifecycleFromStatus(diagnosticsDb, workspaceId, status, reason).catch(() => undefined);
+  };
+
+  /*
+   * BLOCKER #6: on stop/fail, freeze the last-known runtime state into a
+   * post-mortem (ports/processes from the agent while it may still answer,
+   * Problems = fresh readiness beacons, a tail of manager logs) + a STOPPED/FAILED
+   * lifecycle event. Fully best-effort — the workspace is already stopping.
+   */
+  const captureStopDiagnostics = async (workspaceId: string, reason: string, finalState: string): Promise<void> => {
+    if (!diagnosticsDb) {
+      return;
+    }
+
+    const db = diagnosticsDb;
+
+    const [ports, processes, problems, logsTail] = await Promise.all([
+      agentRequest<{ ports: unknown }>(workspaceId, '/ports').then((r) => r.ports).catch(() => undefined),
+      agentRequest<{ processes: unknown }>(workspaceId, '/processes').then((r) => r.processes).catch(() => undefined),
+      db.previewReadinessBeacon
+        .findMany({ where: { workspaceId } })
+        .then((rows) => rows.map((r) => ({ port: r.port, status: r.status, detail: r.detail, at: r.reportedAt })))
+        .catch(() => undefined),
+      managerRequest<{ logs?: string[] }>(`/workspaces/${workspaceId}/logs`)
+        .then((r) => (r.logs ?? []).slice(-100).join('\n'))
+        .catch(() => undefined),
+    ]);
+
+    await captureWorkspacePostMortem(db, workspaceId, {
+      reason,
+      finalState,
+      ports,
+      processes,
+      problems,
+      logsTail,
+    }).catch(() => undefined);
+
+    emitLifecycle(workspaceId, finalState, reason);
   };
 
   /*
@@ -13325,6 +13408,162 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       throw error;
+    }
+  };
+
+  /*
+   * Server-side runtime reseed reconciliation.
+   *
+   * The client (ProjectWorkspaceProvider) seeds a freshly-provisioned pod from the
+   * persisted project files, but the runtime pod diverges from persisted in ways the
+   * client never repairs from a background op:
+   *   - A pod reached OUTSIDE a live IDE session is never client-seeded: the remote
+   *     adapter re-provisions a GC'd/reaped pod on the first agent 502 (see
+   *     RemoteKubernetesRuntimeAdapter.#ensureWorkspaceReprovisioned) to serve a
+   *     background terminal / file / preview op — the new pod comes up EMPTY.
+   *   - A file can be MISSING: the runtime carried src/, index.html, tsconfig but not
+   *     package.json → `npm run dev` → ENOENT package.json.
+   *   - A file can be present but its CONTENT DIVERGED (observed live: the runtime's
+   *     package.json was a 200-byte stub with name/scripts only, while the persisted
+   *     ide-state carried the full dependency set → `npm install` found nothing to
+   *     install → `sh: vite: not found`, blank Preview). This is the core "files
+   *     saved by the agent are not the files that run" flakiness.
+   *
+   * Reconcile it at the source: whenever a start/restart brings a pod to RUNNING,
+   * bring the runtime back in line with the authoritative persisted ide-state (the
+   * same source /export/zip derives) — WRITE every persisted file that is either
+   * absent from the runtime or present with different bytes. Scope is exactly the
+   * persisted file set: a runtime-only file (build output, npm-created lockfile,
+   * node_modules) is never touched, only paths the editor's own state owns. No-ops on
+   * a warm pod already in sync (the common reattach path). Best-effort: never fail
+   * the start if the agent is briefly unreachable or a write blips — the client
+   * reseed and the next op still reconcile.
+   */
+  const reconcileRuntimeSeedFromPersisted = async (
+    workspaceId: string,
+    projectId: string,
+  ): Promise<{ seeded: boolean; reason: string; missing?: number; diverged?: number }> => {
+    let existingTree: unknown;
+
+    try {
+      existingTree = await agentRequest<unknown>(workspaceId, '/files/tree?path=.');
+    } catch {
+      /*
+       * Agent not reachable yet (cold pod still coming up) — skip. The client
+       * reseed or a later runtime op (which re-provisions and re-enters here) will
+       * reconcile. Must never turn a successful provision into a failed start.
+       */
+      return { seeded: false, reason: 'agent-unreachable' };
+    }
+
+    let files: ProjectFile[];
+
+    try {
+      files = await ensureProjectStorageFromIdeState(store, projectStorage, projectId);
+    } catch {
+      return { seeded: false, reason: 'persisted-read-failed' };
+    }
+
+    if (!files.length) {
+      return { seeded: false, reason: 'no-persisted-files' };
+    }
+
+    const present = flattenRuntimeTreeFilePaths(existingTree);
+
+    let missing = 0;
+    let diverged = 0;
+
+    for (const file of files) {
+      const normalized = normalizeRuntimePath(file.path);
+
+      if (!normalized) {
+        continue;
+      }
+
+      let needsWrite: boolean;
+
+      if (!present.has(normalized)) {
+        needsWrite = true;
+        missing += 1;
+      } else {
+        /*
+         * Present in the runtime — compare bytes against persisted. A mismatch is
+         * the stripped-package.json divergence; a matching file is skipped (the
+         * warm-reattach no-op). A read failure (race, transient) is treated as
+         * "leave it" rather than blindly overwrite.
+         */
+        let runtimeBody: { content?: string; encoding?: string } | undefined;
+
+        try {
+          runtimeBody = await agentRequest<{ content?: string; encoding?: string }>(
+            workspaceId,
+            `/files/read?path=${encodeURIComponent(file.path)}`,
+          );
+        } catch {
+          continue;
+        }
+
+        if (typeof runtimeBody?.content !== 'string') {
+          continue;
+        }
+
+        if (persistedFileContentMatches(file, { content: runtimeBody.content, encoding: runtimeBody.encoding })) {
+          continue;
+        }
+
+        needsWrite = true;
+        diverged += 1;
+      }
+
+      if (!needsWrite) {
+        continue;
+      }
+
+      try {
+        await agentRequest(workspaceId, '/files/write', {
+          method: 'POST',
+          body: JSON.stringify({ path: file.path, content: file.content, encoding: file.encoding }),
+        });
+      } catch (error) {
+        /*
+         * A mid-reconcile failure leaves the pod partially repaired; still strictly
+         * better, and the next reconcile completes it. Don't abort the whole start —
+         * log and keep going. (Roll back the counter so the metric stays honest.)
+         */
+        if (present.has(normalized)) {
+          diverged -= 1;
+        } else {
+          missing -= 1;
+        }
+
+        app.log.warn({ err: error, workspaceId, path: file.path }, 'runtime reseed: file write failed');
+      }
+    }
+
+    if (missing === 0 && diverged === 0) {
+      return { seeded: false, reason: 'already-synced' };
+    }
+
+    return { seeded: true, reason: 'reconciled-from-persisted', missing, diverged };
+  };
+
+  /*
+   * Fire the reseed reconciliation without ever letting it break the start/restart
+   * response. Records a metric so the flaky-loop fix is observable in prod.
+   */
+  const reconcileRuntimeSeedSafe = async (workspaceId: string, projectId: string) => {
+    try {
+      const result = await reconcileRuntimeSeedFromPersisted(workspaceId, projectId);
+
+      if (result.seeded) {
+        metrics.increment('workspace_runtime_reseed_total', { reason: result.reason });
+        app.log.info(
+          { workspaceId, projectId, missing: result.missing, diverged: result.diverged },
+          'runtime reseed: reconciled runtime toward persisted ide-state',
+        );
+      }
+    } catch (error) {
+      app.log.warn({ err: error, workspaceId, projectId }, 'runtime reseed reconciliation failed');
     }
   };
 
@@ -14733,6 +14972,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         : await ensureRuntimeWorkspaceRecord(workspaceId, project);
     authorized.workspaceId = workspaceRecord.id;
 
+    /*
+     * BLOCKER #6: seed the lifecycle trail with STARTING now that the Workspace
+     * row EXISTS (ensureRuntimeWorkspaceRecord just created/loaded it) — emitting
+     * before this point hit the workspaceId FK and was silently dropped. A warm
+     * reopen already sitting at RUNNING makes RUNNING->STARTING illegal, which the
+     * machine drops; a genuine (re)provision records STARTING as intended.
+     */
+    emitLifecycle(authorized.workspaceId, 'STARTING', 'provision.request');
+
     const workspaceStartAt = nowSeconds();
 
     const [projectEnvVars, projectSecrets] = await Promise.all([
@@ -14862,10 +15110,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       await store
         .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'FAILED' })
         .catch(() => undefined);
+
+      if (diagnosticsDb) {
+        void captureStopDiagnostics(authorized.workspaceId, 'start.failed', 'FAILED');
+      }
     } else if (managerWorkspace?.status !== 'STOPPED') {
       await store
         .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'RUNNING' })
         .catch(() => undefined);
+
+      emitLifecycle(authorized.workspaceId, 'RUNNING', 'agent.reachable');
+
+      /*
+       * Pod is up — seed it from the persisted files if it came up empty (cold
+       * provision / re-provision-after-GC / wiped PVC). No-ops on a warm pod that
+       * already carries its files. Best-effort; never blocks the start response.
+       */
+      await reconcileRuntimeSeedSafe(authorized.workspaceId, authorized.projectId);
     }
 
     return runtimeSession(
@@ -14877,6 +15138,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/api/runtime/workspaces/:workspaceId/stop', async (request, reply) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
+
+    /*
+     * BLOCKER #6: freeze the post-mortem BEFORE we ask the manager to tear the
+     * pod down — this is the ONLY moment the last-known ports/processes and a
+     * tail of runtime logs are still readable from a live agent. Awaited (not
+     * fire-and-forget) so the gather completes before the pod is reclaimed;
+     * fully best-effort so a slow/absent agent never blocks the stop.
+     */
+    if (diagnosticsDb) {
+      await captureStopDiagnostics(authorized.workspaceId, 'user.stop', 'STOPPED').catch(() => undefined);
+    }
 
     try {
       await managerRequest(`/workspaces/${authorized.workspaceId}/stop`, { method: 'POST' });
@@ -15072,6 +15344,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       await store
         .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'RUNNING' })
         .catch(() => undefined);
+
+      // Restart can reprovision onto a fresh pod; reseed it from persisted if empty.
+      await reconcileRuntimeSeedSafe(authorized.workspaceId, authorized.projectId);
     }
 
     return runtimeSession(authorized.workspaceId, managerWorkspace?.status === 'FAILED' ? 'failed' : 'running', {
@@ -15136,6 +15411,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           status: managerStatus === 'failed' ? 'FAILED' : 'STOPPED',
         })
         .catch(() => undefined);
+    } else if (managerStatus === 'running') {
+      /*
+       * A cold provision's create returns 'starting' and never reaches its own
+       * RUNNING reconcile; the IDE's status poll is where the pod is actually
+       * observed live. Heal the row to RUNNING (so it stops lagging at
+       * PENDING/STARTING) and record the RUNNING lifecycle transition here (#6).
+       * emitLifecycle is idempotent — repeated polls collapse to a no-op.
+       */
+      await store
+        .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'RUNNING' })
+        .catch(() => undefined);
+
+      emitLifecycle(authorized.workspaceId, 'RUNNING', 'status.running');
     }
 
     return runtimeSession(authorized.workspaceId, managerStatus, { managerWorkspace });
@@ -15527,22 +15815,86 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       localFallback = true;
     }
 
-    return Promise.all(
-      result.ports.map(async (port) => ({
-        ...port,
-        type: 'open',
+    /*
+     * BLOCKER #5: readiness is only honest when the four actors AGREE. Load the
+     * manager-side workspace status ONCE (not per port); the port probe covers
+     * PORT + PROXY (it traverses the agent route), the agent's processId covers
+     * PROCESS, and the persisted client beacon covers "app never mounted / console
+     * error". Any single "no" ⇒ not ready, so a bound-but-blank preview no longer
+     * latches ready and disarms the auto-reload recovery.
+     */
+    /*
+     * The manager signal must reflect the workspace's LIVE state, not our own
+     * Workspace row — that row legitimately lags at PENDING/STARTING after a cold
+     * provision returned early, so reading it here false-vetoed a genuinely-live
+     * preview as blockedBy:'manager'. Ask the manager directly (same source as
+     * /status). Manager-unreachable → undefined (neutral): let port/process/client
+     * decide rather than vetoing on an unknown.
+     */
+    let managerStatus: string | undefined;
 
-        /*
-         * Drive readiness from an HTTP probe so the Preview's not-ready -> ready
-         * auto-reload edge can fire. The local-runtime fallback serves the dev
-         * server directly on the host (no agent to probe through), so report it
-         * ready immediately rather than probing a port that has no agent route.
-         */
-        ready: localFallback ? true : await probePortReady(authorized.workspaceId, port.port),
-        url: previewUrlForWorkspacePort(authorized.workspaceId, port.port),
-      })),
+    try {
+      const managerWorkspace = await managerRequest<{ status?: string }>(
+        `/workspaces/${authorized.workspaceId}`,
+      );
+      managerStatus = managerWorkspace?.status;
+    } catch (error) {
+      if (!isRuntimeManagerUnavailable(error)) {
+        throw error;
+      }
+
+      managerStatus = undefined;
+    }
+
+    return Promise.all(
+      result.ports.map(async (port) => {
+        if (localFallback) {
+          // Local-runtime fallback serves the dev server directly on the host
+          // (no agent to probe through) — report ready without probing.
+          return { ...port, type: 'open', ready: true, url: previewUrlForWorkspacePort(authorized.workspaceId, port.port) };
+        }
+
+        const portReady = await probePortReady(authorized.workspaceId, port.port);
+        const clientBeacon = diagnosticsDb
+          ? await readClientBeacon(diagnosticsDb, authorized.workspaceId, port.port).catch(() => 'none' as const)
+          : ('none' as const);
+
+        const verdict = aggregatePreviewReadiness({
+          portReady,
+          hasLiveProcess: Boolean(port.processId),
+          managerStatus,
+          clientBeacon,
+        });
+
+        return {
+          ...port,
+          type: 'open',
+          ready: verdict.ready,
+          ...(verdict.blockedBy ? { notReadyReason: verdict.blockedBy } : {}),
+          url: previewUrlForWorkspacePort(authorized.workspaceId, port.port),
+        };
+      }),
     );
   });
+  /*
+   * BLOCKER #6: reconstruct WHY a workspace died after the pod is gone — the
+   * timestamped lifecycle trail + the post-mortem snapshots (last ports /
+   * processes / Problems / logs). Read-only, workspace-scoped.
+   */
+  app.get('/api/runtime/workspaces/:workspaceId/diagnostics', async (request) => {
+    const { workspaceId } = parse(workspaceParams, request.params);
+    const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
+
+    if (!diagnosticsDb) {
+      return { lifecycle: [], postMortems: [] };
+    }
+
+    return getWorkspaceDiagnostics(diagnosticsDb, authorized.workspaceId).catch(() => ({
+      lifecycle: [],
+      postMortems: [],
+    }));
+  });
+
   app.get('/api/runtime/workspaces/:workspaceId/preview/:port', async (request, reply) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const port = Number((request.params as { port: string }).port);
@@ -16383,8 +16735,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const wasKnown = known.has(port);
         const wasReady = readyState.get(port) ?? false;
 
-        // Emit on first appearance, or when an already-open port flips to ready.
-        if (!wasKnown || (!wasReady && ready)) {
+        /*
+         * Emit on first appearance, or on EITHER readiness edge. The
+         * ready -> not-ready arm is what makes a preview that stops serving
+         * (dev server crashed, upstream started 5xx-ing) visible to the client:
+         * without it the IDE kept `ready: true` forever and reported a healthy
+         * preview over a dead app (SOLUTIONS_REAL_PROOF_BLOCKERS.md §5).
+         */
+        if (!wasKnown || wasReady !== ready) {
           emit(descriptor, 'open', ready);
         }
 
@@ -27151,6 +27509,37 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     return { private: isPrivate };
+  });
+
+  /*
+   * BLOCKER #5: the in-preview reporter beacons "blank DOM / console error" to
+   * the preview-proxy, which relays it here (proxy secret). We persist it so the
+   * /ports readiness check across ANY api replica drops `ready` for that port.
+   */
+  app.post('/internal/preview/beacon', async (request, reply) => {
+    requirePreviewProxySecret(request);
+
+    const body = parse(
+      z.object({
+        workspaceId: z.string().min(1).max(128),
+        port: z.coerce.number().int().positive().max(65535),
+        status: z.enum(['ok', 'blank', 'error']),
+        detail: z.string().max(500).optional(),
+      }),
+      request.body ?? {},
+    );
+
+    if (diagnosticsDb) {
+      await recordPreviewBeacon(
+        diagnosticsDb,
+        body.workspaceId,
+        body.port,
+        body.status as PreviewBeaconStatus,
+        body.detail,
+      ).catch(() => undefined);
+    }
+
+    return reply.code(204).send();
   });
 
   app.post('/internal/inactivity-gc', async (request, reply) => {

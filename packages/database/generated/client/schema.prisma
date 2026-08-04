@@ -636,17 +636,17 @@ model ProjectTemplate {
 }
 
 model Workspace {
-  id               String             @id @default(cuid())
+  id               String                    @id @default(cuid())
   projectId        String
   name             String
-  status           WorkspaceStatus    @default(PENDING)
+  status           WorkspaceStatus           @default(PENDING)
   runtimeMode      String
   // P2d dev/prod split: 'development' (the editable workspace) or 'production'
   // (the checkout created when a deployment is published). Existing rows
   // backfill to 'development'. Not unique — a project keeps multiple dev
   // workspaces (primary + secondary agent-run checkouts); the prod checkout
   // is the single workspace with environment='production'.
-  environment      String             @default("development")
+  environment      String                    @default("development")
   // Filesystem path (relative to the project storage root) for this
   // workspace's isolated git working tree. Allocated when the workspace
   // is created so each branch / agent run can have its own checkout
@@ -659,13 +659,16 @@ model Workspace {
   // every workspace. Nullable: a fresh workspace inherits the project-level
   // remote until the user explicitly configures one.
   gitRepositoryUrl String?
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-  project          Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+  project          Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   sessions         WorkspaceSession[]
   ports            WorkspacePort[]
   snapshots        FileSnapshot[]
   ideState         WorkspaceIdeState?
+  readinessBeacons PreviewReadinessBeacon[]
+  lifecycleEvents  WorkspaceLifecycleEvent[]
+  postMortems      WorkspacePostMortem[]
 
   @@index([projectId])
 }
@@ -2635,4 +2638,59 @@ model LedgerReconciliationRun {
   metadata         Json?
 
   @@index([source, runAt])
+}
+
+// BLOCKER #5 — honest preview readiness. The in-preview reporter script detects a
+// blank DOM / console error the server can never see and beacons it. Persisting
+// it (vs the old fire-and-forget log) lets `/ports` readiness be honest across
+// API replicas: a fresh blank/error beacon vetoes `ready` even when the port
+// probe passed. `status`: 'ok' | 'blank' | 'error'. One row per (workspace,port),
+// upserted; readiness only honours beacons newer than a short TTL.
+model PreviewReadinessBeacon {
+  id          String    @id @default(cuid())
+  workspaceId String
+  port        Int
+  status      String
+  detail      String?
+  reportedAt  DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, port])
+  @@index([workspaceId])
+}
+
+// BLOCKER #6 — timestamped workspace lifecycle machine. Append-only trail of
+// PENDING->STARTING->RUNNING->STOPPING->STOPPED/FAILED transitions so a workspace
+// that died can be reconstructed after the fact (vs Workspace.status, a single
+// overwritten value). `state` is a WorkspaceLifecycleState; transitions are
+// validated by assertWorkspaceLifecycleTransition before write.
+model WorkspaceLifecycleEvent {
+  id          String    @id @default(cuid())
+  workspaceId String
+  state       String
+  reason      String?
+  detail      Json?
+  at          DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, at])
+}
+
+// BLOCKER #6 — post-mortem snapshot captured when a workspace stops/fails: the
+// last-known ports, processes, Problems (beacons/diagnostics) and a tail of the
+// runtime logs, frozen at shutdown. Append-only (one per stop), so a support
+// operator can see WHY a preview was blank/dead after the pod is gone.
+model WorkspacePostMortem {
+  id          String    @id @default(cuid())
+  workspaceId String
+  reason      String
+  finalState  String
+  ports       Json?
+  processes   Json?
+  problems    Json?
+  logsTail    String?
+  capturedAt  DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, capturedAt])
 }
