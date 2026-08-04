@@ -190,6 +190,7 @@ import {
   type RemixState,
   type RemixStoragePolicy,
 } from './remix-pipeline.js';
+import { evaluateLicenseForRemix, listDerivativeAllowedLicenseIds } from './license-policy.js';
 import {
   databaseRollbackEntitlement,
   isDatabaseRollbackEnabled,
@@ -22325,6 +22326,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     /*
+     * ALLOWLIST SPDX au moment du REMIX (P0-V3-05, réserve #7) — défense en
+     * profondeur. La curation applique déjà la règle, mais un listing créé
+     * AVANT l'allowlist (ou écrit directement en base) doit être refusé ici
+     * aussi : on ne remixe que si la licence autorise réellement la dérivation.
+     */
+    const licenseDecision = evaluateLicenseForRemix(listing.licenseId);
+
+    if (!licenseDecision.allowed) {
+      return reply.status(403).send({
+        error:
+          licenseDecision.reason === 'NOT_DERIVATIVE'
+            ? `The source license "${listing.licenseId}" does not grant derivative-work rights.`
+            : `The source license "${listing.licenseId}" is not a recognised SPDX id that allows derivative works.`,
+        code: 'REMIX_LICENSE_NOT_DERIVATIVE',
+        reason: licenseDecision.reason,
+      });
+    }
+
+    /*
      * Explicit versioned acceptance (I-RMX-3): no consent, no clone. The reply
      * carries what there IS to accept (license id + text sha + consent-text
      * version) so a client can render the consent step from this response.
@@ -22491,6 +22511,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           code: 'REMIX_RIGHTS_CONFIRMATION_REQUIRED',
         });
       }
+
+      /*
+       * ALLOWLIST SPDX (P0-V3-05, réserve #7). Déclarer une licence ne suffit
+       * pas : elle doit RÉELLEMENT accorder le droit de dériver. Fail-closed —
+       * tout identifiant hors allowlist est refusé, y compris un SPDX valide
+       * mais non listé. On ne devine jamais l'intention d'une licence.
+       */
+      const decision = evaluateLicenseForRemix(body.licenseId);
+
+      if (!decision.allowed) {
+        return reply.status(400).send({
+          error:
+            decision.reason === 'NOT_DERIVATIVE'
+              ? `License "${body.licenseId}" does not grant derivative-work rights — it cannot be remixed.`
+              : `License "${body.licenseId}" is not a recognised SPDX id that allows derivative works.`,
+          code: 'REMIX_LICENSE_NOT_DERIVATIVE',
+          reason: decision.reason,
+          allowedLicenseIds: listDerivativeAllowedLicenseIds(),
+        });
+      }
+
+      // L'identifiant CANONIQUE est persisté, jamais la saisie brute ("mit" → "MIT").
+      body.licenseId = decision.canonicalId;
     }
 
     const sourceProject = await store.getProject(body.sourceProjectId);
@@ -22506,6 +22549,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     try {
+      /*
+       * TRACE AUDITABLE des confirmations (P0-V3-05, réserve #8). Elles étaient
+       * validées puis jetées : on ne pouvait plus prouver que le curateur avait
+       * confirmé détenir les droits. On horodate et on nomme l'acteur.
+       */
+      const confirmedAt = new Date();
+      const confirmedBy = request.currentUser?.id ?? null;
+
       const listing = await store.createGalleryListing({
         ...body,
         // Version pin computed HERE: the accepted license text is identified by
@@ -22513,6 +22564,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         licenseTextSha256: body.licenseText
           ? createHash('sha256').update(body.licenseText, 'utf8').digest('hex')
           : undefined,
+        rightsConfirmedAt: body.rightsConfirmed === true ? confirmedAt : undefined,
+        rightsConfirmedBy: body.rightsConfirmed === true ? (confirmedBy ?? undefined) : undefined,
+        piiPolicyAcceptedAt: body.piiPolicyAccepted === true ? confirmedAt : undefined,
+        piiPolicyAcceptedBy: body.piiPolicyAccepted === true ? (confirmedBy ?? undefined) : undefined,
       });
 
       await audit(request, store, {
@@ -22527,6 +22582,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           remixAllowed: listing.remixAllowed,
           licenseId: listing.licenseId ?? null,
           piiConsentVersion: listing.piiConsentVersion ?? null,
+          // La confirmation des droits doit être retrouvable dans l'audit, pas
+          // seulement dans la table (réserve #8).
+          rightsConfirmedAt: listing.rightsConfirmedAt?.toISOString() ?? null,
+          rightsConfirmedBy: listing.rightsConfirmedBy ?? null,
+          piiPolicyAcceptedAt: listing.piiPolicyAcceptedAt?.toISOString() ?? null,
+          piiPolicyAcceptedBy: listing.piiPolicyAcceptedBy ?? null,
         },
       });
 
