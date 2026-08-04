@@ -40,6 +40,20 @@ type PreviewImageLike = {
   src: string;
 };
 
+type RuntimeWorkspace = {
+  id: string;
+  status?: string;
+};
+
+type RuntimePreviewPort = {
+  port?: number;
+  processId?: string;
+  ready?: boolean;
+  type?: string;
+  notReadyReason?: string;
+  url?: string;
+};
+
 type CaptureSession = {
   email: string;
   password: string;
@@ -602,7 +616,12 @@ async function assertGeneratedSourcesAreUnwrapped(page: Page, projectId: string,
     const content = file.content ?? '';
     const isRuntimeSource = /(?:^|\/)(?:package|tsconfig(?:\.node)?)\.json$|\.(?:css|html|jsx?|tsx?)$/i.test(path);
 
-    return isRuntimeSource && /<\/?antml>|<\/?bolt(?:Artifact|Action)\b|```/i.test(content) ? [path] : [];
+    return isRuntimeSource &&
+      /<\/?antml(?::[\w-]+)?\b|<\/?bolt(?:Artifact|Action)\b|<\/?(?:function_calls|invoke|parameter)\b|```/i.test(
+        content,
+      )
+      ? [path]
+      : [];
   });
 
   if (invalidPaths.length > 0) {
@@ -610,25 +629,115 @@ async function assertGeneratedSourcesAreUnwrapped(page: Page, projectId: string,
   }
 }
 
-async function readRuntimePreviewPorts(page: Page, projectId: string, token: string) {
-  try {
-    const workspacesResponse = await page.request.get(
-      `${API_BASE_URL}/projects/${encodeURIComponent(projectId)}/workspaces`,
-      {
+async function resolveRuntimeWorkspace(page: Page, projectId: string, token: string) {
+  const response = await page.request.get(`${API_BASE_URL}/projects/${encodeURIComponent(projectId)}/workspaces`, {
+    headers: { authorization: `Bearer ${token}` },
+    timeout: 20_000,
+  });
+
+  if (!response.ok()) {
+    return undefined;
+  }
+
+  const payload = (await response.json()) as { workspaces?: RuntimeWorkspace[] };
+
+  const candidates =
+    payload.workspaces?.filter((workspace): workspace is RuntimeWorkspace => Boolean(workspace.id)) ?? [];
+
+  for (const workspace of candidates) {
+    const statusResponse = await page.request
+      .get(`${API_BASE_URL}/api/runtime/workspaces/${encodeURIComponent(workspace.id)}/status`, {
         headers: { authorization: `Bearer ${token}` },
         timeout: 20_000,
-      },
-    );
+      })
+      .catch(() => undefined);
 
-    if (!workspacesResponse.ok()) {
-      return [];
+    if (!statusResponse?.ok()) {
+      continue;
     }
 
-    const workspacesPayload = (await workspacesResponse.json()) as {
-      workspaces?: Array<{ id?: string; status?: string }>;
-    };
-    const workspace =
-      workspacesPayload.workspaces?.find((entry) => entry.status === 'RUNNING') ?? workspacesPayload.workspaces?.[0];
+    const statusPayload = (await statusResponse.json()) as { status?: string };
+
+    if (statusPayload.status === 'running') {
+      return workspace;
+    }
+  }
+
+  return candidates.find((workspace) => workspace.status === 'RUNNING') ?? candidates[0];
+}
+
+async function runtimeFileContent(page: Page, workspaceId: string, token: string, path: string) {
+  const response = await page.request.get(
+    `${API_BASE_URL}/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/files/read?path=${encodeURIComponent(path)}`,
+    {
+      headers: { authorization: `Bearer ${token}` },
+      timeout: 20_000,
+    },
+  );
+
+  if (!response.ok()) {
+    return undefined;
+  }
+
+  const payload = (await response.json()) as { content?: string; encoding?: string };
+
+  if (typeof payload.content !== 'string') {
+    return undefined;
+  }
+
+  return payload.encoding === 'base64' ? Buffer.from(payload.content, 'base64').toString('utf8') : payload.content;
+}
+
+async function waitForRuntimeFilesToMatchPersisted(page: Page, projectId: string, token: string) {
+  let lastMismatches: string[] = [];
+
+  await expect
+    .poll(
+      async () => {
+        const [workspace, projectState] = await Promise.all([
+          resolveRuntimeWorkspace(page, projectId, token),
+          readProjectIdeState(page, projectId, token),
+        ]);
+
+        if (!workspace || !projectState) {
+          lastMismatches = ['runtime-or-ide-state-unavailable'];
+
+          return lastMismatches.length;
+        }
+
+        const criticalFiles = projectState.files.filter((file) =>
+          /(?:^|\/)(?:package\.json|index\.html|main\.(?:tsx|jsx|js)|styles\.css|App\.(?:tsx|jsx))$/i.test(
+            file.path ?? '',
+          ),
+        );
+
+        const comparisons = await Promise.all(
+          criticalFiles.map(async (file) => ({
+            path: file.path ?? '',
+            matches:
+              typeof file.content === 'string' &&
+              file.content === (await runtimeFileContent(page, workspace.id, token, file.path ?? '')),
+          })),
+        );
+
+        lastMismatches = comparisons.filter((comparison) => !comparison.matches).map((comparison) => comparison.path);
+
+        return lastMismatches.length;
+      },
+      {
+        message: 'The running workspace must match the authoritative persisted files before Preview starts',
+        intervals: [2_000, 3_000, 5_000],
+        timeout: PREVIEW_TIMEOUT_MS,
+      },
+    )
+    .toBe(0);
+
+  process.stdout.write(`${JSON.stringify({ status: 'runtime-files-synchronized' })}\n`);
+}
+
+async function readRuntimePreviewPorts(page: Page, projectId: string, token: string) {
+  try {
+    const workspace = await resolveRuntimeWorkspace(page, projectId, token);
 
     if (!workspace?.id) {
       return [];
@@ -646,11 +755,10 @@ async function readRuntimePreviewPorts(page: Page, projectId: string, token: str
       return [];
     }
 
-    const portsPayload = (await portsResponse.json()) as {
-      ports?: Array<{ port?: number; ready?: boolean; type?: string }>;
-    };
+    const portsPayload = (await portsResponse.json()) as RuntimePreviewPort[] | { ports?: RuntimePreviewPort[] };
+    const ports = Array.isArray(portsPayload) ? portsPayload : (portsPayload.ports ?? []);
 
-    return (portsPayload.ports ?? []).filter((port) => port.ready === true && typeof port.port === 'number');
+    return ports.filter((port) => port.ready === true && typeof port.port === 'number');
   } catch {
     return [];
   }
@@ -658,25 +766,12 @@ async function readRuntimePreviewPorts(page: Page, projectId: string, token: str
 
 async function probeRuntimePreview(page: Page, projectId: string, token: string, port = 5173) {
   try {
-    const workspacesResponse = await page.request.get(
-      `${API_BASE_URL}/projects/${encodeURIComponent(projectId)}/workspaces`,
-      {
-        headers: { authorization: `Bearer ${token}` },
-        timeout: 20_000,
-      },
-    );
+    const [workspace, readyPorts] = await Promise.all([
+      resolveRuntimeWorkspace(page, projectId, token),
+      readRuntimePreviewPorts(page, projectId, token),
+    ]);
 
-    if (!workspacesResponse.ok()) {
-      return false;
-    }
-
-    const workspacesPayload = (await workspacesResponse.json()) as {
-      workspaces?: Array<{ id?: string; status?: string }>;
-    };
-    const workspace =
-      workspacesPayload.workspaces?.find((entry) => entry.status === 'RUNNING') ?? workspacesPayload.workspaces?.[0];
-
-    if (!workspace?.id) {
+    if (!workspace?.id || !readyPorts.some((entry) => entry.port === port)) {
       return false;
     }
 
@@ -694,10 +789,62 @@ async function probeRuntimePreview(page: Page, projectId: string, token: string,
 
     const html = await response.text();
 
-    return /<html|<div[^>]+id=["']root["']|<script/i.test(html) && html.length > 120;
+    return (
+      /<html|<div[^>]+id=["']root["']|<script/i.test(html) &&
+      html.length > 120 &&
+      !/preview_upstream_unreachable|preview is starting|starting preview|loading e-code/i.test(html)
+    );
   } catch {
     return false;
   }
+}
+
+async function runtimeDiagnosticSummary(page: Page, projectId: string, token: string) {
+  const workspace = await resolveRuntimeWorkspace(page, projectId, token);
+
+  if (!workspace?.id) {
+    return { workspace: 'unavailable' };
+  }
+
+  const requestJson = async (endpoint: string) => {
+    const response = await page.request
+      .get(`${API_BASE_URL}/api/runtime/workspaces/${encodeURIComponent(workspace.id)}/${endpoint}`, {
+        headers: { authorization: `Bearer ${token}` },
+        timeout: 20_000,
+      })
+      .catch(() => undefined);
+
+    return response?.ok() ? response.json().catch(() => undefined) : undefined;
+  };
+
+  const [status, portsPayload, processesPayload, diagnostics] = await Promise.all([
+    requestJson('status'),
+    requestJson('ports'),
+    requestJson('processes'),
+    requestJson('diagnostics'),
+  ]);
+  const ports = Array.isArray(portsPayload)
+    ? portsPayload
+    : ((portsPayload as { ports?: RuntimePreviewPort[] } | undefined)?.ports ?? []);
+  const processes = Array.isArray(processesPayload)
+    ? processesPayload
+    : ((processesPayload as { processes?: unknown[] } | undefined)?.processes ?? []);
+  const lifecycle = (diagnostics as { lifecycle?: Array<{ state?: string; reason?: string; at?: string }> } | undefined)
+    ?.lifecycle;
+
+  return {
+    workspaceId: workspace.id,
+    runtimeStatus: (status as { status?: string } | undefined)?.status,
+    ports: ports.map((entry: RuntimePreviewPort) => ({
+      port: entry.port,
+      ready: entry.ready,
+      process: Boolean(entry.processId),
+      notReadyReason: entry.notReadyReason,
+    })),
+    processCount: processes.length,
+    lastLifecycle: lifecycle?.at(-1),
+    postMortemCount: (diagnostics as { postMortems?: unknown[] } | undefined)?.postMortems?.length ?? 0,
+  };
 }
 
 async function waitForProjectToSettle(
@@ -868,6 +1015,7 @@ async function repairGeneratedPreview(
 
 async function waitForPreview(page: Page, evidenceRoot: string, projectId: string, token: string) {
   await assertGeneratedSourcesAreUnwrapped(page, projectId, token);
+  await waitForRuntimeFilesToMatchPersisted(page, projectId, token);
 
   const webviewButton = page.getByRole('button', { name: 'Webview' }).first();
 
@@ -898,6 +1046,8 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
   };
 
   const startPreviewFromTerminal = async () => {
+    const dependencyInstallCommand = 'npm install --include=dev --prefer-offline --no-audit --no-fund';
+    const viteVersionCommand = 'node_modules/.bin/vite --version';
     const terminalTabs = page.getByTestId('terminal-tabs-bar');
     const openedTerminal = !(await terminalTabs.isVisible().catch(() => false));
 
@@ -930,13 +1080,13 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
     await terminalInput.focus();
     await expect(terminalInput).toBeFocused();
 
-    await page.keyboard.type('npm install --no-audit --no-fund');
+    await page.keyboard.type(dependencyInstallCommand);
     await expect
       .poll(() => terminalRows.innerText().catch(() => ''), {
         message: 'The IDE Terminal must echo the dependency installation command before execution',
         timeout: 30_000,
       })
-      .toContain('npm install --no-audit --no-fund');
+      .toContain(dependencyInstallCommand);
     await page.keyboard.press('Enter');
     process.stdout.write(`${JSON.stringify({ status: 'preview-terminal-install-requested' })}\n`);
 
@@ -952,6 +1102,24 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
         timeout: 60_000,
       })
       .toMatch(/[$#]\s*$/m);
+
+    await terminalInput.focus();
+    await expect(terminalInput).toBeFocused();
+    await page.keyboard.type(viteVersionCommand);
+    await page.keyboard.press('Enter');
+    await expect
+      .poll(() => terminalRows.innerText().catch(() => ''), {
+        message: 'The installed project must expose a real Vite executable before Preview starts',
+        timeout: 60_000,
+      })
+      .toMatch(/(?:vite\/|vite\s+v)\d+\.\d+\.\d+/i);
+    await expect
+      .poll(() => terminalRows.innerText().catch(() => ''), {
+        message: 'The IDE Terminal must return after verifying Vite',
+        timeout: 60_000,
+      })
+      .toMatch(/[$#]\s*$/m);
+    process.stdout.write(`${JSON.stringify({ status: 'preview-vite-executable-verified' })}\n`);
 
     await terminalInput.focus();
     await expect(terminalInput).toBeFocused();
@@ -1124,13 +1292,7 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
 
       if (!renderedAfterRefresh) {
         await throwIfVisiblePreviewError();
-        process.stdout.write(`${JSON.stringify({ status: 'preview-final-ide-reload-requested' })}\n`);
-        await page.reload({ waitUntil: 'domcontentloaded', timeout: 180_000 });
-        await expect(webviewButton).toBeVisible({ timeout: 180_000 });
-        await webviewButton.click();
-        await waitForPreviewSurface();
-        await startPreviewIfStopped();
-        await expect(iframe).toBeVisible({ timeout: PREVIEW_RESTART_TIMEOUT_MS });
+        process.stdout.write(`${JSON.stringify({ status: 'preview-final-attach-wait-requested' })}\n`);
 
         const refreshedAfterReloadButton = page.getByRole('button', { name: 'Refresh preview' }).first();
 
@@ -1153,6 +1315,20 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
       animations: 'disabled',
       caret: 'hide',
     });
+
+    const diagnosticSummary = await runtimeDiagnosticSummary(page, projectId, token).catch(() => undefined);
+
+    if (diagnosticSummary) {
+      await writeFile(
+        resolve(evidenceRoot, '02-preview-failed.json'),
+        `${JSON.stringify(diagnosticSummary, null, 2)}\n`,
+        {
+          encoding: 'utf8',
+          mode: 0o600,
+        },
+      );
+      process.stdout.write(`${JSON.stringify({ status: 'preview-failed-diagnostics', ...diagnosticSummary })}\n`);
+    }
 
     const previewStatus = await page
       .getByTestId('preview-not-running-state')
