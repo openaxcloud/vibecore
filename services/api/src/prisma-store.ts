@@ -648,9 +648,43 @@ export class PrismaApiStore implements ApiStore {
       await this.mutateSystemSettingIds(OBJECT_STORAGE_PURGE_FROZEN_KEY, { remove: projectId }).catch(() => undefined);
     }
 
-    await this.prisma.systemSetting
-      .delete({ where: { key: purgePlanKey(guarantee.userId) } })
-      .catch(() => undefined);
+    // A.2: drop the plan ONLY once BOTH freezes are provably lifted (never before),
+    // so a failed thaw leaves the plan for the reconciler — a freeze is never
+    // stranded without a plan pointing at it.
+    await this.deletePurgePlanIfFullyThawed(guarantee.userId, guarantee.orgIds, guarantee.bucketProjectIds);
+  }
+
+  /**
+   * RR-20260804-CODEX-10 A.2: delete a purge plan row ONLY when neither freeze set
+   * still contains ANY of the plan's ids — i.e. both the membership and the
+   * object-storage thaw actually took effect. If either is still present (a thaw
+   * failed, or a process died mid-thaw), the plan is LEFT so the reconciler retries;
+   * the plan is the only durable pointer back to a frozen id, so deleting it early
+   * would strand the freeze forever. Returns whether the plan was deleted.
+   */
+  private async deletePurgePlanIfFullyThawed(
+    userId: string,
+    orgIds: string[],
+    projectIds: string[],
+  ): Promise<boolean> {
+    const settings = await this.listSystemSettings();
+    const idSet = (key: string) => {
+      const value = settings.find((setting) => setting.key === key)?.value;
+
+      return new Set(
+        Array.isArray(value) ? (value as unknown[]).filter((item): item is string => typeof item === 'string') : [],
+      );
+    };
+    const frozenOrgs = idSet(MEMBERSHIP_PURGE_FROZEN_KEY);
+    const frozenProjects = idSet(OBJECT_STORAGE_PURGE_FROZEN_KEY);
+
+    if (orgIds.some((id) => frozenOrgs.has(id)) || projectIds.some((id) => frozenProjects.has(id))) {
+      return false; // a freeze is still up → keep the plan for the reconciler
+    }
+
+    await this.prisma.systemSetting.delete({ where: { key: purgePlanKey(userId) } }).catch(() => undefined);
+
+    return true;
   }
 
   /**
@@ -679,8 +713,14 @@ export class PrismaApiStore implements ApiStore {
         await this.mutateSystemSettingIds(OBJECT_STORAGE_PURGE_FROZEN_KEY, { remove: projectId }).catch(() => undefined);
       }
 
-      await this.prisma.systemSetting.delete({ where: { key: plan.key } }).catch(() => undefined);
-      reconciled += 1;
+      // A.2: only drop the plan once BOTH freezes are provably lifted; otherwise
+      // leave it for the next pass. Never delete a plan while a freeze it owns
+      // is still set (that would strand the freeze).
+      const userId = plan.key.slice(PURGE_PLAN_KEY_PREFIX.length);
+
+      if (await this.deletePurgePlanIfFullyThawed(userId, orgIds, projectIds)) {
+        reconciled += 1;
+      }
     }
 
     return { reconciled };
@@ -781,7 +821,21 @@ export class PrismaApiStore implements ApiStore {
       // (3) finalize.
       return await this.prisma.$transaction(
         async (tx) => {
+        // CANONICAL LOCK ORDER (see acquirePurgeGuarantee): account-purge < membership.
         await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', `account-purge:${userId}`);
+
+        /*
+         * RR-20260804-CODEX-10 A.1: this finalize tx reads the topology (drift
+         * backstop) AND deletes the subject's OrganizationMember rows (the tombstone
+         * below) — a direct write that changes existing orgs' member counts. It MUST
+         * take the SAME membership freeze-set lock addMember/removeMember/the
+         * guarantee take, so it cannot interleave DURING another purge's atomic
+         * read→freeze section and flip an org sole↔shared under that purge's snapshot.
+         */
+        await tx.$executeRawUnsafe(
+          'SELECT pg_advisory_xact_lock(hashtext($1))',
+          `system-setting:${MEMBERSHIP_PURGE_FROZEN_KEY}`,
+        );
 
         const user = await tx.user.findUnique({ where: { id: userId } });
 
