@@ -580,10 +580,30 @@ export class PrismaApiStore implements ApiStore {
    */
   private async acquirePurgeGuarantee(userId: string): Promise<PurgeGuarantee> {
     return this.prisma.$transaction(async (tx) => {
+      // CANONICAL LOCK ORDER (must be identical everywhere to avoid deadlock):
+      //   (1) account-purge:<userId>
+      //   (2) system-setting:membership.purgeFrozenOrgIds   ← BEFORE the topology read
+      //   (3) system-setting:objectStorage.purgeFrozenProjectIds
       await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', `account-purge:${userId}`);
+
+      /*
+       * CODEX-10: take the MEMBERSHIP freeze-set lock BEFORE reading the topology
+       * and hold it through commit. addMember / removeMember synchronise on this
+       * SAME lock, so no member can be added/removed between our read and our
+       * freeze — read + freeze are atomic w.r.t. membership. A mutation that grabbed
+       * the lock first commits before ours and is reflected in the topology (a
+       * now-shared org's bucket is excluded); one arriving after blocks until our
+       * freeze is committed and is then refused. Closes the former read→freeze race.
+       */
+      await tx.$executeRawUnsafe(
+        'SELECT pg_advisory_xact_lock(hashtext($1))',
+        `system-setting:${MEMBERSHIP_PURGE_FROZEN_KEY}`,
+      );
 
       const topology = await this.resolveStorageTopology(tx, userId);
 
+      // Re-acquiring the membership lock inside mutateIdSetInTx is a harmless no-op
+      // (advisory locks stack within a tx); we already hold it from above.
       for (const orgId of topology.orgIds) {
         await this.mutateIdSetInTx(tx, MEMBERSHIP_PURGE_FROZEN_KEY, { add: orgId });
       }

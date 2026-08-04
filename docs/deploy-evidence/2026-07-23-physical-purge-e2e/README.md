@@ -48,6 +48,35 @@ local `kind` cluster satisfies "real k8s" at $0, so no cost sign-off was needed.
 No persistent keys: GCS uses ADC (the reviewer's gcloud login), k8s uses the
 local kind kubeconfig.
 
+## Round 5 — CODEX-10: make the guarantee atomic with the topology read
+
+CODEX-10 found the RR-09 guarantee was NOT atomic with the topology read: the
+order was (1) `account-purge` lock, (2) `resolveStorageTopology`, (3) only THEN
+the `system-setting:membership.purgeFrozenOrgIds` lock + freeze write. But
+`addMember`/`removeMember` synchronise on the freeze-set lock, not `account-purge`
+— so a join could take the freeze-set lock first, commit a new member, and the
+purge's already-read topology was stale → the sole bucket was erased before the
+drift check saw it. Fix in `acquirePurgeGuarantee`:
+
+- **Take the `system-setting:membership.purgeFrozenOrgIds` lock BEFORE
+  `resolveStorageTopology`**, and hold it to commit — so read + freeze are atomic
+  w.r.t. membership. A join that grabbed the lock first commits before ours and is
+  reflected in the topology (its now-shared org's bucket is excluded); one that
+  arrives after blocks until our freeze is committed and is then refused.
+- **Canonical lock order, documented and identical everywhere:**
+  `account-purge:<userId>` < `system-setting:membership.purgeFrozenOrgIds` <
+  `system-setting:objectStorage.purgeFrozenProjectIds`. `addMember`/`removeMember`
+  take only the membership lock; release/reconcile take one lock per separate tx —
+  none can invert the order, so no deadlock.
+
+Proof (real Postgres, `account-purge-db.spec.ts` (11)): a **deterministic**
+concurrent test where connection A grabs the membership freeze-set lock first,
+the purge is confirmed BLOCKED on that lock via `pg_locks` (`NOT granted`) —
+proving it takes the lock before reading topology — then A commits a join and
+releases; the purge then sees the join, EXCLUDES the bucket from `eraseStorage`
+(`bucketProjectIds` ∌ the project), the bucket survives, and no residual freeze
+remains. Green 3/3 repeats.
+
 ## Round 4 — RR-09: guarantee BEFORE the irreversible deletion
 
 RR-09 found the RR-08 drift guard fired too late — AFTER the irreversible GCS/PVC

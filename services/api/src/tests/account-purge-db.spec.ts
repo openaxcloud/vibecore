@@ -532,4 +532,104 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
       await prisma.$disconnect();
     }
   });
+
+  it('(11) CODEX-10: a join in the read→freeze window is reflected in the plan (bucket excluded, never erased)', async () => {
+    const prisma = createDatabaseClient(); // seed + assertions
+    const prismaA = createDatabaseClient(); // the racing mutation: holds the freeze-set lock FIRST
+    const prismaB = createDatabaseClient(); // the purge
+    const prismaC = createDatabaseClient(); // pg_locks poller
+
+    const MEMBERSHIP_LOCK = 'system-setting:membership.purgeFrozenOrgIds';
+
+    try {
+      const store = new PrismaApiStore(prisma);
+      const storeB = new PrismaApiStore(prismaB);
+      const { user, org, project } = await seedAccount(store); // SOLE org + bucket
+      const owner = (await prisma.organizationMember.findFirst({
+        where: { organizationId: org.id, userId: user.id },
+      }))!;
+      const joiner = await store.createUser({
+        email: `race-${suffix()}@example.com`,
+        name: 'Racer',
+        passwordHash: hashPassword('password123'),
+      });
+      await requestElapsedDeletion(store, user.id);
+
+      /*
+       * Connection A grabs the SAME membership freeze-set advisory lock the
+       * guarantee needs, BEFORE the purge starts, then — on signal — adds a member
+       * and commits. This is exactly "a mutation that slipped into the read→freeze
+       * window". Because the guarantee now takes that lock BEFORE reading topology,
+       * the purge blocks until A commits, so A's join is REFLECTED in the topology.
+       */
+      let signalHeld!: () => void;
+      const held = new Promise<void>((resolve) => (signalHeld = resolve));
+      let go!: () => void;
+      const proceed = new Promise<void>((resolve) => (go = resolve));
+
+      const aTx = prismaA.$transaction(
+        async (txA) => {
+          await txA.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', MEMBERSHIP_LOCK);
+          signalHeld();
+          await proceed;
+          await txA.organizationMember.create({
+            data: { organizationId: org.id, userId: joiner.id, roleId: owner.roleId },
+          });
+        },
+        { timeout: 30_000 },
+      );
+
+      await held; // A now holds the freeze-set lock
+
+      let captured: PurgeStorageInventory | undefined;
+      const bPurge = storeB.purgeUserAccount(
+        { userId: user.id },
+        {
+          eraseStorage: async (inv: PurgeStorageInventory) => {
+            captured = inv;
+
+            return { classes: [], verified: true };
+          },
+        },
+      );
+
+      // Wait until the purge is BLOCKED on the membership advisory lock — proving it
+      // takes that lock BEFORE reading topology (the CODEX-10 fix). Without the fix
+      // the purge would read topology first and would NOT block here.
+      let blocked = false;
+
+      for (let i = 0; i < 200 && !blocked; i++) {
+        const rows = (await prismaC.$queryRawUnsafe(
+          `SELECT count(*)::int AS n FROM pg_locks WHERE locktype = 'advisory' AND NOT granted`,
+        )) as Array<{ n: number }>;
+        blocked = (rows[0]?.n ?? 0) >= 1;
+
+        if (!blocked) {
+          await new Promise((resolve) => setTimeout(resolve, 25));
+        }
+      }
+
+      expect(blocked).toBe(true);
+
+      go(); // let A insert the member + commit + release the lock
+      await aTx;
+      const result = await bPurge;
+
+      // The join committed just before the freeze IS reflected: the org is shared
+      // under the guarantee → its bucket is NEVER handed to eraseStorage.
+      expect(result.outcome).toBe('purged');
+      expect(captured!.bucketProjectIds).not.toContain(project.id);
+      expect(await prisma.project.count({ where: { id: project.id } })).toBe(1); // bucket/project survive
+      // No residual freeze after the successful purge.
+      expect(await frozenSet(store, MEMBERSHIP_FROZEN)).not.toContain(org.id);
+      expect(await frozenSet(store, OBJECT_STORAGE_FROZEN)).not.toContain(project.id);
+    } finally {
+      await Promise.allSettled([
+        prisma.$disconnect(),
+        prismaA.$disconnect(),
+        prismaB.$disconnect(),
+        prismaC.$disconnect(),
+      ]);
+    }
+  });
 });
