@@ -1648,6 +1648,23 @@ exports.Prisma.WorkspacePostMortemScalarFieldEnum = {
   capturedAt: 'capturedAt'
 };
 
+exports.Prisma.PurgePlanScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  ownerToken: 'ownerToken',
+  leaseExpiresAt: 'leaseExpiresAt',
+  version: 'version',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PurgeFreezeScalarFieldEnum = {
+  id: 'id',
+  planId: 'planId',
+  resourceType: 'resourceType',
+  resourceId: 'resourceId',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1957,7 +1974,9 @@ exports.Prisma.ModelName = {
   LedgerReconciliationRun: 'LedgerReconciliationRun',
   PreviewReadinessBeacon: 'PreviewReadinessBeacon',
   WorkspaceLifecycleEvent: 'WorkspaceLifecycleEvent',
-  WorkspacePostMortem: 'WorkspacePostMortem'
+  WorkspacePostMortem: 'WorkspacePostMortem',
+  PurgePlan: 'PurgePlan',
+  PurgeFreeze: 'PurgeFreeze'
 };
 
 /**

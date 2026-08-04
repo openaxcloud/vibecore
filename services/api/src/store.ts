@@ -1267,6 +1267,8 @@ export interface ApiStore {
   purgeUserAccount(input: { userId: string; nowMs?: number }, deps?: PurgeStorageDeps): Promise<PurgeUserAccountResult>;
   /** RR-09: release any account-purge freeze left behind by a crashed run. */
   reconcilePurgeFreezes(): Promise<{ reconciled: number }>;
+  /** RR-1bd27929: is this project's object storage frozen by >= 1 in-flight purge? */
+  isObjectStorageProjectPurgeFrozen(projectId: string): Promise<boolean>;
   findUserByEmail(email: string): Promise<UserRecord | undefined>;
   findUserById(id: string): Promise<UserRecord | undefined>;
   /**

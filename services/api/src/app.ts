@@ -7088,9 +7088,6 @@ function createWorkspaceVolumeEraser(): WorkspaceVolumeErasurePort {
   };
 }
 
-/** System-setting key: projects whose object-storage writes are frozen mid-purge. */
-const OBJECT_STORAGE_PURGE_FROZEN_KEY = 'objectStorage.purgeFrozenProjectIds';
-
 /*
  * Workspace write barrier (reserve #1): freeze each of the subject's workspaces
  * BEFORE the erasure — workspace-manager `POST /workspaces/:id/freeze` (revoke
@@ -32059,11 +32056,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * early 403) and the structural write wrapper below (defence in depth for the
    * background thumbnail capturer and any future write path).
    */
-  const isObjectStoragePurgeFrozen = async (projectId: string): Promise<boolean> => {
-    const frozen = (await store.listSystemSettings()).find((s) => s.key === OBJECT_STORAGE_PURGE_FROZEN_KEY)?.value;
-
-    return Array.isArray(frozen) && frozen.includes(projectId);
-  };
+  const isObjectStoragePurgeFrozen = async (projectId: string): Promise<boolean> =>
+    store.isObjectStorageProjectPurgeFrozen(projectId);
 
   /*
    * RAW backend — used ONLY by the account-purge erasure, which must be able to

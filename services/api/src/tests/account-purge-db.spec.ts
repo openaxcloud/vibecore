@@ -348,13 +348,48 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
    * it must be refused.
    */
 
-  const MEMBERSHIP_FROZEN = 'membership.purgeFrozenOrgIds';
-  const OBJECT_STORAGE_FROZEN = 'objectStorage.purgeFrozenProjectIds';
+  const MEMBERSHIP_FREEZE_LOCK = 'purge:membership-freeze';
+  type Db = ReturnType<typeof createDatabaseClient>;
 
-  async function frozenSet(store: PrismaApiStore, key: string): Promise<string[]> {
-    const value = (await store.listSystemSettings()).find((s) => s.key === key)?.value;
+  // RR-1bd27929: a resource is frozen iff >= 1 PurgeFreeze row references it.
+  async function membershipFrozen(prisma: Db, orgId: string): Promise<boolean> {
+    return (await prisma.purgeFreeze.count({ where: { resourceType: 'membership', resourceId: orgId } })) > 0;
+  }
 
-    return Array.isArray(value) ? (value as string[]) : [];
+  async function objectStorageFrozen(prisma: Db, projectId: string): Promise<boolean> {
+    return (await prisma.purgeFreeze.count({ where: { resourceType: 'objectStorage', resourceId: projectId } })) > 0;
+  }
+
+  async function planFor(prisma: Db, userId: string) {
+    return prisma.purgePlan.findFirst({ where: { userId } });
+  }
+
+  // Seed a PurgePlan (+ its PurgeFreeze rows) directly — models a crashed/abandoned
+  // run. `leaseExpiresAt` in the past = reclaimable by the reconciler.
+  async function seedPlan(
+    prisma: Db,
+    userId: string,
+    orgIds: string[],
+    projectIds: string[],
+    opts?: { leaseExpiresAt?: Date; ownerToken?: string },
+  ) {
+    const plan = await prisma.purgePlan.create({
+      data: {
+        userId,
+        ownerToken: opts?.ownerToken ?? `token-${suffix()}`,
+        leaseExpiresAt: opts?.leaseExpiresAt ?? new Date(Date.now() + 30 * 60 * 1000),
+      },
+    });
+    const rows = [
+      ...orgIds.map((id) => ({ planId: plan.id, resourceType: 'membership', resourceId: id })),
+      ...projectIds.map((id) => ({ planId: plan.id, resourceType: 'objectStorage', resourceId: id })),
+    ];
+
+    if (rows.length > 0) {
+      await prisma.purgeFreeze.createMany({ data: rows });
+    }
+
+    return plan;
   }
 
   async function makeShared(store: PrismaApiStore, prisma: ReturnType<typeof createDatabaseClient>, orgId: string, ownerUserId: string) {
@@ -394,8 +429,8 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
       expect(await prisma.project.count({ where: { id: project.id } })).toBe(1);
       expect(await prisma.organization.count({ where: { id: org.id } })).toBe(1);
       // No residual freeze after the successful purge.
-      expect(await frozenSet(store, OBJECT_STORAGE_FROZEN)).not.toContain(project.id);
-      expect(await frozenSet(store, MEMBERSHIP_FROZEN)).not.toContain(org.id);
+      expect(await objectStorageFrozen(prisma, project.id)).toBe(false);
+      expect(await membershipFrozen(prisma, org.id)).toBe(false);
     } finally {
       await prisma.$disconnect();
     }
@@ -483,10 +518,9 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
       );
 
       // RR-09 (6): both freeze sets released, plan cleared — nothing left behind.
-      expect(await frozenSet(store, MEMBERSHIP_FROZEN)).not.toContain(org.id);
-      expect(await frozenSet(store, OBJECT_STORAGE_FROZEN)).not.toContain(project.id);
-      const plan = (await store.listSystemSettings()).find((s) => s.key === `purge.plan.${user.id}`);
-      expect(plan?.value ?? null).toBeNull();
+      expect(await membershipFrozen(prisma, org.id)).toBe(false);
+      expect(await objectStorageFrozen(prisma, project.id)).toBe(false);
+      expect(await planFor(prisma, user.id)).toBeNull();
       // The org is writable again: a member can join now that the freeze is gone.
       const joiner = await store.createUser({
         email: `after-${suffix()}@example.com`,
@@ -506,10 +540,9 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
       const store = new PrismaApiStore(prisma);
       const { user, org, project } = await seedAccount(store);
 
-      // Simulate a crash mid-erasure: a plan + freezes persisted but never released.
-      await store.mutateSystemSettingIds(MEMBERSHIP_FROZEN, { add: org.id });
-      await store.mutateSystemSettingIds(OBJECT_STORAGE_FROZEN, { add: project.id });
-      await store.setSystemSetting({ key: `purge.plan.${user.id}`, value: { orgIds: [org.id], projectIds: [project.id] } });
+      // Simulate a crash mid-erasure: an ABANDONED plan (lease already expired) +
+      // its freeze rows persisted but never released.
+      await seedPlan(prisma, user.id, [org.id], [project.id], { leaseExpiresAt: new Date(Date.now() - 60_000) });
 
       // The org is frozen — a join is refused…
       const joiner = await store.createUser({
@@ -524,9 +557,9 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
       // …until the reconciler releases the stale freeze.
       const { reconciled } = await store.reconcilePurgeFreezes();
       expect(reconciled).toBeGreaterThanOrEqual(1);
-      expect(await frozenSet(store, MEMBERSHIP_FROZEN)).not.toContain(org.id);
-      expect(await frozenSet(store, OBJECT_STORAGE_FROZEN)).not.toContain(project.id);
-      expect((await store.listSystemSettings()).find((s) => s.key === `purge.plan.${user.id}`)).toBeUndefined();
+      expect(await membershipFrozen(prisma, org.id)).toBe(false);
+      expect(await objectStorageFrozen(prisma, project.id)).toBe(false);
+      expect(await planFor(prisma, user.id)).toBeNull();
       await expect(store.addMember({ organizationId: org.id, userId: joiner.id, roleKey: 'member' })).resolves.toBeTruthy();
     } finally {
       await prisma.$disconnect();
@@ -539,7 +572,7 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
     const prismaB = createDatabaseClient(); // the purge
     const prismaC = createDatabaseClient(); // pg_locks poller
 
-    const MEMBERSHIP_LOCK = 'system-setting:membership.purgeFrozenOrgIds';
+    const MEMBERSHIP_LOCK = MEMBERSHIP_FREEZE_LOCK;
 
     try {
       const store = new PrismaApiStore(prisma);
@@ -621,8 +654,8 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
       expect(captured!.bucketProjectIds).not.toContain(project.id);
       expect(await prisma.project.count({ where: { id: project.id } })).toBe(1); // bucket/project survive
       // No residual freeze after the successful purge.
-      expect(await frozenSet(store, MEMBERSHIP_FROZEN)).not.toContain(org.id);
-      expect(await frozenSet(store, OBJECT_STORAGE_FROZEN)).not.toContain(project.id);
+      expect(await membershipFrozen(prisma, org.id)).toBe(false);
+      expect(await objectStorageFrozen(prisma, project.id)).toBe(false);
     } finally {
       await Promise.allSettled([
         prisma.$disconnect(),
@@ -634,15 +667,113 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
   });
 
   /*
-   * RR-20260804-CODEX-10 A.2 — partial-thaw recovery. releasePurgeGuarantee /
-   * reconcilePurgeFreezes must NEVER delete the plan row while a freeze it owns is
-   * still up. The plan is the only durable pointer back to a frozen id, so deleting
-   * it early would strand the freeze forever. The membership/object-storage THAW is
-   * `store.mutateSystemSettingIds(key, { remove })`; we spy it to fail one side and
-   * assert the plan survives + the reconciler recovers.
+   * RR-1bd27929 — MULTI-PLAN SAFETY. Freezes are per-plan rows, so releasing one
+   * plan never lifts a freeze another live plan owns; the reconciler reclaims ONLY
+   * lease-expired plans, via CAS, touching just that plan's rows.
    */
 
-  it('(12) A.2: a FAILED membership thaw keeps the plan (freeze not stranded); reconciler recovers', async () => {
+  it('(15) two plans sharing an org: releasing one keeps the org frozen until the LAST plan releases', async () => {
+    const prisma = createDatabaseClient();
+
+    try {
+      const store = new PrismaApiStore(prisma);
+      const { user, org } = await seedAccount(store);
+      const co = await makeShared(store, prisma, org.id, user.id); // org SHARED (user + co)
+
+      // Plan B: a SECOND concurrent purge (co's), blocked in erase → a live plan
+      // that also freezes this org. Modelled by its persisted plan + freeze row.
+      const planB = await seedPlan(prisma, co.id, [org.id], []);
+
+      // Plan A: user's REAL purge runs to completion (org is shared → no bucket);
+      // its release must delete ONLY plan A's rows.
+      await requestElapsedDeletion(store, user.id);
+      const result = await store.purgeUserAccount(
+        { userId: user.id },
+        { eraseStorage: async () => ({ classes: [], verified: true }) },
+      );
+      expect(result.outcome).toBe('purged');
+
+      // Plan A released, but plan B still freezes the org → STILL frozen.
+      expect(await planFor(prisma, user.id)).toBeNull(); // A gone
+      expect(await membershipFrozen(prisma, org.id)).toBe(true); // B's row remains
+      // …and a join stays REFUSED while >= 1 plan freezes the org.
+      const joiner = await store.createUser({
+        email: `j15-${suffix()}@example.com`,
+        name: 'J15',
+        passwordHash: hashPassword('password123'),
+      });
+      await expect(store.addMember({ organizationId: org.id, userId: joiner.id, roleKey: 'member' })).rejects.toThrow(
+        /MEMBERSHIP_FROZEN_FOR_PURGE/,
+      );
+
+      // The freeze disappears ONLY after the LAST plan (B) releases.
+      await prisma.purgePlan.delete({ where: { id: planB.id } }); // cascade removes B's rows
+      expect(await membershipFrozen(prisma, org.id)).toBe(false);
+      await expect(store.addMember({ organizationId: org.id, userId: joiner.id, roleKey: 'member' })).resolves.toBeTruthy();
+    } finally {
+      await prisma.$disconnect();
+    }
+  });
+
+  it('(16) reconciler NEVER reclaims a live plan (valid lease), even one blocked in erasure', async () => {
+    const prisma = createDatabaseClient();
+
+    try {
+      const store = new PrismaApiStore(prisma);
+      const { user, org, project } = await seedAccount(store);
+
+      // Plan B holds a VALID lease (its owner is blocked in a slow eraseStorage).
+      const planB = await seedPlan(prisma, user.id, [org.id], [project.id], {
+        leaseExpiresAt: new Date(Date.now() + 30 * 60 * 1000),
+      });
+
+      // A different executor runs the reconciler: it must touch NOTHING.
+      const { reconciled } = await store.reconcilePurgeFreezes();
+      expect(reconciled).toBe(0);
+      expect(await prisma.purgePlan.findUnique({ where: { id: planB.id } })).not.toBeNull();
+      expect(await membershipFrozen(prisma, org.id)).toBe(true);
+      expect(await objectStorageFrozen(prisma, project.id)).toBe(true);
+    } finally {
+      await prisma.$disconnect();
+    }
+  });
+
+  it('(17) reconciler reclaims an ABANDONED plan via CAS, releasing ONLY its resources', async () => {
+    const prismaX = createDatabaseClient();
+    const prismaY = createDatabaseClient();
+
+    try {
+      const storeX = new PrismaApiStore(prismaX);
+      const storeY = new PrismaApiStore(prismaY);
+      const { user, org, project } = await seedAccount(storeX);
+      const other = await makeShared(storeX, prismaX, org.id, user.id); // shares org with a live plan
+
+      // Abandoned plan (expired lease) freezing org + project.
+      const abandoned = await seedPlan(prismaX, user.id, [org.id], [project.id], {
+        leaseExpiresAt: new Date(Date.now() - 60_000),
+      });
+      // A concurrent LIVE plan (valid lease) that ALSO freezes the same org.
+      const live = await seedPlan(prismaX, other.id, [org.id], [], {
+        leaseExpiresAt: new Date(Date.now() + 30 * 60 * 1000),
+      });
+
+      // Two executors reconcile concurrently → CAS ensures the abandoned plan is
+      // reclaimed exactly ONCE (never double-reclaimed).
+      const [rx, ry] = await Promise.all([storeX.reconcilePurgeFreezes(), storeY.reconcilePurgeFreezes()]);
+      expect(rx.reconciled + ry.reconciled).toBe(1);
+
+      // The abandoned plan + its OWN rows are gone…
+      expect(await prismaX.purgePlan.findUnique({ where: { id: abandoned.id } })).toBeNull();
+      expect(await objectStorageFrozen(prismaX, project.id)).toBe(false); // was only the abandoned plan's
+      // …but the concurrent LIVE plan is untouched, so the org stays frozen.
+      expect(await prismaX.purgePlan.findUnique({ where: { id: live.id } })).not.toBeNull();
+      expect(await membershipFrozen(prismaX, org.id)).toBe(true);
+    } finally {
+      await Promise.allSettled([prismaX.$disconnect(), prismaY.$disconnect()]);
+    }
+  });
+
+  it('(18) crash between the two thaws keeps the plan recoverable; reprise idempotent; no OTHER plan touched', async () => {
     const prisma = createDatabaseClient();
 
     try {
@@ -650,113 +781,73 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
       const { user, org, project } = await seedAccount(store);
       await requestElapsedDeletion(store, user.id);
 
-      // Fail ONLY the membership REMOVE (thaw); adds + the object-storage remove work.
-      const realMutate = store.mutateSystemSettingIds.bind(store);
-      const spy = vi.spyOn(store, 'mutateSystemSettingIds').mockImplementation(async (key, change) => {
-        if (key === MEMBERSHIP_FROZEN && change.remove) {
-          throw new Error('boom: membership thaw failed');
-        }
-
-        return realMutate(key, change);
+      // A DIFFERENT plan (distinct owner) on other resources — must remain
+      // untouched throughout. Distinct owner so planFor(user.id) resolves only the
+      // crashed purge plan, not this one.
+      const otherUser = await store.createUser({
+        email: `other18-${suffix()}@example.com`,
+        name: 'Other18',
+        passwordHash: hashPassword('password123'),
+      });
+      const otherOrg = await store.createOrganization({
+        name: `Other ${suffix()}`,
+        slug: `other-${suffix()}`,
+        ownerUserId: otherUser.id,
+      });
+      const otherProject = await store.createProject({
+        organizationId: otherOrg.id,
+        name: 'OtherP',
+        slug: `otherp-${suffix()}`,
+      });
+      const otherPlan = await seedPlan(prisma, otherUser.id, [otherOrg.id], [otherProject.id], {
+        leaseExpiresAt: new Date(Date.now() + 30 * 60 * 1000),
       });
 
-      // Physical erase fails → purge throws → finally runs releasePurgeGuarantee.
+      // Crash BETWEEN the two thaws: fail the object-storage thaw (2nd deleteMany).
+      const realDeleteMany = prisma.purgeFreeze.deleteMany.bind(prisma.purgeFreeze);
+      const spy = vi
+        .spyOn(prisma.purgeFreeze, 'deleteMany')
+        .mockImplementation((async (args: Parameters<typeof realDeleteMany>[0]) => {
+          if ((args as { where?: { resourceType?: string } })?.where?.resourceType === 'objectStorage') {
+            throw new Error('boom: object-storage thaw failed');
+          }
+
+          return realDeleteMany(args);
+        }) as typeof realDeleteMany);
+
+      // Physical erase fails → purge throws → release runs and crashes mid-thaw.
       await expect(
         store.purgeUserAccount({ userId: user.id }, { eraseStorage: async () => ({ classes: [], verified: false }) }),
       ).rejects.toThrow(/ACCOUNT_PURGE_PHYSICAL_INCOMPLETE/);
 
-      // The membership thaw failed → membership STILL frozen, object-storage lifted,
-      // and the plan is KEPT (never deleted while a freeze it owns remains).
-      expect(await frozenSet(store, MEMBERSHIP_FROZEN)).toContain(org.id);
-      expect(await frozenSet(store, OBJECT_STORAGE_FROZEN)).not.toContain(project.id);
-      expect((await store.listSystemSettings()).find((s) => s.key === `purge.plan.${user.id}`)?.value ?? null).not.toBeNull();
+      const plan = await planFor(prisma, user.id);
+      // Membership thawed, object-storage still frozen, plan KEPT (recoverable).
+      expect(await membershipFrozen(prisma, org.id)).toBe(false);
+      expect(await objectStorageFrozen(prisma, project.id)).toBe(true);
+      expect(plan).not.toBeNull();
+      // The OTHER plan's freezes are completely untouched.
+      expect(await membershipFrozen(prisma, otherOrg.id)).toBe(true);
+      expect(await objectStorageFrozen(prisma, otherProject.id)).toBe(true);
+      expect(await prisma.purgePlan.findUnique({ where: { id: otherPlan.id } })).not.toBeNull();
 
-      // Recovery: un-spy → the reconciler lifts the membership freeze AND deletes the plan.
+      // Recovery: expire the crashed plan's lease → reconciler reclaims it.
+      await prisma.purgePlan.update({ where: { id: plan!.id }, data: { leaseExpiresAt: new Date(Date.now() - 60_000) } });
+      const r1 = await store.reconcilePurgeFreezes();
+      expect(r1.reconciled).toBeGreaterThanOrEqual(1);
+      expect(await objectStorageFrozen(prisma, project.id)).toBe(false); // zero residual freeze
+      expect(await planFor(prisma, user.id)).toBeNull();
+
+      // Idempotent reprise: a second reconcile changes nothing, and the OTHER plan
+      // (still live) is STILL untouched.
+      const r2 = await store.reconcilePurgeFreezes();
+      expect(r2.reconciled).toBe(0);
+      expect(await prisma.purgePlan.findUnique({ where: { id: otherPlan.id } })).not.toBeNull();
+      expect(await membershipFrozen(prisma, otherOrg.id)).toBe(true);
+
       spy.mockRestore();
-      const { reconciled } = await store.reconcilePurgeFreezes();
-      expect(reconciled).toBeGreaterThanOrEqual(1);
-      expect(await frozenSet(store, MEMBERSHIP_FROZEN)).not.toContain(org.id);
-      expect((await store.listSystemSettings()).find((s) => s.key === `purge.plan.${user.id}`)).toBeUndefined();
     } finally {
       await prisma.$disconnect();
     }
   });
 
-  it('(13) A.2: a crash between the two thaws (object-storage thaw fails) keeps the plan; reconciler recovers', async () => {
-    const prisma = createDatabaseClient();
-
-    try {
-      const store = new PrismaApiStore(prisma);
-      const { user, org, project } = await seedAccount(store);
-      await requestElapsedDeletion(store, user.id);
-
-      // Membership thaw succeeds, then the object-storage thaw fails — i.e. a crash
-      // AFTER the first thaw and BEFORE the second completes.
-      const realMutate = store.mutateSystemSettingIds.bind(store);
-      const spy = vi.spyOn(store, 'mutateSystemSettingIds').mockImplementation(async (key, change) => {
-        if (key === OBJECT_STORAGE_FROZEN && change.remove) {
-          throw new Error('boom: object-storage thaw failed');
-        }
-
-        return realMutate(key, change);
-      });
-
-      await expect(
-        store.purgeUserAccount({ userId: user.id }, { eraseStorage: async () => ({ classes: [], verified: false }) }),
-      ).rejects.toThrow(/ACCOUNT_PURGE_PHYSICAL_INCOMPLETE/);
-
-      // Membership lifted, object-storage STILL frozen, and the plan is KEPT.
-      expect(await frozenSet(store, MEMBERSHIP_FROZEN)).not.toContain(org.id);
-      expect(await frozenSet(store, OBJECT_STORAGE_FROZEN)).toContain(project.id);
-      expect((await store.listSystemSettings()).find((s) => s.key === `purge.plan.${user.id}`)?.value ?? null).not.toBeNull();
-
-      // Recovery: the reconciler lifts the object-storage freeze AND deletes the plan.
-      spy.mockRestore();
-      const { reconciled } = await store.reconcilePurgeFreezes();
-      expect(reconciled).toBeGreaterThanOrEqual(1);
-      expect(await frozenSet(store, OBJECT_STORAGE_FROZEN)).not.toContain(project.id);
-      expect((await store.listSystemSettings()).find((s) => s.key === `purge.plan.${user.id}`)).toBeUndefined();
-    } finally {
-      await prisma.$disconnect();
-    }
-  });
-
-  it('(14) A.2: the reconciler itself never deletes a plan while a thaw fails (retries next pass)', async () => {
-    const prisma = createDatabaseClient();
-
-    try {
-      const store = new PrismaApiStore(prisma);
-      const { user, org, project } = await seedAccount(store);
-
-      // Simulate a crashed run: both freezes + a plan persisted, nothing released.
-      await store.mutateSystemSettingIds(MEMBERSHIP_FROZEN, { add: org.id });
-      await store.mutateSystemSettingIds(OBJECT_STORAGE_FROZEN, { add: project.id });
-      await store.setSystemSetting({ key: `purge.plan.${user.id}`, value: { orgIds: [org.id], projectIds: [project.id] } });
-
-      // Fail the object-storage thaw during reconcile.
-      const realMutate = store.mutateSystemSettingIds.bind(store);
-      const spy = vi.spyOn(store, 'mutateSystemSettingIds').mockImplementation(async (key, change) => {
-        if (key === OBJECT_STORAGE_FROZEN && change.remove) {
-          throw new Error('boom: object-storage thaw failed');
-        }
-
-        return realMutate(key, change);
-      });
-
-      const first = await store.reconcilePurgeFreezes();
-      expect(first.reconciled).toBe(0); // could not fully thaw → plan NOT deleted
-      expect(await frozenSet(store, OBJECT_STORAGE_FROZEN)).toContain(project.id); // still frozen
-      expect((await store.listSystemSettings()).find((s) => s.key === `purge.plan.${user.id}`)?.value ?? null).not.toBeNull();
-
-      // Next pass, thaw works → freeze lifted AND plan deleted.
-      spy.mockRestore();
-      const second = await store.reconcilePurgeFreezes();
-      expect(second.reconciled).toBeGreaterThanOrEqual(1);
-      expect(await frozenSet(store, OBJECT_STORAGE_FROZEN)).not.toContain(project.id);
-      expect(await frozenSet(store, MEMBERSHIP_FROZEN)).not.toContain(org.id);
-      expect((await store.listSystemSettings()).find((s) => s.key === `purge.plan.${user.id}`)).toBeUndefined();
-    } finally {
-      await prisma.$disconnect();
-    }
-  });
 });

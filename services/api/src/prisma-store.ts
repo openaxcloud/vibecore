@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { promises as dnsPromises } from 'node:dns';
 import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
@@ -154,25 +155,32 @@ function storageTopologyFingerprint(topology: {
 }
 
 /*
- * Account-purge topology guarantee (RR-09). Two freeze sets + a per-user plan
- * record form a RECOVERABLE state machine: acquired (membership + object storage
- * frozen, plan recorded) BEFORE the irreversible external GCS/PVC erasure, and
- * released on EVERY exit (success / drift / any throw) so no freeze is ever left
- * behind. A leftover plan (process crashed mid-erasure) is reconciled — its
- * freezes released — at the start of the next purge-executor pass.
- *   - MEMBERSHIP: block sole↔shared flips while the erasure runs (addMember /
- *     removeMember refuse a frozen org), so the deletion only ever touches
- *     buckets that are provably sole under the guarantee.
- *   - OBJECT_STORAGE: MUST match app.ts OBJECT_STORAGE_PURGE_FROZEN_KEY — the
- *     request routes read the same set to refuse writes to a purging project.
+ * Account-purge topology guarantee (RR-09 + RR-1bd27929 per-plan ownership).
+ * Freezes are now DB rows OWNED by a plan, not global id-lists:
+ *   - a PurgePlan row per active purge carries a lease (leaseExpiresAt), an
+ *     ownerToken and a version for CAS reclaim;
+ *   - a PurgeFreeze row (planId, resourceType, resourceId) freezes ONE resource
+ *     for ONE plan. A resource is frozen iff >= 1 PurgeFreeze row references it.
+ * So two purges sharing an org each hold their OWN membership row: releasing one
+ * plan deletes only ITS rows and never lifts a freeze another live plan owns; and
+ * the reconciler reclaims ONLY plans whose lease expired (CAS on version) — never
+ * a live plan. resourceType values: 'membership' (orgId) | 'objectStorage'
+ * (projectId). addMember/removeMember and the object-storage routes refuse while
+ * >= 1 plan freezes the resource.
  */
-const MEMBERSHIP_PURGE_FROZEN_KEY = 'membership.purgeFrozenOrgIds';
-const OBJECT_STORAGE_PURGE_FROZEN_KEY = 'objectStorage.purgeFrozenProjectIds';
-const PURGE_PLAN_KEY_PREFIX = 'purge.plan.';
-const purgePlanKey = (userId: string) => `${PURGE_PLAN_KEY_PREFIX}${userId}`;
+const MEMBERSHIP_RESOURCE = 'membership';
+const OBJECT_STORAGE_RESOURCE = 'objectStorage';
+// Advisory-lock name that serialises the membership guarantee's read→freeze with
+// addMember/removeMember (see CANONICAL LOCK ORDER in acquirePurgeGuarantee).
+const MEMBERSHIP_FREEZE_LOCK = 'purge:membership-freeze';
+// Lease TTL: comfortably exceeds any GCS/PVC erasure, so the reconciler never
+// reclaims a live plan mid-erasure. Abandoned plans self-heal within one TTL.
+const PURGE_LEASE_TTL_MS = 30 * 60 * 1000;
 
 /** The topology-locked plan the external erasure is authorized to act on. */
 interface PurgeGuarantee {
+  planId: string;
+  ownerToken: string;
   userId: string;
   fingerprint: string;
   orgIds: string[];
@@ -539,91 +547,61 @@ export class PrismaApiStore implements ApiStore {
 
   /* ---------------- account-purge topology guarantee (RR-09) ---------------- */
 
-  /** Add/remove an id in a system-setting id-array, using the CALLER's tx. */
-  private async mutateIdSetInTx(
-    tx: Prisma.TransactionClient,
-    key: string,
-    change: { add?: string; remove?: string },
-  ): Promise<void> {
-    await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', `system-setting:${key}`);
-    const existing = await tx.systemSetting.findUnique({ where: { key } });
-    const set = new Set(
-      Array.isArray(existing?.value)
-        ? (existing!.value as unknown[]).filter((item): item is string => typeof item === 'string')
-        : [],
+  /** Is this project's object storage frozen by >= 1 in-flight account purge? */
+  async isObjectStorageProjectPurgeFrozen(projectId: string): Promise<boolean> {
+    return (
+      (await this.prisma.purgeFreeze.count({
+        where: { resourceType: OBJECT_STORAGE_RESOURCE, resourceId: projectId },
+      })) > 0
     );
-
-    if (change.add) {
-      set.add(change.add);
-    }
-
-    if (change.remove) {
-      set.delete(change.remove);
-    }
-
-    const next = [...set];
-    await tx.systemSetting.upsert({
-      where: { key },
-      create: { key, value: next as Prisma.InputJsonValue },
-      update: { value: next as Prisma.InputJsonValue },
-    });
   }
 
   /**
-   * RR-09 (1)(2)(3): acquire the topology GUARANTEE before any external deletion.
-   * In ONE tx under the per-user advisory lock: compute the authoritative
-   * sole/shared topology AND freeze it — membership for every org the subject
-   * belongs to (so no join/leave can flip sole↔shared while the erasure runs) and
-   * object storage for the sole-org buckets we are about to erase — then record a
-   * recoverable plan. Because the read and the freeze are atomic, the erasure that
-   * follows is guaranteed to act only on buckets that are sole under this lock.
+   * RR-09 (1)(2)(3) + RR-1bd27929: acquire the topology GUARANTEE before any
+   * external deletion, as a PLAN that OWNS its freeze rows. In ONE tx:
+   *   CANONICAL LOCK ORDER — account-purge:<userId>  <  MEMBERSHIP_FREEZE_LOCK
+   * both taken BEFORE the topology read (addMember/removeMember and the purge
+   * finalize tombstone take these in the same order — no inversion, no deadlock).
+   * CODEX-10: the membership lock is held from before the read to commit, so the
+   * read and the freeze are atomic w.r.t. membership — a join that grabbed the lock
+   * first commits before ours and is reflected in the topology (a now-shared org's
+   * bucket is excluded); one arriving after blocks until commit and is refused.
+   * Creates a PurgePlan (lease + ownerToken + version for CAS reclaim) and one
+   * PurgeFreeze row per org (membership) and per sole-org bucket (objectStorage),
+   * all OWNED by this plan.
    */
   private async acquirePurgeGuarantee(userId: string): Promise<PurgeGuarantee> {
-    return this.prisma.$transaction(async (tx) => {
-      // CANONICAL LOCK ORDER (must be identical everywhere to avoid deadlock):
-      //   (1) account-purge:<userId>
-      //   (2) system-setting:membership.purgeFrozenOrgIds   ← BEFORE the topology read
-      //   (3) system-setting:objectStorage.purgeFrozenProjectIds
-      await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', `account-purge:${userId}`);
+    const ownerToken = randomUUID();
+    const leaseExpiresAt = new Date(Date.now() + PURGE_LEASE_TTL_MS);
 
-      /*
-       * CODEX-10: take the MEMBERSHIP freeze-set lock BEFORE reading the topology
-       * and hold it through commit. addMember / removeMember synchronise on this
-       * SAME lock, so no member can be added/removed between our read and our
-       * freeze — read + freeze are atomic w.r.t. membership. A mutation that grabbed
-       * the lock first commits before ours and is reflected in the topology (a
-       * now-shared org's bucket is excluded); one arriving after blocks until our
-       * freeze is committed and is then refused. Closes the former read→freeze race.
-       */
-      await tx.$executeRawUnsafe(
-        'SELECT pg_advisory_xact_lock(hashtext($1))',
-        `system-setting:${MEMBERSHIP_PURGE_FROZEN_KEY}`,
-      );
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', `account-purge:${userId}`);
+      await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', MEMBERSHIP_FREEZE_LOCK);
 
       const topology = await this.resolveStorageTopology(tx, userId);
 
-      // Re-acquiring the membership lock inside mutateIdSetInTx is a harmless no-op
-      // (advisory locks stack within a tx); we already hold it from above.
-      for (const orgId of topology.orgIds) {
-        await this.mutateIdSetInTx(tx, MEMBERSHIP_PURGE_FROZEN_KEY, { add: orgId });
-      }
+      const plan = await tx.purgePlan.create({ data: { userId, ownerToken, leaseExpiresAt } });
 
-      for (const projectId of topology.bucketProjectIds) {
-        await this.mutateIdSetInTx(tx, OBJECT_STORAGE_PURGE_FROZEN_KEY, { add: projectId });
-      }
+      const freezeRows = [
+        ...topology.orgIds.map((orgId) => ({
+          planId: plan.id,
+          resourceType: MEMBERSHIP_RESOURCE,
+          resourceId: orgId,
+        })),
+        ...topology.bucketProjectIds.map((projectId) => ({
+          planId: plan.id,
+          resourceType: OBJECT_STORAGE_RESOURCE,
+          resourceId: projectId,
+        })),
+      ];
 
-      await tx.systemSetting.upsert({
-        where: { key: purgePlanKey(userId) },
-        create: {
-          key: purgePlanKey(userId),
-          value: { orgIds: topology.orgIds, projectIds: topology.bucketProjectIds } as Prisma.InputJsonValue,
-        },
-        update: {
-          value: { orgIds: topology.orgIds, projectIds: topology.bucketProjectIds } as Prisma.InputJsonValue,
-        },
-      });
+      if (freezeRows.length > 0) {
+        await tx.purgeFreeze.createMany({ data: freezeRows, skipDuplicates: true });
+      }
 
       return {
+        planId: plan.id,
+        ownerToken,
         userId,
         fingerprint: topology.fingerprint,
         orgIds: topology.orgIds,
@@ -634,116 +612,79 @@ export class PrismaApiStore implements ApiStore {
   }
 
   /**
-   * RR-09 (4)(6): release the guarantee — unfreeze membership + object storage and
-   * clear the plan — GUARANTEED on every exit (success / drift / any throw), so no
-   * freeze is ever left behind. Best-effort per id so one failure can't strand the
-   * rest; the reconciler is the backstop for a process that dies before this runs.
+   * RR-1bd27929: release the guarantee — delete ONLY THIS plan's freeze rows (never
+   * another plan's, so a shared resource stays frozen while another live plan owns
+   * it) then the plan row (CAS on ownerToken). Thaws membership then object storage
+   * as separate steps; if a thaw fails, the plan is LEFT (not deleted) so the
+   * reconciler recovers it via its lease — a freeze is never stranded without a
+   * plan pointing at it. Deleting the plan cascades any remaining freeze rows.
    */
   private async releasePurgeGuarantee(guarantee: PurgeGuarantee): Promise<void> {
-    for (const orgId of guarantee.orgIds) {
-      await this.mutateSystemSettingIds(MEMBERSHIP_PURGE_FROZEN_KEY, { remove: orgId }).catch(() => undefined);
+    try {
+      await this.prisma.purgeFreeze.deleteMany({
+        where: { planId: guarantee.planId, resourceType: MEMBERSHIP_RESOURCE },
+      });
+      await this.prisma.purgeFreeze.deleteMany({
+        where: { planId: guarantee.planId, resourceType: OBJECT_STORAGE_RESOURCE },
+      });
+    } catch {
+      // A thaw failed mid-release → keep the plan (and its remaining rows) for the
+      // reconciler; never delete the plan while a freeze it owns might still be up.
+      return;
     }
 
-    for (const projectId of guarantee.bucketProjectIds) {
-      await this.mutateSystemSettingIds(OBJECT_STORAGE_PURGE_FROZEN_KEY, { remove: projectId }).catch(() => undefined);
-    }
-
-    // A.2: drop the plan ONLY once BOTH freezes are provably lifted (never before),
-    // so a failed thaw leaves the plan for the reconciler — a freeze is never
-    // stranded without a plan pointing at it.
-    await this.deletePurgePlanIfFullyThawed(guarantee.userId, guarantee.orgIds, guarantee.bucketProjectIds);
+    await this.prisma.purgePlan
+      .deleteMany({ where: { id: guarantee.planId, ownerToken: guarantee.ownerToken } })
+      .catch(() => undefined);
   }
 
   /**
-   * RR-20260804-CODEX-10 A.2: delete a purge plan row ONLY when neither freeze set
-   * still contains ANY of the plan's ids — i.e. both the membership and the
-   * object-storage thaw actually took effect. If either is still present (a thaw
-   * failed, or a process died mid-thaw), the plan is LEFT so the reconciler retries;
-   * the plan is the only durable pointer back to a frozen id, so deleting it early
-   * would strand the freeze forever. Returns whether the plan was deleted.
-   */
-  private async deletePurgePlanIfFullyThawed(
-    userId: string,
-    orgIds: string[],
-    projectIds: string[],
-  ): Promise<boolean> {
-    const settings = await this.listSystemSettings();
-    const idSet = (key: string) => {
-      const value = settings.find((setting) => setting.key === key)?.value;
-
-      return new Set(
-        Array.isArray(value) ? (value as unknown[]).filter((item): item is string => typeof item === 'string') : [],
-      );
-    };
-    const frozenOrgs = idSet(MEMBERSHIP_PURGE_FROZEN_KEY);
-    const frozenProjects = idSet(OBJECT_STORAGE_PURGE_FROZEN_KEY);
-
-    if (orgIds.some((id) => frozenOrgs.has(id)) || projectIds.some((id) => frozenProjects.has(id))) {
-      return false; // a freeze is still up → keep the plan for the reconciler
-    }
-
-    await this.prisma.systemSetting.delete({ where: { key: purgePlanKey(userId) } }).catch(() => undefined);
-
-    return true;
-  }
-
-  /**
-   * RR-09 (4): recover from a crash. Any purge plan still present at the start of a
-   * purge-executor pass belongs to a run that died before releasing — release its
-   * freezes so a legitimate org/project is never left frozen forever. The current
-   * pass re-acquires a fresh guarantee for any user still ready_to_purge.
+   * RR-1bd27929: recover ABANDONED plans only. Reclaims a plan ONLY when its lease
+   * has EXPIRED (a live plan — valid lease — is never touched, even one blocked in
+   * a slow erasure), and via CAS on `version` so two concurrent reconcilers (or a
+   * late owner) can't double-reclaim. Deletes ONLY the reclaimed plan's own freeze
+   * rows — never a concurrent plan's.
    */
   async reconcilePurgeFreezes(): Promise<{ reconciled: number }> {
-    const settings = await this.listSystemSettings();
-    const plans = settings.filter((setting) => setting.key.startsWith(PURGE_PLAN_KEY_PREFIX));
+    const now = new Date();
+    const expired = await this.prisma.purgePlan.findMany({ where: { leaseExpiresAt: { lt: now } } });
     let reconciled = 0;
 
-    for (const plan of plans) {
-      const value = (plan.value ?? {}) as { orgIds?: unknown; projectIds?: unknown };
-      const orgIds = Array.isArray(value.orgIds) ? value.orgIds.filter((id): id is string => typeof id === 'string') : [];
-      const projectIds = Array.isArray(value.projectIds)
-        ? value.projectIds.filter((id): id is string => typeof id === 'string')
-        : [];
+    for (const plan of expired) {
+      // CAS: only the reconciler that wins the version bump owns the reclaim.
+      const won = await this.prisma.purgePlan.updateMany({
+        where: { id: plan.id, version: plan.version, leaseExpiresAt: { lt: now } },
+        data: { version: { increment: 1 } },
+      });
 
-      for (const orgId of orgIds) {
-        await this.mutateSystemSettingIds(MEMBERSHIP_PURGE_FROZEN_KEY, { remove: orgId }).catch(() => undefined);
+      if (won.count === 0) {
+        continue; // lost the race, or the plan was renewed / already removed
       }
 
-      for (const projectId of projectIds) {
-        await this.mutateSystemSettingIds(OBJECT_STORAGE_PURGE_FROZEN_KEY, { remove: projectId }).catch(() => undefined);
-      }
-
-      // A.2: only drop the plan once BOTH freezes are provably lifted; otherwise
-      // leave it for the next pass. Never delete a plan while a freeze it owns
-      // is still set (that would strand the freeze).
-      const userId = plan.key.slice(PURGE_PLAN_KEY_PREFIX.length);
-
-      if (await this.deletePurgePlanIfFullyThawed(userId, orgIds, projectIds)) {
-        reconciled += 1;
-      }
+      await this.prisma.purgeFreeze.deleteMany({ where: { planId: plan.id } }).catch(() => undefined);
+      await this.prisma.purgePlan.deleteMany({ where: { id: plan.id } }).catch(() => undefined);
+      reconciled += 1;
     }
 
     return { reconciled };
   }
 
   /**
-   * RR-09 (2): refuse a membership mutation for an org whose membership is frozen
-   * by an in-flight account purge. Takes the same advisory lock the guarantee uses
-   * to write the freeze set, so a mutation either serializes BEFORE the freeze
-   * (and is then reflected in the guarantee's topology) or sees it and is refused
-   * — never interleaving to flip sole↔shared mid-erasure. Call inside the caller's tx.
+   * RR-09 (2) + RR-1bd27929: refuse a membership mutation while >= 1 plan freezes
+   * this org. Takes the MEMBERSHIP_FREEZE_LOCK the guarantee holds, so a mutation
+   * either serialises BEFORE the guarantee's read (and is reflected in its
+   * topology) or sees the freeze row and is refused — never interleaving to flip
+   * sole↔shared mid-erasure. The org stays refused while ANY plan freezes it (so
+   * releasing one of two sharing plans does not re-open it). Call inside the
+   * caller's tx.
    */
   private async assertOrgMembershipNotPurgeFrozen(tx: Prisma.TransactionClient, organizationId: string): Promise<void> {
-    await tx.$executeRawUnsafe(
-      'SELECT pg_advisory_xact_lock(hashtext($1))',
-      `system-setting:${MEMBERSHIP_PURGE_FROZEN_KEY}`,
-    );
-    const existing = await tx.systemSetting.findUnique({ where: { key: MEMBERSHIP_PURGE_FROZEN_KEY } });
-    const frozen = Array.isArray(existing?.value)
-      ? (existing!.value as unknown[]).filter((item): item is string => typeof item === 'string')
-      : [];
+    await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', MEMBERSHIP_FREEZE_LOCK);
+    const frozen = await tx.purgeFreeze.count({
+      where: { resourceType: MEMBERSHIP_RESOURCE, resourceId: organizationId },
+    });
 
-    if (frozen.includes(organizationId)) {
+    if (frozen > 0) {
       throw new Error(
         `MEMBERSHIP_FROZEN_FOR_PURGE: organization ${organizationId} membership is frozen during an account purge`,
       );
@@ -832,10 +773,7 @@ export class PrismaApiStore implements ApiStore {
          * guarantee take, so it cannot interleave DURING another purge's atomic
          * read→freeze section and flip an org sole↔shared under that purge's snapshot.
          */
-        await tx.$executeRawUnsafe(
-          'SELECT pg_advisory_xact_lock(hashtext($1))',
-          `system-setting:${MEMBERSHIP_PURGE_FROZEN_KEY}`,
-        );
+        await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', MEMBERSHIP_FREEZE_LOCK);
 
         const user = await tx.user.findUnique({ where: { id: userId } });
 
