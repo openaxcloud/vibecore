@@ -31,6 +31,8 @@ import {
   StripeBillingClient,
   assertQuota,
   assertConcurrentPublishedApps,
+  assertPublishedAppEntitlement,
+  EntitlementError,
   aiModelCatalog,
   availableMachineSizes,
   machineSizeFromCard,
@@ -32088,16 +32090,44 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     /*
-     * Replit-parity concurrent published-app cap (20 live apps/account). Gated
-     * with the rest of the credit model behind BILLING_CREDITS_ENABLED so prod
-     * behaviour is unchanged until the parity billing model is flipped on. We
-     * exclude this project from the count, so re-publishing an already-published
-     * app never trips its own cap — only publishing a NEW (21st) app does.
+     * Cap d'applications publiées, PAR PLAN (EX-05).
+     *
+     * Deux corrections par rapport à l'état précédent :
+     *  - le cap était plan-INDÉPENDANT (20 pour tout le monde) alors que l'offre
+     *    Starter annonce « 1 app publiée » : un compte gratuit pouvait en publier
+     *    20 ;
+     *  - il était derrière `BILLING_CREDITS_ENABLED`, non défini en production —
+     *    donc jamais exécuté. Un entitlement décrit l'OFFRE, pas le modèle de
+     *    facturation à l'usage : il ne doit pas dépendre de ce flag.
+     *
+     * On exclut ce projet du compte : republier une app déjà en ligne ne doit
+     * jamais déclencher son propre cap.
      */
+    const activeOthers = await store.countPublishedApps(project.organizationId, {
+      excludeProjectId: project.id,
+    });
+    const entitlementPlanKey = (await billingState(project.organizationId).catch(() => undefined))?.plan.key;
+
+    try {
+      assertPublishedAppEntitlement({ planKey: entitlementPlanKey, active: activeOthers });
+    } catch (error) {
+      if (error instanceof EntitlementError) {
+        await audit(request, store, {
+          organizationId: project.organizationId,
+          action: 'entitlement.refused',
+          resourceType: 'deployment',
+          resourceId: deploymentId,
+          metadata: { code: error.code, ...error.details },
+        });
+
+        return reply.code(error.statusCode).send({ error: error.message, code: error.code, ...error.details });
+      }
+
+      throw error;
+    }
+
+    // Borne dure tous plans confondus (20 apps concurrentes), conservée telle quelle.
     if (process.env.BILLING_CREDITS_ENABLED === 'true') {
-      const activeOthers = await store.countPublishedApps(project.organizationId, {
-        excludeProjectId: project.id,
-      });
       assertConcurrentPublishedApps({ active: activeOthers });
     }
 
