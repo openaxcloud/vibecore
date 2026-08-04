@@ -332,6 +332,22 @@ export class TestApiStore implements ApiStore {
     return { reconciled: 0 };
   }
 
+  /** RR-1bd27929: in-memory object-storage purge-freeze set (route-test only). */
+  private readonly objectStoragePurgeFrozen = new Set<string>();
+
+  async isObjectStorageProjectPurgeFrozen(projectId: string): Promise<boolean> {
+    return this.objectStoragePurgeFrozen.has(projectId);
+  }
+
+  /** Test helper: simulate a purge freezing / thawing a project's object storage. */
+  setObjectStoragePurgeFrozen(projectId: string, frozen: boolean): void {
+    if (frozen) {
+      this.objectStoragePurgeFrozen.add(projectId);
+    } else {
+      this.objectStoragePurgeFrozen.delete(projectId);
+    }
+  }
+
   async purgeUserAccount(
     input: { userId: string; nowMs?: number },
     deps?: PurgeStorageDeps,

@@ -48,6 +48,40 @@ local `kind` cluster satisfies "real k8s" at $0, so no cost sign-off was needed.
 No persistent keys: GCS uses ADC (the reviewer's gcloud login), k8s uses the
 local kind kubeconfig.
 
+## Round 7 — RR-1bd27929: PER-PLAN ownership (multi-plan safety)
+
+The reviewer found a real hole in the freeze model: freezes were GLOBAL id-lists,
+so two concurrent purges sharing an org/project could not tell whose freeze was
+whose — releasing plan A lifted a freeze plan B still needed. Replaced the
+system-setting id-lists with an OWNERSHIP model (migration `0083_purge_plan_ownership`):
+
+- **`PurgePlan`** — one row per active purge, with `ownerToken`, `leaseExpiresAt`
+  and `version` (for CAS reclaim).
+- **`PurgeFreeze`** — one row per `(resourceType, resourceId, planId)` (unique),
+  so each frozen resource is OWNED by exactly one plan. A resource is frozen iff
+  **≥ 1** PurgeFreeze row references it.
+
+Guarantees now hold by construction:
+- **Release** deletes ONLY the plan's own freeze rows → a shared org stays frozen
+  while another live plan owns it; `addMember`/`removeMember` refuse while ≥ 1 plan
+  freezes the org.
+- **Reconciler** reclaims ONLY plans whose **lease has EXPIRED**, via **CAS on
+  `version`** (a live plan — even one blocked in a slow erasure — is never touched,
+  and two concurrent reconcilers can't double-reclaim). It deletes only the
+  reclaimed plan's rows, never a concurrent plan's.
+- The object-storage route guard now asks the store `isObjectStorageProjectPurgeFrozen`
+  (count of PurgeFreeze rows), not a global list.
+
+Proof (real Postgres, `account-purge-db.spec.ts`, all deterministic):
+- **(15)** two plans share an org; one releases (real release path) → org STAYS
+  frozen (addMember still refused) until the LAST plan releases.
+- **(16)** reconciler never reclaims a live plan (valid lease), even blocked in erasure.
+- **(17)** reconciler reclaims an ABANDONED plan (expired lease) via CAS (two
+  concurrent reconcilers → reclaimed exactly once), releasing ONLY its resources —
+  a concurrent live plan's freeze on the same org is untouched.
+- **(18)** crash between the two thaws → plan kept recoverable, reprise idempotent,
+  zero residual freeze after reconcile, and NO other plan's freeze removed.
+
 ## Round 6 — CODEX-10 REVIEW_BLOCKED: two deep audits (both found real holes)
 
 **A.1 — global scan of every OrganizationMember mutation path.** Repo-wide there

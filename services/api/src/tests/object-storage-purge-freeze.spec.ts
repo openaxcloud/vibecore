@@ -19,7 +19,6 @@ class QuietEmailProvider implements EmailProvider {
 }
 
 const SECRET = 'unit-object-storage-freeze-secret';
-const OBJECT_STORAGE_PURGE_FROZEN_KEY = 'objectStorage.purgeFrozenProjectIds';
 
 /** Fake ObjectStorage so the routes never touch real GCS. */
 const fakeStorage = {
@@ -121,8 +120,8 @@ describe('object-storage routes — purge freeze barrier', () => {
     expect(before.statusCode).toBe(200);
     expect(before.json().url).toBe('https://signed/put');
 
-    // Freeze the project (what the account-purge write barrier does).
-    await store.mutateSystemSettingIds(OBJECT_STORAGE_PURGE_FROZEN_KEY, { add: project.id });
+    // Freeze the project (what the account-purge guarantee does: a PurgeFreeze row).
+    store.setObjectStoragePurgeFrozen(project.id, true);
 
     const blocked = await app.inject({
       method: 'POST',
@@ -134,7 +133,7 @@ describe('object-storage routes — purge freeze barrier', () => {
     expect(blocked.json().code).toBe('OBJECT_STORAGE_PURGE_FROZEN');
 
     // Unfreeze → the route works again (the block is conditional, not a wall).
-    await store.mutateSystemSettingIds(OBJECT_STORAGE_PURGE_FROZEN_KEY, { remove: project.id });
+    store.setObjectStoragePurgeFrozen(project.id, false);
     const after = await app.inject({
       method: 'POST',
       url: `/projects/${project.id}/thumbnail/upload-url`,
@@ -146,7 +145,7 @@ describe('object-storage routes — purge freeze barrier', () => {
 
   it('a frozen project blocks the generic upload-url write too, but still allows reads', async () => {
     const { app, store, project, token } = await setup();
-    await store.mutateSystemSettingIds(OBJECT_STORAGE_PURGE_FROZEN_KEY, { add: project.id });
+    store.setObjectStoragePurgeFrozen(project.id, true);
 
     // Write path → 403.
     const upload = await app.inject({

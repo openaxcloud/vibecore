@@ -2750,3 +2750,38 @@ model WorkspacePostMortem {
 
   @@index([workspaceId, capturedAt])
 }
+
+// RR-1bd27929 — PER-PLAN ownership of account-purge freezes (§16.12). The old
+// model used GLOBAL id-lists, so two concurrent purges sharing an org/project could
+// not tell whose freeze was whose: releasing plan A lifted a freeze plan B still
+// needed. Now each active purge holds a PurgePlan (lease + ownerToken + version for
+// CAS reclaim) and each frozen resource is a PurgeFreeze row OWNED by exactly one
+// plan. A resource is frozen iff >= 1 PurgeFreeze row references it, so releasing
+// one plan only deletes ITS rows and never lifts a freeze another live plan owns.
+// The reconciler reclaims ONLY plans whose lease has expired, via CAS on version —
+// it never touches a live plan.
+model PurgePlan {
+  id             String        @id @default(cuid())
+  userId         String
+  ownerToken     String
+  leaseExpiresAt DateTime
+  version        Int           @default(0)
+  createdAt      DateTime      @default(now())
+  freezes        PurgeFreeze[]
+
+  @@index([userId])
+  @@index([leaseExpiresAt])
+}
+
+model PurgeFreeze {
+  id           String    @id @default(cuid())
+  planId       String
+  resourceType String
+  resourceId   String
+  createdAt    DateTime  @default(now())
+  plan         PurgePlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([resourceType, resourceId, planId])
+  @@index([resourceType, resourceId])
+  @@index([planId])
+}
