@@ -3511,7 +3511,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      * "Error runtime … 500" in Problems and a stuck PENDING/Error status after the
      * preview has already come up. If the runtime errors again the store re-sets it.
      */
-    const previewPortLive = runtimePorts.some((port) => port.ready === true || Boolean(port.url));
+    /*
+     * Must stay identical to `hasLivePreviewPort`: a URL is stamped on EVERY port
+     * the API reports, so the old `|| Boolean(port.url)` made this vacuously true
+     * and wiped genuine runtime errors out of Problems the moment any port existed
+     * (SOLUTIONS_REAL_PROOF_BLOCKERS.md §5).
+     */
+    const previewPortLive = hasLivePreviewPort(runtimePorts);
     useEffect(() => {
       /*
        * Re-run on workspaceError too: a transient 500 can be re-set AFTER the port

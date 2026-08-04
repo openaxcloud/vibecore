@@ -666,6 +666,9 @@ model Workspace {
   ports            WorkspacePort[]
   snapshots        FileSnapshot[]
   ideState         WorkspaceIdeState?
+  readinessBeacons PreviewReadinessBeacon[]
+  lifecycleEvents  WorkspaceLifecycleEvent[]
+  postMortems      WorkspacePostMortem[]
 
   @@index([projectId])
 }
@@ -2475,6 +2478,15 @@ model GalleryListing {
   /// Version of the PII-sharing consent the AUTHOR explicitly gave at curation
   /// (data ships unmasked). Null = no consent → PII is masked on every remix.
   piiConsentVersion String?
+  /// TRACE AUDITABLE des confirmations exigées pour rendre un listing remixable
+  /// (P0-V3-05, réserve #8). Avant la migration 0081 elles étaient validées à la
+  /// curation puis JAMAIS écrites : la confirmation des droits par le curateur
+  /// était inauditable a posteriori. Horodatage + acteur (userId de l'admin qui
+  /// a curé). Null = jamais confirmé.
+  rightsConfirmedAt DateTime?
+  rightsConfirmedBy String?
+  piiPolicyAcceptedAt DateTime?
+  piiPolicyAcceptedBy String?
   viewCount        Int       @default(0)
   useCount         Int       @default(0)
   createdAt        DateTime  @default(now())
@@ -2635,4 +2647,59 @@ model LedgerReconciliationRun {
   metadata         Json?
 
   @@index([source, runAt])
+}
+
+// BLOCKER #5 — honest preview readiness. The in-preview reporter script detects a
+// blank DOM / console error the server can never see and beacons it. Persisting
+// it (vs the old fire-and-forget log) lets `/ports` readiness be honest across
+// API replicas: a fresh blank/error beacon vetoes `ready` even when the port
+// probe passed. `status`: 'ok' | 'blank' | 'error'. One row per (workspace,port),
+// upserted; readiness only honours beacons newer than a short TTL.
+model PreviewReadinessBeacon {
+  id          String    @id @default(cuid())
+  workspaceId String
+  port        Int
+  status      String
+  detail      String?
+  reportedAt  DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, port])
+  @@index([workspaceId])
+}
+
+// BLOCKER #6 — timestamped workspace lifecycle machine. Append-only trail of
+// PENDING->STARTING->RUNNING->STOPPING->STOPPED/FAILED transitions so a workspace
+// that died can be reconstructed after the fact (vs Workspace.status, a single
+// overwritten value). `state` is a WorkspaceLifecycleState; transitions are
+// validated by assertWorkspaceLifecycleTransition before write.
+model WorkspaceLifecycleEvent {
+  id          String    @id @default(cuid())
+  workspaceId String
+  state       String
+  reason      String?
+  detail      Json?
+  at          DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, at])
+}
+
+// BLOCKER #6 — post-mortem snapshot captured when a workspace stops/fails: the
+// last-known ports, processes, Problems (beacons/diagnostics) and a tail of the
+// runtime logs, frozen at shutdown. Append-only (one per stop), so a support
+// operator can see WHY a preview was blank/dead after the pod is gone.
+model WorkspacePostMortem {
+  id          String    @id @default(cuid())
+  workspaceId String
+  reason      String
+  finalState  String
+  ports       Json?
+  processes   Json?
+  problems    Json?
+  logsTail    String?
+  capturedAt  DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, capturedAt])
 }
