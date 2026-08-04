@@ -350,6 +350,16 @@ import {
 import { publicMachineSizeError } from './rate-card-public.js';
 import { resolveRollbackImage, resolveRollbackSecrets, type SecretPolicy } from './release-rollback.js';
 import {
+  ACCESS_GATE_CSP,
+  ACCESS_TOKEN_TTL_MS,
+  accessConfigFromMetadata,
+  accessCookieName,
+  accessGateHtml,
+  computeAccessToken,
+  deriveDeploymentAccessSecret,
+  isAccessTokenValid,
+} from './deployment-access.js';
+import {
   assertArtifactMatchesManifest,
   configDigest,
   RollbackManifestError,
@@ -1976,6 +1986,39 @@ function chatShareTokenSecret() {
   }
 
   return secret;
+}
+
+/*
+ * SEC-6: the HMAC key(s) for deployment password-unlock cookies. A DEDICATED,
+ * rotatable key — never the generic share/JWT/cookie secret used directly:
+ *  - explicit DEPLOYMENT_ACCESS_TOKEN_SECRET (+ _OLD for zero-downtime rotation)
+ *    wins when set (mint with the primary, still accept _OLD);
+ *  - otherwise derive a domain-separated key from a base platform secret, so the
+ *    deployment-access key is DISTINCT material from every other use of that base
+ *    (a deployment cookie can't forge a share/session token, or vice-versa).
+ * Verification accepts every returned secret (rotation); minting uses the first.
+ */
+function deploymentAccessTokenSecrets(): string[] {
+  const explicit = [
+    process.env.DEPLOYMENT_ACCESS_TOKEN_SECRET,
+    process.env.DEPLOYMENT_ACCESS_TOKEN_SECRET_OLD,
+  ].filter((value): value is string => typeof value === 'string' && value.length > 0);
+
+  if (explicit.length > 0) {
+    return explicit;
+  }
+
+  const base = process.env.SHARE_LINK_SECRET ?? process.env.JWT_SECRET ?? process.env.COOKIE_SECRET;
+
+  if (base) {
+    return [deriveDeploymentAccessSecret(base)];
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('No deployment-access HMAC secret (DEPLOYMENT_ACCESS_TOKEN_SECRET or a base secret) configured');
+  }
+
+  return [deriveDeploymentAccessSecret('dev')];
 }
 
 function signChatShareToken(raw: string) {
@@ -8824,6 +8867,63 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * Security: every requested path is resolved via path.resolve and must
    * stay strictly inside the snapshot directory; anything that would
    * escape (../, absolute paths, symlinks pointing outside) returns 403.
+   * P104: the password gate. A visitor POSTs the deployment password here; on a
+   * match we set the deterministic access cookie (proof-of-password) that the
+   * serve route checks. Public (no session) — a deployment is visited by anyone
+   * with the password. Wrong/absent password ⇒ 401, never a cookie.
+   */
+  app.post('/static-deployments/:deploymentId/__access', async (request, reply) => {
+    const deploymentId = ((request.params as { deploymentId?: string }).deploymentId ?? '').trim();
+
+    if (!/^[A-Za-z0-9_-]{1,80}$/.test(deploymentId)) {
+      return reply.code(400).send({ error: 'Invalid deployment id', code: 'STATIC_DEPLOY_INVALID_ID' });
+    }
+
+    const body = (request.body ?? {}) as { password?: unknown };
+    const password = typeof body.password === 'string' ? body.password : '';
+
+    const ownerStatus = await store.getDeploymentOwnerStatus(deploymentId);
+
+    if (!ownerStatus || ownerStatus.projectDeletedAt || ownerStatus.status === 'CANCELED') {
+      return reply.code(404).send({ error: 'Static deployment artifact not found', code: 'STATIC_DEPLOY_ARTIFACT_NOT_FOUND' });
+    }
+
+    // Every response on this credential-checking route is per-request: never cache.
+    reply.header('cache-control', 'private, no-store, max-age=0');
+
+    const access = accessConfigFromMetadata(ownerStatus.metadata);
+
+    // SEC-1: a gated deployment with a missing/corrupt hash is LOCKED — it cannot
+    // be unlocked (there is no valid password to match), and must never open.
+    if (access.mode === 'locked') {
+      return reply.code(503).send({ error: 'This deployment is locked.', code: 'DEPLOYMENT_ACCESS_LOCKED' });
+    }
+
+    // Not gated: nothing to unlock. Report OK so a stale gate form degrades gracefully.
+    if (access.mode !== 'password' || !access.passwordHash) {
+      return reply.code(200).send({ ok: true, gated: false });
+    }
+
+    if (!password || !verifyPassword(password, access.passwordHash)) {
+      return reply.code(401).send({ error: 'Incorrect password', code: 'DEPLOYMENT_PASSWORD_INCORRECT' });
+    }
+
+    // SEC-5/6: an EXPIRING token (server-verified) signed with the DEDICATED key.
+    const expiresAtMs = Date.now() + ACCESS_TOKEN_TTL_MS;
+    const token = computeAccessToken(deploymentAccessTokenSecrets()[0], deploymentId, access.passwordHash, expiresAtMs);
+
+    reply.setCookie(accessCookieName(deploymentId), token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: Math.floor(ACCESS_TOKEN_TTL_MS / 1000),
+    });
+
+    return reply.code(200).send({ ok: true, gated: true });
+  });
+
+  /*
    * SPA routes (anything that does not resolve to a real file) fall back
    * to index.html so client-side routers work.
    */
@@ -8927,6 +9027,60 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * retirée — republier crée une nouvelle publication. Sans ce gate, le
      * produit annonçait une extinction qui n'avait jamais lieu.
      */
+    const access = accessConfigFromMetadata(ownerStatus.metadata);
+    const gated = access.mode !== 'public';
+
+    /*
+     * SEC-2/3: a gated deployment's bytes must NEVER be cached by a shared
+     * proxy/CDN and re-served to another visitor. Apply no-store to EVERY response
+     * for a gated deployment — the gate page, the 401/404/403 errors, and the
+     * authorized 200 (see the success path below, which no longer sets `public`).
+     * `Vary: Cookie` additionally keys any cache on the unlock cookie.
+     */
+    if (gated) {
+      reply.header('cache-control', 'private, no-store, max-age=0, must-revalidate');
+      reply.header('vary', 'Cookie');
+      reply.header('pragma', 'no-cache');
+    }
+
+    // SEC-1: a locked deployment (password mode, hash gone) serves nothing.
+    if (access.mode === 'locked') {
+      return reply.code(503).send({ error: 'This deployment is locked.', code: 'DEPLOYMENT_ACCESS_LOCKED' });
+    }
+
+    if (access.mode === 'password' && access.passwordHash) {
+      const provided = request.cookies?.[accessCookieName(deploymentId)];
+
+      // SEC-5/6: verify the cookie's signature (dedicated, rotatable key) AND its
+      // server-embedded expiry — a forged or EXPIRED token is refused here.
+      if (!isAccessTokenValid(deploymentAccessTokenSecrets(), deploymentId, access.passwordHash, provided)) {
+        if ((request.headers.accept ?? '').includes('text/html')) {
+          return reply
+            .code(401)
+            .header('content-security-policy', ACCESS_GATE_CSP)
+            .type('text/html; charset=utf-8')
+            .send(accessGateHtml());
+        }
+
+        return reply.code(401).send({ error: 'Password required', code: 'DEPLOYMENT_PASSWORD_REQUIRED' });
+      }
+    }
+
+    /*
+     * REBASE MERGE (P104 × published-deployment expiry).
+     *
+     * `main` grew an expiry check here while P104 was reverted out of the tree, so
+     * the two landed on the same lines. Both are kept, and the ORDER is a security
+     * decision, not an accident: the access gate above runs FIRST, so an anonymous
+     * visitor without the password gets 401 and learns nothing — not even whether
+     * the deployment exists and expired. Putting the 410 first would answer
+     * "expired" to anyone who asks, which is a (small) disclosure about a
+     * password-protected resource.
+     *
+     * Public deployments are unaffected: the gate is a no-op for them, so they
+     * still get the honest 410 exactly as `main` intends. A gated deployment
+     * returns 410 only to a visitor who has already proven the password.
+     */
     if (
       publishedDeploymentExpired({
         planKey: ownerStatus.planKey,
@@ -9016,8 +9170,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * Stream the (realpath-validated) artifact instead of buffering the whole
      * file into memory — this is a public, unauthenticated route serving
      * attacker-controlled build output, so a full read amplifies memory use.
+     *
+     * SEC-2/3: only a PUBLIC deployment may be cached by shared proxies. A gated
+     * one already carries `private, no-store` + `Vary: Cookie` (set above) and
+     * must NOT be downgraded to `public` here — that was the cache-poisoning hole
+     * (an authorized fetch cached and replayed to anonymous visitors).
      */
-    reply.header('cache-control', 'public, max-age=60, must-revalidate');
+    if (!gated) {
+      reply.header('cache-control', 'public, max-age=60, must-revalidate');
+    }
     reply.header('x-vibecore-static-deployment', deploymentId);
 
     /*
@@ -9052,7 +9213,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.headers['x-forwarded-host'] as string | undefined,
     );
 
-    if (dedicatedOrigin && !onDedicatedHost) {
+    /*
+     * P104: a password-protected deployment is served + gated ENTIRELY on the API
+     * origin. Redirecting to the dedicated `s-<id>` origin would split the gate
+     * (the access cookie is host-scoped, and the /__access POST is not reachable
+     * through the dedicated origin's proxy), so the visitor could never unlock it.
+     * The dedicated origin exists to give PUBLIC storage-using SPAs a same-origin
+     * sandbox; a gated app trades that for a working password flow (its localStorage
+     * stays opaque on the API origin — an accepted limitation behind a password).
+     */
+    if (dedicatedOrigin && !onDedicatedHost && access.mode === 'public') {
       const search = request.url.includes('?') ? request.url.slice(request.url.indexOf('?')) : '';
 
       return reply.redirect(`${dedicatedOrigin}/${normalizedRequest}${search}`, 302);
