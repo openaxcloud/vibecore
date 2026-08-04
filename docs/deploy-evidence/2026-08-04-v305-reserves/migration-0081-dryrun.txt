@@ -1,0 +1,18 @@
+# Sûreté prod de la migration 0081 — DRY-RUN exécuté sur la BASE DE PROD (lecture seule)
+# 2026-08-04, pod api vibecore-vibecore-platform-api-d5fb5d765-5wwm9
+
+La migration 0081 fait deux choses :
+  1. ADD COLUMN x4, toutes NULLABLE (rightsConfirmedAt/By, piiPolicyAcceptedAt/By)
+     -> pas de réécriture de table, pas de valeur par défaut, pas de lock long.
+  2. UPDATE rétroactif : referme (remixAllowed=false) tout listing remixable dont
+     la licence n'est PAS dans l'allowlist SPDX des licences dérivables.
+
+La clause du (2) a été rejouée EN SELECT sur la prod avant tout déploiement :
+
+  IMPACT DRY-RUN de la clause retroactive 0081:
+    lignes qui deviendraient NON-remixables: 0
+    total remixables aujourdhui: 14
+
+=> Les 14 listings remixables de prod sont tous en MIT, qui figure dans
+   l'allowlist. La clause rétroactive est un NO-OP sur les données actuelles :
+   aucun listing existant ne perd sa remixabilité. La migration est prod-safe.
