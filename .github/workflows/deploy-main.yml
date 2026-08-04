@@ -103,13 +103,19 @@ jobs:
       # succeeding and the failure only surfaces later as pods refused at
       # admission — during a rollout, at the worst possible moment. Assert here
       # instead, where the error is obvious and cheap.
-      # Parses the YAML rather than grepping it. A line-range grep here is
-      # actively dangerous: an awk range like /id: sign-image/,/^  - id: [^s]/
-      # never closes when the following step also starts with "s"
-      # (scan-images), so it swallows that step's `allowFailure: true` and the
-      # gate fails on a perfectly good tree. Ask the parser, not the text.
+      # The validator parses the step structure rather than grepping it. A
+      # line-range grep here is actively dangerous: an awk range like
+      # /id: sign-image/,/^  - id: [^s]/ never closes when the following step
+      # also starts with "s" (scan-images), so it swallows that step's
+      # `allowFailure: true` and the gate fails on a perfectly good tree.
+      # The validator is HERMETIC — pure Python 3 stdlib, no PyYAML — so the gate
+      # never depends on a dependency that happens to be preinstalled on the
+      # runner. --self-test first proves the parser itself before it is trusted.
       - name: Pipeline policy — image signing must still be wired
-        run: python3 scripts/validate-image-signing-wired.py
+        run: |
+          set -euo pipefail
+          python3 scripts/validate-image-signing-wired.py --self-test
+          python3 scripts/validate-image-signing-wired.py
 
   build-and-deploy:
     name: Build tiers sequentially, then helm upgrade

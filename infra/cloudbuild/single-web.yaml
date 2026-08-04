@@ -97,15 +97,28 @@ steps:
       - -c
       - |
         set -euo pipefail
+        # Cosign is pinned by IMMUTABLE OCI DIGEST, not the mutable :v2.4.3 tag.
+        # `docker pull` refuses any content whose sha256 != this digest, so the
+        # build is cryptographically bound to the exact image we vetted — a
+        # repointed tag cannot slip a different binary in. (provenance binding #1)
+        # Digest is the sha256 of ghcr.io/sigstore/cosign/cosign:v2.4.3's
+        # multi-arch index; docker resolves it to linux/amd64 and content-verifies
+        # on pull. Derivation + verification: docs/supply-chain/COSIGN_PINNING.md.
+        cosign_image="ghcr.io/sigstore/cosign/cosign:v2.4.3@sha256:c77247c92f4dfea851c70555738226498393e34e2f9ca83cb959e51c230e4ad7"
+        # sha256 of the linux/amd64 /ko-app/cosign binary inside that image. This
+        # is a second, registry-independent binding checked OFFLINE below: even a
+        # digest we mis-copied, or a compromised registry, cannot hand us an
+        # executable that differs from the one we vetted. (provenance binding #2)
+        cosign_bin_sha256="37db5533587f87c2f9225c5896b39e1ee238205e3a71ba9ff9f0c84a2fd14474"
+        docker pull "$cosign_image"
         # The official cosign image is distroless: no shell, no coreutils, so
         # `entrypoint: cp` cannot work. Lift the binary out of a created (never
-        # started) container instead. Still pinned to a released tag, which is
-        # the point — we do not curl an unpinned tarball into a build that
-        # exists to make artifacts trustworthy.
-        docker pull ghcr.io/sigstore/cosign/cosign:v2.4.3
-        cid="$(docker create ghcr.io/sigstore/cosign/cosign:v2.4.3)"
+        # started) container instead.
+        cid="$(docker create "$cosign_image")"
         docker cp "$cid:/ko-app/cosign" /workspace/cosign
         docker rm "$cid"
+        chmod +x /workspace/cosign
+        echo "$cosign_bin_sha256  /workspace/cosign" | sha256sum -c -
         /workspace/cosign version
 
   - id: push-image
