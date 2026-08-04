@@ -4,6 +4,7 @@ import { access, cp, mkdir, readdir, readFile, rm, stat } from 'node:fs/promises
 import { join, relative, resolve, sep } from 'node:path';
 import { z } from 'zod';
 import { appPublicCopy, appPublicEnglish } from './app-public-copy.js';
+import { accessConfigFromMetadata } from './deployment-access.js';
 import { hashSnapshotEntries, type SnapshotEntry } from './release-manifest.js';
 import type { DeploymentRecord, ProjectRecord } from './store.js';
 import type { TransactionalLocale } from './transactional-i18n.js';
@@ -742,9 +743,16 @@ export function buildDeploymentUrl(project: ProjectRecord, deployment: Deploymen
      * domain is configured (local dev/tests); that URL keeps working either way
      * because the route redirects to the dedicated origin when one exists.
      */
+    /*
+     * P104: a password-protected deployment is served + gated on the API origin
+     * only (the dedicated origin can't carry the gate cookie / __access POST), so
+     * its public URL must be the API-origin one. Public static deploys keep the
+     * dedicated origin for the same-origin sandbox.
+     */
+    const gated = accessConfigFromMetadata(deployment.metadata).mode !== 'public';
     const dedicated = staticDeployDedicatedOrigin(deployment.id);
 
-    if (dedicated) {
+    if (dedicated && !gated) {
       return `${dedicated}/`;
     }
 
