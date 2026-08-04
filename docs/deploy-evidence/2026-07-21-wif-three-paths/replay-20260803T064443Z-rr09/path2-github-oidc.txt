@@ -1,0 +1,14 @@
+run=30791438920 nonce=wifproof-20260803T064443Z-72998 displayTitle=wif-proof wifproof-20260803T064443Z-72998 conclusion=success url=https://github.com/openaxcloud/vibecore/actions/runs/30791438920
+negative	Report negative outcome	﻿2026-08-03T06:49:15.9646302Z ##[group]Run echo "AUTH_STEP_OUTCOME=failure"
+negative	Report negative outcome	2026-08-03T06:49:15.9647120Z [36;1mecho "AUTH_STEP_OUTCOME=failure"[0m
+negative	Report negative outcome	2026-08-03T06:49:15.9648756Z [36;1m  echo "NEGATIVE_OK: impersonation of the un-granted SA was DENIED (no workloadIdentityUser binding)"[0m
+negative	Report negative outcome	2026-08-03T06:49:15.9798085Z AUTH_STEP_OUTCOME=failure
+negative	Report negative outcome	2026-08-03T06:49:15.9799063Z NEGATIVE_OK: impersonation of the un-granted SA was DENIED (no workloadIdentityUser binding)
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-08-03T06:49:16.5271569Z [36;1mecho "NONCE=wifproof-20260803T064443Z-72998"[0m
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-08-03T06:49:16.5273439Z [36;1mecho "CREDENTIAL_FILE=$GOOGLE_APPLICATION_CREDENTIALS (external_account/federated, NOT a key)"[0m
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-08-03T06:49:16.5276198Z [36;1mgrep -q '"type": "external_account"' "$GOOGLE_APPLICATION_CREDENTIALS" && echo "CREDENTIAL_KIND=external_account (federated, keyless)"[0m
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-08-03T06:49:16.5285421Z [36;1mecho "SECRET_CONTENT=$(cat /tmp/body)"[0m
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-08-03T06:49:16.5433702Z NONCE=wifproof-20260803T064443Z-72998
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-08-03T06:49:16.5435949Z CREDENTIAL_FILE=/home/runner/work/vibecore/vibecore/gha-creds-14dc2592a1a14e88.json (external_account/federated, NOT a key)
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-08-03T06:49:17.2763177Z READ_HTTP=200
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-08-03T06:49:17.2777250Z SECRET_CONTENT=wif-proof-secret-content-1785739569

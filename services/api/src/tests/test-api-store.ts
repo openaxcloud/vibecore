@@ -44,6 +44,7 @@ import type {
   CollaborationPresenceRecord,
   CustomRoleRecord,
   DeploymentRecord,
+  ReleaseManifestRecord,
   DomainVerificationRecord,
   EmailDeliveryEventRecord,
   EnterpriseSettingsRecord,
@@ -1573,6 +1574,31 @@ export class TestApiStore implements ApiStore {
     return published.size;
   }
 
+  async listPublishedProjects(organizationId: string) {
+    const projectIds = this.#orgProjectIds(organizationId);
+    const latest = new Map<string, string>();
+
+    for (const deployment of this.deployments.values()) {
+      if (!projectIds.has(deployment.projectId)) {
+        continue;
+      }
+
+      if (deployment.environment !== 'production' || deployment.status !== 'READY') {
+        continue;
+      }
+
+      const at = (deployment as any).createdAt ?? now();
+      const seen = latest.get(deployment.projectId);
+
+      // Publication la PLUS RÉCENTE par projet (comme l'implémentation Prisma).
+      if (!seen || new Date(at).getTime() > new Date(seen).getTime()) {
+        latest.set(deployment.projectId, at);
+      }
+    }
+
+    return [...latest.entries()].map(([projectId, publishedAt]) => ({ projectId, publishedAt }));
+  }
+
   async createSnapshot(input: {
     projectId: string;
     label?: string;
@@ -1899,6 +1925,51 @@ export class TestApiStore implements ApiStore {
     return [...this.deployments.values()].filter(
       (deployment) => deployment.provider === 'server' && deployment.status === 'READY',
     );
+  }
+
+  readonly releaseManifests: ReleaseManifestRecord[] = [];
+
+  async createReleaseManifest(input: {
+    projectId: string;
+    deploymentId: string;
+    environment: string;
+    version: number;
+    provider: string;
+    artifactKind: 'static-snapshot' | 'server-image';
+    artifactRef: string;
+    artifactDigest: string;
+    storeGeneration?: string;
+    configDigest?: string;
+    dbMigrationPoint?: string;
+  }): Promise<ReleaseManifestRecord> {
+    const row: ReleaseManifestRecord = {
+      id: `rm-${this.releaseManifests.length + 1}-${input.deploymentId}`,
+      projectId: input.projectId,
+      deploymentId: input.deploymentId,
+      environment: input.environment,
+      version: input.version,
+      provider: input.provider,
+      artifactKind: input.artifactKind,
+      artifactRef: input.artifactRef,
+      artifactDigest: input.artifactDigest,
+      storeGeneration: input.storeGeneration,
+      configDigest: input.configDigest,
+      dbMigrationPoint: input.dbMigrationPoint,
+      createdAt: new Date().toISOString(),
+    };
+    this.releaseManifests.push(row);
+    return row;
+  }
+
+  async listReleaseManifests(
+    projectId: string,
+    environment: string,
+    options?: { take?: number },
+  ): Promise<ReleaseManifestRecord[]> {
+    return this.releaseManifests
+      .filter((m) => m.projectId === projectId && m.environment === environment)
+      .sort((a, b) => b.version - a.version)
+      .slice(0, options?.take ?? 100);
   }
 
   /** No DB-backed rate card in tests: callers fall back to the built-in card. */

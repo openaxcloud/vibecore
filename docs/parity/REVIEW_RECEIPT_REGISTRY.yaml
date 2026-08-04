@@ -253,8 +253,8 @@ receipts:
     inputDocuments:
       - path: docs/parity/DOSSIER_EXPERT_V7_20260803.md
         sha256: "c56065a413630d124a529ab65383d74eb88acd9a7cce23411387a1b32ed2a8b6"
-    responsePath: "NON_FOURNI — décisions transmises par Avi (directive du 2026-08-04) ; texte brut du reçu à déposer dans docs/parity/incoming/ pour compléter"
-    responseHash: "PENDING_RAW_RESPONSE — non recomputable tant que le texte brut n'est pas fourni"
+    responsePath: docs/parity/incoming/REPONSE_EXPERT_V7_20260804.md
+    responseHash: "sha256:7832522b03abb9c588fd6196487cd2919adcce2c08866356ea702130cf9f8a08"
     summary: "SIGNÉS : P0-A2-09 (WIF, classification statut structuré) et CTR-RUNTIME-NIX (code typé dans le statut d'un publish sur image déployée). PR #51 : acceptation ciblée MAINTENUE (pas d'extension). PR #52 : reste REFUSÉE. Aucun autre CLOSED/SIGNED déduit."
     decisions:   # verbatim de la directive d'Avi (2026-08-04)
       accepted: [P0-A2-09]
@@ -262,7 +262,8 @@ receipts:
       contractsAccepted: [CTR-RUNTIME-NIX]
       contractsRefused: []
       codeLotsAccepted: []   # PR-51-ACCOUNT-PURGE-DB-RR08-FIX : acceptation ciblée RR-09 MAINTENUE, pas d'extension
-      codeLotsRefused: [PR-52-ACCOUNT-PURGE-PHYSICAL-RR08-FIX]   # reste REFUSÉ (RR-09), non re-refusé ici
+      codeLotsRefused: [PR-52-ACCOUNT-PURGE-PHYSICAL-RR09-FIX]   # RE-REFUSÉ RR-10 avec réserve bloquante (verbatim §C du reçu)
     integrationGreenlight: "feu vert permanent d'Avi : merger les lots signés après signature (PR #55 puis PR #76 ; PR #52 NON mergée)"
-    completeness: INCOMPLETE
-    completenessNote: "INCOMPLET au sens du registre : le texte brut du reçu expert n'a pas été transmis (ni fichier ni hash annoncé). Les signatures A2-09 + CTR-RUNTIME-NIX sont enregistrées sur DIRECTIVE EXPLICITE d'Avi du 2026-08-04. À compléter (responsePath + responseHash recomputable) dès réception du texte brut — écart déclaré, pas caché."
+    keyDefectRaised: "PR #52 (§C verbatim) : la garantie reste NON ATOMIQUE avec la lecture de topologie — acquirePurgeGuarantee() prend le verrou account-purge:<userId>, LIT resolveStorageTopology(tx,userId), et n acquiert le verrou du freeze-set (system-setting:membership.purgeFrozenOrgIds) qu ENSUITE ; or addMember/removeMember se synchronisent sur le verrou du freeze-set, pas sur account-purge:<userId> → course dans la fenêtre lecture→freeze → bucket sole supprimé, drift-check trop tard. Correction exigée : membership-freeze AVANT resolveStorageTopology(), tenu jusqu au commit du plan, ordre global de verrous identique partout, test concurrent déterministe sur la fenêtre, bucket org partagée jamais transmis à eraseStorage, rejeu vrai-Postgres + zéro freeze résiduel."
+    completeness: COMPLETE
+    completenessNote: "Texte brut déposé le 2026-08-04 (transmis par Avi), hash recomputable — l entrée initialement INCOMPLETE est complétée, les flips CLOSED/SIGNED sont désormais permis par la garde."

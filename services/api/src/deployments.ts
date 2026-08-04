@@ -1,8 +1,10 @@
 import { spawn } from 'node:child_process';
-import { access, cp, mkdir, readFile, rm, stat } from 'node:fs/promises';
-import { join, resolve, sep } from 'node:path';
+import { createHash } from 'node:crypto';
+import { access, cp, mkdir, readdir, readFile, rm, stat } from 'node:fs/promises';
+import { join, relative, resolve, sep } from 'node:path';
 import { z } from 'zod';
 import { accessConfigFromMetadata } from './deployment-access.js';
+import { hashSnapshotEntries, type SnapshotEntry } from './release-manifest.js';
 import type { DeploymentRecord, ProjectRecord } from './store.js';
 
 export const deploymentProviders = [
@@ -1445,6 +1447,100 @@ function rewriteUrl(value: string, normalizedBase: string): string {
 export async function removeStaticDeploymentSnapshot(deploymentId: string) {
   const target = staticDeploymentSnapshotDir(deploymentId);
   await rm(target, { recursive: true, force: true });
+}
+
+/** Recursively collect every regular file under `root` as a root-relative path. */
+async function walkFiles(root: string, dir: string, out: string[]): Promise<void> {
+  const entries = await readdir(dir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const child = join(dir, entry.name);
+
+    if (entry.isDirectory()) {
+      await walkFiles(root, child, out);
+    } else if (entry.isFile()) {
+      out.push(relative(root, child));
+    }
+  }
+}
+
+/**
+ * P0-V3-08: deterministic content digest of a static snapshot directory. Hashes
+ * every file's bytes, binds it to its relative path, and folds the sorted set into
+ * one `sha256:…` (see hashSnapshotEntries). This is the manifest's `artifactDigest`
+ * for static releases — recomputing it at rollback time and comparing proves the
+ * restored bytes are byte-identical to what was published (no blind rollback).
+ * Returns undefined if the directory is missing (nothing to hash).
+ */
+export async function computeStaticSnapshotDigest(deploymentId: string): Promise<string | undefined> {
+  const root = staticDeploymentSnapshotDir(deploymentId);
+
+  if (!(await pathExists(root))) {
+    return undefined;
+  }
+
+  const files: string[] = [];
+  await walkFiles(root, root, files);
+
+  const entries: SnapshotEntry[] = [];
+
+  for (const rel of files) {
+    const bytes = await readFile(join(root, rel));
+    entries.push({
+      // Normalise to forward slashes so the digest is stable across platforms.
+      path: rel.split(sep).join('/'),
+      sha256: createHash('sha256').update(bytes).digest('hex'),
+    });
+  }
+
+  return hashSnapshotEntries(entries);
+}
+
+/**
+ * Re-materialise a previous release's static snapshot into a NEW deployment's
+ * snapshot dir so the rollback serves the old bytes under its own id/URL. Copies
+ * from the retained source snapshot; throws SNAPSHOT_SOURCE_MISSING if the source
+ * bytes are gone (the caller turns that into a fail-closed 409 — never a rollback
+ * that serves an empty dir). Rewrites the index.html base path for the new id.
+ */
+export async function restoreStaticSnapshotInto(
+  fromDeploymentId: string,
+  toDeploymentId: string,
+): Promise<{ indexHtmlPath?: string }> {
+  const source = staticDeploymentSnapshotDir(fromDeploymentId);
+
+  if (!(await pathExists(source))) {
+    throw Object.assign(new Error(`Static snapshot for ${fromDeploymentId} is missing on disk.`), {
+      statusCode: 409,
+      code: 'ROLLBACK_SNAPSHOT_SOURCE_MISSING',
+    });
+  }
+
+  const target = staticDeploymentSnapshotDir(toDeploymentId);
+  await rm(target, { recursive: true, force: true });
+  await mkdir(target, { recursive: true });
+  await cp(source, target, { recursive: true });
+
+  const indexHtmlPath = join(target, 'index.html');
+
+  if (await pathExists(indexHtmlPath)) {
+    const original = await readFile(indexHtmlPath, 'utf8');
+    // The source index.html was rewritten for the OLD id's base path; re-point it
+    // to the new id's base so assets resolve under /static-deployments/<newId>/.
+    const restored = original.replaceAll(
+      `/static-deployments/${fromDeploymentId}/`,
+      `/static-deployments/${toDeploymentId}/`,
+    );
+
+    if (restored !== original) {
+      const { writeFile } = await import('node:fs/promises');
+      await writeFile(indexHtmlPath, restored, 'utf8');
+    }
+
+    return { indexHtmlPath };
+  }
+
+  return {};
 }
 
 export function createDeploymentLogs(
