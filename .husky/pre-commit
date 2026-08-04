@@ -41,9 +41,12 @@ else
     echo "   Install: https://github.com/gitleaks/gitleaks#installing (e.g. 'brew install gitleaks')."
 fi
 
-# Run typecheck
-echo "Running typecheck..."
-if ! pnpm typecheck; then
+# Run typecheck — scoped to the tiers whose files are actually staged, so a commit
+# touching only e.g. services/api no longer pays for the ~10-min web-app type-check
+# (which timed out under load and forced --no-verify). CI runs the FULL `pnpm
+# typecheck` across every tier, so cross-tier breaks are still caught before merge.
+echo "Running typecheck (staged tiers)..."
+if ! pnpm typecheck:changed; then
     echo "❌ Type checking failed! Please review TypeScript types."
     echo "Once you're done, don't forget to add your changes to the commit! 🚀"
     exit 1

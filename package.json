@@ -77,6 +77,7 @@
     "dockerbuild:prod": "docker build -t bolt-ai:production -t bolt-ai:latest --target bolt-ai-production .",
     "dockerbuild": "docker build -t bolt-ai:development -t bolt-ai:latest --target development .",
     "typecheck": "node scripts/typecheck.mjs",
+    "typecheck:changed": "node scripts/typecheck.mjs --changed",
     "typegen": "wrangler types",
     "preview": "pnpm run build && pnpm run start",
     "prepare": "husky",
