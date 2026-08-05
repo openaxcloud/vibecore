@@ -17,6 +17,7 @@ Ce glossaire est normatif pour les catalogues, les e-mails transactionnels, les 
 | Build (nom)          | Compilation                    | « Échec de la compilation »                               |
 | Build (verbe)        | Compiler                       | « Compiler le projet »                                    |
 | Changelog            | Journal des modifications      | « Changelog » reste admis dans une URL                    |
+| Code review          | Revue de code                  |                                                           |
 | Collaborator         | Collaborateur / Collaboratrice | Préférer « membre » si le genre est inconnu               |
 | Command palette      | Palette de commandes           |                                                           |
 | Console              | Console                        | Terme technique                                           |
@@ -46,6 +47,7 @@ Ce glossaire est normatif pour les catalogues, les e-mails transactionnels, les 
 | Member               | Membre                         | Forme épicène privilégiée                                 |
 | Model (AI)           | Modèle d’IA                    | Ne jamais traduire le nom ni l’identifiant du modèle      |
 | Dynamic model        | Modèle dynamique               | Badge ou qualificatif : « Dynamique »                     |
+| Monitoring           | Supervision                    | Sauf nom de produit officiel, par ex. Cloud Monitoring    |
 | Notification         | Notification                   |                                                           |
 | Onboarding           | Prise en main                  | Éviter « onboarding » dans l’interface                    |
 | Organization         | Organisation                   |                                                           |
@@ -57,12 +59,16 @@ Ce glossaire est normatif pour les catalogues, les e-mails transactionnels, les 
 | Problem              | Problème                       | Nom du panneau IDE : « Problèmes »                        |
 | Project              | Projet                         |                                                           |
 | Provider             | Fournisseur                    | Sauf nom officiel d’un fournisseur                        |
+| QA                   | Assurance qualité              | Conserver seulement dans le code et les identifiants      |
+| Responsive           | Adaptatif                      | « Mise en page adaptative », jamais « responsive »        |
 | Role                 | Rôle                           |                                                           |
+| Rollback             | Retour arrière / restauration  | « Restauration » pour une version ou des données          |
 | Runtime              | Environnement d’exécution      | « Runtime » admis dans une documentation très technique   |
 | Secret               | Secret                         | Ne jamais traduire ni afficher la valeur du secret        |
 | Settings             | Paramètres                     |                                                           |
 | Snapshot             | Instantané                     |                                                           |
 | Storage              | Stockage                       |                                                           |
+| Streaming            | Diffusion en continu           | Flux réseau si le contexte désigne le transport           |
 | Subscription         | Abonnement                     |                                                           |
 | Tag                  | Étiquette                      | Ne pas modifier les étiquettes saisies par l’utilisateur  |
 | Team                 | Équipe                         |                                                           |
@@ -72,6 +78,7 @@ Ce glossaire est normatif pour les catalogues, les e-mails transactionnels, les 
 | Token (AI)           | Jeton                          | Les jetons d’authentification restent « jetons »          |
 | Typecheck            | Vérification des types         | La commande ou le script conserve son identifiant         |
 | Usage                | Utilisation                    |                                                           |
+| Workflow             | Processus / flux de travail    | « Processus » dans la prose, « flux » dans l’IDE          |
 | Workspace            | Espace de travail              | Terme imposé par le cahier des charges                    |
 
 ## Actions et états
@@ -112,6 +119,7 @@ Ce glossaire est normatif pour les catalogues, les e-mails transactionnels, les 
 - Marques et noms propres : E-Code, VibeCore, GitHub, GitLab, Vercel, Netlify, Supabase et noms de fournisseurs.
 - Standards et protocoles : API, URL, OAuth, SSO, SCIM, SAML, WebSocket, HTTP, Open Graph et Twitter.
 - Termes techniques d’usage : `commit`, Git, Terminal, noms de branches, commandes et options de ligne de commande.
+- Noms officiels d’offres : Starter, Core, Pro, Enterprise et Team restent inchangés uniquement lorsqu’ils désignent une offre commerciale. Hors de ce contexte, « Team » devient « Équipe » et « Enterprise » est traduit selon la phrase.
 - Code et données : identifiants, variables, clés/API, URLs, chemins, extraits de code, sorties terminal et contenu utilisateur.
 
 Les mots non traduits doivent conserver leur casse officielle. Une phrase qui les entoure reste entièrement française.
