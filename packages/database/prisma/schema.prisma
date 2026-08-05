@@ -1692,6 +1692,12 @@ model WorkspaceRuntime {
   // createdAt) to lastActiveAt on stop, then advances this marker — idempotent
   // across manager restarts. Null until first metered.
   lastMeteredAt        DateTime?
+  // RR-CODEX-14 (P3): durable purge barrier. Once an account purge freezes this
+  // runtime, NO reprovision (start / restart / agent-token / PVC / Pod / Secret /
+  // Service) may recreate it until the tombstone. purgeFenceToken identifies the
+  // owning purge plan; the barrier is released on abandon and recoverable.
+  purgeFrozen          Boolean   @default(false)
+  purgeFenceToken      String?
   updatedAt            DateTime  @updatedAt
 
   @@index([orgId])

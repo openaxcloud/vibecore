@@ -502,7 +502,9 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
   }));
   // Account-purge reserve #1: write barrier — revoke token + stop pod before erasure.
   app.post('/workspaces/:workspaceId/freeze', async (request, reply) => {
-    await manager.freezeWorkspace(runtimeNamespace(), (request.params as any).workspaceId);
+    // RR-CODEX-14 (P3): the durable barrier carries the owning purge plan's fence token.
+    const fenceToken = (request.body as { fenceToken?: string } | undefined)?.fenceToken;
+    await manager.freezeWorkspace(runtimeNamespace(), (request.params as any).workspaceId, fenceToken);
 
     return reply.code(204).send();
   });

@@ -55,6 +55,14 @@ export interface WorkspaceRecord {
    */
   lastMeteredAt?: string;
   error?: string;
+
+  /*
+   * RR-CODEX-14 (P3): durable purge barrier. `purgeFrozen` blocks every reprovision
+   * path (start / restart / agent-token / PVC / Pod / Secret / Service) until the
+   * tombstone; `purgeFenceToken` identifies the owning purge plan. Released on abandon.
+   */
+  purgeFrozen?: boolean;
+  purgeFenceToken?: string;
 }
 
 export interface WorkspaceStore {
@@ -511,6 +519,10 @@ export class WorkspaceManager {
   }
 
   async startWorkspace(input: StartWorkspaceInput) {
+    // RR-CODEX-14 (P3): the durable purge barrier is checked FIRST — a start can
+    // never (re)provision a runtime an in-flight account purge is erasing.
+    await this.assertNotPurgeFrozen(input.workspaceId);
+
     const pvcName = `pvc-${input.workspaceId}`;
     const agentTokenSecretName = `agent-token-${input.workspaceId}`;
     const allowedSecrets = input.allowedSecrets ?? {};
@@ -1143,6 +1155,8 @@ export class WorkspaceManager {
   }
 
   async restartWorkspace(input: StartWorkspaceInput) {
+    // RR-CODEX-14 (P3): refuse a frozen runtime BEFORE the stop mutation, too.
+    await this.assertNotPurgeFrozen(input.workspaceId);
     await this.stopWorkspace(input.namespace, input.workspaceId).catch(() => undefined);
     return this.startWorkspace(input);
   }
@@ -1215,10 +1229,31 @@ export class WorkspaceManager {
    * THROWS if ANY of them rejected — the barrier is never reported acquired while
    * a Secret/Pod/Service delete failed, so a write path could still be live.
    */
-  async freezeWorkspace(namespace: string, workspaceId: string): Promise<void> {
+  async freezeWorkspace(namespace: string, workspaceId: string, fenceToken?: string): Promise<void> {
     const workspace = await this.store.get(workspaceId).catch(() => undefined);
 
     if (!workspace) {
+      /*
+       * RR-CODEX-14 (P3): even if no runtime row exists yet, record a DURABLE freeze
+       * so a LATER first-time startWorkspace for this id (a reprovision) is refused
+       * until the tombstone. Create a minimal frozen tombstone row.
+       */
+      await this.store
+        .create({
+          id: workspaceId,
+          orgId: '',
+          projectId: '',
+          plan: { cpu: 0, memoryMiB: 0 } as unknown as WorkspaceRecord['plan'],
+          status: 'STOPPED',
+          pvcName: `pvc-${workspaceId}`,
+          podName: `pod-${workspaceId}`,
+          serviceName: `svc-${workspaceId}`,
+          agentTokenSecretName: `agent-token-${workspaceId}`,
+          purgeFrozen: true,
+          purgeFenceToken: fenceToken,
+        })
+        .catch(() => undefined);
+
       return;
     }
 
@@ -1244,7 +1279,46 @@ export class WorkspaceManager {
     }
 
     this.lastTouchAt.delete(workspaceId);
-    await this.store.update(workspaceId, { status: 'STOPPED' }).catch(() => {});
+    // RR-CODEX-14 (P3): mark the DURABLE purge barrier ONLY after every live write
+    // path (Secret/Pod/Service) is provably revoked. From here, no reprovision path
+    // may recreate this runtime until the tombstone.
+    await this.store
+      .update(workspaceId, { status: 'STOPPED', purgeFrozen: true, purgeFenceToken: fenceToken })
+      .catch(() => {});
+  }
+
+  /**
+   * RR-CODEX-14 (P3): release the durable purge barrier (on purge abandon / reconcile).
+   * Fenced: only the owner (matching fence token, when one was set) may unfreeze.
+   */
+  async unfreezeWorkspace(workspaceId: string, fenceToken?: string): Promise<void> {
+    const workspace = await this.store.get(workspaceId).catch(() => undefined);
+
+    if (!workspace?.purgeFrozen) {
+      return;
+    }
+
+    if (workspace.purgeFenceToken && fenceToken && workspace.purgeFenceToken !== fenceToken) {
+      return; // not our barrier
+    }
+
+    await this.store.update(workspaceId, { purgeFrozen: false, purgeFenceToken: undefined }).catch(() => {});
+  }
+
+  /**
+   * RR-CODEX-14 (P3): the single choke-point every reprovision path calls FIRST.
+   * Refuses if this runtime is durably purge-frozen — so a start/restart/token/PVC/
+   * Pod/Secret/Service reprovision can never recreate a runtime an account purge is
+   * erasing (the reprovision-after-zero-check-before-tombstone race).
+   */
+  private async assertNotPurgeFrozen(workspaceId: string): Promise<void> {
+    const existing = await this.store.get(workspaceId).catch(() => undefined);
+
+    if (existing?.purgeFrozen) {
+      throw new Error(
+        `WORKSPACE_PURGE_FROZEN: runtime ${workspaceId} is frozen by an in-flight account purge — reprovision refused`,
+      );
+    }
   }
 
   #gcInFlight = false;
