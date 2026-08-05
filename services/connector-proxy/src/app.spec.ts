@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { signConnectorAccessToken } from '@vibecore/connector-sdk';
 import { buildConnectorProxyApp, type ConnectionResolution } from './app.js';
+import { connectorProxyFr } from './public-i18n.js';
 
 const secret = 'connector-proxy-spec-secret-do-not-ship';
 
@@ -78,7 +79,7 @@ describe('connector-proxy', () => {
     expect(response.statusCode).toBe(401);
     expect(response.headers['content-language']).toBe('fr');
     expect(response.json()).toEqual({
-      error: 'Un token d’accès au connecteur est obligatoire.',
+      error: connectorProxyFr.CONNECTOR_TOKEN_MISSING,
       code: 'CONNECTOR_TOKEN_MISSING',
     });
 
