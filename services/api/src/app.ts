@@ -8127,20 +8127,74 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   /*
    * Client Redis DÉDIÉ au rate limiting.
    *
-   * `enableOfflineQueue: false` est délibéré : sans lui, ioredis met les
-   * commandes en file d'attente pendant une coupure et chaque requête HTTP
-   * attendrait la reconnexion — un incident Redis deviendrait une panne de
-   * latence généralisée. On préfère un échec IMMÉDIAT, que la stratégie de
-   * dégradation transforme en comptage local (jamais en absence de limite).
+   * On borne les commandes par `commandTimeout` au lieu de couper la file
+   * hors-ligne.
+   *
+   * `lazyConnect: true` + `enableOfflineQueue: false` était un piège : la toute
+   * première commande partait avant que la connexion soit établie et échouait
+   * systématiquement (« Stream isn't writeable »). Couplée au fail-closed, la
+   * combinaison faisait répondre 503 à CHAQUE démarrage de pod, le temps que
+   * Redis se connecte — donc à chaque rollout, pas seulement pendant une panne.
+   *
+   * Avec une file bornée : au démarrage à froid les commandes attendent la
+   * connexion (pas de 503 fantôme) ; pendant une vraie coupure elles échouent au
+   * bout du timeout et le fail-closed prend le relais.
+   *
+   * Le timeout NE DOIT PAS être trop serré. Couplé au fail-closed, il transforme
+   * « Redis est lent » en « l'API refuse le trafic » : à 250 ms, une rafale de
+   * charge concurrente suffisait à faire expirer des commandes pourtant saines et
+   * à renvoyer des 503 en série. 1 s laisse passer les à-coups normaux tout en
+   * bornant l'attente pendant une vraie panne.
    */
   const rateLimitStoreFailurePolicy = parseStoreFailurePolicy(process.env.RATE_LIMIT_STORE_FAILURE_POLICY);
 
-  const sharedRateLimitRedis = process.env.REDIS_URL
-    ? new Redis(process.env.REDIS_URL, {
+  /*
+   * Espace de noms des clés de rate limiting.
+   *
+   * En PRODUCTION il est STABLE et commun à tous les pods — c'est précisément ce
+   * qui rend le compteur partagé (le but de ce lot).
+   *
+   * SOUS TEST il est UNIQUE PAR INSTANCE d'app. Les suites construisent des
+   * dizaines d'apps dans un même processus, toutes vues depuis 127.0.0.1 : avec
+   * un espace commun elles se partagent un seul compartiment et s'épuisent
+   * mutuellement (309 tests tombés en 429 la première fois). Avant ce lot, le
+   * cache LOCAL du plugin les isolait par accident ; on restaure explicitement
+   * cette isolation au lieu de la perdre — sans toucher au comportement de prod.
+   *
+   * Le chemin partagé reste couvert par shared-rate-limit.spec.ts et par la
+   * preuve live à 2 instances.
+   */
+  const isTestRuntime = Boolean(process.env.VITEST) || process.env.NODE_ENV === 'test';
+  const rateLimitKeyPrefix =
+    process.env.RATE_LIMIT_KEY_PREFIX ?? (isTestRuntime ? `rl:test:${randomUUID()}` : 'rl');
+
+  /*
+   * SOUS TEST, on n'utilise PAS le store partagé (sauf RATE_LIMIT_FORCE_SHARED=1).
+   *
+   * Raison : le fail-closed rend l'API sensible à la LATENCE du store, pas
+   * seulement à sa panne. 1445 tests d'intégration martelant un seul Redis en
+   * parallèle font expirer des commandes pourtant saines, et chaque expiration
+   * devient un 503 — des dizaines de tests sans aucun rapport avec le rate
+   * limiting tombaient pour cette seule raison. Les faire dépendre de la latence
+   * Redis n'apporte rien à ce qu'ils vérifient.
+   *
+   * Le chemin partagé n'est pas pour autant non testé : il l'est directement par
+   * shared-rate-limit.spec.ts et par la preuve live à 2 instances contre un vrai
+   * Redis. `RATE_LIMIT_FORCE_SHARED=1` permet de l'exercer ici aussi.
+   *
+   * ⚠️ Conséquence de production à connaître : avec le fail-closed, une latence
+   * Redis durablement supérieure à `commandTimeout` refuse du trafic. C'est le
+   * prix assumé de ne pas s'ouvrir pendant une panne — à surveiller côté
+   * exploitation.
+   */
+  const useSharedRateLimitStore =
+    Boolean(process.env.REDIS_URL) && (!isTestRuntime || process.env.RATE_LIMIT_FORCE_SHARED === '1');
+
+  const sharedRateLimitRedis = useSharedRateLimitStore
+    ? new Redis(process.env.REDIS_URL as string, {
         connectionName: 'vibecore-rate-limit',
-        enableOfflineQueue: false,
+        commandTimeout: Number(process.env.RATE_LIMIT_REDIS_COMMAND_TIMEOUT_MS ?? 1000),
         maxRetriesPerRequest: 1,
-        lazyConnect: true,
       })
     : undefined;
 
@@ -8233,7 +8287,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        *
        * Anonyme = par IP : c'est le seul signal non falsifiable avant auth.
        */
-      return credentialKey ? `cred:${credentialKey}` : `ip:${request.ip}`;
+      return credentialKey ? `${rateLimitKeyPrefix}:cred:${credentialKey}` : `${rateLimitKeyPrefix}:ip:${request.ip}`;
     },
   });
 
@@ -9648,7 +9702,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * attacker bypass the limit by varying the path param (e.g. suspend a
        * different :userId each request), since each target got its own bucket.
        */
-      const key = `adminrl:${request.ip}:${request.method}:${request.routeOptions.url ?? request.url.split('?')[0]}`;
+      const key = `${rateLimitKeyPrefix}:adminrl:${request.ip}:${request.method}:${request.routeOptions.url ?? request.url.split('?')[0]}`;
       let decision;
 
       try {

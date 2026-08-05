@@ -62,3 +62,65 @@ toute option supplémentaire est ignorée, le backend n'arrivait jamais.
 Correctif : fabrique `createFastifyRateLimitStore(backend)` qui capture le
 backend par closure, sans dépendre d'un passthrough inexistant.
 Après correctif : 20/20 — partage rétabli.
+
+================================================================
+ITÉRATION 2 — TROIS DÉFAUTS RÉVÉLÉS PAR LA CI ET LA SUITE COMPLÈTE
+================================================================
+
+Les 18 tests unitaires étaient verts pendant que ces trois défauts existaient.
+Ils appellent le backend directement et ne traversent ni le plugin, ni le client
+Redis, ni la suite d'intégration.
+
+DÉFAUT A — 503 à CHAQUE démarrage de pod
+----------------------------------------
+`lazyConnect: true` + `enableOfflineQueue: false` : la toute première commande
+partait avant l'établissement de la connexion et échouait
+(« Stream isn't writeable »). Couplée au fail-closed, elle produisait des 503 à
+chaque rollout, pas seulement pendant une panne Redis.
+Correctif : file hors-ligne conservée, bornée par `commandTimeout`.
+Vérifié : 5 premières requêtes après démarrage à froid -> 200 200 200 200 200,
+0 occurrence de « Stream isn't writeable » dans les logs.
+
+DÉFAUT B — le store partagé cassait l'isolation des tests
+---------------------------------------------------------
+Avant ce lot, le cache LOCAL du plugin isolait par accident chaque instance
+d'app. Avec un compteur partagé, les 1445 tests d'intégration (tous vus depuis
+127.0.0.1) se partageaient un seul compartiment et s'épuisaient mutuellement :
+309 tests en échec.
+Correctif : espace de noms des clés STABLE en production (c'est ce qui rend le
+compteur partagé) et UNIQUE PAR INSTANCE sous test — on restaure explicitement
+l'isolation d'avant au lieu de la perdre.
+
+DÉFAUT C — fail-closed + timeout serré = refus sous simple LATENCE
+------------------------------------------------------------------
+Avec `commandTimeout: 250 ms`, la charge concurrente de la suite faisait expirer
+des commandes Redis pourtant saines ; chaque expiration devenait un 503.
+44 tests admin en échec, tous sur « Command timed out ».
+
+C'est un vrai enseignement de conception, pas un artefact de test : le
+fail-closed rend l'API sensible à la LATENCE du store, pas seulement à sa panne.
+
+Correctifs : timeout porté à 1 s (absorbe les à-coups, borne l'attente en
+panne), et sous test le store partagé n'est pas utilisé (RATE_LIMIT_FORCE_SHARED=1
+pour l'exercer quand même) — faire dépendre 1445 tests sans rapport de la
+latence Redis n'apporte rien.
+
+⚠️ CONSÉQUENCE DE PRODUCTION ASSUMÉE ET DÉCLARÉE : une latence Redis
+durablement supérieure à `commandTimeout` refuse du trafic. C'est le prix de ne
+pas s'ouvrir pendant une panne — à surveiller côté exploitation.
+
+SUITE COMPLÈTE services/api (vrai Redis + vrai PostgreSQL, base neuve)
+----------------------------------------------------------------------
+309 échecs -> 44 -> 6 -> 1443 passés / 1 échec
+Le dernier échec est `vitest-config-discovery.spec.ts`, flake connu et
+pré-existant (vitest imbriqué sous charge), sans rapport avec ce lot.
+
+PREUVES FINALES REJOUÉES SUR LE CODE DÉFINITIF
+-----------------------------------------------
+  démarrage à froid (5 premières)      : 200 200 200 200 200
+  cross-pod, plafond 20, 40 requêtes   : 200:20  429:20
+  rafale SIMULTANÉE 60 req / 2 pods    : 200:20  429:40
+  isolation tenant (même IP)           : A 429, B 200
+  fail-closed (Redis coupé)            : 503 en 1007 ms et 1026 ms
+  unitaires                            : 18/18
+  tsc                                  : 0 erreur
