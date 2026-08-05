@@ -9177,7 +9177,30 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * (an authorized fetch cached and replayed to anonymous visitors).
      */
     if (!gated) {
-      reply.header('cache-control', 'public, max-age=60, must-revalidate');
+      /*
+       * `no-cache` et NON `max-age=60`.
+       *
+       * Transition la plus dangereuse : un déploiement PUBLIC est mis en cache
+       * par un intermédiaire, PUIS son propriétaire active la protection par mot
+       * de passe. Le `no-store` posé ensuite ne purge pas ce qui est DÉJÀ stocké
+       * — l'origine ne contrôle pas les caches tiers. Avec `max-age=60`, l'entrée
+       * publique restait servable SANS revalidation pendant une minute : un
+       * visiteur anonyme récupérait le contenu désormais protégé.
+       *
+       * `no-cache` autorise le STOCKAGE mais impose une revalidation auprès de
+       * l'origine AVANT chaque réutilisation. La requête de revalidation traverse
+       * donc le gate ci-dessus, qui répond 401/503 — la fenêtre tombe à zéro.
+       * Le bénéfice de cache est conservé pour le contenu inchangé (304 côté
+       * intermédiaire), au prix d'un aller-retour de validation.
+       */
+      reply.header('cache-control', 'public, no-cache, must-revalidate');
+
+      /*
+       * `Vary: Cookie` même en public : la clé de cache dépend ainsi du cookie
+       * dès l'origine, si bien qu'une entrée publique et une réponse post-gating
+       * ne peuvent jamais se confondre dans un cache partagé.
+       */
+      reply.header('vary', 'Cookie');
     }
     reply.header('x-vibecore-static-deployment', deploymentId);
 

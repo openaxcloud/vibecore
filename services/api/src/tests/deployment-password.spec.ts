@@ -204,6 +204,127 @@ describe('password-protected static deployments (endpoint)', () => {
     expect(replay.body).not.toContain('SECRET CONTENT');
   });
 
+  /*
+   * SEC-7 — LA TRANSITION LA PLUS DANGEREUSE : public + DÉJÀ MIS EN CACHE, puis
+   * activation de la protection.
+   *
+   * Le test SEC-2/3 part d'un déploiement déjà protégé : il ne peut donc pas
+   * voir ce cas. Ici le déploiement est d'abord PUBLIC, il est servi (donc
+   * potentiellement stocké par un intermédiaire), PUIS protégé. L'origine ne
+   * contrôle pas les caches tiers : elle ne peut pas purger ce qui est déjà
+   * stocké. La seule défense correcte est d'avoir émis, DÈS la réponse publique,
+   * une directive qui interdit toute réutilisation sans revalidation.
+   */
+  it("SEC-7 poison_replay: PUBLIC déjà mis en cache -> protégé -> le rejeu anonyme ne rend JAMAIS l'ancienne réponse", async () => {
+    const { app, auth, projectId, deploymentId } = await setup();
+
+    // (a) PUBLIC : la réponse est servie et pourrait être stockée par un cache.
+    const publicHit = await serve(app, deploymentId);
+    expect(publicHit.statusCode).toBe(200);
+    expect(publicHit.body).toContain('SECRET CONTENT');
+
+    /*
+     * (b) LA propriété qui ferme la fenêtre : la réponse publique n'est jamais
+     * réutilisable SANS revalidation. Avec `max-age=60`, un intermédiaire aurait
+     * pu la resservir pendant une minute APRÈS l'activation de la protection —
+     * un visiteur anonyme aurait alors obtenu le contenu désormais protégé.
+     */
+    const publicCache = String(publicHit.headers['cache-control'] ?? '');
+    expect(publicCache).toContain('no-cache');
+    expect(publicCache).toMatch(/must-revalidate/);
+    // Aucune durée de fraîcheur non nulle : rien n'est servable sans revalider.
+    expect(publicCache).not.toMatch(/max-age=[1-9]/);
+    // La clé de cache dépend du cookie dès l'origine.
+    expect(String(publicHit.headers['vary'] ?? '').toLowerCase()).toContain('cookie');
+
+    // (c) Activation de la protection.
+    const set = await setAccess(app, projectId, deploymentId, auth.token, {
+      mode: 'password',
+      password: 'letmein',
+    });
+    expect(set.statusCode).toBe(200);
+
+    // (d) REJEU anonyme sur la MÊME URL : jamais 200, jamais l'ancien contenu.
+    const replay = await serve(app, deploymentId);
+    expect(replay.statusCode).toBe(401);
+    expect(replay.body).not.toContain('SECRET CONTENT');
+    const replayCache = String(replay.headers['cache-control'] ?? '');
+    expect(replayCache).toContain('no-store');
+    expect(replayCache).not.toContain('public');
+  });
+
+  it('SEC-7: le gate précède HEAD, Range, conditionnelle, asset secondaire et fallback SPA', async () => {
+    const { app, auth, projectId, deploymentId } = await setup();
+
+    // Public d'abord, pour qu'un cache ait pu voir passer chaque variante.
+    expect((await serve(app, deploymentId)).statusCode).toBe(200);
+
+    await setAccess(app, projectId, deploymentId, auth.token, { mode: 'password', password: 'letmein' });
+
+    const base = `/static-deployments/${deploymentId}`;
+
+    /*
+     * Chaque variante est une façon différente de récupérer des octets. Le gate
+     * doit s'appliquer AVANT toutes, sinon il suffirait de changer de méthode ou
+     * d'en-tête pour contourner la protection.
+     */
+    const variants: Array<{ label: string; options: Record<string, unknown> }> = [
+      { label: 'HEAD', options: { method: 'HEAD', url: `${base}/` } },
+      { label: 'Range', options: { method: 'GET', url: `${base}/`, headers: { range: 'bytes=0-4' } } },
+      {
+        label: 'conditionnelle If-None-Match',
+        options: { method: 'GET', url: `${base}/`, headers: { 'if-none-match': '"quelconque"' } },
+      },
+      {
+        label: 'conditionnelle If-Modified-Since',
+        options: {
+          method: 'GET',
+          url: `${base}/`,
+          headers: { 'if-modified-since': new Date(Date.now() + 86_400_000).toUTCString() },
+        },
+      },
+      { label: 'asset secondaire', options: { method: 'GET', url: `${base}/assets/app.js` } },
+      { label: 'fallback SPA', options: { method: 'GET', url: `${base}/route/profonde` } },
+      { label: 'index explicite', options: { method: 'GET', url: `${base}/index.html` } },
+    ];
+
+    for (const { label, options } of variants) {
+      const response = await app.inject(options as never);
+
+      // Jamais 200, et surtout jamais 304 : un 304 confirmerait à un cache que
+      // son entrée publique est encore valide, donc l'autoriserait à la resservir.
+      expect([401, 403, 404, 503], `${label} -> ${response.statusCode}`).toContain(response.statusCode);
+      expect(response.statusCode, label).not.toBe(200);
+      expect(response.statusCode, label).not.toBe(304);
+      expect(response.body ?? '', label).not.toContain('SECRET CONTENT');
+
+      const cache = String(response.headers['cache-control'] ?? '');
+      expect(cache, label).toContain('no-store');
+      expect(cache, label).not.toContain('public');
+    }
+  });
+
+  it('SEC-7: après retour au public, la réponse reste non réutilisable sans revalidation', async () => {
+    const { app, auth, projectId, deploymentId } = await setup();
+
+    await setAccess(app, projectId, deploymentId, auth.token, { mode: 'password', password: 'letmein' });
+    expect((await serve(app, deploymentId)).statusCode).toBe(401);
+
+    // Retour au public : le contenu redevient accessible…
+    await setAccess(app, projectId, deploymentId, auth.token, { mode: 'public' });
+    const reopened = await serve(app, deploymentId);
+    expect(reopened.statusCode).toBe(200);
+
+    /*
+     * …mais la directive reste `no-cache` : une nouvelle bascule vers protégé ne
+     * rouvrirait pas de fenêtre de rejeu. La propriété est stable dans les DEUX
+     * sens, pas seulement au premier passage.
+     */
+    const cache = String(reopened.headers['cache-control'] ?? '');
+    expect(cache).toContain('no-cache');
+    expect(cache).not.toMatch(/max-age=[1-9]/);
+  });
+
   it('SEC-5: an EXPIRED (server-verified) token is refused even though the cookie is present', async () => {
     const { app, store, auth, projectId, deploymentId } = await setup();
     await setAccess(app, projectId, deploymentId, auth.token, { mode: 'password', password: 'letmein' });
