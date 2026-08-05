@@ -260,7 +260,7 @@ export default function ProjectEnvPage() {
  * across Development / Preview / Production, so a drift between environments is
  * visible at a glance. Hidden entirely when every key is consistent.
  */
-function EnvDiffSection({
+export function EnvDiffSection({
   rows,
   copy,
   language,
@@ -305,6 +305,7 @@ function EnvDiffSection({
                         <span className="text-bolt-elements-textTertiary">{copy['projectEnv.diff.notSet']}</span>
                       ) : (
                         <span
+                          data-user-content
                           className="block max-w-[220px] truncate font-mono text-xs text-bolt-elements-textPrimary"
                           title={value}
                         >
