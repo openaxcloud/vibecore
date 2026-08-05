@@ -179,6 +179,7 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
     try {
       await p.purgeFreeze.deleteMany({});
       await p.purgePlan.deleteMany({});
+      await p.purgeReceipt.deleteMany({});
     } finally {
       await p.$disconnect();
     }
@@ -800,7 +801,7 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
     }
   });
 
-  it('(18) crash between the two thaws keeps the plan recoverable; reprise idempotent; no OTHER plan touched', async () => {
+  it('(18) atomic release: a failed plan-delete keeps BOTH freezes + plan recoverable; reprise idempotent; no OTHER plan touched', async () => {
     const prisma = createDatabaseClient();
 
     try {
@@ -830,26 +831,30 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
         leaseExpiresAt: new Date(Date.now() + 30 * 60 * 1000),
       });
 
-      // Crash BETWEEN the two thaws: fail the object-storage thaw (2nd deleteMany).
-      const realDeleteMany = prisma.purgeFreeze.deleteMany.bind(prisma.purgeFreeze);
+      // RR-CODEX-14 (P7): the release is a SINGLE atomic delete of the plan (freezes
+      // cascade). Fail that delete → the plan + BOTH its freezes remain (no partial
+      // thaw) and are recoverable; the spy then delegates so recovery works.
+      const realDeleteMany = prisma.purgePlan.deleteMany.bind(prisma.purgePlan);
+      let failedOnce = false;
       const spy = vi
-        .spyOn(prisma.purgeFreeze, 'deleteMany')
+        .spyOn(prisma.purgePlan, 'deleteMany')
         .mockImplementation((async (args: Parameters<typeof realDeleteMany>[0]) => {
-          if ((args as { where?: { resourceType?: string } })?.where?.resourceType === 'objectStorage') {
-            throw new Error('boom: object-storage thaw failed');
+          if (!failedOnce) {
+            failedOnce = true;
+            throw new Error('boom: release plan-delete failed');
           }
 
           return realDeleteMany(args);
         }) as typeof realDeleteMany);
 
-      // Physical erase fails → purge throws → release runs and crashes mid-thaw.
+      // Physical erase fails → purge throws → release runs and its atomic delete fails.
       await expect(
         store.purgeUserAccount({ userId: user.id }, { eraseStorage: async () => ({ classes: [], verified: false }) }),
       ).rejects.toThrow(/ACCOUNT_PURGE_PHYSICAL_INCOMPLETE/);
 
       const plan = await planFor(prisma, user.id);
-      // Membership thawed, object-storage still frozen, plan KEPT (recoverable).
-      expect(await membershipFrozen(prisma, org.id)).toBe(false);
+      // ATOMIC: BOTH freezes still up (never a partial thaw), plan KEPT (recoverable).
+      expect(await membershipFrozen(prisma, org.id)).toBe(true);
       expect(await objectStorageFrozen(prisma, project.id)).toBe(true);
       expect(plan).not.toBeNull();
       // The OTHER plan's freezes are completely untouched.
@@ -857,17 +862,18 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
       expect(await objectStorageFrozen(prisma, otherProject.id)).toBe(true);
       expect(await prisma.purgePlan.findUnique({ where: { id: otherPlan.id } })).not.toBeNull();
 
-      // Recovery: expire the crashed plan's lease → reconciler reclaims it.
+      // Recovery: expire the crashed plan's lease → reconciler reclaims it (specific id).
       await prisma.purgePlan.update({ where: { id: plan!.id }, data: { leaseExpiresAt: new Date(Date.now() - 60_000) } });
       const r1 = await store.reconcilePurgeFreezes();
-      expect(r1.reconciled).toBeGreaterThanOrEqual(1);
+      expect(r1.reclaimedPlanIds).toContain(plan!.id);
       expect(await objectStorageFrozen(prisma, project.id)).toBe(false); // zero residual freeze
+      expect(await membershipFrozen(prisma, org.id)).toBe(false);
       expect(await planFor(prisma, user.id)).toBeNull();
 
-      // Idempotent reprise: a second reconcile changes nothing, and the OTHER plan
+      // Idempotent reprise: the crashed plan is not re-reclaimed, and the OTHER plan
       // (still live) is STILL untouched.
       const r2 = await store.reconcilePurgeFreezes();
-      expect(r2.reconciled).toBe(0);
+      expect(r2.reclaimedPlanIds).not.toContain(plan!.id);
       expect(await prisma.purgePlan.findUnique({ where: { id: otherPlan.id } })).not.toBeNull();
       expect(await membershipFrozen(prisma, otherOrg.id)).toBe(true);
 
@@ -1149,6 +1155,123 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
       expect(r2.reconciled).toBe(1);
       expect(await prisma.purgePlan.findUnique({ where: { id: plan.id } })).toBeNull();
       expect(await membershipFrozen(prisma, org.id)).toBe(false);
+    } finally {
+      await prisma.$disconnect();
+    }
+  });
+
+  /*
+   * RR-CODEX-14 — deterministic race tests for the v4 corrections.
+   */
+
+  it('(25) P2 reclaim race: heartbeat renews PRECISELY between read and delete → 2nd purge REFUSED, no 2nd erasure', async () => {
+    const prisma = createDatabaseClient();
+    const renewClient = createDatabaseClient(); // the "old owner heartbeat" connection
+
+    try {
+      const store = newStore(prisma);
+      const { user, org, project } = await seedAccount(store);
+      await requestElapsedDeletion(store, user.id);
+
+      // An ABANDONED plan (version 0, lease expired beyond grace) that the new
+      // acquirer will try to reclaim.
+      const abandoned = await seedPlan(prisma, user.id, [org.id], [project.id], {
+        leaseExpiresAt: new Date(Date.now() - 10_000),
+        ownerToken: 'old-owner',
+      });
+
+      // The seam: PRECISELY between the acquirer's read of the existing plan and its
+      // conditional reclaim delete, the OLD owner's heartbeat renews the plan (bumps
+      // version + pushes the lease to the future) on a separate connection.
+      store.purgeTestHooks = {
+        onExistingPlanRead: async () => {
+          await renewClient.purgePlan.updateMany({
+            where: { id: abandoned.id, version: 0 },
+            data: { version: { increment: 1 }, leaseExpiresAt: new Date(Date.now() + 30 * 60 * 1000) },
+          });
+        },
+      };
+
+      let executions = 0;
+      const eraseStorage = async () => {
+        executions += 1;
+        return { classes: [], verified: true };
+      };
+
+      // The conditional reclaim (version=0) now matches 0 rows (heartbeat bumped to 1)
+      // → the acquirer STOPS, never starting a 2nd physical erasure.
+      await expect(store.purgeUserAccount({ userId: user.id }, { eraseStorage })).rejects.toThrow(
+        /PURGE_ALREADY_ACTIVE/,
+      );
+      expect(executions).toBe(0); // NO second physical erasure
+      // The renewed plan survives (owner 'old-owner', version 1) — never delete-by-id'd.
+      const survivor = await prisma.purgePlan.findUnique({ where: { id: abandoned.id } });
+      expect(survivor).not.toBeNull();
+      expect(survivor!.ownerToken).toBe('old-owner');
+      expect(survivor!.version).toBe(1);
+    } finally {
+      await Promise.allSettled([prisma.$disconnect(), renewClient.$disconnect()]);
+    }
+  });
+
+  it('(26) P5: transferProject is REFUSED while the project storage is frozen by a purge', async () => {
+    const prisma = createDatabaseClient();
+
+    try {
+      const store = newStore(prisma);
+      const { user, org, project } = await seedAccount(store);
+      const targetOrg = await store.createOrganization({
+        name: `Target ${suffix()}`,
+        slug: `target-${suffix()}`,
+        ownerUserId: user.id,
+      });
+
+      // Freeze the project's object storage (as an in-flight purge would).
+      await seedPlan(prisma, user.id, [], [project.id], {
+        leaseExpiresAt: new Date(Date.now() + 30 * 60 * 1000),
+      });
+
+      // A transfer that would move the (sole-org) project into another org mid-erasure
+      // is REFUSED — it can't strand/destroy a bucket that would change ownership.
+      await expect(
+        store.transferProject({ projectId: project.id, targetOrganizationId: targetOrg.id }),
+      ).rejects.toThrow(/PROJECT_FROZEN_FOR_PURGE/);
+      // Still in the source org.
+      expect((await prisma.project.findUnique({ where: { id: project.id } }))!.organizationId).toBe(org.id);
+
+      // Unfreeze → the transfer works again (the block is conditional, not a wall).
+      await prisma.purgeFreeze.deleteMany({ where: { resourceType: 'objectStorage', resourceId: project.id } });
+      await store.transferProject({ projectId: project.id, targetOrganizationId: targetOrg.id });
+      expect((await prisma.project.findUnique({ where: { id: project.id } }))!.organizationId).toBe(targetOrg.id);
+    } finally {
+      await prisma.$disconnect();
+    }
+  });
+
+  it('(27) P6: the erasure receipt is written in the SAME tx as the tombstone; queue-removal requires it', async () => {
+    const prisma = createDatabaseClient();
+
+    try {
+      const store = newStore(prisma);
+      const { user } = await seedAccount(store);
+      await requestElapsedDeletion(store, user.id);
+
+      const result = await store.purgeUserAccount(
+        { userId: user.id },
+        { eraseStorage: async () => ({ classes: [], verified: true }) },
+      );
+      expect(result.outcome).toBe('purged');
+
+      // The receipt exists (written atomically with the tombstone), carrying the proof.
+      const receipt = await prisma.purgeReceipt.findUnique({ where: { userId: user.id } });
+      expect(receipt).not.toBeNull();
+      expect((receipt!.proof as { kind?: string }).kind).toBe('account-erasure-proof');
+      expect(await store.hasPurgeReceipt(user.id)).toBe(true);
+
+      // Queue-removal gate: if the receipt is (impossibly) missing, the executor must
+      // NOT treat the purge as complete.
+      await prisma.purgeReceipt.delete({ where: { userId: user.id } });
+      expect(await store.hasPurgeReceipt(user.id)).toBe(false);
     } finally {
       await prisma.$disconnect();
     }

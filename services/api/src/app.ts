@@ -29627,6 +29627,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     let notDue = 0;
     let stale = 0;
     let failed = 0;
+    let missingReceipt = 0; // RR-CODEX-14 (P6): purged-but-no-receipt → kept queued
 
     for (const userId of ids) {
       const user = await store.findUserById(userId);
@@ -29647,7 +29648,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       if (status === 'purged') {
         alreadyPurged += 1;
-        await store.mutateSystemSettingIds(ACCOUNT_DELETION_PENDING_KEY, { remove: userId });
+
+        /*
+         * RR-CODEX-14 (P6): a purged user leaves the pending queue ONLY once its
+         * durable erasure receipt exists (written in the SAME tx as the tombstone).
+         * Without a receipt the purge is not provably complete → keep it queued
+         * (surfaced) rather than silently forgetting it.
+         */
+        if (await store.hasPurgeReceipt(userId)) {
+          await store.mutateSystemSettingIds(ACCOUNT_DELETION_PENDING_KEY, { remove: userId });
+        } else {
+          missingReceipt += 1;
+        }
+
         continue;
       }
 
@@ -29747,6 +29760,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       notDue,
       stale,
       failed,
+      missingReceipt,
       reconciledFreezes: reconciled.reconciled,
     };
   });

@@ -344,6 +344,14 @@ export class PrismaApiStore implements ApiStore {
     },
   ) {}
 
+  /**
+   * RR-CODEX-14 (P2) deterministic-race seam — tests only. Called inside
+   * acquirePurgeGuarantee right AFTER reading an existing plan and BEFORE the
+   * single-statement conditional reclaim, so a test can renew the plan "precisely
+   * between" and prove the stale-version delete is refused. Undefined in prod.
+   */
+  purgeTestHooks?: { onExistingPlanRead?: (plan: { id: string; version: number; status: string }) => Promise<void> };
+
   async ping(): Promise<void> {
     // Trivial round-trip to confirm the database connection is live.
     await this.prisma.$queryRaw`SELECT 1`;
@@ -585,6 +593,15 @@ export class PrismaApiStore implements ApiStore {
   }
 
   /**
+   * RR-CODEX-14 (P6): does a durable erasure receipt exist for this user? The
+   * purge-executor requires this before removing an already-purged user from the
+   * pending queue, so a purge is never "forgotten" without a reconstructable proof.
+   */
+  async hasPurgeReceipt(userId: string): Promise<boolean> {
+    return (await this.prisma.purgeReceipt.count({ where: { userId } })) > 0;
+  }
+
+  /**
    * RR-09 (1)(2)(3) + RR-1bd27929: acquire the topology GUARANTEE before any
    * external deletion, as a PLAN that OWNS its freeze rows. In ONE tx:
    *   CANONICAL LOCK ORDER — account-purge:<userId>  <  MEMBERSHIP_FREEZE_LOCK
@@ -601,29 +618,45 @@ export class PrismaApiStore implements ApiStore {
   private async acquirePurgeGuarantee(userId: string): Promise<PurgeGuarantee> {
     const ownerToken = randomUUID();
     const leaseExpiresAt = new Date(Date.now() + this.purgeLease.ttlMs);
-    const graceCutoff = new Date(Date.now() - this.purgeLease.reclaimGraceMs);
+    const graceSec = Math.max(0, Math.ceil(this.purgeLease.reclaimGraceMs / 1000));
 
     return this.prisma.$transaction(async (tx) => {
       await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', `account-purge:${userId}`);
       await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', MEMBERSHIP_FREEZE_LOCK);
 
       /*
-       * RR-CODEX-12 per-user SINGLETON. At most ONE plan per subject (unique
-       * userId). If one already exists:
-       *   - LIVE (lease within grace) → another worker owns this purge → refuse a
-       *     second physical purge for the same subject;
-       *   - ABANDONED (lease expired beyond grace) → reclaim it inline under the
-       *     lock so this fresh guarantee can take over (delete its freezes + plan).
+       * RR-CODEX-14 (P2) per-user SINGLETON with a SINGLE-STATEMENT reclaim. At most
+       * ONE plan per subject (unique userId). If one already exists, we try to
+       * reclaim it as ABANDONED in ONE conditional DELETE gated on the version AND
+       * status we just read AND the POSTGRES clock (now() − grace, not the app
+       * clock). This closes the read→delete race: if the old owner's heartbeat
+       * renewed the plan between our read and here (version bumped, lease pushed to
+       * the future, or status changed), the DELETE matches 0 rows and we STOP —
+       * NEVER delete-by-id a renewed plan and start a 2nd physical erasure. Freezes
+       * cascade via the FK.
        */
       const existing = await tx.purgePlan.findUnique({ where: { userId } });
 
       if (existing) {
-        if (existing.leaseExpiresAt > graceCutoff) {
-          throw new Error(`PURGE_ALREADY_ACTIVE: an account purge is already in progress for ${userId}`);
-        }
+        // Deterministic-race seam (tests only): renew "precisely between" the read
+        // above and the conditional delete below.
+        await this.purgeTestHooks?.onExistingPlanRead?.(existing);
 
-        await tx.purgeFreeze.deleteMany({ where: { planId: existing.id } });
-        await tx.purgePlan.delete({ where: { id: existing.id } });
+        const reclaimed = await tx.$executeRawUnsafe(
+          `DELETE FROM "PurgePlan" WHERE id = $1 AND version = $2 AND status = $3 ` +
+            `AND "leaseExpiresAt" < (now() - make_interval(secs => $4))`,
+          existing.id,
+          existing.version,
+          existing.status,
+          graceSec,
+        );
+
+        if (reclaimed === 0) {
+          // Live or renewed between our read and here → another owner is purging.
+          throw new Error(
+            `PURGE_ALREADY_ACTIVE: a purge plan for ${userId} is live or was renewed — refusing a second physical purge`,
+          );
+        }
       }
 
       const topology = await this.resolveStorageTopology(tx, userId);
@@ -751,42 +784,37 @@ export class PrismaApiStore implements ApiStore {
   }
 
   /**
-   * RR-1bd27929: release the guarantee — delete ONLY THIS plan's freeze rows (never
-   * another plan's, so a shared resource stays frozen while another live plan owns
-   * it) then the plan row (CAS on ownerToken). Thaws membership then object storage
-   * as separate steps; if a thaw fails, the plan is LEFT (not deleted) so the
-   * reconciler recovers it via its lease — a freeze is never stranded without a
-   * plan pointing at it. Deleting the plan cascades any remaining freeze rows.
+   * RR-CODEX-14 (P7): release the guarantee with the SAME model as the reconciler —
+   * a SINGLE atomic conditional DELETE of the plan, guarded by ownerToken so it can
+   * only ever touch OUR plan (never a reclaimed / another owner's / another user's
+   * plan). The plan's PurgeFreeze rows cascade away via the FK, so there is no
+   * multi-step "partial thaw": either the whole plan+freezes are gone atomically,
+   * or (on failure) they all remain and the reconciler recovers them via the lease.
    */
   private async releasePurgeGuarantee(guarantee: PurgeGuarantee): Promise<void> {
-    try {
-      await this.prisma.purgeFreeze.deleteMany({
-        where: { planId: guarantee.planId, resourceType: MEMBERSHIP_RESOURCE },
-      });
-      await this.prisma.purgeFreeze.deleteMany({
-        where: { planId: guarantee.planId, resourceType: OBJECT_STORAGE_RESOURCE },
-      });
-    } catch {
-      // A thaw failed mid-release → keep the plan (and its remaining rows) for the
-      // reconciler; never delete the plan while a freeze it owns might still be up.
-      return;
-    }
-
     await this.prisma.purgePlan
       .deleteMany({ where: { id: guarantee.planId, ownerToken: guarantee.ownerToken } })
       .catch(() => undefined);
   }
 
   /**
-   * RR-1bd27929 + RR-CODEX-12: recover ABANDONED plans only, with a durable
-   * RECLAIMING state and VERIFIED cleanup. A plan is reclaimable ONLY when its
-   * lease expired MORE than the grace ago (guards against mere clock lag; a live
-   * plan — even one blocked in a slow erasure whose heartbeat renews — is never
-   * touched). The CAS ACTIVE/RECLAIMING→RECLAIMING (version bump) picks exactly one
-   * winner AND invalidates the old owner's next renewal, so it cannot continue.
-   * `reconciled` is incremented ONLY after the plan AND its freezes are VERIFIABLY
-   * gone; a cleanup failure leaves the plan in RECLAIMING (recoverable) and is NOT
-   * counted as success.
+   * RR-CODEX-14 (P7): recover ABANDONED plans only. The MODEL — described here to
+   * match the code EXACTLY — is a SINGLE ATOMIC CONDITIONAL DELETE, not a
+   * claim-then-cleanup CAS:
+   *   - candidates = plans whose lease is already past;
+   *   - for each, ONE `DELETE ... WHERE id=? AND version=? AND leaseExpiresAt<cutoff`.
+   *     A DELETE serialises on the row, so of two concurrent reconcilers EXACTLY ONE
+   *     matches (count 1) and the other sees the row gone (count 0) — no
+   *     double-reclaim. The version guard refuses to delete a plan the owner RENEWED
+   *     (version moved) between our read and here. The plan's PurgeFreeze rows
+   *     cascade away via the FK (verified with a follow-up count before we attribute
+   *     the reclaim). `reclaimedPlanIds` gets the id ONLY on a verified count-1
+   *     delete.
+   *   - the DURABLE `RECLAIMING` status is used ONLY in the failure path: if the
+   *     delete throws, we mark the plan RECLAIMING (recoverable, NOT counted) and a
+   *     later pass re-attempts the (still-matching) delete.
+   * The grace (cutoff = now − grace) means a live plan — even one blocked in a slow
+   * erasure whose heartbeat renews — is never a candidate.
    */
   async reconcilePurgeFreezes(): Promise<{ reconciled: number; reclaimedPlanIds: string[] }> {
     const cutoff = new Date(Date.now() - this.purgeLease.reclaimGraceMs);
@@ -854,6 +882,23 @@ export class PrismaApiStore implements ApiStore {
       throw new Error(
         `MEMBERSHIP_FROZEN_FOR_PURGE: organization ${organizationId} membership is frozen during an account purge`,
       );
+    }
+  }
+
+  /**
+   * RR-CODEX-14 (P5): refuse a project TOPOLOGY mutation (transfer / org change /
+   * hard delete) that would change the purge inventory while the project's storage
+   * is frozen by an in-flight purge. Takes the SAME MEMBERSHIP_FREEZE_LOCK so it
+   * serialises with the guarantee's atomic read→freeze section. Call inside the tx.
+   */
+  private async assertProjectNotPurgeFrozen(tx: Prisma.TransactionClient, projectId: string): Promise<void> {
+    await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', MEMBERSHIP_FREEZE_LOCK);
+    const frozen = await tx.purgeFreeze.count({
+      where: { resourceType: OBJECT_STORAGE_RESOURCE, resourceId: projectId },
+    });
+
+    if (frozen > 0) {
+      throw new Error(`PROJECT_FROZEN_FOR_PURGE: project ${projectId} storage is frozen during an account purge`);
     }
   }
 
@@ -1359,6 +1404,19 @@ export class PrismaApiStore implements ApiStore {
           requestedAt: deletion!.requestedAt!,
           purgedAt: nowIso,
           classes,
+        });
+
+        /*
+         * RR-CODEX-14 (P6): persist the erasure RECEIPT in the SAME transaction as
+         * the tombstone. The purge-executor removes the user from the pending queue
+         * ONLY once this receipt exists, so a failed out-of-band AdminAuditLog write
+         * can never leave a purged account without a reconstructable proof. Unique
+         * per user (idempotent on a retried tx).
+         */
+        await tx.purgeReceipt.upsert({
+          where: { userId },
+          create: { userId, purgedAt: new Date(nowIso), proof: proof as unknown as Prisma.InputJsonValue },
+          update: { purgedAt: new Date(nowIso), proof: proof as unknown as Prisma.InputJsonValue },
         });
 
         return { outcome: 'purged' as const, proof };
@@ -2020,7 +2078,10 @@ export class PrismaApiStore implements ApiStore {
 
   async transferProject(input: { projectId: string; targetOrganizationId: string }) {
     const current = assertFound(
-      await this.prisma.project.findUnique({ where: { id: input.projectId }, select: { slug: true } }),
+      await this.prisma.project.findUnique({
+        where: { id: input.projectId },
+        select: { slug: true, organizationId: true },
+      }),
       'Project not found',
       'PROJECT_NOT_FOUND',
     );
@@ -2039,6 +2100,17 @@ export class PrismaApiStore implements ApiStore {
 
       try {
         return await this.prisma.$transaction(async (tx) => {
+          /*
+           * RR-CODEX-14 (P5): refuse the transfer if this project's storage is frozen
+           * by an in-flight purge, or if either the SOURCE or TARGET org membership is
+           * frozen. Taken FIRST, under the shared MEMBERSHIP_FREEZE_LOCK, so a transfer
+           * can never move a sole-org bucket into a shared org DURING the erasure
+           * (which would destroy a bucket that now belongs to others).
+           */
+          await this.assertProjectNotPurgeFrozen(tx, input.projectId);
+          await this.assertOrgMembershipNotPurgeFrozen(tx, current.organizationId);
+          await this.assertOrgMembershipNotPurgeFrozen(tx, input.targetOrganizationId);
+
           /*
            * Revoke all explicit ProjectCollaborator grants on transfer. They were
            * issued to the SOURCE org's users; leaving them in place after the

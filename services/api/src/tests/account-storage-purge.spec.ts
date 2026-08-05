@@ -188,4 +188,97 @@ describe('eraseSubjectStorage', () => {
     expect(out.buckets).toHaveLength(0);
     expect(out.workspaces).toHaveLength(0);
   });
+
+  /* ---- RR-CODEX-14 (P4) guard at the LINEARISATION point (TOCTOU) ---- */
+
+  it('P4: a lease loss between listObjects and deleteBucket ABORTS before the irreversible delete', async () => {
+    const objectStorage = new FakeObjectStorage();
+    objectStorage.seed('p1', ['a', 'b']);
+    const deleteSpy = vi.spyOn(objectStorage, 'deleteBucket');
+    let listed = false;
+    vi.spyOn(objectStorage, 'listObjects').mockImplementation(async (projectId: string) => {
+      listed = true; // the pre-delete list happened
+      return { objects: (objectStorage.buckets.get(projectId) ?? []).map((key) => ({ key })) };
+    });
+
+    // The guard runs AFTER listObjects and IMMEDIATELY before deleteBucket.
+    const guard = async () => {
+      if (listed) {
+        throw new Error('ACCOUNT_PURGE_LEASE_LOST: lost between list and delete');
+      }
+    };
+
+    await expect(
+      eraseSubjectStorage(
+        { bucketProjectIds: ['p1'], workspaceIds: [] },
+        { objectStorage, writeBarrier: recordingBarrier(), guard },
+      ),
+    ).rejects.toThrow(/LEASE_LOST/);
+    expect(listed).toBe(true); // we DID reach the pre-delete list…
+    expect(deleteSpy).not.toHaveBeenCalled(); // …but NEVER the irreversible delete
+  });
+
+  it('P4: a lease loss between pvcExists and deleteWorkspace ABORTS before the irreversible delete', async () => {
+    const workspaceVolumes = new FakePvcs();
+    workspaceVolumes.seed('ws1');
+    const deleteSpy = vi.spyOn(workspaceVolumes, 'deleteWorkspace');
+    let checked = false;
+    vi.spyOn(workspaceVolumes, 'pvcExists').mockImplementation(async (workspaceId: string) => {
+      const present = workspaceVolumes.present.has(workspaceId);
+      checked = true;
+      return present;
+    });
+    const guard = async () => {
+      if (checked) {
+        throw new Error('ACCOUNT_PURGE_LEASE_LOST: lost between pvcExists and delete');
+      }
+    };
+
+    await expect(
+      eraseSubjectStorage(
+        { bucketProjectIds: [], workspaceIds: ['ws1'] },
+        { workspaceVolumes, writeBarrier: recordingBarrier(), guard },
+      ),
+    ).rejects.toThrow(/LEASE_LOST/);
+    expect(deleteSpy).not.toHaveBeenCalled();
+  });
+
+  /* ---- RR-CODEX-14 (P8) fully fail-closed ---- */
+
+  it('P8: a NON-EMPTY inventory with NO write barrier is unverified (absent barrier ≠ success)', async () => {
+    const out = await eraseSubjectStorage(
+      { bucketProjectIds: ['p1'], workspaceIds: [] },
+      { objectStorage: new FakeObjectStorage() /* no writeBarrier */ },
+    );
+
+    expect(out.frozen).toBe(false);
+    expect(out.verified).toBe(false);
+    expect(out.classes[0].remainingAfterPurge).toBeGreaterThan(0);
+  });
+
+  it('P8: workspaces in the inventory but NO workspaceVolumes port → unverified (penalty, not silent skip)', async () => {
+    const out = await eraseSubjectStorage(
+      { bucketProjectIds: [], workspaceIds: ['ws1'] },
+      { writeBarrier: recordingBarrier() /* no workspaceVolumes */ },
+    );
+
+    expect(out.verified).toBe(false);
+    expect(out.classes[1].models.RealPort).toBe(0);
+    expect(out.classes[1].remainingAfterPurge).toBeGreaterThan(0);
+  });
+
+  it('P8: an empty-but-PRESENT bucket after a non-effective delete is unverified (CONTAINER absence, not just content)', async () => {
+    const objectStorage = new FakeObjectStorage();
+    objectStorage.seed('p1', []); // container present, zero content
+    objectStorage.refuseDelete = true; // delete is non-effective → container still present
+
+    const out = await eraseSubjectStorage(
+      { bucketProjectIds: ['p1'], workspaceIds: [] },
+      { objectStorage, writeBarrier: recordingBarrier() },
+    );
+
+    expect(out.verified).toBe(false); // zero objects, but the CONTAINER survives
+    expect(out.classes[0].models.ContainersRemaining).toBe(1);
+    expect(out.classes[0].remainingAfterPurge).toBeGreaterThan(0);
+  });
 });

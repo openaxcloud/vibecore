@@ -1269,6 +1269,8 @@ export interface ApiStore {
   reconcilePurgeFreezes(): Promise<{ reconciled: number; reclaimedPlanIds: string[] }>;
   /** RR-1bd27929: is this project's object storage frozen by >= 1 in-flight purge? */
   isObjectStorageProjectPurgeFrozen(projectId: string): Promise<boolean>;
+  /** RR-CODEX-14 (P6): does a durable erasure receipt exist for this user? */
+  hasPurgeReceipt(userId: string): Promise<boolean>;
   findUserByEmail(email: string): Promise<UserRecord | undefined>;
   findUserById(id: string): Promise<UserRecord | undefined>;
   /**

@@ -339,6 +339,12 @@ export class TestApiStore implements ApiStore {
     return this.objectStoragePurgeFrozen.has(projectId);
   }
 
+  private readonly purgeReceipts = new Set<string>();
+
+  async hasPurgeReceipt(userId: string): Promise<boolean> {
+    return this.purgeReceipts.has(userId);
+  }
+
   /** Test helper: simulate a purge freezing / thawing a project's object storage. */
   setObjectStoragePurgeFrozen(projectId: string, frozen: boolean): void {
     if (frozen) {
