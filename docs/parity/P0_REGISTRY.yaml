@@ -1183,19 +1183,18 @@ p0s:
     source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
     priority: 5
     owner: platform
-    status: OPEN
-    remediationTrack: A_TRIER
-    refusalReason: "l'artefact ne distingue pas apps supplémentaires et types d'Artifact"
-    refusalType: PREUVE_INSUFFISANTE
-    reviewVerdict: REFUSED
-    reviewCommit: "57febeab"
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260805-CODEX-STARTER-PR95 (COMPLET, responseHash 1aaca19e…) — Pricing Starter durci (PR #95, entitlement hardening) APPROVED FOR MERGE au SHA exact 39be5a37, toutes réserves du contre-audit levées ; condition expert : signature liée à l arbre exact (delta => re-revue) ; mergé par merge commit 3f0a6a8bae préservant 39be5a37 comme parent, ancêtre de main vérifié"
+    reviewReceiptId: RR-20260805-CODEX-STARTER-PR95
+    reviewVerdict: SIGNED
+    reviewCommit: "39be5a37"
     commit: 46da267bcaf21335635935aed385ae414daade9b
-    reviewer: UNKNOWN
-    evidenceId: docs/parity/OFFERING_ENTITLEMENT_REGISTRY.yaml
-    proof: "Adopté via plan §11.3 (verbatim) ; OFFERING sans montants, entitlements AUTHENTICATED_LIVE_REQUIRED avant reproduction exacte."
+    reviewer: OpenAI-Codex
+    evidenceId: docs/deploy-evidence/2026-08-04-starter-entitlement-hardening/
+    proof: "PR #95 (fix/starter-entitlement-hardening, tête 39be5a37) : entitlements Starter alignés (apps supplémentaires vs types d Artifact), expiration server-deploy + garde proxy ; preuves docs/deploy-evidence/2026-08-04-starter-entitlement-hardening/ + 2026-08-05-server-deploy-expiry/ ; CI verte à la tête (seul Playwright repo-wide rouge, hors périmètre)."
     dependances: []
-    conditionDeCloture: "Compléter l'évidence : l'artefact ne distingue pas apps supplémentaires et types d'Artifact ; puis re-soumission au relecteur"
-    nextAction: "Revue"
+    conditionDeCloture: "REMPLIE — signature expert au SHA exact + merge préservant l arbre signé"
+    nextAction: "Aucune (surveiller le déploiement)"
     targetDate: "2026-07-20"
   - p0Id: P0-EX-06
     title: "Retirer les montants tarifaires du plan durable"

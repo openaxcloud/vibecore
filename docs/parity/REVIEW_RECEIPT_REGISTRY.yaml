@@ -303,3 +303,21 @@ receipts:
         dimension: recovery_observability
     completeness: INCOMPLETE
     completenessNote: "Reçu enregistré d'après la directive d'Avi (2026-08-05) sans texte brut de l'expert — aucun flip CLOSED/SIGNED n'est demandé ni permis par cette entrée ; le sha256 du paquet de preuve est DECLARED_NOT_RECOMPUTED (préfixe seul transmis)."
+  - reviewReceiptId: RR-20260805-CODEX-STARTER-PR95
+    reviewerType: AUTOMATED_LLM
+    reviewerIdentity: "OpenAI-Codex"
+    reviewedAt: "2026-08-05"
+    auditedCommits:
+      starterPr95Head: "39be5a37fca3838b795d88ddb73ffb26a3c06006"
+    responsePath: docs/parity/incoming/REPONSE_EXPERT_STARTER_PR95_20260805.md
+    responseHash: "sha256:1aaca19e7a007335c7bd79ff019ca4f6a844a8c6f1b32fbb382753039fa947c5"
+    summary: "Pricing Starter (PR #95, entitlement hardening) SIGNÉ au SHA exact 39be5a37 — APPROVED FOR MERGE ; toutes réserves du contre-audit levées. Condition : signature liée à l'arbre exact de 39be5a37 (delta => re-revue). Mergé par merge commit 3f0a6a8bae (39be5a37 parent, ancêtre de main vérifié)."
+    decisions:
+      accepted: [P0-EX-05]
+      refused: []
+      contractsAccepted: []
+      contractsRefused: []
+      codeLotsAccepted: [PR-95-STARTER-ENTITLEMENT-HARDENING]
+      codeLotsRefused: []
+    completeness: COMPLETE
+    completenessNote: "Texte = verdict relayé verbatim par Avi le 2026-08-05 (pas la prose complète de l'expert) ; responseHash recomputable sur le fichier committé. Id distinct (…-STARTER-PR95) pour ne pas préempter la numérotation CODEX-nn de l'expert."
