@@ -7,10 +7,10 @@ Un point n'est « fait » QUE quand ✅ est coché.
 
 | Point                                                                                                                                                              |    📤    | 💻  | ✅  | Notes                                                                       |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :------: | :-: | :-: | --------------------------------------------------------------------------- |
-| I18N-FR-001. Noyau i18n EN/FR : SSR + client, détection navigateur au premier passage, cookie manuel prioritaire, fallback anglais, pluriels/interpolation/formats | ✅ 04/08 |  ☐  |  ☐  | Branche/PR dédiée ; aucune validation avant tests réels.                    |
-| I18N-FR-002. Externaliser et traduire marketing, auth, dashboard, onboarding, IDE/panneaux, micro-textes, transactionnel, notifications et erreurs visibles        | ✅ 04/08 |  ☐  |  ☐  | Pages Solutions coordonnées, sans écrasement ; Terminal mobile intouchable. |
-| I18N-FR-003. SEO localisé : titres/meta/OG/Twitter, canonique anglais, hreflang en/fr, sitemap et `<html lang>` actif                                              | ✅ 04/08 |  ☐  |  ☐  | Validation SSR et navigation client requise.                                |
-| I18N-FR-004. Qualité/preuves : glossaire, scan zéro anglais rendu, garde CI anti-chaînes, couverture et matrice responsive clair/sombre                            | ✅ 04/08 |  ☐  |  ☐  | 390/768/1024/1440 px ; aucune colonne ✅ avant captures + greps réels.      |
+| I18N-FR-001. Noyau i18n EN/FR : SSR + client, détection navigateur au premier passage, cookie manuel prioritaire, fallback anglais, pluriels/interpolation/formats | ✅ 04/08 |  ☐  |  ☐  | Branche dédiée auditée ; reste non codé sur `main` et non validé. |
+| I18N-FR-002. Externaliser et traduire marketing, auth, dashboard, onboarding, IDE/panneaux, micro-textes, transactionnel, notifications et erreurs visibles        | ✅ 04/08 |  ☐  |  ☐  | ÉCHEC strict : 2 480 findings Solutions/Enterprise coordonné + 144 header IDE compact gelé ; scan source 145 résidus/6 fichiers. |
+| I18N-FR-003. SEO localisé : titres/meta/OG/Twitter, canonique anglais, hreflang en/fr, sitemap et `<html lang>` actif                                              | ✅ 04/08 |  ☐  |  ☐  | Matrice : 0 anomalie SEO/langue sur 1 128 audits, mais le point global reste non validé tant que les résidus subsistent. |
+| I18N-FR-004. Qualité/preuves : glossaire, scan zéro anglais rendu, garde CI anti-chaînes, couverture et matrice responsive clair/sombre                            | ✅ 04/08 |  ☐  |  ☐  | Audit live `ca6cb4e2` : 3 392 artefacts, 1 028/1 128 propres, 9/16 scénarios verts ; 7 rouges attendus, donc NON FAIT. |
 
 ## AUDIT V4 — 4 chantiers + statut calculé (décision Avi 16/07)
 

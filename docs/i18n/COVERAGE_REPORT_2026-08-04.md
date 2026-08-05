@@ -16,9 +16,11 @@ La plateforme dispose désormais d’une infrastructure i18n EN/FR, de catalogue
 | Fichiers source analysés                        |                         1 360 |
 | Occurrences autorisées et justifiées            |                           767 |
 | Résidus stricts                                 |           145 dans 6 fichiers |
-| Première matrice live de diagnostic             | 1 112 / 1 112 audits produits |
-| Captures de la première matrice                 |           2 224 EN/FR uniques |
-| Audits sans finding lors de la première matrice |         916 / 1 112 (82,37 %) |
+| Matrice live finale                             | 1 128 / 1 128 audits produits |
+| Captures de la matrice finale                   |           2 256 EN/FR uniques |
+| Preuves de négociation initiale                 |                             8 |
+| Audits sans finding lors de la matrice finale   |      1 028 / 1 128 (91,1348 %) |
+| Findings live, tous périmètres protégés         |                         2 624 |
 | Scan source strict zéro                         |                     **ÉCHEC** |
 | Autorisation de fusion                          |                       **NON** |
 
@@ -119,19 +121,56 @@ Cette première exécution a révélé puis permis de corriger hors zones proté
 - le faux négatif causé par la sélection du premier switch caché ;
 - la simulation incomplète du thème clair dans les préférences projet.
 
-## Seconde matrice de validation
+## Matrice live finale
 
-La seconde matrice ajoute deux chemins HTTP 404 localisés et produit 1 128 audits, 2 256 captures EN/FR et 8 preuves de négociation lorsqu’elle est complète. Elle enregistre aussi la locale et le thème réellement rendus dans chaque JSON et ne duplique plus physiquement les artefacts Playwright.
+Révision auditée : `ca6cb4e296814fc4b8a7813d37357826b71a1ea6`.
 
-**Résultat final : en attente de la reconstruction et de l’exécution sur le dernier worktree.** Cette section doit être remplacée par les nombres réels avant publication de la PR.
+La matrice finale a utilisé le bundle SSR de production, l’API réelle et PostgreSQL. Elle ajoute deux chemins HTTP 404 localisés à la taxonomie initiale et exerce 141 routes ou panneaux, deux thèmes, quatre viewports et les deux locales. Elle enregistre dans chaque JSON le statut HTTP, la locale, le thème, le SEO, le switch, sa géométrie, les erreurs navigateur et les entrées sémantiques rendues.
 
-## Résidus live déjà confirmés
+| Contrôle                                                     |                 Résultat |
+| ------------------------------------------------------------ | -----------------------: |
+| Audits route × thème × viewport                              |          1 128 / 1 128 |
+| Captures EN/FR                                               |                    2 256 |
+| Preuves de négociation initiale                              |                        8 |
+| Artefacts totaux                                             |                    3 392 |
+| Artefacts invalides, manquants ou inattendus                 |                        0 |
+| Entrées sémantiques FR analysées                             |                  157 623 |
+| Combinaisons sans finding                                    | 1 028 / 1 128 (91,1348 %) |
+| Combinaisons avec finding                                    |          100 / 1 128 |
+| Findings                                                     |                    2 624 |
+| Réponses EN et FR                                            | 1 112 × 200 + 16 × 404 |
+| Réponses 5xx                                                 |                        0 |
+| Débordements horizontaux documentaires                       |                        0 |
+| Pages blanches                                               |                        0 |
+| Erreurs console, page ou JavaScript                          |                        0 |
+| Anomalies langue, thème, switch, SEO ou interaction          |                        0 |
+| Groupes de switch / boutons                                  |            1 128 / 2 256 |
+| Boutons hors viewport ou sous la cible tactile minimale      |                        0 |
+| Preuves compactes IDE/Git sans chevauchement                 |                  12 / 12 |
+| Scénarios Playwright réussis                                 |                   9 / 16 |
+
+Les sept scénarios rouges sont attendus parce que l’assertion finale exige réellement zéro finding : les quatre scénarios marketing échouent sur Solutions/Enterprise et les trois scénarios user compacts (`1024`, `768`, `390`) échouent sur le header IDE gelé. Le scénario user desktop `1440` est vert. Aucun échec inattendu n’a été relevé.
+
+Répartition par viewport :
+
+| Viewport | Audits propres | Audits sales | Findings | Cause |
+| -------- | -------------: | -----------: | -------: | ----- |
+| 1440     |            260 |           22 |      620 | Solutions/Enterprise |
+| 1024     |            256 |           26 |      668 | Solutions/Enterprise + header IDE gelé |
+| 768      |            256 |           26 |      668 | Solutions/Enterprise + header IDE gelé |
+| 390      |            256 |           26 |      668 | Solutions/Enterprise + header IDE gelé |
+
+Les 2 624 findings se répartissent en 2 480 occurrences Solutions/Enterprise et 144 occurrences du header IDE compact, sans autre résidu. Par canal : 1 908 textes, 336 libellés ARIA, 200 métadonnées, 112 textes alternatifs, 60 attributs `title` et 8 titres de document. Par signal : 2 520 termes interdits, 72 correspondances anglaises et 32 signaux lexicaux anglais.
+
+La géométrie du switch compact a été vérifiée dans 12 preuves IDE/Git : écart de 8 px sous le header, écart de 3 px avant le contenu, aucun chevauchement, deux boutons de 44 × 44 px entièrement dans le viewport. La revue visuelle finale des captures `1024`, `768` et `390`, en clair et sombre, confirme que le switch et le badge « Inactif » restent visibles.
+
+## Résidus live finaux
 
 Les résidus suivants ne sont pas des faux positifs et restent bloquants :
 
-- `/solutions` et les cartes Solutions contiennent du texte anglais et des anglicismes visibles ;
+- `/solutions` et les cartes Solutions contiennent du texte anglais et des anglicismes visibles ; avec `/enterprise`, ce périmètre totalise 2 480 findings sur les quatre viewports ;
 - `/enterprise` contient notamment `What you can build`, `Production workflow`, `Code review`, `Runtime preview` et `Deployment path`, y compris dans les métadonnées ;
-- les vues IDE/Git rendent encore `Ready for the next change`, `Back to dashboard`, `Activity`, `Open tools`, `Open tab switcher`, `Open tabs` et `Add new tab` depuis le bloc coordonné de `BaseChat.tsx` ;
+- les vues IDE/Git compactes rendent encore `Ready for the next change`, `Back to dashboard`, `Activity`, `Open tools`, `Open tab switcher`, `Open tabs` et `Add new tab` depuis le bloc coordonné de `BaseChat.tsx`, soit 144 findings sur `1024`, `768` et `390` ;
 - les chaînes du Terminal mobile et des onglets IDE gelés restent détectées statiquement, même quand le crawl de routes ne les ouvre pas.
 
 Ces fichiers n’ont pas été modifiés dans leurs blocs protégés. La coordination demandée prime sur une modification unilatérale, mais elle ne transforme pas les résidus en exception acceptable pour la définition de fini.
@@ -148,9 +187,9 @@ Ne sont pas encore prouvés de bout en bout :
 - les parcours OAuth/SSO réels ;
 - chaque modal, menu, tooltip, toast, validation et état async ;
 - l’ouverture interactive de tous les panneaux IDE, notamment Terminal, Problems et Agent ;
-- l’absence de troncature élément par élément ; le crawl mesure le débordement du document ;
+- l’absence de troncature élément par élément sur chaque nœud ; le crawl mesure le débordement du document et la géométrie du switch, tandis que les troncatures du header compact gelé restent visibles et bloquantes ;
 - la fonctionnalité réelle de chaque preview IDE ;
-- une revue humaine de chacune des 2 224 captures ou une comparaison visuelle automatisée.
+- une revue humaine de chacune des 2 256 captures ou une comparaison visuelle automatisée ; la revue humaine finale a porté sur un échantillon représentatif marketing, auth, dashboard, 404 et IDE compact clair/sombre.
 
 La couverture rendue ne doit donc pas être présentée comme 100 %, même si une future matrice de routes devient verte.
 
