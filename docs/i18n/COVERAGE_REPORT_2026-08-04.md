@@ -6,23 +6,23 @@ La plateforme dispose désormais d’une infrastructure i18n EN/FR, de catalogue
 
 ## Résumé vérifiable
 
-| Mesure                                          |                   État mesuré |
-| ----------------------------------------------- | ----------------------------: |
-| Fichiers de catalogue EN/FR                     |                           198 |
-| Entrées anglaises                               |                        18 179 |
-| Entrées françaises                              |                        18 179 |
-| Clés concordantes                               |                18 179 (100 %) |
-| Familles de pluriels `_one` / `_other`          |                           203 |
-| Fichiers source analysés                        |                         1 360 |
-| Occurrences autorisées et justifiées            |                           767 |
-| Résidus stricts                                 |           145 dans 6 fichiers |
-| Matrice live finale                             | 1 128 / 1 128 audits produits |
-| Captures de la matrice finale                   |           2 256 EN/FR uniques |
-| Preuves de négociation initiale                 |                             8 |
-| Audits sans finding lors de la matrice finale   |      1 028 / 1 128 (91,1348 %) |
-| Findings live, tous périmètres protégés         |                         2 624 |
-| Scan source strict zéro                         |                     **ÉCHEC** |
-| Autorisation de fusion                          |                       **NON** |
+| Mesure                                        |                   État mesuré |
+| --------------------------------------------- | ----------------------------: |
+| Fichiers de catalogue EN/FR                   |                           198 |
+| Entrées anglaises                             |                        18 179 |
+| Entrées françaises                            |                        18 179 |
+| Clés concordantes                             |                18 179 (100 %) |
+| Familles de pluriels `_one` / `_other`        |                           203 |
+| Fichiers source analysés                      |                         1 360 |
+| Occurrences autorisées et justifiées          |                           767 |
+| Résidus stricts                               |           145 dans 6 fichiers |
+| Matrice live finale                           | 1 128 / 1 128 audits produits |
+| Captures de la matrice finale                 |           2 256 EN/FR uniques |
+| Preuves de négociation initiale               |                             8 |
+| Audits sans finding lors de la matrice finale |     1 028 / 1 128 (91,1348 %) |
+| Findings live, tous périmètres protégés       |                         2 624 |
+| Scan source strict zéro                       |                     **ÉCHEC** |
+| Autorisation de fusion                        |                       **NON** |
 
 La parité du catalogue prouve que chaque clé enregistrée possède une valeur EN et FR. Elle ne prouve ni que chaque surface dynamique a été exercée, ni que les 145 chaînes protégées ont disparu.
 
@@ -49,11 +49,15 @@ Résultats statiques connus sur le worktree audité :
 
 - `i18n:check` : réussi, 18 179 clés EN/FR concordantes et baseline stable ;
 - `i18n:scan:source:zero` : échec attendu, 145 résidus ;
-- tests web complets : 817 fichiers, 5 916 tests réussis ;
+- tests web complets : 821 fichiers, 5 939 tests réussis, aucun échec ni test ignoré ;
 - tests API complets : 176 fichiers réussis, 4 ignorés, 1 488 tests réussis et 35 ignorés ;
+- tests de services ciblés : preview-proxy 7 fichiers/81 tests, workspace-manager 6 fichiers/80 tests (1 fichier/7 tests ignorés), workspace-agent 6 fichiers/76 tests, connector-proxy 5 fichiers/24 tests et worker 6 fichiers/37 tests, tous réussis ;
 - typecheck étendu : réussi pour le web, les scripts Node, Electron et les 34 paquets/services ;
 - lint : zéro erreur, 27 avertissements historiques ;
-- build production : réussi sur le bundle final destiné à la seconde matrice.
+- `actionlint` et validation des actifs CI/CD : réussis ;
+- build production final : réussi, 9 459 modules client et 1 249 modules SSR transformés.
+
+Un premier typecheck a détecté un usage orphelin de l’ancienne constante `PREVIEW_STARTING_HTML`. La branche le remplace par le générateur localisé typé, vérifie le statut 503 en français et repasse le typecheck global ainsi que les 81 tests preview-proxy. Les premiers timeouts API/worker observés pendant l’exécution simultanée de plusieurs suites ne se reproduisent pas en isolation ; les résultats isolés ci-dessus font foi.
 
 ## Scan source strict
 
@@ -80,6 +84,10 @@ Répartition des 145 résidus :
 Par règle : 43 attributs visibles, 10 expressions JSX, 13 textes JSX, 2 messages d’erreur, 74 copies visibles d’objets, 2 métadonnées SEO et 1 message de réponse.
 
 La CI exécute `pnpm run i18n:check`. Cette garde compare le résultat à une baseline signée par fichier : toute nouvelle occurrence, hausse ou substitution non approuvée échoue. C’est une garde anti-régression, pas un certificat zéro. Seul `pnpm run i18n:scan:source:zero` fournit ce certificat, et il est rouge.
+
+### Contrôle des zones coordonnées
+
+La comparaison à `origin/main` confirme que les fichiers `mobile-ide-tabs.ts`, `TerminalTabs.tsx`, `solutions._index.tsx` et `solutions.$slug.tsx` sont identiques. Les deux blocs gelés de `BaseChat.tsx` sont aussi identiques : header mobile SHA-256 `56ee8e62…e76`, dock mobile `947e6d09…55ca`. Le bloc `solutionPages` du composant marketing partagé est identique, SHA-256 `faeda7c5…bdc07`. Les fonctions de rendu partagées autour de ce bloc ont été localisées ; le chrome rendu peut donc évoluer sans modifier les données Solutions coordonnées.
 
 ## Première matrice live de diagnostic
 
@@ -123,39 +131,39 @@ Cette première exécution a révélé puis permis de corriger hors zones proté
 
 ## Matrice live finale
 
-Révision auditée : `ca6cb4e296814fc4b8a7813d37357826b71a1ea6`.
+Révision live auditée : `ca6cb4e296814fc4b8a7813d37357826b71a1ea6`. Révision statique finale avant mise à jour de ce rapport : `537d384329c1134cd6104a4eec8ba08988db2990`.
 
 La matrice finale a utilisé le bundle SSR de production, l’API réelle et PostgreSQL. Elle ajoute deux chemins HTTP 404 localisés à la taxonomie initiale et exerce 141 routes ou panneaux, deux thèmes, quatre viewports et les deux locales. Elle enregistre dans chaque JSON le statut HTTP, la locale, le thème, le SEO, le switch, sa géométrie, les erreurs navigateur et les entrées sémantiques rendues.
 
-| Contrôle                                                     |                 Résultat |
-| ------------------------------------------------------------ | -----------------------: |
-| Audits route × thème × viewport                              |          1 128 / 1 128 |
-| Captures EN/FR                                               |                    2 256 |
-| Preuves de négociation initiale                              |                        8 |
-| Artefacts totaux                                             |                    3 392 |
-| Artefacts invalides, manquants ou inattendus                 |                        0 |
-| Entrées sémantiques FR analysées                             |                  157 623 |
-| Combinaisons sans finding                                    | 1 028 / 1 128 (91,1348 %) |
-| Combinaisons avec finding                                    |          100 / 1 128 |
-| Findings                                                     |                    2 624 |
-| Réponses EN et FR                                            | 1 112 × 200 + 16 × 404 |
-| Réponses 5xx                                                 |                        0 |
-| Débordements horizontaux documentaires                       |                        0 |
-| Pages blanches                                               |                        0 |
-| Erreurs console, page ou JavaScript                          |                        0 |
-| Anomalies langue, thème, switch, SEO ou interaction          |                        0 |
-| Groupes de switch / boutons                                  |            1 128 / 2 256 |
-| Boutons hors viewport ou sous la cible tactile minimale      |                        0 |
-| Preuves compactes IDE/Git sans chevauchement                 |                  12 / 12 |
-| Scénarios Playwright réussis                                 |                   9 / 16 |
+| Contrôle                                                |                  Résultat |
+| ------------------------------------------------------- | ------------------------: |
+| Audits route × thème × viewport                         |             1 128 / 1 128 |
+| Captures EN/FR                                          |                     2 256 |
+| Preuves de négociation initiale                         |                         8 |
+| Artefacts totaux                                        |                     3 392 |
+| Artefacts invalides, manquants ou inattendus            |                         0 |
+| Entrées sémantiques FR analysées                        |                   157 623 |
+| Combinaisons sans finding                               | 1 028 / 1 128 (91,1348 %) |
+| Combinaisons avec finding                               |               100 / 1 128 |
+| Findings                                                |                     2 624 |
+| Réponses EN et FR                                       |    1 112 × 200 + 16 × 404 |
+| Réponses 5xx                                            |                         0 |
+| Débordements horizontaux documentaires                  |                         0 |
+| Pages blanches                                          |                         0 |
+| Erreurs console, page ou JavaScript                     |                         0 |
+| Anomalies langue, thème, switch, SEO ou interaction     |                         0 |
+| Groupes de switch / boutons                             |             1 128 / 2 256 |
+| Boutons hors viewport ou sous la cible tactile minimale |                         0 |
+| Preuves compactes IDE/Git sans chevauchement            |                   12 / 12 |
+| Scénarios Playwright réussis                            |                    9 / 16 |
 
 Les sept scénarios rouges sont attendus parce que l’assertion finale exige réellement zéro finding : les quatre scénarios marketing échouent sur Solutions/Enterprise et les trois scénarios user compacts (`1024`, `768`, `390`) échouent sur le header IDE gelé. Le scénario user desktop `1440` est vert. Aucun échec inattendu n’a été relevé.
 
 Répartition par viewport :
 
-| Viewport | Audits propres | Audits sales | Findings | Cause |
-| -------- | -------------: | -----------: | -------: | ----- |
-| 1440     |            260 |           22 |      620 | Solutions/Enterprise |
+| Viewport | Audits propres | Audits sales | Findings | Cause                                  |
+| -------- | -------------: | -----------: | -------: | -------------------------------------- |
+| 1440     |            260 |           22 |      620 | Solutions/Enterprise                   |
 | 1024     |            256 |           26 |      668 | Solutions/Enterprise + header IDE gelé |
 | 768      |            256 |           26 |      668 | Solutions/Enterprise + header IDE gelé |
 | 390      |            256 |           26 |      668 | Solutions/Enterprise + header IDE gelé |

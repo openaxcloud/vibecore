@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "generatedOn": "2026-08-05",
-  "generatedAt": "2026-08-05T12:58:24Z",
-  "sourceRevision": "ca6cb4e296814fc4b8a7813d37357826b71a1ea6",
+  "generatedAt": "2026-08-05T13:41:29Z",
+  "sourceRevision": "537d384329c1134cd6104a4eec8ba08988db2990",
   "sourceBranch": "agent/full-site-french-i18n",
   "status": "NON FAIT",
   "command": "node scripts/i18n/scan-source.mjs --require-zero --json --include-files",
