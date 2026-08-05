@@ -231,6 +231,45 @@ describe('WorkspaceManager', () => {
     expect((await store.get('workspace_1'))!.status).not.toBe('STOPPED');
   });
 
+  it('account-purge P3: a start/restart AFTER freeze (PVC zero-checked) and BEFORE the tombstone is REFUSED (durable barrier)', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    const store = new TestWorkspaceStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+    await manager.startWorkspace(input);
+
+    // The purge revokes Secret/Pod/Service and marks the DURABLE barrier with a fence.
+    await manager.freezeWorkspace('workspaces', 'workspace_1', 'fence-plan-A');
+    expect((await store.get('workspace_1'))!.purgeFrozen).toBe(true);
+    expect((await store.get('workspace_1'))!.purgeFenceToken).toBe('fence-plan-A');
+
+    // THE RACE: a start/restart after the freeze (the reprovision-after-zero-check-
+    // before-tombstone window) is REFUSED by the durable barrier.
+    await expect(manager.startWorkspace(input)).rejects.toThrow(/WORKSPACE_PURGE_FROZEN/);
+    await expect(manager.restartWorkspace(input)).rejects.toThrow(/WORKSPACE_PURGE_FROZEN/);
+
+    // Fenced release: a WRONG fence token cannot lift it; the owner's token can.
+    await manager.unfreezeWorkspace('workspace_1', 'wrong-fence');
+    expect((await store.get('workspace_1'))!.purgeFrozen).toBe(true);
+    await manager.unfreezeWorkspace('workspace_1', 'fence-plan-A');
+    expect((await store.get('workspace_1'))!.purgeFrozen).toBe(false);
+
+    // After the barrier is released, a start works again.
+    await expect(manager.startWorkspace(input)).resolves.toBeTruthy();
+  });
+
+  it('account-purge P3: freezing a NOT-yet-provisioned runtime creates a durable frozen tombstone → a first-time start is refused', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    const store = new TestWorkspaceStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+
+    // No runtime row exists yet; the purge still freezes the id.
+    await manager.freezeWorkspace('workspaces', 'workspace_1', 'fence-plan-B');
+    expect((await store.get('workspace_1'))!.purgeFrozen).toBe(true);
+
+    // A first-time provision (start) for that id is refused.
+    await expect(manager.startWorkspace(input)).rejects.toThrow(/WORKSPACE_PURGE_FROZEN/);
+  });
+
   it('never runs the real agent-reachability fetch under vitest, even without the timeout env (keeps the root `vitest --run` suite fast)', async () => {
     /*
      * Regression guard for the CI flake: the repo-root `vitest --run` globs this

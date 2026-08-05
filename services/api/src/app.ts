@@ -7096,20 +7096,29 @@ function createWorkspaceVolumeEraser(): WorkspaceVolumeErasurePort {
  * earlier, inside the store's topology guarantee (RR-09), before this runs.
  * FAIL-CLOSED: throws on ANY failure (freeze not acquired) so the erasure aborts.
  */
-function createWriteBarrier(workspaceIdsFor: (inv: StorageErasureInventory) => string[]): WriteBarrierPort {
+function createWriteBarrier(
+  workspaceIdsFor: (inv: StorageErasureInventory) => string[],
+  fenceToken: string,
+): WriteBarrierPort {
   const authHeaders = () => {
     const secret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
 
-    return { accept: 'application/json', ...(secret ? { authorization: `Bearer ${secret}` } : {}) };
+    return {
+      accept: 'application/json',
+      'content-type': 'application/json',
+      ...(secret ? { authorization: `Bearer ${secret}` } : {}),
+    };
   };
 
   return {
     async freeze(inventory: StorageErasureInventory) {
-      // Freeze each workspace (reserve #1). Throws on any failure.
+      // RR-CODEX-14 (P3): freeze each workspace with the owning plan's fence token, so
+      // no reprovision path can recreate it until the tombstone. Throws on any failure.
       for (const workspaceId of workspaceIdsFor(inventory)) {
         const response = await fetch(`${workspaceManagerUrl()}/workspaces/${encodeURIComponent(workspaceId)}/freeze`, {
           method: 'POST',
           headers: authHeaders(),
+          body: JSON.stringify({ fenceToken }),
           signal: AbortSignal.timeout(30_000),
         });
 
@@ -29702,7 +29711,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                       // Object-storage + membership freeze is acquired earlier, in
                       // the store's topology guarantee (RR-09); this barrier now
                       // only freezes the workspaces.
-                      writeBarrier: createWriteBarrier((inv) => inv.workspaceIds),
+                      // RR-CODEX-14 (P3): the per-subject fence token is the userId —
+                      // valid because the per-user singleton means exactly one active
+                      // purge plan per subject.
+                      writeBarrier: createWriteBarrier((inv) => inv.workspaceIds, userId),
                       // RR-CODEX-12: revalidate the lease before each irreversible delete.
                       guard,
                       log: app.log as unknown as { warn(o: unknown, m?: string): void },
