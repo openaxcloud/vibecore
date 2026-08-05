@@ -1,0 +1,64 @@
+PREUVES ADVERSES — limiteur de débit API partagé
+=================================================
+Base : main @ f5067a27a6cbff352a0e2cf4555295c110f4dd3e
+Banc : 2 instances API RÉELLES (ports 3501/3502) + vrai Redis 7 + vrai PostgreSQL 16
+Plafonds de test : API_RATE_LIMIT_MAX=20, ADMIN_RATE_LIMIT_MAX=5
+
+1. PARTAGE ENTRE REPLICAS (le défaut corrigé)
+---------------------------------------------
+40 requêtes alternées entre pod A et pod B, même credential, plafond 20 :
+    200 : 20      429 : 20
+Clé Redis observée : cred:0b7c15ccf8745cc1   (pas d'IP dans la clé)
+
+CONTRÔLE NÉGATIF (unitaire) : deux compteurs LOCAUX sur le même scénario
+laissent passer 2×LIMIT. C'est l'état d'avant correctif — le test de partage
+a donc des dents.
+
+2. CONCURRENCE — RAFALE SIMULTANÉE
+----------------------------------
+60 requêtes lancées EN PARALLÈLE (aucun await intermédiaire), réparties sur
+les 2 pods, plafond 20 :
+    200 : 20      429 : 40      total : 60
+Unitaire : rafale de 200 simultanées -> exactement 10 autorisées (plafond 10) ;
+les compteurs rendus forment 1..N sans trou ni doublon (incrément atomique).
+
+3. FAIL-CLOSED — PANNE DU STORE PARTAGÉ
+---------------------------------------
+    avant panne          -> HTTP 200
+    Redis STOPPÉ
+    requête 1            -> HTTP 503 | retry-after: 5
+    requête 2            -> HTTP 503 | retry-after: 5
+    corps: {"error":"Rate limiting is temporarily unavailable — request refused.",
+            "code":"RATE_LIMIT_STORE_UNAVAILABLE","retryable":true}
+    Redis REDÉMARRÉ      -> HTTP 200, 200, 200  (reprise sans intervention)
+
+Mode opt-in explicite RATE_LIMIT_STORE_FAILURE_POLICY=degrade-local, Redis coupé,
+plafond 5 :
+    200 : 5       429 : 7      (compté par pod — jamais illimité)
+
+4. FRONTIÈRES / ISOLATION PAR TENANT
+------------------------------------
+Tenant A épuise son budget, DEPUIS LA MÊME IP SOURCE :
+    tenant A (épuisé)     -> HTTP 429
+    tenant B (intact)     -> HTTP 200
+    tenant B depuis pod B -> HTTP 200
+Compartiments distincts en Redis : 2
+
+La clé authentifiée est le credential SEUL (cred:<hash>), sans l'IP : un
+attaquant authentifié tournant sur plusieurs adresses ne se fabrique plus un
+compartiment neuf par IP. L'anonyme reste clé par IP (seul signal non
+falsifiable avant auth).
+
+5. DÉFAUT ATTRAPÉ PAR LA PREUVE LIVE, INVISIBLE EN UNITAIRE
+-----------------------------------------------------------
+Première tentative de câblage : store custom passé via l'option `store` + un
+champ `backend` dans les options du plugin. Résultat live : 40/40 autorisées,
+le limiteur ne comptait RIEN.
+
+Cause : @fastify/rate-limit instancie `new Store(globalParams)` où
+globalParams est reconstruit à partir de SES propres champs (index.js:117) —
+toute option supplémentaire est ignorée, le backend n'arrivait jamais.
+
+Correctif : fabrique `createFastifyRateLimitStore(backend)` qui capture le
+backend par closure, sans dépendre d'un passthrough inexistant.
+Après correctif : 20/20 — partage rétabli.

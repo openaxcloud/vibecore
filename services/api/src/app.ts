@@ -12,6 +12,16 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import jwt from '@fastify/jwt';
 import rateLimit from '@fastify/rate-limit';
+import {
+  consumeRateLimit,
+  createFastifyRateLimitStore,
+  LocalRateLimitBackend,
+  parseStoreFailurePolicy,
+  RateLimitStoreUnavailableError,
+  RedisRateLimitBackend,
+  SharedRateLimitBackend,
+  type RateLimitBackend,
+} from './shared-rate-limit.js';
 import websocket from '@fastify/websocket';
 import {
   createOpaqueToken,
@@ -8114,9 +8124,80 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       callback(null, assertStrictCorsOrigin(origin, allowedOrigins));
     },
   });
+  /*
+   * Client Redis DÉDIÉ au rate limiting.
+   *
+   * `enableOfflineQueue: false` est délibéré : sans lui, ioredis met les
+   * commandes en file d'attente pendant une coupure et chaque requête HTTP
+   * attendrait la reconnexion — un incident Redis deviendrait une panne de
+   * latence généralisée. On préfère un échec IMMÉDIAT, que la stratégie de
+   * dégradation transforme en comptage local (jamais en absence de limite).
+   */
+  const rateLimitStoreFailurePolicy = parseStoreFailurePolicy(process.env.RATE_LIMIT_STORE_FAILURE_POLICY);
+
+  const sharedRateLimitRedis = process.env.REDIS_URL
+    ? new Redis(process.env.REDIS_URL, {
+        connectionName: 'vibecore-rate-limit',
+        enableOfflineQueue: false,
+        maxRetriesPerRequest: 1,
+        lazyConnect: true,
+      })
+    : undefined;
+
+  /*
+   * ioredis émet une 'error' au niveau processus sur toute faute de connexion ;
+   * sans écouteur, ça devient une 'error' non gérée qui TUE le pod. On loggue et
+   * on avale : le limiteur dégrade, il ne fait pas tomber l'API.
+   */
+  sharedRateLimitRedis?.on('error', (error) =>
+    console.error(
+      JSON.stringify({ level: 'error', service: 'api', component: 'rate-limit-redis', error: String(error) }),
+    ),
+  );
+
+  const globalRateLimitBackend = sharedRateLimitRedis
+    ? new SharedRateLimitBackend(new RedisRateLimitBackend(sharedRateLimitRedis), {
+        policy: rateLimitStoreFailurePolicy,
+        onStoreFailure: (error, policy) =>
+          console.error(
+            JSON.stringify({
+              level: 'error',
+              service: 'api',
+              component: 'api-rate-limit',
+              event: 'shared_store_unavailable',
+              policy,
+              error: String(error),
+            }),
+          ),
+      })
+    : undefined;
+
   await app.register(rateLimit, {
     max: Number(process.env.API_RATE_LIMIT_MAX ?? 2000),
     timeWindow: '1 minute',
+    /*
+     * Store PARTAGÉ. Sans lui, @fastify/rate-limit compte dans un cache local au
+     * processus : avec 2 replicas (HPA → 6), tout plafond valait jusqu'à 6× la
+     * valeur annoncée, y compris ceux qui protègent login/register du brute
+     * force. Le limiteur s'affaiblissait à mesure que la plateforme scalait.
+     *
+     * On passe par NOTRE store plutôt que par l'option `redis` du plugin : les
+     * deux limiteurs (global et admin) partagent ainsi la même politique de
+     * panne et la même erreur typée, au lieu de deux comportements distincts.
+     */
+    ...(globalRateLimitBackend ? { store: createFastifyRateLimitStore(globalRateLimitBackend) } : {}),
+    /*
+     * FAIL-CLOSED. `skipOnError: true` (le défaut de la lib) laisse passer TOUTE
+     * requête quand le store est injoignable : la protection brute force
+     * s'évapore exactement quand un attaquant a intérêt à faire tomber Redis.
+     * À false, un store KO renvoie 429 plutôt que d'ouvrir la vanne.
+     *
+     * Le coût est réel et assumé : une panne Redis dégrade la disponibilité des
+     * routes limitées. Un opérateur qui préfère l'inverse le déclare via
+     * RATE_LIMIT_STORE_FAILURE_POLICY=degrade-local (compteur par pod, jamais
+     * illimité) — jamais par accident.
+     */
+    skipOnError: rateLimitStoreFailurePolicy === 'degrade-local',
     keyGenerator(request) {
       const authorization = request.headers.authorization;
 
@@ -8135,9 +8216,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const credentialKey =
         typeof authorization === 'string' && authorization.startsWith('Bearer ')
           ? hashToken(authorization.slice('Bearer '.length)).slice(0, 16)
-          : 'anonymous';
+          : undefined;
 
-      return `${request.ip}:${credentialKey}`;
+      /*
+       * ISOLATION PAR PORTEUR DE CREDENTIAL.
+       *
+       * Clé authentifiée = le credential SEUL, sans l'IP. En incluant l'IP, le
+       * budget d'un même jeton se dupliquait à chaque adresse source : un
+       * attaquant authentifié disposant de plusieurs IP (proxies, cloud, IPv6
+       * /64) se fabriquait autant de compartiments neufs et sortait de sa propre
+       * limite. Le budget suit désormais le porteur, où qu'il se connecte.
+       *
+       * Corollaire d'isolation : deux tenants ne partagent jamais un compartiment
+       * (jetons distincts ⇒ clés distinctes), donc l'abus de l'un ne consomme pas
+       * le quota de l'autre — y compris derrière une IP de sortie commune.
+       *
+       * Anonyme = par IP : c'est le seul signal non falsifiable avant auth.
+       */
+      return credentialKey ? `cred:${credentialKey}` : `ip:${request.ip}`;
     },
   });
 
@@ -8229,6 +8325,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.setErrorHandler((error: any, request, reply) => {
     if (error instanceof z.ZodError) {
       return reply.code(400).send({ error: 'Validation failed', code: 'VALIDATION_ERROR', issues: error.issues });
+    }
+
+    /*
+     * FAIL-CLOSED lisible. Le store de rate limiting est injoignable : on refuse,
+     * mais avec un 503 + retry-after plutôt qu'un 500 anonyme. Ce n'est pas un
+     * bug applicatif mais un mode dégradé connu — l'appelant sait qu'il peut
+     * réessayer, et l'astreinte le distingue d'une panne de code.
+     */
+    if (error instanceof RateLimitStoreUnavailableError) {
+      return reply.code(503).header('retry-after', '5').send({
+        error: 'Rate limiting is temporarily unavailable — request refused.',
+        code: error.code,
+        retryable: true,
+      });
     }
 
     const statusCode = typeof error.statusCode === 'number' ? error.statusCode : 500;
@@ -9488,22 +9598,42 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     },
   );
 
-  const adminRateBuckets = new Map<string, { count: number; resetAt: number }>();
+  /*
+   * Limiteur admin PARTAGÉ entre replicas.
+   *
+   * C'était une `Map` de processus : avec 2 replicas (HPA → 6), le plafond
+   * annoncé de 30 mutations admin/minute en valait jusqu'à 180 — et l'attaquant
+   * n'avait rien à faire, le load balancer répartissait ses requêtes tout seul.
+   * Le compteur vit désormais dans Redis (incrément + TTL atomiques). Sans
+   * REDIS_URL (dev, tests), on garde le compteur local : même sémantique,
+   * portée réduite à un pod, et c'est dit.
+   */
+  const adminRateLocalFallback = new LocalRateLimitBackend();
+  const adminRateLimitBackend: RateLimitBackend = sharedRateLimitRedis
+    ? new SharedRateLimitBackend(new RedisRateLimitBackend(sharedRateLimitRedis), {
+        policy: rateLimitStoreFailurePolicy,
+        fallback: adminRateLocalFallback,
+        onStoreFailure: (error, policy) =>
+          console.error(
+            JSON.stringify({
+              level: 'error',
+              service: 'api',
+              component: 'admin-rate-limit',
+              event: 'shared_store_unavailable',
+              policy,
+              error: String(error),
+            }),
+          ),
+      })
+    : adminRateLocalFallback;
 
   /*
-   * Periodically evict expired buckets. Without this, the map grows without
-   * bound: a caller varying source IP or path component creates a key that is
-   * only ever overwritten when that exact key recurs, so one-off keys live
-   * forever (memory leak / DoS amplifier).
+   * Purge des fenêtres expirées du compteur local. Sans elle, la Map croît sans
+   * borne : une clé vue une seule fois n'est jamais réécrite et vit pour
+   * toujours (fuite mémoire, amplificateur de DoS).
    */
   setInterval(() => {
-    const t = Date.now();
-
-    for (const [k, v] of adminRateBuckets) {
-      if (v.resetAt <= t) {
-        adminRateBuckets.delete(k);
-      }
-    }
+    adminRateLocalFallback.prune();
   }, 60_000).unref();
 
   const parsedAdminRateLimit = Number(process.env.ADMIN_RATE_LIMIT_MAX ?? 30);
@@ -9518,19 +9648,41 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * attacker bypass the limit by varying the path param (e.g. suspend a
        * different :userId each request), since each target got its own bucket.
        */
-      const key = `${request.ip}:${request.method}:${request.routeOptions.url ?? request.url.split('?')[0]}`;
-      const now = Date.now();
-      const bucket = adminRateBuckets.get(key);
+      const key = `adminrl:${request.ip}:${request.method}:${request.routeOptions.url ?? request.url.split('?')[0]}`;
+      let decision;
 
-      if (!bucket || bucket.resetAt <= now) {
-        adminRateBuckets.set(key, { count: 1, resetAt: now + adminRateWindowMs });
-      } else if (bucket.count >= adminRateLimit) {
+      try {
+        decision = await consumeRateLimit({
+          backend: adminRateLimitBackend,
+          key,
+          limit: adminRateLimit,
+          windowMs: adminRateWindowMs,
+        });
+      } catch (error) {
+        /*
+         * FAIL-CLOSED : store partagé injoignable ⇒ on REFUSE la mutation admin.
+         * 503 (et non 429) : ce n'est pas l'appelant qui a trop consommé, c'est
+         * la plateforme qui ne peut plus compter. Laisser passer ici ouvrirait
+         * les routes admin au moment le plus défavorable.
+         */
+        if (error instanceof RateLimitStoreUnavailableError) {
+          request.log?.error?.({ err: error }, 'admin rate limit store unavailable — refusing (fail-closed)');
+
+          return reply.code(503).header('retry-after', '5').send({
+            error: 'Rate limiting is temporarily unavailable — admin mutations are refused.',
+            code: 'RATE_LIMIT_STORE_UNAVAILABLE',
+            retryable: true,
+          });
+        }
+
+        throw error;
+      }
+
+      if (!decision.allowed) {
         return reply
           .code(429)
-          .header('retry-after', Math.max(1, Math.ceil((bucket.resetAt - now) / 1000)))
+          .header('retry-after', decision.retryAfterSeconds)
           .send({ error: 'Too many admin requests', code: 'ADMIN_RATE_LIMITED' });
-      } else {
-        bucket.count += 1;
       }
     }
   });
