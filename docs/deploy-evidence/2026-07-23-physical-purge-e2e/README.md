@@ -48,6 +48,46 @@ local `kind` cluster satisfies "real k8s" at $0, so no cost sign-off was needed.
 No persistent keys: GCS uses ADC (the reviewer's gcloud login), k8s uses the
 local kind kubeconfig.
 
+## Round 8 — RR-CODEX-12: live lease + per-user singleton + verified reconcile
+
+The per-plan model was accepted; the reviewer then found three more holes, all
+fixed (migration `0084_purge_plan_lease_singleton`, which adds `PurgePlan.status`
+and a UNIQUE `userId`):
+
+1. **Live lease (heartbeat).** `leaseExpiresAt` was set once and never renewed, so
+   a slow erasure (> TTL) let a reconciler reclaim a live plan mid-erasure. Now the
+   owner runs a background **heartbeat** that **renews the lease via CAS**
+   (`renewPurgeLease`: `id + ownerToken + version + status=ACTIVE`) every
+   `renewIntervalMs` (≪ TTL); a failed renewal marks the lease LOST. A `guard`
+   **revalidates ownership + lease before EACH irreversible bucket/PVC delete**
+   (threaded into `eraseSubjectStorage`), **before the finalize tx, and immediately
+   before the tombstone** — after lease loss it aborts, so nothing is deleted or
+   finalized.
+2. **Safe reclaim + per-user singleton.** `PurgePlan.userId` is now UNIQUE — at most
+   one plan per subject — and `acquirePurgeGuarantee` refuses a second purge
+   (`PURGE_ALREADY_ACTIVE`) while a plan is live, or reclaims an abandoned one. The
+   reconciler reclaims only plans whose lease expired **beyond a grace** (clock-lag
+   guard) and via a durable **CAS ACTIVE→RECLAIMING (+version)** that also
+   invalidates the old owner's next renewal, so it cannot continue.
+3. **Verified reconcile.** The reconciler no longer swallows cleanup errors as
+   success — it increments `reconciled` **only after the plan AND its freezes are
+   verifiably gone**; a cleanup failure leaves the plan in RECLAIMING (recoverable)
+   and is NOT counted.
+
+Proof (real Postgres, `account-purge-db.spec.ts`, deterministic, controlled TTL):
+- **(19)** erasure longer than the TTL → the heartbeat renews, a concurrent
+  reconciler reclaims NOTHING, the freeze is active until the end.
+- **(20)** dead owner → two concurrent reconcilers, exactly one wins (CAS), cleanup
+  confirmed.
+- **(21)** renewal vs reclaim at the same instant → exactly one CAS winner (owner
+  keeps a valid lease, or stops).
+- **(22)** lease lost mid-erasure → after 1 resource, NO further delete, NO
+  tombstone, recoverable state.
+- **(23)** two workers, same user, real erase path → exactly one PurgePlan, one
+  physical execution, one tombstone + verified proof.
+- **(24)** reconciler cleanup failure → `reconciled` stays 0, plan RECLAIMING
+  (recoverable), a second pass finishes cleanly.
+
 ## Round 7 — RR-1bd27929: PER-PLAN ownership (multi-plan safety)
 
 The reviewer found a real hole in the freeze model: freezes were GLOBAL id-lists,

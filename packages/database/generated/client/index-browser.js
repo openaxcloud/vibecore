@@ -1648,6 +1648,7 @@ exports.Prisma.PurgePlanScalarFieldEnum = {
   ownerToken: 'ownerToken',
   leaseExpiresAt: 'leaseExpiresAt',
   version: 'version',
+  status: 'status',
   createdAt: 'createdAt'
 };
 
