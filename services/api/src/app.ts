@@ -33290,9 +33290,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
         return reply.code(error.statusCode).send({
           error: appPublicCopy(
-            cap === 1
-              ? 'PLAN_ACTIVE_PUBLISHED_PROJECT_LIMIT_ONE'
-              : 'PLAN_ACTIVE_PUBLISHED_PROJECT_LIMIT_OTHER',
+            cap === 1 ? 'PLAN_ACTIVE_PUBLISHED_PROJECT_LIMIT_ONE' : 'PLAN_ACTIVE_PUBLISHED_PROJECT_LIMIT_OTHER',
             locale,
             { cap },
           ),
@@ -33382,9 +33380,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceId: published.id,
     });
 
-    return reply
-      .code(201)
-      .send({ deployment: localizeDeploymentRecord(published, locale) });
+    return reply.code(201).send({ deployment: localizeDeploymentRecord(published, locale) });
   });
 
   app.post('/projects/:projectId/deployments/:deploymentId/redeploy', async (request, reply) => {

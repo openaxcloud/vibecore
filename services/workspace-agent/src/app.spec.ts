@@ -329,7 +329,10 @@ describe('sanitizedChildEnv PORT repoint', () => {
     // The agent image bakes PORT=8080; a child that honors PORT would otherwise
     // bind the agent's control port and crash-loop on EADDRINUSE.
     process.env.PORT = '8080';
-    const env = sanitizedChildEnv({ PORT: '8080', VITE_HMR_CLIENT_PORT: '443' }, { command: 'npm', args: ['run', 'dev'] });
+    const env = sanitizedChildEnv(
+      { PORT: '8080', VITE_HMR_CLIENT_PORT: '443' },
+      { command: 'npm', args: ['run', 'dev'] },
+    );
     expect(env.PORT).toBe('5173');
   });
 
@@ -341,7 +344,10 @@ describe('sanitizedChildEnv PORT repoint', () => {
 
   it('respects a project that explicitly chose its own (non-control) PORT', () => {
     process.env.PORT = '8080';
-    const env = sanitizedChildEnv({ PORT: '3000', VITE_HMR_CLIENT_PORT: '443' }, { command: 'npm', args: ['run', 'dev'] });
+    const env = sanitizedChildEnv(
+      { PORT: '3000', VITE_HMR_CLIENT_PORT: '443' },
+      { command: 'npm', args: ['run', 'dev'] },
+    );
     expect(env.PORT).toBe('3000');
   });
 });

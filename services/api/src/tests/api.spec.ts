@@ -2950,7 +2950,6 @@ describe('SaaS API', () => {
       createdByUserId: auth.user.id,
     });
 
-
     const allowed = await app.inject({
       method: 'POST',
       url: `/orgs/${auth.organization.id}/projects`,
