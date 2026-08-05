@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  formatRemixPiiMetrics,
+  recordIbanMasked,
+  recordUnknownIbanCountry,
+  resetRemixPiiMetrics,
+  snapshotRemixPiiMetrics,
+} from './remix-pii-metrics.js';
+import {
   IBAN_LENGTH_BY_COUNTRY,
   IBAN_REGISTRY_PROVENANCE,
   REMIX_STATE_ORDER,
@@ -343,9 +350,6 @@ describe('person-name masking (I-RMX-3)', () => {
     });
 
     it('NE masque PAS un texte alphanumérique qui ressemble à un IBAN', () => {
-      // Bon gabarit, mauvais checksum -> laissé intact (contrepartie déclarée).
-      expect(mask('ES91 2100 0418 4502 0005 1333')).toBe('ES91 2100 0418 4502 0005 1333');
-
       // Code pays inconnu du registre.
       expect(mask('ZZ91 2100 0418 4502 0005 1332')).toBe('ZZ91 2100 0418 4502 0005 1332');
 
@@ -362,6 +366,89 @@ describe('person-name masking (I-RMX-3)', () => {
       expect(ibanChecksumValid('FR7630006000011234567890189')).toBe(true);
       expect(ibanChecksumValid('ES9121000418450200051333')).toBe(false);
       expect(ibanChecksumValid('nawak')).toBe(false);
+    });
+
+    /*
+     * R1/R2 — arbitrage Avi du 2026-08-05 : priorité CONFIDENTIALITÉ. Un IBAN
+     * mal tapé reste une donnée bancaire : longueur nationale correcte => on
+     * masque, que le checksum soit valide ou non.
+     */
+    it('R1 — checksum FAUX mais longueur correcte : MASQUÉ QUAND MÊME', () => {
+      const bad = 'ES91 2100 0418 4502 0005 1333'; // dernier chiffre altéré
+
+      expect(ibanChecksumValid(bad.replace(/ /g, ''))).toBe(false);
+      expect(mask(bad)).toBe('[PII:iban masked on remix]');
+      expect(mask(`${bad} EUR`)).toBe('[PII:iban masked on remix] EUR');
+    });
+
+    it('R2 — le checksum QUALIFIE seulement : ventilé dans les observations', () => {
+      const { observations } = maskPiiInFiles([
+        {
+          path: 'a.csv',
+          content: ['ES91 2100 0418 4502 0005 1332', 'ES91 2100 0418 4502 0005 1333'].join('\n'),
+        },
+      ]);
+
+      expect(observations.ibanMaskedChecksumValid).toBe(1);
+      expect(observations.ibanMaskedChecksumInvalid).toBe(1);
+      expect(observations.ibanUnknownCountryCodes).toEqual([]);
+    });
+
+    it('R3 — longueur INCORRECTE pour le pays : AUCUN masquage IBAN', () => {
+      /*
+       * On assied l'assertion sur l'ABSENCE du marqueur IBAN, pas sur l'égalité
+       * de la ligne : un IBAN tronqué peut être une suite de 19 chiffres
+       * Luhn-valide, que le matcher CARTE masque alors à bon droit. Les deux
+       * détecteurs sont indépendants ; c'est bien la règle IBAN qu'on teste ici.
+       */
+      const noIban = (line: string) => expect(mask(line), line).not.toContain('[PII:iban masked on remix]');
+
+      noIban('ES91 2100 0418 4502 0005 133'); // 23 — ES en attend 24
+      noIban('ES9121000418450200051332X'); // 25 — trop long
+      noIban('FR76 3000 6000 0112 3456 7890 18'); // 26 — FR en attend 27
+      noIban('GB29 NWBK 6016 1331 9268 1'); // 21 — GB en attend 22
+
+      // Sans chiffres exploitables par Luhn, la ligne reste littéralement intacte.
+      expect(mask('GB29 NWBK 6016 1331 9268 1')).toBe('GB29 NWBK 6016 1331 9268 1');
+    });
+
+    it('R4 — pays ABSENT du registre : NON masqué, mais SIGNALÉ', () => {
+      const line = 'ZZ91 2100 0418 4502 0005 1332';
+      const { files, observations } = maskPiiInFiles([{ path: 'a.csv', content: line }]);
+
+      expect(files[0].content).toBe(line);
+      expect(observations.ibanUnknownCountryCodes).toEqual(['ZZ']);
+    });
+
+    it('R4 — pas de faux signal sur du bruit court', () => {
+      const { observations } = maskPiiInFiles([{ path: 'a.ts', content: 'const ab12 = 3; // xy99 ok' }]);
+
+      expect(observations.ibanUnknownCountryCodes).toEqual([]);
+    });
+
+    it('R4 — le compteur métrique `unknown_country_code` est incrémenté', () => {
+      resetRemixPiiMetrics();
+
+      const { observations } = maskPiiInFiles([
+        { path: 'a.csv', content: 'ZZ91 2100 0418 4502 0005 1332\nES91 2100 0418 4502 0005 1333' },
+      ]);
+
+      for (const code of observations.ibanUnknownCountryCodes) {
+        recordUnknownIbanCountry(code);
+      }
+
+      for (let n = 0; n < observations.ibanMaskedChecksumInvalid; n += 1) {
+        recordIbanMasked(false);
+      }
+
+      const snapshot = snapshotRemixPiiMetrics();
+
+      expect(snapshot.unknownCountryCode).toEqual({ ZZ: 1 });
+      expect(snapshot.ibanMasked.checksumInvalid).toBe(1);
+      expect(formatRemixPiiMetrics()).toContain('remix_pii_iban_unknown_country_code{country="ZZ"} 1');
+      expect(formatRemixPiiMetrics()).toContain('remix_pii_iban_masked{checksum_valid="false"} 1');
+
+      resetRemixPiiMetrics();
     });
 
     it('la table du registre est versionnée et porte sa provenance', () => {

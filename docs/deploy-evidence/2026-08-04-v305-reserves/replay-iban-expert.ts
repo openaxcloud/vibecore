@@ -26,10 +26,13 @@ const cases: Array<[string, string, string]> = [
   ],
   ['espaces INSÉCABLES', 'ES91 2100 0418 4502 0005 1332 EUR', `${M} EUR`],
   ['forme COMPACTE', 'compact ES9121000418450200051332 fin', `compact ${M} fin`],
-  ['SOSIE — checksum faux', 'ES91 2100 0418 4502 0005 1333', 'ES91 2100 0418 4502 0005 1333'],
-  ['SOSIE — pays inconnu', 'ZZ91 2100 0418 4502 0005 1332', 'ZZ91 2100 0418 4502 0005 1332'],
-  ['SOSIE — jeton quelconque', 'ref ABCD1234EFGH5678IJKL9012 fin', 'ref ABCD1234EFGH5678IJKL9012 fin'],
-  ['SOSIE — plus long que le pays', 'ES9121000418450200051332EXTRA', 'ES9121000418450200051332EXTRA'],
+  // R1 (arbitrage 2026-08-05) : ex-« sosie », DÉSORMAIS MASQUÉ.
+  ['R1 — checksum FAUX, longueur bonne -> MASQUÉ', 'ES91 2100 0418 4502 0005 1333', `${M}`],
+  ['R1 — checksum faux + voisin intact', 'ES91 2100 0418 4502 0005 1333 EUR', `${M} EUR`],
+  ['R3 — trop court pour GB -> non masqué', 'GB29 NWBK 6016 1331 9268 1', 'GB29 NWBK 6016 1331 9268 1'],
+  ['R4 — pays inconnu -> non masqué (et signalé)', 'ZZ91 2100 0418 4502 0005 1332', 'ZZ91 2100 0418 4502 0005 1332'],
+  ['R3 — jeton quelconque', 'ref ABCD1234EFGH5678IJKL9012 fin', 'ref ABCD1234EFGH5678IJKL9012 fin'],
+  ['R3 — plus long que le pays', 'ES9121000418450200051332EXTRA', 'ES9121000418450200051332EXTRA'],
 ];
 
 let failed = 0;
@@ -51,5 +54,18 @@ for (const [label, input, expected] of cases) {
   }
 }
 
-console.log(`\n${cases.length - failed}/${cases.length} cas conformes`);
+// R4 — le pays hors registre doit être SIGNALÉ, pas seulement laissé intact.
+const { observations } = maskPiiInFiles([
+  { path: 'a.csv', content: 'ZZ91 2100 0418 4502 0005 1332' },
+]);
+const signalled = observations.ibanUnknownCountryCodes.join(',') === 'ZZ';
+
+console.log(`${signalled ? 'OK  ' : 'ECHEC'}  R4 — code pays inconnu SIGNALÉ`);
+console.log(`        unknownCountryCodes = ${JSON.stringify(observations.ibanUnknownCountryCodes)}`);
+
+if (!signalled) {
+  failed += 1;
+}
+
+console.log(`\n${cases.length + 1 - failed}/${cases.length + 1} cas conformes`);
 process.exit(failed === 0 ? 0 : 1);

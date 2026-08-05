@@ -421,9 +421,9 @@ const ALNUM = /[A-Za-z0-9]/;
  * Checksum ISO 7064 MOD-97-10 : déplace les 4 premiers caractères à la fin,
  * convertit les lettres (A=10 … Z=35) puis exige un reste de 1.
  *
- * C'est ce contrôle qui permet de NE PAS masquer un jeton alphanumérique qui
- * ressemble à un IBAN par hasard. Contrepartie DÉCLARÉE : un IBAN comportant
- * une faute de frappe échappe au masquage.
+ * ⚠️ ARBITRAGE 2026-08-05 : ce contrôle N'EST PLUS une condition de masquage.
+ * Il ne sert QU'À qualifier la confiance (métrique `checksum_valid`). Un IBAN
+ * mal saisi reste une donnée bancaire : on le masque quand même.
  */
 export function ibanChecksumValid(compact: string): boolean {
   const s = compact.toUpperCase();
@@ -445,14 +445,67 @@ export function ibanChecksumValid(compact: string): boolean {
   return remainder === 1;
 }
 
+/** Bornes plausibles d'un IBAN, tous pays confondus (ISO 13616 : 15 → 34). */
+const IBAN_MIN_LENGTH = 15;
+const IBAN_MAX_LENGTH = 34;
+
 /**
- * Plages [start, end) des IBAN d'une ligne — la forme NORMALISÉE (sans
- * espaces) sert au contrôle, mais les bornes rendues sont celles du TEXTE
- * ORIGINAL, de sorte que le masquage ne touche ni un caractère de plus ni un
- * de moins.
+ * Ce que le masquage a OBSERVÉ — remonté au bord (`remix-pii-metrics.ts`)
+ * plutôt que compté ici, pour garder ce module pur et testable.
  */
-export function ibanSpans(line: string): Array<{ start: number; end: number }> {
-  const spans: Array<{ start: number; end: number }> = [];
+export interface PiiMaskingObservations {
+  /** IBAN masqués dont le checksum MOD-97 est valide. */
+  ibanMaskedChecksumValid: number;
+
+  /** IBAN masqués MALGRÉ un checksum invalide (R1 : on masque quand même). */
+  ibanMaskedChecksumInvalid: number;
+
+  /** Codes pays hors registre rencontrés (R4) — non masqués, à signaler. */
+  ibanUnknownCountryCodes: string[];
+}
+
+/** Une occurrence d'IBAN : bornes dans le texte ORIGINAL + qualification. */
+export interface IbanSpan {
+  start: number;
+  end: number;
+  countryCode: string;
+
+  /** Qualité seulement — n'a AUCUN effet sur la décision de masquer. */
+  checksumValid: boolean;
+}
+
+export interface IbanScan {
+  spans: IbanSpan[];
+
+  /**
+   * Codes pays qui RESSEMBLENT à un IBAN (longueur plausible, bien délimité)
+   * mais sont absents du registre. Non masqués — et signalés, pour que la
+   * table soit mise à jour plutôt que la fuite passe inaperçue.
+   */
+  unknownCountryCodes: string[];
+}
+
+/*
+ * ------------------------------------------------------------------------- *
+ * POLITIQUE DE MASQUAGE IBAN — arbitrage Avi du 2026-08-05
+ *
+ *  R1. Pays CONNU + longueur nationale EXACTE  → MASQUER TOUJOURS,
+ *      que le checksum MOD-97 soit valide ou non (priorité confidentialité :
+ *      un IBAN mal tapé reste une donnée bancaire sensible).
+ *  R2. Le checksum n'est JAMAIS une condition. Il ne sert qu'à qualifier la
+ *      confiance (métrique `checksum_valid`) et ne laisse jamais réapparaître
+ *      le numéro.
+ *  R3. Pays CONNU + longueur INCORRECTE (trop court ou trop long) → NE PAS
+ *      masquer : ce n'est pas un IBAN de ce pays.
+ *  R4. Pays ABSENT de la table → NE PAS masquer, mais LOGUER + incrémenter
+ *      `unknown_country_code`, pour qu'un nouveau pays devienne visible.
+ *  R5. NE JAMAIS dépasser la longueur officielle : aucun texte voisin (EUR,
+ *      USD, ponctuation, espaces) ne doit être absorbé.
+ * -------------------------------------------------------------------------
+ */
+export function scanIbans(line: string): IbanScan {
+  const spans: IbanSpan[] = [];
+  const unknownCountryCodes: string[] = [];
   const candidate = /[A-Za-z]{2}[0-9]{2}/g;
 
   let match: RegExpExecArray | null;
@@ -465,74 +518,95 @@ export function ibanSpans(line: string): Array<{ start: number; end: number }> {
       continue;
     }
 
-    const expected = IBAN_LENGTH_BY_COUNTRY[line.slice(start, start + 2).toUpperCase()];
+    const countryCode = line.slice(start, start + 2).toUpperCase();
+    const expected = IBAN_LENGTH_BY_COUNTRY[countryCode];
 
     if (expected === undefined) {
+      /*
+       * R4 — signaler UNIQUEMENT ce qui ressemble vraiment à un IBAN, sinon
+       * la métrique se noierait sous les « ab12 » de n'importe quel code.
+       */
+      const probe = consumeIban(line, start, IBAN_MAX_LENGTH);
+
+      if (
+        probe.taken >= IBAN_MIN_LENGTH &&
+        (probe.end >= line.length || !ALNUM.test(line[probe.end])) &&
+        !unknownCountryCodes.includes(countryCode)
+      ) {
+        unknownCountryCodes.push(countryCode);
+      }
+
       continue;
     }
 
-    /*
-     * Consommer EXACTEMENT `expected` alphanumériques, en ne franchissant un
-     * séparateur que s'il est suivi d'un alphanumérique (jamais en fin).
-     */
-    let cursor = start;
-    let taken = 0;
-    let compact = '';
-    let end = -1;
+    const run = consumeIban(line, start, expected);
 
-    while (cursor < line.length && taken < expected) {
-      const ch = line[cursor];
-
-      if (ALNUM.test(ch)) {
-        compact += ch;
-        taken += 1;
-        cursor += 1;
-
-        if (taken === expected) {
-          end = cursor;
-        }
-
-        continue;
-      }
-
-      if (!IBAN_INNER_SEPARATOR.test(ch)) {
-        break;
-      }
-
-      let peek = cursor;
-
-      while (peek < line.length && IBAN_INNER_SEPARATOR.test(line[peek])) {
-        peek += 1;
-      }
-
-      if (peek >= line.length || !ALNUM.test(line[peek])) {
-        break;
-      }
-
-      cursor = peek;
-    }
-
-    if (taken !== expected || end < 0) {
+    // R3 — trop COURT pour ce pays.
+    if (run.taken !== expected || run.end < 0) {
       continue;
     }
 
-    /*
-     * Borne DROITE : le jeton ne doit pas continuer au-delà de la longueur
-     * nationale — sinon ce n'est pas un IBAN mais une chaîne plus longue.
-     */
-    if (end < line.length && ALNUM.test(line[end])) {
+    // R3 — trop LONG : le jeton continue au-delà de la longueur nationale.
+    if (run.end < line.length && ALNUM.test(line[run.end])) {
       continue;
     }
 
-    if (!ibanChecksumValid(compact)) {
-      continue;
-    }
+    // R1 + R2 — on masque ; le checksum ne fait que qualifier.
+    spans.push({
+      start,
+      end: run.end,
+      countryCode,
+      checksumValid: ibanChecksumValid(run.compact),
+    });
 
-    spans.push({ start, end });
-    candidate.lastIndex = end;
+    candidate.lastIndex = run.end;
   }
 
-  return spans;
+  return { spans, unknownCountryCodes };
+}
+
+/**
+ * Consomme au plus `limit` alphanumériques depuis `start`, en franchissant les
+ * espaces INTERNES (y compris insécables) mais jamais un séparateur terminal.
+ * `end` est l'index de fin dans le texte ORIGINAL (R5 : la plage rendue ne
+ * déborde jamais sur le voisinage).
+ */
+function consumeIban(line: string, start: number, limit: number): { taken: number; end: number; compact: string } {
+  let cursor = start;
+  let taken = 0;
+  let compact = '';
+  let end = -1;
+
+  while (cursor < line.length && taken < limit) {
+    const ch = line[cursor];
+
+    if (ALNUM.test(ch)) {
+      compact += ch;
+      taken += 1;
+      cursor += 1;
+      end = cursor;
+
+      continue;
+    }
+
+    if (!IBAN_INNER_SEPARATOR.test(ch)) {
+      break;
+    }
+
+    let peek = cursor;
+
+    while (peek < line.length && IBAN_INNER_SEPARATOR.test(line[peek])) {
+      peek += 1;
+    }
+
+    if (peek >= line.length || !ALNUM.test(line[peek])) {
+      break;
+    }
+
+    cursor = peek;
+  }
+
+  return { taken, end, compact };
 }
 
 /** Candidate payment-card numbers: 13-19 digits, optional space/dash groups. */
@@ -563,6 +637,11 @@ export function luhnValid(digits: string): boolean {
   }
 
   return sum % 10 === 0;
+}
+
+/** Plages d'IBAN d'une ligne (voir {@link scanIbans} pour la politique). */
+export function ibanSpans(line: string): IbanSpan[] {
+  return scanIbans(line).spans;
 }
 
 interface PiiMatcher {
@@ -740,8 +819,18 @@ function rewritePersonNames(path: string, lines: string[]): { lines: string[]; f
  * the consent version on the job instead — "PII masquées OU consentement
  * explicite" (plan §8.2), never silently unmasked.
  */
-export function maskPiiInFiles(files: RemixFile[]): { files: RemixFile[]; masked: PiiFinding[] } {
+export function maskPiiInFiles(files: RemixFile[]): {
+  files: RemixFile[];
+  masked: PiiFinding[];
+  observations: PiiMaskingObservations;
+} {
   const masked: PiiFinding[] = [];
+
+  const observations: PiiMaskingObservations = {
+    ibanMaskedChecksumValid: 0,
+    ibanMaskedChecksumInvalid: 0,
+    ibanUnknownCountryCodes: [],
+  };
 
   const cleaned = files.map((file) => {
     if (file.encoding && file.encoding !== 'utf-8' && file.encoding !== 'utf8') {
@@ -764,12 +853,37 @@ export function maskPiiInFiles(files: RemixFile[]): { files: RemixFile[]; masked
       let out = line;
 
       for (const matcher of PII_MATCHERS) {
-        if (matcher.spans) {
+        if (matcher.kind === 'iban') {
+          const scan = scanIbans(out);
+
+          for (const code of scan.unknownCountryCodes) {
+            if (!observations.ibanUnknownCountryCodes.includes(code)) {
+              observations.ibanUnknownCountryCodes.push(code);
+            }
+          }
+
           /*
            * Réécriture À REBOURS : masquer de la fin vers le début garde les
            * index des plages restantes valides.
            */
-          for (const span of matcher.spans(out).reverse()) {
+          for (const span of [...scan.spans].reverse()) {
+            out = `${out.slice(0, span.start)}[PII:iban masked on remix]${out.slice(span.end)}`;
+            masked.push({ path: file.path, kind: 'iban', line: index + 1 });
+            touched = true;
+
+            // R2 : le checksum QUALIFIE le masquage, il ne le conditionne pas.
+            if (span.checksumValid) {
+              observations.ibanMaskedChecksumValid += 1;
+            } else {
+              observations.ibanMaskedChecksumInvalid += 1;
+            }
+          }
+
+          continue;
+        }
+
+        if (matcher.spans) {
+          for (const span of [...matcher.spans(out)].reverse()) {
             out = `${out.slice(0, span.start)}[PII:${matcher.kind} masked on remix]${out.slice(span.end)}`;
             masked.push({ path: file.path, kind: matcher.kind, line: index + 1 });
             touched = true;
@@ -796,7 +910,7 @@ export function maskPiiInFiles(files: RemixFile[]): { files: RemixFile[]; masked
     return touched ? { ...file, content: rewritten.join('\n') } : file;
   });
 
-  return { files: cleaned, masked };
+  return { files: cleaned, masked, observations };
 }
 
 /**

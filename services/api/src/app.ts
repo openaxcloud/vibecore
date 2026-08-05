@@ -310,6 +310,7 @@ import {
   resolveDeployMachineSize,
 } from './rate-card-service.js';
 import { resolveRollbackImage, resolveRollbackSecrets, type SecretPolicy } from './release-rollback.js';
+import { recordIbanMasked, recordUnknownIbanCountry } from './remix-pii-metrics.js';
 import { computeWorkspaceRestorePlan, isPortReadyFromProbe, type PortProbeResult } from './runtime-readiness.js';
 import { aggregatePreviewReadiness } from './runtime-readiness.js';
 import {
@@ -22321,7 +22322,33 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           content: file.content,
           encoding: file.encoding,
         }));
-        const { files: maskedFiles, masked } = maskPiiInFiles(remixFiles);
+        const { files: maskedFiles, masked, observations } = maskPiiInFiles(remixFiles);
+
+        /*
+         * Observabilité du masquage IBAN (politique du 2026-08-05) : le checksum
+         * MOD-97 ne conditionne PAS le masquage, il l'étiquette. Un code pays hors
+         * registre ISO 13616 n'est PAS masqué — on le journalise et on le compte
+         * pour qu'un nouveau pays devienne visible et que la table soit mise à
+         * jour, plutôt que la fuite passe inaperçue.
+         */
+        for (let n = 0; n < observations.ibanMaskedChecksumValid; n += 1) {
+          recordIbanMasked(true);
+        }
+
+        for (let n = 0; n < observations.ibanMaskedChecksumInvalid; n += 1) {
+          recordIbanMasked(false);
+        }
+
+        if (observations.ibanUnknownCountryCodes.length > 0) {
+          for (const countryCode of observations.ibanUnknownCountryCodes) {
+            recordUnknownIbanCountry(countryCode);
+          }
+
+          request.log.warn(
+            { countryCodes: observations.ibanUnknownCountryCodes, remixJobId: job.id },
+            'remix PII: IBAN-shaped value with a country code absent from the ISO 13616 table — NOT masked; update IBAN_LENGTH_BY_COUNTRY',
+          );
+        }
 
         const residual = scanFilesForPii(maskedFiles);
         if (residual.length > 0) {

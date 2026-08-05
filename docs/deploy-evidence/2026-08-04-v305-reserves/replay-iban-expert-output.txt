@@ -28,17 +28,25 @@ OK    espaces INSÉCABLES
 OK    forme COMPACTE
         in  "compact ES9121000418450200051332 fin"
         out "compact [PII:iban masked on remix] fin"
-OK    SOSIE — checksum faux
+OK    R1 — checksum FAUX, longueur bonne -> MASQUÉ
         in  "ES91 2100 0418 4502 0005 1333"
-        out "ES91 2100 0418 4502 0005 1333"
-OK    SOSIE — pays inconnu
+        out "[PII:iban masked on remix]"
+OK    R1 — checksum faux + voisin intact
+        in  "ES91 2100 0418 4502 0005 1333 EUR"
+        out "[PII:iban masked on remix] EUR"
+OK    R3 — trop court pour GB -> non masqué
+        in  "GB29 NWBK 6016 1331 9268 1"
+        out "GB29 NWBK 6016 1331 9268 1"
+OK    R4 — pays inconnu -> non masqué (et signalé)
         in  "ZZ91 2100 0418 4502 0005 1332"
         out "ZZ91 2100 0418 4502 0005 1332"
-OK    SOSIE — jeton quelconque
+OK    R3 — jeton quelconque
         in  "ref ABCD1234EFGH5678IJKL9012 fin"
         out "ref ABCD1234EFGH5678IJKL9012 fin"
-OK    SOSIE — plus long que le pays
+OK    R3 — plus long que le pays
         in  "ES9121000418450200051332EXTRA"
         out "ES9121000418450200051332EXTRA"
+OK    R4 — code pays inconnu SIGNALÉ
+        unknownCountryCodes = ["ZZ"]
 
-14/14 cas conformes
+17/17 cas conformes
