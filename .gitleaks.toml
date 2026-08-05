@@ -27,6 +27,7 @@ paths = [
   '''(^|/)packages/database/generated/''',
   # Built/minified browser bundles shipped in the repo.
   '''(^|/)public/assets/''',
+  '''(^|/)public/ecode-static/assets/''',
   # Test fixtures and specs (synthetic keys used to exercise crypto/SAML/OIDC).
   '''\.spec\.(ts|tsx|js)$''',
   '''\.test\.(ts|tsx|js)$''',
@@ -39,6 +40,17 @@ paths = [
   # nonce, federated-token config strings) — never our secrets. Scoped to these files.
   '''(^|/)docs/deploy-evidence/.*/params\.env$''',
   '''(^|/)docs/deploy-evidence/.*/path2-github-oidc\.(log|txt)$''',
+  # CAPTURED third-party web content used as parity/deploy evidence: rendered DOM
+  # snapshots (.html / .rendered.html), HAR network captures, and DOM dumps of
+  # competitor or our own PUBLIC pages. These are captures of public web pages —
+  # any "api-key"/"token"-shaped string in them is the captured site's own markup,
+  # never our credential. The daily parity collector regenerates these, so each new
+  # snapshot would otherwise re-break the blocking secret scan. Scoped tightly to
+  # capture artifacts (never source/config).
+  '''(^|/)docs/parity/baseline/snapshots/.*\.(html|har)$''',
+  '''(^|/)docs/deploy-evidence/.*\.har$''',
+  '''(^|/)docs/deploy-evidence/.*-dom\.html$''',
+  '''(^|/)docs/deploy-evidence/.*\.rendered\.html$''',
 ]
 
 # Common non-secret placeholder / synthetic-fixture shapes (templates, docs,
