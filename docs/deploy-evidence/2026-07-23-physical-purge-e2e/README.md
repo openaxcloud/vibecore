@@ -8,7 +8,7 @@ guardrails: **dedicated TEST resources (never prod), no persistent credentials
 ## 1. GCS — `gcs-proof.json` / `gcs-SHA256SUMS`
 
 Runs the production adapter `GcsObjectStorage` driving `eraseSubjectStorage`
-against a throwaway bucket in the **dedicated test project `ecode-proof-b906ss`**
+against a throwaway bucket in the **dedicated test project `ecode-wif-proof-834022`**
 (never prod `vibecore-495216`):
 
 - BEFORE: 3 real objects listed in a real bucket `vc-purgee2e…`.
@@ -18,7 +18,7 @@ against a throwaway bucket in the **dedicated test project `ecode-proof-b906ss`*
 - Teardown: the erasure deletes the bucket; a `finally` force-deletes it if the
   run ever leaked one. Verified 0 test buckets remain.
 
-Replay: `GCP_TEST_PROJECT=ecode-proof-b906ss npx tsx services/api/scripts/physical-purge-gcs-e2e.ts --write`
+Replay: `GCP_TEST_PROJECT=ecode-wif-proof-834022 npx tsx services/api/scripts/physical-purge-gcs-e2e.ts --write`
 
 ## 2. Kubernetes — `k8s-proof.json` / `k8s-SHA256SUMS`
 
@@ -30,9 +30,13 @@ guardrail (a real k8s cluster, no cloud cost). Proves reserve #2 (verify the
 - BEFORE: a real **Bound** PVC (with a provisioned PV), mounted by a pod.
 - ERASE: `kubectl delete pod + pvc` (the same primitives the workspace eraser
   uses via workspace-manager's k8s-client).
-- AFTER (live `get pvc` → NotFound): `pvcCount=0`, `verified=true`.
-- Teardown: `kind delete cluster` in an EXIT trap — the cluster and everything in
-  it (incl. the PV) is destroyed.
+- AFTER (RR-CODEX-14 coherence): the StorageClass `reclaimPolicy=Delete`, so the
+  script polls until the **underlying PV/disk is really gone**, not just the PVC
+  binding — `pvc=NotFound` AND `pv=gone`, `verified=true` (artifact `version: 3`).
+  A run that left the PV/disk present FAILS. This proves DISK disappearance, not
+  merely a PVC NotFound.
+- Teardown: `kind delete cluster` in an EXIT trap — **separate from, and NOT relied
+  upon for, the proof** (the PV/disk is verified gone WHILE the cluster is still up).
 
 Replay: `bash services/api/scripts/physical-purge-k8s-e2e.sh --write`
 
@@ -40,7 +44,7 @@ Replay: `bash services/api/scripts/physical-purge-k8s-e2e.sh --write`
 
 | Resource | Where | Cost | Teardown |
 | --- | --- | --- | --- |
-| GCS bucket + 3 tiny objects | test project `ecode-proof-b906ss` | ~$0 (deleted in seconds) | erasure + `finally` force-delete; 0 left |
+| GCS bucket + 3 tiny objects | test project `ecode-wif-proof-834022` | ~$0 (deleted in seconds) | erasure + `finally` force-delete; 0 left |
 | kind cluster + 64Mi PVC | local Docker | $0 (no cloud) | `kind delete cluster` EXIT trap |
 
 No GKE cluster was created (would have been the only "heavy/costly" option); a

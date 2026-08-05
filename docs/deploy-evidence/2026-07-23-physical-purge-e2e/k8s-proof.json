@@ -1,11 +1,11 @@
 {
   "after": {
-    "pv": "present",
+    "pv": "gone",
     "pvc": "NotFound",
     "pvcCount": 0
   },
   "before": {
-    "pv": "pvc-2edb76d9-70d6-4b91-aabc-dbe98aa896e5",
+    "pv": "pvc-7b990e52-b837-49ea-b603-89ec1affbaf8",
     "pvcPhase": "Bound"
   },
   "cluster": "kind:purge-e2e (throwaway, torn down)",
@@ -14,7 +14,9 @@
   "negative": {
     "survivingPvcReportedPresent": true
   },
+  "note": "reclaimPolicy=Delete — PVC AND underlying PV/disk verified gone; kind teardown is separate from and NOT relied upon for this proof",
+  "pvName": "pvc-7b990e52-b837-49ea-b603-89ec1affbaf8",
   "pvcName": "ws-e2e-pvc",
   "verified": true,
-  "version": 2
+  "version": 3
 }

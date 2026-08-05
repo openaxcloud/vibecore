@@ -8,7 +8,7 @@
  * real objects, lists BEFORE, erases, and re-checks the LIVE bucket AFTER
  * (0 objects, bucket gone), then writes a hashed before/after artifact.
  *
- *   GCP_TEST_PROJECT=ecode-proof-b906ss npx tsx services/api/scripts/physical-purge-gcs-e2e.ts --write
+ *   GCP_TEST_PROJECT=ecode-wif-proof-834022 npx tsx services/api/scripts/physical-purge-gcs-e2e.ts --write
  */
 import { createHash } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
