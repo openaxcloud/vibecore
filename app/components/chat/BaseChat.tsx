@@ -3254,20 +3254,25 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       },
       [ensureMobileOpenTab, persistMobilePanel],
     );
+    const localizedMobileTools = useMemo(
+      () =>
+        ECODE_MOBILE_TOOLS.map((item) => ({ ...item, title: t(item.titleKey), description: t(item.descriptionKey) })),
+      [t],
+    );
     const filteredMobileToolsSheetItems = useMemo(() => {
       const query = mobileToolsQuery.trim().toLowerCase();
 
       if (!query) {
-        return ECODE_MOBILE_TOOLS;
+        return localizedMobileTools;
       }
 
-      return ECODE_MOBILE_TOOLS.filter(
+      return localizedMobileTools.filter(
         (item) =>
           item.title.toLowerCase().includes(query) ||
           item.description.toLowerCase().includes(query) ||
           item.id.toLowerCase().includes(query),
       );
-    }, [mobileToolsQuery]);
+    }, [localizedMobileTools, mobileToolsQuery]);
     const filteredMobileOpenTabs = useMemo(() => {
       const query = mobileTabSearchQuery.trim().toLowerCase();
 
@@ -8741,12 +8746,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
           return {
             id: itemId,
-            title: tool?.title ?? meta?.name ?? panelTitle(itemId),
+            title: tool ? t(tool.titleKey) : (meta?.name ?? panelTitle(itemId)),
             icon: tool?.icon ?? meta?.icon ?? panelIcon(itemId),
             tone: tool && 'tone' in tool ? tool.tone : undefined,
           };
         }),
-      [],
+      [t],
     );
 
     const mobileBottomTabSlotCount = 4;

@@ -102,6 +102,7 @@ import { marketingLandingWorkflowEn, marketingLandingWorkflowFr } from './catalo
 import { marketingPricingRouteEn, marketingPricingRouteFr } from './catalogs/marketing-pricing-route';
 import { marketingSurfaceDynamicEn, marketingSurfaceDynamicFr } from './catalogs/marketing-surface-dynamic';
 import { mfaSetupEn, mfaSetupFr } from './catalogs/mfa-setup';
+import { mobileIdeTabsEn, mobileIdeTabsFr } from './catalogs/mobile-ide-tabs';
 import { modelApiEn, modelApiFr } from './catalogs/model-api';
 import { monitoringChartsEn, monitoringChartsFr } from './catalogs/monitoring-charts';
 import { notificationsEn, notificationsFr } from './catalogs/notifications';
@@ -194,6 +195,7 @@ const RESOURCES: Record<SupportedLanguage, { translation: Record<string, string>
       ...notificationsTabEn,
       ...billingEn,
       ...idePanelsEn,
+      ...mobileIdeTabsEn,
       ...ideNewRouteEn,
       ...importHubEn,
       ...importFolderButtonEn,
@@ -342,6 +344,7 @@ const RESOURCES: Record<SupportedLanguage, { translation: Record<string, string>
       ...notificationsTabFr,
       ...billingFr,
       ...idePanelsFr,
+      ...mobileIdeTabsFr,
       ...ideNewRouteFr,
       ...importHubFr,
       ...importFolderButtonFr,

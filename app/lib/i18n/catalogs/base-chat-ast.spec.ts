@@ -130,7 +130,7 @@ describe('BaseChat strengthened-AST catalog', () => {
     );
 
     expect(result.parseErrors).toEqual([]);
-    expect(frozenHash).toBe('fa2648adda4696e2203f1e05de9fbd93fe2fe26f2b227fda1bd66ee55be572e5');
+    expect(frozenHash).toBe('64e8a00479b55df90305dd97377de95c39e40bbe921ea1396f0e2abe94923ae7');
     expect(outsideFrozen).toEqual([]);
     expect(insideFrozen.map((finding) => finding.text)).toEqual([
       'Back to dashboard',

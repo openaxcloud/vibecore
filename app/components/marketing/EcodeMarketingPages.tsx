@@ -183,7 +183,12 @@ const marketingPageChrome = {
     secondaryActionTo: '/features',
   },
   'runtime-test': { kind: 'resource', icon: TerminalSquare, primaryActionTo: '/status', secondaryActionTo: '/docs' },
-} as const satisfies Record<keyof typeof marketingPageCopyEn, MarketingPageChrome>;
+
+  /*
+   * `enterprise` copy exists only for the localizer (getMarketingPageCopy); the
+   * /enterprise route renders solutionPages.enterprise, so it is not a catalog page here.
+   */
+} as const satisfies Record<Exclude<keyof typeof marketingPageCopyEn, 'enterprise'>, MarketingPageChrome>;
 
 type CatalogMarketingPageKey = keyof typeof marketingPageChrome;
 
