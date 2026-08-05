@@ -105,7 +105,7 @@ describe('<ProjectOverviewPanel /> i18n', () => {
     expect(formatProjectOverviewPanelDate('invalid-provider-date', 'fr')).toBe('Date indisponible');
     expect(projectOverviewSourceLabel('template', 'fr')).toBe('Modèle');
     expect(projectOverviewWorkspaceStatusLabel('RUNNING', 'fr')).toBe('En cours');
-    expect(projectOverviewCategoryLabel('frontend', 'fr')).toBe('Interface');
+    expect(projectOverviewCategoryLabel('frontend', 'fr')).toBe('Interface utilisateur');
     expect(projectOverviewRoleLabel('admin', 'fr')).toBe('Administrateur');
     expect(projectOverviewMemberStatusLabel('editing', 'fr')).toBe('En édition');
     expect(projectOverviewActivityLabel('project.create', 'fr')).toBe('Projet créé');
@@ -142,7 +142,7 @@ describe('<ProjectOverviewPanel /> i18n', () => {
     expect(screen.getByText('Stack détectée')).toBeTruthy();
     expect(screen.getByText('2 signaux')).toBeTruthy();
     expect(screen.getByLabelText('React, détecté depuis react')).toBeTruthy();
-    expect(screen.getByText('Interface · react')).toBeTruthy();
+    expect(screen.getByText('Interface utilisateur · react')).toBeTruthy();
     expect(screen.getByText('Outils · vite.config.ts')).toBeTruthy();
     expect(screen.getByText('Scripts npm disponibles')).toBeTruthy();
     expect(screen.getByText('2 scripts')).toBeTruthy();
@@ -177,7 +177,7 @@ describe('<ProjectOverviewPanel /> i18n', () => {
     expect(screen.getByText('0 signal')).toBeTruthy();
     expect(screen.getByText('0 script')).toBeTruthy();
     expect(screen.getByText('0 membre actif')).toBeTruthy();
-    expect(screen.getByText(/Aucune stack détectée/u)).toBeTruthy();
+    expect(screen.getByText(/Aucune pile technique détectée/u)).toBeTruthy();
     expect(screen.getByText('Aucun script npm trouvé dans les manifestes du projet.')).toBeTruthy();
     expect(screen.getByText('Aucun commit signalé pour le moment.')).toBeTruthy();
     expect(screen.getByText('Aucun collaborateur ni aucune session active pour le moment.')).toBeTruthy();

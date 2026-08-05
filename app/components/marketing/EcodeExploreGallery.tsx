@@ -10,6 +10,7 @@ import {
   getPublicGalleryCopy,
   type PublicGalleryCopy,
 } from '~/lib/i18n/catalogs/public-gallery';
+import { getPublicTemplateTagLabel } from '~/lib/i18n/catalogs/public-template-tags';
 import { classNames } from '~/utils/classNames';
 
 /*
@@ -144,7 +145,7 @@ function ExploreProjectCard({
               key={tag}
               className="rounded-full bg-[var(--ecode-background)] px-2 py-0.5 text-[11px] text-[var(--ecode-text-muted)]"
             >
-              {tag}
+              {getPublicTemplateTagLabel(tag, language)}
             </span>
           ))}
         </div>
@@ -253,11 +254,13 @@ export function ExploreMarketingPage({ projects, categories }: ExplorePageProps)
         return true;
       }
 
-      return [project.name, project.description, project.categoryName, project.language, ...project.tags]
+      const searchableTags = project.tags.flatMap((tag) => [tag, getPublicTemplateTagLabel(tag, language)]);
+
+      return [project.name, project.description, project.categoryName, project.language, ...searchableTags]
         .filter(Boolean)
         .some((value) => value.toLowerCase().includes(normalizedQuery));
     });
-  }, [projects, activeCategory, normalizedQuery]);
+  }, [projects, activeCategory, normalizedQuery, language]);
 
   const isFiltering = Boolean(normalizedQuery) || activeCategory !== 'all';
   const noMatches = filteredProjects.length === 0;

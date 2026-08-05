@@ -5,11 +5,10 @@ import { I18nextProvider } from 'react-i18next';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
+import { getMarketingExactAiCopy, marketingExactAiEn, marketingExactAiFr } from './marketing-exact-ai';
 import AI from '~/components/marketing/ecode-exact/pages/AI';
 import AiAgent from '~/components/marketing/ecode-exact/pages/AIAgent';
 import { createI18nInstance } from '~/lib/i18n/runtime';
-
-import { getMarketingExactAiCopy, marketingExactAiEn, marketingExactAiFr } from './marketing-exact-ai';
 
 function leafPaths(value: unknown, path: string[] = []): string[] {
   if (Array.isArray(value)) {

@@ -37,7 +37,7 @@ describe('French auth rendering', () => {
     );
 
     expect(screen.getByRole('heading', { level: 1, name: 'Ravi de vous revoir' })).toBeInTheDocument();
-    expect(screen.getByText('Espace de développement assisté par IA')).toBeInTheDocument();
+    expect(screen.getByText('Espace de travail de développement assisté par IA')).toBeInTheDocument();
     expect(screen.getByText('Sécurité de niveau entreprise')).toBeInTheDocument();
     expect(screen.getByRole('meter', { name: 'Robustesse du mot de passe' })).toHaveAttribute(
       'aria-valuetext',

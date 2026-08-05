@@ -299,7 +299,7 @@ export const fileTreeFr: FileTreeCopy = {
     bookmarksDescription: 'Utilisez le menu contextuel d’un fichier pour l’ajouter aux favoris.',
     workspaceUnavailableTitle: 'Espace de travail indisponible',
     workspaceUnavailableDescription:
-      'Le runtime de l’espace de travail s’est arrêté ou n’a pas démarré. Reconnectez-vous pour charger les fichiers du projet.',
+      'L’environnement d’exécution de l’espace de travail s’est arrêté ou n’a pas démarré. Reconnectez-vous pour charger les fichiers du projet.',
     loadingTitle: 'Chargement des fichiers de l’espace de travail…',
     loadingDescription:
       'L’espace de travail est en cours de préparation. Les fichiers apparaîtront dès qu’il sera prêt.',

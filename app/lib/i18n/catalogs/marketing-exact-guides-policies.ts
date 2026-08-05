@@ -655,10 +655,10 @@ export const marketingExactGuidesPoliciesFr = {
       items: [
         {
           id: 'agent',
-          title: 'Créer une application full-stack avec l’agent IA',
+          title: 'Créer une application complète avec l’agent IA',
           level: 'beginner',
           description:
-            'Passez d’un simple prompt à une application full-stack opérationnelle pendant que l’agent IA écrit, exécute et corrige le code pour vous.',
+            'Passez d’un simple prompt à une application complète et opérationnelle pendant que l’agent IA écrit, exécute et corrige le code pour vous.',
         },
         {
           id: 'deploy',
@@ -711,7 +711,7 @@ export const marketingExactGuidesPoliciesFr = {
         },
         {
           id: 'fullStack',
-          title: 'Fondations full-stack',
+          title: 'Fondations d’une application complète',
           description:
             'Découvrez les composants essentiels d’une application de production : données, API et authentification.',
           steps: ['Connecter une base de données', 'Ajouter une couche API', 'Sécuriser avec l’authentification'],

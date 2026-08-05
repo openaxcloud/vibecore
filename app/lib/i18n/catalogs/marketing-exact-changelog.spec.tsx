@@ -130,8 +130,9 @@ describe('exact Changelog marketing catalog and routes', () => {
     expect(document.body.textContent).toContain('E-Code');
     expect(document.body.textContent).toContain('IDE');
     expect(document.body.textContent).toContain('terminal');
-    expect(document.body.textContent).toContain('builds');
-    expect(document.body.textContent).toContain('full-stack');
+    expect(document.body.textContent).toContain('compilations');
+    expect(document.body.textContent).toContain('applications complètes');
+    expect(document.body.textContent).not.toMatch(/\b(?:builds|full-stack)\b/iu);
     expect(document.body.textContent).toContain('shells');
     expect(document.body.textContent).toContain('diffs');
     expect(document.body.textContent).not.toContain('Every feature, improvement, and fix');

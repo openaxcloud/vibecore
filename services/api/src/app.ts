@@ -6879,9 +6879,11 @@ async function writeReleaseManifest(
       artifactRef = `static-deployments/${deployment.id}`;
       artifactDigest = digest;
     } else if (deployment.provider === 'server') {
-      const image = ((deployment.metadata as Record<string, unknown> | undefined)?.serverDeploy as
-        | { image?: { imageRef?: string; imageUri?: string; imageDigest?: string; storeGeneration?: string } }
-        | undefined)?.image;
+      const image = (
+        (deployment.metadata as Record<string, unknown> | undefined)?.serverDeploy as
+          | { image?: { imageRef?: string; imageUri?: string; imageDigest?: string; storeGeneration?: string } }
+          | undefined
+      )?.image;
 
       if (!image?.imageDigest) {
         // A server release with no retained digest can never be a rollback target
@@ -33230,6 +33232,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/projects/:projectId/deployments/:deploymentId/publish', async (request, reply) => {
     const { projectId, deploymentId } = parse(deploymentActionParams, request.params);
     const project = await requireProject(request, store, projectId, 'projects:write');
+    const locale = transactionalLocaleForRequest(request);
+    setAppLocaleResponseHeaders(reply, locale);
     const source = await store.getDeployment(project.id, deploymentId);
 
     if (!source) {
@@ -33282,7 +33286,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           metadata: { code: error.code, ...error.details },
         });
 
-        return reply.code(error.statusCode).send({ error: error.message, code: error.code, ...error.details });
+        const cap = Number(error.details.cap);
+
+        return reply.code(error.statusCode).send({
+          error: appPublicCopy(
+            cap === 1
+              ? 'PLAN_ACTIVE_PUBLISHED_PROJECT_LIMIT_ONE'
+              : 'PLAN_ACTIVE_PUBLISHED_PROJECT_LIMIT_OTHER',
+            locale,
+            { cap },
+          ),
+          code: error.code,
+          ...error.details,
+        });
       }
 
       throw error;
@@ -33368,7 +33384,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply
       .code(201)
-      .send({ deployment: localizeDeploymentRecord(published, transactionalLocaleForRequest(request)) });
+      .send({ deployment: localizeDeploymentRecord(published, locale) });
   });
 
   app.post('/projects/:projectId/deployments/:deploymentId/redeploy', async (request, reply) => {
@@ -33718,6 +33734,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(z.object({ environment: z.string().min(1).max(64).optional() }), request.body ?? {});
     const project = await requireProject(request, store, projectId, 'projects:write');
     await requireOrganizationNotSuspended(store, project.organizationId);
+    const locale = transactionalLocaleForRequest(request);
+    setAppLocaleResponseHeaders(reply, locale);
 
     const environment = body.environment ?? 'preview';
     const manifests = await store.listReleaseManifests(project.id, environment);
@@ -33729,13 +33747,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       ({ current, previous } = selectPreviousRelease(manifests));
     } catch (error) {
       if (error instanceof RollbackManifestError) {
-        return reply.code(error.statusCode).send({ error: error.message, code: error.code });
+        return reply.code(error.statusCode).send({
+          error: localizeBackendErrorForResponse(error.message, locale, 'ROLLBACK_REQUEST_FAILED'),
+          code: error.code,
+        });
       }
 
       throw error;
     }
 
-    const appendRollbackManifest = async (rollbackId: string, artifactKind: string, artifactRef: string, artifactDigest: string) => {
+    const appendRollbackManifest = async (
+      rollbackId: string,
+      artifactKind: string,
+      artifactRef: string,
+      artifactDigest: string,
+    ) => {
       await store.withSerializedMutation(`release-manifest:${project.id}:${environment}`, async () => {
         const latest = await store.listReleaseManifests(project.id, environment, { take: 1 });
         const nextVersion = (latest[0]?.version ?? 0) + 1;
@@ -33762,7 +33788,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       if (!recomputed) {
         return reply.code(409).send({
-          error: `Previous release v${previous.version} snapshot is missing on disk — cannot restore it. Refusing a blind rollback.`,
+          error: appPublicCopy('ROLLBACK_PREVIOUS_SNAPSHOT_MISSING', locale, { version: previous.version }),
           code: 'ROLLBACK_SNAPSHOT_SOURCE_MISSING',
         });
       }
@@ -33771,7 +33797,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         assertArtifactMatchesManifest(recomputed, previous);
       } catch (error) {
         if (error instanceof RollbackManifestError) {
-          return reply.code(error.statusCode).send({ error: error.message, code: error.code });
+          return reply.code(error.statusCode).send({
+            error: localizeBackendErrorForResponse(error.message, locale, 'ROLLBACK_REQUEST_FAILED'),
+            code: error.code,
+          });
         }
 
         throw error;
@@ -33799,12 +33828,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       try {
         await restoreStaticSnapshotInto(previous.deploymentId, rollback.id);
       } catch (error) {
+        request.log.error(
+          { err: error, deploymentId: rollback.id, sourceDeploymentId: previous.deploymentId },
+          'static rollback restore failed',
+        );
         await store
           .updateDeployment(project.id, rollback.id, {
             status: 'FAILED',
             logs: [
               ...rollback.logs,
-              { timestamp: new Date().toISOString(), level: 'error', message: `Rollback restore failed: ${(error as Error).message}` },
+              {
+                timestamp: new Date().toISOString(),
+                level: 'error',
+                message: appPublicEnglish('ROLLBACK_RESTORE_FAILED_LOG'),
+              },
             ],
             finishedAt: new Date().toISOString(),
           })
@@ -33813,7 +33850,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const code = (error as { code?: string }).code ?? 'ROLLBACK_RESTORE_FAILED';
         const statusCode = (error as { statusCode?: number }).statusCode ?? 500;
 
-        return reply.code(statusCode).send({ error: (error as Error).message, code });
+        return reply.code(statusCode).send({
+          error: localizeBackendErrorForResponse((error as Error).message, locale, 'ROLLBACK_REQUEST_FAILED'),
+          code,
+        });
       }
 
       const url = buildDeploymentUrl(project, rollback);
@@ -33828,7 +33868,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           {
             timestamp: new Date().toISOString(),
             level: 'info',
-            message: `Rolled back to release v${previous.version} (deployment ${previous.deploymentId}); artifact digest ${previous.artifactDigest} verified byte-identical before restore.`,
+            message: appPublicEnglish('ROLLBACK_STATIC_SUCCESS_LOG', {
+              version: previous.version,
+              deploymentId: previous.deploymentId,
+              artifactDigest: previous.artifactDigest,
+            }),
           },
         ],
       });
@@ -33839,7 +33883,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       await appendRollbackManifest(rollback.id, 'static-snapshot', `static-deployments/${rollback.id}`, restoredDigest);
 
       return reply.code(201).send({
-        deployment: ready,
+        deployment: localizeDeploymentRecord(ready, locale),
         restoredFromVersion: previous.version,
         restoredFromDeploymentId: previous.deploymentId,
         supersededVersion: current.version,
@@ -33852,7 +33896,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (previous.artifactKind === 'server-image') {
       if (process.env.SERVER_DEPLOY_ROLLBACK_FROM_DIGEST === '0') {
         return reply.code(409).send({
-          error: 'Server rollback is disabled (SERVER_DEPLOY_ROLLBACK_FROM_DIGEST=0).',
+          error: appPublicCopy('ROLLBACK_SERVER_DISABLED', locale),
           code: 'SERVER_ROLLBACK_DIGEST_DISABLED',
         });
       }
@@ -33947,7 +33991,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             {
               timestamp: new Date().toISOString(),
               level: 'info',
-              message: `Rolled back to release v${previous.version} by digest ${plan.pullRef} (revision-independent, I-REL-1).`,
+              message: appPublicEnglish('ROLLBACK_SERVER_SUCCESS_LOG', {
+                version: previous.version,
+                pullRef: plan.pullRef,
+              }),
             },
           ],
           finishedAt: ok ? new Date().toISOString() : undefined,
@@ -33958,7 +34005,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }
 
         return reply.code(201).send({
-          deployment: ready,
+          deployment: localizeDeploymentRecord(ready, locale),
           restoredFromVersion: previous.version,
           restoredFromDeploymentId: previous.deploymentId,
           supersededVersion: current.version,
@@ -33966,13 +34013,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           url: rbUrl,
         });
       } catch (error) {
+        request.log.error(
+          { err: error, deploymentId: rollback.id, sourceDeploymentId: previous.deploymentId },
+          'server rollback refused',
+        );
         await store
           .updateDeployment(project.id, rollback.id, {
             status: 'FAILED',
             url: '',
             logs: [
               ...rollback.logs,
-              { timestamp: new Date().toISOString(), level: 'error', message: `Rollback refused: ${(error as Error).message}` },
+              {
+                timestamp: new Date().toISOString(),
+                level: 'error',
+                message: appPublicEnglish('ROLLBACK_REFUSED_LOG'),
+              },
             ],
             finishedAt: new Date().toISOString(),
           })
@@ -33981,12 +34036,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const code = (error as { code?: string }).code ?? 'ROLLBACK_FAILED';
         const statusCode = (error as { statusCode?: number }).statusCode ?? 502;
 
-        return reply.code(statusCode).send({ error: (error as Error).message, code });
+        return reply.code(statusCode).send({
+          error: localizeBackendErrorForResponse((error as Error).message, locale, 'ROLLBACK_REQUEST_FAILED'),
+          code,
+        });
       }
     }
 
     return reply.code(409).send({
-      error: `Unsupported artifact kind '${previous.artifactKind}' for rollback.`,
+      error: appPublicCopy('ROLLBACK_UNSUPPORTED_KIND', locale, { artifactKind: previous.artifactKind }),
       code: 'ROLLBACK_UNSUPPORTED_KIND',
     });
   });

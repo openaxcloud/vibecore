@@ -7,6 +7,7 @@ import Security from './ecode-exact/pages/Security';
 import StudentDPA from './ecode-exact/pages/StudentDPA';
 import Subprocessors from './ecode-exact/pages/Subprocessors';
 import Terms from './ecode-exact/pages/Terms';
+import { formatMarketingDocumentTitle } from '~/lib/i18n/catalogs/marketing';
 import {
   getMarketingExactLegalBlogCopy,
   type ExactLegalPageCopy,
@@ -49,7 +50,7 @@ export function makeEcodeLegalMeta(key: LegalPageKey): MetaFunction {
       ?.language;
 
     const page = getEcodeExactLegalPages(routeLanguage ?? rootLanguage)[key];
-    const title = `${page.title} - E-Code`;
+    const title = formatMarketingDocumentTitle(page.title);
 
     const social = socialMetaTags({ title, description: page.description }).map((tag) => {
       const identifier = 'property' in tag ? tag.property : 'name' in tag ? tag.name : undefined;

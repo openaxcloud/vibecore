@@ -643,7 +643,7 @@ export const marketingProductRemainingFr = {
     watchDemo: 'Voir la démo',
     highlights: [
       ['Langage naturel', 'Décrivez l’application en français courant'],
-      ['Résultat full-stack', 'Frontend, backend et couche de données'],
+      ['Application complète', 'Interface utilisateur, service applicatif et couche de données'],
       ['Plus de 100 langages', 'TypeScript, Python, Node et bien plus'],
       ['Déploiement en un clic', 'Publiez dans le cloud depuis l’espace de travail'],
     ],
@@ -705,7 +705,7 @@ export const marketingProductRemainingFr = {
           'Composants typés',
           'Routes API',
           'Modèles de données',
-          'Mises en page responsives',
+          'Mises en page adaptatives',
           'États d’erreur',
         ],
       },
@@ -764,7 +764,7 @@ export const marketingProductRemainingFr = {
     useCases: [
       [
         'Personnes qui débutent',
-        'Transformez une idée en application sans devoir maîtriser toute la stack au préalable.',
+        'Transformez une idée en application sans devoir maîtriser toute la pile technologique au préalable.',
       ],
       ['Prototypage rapide', 'Validez rapidement un parcours produit avec de vrais fichiers et un aperçu fonctionnel.'],
       ['Projets pédagogiques', 'Étudiez la structure du projet généré tout en le modifiant.'],
@@ -796,7 +796,7 @@ export const marketingProductRemainingFr = {
         category: 'development',
         description:
           'Expliquez à E-Code ce que vous souhaitez créer : l’agent génère le projet, ses fichiers et son parcours.',
-        bullets: ['Prompts en langage naturel', 'Génération de projet', 'Correction du build'],
+        bullets: ['Prompts en langage naturel', 'Génération de projet', 'Correction de la compilation'],
       },
       {
         id: 'ide',
@@ -810,7 +810,7 @@ export const marketingProductRemainingFr = {
         title: 'Centre de commandes',
         category: 'development',
         description: 'Exécutez des commandes, inspectez leur sortie et gardez tout le flux de développement visible.',
-        bullets: ['Contrôle du terminal', 'Exécution de scripts', 'Inspection des logs'],
+        bullets: ['Contrôle du terminal', 'Exécution de scripts', 'Inspection des journaux'],
       },
       {
         id: 'files',
@@ -859,7 +859,7 @@ export const marketingProductRemainingFr = {
         title: 'Déploiement en un clic',
         category: 'infrastructure',
         description: 'Passez d’un aperçu fonctionnel à la production avec un flux de déploiement géré.',
-        bullets: ['URL d’aperçu', 'Contrôles de déploiement', 'Chemin de rollback'],
+        bullets: ['URL d’aperçu', 'Contrôles de déploiement', 'Chemin de retour arrière'],
       },
       {
         id: 'security',
@@ -936,7 +936,7 @@ export const marketingProductRemainingFr = {
         description: 'Exécutez des commandes, des tests et des scripts de déploiement depuis un mobile.',
         details: [
           'Exécuter des scripts npm',
-          'Inspecter les logs',
+          'Inspecter les journaux',
           'Déployer en ligne de commande',
           'Réinitialiser l’historique des commandes',
         ],
@@ -955,7 +955,7 @@ export const marketingProductRemainingFr = {
       {
         id: 'preview',
         title: 'Aperçu en direct',
-        description: 'Inspectez les aperçus responsives sur téléphone et tablette.',
+        description: 'Inspectez les aperçus adaptatifs sur téléphone et tablette.',
         details: ['iPhone 15 Pro', 'Pixel 8', 'iPad Pro 13"', 'Contrôles portrait et paysage'],
       },
       {
@@ -1020,15 +1020,15 @@ export const marketingProductRemainingFr = {
         id: 'static',
         title: 'Sites statiques',
         description:
-          'Publiez des frontends, de la documentation et des sites marketing avec TLS et un routage mondial.',
-        bullets: ['Cache Edge', 'Domaines personnalisés', 'Rollbacks instantanés'],
+          'Publiez des interfaces utilisateur, de la documentation et des sites marketing avec TLS et un routage mondial.',
+        bullets: ['Cache Edge', 'Domaines personnalisés', 'Retours arrière instantanés'],
       },
     ],
     capabilities: [
       ['Routage mondial', 'Cache Edge et domaines personnalisés avec TLS'],
       ['Observabilité en direct', 'Requêtes, latence et erreurs après la mise en ligne'],
       ['Sécurisé par défaut', 'Secrets, identité et politique de déploiement'],
-      ['Rollbacks instantanés', 'Revenez à une version saine en un clic'],
+      ['Retours arrière instantanés', 'Revenez à une version saine en un clic'],
     ],
     workflowIntro: {
       title: 'Flux de déploiement',
@@ -1043,7 +1043,10 @@ export const marketingProductRemainingFr = {
         'Configurer une seule fois',
         'Définissez les domaines, variables d’environnement, règles de branche et politiques de déploiement.',
       ],
-      ['Déployer en confiance', 'Publiez avec les logs, contrôles d’aperçu, TLS et outils de rollback.'],
+      [
+        'Déployer en confiance',
+        'Publiez avec les journaux, les contrôles d’aperçu, TLS et les outils de retour arrière.',
+      ],
       [
         'Observer et améliorer',
         'Suivez les requêtes, la latence, l’usage et la santé de chaque version après sa publication.',
@@ -1051,7 +1054,8 @@ export const marketingProductRemainingFr = {
     ],
     controlIntro: {
       title: 'Centre de contrôle de la production',
-      description: 'Logs en temps réel, analyses et rollbacks en un clic permettent de publier sans interruption.',
+      description:
+        'Les journaux en temps réel, les analyses et les retours arrière en un clic permettent de publier sans interruption.',
     },
     controls: [
       ['Sécurisé par défaut', 'TLS, secrets, identité et politique de déploiement restent attachés à la version.'],
@@ -1073,7 +1077,7 @@ export const marketingProductRemainingFr = {
         ['Mise à l’échelle', 'Activée'],
         ['TLS', 'Émis'],
         ['Sauvegardes', 'Chaque nuit'],
-        ['Rollback', 'Prêt'],
+        ['Retour arrière', 'Prêt'],
       ],
     },
   },
@@ -1129,7 +1133,7 @@ export const marketingProductRemainingFr = {
     },
     categories: [
       'Applications IA et agentiques',
-      'Produits full-stack',
+      'Applications complètes',
       'Intégrations d’outils de développement',
       'Migrations de plateforme',
       'Contenus pédagogiques',

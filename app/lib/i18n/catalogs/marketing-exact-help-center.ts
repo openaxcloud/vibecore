@@ -145,7 +145,7 @@ export const marketingExactHelpCenterFr = {
       {
         id: 'deployments',
         title: 'Déploiements',
-        description: 'Publiez des sites statiques et des applications full-stack avec des domaines personnalisés.',
+        description: 'Publiez des sites statiques et des applications complètes avec des domaines personnalisés.',
       },
       {
         id: 'billing',

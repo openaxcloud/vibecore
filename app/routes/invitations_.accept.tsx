@@ -14,6 +14,11 @@ import { getInvitationsCopy, interpolateInvitationsCopy, invitationRoleLabel } f
 import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { isReauthRedirect } from '~/lib/route-reauth';
 
+/*
+ * The trailing underscore in this route filename is intentional: it keeps the
+ * public acceptance form at /invitations/accept without nesting it below the
+ * authenticated /invitations loader, which redirects anonymous recipients.
+ */
 const ACCEPT_INVITATION_CANONICAL_URL = 'https://e-code.ai/invitations/accept';
 
 export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {

@@ -112,12 +112,22 @@ describe('search and data-settings EN/FR catalog', () => {
     const english = flattenStrings(searchDataSettingsEn);
     const french = flattenStrings(searchDataSettingsFr);
 
-    expect(english.size).toBe(302);
+    expect(english.size).toBe(303);
     expect([...french.keys()].sort()).toEqual([...english.keys()].sort());
 
     for (const [key, englishValue] of english) {
       expect(interpolationTokens(french.get(key) ?? ''), key).toEqual(interpolationTokens(englishValue));
     }
+  });
+
+  it('uses the reviewed French terminology in visible search copy', () => {
+    const forbiddenFrenchSearchTerms =
+      /\b(?:backends?|front-?ends?|full-stack|marketplace|responsives?|streamings?|stacks?|starters?|workflows?)\b/iu;
+    const residuals = [...flattenStrings(searchDataSettingsFr)].filter(([, value]) =>
+      forbiddenFrenchSearchTerms.test(value),
+    );
+
+    expect(residuals).toEqual([]);
   });
 
   it('falls back to English and resolves professional French copy', () => {

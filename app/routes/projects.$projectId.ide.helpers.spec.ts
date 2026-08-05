@@ -51,7 +51,7 @@ describe('buildIdeNotifications crashed-workspace recovery', () => {
     const note = runtimeNotification('crashed', 'Raw Kubernetes English error', 'fr');
 
     expect(note?.title).toBe('Espace de travail en panne');
-    expect(note?.detail).toBe('Le runtime de l’espace de travail a signalé une erreur.');
+    expect(note?.detail).toBe('L’environnement d’exécution de l’espace de travail a signalé une erreur.');
     expect(note?.detail).not.toContain('Kubernetes');
     expect(note?.action).toEqual({ kind: 'restart-workspace', label: 'Redémarrer l’espace de travail' });
   });
@@ -67,7 +67,7 @@ describe('buildIdeNotifications crashed-workspace recovery', () => {
 
     expect(runtime.source).toBe('runtime');
     expect(preview.source).toBe('preview');
-    expect(preview.detail).toBe('Ports de prévisualisation en direct : 3000, 4173');
+    expect(preview.detail).toBe('Ports d’aperçu en direct : 3000, 4173');
   });
 });
 

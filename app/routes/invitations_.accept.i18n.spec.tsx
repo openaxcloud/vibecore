@@ -64,7 +64,7 @@ vi.mock('~/components/enterprise/EnterpriseFormPage', () => ({
   ),
 }));
 
-import AcceptInvitationPage, { action, loader, meta } from './invitations.accept';
+import AcceptInvitationPage, { action, loader, meta } from './invitations_.accept';
 import { createI18nInstance } from '~/lib/i18n/runtime';
 
 function readData<T>(result: unknown): T {

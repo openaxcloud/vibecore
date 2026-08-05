@@ -3,8 +3,8 @@
  */
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { I18nextProvider } from 'react-i18next';
 import type { ReactElement } from 'react';
+import { I18nextProvider } from 'react-i18next';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AsyncPanelError, AsyncPanelSkeleton } from './AsyncPanelState';
 import { createI18nInstance } from '~/lib/i18n/runtime';

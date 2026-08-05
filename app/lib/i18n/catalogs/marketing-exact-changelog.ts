@@ -176,7 +176,7 @@ export const marketingExactChangelogFr = {
       'faster-deployments': {
         title: 'Déploiements plus rapides et plus intelligents',
         changes: [
-          'Les builds statiques et full-stack utilisent désormais des instantanés incrémentiels pour accélérer les redéploiements',
+          'Les compilations de sites statiques et d’applications complètes utilisent désormais des instantanés incrémentiels pour accélérer les redéploiements',
           'Les journaux de déploiement sont diffusés en direct dans une sortie interrogeable avec code couleur',
           'Revenez en un clic à toute version précédemment déployée avec succès depuis l’onglet Déploiements',
         ],
@@ -184,7 +184,7 @@ export const marketingExactChangelogFr = {
       'usage-billing': {
         title: 'Crédits à l’usage et portail de facturation',
         changes: [
-          'Mesure transparente des crédits par exécution pour les agents IA, les builds et les heures d’utilisation de l’espace de travail',
+          'Mesure transparente des crédits par exécution pour les agents IA, les compilations et les heures d’utilisation de l’espace de travail',
           'Portail de facturation en libre-service pour changer d’offre ou gérer l’offre de votre équipe',
           'Alertes de dépenses et plafonds souples pour éviter toute mauvaise surprise sur votre facture',
         ],

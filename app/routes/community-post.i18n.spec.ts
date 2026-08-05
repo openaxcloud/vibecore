@@ -25,7 +25,7 @@ describe('community post locale loader', () => {
 
     const data = (await response.json()) as { language: string; post: { title: string; authorHandle: string } };
     expect(data.language).toBe('fr');
-    expect(data.post.title).toContain('preview mobile');
+    expect(data.post.title).toContain('aperçu mobile');
     expect(data.post.authorHandle).toBe('jon-mobile');
   });
 

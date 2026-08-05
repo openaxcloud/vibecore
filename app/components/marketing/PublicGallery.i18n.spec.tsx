@@ -50,10 +50,10 @@ describe('public galleries i18n', () => {
 
     expect(screen.getByRole('heading', { name: 'Découvrez ce que crée la communauté E-Code' })).toBeTruthy();
     expect(screen.getByText('Projets publics')).toBeTruthy();
-    expect(screen.getByPlaceholderText('Rechercher des projets, stacks ou tags…')).toBeTruthy();
+    expect(screen.getByPlaceholderText('Rechercher des projets, piles techniques ou étiquettes…')).toBeTruthy();
     expect(screen.getByText('par E-Code')).toBeTruthy();
     expect(screen.getByTitle('1 étoile')).toBeTruthy();
-    expect(screen.getByTitle('2 forks')).toBeTruthy();
+    expect(screen.getByTitle('2 copies')).toBeTruthy();
 
     fireEvent.change(screen.getByRole('textbox', { name: 'Rechercher des projets' }), {
       target: { value: 'introuvable' },

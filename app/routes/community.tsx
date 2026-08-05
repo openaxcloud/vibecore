@@ -15,6 +15,7 @@ import {
   type CommunityRouteContributorId,
   type CommunityRouteEventId,
   type CommunityRoutePostId,
+  type CommunityRouteTagId,
 } from '~/lib/i18n/catalogs/marketing-community-route';
 import type { SupportedLanguage } from '~/lib/i18n/language';
 import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
@@ -42,7 +43,10 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
 
 const communityRouteEnCopy = getMarketingCommunityRouteCopy('en').communityRoute;
 
-type CommunitySeedPost = Omit<PublicCommunityPost, 'id'> & { id: CommunityRoutePostId };
+type CommunitySeedPost = Omit<PublicCommunityPost, 'id' | 'tags' | 'tagLabels'> & {
+  id: CommunityRoutePostId;
+  tags: CommunityRouteTagId[];
+};
 type CommunitySeedCategory = Omit<PublicCommunityCategory, 'id'> & { id: CommunityRouteCategoryId };
 type CommunitySeedChallenge = Omit<PublicCommunityChallenge, 'id'> & { id: CommunityRouteChallengeId };
 type CommunitySeedContributor = Omit<PublicCommunityContributor, 'id'> & { id: CommunityRouteContributorId };
@@ -266,8 +270,9 @@ export function buildCommunityRouteData(language: SupportedLanguage) {
 
   const posts: PublicCommunityPost[] = communityPosts.map((post) => {
     const localized = copy.posts.find((item) => item.id === post.id);
+    const localizedTagLabels = language === 'fr' ? { tagLabels: post.tags.map((tag) => copy.tagLabels[tag]) } : {};
 
-    return localized ? { ...post, ...localized } : post;
+    return localized ? { ...post, ...localized, ...localizedTagLabels } : { ...post, ...localizedTagLabels };
   });
 
   const categories: PublicCommunityCategory[] = communityCategories.map((category) => ({

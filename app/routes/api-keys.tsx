@@ -40,6 +40,7 @@ type ApiKey = {
 };
 
 const API_KEY_SCOPES: readonly ApiKeyScope[] = ['read', 'write', 'admin'];
+const MASKED_API_KEY_PREFIX = 'vck_…';
 
 const EXPIRY_OPTIONS = [
   ['', 'never'],
@@ -287,7 +288,7 @@ export default function ApiKeysPage() {
                           className="mt-1 block truncate text-xs text-bolt-elements-textTertiary"
                           style={{ fontFamily: 'var(--vc-font-code)' }}
                         >
-                          {key.keyPrefix ? `${key.keyPrefix}…` : 'vck_…'}
+                          {key.keyPrefix ? `${key.keyPrefix}…` : MASKED_API_KEY_PREFIX}
                         </code>
                       </div>
                       <RevokeKeyButton
@@ -375,7 +376,7 @@ export default function ApiKeysPage() {
                           className="px-5 py-3 text-xs text-bolt-elements-textTertiary"
                           style={{ fontFamily: 'var(--vc-font-code)' }}
                         >
-                          {key.keyPrefix ? `${key.keyPrefix}…` : 'vck_…'}
+                          {key.keyPrefix ? `${key.keyPrefix}…` : MASKED_API_KEY_PREFIX}
                         </td>
                         <td className="px-5 py-3">
                           <div className="flex flex-wrap gap-1.5">

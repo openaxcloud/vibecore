@@ -557,8 +557,8 @@ export const searchDataSettingsFr = {
           description: 'Offres pour les particuliers, les équipes et les déploiements d’entreprise.',
         },
         marketplace: {
-          title: 'Marketplace',
-          description: 'Modèles de la Marketplace et bases de démarrage de la communauté.',
+          title: 'Place de marché',
+          description: 'Modèles de la place de marché et kits de démarrage de la communauté.',
         },
       },
       help: {
@@ -573,7 +573,7 @@ export const searchDataSettingsFr = {
           },
           {
             title: 'Déploiements',
-            description: 'Publiez des sites statiques et des applications full-stack avec des domaines personnalisés.',
+            description: 'Publiez des sites statiques et des applications complètes avec des domaines personnalisés.',
           },
           {
             title: 'Facturation',
@@ -609,27 +609,27 @@ export const searchDataSettingsFr = {
           'next-dashboard': {
             name: 'Tableau de bord Next',
             description:
-              'Base de tableau de bord full-stack avec Next.js, Prisma, Tailwind CSS et des écrans opérationnels reliés à une base de données.',
+              'Base d’application complète avec tableau de bord, Next.js, Prisma, Tailwind CSS et des écrans opérationnels reliés à une base de données.',
           },
           'fastify-api': {
             name: 'API Fastify',
             description:
-              'Base de service backend avec Node.js, Fastify, une persistance de type PostgreSQL et des conventions d’API de production.',
+              'Base de service applicatif avec Node.js, Fastify, une persistance de type PostgreSQL et des conventions d’API de production.',
           },
           'ai-agent': {
             name: 'Agent IA',
             description:
-              'Base d’exécution d’agent avec orchestration d’outils, événements en streaming, routage des fournisseurs et points d’intégration à l’IDE.',
+              'Base d’exécution d’agent avec orchestration d’outils, événements diffusés en continu, routage des fournisseurs et points d’intégration à l’IDE.',
           },
           'landing-page': {
-            name: 'Landing page',
+            name: 'Page d’atterrissage',
             description:
-              'Base marketing responsive pour les pages de conversion, avec des sections soignées et un routage prêt pour la production.',
+              'Base marketing adaptative pour les pages de conversion, avec des sections soignées et un routage prêt pour la production.',
           },
           'mobile-starter': {
             name: 'Base mobile',
             description:
-              'Base d’application mobile avec Expo, React et TypeScript pour des paquets frontend partagés et des parcours pensés pour les appareils mobiles.',
+              'Base d’application mobile avec Expo, React et TypeScript pour des paquets d’interface utilisateur partagés et des parcours pensés pour les appareils mobiles.',
           },
           'expo-app': {
             name: 'Application Expo',
@@ -641,11 +641,13 @@ export const searchDataSettingsFr = {
           },
           'nextjs-shadcn': {
             name: 'Next.js avec shadcn/ui',
-            description: 'Modèle full-stack Next.js intégrant les composants shadcn/ui et leur système de styles.',
+            description:
+              'Modèle d’application complète Next.js intégrant les composants shadcn/ui et leur système de styles.',
           },
           'vite-shadcn': {
             name: 'Vite avec shadcn/ui',
-            description: 'Modèle full-stack Vite intégrant les composants shadcn/ui et leur système de styles.',
+            description:
+              'Modèle d’application complète Vite intégrant les composants shadcn/ui et leur système de styles.',
           },
           'qwik-typescript': {
             name: 'Qwik TypeScript',
@@ -653,7 +655,7 @@ export const searchDataSettingsFr = {
           },
           'remix-typescript': {
             name: 'Remix TypeScript',
-            description: 'Modèle Remix avec TypeScript pour les applications web full-stack.',
+            description: 'Modèle Remix avec TypeScript pour les applications web complètes.',
           },
           slidev: {
             name: 'Présentation Slidev',
@@ -689,7 +691,7 @@ export const searchDataSettingsFr = {
           },
         },
         categories: {
-          api: 'API et backend',
+          api: 'API et services applicatifs',
           mobile: 'Mobile',
           'ml-ai': 'IA et ML',
           starter: 'Kits de démarrage',

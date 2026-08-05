@@ -96,7 +96,7 @@ describe('remaining chat surfaces i18n', () => {
       </>,
     );
 
-    const generateButton = screen.getByRole('button', { name: 'Générer l’app' });
+    const generateButton = screen.getByRole('button', { name: 'Générer l’application' });
 
     expect(screen.getByText('Ce projet n’a pas encore été généré')).toBeTruthy();
     expect(generateButton.className).toContain('min-h-11');

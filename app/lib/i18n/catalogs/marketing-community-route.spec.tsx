@@ -6,6 +6,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  COMMUNITY_ROUTE_TAG_IDS,
   getMarketingCommunityRouteCopy,
   marketingCommunityRouteEn,
   marketingCommunityRouteFr,
@@ -104,7 +105,7 @@ describe('community marketing route i18n', () => {
     expect(JSON.stringify(fallback)).not.toContain('communityRoute.');
   });
 
-  it('localizes editorial seed copy while preserving identities, handles, tags and stable technical fields', () => {
+  it('localizes editorial copy and tag labels while preserving machine identifiers and stable technical fields', () => {
     const english = buildCommunityRouteData('en');
     const french = buildCommunityRouteData('fr');
 
@@ -113,6 +114,7 @@ describe('community marketing route i18n', () => {
       authorName: 'Maya Chen',
       authorHandle: 'maya-ops',
       tags: ['ai-agent', 'memory', 'security', 'audit'],
+      tagLabels: ['Agent IA', 'Mémoire', 'Sécurité', 'Audit'],
       title: 'Comment les équipes acheminent-elles la mémoire des agents en toute sécurité en production ?',
       categoryName: 'Aide',
     });
@@ -122,6 +124,34 @@ describe('community marketing route i18n', () => {
     expect(french.posts.map((post) => post.authorName)).toEqual(english.posts.map((post) => post.authorName));
     expect(french.posts.map((post) => post.authorHandle)).toEqual(english.posts.map((post) => post.authorHandle));
     expect(french.posts.map((post) => post.tags)).toEqual(english.posts.map((post) => post.tags));
+    expect(english.posts.every((post) => post.tagLabels === undefined)).toBe(true);
+    expect([...new Set(french.posts.flatMap((post) => post.tags))].sort()).toEqual([...COMMUNITY_ROUTE_TAG_IDS].sort());
+    expect(french.posts.flatMap((post) => post.tagLabels ?? [])).toEqual([
+      'Agent IA',
+      'Mémoire',
+      'Sécurité',
+      'Audit',
+      'Mobile',
+      'Assurance qualité',
+      'Aperçu',
+      'Adaptatif',
+      'Déploiements',
+      'Retour arrière',
+      'Cloud Run',
+      'Helm',
+      'Modèles',
+      'TypeScript',
+      'API',
+      'Qualité',
+      'Équipes',
+      'RBAC',
+      'Collaboration',
+      'Transmission',
+      'Journée de démonstration',
+      'Applications IA',
+      'Tableaux de bord',
+      'Mobile',
+    ]);
     expect(french.challenges.map((challenge) => challenge.difficulty)).toEqual(
       english.challenges.map((challenge) => challenge.difficulty),
     );
@@ -198,7 +228,7 @@ describe('community marketing route i18n', () => {
     });
   });
 
-  it('renders all platform copy in French while leaving community identities and technical tags unchanged', () => {
+  it('renders French platform copy and tag labels while retaining community identities', () => {
     const data = buildCommunityRouteData('fr');
 
     const markup = renderInFrench(
@@ -218,8 +248,21 @@ describe('community marketing route i18n', () => {
     expect(markup).toContain('27 juin 2026');
     expect(markup).toContain('Maya Chen');
     expect(markup).toContain('@maya-ops');
-    expect(markup).toContain('ai-agent');
-    expect(markup).toContain('rollback');
+    expect(markup).toContain('Agent IA');
+    expect(markup).toContain('Aperçu');
+    expect(markup).toContain('Déploiements');
+    expect(markup).toContain('Retour arrière');
+    expect(markup).toContain('Modèles');
+    expect(markup).toContain('Équipes');
+    expect(markup).toContain('Tableaux de bord');
+    expect(markup).toContain('placeholder="Rechercher une discussion, une étiquette ou un profil…"');
+    expect(markup).toContain('Intermédiaire');
+    expect(markup).toContain('Facile');
+    expect(markup).toContain('Difficile');
+    expect(markup).toContain('Mentor');
+    expect(markup).toContain('Livraison');
+    expect(markup).toContain('Créateur');
+    expect(markup).not.toMatch(/>(?:preview|deployments|templates|teams|dashboards|rollback)</u);
     expect(markup).not.toContain('How are teams routing agent memory safely in production?');
     expect(markup).not.toContain('Secure deployment runbook');
     expect(markup).not.toContain('Agent systems roundtable');

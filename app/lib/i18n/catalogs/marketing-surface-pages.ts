@@ -606,7 +606,7 @@ export const marketingSurfacePageFr = {
       title: 'Thèmes',
       description:
         'Des recommandations pour le thème sombre par défaut, le mode clair, le style des applications, les tokens de marque et la cohérence des interfaces générées.',
-      highlights: ['Mode sombre par défaut', 'Bascule en mode clair', 'Tokens de marque', 'Style responsive'],
+      highlights: ['Mode sombre par défaut', 'Bascule en mode clair', 'Tokens de marque', 'Style adaptatif'],
     },
     performance: {
       title: 'Performances',
@@ -692,8 +692,13 @@ export const marketingSurfacePageFr = {
     preview: {
       title: 'Aperçu',
       description:
-        'Validez les applications générées grâce à la QA visuelle, aux contrôles des routes et à la vérification de l’état de l’environnement d’exécution.',
-      highlights: ['QA visuelle', 'Contrôles des routes', 'État de l’environnement', 'Revue partageable'],
+        'Validez les applications générées grâce à l’assurance qualité visuelle, aux contrôles des routes et à la vérification de l’état de l’environnement d’exécution.',
+      highlights: [
+        'Assurance qualité visuelle',
+        'Contrôles des routes',
+        'État de l’environnement',
+        'Revue partageable',
+      ],
     },
     authentication: {
       title: 'Authentification',
@@ -778,8 +783,8 @@ export const marketingSurfacePageFr = {
     'advanced/mobile': {
       title: 'Mobile avancé',
       description:
-        'Des fonctions avancées de livraison mobile pour les interfaces IDE responsives, les ressources de l’application, les aperçus et les flux de publication.',
-      highlights: ['IDE responsive', 'Ressources de l’application', 'Aperçus mobiles', 'Flux de publication'],
+        'Des fonctions avancées de livraison mobile pour les interfaces IDE adaptatives, les ressources de l’application, les aperçus et les flux de publication.',
+      highlights: ['IDE adaptatif', 'Ressources de l’application', 'Aperçus mobiles', 'Flux de publication'],
     },
     'advanced/sso': {
       title: 'SSO avancé',

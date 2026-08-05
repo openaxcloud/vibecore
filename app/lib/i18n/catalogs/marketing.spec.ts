@@ -2,7 +2,6 @@ import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import { makeMarketingMeta, marketingPages } from '~/components/marketing/EcodeMarketingPages';
 import {
   getMarketingFigureCopy,
   getMarketingPageCopy,
@@ -14,11 +13,13 @@ import {
   marketingPageCopyFr,
   resolveMarketingLanguage,
 } from './marketing';
+import { makeMarketingMeta, marketingPages } from '~/components/marketing/EcodeMarketingPages';
 
 function assertMatchingShape(en: unknown, fr: unknown, path = 'catalog'): void {
   if (typeof en === 'string') {
     expect(fr, path).toEqual(expect.any(String));
     expect((fr as string).trim().length, path).toBeGreaterThan(0);
+
     return;
   }
 
@@ -26,6 +27,7 @@ function assertMatchingShape(en: unknown, fr: unknown, path = 'catalog'): void {
     expect(Array.isArray(fr), path).toBe(true);
     expect((fr as unknown[]).length, path).toBe(en.length);
     en.forEach((value, index) => assertMatchingShape(value, (fr as unknown[])[index], `${path}[${index}]`));
+
     return;
   }
 
@@ -96,8 +98,9 @@ describe('marketing EN/FR catalogs', () => {
 
   it('enforces the reviewed French glossary across visible marketing copy', () => {
     const frenchCopy = [...collectStrings(marketingPageCopyFr), ...collectStrings(marketingAuxiliaryPageCopyFr)];
+
     const residualEnglishTerminology =
-      /\b(?:preview|logs?|marketplace|snapshots?|packages?|builds?|workspace|runtime|stack|starter|typecheck|full-stack|tenants|tokens?|tags?|design system|backend|frontend|fork|feature flags?)\b/iu;
+      /\b(?:backpressure|preview|logs?|marketplace|snapshots?|packages?|builds?|workspace|workflows?|runtime|rollbacks?|responsive|streaming|stack|starter|typecheck|full-stack|tenants|tokens?|tags?|design system|backend|frontend|fork|feature flags?|QA)\b/iu;
 
     for (const copy of frenchCopy) {
       expect(copy, copy).not.toMatch(residualEnglishTerminology);
@@ -118,6 +121,7 @@ describe('marketing EN/FR catalogs', () => {
 
   it('localizes title, description and social metadata from the root locale', () => {
     const meta = makeMarketingMeta(marketingPages.product);
+
     const descriptors = meta({
       data: undefined,
       matches: [{ id: 'root', data: { language: 'fr' } }],

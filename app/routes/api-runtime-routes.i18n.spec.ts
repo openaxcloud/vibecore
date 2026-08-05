@@ -73,11 +73,22 @@ describe('localized route contracts', () => {
     const { loader } = await import('./webcontainer.preview.$id');
     const request = new Request('https://e-code.ai/webcontainer/preview?lang=fr');
 
-    await expect(loader({ request, params: {}, context: {} } as never)).rejects.toMatchObject({ status: 400 });
+    let missingIdResponse: Response | undefined;
+
+    try {
+      await loader({ request, params: {}, context: {} } as never);
+    } catch (error) {
+      missingIdResponse = error as Response;
+    }
+
+    expect(missingIdResponse).toBeInstanceOf(Response);
+    expect(missingIdResponse?.status).toBe(400);
+    expect(missingIdResponse?.headers.get('Content-Language')).toBe('fr');
+    expect(await missingIdResponse?.text()).toBe('Un identifiant d’aperçu est obligatoire.');
 
     const result = routeData(await loader({ request, params: { id: 'preview-123' }, context: {} } as never));
 
-    expect(result.data).toEqual({ previewId: 'preview-123', frameTitle: 'Preview WebContainer' });
+    expect(result.data).toEqual({ previewId: 'preview-123', frameTitle: 'Aperçu WebContainer' });
     expect(routeHeaders(result).get('Content-Language')).toBe('fr');
   });
 

@@ -897,7 +897,6 @@ export default function NewProjectPage() {
         const response = await fetch('/api/models');
 
         if (!response.ok) {
-          console.error('Project model request failed:', { status: response.status });
           throw new Error();
         }
 
@@ -907,11 +906,21 @@ export default function NewProjectPage() {
           setModelsPayload(payload);
         }
       } catch (error) {
-        console.error('Project model refresh failed:', error);
-
-        if (!cancelled) {
-          setModelsError(copy.errors.modelsLoadFailed);
+        if (cancelled) {
+          return;
         }
+
+        /*
+         * This request is opportunistic: the SSR payload remains usable and the
+         * localized recovery state is rendered below. Navigation can cancel the
+         * browser fetch before React runs its cleanup, so do not report a handled
+         * refresh failure as an uncaught console error.
+         */
+        console.warn('[projects-new] model catalog refresh unavailable', {
+          errorType: error instanceof Error ? error.name : 'UnknownError',
+        });
+
+        setModelsError(copy.errors.modelsLoadFailed);
       } finally {
         if (!cancelled) {
           setModelsLoading(false);

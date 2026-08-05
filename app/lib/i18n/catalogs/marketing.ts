@@ -991,6 +991,11 @@ export function resolveMarketingLanguage(language?: string | null): MarketingLan
   return language?.toLowerCase().startsWith('fr') ? 'fr' : 'en';
 }
 
+/** Keep the localized page title and the invariant E-Code brand in one catalog-owned formatter. */
+export function formatMarketingDocumentTitle(pageTitle: string): string {
+  return `${pageTitle} - E-Code`;
+}
+
 export function getMarketingPageCopy(slug: string, language?: string | null): MarketingPageCopy | null {
   const locale = resolveMarketingLanguage(language);
 
@@ -1040,8 +1045,13 @@ export const marketingPageCopyFr = {
       },
       {
         title: 'IA',
-        body: 'Génération multi-modèle en streaming, avec pièces jointes, sélection de la pile technologique et correction de la compilation.',
-        items: ['Génération en streaming', 'Routage multi-modèle', 'Pièces jointes', 'Correction de la compilation'],
+        body: 'Génération multi-modèle diffusée en continu, avec pièces jointes, sélection de la pile technologique et correction de la compilation.',
+        items: [
+          'Génération diffusée en continu',
+          'Routage multi-modèle',
+          'Pièces jointes',
+          'Correction de la compilation',
+        ],
       },
       {
         title: 'Agents',
@@ -1310,16 +1320,16 @@ export const marketingPageCopyFr = {
       'E-Code est conçu pour que les principaux flux de développement, de revue et de déploiement restent utilisables quels que soient le clavier, la taille d’écran et le thème choisis.',
     primaryActionLabel: 'Signaler un problème',
     secondaryActionLabel: 'Voir les règles d’utilisation acceptable',
-    highlights: ['Navigation au clavier', 'Mises en page responsives', 'Thèmes sombre et clair', 'États lisibles'],
+    highlights: ['Navigation au clavier', 'Mises en page adaptatives', 'Thèmes sombre et clair', 'États lisibles'],
     sections: [
       {
         title: 'Engagement',
         body: 'Chaque surface publique et chaque panneau asynchrone doivent proposer des états de chargement, d’erreur et de récupération clairs.',
-        items: ['Navigation au clavier', 'Focus visible', 'Pages marketing responsives', 'Libellés accessibles'],
+        items: ['Navigation au clavier', 'Focus visible', 'Pages marketing adaptatives', 'Libellés accessibles'],
       },
       {
         title: 'Évaluation continue',
-        body: 'L’accessibilité reste intégrée à la QA à mesure que de nouveaux panneaux d’IDE, de nouvelles routes marketing et de nouvelles surfaces mobiles sont ajoutés.',
+        body: 'L’accessibilité reste intégrée à l’assurance qualité à mesure que de nouveaux panneaux d’IDE, de nouvelles routes marketing et de nouvelles surfaces mobiles sont ajoutés.',
         items: [
           'Contrôles du contraste',
           'Vérification des tailles d’écran',
@@ -1343,7 +1353,7 @@ export const marketingPageCopyFr = {
         body: 'E-Code conserve le prompt, les fichiers, l’aperçu, l’état du terminal et le contexte de déploiement accessibles sur les écrans plus petits.',
         items: [
           'Navigation mobile dans les fichiers',
-          'Aperçus responsives',
+          'Aperçus adaptatifs',
           'Actualités de l’agent',
           'Visibilité des mises en production',
         ],
@@ -1449,7 +1459,7 @@ export const marketingPageCopyFr = {
           'Cycles de compilation raccourcis',
           'Contexte de projet partagé',
           'Déploiements gouvernés',
-          'Starters réutilisables',
+          'Kits de démarrage réutilisables',
         ],
       },
       {
@@ -1785,11 +1795,11 @@ export const marketingPageCopyFr = {
     title: 'Place de marché',
     eyebrow: 'Modèles',
     description:
-      'Découvrez des starters E-Code, des modèles d’implémentation et des fondations de projet réutilisables pour vos applications de production.',
+      'Découvrez les kits de démarrage E-Code, les modèles d’implémentation et les fondations de projet réutilisables pour vos applications de production.',
     primaryActionLabel: 'Parcourir les modèles',
     secondaryActionLabel: 'Explorer les solutions',
     highlights: [
-      'Starters de production',
+      'Kits de démarrage pour la production',
       'Modèles réutilisables',
       'Prêts pour l’exécution',
       'Parcours de déploiement',
@@ -1886,7 +1896,7 @@ export const marketingPageCopyFr = {
       {
         title: 'Sources de recherche',
         body: 'La recherche publique oriente chacun vers la source de référence la plus utile à sa tâche.',
-        items: ['Guides de documentation', 'Starters de modèles', 'Exemples de la communauté', 'Pages produit'],
+        items: ['Guides de documentation', 'Kits de démarrage', 'Exemples de la communauté', 'Pages produit'],
       },
       {
         title: 'Recherche en mode connecté',
@@ -1930,15 +1940,15 @@ export const marketingPageCopyFr = {
     title: 'Validation des thèmes',
     eyebrow: 'Système de design',
     description:
-      'Validez les modes sombre et clair d’E-Code, les couleurs de marque, les états de focus et le comportement responsive de la structure marketing.',
+      'Validez les modes sombre et clair d’E-Code, les couleurs de marque, les états de focus et le comportement adaptatif de la structure marketing.',
     primaryActionLabel: 'Ouvrir la page d’accessibilité',
     secondaryActionLabel: 'Voir les fonctionnalités',
-    highlights: ['Mode sombre par défaut', 'Mode clair disponible', 'Anneaux de focus', 'États responsives'],
+    highlights: ['Mode sombre par défaut', 'Mode clair disponible', 'Anneaux de focus', 'États adaptatifs'],
     sections: [
       {
         title: 'Contrat visuel',
         body: 'La validation des thèmes maintient la structure publique, les pages d’authentification et les surfaces produit alignées sur les ressources de marque E-Code.',
-        items: ['Contraste du logo', 'Cartes lisibles', 'Liens accessibles', 'Espacement responsive stable'],
+        items: ['Contraste du logo', 'Cartes lisibles', 'Liens accessibles', 'Espacement adaptatif stable'],
       },
       {
         title: 'Validation opérationnelle',

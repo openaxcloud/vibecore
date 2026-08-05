@@ -110,10 +110,10 @@ describe('RepositoryCard i18n', () => {
     expect(screen.getByText(repository.description)).toBeTruthy();
     expect(screen.getByText(repository.language)).toBeTruthy();
     expect(screen.getByTitle('Dépôt privé')).toBeTruthy();
-    expect(screen.getByTitle('Dépôt forké')).toBeTruthy();
+    expect(screen.getByTitle('Dépôt dupliqué')).toBeTruthy();
     expect(screen.getByTitle('Dépôt archivé')).toBeTruthy();
     expect(screen.getByTitle(/Étoiles.*12[\s\u202f]345/u)).toBeTruthy();
-    expect(screen.getByTitle(/Forks.*2[\s\u202f]345/u)).toBeTruthy();
+    expect(screen.getByTitle(/Copies.*2[\s\u202f]345/u)).toBeTruthy();
     expect(screen.getByTitle(/Langage principal\s*:\s*TypeScript/u)).toBeTruthy();
     expect(screen.getByTitle(/Taille.*2,0[\s\u00a0]Mo/u)).toBeTruthy();
     expect(screen.getByText('Il y a 2 jours')).toBeTruthy();
@@ -152,7 +152,7 @@ describe('RepositoryCard i18n', () => {
     expect(screen.getByTitle(/Pull requests\s*:\s*3/u)).toBeTruthy();
     expect(screen.getByTitle(/Sujets\s*:\s*customer-topic, api-v2, third-user-topic/u)).toBeTruthy();
     expect(screen.getByText('Archivé')).toBeTruthy();
-    expect(screen.getByText('Forké')).toBeTruthy();
+    expect(screen.getByText('Dupliqué')).toBeTruthy();
     expect(screen.getByText('Voir')).toBeTruthy();
     expect(screen.getByText('MIT')).toBeTruthy();
     expect(screen.getByText('customer-topic')).toBeTruthy();

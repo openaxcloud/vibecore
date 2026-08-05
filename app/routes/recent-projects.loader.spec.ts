@@ -99,6 +99,7 @@ describe('recent-projects loader', () => {
     });
 
     const { loader, meta } = await import('./recent-projects');
+
     const data = (await loader({ request: loaderRequest('fr-FR, en;q=0.8') } as any)) as {
       language: string;
       projects: Array<{ updated: string }>;

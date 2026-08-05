@@ -24,6 +24,7 @@ function formatters(language?: SupportedLanguage): RelativeFormatters {
   }
 
   const locale = USER_AREA_LOCALES[resolvedLanguage];
+
   const created = {
     relative: new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }),
     absoluteDate: new Intl.DateTimeFormat(locale, {

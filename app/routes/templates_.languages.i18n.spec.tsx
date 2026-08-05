@@ -285,7 +285,7 @@ describe('templates languages loader and SEO', () => {
 
     expect(defaultEnglish.data.language).toBe('en');
     expect(new Headers(defaultEnglish.init.headers).get('Content-Language')).toBe('en');
-    expect(new Headers(defaultEnglish.init.headers).get('Set-Cookie')).toContain('vibecore-auto-lang=en');
+    expect(new Headers(defaultEnglish.init.headers).get('Set-Cookie')).toBeNull();
     expect(manual.data.language).toBe('en');
     expect(new Headers(manual.init.headers).get('Content-Language')).toBe('en');
     expect(new Headers(manual.init.headers).get('Set-Cookie')).toBeNull();

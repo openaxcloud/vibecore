@@ -217,21 +217,21 @@ export const marketingExactProductControlsFr = {
         label: 'IDE',
         title: 'IDE dans le navigateur',
         description:
-          'Découvrez l’IDE E-Code dans le navigateur avec son éditeur, son terminal, ses fichiers, ses previews et ses workflows de projet.',
-        imageAlt: 'IDE E-Code dans le navigateur avec éditeur, terminal et preview en direct',
+          'Découvrez l’IDE E-Code dans le navigateur avec son éditeur, son terminal, ses fichiers, ses aperçus et ses processus de projet.',
+        imageAlt: 'IDE E-Code dans le navigateur avec éditeur, terminal et aperçu en direct',
       },
       multiplayer: {
         label: 'Collaboration en temps réel',
         title: 'Collaboration en temps réel',
         description:
-          'Collaborez en direct grâce à la programmation en binôme, à la présence partagée et aux workflows de revue dans l’IDE.',
+          'Collaborez en direct grâce à la programmation en binôme, à la présence partagée et aux processus de revue dans l’IDE.',
         imageAlt: 'Développeurs collaborant en temps réel dans l’IDE E-Code',
       },
       'mobile-app': {
         label: 'Application mobile',
         title: 'IDE mobile',
         description:
-          'Découvrez l’expérience mobile E-Code pour l’éditeur, le terminal, l’IA, la preview, la collaboration et Git.',
+          'Découvrez l’expérience mobile E-Code pour l’éditeur, le terminal, l’IA, l’aperçu, la collaboration et Git.',
         imageAlt: 'IDE mobile E-Code ouvert sur un téléphone',
       },
       teams: {
@@ -280,7 +280,7 @@ export const marketingExactProductControlsFr = {
     },
     models: {
       descriptions: {
-        'gpt-5': 'Modèle de raisonnement avancé pour générer des applications full-stack.',
+        'gpt-5': 'Modèle de raisonnement avancé pour générer des applications complètes.',
         'gemini-2.5-pro': 'Modèle à large contexte pour la planification, le code et les applications multimodales.',
         'claude-sonnet-4': 'Modèle de code équilibré pour les tâches d’implémentation de longue durée.',
       },
@@ -298,7 +298,7 @@ export const marketingExactProductControlsFr = {
       },
       loadingOption: 'Chargement des modèles d’IA…',
       selectOption: 'Sélectionnez un modèle d’IA…',
-      streaming: 'Streaming',
+      streaming: 'Diffusion en continu',
       fallbackWarning: 'La liste intégrée des modèles est utilisée pendant la reconnexion du catalogue.',
       preferenceSaved: 'Préférence de modèle enregistrée',
     },
@@ -329,9 +329,9 @@ export const marketingExactProductControlsFr = {
           description: 'Générez dès le départ une application complète et fonctionnelle.',
           badge: 'Recommandé',
           features: [
-            'Développement full-stack',
+            'Développement d’applications complètes',
             'MVP fonctionnel immédiatement',
-            'Backend et frontend',
+            'Service applicatif et interface utilisateur',
             'Intégration de la base de données',
           ],
         },

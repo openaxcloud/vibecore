@@ -179,7 +179,7 @@ export const marketingExactCompareIndexFr = {
           id: 'production',
           title: 'Du prompt à la production',
           description:
-            'Générez, prévisualisez et déployez une application full-stack en quelques minutes, sans configuration.',
+            'Générez, prévisualisez et déployez une application complète en quelques minutes, sans configuration.',
         },
         {
           id: 'ai',

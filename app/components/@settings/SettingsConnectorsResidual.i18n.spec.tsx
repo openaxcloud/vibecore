@@ -302,7 +302,9 @@ describe('settings connector residual i18n surfaces', () => {
 
     const view = render(<DebugTab />);
 
-    expect(screen.getByRole('status', { name: 'Chargement des diagnostics du runtime…' })).toBeTruthy();
+    expect(
+      screen.getByRole('status', { name: 'Chargement des diagnostics de l’environnement d’exécution…' }),
+    ).toBeTruthy();
     expect(await screen.findByText('2 problèmes détectés')).toBeTruthy();
     expect(screen.getByText('Utilisation élevée de la mémoire détectée')).toBeTruthy();
     expect(screen.getByText('Une erreur de l’application a été enregistrée')).toBeTruthy();
@@ -325,7 +327,9 @@ describe('settings connector residual i18n surfaces', () => {
 
     render(<DebugTab />);
 
-    expect(await screen.findByText('Impossible de charger les diagnostics du runtime. Réessayez.')).toBeTruthy();
+    expect(
+      await screen.findByText('Impossible de charger les diagnostics de l’environnement d’exécution. Réessayez.'),
+    ).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Réessayer' }));
 
     expect(await screen.findByText('Aucun problème de diagnostic actif détecté')).toBeTruthy();

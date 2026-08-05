@@ -91,9 +91,14 @@ describe('exact product registry and landing control catalogs', () => {
 
     const french = JSON.stringify(marketingExactProductControlsFr);
 
-    for (const term of ['E-Code', 'IDE', 'Git', 'full-stack', 'MVP', 'Backend', 'frontend', 'prompt', 'Streaming']) {
+    for (const term of ['E-Code', 'IDE', 'Git', 'MVP', 'prompt']) {
       expect(french).toContain(term);
     }
+
+    expect(french).toContain('Développement d’applications complètes');
+    expect(french).toContain('Diffusion en continu');
+    expect(french).toContain('Service applicatif et interface utilisateur');
+    expect(french).not.toMatch(/\b(?:full-stack|backend|frontend)\b/iu);
   });
 
   it('falls back to English for unsupported locales', () => {
@@ -162,7 +167,7 @@ describe('exact product registry and landing control catalogs', () => {
     expect(markup).toContain('Recommandé');
     expect(markup).toContain('Environ 3 minutes');
     expect(markup).toContain('Environ 10 minutes');
-    expect(markup).toContain('Développement full-stack');
+    expect(markup).toContain('Développement d’applications complètes');
     expect(markup).not.toContain('Start with a design');
     expect(markup).not.toContain('Continue refining the prompt');
   });

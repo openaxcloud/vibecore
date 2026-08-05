@@ -126,7 +126,7 @@ describe('web API route i18n contract', () => {
     expect(response.status).toBe(400);
     expect(response.headers.get('Content-Language')).toBe('fr');
     expect(await payload(response)).toEqual({
-      error: 'Un token GitHub est obligatoire.',
+      error: 'Un jeton GitHub est obligatoire.',
       code: 'GITHUB_TOKEN_REQUIRED',
     });
   });

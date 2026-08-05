@@ -60,7 +60,7 @@ describe('GitLab StatsDisplay i18n surface', () => {
     expect(screen.getByText('Dépôt public')).toBeTruthy();
     expect(screen.getByText('Dépôts privés')).toBeTruthy();
     expect(screen.getByText('Étoile')).toBeTruthy();
-    expect(screen.getByText('Forks comptabilisés')).toBeTruthy();
+    expect(screen.getByText('Copies comptabilisées')).toBeTruthy();
     expect(screen.getByText('Abonnés')).toBeTruthy();
     expect(screen.getAllByText(/^12[\s\u202f]345$/u)).toHaveLength(1);
     expect(screen.getAllByText(/^2[\s\u202f]345$/u)).toHaveLength(1);

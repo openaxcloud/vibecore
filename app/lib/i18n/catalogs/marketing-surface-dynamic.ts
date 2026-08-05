@@ -147,8 +147,8 @@ export const marketingSurfaceDynamicFr = {
   'surfaceDynamic.projectDatabase.related.previewDescription': 'Validez l’interface adossée à la base de données.',
   'surfaceDynamic.projectPreview.title': 'Aperçu du projet',
   'surfaceDynamic.projectPreview.description':
-    'Route d’aperçu du projet {projectId}, centrée sur la QA visuelle, l’état de l’environnement d’exécution et la revue partageable.',
-  'surfaceDynamic.projectPreview.highlight.visual': 'QA visuelle',
+    'Route d’aperçu du projet {projectId}, centrée sur l’assurance qualité visuelle, l’état de l’environnement d’exécution et la revue partageable.',
+  'surfaceDynamic.projectPreview.highlight.visual': 'Assurance qualité visuelle',
   'surfaceDynamic.projectPreview.highlight.runtime': 'État de l’environnement d’exécution',
   'surfaceDynamic.projectPreview.highlight.routes': 'Contrôles des routes',
   'surfaceDynamic.projectPreview.highlight.share': 'Revue partageable',

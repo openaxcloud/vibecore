@@ -557,7 +557,7 @@ export const marketingExactTrustPressFr = {
     about: {
       title: 'À propos d’E-Code',
       description: 'La plateforme de développement avec IA qui transforme un prompt en application déployée',
-      body: 'E-Code est une plateforme de développement native de l’IA où chacun peut décrire une idée en langage naturel et observer des agents autonomes planifier, créer, exécuter et déployer une application full-stack dans un IDE cloud en direct. En associant le raisonnement multi-agents à un véritable espace de travail, un terminal et des déploiements en un clic, E-Code réduit l’écart entre l’intention et le logiciel livré.',
+      body: 'E-Code est une plateforme de développement native de l’IA où chacun peut décrire une idée en langage naturel et observer des agents autonomes planifier, créer, exécuter et déployer une application complète dans un IDE cloud en direct. En associant le raisonnement multi-agents à un véritable espace de travail, un terminal et des déploiements en un clic, E-Code réduit l’écart entre l’intention et le logiciel livré.',
       builtOn: 'Technologies principales',
       technologies: [
         { id: 'react', name: 'React' },

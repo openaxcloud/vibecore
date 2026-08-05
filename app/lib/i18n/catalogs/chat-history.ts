@@ -30,7 +30,7 @@ export type ChatHistoryCopy = Readonly<Record<ChatHistoryKey, string>>;
 export const chatHistoryFr: ChatHistoryCopy = {
   'chatHistory.warning.localOnly':
     'L’historique des conversations est stocké localement sur cet appareil et ne sera pas synchronisé avec vos autres appareils.',
-  'chatHistory.fallback.projectAssistant': 'Assistant du projet',
+  'chatHistory.fallback.projectAssistant': 'Assistant de projet',
   'chatHistory.restore.userPrompt': 'Restaurer le projet depuis l’instantané',
   'chatHistory.restore.assistantIntro':
     'Votre conversation a été restaurée depuis un instantané. Vous pouvez revenir sur ce message pour charger l’historique complet.',
@@ -57,6 +57,34 @@ export type ChatHistoryErrorKey = Extract<ChatHistoryKey, `chatHistory.error.${s
 
 export function getChatHistoryCopy(language?: string | null): ChatHistoryCopy {
   return normalizeSupportedLanguage(language) === 'fr' ? chatHistoryFr : chatHistoryEn;
+}
+
+/**
+ * Localize the generated title of a project's default chat without rewriting
+ * persisted user content. Historical records may contain either locale's
+ * fallback because this field predates locale-aware persistence. Only the two
+ * exact generated values are migrated, and only for the canonical project chat
+ * id; imported and standalone conversations are deliberately left untouched.
+ */
+export function resolveProjectAssistantDescription(
+  description: string | undefined,
+  chatId: string,
+  projectId: string,
+  language?: string | null,
+): string {
+  const copy = getChatHistoryCopy(language);
+  const localizedFallback = copy['chatHistory.fallback.projectAssistant'];
+
+  if (chatId !== `project:${projectId}`) {
+    return description ?? localizedFallback;
+  }
+
+  const generatedFallbacks = new Set([
+    chatHistoryEn['chatHistory.fallback.projectAssistant'],
+    chatHistoryFr['chatHistory.fallback.projectAssistant'],
+  ]);
+
+  return description === undefined || generatedFallbacks.has(description) ? localizedFallback : description;
 }
 
 /** Arbitrary persistence exceptions must never be rendered in toasts or the event log. */

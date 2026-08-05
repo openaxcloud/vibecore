@@ -130,7 +130,7 @@ describe('exact guides and policies marketing catalogs', () => {
 
     expect(markup).toContain('Tutoriels');
     expect(markup).toContain('Parcourir les tutoriels');
-    expect(markup).toContain('Créer une application full-stack avec l’agent IA');
+    expect(markup).toContain('Créer une application complète avec l’agent IA');
     expect(markup).toContain('15 min');
     expect(markup).toContain('Parcours d’apprentissage');
     expect(markup).toContain('Livrer en équipe');

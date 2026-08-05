@@ -180,7 +180,7 @@ describe('support ticket detail catalog', () => {
 
     expect(supportTicketDetailStatusLabel('PENDING', 'fr')).toBe('En attente');
     expect(supportTicketDetailStatusLabel('new_status', 'fr')).toBe('État indisponible');
-    expect(supportTicketDetailCategoryLabel('runtime', 'fr')).toBe('Runtime et espaces de travail');
+    expect(supportTicketDetailCategoryLabel('runtime', 'fr')).toBe('Environnement d’exécution et espaces de travail');
     expect(supportTicketDetailAuthorLabel('USER', 'fr')).toBe('Vous');
     expect(formatSupportTicketDetailMessageCount(1, 'fr')).toBe('1 message');
     expect(formatSupportTicketDetailMessageCount(12_345, 'fr')).toBe(
@@ -211,7 +211,7 @@ describe('support ticket detail localized UI', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Demande d’assistance' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Retour à l’assistance' }).getAttribute('href')).toBe('/support?lang=fr');
     expect(screen.getByRole('heading', { name: 'API timeout on api.customer.example' })).toBeTruthy();
-    expect(screen.getByText('Runtime et espaces de travail ·', { exact: false })).toBeTruthy();
+    expect(screen.getByText('Environnement d’exécution et espaces de travail ·', { exact: false })).toBeTruthy();
     expect(screen.getByText('Ouverte · 2026-08-04T09:30:00.000Z')).toBeTruthy();
     expect(screen.getByText('En attente')).toBeTruthy();
     expect(screen.getByText('2 messages')).toBeTruthy();

@@ -162,7 +162,8 @@ describe('exact Compare index marketing catalog and surface', () => {
     expect(document.body.textContent).toContain('AWS Cloud9');
     expect(document.body.textContent).toContain('SSO/SAML');
     expect(document.body.textContent).toContain('VPC');
-    expect(document.body.textContent).toContain('full-stack');
+    expect(document.body.textContent).toContain('application complète');
+    expect(document.body.textContent).not.toContain('full-stack');
     expect(document.body.textContent).not.toContain('How E-Code compares');
     expect(document.body.textContent).not.toContain('See comparison');
     expect(document.body.textContent).not.toContain('Why teams choose E-Code');

@@ -109,9 +109,17 @@ describe('exact legal registry and blog catalogs', () => {
 
     const french = JSON.stringify(marketingExactLegalBlogFr);
 
-    for (const term of ['E-Code', 'DPA', 'IDE', 'Agent IA', 'full-stack', 'URL', 'YAML', 'SSE', 'backpressure']) {
+    const visibleFrench = stringPairs(marketingExactLegalBlogEn, marketingExactLegalBlogFr)
+      .filter((pair) => !stablePaths.has(pair.path))
+      .map((pair) => pair.french)
+      .join('\n');
+
+    for (const term of ['E-Code', 'DPA', 'IDE', 'Agent IA', 'URL', 'YAML', 'SSE']) {
       expect(french).toContain(term);
     }
+
+    expect(french).toContain('application complète');
+    expect(visibleFrench).not.toMatch(/\b(?:backpressure|full-stack|streaming|workflow)\b/iu);
   });
 
   it('falls back to English for unsupported locales', () => {

@@ -98,7 +98,7 @@ export const productMarketingRouteCopy = {
       label: 'Déploiements',
       title: 'Déploiements',
       description:
-        'Déploiements de production avec routage mondial, observabilité, rollbacks et contrôles d’entreprise.',
+        'Déploiements de production avec routage mondial, observabilité, retours arrière et contrôles d’entreprise.',
     },
     pricing: {
       label: 'Tarifs',
@@ -357,7 +357,7 @@ export const aiAgentMarketingCopy = {
         'Découvrez le parcours complet de l’idée au déploiement, en une seule prise capturée directement sur la plateforme en production.',
       metrics: [
         ['1:12', 'durée totale'],
-        ['Full-stack', 'UI + API'],
+        ['Application complète', 'Interface utilisateur + API'],
       ],
     },
     stepsIntro: {
@@ -385,7 +385,7 @@ export const aiAgentMarketingCopy = {
         id: 'idea',
         title: 'De l’idée à l’application en 60 secondes',
         timestamp: '00:12',
-        description: 'Découvrez comment un simple prompt devient une application full-stack complète.',
+        description: 'Découvrez comment un simple prompt devient une application complète.',
       },
       {
         id: 'apis',
@@ -396,7 +396,7 @@ export const aiAgentMarketingCopy = {
       },
       {
         id: 'responsive-ui',
-        title: 'Conception automatique d’une UI responsive',
+        title: 'Conception automatique d’une interface utilisateur adaptative',
         timestamp: '00:55',
         description: 'L’agent transforme les exigences en mises en page soignées pour chaque taille d’écran.',
       },
@@ -404,14 +404,14 @@ export const aiAgentMarketingCopy = {
     segmentLabel: (timestamp: string) => `Séquence ${timestamp}`,
     demoMetrics: [
       ['Projet complet', 'fichiers et routes'],
-      ['Code typé', 'frontend et backend'],
+      ['Code typé', 'interface utilisateur et service applicatif'],
       ['Aperçu en direct', 'pendant la création'],
     ],
     featuredDemos: 'Démonstrations à la une',
     agentDoes: 'Ce que fait l’agent',
     agentActions: [
       ['Planifie le projet', 'Fichiers, routes et structure'],
-      ['Écrit le code', 'Frontend et backend typés'],
+      ['Écrit le code', 'Interface utilisateur et service applicatif typés'],
       ['Installe les dépendances', 'Configure l’environnement'],
       ['Lance un aperçu en direct', 'Vérifiez avant de déployer'],
     ],
@@ -449,7 +449,7 @@ export const aiAgentMarketingCopy = {
         description: 'E-Code crée les fichiers, routes, composants, configurations et dépendances.',
         examples: [
           'Génère la structure du projet',
-          'Écrit le frontend et le backend typés',
+          'Écrit l’interface utilisateur et le service applicatif typés',
           'Installe les dépendances',
         ],
       },
@@ -460,7 +460,7 @@ export const aiAgentMarketingCopy = {
         examples: [
           'Choisit les bons composants',
           'Ajoute la validation et les états',
-          'Maintient l’application responsive',
+          'Maintient l’application adaptative',
         ],
       },
       {
@@ -468,7 +468,7 @@ export const aiAgentMarketingCopy = {
         description: 'Demandez des changements : l’agent met à jour le projet tout en préservant son contexte.',
         examples: [
           'Itère à partir des retours',
-          'Corrige les erreurs de build',
+          'Corrige les erreurs de compilation',
           'Ajoute des fonctionnalités sans recommencer',
         ],
       },
@@ -511,11 +511,11 @@ export const aiAgentMarketingCopy = {
         ],
       },
       {
-        title: 'Du full-stack, pas de simples extraits',
+        title: 'Des applications complètes, pas de simples extraits',
         description:
           'Les autres assistants suggèrent des fragments de code. E-Code livre une application complète et exécutable.',
         examples: [
-          'Frontend, backend et couche de données',
+          'Interface utilisateur, service applicatif et couche de données',
           'Routes et composants connectés',
           'Paramètres adaptés à la production',
         ],
@@ -526,7 +526,7 @@ export const aiAgentMarketingCopy = {
           'L’ensemble du projet reste en mémoire afin que les changements suivants restent cohérents sans tout recommencer.',
         examples: [
           'Mémorise les décisions précédentes',
-          'Corrige ses propres erreurs de build',
+          'Corrige ses propres erreurs de compilation',
           'Ajoute des fonctionnalités sans régression',
         ],
       },
@@ -691,7 +691,7 @@ export const pricingPlanCopy = {
         'Jusqu’à 50 lecteurs',
         'Jusqu’à 10 agents en parallèle',
         'Modèles les plus puissants',
-        'Rollbacks de base de données sur 28 jours',
+        'Retours arrière de base de données sur 28 jours',
         'Support Premium',
       ],
     },
@@ -840,7 +840,7 @@ export const pricingMarketingCopy = {
       ['Agents en parallèle', '1', '2', '10', 'Sur mesure'],
       ['Régions de publication', '1 région', 'Toutes', 'Toutes', 'Au choix'],
       ['Suppression du badge', '–', 'Oui', 'Oui', 'Oui'],
-      ['Rollbacks de la base', '–', '–', '28 jours', 'Sur mesure'],
+      ['Retours arrière de la base', '–', '–', '28 jours', 'Sur mesure'],
       ['Modèles les plus puissants', '–', '–', 'Oui', 'Oui'],
       ['SSO / SAML', '–', '–', '–', 'SAML/OIDC + SCIM'],
     ],

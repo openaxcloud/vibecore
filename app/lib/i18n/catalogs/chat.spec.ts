@@ -47,6 +47,8 @@ describe('BaseChat EN/FR catalog', () => {
     expect(chatFr['chat.copy.ideStatus_15238998']).toContain('IDE');
     expect(chatFr['chat.copy.deploySuccessDeployFail_2b41724e']).toBe('deploy.success,deploy.fail');
     expect(chatFr['chat.copy.workspaceBash_f04a2ba1']).toBe('~/workspace: bash');
+    expect(chatFr['chat.copy.projectAssistant_2b677b08']).toBe('Assistant de projet');
+    expect(chatEn['chat.copy.projectAssistant_2b677b08']).toBe('Project assistant');
   });
 
   it('leaves only the owner-frozen mobile Terminal labels in the strengthened AST scan', async () => {

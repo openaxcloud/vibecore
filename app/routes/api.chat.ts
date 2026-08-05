@@ -93,6 +93,12 @@ export async function action(args: ActionFunctionArgs) {
 
 const logger = createScopedLogger('api.chat');
 const RECENT_HISTORY_MESSAGES = 12;
+const AGENT_MODES_GATED_PLAN_REASON = 'plan';
+const ORCHESTRATION_FALLBACK_SUFFIX = 'Falling back to single-model lanes.';
+const ORCHESTRATION_FALLBACK_DIAGNOSTIC = `Sub-agent executor failed. ${ORCHESTRATION_FALLBACK_SUFFIX}`;
+const SUMMARY_REUSE_SAME_WINDOW_REASON = 'palier-unchanged';
+const SUMMARY_SKIP_RECENT_WINDOW_REASON = 'history-within-recent-window';
+const CONTEXT_SELECTION_REUSE_REASON = 'inputs-unchanged';
 
 function parseCookies(cookieHeader: string): Record<string, string> {
   const cookies: Record<string, string> = {};
@@ -821,7 +827,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           logger.info(JSON.stringify({ event: 'chat.premiumModes.gated', projectId }));
           dataStream.writeMessageAnnotation({
             type: 'agentModesGated',
-            reason: 'plan',
+            reason: AGENT_MODES_GATED_PLAN_REASON,
             gated: ['turboMode', 'highPowerModel'].filter((mode) => (agentPower as Record<string, unknown>)[mode]),
           } as unknown as ContextAnnotation);
         }
@@ -1094,15 +1100,15 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
               dataStream.writeMessageAnnotation(localizedExecutionAnnotation as unknown as JSONValue);
             } catch (error) {
-              const message =
+              const diagnostic =
                 error instanceof AgentExecutorError
-                  ? `${error.message} Falling back to single-model lanes.`
-                  : 'Sub-agent executor failed. Falling back to single-model lanes.';
-              logger.warn(message);
+                  ? `${error.message} ${ORCHESTRATION_FALLBACK_SUFFIX}`
+                  : ORCHESTRATION_FALLBACK_DIAGNOSTIC;
+              logger.warn(diagnostic);
               orchestrationPlan = {
                 ...orchestrationPlan,
                 mode: 'single-model-lanes',
-                reason: message,
+                reason: diagnostic,
               };
             }
           }
@@ -1184,7 +1190,13 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
               if (memoizedSummary !== undefined) {
                 // INFO (not debug): prod drops debug logs, so this reuse must be INFO to be countable.
-                logger.info(JSON.stringify({ event: 'chat.summary.reused', projectId, reason: 'palier-unchanged' }));
+                logger.info(
+                  JSON.stringify({
+                    event: 'chat.summary.reused',
+                    projectId,
+                    reason: SUMMARY_REUSE_SAME_WINDOW_REASON,
+                  }),
+                );
                 summary = memoizedSummary;
               } else {
                 logger.debug('Generating Chat Summary');
@@ -1242,7 +1254,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 JSON.stringify({
                   event: 'chat.summary.skipped',
                   projectId,
-                  reason: 'history-within-recent-window',
+                  reason: SUMMARY_SKIP_RECENT_WINDOW_REASON,
                   messages: processedMessages.length,
                   estimatedHistoryTokens,
                 }),
@@ -1277,7 +1289,11 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             if (memoizedSelection) {
               // INFO (not debug): prod drops debug logs, so this reuse must be INFO to be countable.
               logger.info(
-                JSON.stringify({ event: 'chat.contextSelection.reused', projectId, reason: 'inputs-unchanged' }),
+                JSON.stringify({
+                  event: 'chat.contextSelection.reused',
+                  projectId,
+                  reason: CONTEXT_SELECTION_REUSE_REASON,
+                }),
               );
               filteredFiles = memoizedSelection;
             } else {

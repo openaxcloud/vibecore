@@ -7,8 +7,8 @@ import { I18nextProvider } from 'react-i18next';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { NotificationFeedSection, PreferencesMatrixSection } from './notifications';
-import { createI18nInstance } from '~/lib/i18n/runtime';
 import type { SupportedLanguage } from '~/lib/i18n/language';
+import { createI18nInstance } from '~/lib/i18n/runtime';
 
 afterEach(() => {
   cleanup();

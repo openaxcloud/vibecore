@@ -129,6 +129,7 @@ import { projectSettingsEn, projectSettingsFr } from './catalogs/project-setting
 import { projectSnapshotsEn, projectSnapshotsFr } from './catalogs/project-snapshots';
 import { publicGalleryEn, publicGalleryFr } from './catalogs/public-gallery';
 import { publicRouteSeoEn, publicRouteSeoFr } from './catalogs/public-route-seo';
+import { publicTemplateTagLabelsEn, publicTemplateTagLabelsFr } from './catalogs/public-template-tags';
 import { recoveryCodesEn, recoveryCodesFr } from './catalogs/recovery-codes';
 import { remainingApiRoutesEn, remainingApiRoutesFr } from './catalogs/remaining-api-routes';
 import { remainingRouteShellsEn, remainingRouteShellsFr } from './catalogs/remaining-route-shells';
@@ -311,6 +312,7 @@ const RESOURCES: Record<SupportedLanguage, { translation: Record<string, string>
       ...productTourEn,
       ...publicGalleryEn,
       ...publicRouteSeoEn,
+      ...publicTemplateTagLabelsEn,
       ...recoveryCodesEn,
       ...remainingApiRoutesEn,
       ...remainingRouteShellsEn,
@@ -458,6 +460,7 @@ const RESOURCES: Record<SupportedLanguage, { translation: Record<string, string>
       ...productTourFr,
       ...publicGalleryFr,
       ...publicRouteSeoFr,
+      ...publicTemplateTagLabelsFr,
       ...recoveryCodesFr,
       ...remainingApiRoutesFr,
       ...remainingRouteShellsFr,

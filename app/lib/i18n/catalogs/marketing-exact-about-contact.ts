@@ -354,7 +354,7 @@ export const marketingExactAboutContactFr = {
           id: 'deploy',
           title: 'Déploiement en un clic',
           description:
-            'Publiez une URL en direct depuis l’éditeur. Sites statiques et applications full-stack passent en production sans quitter E-Code.',
+            'Publiez une URL en direct depuis l’éditeur. Sites statiques et applications complètes passent en production sans quitter E-Code.',
         },
         {
           id: 'security',

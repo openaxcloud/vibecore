@@ -15,7 +15,7 @@ export default function LandingVideo() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [captionsOn, setCaptionsOn] = useState(false);
-  const [mediaError, setMediaError] = useState<'playback' | 'fullscreen' | null>(null);
+  const [mediaIssue, setMediaIssue] = useState<'playback' | 'fullscreen' | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { i18n } = useTranslation();
   const language = i18n.resolvedLanguage ?? i18n.language;
@@ -44,19 +44,19 @@ export default function LandingVideo() {
     }
 
     try {
-      setMediaError(null);
+      setMediaIssue(null);
 
       const playback = video.play();
 
       if (playback) {
         void playback.catch(() => {
           setIsPlaying(false);
-          setMediaError('playback');
+          setMediaIssue('playback');
         });
       }
     } catch {
       setIsPlaying(false);
-      setMediaError('playback');
+      setMediaIssue('playback');
     }
   };
 
@@ -64,16 +64,16 @@ export default function LandingVideo() {
     const requestFullscreen = videoRef.current?.requestFullscreen;
 
     if (!requestFullscreen || !videoRef.current) {
-      setMediaError('fullscreen');
+      setMediaIssue('fullscreen');
 
       return;
     }
 
     try {
-      setMediaError(null);
-      void Promise.resolve(requestFullscreen.call(videoRef.current)).catch(() => setMediaError('fullscreen'));
+      setMediaIssue(null);
+      void Promise.resolve(requestFullscreen.call(videoRef.current)).catch(() => setMediaIssue('fullscreen'));
     } catch {
-      setMediaError('fullscreen');
+      setMediaIssue('fullscreen');
     }
   };
 
@@ -119,13 +119,13 @@ export default function LandingVideo() {
                 aria-describedby="landing-video-description landing-video-demo-description"
                 onPlay={() => {
                   setIsPlaying(true);
-                  setMediaError(null);
+                  setMediaIssue(null);
                 }}
                 onPause={() => setIsPlaying(false)}
                 onEnded={() => setIsPlaying(false)}
                 onError={() => {
                   setIsPlaying(false);
-                  setMediaError('playback');
+                  setMediaIssue('playback');
                 }}
               >
                 <source src="/assets/platform-demo.mp4" type="video/mp4" />
@@ -236,14 +236,14 @@ export default function LandingVideo() {
             </div>
           </div>
 
-          {mediaError ? (
+          {mediaIssue ? (
             <p
               className="mt-4 break-words text-center text-sm text-[var(--status-error-text)] [overflow-wrap:anywhere]"
               role="alert"
             >
               {
                 copy[
-                  mediaError === 'playback'
+                  mediaIssue === 'playback'
                     ? 'marketingLandingVideo.playbackError'
                     : 'marketingLandingVideo.fullscreenError'
                 ]

@@ -15,6 +15,8 @@ import {
   useMatches,
   useNavigation,
   useRouteError,
+  UNSAFE_DataRouterStateContext,
+  UNSAFE_FrameworkContext,
   type HeadersFunction,
   type LoaderFunctionArgs,
 } from 'react-router';
@@ -33,13 +35,15 @@ import { ImpersonationBanner } from './components/dashboard/ImpersonationBanner'
 import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
 import { installEditorPwaServiceWorker } from '@vibecore/editor';
 import xtermStyles from '@xterm/xterm/css/xterm.css?url';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { I18nextProvider, useTranslation } from 'react-i18next';
 import { cssTransition, ToastContainer } from 'react-toastify';
 
 import { createI18nInstance } from './lib/i18n/runtime';
+import { resolveLeafDocumentSeoOwnership, type RouteMetaModule } from './lib/i18n/document-seo';
+import { AUTO_LANGUAGE_COOKIE } from './lib/i18n/language';
 import { localeResponseHeaders, resolveRequestLocale } from './lib/i18n/request-locale';
 import { translateServerMessage } from './lib/i18n/server';
 import { DEFAULT_OG_IMAGE } from './utils/social-meta';
@@ -98,19 +102,26 @@ export function loader({ request }: LoaderFunctionArgs) {
 export const headers: HeadersFunction = ({ loaderHeaders }) => loaderHeaders;
 
 /** Fallback metadata for routes that do not publish more specific metadata. */
-export const meta: MetaFunction<typeof loader> = ({ data: loaderData }) => {
+export const meta: MetaFunction<typeof loader> = ({ data: loaderData, error }) => {
   if (loaderData?.suppressRootSeo) {
     return [];
   }
 
   const language = loaderData?.language ?? 'en';
   const french = language === 'fr';
-  const title = translateServerMessage(language, 'root.metaTitle');
-  const description = translateServerMessage(language, 'root.metaDescription');
+  const errorStatus = error ? (isRouteErrorResponse(error) ? error.status : 500) : undefined;
+
+  const title = errorStatus
+    ? `${translateServerMessage(language, errorStatus === 404 ? 'root.notFoundTitle' : 'root.errorTitle')} · E-Code`
+    : translateServerMessage(language, 'root.metaTitle');
+  const description = errorStatus
+    ? translateServerMessage(language, errorStatus === 404 ? 'root.notFoundBody' : 'root.errorBody')
+    : translateServerMessage(language, 'root.metaDescription');
 
   return [
     { title },
     { name: 'description', content: description },
+    ...(errorStatus ? [{ name: 'robots', content: 'noindex,follow' }] : []),
     { property: 'og:title', content: title },
     { property: 'og:description', content: description },
     { property: 'og:type', content: 'website' },
@@ -443,6 +454,42 @@ const inlineThemeCode = stripIndents`
 `;
 
 /*
+ * Accept-Language is normally the first-visit signal and produces an SSR-localized
+ * document. Privacy relays and embedded browsers can strip that header, though.
+ * Only for the root loader's `default` resolution, detect navigator.language in
+ * <head>, persist the binary FR/EN automatic choice, and reload once for French
+ * so React hydrates against a matching SSR tree. A readable cookie is required
+ * before reloading, which prevents loops when cookies are blocked.
+ */
+const inlineNavigatorLocaleCode = stripIndents`
+  (function () {
+    try {
+      var primary = String(window.navigator.language || '').trim().toLowerCase().split(/[-_]/)[0];
+      var detected = primary === 'fr' ? 'fr' : 'en';
+      var secure = window.location.protocol === 'https:' ? '; Secure' : '';
+      var hostname = window.location.hostname.toLowerCase();
+      var domain = hostname === 'e-code.ai' || hostname.endsWith('.e-code.ai') ? '; Domain=.e-code.ai' : '';
+
+      document.cookie = '${AUTO_LANGUAGE_COOKIE}=' + detected + '; Path=/; Max-Age=31536000; SameSite=Lax' + domain + secure;
+
+      if (detected !== 'fr') {
+        return;
+      }
+
+      var persisted = document.cookie.split(';').some(function (segment) {
+        return segment.trim() === '${AUTO_LANGUAGE_COOKIE}=fr';
+      });
+
+      if (persisted) {
+        window.location.reload();
+      }
+    } catch (error) {
+      // Browser detection is best-effort; the stable English fallback remains usable.
+    }
+  })();
+`;
+
+/*
  * React Router 7 root Layout: renders the entire HTML document. This replaces
  * the former remix-island `createHead` + the hand-rolled <!DOCTYPE>/<head>/
  * <body> wrapper that entry.server.tsx streamed around <RemixServer />. RR7
@@ -457,14 +504,49 @@ const inlineThemeCode = stripIndents`
  */
 export function Layout({ children }: { children: React.ReactNode }) {
   const matches = useMatches();
+  const location = useLocation();
+  const frameworkContext = useContext(UNSAFE_FrameworkContext);
+  const dataRouterState = useContext(UNSAFE_DataRouterStateContext);
   const language = resolveDocumentLanguage(matches);
+
+  const navigatorLocaleFallback = matches.some((match) => {
+    const matchData = match.data;
+
+    return Boolean(
+      matchData &&
+        typeof matchData === 'object' &&
+        'localeSource' in matchData &&
+        (matchData as { localeSource?: unknown }).localeSource === 'default',
+    );
+  });
+
   const seo = resolveDocumentSeo(matches);
+
+  const seoOwnership = frameworkContext
+    ? resolveLeafDocumentSeoOwnership({
+        matches,
+        routeModules: frameworkContext.routeModules as Readonly<Record<string, RouteMetaModule>>,
+        location,
+        errors: dataRouterState?.errors,
+      })
+    : { linkKeys: new Set(), metaKeys: new Set(), title: undefined, description: undefined };
+
+  const leafSeoLinkKeys = seoOwnership.linkKeys;
+  const leafSeoMetaKeys = seoOwnership.metaKeys;
+  const fallbackSeoTitle = seoOwnership.title ?? translateServerMessage(language, 'root.metaTitle');
+  const fallbackSeoDescription = seoOwnership.description ?? translateServerMessage(language, 'root.metaDescription');
+
+  const openGraphLocale =
+    language === 'fr' ? 'fr_FR' : language === 'es' ? 'es_ES' : language === 'ar' ? 'ar_SA' : 'en_US';
+
+  const alternateOpenGraphLocale = language === 'en' ? 'fr_FR' : 'en_US';
 
   return (
     <html lang={language} dir={language === 'ar' ? 'rtl' : 'ltr'} data-theme="dark" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        {navigatorLocaleFallback ? <script dangerouslySetInnerHTML={{ __html: inlineNavigatorLocaleCode }} /> : null}
         {/* content is intentionally adjusted client-side by the inline theme boot script
             (light vs dark), so suppress the benign hydration attribute warning. */}
         <meta name="theme-color" content="#0a0f1c" suppressHydrationWarning />
@@ -473,10 +555,54 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" suppressHydrationWarning />
         <meta name="apple-mobile-web-app-title" content="E-Code" />
         <link rel="manifest" href={language === 'fr' ? '/manifest.fr.webmanifest' : '/manifest.webmanifest'} />
-        {seo ? <link rel="canonical" href={seo.canonical} /> : null}
-        {seo ? <link rel="alternate" hrefLang="en" href={seo.english} /> : null}
-        {seo ? <link rel="alternate" hrefLang="fr" href={seo.french} /> : null}
-        {seo ? <link rel="alternate" hrefLang="x-default" href={seo.english} /> : null}
+        {seo && !leafSeoLinkKeys.has('canonical') ? <link rel="canonical" href={seo.canonical} /> : null}
+        {seo && !leafSeoLinkKeys.has('alternate:en') ? <link rel="alternate" hrefLang="en" href={seo.english} /> : null}
+        {seo && !leafSeoLinkKeys.has('alternate:fr') ? <link rel="alternate" hrefLang="fr" href={seo.french} /> : null}
+        {seo && !leafSeoLinkKeys.has('alternate:x-default') ? (
+          <link rel="alternate" hrefLang="x-default" href={seo.english} />
+        ) : null}
+        {seo && !leafSeoMetaKeys.has('title') ? <title>{fallbackSeoTitle}</title> : null}
+        {seo && !leafSeoMetaKeys.has('name:description') ? (
+          <meta name="description" content={fallbackSeoDescription} />
+        ) : null}
+        {seo && !leafSeoMetaKeys.has('property:og:type') ? <meta property="og:type" content="website" /> : null}
+        {seo && !leafSeoMetaKeys.has('property:og:site_name') ? (
+          <meta property="og:site_name" content="E-Code" />
+        ) : null}
+        {seo && !leafSeoMetaKeys.has('property:og:url') ? <meta property="og:url" content={seo.canonical} /> : null}
+        {seo && !leafSeoMetaKeys.has('property:og:title') ? (
+          <meta property="og:title" content={fallbackSeoTitle} />
+        ) : null}
+        {seo && !leafSeoMetaKeys.has('property:og:description') ? (
+          <meta property="og:description" content={fallbackSeoDescription} />
+        ) : null}
+        {seo && !leafSeoMetaKeys.has('property:og:locale') ? (
+          <meta property="og:locale" content={openGraphLocale} />
+        ) : null}
+        {seo && !leafSeoMetaKeys.has(`property:og:locale:alternate:${alternateOpenGraphLocale.toLowerCase()}`) ? (
+          <meta property="og:locale:alternate" content={alternateOpenGraphLocale} />
+        ) : null}
+        {seo && !leafSeoMetaKeys.has('property:og:image') ? (
+          <meta property="og:image" content={DEFAULT_OG_IMAGE} />
+        ) : null}
+        {seo && !leafSeoMetaKeys.has('property:og:image:alt') ? (
+          <meta property="og:image:alt" content={fallbackSeoTitle} />
+        ) : null}
+        {seo && !leafSeoMetaKeys.has('name:twitter:card') ? (
+          <meta name="twitter:card" content="summary_large_image" />
+        ) : null}
+        {seo && !leafSeoMetaKeys.has('name:twitter:title') ? (
+          <meta name="twitter:title" content={fallbackSeoTitle} />
+        ) : null}
+        {seo && !leafSeoMetaKeys.has('name:twitter:description') ? (
+          <meta name="twitter:description" content={fallbackSeoDescription} />
+        ) : null}
+        {seo && !leafSeoMetaKeys.has('name:twitter:image') ? (
+          <meta name="twitter:image" content={DEFAULT_OG_IMAGE} />
+        ) : null}
+        {seo && !leafSeoMetaKeys.has('name:twitter:image:alt') ? (
+          <meta name="twitter:image:alt" content={fallbackSeoTitle} />
+        ) : null}
         {/* Apply the persisted/system theme before the SSR splash can paint. */}
         <script dangerouslySetInnerHTML={{ __html: inlineThemeCode }} />
         <Meta />

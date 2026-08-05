@@ -420,7 +420,7 @@ export const marketingExactCompanyFr = {
       items: [
         {
           id: 'fullstack',
-          title: 'Ingénieur·e full-stack senior',
+          title: 'Ingénieur·e logiciel senior — applications complètes',
           team: 'Ingénierie',
           location: 'Télétravail (monde)',
           type: 'Temps plein',

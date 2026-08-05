@@ -77,11 +77,13 @@ function WindowFrame({
   src,
   alt,
   priority = false,
+  technicalTitle = false,
 }: {
   title: string;
   src: string;
   alt: string;
   priority?: boolean;
+  technicalTitle?: boolean;
 }) {
   return (
     <div className="rounded-xl overflow-hidden border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-2xl">
@@ -91,7 +93,12 @@ function WindowFrame({
           <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
           <span className="h-3 w-3 rounded-full bg-[#28c840]" />
         </span>
-        <span className="mx-auto min-w-0 truncate px-3 text-[12px] font-medium text-muted-foreground">{title}</span>
+        <span
+          className="mx-auto min-w-0 truncate px-3 text-[12px] font-medium text-muted-foreground"
+          data-i18n-audit-ignore={technicalTitle ? true : undefined}
+        >
+          {title}
+        </span>
         <span className="h-3 w-3" aria-hidden="true" />
       </div>
       <img src={src} alt={alt} loading={priority ? 'eager' : 'lazy'} decoding="async" className="block w-full h-auto" />
@@ -158,6 +165,7 @@ export default function Desktop() {
                 src={`${PRODUCT}/ide.png`}
                 alt={copy.showcase.imageAlt}
                 priority
+                technicalTitle
               />
               <p className="mkt-small text-muted-foreground text-center mt-4">{copy.showcase.caption}</p>
             </div>

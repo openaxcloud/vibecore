@@ -96,6 +96,24 @@ describe('marketing shell copy contract', () => {
     expect(MARKETING_SHELL_COPY.ar.a11y.skipToContent).toBe('الانتقال إلى المحتوى');
   });
 
+  it('uses the approved French product terminology consistently', () => {
+    const frenchCopy = MARKETING_SHELL_COPY.fr;
+
+    expect(frenchCopy.navigation.items.polyglotBackends).toEqual({
+      title: 'Services applicatifs polyglottes',
+      description:
+        'Générez et exécutez des services applicatifs dans les langages courants avec des journaux en direct.',
+    });
+    expect(frenchCopy.navigation.items.deployments.description).toContain('journaux');
+    expect(frenchCopy.navigation.items.appBuilder.description).toBe(
+      'Transformez un processus métier en application complète et opérationnelle.',
+    );
+    expect(frenchCopy.navigation.items.marketplace.title).toBe('Place de marché');
+    expect(frenchCopy.footer.linkLabels.polyglotBackends).toBe('Services applicatifs polyglottes');
+    expect(frenchCopy.footer.linkLabels.marketplace).toBe('Place de marché');
+    expect(collectStrings(frenchCopy).join('\n')).not.toMatch(/\b(?:backends?|logs?|marketplace|full-stack)\b/i);
+  });
+
   it('keeps each announcement accessible name aligned with its visible label', () => {
     for (const language of SUPPORTED_LANGUAGES) {
       const { ctaAriaLabel, ctaLabel } = MARKETING_SHELL_COPY[language].announcement;

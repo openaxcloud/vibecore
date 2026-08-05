@@ -6050,6 +6050,68 @@ body :where(.lucide, svg[data-lucide]) {
   gap: 6px;
 }
 
+.bolt-project-language-switch {
+  height: 30px;
+  min-height: 30px;
+  border-color: var(--vc-ide-border-visible);
+  background: var(--vc-ide-bg-card);
+  padding: 2px;
+  box-shadow: none;
+}
+
+.bolt-project-language-switch > button {
+  width: 31px;
+  min-width: 31px;
+  min-height: 24px;
+  padding-inline: 5px;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.bolt-project-mobile-language-switch-slot {
+  display: none;
+}
+
+.bolt-project-mobile-language-switch {
+  height: 50px;
+  min-height: 50px;
+  border-color: var(--vc-ide-border-visible);
+  background: var(--vc-ide-bg-card);
+  padding: 3px;
+  box-shadow: none;
+}
+
+.bolt-project-mobile-language-switch > button {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 999px;
+  margin: 0;
+  padding: 0;
+  font-size: 10px !important;
+  line-height: 1;
+}
+
+.bolt-project-mobile-language-switch > button:first-child {
+  margin-left: 0;
+}
+
+.bolt-project-mobile-language-switch > button[aria-pressed='true'] {
+  background: var(--vc-action-primary) !important;
+  color: #ffffff !important;
+}
+
+.bolt-project-mobile-language-switch > button[aria-pressed='false'] {
+  background: transparent !important;
+  color: var(--vc-ide-text-secondary) !important;
+}
+
+.bolt-project-mobile-language-switch > button[aria-pressed='false']:where(:hover, :focus-visible) {
+  background: var(--vc-ide-bg-hover) !important;
+  color: var(--vc-ide-text-primary) !important;
+}
+
 .bolt-project-action-group {
   position: relative;
   display: inline-flex;
@@ -19135,6 +19197,19 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 @media (max-width: 1199px), (max-width: 1366px) and (any-pointer: coarse) {
   .bolt-project-topbar {
     display: none !important;
+  }
+
+  .bolt-project-mobile-language-switch-slot {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 56px);
+    right: max(12px, env(safe-area-inset-right, 0px));
+    z-index: 11001;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    filter: drop-shadow(0 8px 20px rgb(0 0 0 / 0.2));
+    isolation: isolate;
   }
 
   .bolt-mobile-ecode-header {

@@ -539,7 +539,7 @@ export const marketingExactProductFr = {
             'Prise en charge des domaines personnalisés',
             'Mises à jour progressives',
             'Aperçus de déploiement',
-            'Possibilité de rollback',
+            'Possibilité de retour arrière',
           ],
         },
         {

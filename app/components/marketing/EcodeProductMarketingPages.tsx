@@ -43,6 +43,7 @@ import { Link } from 'react-router';
 import { PublicShell } from '~/components/dashboard/SaaSLayout';
 import { getReelDemoHref } from '~/components/marketing/ecode-marketing-reels';
 import { Button } from '~/components/ui/Button';
+import { formatMarketingDocumentTitle } from '~/lib/i18n/catalogs/marketing';
 import {
   getAiAgentMarketingCopy,
   getPricingMarketingCopy,
@@ -294,11 +295,12 @@ export function makeEcodeProductMeta(key: ProductPageKey): MetaFunction {
       ?.language;
 
     const page = getProductMarketingRouteCopy(key, routeLanguage ?? rootLanguage);
+    const title = formatMarketingDocumentTitle(page.title);
 
     return [
-      { title: `${page.title} - E-Code` },
+      { title },
       { name: 'description', content: page.description },
-      ...socialMetaTags({ title: `${page.title} - E-Code`, description: page.description }),
+      ...socialMetaTags({ title, description: page.description }),
     ];
   };
 }
@@ -1577,7 +1579,7 @@ function WorkspaceMockup({ large = false }: { large?: boolean }) {
           {['app', 'components', 'routes', 'api', 'deployments'].map((item) => (
             <div key={item} className="mb-3 flex items-center gap-2">
               <Layers className="h-3.5 w-3.5" aria-hidden />
-              {item}
+              <span data-user-content>{item}</span>
             </div>
           ))}
         </aside>

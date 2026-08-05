@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from 'react';
 import type React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   SiAngular,
   SiAnthropic,
@@ -46,11 +47,11 @@ import {
   SiVite,
   SiVuedotjs,
 } from 'react-icons/si';
-import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router';
 import { PublicShell } from '~/components/dashboard/SaaSLayout';
 import { resolveTechToken } from '~/components/marketing/template-tech-icon';
 import { getMarketingPublicResourceCopy } from '~/lib/i18n/catalogs/marketing-public-resource';
+import { getPublicTemplateTagLabel } from '~/lib/i18n/catalogs/public-template-tags';
 import { classNames } from '~/utils/classNames';
 
 export type PublicTemplateCard = {
@@ -86,6 +87,7 @@ export type PublicCommunityPost = {
   category: string;
   categoryName: string;
   tags: string[];
+  tagLabels?: string[];
   likes: number;
   comments: number;
   views: number;
@@ -273,11 +275,13 @@ export function TemplatesMarketingPage({ categories, templates }: TemplatesPageP
         return true;
       }
 
-      return [template.name, template.description, template.categoryName, ...template.technologies, ...template.tags]
+      const searchableTags = template.tags.flatMap((tag) => [tag, getPublicTemplateTagLabel(tag, language)]);
+
+      return [template.name, template.description, template.categoryName, ...template.technologies, ...searchableTags]
         .filter(Boolean)
         .some((value) => value.toLowerCase().includes(normalizedQuery));
     });
-  }, [templates, activeTag, normalizedQuery]);
+  }, [templates, activeTag, normalizedQuery, language]);
 
   const isFiltering = Boolean(normalizedQuery) || Boolean(activeTag);
   const noMatches = isFiltering && filteredTemplates.length === 0;
@@ -352,7 +356,7 @@ export function TemplatesMarketingPage({ categories, templates }: TemplatesPageP
               {availableTags.map((tag) => (
                 <TemplateTagChip
                   key={tag}
-                  label={tag}
+                  label={getPublicTemplateTagLabel(tag, language)}
                   active={activeTag === tag}
                   onClick={() => setActiveTag(activeTag === tag ? null : tag)}
                 />
@@ -824,6 +828,7 @@ function TemplateMarketingCard({ template, featured = false }: { template: Publi
   const primaryBrand = template.technologies.map(resolveTechBrand).find(Boolean);
   const PrimaryIcon = primaryBrand?.icon ?? Code2;
   const difficulty = template.difficulty.toLowerCase();
+
   const difficultyLabel =
     difficulty === 'easy' || difficulty === 'medium' || difficulty === 'hard'
       ? copy.difficulty[difficulty]
@@ -939,9 +944,9 @@ function CommunityFeedCard({ post }: { post: PublicCommunityPost }) {
           </p>
           <p className="mt-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]">{post.summary}</p>
           <div className="mt-5 flex flex-wrap gap-2">
-            {post.tags.slice(0, 5).map((tag) => (
+            {post.tags.slice(0, 5).map((tag, index) => (
               <span key={tag} className="rounded-full border border-[var(--ecode-border)] px-3 py-1 text-[12px]">
-                {tag}
+                {post.tagLabels?.[index] ?? tag}
               </span>
             ))}
           </div>

@@ -70,7 +70,7 @@ describe('buildCommunityPostPage', () => {
     expect(page.highlights).toContain('144 mentions J’aime');
     expect(page.highlights).toContain('29 commentaires');
     expect(page.highlights).toContain('5 120 vues');
-    expect(page.sections[0].title).toBe('Discussion');
+    expect(page.sections[0].title).toBe('Fil de discussion');
     expect(page.sections[1].title).toBe('Publié par Nadia Laurent');
     expect(page.sections[1].body).toContain('10 juin 2026');
     expect(page.sections[1].items).toContain('Partage sécurisé');

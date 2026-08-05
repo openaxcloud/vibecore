@@ -157,7 +157,7 @@ describe('support i18n', () => {
     expect(screen.getByRole('heading', { name: 'Assistance' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Vos demandes en cours' })).toBeTruthy();
     expect(screen.getByText('Erreur 502 sur api.customer.example')).toBeTruthy();
-    expect(screen.getByText('Runtime et espaces de travail ·', { exact: false })).toBeTruthy();
+    expect(screen.getByText('Environnement d’exécution et espaces de travail ·', { exact: false })).toBeTruthy();
     expect(screen.getByText('Ouverte', { selector: 'div' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Demandes résolues et fermées' })).toBeTruthy();
     expect(screen.getByLabelText('Objet')).toBeTruthy();

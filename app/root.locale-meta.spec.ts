@@ -73,6 +73,36 @@ describe('root locale and SEO metadata', () => {
     });
   });
 
+  it.each([
+    {
+      status: 404,
+      expectedTitle: 'Cette page est introuvable · E-Code',
+      expectedDescription: 'La page recherchée a peut-être été déplacée, renommée ou n’a jamais existé.',
+    },
+    {
+      status: 500,
+      expectedTitle: 'Une erreur est survenue · E-Code',
+      expectedDescription: 'Une erreur inattendue a interrompu cette page. Réessayez ou revenez à une page connue.',
+    },
+  ])(
+    'serves localized noindex metadata for a $status route error',
+    ({ status, expectedTitle, expectedDescription }) => {
+      const result = loader({
+        request: new Request('https://e-code.ai/missing?lang=fr'),
+        params: {},
+        context: {},
+      });
+
+      const data = dataOf<{ language: 'fr' }>(result);
+      const error = { status, statusText: 'Error', data: null, internal: false };
+      const metadata = meta({ data, error } as Parameters<typeof meta>[0]);
+
+      expect(metadata).toContainEqual({ title: expectedTitle });
+      expect(metadata).toContainEqual({ name: 'description', content: expectedDescription });
+      expect(metadata).toContainEqual({ name: 'robots', content: 'noindex,follow' });
+    },
+  );
+
   it('never exposes capability tokens through root canonical, hreflang or social metadata', () => {
     const result = loader({
       request: new Request('https://e-code.ai/share/secret-capability-token?lang=fr'),

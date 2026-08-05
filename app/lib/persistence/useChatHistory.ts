@@ -21,6 +21,7 @@ import type { Snapshot } from './types';
 import {
   getChatHistoryCopy,
   getChatHistorySafeError,
+  resolveProjectAssistantDescription,
   type ChatHistoryErrorKey,
 } from '~/lib/i18n/catalogs/chat-history';
 import { runtimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
@@ -151,7 +152,12 @@ export function useChatHistory() {
           setInitialMessages(messages);
           setUrlId(storedMessages?.urlId);
           description.set(
-            storedMessages?.description ?? memory.chat?.description ?? copy['chatHistory.fallback.projectAssistant'],
+            resolveProjectAssistantDescription(
+              storedMessages?.description ?? memory.chat?.description,
+              projectChatId,
+              projectId,
+              language,
+            ),
           );
           chatId.set(projectChatId);
           chatMetadata.set(storedMessages?.metadata ?? memory.chat?.metadata);

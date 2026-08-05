@@ -322,7 +322,7 @@ export const marketingExactCaseStudiesCollaborationFr = {
         {
           id: 'deploy',
           title: 'Déployer depuis l’éditeur',
-          body: 'Publiez sur une URL en direct grâce au panneau Déploiements de l’IDE. Les sites statiques et applications full-stack passent en production sans quitter votre espace de travail.',
+          body: 'Publiez sur une URL en direct grâce au panneau Déploiements de l’IDE. Les sites statiques et applications complètes passent en production sans quitter votre espace de travail.',
         },
         {
           id: 'workspaces',
@@ -348,7 +348,7 @@ export const marketingExactCaseStudiesCollaborationFr = {
       items: [
         {
           id: 'hosting',
-          title: 'Hébergement statique et full-stack',
+          title: 'Hébergement de sites statiques et d’applications complètes',
           body: 'Publiez une page marketing ou une application complète sur une URL E-Code en direct depuis le panneau Déploiements.',
         },
         {

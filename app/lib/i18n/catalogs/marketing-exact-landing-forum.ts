@@ -223,7 +223,7 @@ export const marketingExactLandingForumFr = {
     seo: {
       title: 'E-Code — Créez, déployez et faites évoluer vos applications avec l’IA',
       description:
-        'Créez des applications full-stack prêtes pour la production avec des agents IA, collaborez en temps réel et déployez-les avec E-Code.',
+        'Créez des applications complètes prêtes pour la production avec des agents IA, collaborez en temps réel et déployez-les avec E-Code.',
       imageAlt: 'Plateforme de développement E-Code propulsée par l’IA',
     },
     toast: {
@@ -254,7 +254,7 @@ export const marketingExactLandingForumFr = {
           id: 'ecommerce',
           label: 'Plateforme e-commerce',
           prompt:
-            'Créez une place de marché e-commerce full-stack avec paiements Stripe, catalogue de produits avec recherche et filtres, panier et parcours de paiement, authentification des utilisateurs et tableau de bord de gestion des commandes',
+            'Créez une place de marché e-commerce complète avec paiements Stripe, catalogue de produits avec recherche et filtres, panier et parcours de paiement, authentification des utilisateurs et tableau de bord de gestion des commandes',
         },
         {
           id: 'chat',
@@ -266,7 +266,7 @@ export const marketingExactLandingForumFr = {
           id: 'chatbot',
           label: 'Assistant IA',
           prompt:
-            'Créez un chatbot IA intelligent intégrant OpenAI GPT-5, avec mémoire des conversations, import de documents pour une base de connaissances RAG et réponses en streaming',
+            'Créez un agent conversationnel IA intelligent intégrant OpenAI GPT-5, avec mémoire des conversations, import de documents pour une base de connaissances RAG et réponses diffusées en continu',
         },
         {
           id: 'dashboard',

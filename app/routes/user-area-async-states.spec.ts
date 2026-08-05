@@ -37,9 +37,17 @@ describe('user-area recoverable async states', () => {
     const sessions = source('app/routes/session-security.tsx');
 
     expect(security).toContain('mfaUnavailable');
-    expect(security).toContain('We will not guess whether protection is enabled.');
-    expect(organizationSecurity).toContain('The editor is hidden to prevent fallback values');
-    expect(sessions).toContain('Active sessions could not load');
+    expect(security).toContain("copy['securitySettings.mfa.errorTitle']");
+    expect(security).toContain("copy['securitySettings.mfa.errorDescription']");
+    expect(security).toContain('onRetry={revalidator.revalidate}');
+    expect(organizationSecurity).toContain('loadErrorKind');
+    expect(organizationSecurity).toContain("copy['organizationSecurity.load.errorTitle']");
+    expect(organizationSecurity).toContain("copy['organizationSecurity.load.errorDescription']");
+    expect(organizationSecurity).toContain('onRetry={revalidator.revalidate}');
+    expect(sessions).toContain('sessionsUnavailable');
+    expect(sessions).toContain("copy['sessionSecurity.sessions.errorTitle']");
+    expect(sessions).toContain("copy['sessionSecurity.sessions.errorDescription']");
+    expect(sessions).toContain('onRetry={revalidator.revalidate}');
   });
 
   it('times out and exposes retry for the global notification panel', () => {

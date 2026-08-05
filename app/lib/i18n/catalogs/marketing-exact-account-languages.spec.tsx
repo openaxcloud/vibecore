@@ -113,9 +113,9 @@ describe('exact account inactivity and languages marketing catalogs', () => {
     expect(markup).toContain('Créez dans le langage de votre choix');
     expect(markup).toContain('Plus de 12 langages, zéro configuration');
     expect(markup).toContain('Langages pris en charge');
-    expect(markup).toContain('Données, IA et services backend avec installation instantanée des paquets.');
+    expect(markup).toContain('Données, IA et services applicatifs avec installation instantanée des paquets.');
     expect(markup).toContain('Frameworks et environnements d’exécution');
-    expect(markup).toContain('Un espace de travail, toutes les stacks');
+    expect(markup).toContain('Un espace de travail, toutes vos technologies');
     expect(markup).toContain('Choisissez un langage et commencez à créer');
     expect(markup).toContain('aria-label="Commencer à créer avec Python"');
     expect(markup).toContain('aria-label="Commencer à créer avec C++"');

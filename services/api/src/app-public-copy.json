@@ -1281,7 +1281,7 @@
   },
   "DEPLOYMENT_ROLLBACK_REFUSED": {
     "en": "Rollback refused.",
-    "fr": "Rollback refusé."
+    "fr": "Le retour arrière du déploiement a été refusé."
   },
   "STRIPE_HEALTH_NOT_CONFIGURED": {
     "en": "STRIPE_SECRET_KEY is not configured.",
@@ -2375,6 +2375,14 @@
     "en": "Concurrent published-app limit reached ({cap}).",
     "fr": "La limite de {cap} applications publiées simultanément est atteinte."
   },
+  "PLAN_ACTIVE_PUBLISHED_PROJECT_LIMIT_ONE": {
+    "en": "Your plan allows one published project at a time. Upgrade your plan to publish more projects.",
+    "fr": "Votre forfait permet de publier un seul projet à la fois. Passez à un forfait supérieur pour publier d’autres projets."
+  },
+  "PLAN_ACTIVE_PUBLISHED_PROJECT_LIMIT_OTHER": {
+    "en": "Your plan allows {cap} published projects at a time. Upgrade your plan to publish more projects.",
+    "fr": "Votre forfait permet de publier {cap} projets à la fois. Passez à un forfait supérieur pour publier d’autres projets."
+  },
   "QUOTA_EXCEEDED": {
     "en": "Quota exceeded for {quotaKey}",
     "fr": "Le quota {quotaKey} est dépassé."
@@ -2458,6 +2466,58 @@
   "PROJECT_LOCK_TIMEOUT": {
     "en": "Timed out while waiting for the project lock for {projectId}.",
     "fr": "Le délai d’attente du verrou du projet {projectId} est dépassé."
+  },
+  "ROLLBACK_NO_MANIFEST": {
+    "en": "No release manifest recorded for this deployment target — refusing a blind rollback.",
+    "fr": "Aucun manifeste de version n’est enregistré pour cette cible de déploiement ; le retour arrière à l’aveugle est refusé."
+  },
+  "ROLLBACK_NO_PREVIOUS_MANIFEST": {
+    "en": "Only one release exists — there is no previous version to roll back to.",
+    "fr": "Une seule version existe ; aucune version précédente n’est disponible pour le retour arrière."
+  },
+  "ROLLBACK_PREVIOUS_NO_DIGEST": {
+    "en": "Previous release v{version} has no valid artifact digest — cannot deterministically restore it.",
+    "fr": "La version précédente v{version} ne possède aucune empreinte d’artefact valide ; sa restauration déterministe est impossible."
+  },
+  "ROLLBACK_ARTIFACT_DIGEST_MISMATCH": {
+    "en": "Artifact for release v{version} no longer matches its manifest digest (recomputed {recomputedDigest}, manifest {manifestDigest}) — refusing to serve a divergent rollback.",
+    "fr": "L’artefact de la version v{version} ne correspond plus à l’empreinte de son manifeste (empreinte recalculée {recomputedDigest}, manifeste {manifestDigest}) ; le retour arrière divergent est refusé."
+  },
+  "ROLLBACK_PREVIOUS_SNAPSHOT_MISSING": {
+    "en": "Previous release v{version} snapshot is missing on disk — cannot restore it. Refusing a blind rollback.",
+    "fr": "L’instantané de la version précédente v{version} est absent du disque ; sa restauration est impossible et le retour arrière à l’aveugle est refusé."
+  },
+  "ROLLBACK_STATIC_SNAPSHOT_MISSING": {
+    "en": "Static snapshot for {deploymentId} is missing on disk.",
+    "fr": "L’instantané statique du déploiement {deploymentId} est absent du disque."
+  },
+  "ROLLBACK_RESTORE_FAILED_LOG": {
+    "en": "Rollback restore failed.",
+    "fr": "La restauration du retour arrière a échoué."
+  },
+  "ROLLBACK_STATIC_SUCCESS_LOG": {
+    "en": "Rolled back to release v{version} (deployment {deploymentId}); artifact digest {artifactDigest} verified byte-identical before restore.",
+    "fr": "Retour effectué vers la version v{version} (déploiement {deploymentId}) ; l’empreinte d’artefact {artifactDigest} a été vérifiée à l’identique avant la restauration."
+  },
+  "ROLLBACK_SERVER_DISABLED": {
+    "en": "Server rollback is disabled (SERVER_DEPLOY_ROLLBACK_FROM_DIGEST=0).",
+    "fr": "Le retour arrière serveur est désactivé (SERVER_DEPLOY_ROLLBACK_FROM_DIGEST=0)."
+  },
+  "ROLLBACK_SERVER_SUCCESS_LOG": {
+    "en": "Rolled back to release v{version} by digest {pullRef} (revision-independent, I-REL-1).",
+    "fr": "Retour effectué vers la version v{version} à partir de l’empreinte {pullRef} (indépendamment de la révision, I-REL-1)."
+  },
+  "ROLLBACK_REFUSED_LOG": {
+    "en": "Server rollback refused.",
+    "fr": "Le retour arrière serveur a été refusé."
+  },
+  "ROLLBACK_UNSUPPORTED_KIND": {
+    "en": "Unsupported artifact kind '{artifactKind}' for rollback.",
+    "fr": "Le type d’artefact « {artifactKind} » n’est pas pris en charge pour un retour arrière."
+  },
+  "ROLLBACK_REQUEST_FAILED": {
+    "en": "The rollback could not be completed.",
+    "fr": "Le retour arrière n’a pas pu être effectué."
   },
   "APP_IMAGE_BUILD_QUEUED": {
     "en": "[image] build {buildId} queued (context gs://{bucket}/{object})",

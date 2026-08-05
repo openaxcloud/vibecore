@@ -80,6 +80,11 @@ type HowToGuide = {
   stepKeys: readonly AdminOauthProvidersKey[];
 };
 
+const OAUTH_SCOPE_PLACEHOLDERS = {
+  google: 'openid email profile',
+  gitProvider: 'read:user user:email',
+} as const;
+
 /* Provider URLs remain technical constants; every explanatory sentence lives in the EN/FR catalog. */
 const LOGIN_HOWTO: Readonly<Record<string, HowToGuide>> = {
   github: {
@@ -487,7 +492,11 @@ export default function AdminOauthProvidersPage() {
                   label={copy['adminOauth.field.scopes']}
                   name="scopes"
                   defaultValue={provider.scopes.join(' ')}
-                  placeholder={provider.provider === 'google' ? 'openid email profile' : 'read:user user:email'}
+                  placeholder={
+                    provider.provider === 'google'
+                      ? OAUTH_SCOPE_PLACEHOLDERS.google
+                      : OAUTH_SCOPE_PLACEHOLDERS.gitProvider
+                  }
                 />
 
                 <label className="flex min-w-0 items-start gap-2 text-sm">

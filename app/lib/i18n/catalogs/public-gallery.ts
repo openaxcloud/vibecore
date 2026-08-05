@@ -119,7 +119,7 @@ export const publicGalleryFr: PublicGalleryCopy = {
   'publicGallery.explore.badge': 'Explorer',
   'publicGallery.explore.title': 'Découvrez ce que crée la communauté E-Code',
   'publicGallery.explore.description':
-    'Parcourez de véritables projets E-Code prêts pour la production. Dupliquez-en un pour ouvrir l’IDE préservé avec du code typé et des workflows d’aperçu et de déploiement déjà configurés.',
+    'Parcourez de véritables projets E-Code prêts pour la production. Dupliquez-en un pour ouvrir l’IDE préservé avec du code typé et des flux d’aperçu et de déploiement déjà configurés.',
   'publicGallery.explore.metric.publicProjects': 'Projets publics',
   'publicGallery.explore.metric.categories': 'Catégories',
   'publicGallery.explore.metric.forkReady': 'Prêts à dupliquer',
@@ -211,10 +211,10 @@ export const publicGalleryFr: PublicGalleryCopy = {
     'Modèle de service applicatif avec Node.js, Fastify, une persistance PostgreSQL et les conventions d’une API de production.',
   'publicGallery.workspace.aiAgent.name': 'Agent IA',
   'publicGallery.workspace.aiAgent.description':
-    'Modèle d’environnement d’exécution pour agent avec orchestration d’outils, événements en streaming, routage des fournisseurs et points d’intégration à l’IDE.',
+    'Modèle d’environnement d’exécution pour agent avec orchestration d’outils, événements diffusés en continu, routage des fournisseurs et points d’intégration à l’IDE.',
   'publicGallery.workspace.landingPage.name': 'Page d’atterrissage',
   'publicGallery.workspace.landingPage.description':
-    'Modèle marketing responsive pour les pages de conversion, avec des sections éditoriales soignées et un routage prêt pour la production.',
+    'Modèle marketing adaptatif pour les pages de conversion, avec des sections éditoriales soignées et un routage prêt pour la production.',
   'publicGallery.workspace.mobileStarter.name': 'Kit de démarrage mobile',
   'publicGallery.workspace.mobileStarter.description':
     'Modèle d’application mobile avec Expo, React et TypeScript pour des paquets d’interface utilisateur partagés et des parcours pensés pour les appareils mobiles.',

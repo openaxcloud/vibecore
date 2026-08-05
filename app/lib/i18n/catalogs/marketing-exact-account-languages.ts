@@ -309,7 +309,7 @@ export const marketingExactAccountLanguagesFr = {
         {
           id: 'python',
           name: 'Python',
-          note: 'Données, IA et services backend avec installation instantanée des paquets.',
+          note: 'Données, IA et services applicatifs avec installation instantanée des paquets.',
         },
         {
           id: 'javascript',
@@ -326,9 +326,9 @@ export const marketingExactAccountLanguagesFr = {
         { id: 'java', name: 'Java', note: 'Applications d’entreprise et API sur une JVM administrée.' },
         { id: 'csharp', name: 'C#', note: 'Créez des services et des outils .NET dans le cloud.' },
         { id: 'ruby', name: 'Ruby', note: 'Rails et scripts, avec les gems déjà configurées.' },
-        { id: 'php', name: 'PHP', note: 'Stacks web classiques et applications Laravel modernes.' },
+        { id: 'php', name: 'PHP', note: 'Technologies web classiques et applications Laravel modernes.' },
         { id: 'swift', name: 'Swift', note: 'Swift côté serveur et prototypage rapide.' },
-        { id: 'kotlin', name: 'Kotlin', note: 'Applications JVM concises et services backend.' },
+        { id: 'kotlin', name: 'Kotlin', note: 'Applications JVM concises et services applicatifs.' },
         {
           id: 'cplusplus',
           name: 'C++',
@@ -339,10 +339,10 @@ export const marketingExactAccountLanguagesFr = {
     frameworks: {
       title: 'Frameworks et environnements d’exécution',
       description:
-        'Lancez la stack que vous maîtrisez déjà. E-Code détecte votre projet et installe automatiquement ses dépendances.',
+        'Lancez les technologies que vous maîtrisez déjà. E-Code détecte votre projet et installe automatiquement ses dépendances.',
       items: [
         { id: 'react', name: 'React', note: 'Interfaces web modernes avec aperçu et rechargement à chaud.' },
-        { id: 'nextjs', name: 'Next.js', note: 'Applications React full-stack avec rendu côté serveur.' },
+        { id: 'nextjs', name: 'Next.js', note: 'Applications React complètes avec rendu côté serveur.' },
         { id: 'django', name: 'Django', note: 'Framework web Python complet, prêt à l’emploi.' },
         { id: 'fastapi', name: 'FastAPI', note: 'API Python asynchrones avec documentation automatique.' },
         { id: 'express', name: 'Express', note: 'Serveurs Node.js minimalistes et flexibles.' },
@@ -352,7 +352,7 @@ export const marketingExactAccountLanguagesFr = {
       ],
     },
     benefits: {
-      title: 'Un espace de travail, toutes les stacks',
+      title: 'Un espace de travail, toutes vos technologies',
       items: [
         {
           id: 'ai',
@@ -368,14 +368,15 @@ export const marketingExactAccountLanguagesFr = {
         {
           id: 'mix',
           title: 'Combinez les technologies',
-          description: 'Associez un backend Python à un frontend TypeScript dans un même espace de travail.',
+          description:
+            'Associez un service applicatif Python à une interface utilisateur TypeScript dans un même espace de travail.',
         },
       ],
     },
     cta: {
       title: 'Choisissez un langage et commencez à créer',
       description:
-        'Ouvrez un espace de travail, rédigez un prompt et regardez E-Code générer la structure de votre projet avec la stack de votre choix.',
+        'Ouvrez un espace de travail, rédigez un prompt et regardez E-Code générer la structure de votre projet avec les technologies de votre choix.',
       action: 'Commencer à créer',
     },
   },

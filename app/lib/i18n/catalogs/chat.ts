@@ -2794,7 +2794,7 @@ export const chatFr = {
     'Publiez les notifications que vous autorisez sur vos chaînes',
   'chat.copy.prepareDeploy_d5681ade': 'Préparer le déploiement',
   'chat.copy.previewHasNoActivePort_18ad3861': "L'aperçu n'a pas de port actif",
-  'chat.copy.projectAssistant_2b677b08': 'Assistante de projet',
+  'chat.copy.projectAssistant_2b677b08': 'Assistant de projet',
   'chat.copy.projectAwareFallback_4ffb1415': 'Solution de secours adaptée au projet',
   'chat.copy.projectManagement_dd64c0f0': 'Gestion de projet',
   'chat.copy.projectSettings_95590645': 'Paramètres du projet',

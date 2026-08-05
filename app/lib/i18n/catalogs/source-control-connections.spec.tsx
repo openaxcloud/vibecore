@@ -28,14 +28,21 @@ describe('source-control connection catalog', () => {
   });
 
   it('provides professional French while preserving required provider identifiers', () => {
+    const intentionallyStableIdentifiers = new Set<keyof typeof sourceControlConnectionsEn>([
+      'sourceControl.github.scopes.classic',
+      'sourceControl.gitlab.scopes',
+    ]);
+
     for (const key of Object.keys(sourceControlConnectionsEn) as (keyof typeof sourceControlConnectionsEn)[]) {
-      if (key === 'sourceControl.gitlab.scopes') {
-        expect(sourceControlConnectionsFr[key]).toBe('api, read_repository');
+      if (intentionallyStableIdentifiers.has(key)) {
+        expect(sourceControlConnectionsFr[key], key).toBe(sourceControlConnectionsEn[key]);
       } else {
         expect(sourceControlConnectionsFr[key], key).not.toBe(sourceControlConnectionsEn[key]);
       }
     }
 
+    expect(sourceControlConnectionsFr['sourceControl.github.scopes.classic']).toBe('repo, read:org, read:user');
+    expect(sourceControlConnectionsFr['sourceControl.gitlab.scopes']).toBe('api, read_repository');
     expect(sourceControlConnectionsFr['sourceControl.github.stats.pullRequests']).toContain('Pull request');
     expect(sourceControlConnectionsFr['sourceControl.github.oauth.description']).toContain('E-Code');
   });
@@ -113,7 +120,8 @@ describe('source-control connection catalog', () => {
     expect(oauth).not.toContain('caught.message');
     expect(boundary).not.toContain('this.state.error.message');
     expect(githubConnection).toContain('https://github.com/settings/tokens');
-    expect(githubConnection).toContain('repo, read:org, read:user');
+    expect(githubConnection).toContain("copy['sourceControl.github.scopes.classic']");
+    expect(githubConnection).not.toContain("? 'repo, read:org, read:user'");
     expect(githubConnection).toContain('VITE_GITHUB_ACCESS_TOKEN');
     expect(gitlabConnection).toContain('https://gitlab.com');
     expect(gitlabConnection).toContain('VITE_GITLAB_ACCESS_TOKEN');

@@ -89,11 +89,19 @@ describe('request locale resolution', () => {
   });
 
   it('falls back to English for unsupported or absent preferences', () => {
-    expect(
-      resolveRequestLocale(new Request('https://e-code.ai/', { headers: { 'Accept-Language': 'de-DE' } })),
-    ).toMatchObject({ language: 'en', source: 'default' });
-    expect(
-      resolveRequestLocale(new Request('https://e-code.ai/', { headers: { 'Accept-Language': 'es-ES' } })),
-    ).toMatchObject({ language: 'en', source: 'default' });
+    for (const request of [
+      new Request('https://e-code.ai/'),
+      new Request('https://e-code.ai/', { headers: { 'Accept-Language': 'de-DE' } }),
+      new Request('https://e-code.ai/', { headers: { 'Accept-Language': 'es-ES' } }),
+    ]) {
+      const resolution = resolveRequestLocale(request);
+
+      expect(resolution).toMatchObject({
+        language: 'en',
+        source: 'default',
+        persistAutomaticChoice: false,
+      });
+      expect(localeResponseHeaders(request, resolution).get('Set-Cookie')).toBeNull();
+    }
   });
 });

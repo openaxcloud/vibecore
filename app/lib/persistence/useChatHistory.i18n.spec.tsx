@@ -102,12 +102,13 @@ vi.mock('~/utils/projectCommands', () => ({
   escapeBoltActionAttribute: vi.fn((value: string) => value),
 }));
 
-import { useChatHistory } from './useChatHistory';
+import { description, useChatHistory } from './useChatHistory';
 import {
   chatHistoryEn,
   chatHistoryFr,
   getChatHistoryCopy,
   getChatHistorySafeError,
+  resolveProjectAssistantDescription,
 } from '~/lib/i18n/catalogs/chat-history';
 
 function wrapper(language: string) {
@@ -163,6 +164,7 @@ describe('useChatHistory i18n', () => {
     mocks.getMessages.mockResolvedValue(undefined);
     mocks.getSnapshot.mockResolvedValue(undefined);
     mocks.getProjectIdeMemory.mockResolvedValue({ chat: undefined, updatedAt: '2026-08-05T00:00:00.000Z' });
+    description.set(undefined);
     vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => mocks.consoleError(...args));
   });
 
@@ -181,11 +183,54 @@ describe('useChatHistory i18n', () => {
 
     const rawError = new Error('IndexedDB failed: token=raw-secret-value');
 
-    expect(getChatHistoryCopy('fr-FR')['chatHistory.fallback.projectAssistant']).toBe('Assistant du projet');
+    expect(getChatHistoryCopy('fr-FR')['chatHistory.fallback.projectAssistant']).toBe('Assistant de projet');
     expect(getChatHistoryCopy('es-ES')['chatHistory.fallback.projectAssistant']).toBe('Project assistant');
     expect(getChatHistorySafeError('chatHistory.error.import', 'fr', rawError)).toBe(
       'Impossible d’importer la conversation.',
     );
+  });
+
+  it('localizes only exact generated titles on the canonical project chat', () => {
+    expect(resolveProjectAssistantDescription('Project assistant', 'project:project-1', 'project-1', 'fr')).toBe(
+      'Assistant de projet',
+    );
+    expect(resolveProjectAssistantDescription('Assistant de projet', 'project:project-1', 'project-1', 'en')).toBe(
+      'Project assistant',
+    );
+    expect(resolveProjectAssistantDescription('Project assistant ACME', 'project:project-1', 'project-1', 'fr')).toBe(
+      'Project assistant ACME',
+    );
+    expect(resolveProjectAssistantDescription(' Project assistant', 'project:project-1', 'project-1', 'fr')).toBe(
+      ' Project assistant',
+    );
+    expect(resolveProjectAssistantDescription('Project Assistant', 'project:project-1', 'project-1', 'fr')).toBe(
+      'Project Assistant',
+    );
+    expect(resolveProjectAssistantDescription('Project assistant ', 'project:project-1', 'project-1', 'fr')).toBe(
+      'Project assistant ',
+    );
+    expect(resolveProjectAssistantDescription('Project assistant', 'imported-chat', 'project-1', 'fr')).toBe(
+      'Project assistant',
+    );
+  });
+
+  it('renders a persisted English project fallback in French without rewriting memory', async () => {
+    mocks.loaderData = { projectId: 'project-1' };
+    mocks.getProjectIdeMemory.mockResolvedValueOnce({
+      chat: {
+        id: 'project:project-1',
+        description: 'Project assistant',
+        messages: [{ id: 'message-1', role: 'assistant', content: 'Persisted assistant response' }],
+      },
+      updatedAt: '2026-08-05T00:00:00.000Z',
+    });
+
+    const { result } = renderHook(() => useChatHistory(), { wrapper: wrapper('fr') });
+
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    expect(description.get()).toBe('Assistant de projet');
+    expect(mocks.setMessages).not.toHaveBeenCalled();
+    expect(mocks.saveProjectIdeMemory).not.toHaveBeenCalled();
   });
 
   it('renders the local-only warning in French and falls back to English', async () => {

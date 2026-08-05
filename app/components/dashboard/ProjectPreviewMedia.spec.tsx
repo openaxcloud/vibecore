@@ -3,9 +3,9 @@
  */
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import type { ReactElement } from 'react';
 import { I18nextProvider } from 'react-i18next';
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import type { ReactElement } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { ProjectGrid, ProjectPreviewMedia, ProjectStatusPill, type ProjectCard } from './SaaSLayout';
 import { createI18nInstance } from '~/lib/i18n/runtime';

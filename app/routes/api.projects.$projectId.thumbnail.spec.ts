@@ -8,8 +8,8 @@ import { toResponse } from '~/lib/test/rr7-data';
  * apiRequest is mocked at the module boundary (keeping the real framework
  * `redirect`) so the proxy behaviour is exercised without a live backend:
  *   - a signed url → 302 to that url (project-scoped upstream path);
- *   - no url / a backend 404 (feature off, no capture yet) → 404 so the card
- *     falls back to its "No preview yet" placeholder rather than a broken image.
+ *   - no url / a backend 404 (feature off, no capture yet) → 204 so the card
+ *     falls back to its "No preview yet" placeholder without console noise.
  */
 const apiRequest = vi.fn();
 
@@ -46,22 +46,39 @@ describe('project thumbnail route (card image proxy)', () => {
     expect(response.headers.get('location')).toBe('https://storage.example/signed-read');
   });
 
-  it('404s (card keeps its placeholder) when the backend returns no url', async () => {
+  it('returns a non-cacheable 204 (card keeps its placeholder) when the backend returns no url', async () => {
     apiRequest.mockResolvedValueOnce({});
 
     const { loader } = await import('./api.projects.$projectId.thumbnail');
     const response = await loader(loaderArgs());
 
-    expect(response.status).toBe(404);
+    expect(response.status).toBe(204);
+    expect(response.headers.get('Cache-Control')).toBe('private, no-store');
+    expect(await response.text()).toBe('');
   });
 
-  it('404s when the backend throws (feature off / no bucket / no capture yet)', async () => {
+  it('returns 204 when the backend reports that no capture exists yet', async () => {
     apiRequest.mockRejectedValueOnce(new Response(null, { status: 404 }));
 
     const { loader } = await import('./api.projects.$projectId.thumbnail');
     const response = await loader(loaderArgs());
 
-    expect(response.status).toBe(404);
+    expect(response.status).toBe(204);
+  });
+
+  it('preserves authorization and upstream failures instead of masking them as a missing capture', async () => {
+    const { loader } = await import('./api.projects.$projectId.thumbnail');
+
+    for (const status of [401, 403, 500]) {
+      apiRequest.mockRejectedValueOnce(new Response(null, { status }));
+
+      const response = await loader(loaderArgs());
+
+      expect(response.status).toBe(status);
+    }
+
+    apiRequest.mockRejectedValueOnce(new Error('upstream unavailable'));
+    expect((await loader(loaderArgs())).status).toBe(502);
   });
 
   it('404s when the project id is missing', async () => {

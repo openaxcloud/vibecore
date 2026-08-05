@@ -1526,10 +1526,13 @@ export async function restoreStaticSnapshotInto(
   const source = staticDeploymentSnapshotDir(fromDeploymentId);
 
   if (!(await pathExists(source))) {
-    throw Object.assign(new Error(`Static snapshot for ${fromDeploymentId} is missing on disk.`), {
-      statusCode: 409,
-      code: 'ROLLBACK_SNAPSHOT_SOURCE_MISSING',
-    });
+    throw Object.assign(
+      new Error(appPublicEnglish('ROLLBACK_STATIC_SNAPSHOT_MISSING', { deploymentId: fromDeploymentId })),
+      {
+        statusCode: 409,
+        code: 'ROLLBACK_SNAPSHOT_SOURCE_MISSING',
+      },
+    );
   }
 
   const target = staticDeploymentSnapshotDir(toDeploymentId);

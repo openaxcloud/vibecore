@@ -116,7 +116,13 @@ export function resolveRequestLocale(request: Request): RequestLocaleResolution 
   return {
     language: accepted ?? 'en',
     source: accepted ? 'accept-language' : 'default',
-    persistAutomaticChoice: true,
+
+    /*
+     * Persist only an actual HTTP negotiation result. When Accept-Language is
+     * missing or contains no supported locale, the document's early browser
+     * boot script must still be able to fall back to navigator.language.
+     */
+    persistAutomaticChoice: Boolean(accepted),
     persistManualChoice: false,
   };
 }

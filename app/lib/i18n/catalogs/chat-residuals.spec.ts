@@ -49,7 +49,7 @@ describe('chat residuals catalogue', () => {
       'Les autorisations accordées ne couvrent pas les besoins de l’agent.',
     );
     expect(getConnectionFailureReasonLabel('fr', 'RAW_UPSTREAM_FAILURE')).toBe('La connexion n’a pas pu être établie.');
-    expect(getReconnectionReasonLabel('fr', 'token_expired')).toBe('Le token d’accès a expiré.');
+    expect(getReconnectionReasonLabel('fr', 'token_expired')).toBe('Le jeton d’accès a expiré.');
     expect(getReconnectionReasonLabel('fr', undefined)).toBe('Reconnectez ce service pour continuer.');
   });
 

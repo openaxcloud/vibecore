@@ -2061,10 +2061,12 @@ export const Preview = memo(
           const rawFilename = typeof event.data.filename === 'string' ? event.data.filename : '';
           const lineno = typeof event.data.lineno === 'number' ? event.data.lineno : undefined;
           const filename = rawFilename ? ` (${rawFilename}:${lineno ?? '?'})` : '';
+
           const message = t('idePanels.preview.runtimeError', {
             message: event.data.message ?? t('idePanels.preview.unknownError'),
             location: filename,
           });
+
           const resolvedPath = rawFilename ? resolvePreviewSourcePath(rawFilename) : undefined;
           const source = resolvedPath && lineno ? { path: resolvedPath, line: lineno } : undefined;
           setPreviewConsoleEvents((events) =>

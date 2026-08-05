@@ -6,6 +6,7 @@ import Features from './ecode-exact/pages/Features';
 import Mobile from './ecode-exact/pages/Mobile';
 import Deployments from './ecode-exact/pages/PublicDeploymentsPage';
 import Teams from './ecode-exact/pages/PublicTeamPage';
+import { formatMarketingDocumentTitle } from '~/lib/i18n/catalogs/marketing';
 import {
   getMarketingExactProductControlsCopy,
   type ExactCampaignPageKey,
@@ -70,7 +71,7 @@ export function makeEcodeProductMeta(key: ProductPageKey): MetaFunction {
       ?.language;
 
     const page = getEcodeExactProductMarketingPages(routeLanguage ?? rootLanguage)[key];
-    const title = `${page.title} - E-Code`;
+    const title = formatMarketingDocumentTitle(page.title);
 
     const social = socialMetaTags({ title, description: page.description }).map((tag) => {
       const identifier = 'property' in tag ? tag.property : 'name' in tag ? tag.name : undefined;

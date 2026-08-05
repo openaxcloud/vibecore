@@ -240,7 +240,7 @@ export const marketingSurfaceCategoryFr = {
         { label: 'Adaptateurs', value: 'Connectés' },
         { label: 'Mode d’échec', value: 'Récupérable' },
       ],
-      controls: ['Détection des ports', 'Visibilité des logs', 'Santé de l’aperçu', 'Préparation au déploiement'],
+      controls: ['Détection des ports', 'Visibilité des journaux', 'Santé de l’aperçu', 'Préparation au déploiement'],
       relatedRoutes: [
         {
           label: 'Diagnostics d’exécution',
@@ -260,7 +260,7 @@ export const marketingSurfaceCategoryFr = {
         { label: 'Secrets', value: 'Isolés' },
         { label: 'Aperçu', value: 'Données initiales disponibles' },
       ],
-      controls: ['Conception du schéma', 'Limites d’environnement', 'Données initiales', 'Parcours de rollback'],
+      controls: ['Conception du schéma', 'Limites d’environnement', 'Données initiales', 'Parcours de retour arrière'],
       relatedRoutes: [
         { label: 'Base de données', to: '/database', description: 'Modélisez les données et leur persistance.' },
         { label: 'Stockage objet', to: '/object-storage', description: 'Associez des fichiers et médias aux projets.' },
@@ -464,7 +464,7 @@ const marketingSurfaceUiFrench: MarketingSurfaceUiCopy = {
   open: 'Ouvrir',
   productionControls: 'Contrôles de production',
   productionBody:
-    'La route utilise la structure publique, des liens de navigation sûrs et un contenu responsive à la place d’une page de compatibilité vide.',
+    'La route utilise la structure publique, des liens de navigation sûrs et un contenu adaptatif à la place d’une page de compatibilité vide.',
   workflowTitle: (title) => `Flux ${title}`,
   workflowBody: (title) =>
     `${title} est désormais une véritable route E-Code adossée au plan produit importé. Elle vous guide de l’intention à un flux visible et récupérable.`,

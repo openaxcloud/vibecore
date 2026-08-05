@@ -7,11 +7,19 @@ import {
 } from '~/lib/enterprise-api.server';
 import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 
+function missingThumbnailResponse(): Response {
+  return new Response(null, {
+    status: 204,
+    headers: { 'Cache-Control': 'private, no-store' },
+  });
+}
+
 /*
  * Serves a project's REAL captured preview thumbnail. The API returns a short-lived
  * signed object-storage URL for the latest screenshot; we 302 the <img> straight to
- * it. If no thumbnail has been captured yet (or it's unavailable) we return 404 so
- * the card shows its neutral placeholder instead of a fake mock.
+ * it. If no thumbnail has been captured yet we return 204. The image element
+ * then activates its neutral fallback without producing a noisy 404 console
+ * error. Authentication and upstream failures keep their real failure status.
  */
 export async function loader({ request, params }: EnterpriseLoaderArgs) {
   if (!params.projectId) {
@@ -22,12 +30,16 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     const result = await apiRequest<{ url?: string }>(request, `/projects/${params.projectId}/thumbnail`);
 
     if (!result?.url) {
-      return new Response(null, { status: 404 });
+      return missingThumbnailResponse();
     }
 
     return redirect(result.url);
-  } catch {
-    return new Response(null, { status: 404 });
+  } catch (error) {
+    if (error instanceof Response) {
+      return error.status === 404 ? missingThumbnailResponse() : new Response(null, { status: error.status });
+    }
+
+    return new Response(null, { status: 502 });
   }
 }
 

@@ -543,7 +543,7 @@ export const marketingExactPartnersBountiesFr = {
         'Quel que soit votre besoin, cadrez-le comme une mission et filtrez par technologies, expérience et réputation afin que les bons créateurs le trouvent.',
       items: [
         'Applications IA et agentiques',
-        'Produits full-stack',
+        'Applications complètes',
         'Intégrations d’outils de développement',
         'Migrations de plateformes',
         'Outils internes',

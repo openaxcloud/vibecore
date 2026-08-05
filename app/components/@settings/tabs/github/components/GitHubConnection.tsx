@@ -168,7 +168,7 @@ export function GitHubConnection({ connectionTest, onTestConnection }: GitHubCon
                 <span>
                   {copy['sourceControl.common.requiredScopes']}{' '}
                   {tokenType === 'classic'
-                    ? 'repo, read:org, read:user'
+                    ? copy['sourceControl.github.scopes.classic']
                     : copy['sourceControl.github.scopes.fineGrained']}
                 </span>
               </div>

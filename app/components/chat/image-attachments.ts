@@ -34,6 +34,9 @@ export const JPEG_REENCODE_QUALITY = 0.85;
  */
 export const REENCODE_SKIP_BYTES = 512 * 1024;
 
+const ATTACHMENT_LIMIT_REASON = 'attachment-limit' as const;
+const FILE_TOO_LARGE_REASON = 'file-too-large' as const;
+
 export type ImageAttachmentDecision =
   | { action: 'reject'; reason: 'file-too-large' | 'attachment-limit'; message: string }
   | { action: 'accept' };
@@ -53,7 +56,7 @@ export function decideImageAttachment(input: {
   if (input.currentAttachmentCount >= MAX_IMAGE_ATTACHMENTS) {
     return {
       action: 'reject',
-      reason: 'attachment-limit',
+      reason: ATTACHMENT_LIMIT_REASON,
       message: formatClientAstResidualPlural(language, MAX_IMAGE_ATTACHMENTS, {
         one: copy['clientAst.chat.attachments.limit_one'],
         other: copy['clientAst.chat.attachments.limit_other'],
@@ -64,7 +67,7 @@ export function decideImageAttachment(input: {
   if (input.fileSizeBytes > MAX_IMAGE_ATTACHMENT_BYTES) {
     return {
       action: 'reject',
-      reason: 'file-too-large',
+      reason: FILE_TOO_LARGE_REASON,
       message: formatClientAstResidualCopy(copy['clientAst.chat.attachments.size'], {
         size: MAX_IMAGE_ATTACHMENT_LABEL,
       }),

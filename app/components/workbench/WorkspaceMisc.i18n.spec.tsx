@@ -190,11 +190,9 @@ describe('workspace miscellaneous surfaces i18n', () => {
       />,
     );
 
-    const trigger = screen.getByRole('button', { name: 'Sélectionner le port de prévisualisation' });
+    const trigger = screen.getByRole('button', { name: 'Sélectionner le port d’aperçu' });
     expect(trigger.className).toContain('min-h-11');
-    expect(screen.getByRole('dialog', { name: 'Ports de prévisualisation' }).className).toContain(
-      'max-w-[calc(100vw-24px)]',
-    );
+    expect(screen.getByRole('dialog', { name: 'Ports d’aperçu' }).className).toContain('max-w-[calc(100vw-24px)]');
 
     const port3000 = screen.getByRole('button', { name: 'Port 3000 — Prêt' });
     const port5173 = screen.getByRole('button', { name: 'Port 5173 — Démarrage…' });
@@ -234,7 +232,7 @@ describe('workspace miscellaneous surfaces i18n', () => {
     };
 
     const { rerender, i18n } = renderLocalized(<PortDropdown {...sharedProps} previews={[]} />);
-    expect(screen.getByRole('status').textContent).toBe('Aucun port de prévisualisation n’est disponible.');
+    expect(screen.getByRole('status').textContent).toBe('Aucun port d’aperçu n’est disponible.');
 
     rerender(
       <I18nextProvider i18n={i18n}>
@@ -257,7 +255,7 @@ describe('workspace miscellaneous surfaces i18n', () => {
     const onClose = vi.fn();
     const { i18n, rerender } = renderLocalized(<ExpoQrModal open onClose={onClose} />);
 
-    expect(screen.getByRole('heading', { name: 'Prévisualisez sur votre appareil mobile' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Affichez l’aperçu sur votre appareil mobile' })).toBeTruthy();
     expect(screen.getByText(/l’application Expo Go/u)).toBeTruthy();
     expect(screen.getByRole('status').textContent).toBe('Aucune URL Expo n’a été détectée.');
     expect(screen.getByTestId('dialog-content').className).toContain('!max-w-md');

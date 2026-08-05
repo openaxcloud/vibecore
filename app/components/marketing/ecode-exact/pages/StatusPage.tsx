@@ -48,10 +48,10 @@ type StatusIcon = LucideIcon | IconType;
  */
 const INCIDENT_HISTORY: StatusIncident[] = [];
 
-const INCIDENT_SEVERITY_COLORS: Record<StatusIncident['severity'], string> = {
-  warning: 'var(--status-warning-text)',
-  error: 'var(--status-error-text)',
-};
+const INCIDENT_SEVERITY_COLORS = new Map<StatusIncident['severity'], string>([
+  ['warning', 'var(--status-warning-text)'],
+  ['error', 'var(--status-error-text)'],
+]);
 
 const STATUS_SERVICE_ICONS: Record<StatusServiceId, StatusIcon> = {
   api: Server,
@@ -246,7 +246,7 @@ export default function StatusPage() {
             <div className="mx-auto max-w-3xl overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1">
               {lastStatusDaysUtc(language).map((day) => {
                 const incident = INCIDENT_HISTORY.find((entry) => entry.date === day.key);
-                const severityColor = incident ? INCIDENT_SEVERITY_COLORS[incident.severity] : null;
+                const severityColor = incident ? INCIDENT_SEVERITY_COLORS.get(incident.severity) : undefined;
 
                 return (
                   <div

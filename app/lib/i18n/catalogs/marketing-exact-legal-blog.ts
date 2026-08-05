@@ -303,12 +303,12 @@ export const marketingExactLegalBlogFr = {
     featured: {
       heading: 'À la une',
       category: 'Produit',
-      title: 'Découvrez l’Agent E-Code : du prompt à la production dans un même workflow',
+      title: 'Découvrez l’Agent E-Code : du prompt à la production dans un même processus',
       excerpt:
-        'Notre agent de code autonome planifie, écrit, exécute et prévisualise votre application de bout en bout. Décrivez votre besoin en langage naturel, regardez un projet full-stack prendre vie dans l’IDE, puis publiez-le sur une URL en un clic.',
+        'Notre agent de code autonome planifie, écrit, exécute et prévisualise votre application de bout en bout. Décrivez votre besoin en langage naturel, regardez une application complète prendre vie dans l’IDE, puis publiez-la sur une URL en un clic.',
       windowLabel: 'Espace de travail E-Code',
       imageAlt:
-        'IDE E-Code réunissant l’Agent IA, l’éditeur de code, l’arborescence des fichiers et la preview en direct',
+        'IDE E-Code réunissant l’Agent IA, l’éditeur de code, l’arborescence des fichiers et l’aperçu en direct',
     },
     articles: {
       heading: 'Derniers articles',
@@ -326,9 +326,9 @@ export const marketingExactLegalBlogFr = {
         {
           id: 'zero-config-deployments',
           category: 'Déploiements',
-          title: 'Déploiements sans configuration : statiques ou full-stack, instantanément',
+          title: 'Déploiements sans configuration : sites statiques ou applications complètes, instantanément',
           excerpt:
-            'Publiez depuis le chat vers une URL active, sans YAML. Découvrez comment E-Code capture votre build et le sert sur une infrastructure administrée.',
+            'Publiez depuis le chat vers une URL active, sans YAML. Découvrez comment E-Code capture votre compilation et la sert sur une infrastructure administrée.',
         },
         {
           id: 'effort-pricing',
@@ -347,16 +347,16 @@ export const marketingExactLegalBlogFr = {
         {
           id: 'agent-streaming',
           category: 'Ingénierie',
-          title: 'Streaming de l’agent : comment nous affichons son raisonnement en temps réel',
+          title: 'Diffusion de l’agent : comment nous affichons son raisonnement en temps réel',
           excerpt:
-            'Découvrez le pipeline SSE qui alimente le streaming par flux, nos techniques de backpressure et la façon dont l’éditeur reste réactif sous charge.',
+            'Découvrez la chaîne de traitement SSE qui alimente la diffusion en continu, nos techniques de régulation de charge et la façon dont l’éditeur reste réactif sous charge.',
         },
         {
           id: 'self-repair',
           category: 'Produit',
           title: 'Autoréparation : quand l’agent corrige ses propres erreurs',
           excerpt:
-            'E-Code détecte les builds en échec et les previews défectueuses, puis réessaie avec un plan corrigé pour transformer les impasses en fonctionnalités publiées.',
+            'E-Code détecte les compilations en échec et les aperçus défectueux, puis réessaie avec un plan corrigé pour transformer les impasses en fonctionnalités publiées.',
         },
       ],
     },

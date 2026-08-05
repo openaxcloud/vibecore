@@ -22,6 +22,8 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
       title,
       description: copy['publicGallery.explore.socialDescription'],
     }),
+    { name: 'twitter:title', content: title },
+    { name: 'twitter:description', content: copy['publicGallery.explore.socialDescription'] },
   ];
 };
 

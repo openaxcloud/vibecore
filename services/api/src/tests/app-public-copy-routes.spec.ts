@@ -242,7 +242,15 @@ describe('localized backend route families', () => {
     expect(response.body).not.toContain('result.error');
   });
 
-  it('localizes billing package quota and published-app limit errors at their HTTP boundaries', async () => {
+  it('localizes billing package quota and published-project entitlement errors at their HTTP boundaries', async () => {
+    await store.createQuotaOverride({
+      organizationId,
+      key: 'projects.count',
+      limit: 3,
+      reason: 'Exercise the localized quota boundary independently of catalog plan limits.',
+      createdByUserId: userId,
+    });
+
     for (let index = 0; index < 3; index += 1) {
       await store.createProject({
         organizationId,
@@ -263,55 +271,48 @@ describe('localized backend route families', () => {
       error: 'Le quota projects.count est dépassé.',
     });
 
-    const previousCreditsEnabled = process.env.BILLING_CREDITS_ENABLED;
-    process.env.BILLING_CREDITS_ENABLED = 'true';
+    const publishedProject = await store.createProject({
+      organizationId,
+      name: 'Projet déjà publié',
+      slug: 'projet-deja-publie',
+    });
+    await store.createDeployment({
+      projectId: publishedProject.id,
+      provider: 'static',
+      environment: 'production',
+      status: 'READY',
+      url: 'https://published.example.test',
+    });
 
-    try {
-      for (let index = 0; index < 20; index += 1) {
-        const project = await store.createProject({
-          organizationId,
-          name: `Published App ${index + 1}`,
-          slug: `published-app-${index + 1}`,
-        });
-        await store.createDeployment({
-          projectId: project.id,
-          provider: 'static',
-          environment: 'production',
-          status: 'READY',
-          url: `https://published-${index + 1}.example.test`,
-        });
-      }
+    const sourceProject = await store.createProject({
+      organizationId,
+      name: 'Deuxième projet',
+      slug: 'deuxieme-projet',
+    });
+    const sourceDeployment = await store.createDeployment({
+      projectId: sourceProject.id,
+      provider: 'static',
+      environment: 'preview',
+      status: 'READY',
+      url: 'https://preview.example.test',
+    });
+    const appLimit = await app.inject({
+      method: 'POST',
+      url: `/projects/${sourceProject.id}/deployments/${sourceDeployment.id}/publish`,
+      headers: frenchHeaders(true),
+    });
 
-      const sourceProject = await store.createProject({
-        organizationId,
-        name: 'App 21',
-        slug: 'app-21',
-      });
-      const sourceDeployment = await store.createDeployment({
-        projectId: sourceProject.id,
-        provider: 'static',
-        environment: 'preview',
-        status: 'READY',
-        url: 'https://preview-21.example.test',
-      });
-      const appLimit = await app.inject({
-        method: 'POST',
-        url: `/projects/${sourceProject.id}/deployments/${sourceDeployment.id}/publish`,
-        headers: frenchHeaders(true),
-      });
-
-      expect(appLimit.statusCode).toBe(429);
-      expect(appLimit.json()).toEqual({
-        code: 'APP_LIMIT_EXCEEDED',
-        error: 'La limite de 20 applications publiées simultanément est atteinte.',
-      });
-    } finally {
-      if (previousCreditsEnabled === undefined) {
-        delete process.env.BILLING_CREDITS_ENABLED;
-      } else {
-        process.env.BILLING_CREDITS_ENABLED = previousCreditsEnabled;
-      }
-    }
+    expect(appLimit.statusCode).toBe(402);
+    expect(appLimit.headers['content-language']).toBe('fr');
+    expect(appLimit.json()).toEqual({
+      code: 'PLAN_ACTIVE_PUBLISHED_PROJECT_LIMIT',
+      error:
+        'Votre forfait permet de publier un seul projet à la fois. Passez à un forfait supérieur pour publier d’autres projets.',
+      plan: 'starter',
+      cap: 1,
+      activeOtherProjects: 1,
+      upgradeRequired: true,
+    });
   });
 
   it('localizes Stripe signature failures from the billing package', async () => {

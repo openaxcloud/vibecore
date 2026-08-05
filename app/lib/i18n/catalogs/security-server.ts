@@ -72,6 +72,7 @@ function languageFromAcceptLanguage(value: string | null): SecurityServerLanguag
 /** Manual cookie/query wins; browser negotiation only applies without a saved choice. */
 export function securityLanguageForRequest(request: Request): SecurityServerLanguage {
   const url = new URL(request.url);
+
   const explicit =
     supportedLanguage(url.searchParams.get('lang')) ??
     supportedLanguage(cookieValue(request.headers.get('cookie'), 'vibecore-lang'));

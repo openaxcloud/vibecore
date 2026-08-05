@@ -667,7 +667,7 @@ export const marketingExactAiFr = {
         badge: 'Capture en direct',
         imageAlt:
           'Panneau Déploiements de l’IDE E-Code permettant de publier vers une URL en ligne sans quitter l’éditeur',
-        body: 'Tout ce que vous voyez provient du produit en production : l’agent définit les exigences, génère l’interface, connecte le backend et affiche une barre Exécuter et Publier en un clic, sans commande manuelle.',
+        body: 'Tout ce que vous voyez provient du produit en production : l’agent définit les exigences, génère l’interface, connecte le service applicatif et affiche une barre Exécuter et Publier en un clic, sans commande manuelle.',
         action: 'Voir le flux Git',
       },
       demoIntro: {
@@ -731,7 +731,7 @@ export const marketingExactAiFr = {
         {
           id: 'mobile',
           title: 'Sur mobile',
-          description: 'L’application complète, responsive jusqu’à 390 px.',
+          description: 'L’application complète, adaptative jusqu’à 390 px.',
           label: 'Mobile',
         },
       ],
@@ -763,7 +763,7 @@ export const marketingExactAiFr = {
             'Génère tous les fichiers et dossiers nécessaires',
             'Configure correctement le projet',
             'Installe les dépendances requises',
-            'Crée des mises en page responsive',
+            'Crée des mises en page adaptatives',
           ],
         },
         {

@@ -15,11 +15,38 @@ export type CommunityRouteEventId =
   | 'mobile-qa-workshop'
   | 'deployment-review-clinic'
   | 'template-hardening-day';
+export const COMMUNITY_ROUTE_TAG_IDS = [
+  'ai-agent',
+  'memory',
+  'security',
+  'audit',
+  'mobile',
+  'qa',
+  'preview',
+  'responsive',
+  'deployments',
+  'rollback',
+  'cloud-run',
+  'helm',
+  'templates',
+  'typescript',
+  'api',
+  'quality',
+  'teams',
+  'rbac',
+  'collaboration',
+  'handoff',
+  'demo-day',
+  'ai-apps',
+  'dashboards',
+] as const;
+export type CommunityRouteTagId = (typeof COMMUNITY_ROUTE_TAG_IDS)[number];
 
 interface MarketingCommunityRouteCopy {
   communityRoute: {
     seo: { title: string; description: string; imageAlt: string };
     categories: readonly { id: CommunityRouteCategoryId; name: string }[];
+    tagLabels: Readonly<Record<CommunityRouteTagId, string>>;
     posts: readonly {
       id: CommunityRoutePostId;
       title: string;
@@ -76,6 +103,31 @@ export const marketingCommunityRouteEn = {
       { id: 'tutorials', name: 'Tutorials' },
       { id: 'discussion', name: 'Discussion' },
     ],
+    tagLabels: {
+      'ai-agent': 'ai-agent',
+      memory: 'memory',
+      security: 'security',
+      audit: 'audit',
+      mobile: 'mobile',
+      qa: 'qa',
+      preview: 'preview',
+      responsive: 'responsive',
+      deployments: 'deployments',
+      rollback: 'rollback',
+      'cloud-run': 'cloud-run',
+      helm: 'helm',
+      templates: 'templates',
+      typescript: 'typescript',
+      api: 'api',
+      quality: 'quality',
+      teams: 'teams',
+      rbac: 'rbac',
+      collaboration: 'collaboration',
+      handoff: 'handoff',
+      'demo-day': 'demo-day',
+      'ai-apps': 'ai-apps',
+      dashboards: 'dashboards',
+    },
     posts: [
       {
         id: 'agent-memory-routing-production',
@@ -214,6 +266,31 @@ export const marketingCommunityRouteFr = {
       { id: 'tutorials', name: 'Tutoriels' },
       { id: 'discussion', name: 'Discussions' },
     ],
+    tagLabels: {
+      'ai-agent': 'Agent IA',
+      memory: 'Mémoire',
+      security: 'Sécurité',
+      audit: 'Audit',
+      mobile: 'Mobile',
+      qa: 'Assurance qualité',
+      preview: 'Aperçu',
+      responsive: 'Adaptatif',
+      deployments: 'Déploiements',
+      rollback: 'Retour arrière',
+      'cloud-run': 'Cloud Run',
+      helm: 'Helm',
+      templates: 'Modèles',
+      typescript: 'TypeScript',
+      api: 'API',
+      quality: 'Qualité',
+      teams: 'Équipes',
+      rbac: 'RBAC',
+      collaboration: 'Collaboration',
+      handoff: 'Transmission',
+      'demo-day': 'Journée de démonstration',
+      'ai-apps': 'Applications IA',
+      dashboards: 'Tableaux de bord',
+    },
     posts: [
       {
         id: 'agent-memory-routing-production',
@@ -226,20 +303,20 @@ export const marketingCommunityRouteFr = {
       },
       {
         id: 'mobile-preview-checklist',
-        title: 'Checklist de la preview mobile avant d’envoyer un build en QA',
+        title: 'Liste de contrôle de l’aperçu mobile avant l’envoi en assurance qualité',
         summary:
-          'Une liste pratique pour vérifier les zones de sécurité, les menus de navigation, les cibles tactiles, les redirections d’authentification et la fiabilité de la preview sur de vrais formats mobiles.',
+          'Une liste pratique pour vérifier les zones de sécurité, les menus de navigation, les cibles tactiles, les redirections d’authentification et la fiabilité de l’aperçu sur de vrais formats mobiles.',
         content:
-          'Les membres de la communauté affinent une checklist QA mobile reproductible qui détecte les régressions de mise en page et de navigation avant la mise en production.',
+          'Les membres de la communauté affinent une liste de contrôle reproductible d’assurance qualité mobile qui détecte les régressions de mise en page et de navigation avant la mise en production.',
         categoryName: 'Vitrine',
       },
       {
         id: 'deployments-rollback-playbook',
-        title: 'Guide de rollback d’un déploiement de production pour les petites équipes',
+        title: 'Guide de retour arrière d’un déploiement de production pour les petites équipes',
         summary:
-          'Un guide public pour associer les contrôles automatisés de mise en production à une revue humaine lors de la promotion d’une image web, runtime ou d’agent d’espace de travail.',
+          'Un guide public pour associer les contrôles automatisés de mise en production à une revue humaine lors de la promotion d’une image web, d’environnement d’exécution ou d’agent d’espace de travail.',
         content:
-          'La discussion porte sur les jalons de déploiement, la vérification de la mise en production, la responsabilité du rollback et les signaux à collecter pendant la livraison.',
+          'La discussion porte sur les jalons de déploiement, la vérification de la mise en production, la responsabilité du retour arrière et les signaux à collecter pendant la livraison.',
         categoryName: 'Tutoriels',
       },
       {
@@ -255,18 +332,18 @@ export const marketingCommunityRouteFr = {
         id: 'team-workspace-governance',
         title: 'Modèles de gouvernance des espaces de travail pour les équipes et les agences',
         summary:
-          'Une discussion sur les rôles, la propriété des projets, les previews partagées, la transmission aux clients et une collaboration compatible avec l’audit dans les espaces de travail E-Code.',
+          'Une discussion sur les rôles, la propriété des projets, les aperçus partagés, la transmission aux clients et une collaboration compatible avec l’audit dans les espaces de travail E-Code.',
         content:
           'La discussion rassemble des modèles de fonctionnement d’équipe et des schémas d’autorisation pour livrer des applications en production.',
         categoryName: 'Discussions',
       },
       {
         id: 'community-demo-day-recap',
-        title: 'Retour sur la journée de démonstration : applications IA, tableaux de bord et builds mobiles',
+        title: 'Retour sur la journée de démonstration : applications IA, tableaux de bord et compilations mobiles',
         summary:
-          'Les temps forts de créateurs ayant livré des applications full-stack, des tableaux de bord internes et des prototypes mobiles, avec les enseignements publics de chaque lancement.',
+          'Les temps forts de créateurs ayant livré des applications complètes, des tableaux de bord internes et des prototypes mobiles, avec les enseignements publics de chaque lancement.',
         content:
-          'Ce récapitulatif relie les enseignements publics de la journée de démonstration à des workflows concrets que les créateurs peuvent reproduire.',
+          'Ce récapitulatif relie les enseignements publics de la journée de démonstration à des processus concrets que les créateurs peuvent reproduire.',
         categoryName: 'Vitrine',
       },
     ],
@@ -275,19 +352,19 @@ export const marketingCommunityRouteFr = {
         id: 'agent-with-tools',
         title: 'Publier un agent avec une orchestration d’outils',
         description:
-          'Créez un parcours d’agent avec progression en streaming, appels d’outils, journaux d’audit et solution de repli pour la production.',
+          'Créez un parcours d’agent avec progression diffusée en continu, appels d’outils, journaux d’audit et solution de repli pour la production.',
       },
       {
         id: 'mobile-first-builder',
-        title: 'Workflow de création mobile-first',
+        title: 'Processus de création pensé d’abord pour le mobile',
         description:
-          'Concevez un parcours d’application responsive qui fonctionne parfaitement dans les previews sur mobile, tablette et ordinateur.',
+          'Concevez un parcours d’application adaptatif qui fonctionne parfaitement dans les aperçus sur mobile, tablette et ordinateur.',
       },
       {
         id: 'secure-deployment-runbook',
         title: 'Guide de déploiement sécurisé',
         description:
-          'Publiez une checklist de déploiement couvrant le rollback, les secrets, le monitoring et la validation après mise en production.',
+          'Publiez une liste de contrôle du déploiement couvrant le retour arrière, les secrets, la supervision et la validation après mise en production.',
       },
     ],
     contributorBadges: [
@@ -305,9 +382,9 @@ export const marketingCommunityRouteFr = {
       },
       {
         id: 'mobile-qa-workshop',
-        title: 'Atelier QA mobile',
+        title: 'Atelier d’assurance qualité mobile',
         description:
-          'Une session pratique consacrée aux mises en page responsive, à la validation des previews et aux contrôles de livraison sur de vrais appareils.',
+          'Une session pratique consacrée aux mises en page adaptatives, à la validation des aperçus et aux contrôles de livraison sur de vrais appareils.',
       },
       {
         id: 'deployment-review-clinic',
@@ -336,7 +413,7 @@ export const marketingCommunityRouteFr = {
       comments_other: '{count} commentaires',
       views_one: '{count} vue',
       views_other: '{count} vues',
-      discussion: 'Discussion',
+      discussion: 'Fil de discussion',
       postedBy: 'Publié par {name}',
       authorSummary: '@{handle} · réputation : {reputation} · Mis à jour le {date}',
       publicDiscussion: 'Discussion publique',

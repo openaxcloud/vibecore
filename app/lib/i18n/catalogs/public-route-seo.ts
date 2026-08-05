@@ -68,7 +68,7 @@ export const publicRouteSeoFr: PublicRouteSeoCopy = {
   'publicRouteSeo.contactSales.imageAlt': 'Offre E-Code Enterprise et assistance dédiée',
   'publicRouteSeo.docs.title': 'Documentation — E-Code',
   'publicRouteSeo.docs.description':
-    'Découvrez chaque fonctionnalité de l’agent de l’IDE E-Code : raccourcis, workflows, collaboration et aperçus de l’interface.',
+    'Découvrez chaque fonctionnalité de l’agent de l’IDE E-Code : raccourcis, processus de travail, collaboration et aperçus de l’interface.',
   'publicRouteSeo.docs.imageAlt': 'Documentation et guide des fonctionnalités de l’agent de l’IDE E-Code',
   'publicRouteSeo.templates.title': 'Modèles — E-Code',
   'publicRouteSeo.templates.description':
