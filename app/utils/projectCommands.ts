@@ -1,5 +1,6 @@
 import type { Message } from 'ai';
 import { generateId } from './fileUtils';
+import { formatProjectCommandsCopy, getProjectCommandsCopy } from '~/lib/i18n/catalogs/project-commands';
 
 export interface ProjectCommands {
   type: string;
@@ -38,7 +39,8 @@ function makeNonInteractive(command: string): string {
   return `${envVars} && ${processedCommand}`;
 }
 
-export async function detectProjectCommands(files: FileContent[]): Promise<ProjectCommands> {
+export async function detectProjectCommands(files: FileContent[], language?: string | null): Promise<ProjectCommands> {
+  const copy = getProjectCommandsCopy(language);
   const hasFile = (name: string) => files.some((f) => f.path.endsWith(name));
 
   const hasFileContent = (name: string, content: string) =>
@@ -81,15 +83,16 @@ export async function detectProjectCommands(files: FileContent[]): Promise<Proje
           type: 'Node.js',
           setupCommand,
           startCommand: `npm run ${availableCommand}`,
-          followupMessage: `Found "${availableCommand}" script in package.json. Running "npm run ${availableCommand}" after installation.`,
+          followupMessage: formatProjectCommandsCopy(copy['projectCommands.scriptFound'], {
+            script: availableCommand,
+          }),
         };
       }
 
       return {
         type: 'Node.js',
         setupCommand,
-        followupMessage:
-          'Would you like me to inspect package.json to determine the available scripts for running this project?',
+        followupMessage: copy['projectCommands.inspectScripts'],
       };
     } catch (error) {
       console.error('Error parsing package.json:', error);
@@ -108,7 +111,7 @@ export async function detectProjectCommands(files: FileContent[]): Promise<Proje
   return { type: '', setupCommand: '', followupMessage: '' };
 }
 
-export function createCommandsMessage(commands: ProjectCommands): Message | null {
+export function createCommandsMessage(commands: ProjectCommands, language?: string | null): Message | null {
   if (!commands.setupCommand && !commands.startCommand) {
     return null;
   }
@@ -126,11 +129,13 @@ export function createCommandsMessage(commands: ProjectCommands): Message | null
 `;
   }
 
+  const copy = getProjectCommandsCopy(language);
+
   return {
     role: 'assistant',
     content: `
 ${commands.followupMessage ? `\n\n${commands.followupMessage}` : ''}
-<boltArtifact id="project-setup" title="Project Setup">
+<boltArtifact id="project-setup" title="${copy['projectCommands.artifactTitle']}">
 ${commandString}
 </boltArtifact>`,
     id: generateId(),

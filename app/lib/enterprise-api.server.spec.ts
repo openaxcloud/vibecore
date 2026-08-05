@@ -115,6 +115,59 @@ describe('apiRequest', () => {
     }
   });
 
+  it('forwards only the normalized manual locale and never proxies browser cookies', async () => {
+    const fetchSpy = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => {
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    });
+    vi.stubGlobal('fetch', fetchSpy);
+
+    await apiRequest(
+      new Request('https://app.example.com/dashboard', {
+        headers: {
+          Cookie: 'vibecore-lang=fr; analytics-secret=do-not-forward',
+          'Accept-Language': 'en-US',
+        },
+      }),
+      '/orgs',
+      {
+        headers: {
+          Cookie: 'caller-cookie=also-do-not-forward',
+          'Set-Cookie': 'invalid-upstream-cookie=1',
+        },
+      },
+    );
+
+    const init = fetchSpy.mock.calls[0]?.[1];
+    const headers = new Headers(init?.headers);
+
+    expect(headers.get('accept-language')).toBe('fr');
+    expect(headers.get('x-vibecore-locale-source')).toBe('manual-cookie');
+    expect(headers.get('cookie')).toBeNull();
+    expect(headers.get('set-cookie')).toBeNull();
+  });
+
+  it('normalizes unsupported web locales to the backend English fallback', async () => {
+    const fetchSpy = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => {
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    });
+    vi.stubGlobal('fetch', fetchSpy);
+
+    await apiRequest(
+      new Request('https://app.example.com/dashboard', {
+        headers: { Cookie: 'vibecore-lang=es', 'Accept-Language': 'fr-FR' },
+      }),
+      '/orgs',
+    );
+
+    expect(new Headers(fetchSpy.mock.calls[0]?.[1]?.headers).get('accept-language')).toBe('en');
+  });
+
   it('redirects non-MFA requests to setup when the API requires MFA enrollment', async () => {
     vi.stubGlobal(
       'fetch',
@@ -387,6 +440,29 @@ describe('firstOrganization helpers', () => {
 
     expect(thrown).toBeInstanceOf(Response);
     expect((thrown as Response).status).toBe(400);
+  });
+
+  it('firstOrganization localizes the missing-organization response in French', async () => {
+    stubOrgsResponse([]);
+
+    let thrown: unknown;
+
+    try {
+      await firstOrganization(
+        new Request('https://app.example.com/dashboard', { headers: { 'Accept-Language': 'fr-FR' } }),
+      );
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(Response);
+
+    const response = thrown as Response;
+
+    expect(response.headers.get('Content-Language')).toBe('fr');
+    await expect(response.json()).resolves.toMatchObject({
+      error: 'Aucune organisation n’a été trouvée pour votre compte.',
+    });
   });
 
   it('firstOrganizationOrNull returns null instead of throwing when the user has no organizations', async () => {

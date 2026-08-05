@@ -1,20 +1,29 @@
-import type { MetaFunction } from 'react-router';
+import { data as json, type LoaderFunctionArgs, type MetaFunction } from 'react-router';
 import Careers from '~/components/marketing/ecode-exact/pages/Careers';
-import { socialMetaTags } from '~/utils/social-meta';
+import { buildPublicRouteMeta, getPublicRouteSeoCopy } from '~/lib/i18n/catalogs/public-route-seo';
+import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 
-export const meta: MetaFunction = () => [
-  { title: 'Careers — E-Code' },
-  {
-    name: 'description',
-    content:
-      'Join E-Code — help build AI-native software creation. Open roles across engineering, design and go-to-market.',
-  },
-  ...socialMetaTags({
-    title: 'Careers — E-Code',
-    description:
-      'Join E-Code — help build AI-native software creation. Open roles across engineering, design and go-to-market.',
-  }),
-];
+export function loader({ request }: LoaderFunctionArgs) {
+  const locale = resolveRequestLocale(request);
+
+  return json({ language: locale.language }, { headers: localeResponseHeaders(request, locale) });
+}
+
+export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
+  const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
+  const language = data?.language ?? rootData?.language;
+  const copy = getPublicRouteSeoCopy(language);
+
+  return buildPublicRouteMeta({
+    language,
+    pathname: '/careers',
+    seo: {
+      title: copy['publicRouteSeo.careers.title'],
+      description: copy['publicRouteSeo.careers.description'],
+      imageAlt: copy['publicRouteSeo.careers.imageAlt'],
+    },
+  });
+};
 
 export default function CareersRoute() {
   return <Careers />;

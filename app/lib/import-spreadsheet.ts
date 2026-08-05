@@ -6,6 +6,13 @@
  * pasted.
  */
 import JSZip from 'jszip';
+import {
+  formatImportSpreadsheetCopy,
+  formatImportSpreadsheetPlural,
+  getImportSpreadsheetCopy,
+  type ImportSpreadsheetCopy,
+} from '~/lib/i18n/catalogs/import-spreadsheet';
+import { normalizeSupportedLanguage } from '~/lib/i18n/language';
 
 export interface ParsedSheet {
   headers: string[];
@@ -26,7 +33,8 @@ function detectDelimiter(text: string): ',' | '\t' {
  * RFC-4180-ish parser: honours double-quoted fields (with escaped `""` quotes
  * and embedded delimiters/newlines) for comma data; tab data is split plainly.
  */
-export function parseDelimited(text: string): ParsedSheet {
+export function parseDelimited(text: string, language?: string | null): ParsedSheet {
+  const copy = getImportSpreadsheetCopy(language);
   const delimiter = detectDelimiter(text);
   const records: string[][] = [];
 
@@ -89,7 +97,17 @@ export function parseDelimited(text: string): ParsedSheet {
   }
 
   const [headerRecord, ...dataRecords] = records;
-  const headers = headerRecord.map((header, columnIndex) => header.trim() || `Column ${columnIndex + 1}`);
+
+  const headers = headerRecord.map(
+    (header, columnIndex) =>
+      header.trim() ||
+      formatImportSpreadsheetCopy(copy['importSpreadsheet.generated.column'], {
+        count: new Intl.NumberFormat(normalizeSupportedLanguage(language) === 'fr' ? 'fr-FR' : 'en-US').format(
+          columnIndex + 1,
+        ),
+      }),
+  );
+
   const width = headers.length;
 
   // Normalise every row to the header width so the table never jags.
@@ -119,15 +137,18 @@ interface SpreadsheetProjectInput {
   name: string;
   headers: string[];
   rows: string[][];
+  language?: string | null;
 }
 
 /** Build the app files and return the zip as a base64 string for import/zip. */
 export async function buildSpreadsheetProject(input: SpreadsheetProjectInput): Promise<string> {
   const zip = new JSZip();
-  const safeName = input.name.trim() || 'Spreadsheet app';
+  const language = normalizeSupportedLanguage(input.language) === 'fr' ? 'fr' : 'en';
+  const copy = getImportSpreadsheetCopy(language);
+  const safeName = input.name.trim() || copy['importSpreadsheet.generated.defaultName'];
   const data = { name: safeName, headers: input.headers, rows: input.rows };
 
-  zip.file('index.html', indexHtml(safeName, data));
+  zip.file('index.html', indexHtml(safeName, data, language, copy));
   zip.file('data.json', JSON.stringify(data, null, 2));
   zip.file(
     'package.json',
@@ -146,21 +167,50 @@ export async function buildSpreadsheetProject(input: SpreadsheetProjectInput): P
   );
   zip.file(
     'README.md',
-    `# ${safeName}\n\nA sortable data table generated from an imported spreadsheet ` +
-      `(${input.headers.length} columns × ${input.rows.length} rows).\n\n` +
-      '```bash\nnpm install\nnpm run dev\n```\n',
+    `# ${safeName}\n\n${formatImportSpreadsheetCopy(copy['importSpreadsheet.generated.readme'], {
+      columns: formatImportSpreadsheetPlural(language, input.headers.length, {
+        one: copy['importSpreadsheet.generated.columns_one'],
+        other: copy['importSpreadsheet.generated.columns_other'],
+      }),
+      rows: formatImportSpreadsheetPlural(language, input.rows.length, {
+        one: copy['importSpreadsheet.generated.rows_one'],
+        other: copy['importSpreadsheet.generated.rows_other'],
+      }),
+    })}\n\n` + '```bash\nnpm install\nnpm run dev\n```\n',
   );
 
   return zip.generateAsync({ type: 'base64' });
 }
 
-function indexHtml(title: string, data: { headers: string[]; rows: string[][] }): string {
+function indexHtml(
+  title: string,
+  data: { headers: string[]; rows: string[][] },
+  language: 'en' | 'fr',
+  copy: ImportSpreadsheetCopy,
+): string {
   const headerCells = data.headers
     .map((header, index) => `<th data-col="${index}"><button type="button">${escapeHtml(header)}</button></th>`)
     .join('');
+  const columnsLabel = formatImportSpreadsheetPlural(language, data.headers.length, {
+    one: copy['importSpreadsheet.generated.columns_one'],
+    other: copy['importSpreadsheet.generated.columns_other'],
+  });
+  const rowsLabel = formatImportSpreadsheetPlural(language, data.rows.length, {
+    one: copy['importSpreadsheet.generated.rows_one'],
+    other: copy['importSpreadsheet.generated.rows_other'],
+  });
+  const metaLabel = formatImportSpreadsheetCopy(copy['importSpreadsheet.generated.meta'], {
+    columns: columnsLabel,
+    rows: rowsLabel,
+  });
+  const browserCopy = {
+    locale: language === 'fr' ? 'fr-FR' : 'en-US',
+    countOne: copy['importSpreadsheet.generated.count_one'],
+    countOther: copy['importSpreadsheet.generated.count_other'],
+  };
 
   return `<!doctype html>
-<html lang="en">
+<html lang="${language}">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -173,12 +223,12 @@ function indexHtml(title: string, data: { headers: string[]; rows: string[][] })
   h1 { font-size: 22px; margin: 0 0 4px; }
   p.meta { margin: 0 0 20px; color: #8b93a7; font-size: 14px; }
   .toolbar { margin-bottom: 12px; }
-  input[type=search] { width: 100%; max-width: 320px; padding: 9px 12px; border-radius: 8px; border: 1px solid #262c3a; background: #12151d; color: inherit; font-size: 14px; }
+  input[type=search] { width: 100%; min-height: 44px; max-width: 320px; padding: 9px 12px; border-radius: 8px; border: 1px solid #262c3a; background: #12151d; color: inherit; font-size: 16px; }
   .table-wrap { overflow-x: auto; border: 1px solid #262c3a; border-radius: 12px; }
   table { border-collapse: collapse; width: 100%; font-size: 14px; }
   th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid #1c2130; white-space: nowrap; }
   th { position: sticky; top: 0; background: #12151d; }
-  th button { all: unset; cursor: pointer; font-weight: 600; display: inline-flex; gap: 6px; }
+  th button { all: unset; min-height: 44px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
   th button::after { content: attr(data-dir); color: #6b7280; }
   tbody tr:hover { background: #12151d; }
   .count { color: #8b93a7; font-size: 13px; margin-top: 10px; }
@@ -189,13 +239,14 @@ function indexHtml(title: string, data: { headers: string[]; rows: string[][] })
     th, td { border-color: #eef0f4; }
     tbody tr:hover { background: #f2f4f8; }
   }
+  @media (min-width: 640px) { input[type=search] { font-size: 14px; } }
 </style>
 </head>
 <body>
 <main>
   <h1>${escapeHtml(title)}</h1>
-  <p class="meta">${data.headers.length} columns · ${data.rows.length} rows</p>
-  <div class="toolbar"><input type="search" id="q" placeholder="Filter rows…" aria-label="Filter rows" /></div>
+  <p class="meta">${escapeHtml(metaLabel)}</p>
+  <div class="toolbar"><input type="search" id="q" placeholder="${escapeHtml(copy['importSpreadsheet.generated.filterPlaceholder'])}" aria-label="${escapeHtml(copy['importSpreadsheet.generated.filterAria'])}" /></div>
   <div class="table-wrap">
     <table>
       <thead><tr>${headerCells}</tr></thead>
@@ -206,6 +257,9 @@ function indexHtml(title: string, data: { headers: string[]; rows: string[][] })
 </main>
 <script>
   const DATA = ${safeJson({ headers: data.headers, rows: data.rows })};
+  const I18N = ${safeJson(browserCopy)};
+  const numberFormat = new Intl.NumberFormat(I18N.locale);
+  const pluralRules = new Intl.PluralRules(I18N.locale);
   let sortCol = -1, sortDir = 1, filter = '';
   const tbody = document.getElementById('rows');
   const count = document.getElementById('count');
@@ -227,7 +281,10 @@ function indexHtml(title: string, data: { headers: string[]; rows: string[][] })
     tbody.innerHTML = rows
       .map((r) => '<tr>' + r.map((c) => '<td>' + escapeHtml(String(c)) + '</td>').join('') + '</tr>')
       .join('');
-    count.textContent = rows.length + ' of ' + DATA.rows.length + ' rows';
+    const countTemplate = pluralRules.select(rows.length) === 'one' ? I18N.countOne : I18N.countOther;
+    count.textContent = countTemplate
+      .replace('{visible}', numberFormat.format(rows.length))
+      .replace('{total}', numberFormat.format(DATA.rows.length));
   }
   function escapeHtml(s) { return s.replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch])); }
   document.querySelectorAll('th button').forEach((btn, col) => {

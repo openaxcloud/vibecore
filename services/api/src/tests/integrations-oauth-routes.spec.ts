@@ -350,12 +350,22 @@ describe('Integrations OAuth routes (TestApiStore)', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/integrations/oauth/github/callback',
-      headers: { authorization: `Bearer ${tenant.token}` },
+      headers: {
+        authorization: `Bearer ${tenant.token}`,
+        'accept-language': 'en-US,en;q=0.9',
+        cookie: 'vibecore-lang=fr; vibecore-auto-lang=en',
+      },
       payload: { code: 'expired-code', state },
     });
 
     expect(response.statusCode).toBe(502);
-    expect(response.json()).toMatchObject({ code: 'PROVIDER_TOKEN_EXCHANGE_FAILED' });
+    expect(response.headers['content-language']).toBe('fr');
+    expect(response.json()).toEqual({
+      code: 'PROVIDER_TOKEN_EXCHANGE_FAILED',
+      error: 'Impossible de connecter ce compte. Veuillez relancer la connexion.',
+    });
+    expect(response.body).not.toContain('bad_verification_code');
+    expect(response.body).not.toContain('The code has expired');
     await app.close();
   });
 

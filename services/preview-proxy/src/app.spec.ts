@@ -51,9 +51,7 @@ describe('preview-proxy', () => {
   it('serves the holding page (not a silent blank) when the dev server answers a 0-byte 404 (index.html not yet synced)', async () => {
     // Vite serves `GET /` as a 404 with an empty body while its index.html has not
     // yet landed on disk; the port is already LISTENING so /ports reports ready.
-    const fetchImpl = (async () =>
-      new Response(null, { status: 404 })) as unknown as typeof fetch;
-
+    const fetchImpl = (async () => new Response(null, { status: 404 })) as unknown as typeof fetch;
     const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
 
     const response = await app.inject({
@@ -69,8 +67,7 @@ describe('preview-proxy', () => {
   });
 
   it('serves the holding page when the dev server is still booting (503, empty body) for a document nav', async () => {
-    const fetchImpl = (async () =>
-      new Response(null, { status: 503 })) as unknown as typeof fetch;
+    const fetchImpl = (async () => new Response(null, { status: 503 })) as unknown as typeof fetch;
 
     const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
 
@@ -104,8 +101,7 @@ describe('preview-proxy', () => {
   });
 
   it('passes through a sub-resource 404 (script/XHR) unchanged — only document navs get the holding page', async () => {
-    const fetchImpl = (async () =>
-      new Response(null, { status: 404 })) as unknown as typeof fetch;
+    const fetchImpl = (async () => new Response(null, { status: 404 })) as unknown as typeof fetch;
 
     const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
 
@@ -117,6 +113,56 @@ describe('preview-proxy', () => {
 
     expect(response.statusCode).toBe(404);
     expect(response.body).not.toContain('Starting your app');
+  });
+
+  it('serves French holding HTML with the active lang and locale response headers', async () => {
+    const fetchImpl = (async () => {
+      throw new Error('raw upstream detail must stay private');
+    }) as unknown as typeof fetch;
+    const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/p/ws_1/4173/',
+      headers: {
+        accept: 'text/html,*/*',
+        'accept-language': 'fr-FR,fr;q=0.9',
+        'sec-fetch-dest': 'iframe',
+      },
+    });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.headers['content-language']).toBe('fr');
+    expect(response.headers.vary).toContain('Cookie');
+    expect(response.body).toContain('<html lang="fr">');
+    expect(response.body).toContain('Démarrage de votre application');
+    expect(response.body).not.toContain('raw upstream detail');
+    await app.close();
+  });
+
+  it('prioritizes the manual locale cookie and localizes stable JSON errors', async () => {
+    const app = await buildPreviewProxyApp({ resolveAgent: async () => undefined });
+
+    const frenchResponse = await app.inject({
+      method: 'GET',
+      url: '/p/ws_1/4173/assets/main.js',
+      headers: { cookie: 'vibecore-lang=fr', 'accept-language': 'en-US' },
+    });
+    const englishResponse = await app.inject({
+      method: 'GET',
+      url: '/p/ws_1/4173/assets/main.js',
+      headers: { cookie: 'vibecore-lang=en', 'accept-language': 'fr-FR' },
+    });
+
+    expect(frenchResponse.headers['content-language']).toBe('fr');
+    expect(frenchResponse.json()).toEqual({
+      error: 'L’aperçu de l’espace de travail est encore inaccessible. Veuillez réessayer.',
+      code: 'PREVIEW_AGENT_NOT_FOUND',
+    });
+    expect(englishResponse.headers['content-language']).toBe('en');
+    expect(englishResponse.json()).toMatchObject({ code: 'PREVIEW_AGENT_NOT_FOUND' });
+    expect(englishResponse.json().error).toMatch(/^The workspace preview/);
+    await app.close();
   });
 
   it('still returns a JSON error for asset/XHR sub-requests when the dev server is unreachable', async () => {

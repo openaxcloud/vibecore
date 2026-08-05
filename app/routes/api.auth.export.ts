@@ -1,5 +1,6 @@
 import { buildAccountExportResponse } from '~/lib/account-export-response';
-import { apiRequest, json, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { apiRequest, type EnterpriseActionArgs, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const exported = await apiRequest(request, '/auth/export');
@@ -7,6 +8,6 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
   return buildAccountExportResponse(exported);
 }
 
-export async function action() {
-  throw json({ error: 'Unsupported method' }, { status: 405 });
+export async function action({ request }: EnterpriseActionArgs) {
+  throw remainingApiErrorResponse(request, 'METHOD_NOT_ALLOWED', 405);
 }

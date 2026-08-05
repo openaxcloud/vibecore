@@ -1,5 +1,6 @@
-import { z } from 'zod';
 import { createDatabaseClient, type DatabaseClient } from '@vibecore/database';
+import { z } from 'zod';
+import { appPublicEnglish } from './app-public-copy.js';
 
 export const MCP_DOMAINS = [
   'AI_AGENTS',
@@ -21,9 +22,11 @@ export const MCP_DOMAINS = [
 ] as const;
 
 export const MCP_TRANSPORTS = ['STDIO', 'SSE', 'STREAMABLE_HTTP'] as const;
+export const MCP_CATALOG_LOCALES = ['en', 'fr'] as const;
 
 export type McpDomainKey = (typeof MCP_DOMAINS)[number];
 export type McpTransportKey = (typeof MCP_TRANSPORTS)[number];
+export type McpCatalogLocale = (typeof MCP_CATALOG_LOCALES)[number];
 
 export interface CatalogEntryView {
   id: string;
@@ -86,6 +89,11 @@ export const catalogQuerySchema = z.object({
   verified: booleanQueryParam,
   limit: z.coerce.number().int().min(1).max(100).default(50),
   cursor: z.string().min(1).max(100).optional(),
+  locale: z.enum(MCP_CATALOG_LOCALES).optional(),
+});
+
+export const catalogLocaleQuerySchema = z.object({
+  locale: z.enum(MCP_CATALOG_LOCALES).optional(),
 });
 
 export const catalogParamsSchema = z.object({
@@ -94,9 +102,13 @@ export const catalogParamsSchema = z.object({
 
 export const installInputSchema = z.object({
   catalogEntrySlug: z.string().min(1).max(100),
-  alias: z.string().min(1).max(64).regex(aliasPattern, {
-    message: 'alias must be alphanumeric, dash, or underscore',
-  }),
+  alias: z
+    .string()
+    .min(1)
+    .max(64)
+    .regex(aliasPattern, {
+      message: appPublicEnglish('MCP_ALIAS_FORMAT_INVALID'),
+    }),
   config: z.record(z.unknown()),
   organizationId: z.string().min(1).optional(),
 });
@@ -110,13 +122,20 @@ const slugPattern = /^[a-z0-9][a-z0-9-]*$/;
  * creation (installs reference the entry by id; the slug is the public handle).
  */
 export const adminCatalogCreateSchema = z.object({
-  slug: z.string().min(1).max(100).regex(slugPattern, {
-    message: 'slug must be lowercase alphanumeric with dashes',
-  }),
+  slug: z
+    .string()
+    .min(1)
+    .max(100)
+    .regex(slugPattern, {
+      message: appPublicEnglish('MCP_SLUG_FORMAT_INVALID'),
+    }),
   name: z.string().min(1).max(120),
+  nameFr: z.string().min(1).max(120).optional().nullable(),
   description: z.string().min(1).max(2000),
+  descriptionFr: z.string().min(1).max(2000).optional().nullable(),
   domain: z.enum(MCP_DOMAINS),
   tags: z.array(z.string().min(1).max(40)).max(20).default([]),
+  tagsFr: z.array(z.string().min(1).max(40)).max(20).default([]),
   author: z.string().min(1).max(120),
   homepageUrl: z.string().url().max(500).optional().nullable(),
   iconUrl: z.string().url().max(500).optional().nullable(),
@@ -124,6 +143,7 @@ export const adminCatalogCreateSchema = z.object({
   transport: z.enum(MCP_TRANSPORTS),
   configTemplate: z.record(z.unknown()).default({}),
   configSchema: z.record(z.unknown()).default({}),
+  configSchemaFr: z.record(z.unknown()).default({}),
   featured: z.boolean().optional(),
   verified: z.boolean().optional(),
   featuredForIdePanel: z.boolean().optional(),
@@ -133,9 +153,12 @@ export const adminCatalogCreateSchema = z.object({
 export const adminCatalogUpdateSchema = z
   .object({
     name: z.string().min(1).max(120).optional(),
+    nameFr: z.string().min(1).max(120).nullable().optional(),
     description: z.string().min(1).max(2000).optional(),
+    descriptionFr: z.string().min(1).max(2000).nullable().optional(),
     domain: z.enum(MCP_DOMAINS).optional(),
     tags: z.array(z.string().min(1).max(40)).max(20).optional(),
+    tagsFr: z.array(z.string().min(1).max(40)).max(20).optional(),
     author: z.string().min(1).max(120).optional(),
     homepageUrl: z.string().url().max(500).nullable().optional(),
     iconUrl: z.string().url().max(500).nullable().optional(),
@@ -143,6 +166,7 @@ export const adminCatalogUpdateSchema = z
     transport: z.enum(MCP_TRANSPORTS).optional(),
     configTemplate: z.record(z.unknown()).optional(),
     configSchema: z.record(z.unknown()).optional(),
+    configSchemaFr: z.record(z.unknown()).optional(),
     featured: z.boolean().optional(),
     verified: z.boolean().optional(),
     featuredForIdePanel: z.boolean().optional(),
@@ -150,7 +174,7 @@ export const adminCatalogUpdateSchema = z
     // updateCatalogEntry): disable soft-disables them, enable restores them.
     enabled: z.boolean().optional(),
   })
-  .refine((value) => Object.keys(value).length > 0, { message: 'patch must include at least one field' });
+  .refine((value) => Object.keys(value).length > 0, { message: appPublicEnglish('MCP_PATCH_EMPTY') });
 
 export const adminCatalogParamsSchema = z.object({ id: z.string().min(1).max(64) });
 
@@ -163,15 +187,102 @@ export const installPatchSchema = z
       .string()
       .min(1)
       .max(64)
-      .regex(aliasPattern, { message: 'alias must be alphanumeric, dash, or underscore' })
+      .regex(aliasPattern, { message: appPublicEnglish('MCP_ALIAS_FORMAT_INVALID') })
       .optional(),
     config: z.record(z.unknown()).optional(),
   })
-  .refine((value) => Object.keys(value).length > 0, { message: 'patch must include at least one field' });
+  .refine((value) => Object.keys(value).length > 0, { message: appPublicEnglish('MCP_PATCH_EMPTY') });
 
 export const installListQuerySchema = z.object({
   organizationId: z.string().min(1).max(64).optional(),
+  locale: z.enum(MCP_CATALOG_LOCALES).optional(),
 });
+
+function normalizeMcpCatalogLocale(value: unknown): McpCatalogLocale | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const primary = value.trim().toLowerCase().split(/[-_]/u)[0];
+
+  return primary === 'en' || primary === 'fr' ? primary : undefined;
+}
+
+/** Explicit `locale` wins, then weighted Accept-Language negotiation, then English. */
+export function resolveMcpCatalogLocale(input: {
+  explicitLocale?: unknown;
+  acceptLanguage?: string | readonly string[] | null;
+}): McpCatalogLocale {
+  const explicitLocale = normalizeMcpCatalogLocale(input.explicitLocale);
+
+  if (explicitLocale) {
+    return explicitLocale;
+  }
+
+  const header =
+    typeof input.acceptLanguage === 'string'
+      ? input.acceptLanguage
+      : input.acceptLanguage
+        ? [...input.acceptLanguage].join(',')
+        : '';
+
+  const negotiated = header
+    .split(',')
+    .map((entry, index) => {
+      const [tag, ...parameters] = entry.trim().split(';');
+      const qualityParameter = parameters.find((parameter) => parameter.trim().toLowerCase().startsWith('q='));
+      const parsedQuality = qualityParameter ? Number.parseFloat(qualityParameter.trim().slice(2)) : 1;
+
+      return {
+        locale: normalizeMcpCatalogLocale(tag),
+        quality: Number.isFinite(parsedQuality) ? parsedQuality : 0,
+        index,
+      };
+    })
+    .filter(
+      (entry): entry is { locale: McpCatalogLocale; quality: number; index: number } =>
+        Boolean(entry.locale) && entry.quality > 0,
+    )
+    .sort((left, right) => right.quality - left.quality || left.index - right.index)[0]?.locale;
+
+  return negotiated ?? 'en';
+}
+
+function isJsonRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function mergeLocalizedSchemaCopy(base: unknown, localized: unknown): unknown {
+  if (!isJsonRecord(base) || !isJsonRecord(localized)) {
+    return base;
+  }
+
+  const merged: Record<string, unknown> = { ...base };
+
+  for (const [key, localizedValue] of Object.entries(localized)) {
+    if ((key === 'title' || key === 'description') && typeof localizedValue === 'string' && localizedValue.trim()) {
+      merged[key] = localizedValue;
+      continue;
+    }
+
+    if (key in base) {
+      merged[key] = mergeLocalizedSchemaCopy(base[key], localizedValue);
+    }
+  }
+
+  return merged;
+}
+
+/** Overlay translated labels only; validation rules and configuration keys always come from English. */
+export function localizeMcpConfigSchema(
+  configSchema: unknown,
+  configSchemaFr: unknown,
+  locale: McpCatalogLocale,
+): Record<string, unknown> {
+  const base = isJsonRecord(configSchema) ? configSchema : {};
+
+  return locale === 'fr' ? (mergeLocalizedSchemaCopy(base, configSchemaFr) as Record<string, unknown>) : base;
+}
 
 /**
  * Body for `PUT /mcp/config` — the manually-authored "Configuration" tab state
@@ -510,6 +621,7 @@ export interface CatalogFilter {
   verified?: boolean;
   limit: number;
   cursor?: string;
+  locale?: McpCatalogLocale;
 }
 
 export interface InstallInput {
@@ -518,20 +630,25 @@ export interface InstallInput {
   alias: string;
   config: Record<string, unknown>;
   organizationId?: string;
+  locale?: McpCatalogLocale;
 }
 
 export interface InstallPatch {
   id: string;
   userId: string;
   patch: { enabled?: boolean; alias?: string; config?: Record<string, unknown> };
+  locale?: McpCatalogLocale;
 }
 
 export interface AdminCatalogCreateInput {
   slug: string;
   name: string;
+  nameFr?: string | null;
   description: string;
+  descriptionFr?: string | null;
   domain: McpDomainKey;
   tags?: string[];
+  tagsFr?: string[];
   author: string;
   homepageUrl?: string | null;
   iconUrl?: string | null;
@@ -539,6 +656,7 @@ export interface AdminCatalogCreateInput {
   transport: McpTransportKey;
   configTemplate?: Record<string, unknown>;
   configSchema?: Record<string, unknown>;
+  configSchemaFr?: Record<string, unknown>;
   featured?: boolean;
   verified?: boolean;
   featuredForIdePanel?: boolean;
@@ -547,9 +665,12 @@ export interface AdminCatalogCreateInput {
 
 export interface AdminCatalogUpdateInput {
   name?: string;
+  nameFr?: string | null;
   description?: string;
+  descriptionFr?: string | null;
   domain?: McpDomainKey;
   tags?: string[];
+  tagsFr?: string[];
   author?: string;
   homepageUrl?: string | null;
   iconUrl?: string | null;
@@ -557,6 +678,7 @@ export interface AdminCatalogUpdateInput {
   transport?: McpTransportKey;
   configTemplate?: Record<string, unknown>;
   configSchema?: Record<string, unknown>;
+  configSchemaFr?: Record<string, unknown>;
   featured?: boolean;
   verified?: boolean;
   featuredForIdePanel?: boolean;
@@ -739,6 +861,7 @@ export class McpMarketplaceService {
     // matching getCatalogEntry (404s on disabled) and install (blocks disabled).
     // Admins still see everything via listCatalogForAdmin.
     const where: Record<string, unknown> = { enabled: true };
+    const locale = filter.locale ?? 'en';
 
     if (filter.domain) where.domain = filter.domain;
     if (filter.featured !== undefined) where.featured = filter.featured;
@@ -750,6 +873,13 @@ export class McpMarketplaceService {
         { name: { contains: filter.search, mode: 'insensitive' } },
         { description: { contains: filter.search, mode: 'insensitive' } },
         { tags: { has: filter.search.toLowerCase() } },
+        ...(locale === 'fr'
+          ? [
+              { nameFr: { contains: filter.search, mode: 'insensitive' } },
+              { descriptionFr: { contains: filter.search, mode: 'insensitive' } },
+              { tagsFr: { has: filter.search.toLowerCase() } },
+            ]
+          : []),
       ];
     }
 
@@ -761,12 +891,12 @@ export class McpMarketplaceService {
     });
 
     const hasMore = entries.length > filter.limit;
-    const items = entries.slice(0, filter.limit).map((entry) => this.toEntryView(entry));
+    const items = entries.slice(0, filter.limit).map((entry) => this.toEntryView(entry, locale));
 
     return { items, nextCursor: hasMore ? items[items.length - 1].id : null };
   }
 
-  async getCatalogEntry(slug: string): Promise<CatalogEntryView> {
+  async getCatalogEntry(slug: string, locale: McpCatalogLocale = 'en'): Promise<CatalogEntryView> {
     const entry = await this.deps.prisma.mcpCatalogEntry.findUnique({ where: { slug } });
 
     // A globally-disabled entry is treated as absent on the public read path.
@@ -774,7 +904,7 @@ export class McpMarketplaceService {
       throw new McpMarketplaceError('Catalog entry not found', 404, 'MCP_CATALOG_NOT_FOUND');
     }
 
-    return this.toEntryView(entry);
+    return this.toEntryView(entry, locale);
   }
 
   async install(input: InstallInput): Promise<InstallView> {
@@ -839,10 +969,14 @@ export class McpMarketplaceService {
       return created;
     });
 
-    return this.toInstallView(install);
+    return this.toInstallView(install, input.locale);
   }
 
-  async listInstalls(input: { userId: string; organizationId?: string }): Promise<InstallView[]> {
+  async listInstalls(input: {
+    userId: string;
+    organizationId?: string;
+    locale?: McpCatalogLocale;
+  }): Promise<InstallView[]> {
     const installs = await this.deps.prisma.mcpInstall.findMany({
       where: {
         userId: input.userId,
@@ -852,10 +986,10 @@ export class McpMarketplaceService {
       include: { catalogEntry: true },
     });
 
-    return installs.map((install) => this.toInstallView(install));
+    return installs.map((install) => this.toInstallView(install, input.locale));
   }
 
-  async getInstall(input: { id: string; userId: string }): Promise<InstallView> {
+  async getInstall(input: { id: string; userId: string; locale?: McpCatalogLocale }): Promise<InstallView> {
     const install = await this.deps.prisma.mcpInstall.findFirst({
       where: { id: input.id, userId: input.userId },
       include: { catalogEntry: true },
@@ -865,7 +999,7 @@ export class McpMarketplaceService {
       throw new McpMarketplaceError('Install not found', 404, 'MCP_INSTALL_NOT_FOUND');
     }
 
-    return this.toInstallView(install);
+    return this.toInstallView(install, input.locale);
   }
 
   async updateInstall(input: InstallPatch): Promise<InstallView> {
@@ -908,7 +1042,7 @@ export class McpMarketplaceService {
       include: { catalogEntry: true },
     });
 
-    return this.toInstallView(updated);
+    return this.toInstallView(updated, input.locale);
   }
 
   async uninstall(input: { id: string; userId: string }): Promise<{
@@ -1018,9 +1152,12 @@ export class McpMarketplaceService {
       data: {
         slug: input.slug,
         name: input.name,
+        nameFr: input.nameFr ?? null,
         description: input.description,
+        descriptionFr: input.descriptionFr ?? null,
         domain: input.domain,
         tags: input.tags ?? [],
+        tagsFr: input.tagsFr ?? [],
         author: input.author,
         homepageUrl: input.homepageUrl ?? null,
         iconUrl: input.iconUrl ?? null,
@@ -1028,6 +1165,7 @@ export class McpMarketplaceService {
         transport: input.transport,
         configTemplate: (input.configTemplate ?? {}) as never,
         configSchema: (input.configSchema ?? {}) as never,
+        configSchemaFr: (input.configSchemaFr ?? {}) as never,
         ...(input.featured !== undefined ? { featured: input.featured } : {}),
         ...(input.verified !== undefined ? { verified: input.verified } : {}),
         ...(input.featuredForIdePanel !== undefined ? { featuredForIdePanel: input.featuredForIdePanel } : {}),
@@ -1060,9 +1198,12 @@ export class McpMarketplaceService {
         where: { id },
         data: {
           ...(patch.name !== undefined ? { name: patch.name } : {}),
+          ...(patch.nameFr !== undefined ? { nameFr: patch.nameFr } : {}),
           ...(patch.description !== undefined ? { description: patch.description } : {}),
+          ...(patch.descriptionFr !== undefined ? { descriptionFr: patch.descriptionFr } : {}),
           ...(patch.domain !== undefined ? { domain: patch.domain } : {}),
           ...(patch.tags !== undefined ? { tags: patch.tags } : {}),
+          ...(patch.tagsFr !== undefined ? { tagsFr: patch.tagsFr } : {}),
           ...(patch.author !== undefined ? { author: patch.author } : {}),
           ...(patch.homepageUrl !== undefined ? { homepageUrl: patch.homepageUrl } : {}),
           ...(patch.iconUrl !== undefined ? { iconUrl: patch.iconUrl } : {}),
@@ -1070,6 +1211,7 @@ export class McpMarketplaceService {
           ...(patch.transport !== undefined ? { transport: patch.transport } : {}),
           ...(patch.configTemplate !== undefined ? { configTemplate: patch.configTemplate as never } : {}),
           ...(patch.configSchema !== undefined ? { configSchema: patch.configSchema as never } : {}),
+          ...(patch.configSchemaFr !== undefined ? { configSchemaFr: patch.configSchemaFr as never } : {}),
           ...(patch.featured !== undefined ? { featured: patch.featured } : {}),
           ...(patch.verified !== undefined ? { verified: patch.verified } : {}),
           ...(patch.featuredForIdePanel !== undefined ? { featuredForIdePanel: patch.featuredForIdePanel } : {}),
@@ -1306,41 +1448,48 @@ export class McpMarketplaceService {
     return this.getGlobalPolicy();
   }
 
-  private toEntryView = (entry: {
-    id: string;
-    slug: string;
-    name: string;
-    description: string;
-    domain: string;
-    tags: string[];
-    author: string;
-    homepageUrl: string | null;
-    iconUrl: string | null;
-    version: string;
-    transport: string;
-    configTemplate: unknown;
-    configSchema: unknown;
-    installCount: number;
-    featured: boolean;
-    verified: boolean;
-    featuredForIdePanel?: boolean;
-    enabled?: boolean;
-    publishedAt: Date;
-    updatedAt: Date;
-  }): CatalogEntryView => ({
+  private toEntryView = (
+    entry: {
+      id: string;
+      slug: string;
+      name: string;
+      nameFr: string | null;
+      description: string;
+      descriptionFr: string | null;
+      domain: string;
+      tags: string[];
+      tagsFr: string[];
+      author: string;
+      homepageUrl: string | null;
+      iconUrl: string | null;
+      version: string;
+      transport: string;
+      configTemplate: unknown;
+      configSchema: unknown;
+      configSchemaFr: unknown;
+      installCount: number;
+      featured: boolean;
+      verified: boolean;
+      featuredForIdePanel?: boolean;
+      enabled?: boolean;
+      publishedAt: Date;
+      updatedAt: Date;
+    },
+    locale: McpCatalogLocale = 'en',
+  ): CatalogEntryView => ({
     id: entry.id,
     slug: entry.slug,
-    name: entry.name,
-    description: entry.description,
+    name: locale === 'fr' && entry.nameFr?.trim() ? entry.nameFr : entry.name,
+    description: locale === 'fr' && entry.descriptionFr?.trim() ? entry.descriptionFr : entry.description,
     domain: entry.domain as McpDomainKey,
-    tags: entry.tags,
+    tags: locale === 'fr' && entry.tagsFr.length > 0 ? entry.tagsFr : entry.tags,
     author: entry.author,
     homepageUrl: entry.homepageUrl,
     iconUrl: entry.iconUrl,
     version: entry.version,
     transport: entry.transport as McpTransportKey,
     configTemplate: (entry.configTemplate ?? {}) as Record<string, unknown>,
-    configSchema: (entry.configSchema ?? {}) as Record<string, unknown>,
+    configSchema: localizeMcpConfigSchema(entry.configSchema, entry.configSchemaFr, locale),
     installCount: entry.installCount,
     featured: entry.featured,
     verified: entry.verified,
@@ -1350,21 +1499,24 @@ export class McpMarketplaceService {
     updatedAt: entry.updatedAt.toISOString(),
   });
 
-  private toInstallView = (install: {
-    id: string;
-    alias: string;
-    enabled: boolean;
-    configJson: unknown;
-    organizationId: string | null;
-    installedAt: Date;
-    updatedAt: Date;
-    catalogEntry: Parameters<McpMarketplaceService['toEntryView']>[0];
-  }): InstallView => ({
+  private toInstallView = (
+    install: {
+      id: string;
+      alias: string;
+      enabled: boolean;
+      configJson: unknown;
+      organizationId: string | null;
+      installedAt: Date;
+      updatedAt: Date;
+      catalogEntry: Parameters<McpMarketplaceService['toEntryView']>[0];
+    },
+    locale: McpCatalogLocale = 'en',
+  ): InstallView => ({
     id: install.id,
     alias: install.alias,
     enabled: install.enabled,
     configJson: (install.configJson ?? {}) as Record<string, unknown>,
-    catalogEntry: this.toEntryView(install.catalogEntry),
+    catalogEntry: this.toEntryView(install.catalogEntry, locale),
     installedAt: install.installedAt.toISOString(),
     updatedAt: install.updatedAt.toISOString(),
     organizationId: install.organizationId,

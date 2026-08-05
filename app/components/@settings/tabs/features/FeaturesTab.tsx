@@ -1,6 +1,7 @@
 // Remove unused imports
 import { motion } from 'framer-motion';
 import React, { memo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { Switch } from '~/components/ui/Switch';
 import { PromptLibrary } from '~/lib/common/prompt-library';
@@ -27,44 +28,56 @@ const FeatureCard = memo(
     feature: FeatureToggle;
     index: number;
     onToggle: (id: string, enabled: boolean) => void;
-  }) => (
-    <motion.div
-      key={feature.id}
-      layoutId={feature.id}
-      className={classNames(
-        'relative group cursor-pointer',
-        'bg-bolt-elements-background-depth-2',
-        'hover:bg-bolt-elements-background-depth-3',
-        'transition-colors duration-200',
-        'rounded-lg overflow-hidden',
-      )}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1 }}
-    >
-      <div className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className={classNames(feature.icon, 'w-5 h-5 text-bolt-elements-textSecondary')} />
-            <div className="flex items-center gap-2">
-              <h4 className="font-medium text-bolt-elements-textPrimary">{feature.title}</h4>
-              {feature.beta && (
-                <span className="px-2 py-0.5 text-xs rounded-full bg-blue-500/10 text-blue-500 font-medium">Beta</span>
-              )}
-              {feature.experimental && (
-                <span className="px-2 py-0.5 text-xs rounded-full bg-orange-500/10 text-orange-500 font-medium">
-                  Experimental
-                </span>
-              )}
+  }) => {
+    const { t } = useTranslation();
+
+    return (
+      <motion.div
+        key={feature.id}
+        layoutId={feature.id}
+        className={classNames(
+          'relative group cursor-pointer',
+          'bg-bolt-elements-background-depth-2',
+          'hover:bg-bolt-elements-background-depth-3',
+          'transition-colors duration-200',
+          'rounded-lg overflow-hidden',
+        )}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.1 }}
+      >
+        <div className="p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex min-w-0 items-start gap-3">
+              <div className={classNames(feature.icon, 'h-5 w-5 shrink-0 text-bolt-elements-textSecondary')} />
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <h4 className="break-words font-medium text-bolt-elements-textPrimary">{feature.title}</h4>
+                {feature.beta && (
+                  <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-500">
+                    {t('featuresSettings.badge.beta')}
+                  </span>
+                )}
+                {feature.experimental && (
+                  <span className="px-2 py-0.5 text-xs rounded-full bg-orange-500/10 text-orange-500 font-medium">
+                    {t('featuresSettings.badge.experimental')}
+                  </span>
+                )}
+              </div>
             </div>
+            <Switch
+              checked={feature.enabled}
+              aria-label={t('featuresSettings.toggleAria', { feature: feature.title })}
+              onCheckedChange={(checked) => onToggle(feature.id, checked)}
+            />
           </div>
-          <Switch checked={feature.enabled} onCheckedChange={(checked) => onToggle(feature.id, checked)} />
+          <p className="mt-2 break-words text-sm text-bolt-elements-textSecondary">{feature.description}</p>
+          {feature.tooltip && (
+            <p className="mt-1 break-words text-xs text-bolt-elements-textTertiary">{feature.tooltip}</p>
+          )}
         </div>
-        <p className="mt-2 text-sm text-bolt-elements-textSecondary">{feature.description}</p>
-        {feature.tooltip && <p className="mt-1 text-xs text-bolt-elements-textTertiary">{feature.tooltip}</p>}
-      </div>
-    </motion.div>
-  ),
+      </motion.div>
+    );
+  },
 );
 
 const FeatureSection = memo(
@@ -106,6 +119,8 @@ const FeatureSection = memo(
 );
 
 export default function FeaturesTab() {
+  const { t } = useTranslation();
+
   const {
     autoSelectTemplate,
     isLatestBranch,
@@ -148,25 +163,45 @@ export default function FeaturesTab() {
       switch (id) {
         case 'latestBranch': {
           enableLatestBranch(enabled);
-          toast.success(`Main branch updates ${enabled ? 'enabled' : 'disabled'}`);
+          toast.success(
+            t('featuresSettings.toast.state', {
+              feature: t('featuresSettings.latestBranch.title'),
+              state: t(enabled ? 'featuresSettings.state.enabled' : 'featuresSettings.state.disabled'),
+            }),
+          );
           break;
         }
 
         case 'autoSelectTemplate': {
           setAutoSelectTemplate(enabled);
-          toast.success(`Auto select template ${enabled ? 'enabled' : 'disabled'}`);
+          toast.success(
+            t('featuresSettings.toast.state', {
+              feature: t('featuresSettings.autoTemplate.title'),
+              state: t(enabled ? 'featuresSettings.state.enabled' : 'featuresSettings.state.disabled'),
+            }),
+          );
           break;
         }
 
         case 'contextOptimization': {
           enableContextOptimization(enabled);
-          toast.success(`Context optimization ${enabled ? 'enabled' : 'disabled'}`);
+          toast.success(
+            t('featuresSettings.toast.state', {
+              feature: t('featuresSettings.context.title'),
+              state: t(enabled ? 'featuresSettings.state.enabled' : 'featuresSettings.state.disabled'),
+            }),
+          );
           break;
         }
 
         case 'eventLogs': {
           setEventLogs(enabled);
-          toast.success(`Event logging ${enabled ? 'enabled' : 'disabled'}`);
+          toast.success(
+            t('featuresSettings.toast.state', {
+              feature: t('featuresSettings.eventLogs.title'),
+              state: t(enabled ? 'featuresSettings.state.enabled' : 'featuresSettings.state.disabled'),
+            }),
+          );
           break;
         }
 
@@ -174,42 +209,42 @@ export default function FeaturesTab() {
           break;
       }
     },
-    [enableLatestBranch, setAutoSelectTemplate, enableContextOptimization, setEventLogs],
+    [enableLatestBranch, setAutoSelectTemplate, enableContextOptimization, setEventLogs, t],
   );
 
   const features = {
     stable: [
       {
         id: 'latestBranch',
-        title: 'Main Branch Updates',
-        description: 'Get the latest updates from the main branch',
+        title: t('featuresSettings.latestBranch.title'),
+        description: t('featuresSettings.latestBranch.description'),
         icon: 'i-ph:git-branch',
         enabled: isLatestBranch,
-        tooltip: 'Enabled by default to receive updates from the main development branch',
+        tooltip: t('featuresSettings.latestBranch.tooltip'),
       },
       {
         id: 'autoSelectTemplate',
-        title: 'Auto Select Template',
-        description: 'Automatically select starter template',
+        title: t('featuresSettings.autoTemplate.title'),
+        description: t('featuresSettings.autoTemplate.description'),
         icon: 'i-ph:selection',
         enabled: autoSelectTemplate,
-        tooltip: 'Enabled by default to automatically select the most appropriate starter template',
+        tooltip: t('featuresSettings.autoTemplate.tooltip'),
       },
       {
         id: 'contextOptimization',
-        title: 'Context Optimization',
-        description: 'Optimize context for better responses',
+        title: t('featuresSettings.context.title'),
+        description: t('featuresSettings.context.description'),
         icon: 'i-ph:brain',
         enabled: contextOptimizationEnabled,
-        tooltip: 'Enabled by default for improved AI responses',
+        tooltip: t('featuresSettings.context.tooltip'),
       },
       {
         id: 'eventLogs',
-        title: 'Event Logging',
-        description: 'Enable detailed event logging and history',
+        title: t('featuresSettings.eventLogs.title'),
+        description: t('featuresSettings.eventLogs.description'),
         icon: 'i-ph:list-bullets',
         enabled: eventLogs,
-        tooltip: 'Enabled by default to record detailed logs of system events and user actions',
+        tooltip: t('featuresSettings.eventLogs.tooltip'),
       },
     ],
     beta: [],
@@ -218,19 +253,19 @@ export default function FeaturesTab() {
   return (
     <div className="flex flex-col gap-8">
       <FeatureSection
-        title="Core Features"
+        title={t('featuresSettings.core.title')}
         features={features.stable}
         icon="i-ph:check-circle"
-        description="Essential features that are enabled by default for optimal performance"
+        description={t('featuresSettings.core.description')}
         onToggleFeature={handleToggleFeature}
       />
 
       {features.beta.length > 0 && (
         <FeatureSection
-          title="Beta Features"
+          title={t('featuresSettings.beta.title')}
           features={features.beta}
           icon="i-ph:test-tube"
-          description="New features that are ready for testing but may have some rough edges"
+          description={t('featuresSettings.beta.description')}
           onToggleFeature={handleToggleFeature}
         />
       )}
@@ -248,7 +283,7 @@ export default function FeaturesTab() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
       >
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
           <div
             className={classNames(
               'p-2 rounded-lg text-xl',
@@ -259,23 +294,23 @@ export default function FeaturesTab() {
           >
             <div className="i-ph:book" />
           </div>
-          <div className="flex-1">
-            <h4 className="text-sm font-medium text-bolt-elements-textPrimary group-hover:text-[var(--vc-ide-accent-action)] transition-colors">
-              Prompt Library
+          <div className="min-w-0 flex-1">
+            <h4 className="break-words text-sm font-medium text-bolt-elements-textPrimary transition-colors group-hover:text-[var(--vc-ide-accent-action)]">
+              {t('featuresSettings.prompt.title')}
             </h4>
-            <p className="text-xs text-bolt-elements-textSecondary mt-0.5">
-              Choose a prompt from the library to use as the system prompt
+            <p className="mt-0.5 break-words text-xs text-bolt-elements-textSecondary">
+              {t('featuresSettings.prompt.description')}
             </p>
           </div>
           <select
-            aria-label="Prompt library"
+            aria-label={t('featuresSettings.prompt.aria')}
             value={promptId}
             onChange={(e) => {
               setPromptId(e.target.value);
-              toast.success('Prompt template updated');
+              toast.success(t('featuresSettings.prompt.updated'));
             }}
             className={classNames(
-              'p-2 rounded-lg text-sm min-w-[min(200px,100%)] max-w-full',
+              'w-full min-w-0 max-w-full rounded-lg p-2 text-sm sm:w-auto sm:min-w-[min(200px,100%)]',
               'bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor',
               'text-bolt-elements-textPrimary',
               'focus:outline-none focus:ring-2 focus:ring-[var(--vc-ide-focus-ring)]',
@@ -285,7 +320,7 @@ export default function FeaturesTab() {
           >
             {PromptLibrary.getList().map((x) => (
               <option key={x.id} value={x.id}>
-                {x.label}
+                {t(`featuresSettings.prompt.${x.id}`)}
               </option>
             ))}
           </select>

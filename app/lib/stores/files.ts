@@ -3,6 +3,7 @@ import type { FileChange, FileNode, RuntimeAdapter } from '@vibecore/runtime-con
 import { map, type MapStore } from 'nanostores';
 import { resolveContentlessCreate } from './files.watch-create';
 import { reconcileRemoteWrite } from './reconcile-remote-write';
+import { clientStoresServicesText } from '~/lib/i18n/catalogs/client-stores-services';
 import {
   addLockedFile,
   removeLockedFile,
@@ -766,7 +767,7 @@ export class FilesStore {
       const relativePath = this.#toRuntimePath(filePath);
 
       if (!relativePath) {
-        throw new Error(`EINVAL: invalid file path, write '${relativePath}'`);
+        throw new Error(clientStoresServicesText('clientStores.files.invalidFileWrite', { path: filePath }));
       }
 
       const oldContent = this.getFile(filePath)?.content;
@@ -819,7 +820,7 @@ export class FilesStore {
            * failing with a stack of "Remote file changed since it was loaded".
            */
           if (options?.onRemoteConflict !== 'reconcile') {
-            throw new Error(`Remote file changed since it was loaded: ${filePath}`);
+            throw new Error(clientStoresServicesText('clientStores.files.remoteChanged', { path: filePath }));
           }
 
           effectiveContent = reconcileRemoteWrite(filePath, remoteContent, content);
@@ -1213,7 +1214,7 @@ export class FilesStore {
       const relativePath = this.#toRuntimePath(filePath);
 
       if (!relativePath) {
-        throw new Error(`EINVAL: invalid file path, create '${relativePath}'`);
+        throw new Error(clientStoresServicesText('clientStores.files.invalidFileCreate', { path: filePath }));
       }
 
       /*
@@ -1312,7 +1313,7 @@ export class FilesStore {
       const relativePath = this.#toRuntimePath(folderPath);
 
       if (!relativePath) {
-        throw new Error(`EINVAL: invalid folder path, create '${relativePath}'`);
+        throw new Error(clientStoresServicesText('clientStores.files.invalidFolderCreate', { path: folderPath }));
       }
 
       await this.#runtime.createDirectory(relativePath);
@@ -1335,7 +1336,7 @@ export class FilesStore {
       const relativePath = this.#toRuntimePath(filePath);
 
       if (!relativePath) {
-        throw new Error(`EINVAL: invalid file path, delete '${relativePath}'`);
+        throw new Error(clientStoresServicesText('clientStores.files.invalidFileDelete', { path: filePath }));
       }
 
       await this.#runtime.deleteFile(relativePath);
@@ -1375,7 +1376,7 @@ export class FilesStore {
       const relativePath = this.#toRuntimePath(folderPath);
 
       if (!relativePath) {
-        throw new Error(`EINVAL: invalid folder path, delete '${relativePath}'`);
+        throw new Error(clientStoresServicesText('clientStores.files.invalidFolderDelete', { path: folderPath }));
       }
 
       await this.#runtime.deleteFile(relativePath);

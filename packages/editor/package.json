@@ -4,7 +4,7 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "build": "tsc --outDir dist --rootDir src --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --jsx react-jsx --strict true src/index.ts",
+    "build": "tsc --outDir dist --rootDir src --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --jsx react-jsx --strict true src/index.ts src/monaco-editor-ambient.d.ts",
     "test": "vitest --run",
     "typecheck": "tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --jsx react-jsx --strict true --skipLibCheck true src/index.ts src/index.spec.ts src/mobile-editor.spec.tsx src/monaco-editor-ambient.d.ts",
     "lint": "pnpm run typecheck"

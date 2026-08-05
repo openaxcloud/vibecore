@@ -3,6 +3,8 @@ import { create } from 'zustand';
 import { toggleTheme } from './theme';
 import { DEFAULT_TAB_CONFIG } from '~/components/@settings/core/constants';
 import type { TabVisibilityConfig, TabWindowConfig, UserTabConfig } from '~/components/@settings/core/types';
+import { getClientRuntimeResidualCopy } from '~/lib/i18n/catalogs/client-runtime-residual';
+import { getI18nInstance } from '~/lib/i18n/runtime';
 import type { IProviderConfig } from '~/types/model';
 import { PROVIDER_LIST } from '~/utils/constants';
 
@@ -28,6 +30,14 @@ export const LOCAL_PROVIDERS = ['OpenAILike', 'LMStudio', 'Ollama'];
 
 export type ProviderSetting = Record<string, IProviderConfig>;
 
+const shortcutI18n = getI18nInstance();
+
+function getShortcutCopy() {
+  return getClientRuntimeResidualCopy(shortcutI18n.resolvedLanguage ?? shortcutI18n.language);
+}
+
+const initialShortcutCopy = getShortcutCopy();
+
 // Simplified shortcuts store with only theme toggle
 export const shortcutsStore = map<Shortcuts>({
   toggleTheme: {
@@ -36,7 +46,7 @@ export const shortcutsStore = map<Shortcuts>({
     altKey: true,
     shiftKey: true,
     action: () => toggleTheme(),
-    description: 'Toggle theme',
+    description: initialShortcutCopy['clientRuntime.shortcuts.toggleTheme'],
     isPreventDefault: true,
   },
   toggleTerminal: {
@@ -45,9 +55,23 @@ export const shortcutsStore = map<Shortcuts>({
     action: () => {
       // This will be handled by the terminal component
     },
-    description: 'Toggle terminal',
+    description: initialShortcutCopy['clientRuntime.shortcuts.toggleTerminal'],
     isPreventDefault: true,
   },
+});
+
+shortcutI18n.on('languageChanged', () => {
+  const copy = getShortcutCopy();
+  const current = shortcutsStore.get();
+
+  shortcutsStore.setKey('toggleTheme', {
+    ...current.toggleTheme,
+    description: copy['clientRuntime.shortcuts.toggleTheme'],
+  });
+  shortcutsStore.setKey('toggleTerminal', {
+    ...current.toggleTerminal,
+    description: copy['clientRuntime.shortcuts.toggleTerminal'],
+  });
 });
 
 // Create a single key for provider settings
@@ -70,7 +94,7 @@ const fetchConfiguredProviders = async (): Promise<ConfiguredProvider[]> => {
     const response = await fetch('/api/configured-providers');
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      throw Object.assign(new Error(), { code: 'CONFIGURED_PROVIDERS_HTTP_ERROR', status: response.status });
     }
 
     const data = (await response.json()) as { providers?: ConfiguredProvider[] };

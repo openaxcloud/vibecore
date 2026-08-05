@@ -1,7 +1,9 @@
 import { useStore } from '@nanostores/react';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
+import { useTranslation } from 'react-i18next';
 import WithTooltip from '~/components/ui/Tooltip';
 import { useEditChatDescription } from '~/lib/hooks';
+import { getClientRuntimeResidualCopy } from '~/lib/i18n/catalogs/client-runtime-residual';
 import { description as descriptionStore } from '~/lib/persistence';
 
 /**
@@ -19,6 +21,9 @@ export function computeChatTitleInputWidth(length: number): number {
 }
 
 export function ChatDescription() {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getClientRuntimeResidualCopy(language);
   const initialDescription = useStore(descriptionStore)!;
 
   const { editing, handleChange, handleBlur, handleSubmit, handleKeyDown, currentDescription, toggleEditMode } =
@@ -35,11 +40,11 @@ export function ChatDescription() {
   return (
     <div className="flex items-center justify-center max-w-full min-w-0">
       {editing ? (
-        <form onSubmit={handleSubmit} className="flex items-center justify-center max-w-full min-w-0">
+        <form onSubmit={handleSubmit} className="flex max-w-full min-w-0 items-center justify-center gap-2">
           <input
             type="text"
-            aria-label="Chat title"
-            className="bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary rounded px-2 mr-2 w-fit max-w-full min-w-0"
+            aria-label={copy['clientRuntime.chatTitle.inputLabel']}
+            className="bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary w-fit max-w-full min-w-0 rounded px-2"
             autoFocus
             value={currentDescription}
             onChange={handleChange}
@@ -48,15 +53,13 @@ export function ChatDescription() {
             style={{ width: `${computeChatTitleInputWidth(currentDescription.length)}px` }}
           />
           <TooltipProvider>
-            <WithTooltip tooltip="Save title">
-              <div className="flex justify-between items-center p-2 rounded-md bg-bolt-elements-item-backgroundAccent">
-                <button
-                  type="submit"
-                  aria-label="Save title"
-                  className="i-ph:check-bold scale-110 hover:text-bolt-elements-item-contentAccent"
-                  onMouseDown={(event) => event.preventDefault()}
-                />
-              </div>
+            <WithTooltip tooltip={copy['clientRuntime.chatTitle.save']}>
+              <button
+                type="submit"
+                aria-label={copy['clientRuntime.chatTitle.save']}
+                className="i-ph:check-bold min-h-11 min-w-11 shrink-0 rounded-md bg-bolt-elements-item-backgroundAccent hover:text-bolt-elements-item-contentAccent"
+                onMouseDown={(event) => event.preventDefault()}
+              />
             </WithTooltip>
           </TooltipProvider>
         </form>
@@ -64,11 +67,11 @@ export function ChatDescription() {
         <>
           {currentDescription}
           <TooltipProvider>
-            <WithTooltip tooltip="Rename chat">
+            <WithTooltip tooltip={copy['clientRuntime.chatTitle.rename']}>
               <button
                 type="button"
-                aria-label="Rename chat"
-                className="ml-2 i-ph:pencil-fill scale-110 hover:text-bolt-elements-item-contentAccent"
+                aria-label={copy['clientRuntime.chatTitle.rename']}
+                className="i-ph:pencil-fill ml-1 min-h-11 min-w-11 shrink-0 rounded-md hover:text-bolt-elements-item-contentAccent"
                 onClick={(event) => {
                   event.preventDefault();
                   toggleEditMode();

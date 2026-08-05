@@ -21,6 +21,39 @@ import {
 import type * as MonacoTypes from 'monaco-editor';
 import { createElement, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 
+import { formatEditorCopy, getEditorCopy, type EditorCopy } from './editor-copy.js';
+
+function readEditorUiLanguage(): string {
+  if (typeof document !== 'undefined' && document.documentElement.lang) {
+    return document.documentElement.lang;
+  }
+
+  return typeof navigator !== 'undefined' ? navigator.language : 'en';
+}
+
+function useEditorUiCopy(): EditorCopy {
+  const [language, setLanguage] = useState(readEditorUiLanguage);
+
+  useEffect(() => {
+    const updateLanguage = () => setLanguage(readEditorUiLanguage());
+    const root = typeof document !== 'undefined' ? document.documentElement : undefined;
+    const observer = root && typeof MutationObserver !== 'undefined' ? new MutationObserver(updateLanguage) : undefined;
+
+    if (observer && root) {
+      observer.observe(root, { attributes: true, attributeFilter: ['lang'] });
+    }
+
+    window.addEventListener('vibecore:language-change', updateLanguage);
+
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('vibecore:language-change', updateLanguage);
+    };
+  }, []);
+
+  return getEditorCopy(language);
+}
+
 export type EditorBreakpoint = 'desktop' | 'tablet-landscape' | 'tablet-portrait' | 'mobile';
 export type EditorKind = 'monaco' | 'codemirror';
 
@@ -626,6 +659,7 @@ export function findRenameMatches(contents: string, word: string, languageOrPath
 
 function installWorkspaceSemanticProviders(
   monaco: typeof import('monaco-editor/esm/vs/editor/editor.api'),
+  copy: EditorCopy,
   sources: {
     getCurrentValue: () => string;
     getCurrentFilePath: () => string | undefined;
@@ -728,7 +762,7 @@ function installWorkspaceSemanticProviders(
 
         suggestions.push(
           {
-            label: 'React component',
+            label: copy.reactComponent,
             kind: monaco.languages.CompletionItemKind.Snippet,
             insertText: [
               'export function ${1:ComponentName}() {',
@@ -741,16 +775,16 @@ function installWorkspaceSemanticProviders(
             ].join('\n'),
             insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
             range,
-            detail: 'Vibecore snippet',
+            detail: copy.snippetDetail,
             sortText: '1_react_component',
           },
           {
-            label: 'async function',
+            label: copy.asyncFunction,
             kind: monaco.languages.CompletionItemKind.Snippet,
             insertText: ['async function ${1:name}(${2:input}) {', '  ${3:return input;}', '}'].join('\n'),
             insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
             range,
-            detail: 'Vibecore snippet',
+            detail: copy.snippetDetail,
             sortText: '1_async_function',
           },
         );
@@ -889,7 +923,7 @@ function installWorkspaceSemanticProviders(
                 id: `${symbol.name}:refs`,
                 command: {
                   id: 'editor.action.goToReferences',
-                  title: 'Find references',
+                  title: copy.findReferences,
                   arguments: [model.uri, { lineNumber: symbol.line, column: symbol.column }],
                 },
               },
@@ -931,6 +965,7 @@ export function DesktopCodeEditor({
   onChange,
   onSave,
 }: EditorAdapterProps) {
+  const copy = useEditorUiCopy();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<MonacoTypes.editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<typeof import('monaco-editor/esm/vs/editor/editor.api') | null>(null);
@@ -1123,30 +1158,30 @@ export function DesktopCodeEditor({
         });
         editor.addAction({
           id: 'vibecore.rename-symbol',
-          label: 'Rename Symbol',
+          label: copy.renameSymbol,
           keybindings: [monaco.KeyCode.F2],
           run: (activeEditor) => activeEditor.getAction('editor.action.rename')?.run(),
         });
         editor.addAction({
           id: 'vibecore.find-references',
-          label: 'Find References',
+          label: copy.findReferences,
           keybindings: [monaco.KeyMod.Shift | monaco.KeyCode.F12],
           run: (activeEditor) => activeEditor.getAction('editor.action.goToReferences')?.run(),
         });
         editor.addAction({
           id: 'vibecore.go-to-definition',
-          label: 'Go to Definition',
+          label: copy.goToDefinition,
           keybindings: [monaco.KeyCode.F12],
           run: (activeEditor) => activeEditor.getAction('editor.action.revealDefinition')?.run(),
         });
         editor.addAction({
           id: 'vibecore.refactor',
-          label: 'Refactor...',
+          label: copy.refactor,
           keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyR],
           run: (activeEditor) => activeEditor.getAction('editor.action.refactor')?.run(),
         });
 
-        const providerDisposables = installWorkspaceSemanticProviders(monaco, {
+        const providerDisposables = installWorkspaceSemanticProviders(monaco, copy, {
           getCurrentValue: () => valueRef.current,
           getCurrentFilePath: () => filePathRef.current,
           getProjectFiles: () => projectFilesRef.current,
@@ -1191,7 +1226,7 @@ export function DesktopCodeEditor({
 
       ownedWorkspaceModelsRef.current.clear();
     };
-  }, []);
+  }, [copy]);
 
   useEffect(() => {
     const editor = editorRef.current;
@@ -1893,13 +1928,20 @@ export function TouchSymbolToolbar({
   symbols = ['{', '}', '(', ')', '[', ']', '<', '>', '/', '\\', '=', ':', ';', '.', ',', '"', "'", '`', '|', '&'],
   children,
 }: TouchSymbolToolbarProps) {
+  const copy = useEditorUiCopy();
+
   return createElement(
     'div',
-    { className: 'vc-touch-symbol-toolbar', role: 'toolbar', 'aria-label': 'Coding symbols' },
+    { className: 'vc-touch-symbol-toolbar', role: 'toolbar', 'aria-label': copy.codingSymbols },
     ...symbols.map((symbol) =>
       createElement(
         'button',
-        { key: symbol, type: 'button', onClick: () => onInsert(symbol), 'aria-label': `Insert ${symbol}` },
+        {
+          key: symbol,
+          type: 'button',
+          onClick: () => onInsert(symbol),
+          'aria-label': formatEditorCopy(copy.insertSymbol, { symbol }),
+        },
         symbol,
       ),
     ),

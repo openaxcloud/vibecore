@@ -1,3 +1,4 @@
+import { clientStoresServicesText } from '~/lib/i18n/catalogs/client-stores-services';
 import type {
   ActionType,
   BoltAction,
@@ -572,7 +573,11 @@ export class StreamingMessageParser {
 
       if (!operation || !['migration', 'query'].includes(operation)) {
         logger.warn(`Invalid or missing operation for Supabase action: ${operation}`);
-        throw new Error(`Invalid Supabase operation: ${operation}`);
+        throw new Error(
+          clientStoresServicesText('clientRuntime.messageParser.supabaseOperationInvalid', {
+            operation: operation || clientStoresServicesText('clientRuntime.messageParser.operationUnknown'),
+          }),
+        );
       }
 
       (actionAttributes as SupabaseAction).operation = operation as 'migration' | 'query';
@@ -582,7 +587,7 @@ export class StreamingMessageParser {
 
         if (!filePath) {
           logger.warn('Migration requires a filePath');
-          throw new Error('Migration requires a filePath');
+          throw new Error(clientStoresServicesText('clientRuntime.messageParser.migrationPathRequired'));
         }
 
         (actionAttributes as SupabaseAction).filePath = filePath;

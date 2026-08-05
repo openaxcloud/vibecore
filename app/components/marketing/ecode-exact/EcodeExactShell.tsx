@@ -19,6 +19,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useFetcher } from 'react-router';
 import { Badge, Button, cn, Link, useMarketingNavigate, useWouterLocation } from './EcodeExactUi';
 import { publicChromeUserChoseDark, resolvePublicChromeTheme } from './ecode-public-theme';
@@ -36,6 +37,7 @@ import {
   type MarketingShellSocialId,
 } from './marketing-shell.copy';
 import { getThemeSwitcherPresentation } from './theme-switcher-presentation';
+import { LanguageSwitch } from '~/components/i18n/LanguageSwitch';
 import {
   persistAnnouncementDismissed,
   readAnnouncementDismissed,
@@ -43,7 +45,7 @@ import {
 import { CloseButton } from '~/components/ui/CloseButton';
 import { ScrollArea } from '~/components/ui/ScrollArea';
 import { SkipLink } from '~/components/ui/SkipLink';
-import type { SupportedLanguage } from '~/lib/i18n/language';
+import { normalizeSupportedLanguage, type SupportedLanguage } from '~/lib/i18n/language';
 import { applyThemeToDocument, kTheme, resolveInitialTheme, themeStore, toggleTheme } from '~/lib/stores/theme';
 import type { Theme } from '~/lib/stores/theme';
 import { readThemeCookie } from '~/lib/stores/theme-cookie';
@@ -95,6 +97,7 @@ function createFooterLinks(copy: MarketingShellCopy, section: MarketingShellFoot
 }
 
 const ECODE_PUBLIC_ROOT_FONT_SIZE = '16px';
+const ECODE_BRAND_NAME = 'E-Code';
 
 let publicThemeWasManuallyChanged = false;
 
@@ -175,25 +178,28 @@ function useHomepagePublicChrome() {
 
 export function EcodeExactPublicShell({
   children,
-  language = 'en',
+  language,
 }: {
   children: React.ReactNode;
   language?: SupportedLanguage;
 }) {
   useHomepagePublicChrome();
 
-  const copy = MARKETING_SHELL_COPY[language];
-  const direction = language === 'ar' ? 'rtl' : 'ltr';
+  const { i18n } = useTranslation();
+  const activeLanguage = language ?? normalizeSupportedLanguage(i18n.resolvedLanguage ?? i18n.language) ?? 'en';
+
+  const copy = MARKETING_SHELL_COPY[activeLanguage];
+  const direction = activeLanguage === 'ar' ? 'rtl' : 'ltr';
 
   return (
     <div
       className="min-h-screen flex flex-col bg-background text-foreground"
       data-ecode-static-shell
-      lang={language}
+      lang={activeLanguage}
       dir={direction}
     >
       <SkipLink label={copy.a11y.skipToContent} />
-      <EcodeExactPublicNavbar copy={copy} language={language} />
+      <EcodeExactPublicNavbar copy={copy} language={activeLanguage} />
       <div id="main-content" tabIndex={-1} className="flex flex-1 flex-col outline-none">
         {children}
       </div>
@@ -212,10 +218,10 @@ export function EcodeLogo({
   showText?: boolean;
 }) {
   const sizeMap = {
-    xs: { icon: 'h-6 w-6', text: 'text-base' },
-    sm: { icon: 'h-7 w-7', text: 'text-[15px]' },
-    md: { icon: 'h-9 w-9', text: 'text-xl' },
-    lg: { icon: 'h-11 w-11', text: 'text-2xl' },
+    xs: { iconClassName: 'h-6 w-6', textClassName: 'text-base' },
+    sm: { iconClassName: 'h-7 w-7', textClassName: 'text-[15px]' },
+    md: { iconClassName: 'h-9 w-9', textClassName: 'text-xl' },
+    lg: { iconClassName: 'h-11 w-11', textClassName: 'text-2xl' },
   } as const;
 
   const resolvedSize = sizeMap[size] ?? sizeMap.md;
@@ -223,7 +229,7 @@ export function EcodeLogo({
   return (
     <div dir="ltr" className={cn('flex flex-row items-center gap-2 flex-nowrap whitespace-nowrap', className)}>
       <svg
-        className={cn(resolvedSize.icon, 'shrink-0')}
+        className={cn(resolvedSize.iconClassName, 'shrink-0')}
         viewBox="0 0 40 40"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
@@ -244,18 +250,21 @@ export function EcodeLogo({
           </linearGradient>
         </defs>
       </svg>
-      {showText ? <span className={cn('font-bold', resolvedSize.text)}>E-Code</span> : null}
+      {showText ? <span className={cn('font-bold', resolvedSize.textClassName)}>{ECODE_BRAND_NAME}</span> : null}
     </div>
   );
 }
 
 export function EcodeExactPublicNavbar({
-  copy = MARKETING_SHELL_COPY.en,
-  language = 'en',
+  copy: copyOverride,
+  language: languageOverride,
 }: {
   copy?: MarketingShellCopy;
   language?: SupportedLanguage;
 } = {}) {
+  const { i18n } = useTranslation();
+  const language = languageOverride ?? normalizeSupportedLanguage(i18n.resolvedLanguage ?? i18n.language) ?? 'en';
+  const copy = copyOverride ?? MARKETING_SHELL_COPY[language];
   const navigate = useMarketingNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const productItems = createMenuItems(copy, 'product');
@@ -408,6 +417,7 @@ export function EcodeExactPublicNavbar({
 
             <div className="flex items-center gap-2 sm:gap-4">
               <ThemeSwitcher copy={copy} />
+              <LanguageSwitch />
               <Button
                 variant="ghost"
                 className="text-[var(--ecode-text)] dark:text-slate-200 hover:text-[var(--ecode-accent-text)] dark:hover:text-white !min-h-11 px-3 sm:px-4"
@@ -690,7 +700,7 @@ function NavPill({ href, children }: { href: string; children: React.ReactNode }
 function ThemeSwitcher({ copy }: { copy: MarketingShellCopy }) {
   const resolvedTheme = useStore(themeStore);
   const [theme, setHydratedTheme] = useState<Theme>('light');
-  const { icon } = getThemeSwitcherPresentation(theme);
+  const { icon } = getThemeSwitcherPresentation(theme, copy.theme);
   const Icon = icon === 'moon' ? Moon : Sun;
   const label = theme === 'dark' ? copy.theme.dark : copy.theme.light;
   const actionLabel = theme === 'dark' ? copy.theme.switchToLight : copy.theme.switchToDark;
@@ -721,7 +731,10 @@ function ThemeSwitcher({ copy }: { copy: MarketingShellCopy }) {
   );
 }
 
-export function EcodeExactPublicFooter({ copy = MARKETING_SHELL_COPY.en }: { copy?: MarketingShellCopy } = {}) {
+export function EcodeExactPublicFooter({ copy: copyOverride }: { copy?: MarketingShellCopy } = {}) {
+  const { i18n } = useTranslation();
+  const activeLanguage = normalizeSupportedLanguage(i18n.resolvedLanguage ?? i18n.language) ?? 'en';
+  const copy = copyOverride ?? MARKETING_SHELL_COPY[activeLanguage];
   const navigate = useMarketingNavigate();
   const productLinks = createFooterLinks(copy, 'product');
   const resourceLinks = createFooterLinks(copy, 'resources');

@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { IconButton } from '~/components/ui/IconButton';
+import { getChatBoxChildrenCopy } from '~/lib/i18n/catalogs/chat-box-children';
 import { classNames } from '~/utils/classNames';
 
 /*
@@ -38,6 +40,8 @@ export const SpeechRecognitionButton = ({
   triggerLabel?: string;
   triggerVariant?: 'icon' | 'menu';
 }) => {
+  const { i18n } = useTranslation();
+  const copy = getChatBoxChildrenCopy(i18n.resolvedLanguage ?? i18n.language);
   const isMenuTrigger = triggerVariant === 'menu';
 
   /*
@@ -57,8 +61,8 @@ export const SpeechRecognitionButton = ({
 
   return (
     <IconButton
-      title={isListening ? 'Stop listening' : 'Start speech recognition'}
-      tooltip={isListening ? 'Stop listening' : 'Start speech recognition'}
+      title={isListening ? copy['chatBoxChildren.speech.stopTitle'] : copy['chatBoxChildren.speech.startTitle']}
+      tooltip={isListening ? copy['chatBoxChildren.speech.stopTitle'] : copy['chatBoxChildren.speech.startTitle']}
       disabled={disabled}
       className={classNames(
         isMenuTrigger ? 'bolt-chatbox-tools-menu-item' : 'transition-all',
@@ -71,7 +75,12 @@ export const SpeechRecognitionButton = ({
     >
       <>
         {isListening ? <div className="i-ph:microphone-slash text-xl" /> : <div className="i-ph:microphone text-xl" />}
-        {isMenuTrigger ? <span>{triggerLabel ?? (isListening ? 'Stop speech' : 'Speech')}</span> : null}
+        {isMenuTrigger ? (
+          <span className="min-w-0 !overflow-visible !whitespace-normal break-words leading-snug">
+            {triggerLabel ??
+              (isListening ? copy['chatBoxChildren.speech.stopLabel'] : copy['chatBoxChildren.speech.startLabel'])}
+          </span>
+        ) : null}
       </>
     </IconButton>
   );

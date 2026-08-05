@@ -97,7 +97,10 @@ describe('admin impersonation routes', () => {
       headers: auth('admin-token'),
     });
     expect(otherAdminRes.statusCode).toBe(403);
-    expect(otherAdminRes.json().error).toBe('cannot_impersonate_admin');
+    expect(otherAdminRes.json()).toMatchObject({
+      code: 'IMPERSONATION_ADMIN_FORBIDDEN',
+      error: 'You cannot impersonate another platform administrator.',
+    });
 
     const suspendedRes = await app.inject({
       method: 'POST',
@@ -139,7 +142,10 @@ describe('admin impersonation routes', () => {
     const { app } = await setup();
     const stop = await app.inject({ method: 'POST', url: '/auth/impersonation/stop', headers: auth('target-token') });
     expect(stop.statusCode).toBe(409);
-    expect(stop.json().error).toBe('not_impersonating');
+    expect(stop.json()).toMatchObject({
+      code: 'NOT_IMPERSONATING',
+      error: 'No impersonation session is active.',
+    });
   });
 
   it('does not flag a normal session as impersonated', async () => {

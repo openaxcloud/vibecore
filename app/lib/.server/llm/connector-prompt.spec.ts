@@ -149,6 +149,32 @@ describe('createConnectionRequestDataPart', () => {
     }
   });
 
+  it('localizes rendered permission scopes in French while preserving OAuth scope ids', () => {
+    const dataPart = createConnectionRequestDataPart({
+      messageId: 'msg_fr',
+      provider: 'github',
+      reason: 'raison',
+      resumeToken: 'resume_fr',
+      language: 'fr-FR',
+    });
+
+    if (dataPart.payload.kind === 'connection_request') {
+      expect(dataPart.payload.scopes.map((scope) => scope.scope)).toEqual([
+        'repo',
+        'read:org',
+        'read:user',
+        'user:email',
+      ]);
+      expect(dataPart.payload.scopes.map((scope) => scope.label)).toEqual([
+        'Dépôts',
+        'Organisations',
+        'Profil',
+        'Adresse e-mail',
+      ]);
+      expect(dataPart.payload.scopes[0].description).toBe('Lire et modifier vos dépôts.');
+    }
+  });
+
   it('overrides default scopes when caller passes them explicitly', () => {
     const dataPart = createConnectionRequestDataPart({
       messageId: 'msg_2',

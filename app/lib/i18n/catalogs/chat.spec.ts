@@ -1,0 +1,79 @@
+import { readFileSync } from 'node:fs';
+
+import { describe, expect, it } from 'vitest';
+
+import { chatEn, chatFr } from './chat';
+
+const interpolationTokens = (value: string) =>
+  [...value.matchAll(/\{([a-zA-Z0-9_]+)\}/gu)].map((match) => match[1]).sort();
+
+const approvedFrenchIdentity = [
+  /^(?:Agent|Anthropic|BYOK|CI\/CD|DevOps|Git|GitHub OAuth|Google|Google Pub\/Sub|OpenAI|OpenRouter|QA|UTC)$/u,
+  /^(?:Bucket|Description|Quorum|Type|Webhooks)(?: \(\{value0\}\))?$/u,
+  /^(?:cron|dev|prod \/|rsa)$/u,
+  /^(?:app\.use|auth\.\*|deploy\.|git@|https?:\/\/|npm |postgresql:\/\/|src\/|user\.|var\(--|~\/workspace)/u,
+  /^(?:--port|\/bucket|\/min|@scope\/|· v)/u,
+  /^(?:[A-Z][A-Z0-9_]*(?:[=,].*)?)$/u,
+  /^sha256:$/u,
+];
+
+describe('BaseChat EN/FR catalog', () => {
+  it('keeps complete key and interpolation parity without raw-key aliases', () => {
+    expect(Object.keys(chatFr).sort()).toEqual(Object.keys(chatEn).sort());
+
+    for (const key of Object.keys(chatEn) as Array<keyof typeof chatEn>) {
+      expect(interpolationTokens(chatFr[key]), key).toEqual(interpolationTokens(chatEn[key]));
+      expect(chatEn[key].trim().length, key).toBeGreaterThan(0);
+      expect(chatFr[key].trim().length, key).toBeGreaterThan(0);
+      expect(chatFr[key], key).not.toMatch(/^chat\.copy\./u);
+      expect(key, key).not.toMatch(/^chat\.copy\.chatCopy/u);
+    }
+  });
+
+  it('documents every intentionally identical technical value', () => {
+    const identical = Object.keys(chatEn)
+      .filter((key) => chatEn[key as keyof typeof chatEn] === chatFr[key as keyof typeof chatFr])
+      .map((key) => chatEn[key as keyof typeof chatEn]);
+
+    expect(identical.filter((value) => !approvedFrenchIdentity.some((pattern) => pattern.test(value)))).toEqual([]);
+  });
+
+  it('uses reviewed French terminology for core IDE actions', () => {
+    expect(chatFr['chat.copy.deployProject_9e37b103']).toBe('Déployer le projet');
+    expect(chatFr['chat.copy.workspace_4ca0a75c']).toBe('Espace de travail');
+    expect(chatFr['chat.copy.secrets_1e3732ae']).toBe('Variables secrètes');
+    expect(chatFr['chat.copy.pause_781961bc']).toBe('Suspendre');
+    expect(chatFr['chat.copy.exportProject_5eff3aab']).toBe('Exporter le projet');
+    expect(chatFr['chat.copy.ideStatus_15238998']).toContain('IDE');
+    expect(chatFr['chat.copy.deploySuccessDeployFail_2b41724e']).toBe('deploy.success,deploy.fail');
+    expect(chatFr['chat.copy.workspaceBash_f04a2ba1']).toBe('~/workspace: bash');
+  });
+
+  it('leaves only the owner-frozen mobile Terminal labels in the strengthened AST scan', async () => {
+    const { scanSource } = await import('../../../../scripts/i18n/source-scanner.mjs');
+    const source = readFileSync(new URL('../../../components/chat/BaseChat.tsx', import.meta.url), 'utf8');
+    const result = scanSource(source, 'app/components/chat/BaseChat.tsx');
+    const residualText = result.findings.map((finding) => finding.text);
+
+    expect(result.parseErrors).toEqual([]);
+    expect(residualText).toEqual([
+      'Back to dashboard',
+      'Activity',
+      'Open tools',
+      'Agent options',
+      'More options',
+      'Working on this workspace',
+      'Ready for the next change',
+      'Focus Agent prompt',
+      'Prompt',
+      'IDE panels',
+      'Open tab switcher',
+      'Open tabs',
+      'Switch to {…} tab',
+      'Show {…} more tabs',
+      'Add new tab',
+      'More options',
+    ]);
+    expect(source.match(/DO NOT MODIFY — mobile Terminal tab frozen/gu)).toHaveLength(2);
+  });
+});

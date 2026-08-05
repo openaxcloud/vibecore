@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { isOAuthConnection, normaliseProxyBranches, resolveCloneBranches } from './githubBranches';
+import { GitHubBranchesError, isOAuthConnection, normaliseProxyBranches, resolveCloneBranches } from './githubBranches';
 import type { GitHubConnection } from '~/types/GitHub';
 
 const oauthConnection = {
@@ -97,19 +97,24 @@ describe('resolveCloneBranches', () => {
     expect(body).toEqual({ owner: 'octocat', repo: 'hello', token: 'ghp_abc123' });
   });
 
-  it('surfaces the server error message when the proxy fails', async () => {
+  it('masks the server error message when the proxy fails', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({ error: 'CONNECTOR_NOT_LINKED' }, false, 401));
 
-    await expect(resolveCloneBranches(oauthConnection, 'octocat/hello', 'main', fetchImpl as any)).rejects.toThrow(
-      'CONNECTOR_NOT_LINKED',
-    );
+    const result = resolveCloneBranches(oauthConnection, 'octocat/hello', 'main', fetchImpl as any);
+
+    await expect(result).rejects.toThrow('Could not fetch branches.');
+    await expect(result).rejects.not.toThrow('CONNECTOR_NOT_LINKED');
   });
 
   it('rejects an invalid repository name', async () => {
     const fetchImpl = vi.fn();
-    await expect(resolveCloneBranches(oauthConnection, 'not-a-repo', 'main', fetchImpl as any)).rejects.toThrow(
-      'Invalid repository name',
-    );
+    const result = resolveCloneBranches(oauthConnection, 'not-a-repo', 'main', fetchImpl as any);
+
+    await expect(result).rejects.toMatchObject<Partial<GitHubBranchesError>>({
+      name: 'GitHubBranchesError',
+      code: 'invalidRepository',
+      message: 'Invalid repository name.',
+    });
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 });

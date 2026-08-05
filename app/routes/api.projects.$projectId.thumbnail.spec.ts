@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { toResponse } from '~/lib/test/rr7-data';
 
 /*
  * The Dashboard/Projects cards point <img src> at this route. It proxies the
@@ -123,8 +124,9 @@ describe('project thumbnail upload proxy (action)', () => {
   it('404s without touching the backend when the project id is missing', async () => {
     const { action } = await import('./api.projects.$projectId.thumbnail');
     const result = await action({ request: new Request('https://app.test/x', { method: 'POST' }), params: {} } as any);
+    const response = toResponse(result) as Response;
 
-    expect(result.init.status).toBe(404);
+    expect(response.status).toBe(404);
     expect(apiRequest).not.toHaveBeenCalled();
   });
 });

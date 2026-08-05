@@ -29,6 +29,9 @@ export interface DebugIssue {
 const acknowledgedIssues = new Set<string>();
 
 export const getDebugStatus = async (): Promise<DebugStatus> => {
+  const i18n = getI18nInstance();
+  const copy = getClientRuntimeResidualCopy(i18n.resolvedLanguage ?? i18n.language);
+
   const issues: DebugStatus = {
     warnings: [],
     errors: [],
@@ -42,7 +45,7 @@ export const getDebugStatus = async (): Promise<DebugStatus> => {
       if (memory.usedJSHeapSize > memory.jsHeapSizeLimit * 0.8) {
         issues.warnings.push({
           id: 'high-memory-usage',
-          message: 'High memory usage detected',
+          message: copy['clientRuntime.debug.highMemory'],
           type: 'warning',
           timestamp: new Date().toISOString(),
           details: {
@@ -61,7 +64,7 @@ export const getDebugStatus = async (): Promise<DebugStatus> => {
       if (usageRatio > 0.9) {
         issues.warnings.push({
           id: 'storage-quota-warning',
-          message: 'Storage quota nearly reached',
+          message: copy['clientRuntime.debug.storageQuota'],
           type: 'warning',
           timestamp: new Date().toISOString(),
           details: {
@@ -76,16 +79,22 @@ export const getDebugStatus = async (): Promise<DebugStatus> => {
     const errorLogs = localStorage.getItem('error_logs');
 
     if (errorLogs) {
-      const errors = JSON.parse(errorLogs);
-      errors.forEach((error: any) => {
-        issues.errors.push({
-          id: `error-${error.timestamp}`,
-          message: error.message,
-          type: 'error',
-          timestamp: error.timestamp,
-          details: error.details,
-        });
-      });
+      const errors: unknown = JSON.parse(errorLogs);
+
+      if (Array.isArray(errors)) {
+        for (const error of errors) {
+          if (!error || typeof error !== 'object' || !('timestamp' in error) || typeof error.timestamp !== 'string') {
+            continue;
+          }
+
+          issues.errors.push({
+            id: `error-${error.timestamp}`,
+            message: copy['clientRuntime.debug.recordedError'],
+            type: 'error',
+            timestamp: error.timestamp,
+          });
+        }
+      }
     }
 
     // Filter out acknowledged issues
@@ -119,3 +128,5 @@ export const acknowledgeError = async (id: string): Promise<void> => {
     console.error('Error acknowledging error:', error);
   }
 };
+import { getClientRuntimeResidualCopy } from '~/lib/i18n/catalogs/client-runtime-residual';
+import { getI18nInstance } from '~/lib/i18n/runtime';

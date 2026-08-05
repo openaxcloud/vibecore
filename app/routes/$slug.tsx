@@ -19,7 +19,7 @@ export const loader = async ({ params, request }: LoaderFunctionArgs) => {
   const slug = params.slug ?? '';
 
   if (!getEcodeSurfacePage(slug)) {
-    throw new Response('Not Found', { status: 404, statusText: 'Not Found' });
+    throw new Response(null, { status: 404 });
   }
 
   // Send a signed-in visitor to the real in-app page instead of the marketing twin.
@@ -32,10 +32,11 @@ export const loader = async ({ params, request }: LoaderFunctionArgs) => {
   return null;
 };
 
-export const meta: MetaFunction = ({ params }) => {
+export const meta: MetaFunction = ({ matches, params }) => {
   const page = getEcodeSurfacePage(params.slug ?? '');
+  const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
 
-  return page ? makeEcodeSurfaceMetaTags(page) : [{ title: 'E-Code surface not found' }];
+  return page ? makeEcodeSurfaceMetaTags(page, rootData?.language) : [];
 };
 
 export default function EcodeRootSurfaceRoute() {

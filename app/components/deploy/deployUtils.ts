@@ -1,18 +1,84 @@
+import {
+  getDeployRemainingCopy,
+  type DeployRemainingCopy,
+  type DeployRemainingKey,
+} from '~/lib/i18n/catalogs/deploy-remaining';
+import { detectUserLanguage } from '~/lib/i18n/language';
+
 const MAX_BUILD_OUTPUT_CHARS = 4000;
 
 export const DEFAULT_DEPLOY_BUILD_COMMAND = 'npm run build';
 export const DEFAULT_DEPLOY_OUTPUT_DIRECTORY = 'dist';
 export const BOLT_DEPLOY_OUTPUT_DIRECTORIES = ['/dist', '/build', '/out', '/output', '/.next', '/public'];
 
-export const BOLT_DEPLOY_PROVIDERS = [
-  { id: 'static', name: 'Static export', description: 'Create an immutable static artifact.' },
-  { id: 'vercel', name: 'Vercel', description: 'Reuse the existing Bolt Vercel deployment path.' },
-  { id: 'netlify', name: 'Netlify', description: 'Reuse the existing Bolt Netlify deployment path.' },
-  { id: 'github-pages', name: 'GitHub Pages', description: 'Publish static output through GitHub integration.' },
-  { id: 'cloudflare-pages', name: 'Cloudflare Pages', description: 'Deploy static output to Cloudflare Pages.' },
-  { id: 'google-cloud-run', name: 'Google Cloud Run', description: 'Build an isolated user app service.' },
-  { id: 'docker', name: 'Custom Dockerfile', description: 'Enterprise-only isolated builder.' },
-] as const;
+export type BoltDeployProviderId =
+  | 'static'
+  | 'vercel'
+  | 'netlify'
+  | 'github-pages'
+  | 'cloudflare-pages'
+  | 'google-cloud-run'
+  | 'docker';
+
+export interface BoltDeployProvider {
+  id: BoltDeployProviderId;
+  name: string;
+  description: string;
+}
+
+const BOLT_DEPLOY_PROVIDER_COPY_KEYS: Readonly<
+  Record<BoltDeployProviderId, Readonly<{ name: DeployRemainingKey; descriptionKey: DeployRemainingKey }>>
+> = {
+  static: {
+    name: 'deployRemaining.provider.static.name',
+    descriptionKey: 'deployRemaining.provider.static.description',
+  },
+  vercel: {
+    name: 'deployRemaining.provider.vercel.name',
+    descriptionKey: 'deployRemaining.provider.vercel.description',
+  },
+  netlify: {
+    name: 'deployRemaining.provider.netlify.name',
+    descriptionKey: 'deployRemaining.provider.netlify.description',
+  },
+  'github-pages': {
+    name: 'deployRemaining.provider.githubPages.name',
+    descriptionKey: 'deployRemaining.provider.githubPages.description',
+  },
+  'cloudflare-pages': {
+    name: 'deployRemaining.provider.cloudflarePages.name',
+    descriptionKey: 'deployRemaining.provider.cloudflarePages.description',
+  },
+  'google-cloud-run': {
+    name: 'deployRemaining.provider.googleCloudRun.name',
+    descriptionKey: 'deployRemaining.provider.googleCloudRun.description',
+  },
+  docker: {
+    name: 'deployRemaining.provider.docker.name',
+    descriptionKey: 'deployRemaining.provider.docker.description',
+  },
+};
+
+const BOLT_DEPLOY_PROVIDER_IDS = Object.keys(BOLT_DEPLOY_PROVIDER_COPY_KEYS) as BoltDeployProviderId[];
+
+function createBoltDeployProvider(id: BoltDeployProviderId, copy: DeployRemainingCopy): BoltDeployProvider {
+  const keys = BOLT_DEPLOY_PROVIDER_COPY_KEYS[id];
+
+  return { id, name: copy[keys.name], description: copy[keys.descriptionKey] };
+}
+
+export function getBoltDeployProviders(language?: string | null): readonly BoltDeployProvider[] {
+  const copy = getDeployRemainingCopy(language);
+
+  return BOLT_DEPLOY_PROVIDER_IDS.map((id) => createBoltDeployProvider(id, copy));
+}
+
+/**
+ * Backward-compatible data for callers that cannot pass a locale yet. Client
+ * modules resolve the persisted/browser locale when they load; server callers
+ * retain the canonical English default.
+ */
+export const BOLT_DEPLOY_PROVIDERS: readonly BoltDeployProvider[] = getBoltDeployProviders(detectUserLanguage());
 
 export function formatBuildFailureOutput(output?: string) {
   const trimmed = output?.trim();

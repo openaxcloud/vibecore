@@ -1,8 +1,13 @@
 import { useStore } from '@nanostores/react';
 import Cookies from 'js-cookie';
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { useGitLabAPI } from './useGitLabAPI';
+import {
+  formatClientRuntimeResidualCopy,
+  getClientRuntimeResidualCopy,
+} from '~/lib/i18n/catalogs/client-runtime-residual';
 import { gitlabConnectionStore, gitlabConnection, isGitLabConnected } from '~/lib/stores/gitlabConnection';
 import type { GitLabConnection } from '~/types/GitLab';
 
@@ -23,13 +28,28 @@ export interface UseGitLabConnectionReturn extends ConnectionState {
 }
 
 const STORAGE_KEY = 'gitlab_connection';
+type GitLabConnectionErrorCode = 'saved_load_failed' | 'token_required' | 'connection_failed' | 'refresh_failed';
 
 export function useGitLabConnection(): UseGitLabConnectionReturn {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getClientRuntimeResidualCopy(language);
   const connection = useStore(gitlabConnection);
   const isConnected = useStore(isGitLabConnected);
-  const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<GitLabConnectionErrorCode | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isConnecting, setIsConnecting] = useState(false);
+
+  const error =
+    errorCode === 'saved_load_failed'
+      ? copy['clientRuntime.connection.savedLoadFailed']
+      : errorCode === 'token_required'
+        ? copy['clientRuntime.connection.tokenRequired']
+        : errorCode === 'connection_failed'
+          ? formatClientRuntimeResidualCopy(copy['clientRuntime.connection.failed'], { provider: 'GitLab' })
+          : errorCode === 'refresh_failed'
+            ? formatClientRuntimeResidualCopy(copy['clientRuntime.connection.refreshFailed'], { provider: 'GitLab' })
+            : null;
 
   // Create API instance - will update when connection changes
   useGitLabAPI(
@@ -45,7 +65,7 @@ export function useGitLabConnection(): UseGitLabConnectionReturn {
 
   const loadSavedConnection = useCallback(async () => {
     setIsLoading(true);
-    setError(null);
+    setErrorCode(null);
 
     try {
       // Check if connection already exists in store (likely from initialization)
@@ -73,101 +93,117 @@ export function useGitLabConnection(): UseGitLabConnectionReturn {
       setIsLoading(false);
     } catch (error) {
       console.error('Error loading saved connection:', error);
-      setError('Failed to load saved connection');
+      setErrorCode('saved_load_failed');
       setIsLoading(false);
 
       // Clean up corrupted data
       localStorage.removeItem(STORAGE_KEY);
     }
-  }, [connection]);
+  }, [connection, copy]);
 
-  const refreshConnectionData = useCallback(async (connection: GitLabConnection) => {
-    if (!connection.token) {
-      return;
-    }
-
-    try {
-      // Make direct API call instead of using hook
-      const baseUrl = connection.gitlabUrl || 'https://gitlab.com';
-
-      const response = await fetch(`${baseUrl}/api/v4/user`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'PRIVATE-TOKEN': connection.token,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+  const refreshConnectionData = useCallback(
+    async (connection: GitLabConnection) => {
+      if (!connection.token) {
+        return;
       }
 
-      // const userData = (await response.json()) as GitLabUserResponse;
-      await response.json(); // Parse response but don't store - data handled by store
-
-      /*
-       * Update connection with user data - unused variable removed
-       * const updatedConnection: GitLabConnection = {
-       *   ...connection,
-       *   user: userData,
-       * };
-       */
-
-      gitlabConnectionStore.setGitLabUrl(baseUrl);
-      gitlabConnectionStore.setToken(connection.token);
-    } catch (error) {
-      console.error('Error refreshing connection data:', error);
-    }
-  }, []);
-
-  const connect = useCallback(async (token: string, gitlabUrl = 'https://gitlab.com') => {
-    if (!token.trim()) {
-      setError('Token is required');
-      return;
-    }
-
-    setIsConnecting(true);
-    setError(null);
-
-    try {
-      console.log('Calling GitLab store connect method...');
-
-      // Use the store's connect method which handles everything properly
-      const result = await gitlabConnectionStore.connect(token, gitlabUrl);
-
-      if (!result.success) {
-        throw new Error(result.error || 'Connection failed');
-      }
-
-      console.log('GitLab connection successful, now fetching stats...');
-
-      // Fetch stats after successful connection
       try {
-        const statsResult = await gitlabConnectionStore.fetchStats(true);
+        // Make direct API call instead of using hook
+        const baseUrl = connection.gitlabUrl || 'https://gitlab.com';
 
-        if (statsResult.success) {
-          console.log('GitLab stats fetched successfully:', statsResult.stats);
-        } else {
-          console.error('Failed to fetch GitLab stats:', statsResult.error);
+        const response = await fetch(`${baseUrl}/api/v4/user`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'PRIVATE-TOKEN': connection.token,
+          },
+        });
+
+        if (!response.ok) {
+          throw Object.assign(new Error(), { code: 'GITLAB_API_ERROR', status: response.status });
         }
-      } catch (statsError) {
-        console.error('Failed to fetch GitLab stats:', statsError);
 
-        // Don't fail the connection if stats fail
+        // const userData = (await response.json()) as GitLabUserResponse;
+        await response.json(); // Parse response but don't store - data handled by store
+
+        /*
+         * Update connection with user data - unused variable removed
+         * const updatedConnection: GitLabConnection = {
+         *   ...connection,
+         *   user: userData,
+         * };
+         */
+
+        gitlabConnectionStore.setGitLabUrl(baseUrl);
+        gitlabConnectionStore.setToken(connection.token);
+      } catch (error) {
+        console.error('Error refreshing connection data:', error);
+        throw new Error(
+          formatClientRuntimeResidualCopy(copy['clientRuntime.connection.refreshFailed'], { provider: 'GitLab' }),
+        );
+      }
+    },
+    [copy],
+  );
+
+  const connect = useCallback(
+    async (token: string, gitlabUrl = 'https://gitlab.com') => {
+      if (!token.trim()) {
+        setErrorCode('token_required');
+        return;
       }
 
-      toast.success('Connected to GitLab successfully!');
-    } catch (error) {
-      console.error('Failed to connect to GitLab:', error);
+      setIsConnecting(true);
+      setErrorCode(null);
 
-      const errorMessage = error instanceof Error ? error.message : 'Failed to connect to GitLab';
+      try {
+        console.log('Calling GitLab store connect method...');
 
-      setError(errorMessage);
-      toast.error(`Failed to connect: ${errorMessage}`);
-      throw error;
-    } finally {
-      setIsConnecting(false);
-    }
-  }, []);
+        // Use the store's connect method which handles everything properly
+        const result = await gitlabConnectionStore.connect(token, gitlabUrl);
+
+        if (!result.success) {
+          throw new Error(
+            result.error ||
+              formatClientRuntimeResidualCopy(copy['clientRuntime.connection.failed'], { provider: 'GitLab' }),
+          );
+        }
+
+        console.log('GitLab connection successful, now fetching stats...');
+
+        // Fetch stats after successful connection
+        try {
+          const statsResult = await gitlabConnectionStore.fetchStats(true);
+
+          if (statsResult.success) {
+            console.log('GitLab stats fetched successfully:', statsResult.stats);
+          } else {
+            console.error('Failed to fetch GitLab stats:', statsResult.error);
+          }
+        } catch (statsError) {
+          console.error('Failed to fetch GitLab stats:', statsError);
+
+          // Don't fail the connection if stats fail
+        }
+
+        toast.success(
+          formatClientRuntimeResidualCopy(copy['clientRuntime.connection.connected'], { provider: 'GitLab' }),
+        );
+      } catch (error) {
+        console.error('Failed to connect to GitLab:', error);
+
+        const errorMessage = formatClientRuntimeResidualCopy(copy['clientRuntime.connection.failed'], {
+          provider: 'GitLab',
+        });
+
+        setErrorCode('connection_failed');
+        toast.error(errorMessage);
+        throw new Error(errorMessage);
+      } finally {
+        setIsConnecting(false);
+      }
+    },
+    [copy],
+  );
 
   const disconnect = useCallback(() => {
     // Clear localStorage
@@ -181,28 +217,36 @@ export function useGitLabConnection(): UseGitLabConnectionReturn {
     // Reset store
     gitlabConnectionStore.disconnect();
 
-    setError(null);
-    toast.success('Disconnected from GitLab');
-  }, []);
+    setErrorCode(null);
+    toast.success(
+      formatClientRuntimeResidualCopy(copy['clientRuntime.connection.disconnected'], { provider: 'GitLab' }),
+    );
+  }, [copy]);
 
   const refreshConnection = useCallback(async () => {
     if (!connection?.token) {
-      throw new Error('No connection to refresh');
+      throw new Error(
+        formatClientRuntimeResidualCopy(copy['clientRuntime.connection.noneToRefresh'], { provider: 'GitLab' }),
+      );
     }
 
     setIsLoading(true);
-    setError(null);
+    setErrorCode(null);
 
     try {
       await refreshConnectionData(connection);
     } catch (error) {
       console.error('Error refreshing connection:', error);
-      setError('Failed to refresh connection');
-      throw error;
+
+      const errorMessage = formatClientRuntimeResidualCopy(copy['clientRuntime.connection.refreshFailed'], {
+        provider: 'GitLab',
+      });
+      setErrorCode('refresh_failed');
+      throw new Error(errorMessage);
     } finally {
       setIsLoading(false);
     }
-  }, [connection, refreshConnectionData]);
+  }, [connection, copy, refreshConnectionData]);
 
   const testConnection = useCallback(async (): Promise<boolean> => {
     if (!connection?.token) {
@@ -228,20 +272,27 @@ export function useGitLabConnection(): UseGitLabConnectionReturn {
 
   const refreshStats = useCallback(async () => {
     if (!connection?.token) {
-      throw new Error('No connection to refresh stats');
+      throw new Error(
+        formatClientRuntimeResidualCopy(copy['clientRuntime.connection.statsUnavailable'], { provider: 'GitLab' }),
+      );
     }
 
     try {
       const statsResult = await gitlabConnectionStore.fetchStats(true);
 
       if (!statsResult.success) {
-        throw new Error(statsResult.error || 'Failed to refresh stats');
+        throw new Error(
+          statsResult.error ||
+            formatClientRuntimeResidualCopy(copy['clientRuntime.connection.statsFetchFailed'], { provider: 'GitLab' }),
+        );
       }
     } catch (error) {
       console.error('Error refreshing GitLab stats:', error);
-      throw error;
+      throw new Error(
+        formatClientRuntimeResidualCopy(copy['clientRuntime.connection.statsFetchFailed'], { provider: 'GitLab' }),
+      );
     }
-  }, [connection]);
+  }, [connection, copy]);
 
   return {
     isConnected,

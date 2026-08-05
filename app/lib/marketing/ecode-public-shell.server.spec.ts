@@ -1,9 +1,24 @@
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_ECODE_NOTIFICATION_PREFERENCES,
+  ecodeNotificationPreferencesAction,
+  notificationMutationAction,
+  notificationsCollectionAction,
   normalizeEcodeNotificationPreferences,
   readJsonObject,
 } from './ecode-public-shell.server';
+
+type RouteData<T> = {
+  data: T;
+  init: { headers?: HeadersInit; status?: number };
+  type: 'DataWithResponseInit';
+};
+
+function routeData<T>(value: unknown): RouteData<T> {
+  expect((value as RouteData<T>)?.type).toBe('DataWithResponseInit');
+
+  return value as RouteData<T>;
+}
 
 describe('readJsonObject', () => {
   it('reads the JSON body when content-length is present', async () => {
@@ -92,5 +107,58 @@ describe('readJsonObject', () => {
 
     // sanity: defaults would have left security enabled
     expect(DEFAULT_ECODE_NOTIFICATION_PREFERENCES.email.security).toBe(true);
+  });
+});
+
+describe('localized notification actions', () => {
+  it('localizes method errors from Accept-Language and emits locale headers', async () => {
+    const response = routeData<{ error: string }>(
+      await notificationsCollectionAction({
+        request: new Request('https://example.com/api/notifications', {
+          method: 'PUT',
+          headers: { 'Accept-Language': 'fr-FR,fr;q=0.9' },
+        }),
+        params: {},
+        context: {},
+      }),
+    );
+
+    const headers = new Headers(response.init.headers);
+    expect(response.init.status).toBe(405);
+    expect(headers.get('Content-Language')).toBe('fr');
+    expect(headers.get('Vary')).toBe('Cookie, Accept-Language');
+    expect(headers.get('Cache-Control')).toBe('no-store');
+    expect(response.data).toMatchObject({ error: 'Méthode non autorisée' });
+  });
+
+  it('gives the manual English cookie precedence over French browser detection', async () => {
+    const response = routeData<{ error: string }>(
+      await ecodeNotificationPreferencesAction({
+        request: new Request('https://example.com/api/notifications/preferences', {
+          method: 'PATCH',
+          headers: { Cookie: 'vibecore-lang=en', 'Accept-Language': 'fr-FR' },
+        }),
+        params: {},
+        context: {},
+      }),
+    );
+
+    expect(response.init.status).toBe(401);
+    expect(new Headers(response.init.headers).get('Content-Language')).toBe('en');
+    expect(response.data).toMatchObject({ error: 'Authentication required' });
+  });
+
+  it('localizes a missing notification identifier without calling the API', async () => {
+    const response = routeData<{ error: string }>(
+      await notificationMutationAction({
+        request: new Request('https://example.com/api/notifications/missing?lang=fr', { method: 'PATCH' }),
+        params: {},
+        context: {},
+      }),
+    );
+
+    expect(response.init.status).toBe(400);
+    expect(new Headers(response.init.headers).get('Content-Language')).toBe('fr');
+    expect(response.data).toMatchObject({ error: 'Identifiant de notification manquant' });
   });
 });

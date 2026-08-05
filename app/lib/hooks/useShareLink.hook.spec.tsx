@@ -4,9 +4,12 @@
 
 import { act, renderHook } from '@testing-library/react';
 import type { Message } from 'ai';
+import type { ReactNode } from 'react';
+import { I18nextProvider } from 'react-i18next';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useShareLink } from './useShareLink';
+import { createI18nInstance } from '~/lib/i18n/runtime';
 
 const MESSAGES: Message[] = [
   { id: 'u1', role: 'user', content: 'hello' },
@@ -20,6 +23,23 @@ const BUILD_INPUT = {
   title: 'Demo',
   messages: MESSAGES,
 };
+
+const englishI18n = createI18nInstance('en');
+const frenchI18n = createI18nInstance('fr');
+
+function EnglishWrapper({ children }: { children: ReactNode }) {
+  return <I18nextProvider i18n={englishI18n}>{children}</I18nextProvider>;
+}
+
+function FrenchWrapper({ children }: { children: ReactNode }) {
+  return <I18nextProvider i18n={frenchI18n}>{children}</I18nextProvider>;
+}
+
+function renderShareLinkHook() {
+  return renderHook(() => useShareLink({ origin: 'https://vibecore.io' }), {
+    wrapper: EnglishWrapper,
+  });
+}
 
 function mockFetchToken(token = 'cshare_abc.sig123') {
   const fetchMock = vi.fn().mockResolvedValue({
@@ -45,13 +65,13 @@ describe('useShareLink hook', () => {
   });
 
   it('starts in the idle state', () => {
-    const { result } = renderHook(() => useShareLink({ origin: 'https://vibecore.io' }));
+    const { result } = renderShareLinkHook();
     expect(result.current.state).toEqual({ kind: 'idle' });
   });
 
   it('transitions to ready with a /share/<token> URL after build()', async () => {
     const fetchMock = mockFetchToken('cshare_abc.sig123');
-    const { result } = renderHook(() => useShareLink({ origin: 'https://vibecore.io' }));
+    const { result } = renderShareLinkHook();
 
     let url: string | undefined;
     await act(async () => {
@@ -77,7 +97,7 @@ describe('useShareLink hook', () => {
       }),
     );
 
-    const { result } = renderHook(() => useShareLink({ origin: 'https://vibecore.io' }));
+    const { result } = renderShareLinkHook();
 
     let url: string | undefined;
     await act(async () => {
@@ -88,14 +108,40 @@ describe('useShareLink hook', () => {
     expect(result.current.state.kind).toBe('error');
 
     if (result.current.state.kind === 'error') {
-      expect(result.current.state.message).toBe('Unauthorized');
+      expect(result.current.state.message).toBe('Could not create the share link. Try again.');
+      expect(result.current.state.message).not.toContain('Unauthorized');
     }
+  });
+
+  it('returns reviewed French errors and never exposes a raw server error', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        json: vi.fn().mockResolvedValue({ error: 'database_password=secret' }),
+      }),
+    );
+
+    const { result } = renderHook(() => useShareLink({ origin: 'https://vibecore.io' }), {
+      wrapper: FrenchWrapper,
+    });
+
+    await act(async () => {
+      await result.current.build(BUILD_INPUT);
+    });
+
+    expect(result.current.state).toEqual({
+      kind: 'error',
+      message: 'Impossible de créer le lien de partage. Réessayez.',
+    });
+    expect(JSON.stringify(result.current.state)).not.toContain('database_password');
   });
 
   it('copyToClipboard writes the latest URL and returns true', async () => {
     mockFetchToken('cshare_abc.sig123');
 
-    const { result } = renderHook(() => useShareLink({ origin: 'https://vibecore.io' }));
+    const { result } = renderShareLinkHook();
 
     await act(async () => {
       await result.current.build(BUILD_INPUT);
@@ -114,7 +160,7 @@ describe('useShareLink hook', () => {
   });
 
   it('returns false from copyToClipboard when there is no URL yet', async () => {
-    const { result } = renderHook(() => useShareLink({ origin: 'https://vibecore.io' }));
+    const { result } = renderShareLinkHook();
 
     let copied: boolean | undefined;
     await act(async () => {
@@ -126,7 +172,7 @@ describe('useShareLink hook', () => {
   it('reset() returns to idle', async () => {
     mockFetchToken();
 
-    const { result } = renderHook(() => useShareLink({ origin: 'https://vibecore.io' }));
+    const { result } = renderShareLinkHook();
 
     await act(async () => {
       await result.current.build(BUILD_INPUT);
@@ -143,7 +189,7 @@ describe('useShareLink hook', () => {
     mockFetchToken();
     vi.stubGlobal('navigator', { ...globalThis.navigator, clipboard: undefined });
 
-    const { result } = renderHook(() => useShareLink({ origin: 'https://vibecore.io' }));
+    const { result } = renderShareLinkHook();
 
     await act(async () => {
       await result.current.build(BUILD_INPUT);

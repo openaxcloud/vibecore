@@ -3,8 +3,10 @@ import { createHash } from 'node:crypto';
 import { access, cp, mkdir, readdir, readFile, rm, stat } from 'node:fs/promises';
 import { join, relative, resolve, sep } from 'node:path';
 import { z } from 'zod';
+import { appPublicCopy, appPublicEnglish } from './app-public-copy.js';
 import { hashSnapshotEntries, type SnapshotEntry } from './release-manifest.js';
 import type { DeploymentRecord, ProjectRecord } from './store.js';
+import type { TransactionalLocale } from './transactional-i18n.js';
 
 export const deploymentProviders = [
   'static',
@@ -119,7 +121,10 @@ export function sanitizeDeploymentPath(path: string) {
   const normalized = path.replace(/\\/g, '/').replace(/^\/+/, '').replace(/\/+/g, '/');
 
   if (!normalized || normalized.includes('..') || normalized.startsWith('~')) {
-    throw Object.assign(new Error('Invalid deployment path'), { statusCode: 400, code: 'INVALID_DEPLOYMENT_PATH' });
+    throw Object.assign(new Error(appPublicEnglish('INVALID_DEPLOYMENT_PATH')), {
+      statusCode: 400,
+      code: 'INVALID_DEPLOYMENT_PATH',
+    });
   }
 
   return normalized;
@@ -171,6 +176,21 @@ const providerDisplayName: Record<(typeof deploymentProviders)[number], string> 
   docker: 'Docker',
 };
 
+function deploymentProviderDisplayName(
+  provider: (typeof deploymentProviders)[number],
+  locale: TransactionalLocale,
+): string {
+  if (provider === 'static') {
+    return appPublicCopy('DEPLOY_PROVIDER_STATIC', locale);
+  }
+
+  if (provider === 'server') {
+    return appPublicCopy('DEPLOY_PROVIDER_SERVER', locale);
+  }
+
+  return providerDisplayName[provider];
+}
+
 /**
  * Returns a client-facing error when a non-static provider has no deploy hook /
  * credentials configured, so the API can reject the request with an honest 400
@@ -185,6 +205,7 @@ const providerDisplayName: Record<(typeof deploymentProviders)[number], string> 
 export function deployProviderConfigError(
   provider: (typeof deploymentProviders)[number],
   env: NodeJS.ProcessEnv = process.env,
+  locale: TransactionalLocale = 'en',
 ): { error: string; message: string } | null {
   if (provider === 'static') {
     return null;
@@ -199,7 +220,10 @@ export function deployProviderConfigError(
 
   return {
     error: 'PROVIDER_NOT_CONFIGURED',
-    message: `Deploy to ${providerDisplayName[provider]} requires ${missing.join(', ')} to be configured. Contact your admin.`,
+    message: appPublicCopy('DEPLOY_PROVIDER_CONFIG_REQUIRED', locale, {
+      provider: deploymentProviderDisplayName(provider, locale),
+      missing: missing.join(', '),
+    }),
   };
 }
 
@@ -209,14 +233,14 @@ export function assertDeploymentRequestAllowed(
   env: NodeJS.ProcessEnv = process.env,
 ) {
   if (input.provider === 'docker' && planKey !== 'enterprise') {
-    throw Object.assign(new Error('Custom Dockerfile deployments require Enterprise plan'), {
+    throw Object.assign(new Error(appPublicEnglish('ENTERPRISE_DEPLOYMENT_REQUIRED')), {
       statusCode: 403,
       code: 'ENTERPRISE_DEPLOYMENT_REQUIRED',
     });
   }
 
   if (dangerousBuildPatterns.some((pattern) => pattern.test(input.buildCommand))) {
-    throw Object.assign(new Error('Build command is not allowed for user deployments'), {
+    throw Object.assign(new Error(appPublicEnglish('DEPLOYMENT_COMMAND_BLOCKED')), {
       statusCode: 400,
       code: 'DEPLOYMENT_COMMAND_BLOCKED',
     });
@@ -839,7 +863,7 @@ const SAFE_WORKSPACE_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
  */
 export function workspaceStorageDir(projectId: string, workspaceId: string) {
   if (!SAFE_WORKSPACE_ID.test(workspaceId)) {
-    throw Object.assign(new Error('Invalid workspaceId'), {
+    throw Object.assign(new Error(appPublicEnglish('INVALID_WORKSPACE_ID')), {
       statusCode: 400,
       code: 'INVALID_WORKSPACE_ID',
     });

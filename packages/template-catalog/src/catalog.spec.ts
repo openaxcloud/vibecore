@@ -72,6 +72,32 @@ describe('published Gallery demo applications', () => {
     expect('runCommand' in GALLERY_DEMO_APP_SUMMARIES[0]).toBe(false);
   });
 
+  it('serves professional French metadata while preserving technical identity', () => {
+    const english = getGalleryDemoAppSummary('vendor-risk-review', 'en-US');
+    const french = getGalleryDemoAppSummary('vendor-risk-review', 'fr-FR');
+    const frenchDescriptions = listGalleryDemoAppSummaries('fr').map((item) => item.description);
+
+    expect(english?.description).toContain('Every new vendor');
+    expect(french?.description).toContain('Chaque nouveau fournisseur');
+    expect(french).toMatchObject({
+      id: english?.id,
+      key: english?.key,
+      slug: english?.slug,
+      name: english?.name,
+      technologies: english?.technologies,
+    });
+    expect(listGalleryDemoAppSummaries('fr')).toHaveLength(GALLERY_DEMO_APP_SUMMARIES.length);
+    expect(frenchDescriptions.join(' ')).not.toMatch(
+      /\b(?:backend|back-office|checklist|endpoints?|preview|logs?|marketplace|snapshots?|packages?|builds?|workspace|runtime|stack|starter|typecheck|full-stack|tokens?|tags?|tenants?)\b|feature flag/iu,
+    );
+  });
+
+  it('falls back to English for unsupported or missing locales', () => {
+    expect(getGalleryDemoAppSummary('react-saas', 'de-DE')?.description).toBe(
+      getGalleryDemoAppSummary('react-saas', 'en')?.description,
+    );
+  });
+
   it('materializes every app into a distinct, immutable JS/TS snapshot', () => {
     expect(GALLERY_DEMO_APP_CATALOG).toHaveLength(REQUIRED_IDS.length);
     const hashes = new Set<string>();

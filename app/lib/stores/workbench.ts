@@ -21,6 +21,12 @@ import { TerminalStore } from './terminal';
 import type { EditorDocument, ScrollPosition } from '~/components/editor/codemirror/CodeMirrorEditor';
 import { description } from '~/lib/persistence';
 import {
+  formatWorkbenchRuntimeCopy,
+  getWorkbenchRuntimeCopy,
+  type WorkbenchRuntimeKey,
+} from '~/lib/i18n/catalogs/workbench-runtime';
+import { getI18nInstance } from '~/lib/i18n/runtime';
+import {
   deleteAgentPatchProposalRemote,
   fetchOpenAgentPatchProposals,
   isTerminalAgentPatchStatus,
@@ -66,6 +72,13 @@ import { syncWriteContent } from '~/lib/stores/workbench-sync';
 import type { ActionAlert, DeployAlert, SupabaseAlert } from '~/types/actions';
 
 const { saveAs } = fileSaver;
+
+function workbenchText(key: WorkbenchRuntimeKey, values: Readonly<Record<string, string | number>> = {}): string {
+  const i18n = getI18nInstance();
+  const copy = getWorkbenchRuntimeCopy(i18n.resolvedLanguage ?? i18n.language);
+
+  return formatWorkbenchRuntimeCopy(copy[key], values);
+}
 
 export interface ArtifactState {
   id: string;
@@ -562,7 +575,7 @@ export class WorkbenchStore {
     });
 
     if (!response.ok) {
-      throw new Error(`project file archive returned ${response.status}`);
+      throw Object.assign(new Error(), { code: 'PROJECT_FILE_ARCHIVE_HTTP_ERROR', status: response.status });
     }
 
     const payload = (await response.json()) as ProjectExportResponse;
@@ -663,7 +676,7 @@ export class WorkbenchStore {
     }
 
     if (this.#previewStarting) {
-      return 'preview starting';
+      return workbenchText('workbenchRuntime.preview.starting');
     }
 
     this.#previewStarting = true;
@@ -686,7 +699,7 @@ export class WorkbenchStore {
     ) {
       this.previewServerState.set({
         status: 'starting',
-        command: previousPreviewState.command ?? 'Detecting preview command',
+        command: previousPreviewState.command ?? workbenchText('workbenchRuntime.preview.detecting'),
       });
     }
 
@@ -706,17 +719,16 @@ export class WorkbenchStore {
     }
 
     if (this.#canUseStaticHtmlPreview()) {
-      this.previewServerState.set({ status: 'static', command: 'static HTML preview' });
-      this.appendWorkspaceLog('Using static HTML preview; dev server is not required for this project.');
+      const staticPreview = workbenchText('workbenchRuntime.preview.staticCommand');
+      this.previewServerState.set({ status: 'static', command: staticPreview });
+      this.appendWorkspaceLog(workbenchText('workbenchRuntime.preview.staticReady'));
 
-      return 'static HTML preview';
+      return staticPreview;
     }
 
     if (!this.#findPackageJsonEntry()) {
-      await this.loadRuntimeFiles('.').catch((error) => {
-        this.appendWorkspaceLog(
-          error instanceof Error ? `Preview file reload failed: ${error.message}` : 'Preview file reload failed',
-        );
+      await this.loadRuntimeFiles('.').catch(() => {
+        this.appendWorkspaceLog(workbenchText('workbenchRuntime.preview.reloadFailed'));
       });
     }
 
@@ -732,19 +744,15 @@ export class WorkbenchStore {
      */
     if (!forceInstall && (await this.#canShortCircuitToExistingPreview())) {
       this.previewServerState.set({ status: 'running' });
-      this.appendWorkspaceLog('Reattached to the already-running dev server.');
+      this.appendWorkspaceLog(workbenchText('workbenchRuntime.preview.reattached'));
 
-      return 'reattached preview server';
+      return workbenchText('workbenchRuntime.preview.reattachedResult');
     }
 
     let dependenciesChanged = false;
 
-    dependenciesChanged = await this.#syncPreviewManifestFromRuntime().catch((error) => {
-      this.appendWorkspaceLog(
-        error instanceof Error
-          ? `Dependency sync skipped before preview: ${error.message}`
-          : 'Dependency sync skipped before preview',
-      );
+    dependenciesChanged = await this.#syncPreviewManifestFromRuntime().catch(() => {
+      this.appendWorkspaceLog(workbenchText('workbenchRuntime.preview.dependencySyncSkipped'));
 
       return false;
     });
@@ -759,7 +767,7 @@ export class WorkbenchStore {
       await this.stopPreviewServer();
     } else if (await this.#canShortCircuitToExistingPreview()) {
       this.previewServerState.set({ status: 'running' });
-      return 'existing preview server';
+      return workbenchText('workbenchRuntime.preview.existingResult');
     }
 
     let command: PreviewCommand;
@@ -770,7 +778,7 @@ export class WorkbenchStore {
       const message = error instanceof Error ? error.message : String(error);
       this.previewServerState.set({
         status: 'error',
-        command: previousPreviewState.command ?? 'Detecting preview command',
+        command: previousPreviewState.command ?? workbenchText('workbenchRuntime.preview.detecting'),
         error: message,
       });
       this.appendWorkspaceLog(message);
@@ -815,7 +823,12 @@ export class WorkbenchStore {
             packageManager: (pkg as { packageManager?: string }).packageManager,
           });
           command = { ...command, setupCommands: [installCmd, ...(command.setupCommands ?? [])] };
-          this.appendWorkspaceLog(`Dependencies not installed; running ${installCmd.label} before ${command.label}.`);
+          this.appendWorkspaceLog(
+            workbenchText('workbenchRuntime.preview.dependenciesMissing', {
+              installCommand: installCmd.label,
+              previewCommand: command.label,
+            }),
+          );
         }
       }
     } catch {
@@ -831,8 +844,11 @@ export class WorkbenchStore {
     void (async () => {
       try {
         for (const setupCommand of command.setupCommands ?? []) {
+          const directory = setupCommand.cwd
+            ? workbenchText('workbenchRuntime.preview.directory', { directory: setupCommand.cwd })
+            : '';
           this.appendWorkspaceLog(
-            `Preparing preview with ${setupCommand.label}${setupCommand.cwd ? ` in ${setupCommand.cwd}` : ''}`,
+            workbenchText('workbenchRuntime.preview.preparing', { command: setupCommand.label, directory }),
           );
 
           const setupExitCode = await this.#runSetupCommandWithRetry(setupCommand);
@@ -841,20 +857,28 @@ export class WorkbenchStore {
             this.previewServerState.set({
               status: 'error',
               command: command.label,
-              error: `${setupCommand.label} failed (exit ${setupExitCode})`,
+              error: workbenchText('workbenchRuntime.preview.setupFailed', {
+                command: setupCommand.label,
+                exitCode: setupExitCode,
+              }),
             });
 
             return;
           }
         }
 
-        this.appendWorkspaceLog(`Starting preview with ${command.label}${command.cwd ? ` in ${command.cwd}` : ''}`);
+        const directory = command.cwd
+          ? workbenchText('workbenchRuntime.preview.directory', { directory: command.cwd })
+          : '';
+        this.appendWorkspaceLog(
+          workbenchText('workbenchRuntime.preview.startCommand', { command: command.label, directory }),
+        );
         await this.#streamWorkspaceCommand(command, {
-          exitMessage: 'Preview command exited with code',
+          exitMessage: workbenchText('workbenchRuntime.preview.commandExited'),
           refreshPortsOnOutput: true,
         });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+      } catch {
+        const message = workbenchText('workbenchRuntime.preview.startFailed');
         this.previewServerState.set({ status: 'error', command: command.label, error: message });
         this.appendWorkspaceLog(message);
       } finally {
@@ -929,15 +953,13 @@ export class WorkbenchStore {
       return;
     }
 
-    this.appendWorkspaceLog('Workspace is stopped; reprovisioning before starting the preview…');
+    this.appendWorkspaceLog(workbenchText('workbenchRuntime.preview.workspaceReprovisioning'));
 
     try {
       const session = await withRuntimeRetry(() => this.#runtime.startWorkspace());
       this.workspaceStatus.set(session);
-    } catch (error) {
-      this.appendWorkspaceLog(
-        error instanceof Error ? `Workspace reprovision failed: ${error.message}` : 'Workspace reprovision failed',
-      );
+    } catch {
+      this.appendWorkspaceLog(workbenchText('workbenchRuntime.preview.workspaceReprovisionFailed'));
     }
   }
 
@@ -1000,7 +1022,7 @@ export class WorkbenchStore {
    * is left with an empty node_modules / broken preview.
    */
   async reinstallDependencies() {
-    this.appendWorkspaceLog('Reinstalling dependencies…');
+    this.appendWorkspaceLog(workbenchText('workbenchRuntime.preview.reinstalling'));
     await this.stopPreviewServer();
 
     return this.startPreviewServer({ forceInstall: true });
@@ -1022,7 +1044,7 @@ export class WorkbenchStore {
       const tailStart = this.#currentWorkspaceLogLength();
 
       exitCode = await this.#streamWorkspaceCommand(setupCommand, {
-        exitMessage: 'Preview setup command exited with code',
+        exitMessage: workbenchText('workbenchRuntime.preview.setupExited'),
       });
 
       if (exitCode === 0) {
@@ -1038,8 +1060,13 @@ export class WorkbenchStore {
 
       const delayMs = PREVIEW_SETUP_RETRY_BASE_DELAY_MS * 2 ** (attempt - 1);
       this.appendWorkspaceLog(
-        `${setupCommand.label} failed transiently (exit ${exitCode}); retrying in ${Math.round(delayMs / 1000)}s ` +
-          `(attempt ${attempt + 1}/${PREVIEW_SETUP_RETRY_ATTEMPTS})`,
+        workbenchText('workbenchRuntime.preview.transientRetry', {
+          command: setupCommand.label,
+          exitCode,
+          seconds: Math.round(delayMs / 1000),
+          attempt: attempt + 1,
+          maxAttempts: PREVIEW_SETUP_RETRY_ATTEMPTS,
+        }),
       );
       await new Promise<void>((resolve) => {
         setTimeout(resolve, delayMs);
@@ -1125,7 +1152,7 @@ export class WorkbenchStore {
 
         if (event.type === 'error') {
           this.appendWorkspaceLog(
-            `${options.exitMessage} ${exitCode} (${event.error?.message ?? 'command stream interrupted'})`,
+            `${options.exitMessage} ${exitCode} (${event.error?.message ?? workbenchText('workbenchRuntime.preview.streamInterrupted')})`,
           );
         }
       }
@@ -1195,7 +1222,7 @@ export class WorkbenchStore {
               return {
                 command: 'npm',
                 args: ['run', 'dev', ...hostArgs],
-                label: 'npm run dev',
+                label: workbenchText('workbenchRuntime.command.npmDev'),
                 cwd,
                 setupCommands,
               };
@@ -1204,7 +1231,7 @@ export class WorkbenchStore {
             return {
               command: 'npx',
               args: ['--yes', 'vite', ...this.#viteDevArgsFromScript(scripts.dev)],
-              label: 'npx vite',
+              label: workbenchText('workbenchRuntime.command.npxVite'),
               cwd,
               setupCommands,
             };
@@ -1214,7 +1241,7 @@ export class WorkbenchStore {
             return {
               command: 'npx',
               args: ['--yes', 'vite', '--host', '0.0.0.0'],
-              label: 'npx vite',
+              label: workbenchText('workbenchRuntime.command.npxVite'),
               cwd,
             };
           }
@@ -1222,7 +1249,7 @@ export class WorkbenchStore {
           return {
             command: 'npm',
             args: ['run', 'dev', ...hostArgs],
-            label: 'npm run dev',
+            label: workbenchText('workbenchRuntime.command.npmDev'),
             cwd,
             setupCommands,
           };
@@ -1232,7 +1259,7 @@ export class WorkbenchStore {
           return {
             command: 'npm',
             args: ['run', 'start'],
-            label: 'npm run start',
+            label: workbenchText('workbenchRuntime.command.npmStart'),
             cwd,
             setupCommands,
           };
@@ -1256,7 +1283,7 @@ export class WorkbenchStore {
       return {
         command: 'npm',
         args: ['run', 'dev'],
-        label: 'npm run dev',
+        label: workbenchText('workbenchRuntime.command.npmDev'),
         cwd,
         setupCommands: [this.#installCommandForPackage(fallbackPkg[0], {})],
       };
@@ -1265,7 +1292,7 @@ export class WorkbenchStore {
     return {
       command: 'npx',
       args: ['--yes', 'vite', '--host', '0.0.0.0'],
-      label: 'npx vite',
+      label: workbenchText('workbenchRuntime.command.npxVite'),
     };
   }
 
@@ -1387,17 +1414,27 @@ export class WorkbenchStore {
      * permanently blank preview. Force dev dependencies in regardless of NODE_ENV.
      */
     if (packageManager.startsWith('pnpm') || hasPnpmLock) {
-      return { command: 'pnpm', args: ['install', '--prod=false'], label: 'pnpm install', cwd };
+      return {
+        command: 'pnpm',
+        args: ['install', '--prod=false'],
+        label: workbenchText('workbenchRuntime.command.pnpmInstall'),
+        cwd,
+      };
     }
 
     if (packageManager.startsWith('yarn') || hasYarnLock) {
-      return { command: 'yarn', args: ['install', '--production=false'], label: 'yarn install', cwd };
+      return {
+        command: 'yarn',
+        args: ['install', '--production=false'],
+        label: workbenchText('workbenchRuntime.command.yarnInstall'),
+        cwd,
+      };
     }
 
     return {
       command: 'npm',
       args: ['install', '--include=dev', '--prefer-offline', '--no-audit', '--no-fund'],
-      label: 'npm install',
+      label: workbenchText('workbenchRuntime.command.npmInstall'),
       cwd,
     };
   }
@@ -1462,13 +1499,9 @@ export class WorkbenchStore {
        */
       try {
         await this.#runtime.deleteFile(relativePath);
-        this.appendWorkspaceLog(`Removed corrupt ${fileName} so the install can regenerate it`);
-      } catch (error) {
-        this.appendWorkspaceLog(
-          error instanceof Error
-            ? `Could not remove corrupt ${fileName}: ${error.message}`
-            : `Could not remove corrupt ${fileName}`,
-        );
+        this.appendWorkspaceLog(workbenchText('workbenchRuntime.preview.corruptLockRemoved', { file: fileName }));
+      } catch {
+        this.appendWorkspaceLog(workbenchText('workbenchRuntime.preview.corruptLockRemoveFailed', { file: fileName }));
       }
     }
   }
@@ -1851,9 +1884,12 @@ export class WorkbenchStore {
          * failing autosave shows one non-stacking toast; the file stays in the
          * unsaved set so a manual save can still retry.
          */
-        toast.error(`Autosave failed for ${filePath.split('/').pop()} — your changes are not saved.`, {
-          toastId: `autosave-fail-${filePath}`,
-        });
+        toast.error(
+          workbenchText('workbenchRuntime.files.autosaveFailed', { file: filePath.split('/').pop() ?? filePath }),
+          {
+            toastId: `autosave-fail-${filePath}`,
+          },
+        );
       });
     }, delayMs);
 
@@ -1990,7 +2026,7 @@ export class WorkbenchStore {
     const currentDocument = this.currentDocument.get();
 
     if (currentDocument === undefined) {
-      throw new Error('No file is open to format');
+      throw new Error(workbenchText('workbenchRuntime.files.noOpenFile'));
     }
 
     const { filePath, value } = currentDocument;
@@ -2002,8 +2038,8 @@ export class WorkbenchStore {
     if (this.isFileLocked(filePath).locked) {
       this.actionAlert.set({
         type: 'warning',
-        title: 'File locked',
-        description: `${filePath} is locked and cannot be formatted. Unlock it first.`,
+        title: workbenchText('workbenchRuntime.files.lockedTitle'),
+        description: workbenchText('workbenchRuntime.files.formatLocked', { file: filePath }),
         content: '',
         source: 'preview',
       });
@@ -2074,7 +2110,7 @@ export class WorkbenchStore {
     });
     this.#syncAgentPatchProposalToServer(proposalId);
     this.#dropResolvedAgentPatchLogs(proposal.relativePath);
-    this.appendWorkspaceLog(`AI patch rejected: ${proposal.relativePath}`);
+    this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.rejected', { file: proposal.relativePath }));
   }
 
   async acceptAgentPatchProposal(
@@ -2102,7 +2138,7 @@ export class WorkbenchStore {
      * feature for the entire agent-patch journey.
      */
     if (this.isFileLocked(proposal.filePath).locked) {
-      const message = `${proposal.relativePath} is locked; the AI patch was not applied. Unlock it first.`;
+      const message = workbenchText('workbenchRuntime.patch.locked', { file: proposal.relativePath });
       this.agentPatchProposals.setKey(proposalId, {
         ...proposal,
         status: 'failed',
@@ -2112,12 +2148,12 @@ export class WorkbenchStore {
       this.#syncAgentPatchProposalToServer(proposalId);
       this.actionAlert.set({
         type: 'warning',
-        title: 'File locked',
+        title: workbenchText('workbenchRuntime.files.lockedTitle'),
         description: message,
         content: message,
         source: 'preview',
       });
-      this.appendWorkspaceLog(`AI patch blocked (locked): ${proposal.relativePath}`);
+      this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.lockedLog', { file: proposal.relativePath }));
 
       return 'ignored';
     }
@@ -2195,7 +2231,9 @@ export class WorkbenchStore {
 
           if (reconciled !== acceptedContent) {
             acceptedContent = reconciled;
-            this.appendWorkspaceLog(`AI patch reconciled ${proposal.relativePath} with a concurrent change`);
+            this.appendWorkspaceLog(
+              workbenchText('workbenchRuntime.patch.reconciled', { file: proposal.relativePath }),
+            );
           }
         }
 
@@ -2218,12 +2256,8 @@ export class WorkbenchStore {
         artifact?.runner.skipAction(proposal.actionId);
 
         if (!fileExistsInEditor) {
-          await this.loadRuntimeFiles('.').catch((error) => {
-            this.appendWorkspaceLog(
-              error instanceof Error
-                ? `File refresh skipped after accepting AI patch: ${error.message}`
-                : 'File refresh skipped after accepting AI patch',
-            );
+          await this.loadRuntimeFiles('.').catch(() => {
+            this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.refreshSkipped'));
           });
         }
 
@@ -2242,19 +2276,17 @@ export class WorkbenchStore {
         });
         this.#dropResolvedAgentPatchLogs(proposal.relativePath);
         this.#dropResolvedMissingImportFailures();
-        this.appendWorkspaceLog(`AI patch accepted: ${proposal.relativePath}`);
+        this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.accepted', { file: proposal.relativePath }));
 
-        await this.#createProjectAgentCheckpoint(`AI accepted ${proposal.relativePath}`).catch((error) => {
-          this.appendWorkspaceLog(
-            error instanceof Error
-              ? `AI checkpoint skipped after patch accept: ${error.message}`
-              : 'AI checkpoint skipped after patch accept',
-          );
+        await this.#createProjectAgentCheckpoint(
+          workbenchText('workbenchRuntime.patch.checkpointLabel', { file: proposal.relativePath }),
+        ).catch(() => {
+          this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.checkpointSkipped'));
         });
 
         return 'accepted';
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Failed to apply AI patch.';
+      } catch {
+        const message = workbenchText('workbenchRuntime.patch.applyFailed');
         this.agentPatchProposals.setKey(proposalId, {
           ...proposal,
           status: 'failed',
@@ -2262,7 +2294,7 @@ export class WorkbenchStore {
           error: message,
         });
         this.#syncAgentPatchProposalToServer(proposalId);
-        this.appendWorkspaceLog(`AI patch failed: ${proposal.relativePath}: ${message}`);
+        this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.failedLog', { file: proposal.relativePath }));
 
         return 'failed';
       }
@@ -2300,7 +2332,9 @@ export class WorkbenchStore {
 
     if (orderedProposals.cyclic && orderedProposals.cycleParticipants.length > 0) {
       this.appendWorkspaceLog(
-        `AI patch bulk apply: import cycle detected (${orderedProposals.cycleParticipants.join(', ')}) — falling back to source order`,
+        workbenchText('workbenchRuntime.patch.importCycle', {
+          files: orderedProposals.cycleParticipants.join(', '),
+        }),
       );
     }
 
@@ -2324,7 +2358,7 @@ export class WorkbenchStore {
     const artifact = this.#getArtifact(proposal.artifactId);
 
     if (!artifact) {
-      this.appendWorkspaceLog(`AI patch revert skipped (artifact gone): ${proposal.relativePath}`);
+      this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.revertMissing', { file: proposal.relativePath }));
       return;
     }
 
@@ -2364,10 +2398,9 @@ export class WorkbenchStore {
         artifactId: proposal.artifactId,
         actionId: `${proposal.actionId}-revert`,
       });
-      this.appendWorkspaceLog(`AI patch reverted: ${proposal.relativePath}`);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to revert AI patch.';
-      this.appendWorkspaceLog(`AI patch revert failed: ${proposal.relativePath}: ${message}`);
+      this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.reverted', { file: proposal.relativePath }));
+    } catch {
+      this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.revertFailed', { file: proposal.relativePath }));
     }
   }
 
@@ -2387,7 +2420,7 @@ export class WorkbenchStore {
     });
 
     if (!response.ok) {
-      throw new Error(`snapshot endpoint returned ${response.status}`);
+      throw Object.assign(new Error(), { code: 'SNAPSHOT_ENDPOINT_HTTP_ERROR', status: response.status });
     }
   }
 
@@ -2737,12 +2770,12 @@ export class WorkbenchStore {
            */
           this.actionAlert.set({
             type: 'warning',
-            title: 'Diff could not be applied',
-            description: resolution.message,
-            content: resolution.message,
+            title: workbenchText('workbenchRuntime.diff.title'),
+            description: workbenchText('workbenchRuntime.diff.description'),
+            content: workbenchText('workbenchRuntime.diff.description'),
             source: 'preview',
           });
-          this.appendWorkspaceLog(`AI diff not applied: ${resolution.message}`);
+          this.appendWorkspaceLog(workbenchText('workbenchRuntime.diff.log'));
           artifact.runner.skipAction(data.actionId);
 
           return;
@@ -2815,11 +2848,15 @@ export class WorkbenchStore {
         const lockState = this.isFileLocked(fullPath);
 
         if (hasUnsavedEdits || lockState.locked) {
-          if (this.actionAlert.value?.title !== 'AI write conflict') {
+          const conflictTitle = workbenchText('workbenchRuntime.write.conflictTitle');
+
+          if (this.actionAlert.value?.title !== conflictTitle) {
             this.actionAlert.set({
               type: 'warning',
-              title: 'AI write conflict',
-              description: `The assistant is editing ${data.action.filePath} while you have unsaved changes to it. Your edits are kept; save or discard them to apply the assistant's version.`,
+              title: conflictTitle,
+              description: workbenchText('workbenchRuntime.write.conflictDescription', {
+                file: data.action.filePath,
+              }),
               content: '',
               source: 'preview',
             });
@@ -2843,15 +2880,15 @@ export class WorkbenchStore {
       const nonStreamingLockState = this.isFileLocked(fullPath);
 
       if (nonStreamingLockState.locked) {
-        const message = `${data.action.filePath} is locked; the assistant's change was not written.`;
+        const message = workbenchText('workbenchRuntime.write.locked', { file: data.action.filePath });
         this.actionAlert.set({
           type: 'warning',
-          title: 'AI file write blocked',
+          title: workbenchText('workbenchRuntime.write.blockedTitle'),
           description: message,
           content: message,
           source: 'preview',
         });
-        this.appendWorkspaceLog(`AI file write blocked (locked): ${data.action.filePath}`);
+        this.appendWorkspaceLog(workbenchText('workbenchRuntime.write.blockedLog', { file: data.action.filePath }));
         artifact.runner.skipAction(data.actionId);
 
         return;
@@ -2862,26 +2899,22 @@ export class WorkbenchStore {
       const completedAction = artifact.runner.actions.get()[data.actionId];
 
       if (completedAction?.status === 'failed') {
-        const message = completedAction.error || `Failed to write ${data.action.filePath}`;
+        const message = workbenchText('workbenchRuntime.write.failed', { file: data.action.filePath });
 
         this.actionAlert.set({
           type: 'error',
-          title: 'AI file write blocked',
+          title: workbenchText('workbenchRuntime.write.blockedTitle'),
           description: message,
           content: message,
           source: 'preview',
         });
-        this.appendWorkspaceLog(`AI file write blocked: ${data.action.filePath}: ${message}`);
+        this.appendWorkspaceLog(workbenchText('workbenchRuntime.write.blockedLog', { file: data.action.filePath }));
 
         return;
       }
 
-      await this.loadRuntimeFiles('.').catch((error) => {
-        this.appendWorkspaceLog(
-          error instanceof Error
-            ? `File refresh skipped after AI write: ${error.message}`
-            : 'File refresh skipped after AI write',
-        );
+      await this.loadRuntimeFiles('.').catch(() => {
+        this.appendWorkspaceLog(workbenchText('workbenchRuntime.write.refreshSkipped'));
       });
 
       const writtenFile = this.#filesStore.getFile(fullPath);
@@ -2895,7 +2928,7 @@ export class WorkbenchStore {
     } else {
       if (this.agentPatchReviewRequired.get() && this.#hasOpenAgentPatchProposalsForArtifact(artifactId)) {
         artifact.runner.skipAction(data.actionId);
-        this.appendWorkspaceLog('AI command skipped until reviewed file changes are accepted or rejected.');
+        this.appendWorkspaceLog(workbenchText('workbenchRuntime.write.commandReviewPending'));
 
         return;
       }
@@ -2989,7 +3022,7 @@ export class WorkbenchStore {
         validationFiles,
       );
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Generated file validation failed.';
+      const message = workbenchText('workbenchRuntime.validation.failed');
       const failedPath = error instanceof Error && 'filePath' in error ? String(error.filePath) : null;
 
       for (const proposal of proposals) {
@@ -3009,7 +3042,9 @@ export class WorkbenchStore {
           error: message,
         });
         this.#syncAgentPatchProposalToServer(proposal.id);
-        this.appendWorkspaceLog(`AI patch blocked: ${proposal.relativePath}: ${message}`);
+        this.appendWorkspaceLog(
+          workbenchText('workbenchRuntime.validation.patchBlocked', { file: proposal.relativePath }),
+        );
       }
     }
   }
@@ -3061,22 +3096,20 @@ export class WorkbenchStore {
     }
 
     if (!isStreaming) {
-      this.appendWorkspaceLog(`AI patch waiting for review: ${data.action.filePath}`);
+      this.appendWorkspaceLog(
+        workbenchText('workbenchRuntime.validation.waitingForReview', { file: data.action.filePath }),
+      );
     }
   }
 
   async #refreshPreviewAfterArtifactClose(artifactId: string) {
-    await this.loadRuntimeFiles('.').catch((error) => {
-      this.appendWorkspaceLog(
-        error instanceof Error ? `Preview file refresh skipped: ${error.message}` : 'Preview file refresh skipped',
-      );
+    await this.loadRuntimeFiles('.').catch(() => {
+      this.appendWorkspaceLog(workbenchText('workbenchRuntime.validation.previewRefreshSkipped'));
     });
 
-    const previewManifestChanged = await this.#syncPreviewManifestFromRuntime().catch((error) => {
+    const previewManifestChanged = await this.#syncPreviewManifestFromRuntime().catch(() => {
       this.appendWorkspaceLog(
-        error instanceof Error
-          ? `Dependency sync skipped after ${artifactId}: ${error.message}`
-          : `Dependency sync skipped after ${artifactId}`,
+        workbenchText('workbenchRuntime.validation.dependencySyncSkipped', { artifact: artifactId }),
       );
 
       return false;
@@ -3105,11 +3138,9 @@ export class WorkbenchStore {
       return;
     }
 
-    await this.restartPreviewServer().catch((error) => {
+    await this.restartPreviewServer().catch(() => {
       this.appendWorkspaceLog(
-        error instanceof Error
-          ? `Preview restart skipped after ${artifactId}: ${error.message}`
-          : `Preview restart skipped after ${artifactId}`,
+        workbenchText('workbenchRuntime.validation.previewRestartSkipped', { artifact: artifactId }),
       );
     });
   }
@@ -3144,17 +3175,19 @@ export class WorkbenchStore {
       await validateGeneratedFiles(generatedFiles);
 
       return true;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Generated file import validation failed.';
+    } catch {
+      const message = workbenchText('workbenchRuntime.validation.invalidImportDescription');
 
       this.actionAlert.set({
         type: 'error',
-        title: 'AI generated an invalid file import',
+        title: workbenchText('workbenchRuntime.validation.invalidImportTitle'),
         description: message,
         content: message,
         source: 'preview',
       });
-      this.appendWorkspaceLog(`Preview restart blocked after ${artifactId}: ${message}`);
+      this.appendWorkspaceLog(
+        workbenchText('workbenchRuntime.validation.previewRestartBlocked', { artifact: artifactId }),
+      );
 
       return false;
     }
@@ -3179,10 +3212,12 @@ export class WorkbenchStore {
      */
     return withRuntimeRetry(() => this.#syncPreviewManifestFromRuntimeOnce(), {
       attempts: 8,
-      onRetry: (attempt, delayMs, error) => {
-        const reason = error instanceof Error ? error.message : String(error);
+      onRetry: (attempt, delayMs) => {
         this.appendWorkspaceLog(
-          `Dependency sync attempt ${attempt} failed (${reason}); retrying in ${Math.round(delayMs / 100) / 10}s…`,
+          workbenchText('workbenchRuntime.dependencies.retry', {
+            attempt,
+            seconds: Math.round(delayMs / 100) / 10,
+          }),
         );
       },
     });
@@ -3210,13 +3245,18 @@ export class WorkbenchStore {
 
     if (Object.keys(doctor.fixups).length) {
       this.appendWorkspaceLog(
-        `Project doctor: added missing default export(s) to ${Object.keys(doctor.fixups).join(', ')}`,
+        workbenchText('workbenchRuntime.doctor.fixedExports', {
+          files: Object.keys(doctor.fixups).join(', '),
+        }),
       );
     }
 
     for (const item of doctor.unresolved) {
       this.appendWorkspaceLog(
-        `Project doctor: "${item.specifier}" imported by ${item.importer} resolves to no file — the app may not mount until it exists.`,
+        workbenchText('workbenchRuntime.doctor.unresolvedImport', {
+          specifier: item.specifier,
+          importer: item.importer,
+        }),
       );
     }
 
@@ -3229,31 +3269,39 @@ export class WorkbenchStore {
       changed = true;
 
       if (repair.packageJson.created) {
-        this.appendWorkspaceLog(`Created preview package manifest at ${repair.packageJson.path}`);
+        this.appendWorkspaceLog(
+          workbenchText('workbenchRuntime.doctor.createdManifest', { file: repair.packageJson.path }),
+        );
       }
 
       if (repair.packageJson.missingDependencies.length) {
         this.appendWorkspaceLog(
-          `Added missing runtime dependencies: ${repair.packageJson.missingDependencies.join(', ')}`,
+          workbenchText('workbenchRuntime.doctor.addedDependencies', {
+            dependencies: repair.packageJson.missingDependencies.join(', '),
+          }),
         );
       }
 
       if (repair.packageJson.addedScripts.length) {
-        this.appendWorkspaceLog(`Added preview package scripts: ${repair.packageJson.addedScripts.join(', ')}`);
+        this.appendWorkspaceLog(
+          workbenchText('workbenchRuntime.doctor.addedScripts', {
+            scripts: repair.packageJson.addedScripts.join(', '),
+          }),
+        );
       }
 
       if (repair.packageJson.upgradedDependencies.length) {
         this.appendWorkspaceLog(
-          `Upgraded ${repair.packageJson.upgradedDependencies.join(
-            ', ',
-          )} to React 18 (the app calls createRoot / react-dom/client, which require React ≥18)`,
+          workbenchText('workbenchRuntime.doctor.upgradedReact', {
+            dependencies: repair.packageJson.upgradedDependencies.join(', '),
+          }),
         );
       }
     }
 
     for (const file of repair.supplementalFiles) {
       await this.#runtime.writeFile(file.path, file.content);
-      this.appendWorkspaceLog(`Created preview runtime file ${file.path}`);
+      this.appendWorkspaceLog(workbenchText('workbenchRuntime.doctor.createdRuntimeFile', { file: file.path }));
       changed = true;
     }
 
@@ -3291,12 +3339,12 @@ export class WorkbenchStore {
         const byteLength = new TextEncoder().encode(content).byteLength;
 
         if (byteLength > PROJECT_STORAGE_SYNC_MAX_FILE_BYTES) {
-          this.appendWorkspaceLog(`Project storage sync skipped large file ${filePath}`);
+          this.appendWorkspaceLog(workbenchText('workbenchRuntime.storage.skippedLargeFile', { file: filePath }));
           continue;
         }
 
         if (totalBytes + byteLength > PROJECT_STORAGE_SYNC_MAX_TOTAL_BYTES) {
-          this.appendWorkspaceLog('Project storage sync stopped at size limit');
+          this.appendWorkspaceLog(workbenchText('workbenchRuntime.storage.sizeLimit'));
           break;
         }
 
@@ -3320,16 +3368,14 @@ export class WorkbenchStore {
       });
 
       if (!response.ok) {
-        throw new Error(`import returned ${response.status}`);
+        throw Object.assign(new Error(), { code: 'PROJECT_IMPORT_HTTP_ERROR', status: response.status });
       }
 
-      this.appendWorkspaceLog(`Project storage synced ${fileCount} files after ${artifactId}`);
-    } catch (error) {
       this.appendWorkspaceLog(
-        error instanceof Error
-          ? `Project storage sync skipped after ${artifactId}: ${error.message}`
-          : `Project storage sync skipped after ${artifactId}`,
+        workbenchText('workbenchRuntime.storage.synced', { count: fileCount, artifact: artifactId }),
       );
+    } catch {
+      this.appendWorkspaceLog(workbenchText('workbenchRuntime.storage.skipped', { artifact: artifactId }));
     }
   }
 
@@ -3349,7 +3395,9 @@ export class WorkbenchStore {
     }
 
     try {
-      await this.#runtime.createSnapshot(`Before AI changes ${data.artifactId}`);
+      await this.#runtime.createSnapshot(
+        workbenchText('workbenchRuntime.snapshot.beforeAi', { artifact: data.artifactId }),
+      );
 
       /*
        * Mark as snapshotted only AFTER success. Setting the dedup marker first
@@ -3484,13 +3532,13 @@ export class WorkbenchStore {
       const owner = username || Cookies.get(isGitHub ? 'githubUsername' : 'gitlabUsername');
 
       if (!authToken || !owner) {
-        throw new Error(`${provider} token or username is not set in cookies or provided.`);
+        throw new Error(workbenchText('workbenchRuntime.repository.credentialsMissing', { provider }));
       }
 
       const files = this.files.get();
 
       if (!files || Object.keys(files).length === 0) {
-        throw new Error('No files found to push');
+        throw new Error(workbenchText('workbenchRuntime.repository.noFiles'));
       }
 
       if (isGitHub) {
@@ -3565,7 +3613,7 @@ export class WorkbenchStore {
         const files = this.files.get();
 
         if (!files || Object.keys(files).length === 0) {
-          throw new Error('No files found to push');
+          throw new Error(workbenchText('workbenchRuntime.repository.noFiles'));
         }
 
         // Function to push files with retry logic
@@ -3613,7 +3661,7 @@ export class WorkbenchStore {
             const validBlobs = blobs.filter(Boolean); // Filter out any undefined blobs
 
             if (validBlobs.length === 0) {
-              throw new Error('No valid files to push');
+              throw new Error(workbenchText('workbenchRuntime.repository.noValidFiles'));
             }
 
             // Refresh repository reference to ensure we have the latest data
@@ -3668,7 +3716,7 @@ export class WorkbenchStore {
             const { data: newCommit } = await octokit.git.createCommit({
               owner: repo.owner.login,
               repo: repo.name,
-              message: commitMessage || 'Initial commit from your app',
+              message: commitMessage || workbenchText('workbenchRuntime.repository.initialCommit'),
               tree: newTree.sha,
               parents: [latestCommitSha],
             });
@@ -3781,7 +3829,7 @@ export class WorkbenchStore {
         // Commit all files
         await gitLabApiService.commitFiles(repo.id, {
           branch: branchName,
-          commit_message: commitMessage || 'Commit multiple files',
+          commit_message: commitMessage || workbenchText('workbenchRuntime.repository.multipleFilesCommit'),
           actions,
         });
 
@@ -3789,7 +3837,7 @@ export class WorkbenchStore {
       }
 
       // Should not reach here since we only handle GitHub and GitLab
-      throw new Error(`Unsupported provider: ${provider}`);
+      throw new Error(workbenchText('workbenchRuntime.repository.unsupportedProvider', { provider }));
     } catch (error) {
       console.error('Error pushing to repository:', error);
       throw error; // Rethrow the error for further handling

@@ -60,7 +60,7 @@ describe('TabPanelBoundary keyed by tab id', () => {
   it('does not leak a failed tab error onto the next tab when switching directly', () => {
     // Tab whose lazy import "fails" → boundary shows the error fallback.
     const { rerender } = render(<ActiveTabPanel tab="data" reloadKey={0} />);
-    expect(screen.getByText("Couldn't load this section")).toBeTruthy();
+    expect(screen.getByText('This section could not load')).toBeTruthy();
 
     // Switch straight to a loadable tab (e.g. via the header AvatarDropdown).
     rerender(<ActiveTabPanel tab="profile" reloadKey={0} />);

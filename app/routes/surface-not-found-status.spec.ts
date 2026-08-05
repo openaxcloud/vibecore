@@ -8,9 +8,9 @@
  * HTTP 200 with a "not found" body, which search engines index as real pages.
  *
  * The internal product surface routes still throw the 404 from their loaders.
- * Public E-Code imports such as /compare/:slug, /solutions/:slug and
- * /marketing/:slug intentionally serve the copied E-Code static shell for both
- * known and unknown slugs so client-side routing matches the source app.
+ * Public E-Code imports such as /compare/:slug and /solutions/:slug use their
+ * in-repo SSR loaders. The /marketing/:slug route is only a namespace catch-all
+ * because every supported marketing page has a more specific route module.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -85,34 +85,18 @@ const publicMarketingCases: Array<{
   loader: Loader;
   params: Record<string, string>;
   pathname: string;
-
-  /*
-   * marketing.$slug still serves the copied E-Code static shell; solutions.$slug
-   * and compare.$slug were migrated to real in-repo SSR (MarketingDynamicPage +
-   * loader), so they return JSON data and NOT the static-shell marker header.
-   */
-  servesStaticShell: boolean;
 }> = [
   {
     name: 'solutions.$slug',
     loader: solutionsLoader as Loader,
     params: { slug: 'app-builder' },
     pathname: '/solutions/app-builder',
-    servesStaticShell: false,
   },
   {
     name: 'compare.$slug',
     loader: compareLoader as Loader,
     params: { slug: 'heroku' },
     pathname: '/compare/heroku',
-    servesStaticShell: false,
-  },
-  {
-    name: 'marketing.$slug',
-    loader: marketingLoader as Loader,
-    params: { slug: 'teams' },
-    pathname: '/marketing/teams',
-    servesStaticShell: true,
   },
 ];
 
@@ -138,19 +122,27 @@ describe('dynamic surface routes return a true HTTP 404 for unknown slugs', () =
 });
 
 describe('imported E-Code public dynamic routes resolve for public routing', () => {
-  for (const { name, loader, params, pathname, servesStaticShell } of publicMarketingCases) {
-    it(`${name}: ${servesStaticShell ? 'returns the static E-Code shell' : 'serves real in-repo SSR'}`, async () => {
+  for (const { name, loader, params, pathname } of publicMarketingCases) {
+    it(`${name}: serves real in-repo SSR`, async () => {
       const result = await runLoader(loader, params, pathname);
 
       expect(result.threw).toBe(false);
       expect(result.response?.status).toBe(200);
-
-      if (servesStaticShell) {
-        expect(result.response?.headers.get('x-e-code-marketing-shell')).toBe('ecode-static');
-      } else {
-        // In-repo SSR routes must NOT carry the copied-static-shell marker.
-        expect(result.response?.headers.get('x-e-code-marketing-shell')).toBeNull();
-      }
+      expect(result.response?.headers.get('x-e-code-marketing-shell')).toBeNull();
     });
   }
+});
+
+describe('marketing namespace catch-all', () => {
+  it('returns the localized HTTP 404 instead of the retired English static shell', async () => {
+    const result = await runLoader(
+      marketingLoader as Loader,
+      { slug: 'definitely-not-a-real-marketing-page-xyz' },
+      '/marketing/definitely-not-a-real-marketing-page-xyz',
+    );
+
+    expect(result.threw).toBe(false);
+    expect(result.response?.status).toBe(404);
+    expect(result.response?.headers.get('x-e-code-marketing-shell')).toBeNull();
+  });
 });

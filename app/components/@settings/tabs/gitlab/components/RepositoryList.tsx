@@ -1,6 +1,13 @@
 import React, { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { RepositoryCard } from './RepositoryCard';
 import { Button } from '~/components/ui/Button';
+import {
+  formatGitLabTabNumber,
+  formatGitLabTabPlural,
+  getGitLabTabCopy,
+  interpolateGitLabTabCopy,
+} from '~/lib/i18n/catalogs/gitlab-tab';
 import type { GitLabProjectInfo } from '~/types/GitLab';
 
 export function filterRepositories(repositories: GitLabProjectInfo[], searchQuery: string): GitLabProjectInfo[] {
@@ -28,6 +35,9 @@ interface RepositoryListProps {
 const MAX_REPOS_PER_PAGE = 20;
 
 export function RepositoryList({ repositories, onClone, onRefresh, isRefreshing }: RepositoryListProps) {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getGitLabTabCopy(language);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -47,10 +57,13 @@ export function RepositoryList({ repositories, onClone, onRefresh, isRefreshing 
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h4 className="text-sm font-medium text-bolt-elements-textPrimary">
-          Repositories ({filteredRepositories.length})
+    <div className="min-w-0 space-y-4">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+        <h4 className="min-w-0 break-words text-sm font-medium text-bolt-elements-textPrimary [overflow-wrap:anywhere]">
+          {formatGitLabTabPlural(language, filteredRepositories.length, {
+            one: copy['gitLabTab.repositories.count_one'],
+            other: copy['gitLabTab.repositories.count_other'],
+          })}
         </h4>
         {onRefresh && (
           <Button
@@ -58,26 +71,30 @@ export function RepositoryList({ repositories, onClone, onRefresh, isRefreshing 
             disabled={isRefreshing}
             variant="outline"
             size="sm"
-            className="flex items-center gap-2"
+            className="!h-auto min-h-11 whitespace-normal break-words py-2 text-center"
+            aria-label={
+              isRefreshing ? copy['gitLabTab.repositories.refreshing'] : copy['gitLabTab.repositories.refresh']
+            }
           >
             {isRefreshing ? (
               <div className="i-ph:spinner animate-spin w-4 h-4" />
             ) : (
               <div className="i-ph:arrows-clockwise w-4 h-4" />
             )}
-            Refresh
+            {isRefreshing ? copy['gitLabTab.repositories.refreshing'] : copy['gitLabTab.repositories.refresh']}
           </Button>
         )}
       </div>
 
       {/* Search Input */}
-      <div className="relative">
+      <div className="relative min-w-0">
         <input
-          type="text"
-          placeholder="Search repositories..."
+          type="search"
+          placeholder={copy['gitLabTab.repositories.searchPlaceholder']}
+          aria-label={copy['gitLabTab.repositories.searchLabel']}
           value={searchQuery}
           onChange={(e) => handleSearch(e.target.value)}
-          className="w-full px-4 py-2 pl-10 rounded-lg bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary focus:outline-none focus:ring-1 focus:ring-bolt-elements-borderColorActive"
+          className="min-h-11 w-full rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-4 py-2 pl-10 text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary focus:outline-none focus:ring-1 focus:ring-bolt-elements-borderColorActive"
         />
         <div className="absolute left-3 top-1/2 -translate-y-1/2">
           <div className="i-ph:magnifying-glass w-4 h-4 text-bolt-elements-textSecondary" />
@@ -87,8 +104,11 @@ export function RepositoryList({ repositories, onClone, onRefresh, isRefreshing 
       {/* Repository Grid */}
       <div className="space-y-4">
         {filteredRepositories.length === 0 ? (
-          <div className="text-center py-8 text-bolt-elements-textSecondary">
-            {searchQuery ? 'No repositories found matching your search.' : 'No repositories available.'}
+          <div
+            className="break-words py-8 text-center text-bolt-elements-textSecondary [overflow-wrap:anywhere]"
+            role="status"
+          >
+            {searchQuery ? copy['gitLabTab.repositories.emptySearch'] : copy['gitLabTab.repositories.empty']}
           </div>
         ) : (
           <>
@@ -100,31 +120,46 @@ export function RepositoryList({ repositories, onClone, onRefresh, isRefreshing 
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between pt-4 border-t border-bolt-elements-borderColor">
-                <div className="text-sm text-bolt-elements-textSecondary">
-                  Showing {Math.min(startIndex + 1, filteredRepositories.length)} to{' '}
-                  {Math.min(endIndex, filteredRepositories.length)} of {filteredRepositories.length} repositories
+              <div className="flex min-w-0 flex-col gap-3 border-t border-bolt-elements-borderColor pt-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0 break-words text-sm text-bolt-elements-textSecondary [overflow-wrap:anywhere]">
+                  {formatGitLabTabPlural(
+                    language,
+                    filteredRepositories.length,
+                    {
+                      one: copy['gitLabTab.repositories.range_one'],
+                      other: copy['gitLabTab.repositories.range_other'],
+                    },
+                    {
+                      start: formatGitLabTabNumber(Math.min(startIndex + 1, filteredRepositories.length), language),
+                      end: formatGitLabTabNumber(Math.min(endIndex, filteredRepositories.length), language),
+                    },
+                  )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex min-w-0 flex-wrap items-center gap-2 sm:justify-end">
                   <Button
                     onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
                     variant="outline"
                     size="sm"
+                    className="!h-auto min-h-11 whitespace-normal py-2 text-center"
                   >
                     <div className="i-ph:caret-left w-4 h-4" />
-                    Previous
+                    {copy['gitLabTab.repositories.previous']}
                   </Button>
-                  <span className="text-sm text-bolt-elements-textSecondary px-3">
-                    {currentPage} of {totalPages}
+                  <span className="break-words px-1 text-center text-sm text-bolt-elements-textSecondary [overflow-wrap:anywhere] sm:px-3">
+                    {interpolateGitLabTabCopy(copy['gitLabTab.repositories.page'], {
+                      current: formatGitLabTabNumber(currentPage, language),
+                      total: formatGitLabTabNumber(totalPages, language),
+                    })}
                   </span>
                   <Button
                     onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                     disabled={currentPage === totalPages}
                     variant="outline"
                     size="sm"
+                    className="!h-auto min-h-11 whitespace-normal py-2 text-center"
                   >
-                    Next
+                    {copy['gitLabTab.repositories.next']}
                     <div className="i-ph:caret-right w-4 h-4" />
                   </Button>
                 </div>

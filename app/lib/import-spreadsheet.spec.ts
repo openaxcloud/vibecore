@@ -38,6 +38,13 @@ describe('parseDelimited', () => {
   it('returns empty structure when there is no data', () => {
     expect(parseDelimited('   ')).toEqual({ headers: [], rows: [], delimiter: ',' });
   });
+
+  it('localizes generated fallback column names without changing imported values', () => {
+    const sheet = parseDelimited(',ville\nAda,Paris', 'fr-FR');
+
+    expect(sheet.headers).toEqual(['Colonne 1', 'ville']);
+    expect(sheet.rows).toEqual([['Ada', 'Paris']]);
+  });
 });
 
 describe('buildSpreadsheetProject', () => {
@@ -76,5 +83,31 @@ describe('buildSpreadsheetProject', () => {
 
     const html = await zip.file('index.html')!.async('string');
     expect(html).not.toContain('<script>alert(1)</script>');
+  });
+
+  it('generates a complete French application while preserving user data and code identifiers', async () => {
+    const base64 = await buildSpreadsheetProject({
+      name: 'Équipe R&D',
+      headers: ['name', 'role'],
+      rows: [
+        ['Ada', 'Engineer'],
+        ['Grace', 'Admiral'],
+      ],
+      language: 'fr',
+    });
+
+    const zip = await JSZip.loadAsync(base64, { base64: true });
+    const html = await zip.file('index.html')!.async('string');
+    const readme = await zip.file('README.md')!.async('string');
+    const data = JSON.parse(await zip.file('data.json')!.async('string'));
+
+    expect(html).toContain('<html lang="fr">');
+    expect(html).toContain('2 colonnes · 2 lignes');
+    expect(html).toContain('placeholder="Filtrer les lignes…"');
+    expect(html).not.toContain('countOther: undefined');
+    expect(html).toContain('Équipe R&amp;D');
+    expect(readme).toContain('Tableau de données triable généré depuis une feuille de calcul importée');
+    expect(data).toMatchObject({ name: 'Équipe R&D', headers: ['name', 'role'] });
+    expect(data.rows[0]).toEqual(['Ada', 'Engineer']);
   });
 });

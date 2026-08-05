@@ -1,5 +1,6 @@
 import { type Message } from 'ai';
 import Cookies from 'js-cookie';
+import { formatPersistenceRuntimeCopy, getPersistenceRuntimeCopy } from '~/lib/i18n/catalogs/persistence-runtime';
 import { getAllChats, deleteChat } from '~/lib/persistence/chats';
 import { openDatabase, getAllSnapshots, setSnapshot, deleteSnapshot } from '~/lib/persistence/db';
 import type { Snapshot } from '~/lib/persistence/types';
@@ -21,7 +22,7 @@ export class ImportExportService {
    */
   static async exportAllChats(db: IDBDatabase): Promise<{ chats: any[]; exportDate: string }> {
     if (!db) {
-      throw new Error('Database not initialized');
+      throw new Error(getPersistenceRuntimeCopy()['persistence.error.databaseNotInitialized']);
     }
 
     try {
@@ -66,7 +67,14 @@ export class ImportExportService {
       };
     } catch (error) {
       console.error('Error exporting chats:', error);
-      throw new Error(`Failed to export chats: ${error instanceof Error ? error.message : 'Unknown error'}`);
+
+      const copy = getPersistenceRuntimeCopy();
+
+      throw new Error(
+        formatPersistenceRuntimeCopy(copy['persistence.error.exportChats'], {
+          message: error instanceof Error ? error.message : copy['persistence.error.unknown'],
+        }),
+      );
     }
   }
 
@@ -249,7 +257,9 @@ export class ImportExportService {
       }
 
       if (typeof value !== 'string') {
-        throw new Error(`Invalid value for key: ${key}`);
+        const copy = getPersistenceRuntimeCopy();
+
+        throw new Error(formatPersistenceRuntimeCopy(copy['persistence.error.invalidApiKeyValue'], { key }));
       }
 
       // Handle both old and new template formats
@@ -302,8 +312,7 @@ export class ImportExportService {
 
     // Add a comment to explain the format
     return {
-      _comment:
-        "Fill in your API keys for each provider. Keys will be stored with the provider name (e.g., 'OpenAI'). The application also supports the older format with keys like 'OpenAI_API_KEY' for backward compatibility.",
+      _comment: getPersistenceRuntimeCopy()['persistence.apiKeys.templateComment'],
       ...template,
     };
   }
@@ -392,7 +401,7 @@ export class ImportExportService {
 
     // Clear chats from IndexedDB
     if (!db) {
-      throw new Error('Database not initialized');
+      throw new Error(getPersistenceRuntimeCopy()['persistence.error.databaseNotInitialized']);
     }
 
     // Get all chats and delete them one by one

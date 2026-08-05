@@ -1,4 +1,11 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+  formatChatResidualsCopy,
+  formatChatResidualsNumber,
+  getChatResidualsCopy,
+  localizePersistedProgressMessage,
+} from '~/lib/i18n/catalogs/chat-residuals';
 import type { ProgressAnnotation } from '~/types/context';
 
 /**
@@ -11,6 +18,10 @@ import type { ProgressAnnotation } from '~/types/context';
  * (see ToolInvocations), so this only surfaces the current phase.
  */
 export default function ProgressCompilation({ data }: { data?: ProgressAnnotation[] }) {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getChatResidualsCopy(language);
+
   const progressList = useMemo(() => {
     if (!data?.length) {
       return [] as ProgressAnnotation[];
@@ -40,24 +51,35 @@ export default function ProgressCompilation({ data }: { data?: ProgressAnnotatio
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
   const hasActiveWork = progressList.some((item) => item.status === 'in-progress');
   const activeItem = progressList.find((item) => item.status === 'in-progress') ?? progressList.at(-1);
-  const phase = hasActiveWork ? formatPhase(activeItem?.message) : 'Done';
+  const localizedMessage = localizePersistedProgressMessage(activeItem?.message, language);
+
+  const phase = hasActiveWork
+    ? formatPhase(localizedMessage, copy['chatResiduals.progress.working'])
+    : copy['chatResiduals.progress.done'];
+
+  const formattedPercent = formatChatResidualsNumber(progressPercent, language);
 
   return (
     <div
       className="bolt-agent-statusline relative flex items-center gap-2 w-full px-3 py-1.5 text-xs border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-1"
       role="status"
       aria-live="polite"
-      aria-label={`Agent ${phase}, ${progressPercent}% complete`}
+      aria-label={formatChatResidualsCopy(copy['chatResiduals.progress.aria'], {
+        phase,
+        percent: formattedPercent,
+      })}
       data-active-work={hasActiveWork ? 'true' : 'false'}
     >
       <span
         className={`${hasActiveWork ? 'i-svg-spinners:90-ring-with-bg text-bolt-elements-item-contentAccent' : 'i-ph:check-circle-fill text-emerald-500'} text-sm shrink-0`}
         aria-hidden
       />
-      <span className="font-medium text-bolt-elements-textPrimary shrink-0">Agent</span>
+      <span className="shrink-0 font-medium text-bolt-elements-textPrimary">
+        {copy['chatResiduals.progress.agent']}
+      </span>
       <span className="text-bolt-elements-textSecondary truncate">· {phase}</span>
       <span className="[margin-inline-start:auto] shrink-0 tabular-nums text-bolt-elements-textSecondary">
-        {progressPercent}%
+        {formatChatResidualsCopy(copy['chatResiduals.progress.percent'], { percent: formattedPercent })}
       </span>
       <span
         className="pointer-events-none absolute inset-x-0 bottom-0 h-[2px] bg-bolt-elements-background-depth-3"
@@ -72,6 +94,6 @@ export default function ProgressCompilation({ data }: { data?: ProgressAnnotatio
   );
 }
 
-function formatPhase(message: string | undefined) {
-  return (message ?? '').replace(/\s+/g, ' ').trim() || 'Working';
+function formatPhase(message: string | undefined, fallback: string) {
+  return (message ?? '').replace(/\s+/g, ' ').trim() || fallback;
 }

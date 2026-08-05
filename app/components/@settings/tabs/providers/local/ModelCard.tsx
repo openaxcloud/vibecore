@@ -1,5 +1,6 @@
 import { RotateCw, Trash2, Code, Database, Package, Loader2 } from 'lucide-react';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import type { OllamaModel } from './types';
 import { Card, CardContent } from '~/components/ui/Card';
 import { Progress } from '~/components/ui/Progress';
@@ -13,6 +14,16 @@ interface ModelCardProps {
 }
 
 function ModelCard({ model, onUpdate, onDelete }: ModelCardProps) {
+  const { t, i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
+
+  const progressPercentage =
+    model.progress && model.progress.total > 0 ? Math.round((model.progress.current / model.progress.total) * 100) : 0;
+  const formattedProgress = new Intl.NumberFormat(language, {
+    style: 'percent',
+    maximumFractionDigits: 0,
+  }).format(progressPercentage / 100);
+
   return (
     <Card className="bg-bolt-elements-background-depth-3 hover:bg-bolt-elements-background-depth-4 transition-all duration-200 shadow-sm hover:shadow-md border border-bolt-elements-borderColor hover:border-[color-mix(in_srgb,var(--vc-ide-accent-action)_20%,transparent)]">
       <CardContent className="p-5">
@@ -28,9 +39,9 @@ function ModelCard({ model, onUpdate, onDelete }: ModelCardProps) {
                     'bg-red-500/10 text-red-500': model.status === 'error',
                   })}
                 >
-                  {model.status === 'updating' && 'Updating'}
-                  {model.status === 'updated' && 'Updated'}
-                  {model.status === 'error' && 'Error'}
+                  {model.status === 'updating' && t('settings.copy.updating_0b5260e1')}
+                  {model.status === 'updated' && t('settings.copy.updated_3a5ecca1')}
+                  {model.status === 'error' && t('settings.copy.error_61706290')}
                 </span>
               )}
             </div>
@@ -66,12 +77,12 @@ function ModelCard({ model, onUpdate, onDelete }: ModelCardProps) {
               {model.status === 'updating' ? (
                 <>
                   <Loader2 className="w-3 h-3 animate-spin" />
-                  Updating
+                  {t('settings.copy.updating_0b5260e1')}
                 </>
               ) : (
                 <>
                   <RotateCw className="w-3 h-3" />
-                  Update
+                  {t('settings.copy.update_c1c1009d')}
                 </>
               )}
             </button>
@@ -85,17 +96,17 @@ function ModelCard({ model, onUpdate, onDelete }: ModelCardProps) {
               )}
             >
               <Trash2 className="w-3 h-3" />
-              Delete
+              {t('settings.copy.delete_e2d0a549')}
             </button>
           </div>
         </div>
         {model.progress && (
           <div className="mt-3 space-y-2">
             <div className="flex justify-between text-xs text-bolt-elements-textSecondary">
-              <span>{model.progress.status}</span>
-              <span>{Math.round((model.progress.current / model.progress.total) * 100)}%</span>
+              <span>{t('settings.localProviders.modelUpdating')}</span>
+              <span>{formattedProgress}</span>
             </div>
-            <Progress value={Math.round((model.progress.current / model.progress.total) * 100)} className="h-1" />
+            <Progress value={progressPercentage} className="h-1" />
           </div>
         )}
       </CardContent>

@@ -1,8 +1,9 @@
-import { apiRequest, json, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { apiRequest, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 
 export async function loader({ request, params }: EnterpriseLoaderArgs) {
   if (!params.projectId) {
-    return json({ ok: false, error: 'Project not found' }, { status: 404 });
+    return remainingApiErrorResponse(request, 'PROJECT_NOT_FOUND', 404, { extra: { ok: false } });
   }
 
   const svg = await apiRequest<string>(request, `/projects/${params.projectId}/homepage-preview.svg`);

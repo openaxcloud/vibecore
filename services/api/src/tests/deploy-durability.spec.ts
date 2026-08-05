@@ -3,7 +3,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { buildApiApp, type ApiAppOptions } from '../app.js';
-import { reapStaleDeployments, resolveDeployBuildTimeoutMs, DEFAULT_DEPLOY_BUILD_TIMEOUT_MS } from '../deploy-reaper.js';
+import { appPublicEnglish } from '../app-public-copy.js';
+import {
+  reapStaleDeployments,
+  resolveDeployBuildTimeoutMs,
+  DEFAULT_DEPLOY_BUILD_TIMEOUT_MS,
+} from '../deploy-reaper.js';
 import { TestApiStore } from './test-api-store.js';
 import type { EmailProvider } from '../email.js';
 
@@ -57,7 +62,7 @@ describe('reapStaleDeployments', () => {
     expect((await store.getDeployment('p1', alreadyReady.id))?.status).toBe('READY');
 
     const failedRow = await store.getDeployment('p1', staleQueued.id);
-    expect(JSON.stringify(failedRow?.logs)).toContain('Build interrupted — please retry');
+    expect(JSON.stringify(failedRow?.logs)).toContain(appPublicEnglish('DEPLOYMENT_BUILD_TIMEOUT'));
   });
 
   it('is a no-op when nothing is stale', async () => {
@@ -182,7 +187,9 @@ describe('internal deploy build + reap endpoints', () => {
       staticBuildRunner: async () => ({
         ok: false,
         error: 'BUILD_FAILED',
-        logs: [{ timestamp: new Date().toISOString(), level: 'error', message: 'Static deploy: build failed (exit 1).' }],
+        logs: [
+          { timestamp: new Date().toISOString(), level: 'error', message: 'Static deploy: build failed (exit 1).' },
+        ],
       }),
     });
 

@@ -1,26 +1,41 @@
 import { ArrowRight } from 'lucide-react';
 import type { MetaFunction } from 'react-router';
-import { Link } from 'react-router';
+import { Link, useLoaderData, useRevalidator } from 'react-router';
 import { isExternalDashboardLink } from './dashboard-nav';
+import { AsyncPanelError } from '~/components/dashboard/AsyncPanelState';
 import { AppShell } from '~/components/dashboard/SaaSLayout';
 import { firstOrganizationOrNull, redirect, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { getImportHubCopy } from '~/lib/i18n/catalogs/import-hub';
+import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import {
-  IMPORT_HUB_CATEGORY_LABELS,
-  IMPORT_HUB_PROVIDERS,
+  getImportHubCategoryLabels,
+  getImportHubProviders,
   type ImportHubCategory,
   type ImportHubProvider,
 } from '~/lib/import-hub';
 
-export const meta: MetaFunction = () => [{ title: 'Import a project - E-Code' }];
+export const meta: MetaFunction<typeof loader> = ({ data }) => [
+  { title: getImportHubCopy(data?.language)['importHub.meta.title'] },
+];
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
-  const organization = await firstOrganizationOrNull(request);
+  const language = resolveRequestLocale(request).language;
 
-  if (!organization) {
-    return redirect('/');
+  try {
+    const organization = await firstOrganizationOrNull(request);
+
+    if (!organization) {
+      return redirect('/');
+    }
+
+    return { language, loadError: false as const };
+  } catch (error) {
+    if (error instanceof Response && error.status >= 300 && error.status < 400) {
+      throw error;
+    }
+
+    return { language, loadError: true as const };
   }
-
-  return null;
 }
 
 /** Preserve the documented order while grouping tiles under their category. */
@@ -38,19 +53,19 @@ function groupProviders(providers: ImportHubProvider[]): Array<[ImportHubCategor
   return CATEGORY_ORDER.filter((category) => groups.has(category)).map((category) => [category, groups.get(category)!]);
 }
 
-function ImportTile({ provider }: { provider: ImportHubProvider }) {
+function ImportTile({ provider, connectLabel }: { provider: ImportHubProvider; connectLabel: string }) {
   const Icon = provider.icon;
   const external = isExternalDashboardLink(provider.to);
 
   const body = (
     <>
-      <span className="flex items-center justify-between gap-2">
+      <span className="flex min-w-0 items-start justify-between gap-2">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1">
           <Icon className="h-5 w-5 text-bolt-elements-textPrimary" aria-hidden />
         </span>
         {provider.status === 'credential' ? (
-          <span className="shrink-0 rounded-full border border-bolt-elements-borderColor px-2 py-0.5 text-[11px] font-medium text-bolt-elements-textTertiary">
-            {provider.badge ?? 'Connect'}
+          <span className="min-w-0 max-w-full break-words rounded-full border border-bolt-elements-borderColor px-2 py-0.5 text-right text-[11px] font-medium leading-4 text-bolt-elements-textTertiary">
+            {provider.badge ?? connectLabel}
           </span>
         ) : (
           <ArrowRight
@@ -59,8 +74,10 @@ function ImportTile({ provider }: { provider: ImportHubProvider }) {
           />
         )}
       </span>
-      <span className="mt-3 block text-sm font-semibold text-bolt-elements-textPrimary">{provider.label}</span>
-      <span className="mt-1 block text-xs leading-relaxed text-bolt-elements-textSecondary">
+      <span className="mt-3 block break-words text-sm font-semibold text-bolt-elements-textPrimary">
+        {provider.label}
+      </span>
+      <span className="mt-1 block break-words text-xs leading-relaxed text-bolt-elements-textSecondary">
         {provider.description}
       </span>
     </>
@@ -85,27 +102,38 @@ function ImportTile({ provider }: { provider: ImportHubProvider }) {
 }
 
 export default function ImportHubPage() {
-  const groups = groupProviders(IMPORT_HUB_PROVIDERS);
+  const { language, loadError } = useLoaderData<typeof loader>();
+  const revalidator = useRevalidator();
+  const copy = getImportHubCopy(language);
+  const categoryLabels = getImportHubCategoryLabels(language);
+  const groups = groupProviders(getImportHubProviders(language));
 
   return (
-    <AppShell
-      title="Import a project"
-      description="Bring your existing code, data or design into a persistent E-Code workspace. Files are staged and scanned for secrets before anything is committed."
-    >
-      <div className="flex flex-col gap-8" data-testid="import-hub">
-        {groups.map(([category, providers]) => (
-          <section key={category} aria-label={IMPORT_HUB_CATEGORY_LABELS[category]}>
-            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-bolt-elements-textTertiary">
-              {IMPORT_HUB_CATEGORY_LABELS[category]}
-            </h2>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {providers.map((provider) => (
-                <ImportTile key={provider.id} provider={provider} />
-              ))}
-            </div>
-          </section>
-        ))}
-      </div>
+    <AppShell title={copy['importHub.page.title']} description={copy['importHub.page.description']}>
+      {loadError ? (
+        <AsyncPanelError
+          title={copy['importHub.error.title']}
+          description={copy['importHub.error.description']}
+          retryLabel={copy['importHub.error.retry']}
+          retrying={revalidator.state !== 'idle'}
+          onRetry={() => revalidator.revalidate()}
+        />
+      ) : (
+        <div className="flex min-w-0 flex-col gap-8" data-testid="import-hub">
+          {groups.map(([category, providers]) => (
+            <section key={category} className="min-w-0" aria-label={categoryLabels[category]}>
+              <h2 className="mb-3 break-words text-xs font-semibold uppercase tracking-wide text-bolt-elements-textTertiary">
+                {categoryLabels[category]}
+              </h2>
+              <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {providers.map((provider) => (
+                  <ImportTile key={provider.id} provider={provider} connectLabel={copy['importHub.action.connect']} />
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
     </AppShell>
   );
 }

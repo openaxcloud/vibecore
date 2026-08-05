@@ -62,7 +62,6 @@ export const gitlabConnector: ConnectorProvider = {
     if (!response.ok) {
       throw new ConnectorProviderError({
         code: 'PROVIDER_TOKEN_EXCHANGE_FAILED',
-        message: `GitLab token exchange returned HTTP ${response.status}`,
         httpStatus: response.status,
       });
     }
@@ -74,22 +73,19 @@ export const gitlabConnector: ConnectorProvider = {
     } catch {
       throw new ConnectorProviderError({
         code: 'PROVIDER_RESPONSE_MALFORMED',
-        message: 'GitLab token exchange returned a non-JSON body',
       });
     }
 
     if (payload.error) {
       throw new ConnectorProviderError({
         code: 'PROVIDER_TOKEN_EXCHANGE_FAILED',
-        message: payload.error,
-        providerDetail: payload.error_description,
+        providerDetail: payload.error_description ?? payload.error,
       });
     }
 
     if (!payload.access_token) {
       throw new ConnectorProviderError({
         code: 'PROVIDER_RESPONSE_MALFORMED',
-        message: 'GitLab token exchange response did not include access_token',
       });
     }
 
@@ -120,7 +116,6 @@ export const gitlabConnector: ConnectorProvider = {
     if (!response.ok) {
       throw new ConnectorProviderError({
         code: 'PROVIDER_USER_INFO_FAILED',
-        message: `GitLab user info returned HTTP ${response.status}`,
         httpStatus: response.status,
       });
     }
@@ -132,14 +127,12 @@ export const gitlabConnector: ConnectorProvider = {
     } catch {
       throw new ConnectorProviderError({
         code: 'PROVIDER_RESPONSE_MALFORMED',
-        message: 'GitLab user info returned a non-JSON body',
       });
     }
 
     if (!payload.id || !payload.username) {
       throw new ConnectorProviderError({
         code: 'PROVIDER_RESPONSE_MALFORMED',
-        message: 'GitLab user info response is missing id or username',
       });
     }
 

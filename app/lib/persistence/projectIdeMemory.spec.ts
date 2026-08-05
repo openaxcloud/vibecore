@@ -10,6 +10,7 @@ import {
   setProjectIdeMemorySaveDebounceMsForTest,
   setProjectIdeMemoryUnloadingForTest,
 } from './projectIdeMemory';
+import { persistenceRuntimeEn } from '~/lib/i18n/catalogs/persistence-runtime';
 
 function makeHeaders(entries: Record<string, string> = {}) {
   const normalized = new Map<string, string>();
@@ -645,7 +646,7 @@ describe('project IDE memory save debouncing', () => {
     await vi.advanceTimersByTimeAsync(4_000);
     await vi.advanceTimersByTimeAsync(12_000);
 
-    await expect(observed).resolves.toMatch(/Failed to save project IDE memory/);
+    await expect(observed).resolves.toBe(persistenceRuntimeEn['persistence.ide.saveFailed'].replace('{status}', '400'));
   });
 
   it('keeps the chat REPLACE flag on the coalesced PUT when a later ordinary save lands in the debounce window', async () => {

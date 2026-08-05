@@ -1,6 +1,7 @@
 import type { CommandEvent, RuntimeAdapter } from '@vibecore/runtime-contract';
-import { RuntimeError } from '@vibecore/runtime-contract';
-import { useEffect, useMemo, type PropsWithChildren } from 'react';
+import { useEffect, useMemo, useRef, type PropsWithChildren } from 'react';
+import { useTranslation } from 'react-i18next';
+import { clientStoresServicesText } from '~/lib/i18n/catalogs/client-stores-services';
 import { createRuntimeAdapter, getRuntimeMode, RuntimeAdapterProvider } from '~/lib/runtime/RuntimeAdapterProvider';
 import { isTransientRuntimeError, withRuntimeRetry } from '~/lib/runtime/retry';
 import { workspaceQuotaPrompt } from '~/lib/runtime/workspace-quota';
@@ -76,6 +77,10 @@ export function ProjectWorkspaceProvider({
   initialError,
   children,
 }: ProjectWorkspaceProviderProps) {
+  const { i18n } = useTranslation();
+  const languageRef = useRef(i18n.resolvedLanguage ?? i18n.language);
+  languageRef.current = i18n.resolvedLanguage ?? i18n.language;
+
   const runtime = useMemo(
     () => adapter ?? createRuntimeAdapter(getRuntimeMode(), { projectId, workspaceId }),
     [adapter, projectId, workspaceId],
@@ -109,10 +114,9 @@ export function ProjectWorkspaceProvider({
       }
 
       const persistedFilesHydration = workbenchStore.loadProjectStorageFiles().catch((error) => {
+        console.error('Persisted project file hydration failed:', error);
         workbenchStore.appendWorkspaceLog(
-          error instanceof Error
-            ? `Persisted project file hydration skipped: ${error.message}`
-            : 'Persisted project file hydration skipped',
+          clientStoresServicesText('clientRuntime.workspace.persistedHydrationSkipped'),
         );
 
         return false;
@@ -199,13 +203,12 @@ export function ProjectWorkspaceProvider({
         });
 
         if (reattachWarmWorkspace) {
-          workbenchStore.appendWorkspaceLog('Reattached warm workspace (skipped reseed)');
+          workbenchStore.appendWorkspaceLog(clientStoresServicesText('clientRuntime.workspace.reattached'));
         } else {
           await workbenchStore.stopPreviewServer().catch((error) => {
+            console.error('Previous preview cleanup failed:', error);
             workbenchStore.appendWorkspaceLog(
-              error instanceof Error
-                ? `Previous preview cleanup skipped: ${error.message}`
-                : 'Previous preview cleanup skipped',
+              clientStoresServicesText('clientRuntime.workspace.previewCleanupSkipped'),
             );
           });
 
@@ -232,11 +235,8 @@ export function ProjectWorkspaceProvider({
                 }),
               clearTree: () =>
                 clearRuntimeProjectTree(runtime).catch((error) => {
-                  workbenchStore.appendWorkspaceLog(
-                    error instanceof Error
-                      ? `Project workspace cleanup skipped: ${error.message}`
-                      : 'Project workspace cleanup skipped',
-                  );
+                  console.error('Project workspace cleanup failed:', error);
+                  workbenchStore.appendWorkspaceLog(clientStoresServicesText('clientRuntime.workspace.cleanupSkipped'));
                 }),
               applyArchive: (archive) =>
                 withRuntimeRetry(() => applyProjectStorageArchive(runtime, archive), {
@@ -305,8 +305,9 @@ export function ProjectWorkspaceProvider({
         }
 
         void workbenchStore.startPreviewServer().catch((error) => {
+          console.error('Preview auto-start failed:', error);
           workbenchStore.appendWorkspaceLog(
-            error instanceof Error ? `Preview auto-start skipped: ${error.message}` : 'Preview auto-start skipped',
+            clientStoresServicesText('clientRuntime.workspace.previewAutoStartSkipped'),
           );
         });
 
@@ -349,12 +350,9 @@ export function ProjectWorkspaceProvider({
           return;
         }
 
-        const message =
-          error instanceof RuntimeError
-            ? error.message
-            : error instanceof Error
-              ? error.message
-              : 'Workspace start failed';
+        console.error('Workspace start failed:', error);
+
+        const message = clientStoresServicesText('clientRuntime.workspace.startFailed');
         workbenchStore.workspaceError.set(message);
 
         /*
@@ -368,7 +366,7 @@ export function ProjectWorkspaceProvider({
           activeWorkspaceId = undefined;
         }
 
-        const quotaPrompt = workspaceQuotaPrompt(error);
+        const quotaPrompt = workspaceQuotaPrompt(error, languageRef.current);
 
         if (quotaPrompt) {
           workbenchStore.quotaWarning.set(quotaPrompt.warning);
@@ -429,13 +427,17 @@ async function fetchProjectStorageArchive(projectId: string): Promise<Uint8Array
   });
 
   if (!response.ok) {
-    throw new Error(await projectExportFailureMessage(response));
+    throw new Error(
+      clientStoresServicesText('clientRuntime.workspace.exportFailed', {
+        status: response.status,
+      }),
+    );
   }
 
   const archive = new Uint8Array(await response.arrayBuffer());
 
   if (archive.byteLength === 0) {
-    throw new Error('project export returned an empty archive');
+    throw new Error(clientStoresServicesText('clientRuntime.workspace.exportEmpty'));
   }
 
   return archive;
@@ -443,53 +445,36 @@ async function fetchProjectStorageArchive(projectId: string): Promise<Uint8Array
 
 async function applyProjectStorageArchive(runtime: RuntimeAdapter, archive: Uint8Array) {
   await runtime.importZip(archive, '.');
-  workbenchStore.appendWorkspaceLog('Project files synced into workspace runtime');
-}
-
-async function projectExportFailureMessage(response: Response) {
-  let details = response.statusText;
-
-  try {
-    const payload = (await response.clone().json()) as { error?: string; code?: string };
-    details = payload.error ?? payload.code ?? details;
-  } catch {
-    try {
-      details = (await response.clone().text()).trim() || details;
-    } catch {
-      details = response.statusText;
-    }
-  }
-
-  return `project export returned ${response.status}${details ? `: ${details}` : ''}`;
+  workbenchStore.appendWorkspaceLog(clientStoresServicesText('clientRuntime.workspace.filesSynced'));
 }
 
 function normalizeProjectFileSyncError(error: unknown) {
-  const message = error instanceof Error ? error.message : 'project export failed';
+  const message = error instanceof Error ? error.message : '';
   const lower = message.toLowerCase();
 
   if (message.includes('401') || message.includes('403') || lower.includes('unauthorized')) {
-    return `Project files could not be loaded: ${message}. Your session is missing or expired. Sign in again, then reload the IDE.`;
+    return clientStoresServicesText('clientRuntime.workspace.filesAuth');
   }
 
   if (message.includes('502') || message.includes('503') || lower.includes('fetch failed') || lower.includes('api')) {
-    return `Project files could not be loaded: ${message}. Start the full local stack with pnpm run dev so the web app and API run together.`;
+    return clientStoresServicesText('clientRuntime.workspace.filesUnavailable');
   }
 
-  return `Project files could not be loaded: ${message}.`;
+  return clientStoresServicesText('clientRuntime.workspace.filesFailed');
 }
 
 function formatProjectApiError(message: string) {
   const lower = message.toLowerCase();
 
   if (message.includes('401') || message.includes('403') || lower.includes('unauthorized')) {
-    return `Project API unavailable: ${message}. Your session is missing or expired. Sign in again, then reload the IDE.`;
+    return clientStoresServicesText('clientRuntime.workspace.projectApiAuth');
   }
 
   if (lower.includes('fetch failed') || lower.includes('connect') || lower.includes('api')) {
-    return `Project API unavailable: ${message}. Start the full local stack with pnpm run dev so the web app and API run together.`;
+    return clientStoresServicesText('clientRuntime.workspace.projectApiUnavailable');
   }
 
-  return `Project API unavailable: ${message}.`;
+  return clientStoresServicesText('clientRuntime.workspace.projectApiFailed');
 }
 
 async function clearRuntimeProjectTree(runtime: RuntimeAdapter) {
@@ -506,8 +491,7 @@ async function stopRemoteWorkspace(runtime: RuntimeAdapter, workspaceId: string)
   }
 
   await runtime.stopWorkspace(workspaceId).catch((error) => {
-    workbenchStore.appendWorkspaceLog(
-      error instanceof Error ? `Workspace cleanup skipped: ${error.message}` : 'Workspace cleanup skipped',
-    );
+    console.error('Workspace cleanup failed:', error);
+    workbenchStore.appendWorkspaceLog(clientStoresServicesText('clientRuntime.workspace.cleanupSkipped'));
   });
 }

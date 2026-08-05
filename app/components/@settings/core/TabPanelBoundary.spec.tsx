@@ -34,7 +34,7 @@ describe('<TabPanelBoundary />', () => {
       </TabPanelBoundary>,
     );
 
-    expect(screen.getByText("Couldn't load this section")).toBeTruthy();
+    expect(screen.getByText('This section could not load')).toBeTruthy();
     expect(screen.getByRole('button', { name: /retry/i })).toBeTruthy();
   });
 
@@ -46,7 +46,7 @@ describe('<TabPanelBoundary />', () => {
     );
 
     expect(screen.getByText('Tab content')).toBeTruthy();
-    expect(screen.queryByText("Couldn't load this section")).toBeNull();
+    expect(screen.queryByText('This section could not load')).toBeNull();
   });
 
   it('clears its error state and invokes onRetry so the parent can remount the lazy subtree', () => {

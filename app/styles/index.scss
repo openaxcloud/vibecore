@@ -2990,6 +2990,7 @@ body
 .bolt-file-action-diff-bulk-actions {
   display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
   margin-left: auto;
 }
@@ -3001,7 +3002,10 @@ body
   background: var(--vc-ide-bg-overlay);
   border: 1px solid var(--vc-ide-border-subtle);
   border-radius: 6px;
-  padding: 3px 8px;
+  min-height: 44px;
+  padding: 6px 10px;
+  text-align: center;
+  white-space: normal;
   cursor: pointer;
 }
 
@@ -3084,6 +3088,7 @@ body
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-height: 44px;
   gap: 12px;
   padding: 6px 12px;
   background: var(--vc-ide-bg-subtle);
@@ -3101,6 +3106,7 @@ body
 
 .bolt-file-action-diff-hunk-checkbox {
   display: inline-flex;
+  min-height: 44px;
   min-width: 0;
   align-items: center;
   gap: 8px;
@@ -3119,6 +3125,7 @@ body
 
 .bolt-file-action-diff-hunk-show {
   display: inline-flex;
+  min-height: 44px;
   flex-shrink: 0;
   align-items: center;
   gap: 4px;
@@ -3218,12 +3225,49 @@ body
 .bolt-file-action-diff-footer {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
   padding: 8px 12px;
   border-top: 1px solid var(--vc-ide-border-subtle);
   background: var(--vc-ide-bg-subtle);
   color: var(--vc-ide-text-secondary);
   font-size: 11px;
+}
+
+@media (max-width: 639px) {
+  .bolt-file-action-diff-header {
+    align-items: stretch;
+  }
+
+  .bolt-file-action-diff-title {
+    flex-basis: 100%;
+  }
+
+  .bolt-file-action-diff-status {
+    white-space: normal;
+  }
+
+  .bolt-file-action-diff-file-actions,
+  .bolt-file-action-diff-bulk-actions {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .bolt-file-action-diff-file-action,
+  .bolt-file-action-diff-bulk-action {
+    flex: 1 1 9rem;
+  }
+
+  .bolt-file-action-diff-hunk-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .bolt-file-action-diff-hunk-range {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
 }
 
 .bolt-file-action-diff-footer-status {
@@ -18957,6 +19001,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 .bolt-agent-applied-toast-head strong {
   font-size: 13px;
   font-weight: 750;
+  overflow-wrap: anywhere;
 }
 
 .bolt-agent-applied-toast-head span,
@@ -18966,10 +19011,14 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 }
 
 .bolt-agent-applied-toast summary {
-  width: max-content;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  max-width: 100%;
   cursor: pointer;
   color: var(--vc-ide-accent-action);
   font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 .bolt-agent-applied-toast ul {
@@ -18995,7 +19044,8 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 }
 
 .bolt-agent-applied-toast-actions button {
-  min-height: 28px;
+  min-height: 44px;
+  min-width: 44px;
   border: 1px solid var(--vc-ide-border-visible);
   border-radius: 6px;
   background: var(--vc-ide-bg-panel);
@@ -19003,6 +19053,18 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   font-size: 11px;
   font-weight: 700;
   padding: 0 9px;
+  white-space: normal;
+}
+
+@media (max-width: 420px) {
+  .bolt-agent-applied-toast-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .bolt-agent-applied-toast-actions button {
+    width: 100%;
+  }
 }
 
 .bolt-agent-applied-toast-actions button:hover,

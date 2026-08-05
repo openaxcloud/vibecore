@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
-import { auditSkill, isAutoEnabled, isInstallable, type SkillContent } from './skill-audit.js';
+import { auditSkill, isAutoEnabled, isInstallable, localizeAuditFindings, type SkillContent } from './skill-audit.js';
 import { loadSkillFromFiles, parseSkillManifest, type SkillManifest } from './skill-manifest.js';
 
 function benign(): SkillContent {
@@ -92,6 +92,23 @@ describe('auditSkill — malicious skill is REFUSED', () => {
 
     // Worst-first ordering.
     expect(result.findings[0].severity).toBe('critical');
+  });
+
+  it('localizes security labels from stable finding codes', () => {
+    const english = auditSkill(malicious(), 'en-US');
+    const french = auditSkill(malicious(), 'fr-FR');
+    const englishRemote = english.findings.find((finding) => finding.code === 'REMOTE_EXEC');
+    const frenchRemote = french.findings.find((finding) => finding.code === 'REMOTE_EXEC');
+
+    expect(englishRemote?.title).toBe('Pipe-to-shell remote code execution');
+    expect(frenchRemote?.title).toBe('Exécution distante redirigée vers le shell');
+    expect(frenchRemote).toMatchObject({
+      code: englishRemote?.code,
+      severity: englishRemote?.severity,
+      location: englishRemote?.location,
+      evidence: englishRemote?.evidence,
+    });
+    expect(localizeAuditFindings(english.findings, 'fr')).toEqual(french.findings);
   });
 });
 

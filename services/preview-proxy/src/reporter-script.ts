@@ -52,7 +52,7 @@ export const REPORTER_SCRIPT = `(function () {
     }
     send({
       type: 'PREVIEW_ERROR',
-      message: event.message || 'Unknown runtime error',
+      message: event.message || undefined,
       filename: event.filename || undefined,
       lineno: event.lineno || undefined,
       colno: event.colno || undefined,
@@ -64,7 +64,7 @@ export const REPORTER_SCRIPT = `(function () {
 
   window.addEventListener('unhandledrejection', function (event) {
     var reason = event.reason;
-    var message = 'Unhandled promise rejection';
+    var message;
     var stack;
     if (reason && typeof reason === 'object') {
       message = reason.message ? String(reason.message) : message;

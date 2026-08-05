@@ -6,6 +6,13 @@
  * performs the actual File/FileReader IO itself.
  */
 
+import {
+  formatClientAstResidualCopy,
+  formatClientAstResidualPlural,
+  getClientAstResidualCopy,
+} from '~/lib/i18n/catalogs/client-ast-residual';
+import { detectUserLanguage } from '~/lib/i18n/language';
+
 /** Hard upper bound for a single image attachment, in bytes. */
 export const MAX_IMAGE_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 
@@ -38,12 +45,19 @@ export type ImageAttachmentDecision =
 export function decideImageAttachment(input: {
   fileSizeBytes: number;
   currentAttachmentCount: number;
+  language?: string | null;
 }): ImageAttachmentDecision {
+  const language = input.language ?? detectUserLanguage();
+  const copy = getClientAstResidualCopy(language);
+
   if (input.currentAttachmentCount >= MAX_IMAGE_ATTACHMENTS) {
     return {
       action: 'reject',
       reason: 'attachment-limit',
-      message: `You can attach up to ${MAX_IMAGE_ATTACHMENTS} images per message.`,
+      message: formatClientAstResidualPlural(language, MAX_IMAGE_ATTACHMENTS, {
+        one: copy['clientAst.chat.attachments.limit_one'],
+        other: copy['clientAst.chat.attachments.limit_other'],
+      }),
     };
   }
 
@@ -51,7 +65,9 @@ export function decideImageAttachment(input: {
     return {
       action: 'reject',
       reason: 'file-too-large',
-      message: `Images must be ${MAX_IMAGE_ATTACHMENT_LABEL} or smaller.`,
+      message: formatClientAstResidualCopy(copy['clientAst.chat.attachments.size'], {
+        size: MAX_IMAGE_ATTACHMENT_LABEL,
+      }),
     };
   }
 

@@ -1,23 +1,31 @@
 import { AlertTriangle, Camera, Clock, Database, History, RotateCcw, ShieldCheck } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type React from 'react';
+import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
 import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
 import { ProjectShell } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
 import {
-  apiErrorMessage,
   apiRequest,
   isApiResponse,
   json,
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
-import { formatUserAreaDateTime } from '~/lib/i18n/user-area-locale';
+import {
+  databaseRestoreStatusLabel,
+  formatDatabaseRestoreBytes,
+  formatDatabaseRestoreCopy,
+  formatDatabaseRestoreDate,
+  getDatabaseRestoreCopy,
+  resolveDatabaseRestoreLanguage,
+  selectDatabaseRestorePlural,
+} from '~/lib/i18n/catalogs/database-restore';
+import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import type { ProjectRecord } from '~/lib/project-route.server';
 import { isReauthRedirect } from '~/lib/route-reauth';
-import { statusDisplayLabel, userFacingLabel } from '~/lib/user-facing-labels';
 import { classNames } from '~/utils/classNames';
 
 /*
@@ -66,18 +74,34 @@ type LoaderData = {
   restores: Restore[];
 };
 
-export const meta: MetaFunction = () => [{ title: 'Database restore - E-Code' }];
+export const meta: MetaFunction = ({ matches }) => {
+  const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
+
+  return [{ title: getDatabaseRestoreCopy(rootData?.language)['databaseRestore.metaTitle'] }];
+};
 export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 
 export async function loader(args: EnterpriseLoaderArgs) {
   const { request, params } = args;
   const projectId = params.projectId;
+  const copy = getDatabaseRestoreCopy(resolveRequestLocale(request).language);
 
   if (!projectId) {
-    throw json({ error: 'Project not found' }, { status: 404 });
+    throw json({ error: copy['databaseRestore.errors.projectNotFound'] }, { status: 404 });
   }
 
-  const projectResult = await apiRequest<{ project: ProjectRecord }>(request, `/projects/${projectId}`);
+  let projectResult: { project: ProjectRecord };
+
+  try {
+    projectResult = await apiRequest<{ project: ProjectRecord }>(request, `/projects/${projectId}`);
+  } catch (error) {
+    if (isReauthRedirect(error)) {
+      throw error;
+    }
+
+    const status = isApiResponse(error) && error.status !== 500 ? error.status : 502;
+    throw json({ error: copy['databaseRestore.errors.projectUnavailable'] }, { status });
+  }
 
   const notEnabled: Omit<LoaderData, 'project'> = {
     enabled: false,
@@ -128,21 +152,25 @@ export async function loader(args: EnterpriseLoaderArgs) {
       return json<LoaderData>({ project: projectResult.project, ...notEnabled });
     }
 
-    const message = await apiErrorMessage(error, 'Database panel unavailable');
     const status = isApiResponse(error) && error.status !== 500 ? error.status : 502;
-    throw json({ error: message }, { status });
+    throw json({ error: copy['databaseRestore.errors.panelUnavailable'] }, { status });
   }
 }
 
 export async function action({ request, params }: EnterpriseActionArgs) {
   const projectId = params.projectId;
+  const copy = getDatabaseRestoreCopy(resolveRequestLocale(request).language);
 
   if (!projectId) {
-    throw json({ error: 'Project not found' }, { status: 404 });
+    throw json({ error: copy['databaseRestore.errors.projectNotFound'] }, { status: 404 });
   }
 
   const form = await request.formData();
   const intent = String(form.get('intent') ?? 'restore');
+
+  if (intent !== 'provision' && intent !== 'snapshot' && intent !== 'restore') {
+    return json({ ok: false, error: copy['databaseRestore.errors.invalidAction'] }, { status: 400 });
+  }
 
   const path =
     intent === 'provision'
@@ -161,7 +189,15 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       payload.snapshotId = snapshotId;
     } else if (targetTimestamp) {
       // A datetime-local value has no timezone; interpret it in the user's zone.
-      payload.targetTimestamp = new Date(targetTimestamp).toISOString();
+      const target = new Date(targetTimestamp);
+
+      if (Number.isNaN(target.getTime())) {
+        return json({ ok: false, error: copy['databaseRestore.errors.invalidTarget'] }, { status: 400 });
+      }
+
+      payload.targetTimestamp = target.toISOString();
+    } else {
+      return json({ ok: false, error: copy['databaseRestore.errors.targetRequired'] }, { status: 400 });
     }
   } else if (intent === 'snapshot') {
     const label = String(form.get('label') ?? '').trim();
@@ -174,15 +210,16 @@ export async function action({ request, params }: EnterpriseActionArgs) {
   try {
     const result = await apiRequest(request, path, { method: 'POST', body: JSON.stringify(payload) });
 
-    return json({ ok: true, intent, ...(result as Record<string, unknown>) });
+    return json({ ...(result as Record<string, unknown>), ok: true, intent });
   } catch (error) {
     if (isReauthRedirect(error)) {
       throw error;
     }
 
-    const message = await apiErrorMessage(error, 'Database request failed');
-
-    return json({ ok: false, error: message }, { status: isApiResponse(error) ? error.status : 502 });
+    return json(
+      { ok: false, error: copy['databaseRestore.errors.requestFailed'] },
+      { status: isApiResponse(error) ? error.status : 502 },
+    );
   }
 }
 
@@ -195,6 +232,10 @@ function toLocalInputValue(iso: string): string {
 }
 
 export default function ProjectDatabaseRestorePage() {
+  const { i18n } = useTranslation();
+  const language = resolveDatabaseRestoreLanguage(i18n.resolvedLanguage ?? i18n.language);
+  const copy = getDatabaseRestoreCopy(language);
+
   const {
     project,
     enabled,
@@ -211,16 +252,25 @@ export default function ProjectDatabaseRestorePage() {
 
   const notAvailable = !enabled || !entitlement.allowed;
 
+  const successCopy =
+    actionData?.intent === 'restore'
+      ? copy['databaseRestore.success.restore']
+      : actionData?.intent === 'snapshot'
+        ? copy['databaseRestore.success.snapshot']
+        : actionData?.intent === 'provision'
+          ? copy['databaseRestore.success.provision']
+          : undefined;
+
   return (
     <ProjectShell
       projectId={project.id}
-      title="Point-in-time restore"
-      description="Roll this project's managed database back to an exact moment within your plan's retention window."
+      title={copy['databaseRestore.title']}
+      description={copy['databaseRestore.description']}
     >
       {actionData?.error ? (
         <div
           role="alert"
-          className="mb-6 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-4 py-3 text-sm text-bolt-elements-textPrimary"
+          className="mb-6 break-words rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-4 py-3 text-sm text-bolt-elements-textPrimary"
         >
           <span className="inline-flex items-center gap-2 text-bolt-elements-icon-error">
             <AlertTriangle className="h-4 w-4" aria-hidden />
@@ -228,20 +278,20 @@ export default function ProjectDatabaseRestorePage() {
           {actionData.error}
         </div>
       ) : null}
-      {actionData?.ok && actionData.intent === 'restore' ? (
+      {actionData?.ok && successCopy ? (
         <div
           role="status"
-          className="mb-6 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-4 py-3 text-sm text-bolt-elements-textPrimary"
+          className="mb-6 break-words rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-4 py-3 text-sm text-bolt-elements-textPrimary"
         >
-          Restore requested — track its progress in the history below.
+          {successCopy}
         </div>
       ) : null}
 
       {notAvailable ? (
         <NotAvailablePanel enabled={enabled} retentionDays={entitlement.retentionDays} />
       ) : (
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
-          <div className="grid gap-6">
+        <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
+          <div className="grid min-w-0 gap-6">
             <InstanceCard instance={instance} retentionDays={entitlement.retentionDays} />
             <RecoveryPointsCard points={recoveryPoints} busy={busy} disabled={!instance} />
             <RestoreHistoryCard restores={restores} />
@@ -254,6 +304,10 @@ export default function ProjectDatabaseRestorePage() {
 }
 
 function NotAvailablePanel({ enabled, retentionDays }: { enabled: boolean; retentionDays: number }) {
+  const { i18n } = useTranslation();
+  const language = resolveDatabaseRestoreLanguage(i18n.resolvedLanguage ?? i18n.language);
+  const copy = getDatabaseRestoreCopy(language);
+
   return (
     <div className="grid gap-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6 shadow-md">
       <div className="flex items-start gap-3">
@@ -261,22 +315,30 @@ function NotAvailablePanel({ enabled, retentionDays }: { enabled: boolean; reten
           <ShieldCheck className="h-4 w-4 text-bolt-elements-textTertiary" aria-hidden />
         </span>
         <div className="min-w-0">
-          <h2 className="text-sm font-semibold text-bolt-elements-textPrimary">
-            Point-in-time restore is not available
+          <h2 className="break-words text-sm font-semibold text-bolt-elements-textPrimary">
+            {copy['databaseRestore.notAvailable.title']}
           </h2>
-          <p className="mt-1 text-sm text-bolt-elements-textSecondary">
+          <p className="mt-1 break-words text-sm text-bolt-elements-textSecondary">
             {!enabled
-              ? 'Managed database rollback is not enabled for this instance yet.'
+              ? copy['databaseRestore.notAvailable.disabled']
               : retentionDays > 0
-                ? `Your plan includes a ${retentionDays}-day recovery window, but no eligible database is provisioned.`
-                : 'Your current plan does not include database point-in-time restore. Upgrade to a plan with a recovery window to roll back to any moment.'}
+                ? formatDatabaseRestoreCopy(
+                    selectDatabaseRestorePlural(
+                      copy,
+                      'databaseRestore.notAvailable.noInstance',
+                      retentionDays,
+                      language,
+                    ),
+                    { count: new Intl.NumberFormat(language === 'fr' ? 'fr-FR' : 'en-US').format(retentionDays) },
+                  )
+                : copy['databaseRestore.notAvailable.plan']}
           </p>
           {enabled && retentionDays === 0 ? (
             <a
               href="/usage"
               className="mt-3 inline-flex text-xs font-medium text-[var(--vc-ide-accent-action)] hover:underline"
             >
-              View plans
+              {copy['databaseRestore.notAvailable.viewPlans']}
             </a>
           ) : null}
         </div>
@@ -286,28 +348,49 @@ function NotAvailablePanel({ enabled, retentionDays }: { enabled: boolean; reten
 }
 
 function InstanceCard({ instance, retentionDays }: { instance: Instance; retentionDays: number }) {
+  const { i18n } = useTranslation();
+  const language = resolveDatabaseRestoreLanguage(i18n.resolvedLanguage ?? i18n.language);
+  const copy = getDatabaseRestoreCopy(language);
+
+  const formattedDays = formatDatabaseRestoreCopy(
+    selectDatabaseRestorePlural(copy, 'databaseRestore.instance.days', retentionDays, language),
+    { count: new Intl.NumberFormat(language === 'fr' ? 'fr-FR' : 'en-US').format(retentionDays) },
+  );
+
   return (
     <section className="grid gap-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-md">
       <div className="flex items-center gap-2">
         <Database className="h-4 w-4 text-bolt-elements-item-contentAccent" aria-hidden />
-        <h2 className="text-[14px] font-medium text-bolt-elements-textPrimary">Managed database</h2>
+        <h2 className="break-words text-[14px] font-medium text-bolt-elements-textPrimary">
+          {copy['databaseRestore.instance.title']}
+        </h2>
       </div>
       {instance ? (
         <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-          <Stat label="Status" value={statusDisplayLabel(instance.status)} />
-          <Stat label="Engine" value={userFacingLabel(instance.engine, 'Managed database')} />
-          <Stat label="Retention" value={`${retentionDays} days`} />
-          <Stat label="Size" value={formatBytes(instance.sizeBytes)} />
+          <Stat
+            label={copy['databaseRestore.instance.status']}
+            value={databaseRestoreStatusLabel(instance.status, copy)}
+          />
+          <Stat
+            label={copy['databaseRestore.instance.engine']}
+            value={instance.engine || copy['databaseRestore.instance.title']}
+          />
+          <Stat label={copy['databaseRestore.instance.retention']} value={formattedDays} />
+          <Stat
+            label={copy['databaseRestore.instance.size']}
+            value={formatDatabaseRestoreBytes(instance.sizeBytes, language)}
+          />
         </dl>
       ) : (
         <div className="grid gap-3">
-          <p className="text-sm text-bolt-elements-textSecondary">
-            No managed database is provisioned for this project yet. Provision one to start capturing recovery points.
+          <p className="break-words text-sm text-bolt-elements-textSecondary">
+            {copy['databaseRestore.instance.empty']}
           </p>
           <Form method="post">
             <input type="hidden" name="intent" value="provision" />
             <Button type="submit" variant="outline" size="sm" className="gap-2">
-              <Database className="h-3.5 w-3.5" aria-hidden /> Provision database
+              <Database className="h-3.5 w-3.5" aria-hidden />
+              <span className="min-w-0 whitespace-normal text-left">{copy['databaseRestore.instance.provision']}</span>
             </Button>
           </Form>
         </div>
@@ -326,17 +409,30 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 function RecoveryPointsCard({ points, busy, disabled }: { points: RecoveryPoint[]; busy: boolean; disabled: boolean }) {
+  const { i18n } = useTranslation();
+  const language = resolveDatabaseRestoreLanguage(i18n.resolvedLanguage ?? i18n.language);
+  const copy = getDatabaseRestoreCopy(language);
+
   return (
     <section className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-md">
       <div className="flex items-center justify-between gap-2 border-b border-bolt-elements-borderColor px-5 py-4">
         <div className="flex items-center gap-2">
           <Camera className="h-4 w-4 text-bolt-elements-textTertiary" aria-hidden />
-          <h2 className="text-[14px] font-medium text-bolt-elements-textPrimary">Recovery points</h2>
+          <h2 className="break-words text-[14px] font-medium text-bolt-elements-textPrimary">
+            {copy['databaseRestore.recovery.title']}
+          </h2>
         </div>
         <Form method="post">
           <input type="hidden" name="intent" value="snapshot" />
-          <Button type="submit" variant="outline" size="sm" className="gap-2" disabled={busy || disabled}>
-            <Camera className="h-3.5 w-3.5" aria-hidden /> Take snapshot
+          <Button
+            type="submit"
+            variant="outline"
+            size="sm"
+            className="h-auto min-h-8 gap-2 whitespace-normal text-left"
+            disabled={busy || disabled}
+          >
+            <Camera className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            {copy['databaseRestore.recovery.takeSnapshot']}
           </Button>
         </Form>
       </div>
@@ -348,23 +444,23 @@ function RecoveryPointsCard({ points, busy, disabled }: { points: RecoveryPoint[
                 <div className="flex flex-wrap items-center gap-2">
                   <KindBadge kind={point.kind} />
                   <span className="text-sm font-medium text-bolt-elements-textPrimary">
-                    {formatUserAreaDateTime(point.timestamp) ?? 'Date unavailable'}
+                    {formatDatabaseRestoreDate(point.timestamp, language) ??
+                      copy['databaseRestore.recovery.dateUnavailable']}
                   </span>
                 </div>
                 <p className="mt-1 truncate text-xs text-bolt-elements-textSecondary">
                   {point.label ? `${point.label} — ` : ''}
-                  {point.lsn ? `WAL LSN ${point.lsn}` : 'Continuous WAL archive'}
+                  {point.lsn ? `WAL LSN ${point.lsn}` : copy['databaseRestore.recovery.continuousArchive']}
                 </p>
               </div>
               <Form method="post" className="sm:justify-self-end">
                 <input type="hidden" name="intent" value="restore" />
                 <input type="hidden" name="snapshotId" value={point.id} />
-                <ConfirmSubmit
-                  busy={busy}
-                  disabled={disabled}
-                  message="Restore the database to this recovery point? This replaces the current data."
-                >
-                  <RotateCcw className="h-3.5 w-3.5" aria-hidden /> Restore to this point
+                <ConfirmSubmit busy={busy} disabled={disabled} message={copy['databaseRestore.recovery.confirm']}>
+                  <RotateCcw className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  <span className="min-w-0 whitespace-normal text-left">
+                    {copy['databaseRestore.recovery.restore']}
+                  </span>
                 </ConfirmSubmit>
               </Form>
             </article>
@@ -372,9 +468,11 @@ function RecoveryPointsCard({ points, busy, disabled }: { points: RecoveryPoint[
         ) : (
           <div className="grid place-items-center gap-2 px-5 py-12 text-center">
             <Camera className="h-7 w-7 text-bolt-elements-textTertiary" aria-hidden />
-            <p className="text-sm font-medium text-bolt-elements-textPrimary">No recovery points yet</p>
-            <p className="text-xs text-bolt-elements-textSecondary">
-              Automatic snapshots appear here as they are captured, or take one manually.
+            <p className="text-sm font-medium text-bolt-elements-textPrimary">
+              {copy['databaseRestore.recovery.emptyTitle']}
+            </p>
+            <p className="max-w-prose text-xs text-bolt-elements-textSecondary">
+              {copy['databaseRestore.recovery.emptyDescription']}
             </p>
           </div>
         )}
@@ -392,6 +490,10 @@ function RestorePanel({
   busy: boolean;
   disabled: boolean;
 }) {
+  const { i18n } = useTranslation();
+  const language = resolveDatabaseRestoreLanguage(i18n.resolvedLanguage ?? i18n.language);
+  const copy = getDatabaseRestoreCopy(language);
+
   const bounds = useMemo(() => {
     if (!restoreWindow) {
       return undefined;
@@ -407,30 +509,33 @@ function RestorePanel({
     <aside className="grid content-start gap-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-md">
       <div className="flex items-center gap-2">
         <Clock className="h-4 w-4 text-bolt-elements-item-contentAccent" aria-hidden />
-        <h2 className="text-[14px] font-medium text-bolt-elements-textPrimary">Restore to a point in time</h2>
+        <h2 className="break-words text-[14px] font-medium text-bolt-elements-textPrimary">
+          {copy['databaseRestore.panel.title']}
+        </h2>
       </div>
       {restoreWindow ? (
-        <p className="text-xs text-bolt-elements-textSecondary">
-          Choose any moment in your {restoreWindow.retentionDays}-day window, from{' '}
-          <span className="text-bolt-elements-textPrimary">
-            {formatUserAreaDateTime(restoreWindow.earliest) ?? 'date unavailable'}
-          </span>{' '}
-          to{' '}
-          <span className="text-bolt-elements-textPrimary">
-            {formatUserAreaDateTime(restoreWindow.latest) ?? 'date unavailable'}
-          </span>
-          .
+        <p className="break-words text-xs text-bolt-elements-textSecondary">
+          {formatDatabaseRestoreCopy(
+            selectDatabaseRestorePlural(copy, 'databaseRestore.panel.window', restoreWindow.retentionDays, language),
+            {
+              count: new Intl.NumberFormat(language === 'fr' ? 'fr-FR' : 'en-US').format(restoreWindow.retentionDays),
+              from:
+                formatDatabaseRestoreDate(restoreWindow.earliest, language) ??
+                copy['databaseRestore.recovery.dateUnavailable'],
+              to:
+                formatDatabaseRestoreDate(restoreWindow.latest, language) ??
+                copy['databaseRestore.recovery.dateUnavailable'],
+            },
+          )}
         </p>
       ) : (
-        <p className="text-xs text-bolt-elements-textSecondary">
-          The continuous restore window becomes available once a database is provisioned.
-        </p>
+        <p className="text-xs text-bolt-elements-textSecondary">{copy['databaseRestore.panel.noWindow']}</p>
       )}
 
       <Form method="post" className="grid gap-3">
         <input type="hidden" name="intent" value="restore" />
         <label className="grid gap-2 text-xs font-medium uppercase tracking-[0.04em] text-bolt-elements-textTertiary">
-          Target time
+          {copy['databaseRestore.panel.targetTime']}
           <input
             type="datetime-local"
             name="targetTimestamp"
@@ -444,26 +549,30 @@ function RestorePanel({
           />
         </label>
         {outOfRange ? (
-          <p className="text-xs text-bolt-elements-icon-error">Target is outside your retention window.</p>
+          <p className="text-xs text-bolt-elements-icon-error">{copy['databaseRestore.panel.outOfRange']}</p>
         ) : null}
         <ConfirmSubmit
           block
           busy={busy}
           disabled={disabled || !bounds || !value || outOfRange}
-          message="Restore the database to the selected time? This replaces the current data with the state at that moment."
+          message={copy['databaseRestore.panel.confirm']}
         >
-          <RotateCcw className="h-4 w-4" aria-hidden /> {busy ? 'Requesting…' : 'Restore to this time'}
+          <RotateCcw className="h-4 w-4 shrink-0" aria-hidden />
+          <span className="min-w-0 whitespace-normal">
+            {busy ? copy['databaseRestore.panel.requesting'] : copy['databaseRestore.panel.restore']}
+          </span>
         </ConfirmSubmit>
       </Form>
-      <p className="text-[11px] text-bolt-elements-textTertiary">
-        A restore replays the write-ahead log to your chosen instant. The current data is replaced — this cannot be
-        undone.
-      </p>
+      <p className="break-words text-[11px] text-bolt-elements-textTertiary">{copy['databaseRestore.panel.warning']}</p>
     </aside>
   );
 }
 
 function RestoreHistoryCard({ restores }: { restores: Restore[] }) {
+  const { i18n } = useTranslation();
+  const language = resolveDatabaseRestoreLanguage(i18n.resolvedLanguage ?? i18n.language);
+  const copy = getDatabaseRestoreCopy(language);
+
   if (!restores.length) {
     return null;
   }
@@ -472,7 +581,9 @@ function RestoreHistoryCard({ restores }: { restores: Restore[] }) {
     <section className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-md">
       <div className="flex items-center gap-2 border-b border-bolt-elements-borderColor px-5 py-4">
         <History className="h-4 w-4 text-bolt-elements-textTertiary" aria-hidden />
-        <h2 className="text-[14px] font-medium text-bolt-elements-textPrimary">Restore history</h2>
+        <h2 className="break-words text-[14px] font-medium text-bolt-elements-textPrimary">
+          {copy['databaseRestore.history.title']}
+        </h2>
       </div>
       <div className="divide-y divide-bolt-elements-borderColor">
         {restores.map((restore) => (
@@ -480,13 +591,22 @@ function RestoreHistoryCard({ restores }: { restores: Restore[] }) {
             <RestoreStatusBadge status={restore.status} />
             <span className="text-bolt-elements-textPrimary">
               {restore.targetTimestamp
-                ? (formatUserAreaDateTime(restore.targetTimestamp) ?? 'Date unavailable')
-                : 'Latest'}
+                ? (formatDatabaseRestoreDate(restore.targetTimestamp, language) ??
+                  copy['databaseRestore.recovery.dateUnavailable'])
+                : copy['databaseRestore.history.latest']}
             </span>
             <span className="text-xs text-bolt-elements-textTertiary">
-              requested {formatUserAreaDateTime(restore.createdAt) ?? 'date unavailable'}
+              {formatDatabaseRestoreCopy(copy['databaseRestore.history.requested'], {
+                date:
+                  formatDatabaseRestoreDate(restore.createdAt, language) ??
+                  copy['databaseRestore.recovery.dateUnavailable'],
+              })}
             </span>
-            {restore.error ? <span className="text-xs text-bolt-elements-icon-error">{restore.error}</span> : null}
+            {restore.error ? (
+              <span className="break-words text-xs text-bolt-elements-icon-error">
+                {copy['databaseRestore.history.safeError']}
+              </span>
+            ) : null}
           </article>
         ))}
       </div>
@@ -507,6 +627,9 @@ function ConfirmSubmit({
   disabled?: boolean;
   block?: boolean;
 }) {
+  const { i18n } = useTranslation();
+  const copy = getDatabaseRestoreCopy(i18n.resolvedLanguage ?? i18n.language);
+
   // G5: token-styled confirmation dialog instead of window.confirm.
   const [pendingForm, setPendingForm] = useState<HTMLFormElement | null>(null);
 
@@ -517,7 +640,7 @@ function ConfirmSubmit({
         size="sm"
         variant="outline"
         disabled={busy || disabled}
-        className={classNames('gap-2', block ? 'w-full justify-center' : '')}
+        className={classNames('h-auto min-h-8 gap-2 whitespace-normal', block ? 'w-full justify-center' : '')}
         onClick={(event) => setPendingForm(event.currentTarget.form)}
       >
         {children}
@@ -530,9 +653,9 @@ function ConfirmSubmit({
           setPendingForm(null);
           form?.requestSubmit();
         }}
-        title="Restore database?"
+        title={copy['databaseRestore.confirm.title']}
         description={message}
-        confirmLabel="Restore"
+        confirmLabel={copy['databaseRestore.confirm.label']}
         variant="destructive"
       />
     </>
@@ -540,6 +663,8 @@ function ConfirmSubmit({
 }
 
 function KindBadge({ kind }: { kind: string }) {
+  const { i18n } = useTranslation();
+  const copy = getDatabaseRestoreCopy(i18n.resolvedLanguage ?? i18n.language);
   const manual = kind === 'manual';
 
   return (
@@ -549,12 +674,14 @@ function KindBadge({ kind }: { kind: string }) {
         'border-bolt-elements-borderColor text-bolt-elements-textSecondary',
       )}
     >
-      {manual ? 'Manual' : 'Automatic'}
+      {manual ? copy['databaseRestore.kind.manual'] : copy['databaseRestore.kind.automatic']}
     </span>
   );
 }
 
 function RestoreStatusBadge({ status }: { status: string }) {
+  const { i18n } = useTranslation();
+  const copy = getDatabaseRestoreCopy(i18n.resolvedLanguage ?? i18n.language);
   const done = status === 'COMPLETED';
   const failed = status === 'FAILED';
 
@@ -569,18 +696,7 @@ function RestoreStatusBadge({ status }: { status: string }) {
             : 'border-bolt-elements-borderColor text-bolt-elements-textSecondary',
       )}
     >
-      {statusDisplayLabel(status)}
+      {databaseRestoreStatusLabel(status, copy)}
     </span>
   );
-}
-
-function formatBytes(bytes: number): string {
-  if (!bytes) {
-    return '0 B';
-  }
-
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-
-  return `${(bytes / 1024 ** exponent).toFixed(exponent === 0 ? 0 : 1)} ${units[exponent]}`;
 }

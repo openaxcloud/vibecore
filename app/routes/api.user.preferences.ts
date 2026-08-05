@@ -1,4 +1,6 @@
 import { apiRequest, json, type EnterpriseActionArgs, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { resolveRequestLocale } from '~/lib/i18n/request-locale';
+import { translateServerMessage } from '~/lib/i18n/server';
 
 /*
  * IDE audit #3: proxy the in-IDE settings panel to the platform API so user
@@ -15,7 +17,12 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 
 export async function action({ request }: EnterpriseActionArgs) {
   if (request.method.toUpperCase() !== 'PATCH') {
-    return json({ ok: false, error: 'Method not allowed' }, { status: 405 });
+    const { language } = resolveRequestLocale(request);
+
+    return json(
+      { ok: false, code: 'METHOD_NOT_ALLOWED', error: translateServerMessage(language, 'errors.methodNotAllowed') },
+      { status: 405 },
+    );
   }
 
   const body = await request.text();

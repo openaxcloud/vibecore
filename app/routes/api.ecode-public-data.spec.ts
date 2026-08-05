@@ -8,9 +8,9 @@ import { loader as blogPostLoader } from './api.blog.posts.$slug';
 import { loader as paymentPlansLoader } from './api.payments.plans';
 import { toResponse } from '~/lib/test/rr7-data';
 
-function loaderArgs(params: LoaderFunctionArgs['params']): LoaderFunctionArgs {
+function loaderArgs(params: LoaderFunctionArgs['params'], language = 'en'): LoaderFunctionArgs {
   return {
-    request: new Request('http://localhost/'),
+    request: new Request('http://localhost/', { headers: { 'accept-language': language } }),
     context: {},
     params,
   };
@@ -35,7 +35,7 @@ describe('E-Code public marketing API compatibility', () => {
   });
 
   it('serves the E-Code blog list, featured list, detail, and categories', async () => {
-    const postsResponse = toResponse(await blogPostsLoader());
+    const postsResponse = toResponse(await blogPostsLoader(loaderArgs({})));
     const posts = await postsResponse.json();
 
     expect(postsResponse.status).toBe(200);
@@ -49,7 +49,7 @@ describe('E-Code public marketing API compatibility', () => {
       ]),
     );
 
-    const featuredResponse = toResponse(await blogFeaturedLoader());
+    const featuredResponse = toResponse(await blogFeaturedLoader(loaderArgs({})));
     const featured = await featuredResponse.json();
 
     expect(featuredResponse.status).toBe(200);
@@ -68,10 +68,46 @@ describe('E-Code public marketing API compatibility', () => {
     expect(categoryPosts).toEqual([expect.objectContaining({ slug: 'introducing-e-code' })]);
   });
 
+  it('serves localized French blog lists, details and stable category URLs', async () => {
+    const postsResponse = toResponse(await blogPostsLoader(loaderArgs({}, 'fr-FR,fr;q=0.9')));
+    const posts = await postsResponse.json();
+
+    expect(postsResponse.headers.get('Content-Language')).toBe('fr');
+    expect(posts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          slug: 'introducing-e-code',
+          title: 'Découvrez l’agent IA E-Code 2.0',
+          author: 'Équipe E-Code',
+        }),
+      ]),
+    );
+
+    const detailResponse = toResponse(
+      await blogPostLoader(loaderArgs({ slug: 'introducing-e-code' }, 'fr-FR,fr;q=0.9')),
+    );
+
+    const detail = await detailResponse.json();
+
+    expect(detailResponse.headers.get('Content-Language')).toBe('fr');
+    expect(detail.content).toContain('## Ce qui change');
+
+    const categoryResponse = toResponse(
+      await blogCategoriesLoader(loaderArgs({ category: 'Product' }, 'fr-FR,fr;q=0.9')),
+    );
+
+    const categoryPosts = await categoryResponse.json();
+
+    expect(categoryPosts).toEqual([expect.objectContaining({ slug: 'introducing-e-code', category: 'Produit' })]);
+  });
+
   it('returns the E-Code 404 contract for unknown blog posts', async () => {
     const response = toResponse(await blogPostLoader(loaderArgs({ slug: 'missing-post' })));
 
     expect(response.status).toBe(404);
-    await expect(response.json()).resolves.toEqual({ error: 'Blog post not found' });
+    await expect(response.json()).resolves.toEqual({
+      errorCode: 'blogPostNotFound',
+      message: 'This blog post could not be found.',
+    });
   });
 });

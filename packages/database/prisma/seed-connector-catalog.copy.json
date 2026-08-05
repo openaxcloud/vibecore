@@ -1,0 +1,112 @@
+{
+  "en": {
+    "github": {
+      "displayName": "GitHub",
+      "description": "Access GitHub repositories, users, and organizations from your E-Code apps.",
+      "triggerDescriptions": {
+        "repo_created": "Repository created",
+        "repo_updated": "Repository updated",
+        "repo_deleted": "Repository deleted",
+        "issue_created": "Issue created",
+        "issue_updated": "Issue updated",
+        "issue_deleted": "Issue deleted",
+        "pull_request_created": "Pull request created",
+        "pull_request_updated": "Pull request updated",
+        "pull_request_deleted": "Pull request deleted",
+        "commit_created": "Commit created"
+      }
+    },
+    "vercel": {
+      "displayName": "Vercel",
+      "description": "Manage Vercel deployments, projects, domains, and team settings from your E-Code apps.",
+      "apiKeyFields": {
+        "accessToken": {
+          "label": "Access token",
+          "placeholder": "Personal or team access token"
+        }
+      }
+    },
+    "supabase": {
+      "displayName": "Supabase",
+      "description": "Access Supabase projects, databases, authentication, storage, and edge functions.",
+      "apiKeyFields": {
+        "accessToken": {
+          "label": "Access token",
+          "placeholder": "Supabase Management API token"
+        }
+      }
+    },
+    "netlify": {
+      "displayName": "Netlify",
+      "description": "Manage Netlify sites, deployments, environment variables, and edge functions.",
+      "apiKeyFields": {
+        "accessToken": {
+          "label": "Personal access token"
+        }
+      }
+    },
+    "gitlab": {
+      "displayName": "GitLab",
+      "description": "Connect to GitLab to manage projects, issues, merge requests, and pipelines."
+    },
+    "bitbucket": {
+      "displayName": "Bitbucket",
+      "description": "Connect to Bitbucket to manage repositories, branches, and pull requests."
+    }
+  },
+  "fr": {
+    "github": {
+      "displayName": "GitHub",
+      "description": "Accédez aux dépôts, aux utilisateurs et aux organisations GitHub depuis vos applications E-Code.",
+      "triggerDescriptions": {
+        "repo_created": "Dépôt créé",
+        "repo_updated": "Dépôt mis à jour",
+        "repo_deleted": "Dépôt supprimé",
+        "issue_created": "Ticket créé",
+        "issue_updated": "Ticket mis à jour",
+        "issue_deleted": "Ticket supprimé",
+        "pull_request_created": "Pull request créée",
+        "pull_request_updated": "Pull request mise à jour",
+        "pull_request_deleted": "Pull request supprimée",
+        "commit_created": "Commit créé"
+      }
+    },
+    "vercel": {
+      "displayName": "Vercel",
+      "description": "Gérez les déploiements, les projets, les domaines et les paramètres d’équipe Vercel depuis vos applications E-Code.",
+      "apiKeyFields": {
+        "accessToken": {
+          "label": "Jeton d’accès",
+          "placeholder": "Jeton d’accès personnel ou d’équipe"
+        }
+      }
+    },
+    "supabase": {
+      "displayName": "Supabase",
+      "description": "Accédez aux projets, aux bases de données, à l’authentification, au stockage et aux fonctions edge Supabase.",
+      "apiKeyFields": {
+        "accessToken": {
+          "label": "Jeton d’accès",
+          "placeholder": "Jeton de l’API de gestion Supabase"
+        }
+      }
+    },
+    "netlify": {
+      "displayName": "Netlify",
+      "description": "Gérez les sites, les déploiements, les variables d’environnement et les fonctions edge Netlify.",
+      "apiKeyFields": {
+        "accessToken": {
+          "label": "Jeton d’accès personnel"
+        }
+      }
+    },
+    "gitlab": {
+      "displayName": "GitLab",
+      "description": "Connectez GitLab pour gérer les projets, les tickets, les merge requests et les pipelines."
+    },
+    "bitbucket": {
+      "displayName": "Bitbucket",
+      "description": "Connectez Bitbucket pour gérer les dépôts, les branches et les pull requests."
+    }
+  }
+}

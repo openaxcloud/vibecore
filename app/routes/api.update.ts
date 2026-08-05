@@ -1,6 +1,12 @@
 import { execFile } from 'node:child_process';
 import { type ActionFunctionArgs, type LoaderFunctionArgs } from 'react-router';
 import { requireWebSession } from '~/lib/.server/require-session';
+import {
+  formatApiRuntimeRoutesCopy,
+  getApiRuntimeRoutesCopy,
+  type ApiRuntimeRoutesCopy,
+} from '~/lib/i18n/catalogs/api-runtime-routes';
+import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { json } from '~/lib/json-response';
 import { withSecurity } from '~/lib/security';
 
@@ -63,13 +69,13 @@ function assertSafeBranch(branch: string): string {
   const valid = /^[A-Za-z0-9](?:[A-Za-z0-9._/-]*[A-Za-z0-9_])?$/.test(branch) && !branch.includes('..');
 
   if (!valid) {
-    throw Object.assign(new Error('Invalid branch name'), { code: 'INVALID_BRANCH' });
+    throw Object.assign(new Error(), { code: 'INVALID_BRANCH' });
   }
 
   return branch;
 }
 
-async function collectUpdateDetails(rawBranch: string) {
+async function collectUpdateDetails(rawBranch: string, copy: ApiRuntimeRoutesCopy) {
   const branch = assertSafeBranch(rawBranch);
   await git(['fetch', 'upstream', branch]);
 
@@ -85,9 +91,15 @@ async function collectUpdateDetails(rawBranch: string) {
         .filter(Boolean)
         .map((line) => {
           const [status, file] = line.split(/\s+/, 2);
-          const label = status === 'A' ? 'Added' : status === 'D' ? 'Deleted' : 'Modified';
 
-          return `${label}: ${file}`;
+          const key =
+            status === 'A'
+              ? 'apiRuntime.update.fileAdded'
+              : status === 'D'
+                ? 'apiRuntime.update.fileDeleted'
+                : 'apiRuntime.update.fileModified';
+
+          return formatApiRuntimeRoutesCopy(copy[key], { file });
         })
     : [];
 
@@ -140,11 +152,19 @@ async function collectUpdateDetails(rawBranch: string) {
  * withSecurity's catch does not rewrite it into a generic 500.
  */
 async function updateLoaderHandler({ request }: LoaderFunctionArgs): Promise<Response> {
+  const localeResolution = resolveRequestLocale(request);
+  const copy = getApiRuntimeRoutesCopy(localeResolution.language);
+
   try {
     await requireWebSession(request);
   } catch (authResponse) {
     if (authResponse instanceof Response) {
-      return authResponse;
+      const message =
+        authResponse.status === 503
+          ? copy['apiRuntime.generic.authenticationUnavailable']
+          : copy['apiRuntime.generic.authenticationRequired'];
+
+      return json({ error: message, code: 'AUTH_REQUIRED' }, { status: authResponse.status });
     }
 
     throw authResponse;
@@ -154,32 +174,46 @@ async function updateLoaderHandler({ request }: LoaderFunctionArgs): Promise<Res
   const branch = url.searchParams.get('branch') || 'main';
 
   try {
-    const details = await collectUpdateDetails(branch);
+    const details = await collectUpdateDetails(branch, copy);
 
     return json({
       stage: 'complete',
-      message: details.updateReady ? 'Update available' : 'You are up to date',
+      message: details.updateReady ? copy['apiRuntime.update.available'] : copy['apiRuntime.update.upToDate'],
       progress: 100,
       details: {
         ...details,
-        changelog: details.updateReady
-          ? 'Updates are available. Review the changed files and run git pull manually when ready.'
-          : 'No updates found.',
+        changelog: details.updateReady ? copy['apiRuntime.update.review'] : copy['apiRuntime.update.none'],
       },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown update check error';
+    console.error('Update check failed:', error);
 
-    return json({ stage: 'complete', message: 'Update check failed', progress: 100, error: message }, { status: 500 });
+    const message =
+      (error as { code?: string } | undefined)?.code === 'INVALID_BRANCH'
+        ? copy['apiRuntime.update.invalidBranch']
+        : copy['apiRuntime.generic.requestFailed'];
+
+    return json(
+      { stage: 'complete', message: copy['apiRuntime.update.checkFailed'], progress: 100, error: message },
+      { status: 500 },
+    );
   }
 }
 
 async function updateActionHandler({ request }: ActionFunctionArgs): Promise<Response> {
+  const localeResolution = resolveRequestLocale(request);
+  const copy = getApiRuntimeRoutesCopy(localeResolution.language);
+
   try {
     await requireWebSession(request);
   } catch (authResponse) {
     if (authResponse instanceof Response) {
-      return authResponse;
+      const message =
+        authResponse.status === 503
+          ? copy['apiRuntime.generic.authenticationUnavailable']
+          : copy['apiRuntime.generic.authenticationRequired'];
+
+      return json({ error: message, code: 'AUTH_REQUIRED' }, { status: authResponse.status });
     }
 
     throw authResponse;
@@ -213,18 +247,18 @@ async function updateActionHandler({ request }: ActionFunctionArgs): Promise<Res
     try {
       writeProgress(controller, {
         stage: 'fetch',
-        message: `Checking upstream/${branch} for updates`,
+        message: formatApiRuntimeRoutesCopy(copy['apiRuntime.update.checking'], { branch }),
         progress: 15,
       });
 
-      const details = await collectUpdateDetails(branch);
+      const details = await collectUpdateDetails(branch, copy);
 
       if (autoUpdate && details.updateReady) {
         writeProgress(controller, {
           stage: 'pull',
-          message: 'Updates are available. Apply them manually from the terminal.',
+          message: copy['apiRuntime.update.manualApply'],
           progress: 100,
-          error: 'Automatic updates are disabled in this local development environment.',
+          error: copy['apiRuntime.update.automaticDisabled'],
           details: {
             ...details,
           },
@@ -233,21 +267,24 @@ async function updateActionHandler({ request }: ActionFunctionArgs): Promise<Res
 
       writeProgress(controller, {
         stage: 'complete',
-        message: details.updateReady ? 'Update available' : 'You are up to date',
+        message: details.updateReady ? copy['apiRuntime.update.available'] : copy['apiRuntime.update.upToDate'],
         progress: 100,
         details: {
           ...details,
-          changelog: details.updateReady
-            ? 'Updates are available. Review the changed files and run git pull manually when ready.'
-            : 'No updates found.',
+          changelog: details.updateReady ? copy['apiRuntime.update.review'] : copy['apiRuntime.update.none'],
         },
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown update check error';
+      console.error('Streaming update check failed:', error);
+
+      const message =
+        (error as { code?: string } | undefined)?.code === 'INVALID_BRANCH'
+          ? copy['apiRuntime.update.invalidBranch']
+          : copy['apiRuntime.generic.requestFailed'];
 
       writeProgress(controller, {
         stage: 'complete',
-        message: 'Update check failed',
+        message: copy['apiRuntime.update.checkFailed'],
         progress: 100,
         error: message,
       });
@@ -269,12 +306,49 @@ async function updateActionHandler({ request }: ActionFunctionArgs): Promise<Res
   });
 }
 
-export const loader = withSecurity(updateLoaderHandler, {
+const securedLoader = withSecurity(updateLoaderHandler, {
   rateLimit: true,
   allowedMethods: ['GET'],
 });
 
-export const action = withSecurity(updateActionHandler, {
+const securedAction = withSecurity(updateActionHandler, {
   rateLimit: true,
   allowedMethods: ['POST'],
 });
+
+async function localizeSecurityResponse(request: Request, response: Response): Promise<Response> {
+  const localeResolution = resolveRequestLocale(request);
+  const copy = getApiRuntimeRoutesCopy(localeResolution.language);
+  const headers = localeResponseHeaders(request, localeResolution);
+
+  response.headers.forEach((value, key) => headers.set(key, value));
+
+  const wrappedSecurityFailure =
+    response.status === 500 &&
+    (await response
+      .clone()
+      .json()
+      .then((payload: unknown) => (payload as { error?: unknown } | null)?.error === true)
+      .catch(() => false));
+
+  if (response.status === 405 || response.status === 429 || wrappedSecurityFailure) {
+    const message =
+      response.status === 405
+        ? copy['apiRuntime.generic.methodNotAllowed']
+        : response.status === 429
+          ? copy['apiRuntime.generic.rateLimit']
+          : copy['apiRuntime.generic.requestFailed'];
+
+    return json({ error: message }, { status: response.status, headers });
+  }
+
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
+
+export async function loader(args: LoaderFunctionArgs): Promise<Response> {
+  return localizeSecurityResponse(args.request, await securedLoader(args));
+}
+
+export async function action(args: ActionFunctionArgs): Promise<Response> {
+  return localizeSecurityResponse(args.request, await securedAction(args));
+}

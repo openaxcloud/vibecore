@@ -1,8 +1,15 @@
 import * as RadixPopover from '@radix-ui/react-popover';
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from './Button';
 import { IconButton } from './IconButton';
 import { seedColorSchemeState } from './color-scheme-state';
+import {
+  formatDesignPaletteCopy,
+  formatDesignPaletteNumber,
+  getDesignPaletteCopy,
+  type DesignPaletteKey,
+} from '~/lib/i18n/catalogs/design-palette';
 import type { DesignScheme } from '~/types/design-scheme';
 import { defaultDesignScheme, designFeatures, designFonts, paletteRoles } from '~/types/design-scheme';
 import { classNames } from '~/utils/classNames';
@@ -15,19 +22,35 @@ export interface ColorSchemeDialogProps {
   triggerVariant?: 'icon' | 'menu';
 }
 
+type DesignPaletteSection = 'colors' | 'typography' | 'features';
+
+const DESIGN_PALETTE_TABS = [
+  { key: 'colors', labelKey: 'designPalette.section.colors', icon: 'i-ph:palette' },
+  { key: 'typography', labelKey: 'designPalette.section.typography', icon: 'i-ph:text-aa' },
+  { key: 'features', labelKey: 'designPalette.section.features', icon: 'i-ph:magic-wand' },
+] satisfies ReadonlyArray<{ key: DesignPaletteSection; labelKey: DesignPaletteKey; icon: string }>;
+
 export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({
   setDesignScheme,
   designScheme,
   triggerClassName,
-  triggerLabel = 'Design palette',
+  triggerLabel,
   triggerVariant = 'icon',
 }) => {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getDesignPaletteCopy(language);
+
+  const text = (template: string, values: Readonly<Record<string, string | number>> = {}) =>
+    formatDesignPaletteCopy(template, values);
+
+  const resolvedTriggerLabel = triggerLabel ?? copy['designPalette.trigger'];
   const initialState = seedColorSchemeState(designScheme);
   const [palette, setPalette] = useState<{ [key: string]: string }>(initialState.palette);
   const [features, setFeatures] = useState<string[]>(initialState.features);
   const [font, setFont] = useState<string[]>(initialState.font);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState<'colors' | 'typography' | 'features'>('colors');
+  const [activeSection, setActiveSection] = useState<DesignPaletteSection>('colors');
 
   // Re-seed local editing state from the current designScheme prop.
   const resetLocalState = React.useCallback(() => {
@@ -71,14 +94,14 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold text-bolt-elements-textPrimary flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-bolt-elements-item-contentAccent"></div>
-          Color Palette
+          {copy['designPalette.colorPalette']}
         </h3>
         <button
           onClick={handleReset}
           className="text-sm bg-transparent hover:bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary rounded-lg flex items-center gap-2 transition-all duration-200"
         >
           <span className="i-ph:arrow-clockwise text-sm" />
-          Reset
+          {copy['designPalette.reset']}
         </button>
       </div>
 
@@ -105,7 +128,7 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({
                 }}
                 role="button"
                 tabIndex={0}
-                aria-label={`Change ${role.label} color`}
+                aria-label={text(copy['designPalette.changeColor'], { role: copy[role.labelKey] })}
               />
               <input
                 id={`color-input-${role.key}`}
@@ -120,9 +143,11 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({
               </div>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-semibold text-bolt-elements-textPrimary transition-colors">{role.label}</div>
+              <div className="font-semibold text-bolt-elements-textPrimary transition-colors">
+                {copy[role.labelKey]}
+              </div>
               <div className="text-sm text-bolt-elements-textSecondary line-clamp-2 leading-relaxed">
-                {role.description}
+                {copy[role.descriptionKey]}
               </div>
               <div className="text-xs text-bolt-elements-textTertiary font-mono mt-1 px-2 py-1 bg-bolt-elements-background-depth-1 rounded-md inline-block">
                 {palette[role.key]}
@@ -138,7 +163,7 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({
     <div className="space-y-4">
       <h3 className="text-lg font-semibold text-bolt-elements-textPrimary flex items-center gap-2">
         <div className="w-2 h-2 rounded-full bg-bolt-elements-item-contentAccent"></div>
-        Typography
+        {copy['designPalette.section.typography']}
       </h3>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
@@ -167,7 +192,7 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({
                   font.includes(f.key) ? 'text-bolt-elements-item-contentAccent' : 'text-bolt-elements-textSecondary'
                 }`}
               >
-                {f.label}
+                {copy[f.labelKey]}
               </div>
               {font.includes(f.key) && (
                 <div className="w-6 h-6 mx-auto bg-bolt-elements-item-contentAccent rounded-full flex items-center justify-center">
@@ -185,7 +210,7 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({
     <div className="space-y-4">
       <h3 className="text-lg font-semibold text-bolt-elements-textPrimary flex items-center gap-2">
         <div className="w-2 h-2 rounded-full bg-bolt-elements-item-contentAccent"></div>
-        Design Features
+        {copy['designPalette.designFeatures']}
       </h3>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
@@ -275,7 +300,7 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({
                   </div>
 
                   <div className="text-center">
-                    <div className="font-semibold">{f.label}</div>
+                    <div className="font-semibold">{copy[f.labelKey]}</div>
                     {isSelected && <div className="mt-2 w-8 h-1 bg-current rounded-full mx-auto opacity-60" />}
                   </div>
                 </div>
@@ -306,14 +331,14 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({
       >
         <RadixPopover.Trigger asChild>
           <IconButton
-            title="Design Palette"
-            tooltip="Design Palette"
+            title={copy['designPalette.title']}
+            tooltip={copy['designPalette.title']}
             className={classNames(isMenuTrigger ? 'bolt-chatbox-tools-menu-item' : 'transition-all', triggerClassName)}
             onClick={() => setIsDialogOpen((open) => !open)}
           >
             <>
               <div className="i-ph:palette text-xl"></div>
-              {isMenuTrigger ? <span>{triggerLabel}</span> : null}
+              {isMenuTrigger ? <span>{resolvedTriggerLabel}</span> : null}
             </>
           </IconButton>
         </RadixPopover.Trigger>
@@ -330,24 +355,20 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({
               <div className="pr-8">
                 <h2 className="text-lg font-semibold text-bolt-elements-textPrimary flex items-center gap-2">
                   <span className="i-ph:palette text-bolt-elements-item-contentAccent text-xl" aria-hidden />
-                  Design Palette
+                  {copy['designPalette.title']}
                 </h2>
                 <p className="text-xs text-bolt-elements-textSecondary leading-snug mt-1">
-                  Tune the color palette, typography, and design features that guide the agent.
+                  {copy['designPalette.description']}
                 </p>
               </div>
 
               {/* Navigation Tabs */}
               <div className="flex gap-1 p-1 bg-bolt-elements-background-depth-3 rounded-lg">
-                {[
-                  { key: 'colors', label: 'Colors', icon: 'i-ph:palette' },
-                  { key: 'typography', label: 'Typography', icon: 'i-ph:text-aa' },
-                  { key: 'features', label: 'Features', icon: 'i-ph:magic-wand' },
-                ].map((tab) => (
+                {DESIGN_PALETTE_TABS.map((tab) => (
                   <button
                     key={tab.key}
                     type="button"
-                    onClick={() => setActiveSection(tab.key as any)}
+                    onClick={() => setActiveSection(tab.key)}
                     className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-md text-xs font-medium transition-colors duration-150 ${
                       activeSection === tab.key
                         ? 'bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary'
@@ -355,7 +376,7 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({
                     }`}
                   >
                     <span className={`${tab.icon} text-base`} aria-hidden />
-                    <span>{tab.label}</span>
+                    <span>{copy[tab.labelKey]}</span>
                   </button>
                 ))}
               </div>
@@ -370,7 +391,11 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({
               {/* Action Buttons */}
               <div className="flex flex-wrap justify-between items-center gap-3 pt-3 border-t border-bolt-elements-borderColor">
                 <div className="text-[11px] text-bolt-elements-textSecondary">
-                  {Object.keys(palette).length} colors • {font.length} fonts • {features.length} features
+                  {text(copy['designPalette.summary'], {
+                    colors: formatDesignPaletteNumber(Object.keys(palette).length, language),
+                    fonts: formatDesignPaletteNumber(font.length, language),
+                    features: formatDesignPaletteNumber(features.length, language),
+                  })}
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -380,14 +405,14 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({
                       setIsDialogOpen(false);
                     }}
                   >
-                    Cancel
+                    {copy['designPalette.cancel']}
                   </Button>
                   <Button
                     variant="ghost"
                     onClick={handleSave}
                     className="bg-bolt-elements-button-primary-background hover:bg-bolt-elements-button-primary-backgroundHover text-bolt-elements-button-primary-text"
                   >
-                    Save Changes
+                    {copy['designPalette.save']}
                   </Button>
                 </div>
               </div>

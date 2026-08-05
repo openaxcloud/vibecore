@@ -1,4 +1,10 @@
 import type { Feature } from '~/lib/api/features';
+import {
+  defaultFeatureAnnouncements,
+  normalizeFeatureAnnouncementLanguage,
+  type FeatureAnnouncementConfig,
+  type FeatureAnnouncementLanguage,
+} from '~/lib/i18n/catalogs/feature-announcements';
 
 /*
  * Source of truth for the "what's new" announcements surfaced by the
@@ -18,28 +24,11 @@ import type { Feature } from '~/lib/api/features';
 const VIEWED_COOKIE = 'vc_viewed_features';
 const VIEWED_COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
 
-type AnnouncementConfig = Omit<Feature, 'viewed'>;
-
-const DEFAULT_ANNOUNCEMENTS: AnnouncementConfig[] = [
-  {
-    id: 'mcp-marketplace',
-    name: 'MCP marketplace',
-    description: 'Browse and connect Model Context Protocol servers to give the agent new tools.',
-    releaseDate: '2026-05-05',
-  },
-  {
-    id: 'static-deployments',
-    name: 'Static deployments',
-    description: 'Ship static builds straight from the workspace with a shareable preview URL.',
-    releaseDate: '2026-05-15',
-  },
-  {
-    id: 'agent-panel',
-    name: 'Collaborative agent panel',
-    description: 'Review, accept and undo agent edits inline with live presence and share links.',
-    releaseDate: '2026-05-19',
-  },
-];
+type LocalizedText = string | Readonly<Partial<Record<FeatureAnnouncementLanguage, string>>>;
+type AnnouncementOverride = Omit<FeatureAnnouncementConfig, 'description' | 'name'> & {
+  name: LocalizedText;
+  description: LocalizedText;
+};
 
 type RuntimeProcess = { env?: Record<string, string | undefined> };
 
@@ -48,7 +37,23 @@ function envValue(key: string): string | undefined {
   return maybeProcess?.env?.[key];
 }
 
-function isAnnouncement(value: unknown): value is AnnouncementConfig {
+function isLocalizedText(value: unknown): value is LocalizedText {
+  if (typeof value === 'string') {
+    return value.trim().length > 0;
+  }
+
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+
+  return ['en', 'fr'].some(
+    (language) => typeof candidate[language] === 'string' && candidate[language].trim().length > 0,
+  );
+}
+
+function isAnnouncement(value: unknown): value is AnnouncementOverride {
   if (typeof value !== 'object' || value === null) {
     return false;
   }
@@ -57,14 +62,23 @@ function isAnnouncement(value: unknown): value is AnnouncementConfig {
 
   return (
     typeof candidate.id === 'string' &&
-    typeof candidate.name === 'string' &&
-    typeof candidate.description === 'string' &&
+    isLocalizedText(candidate.name) &&
+    isLocalizedText(candidate.description) &&
     typeof candidate.releaseDate === 'string'
   );
 }
 
+function localizeOverrideText(value: LocalizedText, language: FeatureAnnouncementLanguage): string {
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  return value[language]?.trim() || value.en?.trim() || value.fr?.trim() || '';
+}
+
 /** Returns the announcement catalog, preferring a valid FEATURE_ANNOUNCEMENTS override. */
-export function getFeatureAnnouncements(): AnnouncementConfig[] {
+export function getFeatureAnnouncements(language?: string | null): FeatureAnnouncementConfig[] {
+  const resolvedLanguage = normalizeFeatureAnnouncementLanguage(language);
   const raw = envValue('FEATURE_ANNOUNCEMENTS');
 
   if (raw && raw.trim().length > 0) {
@@ -72,16 +86,21 @@ export function getFeatureAnnouncements(): AnnouncementConfig[] {
       const parsed = JSON.parse(raw);
 
       if (Array.isArray(parsed) && parsed.every(isAnnouncement)) {
-        return parsed;
+        return parsed.map((announcement) => ({
+          id: announcement.id,
+          name: localizeOverrideText(announcement.name, resolvedLanguage),
+          description: localizeOverrideText(announcement.description, resolvedLanguage),
+          releaseDate: announcement.releaseDate,
+        }));
       }
 
-      console.error('FEATURE_ANNOUNCEMENTS is not a valid Feature[] — falling back to defaults');
+      console.error({ code: 'FEATURE_ANNOUNCEMENTS_INVALID' });
     } catch (error) {
-      console.error('Failed to parse FEATURE_ANNOUNCEMENTS env var:', error);
+      console.error({ code: 'FEATURE_ANNOUNCEMENTS_PARSE_FAILED', error });
     }
   }
 
-  return DEFAULT_ANNOUNCEMENTS;
+  return defaultFeatureAnnouncements(resolvedLanguage);
 }
 
 /** Parses the set of viewed feature ids from the request's cookie header. */
@@ -114,10 +133,10 @@ export function viewedFeaturesCookie(ids: string[]): string {
 }
 
 /** Returns the announcement catalog with per-request `viewed` state applied. */
-export function getFeaturesForRequest(request: Request): Feature[] {
+export function getFeaturesForRequest(request: Request, language?: string | null): Feature[] {
   const viewed = new Set(readViewedFeatureIds(request));
 
-  return getFeatureAnnouncements().map((announcement) => ({
+  return getFeatureAnnouncements(language).map((announcement) => ({
     ...announcement,
     viewed: viewed.has(announcement.id),
   }));

@@ -1,7 +1,9 @@
 import { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '~/components/ui/Button';
 import { RevealButton } from '~/components/ui/RevealButton';
 import type { SecretRequestField, SecretRequestMessage } from '~/lib/chat/connector-messages';
+import { formatChatConnectorsCopy, getChatConnectorsCopy } from '~/lib/i18n/catalogs/chat-connectors';
 
 /*
  * Inline card rendered when the agent emits a secret_request data
@@ -56,6 +58,8 @@ export function buildSecretValue(fields: SecretRequestField[], values: Record<st
 }
 
 export function SecretRequestCard({ payload, projectId, onProvided }: SecretRequestCardProps) {
+  const { i18n } = useTranslation();
+  const copy = getChatConnectorsCopy(i18n.resolvedLanguage ?? i18n.language);
   const [values, setValues] = useState<Record<string, string>>({});
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -66,7 +70,7 @@ export function SecretRequestCard({ payload, projectId, onProvided }: SecretRequ
     setError(null);
 
     if (!projectId) {
-      setError('No project context — open this connector from a project to save the secret.');
+      setError(copy['chatConnectors.secret.projectMissing']);
       return;
     }
 
@@ -74,7 +78,7 @@ export function SecretRequestCard({ payload, projectId, onProvided }: SecretRequ
 
     for (const field of fields) {
       if (field.required && !values[field.name]?.trim()) {
-        setError(`${field.label} is required.`);
+        setError(formatChatConnectorsCopy(copy['chatConnectors.secret.fieldRequired'], { field: field.label }));
         return;
       }
     }
@@ -89,27 +93,27 @@ export function SecretRequestCard({ payload, projectId, onProvided }: SecretRequ
       });
 
       if (!response.ok) {
-        const parsed = (await response.json().catch(() => ({}))) as { error?: string };
-        setError(parsed.error ?? `Failed to save the secret (HTTP ${response.status}).`);
+        setError(copy['chatConnectors.secret.saveFailed']);
 
         return;
       }
 
       setSubmitted(true);
       onProvided?.();
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Unknown failure saving the secret.');
+    } catch {
+      setError(copy['chatConnectors.secret.saveFailed']);
     } finally {
       setSubmitting(false);
     }
-  }, [onProvided, payload.fields, payload.secretKey, projectId, values]);
+  }, [copy, onProvided, payload, projectId, values]);
 
   if (submitted) {
     return (
-      <div className="my-2 flex items-center gap-2 rounded-md border border-bolt-elements-borderColor px-3 py-2 bg-bolt-elements-background-depth-1">
-        <span className="i-ph:check-circle-fill w-4 h-4 text-bolt-elements-icon-success" />
-        <p className="text-xs text-bolt-elements-textSecondary">
-          {payload.displayName} saved to <code>{payload.secretKey}</code>.
+      <div className="my-2 flex items-center gap-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2">
+        <span className="i-ph:check-circle-fill h-4 w-4 shrink-0 text-bolt-elements-icon-success" aria-hidden />
+        <p className="min-w-0 break-words text-xs text-bolt-elements-textSecondary">
+          {formatChatConnectorsCopy(copy['chatConnectors.secret.saved'], { name: payload.displayName })}{' '}
+          <code className="break-all">{payload.secretKey}</code>.
         </p>
       </div>
     );
@@ -117,8 +121,10 @@ export function SecretRequestCard({ payload, projectId, onProvided }: SecretRequ
 
   return (
     <div className="my-2 rounded-lg border border-bolt-elements-borderColor p-4 bg-bolt-elements-background-depth-1">
-      <p className="text-sm font-medium text-bolt-elements-textPrimary">Provide {payload.displayName}</p>
-      <p className="text-xs text-bolt-elements-textSecondary mt-1">{payload.description}</p>
+      <p className="break-words text-sm font-medium text-bolt-elements-textPrimary">
+        {formatChatConnectorsCopy(copy['chatConnectors.secret.provide'], { name: payload.displayName })}
+      </p>
+      <p className="mt-1 break-words text-xs text-bolt-elements-textSecondary">{payload.description}</p>
 
       <div className="mt-3 space-y-3">
         {getSecretFields(payload).map((field) => {
@@ -136,11 +142,13 @@ export function SecretRequestCard({ payload, projectId, onProvided }: SecretRequ
                   value={values[field.name] ?? ''}
                   placeholder={field.placeholder}
                   disabled={submitting}
+                  required={field.required}
+                  aria-required={field.required}
                   autoComplete="off"
                   spellCheck={false}
                   style={isSecret ? { fontFamily: 'var(--vc-font-code)' } : undefined}
                   onChange={(event) => setValues((current) => ({ ...current, [field.name]: event.target.value }))}
-                  className={`h-9 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 py-1 text-sm text-bolt-elements-textPrimary ${
+                  className={`min-h-11 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 py-1 text-sm text-bolt-elements-textPrimary ${
                     isSecret ? 'pl-2 pr-10' : 'px-2'
                   }`}
                 />
@@ -149,7 +157,7 @@ export function SecretRequestCard({ payload, projectId, onProvided }: SecretRequ
                     revealed={Boolean(revealed[field.name])}
                     onToggle={() => setRevealed((current) => ({ ...current, [field.name]: !current[field.name] }))}
                     subject={field.label}
-                    className="absolute right-0.5 top-1/2 -translate-y-1/2"
+                    className="absolute right-0 top-1/2 min-h-11 min-w-11 -translate-y-1/2"
                   />
                 ) : null}
               </div>
@@ -158,14 +166,14 @@ export function SecretRequestCard({ payload, projectId, onProvided }: SecretRequ
         })}
       </div>
 
-      <div className="mt-3 flex items-center gap-2">
-        <Button onClick={handleSubmit} disabled={submitting || !projectId}>
-          {submitting ? 'Saving...' : `Save ${payload.displayName}`}
+      <div className="mt-3 flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
+        <Button onClick={handleSubmit} disabled={submitting || !projectId} className="min-h-11 whitespace-normal">
+          {submitting
+            ? copy['chatConnectors.secret.saving']
+            : formatChatConnectorsCopy(copy['chatConnectors.secret.save'], { name: payload.displayName })}
         </Button>
         {!projectId ? (
-          <span className="text-xs text-bolt-elements-textTertiary">
-            Open from a project to save the secret server-side.
-          </span>
+          <span className="text-xs text-bolt-elements-textTertiary">{copy['chatConnectors.secret.projectHint']}</span>
         ) : null}
       </div>
 

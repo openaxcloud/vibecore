@@ -1,3 +1,5 @@
+import rawSkillRepoCatalog from './skills-repo-catalog.json' with { type: 'json' };
+
 /**
  * Community catalog of INSTALLABLE GitHub-repo skills (F#27).
  *
@@ -30,97 +32,72 @@ export interface SkillRepoCatalogEntry {
   homepageUrl: string;
 }
 
+export const SKILL_REPO_LOCALES = ['en', 'fr'] as const;
+
+export type SkillRepoLocale = (typeof SKILL_REPO_LOCALES)[number];
+
+type LocalizedDescriptions = Readonly<Partial<Record<SkillRepoLocale, string>>>;
+
+type SkillRepoCatalogSourceEntry = Readonly<
+  Omit<SkillRepoCatalogEntry, 'description'> & {
+    descriptions: LocalizedDescriptions;
+  }
+>;
+
+const DEFAULT_SKILL_REPO_LOCALE: SkillRepoLocale = 'en';
+
+function normalizeSkillRepoLocale(locale: string | null | undefined): SkillRepoLocale {
+  const primary = locale?.trim().toLowerCase().split(/[-_]/)[0];
+
+  return primary === 'fr' ? 'fr' : DEFAULT_SKILL_REPO_LOCALE;
+}
+
+/**
+ * Resolve one description without ever returning a catalogue identifier.
+ * English is the per-entry fallback for an incomplete localized source.
+ */
+export function localizedSkillRepoDescription(descriptions: LocalizedDescriptions, locale?: string | null): string {
+  const resolvedLocale = normalizeSkillRepoLocale(locale);
+  const localized = descriptions[resolvedLocale]?.trim();
+
+  return localized || descriptions.en?.trim() || '';
+}
+
 /**
  * Curated public skill repositories. Slugs are stable install keys — do not
  * rename an `ownerRepo` once shipped (installs reference it). Roughly a dozen
  * realistic, well-known public repos across common developer skill categories.
  */
-export const SKILL_REPO_CATALOG: readonly SkillRepoCatalogEntry[] = [
+const SKILL_REPO_CATALOG_SOURCE = rawSkillRepoCatalog.entries as readonly SkillRepoCatalogSourceEntry[];
+
+function buildSkillRepoCatalog(locale: SkillRepoLocale): readonly SkillRepoCatalogEntry[] {
+  return Object.freeze(
+    SKILL_REPO_CATALOG_SOURCE.map((entry) =>
+      Object.freeze({
+        ownerRepo: entry.ownerRepo,
+        name: entry.name,
+        description: localizedSkillRepoDescription(entry.descriptions, locale),
+        category: entry.category,
+        homepageUrl: entry.homepageUrl,
+      }),
+    ),
+  );
+}
+
+const SKILL_REPO_CATALOG_BY_LOCALE: Readonly<Record<SkillRepoLocale, readonly SkillRepoCatalogEntry[]>> = Object.freeze(
   {
-    ownerRepo: 'anthropics/skills',
-    name: 'Anthropic Skills',
-    description: 'Reference collection of agent skills — document editing, data work, and reusable workflows.',
-    category: 'productivity',
-    homepageUrl: 'https://github.com/anthropics/skills',
+    en: buildSkillRepoCatalog('en'),
+    fr: buildSkillRepoCatalog('fr'),
   },
-  {
-    ownerRepo: 'openai/openai-cookbook',
-    name: 'OpenAI Cookbook',
-    description: 'Recipes and patterns for building with large language models, adaptable as agent guidance.',
-    category: 'knowledge',
-    homepageUrl: 'https://github.com/openai/openai-cookbook',
-  },
-  {
-    ownerRepo: 'github/gitignore',
-    name: 'gitignore Templates',
-    description: 'Curated .gitignore templates the agent can apply per language and framework.',
-    category: 'devops',
-    homepageUrl: 'https://github.com/github/gitignore',
-  },
-  {
-    ownerRepo: 'goldbergyoni/nodebestpractices',
-    name: 'Node.js Best Practices',
-    description: 'Comprehensive Node.js production best-practice checklist for reviews and refactors.',
-    category: 'quality',
-    homepageUrl: 'https://github.com/goldbergyoni/nodebestpractices',
-  },
-  {
-    ownerRepo: 'airbnb/javascript',
-    name: 'Airbnb JavaScript Style Guide',
-    description: 'Opinionated JavaScript/React style rules for consistent, review-ready code.',
-    category: 'quality',
-    homepageUrl: 'https://github.com/airbnb/javascript',
-  },
-  {
-    ownerRepo: 'kentcdodds/testing-library-docs',
-    name: 'Testing Library Guidance',
-    description: 'User-centric testing patterns for writing resilient UI and integration tests.',
-    category: 'testing',
-    homepageUrl: 'https://github.com/testing-library/testing-library-docs',
-  },
-  {
-    ownerRepo: 'OWASP/CheatSheetSeries',
-    name: 'OWASP Cheat Sheets',
-    description: 'Concise application-security guidance the agent can apply during security reviews.',
-    category: 'security',
-    homepageUrl: 'https://github.com/OWASP/CheatSheetSeries',
-  },
-  {
-    ownerRepo: 'sindresorhus/awesome',
-    name: 'Awesome Lists',
-    description: 'Curated topic references the agent can draw on when researching a technology.',
-    category: 'knowledge',
-    homepageUrl: 'https://github.com/sindresorhus/awesome',
-  },
-  {
-    ownerRepo: 'microsoft/TypeScript-Node-Starter',
-    name: 'TypeScript Node Starter',
-    description: 'Conventions for structuring a production TypeScript + Node backend project.',
-    category: 'productivity',
-    homepageUrl: 'https://github.com/microsoft/TypeScript-Node-Starter',
-  },
-  {
-    ownerRepo: 'a11yproject/a11yproject.com',
-    name: 'The A11Y Project',
-    description: 'Practical accessibility guidance for auditing UI against WCAG expectations.',
-    category: 'frontend',
-    homepageUrl: 'https://github.com/a11yproject/a11yproject.com',
-  },
-  {
-    ownerRepo: 'donnemartin/system-design-primer',
-    name: 'System Design Primer',
-    description: 'System-design fundamentals for architecture discussions and design reviews.',
-    category: 'architecture',
-    homepageUrl: 'https://github.com/donnemartin/system-design-primer',
-  },
-  {
-    ownerRepo: 'jlevy/the-art-of-command-line',
-    name: 'The Art of Command Line',
-    description: 'Shell and command-line proficiency notes for scripting and automation tasks.',
-    category: 'devops',
-    homepageUrl: 'https://github.com/jlevy/the-art-of-command-line',
-  },
-] as const;
+);
+
+/** Resolve the curated server catalogue for a supported or browser-style locale. */
+export function skillRepoCatalogForLocale(locale?: string | null): readonly SkillRepoCatalogEntry[] {
+  return SKILL_REPO_CATALOG_BY_LOCALE[normalizeSkillRepoLocale(locale)];
+}
+
+/** Backward-compatible English default for existing server consumers. */
+export const SKILL_REPO_CATALOG = SKILL_REPO_CATALOG_BY_LOCALE.en;
 
 /**
  * Validate an `owner/repo` slug. GitHub owners and repo names allow ASCII
@@ -165,9 +142,12 @@ export function normalizeOwnerRepo(ownerRepo: string): string | undefined {
   return isValidOwnerRepo(trimmed) ? trimmed : undefined;
 }
 
-const CATALOG_BY_REPO = new Map(SKILL_REPO_CATALOG.map((entry) => [entry.ownerRepo.toLowerCase(), entry]));
+const CATALOG_BY_REPO: Readonly<Record<SkillRepoLocale, ReadonlyMap<string, SkillRepoCatalogEntry>>> = Object.freeze({
+  en: new Map(SKILL_REPO_CATALOG_BY_LOCALE.en.map((entry) => [entry.ownerRepo.toLowerCase(), entry])),
+  fr: new Map(SKILL_REPO_CATALOG_BY_LOCALE.fr.map((entry) => [entry.ownerRepo.toLowerCase(), entry])),
+});
 
 /** Look up a curated catalog entry by `owner/repo` (case-insensitive). */
-export function findRepoEntry(ownerRepo: string): SkillRepoCatalogEntry | undefined {
-  return CATALOG_BY_REPO.get(ownerRepo.trim().toLowerCase());
+export function findRepoEntry(ownerRepo: string, locale?: string | null): SkillRepoCatalogEntry | undefined {
+  return CATALOG_BY_REPO[normalizeSkillRepoLocale(locale)].get(ownerRepo.trim().toLowerCase());
 }

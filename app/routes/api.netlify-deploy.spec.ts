@@ -135,6 +135,10 @@ describe('api.netlify-deploy action — transient status-poll resilience (Bug 1)
     const body = await readJson(result);
 
     expect(status).toBe(404);
-    expect(body.error).toContain('Failed to check deployment status');
+    expect(body).toMatchObject({
+      code: 'NETLIFY_DEPLOYMENT_STATUS_FAILED',
+      error: 'The Netlify deployment status could not be checked. Please try again.',
+    });
+    expect(JSON.stringify(body)).not.toContain('gone');
   });
 });

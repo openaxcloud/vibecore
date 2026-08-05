@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { DatabaseClient } from '@vibecore/database';
+import { appPublicEnglish } from './app-public-copy.js';
 
 export type AgentMemoryScope = 'user' | 'organization' | 'project' | 'session';
 export type AgentMemoryType = 'episodic' | 'semantic' | 'procedural' | 'working' | 'cache';
@@ -195,11 +196,10 @@ export class OpenAIEmbeddingProvider implements AgentMemoryEmbeddingProvider {
 
     const payload = (await response.json().catch(() => ({}))) as {
       data?: Array<{ embedding?: number[] }>;
-      error?: { message?: string };
     };
 
     if (!response.ok) {
-      throw Object.assign(new Error(payload.error?.message ?? 'Embedding request failed'), {
+      throw Object.assign(new Error(appPublicEnglish('AGENT_MEMORY_EMBEDDING_FAILED')), {
         statusCode: response.status,
         code: 'AGENT_MEMORY_EMBEDDING_FAILED',
       });
@@ -212,7 +212,7 @@ export class OpenAIEmbeddingProvider implements AgentMemoryEmbeddingProvider {
       embedding.length !== this.dimensions ||
       embedding.some((value) => !Number.isFinite(value))
     ) {
-      throw Object.assign(new Error('Embedding provider returned an invalid vector.'), {
+      throw Object.assign(new Error(appPublicEnglish('AGENT_MEMORY_EMBEDDING_INVALID')), {
         statusCode: 502,
         code: 'AGENT_MEMORY_EMBEDDING_INVALID',
       });
@@ -359,7 +359,10 @@ export class PostgresAgentMemoryRepository implements AgentMemoryRepository {
       );
 
       if (Number(countRows[0]?.c ?? 0) >= AGENT_MEMORY_SCOPE_LIMIT) {
-        throw Object.assign(new Error('Agent memory scope limit reached'), { code: 'AGENT_MEMORY_QUOTA' });
+        throw Object.assign(new Error(appPublicEnglish('AGENT_MEMORY_SCOPE_LIMIT_REACHED')), {
+          code: 'AGENT_MEMORY_QUOTA',
+          statusCode: 429,
+        });
       }
 
       const rows = await tx.$queryRawUnsafe<Array<Record<string, any>>>(

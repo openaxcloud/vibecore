@@ -3,9 +3,12 @@
  */
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { I18nextProvider } from 'react-i18next';
 import { createMemoryRouter, RouterProvider } from 'react-router';
+import type { ReactElement } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { ProjectGrid, ProjectPreviewMedia, ProjectStatusPill, type ProjectCard } from './SaaSLayout';
+import { createI18nInstance } from '~/lib/i18n/runtime';
 
 afterEach(cleanup);
 
@@ -17,9 +20,13 @@ const project: ProjectCard = {
   previewImageUrl: '/api/projects/project-1/thumbnail',
 };
 
+function renderWithI18n(element: ReactElement) {
+  return render(<I18nextProvider i18n={createI18nInstance('en')}>{element}</I18nextProvider>);
+}
+
 describe('project card media', () => {
   it('renders the real project preview with a useful accessible name', () => {
-    render(<ProjectPreviewMedia project={project} />);
+    renderWithI18n(<ProjectPreviewMedia project={project} />);
 
     expect(screen.getByRole('img', { name: 'Latest preview of Client portal' }).getAttribute('src')).toBe(
       '/api/projects/project-1/thumbnail',
@@ -27,7 +34,7 @@ describe('project card media', () => {
   });
 
   it('replaces a failed preview request with an explicit fallback', () => {
-    render(<ProjectPreviewMedia project={project} />);
+    renderWithI18n(<ProjectPreviewMedia project={project} />);
 
     fireEvent.error(screen.getByRole('img', { name: 'Latest preview of Client portal' }));
 
@@ -36,7 +43,7 @@ describe('project card media', () => {
   });
 
   it('uses semantic project status tones', () => {
-    render(<ProjectStatusPill project={project} />);
+    renderWithI18n(<ProjectStatusPill project={project} />);
 
     expect(screen.getByText('Deployed').className).toContain('status-success');
   });
@@ -49,7 +56,7 @@ describe('project card media', () => {
       },
     ]);
 
-    render(<RouterProvider router={router} />);
+    renderWithI18n(<RouterProvider router={router} />);
 
     expect(screen.getByTestId('project-grid').getAttribute('style')).toContain(
       'repeat(auto-fit, minmax(min(100%, 19rem), 1fr))',

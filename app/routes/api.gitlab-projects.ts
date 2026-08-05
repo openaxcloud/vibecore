@@ -1,3 +1,4 @@
+import { webApiErrorResponse, webApiLocaleHeaders } from '~/lib/i18n/catalogs/web-api-routes';
 import { json } from '~/lib/json-response';
 import { withSecurity } from '~/lib/security';
 import type { GitLabProjectInfo } from '~/types/GitLab';
@@ -33,11 +34,11 @@ async function gitlabProjectsLoader({ request }: { request: Request }) {
     const { token, gitlabUrl = 'https://gitlab.com' } = body;
 
     if (!token) {
-      return json({ error: 'GitLab token is required' }, { status: 400 });
+      return webApiErrorResponse(request, 'GITLAB_TOKEN_REQUIRED', 400);
     }
 
     if (!isSafeGitLabUrl(gitlabUrl)) {
-      return json({ error: 'Invalid GitLab URL' }, { status: 400 });
+      return webApiErrorResponse(request, 'GITLAB_URL_INVALID', 400);
     }
 
     // Fetch user's projects from GitLab API
@@ -56,18 +57,13 @@ async function gitlabProjectsLoader({ request }: { request: Request }) {
 
     if (!response.ok) {
       if (response.status === 401) {
-        return json({ error: 'Invalid GitLab token' }, { status: 401 });
+        return webApiErrorResponse(request, 'GITLAB_TOKEN_INVALID', 401);
       }
 
       const errorText = await response.text().catch(() => 'Unknown error');
       console.error('GitLab API error:', response.status, errorText);
 
-      return json(
-        {
-          error: `GitLab API error: ${response.status}`,
-        },
-        { status: response.status },
-      );
+      return webApiErrorResponse(request, 'GITLAB_PROJECTS_FAILED', response.status);
     }
 
     const projects: GitLabProject[] = await response.json();
@@ -86,37 +82,21 @@ async function gitlabProjectsLoader({ request }: { request: Request }) {
       visibility: project.visibility,
     }));
 
-    return json({
-      projects: transformedProjects,
-      total: transformedProjects.length,
-    });
+    return json(
+      {
+        projects: transformedProjects,
+        total: transformedProjects.length,
+      },
+      { headers: webApiLocaleHeaders(request) },
+    );
   } catch (error) {
     console.error('Failed to fetch GitLab projects:', error);
 
-    if (error instanceof Error) {
-      if (error.message.includes('fetch')) {
-        return json(
-          {
-            error: 'Failed to connect to GitLab. Please check your network connection.',
-          },
-          { status: 503 },
-        );
-      }
+    const unavailable =
+      error instanceof TypeError ||
+      (error instanceof Error && (error.name === 'AbortError' || error.name === 'TimeoutError'));
 
-      return json(
-        {
-          error: `Failed to fetch projects: ${error.message}`,
-        },
-        { status: 500 },
-      );
-    }
-
-    return json(
-      {
-        error: 'An unexpected error occurred while fetching projects',
-      },
-      { status: 500 },
-    );
+    return webApiErrorResponse(request, unavailable ? 'GITLAB_UNAVAILABLE' : 'GITLAB_PROJECTS_FAILED', 503);
   }
 }
 

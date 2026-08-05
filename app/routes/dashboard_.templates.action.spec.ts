@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  * `/orgs/{id}/projects/from-template` endpoint (most importantly the
  * project-quota / plan-limit rejection) used to propagate as a thrown Response
  * straight to the route/root error boundary, full-paging the user. It must now
- * be caught and surfaced inline via `actionData.error`, while genuine re-auth
+ * be caught and surfaced inline via a localized `actionData.errorKey`, while genuine re-auth
  * redirects (3xx) and server errors (5xx) are still re-thrown to the framework.
  */
 
@@ -17,7 +17,7 @@ vi.mock('~/components/dashboard/SaaSLayout', () => ({
   AppShell: () => null,
   LinkButton: () => null,
   TemplateGallery: () => null,
-  templates: [{ id: 'react-saas', name: 'React SaaS' }],
+  templates: [{ id: 'react-saas', name: 'React SaaS', nameKey: 'userArea.template.reactSaas.name' }],
 }));
 
 /*
@@ -67,10 +67,11 @@ describe('dashboard templates action', () => {
 
     const result = (await action({
       request: makeRequest({ templateName: 'react-saas' }),
-    } as never)) as { data: { error?: string }; init?: ResponseInit };
+    } as never)) as { data: { errorKey?: string; error?: string }; init?: ResponseInit };
 
     // React Router's data() helper returns a data wrapper, not a thrown Response.
-    expect(result.data.error).toBe('Project limit reached for your plan.');
+    expect(result.data.errorKey).toBe('workspaceTemplates.quotaReached');
+    expect(result.data.error).toBeUndefined();
     expect(result.init?.status).toBe(402);
   });
 
@@ -80,9 +81,10 @@ describe('dashboard templates action', () => {
 
     const result = (await action({
       request: makeRequest({ templateName: 'react-saas' }),
-    } as never)) as { data: { error?: string }; init?: ResponseInit };
+    } as never)) as { data: { errorKey?: string; error?: string }; init?: ResponseInit };
 
-    expect(result.data.error).toBe('Slug already in use.');
+    expect(result.data.errorKey).toBe('workspaceTemplates.invalidRequest');
+    expect(result.data.error).toBeUndefined();
     expect(result.init?.status).toBe(400);
   });
 
@@ -108,9 +110,9 @@ describe('dashboard templates action', () => {
   it('keeps the local "template not available" guard for unknown templates', async () => {
     const result = (await action({
       request: makeRequest({ templateName: 'does-not-exist' }),
-    } as never)) as { error?: string };
+    } as never)) as { errorKey?: string };
 
-    expect(result.error).toBe('Template is not available in this workspace.');
+    expect(result.errorKey).toBe('workspaceTemplates.unavailable');
     expect(firstOrganization).not.toHaveBeenCalled();
     expect(apiRequest).not.toHaveBeenCalled();
   });

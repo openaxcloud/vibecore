@@ -1,6 +1,6 @@
 import { Link, Server, Monitor, Globe } from 'lucide-react';
 import React from 'react';
-import { PROVIDER_DESCRIPTIONS } from './types';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '~/components/ui/Card';
 import { Switch } from '~/components/ui/Switch';
 import type { IProviderConfig } from '~/types/model';
@@ -24,6 +24,8 @@ function ProviderCard({
   onStartEditing,
   onStopEditing,
 }: ProviderCardProps) {
+  const { t } = useTranslation();
+
   const getIcon = (providerName: string) => {
     switch (providerName) {
       case 'Ollama':
@@ -38,6 +40,13 @@ function ProviderCard({
   };
 
   const Icon = getIcon(provider.name);
+
+  const providerDescription =
+    provider.name === 'Ollama'
+      ? t('settings.localProviders.description.ollama')
+      : provider.name === 'LMStudio'
+        ? t('settings.localProviders.description.lmStudio')
+        : t('settings.localProviders.description.openAiLike');
 
   return (
     <Card className="bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-background-depth-3 transition-all duration-300 shadow-sm hover:shadow-md border border-bolt-elements-borderColor hover:border-[color-mix(in_srgb,var(--vc-ide-accent-action)_30%,transparent)]">
@@ -62,21 +71,23 @@ function ProviderCard({
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
                 <h3 className="text-lg font-semibold text-bolt-elements-textPrimary">{provider.name}</h3>
-                <span className="px-2 py-1 text-xs rounded-full bg-green-500/10 text-green-500 font-medium">Local</span>
+                <span className="px-2 py-1 text-xs rounded-full bg-green-500/10 text-green-500 font-medium">
+                  {t('settings.copy.local_8c31e6e7')}
+                </span>
               </div>
-              <p className="text-sm text-bolt-elements-textSecondary mb-4">
-                {PROVIDER_DESCRIPTIONS[provider.name as keyof typeof PROVIDER_DESCRIPTIONS]}
-              </p>
+              <p className="text-sm text-bolt-elements-textSecondary mb-4">{providerDescription}</p>
 
               {provider.settings.enabled && (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-bolt-elements-textPrimary">API Endpoint</label>
+                  <label className="text-sm font-medium text-bolt-elements-textPrimary">
+                    {t('settings.copy.apiEndpoint_16046569')}
+                  </label>
                   {isEditing ? (
                     <input
                       type="text"
-                      aria-label={`${provider.name} API endpoint base URL`}
+                      aria-label={t('settings.localProviders.baseUrlLabel', { provider: provider.name })}
                       defaultValue={provider.settings.baseUrl}
-                      placeholder={`Enter ${provider.name} base URL`}
+                      placeholder={t('settings.localProviders.baseUrlPlaceholder', { provider: provider.name })}
                       className="w-full px-4 py-3 rounded-lg text-sm bg-bolt-elements-background-depth-4 border border-[color-mix(in_srgb,var(--vc-ide-accent-action)_30%,transparent)] text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary focus:outline-none focus:ring-2 focus:ring-[var(--vc-ide-focus-ring)] focus:border-[var(--vc-ide-accent-action)] transition-all duration-200 shadow-sm"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
@@ -99,7 +110,9 @@ function ProviderCard({
                     >
                       <div className="flex items-center gap-3 text-bolt-elements-textSecondary group-hover:text-bolt-elements-textPrimary">
                         <Link className="w-4 h-4 group-hover:text-[var(--vc-ide-accent-action)] transition-colors" />
-                        <span className="font-mono">{provider.settings.baseUrl || 'Click to set base URL'}</span>
+                        <span className="font-mono">
+                          {provider.settings.baseUrl || t('settings.localProviders.baseUrlEmpty')}
+                        </span>
                       </div>
                     </button>
                   )}
@@ -110,7 +123,7 @@ function ProviderCard({
           <Switch
             checked={provider.settings.enabled}
             onCheckedChange={onToggle}
-            aria-label={`Toggle ${provider.name} provider`}
+            aria-label={t('settings.localProviders.toggleProvider', { provider: provider.name })}
           />
         </div>
       </CardContent>

@@ -78,6 +78,8 @@ describe('resolveDeployMachineSize', () => {
       resolveDeployMachineSize(BUILTIN_RATE_CARD, 'mega-64', 'pro');
     } catch (error) {
       expect((error as MachineSizeError).code).toBe('MACHINE_SIZE_UNKNOWN');
+      expect((error as MachineSizeError).values).toEqual({ requested: 'mega-64' });
+      expect((error as MachineSizeError).message).toBe('MACHINE_SIZE_UNKNOWN');
       expect((error as MachineSizeError).statusCode).toBe(400);
     }
   });
@@ -90,6 +92,7 @@ describe('resolveDeployMachineSize', () => {
       expect.unreachable('dedicated-8 must be rejected on free');
     } catch (error) {
       expect((error as MachineSizeError).code).toBe('MACHINE_SIZE_PLAN');
+      expect((error as MachineSizeError).values).toEqual({ label: '8 vCPU · 32 GiB', planKey: 'free' });
     }
   });
 
@@ -100,6 +103,7 @@ describe('resolveDeployMachineSize', () => {
       expect.unreachable('dedicated-4 must be rejected at the default ceiling');
     } catch (error) {
       expect((error as MachineSizeError).code).toBe('MACHINE_SIZE_CAPACITY');
+      expect((error as MachineSizeError).values).toEqual({ label: '4 vCPU · 16 GiB' });
     }
   });
 

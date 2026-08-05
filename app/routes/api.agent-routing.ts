@@ -1,4 +1,5 @@
 import { apiRequest, json, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 
 /*
  * AGM: same-domain proxy for the client-safe agent mode availability. The IDE
@@ -11,7 +12,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
   const projectId = url.searchParams.get('projectId');
 
   if (!projectId) {
-    return json({ ok: false, error: 'projectId is required' }, { status: 400 });
+    return remainingApiErrorResponse(request, 'PROJECT_ID_REQUIRED', 400, { extra: { ok: false } });
   }
 
   const payload = await apiRequest(request, `/projects/${encodeURIComponent(projectId)}/agent/routing`, {

@@ -7,6 +7,7 @@ import { diffLines, type Change } from 'diff';
 import { motion, type HTMLMotionProps, type Variants } from 'framer-motion';
 import { computed } from 'nanostores';
 import { memo, useCallback, useEffect, useRef, useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { DiffView } from './DiffView';
 import { workbenchStore, type WorkbenchViewType } from '~/lib/stores/workbench';
@@ -27,6 +28,12 @@ import {
 } from '~/components/editor/codemirror/CodeMirrorEditor';
 import { IconButton } from '~/components/ui/IconButton';
 import { useChatHistory } from '~/lib/persistence';
+import {
+  formatWorkbenchSurfaceCopy,
+  formatWorkbenchSurfaceNumber,
+  getWorkbenchSurfaceCopy,
+  type WorkbenchSurfaceKey,
+} from '~/lib/i18n/catalogs/workbench-surface';
 import {
   type CompactPreviewRunState,
   compactPreviewRunAriaLabel,
@@ -61,15 +68,18 @@ interface WorkspaceProps {
 
 const viewTransition = { ease: cubicEasingFn };
 
-const workbenchTabs: ReadonlyArray<{ value: WorkbenchViewType; label: string; icon: string }> = [
-  { value: 'code', label: 'Code', icon: 'i-ph:code' },
-  { value: 'diff', label: 'Diff', icon: 'i-ph:git-diff' },
-  { value: 'preview', label: 'Preview', icon: 'i-ph:browser' },
-  { value: 'git', label: 'Git', icon: 'i-ph:git-branch' },
+const workbenchTabs: ReadonlyArray<{ value: WorkbenchViewType; labelKey: WorkbenchSurfaceKey; icon: string }> = [
+  { value: 'code', labelKey: 'workbenchSurface.tab.code', icon: 'i-ph:code' },
+  { value: 'diff', labelKey: 'workbenchSurface.tab.diff', icon: 'i-ph:git-diff' },
+  { value: 'preview', labelKey: 'workbenchSurface.tab.preview', icon: 'i-ph:browser' },
+  { value: 'git', labelKey: 'workbenchSurface.tab.git', icon: 'i-ph:git-branch' },
 ];
 
 const WorkbenchTabBar = memo(
   ({ selected, onSelect }: { selected: WorkbenchViewType; onSelect: (value: WorkbenchViewType) => void }) => {
+    const { i18n } = useTranslation();
+    const copy = getWorkbenchSurfaceCopy(i18n.resolvedLanguage ?? i18n.language);
+
     return (
       <div className="flex flex-wrap items-center gap-1 rounded-full bg-bolt-elements-background-depth-1 p-1">
         {workbenchTabs.map((tab) => {
@@ -89,7 +99,7 @@ const WorkbenchTabBar = memo(
               aria-pressed={active}
             >
               <span className={classNames(tab.icon, 'text-base')} aria-hidden />
-              <span>{tab.label}</span>
+              <span>{copy[tab.labelKey]}</span>
             </button>
           );
         })}
@@ -123,6 +133,9 @@ const FileModifiedDropdown = memo(
     fileHistory: Record<string, FileHistory>;
     onSelectFile: (filePath: string) => void;
   }) => {
+    const { i18n } = useTranslation();
+    const language = i18n.resolvedLanguage ?? i18n.language;
+    const copy = getWorkbenchSurfaceCopy(language);
     const modifiedFiles = Object.entries(fileHistory);
     const hasChanges = modifiedFiles.length > 0;
     const [searchQuery, setSearchQuery] = useState('');
@@ -136,11 +149,11 @@ const FileModifiedDropdown = memo(
         <Popover className="relative">
           {({ open }: { open: boolean }) => (
             <>
-              <Popover.Button className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-background-depth-3 transition-colors text-bolt-elements-item-contentDefault">
-                <span>File Changes</span>
+              <Popover.Button className="flex min-h-[36px] items-center gap-2 rounded-lg bg-bolt-elements-background-depth-2 px-3 py-1.5 text-sm text-bolt-elements-item-contentDefault transition-colors hover:bg-bolt-elements-background-depth-3">
+                <span className="whitespace-normal text-left">{copy['workbenchSurface.files.changes']}</span>
                 {hasChanges && (
                   <span className="w-5 h-5 rounded-full bg-accent-500/20 text-accent-500 text-xs flex items-center justify-center border border-accent-500/30">
-                    {modifiedFiles.length}
+                    {formatWorkbenchSurfaceNumber(language, modifiedFiles.length)}
                   </span>
                 )}
               </Popover.Button>
@@ -161,7 +174,8 @@ const FileModifiedDropdown = memo(
                     <div className="relative mx-2 mb-2">
                       <input
                         type="text"
-                        placeholder="Search files..."
+                        placeholder={copy['workbenchSurface.files.search']}
+                        aria-label={copy['workbenchSurface.files.search']}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="w-full pl-8 pr-3 py-1.5 text-sm rounded-lg bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor focus:outline-none focus:ring-2 focus:ring-blue-500/50"
@@ -304,10 +318,14 @@ const FileModifiedDropdown = memo(
                             <div className="i-ph:file-dashed" />
                           </div>
                           <p className="text-sm font-medium text-bolt-elements-textPrimary">
-                            {searchQuery ? 'No matching files' : 'No modified files'}
+                            {searchQuery
+                              ? copy['workbenchSurface.files.noMatches']
+                              : copy['workbenchSurface.files.noModified']}
                           </p>
                           <p className="text-xs text-bolt-elements-textTertiary mt-1">
-                            {searchQuery ? 'Try another search' : 'Changes will appear here as you edit'}
+                            {searchQuery
+                              ? copy['workbenchSurface.files.tryAnotherSearch']
+                              : copy['workbenchSurface.files.changesAppear']}
                           </p>
                         </div>
                       )}
@@ -325,17 +343,17 @@ const FileModifiedDropdown = memo(
                           navigator.clipboard
                             ?.writeText(filteredFiles.map(([filePath]) => filePath).join('\n'))
                             ?.then(() => {
-                              toast('File list copied to clipboard', {
+                              toast(copy['workbenchSurface.files.copySuccess'], {
                                 icon: <div className="i-ph:check-circle text-accent-500" />,
                               });
                             })
                             ?.catch(() => {
-                              toast.error('Failed to copy file list to clipboard');
+                              toast.error(copy['workbenchSurface.files.copyFailed']);
                             });
                         }}
-                        className="w-full flex items-center justify-center gap-2 px-3 py-1.5 text-sm rounded-lg bg-bolt-elements-background-depth-1 hover:bg-bolt-elements-background-depth-3 transition-colors text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary"
+                        className="flex min-h-[44px] w-full items-center justify-center gap-2 whitespace-normal rounded-lg bg-bolt-elements-background-depth-1 px-3 py-2 text-center text-sm text-bolt-elements-textTertiary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary"
                       >
-                        Copy File List
+                        {copy['workbenchSurface.files.copy']}
                       </button>
                     </div>
                   )}
@@ -362,6 +380,9 @@ export const Workbench = memo(
   }: WorkspaceProps) => {
     renderLogger.trace('Workbench');
 
+    const { i18n } = useTranslation();
+    const language = i18n.resolvedLanguage ?? i18n.language;
+    const copy = getWorkbenchSurfaceCopy(language);
     const [fileHistory, setFileHistory] = useState<Record<string, FileHistory>>({});
 
     // const modifiedFiles = Array.from(useStore(workbenchStore.unsavedFiles).keys());
@@ -482,12 +503,19 @@ export const Workbench = memo(
            * store bound to a stale runtime after a project switch.
            */
           workbenchStore.refreshAllPreviews();
-          toast.success(filePath ? `Saved ${filePath.split('/').pop()}` : 'File saved', { toastId: 'file-saved' });
+          toast.success(
+            filePath
+              ? formatWorkbenchSurfaceCopy(copy['workbenchSurface.files.savedNamed'], {
+                  file: filePath.split('/').pop() ?? filePath,
+                })
+              : copy['workbenchSurface.files.saved'],
+            { toastId: 'file-saved' },
+          );
         })
         .catch(() => {
-          toast.error('Failed to update file content');
+          toast.error(copy['workbenchSurface.files.saveFailed']);
         });
-    }, []);
+    }, [copy]);
 
     const onFileReset = useCallback(() => {
       workbenchStore.resetCurrentDocument();
@@ -531,20 +559,20 @@ export const Workbench = memo(
 
       if (isMobilePreviewRunActive) {
         setMobilePreviewRunFeedbackState('stopping');
-        void workbenchStore.stopPreviewServer().catch((error) => {
+        void workbenchStore.stopPreviewServer().catch(() => {
           setMobilePreviewRunFeedbackState(null);
-          toast.error(error instanceof Error ? error.message : 'Failed to stop preview');
+          toast.error(copy['workbenchSurface.preview.stopFailed']);
         });
 
         return;
       }
 
       setMobilePreviewRunFeedbackState('starting');
-      void workbenchStore.startPreviewServer().catch((error) => {
+      void workbenchStore.startPreviewServer().catch(() => {
         setMobilePreviewRunFeedbackState(null);
-        toast.error(error instanceof Error ? error.message : 'Failed to start preview');
+        toast.error(copy['workbenchSurface.preview.startFailed']);
       });
-    }, [isMobilePreviewRunActive]);
+    }, [copy, isMobilePreviewRunActive]);
 
     const handleSelectFile = useCallback((filePath: string) => {
       workbenchStore.setSelectedFile(filePath);
@@ -557,18 +585,18 @@ export const Workbench = memo(
       try {
         const directoryHandle = await window.showDirectoryPicker();
         await workbenchStore.syncFiles(directoryHandle);
-        toast.success('Files synced successfully');
+        toast.success(copy['workbenchSurface.sync.success']);
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
           return;
         }
 
         console.error('Error syncing files:', error);
-        toast.error('Failed to sync files');
+        toast.error(copy['workbenchSurface.sync.failed']);
       } finally {
         setIsSyncing(false);
       }
-    }, []);
+    }, [copy]);
 
     const activeWorkbenchView: WorkbenchViewType = resolveActiveWorkbenchView({
       useMobileWorkbench,
@@ -607,8 +635,8 @@ export const Workbench = memo(
                   <div className="flex items-center px-3 py-2 border-b border-bolt-elements-borderColor gap-1.5 overflow-x-auto">
                     <button
                       className={`${showChat ? 'i-ph:sidebar-simple-fill' : 'i-ph:sidebar-simple'} text-lg text-bolt-elements-textSecondary mr-1`}
-                      aria-label={showChat ? 'Hide agent panel' : 'Show agent panel'}
-                      title={showChat ? 'Hide agent panel' : 'Show agent panel'}
+                      aria-label={showChat ? copy['workbenchSurface.agent.hide'] : copy['workbenchSurface.agent.show']}
+                      title={showChat ? copy['workbenchSurface.agent.hide'] : copy['workbenchSurface.agent.show']}
                       disabled={!canHideChat || isSmallViewport}
                       onClick={() => {
                         if (canHideChat) {
@@ -621,24 +649,24 @@ export const Workbench = memo(
                       <div className="flex min-w-0 items-center gap-2 text-sm font-medium text-bolt-elements-textPrimary">
                         <span className="truncate">
                           {mobilePanel === 'files'
-                            ? 'Files'
+                            ? copy['workbenchSurface.mobile.files']
                             : mobilePanel === 'search'
-                              ? 'Search'
+                              ? copy['workbenchSurface.mobile.search']
                               : mobilePanel === 'locks'
-                                ? 'Locks'
+                                ? copy['workbenchSurface.mobile.locks']
                                 : mobilePanel === 'terminal'
                                   ? SHELL_TERMINAL_LABEL
                                   : mobilePanel === 'preview'
-                                    ? 'Preview'
+                                    ? copy['workbenchSurface.mobile.preview']
                                     : mobilePanel === 'deploy'
-                                      ? 'Deploy'
-                                      : 'Editor'}
+                                      ? copy['workbenchSurface.mobile.deploy']
+                                      : copy['workbenchSurface.mobile.editor']}
                         </span>
                       </div>
                     )}
                     <div className="ml-auto" />
                     {selectedView === 'code' && !useMobileWorkbench && (
-                      <div className="flex overflow-y-auto">
+                      <div className="flex min-w-0 overflow-x-auto">
                         {/* Export Chat Button */}
                         <ExportChatButton exportChat={exportChat} />
 
@@ -649,7 +677,7 @@ export const Workbench = memo(
                               disabled={isSyncing || streaming}
                               className={classNames(buttonVariants({ variant: 'primary', size: 'sm' }), 'gap-1.5')}
                             >
-                              {isSyncing ? 'Syncing...' : 'Sync'}
+                              {isSyncing ? copy['workbenchSurface.sync.syncing'] : copy['workbenchSurface.sync.action']}
                               <span className={classNames('i-ph:caret-down transition-transform')} />
                             </DropdownMenu.Trigger>
                             <DropdownMenu.Content
@@ -679,7 +707,11 @@ export const Workbench = memo(
                                   ) : (
                                     <div className="i-ph:cloud-arrow-down" />
                                   )}
-                                  <span>{isSyncing ? 'Syncing...' : 'Sync Files'}</span>
+                                  <span className="whitespace-normal">
+                                    {isSyncing
+                                      ? copy['workbenchSurface.sync.syncing']
+                                      : copy['workbenchSurface.sync.files']}
+                                  </span>
                                 </div>
                               </DropdownMenu.Item>
                             </DropdownMenu.Content>
@@ -695,7 +727,7 @@ export const Workbench = memo(
                             className={classNames(buttonVariants({ variant: 'primary', size: 'sm' }), 'gap-1.5')}
                           >
                             <div className="i-ph:terminal" />
-                            Toggle Terminal
+                            <span className="whitespace-nowrap">{copy['workbenchSurface.terminal.toggle']}</span>
                           </button>
                         </div>
                       </div>
@@ -713,30 +745,32 @@ export const Workbench = memo(
                           })}
                           type="button"
                           aria-busy={isMobilePreviewTransitioning || undefined}
-                          aria-label={compactPreviewRunAriaLabel(mobilePreviewRunState)}
+                          aria-label={compactPreviewRunAriaLabel(mobilePreviewRunState, language)}
                           aria-pressed={isMobilePreviewRunActive}
                           data-preview-state={previewServerState.status}
                           data-run-state={mobilePreviewRunState}
                           data-testid="mobile-editor-run-toggle"
                           onClick={runMobilePreview}
                           disabled={isMobilePreviewStopping}
-                          title={compactPreviewRunAriaLabel(mobilePreviewRunState)}
+                          title={compactPreviewRunAriaLabel(mobilePreviewRunState, language)}
                         >
                           <span className={compactPreviewRunIcon(mobilePreviewRunState)} aria-hidden />
-                          <span>{compactPreviewRunText(mobilePreviewRunState)}</span>
+                          <span>{compactPreviewRunText(mobilePreviewRunState, language)}</span>
                         </button>
                         <button
                           className="bolt-workbench-mobile-action"
                           type="button"
                           onClick={() => setSelectedView(selectedView === 'diff' ? 'code' : 'diff')}
                         >
-                          {selectedView === 'diff' ? 'Editor' : 'Review'}
+                          {selectedView === 'diff'
+                            ? copy['workbenchSurface.review.editor']
+                            : copy['workbenchSurface.review.review']}
                         </button>
                       </div>
                     )}
                     <IconButton
                       icon="i-ph:x-circle"
-                      title="Close workbench"
+                      title={copy['workbenchSurface.close']}
                       className="-mr-1"
                       size="xl"
                       onClick={() => {
@@ -775,12 +809,12 @@ export const Workbench = memo(
                       x: activeWorkbenchView === 'diff' ? '0%' : activeWorkbenchView === 'code' ? '100%' : '-100%',
                     }}
                   >
-                    <PanelBoundary title="Diff">
+                    <PanelBoundary title={copy['workbenchSurface.tab.diff']}>
                       <DiffView fileHistory={fileHistory} setFileHistory={setFileHistory} />
                     </PanelBoundary>
                   </View>
                   <View initial={{ x: '100%' }} animate={{ x: activeWorkbenchView === 'preview' ? '0%' : '100%' }}>
-                    <PanelBoundary title="Preview">
+                    <PanelBoundary title={copy['workbenchSurface.tab.preview']}>
                       <Preview
                         setSelectedElement={setSelectedElement}
                         projectId={projectId}
@@ -793,12 +827,12 @@ export const Workbench = memo(
                     </PanelBoundary>
                   </View>
                   <View initial={{ x: '100%' }} animate={{ x: activeWorkbenchView === 'git' ? '0%' : '100%' }}>
-                    <PanelBoundary title="Git">
+                    <PanelBoundary title={copy['workbenchSurface.tab.git']}>
                       {projectId ? (
                         <GitTab projectId={projectId} />
                       ) : (
                         <div className="flex h-full items-center justify-center p-4 text-sm text-bolt-elements-textSecondary">
-                          Open a project workspace to use Git tools.
+                          {copy['workbenchSurface.git.unavailable']}
                         </div>
                       )}
                     </PanelBoundary>

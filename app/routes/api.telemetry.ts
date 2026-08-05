@@ -1,6 +1,7 @@
 import { type ActionFunctionArgs } from 'react-router';
 import { z } from 'zod';
 import { FixedWindowRateLimiter } from '~/lib/fixed-window-rate-limiter';
+import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 import { createScopedLogger } from '~/utils/logger';
 
 /*
@@ -91,7 +92,7 @@ const NO_CONTENT = () => new Response(null, { status: 204 });
 
 export async function action({ request }: ActionFunctionArgs) {
   if (request.method !== 'POST') {
-    return Response.json({ error: 'Method not allowed' }, { status: 405 });
+    return remainingApiErrorResponse(request, 'METHOD_NOT_ALLOWED', 405);
   }
 
   /*
@@ -112,13 +113,13 @@ export async function action({ request }: ActionFunctionArgs) {
   try {
     body = await request.json();
   } catch {
-    return Response.json({ error: 'Invalid JSON body' }, { status: 400 });
+    return remainingApiErrorResponse(request, 'INVALID_JSON_BODY', 400);
   }
 
   const parsed = telemetrySchema.safeParse(body);
 
   if (!parsed.success) {
-    return Response.json({ error: 'Invalid telemetry payload' }, { status: 400 });
+    return remainingApiErrorResponse(request, 'TELEMETRY_PAYLOAD_INVALID', 400);
   }
 
   cumulativeTokensSavedThisProcess += parsed.data.estimatedTokensSaved ?? 0;

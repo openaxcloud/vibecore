@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+
 import { buildAdminLoginBody, errorMessage, isMfaRequiredError } from './admin-login';
 import {
   adminSections,
@@ -19,6 +20,15 @@ import {
   type AdminOverview,
   type AdminRecord,
 } from './api';
+import {
+  adminPluralT,
+  adminStandaloneT as adminT,
+  getAdminLanguage,
+  initializeAdminLanguage,
+  localizedAdminError,
+  selectAdminLanguage,
+  type AdminLanguage,
+} from './i18n';
 import { CUSTOM_PANELS } from './panels';
 import { redactRecord } from './redact';
 import './styles.css';
@@ -35,6 +45,7 @@ function App() {
   const [authRevision, setAuthRevision] = useState(0);
   const [tokenMessage, setTokenMessage] = useState<string>();
   const [reauthPassword, setReauthPassword] = useState('');
+
   // F23: live count of unresolved security events, badged on the sidebar item.
   const [securityOpenCount, setSecurityOpenCount] = useState(0);
   const section = adminSections.find((item) => item.id === sectionId) ?? adminSections[0];
@@ -42,8 +53,9 @@ function App() {
   useEffect(() => {
     if (!token.trim()) {
       setSecurityOpenCount(0);
-      return;
+      return undefined;
     }
+
     let cancelled = false;
     apiJson<{ openCount?: number }>('/admin/security-events')
       .then((result) => {
@@ -56,6 +68,7 @@ function App() {
           setSecurityOpenCount(0);
         }
       });
+
     return () => {
       cancelled = true;
     };
@@ -67,11 +80,11 @@ function App() {
     if (!normalizedToken) {
       clearAdminToken();
       setToken('');
-      setTokenMessage('Token cleared.');
+      setTokenMessage(adminT('admin.standalone.tokenCleared'));
     } else {
       setAdminToken(normalizedToken);
       setToken(normalizedToken);
-      setTokenMessage('Token saved. Reloading admin data...');
+      setTokenMessage(adminT('admin.standalone.tokenSaved'));
     }
 
     setAuthRevision((value) => value + 1);
@@ -82,12 +95,13 @@ function App() {
       <aside className="sidebar">
         <div className="brand">
           <div>
-            <h1>E-Code Admin</h1>
-            <div className="muted">Platform console</div>
+            <h1>{adminT('admin.standalone.eCodeAdmin_b09925')}</h1>
+            <div className="muted">{adminT('admin.standalone.platformConsole_7548ce')}</div>
           </div>
-          <span className="status">live</span>
+          <span className="status">{adminT('admin.standalone.live_98aadb')}</span>
+          <AdminLanguageSwitch />
         </div>
-        <nav className="nav" aria-label="Admin sections">
+        <nav className="nav" aria-label={adminT('admin.standalone.adminSections_80deff')}>
           {adminSections.map((item) => (
             <button
               key={item.id}
@@ -97,7 +111,14 @@ function App() {
             >
               {item.label}
               {item.id === 'security-events' && securityOpenCount > 0 ? (
-                <span className="nav-badge" aria-label={`${securityOpenCount} open security events`}>
+                <span
+                  className="nav-badge"
+                  aria-label={adminPluralT(
+                    'admin.standalone.openSecurityEvents_one',
+                    'admin.standalone.openSecurityEvents_other',
+                    securityOpenCount,
+                  )}
+                >
                   {securityOpenCount}
                 </span>
               ) : null}
@@ -127,14 +148,14 @@ function App() {
                   setAdminToken(result.token);
                   setToken(result.token);
                   setLoginMfaCode('');
-                  setTokenMessage('Login saved. Reloading admin data...');
+                  setTokenMessage(adminT('admin.standalone.loginSaved'));
                   setAuthRevision((value) => value + 1);
                 } catch (error) {
-                  const message = errorMessage(error, 'Login failed');
+                  const message = errorMessage(error, '');
                   setTokenMessage(
                     isMfaRequiredError(message)
-                      ? 'MFA code required — enter your authenticator or recovery code and try again.'
-                      : message,
+                      ? adminT('admin.standalone.mfaRequired')
+                      : adminT('admin.standalone.loginFailed'),
                   );
                 }
               } else {
@@ -143,44 +164,44 @@ function App() {
             }}
           >
             <input
-              aria-label="Admin email"
+              aria-label={adminT('admin.standalone.adminEmail_f0fee7')}
               type="email"
               value={loginEmail}
               onChange={(event) => setLoginEmail(event.target.value)}
-              placeholder="admin email"
+              placeholder={adminT('admin.standalone.adminEmail_01caf6')}
             />
             <input
-              aria-label="Admin password"
+              aria-label={adminT('admin.standalone.adminPassword_b2cee1')}
               type="password"
               value={loginPassword}
               onChange={(event) => setLoginPassword(event.target.value)}
-              placeholder="password"
+              placeholder={adminT('admin.standalone.password_5baa61')}
             />
             <input
-              aria-label="MFA code"
+              aria-label={adminT('admin.standalone.mfaCode_645f64')}
               type="text"
               inputMode="numeric"
               autoComplete="one-time-code"
               value={loginMfaCode}
               onChange={(event) => setLoginMfaCode(event.target.value)}
-              placeholder="MFA code (if enabled)"
+              placeholder={adminT('admin.standalone.mfaCodeIfEnabled_ea329b')}
             />
             <input
-              aria-label="Admin bearer token"
+              aria-label={adminT('admin.standalone.adminBearerToken_3ac8f5')}
               type="password"
               value={token}
               onChange={(event) => setToken(event.target.value)}
-              placeholder="Admin bearer token"
+              placeholder={adminT('admin.standalone.adminBearerToken_3ac8f5')}
             />
             <input
-              aria-label="Re-auth password"
+              aria-label={adminT('admin.standalone.reAuthPassword_91678c')}
               type="password"
               value={reauthPassword}
               onChange={(event) => setReauthPassword(event.target.value)}
-              placeholder="re-auth password"
+              placeholder={adminT('admin.standalone.reAuthPassword_d4ddd0')}
             />
             <button className="secondary" type="submit">
-              Login / use token
+              {adminT('admin.standalone.loginUseToken_a82e5c')}
             </button>
             <button
               className="secondary"
@@ -188,17 +209,50 @@ function App() {
               onClick={() => {
                 clearAdminToken();
                 setToken('');
-                setTokenMessage('Token cleared.');
+                setTokenMessage(adminT('admin.standalone.tokenCleared'));
                 setAuthRevision((value) => value + 1);
               }}
             >
-              Clear
+              {adminT('admin.standalone.clear_719ea3')}
             </button>
             {tokenMessage ? <span className="muted">{tokenMessage}</span> : null}
           </form>
         </div>
         <SectionView section={section} authRevision={authRevision} reauthPassword={reauthPassword} />
       </main>
+    </div>
+  );
+}
+
+function AdminLanguageSwitch() {
+  const [language, setLanguage] = useState<AdminLanguage>(() => getAdminLanguage());
+
+  const changeLanguage = (nextLanguage: AdminLanguage) => {
+    if (nextLanguage === language) {
+      return;
+    }
+
+    selectAdminLanguage(nextLanguage);
+    setLanguage(nextLanguage);
+    globalThis.location?.reload();
+  };
+
+  return (
+    <div className="language-switch" role="group" aria-label={adminT('admin.standalone.languageSelector')}>
+      {(['en', 'fr'] as const).map((candidate) => (
+        <button
+          key={candidate}
+          className={candidate === language ? 'active' : undefined}
+          type="button"
+          aria-pressed={candidate === language}
+          aria-label={adminT(
+            candidate === 'fr' ? 'admin.standalone.switchToFrench' : 'admin.standalone.switchToEnglish',
+          )}
+          onClick={() => changeLanguage(candidate)}
+        >
+          {candidate.toUpperCase()}
+        </button>
+      ))}
     </div>
   );
 }
@@ -244,7 +298,7 @@ function SectionView({
         return;
       }
 
-      setError(requestError instanceof Error ? requestError.message : 'Unable to load admin section');
+      setError(localizedAdminError(requestError, 'admin.standalone.loadSectionFailed'));
       setRows([]);
     } finally {
       if (!signal?.aborted) {
@@ -281,7 +335,7 @@ function SectionView({
        * password before hitting the audited endpoint.
        */
       if (!reauthPassword) {
-        setToast('Enter your re-auth password in the top bar before dangerous admin actions.');
+        setToast(adminT('admin.standalone.reauthRequired'));
         return;
       }
     }
@@ -296,7 +350,7 @@ function SectionView({
         method: request.method,
         body: request.body ? JSON.stringify(request.body) : undefined,
       });
-      setToast('Admin action completed and audited.');
+      setToast(adminT('admin.standalone.actionCompleted'));
       setDialog(null);
       await load();
     } catch (error) {
@@ -304,21 +358,23 @@ function SectionView({
        * Re-auth or the action endpoint failed: surface it instead of leaving
        * the dialog stuck open with no feedback (would look like a no-op).
        */
-      setToast(errorMessage(error, 'Admin action failed'));
+      setToast(localizedAdminError(error, 'admin.standalone.actionFailed'));
     }
   }
 
   if (loading) {
-    return <div className="panel skeleton" role="status" aria-label="Loading admin data" />;
+    return (
+      <div className="panel skeleton" role="status" aria-label={adminT('admin.standalone.loadingAdminData_351d80')} />
+    );
   }
 
   if (error) {
     return (
       <div className="panel" role="alert">
-        <h2>Unable to load section</h2>
+        <h2>{adminT('admin.standalone.unableToLoadSection_f31d6e')}</h2>
         <p>{error}</p>
         <button className="action" type="button" onClick={() => void load()}>
-          Retry
+          {adminT('admin.standalone.retry_9f5cd8')}
         </button>
       </div>
     );
@@ -329,109 +385,118 @@ function SectionView({
       {section.id === 'overview' ? <Overview data={data as AdminOverview} /> : null}
       {CustomPanel ? <CustomPanel reauthPassword={reauthPassword} pushToast={setToast} /> : null}
       {CustomPanel ? null : (
-      <>
-      <div className="toolbar">
-        <input
-          aria-label="Filter table"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Filter rows"
-        />
-        <div className="actions">
-          {section.exportable ? (
-            <button
-              className="secondary"
-              type="button"
-              onClick={() => void exportCsv(section.endpoint, `${section.id}.csv`)}
-            >
-              Export CSV
-            </button>
-          ) : null}
-          <button className="secondary" type="button" onClick={() => void load()}>
-            Refresh
-          </button>
-          {section.id === 'feature-flags' ? (
-            <button
-              className="action"
-              type="button"
-              onClick={() => setDialog({ action: 'create-flag', title: 'Create feature flag' })}
-            >
-              Create flag
-            </button>
-          ) : null}
-          {section.id === 'announcements' ? (
-            <button
-              className="action"
-              type="button"
-              onClick={() => setDialog({ action: 'announcement', title: 'Create announcement' })}
-            >
-              Announce
-            </button>
-          ) : null}
-          {section.id === 'incident-banner' ? (
-            <button
-              className="danger"
-              type="button"
-              onClick={() => setDialog({ action: 'incident', title: 'Set incident banner' })}
-            >
-              Incident banner
-            </button>
-          ) : null}
-        </div>
-      </div>
-      {rows.length === 0 ? (
-        <div className="panel">
-          <h2>Empty state</h2>
-          <p className="muted">The API returned no records for this section.</p>
-        </div>
-      ) : (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                {columns.map((column) => (
-                  <th key={column}>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setSort((current) => ({
-                          key: column,
-                          direction: current.key === column && current.direction === 'asc' ? 'desc' : 'asc',
-                        }))
-                      }
-                    >
-                      {column}
-                    </button>
-                  </th>
-                ))}
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visibleRows.map((row, index) => (
-                <tr key={String(row.id ?? row.key ?? index)}>
-                  {columns.map((column) => (
-                    <td key={column}>{formatCell(row[column])}</td>
+        <>
+          <div className="toolbar">
+            <input
+              aria-label={adminT('admin.standalone.filterTable_874f29')}
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder={adminT('admin.standalone.filterRows_4816c0')}
+            />
+            <div className="actions">
+              {section.exportable ? (
+                <button
+                  className="secondary"
+                  type="button"
+                  onClick={() => {
+                    void exportCsv(section.endpoint, `${section.id}.csv`).catch(() => {
+                      setToast(adminT('admin.standalone.csvExportFailed'));
+                    });
+                  }}
+                >
+                  {adminT('admin.standalone.exportCsv_5755f9')}
+                </button>
+              ) : null}
+              <button className="secondary" type="button" onClick={() => void load()}>
+                {adminT('admin.standalone.refresh_56e3ba')}
+              </button>
+              {section.id === 'feature-flags' ? (
+                <button
+                  className="action"
+                  type="button"
+                  onClick={() =>
+                    setDialog({ action: 'create-flag', title: adminT('admin.standalone.createFeatureFlag_ae43aa') })
+                  }
+                >
+                  {adminT('admin.standalone.createFlag_4d7620')}
+                </button>
+              ) : null}
+              {section.id === 'announcements' ? (
+                <button
+                  className="action"
+                  type="button"
+                  onClick={() =>
+                    setDialog({ action: 'announcement', title: adminT('admin.standalone.createAnnouncement_dd8f11') })
+                  }
+                >
+                  {adminT('admin.standalone.announce_b6e441')}
+                </button>
+              ) : null}
+              {section.id === 'incident-banner' ? (
+                <button
+                  className="danger"
+                  type="button"
+                  onClick={() =>
+                    setDialog({ action: 'incident', title: adminT('admin.standalone.setIncidentBanner_5cc21d') })
+                  }
+                >
+                  {adminT('admin.standalone.incidentBanner_3c667d')}
+                </button>
+              ) : null}
+            </div>
+          </div>
+          {rows.length === 0 ? (
+            <div className="panel">
+              <h2>{adminT('admin.standalone.emptyState_41dac3')}</h2>
+              <p className="muted">{adminT('admin.standalone.theApiReturnedNoRecordsForThisSection_eedf3d')}</p>
+            </div>
+          ) : (
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    {columns.map((column) => (
+                      <th key={column}>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setSort((current) => ({
+                              key: column,
+                              direction: current.key === column && current.direction === 'asc' ? 'desc' : 'asc',
+                            }))
+                          }
+                        >
+                          {columnLabel(column)}
+                        </button>
+                      </th>
+                    ))}
+                    <th>{adminT('admin.standalone.actions_c3cd63')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleRows.map((row, index) => (
+                    <tr key={String(row.id ?? row.key ?? index)}>
+                      {columns.map((column) => (
+                        <td key={column}>{formatCell(row[column])}</td>
+                      ))}
+                      <td>
+                        <div className="actions">
+                          <button className="secondary" type="button" onClick={() => setSelected(row)}>
+                            {adminT('admin.standalone.details_dc3dec')}
+                          </button>
+                          <RowActions
+                            section={section}
+                            onAction={(action) => setDialog({ action, title: actionLabel(action), payload: row })}
+                          />
+                        </div>
+                      </td>
+                    </tr>
                   ))}
-                  <td>
-                    <div className="actions">
-                      <button className="secondary" type="button" onClick={() => setSelected(row)}>
-                        Details
-                      </button>
-                      <RowActions
-                        section={section}
-                        row={row}
-                        onAction={(action) => setDialog({ action, title: actionLabel(action), payload: row })}
-                      />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-      </>
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       )}
       {selected ? <DetailsPanel record={selected} onClose={() => setSelected(undefined)} /> : null}
       {dialog ? <ActionDialog dialog={dialog} onCancel={() => setDialog(null)} onSubmit={runAction} /> : null}
@@ -439,7 +504,7 @@ function SectionView({
         <div className="toast" role="status">
           {toast}
           <button className="secondary" type="button" onClick={() => setToast(undefined)}>
-            Dismiss
+            {adminT('admin.standalone.dismiss_70afe9')}
           </button>
         </div>
       ) : null}
@@ -460,7 +525,7 @@ function Overview({ data }: { data: AdminOverview }) {
         </div>
       ))}
       <div className="card metric">
-        AI cost
+        {adminT('admin.standalone.aiCost_3c3d55')}
         <strong>${((data?.cost?.aiCostCents ?? 0) / 100).toFixed(2)}</strong>
       </div>
       {health
@@ -475,26 +540,18 @@ function Overview({ data }: { data: AdminOverview }) {
   );
 }
 
-function RowActions({
-  section,
-  row,
-  onAction,
-}: {
-  section: AdminSection;
-  row: AdminRecord;
-  onAction: (action: string) => void;
-}) {
+function RowActions({ section, onAction }: { section: AdminSection; onAction: (action: string) => void }) {
   if (section.id === 'users') {
     return (
       <>
         <button className="danger" type="button" onClick={() => onAction('suspend-user')}>
-          Suspend
+          {adminT('admin.standalone.suspend_b24247')}
         </button>
         <button className="secondary" type="button" onClick={() => onAction('force-logout')}>
-          Logout
+          {adminT('admin.standalone.logout_e43d61')}
         </button>
         <button className="secondary" type="button" onClick={() => onAction('reset-mfa')}>
-          Reset MFA
+          {adminT('admin.standalone.resetMfa_0c1fff')}
         </button>
       </>
     );
@@ -503,7 +560,7 @@ function RowActions({
   if (section.id === 'organizations') {
     return (
       <button className="danger" type="button" onClick={() => onAction('suspend-org')}>
-        Suspend org
+        {adminT('admin.standalone.suspendOrg_103459')}
       </button>
     );
   }
@@ -512,10 +569,10 @@ function RowActions({
     return (
       <>
         <button className="danger" type="button" onClick={() => onAction('stop-workspace')}>
-          Stop
+          {adminT('admin.standalone.stop_9e2534')}
         </button>
         <button className="secondary" type="button" onClick={() => onAction('restart-workspace')}>
-          Restart
+          {adminT('admin.standalone.restart_b134bd')}
         </button>
       </>
     );
@@ -524,7 +581,7 @@ function RowActions({
   if (section.id === 'abuse-events') {
     return (
       <button className="secondary" type="button" onClick={() => onAction('resolve-abuse')}>
-        Resolve
+        {adminT('admin.standalone.resolve_ac7f95')}
       </button>
     );
   }
@@ -532,7 +589,7 @@ function RowActions({
   if (section.id === 'support-tickets') {
     return (
       <button className="secondary" type="button" onClick={() => onAction('respond-ticket')}>
-        Respond
+        {adminT('admin.standalone.respond_05bd56')}
       </button>
     );
   }
@@ -540,7 +597,7 @@ function RowActions({
   if (section.id === 'quotas') {
     return (
       <button className="secondary" type="button" onClick={() => onAction('quota-override')}>
-        Override
+        {adminT('admin.standalone.override_842192')}
       </button>
     );
   }
@@ -580,7 +637,7 @@ function ActionDialog({
         }}
       >
         <h2>{dialog.title}</h2>
-        <p className="muted">This action is audited and may require recent admin re-authentication.</p>
+        <p className="muted">{adminT('admin.standalone.thisActionIsAuditedAndMayRequireRecent_b82a01')}</p>
         {fields.map((field) => (
           <label key={field.name}>
             {field.label}
@@ -602,17 +659,15 @@ function ActionDialog({
         {isDangerous ? (
           <label className="danger-ack">
             <input type="checkbox" checked={acknowledged} onChange={(event) => setAcknowledged(event.target.checked)} />
-            <span>
-              I confirm this admin action. It requires recent re-authentication and will be written to AdminAuditLog.
-            </span>
+            <span>{adminT('admin.standalone.iConfirmThisAdminActionItRequiresRecent_dc045e')}</span>
           </label>
         ) : null}
         <div className="actions">
           <button className="secondary" type="button" onClick={onCancel}>
-            Cancel
+            {adminT('admin.standalone.cancel_77dfd2')}
           </button>
           <button className="danger" type="submit" disabled={isDangerous && !acknowledged}>
-            Confirm
+            {adminT('admin.standalone.confirm_04a212')}
           </button>
         </div>
       </form>
@@ -622,11 +677,11 @@ function ActionDialog({
 
 function DetailsPanel({ record, onClose }: { record: AdminRecord; onClose: () => void }) {
   return (
-    <section className="panel" aria-label="Detail page">
+    <section className="panel" aria-label={adminT('admin.standalone.detailPage_fb45b4')}>
       <div className="page-title">
-        <h2>Details</h2>
+        <h2>{adminT('admin.standalone.details_dc3dec')}</h2>
         <button className="secondary" type="button" onClick={onClose}>
-          Close
+          {adminT('admin.standalone.close_bbfa77')}
         </button>
       </div>
       <pre>{JSON.stringify(redactRecord(record), null, 2)}</pre>
@@ -663,7 +718,7 @@ function formatCell(value: unknown) {
   }
 
   if (typeof value === 'boolean') {
-    return value ? 'yes' : 'no';
+    return value ? adminT('admin.standalone.yes') : adminT('admin.standalone.no');
   }
 
   if (typeof value === 'object') {
@@ -689,27 +744,27 @@ type ActionField = { name: string; label: string; kind?: 'textarea'; required: b
 
 function fieldsForAction(action: string): ActionField[] {
   if (action === 'respond-ticket') {
-    return [{ name: 'response', label: 'Response', kind: 'textarea', required: true }];
+    return [{ name: 'response', label: adminT('admin.standalone.response_6e617e'), kind: 'textarea', required: true }];
   }
 
   if (action === 'quota-override') {
     return [
-      { name: 'key', label: 'Quota key', required: true },
-      { name: 'limit', label: 'Limit', required: true },
-      { name: 'reason', label: 'Reason', required: true },
+      { name: 'key', label: adminT('admin.standalone.quotaKey_e95bae'), required: true },
+      { name: 'limit', label: adminT('admin.standalone.limit_24d948'), required: true },
+      { name: 'reason', label: adminT('admin.standalone.reason_f219cc'), required: true },
     ];
   }
 
   if (action === 'create-flag') {
     return [
-      { name: 'key', label: 'Flag key', required: true },
-      { name: 'enabled', label: 'Enabled true/false', required: true },
-      { name: 'rolloutPercent', label: 'Rollout percent', required: false },
+      { name: 'key', label: adminT('admin.standalone.flagKey_3ba971'), required: true },
+      { name: 'enabled', label: adminT('admin.standalone.enabledTrueFalse_3f1751'), required: true },
+      { name: 'rolloutPercent', label: adminT('admin.standalone.rolloutPercent_bf7a50'), required: false },
     ];
   }
 
   if (action === 'announcement' || action === 'incident') {
-    return [{ name: 'message', label: 'Message', kind: 'textarea', required: true }];
+    return [{ name: 'message', label: adminT('admin.standalone.message_68f414'), kind: 'textarea', required: true }];
   }
 
   return [];
@@ -791,12 +846,50 @@ function organizationIdFromPayload(payload?: AdminRecord) {
 }
 
 function actionLabel(action: string) {
-  return action.replaceAll('-', ' ');
+  const labels: Partial<Record<string, Parameters<typeof adminT>[0]>> = {
+    'suspend-user': 'admin.standalone.action.suspendUser',
+    'force-logout': 'admin.standalone.action.forceLogout',
+    'reset-mfa': 'admin.standalone.action.resetMfa',
+    'suspend-org': 'admin.standalone.action.suspendOrg',
+    'stop-workspace': 'admin.standalone.action.stopWorkspace',
+    'restart-workspace': 'admin.standalone.action.restartWorkspace',
+    'resolve-abuse': 'admin.standalone.action.resolveAbuse',
+    'respond-ticket': 'admin.standalone.action.respondTicket',
+    'quota-override': 'admin.standalone.action.quotaOverride',
+    'create-flag': 'admin.standalone.action.createFlag',
+    announcement: 'admin.standalone.action.announcement',
+    incident: 'admin.standalone.action.incident',
+  };
+
+  const key = labels[action];
+
+  return key ? adminT(key) : action;
+}
+
+function columnLabel(column: string): string {
+  const labels: Partial<Record<string, Parameters<typeof adminT>[0]>> = {
+    id: 'admin.standalone.column.id',
+    email: 'admin.standalone.column.email',
+    name: 'admin.standalone.column.name',
+    organizationId: 'admin.standalone.column.organizationId',
+    projectId: 'admin.standalone.column.projectId',
+    userId: 'admin.standalone.column.userId',
+    status: 'admin.standalone.column.status',
+    severity: 'admin.standalone.column.severity',
+    type: 'admin.standalone.column.type',
+    action: 'admin.standalone.column.action',
+    createdAt: 'admin.standalone.column.createdAt',
+  };
+
+  const key = labels[column];
+
+  return key ? adminT(key) : column;
 }
 
 const rootElement = document.getElementById('root');
 
 if (rootElement) {
+  initializeAdminLanguage();
   createRoot(rootElement).render(
     <React.StrictMode>
       <App />

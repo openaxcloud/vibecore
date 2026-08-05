@@ -209,13 +209,20 @@ export class TestApiStore implements ApiStore {
     return fn();
   }
 
-  async createUser(input: { email: string; name?: string; passwordHash: string; platformAdmin?: boolean }) {
+  async createUser(input: {
+    email: string;
+    name?: string;
+    passwordHash: string;
+    platformAdmin?: boolean;
+    language?: string;
+  }) {
     const user = {
       id: id('user'),
       email: input.email.toLowerCase(),
       name: input.name,
       passwordHash: input.passwordHash,
       platformAdmin: input.platformAdmin,
+      language: input.language,
       createdAt: now(),
     };
     this.users.set(user.id, user);
@@ -3165,6 +3172,8 @@ export class TestApiStore implements ApiStore {
     category?: string;
     title: string;
     body?: string;
+    messageKey?: string;
+    messageParams?: Record<string, unknown>;
     linkUrl?: string;
     metadata?: Record<string, unknown>;
   }) {
@@ -3174,6 +3183,8 @@ export class TestApiStore implements ApiStore {
       category: input.category ?? 'system',
       title: input.title,
       body: input.body,
+      messageKey: input.messageKey,
+      messageParams: input.messageParams,
       linkUrl: input.linkUrl,
       metadata: input.metadata,
       readAt: undefined,

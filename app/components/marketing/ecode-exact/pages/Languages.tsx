@@ -1,90 +1,96 @@
 import { ArrowRight, Code2, Layers, Sparkles, Terminal } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+
 import {
   EcodeExactPublicFooter as PublicFooter,
   EcodeExactPublicNavbar as PublicNavbar,
 } from '~/components/marketing/ecode-exact/EcodeExactShell';
 import {
+  Badge,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
-import { Badge } from '~/components/marketing/ecode-exact/EcodeExactUi';
+import {
+  formatMarketingExactAccountLanguagesInteger,
+  getMarketingExactAccountLanguagesCopy,
+  interpolateMarketingExactAccountLanguagesCopy,
+  type LanguageBenefitId,
+} from '~/lib/i18n/catalogs/marketing-exact-account-languages';
+
+const BENEFIT_ICONS: Readonly<Record<LanguageBenefitId, LucideIcon>> = {
+  ai: Sparkles,
+  environments: Terminal,
+  mix: Layers,
+};
 
 export default function Languages() {
-  const languages = [
-    { name: 'Python', note: 'Data, AI and backends with instant package installs.' },
-    { name: 'JavaScript', note: 'Run Node and browser code with zero setup.' },
-    { name: 'TypeScript', note: 'Type-safe apps with first-class tooling built in.' },
-    { name: 'Go', note: 'Fast, compiled services that ship in seconds.' },
-    { name: 'Rust', note: 'Memory-safe systems code with cargo ready to go.' },
-    { name: 'Java', note: 'Enterprise apps and APIs on a managed JVM.' },
-    { name: 'C#', note: 'Build .NET services and tools in the cloud.' },
-    { name: 'Ruby', note: 'Rails and scripts with gems pre-wired.' },
-    { name: 'PHP', note: 'Classic web stacks and modern Laravel apps.' },
-    { name: 'Swift', note: 'Server-side Swift and quick prototyping.' },
-    { name: 'Kotlin', note: 'Concise JVM apps and backends.' },
-    { name: 'C++', note: 'High-performance code with a full compiler toolchain.' },
-  ];
-
-  const frameworks = [
-    { name: 'React', note: 'Modern front-ends with hot reload previews.' },
-    { name: 'Next.js', note: 'Full-stack React with server rendering.' },
-    { name: 'Django', note: 'Batteries-included Python web framework.' },
-    { name: 'FastAPI', note: 'Async Python APIs with auto docs.' },
-    { name: 'Express', note: 'Minimal, flexible Node.js servers.' },
-    { name: 'Rails', note: 'Convention-first Ruby web apps.' },
-    { name: 'Spring Boot', note: 'Production-ready Java services.' },
-    { name: 'Flutter', note: 'Cross-platform UIs from one codebase.' },
-  ];
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getMarketingExactAccountLanguagesCopy(language).exactLanguages;
+  const languageCount = formatMarketingExactAccountLanguagesInteger(copy.languages.items.length, language);
 
   return (
-    <div className="min-h-screen flex flex-col" data-testid="page-languages">
+    <div className="flex min-h-screen flex-col bg-background text-foreground" data-testid="page-languages">
       <PublicNavbar />
 
-      <main className="flex-1">
-        {/* Hero Section */}
-        <section className="py-responsive bg-gradient-to-b from-background to-muted">
+      <main className="min-w-0 flex-1">
+        <section
+          className="bg-gradient-to-b from-background to-muted py-responsive"
+          aria-labelledby="languages-heading"
+        >
           <div className="container-responsive">
-            <div className="text-center max-w-3xl mx-auto">
-              <Code2 className="h-12 w-12 mx-auto mb-4" style={{ color: 'var(--ecode-accent)' }} />
-              <h1 className="mkt-h1 font-bold mb-4" data-testid="heading-languages">
-                Build in any language
+            <div className="mx-auto max-w-3xl min-w-0 text-center">
+              <Code2 className="mx-auto mb-4 h-12 w-12 text-primary" aria-hidden />
+              <h1
+                id="languages-heading"
+                className="mb-4 break-words font-bold mkt-h1 [overflow-wrap:anywhere]"
+                data-testid="heading-languages"
+              >
+                {copy.hero.title}
               </h1>
-              <p className="mkt-lead text-muted-foreground mb-8">
-                E-Code supports every major programming language with instant environments, package managers and live
-                previews — no local setup required.
-              </p>
-              <Badge variant="secondary" className="text-[15px] px-4 py-2">
-                12+ languages, zero config
+              <p className="mb-8 break-words text-muted-foreground mkt-lead">{copy.hero.description}</p>
+              <Badge
+                variant="secondary"
+                className="max-w-full whitespace-normal px-4 py-2 text-center text-[15px] leading-relaxed"
+              >
+                {interpolateMarketingExactAccountLanguagesCopy(copy.hero.badge, { count: languageCount })}
               </Badge>
             </div>
           </div>
         </section>
 
-        {/* Languages Grid */}
-        <section className="py-responsive">
+        <section className="py-responsive" aria-labelledby="supported-languages-heading">
           <div className="container-responsive">
-            <h2 className="mkt-h2 font-bold text-center mb-12">Supported languages</h2>
+            <h2
+              id="supported-languages-heading"
+              className="mb-12 break-words text-center font-bold mkt-h2 [overflow-wrap:anywhere]"
+            >
+              {copy.languages.title}
+            </h2>
 
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {languages.map((language) => (
-                <Card key={language.name}>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center gap-3 mb-3">
-                      <Terminal className="h-6 w-6" style={{ color: 'var(--ecode-accent)' }} />
-                      <h3 className="font-semibold mkt-h3">{language.name}</h3>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {copy.languages.items.map((programmingLanguage) => (
+                <Card key={programmingLanguage.id} className="h-full min-w-0">
+                  <CardContent className="flex h-full min-w-0 flex-col pt-6">
+                    <div className="mb-3 flex min-w-0 items-center gap-3">
+                      <Terminal className="h-6 w-6 shrink-0 text-primary" aria-hidden />
+                      <h3 className="min-w-0 break-words font-semibold mkt-h3">{programmingLanguage.name}</h3>
                     </div>
-                    <p className="mkt-body text-muted-foreground mb-4">{language.note}</p>
+                    <p className="mb-4 break-words text-muted-foreground mkt-body">{programmingLanguage.note}</p>
                     <a
                       href="/"
-                      className="inline-flex items-center gap-1 text-[13px] font-medium hover:underline"
-                      style={{ color: 'var(--ecode-accent)' }}
-                      data-testid={`link-start-${language.name.toLowerCase()}`}
+                      aria-label={interpolateMarketingExactAccountLanguagesCopy(copy.languages.actionAria, {
+                        language: programmingLanguage.name,
+                      })}
+                      className="mt-auto inline-flex min-h-11 max-w-full self-start items-center gap-1 rounded-sm text-[13px] font-medium text-primary whitespace-normal hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)]"
+                      data-testid={`link-start-${programmingLanguage.name.toLowerCase()}`}
                     >
-                      Start building
-                      <ArrowRight className="h-4 w-4" />
+                      <span className="break-words">{copy.languages.action}</span>
+                      <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
                     </a>
                   </CardContent>
                 </Card>
@@ -93,23 +99,22 @@ export default function Languages() {
           </div>
         </section>
 
-        {/* Frameworks Section */}
-        <section className="py-responsive bg-muted">
+        <section className="bg-muted py-responsive" aria-labelledby="frameworks-heading">
           <div className="container-responsive">
-            <div className="text-center max-w-2xl mx-auto mb-12">
-              <Layers className="h-10 w-10 mx-auto mb-4" style={{ color: 'var(--ecode-accent)' }} />
-              <h2 className="mkt-h2 font-bold mb-4">Frameworks and runtimes</h2>
-              <p className="mkt-lead text-muted-foreground">
-                Spin up the stack you already know. E-Code detects your project and installs dependencies automatically.
-              </p>
+            <div className="mx-auto mb-12 max-w-2xl min-w-0 text-center">
+              <Layers className="mx-auto mb-4 h-10 w-10 text-primary" aria-hidden />
+              <h2 id="frameworks-heading" className="mb-4 break-words font-bold mkt-h2 [overflow-wrap:anywhere]">
+                {copy.frameworks.title}
+              </h2>
+              <p className="break-words text-muted-foreground mkt-lead">{copy.frameworks.description}</p>
             </div>
 
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
-              {frameworks.map((framework) => (
-                <Card key={framework.name}>
-                  <CardHeader>
-                    <CardTitle className="mkt-h3">{framework.name}</CardTitle>
-                    <CardDescription className="mkt-body">{framework.note}</CardDescription>
+            <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {copy.frameworks.items.map((framework) => (
+                <Card key={framework.id} className="h-full min-w-0">
+                  <CardHeader className="min-w-0">
+                    <CardTitle className="break-words mkt-h3">{framework.name}</CardTitle>
+                    <CardDescription className="break-words mkt-body">{framework.note}</CardDescription>
                   </CardHeader>
                 </Card>
               ))}
@@ -117,58 +122,48 @@ export default function Languages() {
           </div>
         </section>
 
-        {/* Why E-Code */}
-        <section className="py-responsive">
+        <section className="py-responsive" aria-labelledby="language-benefits-heading">
           <div className="container-responsive">
-            <h2 className="mkt-h2 font-bold text-center mb-12">One workspace, every stack</h2>
+            <h2
+              id="language-benefits-heading"
+              className="mb-12 break-words text-center font-bold mkt-h2 [overflow-wrap:anywhere]"
+            >
+              {copy.benefits.title}
+            </h2>
 
-            <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-              <div className="flex gap-4">
-                <Sparkles className="h-6 w-6 flex-shrink-0 mt-1" style={{ color: 'var(--ecode-accent)' }} />
-                <div>
-                  <h3 className="mkt-h3 font-semibold mb-2">AI-native</h3>
-                  <p className="mkt-body text-muted-foreground">
-                    Describe what you want and generate working code in any supported language.
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-4">
-                <Terminal className="h-6 w-6 flex-shrink-0 mt-1" style={{ color: 'var(--ecode-accent)' }} />
-                <div>
-                  <h3 className="mkt-h3 font-semibold mb-2">Instant environments</h3>
-                  <p className="mkt-body text-muted-foreground">
-                    Compilers, package managers and a full terminal are ready the moment you open a project.
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-4">
-                <Layers className="h-6 w-6 flex-shrink-0 mt-1" style={{ color: 'var(--ecode-accent)' }} />
-                <div>
-                  <h3 className="mkt-h3 font-semibold mb-2">Mix and match</h3>
-                  <p className="mkt-body text-muted-foreground">
-                    Combine a Python backend with a TypeScript front-end in a single workspace.
-                  </p>
-                </div>
-              </div>
+            <div className="mx-auto grid max-w-4xl grid-cols-1 gap-8 md:grid-cols-3">
+              {copy.benefits.items.map((benefit) => {
+                const Icon = BENEFIT_ICONS[benefit.id];
+
+                return (
+                  <div key={benefit.id} className="flex min-w-0 gap-4">
+                    <Icon className="mt-1 h-6 w-6 shrink-0 text-primary" aria-hidden />
+                    <div className="min-w-0">
+                      <h3 className="mb-2 break-words font-semibold mkt-h3">{benefit.title}</h3>
+                      <p className="break-words text-muted-foreground mkt-body">{benefit.description}</p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </section>
 
-        {/* CTA */}
-        <section className="py-responsive bg-muted">
-          <div className="container-responsive text-center">
-            <h2 className="text-3xl font-bold mb-4">Pick a language and start building</h2>
-            <p className="text-[15px] text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Open a workspace, write a prompt and watch E-Code scaffold your project in the stack of your choice.
+        <section className="bg-muted py-responsive" aria-labelledby="languages-cta-heading">
+          <div className="container-responsive min-w-0 text-center">
+            <h2 id="languages-cta-heading" className="mb-4 break-words text-3xl font-bold [overflow-wrap:anywhere]">
+              {copy.cta.title}
+            </h2>
+            <p className="mx-auto mb-8 max-w-2xl break-words text-[15px] text-muted-foreground">
+              {copy.cta.description}
             </p>
             <a
               href="/"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-md text-white min-h-[44px] hover:opacity-90"
-              style={{ backgroundColor: 'var(--ecode-accent)' }}
+              className="inline-flex min-h-[44px] w-full max-w-full items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 text-center text-primary-foreground whitespace-normal transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] sm:w-auto"
               data-testid="button-languages-cta"
             >
-              Start building
-              <ArrowRight className="h-4 w-4" />
+              <span className="break-words">{copy.cta.action}</span>
+              <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
             </a>
           </div>
         </section>

@@ -1,9 +1,17 @@
 import { describe, expect, it } from 'vitest';
 
-import { createWorkspaceBuildAgent, flattenAgentTree, streamAgentCommand, type WsLike } from './deploy-workspace-agent.js';
+import {
+  createWorkspaceBuildAgent,
+  flattenAgentTree,
+  streamAgentCommand,
+  type WsLike,
+} from './deploy-workspace-agent.js';
 
 /** A scripted fake WebSocket that replays a sequence of agent frames on open. */
-function fakeSocket(frames: Array<Record<string, unknown>>, opts: { closeWithoutExit?: boolean } = {}): (url: string) => WsLike {
+function fakeSocket(
+  frames: Array<Record<string, unknown>>,
+  opts: { closeWithoutExit?: boolean } = {},
+): (url: string) => WsLike {
   return (_url: string) => {
     const listeners: Record<string, Array<(e: any) => void>> = {};
     const on = (t: string, fn: (e: any) => void) => {
@@ -94,7 +102,7 @@ describe('streamAgentCommand', () => {
     );
 
     expect(result.exitCode).toBeNull();
-    expect(result.error).toMatch(/closed before/);
+    expect(result.error).toBe('WORKSPACE_STREAM_CLOSED');
   });
 
   it('passes the token as a query param', async () => {

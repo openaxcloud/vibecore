@@ -2054,7 +2054,10 @@ describe('SaaS API', () => {
     const admin = await register(app, { email: 'redact-admin@example.com', organizationName: 'Redact Admin Org' });
     await verifyEmail(app, admin.verificationToken);
 
-    const customer = await register(app, { email: 'redact-customer@example.com', organizationName: 'Redact Customer Org' });
+    const customer = await register(app, {
+      email: 'redact-customer@example.com',
+      organizationName: 'Redact Customer Org',
+    });
 
     // Seed two audit rows carrying PII (ipAddress) for the customer org.
     await store.recordAudit({
@@ -3397,13 +3400,14 @@ describe('SaaS API', () => {
 
   it('supports persistent project CRUD, settings, collaborators and soft delete restore', async () => {
     const store = new TestApiStore();
-    const app = await buildTestApiApp({ store });
+    const projectStorage = new MemoryProjectStorage();
+    const app = await buildTestApiApp({ store, projectStorage });
     const auth = await register(app, { email: 'projects@example.com', organizationName: 'Projects Org' });
 
     const create = await app.inject({
       method: 'POST',
       url: `/orgs/${auth.organization.id}/projects/from-template`,
-      headers: { authorization: `Bearer ${auth.token}` },
+      headers: { authorization: `Bearer ${auth.token}`, 'accept-language': 'fr-FR,fr;q=0.9' },
       payload: { name: 'Template App', templateName: 'react-basic-starter' },
     });
     expect(create.statusCode).toBe(201);
@@ -3430,6 +3434,8 @@ describe('SaaS API', () => {
     });
     expect(dashboard.statusCode).toBe(200);
     expect(dashboard.json().files.length).toBeGreaterThan(0);
+    expect(projectStorage.files.get(projectId)?.get('index.html')).toContain('<html lang="fr">');
+    expect(projectStorage.files.get(projectId)?.get('src/App.tsx')).toContain('Créé à partir du modèle Bolt');
 
     const homepagePreview = await app.inject({
       method: 'GET',
@@ -3440,6 +3446,18 @@ describe('SaaS API', () => {
     expect(homepagePreview.headers['content-type']).toContain('image/svg+xml');
     expect(homepagePreview.body).toContain('Template App');
     expect(homepagePreview.body).toContain('Generated from the current homepage files');
+
+    const frenchHomepagePreview = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/homepage-preview.svg`,
+      headers: { authorization: `Bearer ${auth.token}`, 'accept-language': 'fr-FR,fr;q=0.9' },
+    });
+    expect(frenchHomepagePreview.statusCode).toBe(200);
+    expect(frenchHomepagePreview.headers['content-language']).toBe('fr');
+    expect(frenchHomepagePreview.headers.vary).toContain('Cookie');
+    expect(frenchHomepagePreview.body).toContain('Dernier aperçu');
+    expect(frenchHomepagePreview.body).toContain('Généré à partir des fichiers actuels');
+    expect(frenchHomepagePreview.body).not.toContain('Generated from the current homepage files');
 
     const saveIdeState = await app.inject({
       method: 'PUT',
@@ -5117,7 +5135,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     const runtime = await startRuntimeServices();
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
-    const auth = await register(app, { email: 'ai-tool-transcript@example.com', organizationName: 'AI Tool Transcript Org' });
+    const auth = await register(app, {
+      email: 'ai-tool-transcript@example.com',
+      organizationName: 'AI Tool Transcript Org',
+    });
 
     const project = await app.inject({
       method: 'POST',
@@ -6739,9 +6760,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     const auth = await register(app, { email: 'i18n-user@example.com', organizationName: 'i18n Org' });
 
     /*
-     * Fresh users have no language preference — GET /auth/me should
-     * surface it as undefined so the client can fall back to
-     * navigator.language detection.
+     * Registration persists the first-request locale. With no language
+     * header the documented fallback is English; a French Accept-Language
+     * request is covered by the dedicated transactional-i18n route tests.
      */
     const before = await app.inject({
       method: 'GET',
@@ -6749,7 +6770,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       headers: { authorization: `Bearer ${auth.token}` },
     });
     expect(before.statusCode).toBe(200);
-    expect(before.json().user.language).toBeFalsy();
+    expect(before.json().user.language).toBe('en');
 
     const setFr = await app.inject({
       method: 'PATCH',
@@ -6824,14 +6845,15 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     const app = await buildTestApiApp({ store });
     const auth = await register(app, { email: 'prefs-user@example.com', organizationName: 'Prefs Org' });
 
-    // Fresh users have an empty preferences blob and no language/timezone.
+    // Fresh users have an empty preferences blob, the negotiated default
+    // language, and no timezone.
     const before = await app.inject({
       method: 'GET',
       url: '/user/preferences',
       headers: { authorization: `Bearer ${auth.token}` },
     });
     expect(before.statusCode).toBe(200);
-    expect(before.json()).toMatchObject({ language: null, timezone: null, preferences: {} });
+    expect(before.json()).toMatchObject({ language: 'en', timezone: null, preferences: {} });
 
     const setAll = await app.inject({
       method: 'PATCH',

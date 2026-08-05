@@ -104,7 +104,6 @@ export const supabaseConnector: ConnectorProvider = {
     if (!response.ok) {
       throw new ConnectorProviderError({
         code: 'PROVIDER_USER_INFO_FAILED',
-        message: `Supabase projects returned HTTP ${response.status}`,
         httpStatus: response.status,
       });
     }
@@ -116,14 +115,12 @@ export const supabaseConnector: ConnectorProvider = {
     } catch {
       throw new ConnectorProviderError({
         code: 'PROVIDER_RESPONSE_MALFORMED',
-        message: 'Supabase projects returned a non-JSON body',
       });
     }
 
     if (!Array.isArray(payload)) {
       throw new ConnectorProviderError({
         code: 'PROVIDER_RESPONSE_MALFORMED',
-        message: 'Supabase projects response is not an array',
       });
     }
 

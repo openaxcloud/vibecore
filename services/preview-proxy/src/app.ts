@@ -4,6 +4,7 @@ import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest }
 
 import { INSPECTOR_SCRIPT } from './inspector-script.js';
 import { attachPreviewWebSocketProxy } from './preview-ws-proxy.js';
+import { applyPreviewProxyLocale, previewProxyHtml, sendPreviewProxyError } from './public-i18n.js';
 import { REPORTER_SCRIPT } from './reporter-script.js';
 
 /*
@@ -23,16 +24,12 @@ const MAX_INJECT_BYTES = 4 * 1024 * 1024;
  * starting and reloads itself until the dev server returns a real 200. Asset/XHR
  * requests still receive the machine-readable JSON error.
  */
-const PREVIEW_STARTING_HTML = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="refresh" content="2"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Starting your app…</title><style>html,body{height:100%;margin:0}body{display:flex;align-items:center;justify-content:center;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;background:#0d1117;color:#c9d1d9}.box{text-align:center;max-width:420px;padding:24px}.s{width:28px;height:28px;border:3px solid #30363d;border-top-color:#F26207;border-radius:50%;margin:0 auto 16px;animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}h1{font-size:15px;font-weight:600;margin:0 0 6px}p{font-size:13px;color:#8b949e;margin:0}</style></head><body><div class="box"><div class="s"></div><h1>Starting your app…</h1><p>The dev server is booting. This page refreshes automatically.</p></div></body></html>`;
-
 /*
  * Terminal state page (BUG-DEPLOY-002): the deployment host exists but nothing
  * is (or will be) behind it — the build failed or the deployment was deleted.
  * A raw 502 JSON here read as an outage; this states the truth, without the
  * auto-refresh loop of the starting page (nothing will come up).
  */
-const DEPLOY_NOT_LIVE_HTML = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Deployment not live</title><style>html,body{height:100%;margin:0}body{display:flex;align-items:center;justify-content:center;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;background:#0d1117;color:#c9d1d9}.box{text-align:center;max-width:440px;padding:24px}.i{width:28px;height:28px;border:3px solid #30363d;border-radius:50%;margin:0 auto 16px;position:relative}.i:after{content:"";position:absolute;inset:6px;border-radius:50%;background:#f85149}h1{font-size:15px;font-weight:600;margin:0 0 6px}p{font-size:13px;color:#8b949e;margin:0}</style></head><body><div class="box"><div class="i"></div><h1>This deployment is not live</h1><p>Its last publish failed or it was deleted. Publish the project again to bring it back.</p></div></body></html>`;
-
 /*
  * True when the request is the iframe's top-level document navigation (vs an asset
  * or XHR sub-request). Only document navigations should get the HTML holding page.
@@ -516,8 +513,6 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
   };
 
   /* Login-required page shown when a private port is hit without a session. */
-  const PRIVATE_PORT_HTML = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Private port</title><style>html,body{height:100%;margin:0}body{display:flex;align-items:center;justify-content:center;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;background:#0d1117;color:#c9d1d9}.box{text-align:center;max-width:420px;padding:24px}h1{font-size:16px;font-weight:600;margin:0 0 8px}p{font-size:13px;color:#8b949e;margin:0}</style></head><body><div class="box"><h1>This port is private</h1><p>Sign in to the workspace owner&apos;s account to view this preview.</p></div></body></html>`;
-
   const app = Fastify({ logger: options.logger ?? false });
 
   /*
@@ -765,9 +760,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     deploymentId: string,
   ): Promise<unknown> => {
     if (!apiBaseUrl) {
-      return reply
-        .code(500)
-        .send({ error: 'Static deploy upstream misconfigured', code: 'STATIC_DEPLOY_UPSTREAM_INVALID' });
+      return sendPreviewProxyError(request, reply, 500, 'STATIC_DEPLOY_UPSTREAM_INVALID');
     }
 
     const rawPath = request.url.startsWith('/') ? request.url : `/${request.url}`;
@@ -778,12 +771,12 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     try {
       upstream = new URL(`${upstreamBase}${rawPath}`);
     } catch {
-      return reply.code(400).send({ error: 'Invalid deploy path', code: 'STATIC_DEPLOY_PATH_INVALID' });
+      return sendPreviewProxyError(request, reply, 400, 'STATIC_DEPLOY_PATH_INVALID');
     }
 
     // An app-controlled path can never repoint us off the API origin.
     if (upstream.origin !== new URL(apiBaseUrl).origin) {
-      return reply.code(400).send({ error: 'Invalid deploy path', code: 'STATIC_DEPLOY_PATH_INVALID' });
+      return sendPreviewProxyError(request, reply, 400, 'STATIC_DEPLOY_PATH_INVALID');
     }
 
     const publicHost = (request.headers.host ?? '').split(':')[0].trim().toLowerCase();
@@ -867,10 +860,10 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       clearTimeout(timeout);
 
       if (error?.name === 'AbortError') {
-        return reply.code(504).send({ error: 'Static deploy upstream timeout', code: 'STATIC_DEPLOY_UPSTREAM_TIMEOUT' });
+        return sendPreviewProxyError(request, reply, 504, 'STATIC_DEPLOY_UPSTREAM_TIMEOUT');
       }
 
-      return reply.code(502).send({ error: 'Static deploy upstream failed', code: 'STATIC_DEPLOY_UPSTREAM_FAILED' });
+      return sendPreviewProxyError(request, reply, 502, 'STATIC_DEPLOY_UPSTREAM_FAILED');
     }
   };
 
@@ -883,9 +876,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     const upstreamBase = serverDeployUpstreamUrl(deploymentId, serverDeployUpstreamTemplate);
 
     if (!upstreamBase) {
-      return reply
-        .code(500)
-        .send({ error: 'Server deploy upstream misconfigured', code: 'SERVER_DEPLOY_UPSTREAM_INVALID' });
+      return sendPreviewProxyError(request, reply, 500, 'SERVER_DEPLOY_UPSTREAM_INVALID');
     }
 
     const rawPath = request.url.startsWith('/') ? request.url : `/${request.url}`;
@@ -895,7 +886,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     try {
       upstream = new URL(`${upstreamBase}${rawPath}`);
     } catch {
-      return reply.code(400).send({ error: 'Invalid deploy path', code: 'SERVER_DEPLOY_PATH_INVALID' });
+      return sendPreviewProxyError(request, reply, 400, 'SERVER_DEPLOY_PATH_INVALID');
     }
 
     /*
@@ -903,7 +894,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
      * can never repoint us off the intended in-cluster upstream origin.
      */
     if (upstream.origin !== new URL(upstreamBase).origin) {
-      return reply.code(400).send({ error: 'Invalid deploy path', code: 'SERVER_DEPLOY_PATH_INVALID' });
+      return sendPreviewProxyError(request, reply, 400, 'SERVER_DEPLOY_PATH_INVALID');
     }
 
     const headers: Record<string, string> = { 'x-vibecore-server-deploy': deploymentId };
@@ -995,7 +986,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       return reply.send(readable);
     } catch (error: any) {
       if (error?.name === 'AbortError') {
-        return reply.code(504).send({ error: 'Deploy upstream timeout', code: 'SERVER_DEPLOY_UPSTREAM_TIMEOUT' });
+        return sendPreviewProxyError(request, reply, 504, 'SERVER_DEPLOY_UPSTREAM_TIMEOUT');
       }
 
       /*
@@ -1019,12 +1010,16 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
            * (failed build torn down, or deployment deleted) — BUG-DEPLOY-002.
            */
           if (wantsHtmlDocument(request)) {
-            return reply.code(410).type('text/html').header('cache-control', 'no-store').send(DEPLOY_NOT_LIVE_HTML);
+            applyPreviewProxyLocale(reply, request);
+
+            return reply
+              .code(410)
+              .type('text/html')
+              .header('cache-control', 'no-store')
+              .send(previewProxyHtml(request, 'deployment-not-live'));
           }
 
-          return reply
-            .code(410)
-            .send({ error: 'Deployment is not live (failed or deleted)', code: 'SERVER_DEPLOY_NOT_LIVE' });
+          return sendPreviewProxyError(request, reply, 410, 'SERVER_DEPLOY_NOT_LIVE');
         }
 
         /*
@@ -1038,12 +1033,16 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
        * for a document navigation, a JSON error otherwise (mirrors the preview path).
        */
       if (wantsHtmlDocument(request)) {
-        return reply.code(503).type('text/html').header('cache-control', 'no-store').send(PREVIEW_STARTING_HTML);
+        applyPreviewProxyLocale(reply, request);
+
+        return reply
+          .code(503)
+          .type('text/html')
+          .header('cache-control', 'no-store')
+          .send(previewProxyHtml(request, 'starting'));
       }
 
-      return reply
-        .code(502)
-        .send({ error: 'Deploy upstream error', code: 'SERVER_DEPLOY_UPSTREAM_ERROR', detail: error?.message });
+      return sendPreviewProxyError(request, reply, 502, 'SERVER_DEPLOY_UPSTREAM_ERROR');
     } finally {
       if (!streamingHandoff) {
         clearTimeout(timeout);
@@ -1056,7 +1055,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     const portNumber = Number(params.port);
 
     if (!Number.isInteger(portNumber) || portNumber < 1 || portNumber > 65535) {
-      return reply.code(400).send({ error: 'Invalid preview port', code: 'PREVIEW_PORT_INVALID' });
+      return sendPreviewProxyError(request, reply, 400, 'PREVIEW_PORT_INVALID');
     }
 
     /*
@@ -1076,7 +1075,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       );
 
       if (!requesterOrgId) {
-        return reply.code(403).send({ error: 'Preview access denied', code: 'PREVIEW_TENANT_FORBIDDEN' });
+        return sendPreviewProxyError(request, reply, 403, 'PREVIEW_TENANT_FORBIDDEN');
       }
     }
 
@@ -1093,14 +1092,16 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
           : undefined);
 
       if (!sessionOrgId) {
-        return reply.code(401).type('text/html').send(PRIVATE_PORT_HTML);
+        applyPreviewProxyLocale(reply, request);
+
+        return reply.code(401).type('text/html').send(previewProxyHtml(request, 'private-port'));
       }
     }
 
     const agent = await resolveAgent(params.workspaceId, requesterOrgId).catch(() => undefined);
 
     if (!agent) {
-      return reply.code(404).send({ error: 'Workspace agent not reachable', code: 'PREVIEW_AGENT_NOT_FOUND' });
+      return sendPreviewProxyError(request, reply, 404, 'PREVIEW_AGENT_NOT_FOUND');
     }
 
     const proxyPath = params['*'] ?? '';
@@ -1121,7 +1122,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     try {
       upstream = new URL(`${agent.baseUrl.replace(/\/$/, '')}${upstreamPath}${queryString}`);
     } catch {
-      return reply.code(400).send({ error: 'Invalid preview path', code: 'PREVIEW_PATH_INVALID' });
+      return sendPreviewProxyError(request, reply, 400, 'PREVIEW_PATH_INVALID');
     }
 
     /*
@@ -1134,7 +1135,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     const expectedPrefix = `${new URL(`${agent.baseUrl.replace(/\/$/, '')}/`).pathname.replace(/\/$/, '')}/preview/${portNumber}/`;
 
     if (!upstream.pathname.startsWith(expectedPrefix)) {
-      return reply.code(400).send({ error: 'Invalid preview path', code: 'PREVIEW_PATH_INVALID' });
+      return sendPreviewProxyError(request, reply, 400, 'PREVIEW_PATH_INVALID');
     }
 
     const headers: Record<string, string> = {
@@ -1314,10 +1315,8 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
           lower === 'transfer-encoding' ||
           lower === 'connection' ||
           lower === 'keep-alive' ||
-
           // length no longer matches the decoded body
           (upstreamWasEncoded && lower === 'content-length') ||
-
           // recomputed after a possible body rewrite below
           (isHtml && injectInspector && lower === 'content-length')
         ) {
@@ -1469,21 +1468,21 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
        * page; asset/XHR requests still get the machine-readable error.
        */
       if (wantsHtmlDocument(request)) {
+        applyPreviewProxyLocale(reply, request);
+
         return reply
           .code(503)
           .header('content-type', 'text/html; charset=utf-8')
           .header('retry-after', '2')
           .header('cache-control', 'no-store')
-          .send(PREVIEW_STARTING_HTML);
+          .send(previewProxyHtml(request, 'starting'));
       }
 
       if (error?.name === 'AbortError') {
-        return reply.code(504).send({ error: 'Preview upstream timeout', code: 'PREVIEW_UPSTREAM_TIMEOUT' });
+        return sendPreviewProxyError(request, reply, 504, 'PREVIEW_UPSTREAM_TIMEOUT');
       }
 
-      return reply
-        .code(502)
-        .send({ error: 'Preview upstream error', code: 'PREVIEW_UPSTREAM_ERROR', detail: error?.message });
+      return sendPreviewProxyError(request, reply, 502, 'PREVIEW_UPSTREAM_ERROR');
     } finally {
       /*
        * Streamed responses clear the timer on stream completion (see sendStream);

@@ -1,4 +1,5 @@
 import { apiRequest, isApiResponse, type EnterpriseActionArgs } from '~/lib/enterprise-api.server';
+import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 
 /*
  * Browser-accessible proxy for configuring an API-key connector (the non-OAuth
@@ -6,17 +7,18 @@ import { apiRequest, isApiResponse, type EnterpriseActionArgs } from '~/lib/ente
  * `/api/integrations/api-key/:provider/configure` with `{ apiKey, projectId? }`;
  * the handler lives on the API service. Without this resource route the POST fell
  * through to the SPA catch-all and 405'd. We forward the body to the API, which
- * validates the key and stores it encrypted, and surface its real error verbatim.
+ * validates the key and stores it encrypted. Upstream failures are reduced to
+ * a localized stable code so connector or validation details are never echoed.
  */
 export async function action({ request, params }: EnterpriseActionArgs) {
   if (request.method !== 'POST') {
-    return Response.json({ error: 'Method not allowed' }, { status: 405 });
+    return remainingApiErrorResponse(request, 'METHOD_NOT_ALLOWED', 405);
   }
 
   const provider = String(params.provider ?? '').toLowerCase();
 
   if (!provider) {
-    return Response.json({ error: 'A provider is required.' }, { status: 400 });
+    return remainingApiErrorResponse(request, 'PROVIDER_REQUIRED', 400);
   }
 
   let apiKey = '';
@@ -31,7 +33,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
   }
 
   if (!apiKey.trim()) {
-    return Response.json({ error: 'An API key is required.' }, { status: 400 });
+    return remainingApiErrorResponse(request, 'API_KEY_REQUIRED', 400);
   }
 
   try {
@@ -43,13 +45,8 @@ export async function action({ request, params }: EnterpriseActionArgs) {
 
     return Response.json(result);
   } catch (error) {
-    if (isApiResponse(error)) {
-      return error;
-    }
+    const status = isApiResponse(error) && error.status !== 500 ? error.status : 502;
 
-    return Response.json(
-      { error: error instanceof Error ? error.message : 'Unable to configure this connector.' },
-      { status: 502 },
-    );
+    return remainingApiErrorResponse(request, 'CONNECTOR_CONFIGURE_FAILED', status);
   }
 }

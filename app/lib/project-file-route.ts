@@ -1,6 +1,8 @@
 import JSZip from 'jszip';
 
-export type ProjectFilePathResult = { ok: true; path: string } | { ok: false; error: string };
+export type ProjectFilePathResult =
+  | { ok: true; path: string }
+  | { ok: false; errorCode: 'required' | 'traversal' | 'unsupported-characters' | 'too-long' };
 
 const maxProjectFilePathLength = 4096;
 const unsafeControlCharacters = /[\0-\x1f\x7f]/;
@@ -15,28 +17,28 @@ function decodeProjectFilePath(path: string) {
 
 export function normalizeProjectFilePath(rawPath: string | undefined): ProjectFilePathResult {
   if (!rawPath) {
-    return { ok: false, error: 'File path is required' };
+    return { ok: false, errorCode: 'required' };
   }
 
   const decoded = decodeProjectFilePath(rawPath).replaceAll('\\', '/');
   const segments = decoded.split('/').filter((segment) => segment.length > 0 && segment !== '.');
 
   if (!segments.length) {
-    return { ok: false, error: 'File path is required' };
+    return { ok: false, errorCode: 'required' };
   }
 
   if (segments.some((segment) => segment === '..')) {
-    return { ok: false, error: 'File path cannot traverse outside the project' };
+    return { ok: false, errorCode: 'traversal' };
   }
 
   if (segments.some((segment) => unsafeControlCharacters.test(segment))) {
-    return { ok: false, error: 'File path contains unsupported characters' };
+    return { ok: false, errorCode: 'unsupported-characters' };
   }
 
   const normalizedPath = segments.join('/');
 
   if (normalizedPath.length > maxProjectFilePathLength) {
-    return { ok: false, error: 'File path is too long' };
+    return { ok: false, errorCode: 'too-long' };
   }
 
   return { ok: true, path: normalizedPath };

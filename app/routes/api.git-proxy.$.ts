@@ -1,7 +1,7 @@
-import { data as json } from 'react-router';
 import type { ActionFunctionArgs, LoaderFunctionArgs } from 'react-router';
 import { readSessionToken } from '~/lib/enterprise-api.server';
 import { buildRedirectHeaders } from '~/lib/git-proxy-redirect';
+import { webApiErrorResponse } from '~/lib/i18n/catalogs/web-api-routes';
 
 /*
  * Same-origin CORS origin for the git proxy. The IDE's isomorphic-git client
@@ -216,7 +216,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 async function handleProxyRequest(request: Request, path: string | undefined) {
   try {
     if (!path) {
-      return json({ error: 'Invalid proxy URL format' }, { status: 400 });
+      return webApiErrorResponse(request, 'GIT_PROXY_URL_INVALID', 400);
     }
 
     // Handle CORS preflight request (carries no session cookie — gate is below)
@@ -246,14 +246,14 @@ async function handleProxyRequest(request: Request, path: string | undefined) {
      * session cookie is present.
      */
     if (!readSessionToken(request)) {
-      return json({ error: 'Unauthorized' }, { status: 401 });
+      return webApiErrorResponse(request, 'GIT_PROXY_UNAUTHORIZED', 401);
     }
 
     // Extract domain and remaining path
     const parts = path.match(/([^\/]+)\/?(.*)/);
 
     if (!parts) {
-      return json({ error: 'Invalid path format' }, { status: 400 });
+      return webApiErrorResponse(request, 'GIT_PROXY_PATH_INVALID', 400);
     }
 
     const domain = parts[1];
@@ -265,7 +265,7 @@ async function handleProxyRequest(request: Request, path: string | undefined) {
 
     // SSRF / credential-relay guard: reject internal/private/loopback targets.
     if (!isSafeProxyTarget(targetURL)) {
-      return json({ error: 'Proxy target not allowed' }, { status: 403 });
+      return webApiErrorResponse(request, 'GIT_PROXY_TARGET_FORBIDDEN', 403);
     }
 
     console.log('Target URL:', targetURL);
@@ -336,11 +336,11 @@ async function handleProxyRequest(request: Request, path: string | undefined) {
       const nextUrl = new URL(response.headers.get('location')!, response.url || targetURL).toString();
 
       if (!isSafeProxyTarget(nextUrl)) {
-        await response.body?.cancel().catch(() => {});
-        return json({ error: 'Proxy redirect target not allowed' }, { status: 403 });
+        await response.body?.cancel().catch(() => undefined);
+        return webApiErrorResponse(request, 'GIT_PROXY_REDIRECT_FORBIDDEN', 403);
       }
 
-      await response.body?.cancel().catch(() => {});
+      await response.body?.cancel().catch(() => undefined);
 
       /*
        * Build the per-hop header set. This drops the caller's git credential
@@ -407,13 +407,6 @@ async function handleProxyRequest(request: Request, path: string | undefined) {
     });
   } catch (error) {
     console.error('Proxy error:', error);
-    return json(
-      {
-        error: 'Proxy error',
-        message: error instanceof Error ? error.message : 'Unknown error',
-        url: path ? `https://${path}` : 'Invalid URL',
-      },
-      { status: 500 },
-    );
+    return webApiErrorResponse(request, 'GIT_PROXY_FAILED', 502);
   }
 }

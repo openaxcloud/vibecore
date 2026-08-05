@@ -3,7 +3,7 @@
  */
 
 import { cleanup, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GitHubStats } from './GitHubStats';
 import type { GitHubConnection, GitHubStats as GitHubStatsType } from '~/types/GitHub';
 
@@ -16,6 +16,12 @@ import type { GitHubConnection, GitHubStats as GitHubStatsType } from '~/types/G
  */
 const useGitHubStats = vi.fn();
 
+let language = 'en';
+
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({ i18n: { language, resolvedLanguage: language } }),
+}));
+
 vi.mock('~/lib/hooks', () => ({
   useGitHubStats: (...args: unknown[]) => useGitHubStats(...args),
 }));
@@ -23,6 +29,10 @@ vi.mock('~/lib/hooks', () => ({
 afterEach(() => {
   cleanup();
   useGitHubStats.mockReset();
+});
+
+beforeEach(() => {
+  language = 'en';
 });
 
 const connection: GitHubConnection = {
@@ -40,7 +50,7 @@ function renderWithStats(stats: Partial<GitHubStatsType>) {
     isStale: false,
   });
 
-  return render(<GitHubStats connection={connection} isExpanded={true} onToggleExpanded={() => {}} />);
+  return render(<GitHubStats connection={connection} isExpanded={true} onToggleExpanded={() => undefined} />);
 }
 
 describe('GitHubStats', () => {
@@ -79,6 +89,50 @@ describe('GitHubStats', () => {
     expect(screen.getByText('CSS')).toBeTruthy();
   });
 
+  it('renders all platform-owned statistics copy and number formatting in French', () => {
+    language = 'fr';
+
+    const localized = {
+      publicRepos: 12_000,
+      privateRepos: 345,
+      totalBranches: 4,
+      totalContributors: 2,
+      totalIssues: 1,
+      totalPullRequests: 3,
+      languages: { TypeScript: 1000 },
+      mostUsedLanguages: [{ language: 'TypeScript', bytes: 1024 * 1024, repos: 1 }],
+      lastUpdated: new Date('2026-08-05T12:00:00Z').toISOString(),
+    } as Partial<GitHubStatsType>;
+
+    const view = renderWithStats(localized);
+
+    expect(screen.getByText('Vue d’ensemble GitHub')).toBeTruthy();
+    expect(screen.getByText('Total des dépôts')).toBeTruthy();
+    expect(screen.getByText('Langages utilisés')).toBeTruthy();
+    expect(screen.getByText('Résumé de l’activité')).toBeTruthy();
+    expect(screen.getByText(/Dernière actualisation/u)).toBeTruthy();
+    expect(view.container.querySelector('span[title]')?.getAttribute('title')).toBe(
+      'TypeScript : 1,00 Mo dans 1 dépôt',
+    );
+    expect(screen.queryByText('GitHub Overview')).toBeNull();
+  });
+
+  it('renders an explicit localized loading state', () => {
+    language = 'fr';
+    useGitHubStats.mockReturnValue({
+      stats: null,
+      isLoading: true,
+      isRefreshing: false,
+      refreshStats: vi.fn(),
+      isStale: false,
+    });
+
+    render(<GitHubStats connection={connection} isExpanded={true} onToggleExpanded={() => undefined} />);
+
+    expect(screen.getByRole('status').getAttribute('aria-busy')).toBe('true');
+    expect(screen.getByText('Chargement des statistiques GitHub…')).toBeTruthy();
+  });
+
   it('runs its own auto-fetch hook only in uncontrolled mode', () => {
     /*
      * Uncontrolled: parent passes no stats props, so the component mounts its own
@@ -92,7 +146,7 @@ describe('GitHubStats', () => {
       isStale: false,
     });
 
-    render(<GitHubStats connection={connection} isExpanded={true} onToggleExpanded={() => {}} />);
+    render(<GitHubStats connection={connection} isExpanded={true} onToggleExpanded={() => undefined} />);
 
     expect(useGitHubStats).toHaveBeenCalledTimes(1);
     expect(useGitHubStats.mock.calls[0][1]).toMatchObject({ autoFetch: true });
@@ -123,7 +177,7 @@ describe('GitHubStats', () => {
       <GitHubStats
         connection={connection}
         isExpanded={true}
-        onToggleExpanded={() => {}}
+        onToggleExpanded={() => undefined}
         stats={controlledStats as GitHubStatsType}
         isLoading={false}
         isRefreshing={false}

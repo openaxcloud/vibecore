@@ -3,17 +3,23 @@
  */
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { I18nextProvider } from 'react-i18next';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { BuildModeSelector } from './EcodeExactLandingControls';
+import { createI18nInstance } from '~/lib/i18n/runtime';
 
 afterEach(cleanup);
 
-function renderSelector(overrides: Partial<Parameters<typeof BuildModeSelector>[0]> = {}) {
+function renderSelector(overrides: Partial<Parameters<typeof BuildModeSelector>[0]> = {}, language = 'en') {
   const onOpenChange = vi.fn();
   const onSelectMode = vi.fn();
 
-  render(<BuildModeSelector open onOpenChange={onOpenChange} onSelectMode={onSelectMode} {...overrides} />);
+  render(
+    <I18nextProvider i18n={createI18nInstance(language)}>
+      <BuildModeSelector open onOpenChange={onOpenChange} onSelectMode={onSelectMode} {...overrides} />
+    </I18nextProvider>,
+  );
 
   return { onOpenChange, onSelectMode };
 }
@@ -59,5 +65,20 @@ describe('BuildModeSelector dismissal', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
 
     expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it('renders every mode, plural and control in professional French while preserving the project name', () => {
+    renderSelector({ featureList: ['auth', 'billing'], projectName: 'Atlas API' }, 'fr');
+
+    expect(screen.getByRole('heading', { name: 'Comment souhaitez-vous continuer ?' })).toBeTruthy();
+    expect(screen.getByText('Atlas API:')).toBeTruthy();
+    expect(screen.getByText('Liste de fonctionnalités créée')).toBeTruthy();
+    expect(screen.getByText('2 fonctionnalités')).toBeTruthy();
+    expect(screen.getByText('Commencer par le design')).toBeTruthy();
+    expect(screen.getByText('Créer l’application complète')).toBeTruthy();
+    expect(screen.getByText('Environ 3 minutes')).toBeTruthy();
+    expect(screen.getByText('Continuer à préciser le prompt')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Fermer' })).toBeTruthy();
+    expect(screen.queryByText('How would you like to continue?')).toBeNull();
   });
 });
