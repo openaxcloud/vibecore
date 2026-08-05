@@ -341,6 +341,27 @@ export interface DeploymentRecord {
   updatedAt?: string;
 }
 
+/**
+ * P0-V3-08 rollback manifest: an immutable record of one published release. See
+ * the schema model for the durability/fail-closed contract. `version` is monotonic
+ * per (projectId, environment) so N-1 is unambiguous.
+ */
+export interface ReleaseManifestRecord {
+  id: string;
+  projectId: string;
+  deploymentId: string;
+  environment: string;
+  version: number;
+  provider: string;
+  artifactKind: 'static-snapshot' | 'server-image';
+  artifactRef: string;
+  artifactDigest: string;
+  storeGeneration?: string;
+  configDigest?: string;
+  dbMigrationPoint?: string;
+  createdAt: string;
+}
+
 export interface SupportTicketRecord {
   id: string;
   organizationId: string;
@@ -1738,6 +1759,14 @@ export interface ApiStore {
    * so re-publishing an already-published app does not count against itself.
    */
   countPublishedApps(organizationId: string, options?: { excludeProjectId?: string }): Promise<number>;
+  /**
+   * Projets PUBLIÉS de l'org, avec la date de publication la plus récente de
+   * chacun. Le contrat Starter raisonne en « projets publiés ACTIFS » : il faut
+   * donc l'identité du projet ET sa date (pour appliquer l'expiration à 30 j),
+   * pas un simple compteur — un compteur ne permet ni de distinguer une
+   * republication d'un 2e projet, ni d'ignorer les publications expirées.
+   */
+  listPublishedProjects(organizationId: string): Promise<Array<{ projectId: string; publishedAt: string }>>;
   createSnapshot(input: {
     projectId: string;
     label?: string;
@@ -1855,6 +1884,32 @@ export interface ApiStore {
    * walks these to bill active machine time against their machineSize.
    */
   listActiveServerDeployments(): Promise<DeploymentRecord[]>;
+  /**
+   * P0-V3-08 rollback manifest. `createReleaseManifest` appends ONE immutable row
+   * per successful publish, assigning the next monotonic `version` for
+   * (projectId, environment) — call it under `withSerializedMutation` so two
+   * concurrent publishes can't collide on the same version. `listReleaseManifests`
+   * returns the history newest-first (version desc) so the rollback endpoint can
+   * read [0]=current, [1]=previous(N-1).
+   */
+  createReleaseManifest(input: {
+    projectId: string;
+    deploymentId: string;
+    environment: string;
+    version: number;
+    provider: string;
+    artifactKind: 'static-snapshot' | 'server-image';
+    artifactRef: string;
+    artifactDigest: string;
+    storeGeneration?: string;
+    configDigest?: string;
+    dbMigrationPoint?: string;
+  }): Promise<ReleaseManifestRecord>;
+  listReleaseManifests(
+    projectId: string,
+    environment: string,
+    options?: { take?: number },
+  ): Promise<ReleaseManifestRecord[]>;
   /**
    * The ACTIVE versioned Rate Card row (undefined when none is active — the
    * caller falls back to the built-in card). `data` is the serialized RateCard.

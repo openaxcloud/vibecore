@@ -2882,6 +2882,20 @@ describe('SaaS API', () => {
 
     await store.upsertSubscription({ organizationId: auth.organization.id, planKey: 'free', status: 'ACTIVE' });
 
+    /*
+     * Le plan gratuit n'a PLUS de plafond de projets inventé (l'ancien « 3 »
+     * était sans source). Ce test porte sur le MÉCANISME de quota et sur les
+     * overrides : on pose donc explicitement un plafond administratif de 3, puis
+     * on vérifie qu'il bloque et qu'un override ultérieur le relève.
+     */
+    await store.createQuotaOverride({
+      organizationId: auth.organization.id,
+      key: 'projects.count',
+      limit: 3,
+      reason: 'plafond administratif pour ce test',
+      createdByUserId: auth.user.id,
+    });
+
     const projectNames = ['One', 'Two', 'Three'];
 
     for (const name of projectNames) {
@@ -2932,6 +2946,7 @@ describe('SaaS API', () => {
       reason: 'contract expansion',
       createdByUserId: auth.user.id,
     });
+
 
     const allowed = await app.inject({
       method: 'POST',
@@ -3369,7 +3384,11 @@ describe('SaaS API', () => {
       });
       expect(billing.statusCode).toBe(200);
       expect(billing.json().plan.key).toBe('free');
-      expect(billing.json().limits['projects.count']).toBe(3);
+      /*
+       * Plus de plafond de projets inventé sur le plan gratuit : la valeur
+       * annoncée doit être « pas de plafond d'offre », pas « 3 ».
+       */
+      expect(billing.json().limits['projects.count']).toBeGreaterThan(1000);
     } finally {
       process.env.STRIPE_WEBHOOK_SECRET = previousSecret;
       await app.close();

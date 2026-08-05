@@ -199,6 +199,11 @@ export type Deployment = $Result.DefaultSelection<Prisma.$DeploymentPayload>
  */
 export type DeploymentEnvironment = $Result.DefaultSelection<Prisma.$DeploymentEnvironmentPayload>
 /**
+ * Model ReleaseManifest
+ * 
+ */
+export type ReleaseManifest = $Result.DefaultSelection<Prisma.$ReleaseManifestPayload>
+/**
  * Model RateCard
  * 
  */
@@ -1524,6 +1529,16 @@ export class PrismaClient<
   get deploymentEnvironment(): Prisma.DeploymentEnvironmentDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.releaseManifest`: Exposes CRUD operations for the **ReleaseManifest** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ReleaseManifests
+    * const releaseManifests = await prisma.releaseManifest.findMany()
+    * ```
+    */
+  get releaseManifest(): Prisma.ReleaseManifestDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.rateCard`: Exposes CRUD operations for the **RateCard** model.
     * Example usage:
     * ```ts
@@ -2833,6 +2848,7 @@ export namespace Prisma {
     ProjectStorageObject: 'ProjectStorageObject',
     Deployment: 'Deployment',
     DeploymentEnvironment: 'DeploymentEnvironment',
+    ReleaseManifest: 'ReleaseManifest',
     RateCard: 'RateCard',
     AuditLog: 'AuditLog',
     SecurityEventResolution: 'SecurityEventResolution',
@@ -2932,7 +2948,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "remixJob" | "importJob" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "remixJob" | "importJob" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -5655,6 +5671,80 @@ export namespace Prisma {
           count: {
             args: Prisma.DeploymentEnvironmentCountArgs<ExtArgs>
             result: $Utils.Optional<DeploymentEnvironmentCountAggregateOutputType> | number
+          }
+        }
+      }
+      ReleaseManifest: {
+        payload: Prisma.$ReleaseManifestPayload<ExtArgs>
+        fields: Prisma.ReleaseManifestFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ReleaseManifestFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReleaseManifestPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ReleaseManifestFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReleaseManifestPayload>
+          }
+          findFirst: {
+            args: Prisma.ReleaseManifestFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReleaseManifestPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ReleaseManifestFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReleaseManifestPayload>
+          }
+          findMany: {
+            args: Prisma.ReleaseManifestFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReleaseManifestPayload>[]
+          }
+          create: {
+            args: Prisma.ReleaseManifestCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReleaseManifestPayload>
+          }
+          createMany: {
+            args: Prisma.ReleaseManifestCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ReleaseManifestCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReleaseManifestPayload>[]
+          }
+          delete: {
+            args: Prisma.ReleaseManifestDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReleaseManifestPayload>
+          }
+          update: {
+            args: Prisma.ReleaseManifestUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReleaseManifestPayload>
+          }
+          deleteMany: {
+            args: Prisma.ReleaseManifestDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ReleaseManifestUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ReleaseManifestUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReleaseManifestPayload>[]
+          }
+          upsert: {
+            args: Prisma.ReleaseManifestUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReleaseManifestPayload>
+          }
+          aggregate: {
+            args: Prisma.ReleaseManifestAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateReleaseManifest>
+          }
+          groupBy: {
+            args: Prisma.ReleaseManifestGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ReleaseManifestGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ReleaseManifestCountArgs<ExtArgs>
+            result: $Utils.Optional<ReleaseManifestCountAggregateOutputType> | number
           }
         }
       }
@@ -12019,6 +12109,7 @@ export namespace Prisma {
     projectStorageObject?: ProjectStorageObjectOmit
     deployment?: DeploymentOmit
     deploymentEnvironment?: DeploymentEnvironmentOmit
+    releaseManifest?: ReleaseManifestOmit
     rateCard?: RateCardOmit
     auditLog?: AuditLogOmit
     securityEventResolution?: SecurityEventResolutionOmit
@@ -57945,6 +58036,1144 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: DeploymentEnvironmentInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ReleaseManifest
+   */
+
+  export type AggregateReleaseManifest = {
+    _count: ReleaseManifestCountAggregateOutputType | null
+    _avg: ReleaseManifestAvgAggregateOutputType | null
+    _sum: ReleaseManifestSumAggregateOutputType | null
+    _min: ReleaseManifestMinAggregateOutputType | null
+    _max: ReleaseManifestMaxAggregateOutputType | null
+  }
+
+  export type ReleaseManifestAvgAggregateOutputType = {
+    version: number | null
+  }
+
+  export type ReleaseManifestSumAggregateOutputType = {
+    version: number | null
+  }
+
+  export type ReleaseManifestMinAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    deploymentId: string | null
+    environment: string | null
+    version: number | null
+    provider: string | null
+    artifactKind: string | null
+    artifactRef: string | null
+    artifactDigest: string | null
+    storeGeneration: string | null
+    configDigest: string | null
+    dbMigrationPoint: string | null
+    createdAt: Date | null
+  }
+
+  export type ReleaseManifestMaxAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    deploymentId: string | null
+    environment: string | null
+    version: number | null
+    provider: string | null
+    artifactKind: string | null
+    artifactRef: string | null
+    artifactDigest: string | null
+    storeGeneration: string | null
+    configDigest: string | null
+    dbMigrationPoint: string | null
+    createdAt: Date | null
+  }
+
+  export type ReleaseManifestCountAggregateOutputType = {
+    id: number
+    projectId: number
+    deploymentId: number
+    environment: number
+    version: number
+    provider: number
+    artifactKind: number
+    artifactRef: number
+    artifactDigest: number
+    storeGeneration: number
+    configDigest: number
+    dbMigrationPoint: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type ReleaseManifestAvgAggregateInputType = {
+    version?: true
+  }
+
+  export type ReleaseManifestSumAggregateInputType = {
+    version?: true
+  }
+
+  export type ReleaseManifestMinAggregateInputType = {
+    id?: true
+    projectId?: true
+    deploymentId?: true
+    environment?: true
+    version?: true
+    provider?: true
+    artifactKind?: true
+    artifactRef?: true
+    artifactDigest?: true
+    storeGeneration?: true
+    configDigest?: true
+    dbMigrationPoint?: true
+    createdAt?: true
+  }
+
+  export type ReleaseManifestMaxAggregateInputType = {
+    id?: true
+    projectId?: true
+    deploymentId?: true
+    environment?: true
+    version?: true
+    provider?: true
+    artifactKind?: true
+    artifactRef?: true
+    artifactDigest?: true
+    storeGeneration?: true
+    configDigest?: true
+    dbMigrationPoint?: true
+    createdAt?: true
+  }
+
+  export type ReleaseManifestCountAggregateInputType = {
+    id?: true
+    projectId?: true
+    deploymentId?: true
+    environment?: true
+    version?: true
+    provider?: true
+    artifactKind?: true
+    artifactRef?: true
+    artifactDigest?: true
+    storeGeneration?: true
+    configDigest?: true
+    dbMigrationPoint?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type ReleaseManifestAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ReleaseManifest to aggregate.
+     */
+    where?: ReleaseManifestWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ReleaseManifests to fetch.
+     */
+    orderBy?: ReleaseManifestOrderByWithRelationInput | ReleaseManifestOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ReleaseManifestWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ReleaseManifests from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ReleaseManifests.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ReleaseManifests
+    **/
+    _count?: true | ReleaseManifestCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ReleaseManifestAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ReleaseManifestSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ReleaseManifestMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ReleaseManifestMaxAggregateInputType
+  }
+
+  export type GetReleaseManifestAggregateType<T extends ReleaseManifestAggregateArgs> = {
+        [P in keyof T & keyof AggregateReleaseManifest]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateReleaseManifest[P]>
+      : GetScalarType<T[P], AggregateReleaseManifest[P]>
+  }
+
+
+
+
+  export type ReleaseManifestGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ReleaseManifestWhereInput
+    orderBy?: ReleaseManifestOrderByWithAggregationInput | ReleaseManifestOrderByWithAggregationInput[]
+    by: ReleaseManifestScalarFieldEnum[] | ReleaseManifestScalarFieldEnum
+    having?: ReleaseManifestScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ReleaseManifestCountAggregateInputType | true
+    _avg?: ReleaseManifestAvgAggregateInputType
+    _sum?: ReleaseManifestSumAggregateInputType
+    _min?: ReleaseManifestMinAggregateInputType
+    _max?: ReleaseManifestMaxAggregateInputType
+  }
+
+  export type ReleaseManifestGroupByOutputType = {
+    id: string
+    projectId: string
+    deploymentId: string
+    environment: string
+    version: number
+    provider: string
+    artifactKind: string
+    artifactRef: string
+    artifactDigest: string
+    storeGeneration: string | null
+    configDigest: string | null
+    dbMigrationPoint: string | null
+    createdAt: Date
+    _count: ReleaseManifestCountAggregateOutputType | null
+    _avg: ReleaseManifestAvgAggregateOutputType | null
+    _sum: ReleaseManifestSumAggregateOutputType | null
+    _min: ReleaseManifestMinAggregateOutputType | null
+    _max: ReleaseManifestMaxAggregateOutputType | null
+  }
+
+  type GetReleaseManifestGroupByPayload<T extends ReleaseManifestGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ReleaseManifestGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ReleaseManifestGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ReleaseManifestGroupByOutputType[P]>
+            : GetScalarType<T[P], ReleaseManifestGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ReleaseManifestSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    deploymentId?: boolean
+    environment?: boolean
+    version?: boolean
+    provider?: boolean
+    artifactKind?: boolean
+    artifactRef?: boolean
+    artifactDigest?: boolean
+    storeGeneration?: boolean
+    configDigest?: boolean
+    dbMigrationPoint?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["releaseManifest"]>
+
+  export type ReleaseManifestSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    deploymentId?: boolean
+    environment?: boolean
+    version?: boolean
+    provider?: boolean
+    artifactKind?: boolean
+    artifactRef?: boolean
+    artifactDigest?: boolean
+    storeGeneration?: boolean
+    configDigest?: boolean
+    dbMigrationPoint?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["releaseManifest"]>
+
+  export type ReleaseManifestSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    deploymentId?: boolean
+    environment?: boolean
+    version?: boolean
+    provider?: boolean
+    artifactKind?: boolean
+    artifactRef?: boolean
+    artifactDigest?: boolean
+    storeGeneration?: boolean
+    configDigest?: boolean
+    dbMigrationPoint?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["releaseManifest"]>
+
+  export type ReleaseManifestSelectScalar = {
+    id?: boolean
+    projectId?: boolean
+    deploymentId?: boolean
+    environment?: boolean
+    version?: boolean
+    provider?: boolean
+    artifactKind?: boolean
+    artifactRef?: boolean
+    artifactDigest?: boolean
+    storeGeneration?: boolean
+    configDigest?: boolean
+    dbMigrationPoint?: boolean
+    createdAt?: boolean
+  }
+
+  export type ReleaseManifestOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "deploymentId" | "environment" | "version" | "provider" | "artifactKind" | "artifactRef" | "artifactDigest" | "storeGeneration" | "configDigest" | "dbMigrationPoint" | "createdAt", ExtArgs["result"]["releaseManifest"]>
+
+  export type $ReleaseManifestPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ReleaseManifest"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      projectId: string
+      deploymentId: string
+      environment: string
+      version: number
+      provider: string
+      artifactKind: string
+      artifactRef: string
+      artifactDigest: string
+      storeGeneration: string | null
+      configDigest: string | null
+      dbMigrationPoint: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["releaseManifest"]>
+    composites: {}
+  }
+
+  type ReleaseManifestGetPayload<S extends boolean | null | undefined | ReleaseManifestDefaultArgs> = $Result.GetResult<Prisma.$ReleaseManifestPayload, S>
+
+  type ReleaseManifestCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ReleaseManifestFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ReleaseManifestCountAggregateInputType | true
+    }
+
+  export interface ReleaseManifestDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ReleaseManifest'], meta: { name: 'ReleaseManifest' } }
+    /**
+     * Find zero or one ReleaseManifest that matches the filter.
+     * @param {ReleaseManifestFindUniqueArgs} args - Arguments to find a ReleaseManifest
+     * @example
+     * // Get one ReleaseManifest
+     * const releaseManifest = await prisma.releaseManifest.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ReleaseManifestFindUniqueArgs>(args: SelectSubset<T, ReleaseManifestFindUniqueArgs<ExtArgs>>): Prisma__ReleaseManifestClient<$Result.GetResult<Prisma.$ReleaseManifestPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ReleaseManifest that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ReleaseManifestFindUniqueOrThrowArgs} args - Arguments to find a ReleaseManifest
+     * @example
+     * // Get one ReleaseManifest
+     * const releaseManifest = await prisma.releaseManifest.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ReleaseManifestFindUniqueOrThrowArgs>(args: SelectSubset<T, ReleaseManifestFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ReleaseManifestClient<$Result.GetResult<Prisma.$ReleaseManifestPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ReleaseManifest that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReleaseManifestFindFirstArgs} args - Arguments to find a ReleaseManifest
+     * @example
+     * // Get one ReleaseManifest
+     * const releaseManifest = await prisma.releaseManifest.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ReleaseManifestFindFirstArgs>(args?: SelectSubset<T, ReleaseManifestFindFirstArgs<ExtArgs>>): Prisma__ReleaseManifestClient<$Result.GetResult<Prisma.$ReleaseManifestPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ReleaseManifest that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReleaseManifestFindFirstOrThrowArgs} args - Arguments to find a ReleaseManifest
+     * @example
+     * // Get one ReleaseManifest
+     * const releaseManifest = await prisma.releaseManifest.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ReleaseManifestFindFirstOrThrowArgs>(args?: SelectSubset<T, ReleaseManifestFindFirstOrThrowArgs<ExtArgs>>): Prisma__ReleaseManifestClient<$Result.GetResult<Prisma.$ReleaseManifestPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ReleaseManifests that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReleaseManifestFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ReleaseManifests
+     * const releaseManifests = await prisma.releaseManifest.findMany()
+     * 
+     * // Get first 10 ReleaseManifests
+     * const releaseManifests = await prisma.releaseManifest.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const releaseManifestWithIdOnly = await prisma.releaseManifest.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ReleaseManifestFindManyArgs>(args?: SelectSubset<T, ReleaseManifestFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ReleaseManifestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ReleaseManifest.
+     * @param {ReleaseManifestCreateArgs} args - Arguments to create a ReleaseManifest.
+     * @example
+     * // Create one ReleaseManifest
+     * const ReleaseManifest = await prisma.releaseManifest.create({
+     *   data: {
+     *     // ... data to create a ReleaseManifest
+     *   }
+     * })
+     * 
+     */
+    create<T extends ReleaseManifestCreateArgs>(args: SelectSubset<T, ReleaseManifestCreateArgs<ExtArgs>>): Prisma__ReleaseManifestClient<$Result.GetResult<Prisma.$ReleaseManifestPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ReleaseManifests.
+     * @param {ReleaseManifestCreateManyArgs} args - Arguments to create many ReleaseManifests.
+     * @example
+     * // Create many ReleaseManifests
+     * const releaseManifest = await prisma.releaseManifest.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ReleaseManifestCreateManyArgs>(args?: SelectSubset<T, ReleaseManifestCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ReleaseManifests and returns the data saved in the database.
+     * @param {ReleaseManifestCreateManyAndReturnArgs} args - Arguments to create many ReleaseManifests.
+     * @example
+     * // Create many ReleaseManifests
+     * const releaseManifest = await prisma.releaseManifest.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ReleaseManifests and only return the `id`
+     * const releaseManifestWithIdOnly = await prisma.releaseManifest.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ReleaseManifestCreateManyAndReturnArgs>(args?: SelectSubset<T, ReleaseManifestCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ReleaseManifestPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ReleaseManifest.
+     * @param {ReleaseManifestDeleteArgs} args - Arguments to delete one ReleaseManifest.
+     * @example
+     * // Delete one ReleaseManifest
+     * const ReleaseManifest = await prisma.releaseManifest.delete({
+     *   where: {
+     *     // ... filter to delete one ReleaseManifest
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ReleaseManifestDeleteArgs>(args: SelectSubset<T, ReleaseManifestDeleteArgs<ExtArgs>>): Prisma__ReleaseManifestClient<$Result.GetResult<Prisma.$ReleaseManifestPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ReleaseManifest.
+     * @param {ReleaseManifestUpdateArgs} args - Arguments to update one ReleaseManifest.
+     * @example
+     * // Update one ReleaseManifest
+     * const releaseManifest = await prisma.releaseManifest.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ReleaseManifestUpdateArgs>(args: SelectSubset<T, ReleaseManifestUpdateArgs<ExtArgs>>): Prisma__ReleaseManifestClient<$Result.GetResult<Prisma.$ReleaseManifestPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ReleaseManifests.
+     * @param {ReleaseManifestDeleteManyArgs} args - Arguments to filter ReleaseManifests to delete.
+     * @example
+     * // Delete a few ReleaseManifests
+     * const { count } = await prisma.releaseManifest.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ReleaseManifestDeleteManyArgs>(args?: SelectSubset<T, ReleaseManifestDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ReleaseManifests.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReleaseManifestUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ReleaseManifests
+     * const releaseManifest = await prisma.releaseManifest.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ReleaseManifestUpdateManyArgs>(args: SelectSubset<T, ReleaseManifestUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ReleaseManifests and returns the data updated in the database.
+     * @param {ReleaseManifestUpdateManyAndReturnArgs} args - Arguments to update many ReleaseManifests.
+     * @example
+     * // Update many ReleaseManifests
+     * const releaseManifest = await prisma.releaseManifest.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ReleaseManifests and only return the `id`
+     * const releaseManifestWithIdOnly = await prisma.releaseManifest.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ReleaseManifestUpdateManyAndReturnArgs>(args: SelectSubset<T, ReleaseManifestUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ReleaseManifestPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ReleaseManifest.
+     * @param {ReleaseManifestUpsertArgs} args - Arguments to update or create a ReleaseManifest.
+     * @example
+     * // Update or create a ReleaseManifest
+     * const releaseManifest = await prisma.releaseManifest.upsert({
+     *   create: {
+     *     // ... data to create a ReleaseManifest
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ReleaseManifest we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ReleaseManifestUpsertArgs>(args: SelectSubset<T, ReleaseManifestUpsertArgs<ExtArgs>>): Prisma__ReleaseManifestClient<$Result.GetResult<Prisma.$ReleaseManifestPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ReleaseManifests.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReleaseManifestCountArgs} args - Arguments to filter ReleaseManifests to count.
+     * @example
+     * // Count the number of ReleaseManifests
+     * const count = await prisma.releaseManifest.count({
+     *   where: {
+     *     // ... the filter for the ReleaseManifests we want to count
+     *   }
+     * })
+    **/
+    count<T extends ReleaseManifestCountArgs>(
+      args?: Subset<T, ReleaseManifestCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ReleaseManifestCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ReleaseManifest.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReleaseManifestAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ReleaseManifestAggregateArgs>(args: Subset<T, ReleaseManifestAggregateArgs>): Prisma.PrismaPromise<GetReleaseManifestAggregateType<T>>
+
+    /**
+     * Group by ReleaseManifest.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReleaseManifestGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ReleaseManifestGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ReleaseManifestGroupByArgs['orderBy'] }
+        : { orderBy?: ReleaseManifestGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ReleaseManifestGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetReleaseManifestGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ReleaseManifest model
+   */
+  readonly fields: ReleaseManifestFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ReleaseManifest.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ReleaseManifestClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ReleaseManifest model
+   */
+  interface ReleaseManifestFieldRefs {
+    readonly id: FieldRef<"ReleaseManifest", 'String'>
+    readonly projectId: FieldRef<"ReleaseManifest", 'String'>
+    readonly deploymentId: FieldRef<"ReleaseManifest", 'String'>
+    readonly environment: FieldRef<"ReleaseManifest", 'String'>
+    readonly version: FieldRef<"ReleaseManifest", 'Int'>
+    readonly provider: FieldRef<"ReleaseManifest", 'String'>
+    readonly artifactKind: FieldRef<"ReleaseManifest", 'String'>
+    readonly artifactRef: FieldRef<"ReleaseManifest", 'String'>
+    readonly artifactDigest: FieldRef<"ReleaseManifest", 'String'>
+    readonly storeGeneration: FieldRef<"ReleaseManifest", 'String'>
+    readonly configDigest: FieldRef<"ReleaseManifest", 'String'>
+    readonly dbMigrationPoint: FieldRef<"ReleaseManifest", 'String'>
+    readonly createdAt: FieldRef<"ReleaseManifest", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ReleaseManifest findUnique
+   */
+  export type ReleaseManifestFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReleaseManifest
+     */
+    select?: ReleaseManifestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReleaseManifest
+     */
+    omit?: ReleaseManifestOmit<ExtArgs> | null
+    /**
+     * Filter, which ReleaseManifest to fetch.
+     */
+    where: ReleaseManifestWhereUniqueInput
+  }
+
+  /**
+   * ReleaseManifest findUniqueOrThrow
+   */
+  export type ReleaseManifestFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReleaseManifest
+     */
+    select?: ReleaseManifestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReleaseManifest
+     */
+    omit?: ReleaseManifestOmit<ExtArgs> | null
+    /**
+     * Filter, which ReleaseManifest to fetch.
+     */
+    where: ReleaseManifestWhereUniqueInput
+  }
+
+  /**
+   * ReleaseManifest findFirst
+   */
+  export type ReleaseManifestFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReleaseManifest
+     */
+    select?: ReleaseManifestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReleaseManifest
+     */
+    omit?: ReleaseManifestOmit<ExtArgs> | null
+    /**
+     * Filter, which ReleaseManifest to fetch.
+     */
+    where?: ReleaseManifestWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ReleaseManifests to fetch.
+     */
+    orderBy?: ReleaseManifestOrderByWithRelationInput | ReleaseManifestOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ReleaseManifests.
+     */
+    cursor?: ReleaseManifestWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ReleaseManifests from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ReleaseManifests.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ReleaseManifests.
+     */
+    distinct?: ReleaseManifestScalarFieldEnum | ReleaseManifestScalarFieldEnum[]
+  }
+
+  /**
+   * ReleaseManifest findFirstOrThrow
+   */
+  export type ReleaseManifestFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReleaseManifest
+     */
+    select?: ReleaseManifestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReleaseManifest
+     */
+    omit?: ReleaseManifestOmit<ExtArgs> | null
+    /**
+     * Filter, which ReleaseManifest to fetch.
+     */
+    where?: ReleaseManifestWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ReleaseManifests to fetch.
+     */
+    orderBy?: ReleaseManifestOrderByWithRelationInput | ReleaseManifestOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ReleaseManifests.
+     */
+    cursor?: ReleaseManifestWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ReleaseManifests from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ReleaseManifests.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ReleaseManifests.
+     */
+    distinct?: ReleaseManifestScalarFieldEnum | ReleaseManifestScalarFieldEnum[]
+  }
+
+  /**
+   * ReleaseManifest findMany
+   */
+  export type ReleaseManifestFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReleaseManifest
+     */
+    select?: ReleaseManifestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReleaseManifest
+     */
+    omit?: ReleaseManifestOmit<ExtArgs> | null
+    /**
+     * Filter, which ReleaseManifests to fetch.
+     */
+    where?: ReleaseManifestWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ReleaseManifests to fetch.
+     */
+    orderBy?: ReleaseManifestOrderByWithRelationInput | ReleaseManifestOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ReleaseManifests.
+     */
+    cursor?: ReleaseManifestWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ReleaseManifests from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ReleaseManifests.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ReleaseManifests.
+     */
+    distinct?: ReleaseManifestScalarFieldEnum | ReleaseManifestScalarFieldEnum[]
+  }
+
+  /**
+   * ReleaseManifest create
+   */
+  export type ReleaseManifestCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReleaseManifest
+     */
+    select?: ReleaseManifestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReleaseManifest
+     */
+    omit?: ReleaseManifestOmit<ExtArgs> | null
+    /**
+     * The data needed to create a ReleaseManifest.
+     */
+    data: XOR<ReleaseManifestCreateInput, ReleaseManifestUncheckedCreateInput>
+  }
+
+  /**
+   * ReleaseManifest createMany
+   */
+  export type ReleaseManifestCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ReleaseManifests.
+     */
+    data: ReleaseManifestCreateManyInput | ReleaseManifestCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ReleaseManifest createManyAndReturn
+   */
+  export type ReleaseManifestCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReleaseManifest
+     */
+    select?: ReleaseManifestSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReleaseManifest
+     */
+    omit?: ReleaseManifestOmit<ExtArgs> | null
+    /**
+     * The data used to create many ReleaseManifests.
+     */
+    data: ReleaseManifestCreateManyInput | ReleaseManifestCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ReleaseManifest update
+   */
+  export type ReleaseManifestUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReleaseManifest
+     */
+    select?: ReleaseManifestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReleaseManifest
+     */
+    omit?: ReleaseManifestOmit<ExtArgs> | null
+    /**
+     * The data needed to update a ReleaseManifest.
+     */
+    data: XOR<ReleaseManifestUpdateInput, ReleaseManifestUncheckedUpdateInput>
+    /**
+     * Choose, which ReleaseManifest to update.
+     */
+    where: ReleaseManifestWhereUniqueInput
+  }
+
+  /**
+   * ReleaseManifest updateMany
+   */
+  export type ReleaseManifestUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ReleaseManifests.
+     */
+    data: XOR<ReleaseManifestUpdateManyMutationInput, ReleaseManifestUncheckedUpdateManyInput>
+    /**
+     * Filter which ReleaseManifests to update
+     */
+    where?: ReleaseManifestWhereInput
+    /**
+     * Limit how many ReleaseManifests to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ReleaseManifest updateManyAndReturn
+   */
+  export type ReleaseManifestUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReleaseManifest
+     */
+    select?: ReleaseManifestSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReleaseManifest
+     */
+    omit?: ReleaseManifestOmit<ExtArgs> | null
+    /**
+     * The data used to update ReleaseManifests.
+     */
+    data: XOR<ReleaseManifestUpdateManyMutationInput, ReleaseManifestUncheckedUpdateManyInput>
+    /**
+     * Filter which ReleaseManifests to update
+     */
+    where?: ReleaseManifestWhereInput
+    /**
+     * Limit how many ReleaseManifests to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ReleaseManifest upsert
+   */
+  export type ReleaseManifestUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReleaseManifest
+     */
+    select?: ReleaseManifestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReleaseManifest
+     */
+    omit?: ReleaseManifestOmit<ExtArgs> | null
+    /**
+     * The filter to search for the ReleaseManifest to update in case it exists.
+     */
+    where: ReleaseManifestWhereUniqueInput
+    /**
+     * In case the ReleaseManifest found by the `where` argument doesn't exist, create a new ReleaseManifest with this data.
+     */
+    create: XOR<ReleaseManifestCreateInput, ReleaseManifestUncheckedCreateInput>
+    /**
+     * In case the ReleaseManifest was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ReleaseManifestUpdateInput, ReleaseManifestUncheckedUpdateInput>
+  }
+
+  /**
+   * ReleaseManifest delete
+   */
+  export type ReleaseManifestDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReleaseManifest
+     */
+    select?: ReleaseManifestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReleaseManifest
+     */
+    omit?: ReleaseManifestOmit<ExtArgs> | null
+    /**
+     * Filter which ReleaseManifest to delete.
+     */
+    where: ReleaseManifestWhereUniqueInput
+  }
+
+  /**
+   * ReleaseManifest deleteMany
+   */
+  export type ReleaseManifestDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ReleaseManifests to delete
+     */
+    where?: ReleaseManifestWhereInput
+    /**
+     * Limit how many ReleaseManifests to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ReleaseManifest without action
+   */
+  export type ReleaseManifestDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReleaseManifest
+     */
+    select?: ReleaseManifestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReleaseManifest
+     */
+    omit?: ReleaseManifestOmit<ExtArgs> | null
   }
 
 
@@ -153967,6 +155196,25 @@ export namespace Prisma {
   export type DeploymentEnvironmentScalarFieldEnum = (typeof DeploymentEnvironmentScalarFieldEnum)[keyof typeof DeploymentEnvironmentScalarFieldEnum]
 
 
+  export const ReleaseManifestScalarFieldEnum: {
+    id: 'id',
+    projectId: 'projectId',
+    deploymentId: 'deploymentId',
+    environment: 'environment',
+    version: 'version',
+    provider: 'provider',
+    artifactKind: 'artifactKind',
+    artifactRef: 'artifactRef',
+    artifactDigest: 'artifactDigest',
+    storeGeneration: 'storeGeneration',
+    configDigest: 'configDigest',
+    dbMigrationPoint: 'dbMigrationPoint',
+    createdAt: 'createdAt'
+  };
+
+  export type ReleaseManifestScalarFieldEnum = (typeof ReleaseManifestScalarFieldEnum)[keyof typeof ReleaseManifestScalarFieldEnum]
+
+
   export const RateCardScalarFieldEnum: {
     id: 'id',
     version: 'version',
@@ -158843,6 +160091,101 @@ export namespace Prisma {
     NOT?: DeploymentEnvironmentScalarWhereWithAggregatesInput | DeploymentEnvironmentScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"DeploymentEnvironment"> | string
     name?: StringWithAggregatesFilter<"DeploymentEnvironment"> | string
+  }
+
+  export type ReleaseManifestWhereInput = {
+    AND?: ReleaseManifestWhereInput | ReleaseManifestWhereInput[]
+    OR?: ReleaseManifestWhereInput[]
+    NOT?: ReleaseManifestWhereInput | ReleaseManifestWhereInput[]
+    id?: StringFilter<"ReleaseManifest"> | string
+    projectId?: StringFilter<"ReleaseManifest"> | string
+    deploymentId?: StringFilter<"ReleaseManifest"> | string
+    environment?: StringFilter<"ReleaseManifest"> | string
+    version?: IntFilter<"ReleaseManifest"> | number
+    provider?: StringFilter<"ReleaseManifest"> | string
+    artifactKind?: StringFilter<"ReleaseManifest"> | string
+    artifactRef?: StringFilter<"ReleaseManifest"> | string
+    artifactDigest?: StringFilter<"ReleaseManifest"> | string
+    storeGeneration?: StringNullableFilter<"ReleaseManifest"> | string | null
+    configDigest?: StringNullableFilter<"ReleaseManifest"> | string | null
+    dbMigrationPoint?: StringNullableFilter<"ReleaseManifest"> | string | null
+    createdAt?: DateTimeFilter<"ReleaseManifest"> | Date | string
+  }
+
+  export type ReleaseManifestOrderByWithRelationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    deploymentId?: SortOrder
+    environment?: SortOrder
+    version?: SortOrder
+    provider?: SortOrder
+    artifactKind?: SortOrder
+    artifactRef?: SortOrder
+    artifactDigest?: SortOrder
+    storeGeneration?: SortOrderInput | SortOrder
+    configDigest?: SortOrderInput | SortOrder
+    dbMigrationPoint?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ReleaseManifestWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    projectId_environment_version?: ReleaseManifestProjectIdEnvironmentVersionCompoundUniqueInput
+    AND?: ReleaseManifestWhereInput | ReleaseManifestWhereInput[]
+    OR?: ReleaseManifestWhereInput[]
+    NOT?: ReleaseManifestWhereInput | ReleaseManifestWhereInput[]
+    projectId?: StringFilter<"ReleaseManifest"> | string
+    deploymentId?: StringFilter<"ReleaseManifest"> | string
+    environment?: StringFilter<"ReleaseManifest"> | string
+    version?: IntFilter<"ReleaseManifest"> | number
+    provider?: StringFilter<"ReleaseManifest"> | string
+    artifactKind?: StringFilter<"ReleaseManifest"> | string
+    artifactRef?: StringFilter<"ReleaseManifest"> | string
+    artifactDigest?: StringFilter<"ReleaseManifest"> | string
+    storeGeneration?: StringNullableFilter<"ReleaseManifest"> | string | null
+    configDigest?: StringNullableFilter<"ReleaseManifest"> | string | null
+    dbMigrationPoint?: StringNullableFilter<"ReleaseManifest"> | string | null
+    createdAt?: DateTimeFilter<"ReleaseManifest"> | Date | string
+  }, "id" | "projectId_environment_version">
+
+  export type ReleaseManifestOrderByWithAggregationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    deploymentId?: SortOrder
+    environment?: SortOrder
+    version?: SortOrder
+    provider?: SortOrder
+    artifactKind?: SortOrder
+    artifactRef?: SortOrder
+    artifactDigest?: SortOrder
+    storeGeneration?: SortOrderInput | SortOrder
+    configDigest?: SortOrderInput | SortOrder
+    dbMigrationPoint?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: ReleaseManifestCountOrderByAggregateInput
+    _avg?: ReleaseManifestAvgOrderByAggregateInput
+    _max?: ReleaseManifestMaxOrderByAggregateInput
+    _min?: ReleaseManifestMinOrderByAggregateInput
+    _sum?: ReleaseManifestSumOrderByAggregateInput
+  }
+
+  export type ReleaseManifestScalarWhereWithAggregatesInput = {
+    AND?: ReleaseManifestScalarWhereWithAggregatesInput | ReleaseManifestScalarWhereWithAggregatesInput[]
+    OR?: ReleaseManifestScalarWhereWithAggregatesInput[]
+    NOT?: ReleaseManifestScalarWhereWithAggregatesInput | ReleaseManifestScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ReleaseManifest"> | string
+    projectId?: StringWithAggregatesFilter<"ReleaseManifest"> | string
+    deploymentId?: StringWithAggregatesFilter<"ReleaseManifest"> | string
+    environment?: StringWithAggregatesFilter<"ReleaseManifest"> | string
+    version?: IntWithAggregatesFilter<"ReleaseManifest"> | number
+    provider?: StringWithAggregatesFilter<"ReleaseManifest"> | string
+    artifactKind?: StringWithAggregatesFilter<"ReleaseManifest"> | string
+    artifactRef?: StringWithAggregatesFilter<"ReleaseManifest"> | string
+    artifactDigest?: StringWithAggregatesFilter<"ReleaseManifest"> | string
+    storeGeneration?: StringNullableWithAggregatesFilter<"ReleaseManifest"> | string | null
+    configDigest?: StringNullableWithAggregatesFilter<"ReleaseManifest"> | string | null
+    dbMigrationPoint?: StringNullableWithAggregatesFilter<"ReleaseManifest"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"ReleaseManifest"> | Date | string
   }
 
   export type RateCardWhereInput = {
@@ -168929,6 +170272,118 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
   }
 
+  export type ReleaseManifestCreateInput = {
+    id?: string
+    projectId: string
+    deploymentId: string
+    environment?: string
+    version: number
+    provider: string
+    artifactKind: string
+    artifactRef: string
+    artifactDigest: string
+    storeGeneration?: string | null
+    configDigest?: string | null
+    dbMigrationPoint?: string | null
+    createdAt?: Date | string
+  }
+
+  export type ReleaseManifestUncheckedCreateInput = {
+    id?: string
+    projectId: string
+    deploymentId: string
+    environment?: string
+    version: number
+    provider: string
+    artifactKind: string
+    artifactRef: string
+    artifactDigest: string
+    storeGeneration?: string | null
+    configDigest?: string | null
+    dbMigrationPoint?: string | null
+    createdAt?: Date | string
+  }
+
+  export type ReleaseManifestUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    deploymentId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    provider?: StringFieldUpdateOperationsInput | string
+    artifactKind?: StringFieldUpdateOperationsInput | string
+    artifactRef?: StringFieldUpdateOperationsInput | string
+    artifactDigest?: StringFieldUpdateOperationsInput | string
+    storeGeneration?: NullableStringFieldUpdateOperationsInput | string | null
+    configDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    dbMigrationPoint?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ReleaseManifestUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    deploymentId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    provider?: StringFieldUpdateOperationsInput | string
+    artifactKind?: StringFieldUpdateOperationsInput | string
+    artifactRef?: StringFieldUpdateOperationsInput | string
+    artifactDigest?: StringFieldUpdateOperationsInput | string
+    storeGeneration?: NullableStringFieldUpdateOperationsInput | string | null
+    configDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    dbMigrationPoint?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ReleaseManifestCreateManyInput = {
+    id?: string
+    projectId: string
+    deploymentId: string
+    environment?: string
+    version: number
+    provider: string
+    artifactKind: string
+    artifactRef: string
+    artifactDigest: string
+    storeGeneration?: string | null
+    configDigest?: string | null
+    dbMigrationPoint?: string | null
+    createdAt?: Date | string
+  }
+
+  export type ReleaseManifestUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    deploymentId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    provider?: StringFieldUpdateOperationsInput | string
+    artifactKind?: StringFieldUpdateOperationsInput | string
+    artifactRef?: StringFieldUpdateOperationsInput | string
+    artifactDigest?: StringFieldUpdateOperationsInput | string
+    storeGeneration?: NullableStringFieldUpdateOperationsInput | string | null
+    configDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    dbMigrationPoint?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ReleaseManifestUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    deploymentId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    provider?: StringFieldUpdateOperationsInput | string
+    artifactKind?: StringFieldUpdateOperationsInput | string
+    artifactRef?: StringFieldUpdateOperationsInput | string
+    artifactDigest?: StringFieldUpdateOperationsInput | string
+    storeGeneration?: NullableStringFieldUpdateOperationsInput | string | null
+    configDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    dbMigrationPoint?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type RateCardCreateInput = {
     id?: string
     version: number
@@ -178977,6 +180432,68 @@ export namespace Prisma {
   export type DeploymentEnvironmentMinOrderByAggregateInput = {
     id?: SortOrder
     name?: SortOrder
+  }
+
+  export type ReleaseManifestProjectIdEnvironmentVersionCompoundUniqueInput = {
+    projectId: string
+    environment: string
+    version: number
+  }
+
+  export type ReleaseManifestCountOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    deploymentId?: SortOrder
+    environment?: SortOrder
+    version?: SortOrder
+    provider?: SortOrder
+    artifactKind?: SortOrder
+    artifactRef?: SortOrder
+    artifactDigest?: SortOrder
+    storeGeneration?: SortOrder
+    configDigest?: SortOrder
+    dbMigrationPoint?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ReleaseManifestAvgOrderByAggregateInput = {
+    version?: SortOrder
+  }
+
+  export type ReleaseManifestMaxOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    deploymentId?: SortOrder
+    environment?: SortOrder
+    version?: SortOrder
+    provider?: SortOrder
+    artifactKind?: SortOrder
+    artifactRef?: SortOrder
+    artifactDigest?: SortOrder
+    storeGeneration?: SortOrder
+    configDigest?: SortOrder
+    dbMigrationPoint?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ReleaseManifestMinOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    deploymentId?: SortOrder
+    environment?: SortOrder
+    version?: SortOrder
+    provider?: SortOrder
+    artifactKind?: SortOrder
+    artifactRef?: SortOrder
+    artifactDigest?: SortOrder
+    storeGeneration?: SortOrder
+    configDigest?: SortOrder
+    dbMigrationPoint?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ReleaseManifestSumOrderByAggregateInput = {
+    version?: SortOrder
   }
 
   export type RateCardCountOrderByAggregateInput = {

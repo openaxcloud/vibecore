@@ -30,7 +30,8 @@ import {
 import {
   StripeBillingClient,
   assertQuota,
-  assertConcurrentPublishedApps,
+  assertPublishEntitlement,
+  EntitlementError,
   aiModelCatalog,
   availableMachineSizes,
   machineSizeFromCard,
@@ -207,10 +208,12 @@ import {
   buildPublishedDeploymentInput,
   canPublishDeployment,
   canPollDeploymentStatus,
+  computeStaticSnapshotDigest,
   createDeploymentLogs,
   deployProviderConfigError,
   pollProviderDeploymentStatus,
   removeStaticDeploymentSnapshot,
+  restoreStaticSnapshotInto,
   runStaticBuild,
   sanitizeDeploymentEnvVars,
   serverDeployHost,
@@ -310,6 +313,12 @@ import {
   resolveDeployMachineSize,
 } from './rate-card-service.js';
 import { resolveRollbackImage, resolveRollbackSecrets, type SecretPolicy } from './release-rollback.js';
+import {
+  assertArtifactMatchesManifest,
+  configDigest,
+  RollbackManifestError,
+  selectPreviousRelease,
+} from './release-manifest.js';
 import { recordIbanMasked, recordUnknownIbanCountry } from './remix-pii-metrics.js';
 import { computeWorkspaceRestorePlan, isPortReadyFromProbe, type PortProbeResult } from './runtime-readiness.js';
 import { aggregatePreviewReadiness } from './runtime-readiness.js';
@@ -6600,6 +6609,87 @@ function serverDeployRevisionEnabledForProject(projectId: string | undefined): b
       .filter(Boolean)
       .includes(projectId)
   );
+}
+
+/**
+ * P0-V3-08: append the immutable ReleaseManifest row for a deployment that just
+ * reached READY, so a later rollback is deterministic. Best-effort — a manifest
+ * write must NEVER fail an already-succeeded publish — but its absence is caught
+ * fail-closed at rollback time (no manifest ⇒ no rollback). Static releases pin a
+ * content digest of the served bytes; server releases pin the image sha256 (+ Nix
+ * generation). External providers keep their own history, so we skip them.
+ */
+async function writeReleaseManifest(
+  store: ApiStore,
+  logger: { warn: (obj: unknown, msg?: string) => void },
+  deployment: DeploymentRecord,
+  envVars: Record<string, string> | undefined,
+): Promise<void> {
+  try {
+    if (deployment.status !== 'READY') {
+      return;
+    }
+
+    let artifactKind: 'static-snapshot' | 'server-image';
+    let artifactRef: string;
+    let artifactDigest: string;
+    let storeGeneration: string | undefined;
+
+    if (deployment.provider === 'static') {
+      const digest = await computeStaticSnapshotDigest(deployment.id);
+
+      if (!digest) {
+        logger.warn({ deploymentId: deployment.id }, 'release_manifest.no_static_snapshot');
+        return;
+      }
+
+      artifactKind = 'static-snapshot';
+      artifactRef = `static-deployments/${deployment.id}`;
+      artifactDigest = digest;
+    } else if (deployment.provider === 'server') {
+      const image = ((deployment.metadata as Record<string, unknown> | undefined)?.serverDeploy as
+        | { image?: { imageRef?: string; imageUri?: string; imageDigest?: string; storeGeneration?: string } }
+        | undefined)?.image;
+
+      if (!image?.imageDigest) {
+        // A server release with no retained digest can never be a rollback target
+        // (resolveRollbackImage refuses it) — recording a manifest without one
+        // would be a lie, so skip. Rollback then fail-closes on the missing digest.
+        logger.warn({ deploymentId: deployment.id }, 'release_manifest.server_no_digest');
+        return;
+      }
+
+      artifactKind = 'server-image';
+      artifactRef = (image.imageRef ?? image.imageUri ?? '').replace(/:[^:/]+$/, '');
+      artifactDigest = image.imageDigest;
+      storeGeneration = image.storeGeneration;
+    } else {
+      return;
+    }
+
+    const environment = deployment.environment ?? 'preview';
+    const cfgDigest = configDigest(envVars ?? {});
+
+    await store.withSerializedMutation(`release-manifest:${deployment.projectId}:${environment}`, async () => {
+      const latest = await store.listReleaseManifests(deployment.projectId, environment, { take: 1 });
+      const nextVersion = (latest[0]?.version ?? 0) + 1;
+
+      await store.createReleaseManifest({
+        projectId: deployment.projectId,
+        deploymentId: deployment.id,
+        environment,
+        version: nextVersion,
+        provider: deployment.provider,
+        artifactKind,
+        artifactRef,
+        artifactDigest,
+        ...(storeGeneration ? { storeGeneration } : {}),
+        configDigest: cfgDigest,
+      });
+    });
+  } catch (error) {
+    logger.warn({ err: error, deploymentId: deployment.id }, 'release_manifest.append_failed');
+  }
 }
 
 /*
@@ -31085,6 +31175,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       finishedAt: status === 'BUILDING' ? undefined : new Date().toISOString(),
     });
 
+    // P0-V3-08: record the immutable release manifest for a successful publish so
+    // a later rollback is deterministic + fail-closed. Best-effort; never blocks.
+    await writeReleaseManifest(store, app.log, ready, body.envVars);
+
     /*
      * Bill against the PERSISTED status, not the locally-computed `status`. The
      * static build runs outside the org lock, so a concurrent cancel can flip
@@ -32115,17 +32209,43 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     /*
-     * Replit-parity concurrent published-app cap (20 live apps/account). Gated
-     * with the rest of the credit model behind BILLING_CREDITS_ENABLED so prod
-     * behaviour is unchanged until the parity billing model is flipped on. We
-     * exclude this project from the count, so re-publishing an already-published
-     * app never trips its own cap — only publishing a NEW (21st) app does.
+     * ---- Contrat Starter : projets publiés ACTIFS (pas « déploiements ») ----
+     *
+     * L'offre gratuite autorise UN projet publié à la fois. Trois conséquences
+     * que le modèle précédent (« cap de déploiements ») ratait :
+     *  - republier le MÊME projet est toujours autorisé — sinon on interdirait
+     *    de corriger un bug en production ;
+     *  - seul un DEUXIÈME projet distinct déclenche l'invitation à monter de
+     *    plan ;
+     *  - une publication Starter s'éteint au bout de 30 jours et cesse alors de
+     *    consommer la place, ce qui permet de republier sans intervention.
+     *
+     * Hors du flag crédits : un entitlement décrit l'OFFRE, pas le modèle de
+     * facturation à l'usage ; derrière un flag non défini, il n'applique rien.
      */
-    if (process.env.BILLING_CREDITS_ENABLED === 'true') {
-      const activeOthers = await store.countPublishedApps(project.organizationId, {
-        excludeProjectId: project.id,
+    const publications = await store.listPublishedProjects(project.organizationId).catch(() => []);
+    const entitlementPlanKey = (await billingState(project.organizationId).catch(() => undefined))?.plan.key;
+
+    try {
+      assertPublishEntitlement({
+        planKey: entitlementPlanKey,
+        targetProjectId: project.id,
+        publications: publications.map((p) => ({ projectId: p.projectId, publishedAt: new Date(p.publishedAt) })),
       });
-      assertConcurrentPublishedApps({ active: activeOthers });
+    } catch (error) {
+      if (error instanceof EntitlementError) {
+        await audit(request, store, {
+          organizationId: project.organizationId,
+          action: 'entitlement.refused',
+          resourceType: 'deployment',
+          resourceId: deploymentId,
+          metadata: { code: error.code, ...error.details },
+        });
+
+        return reply.code(error.statusCode).send({ error: error.message, code: error.code, ...error.details });
+      }
+
+      throw error;
     }
 
     const publishUrl = source.url ?? source.previewUrl ?? buildDeploymentUrl(project, source);
@@ -32481,6 +32601,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       finishedAt: redeployStatus === 'BUILDING' ? undefined : new Date().toISOString(),
     });
 
+    // P0-V3-08: a redeploy is a new published version too — record its manifest.
+    await writeReleaseManifest(store, app.log, ready, sourceEnvVars);
+
     /*
      * Bill against the PERSISTED status (see create handler): a rebuild canceled
      * mid-build has its final READY update no-op'd by the monotonic guard (row
@@ -32509,6 +32632,308 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply.code(201).send({ deployment: ready });
   });
+
+  /*
+   * P0-V3-08: the persisted release history (newest-first) for a project's
+   * environment — each row is the immutable manifest a rollback resolves against.
+   */
+  app.get('/projects/:projectId/releases', async (request) => {
+    const { projectId } = parse(z.object({ projectId: z.string().min(1) }), request.params);
+    const query = parse(z.object({ environment: z.string().min(1).max(64).optional() }), request.query ?? {});
+    const project = await requireProject(request, store, projectId, 'projects:read');
+    const environment = query.environment ?? 'preview';
+
+    const releases = await store.listReleaseManifests(project.id, environment);
+
+    return { environment, releases };
+  });
+
+  /*
+   * P0-V3-08: DETERMINISTIC rollback to the PREVIOUS published version (N-1),
+   * driven entirely by the persisted ReleaseManifest — not by the caller guessing
+   * a target id. Fail-closed at every step: no manifest / no previous / a missing
+   * or digest-mismatched artifact all refuse (409) rather than serving a blind or
+   * stale rollback. Static re-materialises + re-verifies the previous snapshot;
+   * server re-deploys the previous image by its retained digest (I-REL-1).
+   */
+  app.post('/projects/:projectId/deployments/rollback-to-previous', async (request, reply) => {
+    const { projectId } = parse(z.object({ projectId: z.string().min(1) }), request.params);
+    const body = parse(z.object({ environment: z.string().min(1).max(64).optional() }), request.body ?? {});
+    const project = await requireProject(request, store, projectId, 'projects:write');
+    await requireOrganizationNotSuspended(store, project.organizationId);
+
+    const environment = body.environment ?? 'preview';
+    const manifests = await store.listReleaseManifests(project.id, environment);
+
+    let current;
+    let previous;
+
+    try {
+      ({ current, previous } = selectPreviousRelease(manifests));
+    } catch (error) {
+      if (error instanceof RollbackManifestError) {
+        return reply.code(error.statusCode).send({ error: error.message, code: error.code });
+      }
+
+      throw error;
+    }
+
+    const appendRollbackManifest = async (rollbackId: string, artifactKind: string, artifactRef: string, artifactDigest: string) => {
+      await store.withSerializedMutation(`release-manifest:${project.id}:${environment}`, async () => {
+        const latest = await store.listReleaseManifests(project.id, environment, { take: 1 });
+        const nextVersion = (latest[0]?.version ?? 0) + 1;
+
+        await store.createReleaseManifest({
+          projectId: project.id,
+          deploymentId: rollbackId,
+          environment,
+          version: nextVersion,
+          provider: previous.provider,
+          artifactKind: artifactKind as 'static-snapshot' | 'server-image',
+          artifactRef,
+          artifactDigest,
+          ...(previous.storeGeneration ? { storeGeneration: previous.storeGeneration } : {}),
+          ...(previous.configDigest ? { configDigest: previous.configDigest } : {}),
+          ...(previous.dbMigrationPoint ? { dbMigrationPoint: previous.dbMigrationPoint } : {}),
+        });
+      });
+    };
+
+    // ---- STATIC: re-materialise + re-verify the previous snapshot bytes. ----
+    if (previous.artifactKind === 'static-snapshot') {
+      const recomputed = await computeStaticSnapshotDigest(previous.deploymentId);
+
+      if (!recomputed) {
+        return reply.code(409).send({
+          error: `Previous release v${previous.version} snapshot is missing on disk — cannot restore it. Refusing a blind rollback.`,
+          code: 'ROLLBACK_SNAPSHOT_SOURCE_MISSING',
+        });
+      }
+
+      try {
+        assertArtifactMatchesManifest(recomputed, previous);
+      } catch (error) {
+        if (error instanceof RollbackManifestError) {
+          return reply.code(error.statusCode).send({ error: error.message, code: error.code });
+        }
+
+        throw error;
+      }
+
+      const rollback = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
+        await ensureQuota(request, project.organizationId, 'deployments.count');
+
+        return store.createDeployment({
+          projectId: project.id,
+          provider: 'static',
+          environment: environment as DeploymentRecord['environment'],
+          status: 'QUEUED',
+          rolledBackFromId: previous.deploymentId,
+          metadata: {
+            rollbackToPrevious: true,
+            restoredFromVersion: previous.version,
+            restoredFromDeploymentId: previous.deploymentId,
+            supersededVersion: current.version,
+            manifestArtifactDigest: previous.artifactDigest,
+          },
+        });
+      });
+
+      try {
+        await restoreStaticSnapshotInto(previous.deploymentId, rollback.id);
+      } catch (error) {
+        await store
+          .updateDeployment(project.id, rollback.id, {
+            status: 'FAILED',
+            logs: [
+              ...rollback.logs,
+              { timestamp: new Date().toISOString(), level: 'error', message: `Rollback restore failed: ${(error as Error).message}` },
+            ],
+            finishedAt: new Date().toISOString(),
+          })
+          .catch(() => undefined);
+
+        const code = (error as { code?: string }).code ?? 'ROLLBACK_RESTORE_FAILED';
+        const statusCode = (error as { statusCode?: number }).statusCode ?? 500;
+
+        return reply.code(statusCode).send({ error: (error as Error).message, code });
+      }
+
+      const url = buildDeploymentUrl(project, rollback);
+      const ready = await store.updateDeployment(project.id, rollback.id, {
+        status: 'READY',
+        url,
+        previewUrl: environment !== 'production' ? url : undefined,
+        productionUrl: environment === 'production' ? url : undefined,
+        finishedAt: new Date().toISOString(),
+        logs: [
+          ...rollback.logs,
+          {
+            timestamp: new Date().toISOString(),
+            level: 'info',
+            message: `Rolled back to release v${previous.version} (deployment ${previous.deploymentId}); artifact digest ${previous.artifactDigest} verified byte-identical before restore.`,
+          },
+        ],
+      });
+
+      // The restored copy is a first-class release too — record its OWN manifest
+      // (new monotonic version), digested from the freshly-materialised bytes.
+      const restoredDigest = (await computeStaticSnapshotDigest(rollback.id)) ?? previous.artifactDigest;
+      await appendRollbackManifest(rollback.id, 'static-snapshot', `static-deployments/${rollback.id}`, restoredDigest);
+
+      return reply.code(201).send({
+        deployment: ready,
+        restoredFromVersion: previous.version,
+        restoredFromDeploymentId: previous.deploymentId,
+        supersededVersion: current.version,
+        verifiedArtifactDigest: previous.artifactDigest,
+        url,
+      });
+    }
+
+    // ---- SERVER: re-deploy the previous image by its retained digest. ----
+    if (previous.artifactKind === 'server-image') {
+      if (process.env.SERVER_DEPLOY_ROLLBACK_FROM_DIGEST === '0') {
+        return reply.code(409).send({
+          error: 'Server rollback is disabled (SERVER_DEPLOY_ROLLBACK_FROM_DIGEST=0).',
+          code: 'SERVER_ROLLBACK_DIGEST_DISABLED',
+        });
+      }
+
+      const rollback = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
+        await ensureQuota(request, project.organizationId, 'deployments.count');
+
+        return store.createDeployment({
+          projectId: project.id,
+          provider: 'server',
+          environment: environment as DeploymentRecord['environment'],
+          status: 'QUEUED',
+          rolledBackFromId: previous.deploymentId,
+          metadata: {
+            rollbackToPrevious: true,
+            restoredFromVersion: previous.version,
+            restoredFromDeploymentId: previous.deploymentId,
+            supersededVersion: current.version,
+          },
+        });
+      });
+
+      try {
+        const plan = resolveRollbackImage(
+          {
+            deploymentId: previous.deploymentId,
+            projectId: project.id,
+            imageRef: previous.artifactRef,
+            imageDigest: previous.artifactDigest,
+            createdAt: previous.createdAt,
+            ...(previous.storeGeneration ? { storeGeneration: previous.storeGeneration } : {}),
+          },
+          { revisionExists: false },
+        );
+
+        const currentSecrets = await resolveProjectSecretValues(store, project.id).catch(
+          (): Record<string, string> => ({}),
+        );
+        const secretResolution = resolveRollbackSecrets({ policy: 'CURRENT', currentSecrets, pinnedSecrets: null });
+
+        const rbHost = serverDeployHost(rollback.id);
+        const rbPort = Number(process.env.SERVER_DEPLOY_PORT) || 3000;
+        const rbEnv = buildServerDeployEnv({
+          deploymentId: rollback.id,
+          port: rbPort,
+          environment,
+          projectSecrets: secretResolution.secrets,
+          envOverrides: {},
+        });
+        const deployRateCard = await getActiveRateCard(store);
+        const machineSize = machineSizeFromCard(deployRateCard, undefined);
+
+        const started = await startServerDeploymentViaManager({
+          deploymentId: rollback.id,
+          ...machineSizeResources(machineSize),
+          image: plan.pullRef,
+          port: rbPort,
+          host: rbHost,
+          projectId: project.id,
+          orgId: project.organizationId,
+          env: rbEnv,
+          healthPath: process.env.SERVER_DEPLOY_HEALTH_PATH || '/',
+          nixStorePvcName: nixStorePvcForProject(project.id),
+          ...(plan.storeGeneration ? { nixGenerationRef: plan.storeGeneration } : {}),
+        });
+
+        const ok = Boolean(started?.ready);
+        const rbUrl = started?.url ?? `https://${rbHost}`;
+        const ready = await store.updateDeployment(project.id, rollback.id, {
+          status: ok ? 'READY' : 'BUILDING',
+          url: ok ? rbUrl : undefined,
+          previewUrl: ok && environment !== 'production' ? rbUrl : undefined,
+          productionUrl: ok && environment === 'production' ? rbUrl : undefined,
+          metadata: {
+            ...(rollback.metadata as Record<string, unknown>),
+            serverDeploy: {
+              host: rbHost,
+              ready: ok,
+              readyReplicas: started?.readyReplicas ?? 0,
+              applied: Boolean(started),
+              rolledBackFromDigest: plan.imageDigest,
+              image: {
+                imageRef: previous.artifactRef,
+                imageUri: plan.pullRef,
+                imageDigest: plan.imageDigest,
+                ...(plan.storeGeneration ? { storeGeneration: plan.storeGeneration } : {}),
+              },
+            },
+          },
+          logs: [
+            ...rollback.logs,
+            {
+              timestamp: new Date().toISOString(),
+              level: 'info',
+              message: `Rolled back to release v${previous.version} by digest ${plan.pullRef} (revision-independent, I-REL-1).`,
+            },
+          ],
+          finishedAt: ok ? new Date().toISOString() : undefined,
+        });
+
+        if (ok) {
+          await appendRollbackManifest(rollback.id, 'server-image', previous.artifactRef, previous.artifactDigest);
+        }
+
+        return reply.code(201).send({
+          deployment: ready,
+          restoredFromVersion: previous.version,
+          restoredFromDeploymentId: previous.deploymentId,
+          supersededVersion: current.version,
+          verifiedArtifactDigest: previous.artifactDigest,
+          url: rbUrl,
+        });
+      } catch (error) {
+        await store
+          .updateDeployment(project.id, rollback.id, {
+            status: 'FAILED',
+            url: '',
+            logs: [
+              ...rollback.logs,
+              { timestamp: new Date().toISOString(), level: 'error', message: `Rollback refused: ${(error as Error).message}` },
+            ],
+            finishedAt: new Date().toISOString(),
+          })
+          .catch(() => undefined);
+
+        const code = (error as { code?: string }).code ?? 'ROLLBACK_FAILED';
+        const statusCode = (error as { statusCode?: number }).statusCode ?? 502;
+
+        return reply.code(statusCode).send({ error: (error as Error).message, code });
+      }
+    }
+
+    return reply.code(409).send({
+      error: `Unsupported artifact kind '${previous.artifactKind}' for rollback.`,
+      code: 'ROLLBACK_UNSUPPORTED_KIND',
+    });
+  });
+
   app.post('/projects/:projectId/deployments/:deploymentId/rollback', async (request, reply) => {
     const { projectId, deploymentId } = parse(deploymentActionParams, request.params);
     const project = await requireProject(request, store, projectId, 'projects:write');

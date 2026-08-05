@@ -34,6 +34,11 @@ paths = [
   # Production-config VALIDATOR: builds a mock env of obviously-synthetic values
   # (e.g. "…-prod-123456", "sk_live_prod123456") to exercise the validator itself.
   '''(^|/)scripts/validate-production-enterprise\.mjs$''',
+  # WIF proof-replay captures under deploy-evidence: env identifiers + CI logs of an
+  # EPHEMERAL, already-deleted test GCP project (project id/number, bucket name, dispatch
+  # nonce, federated-token config strings) — never our secrets. Scoped to these files.
+  '''(^|/)docs/deploy-evidence/.*/params\.env$''',
+  '''(^|/)docs/deploy-evidence/.*/path2-github-oidc\.(log|txt)$''',
 ]
 
 # Common non-secret placeholder / synthetic-fixture shapes (templates, docs,

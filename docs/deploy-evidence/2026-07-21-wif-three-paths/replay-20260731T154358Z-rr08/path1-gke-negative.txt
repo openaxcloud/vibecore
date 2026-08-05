@@ -1,0 +1,3 @@
+IDENTITY_EMAIL:ecode-wif-proof-512642.svc.id.goog
+BUCKET_READ_HTTP:403
+BUCKET_READ_BODY:Caller does not have storage.objects.get access to the Google Cloud Storage object. Permission &#39;storage.objects.get&#39; denied on resource &#39;//storage.googleapis.com/projects/_/buckets/ecode-wif-proof-512642-secret-data/objects/secret.txt&#39; (or it may not exist). Remediate access with this Troubleshooter URL or share it with your administrator - https://console.cloud.google.com/iam-admi
