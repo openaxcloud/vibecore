@@ -189,6 +189,27 @@ export function sanitizedChildEnv(
   }
 
   /*
+   * The agent's own control port (PORT — baked into the agent image as 8080)
+   * leaks into every child via process.env. A dev server that HONORS PORT
+   * (Express, CRA, Next, a bare node:http `listen(process.env.PORT)`) would then
+   * try to bind the agent's control port and crash-loop on EADDRINUSE — never
+   * listening, never appearing in /ports, so the preview never comes up. (A Vite
+   * app escapes only because Vite ignores PORT and we pin it to 5173 via args.)
+   * In the preview env (VITE_HMR_CLIENT_PORT is injected there) repoint the
+   * inherited control port at the pinned preview port — 5173, where the preview
+   * proxy looks and where Vite is pinned (see VITE_DEV_PIN_ARGS) — so a
+   * PORT-honoring framework serves where the preview is fetched instead of
+   * colliding with the agent. An explicit `--port`/`-p` flag still wins because
+   * frameworks read PORT only as a default. No-op outside the preview env.
+   */
+  const agentControlPort = Number(process.env.PORT) || 8080;
+  const childPort = Number(env.PORT);
+
+  if (env.VITE_HMR_CLIENT_PORT && Number.isFinite(childPort) && childPort === agentControlPort) {
+    env.PORT = String(PREVIEW_DEV_PORT);
+  }
+
+  /*
    * Activate the shared Nix toolchain (Nix v2 signed catalog) so a Python/Go
    * project's `python`, `uv`, `pip`, `virtualenv`, `go` resolve automatically —
    * no manual venv-path munging, no per-project setup. The alpine base image has
@@ -275,7 +296,14 @@ export function nixToolchainBinDirs(catalogPath: string = NIX_CATALOG_PATH): str
  * their own ports and which would choke on `--strictPort` — are left untouched, as
  * are `vite build`/`vite preview` and any command already carrying an explicit port.
  */
-export const VITE_DEV_PIN_ARGS = ['--port', '5173', '--strictPort', '--host'] as const;
+/**
+ * The port the preview proxy targets for a Vite app and where the dev server is
+ * pinned. Single-sourced so the `--port` pin and the child-env `PORT` repoint
+ * (sanitizedChildEnv) can never drift apart.
+ */
+export const PREVIEW_DEV_PORT = 5173;
+
+export const VITE_DEV_PIN_ARGS = ['--port', String(PREVIEW_DEV_PORT), '--strictPort', '--host'] as const;
 
 const PACKAGE_MANAGER_BINS = new Set(['npm', 'pnpm', 'yarn', 'bun']);
 const RUNNER_SUBCOMMANDS = new Set(['exec', 'dlx', 'x']);

@@ -314,6 +314,38 @@ describe('sanitizedChildEnv', () => {
   });
 });
 
+describe('sanitizedChildEnv PORT repoint', () => {
+  const savedPort = process.env.PORT;
+
+  afterEach(() => {
+    if (savedPort === undefined) {
+      delete process.env.PORT;
+    } else {
+      process.env.PORT = savedPort;
+    }
+  });
+
+  it("repoints a child that inherited the agent's control port (8080) to the pinned preview port in the preview env", () => {
+    // The agent image bakes PORT=8080; a child that honors PORT would otherwise
+    // bind the agent's control port and crash-loop on EADDRINUSE.
+    process.env.PORT = '8080';
+    const env = sanitizedChildEnv({ PORT: '8080', VITE_HMR_CLIENT_PORT: '443' }, { command: 'npm', args: ['run', 'dev'] });
+    expect(env.PORT).toBe('5173');
+  });
+
+  it('leaves PORT untouched outside the preview env (no VITE_HMR_CLIENT_PORT)', () => {
+    process.env.PORT = '8080';
+    const env = sanitizedChildEnv({ PORT: '8080' }, { command: 'npm', args: ['run', 'dev'] });
+    expect(env.PORT).toBe('8080');
+  });
+
+  it('respects a project that explicitly chose its own (non-control) PORT', () => {
+    process.env.PORT = '8080';
+    const env = sanitizedChildEnv({ PORT: '3000', VITE_HMR_CLIENT_PORT: '443' }, { command: 'npm', args: ['run', 'dev'] });
+    expect(env.PORT).toBe('3000');
+  });
+});
+
 describe('workspace-agent', () => {
   let root: string;
   let token: string;
