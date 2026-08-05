@@ -8377,12 +8377,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const ownerStatus = await store.getDeploymentOwnerStatus(deploymentId);
 
     /*
-     * Stop serving when the owning project is soft-deleted OR the deployment was
-     * CANCELED. The synchronous static build runs outside any lock, so a cancel
-     * that lands mid-build still produces a snapshot on disk; gate the serve on
-     * the deployment's terminal status so a canceled build isn't publicly served.
+     * Serve ONLY a deployment whose row is in the READY (serving) state, plus the
+     * usual soft-delete gate. This is the HTTP end of the rollback linearization
+     * invariant: a snapshot dir can exist on disk while the row is still QUEUED —
+     * during a build, or during a rollback restore (restoreStaticSnapshotInto
+     * writes the bytes BEFORE the digest is computed + the manifest is durably
+     * recorded + the row flips READY). Gating on READY guarantees the restored
+     * destination is NEVER publicly visible before that whole sequence has
+     * linearized. It also subsumes the earlier CANCELED-only gate (a cancel that
+     * lands mid-build leaves a snapshot on disk but a non-READY row → not served).
      */
-    if (!ownerStatus || ownerStatus.projectDeletedAt || ownerStatus.status === 'CANCELED') {
+    if (!ownerStatus || ownerStatus.projectDeletedAt || ownerStatus.status !== 'READY') {
       return reply
         .code(404)
         .send({ error: 'Static deployment artifact not found', code: 'STATIC_DEPLOY_ARTIFACT_NOT_FOUND' });
