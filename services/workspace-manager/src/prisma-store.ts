@@ -46,6 +46,7 @@ interface PrismaRuntimeRow {
   lastMeteredAt: Date | null;
   purgeFrozen: boolean;
   purgeFenceToken: string | null;
+  purgeFrozenAt: Date | null;
 }
 
 function rowToRecord(row: PrismaRuntimeRow): WorkspaceRecord {
@@ -65,6 +66,7 @@ function rowToRecord(row: PrismaRuntimeRow): WorkspaceRecord {
     ...(row.lastMeteredAt ? { lastMeteredAt: row.lastMeteredAt.toISOString() } : {}),
     purgeFrozen: Boolean(row.purgeFrozen),
     ...(row.purgeFenceToken ? { purgeFenceToken: row.purgeFenceToken } : {}),
+    ...(row.purgeFrozenAt ? { purgeFrozenAt: row.purgeFrozenAt.toISOString() } : {}),
   };
 }
 
@@ -103,6 +105,7 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
         error: input.error ?? null,
         purgeFrozen: input.purgeFrozen ?? false,
         purgeFenceToken: input.purgeFenceToken ?? null,
+        purgeFrozenAt: input.purgeFrozenAt ? new Date(input.purgeFrozenAt) : null,
         createdAt: now,
         lastActiveAt: now,
       },
@@ -151,6 +154,9 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
     }
     if (Object.prototype.hasOwnProperty.call(patch, 'purgeFenceToken')) {
       data.purgeFenceToken = patch.purgeFenceToken ?? null;
+    }
+    if (Object.prototype.hasOwnProperty.call(patch, 'purgeFrozenAt')) {
+      data.purgeFrozenAt = patch.purgeFrozenAt ? new Date(patch.purgeFrozenAt) : null;
     }
 
     try {

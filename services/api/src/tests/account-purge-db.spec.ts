@@ -1248,31 +1248,145 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
     }
   });
 
-  it('(27) P6: the erasure receipt is written in the SAME tx as the tombstone; queue-removal requires it', async () => {
+  it('(27) P6 via the REAL route: a purged account whose receipt is missing is KEPT in the queue (missingReceipt=1, no remove) — every queue-removal is receipt-gated', async () => {
+    const previousSecret = process.env.INTERNAL_API_SHARED_SECRET;
+    process.env.INTERNAL_API_SHARED_SECRET = SECRET;
     const prisma = createDatabaseClient();
 
     try {
       const store = newStore(prisma);
+      const app = await buildApiApp({
+        store,
+        emailProvider: new QuietEmailProvider(),
+        accountStoragePurger: verifiedPhysicalPurger(),
+      });
       const { user } = await seedAccount(store);
       await requestElapsedDeletion(store, user.id);
 
-      const result = await store.purgeUserAccount(
-        { userId: user.id },
-        { eraseStorage: async () => ({ classes: [], verified: true }) },
-      );
-      expect(result.outcome).toBe('purged');
-
-      // The receipt exists (written atomically with the tombstone), carrying the proof.
-      const receipt = await prisma.purgeReceipt.findUnique({ where: { userId: user.id } });
-      expect(receipt).not.toBeNull();
-      expect((receipt!.proof as { kind?: string }).kind).toBe('account-erasure-proof');
+      // (a) A real purge through the route: tombstone + receipt written atomically,
+      // and the id leaves the pending queue BECAUSE the receipt exists.
+      const first = await app.inject({
+        method: 'POST',
+        url: '/internal/account-purge',
+        headers: { authorization: `Bearer ${SECRET}` },
+        payload: { enabled: true, userId: user.id },
+      });
+      expect(first.statusCode).toBe(200);
+      expect(first.json()).toMatchObject({ purged: 1, missingReceipt: 0 });
       expect(await store.hasPurgeReceipt(user.id)).toBe(true);
 
-      // Queue-removal gate: if the receipt is (impossibly) missing, the executor must
-      // NOT treat the purge as complete.
+      // (b) Now DELETE the receipt (models a receipt lost / never persisted) and
+      // put the purged id back on the queue, then re-run the REAL route. The account
+      // is in the `purged` pre-state, so the executor takes the pre-state removal path.
       await prisma.purgeReceipt.delete({ where: { userId: user.id } });
-      expect(await store.hasPurgeReceipt(user.id)).toBe(false);
+      await store.mutateSystemSettingIds('account.pendingDeletionUserIds', { add: user.id });
+
+      // Watch every queue mutation during the 2nd run: there must be NO remove(user.id).
+      const mutateSpy = vi.spyOn(store, 'mutateSystemSettingIds');
+
+      const second = await app.inject({
+        method: 'POST',
+        url: '/internal/account-purge',
+        headers: { authorization: `Bearer ${SECRET}` },
+        payload: { enabled: true, userId: user.id },
+      });
+      expect(second.statusCode).toBe(200);
+
+      // The purge is NOT treated as complete: missingReceipt counted, id NOT removed.
+      expect(second.json()).toMatchObject({ alreadyPurged: 1, missingReceipt: 1 });
+
+      // No mutateSystemSettingIds(..., { remove: user.id }) was issued for this user.
+      const removedThisUser = mutateSpy.mock.calls.some(
+        ([key, patch]) =>
+          key === 'account.pendingDeletionUserIds' &&
+          (patch as { remove?: string }).remove === user.id,
+      );
+      expect(removedThisUser).toBe(false);
+
+      // And the id is STILL present in the pending queue (surfaced, not forgotten).
+      const settings = await store.listSystemSettings();
+      const pending = settings.find((s) => s.key === 'account.pendingDeletionUserIds');
+      expect(((pending?.value as unknown[]) ?? []).includes(user.id)).toBe(true);
     } finally {
+      process.env.INTERNAL_API_SHARED_SECRET = previousSecret;
+      await prisma.$disconnect();
+    }
+  });
+
+  it('(27b) P6 negative: a PurgeReceipt.upsert failure ROLLS BACK the whole tombstone tx (no anonymization, id stays queued, failed=1)', async () => {
+    const previousSecret = process.env.INTERNAL_API_SHARED_SECRET;
+    process.env.INTERNAL_API_SHARED_SECRET = SECRET;
+    const prisma = createDatabaseClient();
+
+    try {
+      const store = newStore(prisma);
+      const app = await buildApiApp({
+        store,
+        emailProvider: new QuietEmailProvider(),
+        accountStoragePurger: verifiedPhysicalPurger(),
+      });
+      const { user, project, conversation } = await seedAccount(store);
+      await requestElapsedDeletion(store, user.id);
+      const originalEmail = user.email;
+
+      /*
+       * Inject a failure on the receipt write INSIDE the interactive tombstone tx.
+       * We wrap $transaction and hand the callback a proxied tx whose
+       * `purgeReceipt.upsert` throws — so the receipt (written in the SAME tx as the
+       * tombstone, P6) fails and Prisma rolls the ENTIRE tx back. The receipt gate is
+       * only meaningful if a receipt that can't be written can never leave a stamped
+       * tombstone behind.
+       */
+      const realTransaction = prisma.$transaction.bind(prisma);
+      vi.spyOn(prisma, '$transaction').mockImplementation(((arg: unknown, opts: unknown) => {
+        if (typeof arg === 'function') {
+          return realTransaction(async (tx: Record<string, any>) => {
+            const proxied = new Proxy(tx, {
+              get(target, prop, receiver) {
+                if (prop === 'purgeReceipt') {
+                  return {
+                    upsert: async () => {
+                      throw new Error('boom: receipt upsert failed');
+                    },
+                  };
+                }
+
+                return Reflect.get(target, prop, receiver);
+              },
+            });
+
+            return (arg as (client: unknown) => unknown)(proxied);
+          }, opts as never);
+        }
+
+        return realTransaction(arg as never, opts as never);
+      }) as never);
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/internal/account-purge',
+        headers: { authorization: `Bearer ${SECRET}` },
+        payload: { enabled: true, userId: user.id },
+      });
+      expect(res.statusCode).toBe(200);
+      // The purge FAILED (fail-closed) — not purged, counted as failed.
+      expect(res.json()).toMatchObject({ purged: 0, failed: 1 });
+
+      // ROLLBACK proven: the tombstone was NOT stamped — the user is untouched.
+      const stillThere = await prisma.user.findUnique({ where: { id: user.id } });
+      expect(stillThere!.email).toBe(originalEmail); // NOT purged-<id>@erased.invalid
+      expect(stillThere!.passwordHash).not.toBeNull();
+      expect(await prisma.session.count({ where: { userId: user.id } })).toBe(1);
+      expect(await prisma.aiConversation.count({ where: { id: conversation.id } })).toBe(1);
+      expect(await prisma.project.count({ where: { id: project.id } })).toBe(1);
+
+      // No receipt, and the id is STILL queued for a retry (fail-closed).
+      expect(await store.hasPurgeReceipt(user.id)).toBe(false);
+      const settings = await store.listSystemSettings();
+      const pending = settings.find((s) => s.key === 'account.pendingDeletionUserIds');
+      expect(((pending?.value as unknown[]) ?? []).includes(user.id)).toBe(true);
+    } finally {
+      process.env.INTERNAL_API_SHARED_SECRET = previousSecret;
       await prisma.$disconnect();
     }
   });
