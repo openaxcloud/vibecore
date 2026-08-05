@@ -749,6 +749,11 @@ export class TestApiStore implements ApiStore {
 
     const proof = buildErasureProof({ userId, requestedAt, purgedAt: nowIso, classes });
 
+    // RR-CODEX-14 (P6): mirror the real store's SAME-TX receipt write — the tombstone
+    // and its durable erasure receipt commit together, so the executor's receipt-gated
+    // queue removal (removePendingOnlyWithReceipt) sees a receipt for a real purge.
+    this.purgeReceipts.add(userId);
+
     return { outcome: 'purged', proof };
   }
 

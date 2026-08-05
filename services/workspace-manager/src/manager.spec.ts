@@ -270,6 +270,130 @@ describe('WorkspaceManager', () => {
     await expect(manager.startWorkspace(input)).rejects.toThrow(/WORKSPACE_PURGE_FROZEN/);
   });
 
+  it('account-purge P3 (R-P3-01): a freeze interleaved AFTER start\'s initial check but BEFORE its k8s creates recreates NOTHING (linearised re-check)', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    const store = new TestWorkspaceStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+
+    // Runtime already provisioned once (row + live k8s objects exist).
+    await manager.startWorkspace(input);
+    expect(k8s.objects.has('workspaces:Pod:workspace-workspace_1')).toBe(true);
+
+    /*
+     * ORCHESTRATE THE RACE: a reprovision (reopen) start passes its initial
+     * assertNotPurgeFrozen (not frozen yet), then reads the PVC. We commit the
+     * freeze at THAT exact point — after the initial check, before any create —
+     * so the freeze deletes Secret/Pod/Service + sets the durable barrier while
+     * the start is suspended. The start's LINEARISED re-check (immediately before
+     * each irreversible create) must then see the barrier and refuse.
+     */
+    let raced = false;
+    const realGet = k8s.get.bind(k8s);
+    vi.spyOn(k8s, 'get').mockImplementation(async (kind: string, namespace: string, name: string) => {
+      if (kind === 'PersistentVolumeClaim' && !raced) {
+        raced = true;
+        // The concurrent purge freeze lands here (interleaved mid-start).
+        await manager.freezeWorkspace('workspaces', 'workspace_1', 'fence-race');
+      }
+
+      return realGet(kind, namespace, name);
+    });
+
+    const eventsBeforeStart = k8s.events.length;
+    await expect(manager.startWorkspace(input)).rejects.toThrow(/WORKSPACE_PURGE_FROZEN/);
+
+    // The barrier is durable...
+    expect((await store.get('workspace_1'))!.purgeFrozen).toBe(true);
+    // ...and NOTHING was (re)created after the freeze: no live Pod/Service/Secret,
+    // and the events emitted by the raced start contain no apply of them.
+    expect(k8s.objects.has('workspaces:Pod:workspace-workspace_1')).toBe(false);
+    expect(k8s.objects.has('workspaces:Service:workspace-workspace_1')).toBe(false);
+    expect(k8s.objects.has('workspaces:Secret:agent-token-workspace_1')).toBe(false);
+    const eventsAfterFreeze = k8s.events.slice(eventsBeforeStart);
+    const freezeDeleteIndex = eventsAfterFreeze.indexOf('delete:Pod:workspace-workspace_1');
+    expect(freezeDeleteIndex).toBeGreaterThanOrEqual(0);
+    // No apply of Pod/Service/Secret AFTER the freeze deleted them.
+    expect(eventsAfterFreeze.slice(freezeDeleteIndex)).not.toContain('apply:Pod:workspace-workspace_1');
+    expect(eventsAfterFreeze.slice(freezeDeleteIndex)).not.toContain('apply:Service:workspace-workspace_1');
+    expect(eventsAfterFreeze.slice(freezeDeleteIndex)).not.toContain('apply:Secret:agent-token-workspace_1');
+  });
+
+  it('account-purge P3 (R-P3-03): an OMITTED fence token is refused exactly like a wrong one (a token-less caller can never lift a fenced barrier)', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    const store = new TestWorkspaceStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+    await manager.startWorkspace(input);
+
+    await manager.freezeWorkspace('workspaces', 'workspace_1', 'fence-plan-A');
+    expect((await store.get('workspace_1'))!.purgeFrozen).toBe(true);
+
+    // Token OMITTED entirely (undefined) → refused, barrier stays.
+    await manager.unfreezeWorkspace('workspace_1');
+    expect((await store.get('workspace_1'))!.purgeFrozen).toBe(true);
+
+    // Empty-string token → refused, barrier stays.
+    await manager.unfreezeWorkspace('workspace_1', '');
+    expect((await store.get('workspace_1'))!.purgeFrozen).toBe(true);
+
+    // Only the exact owning token lifts it.
+    await manager.unfreezeWorkspace('workspace_1', 'fence-plan-A');
+    expect((await store.get('workspace_1'))!.purgeFrozen).toBe(false);
+  });
+
+  it('account-purge P3 (R-P3-05, ABA): a DELAYED unfreeze from a prior attempt must NOT lift a newer attempt\'s barrier', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    const store = new TestWorkspaceStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+    await manager.startWorkspace(input);
+
+    // Attempt N: freeze with the PER-ATTEMPT token 'owner-N', then release it.
+    await manager.freezeWorkspace('workspaces', 'workspace_1', 'owner-N');
+    await manager.unfreezeWorkspace('workspace_1', 'owner-N');
+    expect((await store.get('workspace_1'))!.purgeFrozen).toBe(false);
+
+    // Attempt N+1: a NEW purge for the SAME subject freezes with a NEW token.
+    await manager.startWorkspace(input); // reprovision allowed (barrier lifted)
+    await manager.freezeWorkspace('workspaces', 'workspace_1', 'owner-N1');
+    expect((await store.get('workspace_1'))!.purgeFenceToken).toBe('owner-N1');
+
+    // THE ABA: a delayed/duplicate unfreeze from attempt N (token 'owner-N')
+    // arrives late — it must be a NO-OP against attempt N+1's barrier.
+    await manager.unfreezeWorkspace('workspace_1', 'owner-N');
+    expect((await store.get('workspace_1'))!.purgeFrozen).toBe(true);
+
+    // Attempt N+1's own token lifts its own barrier.
+    await manager.unfreezeWorkspace('workspace_1', 'owner-N1');
+    expect((await store.get('workspace_1'))!.purgeFrozen).toBe(false);
+  });
+
+  it('account-purge P3 (R-P3-04): a barrier orphaned by an abandoned purge is RECOVERABLE by the stale-freeze reconciler (never left frozen forever)', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    const store = new TestWorkspaceStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+    await manager.startWorkspace(input);
+
+    // The purge freezes then CRASHES before its unfreeze → the barrier is orphaned.
+    await manager.freezeWorkspace('workspaces', 'workspace_1', 'owner-abandoned');
+    expect((await store.get('workspace_1'))!.purgeFrozen).toBe(true);
+
+    // A FRESH barrier (within grace) is NOT reclaimed — the purge may still be running.
+    expect(await manager.reconcileStaleWorkspaceFreezes(60 * 60 * 1000)).toEqual({ reconciled: 0 });
+    expect((await store.get('workspace_1'))!.purgeFrozen).toBe(true);
+
+    // Age the barrier past the grace window (models an abandoned/crashed attempt).
+    await store.update('workspace_1', { purgeFrozenAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString() });
+
+    // The reconciler finds + lifts the orphan (no owner, no pointer) → recovered.
+    expect(await manager.reconcileStaleWorkspaceFreezes(24 * 60 * 60 * 1000)).toEqual({ reconciled: 1 });
+    const recovered = (await store.get('workspace_1'))!;
+    expect(recovered.purgeFrozen).toBe(false);
+    expect(recovered.purgeFenceToken).toBeUndefined();
+    expect(recovered.purgeFrozenAt).toBeUndefined();
+
+    // Recovery is idempotent — a second pass reclaims nothing.
+    expect(await manager.reconcileStaleWorkspaceFreezes(24 * 60 * 60 * 1000)).toEqual({ reconciled: 0 });
+  });
+
   it('never runs the real agent-reachability fetch under vitest, even without the timeout env (keeps the root `vitest --run` suite fast)', async () => {
     /*
      * Regression guard for the CI flake: the repo-root `vitest --run` globs this

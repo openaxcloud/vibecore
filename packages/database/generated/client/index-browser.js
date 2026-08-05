@@ -1095,6 +1095,7 @@ exports.Prisma.WorkspaceRuntimeScalarFieldEnum = {
   lastMeteredAt: 'lastMeteredAt',
   purgeFrozen: 'purgeFrozen',
   purgeFenceToken: 'purgeFenceToken',
+  purgeFrozenAt: 'purgeFrozenAt',
   updatedAt: 'updatedAt'
 };
 
