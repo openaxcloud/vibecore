@@ -659,34 +659,61 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
    * l'app s'éteint en quelques secondes et l'API n'est sollicitée qu'une fois
    * par fenêtre et par déploiement.
    */
-  const servingStateCache = new Map<string, { expired: boolean; checkedAt: number }>();
-  const SERVING_STATE_TTL_MS = 15_000;
+  /*
+   * Cache d'état de service, avec DEUX régimes distincts — la dissymétrie est
+   * délibérée et porte tout l'invariant.
+   *
+   *  - « expiré » est COLLANT et sans expiration. L'extinction est MONOTONE :
+   *    une publication éteinte ne redevient jamais vivante (la republication crée
+   *    un NOUVEAU déploiement, donc un autre id). Une fois le verdict connu, une
+   *    panne de l'API ne doit plus jamais pouvoir rouvrir l'accès.
+   *  - « vivant » est caché avec un TTL court. Il doit être revérifié, puisque
+   *    c'est l'état qui, lui, peut changer.
+   */
+  const expiredDeployments = new Set<string>();
+  const liveUntil = new Map<string, number>();
+  const LIVE_CACHE_TTL_MS = 15_000;
+
+  /** Verdict du garde. `unknown` ⇒ on ne sait pas, donc on ne sert pas. */
+  type ServingVerdict = 'live' | 'expired' | 'unknown';
 
   /**
-   * La publication SERVER est-elle éteinte ?
+   * État de service d'une publication SERVER.
    *
-   * FAIL-OPEN DÉLIBÉRÉ, et c'est un choix qu'il faut assumer : si l'API est
-   * injoignable, on SERT l'app plutôt que de la couper. Couper ici
-   * transformerait toute panne de l'API en panne de TOUTES les applications
-   * déployées des clients — un rayon d'action sans commune mesure avec le risque
-   * réellement couvert, qui est qu'une app expirée reste joignable quelques
-   * minutes de plus.
+   * Hiérarchie des réponses, du plus sûr au plus disponible :
+   *  1. connu expiré  -> `expired`, définitivement, sans interroger personne ;
+   *  2. connu vivant et frais -> `live` ;
+   *  3. sinon on interroge l'API ;
+   *  4. API injoignable ET aucun état frais -> `unknown`.
    *
-   * Ce fail-open n'est pas une brèche : l'extinction réelle ne dépend pas de ce
-   * garde. Le balayage côté API ARRÊTE le workload ; ce garde ne fait que
-   * transformer l'erreur d'infrastructure qui en résulterait en 410 lisible.
+   * `unknown` ne sert PAS l'application : un workload potentiellement expiré ne
+   * doit jamais renvoyer d'octets applicatifs. Le garde reste néanmoins une
+   * défense SECONDAIRE — l'autorité d'extinction est l'arrêt du workload côté
+   * manager, qui ne dépend pas de ce chemin.
    */
-  const isServerDeployExpired = async (deploymentId: string): Promise<boolean> => {
+  const resolveServingVerdict = async (deploymentId: string): Promise<ServingVerdict> => {
+    // (1) Verdict collant : plus rien ne peut le contredire.
+    if (expiredDeployments.has(deploymentId)) {
+      return 'expired';
+    }
+
     if (!apiBaseUrl) {
-      return false;
+      /*
+       * Sans API configurée (dev, tests unitaires du proxy), le garde est hors
+       * service : on laisse passer et l'extinction repose entièrement sur l'arrêt
+       * du workload. C'est une absence de configuration, pas un état indéterminé.
+       */
+      return 'live';
     }
 
-    const cached = servingStateCache.get(deploymentId);
+    // (2) Vivant et encore frais.
+    const freshUntil = liveUntil.get(deploymentId);
 
-    if (cached && Date.now() - cached.checkedAt < SERVING_STATE_TTL_MS) {
-      return cached.expired;
+    if (freshUntil && Date.now() < freshUntil) {
+      return 'live';
     }
 
+    // (3) Interroger l'autorité.
     try {
       const response = await fetchImpl(
         `${apiBaseUrl}/deployments/${encodeURIComponent(deploymentId)}/serving-state`,
@@ -694,17 +721,29 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       );
 
       if (!response.ok) {
-        return false;
+        return 'unknown';
       }
 
       const body = (await response.json()) as { state?: string };
-      const expired = body?.state === 'expired';
-      servingStateCache.set(deploymentId, { expired, checkedAt: Date.now() });
 
-      return expired;
+      if (body?.state === 'expired') {
+        expiredDeployments.add(deploymentId);
+        liveUntil.delete(deploymentId);
+
+        return 'expired';
+      }
+
+      if (body?.state === 'live') {
+        liveUntil.set(deploymentId, Date.now() + LIVE_CACHE_TTL_MS);
+
+        return 'live';
+      }
+
+      // `not-found` ou réponse inattendue : on ne sait pas, donc on ne sert pas.
+      return 'unknown';
     } catch {
-      // API injoignable : on sert (voir le raisonnement ci-dessus).
-      return false;
+      // (4) API injoignable et aucun état frais : indéterminé.
+      return 'unknown';
     }
   };
 
@@ -1561,11 +1600,31 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
          * vers l'amont, et l'amont lui-même a été arrêté par le balayage côté API
          * (le 410 est la façade, l'arrêt est la substance).
          */
-        if (await isServerDeployExpired(deploy.deploymentId)) {
+        const verdict = await resolveServingVerdict(deploy.deploymentId);
+
+        if (verdict === 'expired') {
           reply.header('cache-control', 'no-store');
           await reply.code(410).send({
             error: 'Cette publication a expiré. Republiez le projet pour remettre l\'adresse en ligne.',
             code: 'PUBLISHED_DEPLOYMENT_EXPIRED',
+          });
+
+          return;
+        }
+
+        if (verdict === 'unknown') {
+          /*
+           * État INDÉTERMINÉ : on ne peut pas établir si cette publication est
+           * encore valide. Servir reviendrait à renvoyer les octets d'un workload
+           * POTENTIELLEMENT expiré — c'est précisément ce qu'on refuse. 503 (et
+           * non 410) : on ne prétend pas qu'elle est éteinte, on dit qu'on ne
+           * sait pas, et l'appelant peut réessayer.
+           */
+          reply.header('cache-control', 'no-store');
+          await reply.code(503).header('retry-after', '5').send({
+            error: "Impossible de vérifier l'état de cette publication. Réessayez dans un instant.",
+            code: 'PUBLICATION_STATE_UNAVAILABLE',
+            retryable: true,
           });
 
           return;

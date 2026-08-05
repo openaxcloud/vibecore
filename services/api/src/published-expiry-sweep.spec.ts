@@ -8,6 +8,8 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  assertPublicationStartable,
+  ExpiredPublicationStartError,
   isExpiredPublication,
   selectExpiredServerDeployments,
   servingState,
@@ -205,5 +207,118 @@ describe("état de service exposé au proxy", () => {
 
   it('un plan sans TTL reste `live` indéfiniment', () => {
     expect(servingState({ candidate: candidate({ createdAt: daysAgo(999) }), ttlDays: null, now: NOW })).toBe('live');
+  });
+});
+
+describe('INV.1/2/3 — l extinction est une barrière DURABLE, pas une pause', () => {
+  const startable = (patch: Partial<ExpiryCandidate> = {}) => ({
+    environmentName: 'production',
+    createdAt: daysAgo(31),
+    planKey: 'free',
+    ...patch,
+  });
+
+  it('INV.2 — un démarrage est REFUSÉ quand expiredAt est posé', () => {
+    expect(() =>
+      assertPublicationStartable({
+        deploymentId: 'dep1',
+        candidate: startable({ expiredAt: daysAgo(1), createdAt: daysAgo(2) }),
+        ttlDays: 30,
+        now: NOW,
+      }),
+    ).toThrow(ExpiredPublicationStartError);
+  });
+
+  it("INV.2 — refusé AUSSI par l'âge, avant même qu'un balayage soit passé", () => {
+    /*
+     * Sans ce second signal, une course entre le balayage et un redémarrage
+     * rouvrirait l'application : le workload repartirait avant d'être marqué.
+     */
+    expect(() =>
+      assertPublicationStartable({ deploymentId: 'dep1', candidate: startable(), ttlDays: 30, now: NOW }),
+    ).toThrow(ExpiredPublicationStartError);
+  });
+
+  it('INV.2 — le refus porte un 410 typé, pas une erreur anonyme', () => {
+    try {
+      assertPublicationStartable({ deploymentId: 'dep-x', candidate: startable(), ttlDays: 30, now: NOW });
+      throw new Error('aurait dû refuser');
+    } catch (error) {
+      expect(error).toBeInstanceOf(ExpiredPublicationStartError);
+      expect((error as ExpiredPublicationStartError).statusCode).toBe(410);
+      expect((error as ExpiredPublicationStartError).code).toBe('PUBLISHED_DEPLOYMENT_EXPIRED');
+    }
+  });
+
+  it('INV.2 — une publication VIVANTE démarre normalement', () => {
+    expect(() =>
+      assertPublicationStartable({
+        deploymentId: 'dep1',
+        candidate: startable({ createdAt: daysAgo(3) }),
+        ttlDays: 30,
+        now: NOW,
+      }),
+    ).not.toThrow();
+  });
+
+  it("INV.2 — un plan payant n'est jamais bloqué au démarrage", () => {
+    expect(() =>
+      assertPublicationStartable({
+        deploymentId: 'dep1',
+        candidate: startable({ planKey: 'core', createdAt: daysAgo(999) }),
+        ttlDays: null,
+        now: NOW,
+      }),
+    ).not.toThrow();
+  });
+
+  it('INV.1 — MONOTONIE : le marqueur survit et continue de bloquer les démarrages', () => {
+    /*
+     * Même si l'âge n'était plus concluant (horloge remise, date réécrite), le
+     * marqueur seul suffit à interdire la remise en route : l'extinction ne se
+     * dégrade jamais en autorisation.
+     */
+    expect(() =>
+      assertPublicationStartable({
+        deploymentId: 'dep1',
+        candidate: startable({ expiredAt: daysAgo(1), createdAt: new Date(NOW).toISOString() }),
+        ttlDays: 30,
+        now: NOW,
+      }),
+    ).toThrow(ExpiredPublicationStartError);
+  });
+
+  it("INV.3 — un arrêt en ÉCHEC ne marque pas, donc le déploiement reste candidat au retry", async () => {
+    const candidates = [candidate()];
+
+    const first = await stopExpiredServerDeployments({
+      candidates,
+      ttlDaysForPlan: ttlForPlan,
+      now: NOW,
+      stopWorkload: async () => {
+        throw new Error('manager indisponible');
+      },
+      markExpired: async () => {},
+    });
+
+    expect(first.stopped).toHaveLength(0);
+    expect(first.failed).toHaveLength(1);
+
+    // Non marqué ⇒ toujours sélectionné au balayage suivant : l'échec ne se
+    // transforme jamais en succès apparent.
+    expect(
+      selectExpiredServerDeployments({ candidates, ttlDaysForPlan: ttlForPlan, now: NOW }).map((c) => c.id),
+    ).toEqual(['dep1']);
+  });
+
+  it("INV.3 — un arrêt en échec laisse le déploiement REFUSÉ au démarrage malgré tout", () => {
+    /*
+     * Le point crucial : même sans marqueur (l'arrêt a échoué), l'âge suffit à
+     * interdire le redémarrage. Un manager en panne ne peut pas devenir une
+     * autorisation implicite de relancer l'app.
+     */
+    expect(() =>
+      assertPublicationStartable({ deploymentId: 'dep1', candidate: startable({ expiredAt: undefined }), ttlDays: 30, now: NOW }),
+    ).toThrow(ExpiredPublicationStartError);
   });
 });

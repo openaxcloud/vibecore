@@ -27,7 +27,13 @@ import {
   authCookieOptions,
   type AuthenticatedUser,
 } from '@vibecore/auth';
-import { servingState, stopExpiredServerDeployments, type ServingState } from './published-expiry-sweep.js';
+import {
+  assertPublicationStartable,
+  ExpiredPublicationStartError,
+  servingState,
+  stopExpiredServerDeployments,
+  type ServingState,
+} from './published-expiry-sweep.js';
 import {
   StripeBillingClient,
   assertQuota,
@@ -6752,7 +6758,30 @@ async function startServerDeploymentViaManager(payload: {
   cpuLimit?: string;
   memoryRequest?: string;
   memoryLimit?: string;
+  /**
+   * État d'expiration du déploiement, lu par l'appelant. Fourni séparément parce
+   * que ce helper est un client HTTP sans accès au store.
+   */
+  expiryCheck?: {
+    candidate?: { environmentName?: string; createdAt: string; planKey?: string; expiredAt?: string };
+    ttlDays: number | null;
+  };
 }): Promise<{ ready: boolean; url: string; name: string; readyReplicas: number }> {
+  /*
+   * BARRIÈRE DE DÉMARRAGE. Point d'étranglement de TOUS les démarrages de
+   * workload serveur passant par l'API : redéploiement, réconciliation, reprise.
+   * Sans elle, l'extinction ne serait qu'une pause — le premier redémarrage
+   * ramènerait l'app en ligne.
+   */
+  if (payload.expiryCheck) {
+    assertPublicationStartable({
+      deploymentId: payload.deploymentId,
+      candidate: payload.expiryCheck.candidate,
+      ttlDays: payload.expiryCheck.ttlDays,
+      now: new Date(),
+    });
+  }
+
   const managerSecret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
 
   const response = await fetch(`${workspaceManagerUrl()}/server-deployments/start`, {
@@ -6786,6 +6815,35 @@ async function stopServerDeploymentViaManager(deploymentId: string): Promise<voi
     headers: { accept: 'application/json', ...(managerSecret ? { authorization: `Bearer ${managerSecret}` } : {}) },
     signal: AbortSignal.timeout(30_000),
   }).catch(() => undefined);
+}
+
+/**
+ * Arrêt STRICT — lève si le manager n'a pas confirmé.
+ *
+ * La variante ci-dessus avale tout (`.catch(() => undefined)`, aucun contrôle de
+ * `response.ok`) : c'est acceptable là où l'arrêt est un nettoyage best-effort,
+ * mais pas pour l'extinction d'une publication. Le balayage marquerait sinon le
+ * déploiement « éteint » alors que le manager a répondu 500 et que le workload
+ * tourne toujours — un échec transformé en succès apparent, exactement ce que
+ * l'invariant interdit.
+ *
+ * Constaté en réel : manager répondant 500, `stopped:["…"]` et `expiredAt` posé.
+ */
+async function stopServerDeploymentViaManagerStrict(deploymentId: string): Promise<void> {
+  const managerSecret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
+
+  const response = await fetch(
+    `${workspaceManagerUrl()}/server-deployments/${encodeURIComponent(deploymentId)}/stop`,
+    {
+      method: 'POST',
+      headers: { accept: 'application/json', ...(managerSecret ? { authorization: `Bearer ${managerSecret}` } : {}) },
+      signal: AbortSignal.timeout(30_000),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`workspace-manager a refusé l'arrêt de ${deploymentId} (HTTP ${response.status})`);
+  }
 }
 
 /*
@@ -30962,6 +31020,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         try {
           started = await startServerDeploymentViaManager({
             deploymentId: queued.id,
+            expiryCheck: {
+              candidate: {
+                environmentName: queued.environment,
+                createdAt: queued.createdAt,
+                planKey: (await billingState(project.organizationId).catch(() => undefined))?.plan.key,
+                expiredAt: ((queued.metadata ?? {}) as Record<string, unknown>)?.expiredAt as string | undefined,
+              },
+              ttlDays: publishedProjectTtlDays(
+                toEntitlementPlanKey((await billingState(project.organizationId).catch(() => undefined))?.plan.key),
+              ),
+            },
             ...machineSizeResources(machineSize),
             image:
               serverImage ??
@@ -31712,7 +31781,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         candidates: await store.listExpiryCandidateDeployments(),
         ttlDaysForPlan: (planKey) => publishedProjectTtlDays(toEntitlementPlanKey(planKey)),
         now: new Date(),
-        stopWorkload: (deploymentId) => stopServerDeploymentViaManager(deploymentId),
+        stopWorkload: (deploymentId) => stopServerDeploymentViaManagerStrict(deploymentId),
         markExpired: async (deployment) => {
           /*
            * Marquage dans `metadata`, pas dans `status` : `DeploymentStatus` est

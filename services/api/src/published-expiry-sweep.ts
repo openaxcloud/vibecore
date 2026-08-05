@@ -165,3 +165,50 @@ export function servingState(input: {
     ? 'expired'
     : 'live';
 }
+
+/** Levée quand un chemin de démarrage vise un déploiement éteint. */
+export class ExpiredPublicationStartError extends Error {
+  readonly code = 'PUBLISHED_DEPLOYMENT_EXPIRED';
+  readonly statusCode = 410;
+
+  constructor(readonly deploymentId: string) {
+    super(`Le déploiement ${deploymentId} a expiré et ne peut plus être démarré.`);
+    this.name = 'ExpiredPublicationStartError';
+  }
+}
+
+/**
+ * BARRIÈRE DE DÉMARRAGE — l'extinction doit être DURABLE, pas seulement un
+ * arrêt ponctuel.
+ *
+ * Arrêter un workload ne suffit pas : tout chemin capable de le redémarrer
+ * (redéploiement, réconciliation, réveil scale-from-zero, autoscaling) le
+ * ramènerait en ligne et l'extinction ne serait qu'une pause. Cette barrière est
+ * ce qui fait du plan de contrôle la véritable AUTORITÉ d'extinction, et non le
+ * garde du proxy — lequel n'est qu'une défense secondaire.
+ *
+ * Deux signaux, l'un ou l'autre suffit :
+ *  - `expiredAt` déjà posé par un balayage ;
+ *  - l'âge dépasse le TTL du plan, même si aucun balayage n'est encore passé
+ *    (sinon une course entre le balayage et un redémarrage rouvrirait l'app).
+ */
+export function assertPublicationStartable(input: {
+  deploymentId: string;
+  candidate?: Pick<ExpiryCandidate, 'environmentName' | 'createdAt' | 'planKey' | 'expiredAt'>;
+  ttlDays: number | null;
+  now: Date;
+}): void {
+  const { candidate } = input;
+
+  if (!candidate) {
+    return;
+  }
+
+  const expired =
+    Boolean(candidate.expiredAt) ||
+    isExpiredPublication({ candidate, ttlDays: input.ttlDays, now: input.now });
+
+  if (expired) {
+    throw new ExpiredPublicationStartError(input.deploymentId);
+  }
+}

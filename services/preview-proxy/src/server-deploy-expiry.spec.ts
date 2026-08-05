@@ -187,12 +187,15 @@ describe('TEST POSITIF — extinction réelle du chemin SERVER', () => {
     }
   });
 
-  it('API injoignable -> on SERT (fail-open assumé et borné)', async () => {
+  it('API injoignable ET état jamais établi -> 503, JAMAIS 200', async () => {
     /*
-     * Choix délibéré : couper ici transformerait toute panne de l'API en panne de
-     * TOUTES les apps déployées. L'extinction réelle ne dépend pas de ce garde —
-     * le balayage côté API arrête le workload, ce garde ne fait que rendre
-     * l'erreur lisible.
+     * Ce test asseyait auparavant un fail-open (200). Le rejeu expert l'a rejeté :
+     * servir les octets d'un workload POTENTIELLEMENT expiré est précisément ce
+     * qu'il faut interdire. État indéterminé ⇒ 503, et l'app n'est pas atteinte.
+     *
+     * La disponibilité n'est pas sacrifiée pour autant : un état « vivant »
+     * récemment confirmé reste servi pendant sa fenêtre de fraîcheur (couvert par
+     * server-deploy-expiry-durability.spec.ts).
      */
     const { impl, appHits } = makeFetch({ apiFails: true });
     const proxy = await buildProxy(impl);
@@ -200,8 +203,10 @@ describe('TEST POSITIF — extinction réelle du chemin SERVER', () => {
     try {
       const response = await proxy.inject({ method: 'GET', url: '/', headers: { host: DEPLOY_HOST } });
 
-      expect(response.statusCode).toBe(200);
-      expect(appHits.length).toBeGreaterThan(0);
+      expect(response.statusCode).toBe(503);
+      expect(response.json()).toMatchObject({ code: 'PUBLICATION_STATE_UNAVAILABLE' });
+      expect(response.body).not.toContain(APP_BODY);
+      expect(appHits).toHaveLength(0);
     } finally {
       await proxy.close();
     }
