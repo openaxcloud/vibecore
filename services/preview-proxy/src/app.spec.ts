@@ -66,7 +66,7 @@ describe('preview-proxy', () => {
     expect(response.body).toContain('Starting your app');
   });
 
-  it('serves the holding page when the dev server is still booting (503, empty body) for a document nav', async () => {
+  it('serves the localized holding page when the dev server is still booting (503, empty body)', async () => {
     const fetchImpl = (async () => new Response(null, { status: 503 })) as unknown as typeof fetch;
 
     const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
@@ -74,11 +74,18 @@ describe('preview-proxy', () => {
     const response = await app.inject({
       method: 'GET',
       url: '/p/ws_1/5173/',
-      headers: { accept: 'text/html', 'sec-fetch-dest': 'document' },
+      headers: {
+        accept: 'text/html',
+        'accept-language': 'fr-FR,fr;q=0.9',
+        'sec-fetch-dest': 'document',
+      },
     });
 
     expect(response.statusCode).toBe(503);
-    expect(response.body).toContain('Starting your app');
+    expect(response.headers['content-language']).toBe('fr');
+    expect(response.headers.vary).toContain('Accept-Language');
+    expect(response.body).toContain('<html lang="fr">');
+    expect(response.body).toContain('Démarrage de votre application');
   });
 
   it('passes through a REAL app 404 page (text/html with a body) unchanged — never masks it', async () => {

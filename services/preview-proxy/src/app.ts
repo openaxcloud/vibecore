@@ -1274,12 +1274,14 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
         // Release the upstream socket; the not-ready body is empty/irrelevant.
         await (upstreamResponse.body as ReadableStream<Uint8Array> | null)?.cancel().catch(() => undefined);
 
+        applyPreviewProxyLocale(reply, request);
+
         return reply
           .code(503)
           .header('content-type', 'text/html; charset=utf-8')
           .header('retry-after', '2')
           .header('cache-control', 'no-store')
-          .send(PREVIEW_STARTING_HTML);
+          .send(previewProxyHtml(request, 'starting'));
       }
 
       reply.status(upstreamResponse.status);
