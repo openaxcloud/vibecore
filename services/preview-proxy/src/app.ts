@@ -650,6 +650,64 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
    * 'gone' → the manager says the Deployment does not exist (build failed and
    * was torn down, or deleted) — a terminal state page, never a wake loop.
    */
+  /*
+   * Cache d'état de service, très court.
+   *
+   * Sans cache, chaque requête d'une app déployée ajouterait un aller-retour
+   * vers l'API — inacceptable sur un chemin public à fort trafic. Avec un cache
+   * long, une extinction mettrait des minutes à prendre effet. 15 s tranche :
+   * l'app s'éteint en quelques secondes et l'API n'est sollicitée qu'une fois
+   * par fenêtre et par déploiement.
+   */
+  const servingStateCache = new Map<string, { expired: boolean; checkedAt: number }>();
+  const SERVING_STATE_TTL_MS = 15_000;
+
+  /**
+   * La publication SERVER est-elle éteinte ?
+   *
+   * FAIL-OPEN DÉLIBÉRÉ, et c'est un choix qu'il faut assumer : si l'API est
+   * injoignable, on SERT l'app plutôt que de la couper. Couper ici
+   * transformerait toute panne de l'API en panne de TOUTES les applications
+   * déployées des clients — un rayon d'action sans commune mesure avec le risque
+   * réellement couvert, qui est qu'une app expirée reste joignable quelques
+   * minutes de plus.
+   *
+   * Ce fail-open n'est pas une brèche : l'extinction réelle ne dépend pas de ce
+   * garde. Le balayage côté API ARRÊTE le workload ; ce garde ne fait que
+   * transformer l'erreur d'infrastructure qui en résulterait en 410 lisible.
+   */
+  const isServerDeployExpired = async (deploymentId: string): Promise<boolean> => {
+    if (!apiBaseUrl) {
+      return false;
+    }
+
+    const cached = servingStateCache.get(deploymentId);
+
+    if (cached && Date.now() - cached.checkedAt < SERVING_STATE_TTL_MS) {
+      return cached.expired;
+    }
+
+    try {
+      const response = await fetchImpl(
+        `${apiBaseUrl}/deployments/${encodeURIComponent(deploymentId)}/serving-state`,
+        { method: 'GET', headers: { accept: 'application/json' } },
+      );
+
+      if (!response.ok) {
+        return false;
+      }
+
+      const body = (await response.json()) as { state?: string };
+      const expired = body?.state === 'expired';
+      servingStateCache.set(deploymentId, { expired, checkedAt: Date.now() });
+
+      return expired;
+    } catch {
+      // API injoignable : on sert (voir le raisonnement ci-dessus).
+      return false;
+    }
+  };
+
   const wakeServerDeploy = async (deploymentId: string): Promise<'ready' | 'starting' | 'gone'> => {
     if (!serverDeployManagerUrl) {
       return 'starting';
@@ -1487,6 +1545,29 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
           path === REPORTER_SCRIPT_PATH ||
           path === BLANK_PREVIEW_PATH
         ) {
+          return;
+        }
+
+        /*
+         * EXTINCTION 30 j du chemin SERVER.
+         *
+         * Le proxy transmettait `d-<id>` DIRECTEMENT au Service in-cluster sans
+         * jamais consulter l'API : une publication Starter expirée restait donc
+         * joignable indéfiniment, alors que le chemin STATIQUE, lui, renvoyait
+         * bien 410. C'est ce trou que ce garde ferme.
+         *
+         * 410 Gone (et non 404) : la ressource a existé et son adresse est
+         * retirée. On refuse AVANT tout forward — aucun octet applicatif ne part
+         * vers l'amont, et l'amont lui-même a été arrêté par le balayage côté API
+         * (le 410 est la façade, l'arrêt est la substance).
+         */
+        if (await isServerDeployExpired(deploy.deploymentId)) {
+          reply.header('cache-control', 'no-store');
+          await reply.code(410).send({
+            error: 'Cette publication a expiré. Republiez le projet pour remettre l\'adresse en ligne.',
+            code: 'PUBLISHED_DEPLOYMENT_EXPIRED',
+          });
+
           return;
         }
 

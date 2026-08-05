@@ -27,6 +27,7 @@ import {
   authCookieOptions,
   type AuthenticatedUser,
 } from '@vibecore/auth';
+import { servingState, stopExpiredServerDeployments, type ServingState } from './published-expiry-sweep.js';
 import {
   StripeBillingClient,
   assertQuota,
@@ -8324,6 +8325,55 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * SPA routes (anything that does not resolve to a real file) fall back
    * to index.html so client-side routers work.
    */
+  /*
+   * ÉTAT DE SERVICE d'un déploiement, pour preview-proxy.
+   *
+   * Le proxy transmet `d-<id>` DIRECTEMENT au Service in-cluster sans consulter
+   * l'API : il ne pouvait donc pas savoir qu'une publication Starter avait
+   * expiré, et servait l'app indéfiniment. Cette route lui donne l'autorité
+   * manquante.
+   *
+   * Publique et sans secret : elle ne révèle que ce qu'un visiteur découvre déjà
+   * en ouvrant l'URL (vivante ou éteinte), jamais l'identité du projet ni son
+   * org. `not-found` pour tout le reste — le proxy ne doit jamais servir une app
+   * parce que l'API n'a pas su répondre.
+   */
+  app.get('/deployments/:deploymentId/serving-state', async (request, reply) => {
+    const deploymentId = ((request.params as { deploymentId?: string }).deploymentId ?? '').trim();
+
+    if (!/^[A-Za-z0-9_-]{1,80}$/.test(deploymentId)) {
+      return reply.code(400).send({ error: 'Invalid deployment id', code: 'DEPLOY_INVALID_ID' });
+    }
+
+    const owner = await store.getDeploymentOwnerStatus(deploymentId).catch(() => undefined);
+
+    if (!owner || owner.projectDeletedAt || owner.status === 'CANCELED') {
+      reply.header('cache-control', 'no-store');
+
+      return reply.send({ state: 'not-found' satisfies ServingState });
+    }
+
+    const state = servingState({
+      candidate: {
+        environmentName: owner.environmentName,
+        createdAt: owner.createdAt ?? '',
+        planKey: owner.planKey,
+        status: owner.status,
+      },
+      ttlDays: publishedProjectTtlDays(toEntitlementPlanKey(owner.planKey)),
+      now: new Date(),
+    });
+
+    /*
+     * Cache TRÈS court côté proxy : une expiration doit prendre effet en
+     * secondes, pas au prochain redémarrage. Assez long malgré tout pour ne pas
+     * transformer chaque requête de l'app en aller-retour vers l'API.
+     */
+    reply.header('cache-control', 'public, max-age=15');
+
+    return reply.send({ state });
+  });
+
   app.get('/static-deployments/:deploymentId/*', async (request, reply) => {
     const params = request.params as { deploymentId?: string; '*'?: string };
     const deploymentId = (params.deploymentId ?? '').trim();
@@ -9603,6 +9653,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.url === '/ready' ||
       request.url === '/metrics' ||
       request.url === '/synthetic/health' ||
+      /*
+       * État de service d'un déploiement : appelé par preview-proxy SANS
+       * credentials (il n'en a pas). Ne révèle que ce qu'un visiteur découvre en
+       * ouvrant l'URL publique — vivante ou éteinte — jamais l'identité du projet
+       * ni de son org.
+       */
+      /^\/deployments\/[A-Za-z0-9_-]{1,80}\/serving-state$/.test(request.url.split('?')[0]) ||
       request.url.startsWith('/auth/register') ||
       request.url.startsWith('/auth/login') ||
       request.url.startsWith('/auth/verify-email') ||
@@ -31638,6 +31695,46 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const reaped = await reapStaleDeployments(store, { timeoutMs: resolveDeployBuildTimeoutMs() });
 
     /*
+     * EXTINCTION 30 j des publications SERVER — la substance derrière le 410.
+     *
+     * Le workload est réellement ARRÊTÉ via le workspace-manager, puis la ligne
+     * est marquée. Sans cet arrêt, un 410 au niveau du proxy ne serait qu'une
+     * façade : l'app continuerait de tourner, de consommer des ressources, et
+     * resterait joignable par tout chemin ne passant pas par le proxy.
+     *
+     * Best-effort : un échec d'extinction ne doit pas faire échouer le reap, mais
+     * il est RENDU dans la réponse plutôt qu'avalé.
+     */
+    let publicationExpiry: Awaited<ReturnType<typeof stopExpiredServerDeployments>> | { error: string };
+
+    try {
+      publicationExpiry = await stopExpiredServerDeployments({
+        candidates: await store.listExpiryCandidateDeployments(),
+        ttlDaysForPlan: (planKey) => publishedProjectTtlDays(toEntitlementPlanKey(planKey)),
+        now: new Date(),
+        stopWorkload: (deploymentId) => stopServerDeploymentViaManager(deploymentId),
+        markExpired: async (deployment) => {
+          /*
+           * Marquage dans `metadata`, pas dans `status` : `DeploymentStatus` est
+           * un enum Prisma, l'étendre imposerait une migration pour un simple
+           * drapeau. `expiredAt` suffit à sortir la ligne des balayages suivants
+           * sans toucher au schéma.
+           */
+          const existing = await store.getDeployment(deployment.projectId, deployment.id).catch(() => undefined);
+          const metadata = ((existing?.metadata ?? {}) as Record<string, unknown>) ?? {};
+
+          await store.updateDeployment(deployment.projectId, deployment.id, {
+            metadata: { ...metadata, expiredAt: new Date().toISOString() },
+          });
+        },
+        onError: (deploymentId, error) =>
+          request.log?.error?.({ err: error, deploymentId }, 'failed to stop expired server deployment'),
+      });
+    } catch (error) {
+      publicationExpiry = { error: error instanceof Error ? error.message : String(error) };
+    }
+
+    /*
      * Same tick, second sweep: runtime metering for READY server deployments.
      * Bills observed ACTIVE machine time (replicas > 0) at the row's machine
      * size; a sleeping app advances its watermark for free. Best-effort — a
@@ -31657,7 +31754,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.log.error({ err: error }, 'server-deploy runtime metering sweep failed');
     }
 
-    return { ...reaped, runtimeMetering };
+    return { ...reaped, runtimeMetering, publicationExpiry };
   });
 
   /*

@@ -2476,6 +2476,54 @@ export class PrismaApiStore implements ApiStore {
     return rows.length;
   }
 
+  async listExpiryCandidateDeployments(options: { take?: number } = {}) {
+    const rows = await this.prisma.deployment.findMany({
+      where: {
+        environmentName: 'production',
+        status: 'READY',
+        provider: 'server',
+        project: { deletedAt: null },
+      },
+      select: {
+        id: true,
+        projectId: true,
+        provider: true,
+        environmentName: true,
+        status: true,
+        createdAt: true,
+        metadata: true,
+        project: {
+          select: {
+            organizationId: true,
+            organization: {
+              select: {
+                subscriptions: {
+                  where: { status: 'ACTIVE' },
+                  select: { plan: { select: { key: true } } },
+                  take: 1,
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+      take: options.take ?? 500,
+    });
+
+    return rows.map((row) => ({
+      id: row.id,
+      projectId: row.projectId,
+      organizationId: row.project?.organizationId,
+      provider: row.provider,
+      environmentName: row.environmentName ?? undefined,
+      status: row.status,
+      createdAt: row.createdAt.toISOString(),
+      planKey: row.project?.organization?.subscriptions?.[0]?.plan?.key,
+      expiredAt: ((row.metadata ?? {}) as Record<string, unknown>)?.expiredAt as string | undefined,
+    }));
+  }
+
   async listPublishedProjects(organizationId: string) {
     /*
      * Une ligne par PROJET, datée de sa publication la plus récente : republier

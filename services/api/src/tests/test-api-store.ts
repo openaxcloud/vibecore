@@ -1598,6 +1598,33 @@ export class TestApiStore implements ApiStore {
     return published.size;
   }
 
+  async listExpiryCandidateDeployments(options: { take?: number } = {}) {
+    const out: any[] = [];
+
+    for (const deployment of this.deployments.values()) {
+      const project = this.projects.get(deployment.projectId);
+
+      if (!project || project.deletedAt) continue;
+      if ((deployment as any).environment !== 'production' || deployment.status !== 'READY') continue;
+      if (deployment.provider !== 'server') continue;
+
+      const subscription = this.subscriptions.get(project.organizationId);
+      out.push({
+        id: deployment.id,
+        projectId: deployment.projectId,
+        organizationId: project.organizationId,
+        provider: deployment.provider,
+        environmentName: (deployment as any).environment,
+        status: deployment.status,
+        createdAt: (deployment as any).createdAt ?? now(),
+        planKey: subscription?.status === 'ACTIVE' ? subscription.planKey : undefined,
+        expiredAt: ((deployment as any).metadata ?? {})?.expiredAt,
+      });
+    }
+
+    return out.slice(0, options.take ?? 500);
+  }
+
   async listPublishedProjects(organizationId: string) {
     const projectIds = this.#orgProjectIds(organizationId);
     const latest = new Map<string, string>();

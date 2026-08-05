@@ -1767,6 +1767,24 @@ export interface ApiStore {
    * republication d'un 2e projet, ni d'ignorer les publications expirées.
    */
   listPublishedProjects(organizationId: string): Promise<Array<{ projectId: string; publishedAt: string }>>;
+  /**
+   * Déploiements candidats à l'extinction 30 j : PRODUCTION + READY, avec la
+   * date et le plan de l'org. Nécessaire au balayage qui ARRÊTE réellement les
+   * workloads expirés — un compteur ou un simple 410 ne suffisent pas.
+   */
+  listExpiryCandidateDeployments(options?: { take?: number }): Promise<
+    Array<{
+      id: string;
+      projectId: string;
+      organizationId?: string;
+      provider: string;
+      environmentName?: string;
+      status: string;
+      createdAt: string;
+      planKey?: string;
+      expiredAt?: string;
+    }>
+  >;
   createSnapshot(input: {
     projectId: string;
     label?: string;
