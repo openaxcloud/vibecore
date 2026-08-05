@@ -1233,6 +1233,54 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
        */
       clearTimeout(timeout);
 
+      /*
+       * Startup-window guard against a SILENT BLANK preview. A dev server that is
+       * LISTENING but not yet serving its app answers a top-level navigation with
+       * a "not ready" response — most often a 0-byte 404: Vite serves `GET /` as a
+       * 404 with an empty body while its `index.html` has not yet been synced onto
+       * disk (reproduced in situ), and the agent + this proxy forward that 404
+       * verbatim. `/ports` meanwhile reports the port ready (it only means the
+       * socket is open), so the user is left staring at a white screen — the
+       * recurring "Webview blanc" launch-blocker — for as long as the window lasts
+       * (~3 min observed) before the same URL flips to 200.
+       *
+       * For a document/iframe navigation, convert that into the auto-refreshing
+       * "Starting your app…" holding page so the preview is NEVER a silent blank:
+       * it reloads every 2s and shows the real app the instant the server serves
+       * content. Scoped tightly so a genuine app response is never masked — only a
+       * top-level document navigation, only 404/502/503, and only when the body is
+       * empty or not HTML. A real app 404 page (text/html WITH a body) is passed
+       * through unchanged. Sub-resource 404s (scripts/XHR) never match
+       * wantsHtmlDocument, so a missing asset still surfaces to the app as a 404.
+       */
+      const upstreamCt = upstreamResponse.headers.get('content-type') ?? '';
+      const upstreamLenHeader = upstreamResponse.headers.get('content-length');
+      const isNotReadyStatus =
+        upstreamResponse.status === 404 || upstreamResponse.status === 502 || upstreamResponse.status === 503;
+
+      /*
+       * "Not serving the app yet" signature: an EMPTY body (an explicit
+       * content-length: 0, e.g. Vite's 0-byte 404 before index.html lands) OR a
+       * non-HTML body. A real app 404 PAGE is text/html WITH a body — content-type
+       * text/html and no explicit zero length — so it passes through untouched.
+       * (A missing content-length must NOT read as empty, or a real 404 page with
+       * no declared length would be masked.)
+       */
+      const declaredZeroLength = upstreamLenHeader !== null && Number(upstreamLenHeader) === 0;
+      const notServingApp = declaredZeroLength || !upstreamCt.includes('text/html');
+
+      if (isNotReadyStatus && wantsHtmlDocument(request) && notServingApp) {
+        // Release the upstream socket; the not-ready body is empty/irrelevant.
+        await (upstreamResponse.body as ReadableStream<Uint8Array> | null)?.cancel().catch(() => undefined);
+
+        return reply
+          .code(503)
+          .header('content-type', 'text/html; charset=utf-8')
+          .header('retry-after', '2')
+          .header('cache-control', 'no-store')
+          .send(PREVIEW_STARTING_HTML);
+      }
+
       reply.status(upstreamResponse.status);
 
       const contentType = upstreamResponse.headers.get('content-type') ?? '';

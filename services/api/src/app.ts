@@ -16008,7 +16008,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const url = previewUrlForWorkspacePort(authorized.workspaceId, port);
 
-    return { port, url, ready: true };
+    /*
+     * Drive `ready` from a real HTTP probe of the served content, exactly like the
+     * `/ports` listing does. Reporting `ready: true` unconditionally was a
+     * readiness lie: a dev server that has bound its port but not yet served its
+     * app (e.g. Vite answering `GET /` with a 0-byte 404 before `index.html` is
+     * synced) was reported ready, so a caller of this single-port endpoint latched
+     * onto a preview that renders blank. isPortReadyFromProbe requires a 2xx/3xx
+     * AND a non-empty body, so this is false during the startup window and flips
+     * true only when the hostname actually serves.
+     */
+    const ready = await probePortReady(authorized.workspaceId, port);
+
+    return { port, url, ready };
   });
 
   const handleRuntimePreviewProxy = async (request: FastifyRequest, reply: FastifyReply) => {
