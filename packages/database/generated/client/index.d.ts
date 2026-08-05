@@ -110396,6 +110396,8 @@ export namespace Prisma {
     createdAt: Date | null
     lastActiveAt: Date | null
     lastMeteredAt: Date | null
+    purgeFrozen: boolean | null
+    purgeFenceToken: string | null
     updatedAt: Date | null
   }
 
@@ -110412,6 +110414,8 @@ export namespace Prisma {
     createdAt: Date | null
     lastActiveAt: Date | null
     lastMeteredAt: Date | null
+    purgeFrozen: boolean | null
+    purgeFenceToken: string | null
     updatedAt: Date | null
   }
 
@@ -110429,6 +110433,8 @@ export namespace Prisma {
     createdAt: number
     lastActiveAt: number
     lastMeteredAt: number
+    purgeFrozen: number
+    purgeFenceToken: number
     updatedAt: number
     _all: number
   }
@@ -110447,6 +110453,8 @@ export namespace Prisma {
     createdAt?: true
     lastActiveAt?: true
     lastMeteredAt?: true
+    purgeFrozen?: true
+    purgeFenceToken?: true
     updatedAt?: true
   }
 
@@ -110463,6 +110471,8 @@ export namespace Prisma {
     createdAt?: true
     lastActiveAt?: true
     lastMeteredAt?: true
+    purgeFrozen?: true
+    purgeFenceToken?: true
     updatedAt?: true
   }
 
@@ -110480,6 +110490,8 @@ export namespace Prisma {
     createdAt?: true
     lastActiveAt?: true
     lastMeteredAt?: true
+    purgeFrozen?: true
+    purgeFenceToken?: true
     updatedAt?: true
     _all?: true
   }
@@ -110570,6 +110582,8 @@ export namespace Prisma {
     createdAt: Date
     lastActiveAt: Date
     lastMeteredAt: Date | null
+    purgeFrozen: boolean
+    purgeFenceToken: string | null
     updatedAt: Date
     _count: WorkspaceRuntimeCountAggregateOutputType | null
     _min: WorkspaceRuntimeMinAggregateOutputType | null
@@ -110604,6 +110618,8 @@ export namespace Prisma {
     createdAt?: boolean
     lastActiveAt?: boolean
     lastMeteredAt?: boolean
+    purgeFrozen?: boolean
+    purgeFenceToken?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["workspaceRuntime"]>
 
@@ -110621,6 +110637,8 @@ export namespace Prisma {
     createdAt?: boolean
     lastActiveAt?: boolean
     lastMeteredAt?: boolean
+    purgeFrozen?: boolean
+    purgeFenceToken?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["workspaceRuntime"]>
 
@@ -110638,6 +110656,8 @@ export namespace Prisma {
     createdAt?: boolean
     lastActiveAt?: boolean
     lastMeteredAt?: boolean
+    purgeFrozen?: boolean
+    purgeFenceToken?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["workspaceRuntime"]>
 
@@ -110655,10 +110675,12 @@ export namespace Prisma {
     createdAt?: boolean
     lastActiveAt?: boolean
     lastMeteredAt?: boolean
+    purgeFrozen?: boolean
+    purgeFenceToken?: boolean
     updatedAt?: boolean
   }
 
-  export type WorkspaceRuntimeOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "orgId" | "projectId" | "plan" | "status" | "pvcName" | "podName" | "serviceName" | "agentTokenSecretName" | "error" | "createdAt" | "lastActiveAt" | "lastMeteredAt" | "updatedAt", ExtArgs["result"]["workspaceRuntime"]>
+  export type WorkspaceRuntimeOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "orgId" | "projectId" | "plan" | "status" | "pvcName" | "podName" | "serviceName" | "agentTokenSecretName" | "error" | "createdAt" | "lastActiveAt" | "lastMeteredAt" | "purgeFrozen" | "purgeFenceToken" | "updatedAt", ExtArgs["result"]["workspaceRuntime"]>
 
   export type $WorkspaceRuntimePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "WorkspaceRuntime"
@@ -110677,6 +110699,8 @@ export namespace Prisma {
       createdAt: Date
       lastActiveAt: Date
       lastMeteredAt: Date | null
+      purgeFrozen: boolean
+      purgeFenceToken: string | null
       updatedAt: Date
     }, ExtArgs["result"]["workspaceRuntime"]>
     composites: {}
@@ -111114,6 +111138,8 @@ export namespace Prisma {
     readonly createdAt: FieldRef<"WorkspaceRuntime", 'DateTime'>
     readonly lastActiveAt: FieldRef<"WorkspaceRuntime", 'DateTime'>
     readonly lastMeteredAt: FieldRef<"WorkspaceRuntime", 'DateTime'>
+    readonly purgeFrozen: FieldRef<"WorkspaceRuntime", 'Boolean'>
+    readonly purgeFenceToken: FieldRef<"WorkspaceRuntime", 'String'>
     readonly updatedAt: FieldRef<"WorkspaceRuntime", 'DateTime'>
   }
     
@@ -159354,6 +159380,8 @@ export namespace Prisma {
     createdAt: 'createdAt',
     lastActiveAt: 'lastActiveAt',
     lastMeteredAt: 'lastMeteredAt',
+    purgeFrozen: 'purgeFrozen',
+    purgeFenceToken: 'purgeFenceToken',
     updatedAt: 'updatedAt'
   };
 
@@ -166973,6 +167001,8 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"WorkspaceRuntime"> | Date | string
     lastActiveAt?: DateTimeFilter<"WorkspaceRuntime"> | Date | string
     lastMeteredAt?: DateTimeNullableFilter<"WorkspaceRuntime"> | Date | string | null
+    purgeFrozen?: BoolFilter<"WorkspaceRuntime"> | boolean
+    purgeFenceToken?: StringNullableFilter<"WorkspaceRuntime"> | string | null
     updatedAt?: DateTimeFilter<"WorkspaceRuntime"> | Date | string
   }
 
@@ -166990,6 +167020,8 @@ export namespace Prisma {
     createdAt?: SortOrder
     lastActiveAt?: SortOrder
     lastMeteredAt?: SortOrderInput | SortOrder
+    purgeFrozen?: SortOrder
+    purgeFenceToken?: SortOrderInput | SortOrder
     updatedAt?: SortOrder
   }
 
@@ -167010,6 +167042,8 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"WorkspaceRuntime"> | Date | string
     lastActiveAt?: DateTimeFilter<"WorkspaceRuntime"> | Date | string
     lastMeteredAt?: DateTimeNullableFilter<"WorkspaceRuntime"> | Date | string | null
+    purgeFrozen?: BoolFilter<"WorkspaceRuntime"> | boolean
+    purgeFenceToken?: StringNullableFilter<"WorkspaceRuntime"> | string | null
     updatedAt?: DateTimeFilter<"WorkspaceRuntime"> | Date | string
   }, "id">
 
@@ -167027,6 +167061,8 @@ export namespace Prisma {
     createdAt?: SortOrder
     lastActiveAt?: SortOrder
     lastMeteredAt?: SortOrderInput | SortOrder
+    purgeFrozen?: SortOrder
+    purgeFenceToken?: SortOrderInput | SortOrder
     updatedAt?: SortOrder
     _count?: WorkspaceRuntimeCountOrderByAggregateInput
     _max?: WorkspaceRuntimeMaxOrderByAggregateInput
@@ -167050,6 +167086,8 @@ export namespace Prisma {
     createdAt?: DateTimeWithAggregatesFilter<"WorkspaceRuntime"> | Date | string
     lastActiveAt?: DateTimeWithAggregatesFilter<"WorkspaceRuntime"> | Date | string
     lastMeteredAt?: DateTimeNullableWithAggregatesFilter<"WorkspaceRuntime"> | Date | string | null
+    purgeFrozen?: BoolWithAggregatesFilter<"WorkspaceRuntime"> | boolean
+    purgeFenceToken?: StringNullableWithAggregatesFilter<"WorkspaceRuntime"> | string | null
     updatedAt?: DateTimeWithAggregatesFilter<"WorkspaceRuntime"> | Date | string
   }
 
@@ -177591,6 +177629,8 @@ export namespace Prisma {
     createdAt?: Date | string
     lastActiveAt?: Date | string
     lastMeteredAt?: Date | string | null
+    purgeFrozen?: boolean
+    purgeFenceToken?: string | null
     updatedAt?: Date | string
   }
 
@@ -177608,6 +177648,8 @@ export namespace Prisma {
     createdAt?: Date | string
     lastActiveAt?: Date | string
     lastMeteredAt?: Date | string | null
+    purgeFrozen?: boolean
+    purgeFenceToken?: string | null
     updatedAt?: Date | string
   }
 
@@ -177625,6 +177667,8 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     lastActiveAt?: DateTimeFieldUpdateOperationsInput | Date | string
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    purgeFrozen?: BoolFieldUpdateOperationsInput | boolean
+    purgeFenceToken?: NullableStringFieldUpdateOperationsInput | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -177642,6 +177686,8 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     lastActiveAt?: DateTimeFieldUpdateOperationsInput | Date | string
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    purgeFrozen?: BoolFieldUpdateOperationsInput | boolean
+    purgeFenceToken?: NullableStringFieldUpdateOperationsInput | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -177659,6 +177705,8 @@ export namespace Prisma {
     createdAt?: Date | string
     lastActiveAt?: Date | string
     lastMeteredAt?: Date | string | null
+    purgeFrozen?: boolean
+    purgeFenceToken?: string | null
     updatedAt?: Date | string
   }
 
@@ -177676,6 +177724,8 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     lastActiveAt?: DateTimeFieldUpdateOperationsInput | Date | string
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    purgeFrozen?: BoolFieldUpdateOperationsInput | boolean
+    purgeFenceToken?: NullableStringFieldUpdateOperationsInput | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -177693,6 +177743,8 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     lastActiveAt?: DateTimeFieldUpdateOperationsInput | Date | string
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    purgeFrozen?: BoolFieldUpdateOperationsInput | boolean
+    purgeFenceToken?: NullableStringFieldUpdateOperationsInput | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -186235,6 +186287,8 @@ export namespace Prisma {
     createdAt?: SortOrder
     lastActiveAt?: SortOrder
     lastMeteredAt?: SortOrder
+    purgeFrozen?: SortOrder
+    purgeFenceToken?: SortOrder
     updatedAt?: SortOrder
   }
 
@@ -186251,6 +186305,8 @@ export namespace Prisma {
     createdAt?: SortOrder
     lastActiveAt?: SortOrder
     lastMeteredAt?: SortOrder
+    purgeFrozen?: SortOrder
+    purgeFenceToken?: SortOrder
     updatedAt?: SortOrder
   }
 
@@ -186267,6 +186323,8 @@ export namespace Prisma {
     createdAt?: SortOrder
     lastActiveAt?: SortOrder
     lastMeteredAt?: SortOrder
+    purgeFrozen?: SortOrder
+    purgeFenceToken?: SortOrder
     updatedAt?: SortOrder
   }
 
