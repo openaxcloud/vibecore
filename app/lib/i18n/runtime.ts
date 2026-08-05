@@ -157,6 +157,7 @@ import { supportTicketDetailEn, supportTicketDetailFr } from './catalogs/support
 import { teamAccessLogEn, teamAccessLogFr } from './catalogs/team-access-log';
 import { templatesLanguagesRouteEn, templatesLanguagesRouteFr } from './catalogs/templates-languages-route';
 import { terminalSessionEn, terminalSessionFr } from './catalogs/terminal-session';
+import { terminalTabsEn, terminalTabsFr } from './catalogs/terminal-tabs';
 import { toolInvocationsEn, toolInvocationsFr } from './catalogs/tool-invocations';
 import { updateTabEn, updateTabFr } from './catalogs/update-tab';
 import { upgradeEn, upgradeFr } from './catalogs/upgrade';
@@ -196,6 +197,7 @@ const RESOURCES: Record<SupportedLanguage, { translation: Record<string, string>
       ...billingEn,
       ...idePanelsEn,
       ...mobileIdeTabsEn,
+      ...terminalTabsEn,
       ...ideNewRouteEn,
       ...importHubEn,
       ...importFolderButtonEn,
@@ -345,6 +347,7 @@ const RESOURCES: Record<SupportedLanguage, { translation: Record<string, string>
       ...billingFr,
       ...idePanelsFr,
       ...mobileIdeTabsFr,
+      ...terminalTabsFr,
       ...ideNewRouteFr,
       ...importHubFr,
       ...importFolderButtonFr,
