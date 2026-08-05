@@ -303,3 +303,53 @@ receipts:
         dimension: recovery_observability
     completeness: INCOMPLETE
     completenessNote: "Reçu enregistré d'après la directive d'Avi (2026-08-05) sans texte brut de l'expert — aucun flip CLOSED/SIGNED n'est demandé ni permis par cette entrée ; le sha256 du paquet de preuve est DECLARED_NOT_RECOMPUTED (préfixe seul transmis)."
+
+  - reviewReceiptId: RR-20260805-CODEX-13
+    reviewerType: AUTOMATED_LLM
+    reviewerIdentity: "OpenAI-Codex"
+    reviewedAt: "2026-08-05"
+    reviewKind: "contre-audit de re-soumission — 5 lots"
+    auditedLots:   # 5 lots re-soumis, tête auditée par lot
+      pricingPr95Head: "af62f7e1"
+      rollbackPr94Head: "2728b628"
+      passwordHead: "6a17ad24ef"
+      cosignPr81Head: "ef13a979"
+      ibanPr89Head: "dbde310f"
+    inputDocuments:
+      - note: "relecture de re-soumission des 5 lots (Pricing #95, Rollback #94, Password, Cosign #81, IBAN #89) — enregistrement d'après la directive d'Avi du 2026-08-05"
+    responsePath: null   # texte brut du reçu non transmis
+    responseHash: null
+    decision: "AVIS FAVORABLE SOUS RÉSERVE DE REJEU INDÉPENDANT"
+    summary: "Contre-audit des 5 lots re-soumis : AVIS FAVORABLE SOUS RÉSERVE DE REJEU INDÉPENDANT — AUCUNE réserve technique de fond restante. Statut par lot = SIGNABLE_APRES_REJEU (PAS encore SIGNED/CLOSED ; la signature vient APRÈS le rejeu indépendant de l'expert). Le faux positif gitleaks sur main est explicitement écarté comme motif. Aucun SIGNED/CLOSED, compteurs inchangés."
+    decisions:   # aucun flip de compteur : rien n'est signé ni fermé par ce reçu
+      accepted: []
+      refused: []
+      contractsAccepted: []
+      contractsRefused: []
+      codeLotsAccepted: []
+      codeLotsRefused: []
+    perLotStatus:   # SIGNABLE_APRES_REJEU — signable APRÈS le rejeu indépendant, pas encore signé
+      - lot: PRICING
+        pr: 95
+        sha: "af62f7e1"
+        status: SIGNABLE_APRES_REJEU
+      - lot: ROLLBACK
+        pr: 94
+        sha: "2728b628"
+        status: SIGNABLE_APRES_REJEU
+      - lot: PASSWORD
+        pr: null
+        sha: "6a17ad24ef"
+        status: SIGNABLE_APRES_REJEU
+      - lot: COSIGN
+        pr: 81
+        sha: "ef13a979"
+        status: SIGNABLE_APRES_REJEU
+        note: "signable pour Enforce ultérieur"
+      - lot: IBAN
+        pr: 89
+        sha: "dbde310f"
+        status: SIGNABLE_APRES_REJEU
+    gitleaksFalsePositiveNote: "le faux positif gitleaks sur main est écarté comme motif — ce n'est PAS une réserve technique de fond."
+    completeness: INCOMPLETE
+    completenessNote: "Reçu enregistré d'après la directive d'Avi (2026-08-05) sans texte brut de l'expert (responseHash null). AUCUN flip CLOSED/SIGNED n'est demandé ni permis par cette entrée : le statut par lot est SIGNABLE_APRES_REJEU ; la signature/fermeture ne survient qu'APRÈS le rejeu indépendant de l'expert. Compteurs inchangés."
