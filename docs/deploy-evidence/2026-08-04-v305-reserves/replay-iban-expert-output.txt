@@ -47,6 +47,6 @@ OK    R3 — plus long que le pays
         in  "ES9121000418450200051332EXTRA"
         out "ES9121000418450200051332EXTRA"
 OK    R4 — code pays inconnu SIGNALÉ
-        unknownCountryCodes = ["ZZ"]
+        unknownCandidates = [{"countryCode":"ZZ","normalizedLength":24,"redactedSample":"ZZ91…"}]
 
 17/17 cas conformes

@@ -29,6 +29,42 @@ function emptyMetrics(): RemixPiiMetrics {
 
 let metrics: RemixPiiMetrics = emptyMetrics();
 
+/*
+ * ------------------------------------------------------------------------- *
+ * ÉCHANTILLONNAGE DU LOG (garde-fou 1)
+ *
+ * La MÉTRIQUE compte CHAQUE candidat plausible — c'est elle qui dit si le
+ * phénomène monte. Le LOG, lui, est borné : il ne sert qu'à DIAGNOSTIQUER, et
+ * un fichier de seed contenant mille lignes ne doit pas produire mille lignes
+ * de journal.
+ *
+ * Règle : le PREMIER candidat de chaque code pays par fenêtre d'observation,
+ * et au plus MAX_LOGGED_COUNTRIES codes distincts — cardinalité bornée même
+ * face à des données adverses qui feraient défiler les codes pays.
+ * -------------------------------------------------------------------------
+ */
+
+const MAX_LOGGED_COUNTRIES = 10;
+
+let loggedCountries = new Set<string>();
+
+/**
+ * Faut-il journaliser CE candidat ? Vrai une seule fois par code pays et par
+ * fenêtre, dans la limite de {@link MAX_LOGGED_COUNTRIES} codes distincts.
+ *
+ * Appeler cette fonction CONSOMME l'autorisation : elle a un effet de bord
+ * assumé, pour que l'appelant ne puisse pas journaliser deux fois par mégarde.
+ */
+export function shouldLogUnknownIbanCountry(countryCode: string): boolean {
+  if (loggedCountries.has(countryCode) || loggedCountries.size >= MAX_LOGGED_COUNTRIES) {
+    return false;
+  }
+
+  loggedCountries.add(countryCode);
+
+  return true;
+}
+
 /** Un IBAN a été masqué ; `checksumValid` qualifie, il ne conditionne pas. */
 export function recordIbanMasked(checksumValid: boolean): void {
   if (checksumValid) {
@@ -54,6 +90,7 @@ export function snapshotRemixPiiMetrics(): RemixPiiMetrics {
 /** Remise à zéro (tests, et rotation d'une fenêtre d'observation). */
 export function resetRemixPiiMetrics(): void {
   metrics = emptyMetrics();
+  loggedCountries = new Set<string>();
 }
 
 /**

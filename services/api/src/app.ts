@@ -319,7 +319,7 @@ import {
   RollbackManifestError,
   selectPreviousRelease,
 } from './release-manifest.js';
-import { recordIbanMasked, recordUnknownIbanCountry } from './remix-pii-metrics.js';
+import { recordIbanMasked, recordUnknownIbanCountry, shouldLogUnknownIbanCountry } from './remix-pii-metrics.js';
 import { computeWorkspaceRestorePlan, isPortReadyFromProbe, type PortProbeResult } from './runtime-readiness.js';
 import { aggregatePreviewReadiness } from './runtime-readiness.js';
 import {
@@ -22429,15 +22429,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           recordIbanMasked(false);
         }
 
-        if (observations.ibanUnknownCountryCodes.length > 0) {
-          for (const countryCode of observations.ibanUnknownCountryCodes) {
-            recordUnknownIbanCountry(countryCode);
-          }
+        /*
+         * La MÉTRIQUE compte CHAQUE candidat ; le LOG est ÉCHANTILLONNÉ (1er par
+         * code pays et par fenêtre, cardinalité bornée) et ne porte qu'un
+         * spécimen TRONQUÉ — jamais l'IBAN en clair.
+         */
+        for (const candidate of observations.ibanUnknownCandidates) {
+          recordUnknownIbanCountry(candidate.countryCode);
 
-          request.log.warn(
-            { countryCodes: observations.ibanUnknownCountryCodes, remixJobId: job.id },
-            'remix PII: IBAN-shaped value with a country code absent from the ISO 13616 table — NOT masked; update IBAN_LENGTH_BY_COUNTRY',
-          );
+          if (shouldLogUnknownIbanCountry(candidate.countryCode)) {
+            request.log.warn(
+              {
+                countryCode: candidate.countryCode,
+                normalizedLength: candidate.normalizedLength,
+                sample: candidate.redactedSample,
+                remixJobId: job.id,
+              },
+              'remix PII: IBAN-shaped value whose country code is absent from the ISO 13616 table — NOT masked; update IBAN_LENGTH_BY_COUNTRY (sample truncated, further occurrences of this country are not logged)',
+            );
+          }
         }
 
         const residual = scanFilesForPii(maskedFiles);

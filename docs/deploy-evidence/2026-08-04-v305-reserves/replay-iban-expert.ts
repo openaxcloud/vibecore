@@ -58,10 +58,13 @@ for (const [label, input, expected] of cases) {
 const { observations } = maskPiiInFiles([
   { path: 'a.csv', content: 'ZZ91 2100 0418 4502 0005 1332' },
 ]);
-const signalled = observations.ibanUnknownCountryCodes.join(',') === 'ZZ';
+const signalled =
+  observations.ibanUnknownCandidates.length === 1 &&
+  observations.ibanUnknownCandidates[0].countryCode === 'ZZ' &&
+  observations.ibanUnknownCandidates[0].redactedSample === 'ZZ91…';
 
 console.log(`${signalled ? 'OK  ' : 'ECHEC'}  R4 — code pays inconnu SIGNALÉ`);
-console.log(`        unknownCountryCodes = ${JSON.stringify(observations.ibanUnknownCountryCodes)}`);
+console.log(`        unknownCandidates = ${JSON.stringify(observations.ibanUnknownCandidates)}`);
 
 if (!signalled) {
   failed += 1;

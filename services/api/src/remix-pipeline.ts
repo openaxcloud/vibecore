@@ -445,9 +445,50 @@ export function ibanChecksumValid(compact: string): boolean {
   return remainder === 1;
 }
 
+/*
+ * ------------------------------------------------------------------------- *
+ * DÉFINITION NORMATIVE — « candidat plausible » (R4)
+ *
+ * R4 ne signale un code pays inconnu que si le jeton rencontré ressemble
+ * VRAIMENT à un IBAN. Sans ce filtre, chaque `ab12` d'un fichier source
+ * incrémenterait la métrique et la rendrait inexploitable. Un jeton est un
+ * candidat plausible si et seulement si les 4 conditions suivantes tiennent :
+ *
+ *  C1. STRUCTURE — exactement 2 lettres ASCII puis 2 chiffres ASCII
+ *      (`/[A-Za-z]{2}[0-9]{2}/`), puis un corps alphanumérique ASCII. La casse
+ *      est libre ; le code pays est normalisé en majuscules.
+ *
+ *  C2. NORMALISATION — on retire les SÉPARATEURS INTERNES pour mesurer :
+ *      espace, tabulation, insécable U+00A0, insécable étroite U+202F, espace
+ *      numérique U+2007, espace fine U+2009, gluon U+2060. Un séparateur n'est
+ *      franchi QUE s'il est suivi d'un alphanumérique : il n'est jamais
+ *      consommé en fin de jeton. Le trait d'union est EXCLU — il sépare deux
+ *      champs voisins bien plus souvent qu'il ne groupe un IBAN, et le
+ *      consommer rejouerait le bug « EUR ».
+ *
+ *  C3. LONGUEUR — la longueur normalisée est comprise entre 15 et 34 inclus,
+ *      bornes du registre ISO 13616 tous pays confondus.
+ *
+ *  C4. DÉLIMITATION — le caractère qui PRÉCÈDE le début n'est pas
+ *      alphanumérique, et celui qui SUIT la fin ne l'est pas non plus. Un
+ *      jeton plus long qu'un IBAN n'est donc jamais un candidat.
+ *
+ * Cette définition est le contrat de stabilité de R4 : la modifier change ce
+ * que mesure `unknown_country_code`. Voir docs/REMIX_PII_IBAN_POLICY.md.
+ * -------------------------------------------------------------------------
+ */
+
 /** Bornes plausibles d'un IBAN, tous pays confondus (ISO 13616 : 15 → 34). */
 const IBAN_MIN_LENGTH = 15;
 const IBAN_MAX_LENGTH = 34;
+
+/**
+ * Réduit un candidat à ce qui est diagnostiquable SANS exposer le numéro : les
+ * 4 premiers caractères (pays + clé de contrôle) puis une ellipse.
+ */
+function redactIbanCandidate(compact: string): string {
+  return `${compact.slice(0, 4).toUpperCase()}…`;
+}
 
 /**
  * Ce que le masquage a OBSERVÉ — remonté au bord (`remix-pii-metrics.ts`)
@@ -460,8 +501,11 @@ export interface PiiMaskingObservations {
   /** IBAN masqués MALGRÉ un checksum invalide (R1 : on masque quand même). */
   ibanMaskedChecksumInvalid: number;
 
-  /** Codes pays hors registre rencontrés (R4) — non masqués, à signaler. */
-  ibanUnknownCountryCodes: string[];
+  /**
+   * Candidats hors registre rencontrés (R4) — non masqués, à signaler. UNE
+   * ENTRÉE PAR OCCURRENCE : la métrique compte tout, le log est borné en aval.
+   */
+  ibanUnknownCandidates: UnknownIbanCandidate[];
 }
 
 /** Une occurrence d'IBAN : bornes dans le texte ORIGINAL + qualification. */
@@ -474,15 +518,36 @@ export interface IbanSpan {
   checksumValid: boolean;
 }
 
+/**
+ * Un candidat qui RESSEMBLE à un IBAN mais dont le pays est hors registre.
+ *
+ * Ne porte JAMAIS la valeur : seulement le code pays, la longueur normalisée
+ * et un spécimen TRONQUÉ — de quoi diagnostiquer, rien pour reconstituer.
+ */
+export interface UnknownIbanCandidate {
+  countryCode: string;
+
+  /** Longueur du candidat APRÈS normalisation (séparateurs retirés). */
+  normalizedLength: number;
+
+  /**
+   * Spécimen tronqué : les 4 premiers caractères (code pays + clé de contrôle)
+   * puis une ellipse. Le CORPS — le numéro de compte — n'apparaît jamais. La
+   * clé de contrôle est un checksum du corps, elle n'en révèle pas le contenu.
+   */
+  redactedSample: string;
+}
+
 export interface IbanScan {
   spans: IbanSpan[];
 
   /**
-   * Codes pays qui RESSEMBLENT à un IBAN (longueur plausible, bien délimité)
-   * mais sont absents du registre. Non masqués — et signalés, pour que la
-   * table soit mise à jour plutôt que la fuite passe inaperçue.
+   * Candidats plausibles dont le pays est absent du registre. NON masqués — et
+   * signalés, pour que la table soit mise à jour plutôt que la fuite passe
+   * inaperçue. UNE ENTRÉE PAR OCCURRENCE (pas de déduplication) : la métrique
+   * doit compter chaque candidat, c'est le LOG qui est borné en aval.
    */
-  unknownCountryCodes: string[];
+  unknownCandidates: UnknownIbanCandidate[];
 }
 
 /*
@@ -505,7 +570,7 @@ export interface IbanScan {
  */
 export function scanIbans(line: string): IbanScan {
   const spans: IbanSpan[] = [];
-  const unknownCountryCodes: string[] = [];
+  const unknownCandidates: UnknownIbanCandidate[] = [];
   const candidate = /[A-Za-z]{2}[0-9]{2}/g;
 
   let match: RegExpExecArray | null;
@@ -528,12 +593,21 @@ export function scanIbans(line: string): IbanScan {
        */
       const probe = consumeIban(line, start, IBAN_MAX_LENGTH);
 
+      /*
+       * C3 + C4 de la DÉFINITION NORMATIVE ci-dessus. AUCUNE déduplication :
+       * chaque occurrence doit compter dans la métrique — c'est le LOG qui est
+       * borné, en aval (voir shouldLogUnknownIbanCountry).
+       */
       if (
         probe.taken >= IBAN_MIN_LENGTH &&
-        (probe.end >= line.length || !ALNUM.test(line[probe.end])) &&
-        !unknownCountryCodes.includes(countryCode)
+        probe.taken <= IBAN_MAX_LENGTH &&
+        (probe.end >= line.length || !ALNUM.test(line[probe.end]))
       ) {
-        unknownCountryCodes.push(countryCode);
+        unknownCandidates.push({
+          countryCode,
+          normalizedLength: probe.taken,
+          redactedSample: redactIbanCandidate(probe.compact),
+        });
       }
 
       continue;
@@ -562,7 +636,7 @@ export function scanIbans(line: string): IbanScan {
     candidate.lastIndex = run.end;
   }
 
-  return { spans, unknownCountryCodes };
+  return { spans, unknownCandidates };
 }
 
 /**
@@ -829,7 +903,7 @@ export function maskPiiInFiles(files: RemixFile[]): {
   const observations: PiiMaskingObservations = {
     ibanMaskedChecksumValid: 0,
     ibanMaskedChecksumInvalid: 0,
-    ibanUnknownCountryCodes: [],
+    ibanUnknownCandidates: [],
   };
 
   const cleaned = files.map((file) => {
@@ -856,11 +930,7 @@ export function maskPiiInFiles(files: RemixFile[]): {
         if (matcher.kind === 'iban') {
           const scan = scanIbans(out);
 
-          for (const code of scan.unknownCountryCodes) {
-            if (!observations.ibanUnknownCountryCodes.includes(code)) {
-              observations.ibanUnknownCountryCodes.push(code);
-            }
-          }
+          observations.ibanUnknownCandidates.push(...scan.unknownCandidates);
 
           /*
            * Réécriture À REBOURS : masquer de la fin vers le début garde les

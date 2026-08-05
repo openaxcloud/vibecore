@@ -5,6 +5,7 @@ import {
   recordIbanMasked,
   recordUnknownIbanCountry,
   resetRemixPiiMetrics,
+  shouldLogUnknownIbanCountry,
   snapshotRemixPiiMetrics,
 } from './remix-pii-metrics.js';
 import {
@@ -391,7 +392,7 @@ describe('person-name masking (I-RMX-3)', () => {
 
       expect(observations.ibanMaskedChecksumValid).toBe(1);
       expect(observations.ibanMaskedChecksumInvalid).toBe(1);
-      expect(observations.ibanUnknownCountryCodes).toEqual([]);
+      expect(observations.ibanUnknownCandidates).toEqual([]);
     });
 
     it('R3 — longueur INCORRECTE pour le pays : AUCUN masquage IBAN', () => {
@@ -417,13 +418,42 @@ describe('person-name masking (I-RMX-3)', () => {
       const { files, observations } = maskPiiInFiles([{ path: 'a.csv', content: line }]);
 
       expect(files[0].content).toBe(line);
-      expect(observations.ibanUnknownCountryCodes).toEqual(['ZZ']);
+      expect(observations.ibanUnknownCandidates).toEqual([
+        { countryCode: 'ZZ', normalizedLength: 24, redactedSample: 'ZZ91…' },
+      ]);
+    });
+
+    it("R4 — le spécimen est TRONQUÉ : le corps de l'IBAN n'apparaît jamais", () => {
+      const { observations } = maskPiiInFiles([{ path: 'a.csv', content: 'ZZ91 2100 0418 4502 0005 1332' }]);
+
+      const [candidate] = observations.ibanUnknownCandidates;
+
+      expect(candidate.redactedSample).toBe('ZZ91…');
+      expect(candidate.redactedSample).not.toContain('2100');
+      expect(candidate.redactedSample).not.toContain('1332');
+
+      // Rien dans l'observation ne porte la valeur complète.
+      expect(JSON.stringify(observations)).not.toContain('210004184502');
     });
 
     it('R4 — pas de faux signal sur du bruit court', () => {
       const { observations } = maskPiiInFiles([{ path: 'a.ts', content: 'const ab12 = 3; // xy99 ok' }]);
 
-      expect(observations.ibanUnknownCountryCodes).toEqual([]);
+      expect(observations.ibanUnknownCandidates).toEqual([]);
+    });
+
+    it('R4 — définition du candidat plausible : bornes 15-34 et délimitation', () => {
+      const tooShort = maskPiiInFiles([{ path: 'a.txt', content: 'ZZ91 2100 0418 45' }]); // 14
+      expect(tooShort.observations.ibanUnknownCandidates).toEqual([]);
+
+      const tooLong = maskPiiInFiles([
+        { path: 'a.txt', content: `ZZ91${'A'.repeat(31)}` }, // 35
+      ]);
+      expect(tooLong.observations.ibanUnknownCandidates).toEqual([]);
+
+      const justRight = maskPiiInFiles([{ path: 'a.txt', content: `ZZ91${'A'.repeat(11)}` }]); // 15
+      expect(justRight.observations.ibanUnknownCandidates).toHaveLength(1);
+      expect(justRight.observations.ibanUnknownCandidates[0].normalizedLength).toBe(15);
     });
 
     it('R4 — le compteur métrique `unknown_country_code` est incrémenté', () => {
@@ -433,8 +463,8 @@ describe('person-name masking (I-RMX-3)', () => {
         { path: 'a.csv', content: 'ZZ91 2100 0418 4502 0005 1332\nES91 2100 0418 4502 0005 1333' },
       ]);
 
-      for (const code of observations.ibanUnknownCountryCodes) {
-        recordUnknownIbanCountry(code);
+      for (const candidate of observations.ibanUnknownCandidates) {
+        recordUnknownIbanCountry(candidate.countryCode);
       }
 
       for (let n = 0; n < observations.ibanMaskedChecksumInvalid; n += 1) {
@@ -458,6 +488,59 @@ describe('person-name masking (I-RMX-3)', () => {
       expect(IBAN_LENGTH_BY_COUNTRY.ES).toBe(24);
       expect(IBAN_LENGTH_BY_COUNTRY.NO).toBe(15);
       expect(Object.isFrozen(IBAN_LENGTH_BY_COUNTRY)).toBe(true);
+    });
+
+    it('GARDE-FOU — la métrique compte TOUT, le log est BORNÉ (échantillonnage)', () => {
+      resetRemixPiiMetrics();
+
+      // 5 occurrences du même pays inconnu + 1 d'un second pays.
+      const rows = Array.from({ length: 5 }, () => 'ZZ91 2100 0418 4502 0005 1332');
+      rows.push('QQ91 2100 0418 4502 0005 1332');
+
+      const { observations } = maskPiiInFiles([{ path: 'seed.csv', content: rows.join('\n') }]);
+
+      // Aucune déduplication : 6 candidats observés.
+      expect(observations.ibanUnknownCandidates).toHaveLength(6);
+
+      let logLines = 0;
+
+      for (const candidate of observations.ibanUnknownCandidates) {
+        recordUnknownIbanCountry(candidate.countryCode);
+
+        if (shouldLogUnknownIbanCountry(candidate.countryCode)) {
+          logLines += 1;
+        }
+      }
+
+      // LA MÉTRIQUE compte chaque occurrence…
+      expect(snapshotRemixPiiMetrics().unknownCountryCode).toEqual({ ZZ: 5, QQ: 1 });
+
+      // …mais le LOG est borné à un exemple par code pays.
+      expect(logLines).toBe(2);
+
+      resetRemixPiiMetrics();
+    });
+
+    it('GARDE-FOU — la cardinalité des codes journalisés est plafonnée', () => {
+      resetRemixPiiMetrics();
+
+      const codes = Array.from({ length: 25 }, (_, n) => `Q${String.fromCharCode(65 + (n % 25))}`);
+      const logged = codes.filter((code) => shouldLogUnknownIbanCountry(code)).length;
+
+      expect(logged).toBe(10); // MAX_LOGGED_COUNTRIES
+
+      resetRemixPiiMetrics();
+    });
+
+    it('GARDE-FOU — après remise à zéro de la fenêtre, on re-journalise', () => {
+      resetRemixPiiMetrics();
+      expect(shouldLogUnknownIbanCountry('ZZ')).toBe(true);
+      expect(shouldLogUnknownIbanCountry('ZZ')).toBe(false);
+
+      resetRemixPiiMetrics();
+      expect(shouldLogUnknownIbanCountry('ZZ')).toBe(true);
+
+      resetRemixPiiMetrics();
     });
 
     it('les plages rendues sont celles du texte ORIGINAL', () => {
