@@ -75,13 +75,24 @@ export interface PurgeStorageInventory {
 
 export interface PurgeStorageDeps {
   /**
-   * `guard` (RR-CODEX-12) is called before each irreversible bucket/PVC delete;
-   * it throws if the purge lease has been lost, aborting the erasure.
+   * `guard` (RR-CODEX-12) is called before each irreversible bucket/PVC delete; it
+   * throws if the purge lease has been lost, aborting the erasure. `fenceToken`
+   * (RR-CODEX-14 v5, R-P3-05) is the PER-ATTEMPT owner token (the plan's ownerToken)
+   * used as the durable workspace-barrier fence — NOT a stable per-subject id.
    */
   eraseStorage?: (
     inventory: PurgeStorageInventory,
     guard?: () => Promise<void>,
+    fenceToken?: string,
   ) => Promise<{ classes: PurgeClassReport[]; verified: boolean }>;
+
+  /**
+   * RR-CODEX-14 v5 (R-P3-04): release the durable WORKSPACE barrier on EVERY exit
+   * (abandon / success). Fenced by the same per-attempt token, so a delayed release
+   * from a prior attempt can never lift a newer attempt's barrier. Called in the
+   * store's finally after the DB guarantee is released.
+   */
+  releaseWorkspaceBarrier?: (inventory: PurgeStorageInventory, fenceToken: string) => Promise<void>;
 }
 
 /** Outcome of one purgeUserAccount attempt (store layer). */

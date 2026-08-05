@@ -985,6 +985,8 @@ export class PrismaApiStore implements ApiStore {
             workspaceProjectIds: guarantee.workspaceProjectIds,
           },
           guard,
+          // RR-CODEX-14 v5 (R-P3-05): per-attempt fence = this plan's ownerToken.
+          guarantee.ownerToken,
         );
 
         if (!erasure.verified) {
@@ -1435,6 +1437,17 @@ export class PrismaApiStore implements ApiStore {
       // it never touches the reconciler's / another owner's plan.
       if (guarantee) {
         await this.releasePurgeGuarantee(guarantee);
+
+        /*
+         * RR-CODEX-14 v5 (R-P3-04): also release the durable WORKSPACE barrier on
+         * every exit, fenced by this attempt's ownerToken — so an abandon never
+         * leaves a runtime durably frozen with no owner. (Cross-replica orphans are
+         * additionally self-healed by the manager's stale-freeze reconciler.)
+         */
+        await deps?.releaseWorkspaceBarrier?.(
+          { bucketProjectIds: guarantee.bucketProjectIds, workspaceProjectIds: guarantee.workspaceProjectIds },
+          guarantee.ownerToken,
+        ).catch(() => undefined);
       }
     }
   }

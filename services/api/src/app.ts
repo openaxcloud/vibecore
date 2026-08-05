@@ -7132,6 +7132,33 @@ function createWriteBarrier(
 }
 
 /*
+ * RR-CODEX-14 v5 (R-P3-04): lift the durable workspace barriers this attempt raised,
+ * fenced by the attempt's ownerToken. Called on EVERY exit (success/abandon) from the
+ * store's finally, so a runtime is never left durably frozen with no owner. Best-effort
+ * per workspace (the manager's stale-freeze reconciler self-heals any cross-replica
+ * orphan); the fence guarantees a delayed release never lifts a newer attempt's barrier.
+ */
+async function releaseWorkspaceBarriers(workspaceIds: string[], fenceToken: string): Promise<void> {
+  const secret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
+  const headers = {
+    accept: 'application/json',
+    'content-type': 'application/json',
+    ...(secret ? { authorization: `Bearer ${secret}` } : {}),
+  };
+
+  for (const workspaceId of workspaceIds) {
+    // Best-effort: a missed unfreeze is recoverable by the manager's stale-freeze
+    // reconciler; it must never abort the purge's release path (hence the .catch).
+    await fetch(`${workspaceManagerUrl()}/workspaces/${encodeURIComponent(workspaceId)}/unfreeze`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ fenceToken }),
+      signal: AbortSignal.timeout(30_000),
+    }).catch(() => undefined);
+  }
+}
+
+/*
  * Run ONE isolated build pod via the workspace-manager (synchronous, like the
  * scheduled-jobs transport): revision in, docker-context artifact out. The HTTP
  * timeout tracks the build's own budget plus slack so the manager's poll — not
@@ -29638,6 +29665,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     let failed = 0;
     let missingReceipt = 0; // RR-CODEX-14 (P6): purged-but-no-receipt → kept queued
 
+    /*
+     * RR-CODEX-14 v5 (P6): the SINGLE primitive through which a userId ever leaves
+     * the pending queue on a purge/already-purged path. It removes ONLY when the
+     * durable erasure receipt exists (written in the SAME tx as the tombstone);
+     * otherwise it increments missingReceipt and KEEPS the id queued (surfaced),
+     * so a purge can never be silently forgotten without proof. Every queue-removal
+     * that follows a "this account is purged" claim MUST go through here — no path
+     * calls mutateSystemSettingIds(remove) on its own.
+     */
+    const removePendingOnlyWithReceipt = async (uid: string): Promise<boolean> => {
+      if (await store.hasPurgeReceipt(uid)) {
+        await store.mutateSystemSettingIds(ACCOUNT_DELETION_PENDING_KEY, { remove: uid });
+        return true;
+      }
+      missingReceipt += 1;
+      return false;
+    };
+
     for (const userId of ids) {
       const user = await store.findUserById(userId);
       const state = readAccountDeletionState(user?.preferences);
@@ -29657,19 +29702,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       if (status === 'purged') {
         alreadyPurged += 1;
-
-        /*
-         * RR-CODEX-14 (P6): a purged user leaves the pending queue ONLY once its
-         * durable erasure receipt exists (written in the SAME tx as the tombstone).
-         * Without a receipt the purge is not provably complete → keep it queued
-         * (surfaced) rather than silently forgetting it.
-         */
-        if (await store.hasPurgeReceipt(userId)) {
-          await store.mutateSystemSettingIds(ACCOUNT_DELETION_PENDING_KEY, { remove: userId });
-        } else {
-          missingReceipt += 1;
-        }
-
+        // RR-CODEX-14 v5 (P6): removal strictly conditioned on the receipt.
+        await removePendingOnlyWithReceipt(userId);
         continue;
       }
 
@@ -29690,7 +29724,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
              * stamped. A failure throws → the account stays queued and is retried
              * → an account is never marked purged with storage still on disk.
              */
-            eraseStorage: (inventory, guard) =>
+            eraseStorage: (inventory, guard, fenceToken) =>
               options.accountStoragePurger
                 ? options.accountStoragePurger(inventory, userId)
                 : eraseSubjectStorage(
@@ -29708,18 +29742,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                       // projects it freezes; the freeze guard would refuse them.
                       objectStorage: resolveRawObjectStorage(),
                       workspaceVolumes: createWorkspaceVolumeEraser(),
-                      // Object-storage + membership freeze is acquired earlier, in
-                      // the store's topology guarantee (RR-09); this barrier now
-                      // only freezes the workspaces.
-                      // RR-CODEX-14 (P3): the per-subject fence token is the userId —
-                      // valid because the per-user singleton means exactly one active
-                      // purge plan per subject.
-                      writeBarrier: createWriteBarrier((inv) => inv.workspaceIds, userId),
+                      // RR-CODEX-14 v5 (R-P3-05): the fence is the PER-ATTEMPT ownerToken
+                      // (from the store's guarantee), NOT the stable userId — so a
+                      // delayed release from a prior attempt can't lift a new barrier.
+                      writeBarrier: createWriteBarrier((inv) => inv.workspaceIds, fenceToken ?? ''),
                       // RR-CODEX-12: revalidate the lease before each irreversible delete.
                       guard,
                       log: app.log as unknown as { warn(o: unknown, m?: string): void },
                     },
                   ),
+            // RR-CODEX-14 v5 (R-P3-04): release the durable workspace barrier on every
+            // exit, fenced by this attempt's ownerToken.
+            releaseWorkspaceBarrier: (inventory, fenceToken) =>
+              releaseWorkspaceBarriers(
+                inventory.workspaceProjectIds.map((projectId) => runtimeWorkspaceId(projectId, userId)),
+                fenceToken,
+              ),
           },
         );
 
@@ -29736,10 +29774,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             action: 'account.purge_completed',
             metadata: { userId, proof: result.proof },
           });
-          await store.mutateSystemSettingIds(ACCOUNT_DELETION_PENDING_KEY, { remove: userId });
+          // RR-CODEX-14 v5 (P6): removal strictly conditioned on the receipt.
+          await removePendingOnlyWithReceipt(userId);
         } else if (result.outcome === 'already_purged') {
           alreadyPurged += 1;
-          await store.mutateSystemSettingIds(ACCOUNT_DELETION_PENDING_KEY, { remove: userId });
+          // RR-CODEX-14 v5 (P6): removal strictly conditioned on the receipt.
+          await removePendingOnlyWithReceipt(userId);
         } else if (result.outcome === 'not_due') {
           // Store-level re-check disagreed (clock skew) — leave it queued.
           ready -= 1;

@@ -1698,6 +1698,10 @@ model WorkspaceRuntime {
   // owning purge plan; the barrier is released on abandon and recoverable.
   purgeFrozen          Boolean   @default(false)
   purgeFenceToken      String?
+  // RR-CODEX-14 v5 (R-P3-04): when the barrier was set, so an ORPHANED barrier
+  // (owning purge crashed before unfreeze) is recoverable by age via the manager's
+  // reconcileStaleWorkspaceFreezes — never left durably frozen with no owner.
+  purgeFrozenAt        DateTime?
   updatedAt            DateTime  @updatedAt
 
   @@index([orgId])

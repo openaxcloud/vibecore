@@ -503,10 +503,37 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
   // Account-purge reserve #1: write barrier — revoke token + stop pod before erasure.
   app.post('/workspaces/:workspaceId/freeze', async (request, reply) => {
     // RR-CODEX-14 (P3): the durable barrier carries the owning purge plan's fence token.
+    // R-P3-02: freezeWorkspace THROWS if the durable barrier isn't confirmed persisted
+    // → Fastify replies 5xx, never a 204 on an unconfirmed barrier.
     const fenceToken = (request.body as { fenceToken?: string } | undefined)?.fenceToken;
     await manager.freezeWorkspace(runtimeNamespace(), (request.params as any).workspaceId, fenceToken);
 
     return reply.code(204).send();
+  });
+  /*
+   * RR-CODEX-14 v5 (R-P3-04): lift the durable barrier on abandon/success, fenced by the
+   * owning attempt's token. R-P3-03: a barrier owning a token REQUIRES the exact token —
+   * an absent/wrong token is refused, so it can never be lifted by a caller that doesn't
+   * own it. R-P3-05: the token is per-attempt (the plan's ownerToken), so a delayed
+   * unfreeze from a prior attempt is a no-op against a newer attempt's barrier.
+   */
+  app.post('/workspaces/:workspaceId/unfreeze', async (request, reply) => {
+    const fenceToken = (request.body as { fenceToken?: string } | undefined)?.fenceToken;
+    await manager.unfreezeWorkspace((request.params as any).workspaceId, fenceToken);
+
+    return reply.code(204).send();
+  });
+  /*
+   * RR-CODEX-14 v5 (R-P3-04): make an orphaned workspace barrier RECOVERABLE — if an
+   * attempt dies after freezing but before its unfreeze (crash / lost pointer), this
+   * reconciler finds every runtime frozen longer than the grace window and lifts it, so
+   * a barrier is never durably orphaned. Internal (shared-secret gated) + idempotent.
+   */
+  app.post('/internal/reconcile-workspace-freezes', async (request) => {
+    // Default grace: 24h — comfortably longer than any purge attempt + its lease
+    // reclaim window, so only truly orphaned barriers are lifted.
+    const graceMs = (request.body as { graceMs?: number } | undefined)?.graceMs ?? 24 * 60 * 60 * 1000;
+    return manager.reconcileStaleWorkspaceFreezes(graceMs);
   });
 
   /*
