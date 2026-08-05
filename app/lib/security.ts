@@ -308,6 +308,7 @@ export function withSecurity<T extends (args: ActionFunctionArgs | LoaderFunctio
       responseHeaders.set('Content-Language', language);
 
       const vary = responseHeaders.get('Vary');
+
       const varyValues = (vary ?? '')
         .split(',')
         .map((value) => value.trim())

@@ -94,8 +94,9 @@ const TECHNICAL_FILENAME =
   /^[\w@.+~-]+\.(?:bash|c|cc|cjs|cpp|css|env|go|h|hpp|html?|java|json|jsx?|kts?|lock|mdx?|mjs|py|rb|rs|scss|sh|sql|swift|toml|tsx?|txt|xml|ya?ml)$/iu;
 const TECHNICAL_FILENAME_IN_PROSE =
   /\b[\w@.+~-]+\.(?:bash|c|cc|cjs|cpp|css|env|go|h|hpp|html?|java|json|jsx?|kts?|lock|mdx?|mjs|py|rb|rs|scss|sh|sql|swift|toml|tsx?|txt|xml|ya?ml)\b/giu;
-const TECHNICAL_PATH_IN_PROSE =
-  /\b(?:[\w@.+~-]+\/)+[\w@.+~-]+(?:\.[A-Za-z0-9]+)?\b/gu;
+
+const TECHNICAL_PATH_IN_PROSE = /\b(?:[\w@.+~-]+\/)+[\w@.+~-]+(?:\.[A-Za-z0-9]+)?\b/gu;
+
 const SLASH_COMMAND_IN_PROSE = /(^|[\s(])\/[a-z][\w-]*/giu;
 const APPROVED_PRODUCT_TERM_IN_PROSE = /\bCloud Monitoring\b/gu;
 const FRENCH_QUEUE_IN_PROSE = /\bfile\s+d[’']attente\b/giu;
@@ -209,6 +210,7 @@ export function findFrenchAuditResidue(
     const englishAtSameLocation = englishByIdentity.get(semanticIdentity(entry));
     const sameAtSameLocation = englishAtSameLocation === text;
     const grammarScore = englishGrammarScore(text);
+
     const terminologyText = stripCommercialOfferNames(text)
       .replace(TECHNICAL_PATH_IN_PROSE, '')
       .replace(TECHNICAL_FILENAME_IN_PROSE, '')
