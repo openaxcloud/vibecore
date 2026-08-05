@@ -736,6 +736,11 @@ export type PurgePlan = $Result.DefaultSelection<Prisma.$PurgePlanPayload>
  * 
  */
 export type PurgeFreeze = $Result.DefaultSelection<Prisma.$PurgeFreezePayload>
+/**
+ * Model PurgeReceipt
+ * 
+ */
+export type PurgeReceipt = $Result.DefaultSelection<Prisma.$PurgeReceiptPayload>
 
 /**
  * Enums
@@ -2407,6 +2412,16 @@ export class PrismaClient<
     * ```
     */
   get purgeFreeze(): Prisma.PurgeFreezeDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.purgeReceipt`: Exposes CRUD operations for the **PurgeReceipt** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PurgeReceipts
+    * const purgeReceipts = await prisma.purgeReceipt.findMany()
+    * ```
+    */
+  get purgeReceipt(): Prisma.PurgeReceiptDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -2964,7 +2979,8 @@ export namespace Prisma {
     WorkspaceLifecycleEvent: 'WorkspaceLifecycleEvent',
     WorkspacePostMortem: 'WorkspacePostMortem',
     PurgePlan: 'PurgePlan',
-    PurgeFreeze: 'PurgeFreeze'
+    PurgeFreeze: 'PurgeFreeze',
+    PurgeReceipt: 'PurgeReceipt'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -2980,7 +2996,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "remixJob" | "importJob" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "purgePlan" | "purgeFreeze"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "remixJob" | "importJob" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "purgePlan" | "purgeFreeze" | "purgeReceipt"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -12144,6 +12160,80 @@ export namespace Prisma {
           }
         }
       }
+      PurgeReceipt: {
+        payload: Prisma.$PurgeReceiptPayload<ExtArgs>
+        fields: Prisma.PurgeReceiptFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PurgeReceiptFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgeReceiptPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PurgeReceiptFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgeReceiptPayload>
+          }
+          findFirst: {
+            args: Prisma.PurgeReceiptFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgeReceiptPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PurgeReceiptFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgeReceiptPayload>
+          }
+          findMany: {
+            args: Prisma.PurgeReceiptFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgeReceiptPayload>[]
+          }
+          create: {
+            args: Prisma.PurgeReceiptCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgeReceiptPayload>
+          }
+          createMany: {
+            args: Prisma.PurgeReceiptCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PurgeReceiptCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgeReceiptPayload>[]
+          }
+          delete: {
+            args: Prisma.PurgeReceiptDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgeReceiptPayload>
+          }
+          update: {
+            args: Prisma.PurgeReceiptUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgeReceiptPayload>
+          }
+          deleteMany: {
+            args: Prisma.PurgeReceiptDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PurgeReceiptUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.PurgeReceiptUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgeReceiptPayload>[]
+          }
+          upsert: {
+            args: Prisma.PurgeReceiptUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgeReceiptPayload>
+          }
+          aggregate: {
+            args: Prisma.PurgeReceiptAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePurgeReceipt>
+          }
+          groupBy: {
+            args: Prisma.PurgeReceiptGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PurgeReceiptGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PurgeReceiptCountArgs<ExtArgs>
+            result: $Utils.Optional<PurgeReceiptCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -12376,6 +12466,7 @@ export namespace Prisma {
     workspacePostMortem?: WorkspacePostMortemOmit
     purgePlan?: PurgePlanOmit
     purgeFreeze?: PurgeFreezeOmit
+    purgeReceipt?: PurgeReceiptOmit
   }
 
   /* Types for Logging */
@@ -157116,6 +157207,989 @@ export namespace Prisma {
 
 
   /**
+   * Model PurgeReceipt
+   */
+
+  export type AggregatePurgeReceipt = {
+    _count: PurgeReceiptCountAggregateOutputType | null
+    _min: PurgeReceiptMinAggregateOutputType | null
+    _max: PurgeReceiptMaxAggregateOutputType | null
+  }
+
+  export type PurgeReceiptMinAggregateOutputType = {
+    userId: string | null
+    purgedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type PurgeReceiptMaxAggregateOutputType = {
+    userId: string | null
+    purgedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type PurgeReceiptCountAggregateOutputType = {
+    userId: number
+    purgedAt: number
+    proof: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type PurgeReceiptMinAggregateInputType = {
+    userId?: true
+    purgedAt?: true
+    createdAt?: true
+  }
+
+  export type PurgeReceiptMaxAggregateInputType = {
+    userId?: true
+    purgedAt?: true
+    createdAt?: true
+  }
+
+  export type PurgeReceiptCountAggregateInputType = {
+    userId?: true
+    purgedAt?: true
+    proof?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type PurgeReceiptAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PurgeReceipt to aggregate.
+     */
+    where?: PurgeReceiptWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PurgeReceipts to fetch.
+     */
+    orderBy?: PurgeReceiptOrderByWithRelationInput | PurgeReceiptOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PurgeReceiptWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PurgeReceipts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PurgeReceipts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PurgeReceipts
+    **/
+    _count?: true | PurgeReceiptCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PurgeReceiptMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PurgeReceiptMaxAggregateInputType
+  }
+
+  export type GetPurgeReceiptAggregateType<T extends PurgeReceiptAggregateArgs> = {
+        [P in keyof T & keyof AggregatePurgeReceipt]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePurgeReceipt[P]>
+      : GetScalarType<T[P], AggregatePurgeReceipt[P]>
+  }
+
+
+
+
+  export type PurgeReceiptGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PurgeReceiptWhereInput
+    orderBy?: PurgeReceiptOrderByWithAggregationInput | PurgeReceiptOrderByWithAggregationInput[]
+    by: PurgeReceiptScalarFieldEnum[] | PurgeReceiptScalarFieldEnum
+    having?: PurgeReceiptScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PurgeReceiptCountAggregateInputType | true
+    _min?: PurgeReceiptMinAggregateInputType
+    _max?: PurgeReceiptMaxAggregateInputType
+  }
+
+  export type PurgeReceiptGroupByOutputType = {
+    userId: string
+    purgedAt: Date
+    proof: JsonValue
+    createdAt: Date
+    _count: PurgeReceiptCountAggregateOutputType | null
+    _min: PurgeReceiptMinAggregateOutputType | null
+    _max: PurgeReceiptMaxAggregateOutputType | null
+  }
+
+  type GetPurgeReceiptGroupByPayload<T extends PurgeReceiptGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PurgeReceiptGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PurgeReceiptGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PurgeReceiptGroupByOutputType[P]>
+            : GetScalarType<T[P], PurgeReceiptGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PurgeReceiptSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    userId?: boolean
+    purgedAt?: boolean
+    proof?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["purgeReceipt"]>
+
+  export type PurgeReceiptSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    userId?: boolean
+    purgedAt?: boolean
+    proof?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["purgeReceipt"]>
+
+  export type PurgeReceiptSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    userId?: boolean
+    purgedAt?: boolean
+    proof?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["purgeReceipt"]>
+
+  export type PurgeReceiptSelectScalar = {
+    userId?: boolean
+    purgedAt?: boolean
+    proof?: boolean
+    createdAt?: boolean
+  }
+
+  export type PurgeReceiptOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"userId" | "purgedAt" | "proof" | "createdAt", ExtArgs["result"]["purgeReceipt"]>
+
+  export type $PurgeReceiptPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PurgeReceipt"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      userId: string
+      purgedAt: Date
+      proof: Prisma.JsonValue
+      createdAt: Date
+    }, ExtArgs["result"]["purgeReceipt"]>
+    composites: {}
+  }
+
+  type PurgeReceiptGetPayload<S extends boolean | null | undefined | PurgeReceiptDefaultArgs> = $Result.GetResult<Prisma.$PurgeReceiptPayload, S>
+
+  type PurgeReceiptCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<PurgeReceiptFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: PurgeReceiptCountAggregateInputType | true
+    }
+
+  export interface PurgeReceiptDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PurgeReceipt'], meta: { name: 'PurgeReceipt' } }
+    /**
+     * Find zero or one PurgeReceipt that matches the filter.
+     * @param {PurgeReceiptFindUniqueArgs} args - Arguments to find a PurgeReceipt
+     * @example
+     * // Get one PurgeReceipt
+     * const purgeReceipt = await prisma.purgeReceipt.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PurgeReceiptFindUniqueArgs>(args: SelectSubset<T, PurgeReceiptFindUniqueArgs<ExtArgs>>): Prisma__PurgeReceiptClient<$Result.GetResult<Prisma.$PurgeReceiptPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one PurgeReceipt that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {PurgeReceiptFindUniqueOrThrowArgs} args - Arguments to find a PurgeReceipt
+     * @example
+     * // Get one PurgeReceipt
+     * const purgeReceipt = await prisma.purgeReceipt.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PurgeReceiptFindUniqueOrThrowArgs>(args: SelectSubset<T, PurgeReceiptFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PurgeReceiptClient<$Result.GetResult<Prisma.$PurgeReceiptPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first PurgeReceipt that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PurgeReceiptFindFirstArgs} args - Arguments to find a PurgeReceipt
+     * @example
+     * // Get one PurgeReceipt
+     * const purgeReceipt = await prisma.purgeReceipt.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PurgeReceiptFindFirstArgs>(args?: SelectSubset<T, PurgeReceiptFindFirstArgs<ExtArgs>>): Prisma__PurgeReceiptClient<$Result.GetResult<Prisma.$PurgeReceiptPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first PurgeReceipt that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PurgeReceiptFindFirstOrThrowArgs} args - Arguments to find a PurgeReceipt
+     * @example
+     * // Get one PurgeReceipt
+     * const purgeReceipt = await prisma.purgeReceipt.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PurgeReceiptFindFirstOrThrowArgs>(args?: SelectSubset<T, PurgeReceiptFindFirstOrThrowArgs<ExtArgs>>): Prisma__PurgeReceiptClient<$Result.GetResult<Prisma.$PurgeReceiptPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more PurgeReceipts that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PurgeReceiptFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PurgeReceipts
+     * const purgeReceipts = await prisma.purgeReceipt.findMany()
+     * 
+     * // Get first 10 PurgeReceipts
+     * const purgeReceipts = await prisma.purgeReceipt.findMany({ take: 10 })
+     * 
+     * // Only select the `userId`
+     * const purgeReceiptWithUserIdOnly = await prisma.purgeReceipt.findMany({ select: { userId: true } })
+     * 
+     */
+    findMany<T extends PurgeReceiptFindManyArgs>(args?: SelectSubset<T, PurgeReceiptFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PurgeReceiptPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a PurgeReceipt.
+     * @param {PurgeReceiptCreateArgs} args - Arguments to create a PurgeReceipt.
+     * @example
+     * // Create one PurgeReceipt
+     * const PurgeReceipt = await prisma.purgeReceipt.create({
+     *   data: {
+     *     // ... data to create a PurgeReceipt
+     *   }
+     * })
+     * 
+     */
+    create<T extends PurgeReceiptCreateArgs>(args: SelectSubset<T, PurgeReceiptCreateArgs<ExtArgs>>): Prisma__PurgeReceiptClient<$Result.GetResult<Prisma.$PurgeReceiptPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many PurgeReceipts.
+     * @param {PurgeReceiptCreateManyArgs} args - Arguments to create many PurgeReceipts.
+     * @example
+     * // Create many PurgeReceipts
+     * const purgeReceipt = await prisma.purgeReceipt.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PurgeReceiptCreateManyArgs>(args?: SelectSubset<T, PurgeReceiptCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PurgeReceipts and returns the data saved in the database.
+     * @param {PurgeReceiptCreateManyAndReturnArgs} args - Arguments to create many PurgeReceipts.
+     * @example
+     * // Create many PurgeReceipts
+     * const purgeReceipt = await prisma.purgeReceipt.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PurgeReceipts and only return the `userId`
+     * const purgeReceiptWithUserIdOnly = await prisma.purgeReceipt.createManyAndReturn({
+     *   select: { userId: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PurgeReceiptCreateManyAndReturnArgs>(args?: SelectSubset<T, PurgeReceiptCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PurgeReceiptPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a PurgeReceipt.
+     * @param {PurgeReceiptDeleteArgs} args - Arguments to delete one PurgeReceipt.
+     * @example
+     * // Delete one PurgeReceipt
+     * const PurgeReceipt = await prisma.purgeReceipt.delete({
+     *   where: {
+     *     // ... filter to delete one PurgeReceipt
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PurgeReceiptDeleteArgs>(args: SelectSubset<T, PurgeReceiptDeleteArgs<ExtArgs>>): Prisma__PurgeReceiptClient<$Result.GetResult<Prisma.$PurgeReceiptPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one PurgeReceipt.
+     * @param {PurgeReceiptUpdateArgs} args - Arguments to update one PurgeReceipt.
+     * @example
+     * // Update one PurgeReceipt
+     * const purgeReceipt = await prisma.purgeReceipt.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PurgeReceiptUpdateArgs>(args: SelectSubset<T, PurgeReceiptUpdateArgs<ExtArgs>>): Prisma__PurgeReceiptClient<$Result.GetResult<Prisma.$PurgeReceiptPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more PurgeReceipts.
+     * @param {PurgeReceiptDeleteManyArgs} args - Arguments to filter PurgeReceipts to delete.
+     * @example
+     * // Delete a few PurgeReceipts
+     * const { count } = await prisma.purgeReceipt.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PurgeReceiptDeleteManyArgs>(args?: SelectSubset<T, PurgeReceiptDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PurgeReceipts.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PurgeReceiptUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PurgeReceipts
+     * const purgeReceipt = await prisma.purgeReceipt.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PurgeReceiptUpdateManyArgs>(args: SelectSubset<T, PurgeReceiptUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PurgeReceipts and returns the data updated in the database.
+     * @param {PurgeReceiptUpdateManyAndReturnArgs} args - Arguments to update many PurgeReceipts.
+     * @example
+     * // Update many PurgeReceipts
+     * const purgeReceipt = await prisma.purgeReceipt.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more PurgeReceipts and only return the `userId`
+     * const purgeReceiptWithUserIdOnly = await prisma.purgeReceipt.updateManyAndReturn({
+     *   select: { userId: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends PurgeReceiptUpdateManyAndReturnArgs>(args: SelectSubset<T, PurgeReceiptUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PurgeReceiptPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one PurgeReceipt.
+     * @param {PurgeReceiptUpsertArgs} args - Arguments to update or create a PurgeReceipt.
+     * @example
+     * // Update or create a PurgeReceipt
+     * const purgeReceipt = await prisma.purgeReceipt.upsert({
+     *   create: {
+     *     // ... data to create a PurgeReceipt
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PurgeReceipt we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PurgeReceiptUpsertArgs>(args: SelectSubset<T, PurgeReceiptUpsertArgs<ExtArgs>>): Prisma__PurgeReceiptClient<$Result.GetResult<Prisma.$PurgeReceiptPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of PurgeReceipts.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PurgeReceiptCountArgs} args - Arguments to filter PurgeReceipts to count.
+     * @example
+     * // Count the number of PurgeReceipts
+     * const count = await prisma.purgeReceipt.count({
+     *   where: {
+     *     // ... the filter for the PurgeReceipts we want to count
+     *   }
+     * })
+    **/
+    count<T extends PurgeReceiptCountArgs>(
+      args?: Subset<T, PurgeReceiptCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PurgeReceiptCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PurgeReceipt.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PurgeReceiptAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PurgeReceiptAggregateArgs>(args: Subset<T, PurgeReceiptAggregateArgs>): Prisma.PrismaPromise<GetPurgeReceiptAggregateType<T>>
+
+    /**
+     * Group by PurgeReceipt.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PurgeReceiptGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PurgeReceiptGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PurgeReceiptGroupByArgs['orderBy'] }
+        : { orderBy?: PurgeReceiptGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PurgeReceiptGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPurgeReceiptGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PurgeReceipt model
+   */
+  readonly fields: PurgeReceiptFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PurgeReceipt.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PurgeReceiptClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PurgeReceipt model
+   */
+  interface PurgeReceiptFieldRefs {
+    readonly userId: FieldRef<"PurgeReceipt", 'String'>
+    readonly purgedAt: FieldRef<"PurgeReceipt", 'DateTime'>
+    readonly proof: FieldRef<"PurgeReceipt", 'Json'>
+    readonly createdAt: FieldRef<"PurgeReceipt", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PurgeReceipt findUnique
+   */
+  export type PurgeReceiptFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeReceipt
+     */
+    select?: PurgeReceiptSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeReceipt
+     */
+    omit?: PurgeReceiptOmit<ExtArgs> | null
+    /**
+     * Filter, which PurgeReceipt to fetch.
+     */
+    where: PurgeReceiptWhereUniqueInput
+  }
+
+  /**
+   * PurgeReceipt findUniqueOrThrow
+   */
+  export type PurgeReceiptFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeReceipt
+     */
+    select?: PurgeReceiptSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeReceipt
+     */
+    omit?: PurgeReceiptOmit<ExtArgs> | null
+    /**
+     * Filter, which PurgeReceipt to fetch.
+     */
+    where: PurgeReceiptWhereUniqueInput
+  }
+
+  /**
+   * PurgeReceipt findFirst
+   */
+  export type PurgeReceiptFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeReceipt
+     */
+    select?: PurgeReceiptSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeReceipt
+     */
+    omit?: PurgeReceiptOmit<ExtArgs> | null
+    /**
+     * Filter, which PurgeReceipt to fetch.
+     */
+    where?: PurgeReceiptWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PurgeReceipts to fetch.
+     */
+    orderBy?: PurgeReceiptOrderByWithRelationInput | PurgeReceiptOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PurgeReceipts.
+     */
+    cursor?: PurgeReceiptWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PurgeReceipts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PurgeReceipts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PurgeReceipts.
+     */
+    distinct?: PurgeReceiptScalarFieldEnum | PurgeReceiptScalarFieldEnum[]
+  }
+
+  /**
+   * PurgeReceipt findFirstOrThrow
+   */
+  export type PurgeReceiptFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeReceipt
+     */
+    select?: PurgeReceiptSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeReceipt
+     */
+    omit?: PurgeReceiptOmit<ExtArgs> | null
+    /**
+     * Filter, which PurgeReceipt to fetch.
+     */
+    where?: PurgeReceiptWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PurgeReceipts to fetch.
+     */
+    orderBy?: PurgeReceiptOrderByWithRelationInput | PurgeReceiptOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PurgeReceipts.
+     */
+    cursor?: PurgeReceiptWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PurgeReceipts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PurgeReceipts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PurgeReceipts.
+     */
+    distinct?: PurgeReceiptScalarFieldEnum | PurgeReceiptScalarFieldEnum[]
+  }
+
+  /**
+   * PurgeReceipt findMany
+   */
+  export type PurgeReceiptFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeReceipt
+     */
+    select?: PurgeReceiptSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeReceipt
+     */
+    omit?: PurgeReceiptOmit<ExtArgs> | null
+    /**
+     * Filter, which PurgeReceipts to fetch.
+     */
+    where?: PurgeReceiptWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PurgeReceipts to fetch.
+     */
+    orderBy?: PurgeReceiptOrderByWithRelationInput | PurgeReceiptOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PurgeReceipts.
+     */
+    cursor?: PurgeReceiptWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PurgeReceipts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PurgeReceipts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PurgeReceipts.
+     */
+    distinct?: PurgeReceiptScalarFieldEnum | PurgeReceiptScalarFieldEnum[]
+  }
+
+  /**
+   * PurgeReceipt create
+   */
+  export type PurgeReceiptCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeReceipt
+     */
+    select?: PurgeReceiptSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeReceipt
+     */
+    omit?: PurgeReceiptOmit<ExtArgs> | null
+    /**
+     * The data needed to create a PurgeReceipt.
+     */
+    data: XOR<PurgeReceiptCreateInput, PurgeReceiptUncheckedCreateInput>
+  }
+
+  /**
+   * PurgeReceipt createMany
+   */
+  export type PurgeReceiptCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PurgeReceipts.
+     */
+    data: PurgeReceiptCreateManyInput | PurgeReceiptCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PurgeReceipt createManyAndReturn
+   */
+  export type PurgeReceiptCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeReceipt
+     */
+    select?: PurgeReceiptSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeReceipt
+     */
+    omit?: PurgeReceiptOmit<ExtArgs> | null
+    /**
+     * The data used to create many PurgeReceipts.
+     */
+    data: PurgeReceiptCreateManyInput | PurgeReceiptCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PurgeReceipt update
+   */
+  export type PurgeReceiptUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeReceipt
+     */
+    select?: PurgeReceiptSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeReceipt
+     */
+    omit?: PurgeReceiptOmit<ExtArgs> | null
+    /**
+     * The data needed to update a PurgeReceipt.
+     */
+    data: XOR<PurgeReceiptUpdateInput, PurgeReceiptUncheckedUpdateInput>
+    /**
+     * Choose, which PurgeReceipt to update.
+     */
+    where: PurgeReceiptWhereUniqueInput
+  }
+
+  /**
+   * PurgeReceipt updateMany
+   */
+  export type PurgeReceiptUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PurgeReceipts.
+     */
+    data: XOR<PurgeReceiptUpdateManyMutationInput, PurgeReceiptUncheckedUpdateManyInput>
+    /**
+     * Filter which PurgeReceipts to update
+     */
+    where?: PurgeReceiptWhereInput
+    /**
+     * Limit how many PurgeReceipts to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * PurgeReceipt updateManyAndReturn
+   */
+  export type PurgeReceiptUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeReceipt
+     */
+    select?: PurgeReceiptSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeReceipt
+     */
+    omit?: PurgeReceiptOmit<ExtArgs> | null
+    /**
+     * The data used to update PurgeReceipts.
+     */
+    data: XOR<PurgeReceiptUpdateManyMutationInput, PurgeReceiptUncheckedUpdateManyInput>
+    /**
+     * Filter which PurgeReceipts to update
+     */
+    where?: PurgeReceiptWhereInput
+    /**
+     * Limit how many PurgeReceipts to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * PurgeReceipt upsert
+   */
+  export type PurgeReceiptUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeReceipt
+     */
+    select?: PurgeReceiptSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeReceipt
+     */
+    omit?: PurgeReceiptOmit<ExtArgs> | null
+    /**
+     * The filter to search for the PurgeReceipt to update in case it exists.
+     */
+    where: PurgeReceiptWhereUniqueInput
+    /**
+     * In case the PurgeReceipt found by the `where` argument doesn't exist, create a new PurgeReceipt with this data.
+     */
+    create: XOR<PurgeReceiptCreateInput, PurgeReceiptUncheckedCreateInput>
+    /**
+     * In case the PurgeReceipt was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PurgeReceiptUpdateInput, PurgeReceiptUncheckedUpdateInput>
+  }
+
+  /**
+   * PurgeReceipt delete
+   */
+  export type PurgeReceiptDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeReceipt
+     */
+    select?: PurgeReceiptSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeReceipt
+     */
+    omit?: PurgeReceiptOmit<ExtArgs> | null
+    /**
+     * Filter which PurgeReceipt to delete.
+     */
+    where: PurgeReceiptWhereUniqueInput
+  }
+
+  /**
+   * PurgeReceipt deleteMany
+   */
+  export type PurgeReceiptDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PurgeReceipts to delete
+     */
+    where?: PurgeReceiptWhereInput
+    /**
+     * Limit how many PurgeReceipts to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * PurgeReceipt without action
+   */
+  export type PurgeReceiptDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeReceipt
+     */
+    select?: PurgeReceiptSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeReceipt
+     */
+    omit?: PurgeReceiptOmit<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -159045,6 +160119,16 @@ export namespace Prisma {
   };
 
   export type PurgeFreezeScalarFieldEnum = (typeof PurgeFreezeScalarFieldEnum)[keyof typeof PurgeFreezeScalarFieldEnum]
+
+
+  export const PurgeReceiptScalarFieldEnum: {
+    userId: 'userId',
+    purgedAt: 'purgedAt',
+    proof: 'proof',
+    createdAt: 'createdAt'
+  };
+
+  export type PurgeReceiptScalarFieldEnum = (typeof PurgeReceiptScalarFieldEnum)[keyof typeof PurgeReceiptScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -169581,6 +170665,53 @@ export namespace Prisma {
     resourceType?: StringWithAggregatesFilter<"PurgeFreeze"> | string
     resourceId?: StringWithAggregatesFilter<"PurgeFreeze"> | string
     createdAt?: DateTimeWithAggregatesFilter<"PurgeFreeze"> | Date | string
+  }
+
+  export type PurgeReceiptWhereInput = {
+    AND?: PurgeReceiptWhereInput | PurgeReceiptWhereInput[]
+    OR?: PurgeReceiptWhereInput[]
+    NOT?: PurgeReceiptWhereInput | PurgeReceiptWhereInput[]
+    userId?: StringFilter<"PurgeReceipt"> | string
+    purgedAt?: DateTimeFilter<"PurgeReceipt"> | Date | string
+    proof?: JsonFilter<"PurgeReceipt">
+    createdAt?: DateTimeFilter<"PurgeReceipt"> | Date | string
+  }
+
+  export type PurgeReceiptOrderByWithRelationInput = {
+    userId?: SortOrder
+    purgedAt?: SortOrder
+    proof?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PurgeReceiptWhereUniqueInput = Prisma.AtLeast<{
+    userId?: string
+    AND?: PurgeReceiptWhereInput | PurgeReceiptWhereInput[]
+    OR?: PurgeReceiptWhereInput[]
+    NOT?: PurgeReceiptWhereInput | PurgeReceiptWhereInput[]
+    purgedAt?: DateTimeFilter<"PurgeReceipt"> | Date | string
+    proof?: JsonFilter<"PurgeReceipt">
+    createdAt?: DateTimeFilter<"PurgeReceipt"> | Date | string
+  }, "userId">
+
+  export type PurgeReceiptOrderByWithAggregationInput = {
+    userId?: SortOrder
+    purgedAt?: SortOrder
+    proof?: SortOrder
+    createdAt?: SortOrder
+    _count?: PurgeReceiptCountOrderByAggregateInput
+    _max?: PurgeReceiptMaxOrderByAggregateInput
+    _min?: PurgeReceiptMinOrderByAggregateInput
+  }
+
+  export type PurgeReceiptScalarWhereWithAggregatesInput = {
+    AND?: PurgeReceiptScalarWhereWithAggregatesInput | PurgeReceiptScalarWhereWithAggregatesInput[]
+    OR?: PurgeReceiptScalarWhereWithAggregatesInput[]
+    NOT?: PurgeReceiptScalarWhereWithAggregatesInput | PurgeReceiptScalarWhereWithAggregatesInput[]
+    userId?: StringWithAggregatesFilter<"PurgeReceipt"> | string
+    purgedAt?: DateTimeWithAggregatesFilter<"PurgeReceipt"> | Date | string
+    proof?: JsonWithAggregatesFilter<"PurgeReceipt">
+    createdAt?: DateTimeWithAggregatesFilter<"PurgeReceipt"> | Date | string
   }
 
   export type UserCreateInput = {
@@ -180703,6 +181834,55 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type PurgeReceiptCreateInput = {
+    userId: string
+    purgedAt: Date | string
+    proof: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type PurgeReceiptUncheckedCreateInput = {
+    userId: string
+    purgedAt: Date | string
+    proof: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type PurgeReceiptUpdateInput = {
+    userId?: StringFieldUpdateOperationsInput | string
+    purgedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    proof?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PurgeReceiptUncheckedUpdateInput = {
+    userId?: StringFieldUpdateOperationsInput | string
+    purgedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    proof?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PurgeReceiptCreateManyInput = {
+    userId: string
+    purgedAt: Date | string
+    proof: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type PurgeReceiptUpdateManyMutationInput = {
+    userId?: StringFieldUpdateOperationsInput | string
+    purgedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    proof?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PurgeReceiptUncheckedUpdateManyInput = {
+    userId?: StringFieldUpdateOperationsInput | string
+    purgedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    proof?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -187600,6 +188780,25 @@ export namespace Prisma {
     planId?: SortOrder
     resourceType?: SortOrder
     resourceId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PurgeReceiptCountOrderByAggregateInput = {
+    userId?: SortOrder
+    purgedAt?: SortOrder
+    proof?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PurgeReceiptMaxOrderByAggregateInput = {
+    userId?: SortOrder
+    purgedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PurgeReceiptMinOrderByAggregateInput = {
+    userId?: SortOrder
+    purgedAt?: SortOrder
     createdAt?: SortOrder
   }
 

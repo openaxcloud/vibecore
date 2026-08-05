@@ -1666,6 +1666,13 @@ exports.Prisma.PurgeFreezeScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.PurgeReceiptScalarFieldEnum = {
+  userId: 'userId',
+  purgedAt: 'purgedAt',
+  proof: 'proof',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1977,7 +1984,8 @@ exports.Prisma.ModelName = {
   WorkspaceLifecycleEvent: 'WorkspaceLifecycleEvent',
   WorkspacePostMortem: 'WorkspacePostMortem',
   PurgePlan: 'PurgePlan',
-  PurgeFreeze: 'PurgeFreeze'
+  PurgeFreeze: 'PurgeFreeze',
+  PurgeReceipt: 'PurgeReceipt'
 };
 
 /**

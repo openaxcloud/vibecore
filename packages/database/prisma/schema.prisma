@@ -2789,3 +2789,14 @@ model PurgeFreeze {
   @@index([resourceType, resourceId])
   @@index([planId])
 }
+
+// RR-CODEX-14 (P6): the erasure PROOF written in the SAME transaction as the
+// tombstone. The purge-executor removes a user from the pending queue ONLY once a
+// PurgeReceipt exists — so a failed AdminAuditLog write can never leave a purged
+// account without a reconstructable proof. Unique per user (idempotent).
+model PurgeReceipt {
+  userId      String   @id
+  purgedAt    DateTime
+  proof       Json
+  createdAt   DateTime @default(now())
+}
