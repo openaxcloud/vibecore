@@ -26039,7 +26039,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     width: min(100%, calc(100vw - 20px));
     max-width: var(--chat-max-width);
     gap: 10px;
-    margin: 55px auto 0;
+    margin: calc(55px + var(--vc-mobile-language-switch-reserved-height, 58px)) auto 0;
   }
 
   .bolt-mobile-agent-start-card {

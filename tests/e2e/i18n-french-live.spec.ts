@@ -402,8 +402,10 @@ async function auditRoutePair(page: Page, path: string, theme: 'dark' | 'light',
 
       const slot = document.querySelector<HTMLElement>('[data-testid="mobile-ide-language-switch-slot"]');
       const header = document.querySelector<HTMLElement>('[data-testid="mobile-ide-header"]');
+      const firstContent = document.querySelector<HTMLElement>('.bolt-mobile-agent-start-state');
       const slotRect = slot?.getBoundingClientRect();
       const headerRect = header?.getBoundingClientRect();
+      const firstContentRect = firstContent?.getBoundingClientRect();
       const compactIde =
         slotRect &&
         headerRect &&
@@ -416,6 +418,18 @@ async function auditRoutePair(page: Page, path: string, theme: 'dark' | 'light',
               header: rect(header),
               overlapsHeader: overlaps(rect(slot), rect(header)),
               headerGap: slotRect.top - headerRect.bottom,
+              firstContent:
+                firstContentRect && firstContentRect.width > 0 && firstContentRect.height > 0
+                  ? rect(firstContent)
+                  : null,
+              overlapsFirstContent:
+                firstContentRect && firstContentRect.width > 0 && firstContentRect.height > 0
+                  ? overlaps(rect(slot), rect(firstContent))
+                  : false,
+              firstContentGap:
+                firstContentRect && firstContentRect.width > 0 && firstContentRect.height > 0
+                  ? firstContentRect.top - slotRect.bottom
+                  : null,
             }
           : null;
 
@@ -514,6 +528,20 @@ async function auditRoutePair(page: Page, path: string, theme: 'dark' | 'light',
         `${path} (${theme}) compact IDE language switch clears the frozen header`,
       )
       .toBeGreaterThanOrEqual(7);
+    expect
+      .soft(
+        languageSwitchInteraction.compactIde.overlapsFirstContent,
+        `${path} (${theme}) compact IDE language switch does not cover the first content card`,
+      )
+      .toBe(false);
+    if (languageSwitchInteraction.compactIde.firstContentGap !== null) {
+      expect
+        .soft(
+          languageSwitchInteraction.compactIde.firstContentGap,
+          `${path} (${theme}) compact IDE first content clears the language switch`,
+        )
+        .toBeGreaterThanOrEqual(0);
+    }
   }
   expect.soft(documentSeo.canonical, `${path} (${theme}) one canonical link`).toHaveLength(1);
   expect.soft(documentSeo.english, `${path} (${theme}) one English alternate`).toHaveLength(1);

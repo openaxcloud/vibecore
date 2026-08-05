@@ -81,6 +81,9 @@ describe('project IDE responsive language switch', () => {
     expect(styles).toMatch(
       /--vc-mobile-shell-top:\s*calc\([^;]*var\(--vc-mobile-language-switch-reserved-height,\s*58px\)/u,
     );
+    expect(styles).toMatch(
+      /\.bolt-mobile-agent-start-state\s*\{[^}]*margin:\s*calc\(55px\s*\+\s*var\(--vc-mobile-language-switch-reserved-height,\s*58px\)\)\s*auto\s*0;/u,
+    );
     expect(styles).not.toMatch(/\.bolt-mobile-ecode-header-side(?:--right)?\s*\{[^}]*order:/u);
     expect(styles).not.toMatch(/\.bolt-mobile-ecode-header-title\s*\{[^}]*order:/u);
   });
