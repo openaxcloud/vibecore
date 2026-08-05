@@ -1,10 +1,23 @@
+import { mkdir, writeFile } from 'node:fs/promises';
+import { dirname } from 'node:path';
+
 import { expect, test, type ConsoleMessage, type Page, type TestInfo } from '@playwright/test';
+
+import {
+  findFrenchAuditResidue,
+  type AuditSemanticEntry as SemanticEntry,
+} from '~/lib/i18n/catalogs/live-audit-heuristics';
 
 const API_BASE_URL =
   process.env.PLAYWRIGHT_API_URL ?? process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+
 const APP_BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173';
 const RUN_FULL_AUDIT = process.env.I18N_FULL_LIVE_AUDIT === '1';
 const CAPTURE_ALL = process.env.I18N_CAPTURE_ALL === '1';
+
+const AUDIT_PATH_PATTERN = process.env.I18N_AUDIT_PATH_PATTERN
+  ? new RegExp(process.env.I18N_AUDIT_PATH_PATTERN, 'u')
+  : null;
 
 const AUTH_PATHS = [
   '/login',
@@ -15,6 +28,9 @@ const AUTH_PATHS = [
   '/verify-email',
   '/invitations/accept',
 ] as const;
+
+/* Stable missing URLs exercise both the dynamic-slug and catch-all localized HTTP 404 shells. */
+const PUBLIC_ERROR_PATHS = ['/__i18n-audit-missing-page__', '/__i18n-audit__/missing/page'] as const;
 
 const USER_PATHS = [
   '/dashboard',
@@ -70,139 +86,15 @@ const PROJECT_PATHS = [
   '/projects/{projectId}/snapshots',
 ] as const;
 
-type SemanticEntry = Readonly<{ kind: string; text: string; locator: string }>;
-type AuditFinding = SemanticEntry & Readonly<{ reason: 'english-match' | 'english-signal' | 'raw-key' }>;
-
-const APPROVED_EXACT = new Set(
-  [
-    'E-Code',
-    'VibeCore',
-    'AI',
-    'API',
-    'AWS',
-    'Azure',
-    'BYOK',
-    'Cloudflare',
-    'Docker',
-    'Figma',
-    'Git',
-    'GitHub',
-    'GitLab',
-    'Google',
-    'GraphQL',
-    'HTTP',
-    'HTTPS',
-    'IDE',
-    'JSON',
-    'Kubernetes',
-    'MCP',
-    'MongoDB',
-    'Netlify',
-    'OAuth',
-    'Open Graph',
-    'OpenAI',
-    'PostgreSQL',
-    'Redis',
-    'SAML',
-    'SCIM',
-    'SOC 2',
-    'SQL',
-    'SSO',
-    'Supabase',
-    'Terminal',
-    'TypeScript',
-    'URL',
-    'UTC',
-    'Vercel',
-    'WebSocket',
-    'X',
-    'YAML',
-    'commit',
-    'cron',
-    'npm',
-    'pnpm',
-    'yarn',
-    'Agent',
-    'Application',
-    'Configuration',
-    'Console',
-    'Extension',
-    'Interface',
-    'Notification',
-    'Pro',
-    'Session',
-    'Support',
-    'Version',
-  ].map((value) => value.toLocaleLowerCase('en')),
-);
-
-const ENGLISH_SIGNAL =
-  /\b(?:the|your|you|with|from|settings|workspace|deployments?|billing|loading|failed|save|cancel|delete|create|search|sign in|log in|get started|learn more|try again|no results|open|close|back|next|previous|view|edit|add|remove|preview|logs?|marketplace|snapshots?|packages?|builds?|runtime|stack|starter|typecheck|full-stack|tokens?|tags?|tenants?|feature flags?|dashboard|backend|frontend|fork)\b/iu;
-const RAW_KEY = /\b[a-z][\w-]*(?:\.[\w-]+){1,}\b/u;
+function selectedAuditPaths(paths: readonly string[]): string[] {
+  return AUDIT_PATH_PATTERN ? paths.filter((path) => AUDIT_PATH_PATTERN.test(path)) : [...paths];
+}
 
 function localizedPath(path: string, language: 'en' | 'fr'): string {
   const url = new URL(path, APP_BASE_URL);
   url.searchParams.set('lang', language);
 
   return `${url.pathname}${url.search}${url.hash}`;
-}
-
-function isApproved(text: string): boolean {
-  const normalized = text.replace(/\s+/g, ' ').trim();
-
-  if (!normalized || !/[A-Za-zÀ-ÿ]/u.test(normalized)) {
-    return true;
-  }
-
-  if (
-    /^(?:https?:\/\/|mailto:|tel:|\/|\.\/|\.\.\/)/iu.test(normalized) ||
-    /^[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}$/u.test(normalized) ||
-    /^(?:[A-Z][A-Z0-9_]*|--?[a-z][\w-]*)(?:[=:\s].*)?$/u.test(normalized) ||
-    /^(?:[\w@.+~-]+\/)+[\w@.+~-]+(?:\.[A-Za-z0-9]+)?$/u.test(normalized)
-  ) {
-    return true;
-  }
-
-  if (APPROVED_EXACT.has(normalized.toLocaleLowerCase('en'))) {
-    return true;
-  }
-
-  const words = normalized.match(/[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ0-9.+-]*/gu) ?? [];
-
-  return words.length > 0 && words.every((word) => APPROVED_EXACT.has(word.toLocaleLowerCase('en')));
-}
-
-function findFrenchResidue(english: readonly SemanticEntry[], french: readonly SemanticEntry[]): AuditFinding[] {
-  const englishValues = new Set(english.map((entry) => entry.text));
-  const seen = new Set<string>();
-  const findings: AuditFinding[] = [];
-
-  for (const entry of french) {
-    if (isApproved(entry.text)) {
-      continue;
-    }
-
-    const reason = RAW_KEY.test(entry.text)
-      ? 'raw-key'
-      : englishValues.has(entry.text)
-        ? 'english-match'
-        : ENGLISH_SIGNAL.test(entry.text)
-          ? 'english-signal'
-          : undefined;
-
-    if (!reason) {
-      continue;
-    }
-
-    const fingerprint = `${entry.kind}\0${entry.text}\0${entry.locator}`;
-
-    if (!seen.has(fingerprint)) {
-      seen.add(fingerprint);
-      findings.push({ ...entry, reason });
-    }
-  }
-
-  return findings;
 }
 
 async function semanticEntries(page: Page): Promise<SemanticEntry[]> {
@@ -223,7 +115,9 @@ async function semanticEntries(page: Page): Promise<SemanticEntry[]> {
       '[data-i18n-audit-ignore]',
       '[data-user-content]',
     ].join(',');
+
     const normalize = (value: string | null | undefined) => value?.replace(/\s+/g, ' ').trim() ?? '';
+
     const visible = (element: Element) => {
       const html = element as HTMLElement;
       const style = window.getComputedStyle(html);
@@ -243,13 +137,16 @@ async function semanticEntries(page: Page): Promise<SemanticEntry[]> {
       }
 
       const parts: string[] = [];
+
       let current: Element | null = element;
 
       while (current && current !== document.body && parts.length < 5) {
         const tag = current.tagName.toLocaleLowerCase('en');
+
         const siblings = current.parentElement
           ? [...current.parentElement.children].filter((candidate) => candidate.tagName === current!.tagName)
           : [];
+
         const suffix = siblings.length > 1 ? `:nth-of-type(${siblings.indexOf(current) + 1})` : '';
         parts.unshift(`${tag}${suffix}`);
         current = current.parentElement;
@@ -257,15 +154,25 @@ async function semanticEntries(page: Page): Promise<SemanticEntry[]> {
 
       return parts.join(' > ');
     };
+
     const entries: SemanticEntry[] = [];
-    const push = (kind: string, raw: string | null | undefined, element: Element, suffix = '') => {
+
+    const push = (
+      kind: string,
+      raw: string | null | undefined,
+      element: Element,
+      suffix = '',
+      semanticKey?: string,
+    ) => {
       const text = normalize(raw);
 
       if (text.length >= 2 && /[A-Za-zÀ-ÿ]/u.test(text)) {
-        entries.push({ kind, text, locator: `${locatorFor(element)}${suffix}` });
+        entries.push({ kind, text, locator: `${locatorFor(element)}${suffix}`, semanticKey });
       }
     };
+
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+
     let node: Node | null;
 
     while ((node = walker.nextNode())) {
@@ -288,12 +195,24 @@ async function semanticEntries(page: Page): Promise<SemanticEntry[]> {
       }
     }
 
-    push('document-title', document.title, document.documentElement, '@title');
+    push('document-title', document.title, document.documentElement, '@title', 'document:title');
 
-    for (const meta of document.querySelectorAll<HTMLMetaElement>(
-      'meta[name="description"], meta[name^="twitter:"], meta[property^="og:"]',
-    )) {
-      push('meta', meta.content, meta, `@${meta.name || meta.getAttribute('property') || 'content'}`);
+    const humanMetadata = new Set([
+      'description',
+      'og:description',
+      'og:image:alt',
+      'og:title',
+      'twitter:description',
+      'twitter:image:alt',
+      'twitter:title',
+    ]);
+
+    for (const meta of document.querySelectorAll<HTMLMetaElement>('meta[name], meta[property]')) {
+      const field = meta.name || meta.getAttribute('property') || '';
+
+      if (humanMetadata.has(field)) {
+        push('meta', meta.content, meta, `@${field}`, `meta:${field}`);
+      }
     }
 
     return entries;
@@ -311,45 +230,174 @@ async function setTheme(page: Page, theme: 'dark' | 'light'): Promise<void> {
   ]);
 }
 
+async function setLanguage(page: Page, language: 'en' | 'fr'): Promise<void> {
+  await page.context().addCookies([
+    {
+      name: 'vibecore-lang',
+      value: language,
+      url: APP_BASE_URL,
+      sameSite: 'Lax',
+    },
+  ]);
+}
+
 async function capture(page: Page, testInfo: TestInfo, name: string): Promise<void> {
   if (!CAPTURE_ALL) {
     return;
   }
 
-  await testInfo.attach(name, {
-    body: await page.screenshot({ fullPage: true, animations: 'disabled' }),
-    contentType: 'image/png',
-  });
+  const path = testInfo.outputPath('i18n-proof', `${name}.png`);
+
+  await mkdir(dirname(path), { recursive: true });
+  await page.screenshot({ path, fullPage: true, animations: 'disabled' });
+}
+
+async function persistJsonEvidence(testInfo: TestInfo, name: string, value: unknown): Promise<void> {
+  const path = testInfo.outputPath('i18n-proof', `${name}.json`);
+
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(path, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
+}
+
+async function waitForApplicationReady(page: Page, path: string, language: 'en' | 'fr'): Promise<void> {
+  const bootSplash = page.locator('[data-ecode-boot-splash], [data-ecode-ide-boot-splash]');
+  const globalLanguageSwitch = page.locator('[data-testid="language-switch"]:visible').first();
+
+  await expect.soft(bootSplash, `${path} ${language} boot splash dismissed`).toHaveCount(0, { timeout: 15_000 });
+  await expect
+    .soft(globalLanguageSwitch, `${path} ${language} global language switch ready`)
+    .toBeVisible({ timeout: 15_000 });
+}
+
+function isExpectedMissingDocumentConsole(path: string, message: ConsoleMessage): boolean {
+  if (!PUBLIC_ERROR_PATHS.some((candidate) => candidate === path)) {
+    return false;
+  }
+
+  if (message.text() !== 'Failed to load resource: the server responded with a status of 404 (Not Found)') {
+    return false;
+  }
+
+  try {
+    return new URL(message.location().url).pathname === new URL(path, APP_BASE_URL).pathname;
+  } catch {
+    return false;
+  }
 }
 
 async function auditRoutePair(page: Page, path: string, theme: 'dark' | 'light', testInfo: TestInfo): Promise<void> {
   const consoleErrors: string[] = [];
   const pageErrors: string[] = [];
+
   let auditLocale: 'en' | 'fr' = 'en';
+
   const onConsole = (message: ConsoleMessage) => {
     if (message.type() === 'error') {
-      consoleErrors.push(`${auditLocale}: ${message.text()}`);
+      if (isExpectedMissingDocumentConsole(path, message)) {
+        return;
+      }
+
+      const location = message.location();
+      const source = location.url ? ` @ ${location.url}:${location.lineNumber + 1}` : '';
+
+      consoleErrors.push(`${auditLocale}: ${message.text()}${source}`);
     }
   };
+
   const onPageError = (error: Error) => pageErrors.push(`${auditLocale}: ${error.message}`);
 
-  page.on('console', onConsole);
-  page.on('pageerror', onPageError);
+  /*
+   * Move through a neutral document between audited URLs. React Router can
+   * still be discovering lazy route-manifest patches after a page is ready;
+   * a direct full-document navigation aborts that obsolete request and Chrome
+   * reports a misleading `Failed to fetch manifest patches` console error.
+   * Detaching only for the deliberate teardown keeps every hydration/runtime
+   * error from the destination document observable.
+   */
+  const prepareDestinationDocument = async () => {
+    page.off('console', onConsole);
+    page.off('pageerror', onPageError);
+    await page.goto('about:blank');
+    page.on('console', onConsole);
+    page.on('pageerror', onPageError);
+  };
+
   await setTheme(page, theme);
+  await setLanguage(page, 'en');
+  await prepareDestinationDocument();
+
   const englishResponse = await page.goto(localizedPath(path, 'en'), { waitUntil: 'domcontentloaded' });
-  expect.soft(englishResponse?.status(), `${path} English response`).toBeLessThan(500);
-  await page.waitForTimeout(150);
+
+  if (PUBLIC_ERROR_PATHS.some((candidate) => candidate === path)) {
+    expect.soft(englishResponse?.status(), `${path} English response`).toBe(404);
+  } else {
+    expect.soft(englishResponse?.status(), `${path} English response`).toBeLessThan(500);
+  }
+
+  await waitForApplicationReady(page, path, 'en');
+  await expect.soft(page.locator('html'), `${path} English document language`).toHaveAttribute('lang', 'en');
+
+  const englishDocumentLanguage = await page.locator('html').getAttribute('lang');
+  const englishDocumentTheme = await page.locator('html').getAttribute('data-theme');
+
   const english = await semanticEntries(page);
   await capture(page, testInfo, `${theme}-en-${path.replace(/[^a-z0-9]+/giu, '-') || 'home'}`);
 
   auditLocale = 'fr';
+  await setLanguage(page, 'fr');
+  await prepareDestinationDocument();
+
   const frenchResponse = await page.goto(localizedPath(path, 'fr'), { waitUntil: 'domcontentloaded' });
-  expect.soft(frenchResponse?.status(), `${path} French response`).toBeLessThan(500);
-  await page.waitForTimeout(150);
+
+  if (PUBLIC_ERROR_PATHS.some((candidate) => candidate === path)) {
+    expect.soft(frenchResponse?.status(), `${path} French response`).toBe(404);
+  } else {
+    expect.soft(frenchResponse?.status(), `${path} French response`).toBeLessThan(500);
+  }
+
+  await waitForApplicationReady(page, path, 'fr');
   await expect.soft(page.locator('html'), `${path} active document language`).toHaveAttribute('lang', 'fr');
+
   await expect.soft(page.locator('html'), `${path} active theme`).toHaveAttribute('data-theme', theme);
+
+  const frenchDocumentLanguage = await page.locator('html').getAttribute('lang');
+  const frenchDocumentTheme = await page.locator('html').getAttribute('data-theme');
+
   const french = await semanticEntries(page);
-  const findings = findFrenchResidue(english, french);
+  const findings = findFrenchAuditResidue(english, french);
+
+  const languageSwitchCount = await page.locator('[data-testid="language-switch"]:visible').count();
+
+  const documentSeo = await page.evaluate(() => {
+    const hrefs = (selector: string) =>
+      [...document.head.querySelectorAll<HTMLLinkElement>(selector)].map((link) => link.href);
+    const contents = (selector: string) =>
+      [...document.head.querySelectorAll<HTMLMetaElement>(selector)].map((meta) => meta.content);
+
+    return {
+      canonical: hrefs('link[rel="canonical"]'),
+      english: hrefs('link[rel="alternate"][hreflang="en"]'),
+      french: hrefs('link[rel="alternate"][hreflang="fr"]'),
+      defaultLanguage: hrefs('link[rel="alternate"][hreflang="x-default"]'),
+      description: contents('meta[name="description"]'),
+      openGraph: {
+        type: contents('meta[property="og:type"]'),
+        title: contents('meta[property="og:title"]'),
+        description: contents('meta[property="og:description"]'),
+        image: contents('meta[property="og:image"]'),
+        imageAlt: contents('meta[property="og:image:alt"]'),
+        locale: contents('meta[property="og:locale"]'),
+        alternateLocales: contents('meta[property="og:locale:alternate"]'),
+      },
+      twitter: {
+        card: contents('meta[name="twitter:card"]'),
+        title: contents('meta[name="twitter:title"]'),
+        description: contents('meta[name="twitter:description"]'),
+        image: contents('meta[name="twitter:image"]'),
+        imageAlt: contents('meta[name="twitter:image:alt"]'),
+      },
+    };
+  });
   const layout = await page.evaluate(() => ({
     documentWidth: document.documentElement.scrollWidth,
     viewportWidth: window.innerWidth,
@@ -361,24 +409,25 @@ async function auditRoutePair(page: Page, path: string, theme: 'dark' | 'light',
   page.off('pageerror', onPageError);
 
   await capture(page, testInfo, `${theme}-fr-${path.replace(/[^a-z0-9]+/giu, '-') || 'home'}`);
-  await testInfo.attach(`i18n-audit-${theme}-${path.replace(/[^a-z0-9]+/giu, '-') || 'home'}`, {
-    body: Buffer.from(
-      JSON.stringify(
-        {
-          path,
-          theme,
-          responseStatus: { en: englishResponse?.status(), fr: frenchResponse?.status() },
-          layout,
-          consoleErrors,
-          pageErrors,
-          findings,
-          scannedEntries: french.length,
-        },
-        null,
-        2,
-      ),
-    ),
-    contentType: 'application/json',
+  await persistJsonEvidence(testInfo, `i18n-audit-${theme}-${path.replace(/[^a-z0-9]+/giu, '-') || 'home'}`, {
+    schemaVersion: 1,
+    generatedAt: new Date().toISOString(),
+    sourceRevision: process.env.GITHUB_SHA ?? process.env.I18N_AUDIT_REVISION ?? 'working-tree',
+    project: testInfo.project.name,
+    viewport: testInfo.project.use.viewport,
+    baseUrl: APP_BASE_URL,
+    path,
+    theme,
+    responseStatus: { en: englishResponse?.status(), fr: frenchResponse?.status() },
+    documentLanguage: { en: englishDocumentLanguage, fr: frenchDocumentLanguage },
+    documentTheme: { en: englishDocumentTheme, fr: frenchDocumentTheme },
+    layout,
+    consoleErrors,
+    pageErrors,
+    findings,
+    languageSwitchCount,
+    documentSeo,
+    scannedEntries: french.length,
   });
 
   expect
@@ -387,6 +436,35 @@ async function auditRoutePair(page: Page, path: string, theme: 'dark' | 'light',
   expect.soft(layout.bodyHeight, `${path} (${theme}) non-blank body height`).toBeGreaterThan(0);
   expect.soft(layout.bodyTextLength, `${path} (${theme}) non-blank visible text`).toBeGreaterThan(0);
   expect.soft(french.length, `${path} (${theme}) semantic entries scanned`).toBeGreaterThan(0);
+  expect.soft(languageSwitchCount, `${path} (${theme}) visible global language switch`).toBeGreaterThan(0);
+  expect.soft(documentSeo.canonical, `${path} (${theme}) one canonical link`).toHaveLength(1);
+  expect.soft(documentSeo.english, `${path} (${theme}) one English alternate`).toHaveLength(1);
+  expect.soft(documentSeo.french, `${path} (${theme}) one French alternate`).toHaveLength(1);
+  expect.soft(documentSeo.defaultLanguage, `${path} (${theme}) one x-default alternate`).toHaveLength(1);
+  expect.soft(documentSeo.description, `${path} (${theme}) one localized description`).toHaveLength(1);
+  expect.soft(documentSeo.openGraph.type, `${path} (${theme}) one Open Graph type`).toHaveLength(1);
+  expect.soft(documentSeo.openGraph.title, `${path} (${theme}) one Open Graph title`).toHaveLength(1);
+  expect.soft(documentSeo.openGraph.description, `${path} (${theme}) one Open Graph description`).toHaveLength(1);
+  expect.soft(documentSeo.openGraph.image, `${path} (${theme}) one Open Graph image`).toHaveLength(1);
+  expect.soft(documentSeo.openGraph.imageAlt, `${path} (${theme}) one Open Graph image alternative`).toHaveLength(1);
+  expect.soft(documentSeo.openGraph.locale, `${path} (${theme}) one Open Graph locale`).toEqual(['fr_FR']);
+  expect
+    .soft(documentSeo.openGraph.alternateLocales, `${path} (${theme}) English Open Graph alternate locale`)
+    .toContain('en_US');
+  expect.soft(documentSeo.twitter.card, `${path} (${theme}) one Twitter card`).toEqual(['summary_large_image']);
+  expect.soft(documentSeo.twitter.title, `${path} (${theme}) one Twitter title`).toHaveLength(1);
+  expect.soft(documentSeo.twitter.description, `${path} (${theme}) one Twitter description`).toHaveLength(1);
+  expect.soft(documentSeo.twitter.image, `${path} (${theme}) one Twitter image`).toHaveLength(1);
+  expect.soft(documentSeo.twitter.imageAlt, `${path} (${theme}) one Twitter image alternative`).toHaveLength(1);
+
+  const canonicalUrl = documentSeo.canonical[0];
+
+  expect
+    .soft(
+      canonicalUrl ? new URL(canonicalUrl).searchParams.has('lang') : true,
+      `${path} English canonical has no locale query`,
+    )
+    .toBe(false);
   expect.soft(consoleErrors, `${path} (${theme}) browser console errors`).toEqual([]);
   expect.soft(pageErrors, `${path} (${theme}) uncaught page errors`).toEqual([]);
   expect
@@ -403,6 +481,7 @@ async function auditRoutePair(page: Page, path: string, theme: 'dark' | 'light',
 async function publicPaths(page: Page): Promise<string[]> {
   const response = await page.request.get(`${APP_BASE_URL}/sitemap.xml`);
   expect(response.ok(), await response.text()).toBeTruthy();
+
   const xml = await response.text();
 
   return [...xml.matchAll(/<loc>([^<]+)<\/loc>/gu)].map((match) => new URL(match[1]!).pathname);
@@ -410,6 +489,7 @@ async function publicPaths(page: Page): Promise<string[]> {
 
 async function authenticateFrenchUser(page: Page): Promise<{ organizationId: string; projectId: string }> {
   const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
   const response = await page.request.post(`${API_BASE_URL}/auth/register`, {
     headers: { 'accept-language': 'fr-FR, en;q=0.8' },
     data: {
@@ -420,12 +500,15 @@ async function authenticateFrenchUser(page: Page): Promise<{ organizationId: str
     },
   });
   expect(response.ok(), await response.text()).toBeTruthy();
+
   const payload = (await response.json()) as { token: string; organization: { id: string } };
+
   const projectResponse = await page.request.post(`${API_BASE_URL}/orgs/${payload.organization.id}/projects`, {
     headers: { authorization: `Bearer ${payload.token}`, 'accept-language': 'fr' },
     data: { name: 'Projet Audit Français' },
   });
   expect(projectResponse.ok(), await projectResponse.text()).toBeTruthy();
+
   const project = (await projectResponse.json()) as { project: { id: string } };
 
   await page.context().addCookies([
@@ -436,28 +519,111 @@ async function authenticateFrenchUser(page: Page): Promise<{ organizationId: str
   return { organizationId: payload.organization.id, projectId: project.project.id };
 }
 
+async function persistProjectTheme(page: Page, projectId: string, theme: 'dark' | 'light'): Promise<void> {
+  const response = await page.request.post(
+    `${APP_BASE_URL}/api/projects/${encodeURIComponent(projectId)}/ide-panel/settings`,
+    {
+      form: {
+        intent: 'preferences',
+        theme,
+        keyboardMode: 'false',
+        creditAlertThreshold: '80',
+      },
+    },
+  );
+
+  expect(response.ok(), await response.text()).toBeTruthy();
+}
+
 test.describe('complete French live i18n audit', () => {
   test.skip(!RUN_FULL_AUDIT, 'Set I18N_FULL_LIVE_AUDIT=1 for the exhaustive locale matrix.');
   test.describe.configure({ timeout: 30 * 60_000 });
 
-  test('browser detection, manual override and global switch work', async ({ page }) => {
-    await page.context().clearCookies();
-    await page.setExtraHTTPHeaders({ 'accept-language': 'fr-FR, en;q=0.8' });
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('html')).toHaveAttribute('lang', 'fr');
-    await expect(page.getByRole('button', { name: /English|Anglais/u })).toBeVisible();
-    await page.getByRole('button', { name: /English|Anglais/u }).click();
-    await page.waitForLoadState('domcontentloaded');
-    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  test('browser detection, manual override and global switch work', async ({ browser }, testInfo) => {
+    const context = await browser.newContext({ locale: 'fr-FR' });
+    const page = await context.newPage();
 
-    await page.setExtraHTTPHeaders({ 'accept-language': 'fr-FR' });
-    await page.reload({ waitUntil: 'domcontentloaded' });
-    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+    try {
+      const firstVisitResponse = await page.goto(APP_BASE_URL, { waitUntil: 'domcontentloaded' });
+
+      const firstVisitNegotiation = {
+        requestHeaders: firstVisitResponse?.request().headers(),
+        responseHeaders: await firstVisitResponse?.allHeaders(),
+        cookies: await context.cookies(),
+        navigatorLanguage: await page.evaluate(() => navigator.language),
+        documentLanguage: await page.locator('html').getAttribute('lang'),
+      };
+      await persistJsonEvidence(testInfo, 'first-visit-language-negotiation', firstVisitNegotiation);
+      expect(firstVisitNegotiation.requestHeaders?.['accept-language']).toContain('fr-FR');
+      expect(firstVisitNegotiation.responseHeaders?.['content-language']).toBe('fr');
+      await expect(page.locator('html')).toHaveAttribute('lang', 'fr');
+      await expect(page.getByRole('button', { name: /English|Anglais/u })).toBeVisible();
+      await page.getByRole('button', { name: /English|Anglais/u }).click();
+      await page.waitForLoadState('domcontentloaded');
+      await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+
+      await page.getByRole('button', { name: /French|Français/u }).click();
+      await page.waitForLoadState('domcontentloaded');
+      await expect(page.locator('html')).toHaveAttribute('lang', 'fr');
+
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await expect(page.locator('html')).toHaveAttribute('lang', 'fr');
+
+      const themeBeforeToggle = await page.locator('html').getAttribute('data-theme');
+
+      const themeToggle = page
+        .locator('[data-testid="button-theme-toggle"]:visible, [data-testid="public-theme-toggle"]:visible')
+        .first();
+      await expect(themeToggle).toBeVisible();
+      await themeToggle.click();
+      await expect(page.locator('html')).not.toHaveAttribute('data-theme', themeBeforeToggle ?? '');
+
+      const themeAfterToggle = await page.locator('html').getAttribute('data-theme');
+
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await expect(page.locator('html')).toHaveAttribute('data-theme', themeAfterToggle ?? '');
+    } finally {
+      await context.close();
+    }
+
+    const navigatorFallbackContext = await browser.newContext({ locale: 'fr-FR' });
+    const navigatorFallbackPage = await navigatorFallbackContext.newPage();
+
+    try {
+      await navigatorFallbackPage.route('**/*', async (route) => {
+        const headers = await route.request().allHeaders();
+
+        delete headers['accept-language'];
+        await route.continue({ headers });
+      });
+      await navigatorFallbackPage.goto(APP_BASE_URL, { waitUntil: 'domcontentloaded' });
+      await expect(navigatorFallbackPage.locator('html')).toHaveAttribute('lang', 'fr', { timeout: 15_000 });
+
+      const automaticCookie = (await navigatorFallbackContext.cookies()).find(
+        (cookie) => cookie.name === 'vibecore-auto-lang',
+      );
+
+      expect(automaticCookie?.value).toBe('fr');
+      await persistJsonEvidence(testInfo, 'navigator-language-fallback', {
+        navigatorLanguage: await navigatorFallbackPage.evaluate(() => navigator.language),
+        documentLanguage: await navigatorFallbackPage.locator('html').getAttribute('lang'),
+        automaticCookie,
+      });
+    } finally {
+      await navigatorFallbackContext.close();
+    }
   });
 
   test('all sitemap marketing pages are translated in both themes', async ({ page }, testInfo) => {
     for (const theme of ['dark', 'light'] as const) {
-      for (const path of await publicPaths(page)) {
+      for (const path of [...(await publicPaths(page)), ...PUBLIC_ERROR_PATHS]) {
+        if (!selectedAuditPaths([path]).length) {
+          continue;
+        }
+
         await auditRoutePair(page, path, theme, testInfo);
       }
     }
@@ -465,7 +631,7 @@ test.describe('complete French live i18n audit', () => {
 
   test('all auth pages are translated in both themes', async ({ page }, testInfo) => {
     for (const theme of ['dark', 'light'] as const) {
-      for (const path of AUTH_PATHS) {
+      for (const path of selectedAuditPaths(AUTH_PATHS)) {
         await auditRoutePair(page, path, theme, testInfo);
       }
     }
@@ -473,9 +639,15 @@ test.describe('complete French live i18n audit', () => {
 
   test('user area and project panels are translated in both themes', async ({ page }, testInfo) => {
     const { projectId } = await authenticateFrenchUser(page);
-    const paths = [...USER_PATHS, ...PROJECT_PATHS.map((path) => path.replace('{projectId}', projectId))];
+
+    const paths = selectedAuditPaths([
+      ...USER_PATHS,
+      ...PROJECT_PATHS.map((path) => path.replace('{projectId}', projectId)),
+    ]);
 
     for (const theme of ['dark', 'light'] as const) {
+      await persistProjectTheme(page, projectId, theme);
+
       for (const path of paths) {
         await auditRoutePair(page, path, theme, testInfo);
       }
