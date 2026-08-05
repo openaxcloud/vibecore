@@ -32,6 +32,7 @@ import { appliedFilesToastEn, appliedFilesToastFr } from './catalogs/applied-fil
 import { assistantMessageEn, assistantMessageFr } from './catalogs/assistant-message';
 import { auditLogsEn, auditLogsFr } from './catalogs/audit-logs';
 import { baseChatAstEn, baseChatAstFr } from './catalogs/base-chat-ast';
+import { baseChatMobileHeaderEn, baseChatMobileHeaderFr } from './catalogs/base-chat-mobile-header';
 import { billingEn, billingFr } from './catalogs/billing';
 import { chatEn, chatFr } from './catalogs/chat';
 import { chatBoxEn, chatBoxFr } from './catalogs/chat-box';
@@ -191,6 +192,7 @@ const RESOURCES: Record<SupportedLanguage, { translation: Record<string, string>
       ...assistantMessageEn,
       ...auditLogsEn,
       ...baseChatAstEn,
+      ...baseChatMobileHeaderEn,
       ...userAreaEn,
       ...notificationsEn,
       ...notificationsTabEn,
@@ -341,6 +343,7 @@ const RESOURCES: Record<SupportedLanguage, { translation: Record<string, string>
       ...assistantMessageFr,
       ...auditLogsFr,
       ...baseChatAstFr,
+      ...baseChatMobileHeaderFr,
       ...userAreaFr,
       ...notificationsFr,
       ...notificationsTabFr,

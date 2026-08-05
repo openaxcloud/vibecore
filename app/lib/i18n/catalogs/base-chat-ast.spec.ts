@@ -130,26 +130,11 @@ describe('BaseChat strengthened-AST catalog', () => {
     );
 
     expect(result.parseErrors).toEqual([]);
-    expect(frozenHash).toBe('64e8a00479b55df90305dd97377de95c39e40bbe921ea1396f0e2abe94923ae7');
+    expect(frozenHash).toBe('0fb3bf08deca5676e65c91d2ad21d5086799820e9cd77121af1cf278509a20b1');
     expect(outsideFrozen).toEqual([]);
-    expect(insideFrozen.map((finding) => finding.text)).toEqual([
-      'Back to dashboard',
-      'Activity',
-      'Open tools',
-      'Agent options',
-      'More options',
-      'Working on this workspace',
-      'Ready for the next change',
-      'Focus Agent prompt',
-      'Prompt',
-      'IDE panels',
-      'Open tab switcher',
-      'Open tabs',
-      'Switch to {…} tab',
-      'Show {…} more tabs',
-      'Add new tab',
-      'More options',
-    ]);
+
+    // The mobile header/dock labels are now localized via t(); no raw English remains.
+    expect(insideFrozen.map((finding) => finding.text)).toEqual([]);
     expect(source.match(/DO NOT MODIFY — mobile Terminal tab frozen/gu)).toHaveLength(2);
     expect(source).not.toMatch(/\.toLocale(?:String|DateString|TimeString)\(/u);
   });

@@ -51,31 +51,16 @@ describe('BaseChat EN/FR catalog', () => {
     expect(chatEn['chat.copy.projectAssistant_2b677b08']).toBe('Project assistant');
   });
 
-  it('leaves only the owner-frozen mobile Terminal labels in the strengthened AST scan', async () => {
+  it('leaves no residual English in the strengthened AST scan', async () => {
     const { scanSource } = await import('../../../../scripts/i18n/source-scanner.mjs');
     const source = readFileSync(new URL('../../../components/chat/BaseChat.tsx', import.meta.url), 'utf8');
     const result = scanSource(source, 'app/components/chat/BaseChat.tsx');
     const residualText = result.findings.map((finding) => finding.text);
 
     expect(result.parseErrors).toEqual([]);
-    expect(residualText).toEqual([
-      'Back to dashboard',
-      'Activity',
-      'Open tools',
-      'Agent options',
-      'More options',
-      'Working on this workspace',
-      'Ready for the next change',
-      'Focus Agent prompt',
-      'Prompt',
-      'IDE panels',
-      'Open tab switcher',
-      'Open tabs',
-      'Switch to {…} tab',
-      'Show {…} more tabs',
-      'Add new tab',
-      'More options',
-    ]);
+
+    // The mobile header/dock labels are localized via t(); the whole file is clean.
+    expect(residualText).toEqual([]);
     expect(source.match(/DO NOT MODIFY — mobile Terminal tab frozen/gu)).toHaveLength(2);
   });
 });

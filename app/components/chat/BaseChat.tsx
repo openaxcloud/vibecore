@@ -8808,7 +8808,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <div className="bolt-mobile-ecode-header-side">
                 <button
                   type="button"
-                  aria-label="Back to dashboard"
+                  aria-label={t('baseChatMobileHeader.back')}
                   data-testid="button-back"
                   onClick={() => navigate('/dashboard')}
                 >
@@ -8816,7 +8816,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 </button>
                 <button
                   type="button"
-                  aria-label="Activity"
+                  aria-label={t('baseChatMobileHeader.activity')}
                   data-testid="button-history"
                   onClick={() => activateMobileTool('activity')}
                 >
@@ -8839,7 +8839,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <div className="bolt-mobile-ecode-header-side bolt-mobile-ecode-header-side--right">
                 <button
                   type="button"
-                  aria-label="Open tools"
+                  aria-label={t('baseChatMobileHeader.openTools')}
                   aria-haspopup="dialog"
                   aria-expanded={mobileToolsSheetOpen}
                   data-testid="button-new-tab"
@@ -8849,7 +8849,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 </button>
                 <button
                   type="button"
-                  aria-label={isMobileAgentActive ? 'Agent options' : 'More options'}
+                  aria-label={
+                    isMobileAgentActive ? t('baseChatMobileHeader.agentOptions') : t('baseChatMobileHeader.moreOptions')
+                  }
                   aria-haspopup="dialog"
                   aria-expanded={isMobileAgentActive ? mobileAgentMenuOpen : mobileMoreMenuOpen}
                   data-testid={isMobileAgentActive ? 'mobile-agent-menu-trigger' : 'button-more'}
@@ -8863,11 +8865,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <div className="bolt-mobile-agent-context-bar" data-running={isAgentRunning ? 'true' : 'false'}>
                 <span className={isAgentRunning ? 'i-svg-spinners:3-dots-fade' : 'i-ph:check-circle'} aria-hidden />
                 <span>
-                  <strong>{isAgentRunning ? 'Working on this workspace' : 'Ready for the next change'}</strong>
+                  <strong>
+                    {isAgentRunning ? t('baseChatMobileHeader.agentWorking') : t('baseChatMobileHeader.agentReady')}
+                  </strong>
                   <small>{mobileAgentContextLabel}</small>
                 </span>
-                <button type="button" aria-label="Focus Agent prompt" onClick={() => textareaRef?.current?.focus()}>
-                  Prompt
+                <button
+                  type="button"
+                  aria-label={t('baseChatMobileHeader.focusPrompt')}
+                  onClick={() => textareaRef?.current?.focus()}
+                >
+                  {t('baseChatMobileHeader.promptButton')}
                 </button>
               </div>
             ) : null}
@@ -9097,7 +9105,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             (record/run · tab-switcher · Files · </> · preview · apps · +N · + · ⋮) is the reference;
             exclude from responsive/fan-out/parity passes. */}
         {showMobileChrome && (
-          <nav className="bolt-mobile-replit-nav" aria-label="IDE panels" data-testid="mobile-bottom-navigation">
+          <nav
+            className="bolt-mobile-replit-nav"
+            aria-label={t('baseChatMobileHeader.idePanels')}
+            data-testid="mobile-bottom-navigation"
+          >
             <div className="bolt-mobile-replit-nav-bg" aria-hidden />
             <div className="bolt-mobile-replit-nav-inner">
               <button
@@ -9123,14 +9135,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 <button
                   type="button"
                   className="bolt-mobile-replit-icon-tab"
-                  aria-label="Open tab switcher"
+                  aria-label={t('baseChatMobileHeader.openTabSwitcher')}
                   data-testid="button-tab-switcher"
                   onClick={openMobileTabSwitcher}
                 >
                   <span className="i-ph:squares-four" aria-hidden />
                 </button>
                 <span className="bolt-mobile-replit-divider" aria-hidden />
-                <div className="bolt-mobile-replit-panel-scroll" role="group" aria-label="Open tabs">
+                <div
+                  className="bolt-mobile-replit-panel-scroll"
+                  role="group"
+                  aria-label={t('baseChatMobileHeader.openTabs')}
+                >
                   {mobileBottomTabs.map((tab) => {
                     const isActive = activeMobileOpenTabId === tab.id;
 
@@ -9139,7 +9155,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         key={tab.id}
                         type="button"
                         className="bolt-mobile-replit-icon-tab bolt-mobile-replit-panel-tab"
-                        aria-label={`Switch to ${tab.name} tab`}
+                        aria-label={t('baseChatMobileHeader.switchToTab', { name: tab.name })}
                         aria-pressed={isActive}
                         aria-current={isActive ? 'page' : undefined}
                         data-testid={`tab-${tab.id}`}
@@ -9156,7 +9172,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   <button
                     type="button"
                     className="bolt-mobile-replit-icon-tab bolt-mobile-replit-more-tabs"
-                    aria-label={`Show ${hiddenMobileBottomTabCount} more tabs`}
+                    aria-label={t('baseChatMobileHeader.moreTabs', { count: hiddenMobileBottomTabCount })}
                     data-testid="button-more-tabs"
                     onClick={openMobileTabSwitcher}
                   >
@@ -9167,7 +9183,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 <button
                   type="button"
                   className="bolt-mobile-replit-icon-tab"
-                  aria-label="Add new tab"
+                  aria-label={t('baseChatMobileHeader.addNewTab')}
                   aria-haspopup="dialog"
                   aria-expanded={mobileToolsSheetOpen}
                   data-testid="button-add-tab"
@@ -9180,7 +9196,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <button
                 type="button"
                 className="bolt-mobile-replit-tools"
-                aria-label="More options"
+                aria-label={t('baseChatMobileHeader.moreOptions')}
                 aria-haspopup="dialog"
                 aria-expanded={mobileMoreMenuOpen}
                 data-testid="button-more"
