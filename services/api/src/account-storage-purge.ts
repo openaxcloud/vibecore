@@ -93,6 +93,8 @@ export interface BucketErasureResult {
   objectsBefore: number;
   bucketDeleted: boolean;
   objectsRemaining: number;
+  /** RR-CODEX-14 (P8): does the CONTAINER itself still exist after the delete? */
+  bucketStillExists: boolean;
 }
 
 /** Per-workspace before/after evidence. */
@@ -116,23 +118,41 @@ async function eraseBucket(
   projectId: string,
   port: ObjectStorageErasurePort,
   log?: StorageErasureLogger,
+  guard?: () => Promise<void>,
 ): Promise<BucketErasureResult> {
+  let objectsBefore = 0;
+
   try {
     if (!(await port.bucketExists(projectId))) {
-      return { projectId, objectsBefore: 0, bucketDeleted: false, objectsRemaining: 0 };
+      return { projectId, objectsBefore: 0, bucketDeleted: false, objectsRemaining: 0, bucketStillExists: false };
     }
 
-    const objectsBefore = (await port.listObjects(projectId)).objects.length;
+    objectsBefore = (await port.listObjects(projectId)).objects.length;
+  } catch (error) {
+    log?.warn({ projectId, err: error }, 'object-storage pre-delete check failed');
+
+    return { projectId, objectsBefore: 0, bucketDeleted: false, objectsRemaining: 1, bucketStillExists: true };
+  }
+
+  // RR-CODEX-14 (P4): revalidate the lease at the LINEARISATION POINT — immediately
+  // before the irreversible delete, with NO network call between the check and the
+  // delete. OUTSIDE the try so a lost lease PROPAGATES (aborts the whole erasure),
+  // never silently skips a bucket.
+  await guard?.();
+
+  try {
     const del = await port.deleteBucket(projectId);
 
-    // Reserve #2/#4: re-check the LIVE bucket, not any cached/DB state.
-    const objectsRemaining = (await port.bucketExists(projectId)) ? (await port.listObjects(projectId)).objects.length : 0;
+    // RR-CODEX-14 (P8): the proof is the absence of the CONTAINER itself, not just
+    // its content — a bucket still present after a non-effective delete is remaining.
+    const bucketStillExists = await port.bucketExists(projectId);
+    const objectsRemaining = bucketStillExists ? (await port.listObjects(projectId)).objects.length : 0;
 
-    return { projectId, objectsBefore, bucketDeleted: del.deleted, objectsRemaining };
+    return { projectId, objectsBefore, bucketDeleted: del.deleted, objectsRemaining, bucketStillExists };
   } catch (error) {
     log?.warn({ projectId, err: error }, 'object-storage erase failed');
 
-    return { projectId, objectsBefore: 0, bucketDeleted: false, objectsRemaining: 1 };
+    return { projectId, objectsBefore, bucketDeleted: false, objectsRemaining: 1, bucketStillExists: true };
   }
 }
 
@@ -140,14 +160,27 @@ async function eraseWorkspace(
   workspaceId: string,
   port: WorkspaceVolumeErasurePort,
   log?: StorageErasureLogger,
+  guard?: () => Promise<void>,
 ): Promise<WorkspaceErasureResult> {
+  let pvcExistedBefore = false;
+
   try {
-    const pvcExistedBefore = await port.pvcExists(workspaceId);
+    pvcExistedBefore = await port.pvcExists(workspaceId);
 
     if (!pvcExistedBefore) {
       return { workspaceId, pvcExistedBefore: false, pvcRemaining: 0 };
     }
+  } catch (error) {
+    log?.warn({ workspaceId, err: error }, 'workspace-volume pre-delete check failed');
 
+    return { workspaceId, pvcExistedBefore: true, pvcRemaining: 1 };
+  }
+
+  // RR-CODEX-14 (P4): guard at the linearisation point — immediately before the
+  // irreversible delete, outside the try (a lost lease aborts, never skips).
+  await guard?.();
+
+  try {
     await port.deleteWorkspace(workspaceId);
 
     // Reserve #2: the PVC must be REALLY gone in Kubernetes, not just DELETED in DB.
@@ -170,8 +203,17 @@ export async function eraseSubjectStorage(
   inventory: StorageErasureInventory,
   deps: StorageErasureDeps,
 ): Promise<StorageErasureOutcome> {
-  // ---- reserve #1: write barrier BEFORE any deletion ----
-  let frozen = true;
+  const hasBuckets = inventory.bucketProjectIds.length > 0;
+  const hasWorkspaces = inventory.workspaceIds.length > 0;
+  const hasInventory = hasBuckets || hasWorkspaces;
+
+  /*
+   * RR-CODEX-14 (P8) fail-closed — reserve #1: a NON-EMPTY inventory REQUIRES a
+   * write barrier. With NO barrier, `frozen` starts FALSE (an absent barrier is NOT
+   * a success), so a non-empty class cannot verify; an empty inventory is a verified
+   * no-op. A present barrier that throws also fails closed.
+   */
+  let frozen = deps.writeBarrier ? true : !hasInventory;
 
   if (deps.writeBarrier) {
     try {
@@ -186,43 +228,46 @@ export async function eraseSubjectStorage(
   const workspaces: WorkspaceErasureResult[] = [];
 
   /*
-   * Reserve #2: a destructive purge with buckets to erase REQUIRES a real,
-   * active object-storage backend. An inert NoopObjectStorage (feature flag off)
-   * cannot prove a bucket absent — so we do NOT erase and mark the whole class
-   * unverified, which refuses the purge (fail-closed) rather than certifying
-   * "nothing to erase".
+   * Reserve #2 / P8: buckets REQUIRE a real ACTIVE object-storage backend and
+   * workspaces REQUIRE a real workspace-volume port. A non-empty class without its
+   * real port cannot prove absence → it is left fully "remaining" (fail-closed),
+   * never certified as "nothing to erase".
    */
-  const objectStorageReal = inventory.bucketProjectIds.length === 0 || Boolean(deps.objectStorage?.active);
+  const objectStorageReal = !hasBuckets || Boolean(deps.objectStorage?.active);
+  const workspaceVolumesReal = !hasWorkspaces || Boolean(deps.workspaceVolumes);
 
   // Only proceed with erasure once writes are barred, so nothing is recreated
-  // between delete and verify.
+  // between delete and verify. The per-delete lease guard lives at the
+  // linearisation point INSIDE eraseBucket/eraseWorkspace (P4).
   if (frozen) {
     if (deps.objectStorage && objectStorageReal) {
       for (const projectId of inventory.bucketProjectIds) {
-        // RR-CODEX-12: revalidate the lease before EACH irreversible delete.
-        await deps.guard?.();
-        buckets.push(await eraseBucket(projectId, deps.objectStorage, deps.log));
+        buckets.push(await eraseBucket(projectId, deps.objectStorage, deps.log, deps.guard));
       }
     }
 
     if (deps.workspaceVolumes) {
       for (const workspaceId of inventory.workspaceIds) {
-        await deps.guard?.();
-        workspaces.push(await eraseWorkspace(workspaceId, deps.workspaceVolumes, deps.log));
+        workspaces.push(await eraseWorkspace(workspaceId, deps.workspaceVolumes, deps.log, deps.guard));
       }
     }
   }
 
   const objectsErased = buckets.reduce((sum, r) => sum + r.objectsBefore, 0);
   const bucketsDeleted = buckets.filter((r) => r.bucketDeleted).length;
+  // P8: a bucket still PRESENT after the delete counts as remaining — the proof is
+  // the absence of the CONTAINER itself, not merely of its content.
+  const containersRemaining = buckets.filter((r) => r.bucketStillExists).length;
   const objectsRemaining = buckets.reduce((sum, r) => sum + r.objectsRemaining, 0);
   const pvcsDeleted = workspaces.filter((r) => r.pvcExistedBefore && r.pvcRemaining === 0).length;
   const pvcsRemaining = workspaces.reduce((sum, r) => sum + r.pvcRemaining, 0);
 
-  // Any unmet precondition (barrier didn't hold, or no real GCS backend) makes
-  // the affected class fully "remaining" so the proof cannot verify.
+  // Any unmet precondition (barrier didn't hold, or no real port) makes the whole
+  // affected class "remaining" so the proof cannot verify.
   const objectStoragePenalty =
     (frozen ? 0 : inventory.bucketProjectIds.length) + (objectStorageReal ? 0 : inventory.bucketProjectIds.length);
+  const workspacePenalty =
+    (frozen ? 0 : inventory.workspaceIds.length) + (workspaceVolumesReal ? 0 : inventory.workspaceIds.length);
 
   const classes: PurgeClassReport[] = [
     {
@@ -233,19 +278,28 @@ export async function eraseSubjectStorage(
         BucketsDeleted: bucketsDeleted,
         ObjectsErased: objectsErased,
         RealBackend: objectStorageReal ? 1 : 0,
+        ContainersRemaining: containersRemaining,
       },
-      remainingAfterPurge: objectsRemaining + objectStoragePenalty,
+      remainingAfterPurge: objectsRemaining + containersRemaining + objectStoragePenalty,
     },
     {
       dataClass: 'workspace_volumes',
       action: 'deleted',
-      models: { Workspaces: inventory.workspaceIds.length, PvcsDeleted: pvcsDeleted, WriteBarrier: frozen ? 1 : 0 },
-      remainingAfterPurge: pvcsRemaining + (frozen ? 0 : inventory.workspaceIds.length),
+      models: {
+        Workspaces: inventory.workspaceIds.length,
+        PvcsDeleted: pvcsDeleted,
+        WriteBarrier: frozen ? 1 : 0,
+        RealPort: workspaceVolumesReal ? 1 : 0,
+      },
+      remainingAfterPurge: pvcsRemaining + workspacePenalty,
     },
   ];
 
   const verified =
-    frozen && objectStorageReal && classes.every((entry) => (entry.remainingAfterPurge ?? 0) === 0);
+    frozen &&
+    objectStorageReal &&
+    workspaceVolumesReal &&
+    classes.every((entry) => (entry.remainingAfterPurge ?? 0) === 0);
 
   return { buckets, workspaces, frozen, classes, verified };
 }
