@@ -77,6 +77,13 @@ export interface StorageErasureDeps {
   workspaceVolumes?: WorkspaceVolumeErasurePort;
   /** Undefined => no write barrier (unit tests of the erase math). */
   writeBarrier?: WriteBarrierPort;
+  /**
+   * RR-CODEX-12: revalidate lease ownership BEFORE each irreversible bucket/PVC
+   * deletion. Throws (aborting the erasure with nothing further deleted) if the
+   * caller has lost the purge lease — so a slow erasure can never keep deleting
+   * after a reconciler reclaimed the plan.
+   */
+  guard?: () => Promise<void>;
   log?: StorageErasureLogger;
 }
 
@@ -192,12 +199,15 @@ export async function eraseSubjectStorage(
   if (frozen) {
     if (deps.objectStorage && objectStorageReal) {
       for (const projectId of inventory.bucketProjectIds) {
+        // RR-CODEX-12: revalidate the lease before EACH irreversible delete.
+        await deps.guard?.();
         buckets.push(await eraseBucket(projectId, deps.objectStorage, deps.log));
       }
     }
 
     if (deps.workspaceVolumes) {
       for (const workspaceId of inventory.workspaceIds) {
+        await deps.guard?.();
         workspaces.push(await eraseWorkspace(workspaceId, deps.workspaceVolumes, deps.log));
       }
     }

@@ -29668,7 +29668,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
              * stamped. A failure throws → the account stays queued and is retried
              * → an account is never marked purged with storage still on disk.
              */
-            eraseStorage: (inventory) =>
+            eraseStorage: (inventory, guard) =>
               options.accountStoragePurger
                 ? options.accountStoragePurger(inventory, userId)
                 : eraseSubjectStorage(
@@ -29690,6 +29690,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                       // the store's topology guarantee (RR-09); this barrier now
                       // only freezes the workspaces.
                       writeBarrier: createWriteBarrier((inv) => inv.workspaceIds),
+                      // RR-CODEX-12: revalidate the lease before each irreversible delete.
+                      guard,
                       log: app.log as unknown as { warn(o: unknown, m?: string): void },
                     },
                   ),

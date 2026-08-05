@@ -328,8 +328,8 @@ export class TestApiStore implements ApiStore {
    * the advisory-locked Postgres implementation.
    */
   /** RR-09: no durable freeze state in the in-memory store, so nothing to reconcile. */
-  async reconcilePurgeFreezes(): Promise<{ reconciled: number }> {
-    return { reconciled: 0 };
+  async reconcilePurgeFreezes(): Promise<{ reconciled: number; reclaimedPlanIds: string[] }> {
+    return { reconciled: 0, reclaimedPlanIds: [] };
   }
 
   /** RR-1bd27929: in-memory object-storage purge-freeze set (route-test only). */

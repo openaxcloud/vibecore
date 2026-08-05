@@ -1,6 +1,6 @@
 import { hashPassword } from '@vibecore/auth';
 import { createDatabaseClient } from '@vibecore/database';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ErasureProof, PurgeStorageInventory } from '../account-purge.js';
 import { eraseSubjectStorage } from '../account-storage-purge.js';
@@ -120,6 +120,16 @@ const DAY = 24 * 60 * 60 * 1000;
 const SECRET = 'purge-db-internal-secret';
 const suffix = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
+// RR-CODEX-12: default lease timing for the purge tests. TTL is long enough that a
+// loaded CI box can't stall the event loop past it (no spurious lease expiry);
+// renewIntervalMs << ttlMs; grace guards clock lag on reclaim.
+const TEST_LEASE = { ttlMs: 30_000, renewIntervalMs: 5_000, reclaimGraceMs: 1_000 };
+// Short-TTL store used ONLY by T19 (which needs the erasure to outlast the TTL).
+const SHORT_LEASE = { ttlMs: 600, renewIntervalMs: 100, reclaimGraceMs: 200 };
+const newStore = (prisma: ReturnType<typeof createDatabaseClient>) =>
+  new PrismaApiStore(prisma, undefined, TEST_LEASE);
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
 /** Seed a user with rows in every purgeable class. Returns ids for later SQL checks. */
 async function seedAccount(store: PrismaApiStore) {
   const tag = suffix();
@@ -160,11 +170,25 @@ async function requestElapsedDeletion(store: PrismaApiStore, userId: string, day
 }
 
 runDbTests('account purge — durable proofs (real Postgres)', () => {
+  // The reconciler is GLOBAL (reclaims every expired plan), so leftover PurgePlan /
+  // PurgeFreeze rows from a prior test would pollute the reconcile-count assertions.
+  // Isolate each test with a clean plan/freeze table.
+  beforeEach(async () => {
+    const p = createDatabaseClient();
+
+    try {
+      await p.purgeFreeze.deleteMany({});
+      await p.purgePlan.deleteMany({});
+    } finally {
+      await p.$disconnect();
+    }
+  });
+
   it('(2 NEGATIVE first) refuses while the grace window has not elapsed', async () => {
     const prisma = createDatabaseClient();
 
     try {
-      const store = new PrismaApiStore(prisma);
+      const store = newStore(prisma);
       const { user } = await seedAccount(store);
       await requestElapsedDeletion(store, user.id, 2); // only 2 days in
 
@@ -185,7 +209,7 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
     const prisma = createDatabaseClient();
 
     try {
-      const store = new PrismaApiStore(prisma);
+      const store = newStore(prisma);
       const app = await buildApiApp({
         store,
         emailProvider: new QuietEmailProvider(),
@@ -270,8 +294,8 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
     const prismaB = createDatabaseClient();
 
     try {
-      const storeA = new PrismaApiStore(prismaA);
-      const storeB = new PrismaApiStore(prismaB);
+      const storeA = newStore(prismaA);
+      const storeB = newStore(prismaB);
       const { user } = await seedAccount(storeA);
       await requestElapsedDeletion(storeA, user.id);
 
@@ -292,7 +316,7 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
     const prisma = createDatabaseClient();
 
     try {
-      const store = new PrismaApiStore(prisma);
+      const store = newStore(prisma);
       const { user, org } = await seedAccount(store);
 
       // Post a balanced double-entry transaction for the user's org.
@@ -408,7 +432,7 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
     const prisma = createDatabaseClient();
 
     try {
-      const store = new PrismaApiStore(prisma);
+      const store = newStore(prisma);
       const { user, org, project } = await seedAccount(store);
       await makeShared(store, prisma, org.id, user.id); // org is SHARED at guarantee time
       await requestElapsedDeletion(store, user.id);
@@ -440,7 +464,7 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
     const prisma = createDatabaseClient();
 
     try {
-      const store = new PrismaApiStore(prisma);
+      const store = newStore(prisma);
       const { user, org } = await seedAccount(store);
       const co = await makeShared(store, prisma, org.id, user.id);
       await requestElapsedDeletion(store, user.id);
@@ -470,7 +494,7 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
     const prisma = createDatabaseClient();
 
     try {
-      const store = new PrismaApiStore(prisma);
+      const store = newStore(prisma);
       const { user, org, project } = await seedAccount(store); // SOLE org
       const joiner = await store.createUser({
         email: `join-${suffix()}@example.com`,
@@ -506,7 +530,7 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
     const prisma = createDatabaseClient();
 
     try {
-      const store = new PrismaApiStore(prisma);
+      const store = newStore(prisma);
       const { user, org, project } = await seedAccount(store);
       await requestElapsedDeletion(store, user.id);
 
@@ -537,7 +561,7 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
     const prisma = createDatabaseClient();
 
     try {
-      const store = new PrismaApiStore(prisma);
+      const store = newStore(prisma);
       const { user, org, project } = await seedAccount(store);
 
       // Simulate a crash mid-erasure: an ABANDONED plan (lease already expired) +
@@ -575,8 +599,8 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
     const MEMBERSHIP_LOCK = MEMBERSHIP_FREEZE_LOCK;
 
     try {
-      const store = new PrismaApiStore(prisma);
-      const storeB = new PrismaApiStore(prismaB);
+      const store = newStore(prisma);
+      const storeB = newStore(prismaB);
       const { user, org, project } = await seedAccount(store); // SOLE org + bucket
       const owner = (await prisma.organizationMember.findFirst({
         where: { organizationId: org.id, userId: user.id },
@@ -676,7 +700,7 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
     const prisma = createDatabaseClient();
 
     try {
-      const store = new PrismaApiStore(prisma);
+      const store = newStore(prisma);
       const { user, org } = await seedAccount(store);
       const co = await makeShared(store, prisma, org.id, user.id); // org SHARED (user + co)
 
@@ -719,7 +743,7 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
     const prisma = createDatabaseClient();
 
     try {
-      const store = new PrismaApiStore(prisma);
+      const store = newStore(prisma);
       const { user, org, project } = await seedAccount(store);
 
       // Plan B holds a VALID lease (its owner is blocked in a slow eraseStorage).
@@ -743,8 +767,8 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
     const prismaY = createDatabaseClient();
 
     try {
-      const storeX = new PrismaApiStore(prismaX);
-      const storeY = new PrismaApiStore(prismaY);
+      const storeX = newStore(prismaX);
+      const storeY = newStore(prismaY);
       const { user, org, project } = await seedAccount(storeX);
       const other = await makeShared(storeX, prismaX, org.id, user.id); // shares org with a live plan
 
@@ -757,10 +781,13 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
         leaseExpiresAt: new Date(Date.now() + 30 * 60 * 1000),
       });
 
-      // Two executors reconcile concurrently → CAS ensures the abandoned plan is
-      // reclaimed exactly ONCE (never double-reclaimed).
+      // Two executors reconcile concurrently. Attribute reclaims to the SPECIFIC
+      // plan (pollution-proof): the abandoned plan is reclaimed EXACTLY once (one CAS
+      // winner), and the LIVE plan is never reclaimed by either.
       const [rx, ry] = await Promise.all([storeX.reconcilePurgeFreezes(), storeY.reconcilePurgeFreezes()]);
-      expect(rx.reconciled + ry.reconciled).toBe(1);
+      const reclaimedIds = [...rx.reclaimedPlanIds, ...ry.reclaimedPlanIds];
+      expect(reclaimedIds.filter((id) => id === abandoned.id)).toEqual([abandoned.id]); // exactly one winner
+      expect(reclaimedIds).not.toContain(live.id); // live plan never reclaimed
 
       // The abandoned plan + its OWN rows are gone…
       expect(await prismaX.purgePlan.findUnique({ where: { id: abandoned.id } })).toBeNull();
@@ -777,7 +804,7 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
     const prisma = createDatabaseClient();
 
     try {
-      const store = new PrismaApiStore(prisma);
+      const store = newStore(prisma);
       const { user, org, project } = await seedAccount(store);
       await requestElapsedDeletion(store, user.id);
 
@@ -845,6 +872,283 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
       expect(await membershipFrozen(prisma, otherOrg.id)).toBe(true);
 
       spy.mockRestore();
+    } finally {
+      await prisma.$disconnect();
+    }
+  });
+
+  /*
+   * RR-CODEX-12 — LIVE LEASE + SAFE RECLAIM + VERIFIED CLEANUP. Short TTL /
+   * heartbeat via newStore(TEST_LEASE). All deterministic on real Postgres.
+   */
+
+  it('(19) erasure longer than the TTL: heartbeat renews, a concurrent reconciler reclaims NOTHING', async () => {
+    const prisma = createDatabaseClient();
+    const prismaR = createDatabaseClient(); // the concurrent reconciler
+
+    try {
+      // Short TTL so the erasure (below) genuinely outlasts the initial lease; the
+      // background heartbeat must renew it throughout.
+      const store = new PrismaApiStore(prisma, undefined, SHORT_LEASE);
+      const reconciler = new PrismaApiStore(prismaR, undefined, SHORT_LEASE);
+      const { user, org, project } = await seedAccount(store);
+      await requestElapsedDeletion(store, user.id);
+
+      let reclaimedDuring = -1;
+      let frozenDuring = false;
+      const eraseStorage = async (_inv: PurgeStorageInventory, guard?: () => Promise<void>) => {
+        await guard?.(); // before "delete 1"
+        // Block well past the initial TTL (600ms). The background heartbeat (every
+        // 100ms) must keep the lease alive throughout.
+        await sleep(900);
+        // Mid-erasure, a DIFFERENT worker runs the reconciler: it must reclaim
+        // NOTHING (the lease is live), and the freeze must still be up.
+        reclaimedDuring = (await reconciler.reconcilePurgeFreezes()).reconciled;
+        frozenDuring =
+          (await membershipFrozen(prisma, org.id)) && (await objectStorageFrozen(prisma, project.id));
+        await guard?.(); // before "delete 2" — lease still valid → passes
+        return { classes: [], verified: true };
+      };
+
+      const result = await store.purgeUserAccount({ userId: user.id }, { eraseStorage });
+
+      expect(result.outcome).toBe('purged');
+      expect(reclaimedDuring).toBe(0); // reconciler reclaimed nothing mid-erasure
+      expect(frozenDuring).toBe(true); // freeze active until the very end
+      // After success: freeze released, plan gone.
+      expect(await planFor(prisma, user.id)).toBeNull();
+      expect(await membershipFrozen(prisma, org.id)).toBe(false);
+    } finally {
+      await Promise.allSettled([prisma.$disconnect(), prismaR.$disconnect()]);
+    }
+  }, 20_000);
+
+  it('(20) dead owner: lease expired, two concurrent reconcilers → exactly one wins, cleanup confirmed', async () => {
+    const prismaA = createDatabaseClient();
+    const prismaB = createDatabaseClient();
+
+    try {
+      const storeA = newStore(prismaA);
+      const storeB = newStore(prismaB);
+      const { user, org, project } = await seedAccount(storeA);
+
+      // Dead owner: an abandoned plan whose lease expired well beyond the grace.
+      const plan = await seedPlan(prismaA, user.id, [org.id], [project.id], {
+        leaseExpiresAt: new Date(Date.now() - 10_000),
+      });
+
+      const [ra, rb] = await Promise.all([storeA.reconcilePurgeFreezes(), storeB.reconcilePurgeFreezes()]);
+      // Pollution-proof "exactly one wins": the dead owner's plan is reclaimed by
+      // EXACTLY one of the two reconcilers (CAS), never both.
+      // Pollution-proof "exactly one wins": the dead owner's plan is reclaimed by
+      // EXACTLY one of the two reconcilers (CAS), never both.
+      const reclaimedIds = [...ra.reclaimedPlanIds, ...rb.reclaimedPlanIds];
+      expect(reclaimedIds.filter((id) => id === plan.id)).toEqual([plan.id]);
+
+      // Confirmed cleanup: plan + freezes verifiably gone (the winner only counts
+      // it after this very check).
+      expect(await prismaA.purgePlan.findUnique({ where: { id: plan.id } })).toBeNull();
+      expect(await membershipFrozen(prismaA, org.id)).toBe(false);
+      expect(await objectStorageFrozen(prismaA, project.id)).toBe(false);
+    } finally {
+      await Promise.allSettled([prismaA.$disconnect(), prismaB.$disconnect()]);
+    }
+  });
+
+  it('(21) renewal vs reclaim race → exactly one CAS winner (owner keeps a valid lease, or stops)', async () => {
+    const prismaO = createDatabaseClient(); // owner renewing
+    const prismaR = createDatabaseClient(); // reconciler reclaiming
+
+    try {
+      const storeO = newStore(prismaO);
+      const reconciler = newStore(prismaR);
+      const { user, org } = await seedAccount(storeO);
+
+      // A plan whose lease has just expired past grace (so the reconciler considers
+      // it) at version 0 — the owner tries to renew at the same instant.
+      const plan = await seedPlan(prismaO, user.id, [org.id], [], {
+        leaseExpiresAt: new Date(Date.now() - 10_000),
+      });
+
+      const [renewed, recon] = await Promise.all([
+        storeO.renewPurgeLease(plan.id, plan.ownerToken, plan.version),
+        reconciler.reconcilePurgeFreezes(),
+      ]);
+
+      const renewWon = renewed !== null;
+      const reconWon = recon.reconciled === 1;
+      expect(renewWon).not.toBe(reconWon); // EXACTLY one CAS winner
+
+      if (renewWon) {
+        // Owner continues with a VALID lease; plan is still ACTIVE and frozen.
+        const p = (await prismaO.purgePlan.findUnique({ where: { id: plan.id } }))!;
+        expect(p).not.toBeNull();
+        expect(p.status).toBe('ACTIVE');
+        expect(p.leaseExpiresAt.getTime()).toBeGreaterThan(Date.now());
+        expect(await membershipFrozen(prismaO, org.id)).toBe(true);
+      } else {
+        // Reconciler won: plan gone, freeze released → the owner (renew=null) stops
+        // before any further deletion.
+        expect(await prismaO.purgePlan.findUnique({ where: { id: plan.id } })).toBeNull();
+        expect(await membershipFrozen(prismaO, org.id)).toBe(false);
+      }
+    } finally {
+      await Promise.allSettled([prismaO.$disconnect(), prismaR.$disconnect()]);
+    }
+  });
+
+  it('(22) lease lost mid-erasure: after 1 resource, NO further delete, NO tombstone, recoverable', async () => {
+    const prisma = createDatabaseClient();
+
+    try {
+      // A store whose heartbeat interval is far longer than this test, so the
+      // background renewal never fires (and can't race the in-test mutation). The
+      // lease stays valid on its own; we trigger the loss DETERMINISTICALLY by
+      // CAS-claiming the plan (RECLAIMING) mid-erasure.
+      const store = new PrismaApiStore(prisma, undefined, {
+        ttlMs: 60_000,
+        renewIntervalMs: 60_000,
+        reclaimGraceMs: 100,
+      });
+      const { user, org, project } = await seedAccount(store);
+      // A second sole org+project so the erasure has TWO buckets (two deletes).
+      const org2 = await store.createOrganization({
+        name: `Org2 ${suffix()}`,
+        slug: `org2-${suffix()}`,
+        ownerUserId: user.id,
+      });
+      const project2 = await store.createProject({ organizationId: org2.id, name: 'P2', slug: `p2-${suffix()}` });
+      await requestElapsedDeletion(store, user.id);
+
+      let deletes = 0;
+      const eraseStorage = async (_inv: PurgeStorageInventory, guard?: () => Promise<void>) => {
+        await guard?.();
+        deletes += 1; // "delete 1"
+        // The owner LOSES the lease mid-erasure: a reconciler CAS-claimed the plan
+        // (ACTIVE→RECLAIMING, version bumped). This defeats the still-running
+        // heartbeat (its next renew CAS requires status=ACTIVE + the old version →
+        // fails → lease lost) AND the guard (validatePurgeLease requires ACTIVE).
+        // The guard before "delete 2" must abort.
+        const plan = (await planFor(prisma, user.id))!;
+        await prisma.purgePlan.update({
+          where: { id: plan.id },
+          data: { status: 'RECLAIMING', version: { increment: 1 } },
+        });
+        await guard?.(); // "delete 2" precondition → MUST throw (lease lost)
+        deletes += 1;
+        return { classes: [], verified: true };
+      };
+
+      await expect(store.purgeUserAccount({ userId: user.id }, { eraseStorage })).rejects.toThrow(
+        /ACCOUNT_PURGE_LEASE_LOST/,
+      );
+
+      expect(deletes).toBe(1); // stopped before the 2nd irreversible delete
+      // NO tombstone — the account is still recoverable / re-queued (still ready_to_purge).
+      const after = await prisma.user.findUnique({ where: { id: user.id } });
+      expect(
+        (after!.preferences as { accountDeletion?: { purgedAt?: string } }).accountDeletion?.purgedAt,
+      ).toBeUndefined();
+      // Not anonymized (no tombstone): email untouched, name preserved.
+      expect(after!.email).not.toContain('erased.invalid');
+      expect(after!.name).not.toBeNull();
+      // Recoverable + no residual freeze: the finally's release cleaned up THIS
+      // owner's plan + freezes (ownerToken-scoped), and the account stays queued.
+      expect(await membershipFrozen(prisma, org2.id)).toBe(false);
+      expect(await objectStorageFrozen(prisma, project.id)).toBe(false);
+      void project2;
+    } finally {
+      await prisma.$disconnect();
+    }
+  }, 20_000);
+
+  it('(23) two workers, same user, real erase path → exactly one plan, one physical execution, one tombstone', async () => {
+    const prismaA = createDatabaseClient();
+    const prismaB = createDatabaseClient();
+
+    try {
+      const storeA = newStore(prismaA);
+      const storeB = newStore(prismaB);
+      const { user } = await seedAccount(storeA); // sole org + bucket
+      await requestElapsedDeletion(storeA, user.id);
+
+      let executions = 0;
+      const eraseStorage = async (_inv: PurgeStorageInventory, guard?: () => Promise<void>) => {
+        executions += 1;
+        await guard?.();
+        await sleep(200); // hold the plan so the other worker sees it live and is refused
+        return { classes: [], verified: true };
+      };
+
+      const [a, b] = await Promise.allSettled([
+        storeA.purgeUserAccount({ userId: user.id }, { eraseStorage }),
+        storeB.purgeUserAccount({ userId: user.id }, { eraseStorage }),
+      ]);
+
+      const purged = [a, b].filter((r) => r.status === 'fulfilled' && r.value.outcome === 'purged').length;
+      const refused = [a, b].filter(
+        (r) => r.status === 'rejected' && /PURGE_ALREADY_ACTIVE/.test(String(r.reason)),
+      ).length;
+      expect(purged).toBe(1); // exactly one purge
+      expect(refused).toBe(1); // the other worker was refused (singleton)
+      expect(executions).toBe(1); // exactly ONE physical execution
+
+      // Exactly one plan ever, now released; one tombstone + a verified proof.
+      expect(await prismaA.purgePlan.count({ where: { userId: user.id } })).toBe(0);
+      const tomb = await prismaA.user.findUnique({ where: { id: user.id } });
+      expect(tomb!.email).toContain('@erased.invalid');
+      // The single purge returned a verified erasure proof (the AdminAuditLog row is
+      // persisted by the /internal/account-purge ROUTE, not the store method).
+      const winner = [a, b].find((r) => r.status === 'fulfilled' && r.value.outcome === 'purged');
+      expect(winner?.status === 'fulfilled' && winner.value.outcome === 'purged' && winner.value.proof.verifiedZeroRemaining).toBe(
+        true,
+      );
+    } finally {
+      await Promise.allSettled([prismaA.$disconnect(), prismaB.$disconnect()]);
+    }
+  }, 20_000);
+
+  it('(24) reconciler cleanup failure: reconciled stays 0, plan RECLAIMING+recoverable, second pass finishes', async () => {
+    const prisma = createDatabaseClient();
+
+    try {
+      const store = newStore(prisma);
+      const { user, org, project } = await seedAccount(store);
+      const plan = await seedPlan(prisma, user.id, [org.id], [project.id], {
+        leaseExpiresAt: new Date(Date.now() - 10_000),
+      });
+
+      // Inject a cleanup failure on the reconciler's FIRST purgePlan.deleteMany (the
+      // atomic claim+delete). It throws once, then delegates to the real method.
+      const realDeleteMany = prisma.purgePlan.deleteMany.bind(prisma.purgePlan);
+      let failedOnce = false;
+      const spy = vi
+        .spyOn(prisma.purgePlan, 'deleteMany')
+        .mockImplementation((async (args: Parameters<typeof realDeleteMany>[0]) => {
+          if (!failedOnce) {
+            failedOnce = true;
+            throw new Error('boom: reconciler cleanup failed');
+          }
+
+          return realDeleteMany(args);
+        }) as typeof realDeleteMany);
+
+      const r1 = await store.reconcilePurgeFreezes();
+      expect(r1.reconciled).toBe(0); // cleanup failed → NOT counted as success
+
+      // The plan is durably RECLAIMING (recoverable), and the freeze is still up.
+      const reclaiming = await prisma.purgePlan.findUnique({ where: { id: plan.id } });
+      expect(reclaiming).not.toBeNull();
+      expect(reclaiming!.status).toBe('RECLAIMING');
+      expect(await membershipFrozen(prisma, org.id)).toBe(true);
+
+      // Second pass finishes cleanly. The spy now delegates to the real deleteMany
+      // (it only fails its FIRST call) — we intentionally do NOT mockRestore(), which
+      // would break the Prisma proxy-based delegate method.
+      const r2 = await store.reconcilePurgeFreezes();
+      expect(r2.reconciled).toBe(1);
+      expect(await prisma.purgePlan.findUnique({ where: { id: plan.id } })).toBeNull();
+      expect(await membershipFrozen(prisma, org.id)).toBe(false);
     } finally {
       await prisma.$disconnect();
     }
