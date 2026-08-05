@@ -74,7 +74,14 @@ export interface PurgeStorageInventory {
 }
 
 export interface PurgeStorageDeps {
-  eraseStorage?: (inventory: PurgeStorageInventory) => Promise<{ classes: PurgeClassReport[]; verified: boolean }>;
+  /**
+   * `guard` (RR-CODEX-12) is called before each irreversible bucket/PVC delete;
+   * it throws if the purge lease has been lost, aborting the erasure.
+   */
+  eraseStorage?: (
+    inventory: PurgeStorageInventory,
+    guard?: () => Promise<void>,
+  ) => Promise<{ classes: PurgeClassReport[]; verified: boolean }>;
 }
 
 /** Outcome of one purgeUserAccount attempt (store layer). */

@@ -154943,6 +154943,7 @@ export namespace Prisma {
     ownerToken: string | null
     leaseExpiresAt: Date | null
     version: number | null
+    status: string | null
     createdAt: Date | null
   }
 
@@ -154952,6 +154953,7 @@ export namespace Prisma {
     ownerToken: string | null
     leaseExpiresAt: Date | null
     version: number | null
+    status: string | null
     createdAt: Date | null
   }
 
@@ -154961,6 +154963,7 @@ export namespace Prisma {
     ownerToken: number
     leaseExpiresAt: number
     version: number
+    status: number
     createdAt: number
     _all: number
   }
@@ -154980,6 +154983,7 @@ export namespace Prisma {
     ownerToken?: true
     leaseExpiresAt?: true
     version?: true
+    status?: true
     createdAt?: true
   }
 
@@ -154989,6 +154993,7 @@ export namespace Prisma {
     ownerToken?: true
     leaseExpiresAt?: true
     version?: true
+    status?: true
     createdAt?: true
   }
 
@@ -154998,6 +155003,7 @@ export namespace Prisma {
     ownerToken?: true
     leaseExpiresAt?: true
     version?: true
+    status?: true
     createdAt?: true
     _all?: true
   }
@@ -155094,6 +155100,7 @@ export namespace Prisma {
     ownerToken: string
     leaseExpiresAt: Date
     version: number
+    status: string
     createdAt: Date
     _count: PurgePlanCountAggregateOutputType | null
     _avg: PurgePlanAvgAggregateOutputType | null
@@ -155122,6 +155129,7 @@ export namespace Prisma {
     ownerToken?: boolean
     leaseExpiresAt?: boolean
     version?: boolean
+    status?: boolean
     createdAt?: boolean
     freezes?: boolean | PurgePlan$freezesArgs<ExtArgs>
     _count?: boolean | PurgePlanCountOutputTypeDefaultArgs<ExtArgs>
@@ -155133,6 +155141,7 @@ export namespace Prisma {
     ownerToken?: boolean
     leaseExpiresAt?: boolean
     version?: boolean
+    status?: boolean
     createdAt?: boolean
   }, ExtArgs["result"]["purgePlan"]>
 
@@ -155142,6 +155151,7 @@ export namespace Prisma {
     ownerToken?: boolean
     leaseExpiresAt?: boolean
     version?: boolean
+    status?: boolean
     createdAt?: boolean
   }, ExtArgs["result"]["purgePlan"]>
 
@@ -155151,10 +155161,11 @@ export namespace Prisma {
     ownerToken?: boolean
     leaseExpiresAt?: boolean
     version?: boolean
+    status?: boolean
     createdAt?: boolean
   }
 
-  export type PurgePlanOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "ownerToken" | "leaseExpiresAt" | "version" | "createdAt", ExtArgs["result"]["purgePlan"]>
+  export type PurgePlanOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "ownerToken" | "leaseExpiresAt" | "version" | "status" | "createdAt", ExtArgs["result"]["purgePlan"]>
   export type PurgePlanInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     freezes?: boolean | PurgePlan$freezesArgs<ExtArgs>
     _count?: boolean | PurgePlanCountOutputTypeDefaultArgs<ExtArgs>
@@ -155173,6 +155184,7 @@ export namespace Prisma {
       ownerToken: string
       leaseExpiresAt: Date
       version: number
+      status: string
       createdAt: Date
     }, ExtArgs["result"]["purgePlan"]>
     composites: {}
@@ -155603,6 +155615,7 @@ export namespace Prisma {
     readonly ownerToken: FieldRef<"PurgePlan", 'String'>
     readonly leaseExpiresAt: FieldRef<"PurgePlan", 'DateTime'>
     readonly version: FieldRef<"PurgePlan", 'Int'>
+    readonly status: FieldRef<"PurgePlan", 'String'>
     readonly createdAt: FieldRef<"PurgePlan", 'DateTime'>
   }
     
@@ -159016,6 +159029,7 @@ export namespace Prisma {
     ownerToken: 'ownerToken',
     leaseExpiresAt: 'leaseExpiresAt',
     version: 'version',
+    status: 'status',
     createdAt: 'createdAt'
   };
 
@@ -169455,6 +169469,7 @@ export namespace Prisma {
     ownerToken?: StringFilter<"PurgePlan"> | string
     leaseExpiresAt?: DateTimeFilter<"PurgePlan"> | Date | string
     version?: IntFilter<"PurgePlan"> | number
+    status?: StringFilter<"PurgePlan"> | string
     createdAt?: DateTimeFilter<"PurgePlan"> | Date | string
     freezes?: PurgeFreezeListRelationFilter
   }
@@ -169465,22 +169480,24 @@ export namespace Prisma {
     ownerToken?: SortOrder
     leaseExpiresAt?: SortOrder
     version?: SortOrder
+    status?: SortOrder
     createdAt?: SortOrder
     freezes?: PurgeFreezeOrderByRelationAggregateInput
   }
 
   export type PurgePlanWhereUniqueInput = Prisma.AtLeast<{
     id?: string
+    userId?: string
     AND?: PurgePlanWhereInput | PurgePlanWhereInput[]
     OR?: PurgePlanWhereInput[]
     NOT?: PurgePlanWhereInput | PurgePlanWhereInput[]
-    userId?: StringFilter<"PurgePlan"> | string
     ownerToken?: StringFilter<"PurgePlan"> | string
     leaseExpiresAt?: DateTimeFilter<"PurgePlan"> | Date | string
     version?: IntFilter<"PurgePlan"> | number
+    status?: StringFilter<"PurgePlan"> | string
     createdAt?: DateTimeFilter<"PurgePlan"> | Date | string
     freezes?: PurgeFreezeListRelationFilter
-  }, "id">
+  }, "id" | "userId">
 
   export type PurgePlanOrderByWithAggregationInput = {
     id?: SortOrder
@@ -169488,6 +169505,7 @@ export namespace Prisma {
     ownerToken?: SortOrder
     leaseExpiresAt?: SortOrder
     version?: SortOrder
+    status?: SortOrder
     createdAt?: SortOrder
     _count?: PurgePlanCountOrderByAggregateInput
     _avg?: PurgePlanAvgOrderByAggregateInput
@@ -169505,6 +169523,7 @@ export namespace Prisma {
     ownerToken?: StringWithAggregatesFilter<"PurgePlan"> | string
     leaseExpiresAt?: DateTimeWithAggregatesFilter<"PurgePlan"> | Date | string
     version?: IntWithAggregatesFilter<"PurgePlan"> | number
+    status?: StringWithAggregatesFilter<"PurgePlan"> | string
     createdAt?: DateTimeWithAggregatesFilter<"PurgePlan"> | Date | string
   }
 
@@ -180561,6 +180580,7 @@ export namespace Prisma {
     ownerToken: string
     leaseExpiresAt: Date | string
     version?: number
+    status?: string
     createdAt?: Date | string
     freezes?: PurgeFreezeCreateNestedManyWithoutPlanInput
   }
@@ -180571,6 +180591,7 @@ export namespace Prisma {
     ownerToken: string
     leaseExpiresAt: Date | string
     version?: number
+    status?: string
     createdAt?: Date | string
     freezes?: PurgeFreezeUncheckedCreateNestedManyWithoutPlanInput
   }
@@ -180581,6 +180602,7 @@ export namespace Prisma {
     ownerToken?: StringFieldUpdateOperationsInput | string
     leaseExpiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     version?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     freezes?: PurgeFreezeUpdateManyWithoutPlanNestedInput
   }
@@ -180591,6 +180613,7 @@ export namespace Prisma {
     ownerToken?: StringFieldUpdateOperationsInput | string
     leaseExpiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     version?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     freezes?: PurgeFreezeUncheckedUpdateManyWithoutPlanNestedInput
   }
@@ -180601,6 +180624,7 @@ export namespace Prisma {
     ownerToken: string
     leaseExpiresAt: Date | string
     version?: number
+    status?: string
     createdAt?: Date | string
   }
 
@@ -180610,6 +180634,7 @@ export namespace Prisma {
     ownerToken?: StringFieldUpdateOperationsInput | string
     leaseExpiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     version?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -180619,6 +180644,7 @@ export namespace Prisma {
     ownerToken?: StringFieldUpdateOperationsInput | string
     leaseExpiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     version?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -187510,6 +187536,7 @@ export namespace Prisma {
     ownerToken?: SortOrder
     leaseExpiresAt?: SortOrder
     version?: SortOrder
+    status?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -187523,6 +187550,7 @@ export namespace Prisma {
     ownerToken?: SortOrder
     leaseExpiresAt?: SortOrder
     version?: SortOrder
+    status?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -187532,6 +187560,7 @@ export namespace Prisma {
     ownerToken?: SortOrder
     leaseExpiresAt?: SortOrder
     version?: SortOrder
+    status?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -222825,6 +222854,7 @@ export namespace Prisma {
     ownerToken: string
     leaseExpiresAt: Date | string
     version?: number
+    status?: string
     createdAt?: Date | string
   }
 
@@ -222834,6 +222864,7 @@ export namespace Prisma {
     ownerToken: string
     leaseExpiresAt: Date | string
     version?: number
+    status?: string
     createdAt?: Date | string
   }
 
@@ -222859,6 +222890,7 @@ export namespace Prisma {
     ownerToken?: StringFieldUpdateOperationsInput | string
     leaseExpiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     version?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -222868,6 +222900,7 @@ export namespace Prisma {
     ownerToken?: StringFieldUpdateOperationsInput | string
     leaseExpiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     version?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 

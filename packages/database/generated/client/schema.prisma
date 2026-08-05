@@ -2762,14 +2762,18 @@ model WorkspacePostMortem {
 // it never touches a live plan.
 model PurgePlan {
   id             String        @id @default(cuid())
-  userId         String
+  // RR-CODEX-12: at most ONE plan per subject — the per-user singleton that stops
+  // two workers running two physical purges of the same account.
+  userId         String        @unique
   ownerToken     String
   leaseExpiresAt DateTime
   version        Int           @default(0)
+  // 'ACTIVE' while an owner holds it; 'RECLAIMING' once a reconciler CAS-claims an
+  // abandoned plan for cleanup (durable, so the old owner cannot continue).
+  status         String        @default("ACTIVE")
   createdAt      DateTime      @default(now())
   freezes        PurgeFreeze[]
 
-  @@index([userId])
   @@index([leaseExpiresAt])
 }
 

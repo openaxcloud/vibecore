@@ -173,19 +173,36 @@ const OBJECT_STORAGE_RESOURCE = 'objectStorage';
 // Advisory-lock name that serialises the membership guarantee's read→freeze with
 // addMember/removeMember (see CANONICAL LOCK ORDER in acquirePurgeGuarantee).
 const MEMBERSHIP_FREEZE_LOCK = 'purge:membership-freeze';
-// Lease TTL: comfortably exceeds any GCS/PVC erasure, so the reconciler never
-// reclaims a live plan mid-erasure. Abandoned plans self-heal within one TTL.
-const PURGE_LEASE_TTL_MS = 30 * 60 * 1000;
+// RR-CODEX-12 lease timing. The lease is a LIVE lease: the owner renews it every
+// PURGE_RENEW_INTERVAL_MS (<< TTL) via CAS while erasing, so a slow erasure never
+// lets a reconciler reclaim a live plan. A reconciler only reclaims a plan whose
+// lease expired MORE than the grace ago (guards against mere clock lag).
+const PURGE_LEASE_TTL_MS = 5 * 60 * 1000;
+const PURGE_RENEW_INTERVAL_MS = 60 * 1000;
+const PURGE_RECLAIM_GRACE_MS = 60 * 1000;
+
+/** Durable reclaim states of a PurgePlan. */
+const PURGE_PLAN_ACTIVE = 'ACTIVE';
+const PURGE_PLAN_RECLAIMING = 'RECLAIMING';
 
 /** The topology-locked plan the external erasure is authorized to act on. */
 interface PurgeGuarantee {
   planId: string;
   ownerToken: string;
   userId: string;
+  version: number;
+  leaseExpiresAt: Date;
   fingerprint: string;
   orgIds: string[];
   bucketProjectIds: string[];
   workspaceProjectIds: string[];
+}
+
+/** Live control handle for a purge lease's background heartbeat (RR-CODEX-12). */
+interface PurgeHeartbeat {
+  lost(): boolean;
+  markLost(): void;
+  stop(): Promise<void>;
 }
 
 type PrismaKnownRequestError = Error & { readonly code: string };
@@ -314,6 +331,17 @@ export class PrismaApiStore implements ApiStore {
      * Node resolver in production.
      */
     private readonly resolveTxt: (hostname: string) => Promise<string[][]> = dnsPromises.resolveTxt,
+
+    /**
+     * RR-CODEX-12 purge-lease timing. Injectable so real-Postgres tests can drive
+     * a short TTL / fast heartbeat on a controlled clock. Defaults are production
+     * values (renew interval << TTL; grace guards against clock lag).
+     */
+    private readonly purgeLease: { ttlMs: number; renewIntervalMs: number; reclaimGraceMs: number } = {
+      ttlMs: PURGE_LEASE_TTL_MS,
+      renewIntervalMs: PURGE_RENEW_INTERVAL_MS,
+      reclaimGraceMs: PURGE_RECLAIM_GRACE_MS,
+    },
   ) {}
 
   async ping(): Promise<void> {
@@ -572,15 +600,37 @@ export class PrismaApiStore implements ApiStore {
    */
   private async acquirePurgeGuarantee(userId: string): Promise<PurgeGuarantee> {
     const ownerToken = randomUUID();
-    const leaseExpiresAt = new Date(Date.now() + PURGE_LEASE_TTL_MS);
+    const leaseExpiresAt = new Date(Date.now() + this.purgeLease.ttlMs);
+    const graceCutoff = new Date(Date.now() - this.purgeLease.reclaimGraceMs);
 
     return this.prisma.$transaction(async (tx) => {
       await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', `account-purge:${userId}`);
       await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', MEMBERSHIP_FREEZE_LOCK);
 
+      /*
+       * RR-CODEX-12 per-user SINGLETON. At most ONE plan per subject (unique
+       * userId). If one already exists:
+       *   - LIVE (lease within grace) → another worker owns this purge → refuse a
+       *     second physical purge for the same subject;
+       *   - ABANDONED (lease expired beyond grace) → reclaim it inline under the
+       *     lock so this fresh guarantee can take over (delete its freezes + plan).
+       */
+      const existing = await tx.purgePlan.findUnique({ where: { userId } });
+
+      if (existing) {
+        if (existing.leaseExpiresAt > graceCutoff) {
+          throw new Error(`PURGE_ALREADY_ACTIVE: an account purge is already in progress for ${userId}`);
+        }
+
+        await tx.purgeFreeze.deleteMany({ where: { planId: existing.id } });
+        await tx.purgePlan.delete({ where: { id: existing.id } });
+      }
+
       const topology = await this.resolveStorageTopology(tx, userId);
 
-      const plan = await tx.purgePlan.create({ data: { userId, ownerToken, leaseExpiresAt } });
+      const plan = await tx.purgePlan.create({
+        data: { userId, ownerToken, leaseExpiresAt, status: PURGE_PLAN_ACTIVE },
+      });
 
       const freezeRows = [
         ...topology.orgIds.map((orgId) => ({
@@ -603,12 +653,101 @@ export class PrismaApiStore implements ApiStore {
         planId: plan.id,
         ownerToken,
         userId,
+        version: plan.version,
+        leaseExpiresAt: plan.leaseExpiresAt,
         fingerprint: topology.fingerprint,
         orgIds: topology.orgIds,
         bucketProjectIds: topology.bucketProjectIds,
         workspaceProjectIds: topology.workspaceProjectIds,
       };
     });
+  }
+
+  /**
+   * RR-CODEX-12: renew (heartbeat) the lease via CAS on (id, ownerToken, version,
+   * status=ACTIVE). Returns the NEW version on success, or null if the CAS lost —
+   * the plan was reclaimed (status/version changed) or removed, i.e. the lease is
+   * no longer ours.
+   */
+  async renewPurgeLease(planId: string, ownerToken: string, expectedVersion: number): Promise<number | null> {
+    const nextVersion = expectedVersion + 1;
+    const won = await this.prisma.purgePlan.updateMany({
+      where: { id: planId, ownerToken, version: expectedVersion, status: PURGE_PLAN_ACTIVE },
+      data: { leaseExpiresAt: new Date(Date.now() + this.purgeLease.ttlMs), version: nextVersion },
+    });
+
+    return won.count === 1 ? nextVersion : null;
+  }
+
+  /** RR-CODEX-12: is the lease still OURS, ACTIVE, and unexpired? */
+  private async validatePurgeLease(planId: string, ownerToken: string): Promise<boolean> {
+    const plan = await this.prisma.purgePlan.findFirst({
+      where: { id: planId, ownerToken, status: PURGE_PLAN_ACTIVE },
+    });
+
+    return Boolean(plan) && plan!.leaseExpiresAt.getTime() > Date.now();
+  }
+
+  /**
+   * RR-CODEX-12: start a background heartbeat that renews the lease every
+   * renewIntervalMs (<< TTL) via CAS. On the first failed renewal (the plan was
+   * reclaimed) it marks the lease LOST — the erasure guard and the pre-finalize /
+   * pre-tombstone checks then abort, so nothing is deleted or finalized after loss.
+   */
+  private startPurgeHeartbeat(guarantee: PurgeGuarantee): PurgeHeartbeat {
+    let version = guarantee.version;
+    let lost = false;
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    // Resolver of the current inter-renewal sleep, so stop() can wake the loop
+    // immediately (clearTimeout alone would leave the sleep promise pending → the
+    // loop would never observe `stopped` and `await running` would hang forever).
+    let wake: (() => void) | undefined;
+
+    const loop = async (): Promise<void> => {
+      while (!stopped && !lost) {
+        await new Promise<void>((resolve) => {
+          wake = resolve;
+          timer = setTimeout(resolve, this.purgeLease.renewIntervalMs);
+        });
+        wake = undefined;
+
+        if (stopped || lost) {
+          break;
+        }
+
+        const next = await this.renewPurgeLease(guarantee.planId, guarantee.ownerToken, version).catch(() => null);
+
+        if (next === null) {
+          lost = true;
+          break;
+        }
+
+        version = next;
+      }
+    };
+
+    const running = loop();
+
+    return {
+      lost: () => lost,
+      markLost: () => {
+        lost = true;
+      },
+      async stop() {
+        stopped = true;
+
+        if (timer) {
+          clearTimeout(timer);
+        }
+
+        if (wake) {
+          wake(); // wake the pending sleep so the loop can observe `stopped` and exit
+        }
+
+        await running.catch(() => undefined);
+      },
+    };
   }
 
   /**
@@ -639,34 +778,61 @@ export class PrismaApiStore implements ApiStore {
   }
 
   /**
-   * RR-1bd27929: recover ABANDONED plans only. Reclaims a plan ONLY when its lease
-   * has EXPIRED (a live plan — valid lease — is never touched, even one blocked in
-   * a slow erasure), and via CAS on `version` so two concurrent reconcilers (or a
-   * late owner) can't double-reclaim. Deletes ONLY the reclaimed plan's own freeze
-   * rows — never a concurrent plan's.
+   * RR-1bd27929 + RR-CODEX-12: recover ABANDONED plans only, with a durable
+   * RECLAIMING state and VERIFIED cleanup. A plan is reclaimable ONLY when its
+   * lease expired MORE than the grace ago (guards against mere clock lag; a live
+   * plan — even one blocked in a slow erasure whose heartbeat renews — is never
+   * touched). The CAS ACTIVE/RECLAIMING→RECLAIMING (version bump) picks exactly one
+   * winner AND invalidates the old owner's next renewal, so it cannot continue.
+   * `reconciled` is incremented ONLY after the plan AND its freezes are VERIFIABLY
+   * gone; a cleanup failure leaves the plan in RECLAIMING (recoverable) and is NOT
+   * counted as success.
    */
-  async reconcilePurgeFreezes(): Promise<{ reconciled: number }> {
-    const now = new Date();
-    const expired = await this.prisma.purgePlan.findMany({ where: { leaseExpiresAt: { lt: now } } });
-    let reconciled = 0;
+  async reconcilePurgeFreezes(): Promise<{ reconciled: number; reclaimedPlanIds: string[] }> {
+    const cutoff = new Date(Date.now() - this.purgeLease.reclaimGraceMs);
+    const stale = await this.prisma.purgePlan.findMany({ where: { leaseExpiresAt: { lt: cutoff } } });
+    // reclaimedPlanIds lets callers/tests attribute reclaims to the SPECIFIC plan
+    // (pollution-proof: the count alone conflates unrelated expired plans).
+    const reclaimedPlanIds: string[] = [];
 
-    for (const plan of expired) {
-      // CAS: only the reconciler that wins the version bump owns the reclaim.
-      const won = await this.prisma.purgePlan.updateMany({
-        where: { id: plan.id, version: plan.version, leaseExpiresAt: { lt: now } },
-        data: { version: { increment: 1 } },
-      });
+    for (const plan of stale) {
+      try {
+        /*
+         * ATOMIC claim+cleanup: delete the plan IFF it is still at the version we
+         * read AND still expired. A DELETE serialises on the row, so of two
+         * concurrent reconcilers EXACTLY ONE matches (count 1) and the other sees
+         * the row already gone (count 0) — no double-reclaim. The version guard
+         * also refuses to delete a plan the owner RENEWED (version moved) between
+         * our read and here (lease-safety). The plan's PurgeFreeze rows cascade
+         * away via the FK.
+         */
+        const deleted = await this.prisma.purgePlan.deleteMany({
+          where: { id: plan.id, version: plan.version, leaseExpiresAt: { lt: cutoff } },
+        });
 
-      if (won.count === 0) {
-        continue; // lost the race, or the plan was renewed / already removed
+        if (deleted.count !== 1) {
+          continue; // lost the race, or the owner renewed / it was already reclaimed
+        }
+
+        // VERIFIED: confirm the freezes actually cascaded away before counting it.
+        const freezesGone = (await this.prisma.purgeFreeze.count({ where: { planId: plan.id } })) === 0;
+
+        if (freezesGone) {
+          reclaimedPlanIds.push(plan.id);
+        }
+      } catch {
+        /*
+         * Cleanup FAILED → mark the plan RECLAIMING (explicit, durable, recoverable
+         * state) WITHOUT counting it. A later pass re-attempts the delete (the
+         * version is unchanged, so its WHERE still matches). Never a false success.
+         */
+        await this.prisma.purgePlan
+          .updateMany({ where: { id: plan.id, version: plan.version }, data: { status: PURGE_PLAN_RECLAIMING } })
+          .catch(() => undefined);
       }
-
-      await this.prisma.purgeFreeze.deleteMany({ where: { planId: plan.id } }).catch(() => undefined);
-      await this.prisma.purgePlan.deleteMany({ where: { id: plan.id } }).catch(() => undefined);
-      reconciled += 1;
     }
 
-    return { reconciled };
+    return { reconciled: reclaimedPlanIds.length, reclaimedPlanIds };
   }
 
   /**
@@ -716,6 +882,12 @@ export class PrismaApiStore implements ApiStore {
     // touched, so there is no guarantee to acquire, drift to guard, or freeze to
     // release.
     let guarantee: PurgeGuarantee | null = null;
+    // RR-CODEX-12: the live-lease heartbeat + the lease-revalidation guard. The
+    // guard throws (aborting) if the lease is lost; it is called before each
+    // irreversible delete, before the finalize tx, and immediately before the
+    // tombstone. The heartbeat renews the lease in the background while erasing.
+    let heartbeat: PurgeHeartbeat | null = null;
+    let guard: (() => Promise<void>) | null = null;
 
     if (deps?.eraseStorage) {
       const pre = await this.prisma.user.findUnique({ where: { id: userId }, select: { preferences: true } });
@@ -742,10 +914,33 @@ export class PrismaApiStore implements ApiStore {
     try {
       // (2) erase ONLY under an acquired guarantee, on its locked inventory.
       if (guarantee && deps?.eraseStorage) {
-        const erasure = await deps.eraseStorage({
-          bucketProjectIds: guarantee.bucketProjectIds,
-          workspaceProjectIds: guarantee.workspaceProjectIds,
-        });
+        // RR-CODEX-12: a LIVE lease. Renew it in the background every
+        // renewIntervalMs (<< TTL) so a slow erasure never lets a reconciler
+        // reclaim a live plan; `guard` FAILS the purge the moment the lease is lost.
+        const g = guarantee;
+        heartbeat = this.startPurgeHeartbeat(g);
+        const hb = heartbeat;
+        guard = async () => {
+          if (hb.lost()) {
+            throw new Error(`ACCOUNT_PURGE_LEASE_LOST: lease lost during purge for ${userId} — aborting`);
+          }
+
+          if (!(await this.validatePurgeLease(g.planId, g.ownerToken))) {
+            hb.markLost();
+
+            throw new Error(`ACCOUNT_PURGE_LEASE_LOST: lease no longer owned for ${userId} — aborting`);
+          }
+        };
+
+        await guard(); // revalidate before starting any deletion
+
+        const erasure = await deps.eraseStorage(
+          {
+            bucketProjectIds: guarantee.bucketProjectIds,
+            workspaceProjectIds: guarantee.workspaceProjectIds,
+          },
+          guard,
+        );
 
         if (!erasure.verified) {
           throw new Error(
@@ -755,6 +950,8 @@ export class PrismaApiStore implements ApiStore {
         }
 
         physicalClasses = erasure.classes;
+
+        await guard(); // revalidate after the (possibly long) erasure, before finalize
       }
 
       const erasedTopologyFingerprint = guarantee?.fingerprint ?? null;
@@ -1065,6 +1262,13 @@ export class PrismaApiStore implements ApiStore {
           models: { Project: sharedProjects },
         });
 
+        // RR-CODEX-12: revalidate the lease IMMEDIATELY before the tombstone. If a
+        // reconciler reclaimed us mid-finalize (lease lost), abort — the tx rolls
+        // back, purgedAt is never stamped, and the account is re-queued.
+        if (guard) {
+          await guard();
+        }
+
         // ---- tombstone: anonymize the user row, stamp purgedAt ----
         await tx.user.update({
           where: { id: userId },
@@ -1162,8 +1366,15 @@ export class PrismaApiStore implements ApiStore {
         { timeout: 120_000, maxWait: 20_000 },
       );
     } finally {
+      // RR-CODEX-12: stop the heartbeat FIRST (no renewal races the release).
+      if (heartbeat) {
+        await heartbeat.stop();
+      }
+
       // (4) RR-09 — RELEASE the guarantee on EVERY exit (purged / drift / any
-      // throw), so membership + object-storage freezes are never left behind.
+      // throw), so membership + object-storage freezes are never left behind. If
+      // the lease was lost (reclaimed), the ownerToken-scoped delete is a no-op —
+      // it never touches the reconciler's / another owner's plan.
       if (guarantee) {
         await this.releasePurgeGuarantee(guarantee);
       }
