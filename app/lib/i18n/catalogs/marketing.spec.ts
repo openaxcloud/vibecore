@@ -77,8 +77,8 @@ function collectStrings(value: unknown): string[] {
 }
 
 describe('marketing EN/FR catalogs', () => {
-  it('keeps complete key and nested-content parity for all 34 catalog-backed pages', () => {
-    expect(Object.keys(marketingPageCopyEn)).toHaveLength(34);
+  it('keeps complete key and nested-content parity for all 35 catalog-backed pages', () => {
+    expect(Object.keys(marketingPageCopyEn)).toHaveLength(35);
     expect(Object.keys(marketingPageCopyFr)).toEqual(Object.keys(marketingPageCopyEn));
     assertMatchingShape(marketingPageCopyEn, marketingPageCopyFr);
   });

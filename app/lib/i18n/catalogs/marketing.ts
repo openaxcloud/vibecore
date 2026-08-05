@@ -770,6 +770,32 @@ export const marketingPageCopyEn = {
     primaryActionLabel: 'View status',
     secondaryActionLabel: 'Read docs',
   },
+
+  /*
+   * Solution page /enterprise. The EN copy MUST mirror makeSolution('enterprise', …)
+   * in EcodeMarketingPages so switching to English renders identically; the FR
+   * copy below is what localizeMarketingPage() applies for the French audit.
+   */
+  enterprise: {
+    title: 'Enterprise',
+    eyebrow: 'Solutions',
+    description: 'Roll out E-Code with SSO, SCIM, audit logs, security controls, private runtime planning and support.',
+    highlights: ['SSO and SCIM', 'Audit export', 'Private rollout', 'Premium support'],
+    sections: [
+      {
+        title: 'What you can build',
+        body: 'Enterprise gives teams a faster path from idea to a typed, reviewable project with a running preview.',
+        items: ['SSO and SCIM', 'Audit export', 'Private rollout', 'Premium support'],
+      },
+      {
+        title: 'Production workflow',
+        body: 'Every generated project should be inspectable, testable and ready for deployment planning.',
+        items: ['Prompt to project', 'Code review', 'Runtime preview', 'Deployment path'],
+      },
+    ],
+    primaryActionLabel: 'Start building',
+    secondaryActionLabel: 'Contact sales',
+  },
 } as const satisfies Record<string, MarketingPageCopy>;
 
 export const marketingFigureCopy = {
@@ -964,6 +990,7 @@ export const marketingFrIdentityTerms = [
   'Docker',
   'Documentation',
   'ESLint',
+  'Enterprise',
   'GitHub',
   'Go',
   'Google Cloud',
@@ -1977,6 +2004,39 @@ export const marketingPageCopyFr = {
         items: ['Statut clair', 'Erreurs récupérables', 'Orientation vers le support', 'Aucun écran blanc'],
       },
     ],
+  },
+
+  /*
+   * /enterprise en français. « Enterprise » (nom d’offre) et « Solutions »
+   * restent identiques — déclarés dans marketingFrIdentityTerms. Glossaire :
+   * Deployment→Déploiement, runtime→environnement d’exécution, preview→aperçu,
+   * review→revue.
+   */
+  enterprise: {
+    title: 'Enterprise',
+    eyebrow: 'Solutions',
+    description:
+      'Déployez E-Code avec le SSO, SCIM, les journaux d’audit, des contrôles de sécurité, une planification d’environnement d’exécution privé et le support.',
+    highlights: ['SSO et SCIM', 'Export d’audit', 'Déploiement privé', 'Support premium'],
+    sections: [
+      {
+        title: 'Ce que vous pouvez créer',
+        body: 'Enterprise offre aux équipes un chemin plus rapide de l’idée à un projet typé et vérifiable, avec un aperçu en cours d’exécution.',
+        items: ['SSO et SCIM', 'Export d’audit', 'Déploiement privé', 'Support premium'],
+      },
+      {
+        title: 'Flux de production',
+        body: 'Chaque projet généré doit pouvoir être inspecté et testé, et prêt pour la planification du déploiement.',
+        items: [
+          'Du prompt au projet',
+          'Revue du code',
+          'Aperçu de l’environnement d’exécution',
+          'Parcours de déploiement',
+        ],
+      },
+    ],
+    primaryActionLabel: 'Commencer à créer',
+    secondaryActionLabel: 'Contacter l’équipe commerciale',
   },
 } as const satisfies Record<keyof typeof marketingPageCopyEn, MarketingPageCopy>;
 
