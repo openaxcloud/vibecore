@@ -367,6 +367,60 @@ async function auditRoutePair(page: Page, path: string, theme: 'dark' | 'light',
   const findings = findFrenchAuditResidue(english, french);
 
   const languageSwitchCount = await page.locator('[data-testid="language-switch"]:visible').count();
+  const languageSwitchInteraction = await page
+    .locator('[data-testid="language-switch"]:visible')
+    .evaluateAll((groups) => {
+      const rect = (element: Element) => {
+        const box = element.getBoundingClientRect();
+
+        return {
+          top: box.top,
+          right: box.right,
+          bottom: box.bottom,
+          left: box.left,
+          width: box.width,
+          height: box.height,
+        };
+      };
+      const overlaps = (a: ReturnType<typeof rect>, b: ReturnType<typeof rect>) =>
+        a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+
+      const groupEvidence = groups.map((group) => ({
+        rect: rect(group),
+        buttons: [...group.querySelectorAll<HTMLButtonElement>('button')].map((button) => {
+          const box = button.getBoundingClientRect();
+          const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+
+          return {
+            rect: rect(button),
+            hitTarget: hit === button || button.contains(hit),
+            insideViewport:
+              box.top >= 0 && box.left >= 0 && box.bottom <= window.innerHeight && box.right <= window.innerWidth,
+          };
+        }),
+      }));
+
+      const slot = document.querySelector<HTMLElement>('[data-testid="mobile-ide-language-switch-slot"]');
+      const header = document.querySelector<HTMLElement>('[data-testid="mobile-ide-header"]');
+      const slotRect = slot?.getBoundingClientRect();
+      const headerRect = header?.getBoundingClientRect();
+      const compactIde =
+        slotRect &&
+        headerRect &&
+        slotRect.width > 0 &&
+        slotRect.height > 0 &&
+        headerRect.width > 0 &&
+        headerRect.height > 0
+          ? {
+              slot: rect(slot),
+              header: rect(header),
+              overlapsHeader: overlaps(rect(slot), rect(header)),
+              headerGap: slotRect.top - headerRect.bottom,
+            }
+          : null;
+
+      return { groups: groupEvidence, compactIde };
+    });
 
   const documentSeo = await page.evaluate(() => {
     const hrefs = (selector: string) =>
@@ -426,6 +480,7 @@ async function auditRoutePair(page: Page, path: string, theme: 'dark' | 'light',
     pageErrors,
     findings,
     languageSwitchCount,
+    languageSwitchInteraction,
     documentSeo,
     scannedEntries: french.length,
   });
@@ -437,6 +492,29 @@ async function auditRoutePair(page: Page, path: string, theme: 'dark' | 'light',
   expect.soft(layout.bodyTextLength, `${path} (${theme}) non-blank visible text`).toBeGreaterThan(0);
   expect.soft(french.length, `${path} (${theme}) semantic entries scanned`).toBeGreaterThan(0);
   expect.soft(languageSwitchCount, `${path} (${theme}) visible global language switch`).toBeGreaterThan(0);
+  expect
+    .soft(
+      languageSwitchInteraction.groups.every(
+        (group) =>
+          group.buttons.length === 2 && group.buttons.every((button) => button.hitTarget && button.insideViewport),
+      ),
+      `${path} (${theme}) language switch buttons are unobscured and inside the viewport`,
+    )
+    .toBe(true);
+  if (languageSwitchInteraction.compactIde) {
+    expect
+      .soft(
+        languageSwitchInteraction.compactIde.overlapsHeader,
+        `${path} (${theme}) compact IDE language switch does not overlap the frozen header`,
+      )
+      .toBe(false);
+    expect
+      .soft(
+        languageSwitchInteraction.compactIde.headerGap,
+        `${path} (${theme}) compact IDE language switch clears the frozen header`,
+      )
+      .toBeGreaterThanOrEqual(7);
+  }
   expect.soft(documentSeo.canonical, `${path} (${theme}) one canonical link`).toHaveLength(1);
   expect.soft(documentSeo.english, `${path} (${theme}) one English alternate`).toHaveLength(1);
   expect.soft(documentSeo.french, `${path} (${theme}) one French alternate`).toHaveLength(1);

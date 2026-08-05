@@ -19212,6 +19212,11 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     isolation: isolate;
   }
 
+  body:has(.bolt-responsive-ide-mobile[data-mobile-agent-context='true']) .bolt-project-mobile-language-switch-slot {
+    /* 48px header + 52px agent context + 8px breathing room. */
+    top: calc(env(safe-area-inset-top, 0px) + 108px);
+  }
+
   .bolt-mobile-ecode-header {
     position: fixed;
     top: 0;
@@ -19261,6 +19266,8 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     --mobile-nav-height: 72px;
     /* The mobile chrome header is a fixed 48px bar (not the 36px desktop topbar). */
     --vc-ide-topbar-height: 48px;
+    /* 8px before the 50px language switch; panels begin at its lower edge. */
+    --vc-mobile-language-switch-reserved-height: 58px;
     /*
      * Height of the agent context bar ("Working on this workspace" / "Ready for
      * the next change") that sits *below* the 48px header bar when the agent is
@@ -19269,7 +19276,8 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
      */
     --vc-mobile-agent-context-height: 0px;
     --vc-mobile-shell-top: calc(
-      var(--vc-ide-topbar-height, 48px) + var(--vc-mobile-agent-context-height, 0px) + env(safe-area-inset-top, 0px)
+      var(--vc-ide-topbar-height, 48px) + var(--vc-mobile-agent-context-height, 0px) +
+        var(--vc-mobile-language-switch-reserved-height, 58px) + env(safe-area-inset-top, 0px)
     );
     --vc-mobile-shell-bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));
     --vc-mobile-panel-gutter: clamp(16px, 4vw, 30px);
@@ -19563,8 +19571,14 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
      * hidden behind the fixed header. The context-bar height is 0 unless the bar
      * is actually shown (see [data-mobile-agent-context='true']).
      */
-    padding: calc(var(--vc-mobile-panel-gutter-tight) + var(--vc-mobile-agent-context-height, 0px)) 0 0 !important;
-    scroll-padding-top: var(--vc-mobile-agent-context-height, 0px);
+    padding: calc(
+        var(--vc-mobile-panel-gutter-tight) + var(--vc-mobile-agent-context-height, 0px) +
+          var(--vc-mobile-language-switch-reserved-height, 58px)
+      )
+      0 0 !important;
+    scroll-padding-top: calc(
+      var(--vc-mobile-agent-context-height, 0px) + var(--vc-mobile-language-switch-reserved-height, 58px)
+    );
     scroll-padding-bottom: var(--vc-agent-composer-reserved-space);
   }
 

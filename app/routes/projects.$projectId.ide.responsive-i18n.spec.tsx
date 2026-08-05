@@ -74,6 +74,13 @@ describe('project IDE responsive language switch', () => {
     expect(styles).toMatch(
       /\.bolt-project-mobile-language-switch-slot\s*\{[^}]*position:\s*fixed;[^}]*top:\s*calc\(env\(safe-area-inset-top,\s*0px\)\s*\+\s*56px\);[^}]*right:\s*max\(12px,\s*env\(safe-area-inset-right,\s*0px\)\);[^}]*display:\s*inline-flex;/u,
     );
+    expect(styles).toMatch(
+      /body:has\(\.bolt-responsive-ide-mobile\[data-mobile-agent-context='true'\]\)\s*\.bolt-project-mobile-language-switch-slot\s*\{[^}]*top:\s*calc\(env\(safe-area-inset-top,\s*0px\)\s*\+\s*108px\);/u,
+    );
+    expect(styles).toContain('--vc-mobile-language-switch-reserved-height: 58px;');
+    expect(styles).toMatch(
+      /--vc-mobile-shell-top:\s*calc\([^;]*var\(--vc-mobile-language-switch-reserved-height,\s*58px\)/u,
+    );
     expect(styles).not.toMatch(/\.bolt-mobile-ecode-header-side(?:--right)?\s*\{[^}]*order:/u);
     expect(styles).not.toMatch(/\.bolt-mobile-ecode-header-title\s*\{[^}]*order:/u);
   });
