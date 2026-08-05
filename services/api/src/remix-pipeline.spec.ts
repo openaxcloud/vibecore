@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   formatRemixPiiMetrics,
+  OTHER_COUNTRY_LABEL,
   recordIbanMasked,
   recordUnknownIbanCountry,
   resetRemixPiiMetrics,
@@ -419,21 +420,37 @@ describe('person-name masking (I-RMX-3)', () => {
 
       expect(files[0].content).toBe(line);
       expect(observations.ibanUnknownCandidates).toEqual([
-        { countryCode: 'ZZ', normalizedLength: 24, redactedSample: 'ZZ91…' },
+        { countryCode: 'ZZ', normalizedLength: 24, decision: 'UNKNOWN_COUNTRY_CODE' },
       ]);
     });
 
-    it("R4 — le spécimen est TRONQUÉ : le corps de l'IBAN n'apparaît jamais", () => {
-      const { observations } = maskPiiInFiles([{ path: 'a.csv', content: 'ZZ91 2100 0418 4502 0005 1332' }]);
-
+    it('R4 — AUCUN fragment du candidat ne sort : ni corps, ni clé, ni préfixe', () => {
+      const iban = 'ZZ91 2100 0418 4502 0005 1332';
+      const compact = iban.replace(/ /g, '');
+      const { observations } = maskPiiInFiles([{ path: 'a.csv', content: iban }]);
       const [candidate] = observations.ibanUnknownCandidates;
 
-      expect(candidate.redactedSample).toBe('ZZ91…');
-      expect(candidate.redactedSample).not.toContain('2100');
-      expect(candidate.redactedSample).not.toContain('1332');
+      // La charge utile se limite à des métadonnées non sensibles.
+      expect(Object.keys(candidate).sort()).toEqual(['countryCode', 'decision', 'normalizedLength']);
+      expect(candidate.decision).toBe('UNKNOWN_COUNTRY_CODE');
 
-      // Rien dans l'observation ne porte la valeur complète.
-      expect(JSON.stringify(observations)).not.toContain('210004184502');
+      const payload = JSON.stringify(observations);
+
+      /*
+       * Ni la valeur complète, ni la forme espacée, ni la clé de contrôle,
+       * ni AUCUN préfixe du corps au-delà du code pays.
+       */
+      expect(payload).not.toContain(compact);
+      expect(payload).not.toContain(iban);
+      expect(payload).not.toContain('ZZ91');
+      expect(payload).not.toContain('91');
+
+      for (let cut = 3; cut <= compact.length; cut += 1) {
+        expect(payload, `préfixe de ${cut} caractères`).not.toContain(compact.slice(0, cut));
+      }
+
+      // Le code pays SEUL reste (c'est l'information à diagnostiquer).
+      expect(candidate.countryCode).toBe('ZZ');
     });
 
     it('R4 — pas de faux signal sur du bruit court', () => {
@@ -541,6 +558,93 @@ describe('person-name masking (I-RMX-3)', () => {
       expect(shouldLogUnknownIbanCountry('ZZ')).toBe(true);
 
       resetRemixPiiMetrics();
+    });
+
+    it('GARDE-FOU — la CARDINALITÉ DES MÉTRIQUES est bornée, le total reste exact', () => {
+      resetRemixPiiMetrics();
+
+      // 60 codes pays distincts : de quoi faire exploser les séries temporelles.
+      const codes: string[] = [];
+
+      for (let a = 0; a < 6; a += 1) {
+        for (let b = 0; b < 10; b += 1) {
+          codes.push(`${String.fromCharCode(74 + a)}${String.fromCharCode(48 + b)}`);
+        }
+      }
+
+      for (const code of codes) {
+        recordUnknownIbanCountry(code);
+      }
+
+      const snapshot = snapshotRemixPiiMetrics();
+      const labels = Object.keys(snapshot.unknownCountryCode);
+
+      // Au plus 20 libellés nommés + le fourre-tout.
+      expect(labels.length).toBeLessThanOrEqual(21);
+      expect(labels).toContain(OTHER_COUNTRY_LABEL);
+
+      // Le TOTAL est préservé : rien n'est perdu, seule la ventilation est bornée.
+      const total = Object.values(snapshot.unknownCountryCode).reduce((sum, n) => sum + n, 0);
+      expect(total).toBe(codes.length);
+
+      // Le rendu Prometheus ne produit pas plus de séries que de libellés.
+      const series = formatRemixPiiMetrics()
+        .split('\n')
+        .filter((line) => line.startsWith('remix_pii_iban_unknown_country_code'));
+      expect(series.length).toBe(labels.length);
+
+      resetRemixPiiMetrics();
+    });
+
+    it('MAPPING — les bornes restent celles du texte ORIGINAL malgré la normalisation', () => {
+      const cases: Array<{ label: string; line: string; expected: string }> = [
+        {
+          label: 'espaces ordinaires',
+          line: 'solde ES91 2100 0418 4502 0005 1332 EUR',
+          expected: 'ES91 2100 0418 4502 0005 1332',
+        },
+        {
+          label: 'espaces INSÉCABLES',
+          line: 'solde ES91\u00A02100\u00A00418\u00A04502\u00A00005\u00A01332 EUR',
+          expected: 'ES91\u00A02100\u00A00418\u00A04502\u00A00005\u00A01332',
+        },
+        {
+          label: 'forme COMPACTE',
+          line: 'solde ES9121000418450200051332 EUR',
+          expected: 'ES9121000418450200051332',
+        },
+        {
+          label: 'insécable ÉTROITE mélangée',
+          line: 'solde ES91\u202F2100 0418\u202F4502 0005\u202F1332 EUR',
+          expected: 'ES91\u202F2100 0418\u202F4502 0005\u202F1332',
+        },
+      ];
+
+      for (const { label, line, expected } of cases) {
+        const [span] = ibanSpans(line);
+
+        // La tranche du texte ORIGINAL redonne exactement le candidat…
+        expect(line.slice(span.start, span.end), label).toBe(expected);
+
+        // …et ce qui suit est intact, au caractère près.
+        expect(line.slice(span.end), label).toBe(' EUR');
+
+        // …et ce qui précède aussi.
+        expect(line.slice(0, span.start), label).toBe('solde ');
+      }
+    });
+
+    it('MAPPING — plusieurs IBAN sur UNE MÊME LIGNE : bornes distinctes et exactes', () => {
+      const line = 'de ES91 2100 0418 4502 0005 1332 vers NL91 ABNA 0417 1643 00, 50 EUR';
+      const spans = ibanSpans(line);
+
+      expect(spans).toHaveLength(2);
+      expect(line.slice(spans[0].start, spans[0].end)).toBe('ES91 2100 0418 4502 0005 1332');
+      expect(line.slice(spans[1].start, spans[1].end)).toBe('NL91 ABNA 0417 1643 00');
+
+      // Les plages ne se chevauchent pas et respectent l'ordre du texte.
+      expect(spans[0].end).toBeLessThan(spans[1].start);
+      expect(line.slice(spans[1].end)).toBe(', 50 EUR');
     });
 
     it('les plages rendues sont celles du texte ORIGINAL', () => {

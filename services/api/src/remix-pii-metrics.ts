@@ -19,6 +19,11 @@ export interface RemixPiiMetrics {
    * Codes pays qui ressemblent à un IBAN mais sont absents du registre ISO
    * 13616. NON masqués — comptés pour qu'un nouveau pays devienne visible et
    * que la table soit mise à jour, plutôt que la fuite passe inaperçue.
+   *
+   * CARDINALITÉ BORNÉE : au plus {@link MAX_METRIC_COUNTRIES} libellés nommés ;
+   * au-delà, tout est agrégé sous {@link OTHER_COUNTRY_LABEL}. Le TOTAL reste
+   * donc exact même sous des données adverses, sans faire exploser le nombre de
+   * séries temporelles côté Prometheus.
    */
   unknownCountryCode: Record<string, number>;
 }
@@ -45,6 +50,24 @@ let metrics: RemixPiiMetrics = emptyMetrics();
  */
 
 const MAX_LOGGED_COUNTRIES = 10;
+
+/*
+ * ------------------------------------------------------------------------- *
+ * CARDINALITÉ DES MÉTRIQUES (garde-fou 2)
+ *
+ * `unknown_country_code` est indexé PAR CODE PAYS : c'est un libellé alimenté
+ * par des DONNÉES, donc une porte ouverte à l'explosion de séries temporelles
+ * (676 codes à deux lettres possibles, et rien n'oblige un fichier hostile à
+ * s'en tenir aux vrais). On borne donc le nombre de libellés NOMMÉS ; le reste
+ * s'agrège sous un libellé unique, ce qui préserve le TOTAL sans multiplier
+ * les séries.
+ * -------------------------------------------------------------------------
+ */
+
+const MAX_METRIC_COUNTRIES = 20;
+
+/** Libellé fourre-tout une fois le plafond de libellés nommés atteint. */
+export const OTHER_COUNTRY_LABEL = '__other__';
 
 let loggedCountries = new Set<string>();
 
@@ -74,9 +97,19 @@ export function recordIbanMasked(checksumValid: boolean): void {
   }
 }
 
-/** Un candidat IBAN d'un pays hors registre a été rencontré (et NON masqué). */
+/**
+ * Un candidat IBAN d'un pays hors registre a été rencontré (et NON masqué).
+ *
+ * Chaque occurrence compte. Seule la RÉPARTITION est bornée : passé
+ * {@link MAX_METRIC_COUNTRIES} libellés nommés, les codes suivants tombent dans
+ * {@link OTHER_COUNTRY_LABEL} — le total, lui, reste exact.
+ */
 export function recordUnknownIbanCountry(countryCode: string): void {
-  metrics.unknownCountryCode[countryCode] = (metrics.unknownCountryCode[countryCode] ?? 0) + 1;
+  const known = Object.prototype.hasOwnProperty.call(metrics.unknownCountryCode, countryCode);
+  const saturated = Object.keys(metrics.unknownCountryCode).length >= MAX_METRIC_COUNTRIES;
+  const label = known || !saturated ? countryCode : OTHER_COUNTRY_LABEL;
+
+  metrics.unknownCountryCode[label] = (metrics.unknownCountryCode[label] ?? 0) + 1;
 }
 
 /** Instantané immuable — pour l'exposition Prometheus et les tests. */

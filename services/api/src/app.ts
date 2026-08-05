@@ -22438,14 +22438,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           recordUnknownIbanCountry(candidate.countryCode);
 
           if (shouldLogUnknownIbanCountry(candidate.countryCode)) {
+            /*
+             * Le log ne porte AUCUN fragment du candidat — pas même tronqué :
+             * ni corps, ni clé de contrôle, ni préfixe. Code pays, longueur,
+             * catégorie de décision et identifiant de job suffisent à agir.
+             */
             request.log.warn(
               {
                 countryCode: candidate.countryCode,
                 normalizedLength: candidate.normalizedLength,
-                sample: candidate.redactedSample,
+                decision: candidate.decision,
                 remixJobId: job.id,
               },
-              'remix PII: IBAN-shaped value whose country code is absent from the ISO 13616 table — NOT masked; update IBAN_LENGTH_BY_COUNTRY (sample truncated, further occurrences of this country are not logged)',
+              'remix PII: IBAN-shaped value whose country code is absent from the ISO 13616 table — NOT masked; update IBAN_LENGTH_BY_COUNTRY (no candidate value is logged; further occurrences of this country are not logged)',
             );
           }
         }

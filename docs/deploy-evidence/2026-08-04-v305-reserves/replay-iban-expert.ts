@@ -61,7 +61,7 @@ const { observations } = maskPiiInFiles([
 const signalled =
   observations.ibanUnknownCandidates.length === 1 &&
   observations.ibanUnknownCandidates[0].countryCode === 'ZZ' &&
-  observations.ibanUnknownCandidates[0].redactedSample === 'ZZ91…';
+  observations.ibanUnknownCandidates[0].decision === 'UNKNOWN_COUNTRY_CODE';
 
 console.log(`${signalled ? 'OK  ' : 'ECHEC'}  R4 — code pays inconnu SIGNALÉ`);
 console.log(`        unknownCandidates = ${JSON.stringify(observations.ibanUnknownCandidates)}`);

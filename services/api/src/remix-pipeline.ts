@@ -483,14 +483,6 @@ const IBAN_MIN_LENGTH = 15;
 const IBAN_MAX_LENGTH = 34;
 
 /**
- * Réduit un candidat à ce qui est diagnostiquable SANS exposer le numéro : les
- * 4 premiers caractères (pays + clé de contrôle) puis une ellipse.
- */
-function redactIbanCandidate(compact: string): string {
-  return `${compact.slice(0, 4).toUpperCase()}…`;
-}
-
-/**
  * Ce que le masquage a OBSERVÉ — remonté au bord (`remix-pii-metrics.ts`)
  * plutôt que compté ici, pour garder ce module pur et testable.
  */
@@ -525,17 +517,23 @@ export interface IbanSpan {
  * et un spécimen TRONQUÉ — de quoi diagnostiquer, rien pour reconstituer.
  */
 export interface UnknownIbanCandidate {
+  /** Code pays ISO 3166 alpha-2, normalisé en majuscules. */
   countryCode: string;
 
   /** Longueur du candidat APRÈS normalisation (séparateurs retirés). */
   normalizedLength: number;
 
   /**
-   * Spécimen tronqué : les 4 premiers caractères (code pays + clé de contrôle)
-   * puis une ellipse. Le CORPS — le numéro de compte — n'apparaît jamais. La
-   * clé de contrôle est un checksum du corps, elle n'en révèle pas le contenu.
+   * CATÉGORIE DE DÉCISION — pourquoi ce candidat n'a pas été masqué.
+   *
+   * Ce type ne porte AUCUN fragment de la valeur, pas même tronqué : ni le
+   * corps, ni la clé de contrôle, ni un préfixe. Seuls le code pays (qui EST
+   * l'information à diagnostiquer), la longueur et la catégorie sortent d'ici.
+   * Un spécimen tronqué avait été envisagé puis RETIRÉ : la clé de contrôle
+   * est dérivée du numéro de compte, et rien n'oblige à la journaliser pour
+   * savoir qu'un pays manque au registre.
    */
-  redactedSample: string;
+  decision: 'UNKNOWN_COUNTRY_CODE';
 }
 
 export interface IbanScan {
@@ -606,7 +604,7 @@ export function scanIbans(line: string): IbanScan {
         unknownCandidates.push({
           countryCode,
           normalizedLength: probe.taken,
-          redactedSample: redactIbanCandidate(probe.compact),
+          decision: 'UNKNOWN_COUNTRY_CODE',
         });
       }
 

@@ -93,18 +93,38 @@ de mille lignes ne doit pas produire mille lignes de journal.
   codes pays.
 - Une remise à zéro de la fenêtre (`resetRemixPiiMetrics()`) réarme le log.
 
-**Le log ne porte jamais l'IBAN en clair.** Il contient le code pays, la longueur
-normalisée, et un **spécimen tronqué** : les **4 premiers caractères** (pays + clé de
-contrôle) suivis d'une ellipse — `ZZ91…`. Le **corps**, c'est-à-dire le numéro de compte,
-n'apparaît jamais. La clé de contrôle est un checksum du corps : elle n'en révèle pas le
-contenu.
+**Le log ne porte AUCUN fragment du candidat — pas même tronqué.** Ni le corps, ni la
+clé de contrôle, ni un préfixe. Un spécimen tronqué (`ZZ91…`) avait été envisagé puis
+**retiré** : la clé de contrôle est dérivée du numéro de compte, et rien n'oblige à la
+journaliser pour savoir qu'un pays manque au registre.
+
+Le log ne contient que des **métadonnées non sensibles** :
+
+| champ | exemple | pourquoi c'est sûr |
+|---|---|---|
+| `countryCode` | `ZZ` | c'est **l'information à diagnostiquer** |
+| `normalizedLength` | `24` | une longueur, pas une valeur |
+| `decision` | `UNKNOWN_COUNTRY_CODE` | catégorie de décision |
+| `remixJobId` | `cms…` | corrélation, sans donnée personnelle |
 
 ```
 WARN  remix PII: IBAN-shaped value whose country code is absent from the ISO 13616
-      table — NOT masked; update IBAN_LENGTH_BY_COUNTRY (sample truncated, further
-      occurrences of this country are not logged)
-      countryCode=ZZ  normalizedLength=24  sample=ZZ91…  remixJobId=…
+      table — NOT masked; update IBAN_LENGTH_BY_COUNTRY (no candidate value is
+      logged; further occurrences of this country are not logged)
+      countryCode=ZZ  normalizedLength=24  decision=UNKNOWN_COUNTRY_CODE  remixJobId=…
 ```
+
+### Cardinalité des métriques
+
+`unknown_country_code` est indexé **par code pays** : c'est un libellé alimenté par des
+**données**, donc une porte ouverte à l'explosion de séries temporelles. Elle est bornée :
+
+- au plus **20 libellés nommés** ;
+- au-delà, tout s'agrège sous `__other__` ;
+- le **total reste exact** — seule la ventilation est bornée, rien n'est perdu.
+
+Le rendu Prometheus ne produit donc jamais plus de 21 séries pour cette métrique, quelles
+que soient les données rencontrées.
 
 ## Métriques
 
