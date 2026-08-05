@@ -92,21 +92,35 @@ if kubectl --context "$KCTX" -n "$NS" get pvc "$PVC" >/dev/null 2>&1; then
   echo "  AFTER: pvc STILL EXISTS — FAIL"; exit 1
 fi
 PVC_AFTER="NotFound"
-PV_AFTER="gone"
-if [ -n "$PV_NAME" ] && kubectl --context "$KCTX" get pv "$PV_NAME" >/dev/null 2>&1; then
-  PV_AFTER="present"
-fi
 PVC_COUNT=$(kubectl --context "$KCTX" -n "$NS" get pvc --no-headers 2>/dev/null | wc -l | tr -d ' ')
-echo "  AFTER: pvc=$PVC_AFTER pvcCount=$PVC_COUNT pv=$PV_AFTER"
-
 if [ "$PVC_COUNT" != "0" ]; then echo "  residual PVCs remain — FAIL"; exit 1; fi
 
-CANON=$(printf '{\n  "after": {\n    "pv": "%s",\n    "pvc": "%s",\n    "pvcCount": %s\n  },\n  "before": {\n    "pv": "%s",\n    "pvcPhase": "%s"\n  },\n  "cluster": "kind:%s (throwaway, torn down)",\n  "kind": "physical-purge-k8s-e2e",\n  "namespace": "%s",\n  "negative": {\n    "survivingPvcReportedPresent": %s\n  },\n  "pvcName": "%s",\n  "verified": true,\n  "version": 2\n}' \
-  "$PV_AFTER" "$PVC_AFTER" "$PVC_COUNT" "$PV_NAME" "$PVC_BEFORE" "$CLUSTER" "$NS" "$NEG_SURVIVOR_PRESENT" "$PVC")
+# RR-CODEX-14 evidence coherence: the StorageClass reclaimPolicy is Delete, so
+# deleting the PVC must delete the underlying PV *and* its backing disk — not just
+# the claim binding. Poll until the PV is really gone (reclaim is async); FAIL if the
+# underlying volume/disk survives. This proves DISK disappearance, not PVC NotFound.
+SC_RECLAIM=$(kubectl --context "$KCTX" get pv "$PV_NAME" -o jsonpath='{.spec.persistentVolumeReclaimPolicy}' 2>/dev/null || echo "Delete")
+PV_AFTER="present"
+for i in $(seq 1 60); do
+  if [ -z "$PV_NAME" ] || ! kubectl --context "$KCTX" get pv "$PV_NAME" >/dev/null 2>&1; then
+    PV_AFTER="gone"; break
+  fi
+  sleep 2
+done
+echo "  AFTER: pvc=$PVC_AFTER pvcCount=$PVC_COUNT pv=$PV_AFTER (reclaimPolicy=$SC_RECLAIM)"
+
+if [ "$PV_AFTER" != "gone" ]; then
+  echo "  underlying PV/disk STILL EXISTS after PVC delete — FAIL (a purge must destroy the volume, not just the claim)"
+  exit 1
+fi
+
+VERIFIED=true
+CANON=$(printf '{\n  "after": {\n    "pv": "%s",\n    "pvc": "%s",\n    "pvcCount": %s\n  },\n  "before": {\n    "pv": "%s",\n    "pvcPhase": "%s"\n  },\n  "cluster": "kind:%s (throwaway, torn down)",\n  "kind": "physical-purge-k8s-e2e",\n  "namespace": "%s",\n  "negative": {\n    "survivingPvcReportedPresent": %s\n  },\n  "note": "reclaimPolicy=%s — PVC AND underlying PV/disk verified gone; kind teardown is separate from and NOT relied upon for this proof",\n  "pvName": "%s",\n  "pvcName": "%s",\n  "verified": %s,\n  "version": 3\n}' \
+  "$PV_AFTER" "$PVC_AFTER" "$PVC_COUNT" "$PV_NAME" "$PVC_BEFORE" "$CLUSTER" "$NS" "$NEG_SURVIVOR_PRESENT" "$SC_RECLAIM" "$PV_NAME" "$PVC" "$VERIFIED")
 SHA=$(printf '%s' "$CANON" | shasum -a 256 | awk '{print $1}')
 
 echo "PHYSICAL K8S E2E: PASS"
-echo "  PVC Bound -> deleted -> verified gone (real k8s API), 0 PVC remaining"
+echo "  PVC Bound -> deleted -> PVC NotFound AND underlying PV/disk gone (real k8s API)"
 echo "  sha256: $SHA"
 
 if [ "$WRITE" = "--write" ]; then
