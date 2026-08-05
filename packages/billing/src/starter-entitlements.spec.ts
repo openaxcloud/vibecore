@@ -14,6 +14,7 @@ import {
   evaluatePublish,
   isPublicationActive,
   maxActivePublishedProjects,
+  maxConcurrentRunningWorkloads,
   publishedProjectTtlDays,
   starterCreditCounters,
   starterOverageIsPayAsYouGo,
@@ -166,7 +167,9 @@ describe('Starter — fail-closed', () => {
   });
 
   it('un cap illisible bloque au lieu de laisser passer', () => {
-    for (const cap of [Number.NaN, -1, Number.POSITIVE_INFINITY]) {
+    // +Infinity est une absence DÉLIBÉRÉE de plafond, pas une corruption : il est
+    // testé séparément juste en dessous.
+    for (const cap of [Number.NaN, -1, Number.NEGATIVE_INFINITY]) {
       expect(
         evaluatePublish({
           planKey: 'starter',
@@ -179,11 +182,47 @@ describe('Starter — fail-closed', () => {
     }
   });
 
-  it('les plans payants sont bornés par la limite technique 20 apps, tous plans', () => {
+  it('+Infinity signifie « aucun plafond » et laisse passer', () => {
+    expect(
+      evaluatePublish({
+        planKey: 'core',
+        targetProjectId: 'B',
+        publications: [{ projectId: 'A', publishedAt: NOW }],
+        now: NOW,
+        cap: Number.POSITIVE_INFINITY,
+      }).allowed,
+    ).toBe(true);
+  });
+
+  it("les plans payants n'ont AUCUN plafond de publications", () => {
     expect(maxActivePublishedProjects('starter')).toBe(1);
+
+    /*
+     * La borne « 20 apps simultanées » ne doit PAS servir de cap de publications :
+     * elle porte sur des workloads en exécution (état transitoire), pas sur des
+     * projets publiés (état persistant). Les confondre transformait
+     * « publications illimitées » en plafond dur de 20 projets à vie.
+     */
     for (const plan of ['core', 'pro', 'enterprise'] as const) {
-      expect(maxActivePublishedProjects(plan)).toBe(20);
+      expect(maxActivePublishedProjects(plan)).toBe(Number.POSITIVE_INFINITY);
     }
+  });
+
+  it('la concurrence d EXÉCUTION est une métrique DISTINCTE', () => {
+    expect(maxConcurrentRunningWorkloads()).toBe(20);
+    // …et elle ne borne pas les publications d'un plan payant.
+    expect(maxActivePublishedProjects('core')).not.toBe(maxConcurrentRunningWorkloads());
+  });
+
+  it('un plan payant publie bien au-delà de 20 projets distincts', () => {
+    const publications = Array.from({ length: 25 }, (_, i) => ({
+      projectId: `P${i}`,
+      publishedAt: NOW,
+    }));
+
+    expect(
+      evaluatePublish({ planKey: 'core', targetProjectId: 'P-NOUVEAU', publications, now: NOW }).allowed,
+    ).toBe(true);
   });
 });
 

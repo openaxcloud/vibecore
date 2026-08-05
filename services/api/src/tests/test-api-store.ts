@@ -204,9 +204,33 @@ export class TestApiStore implements ApiStore {
     // In-memory store is always reachable.
   }
 
-  async withSerializedMutation<T>(_key: string, fn: () => Promise<T>): Promise<T> {
-    // Single-process test store — no cross-pod lock needed; just run the section.
-    return fn();
+  /**
+   * Chaîne de promesses PAR CLÉ — reflète fidèlement
+   * `pg_advisory_xact_lock(hashtext(key))` de PrismaApiStore : deux sections
+   * critiques de même clé ne s'entrelacent jamais.
+   *
+   * L'implémentation précédente exécutait `fn()` directement. Dans la boucle
+   * d'événements Node, deux requêtes concurrentes s'entrelacent à CHAQUE `await`,
+   * si bien qu'un test « concurrent » lisait deux fois « 0 publication active »
+   * et validait un comportement que la production n'a pas. Sérialiser ici rend le
+   * test concurrent significatif.
+   */
+  readonly #mutationChains = new Map<string, Promise<unknown>>();
+
+  async withSerializedMutation<T>(key: string, fn: () => Promise<T>): Promise<T> {
+    const previous = this.#mutationChains.get(key) ?? Promise.resolve();
+    // On chaîne sur l'issue (succès OU échec) du précédent : une section qui
+    // échoue doit quand même relâcher le verrou.
+    const run = previous.then(fn, fn);
+    this.#mutationChains.set(
+      key,
+      run.then(
+        () => undefined,
+        () => undefined,
+      ),
+    );
+
+    return run;
   }
 
   async createUser(input: { email: string; name?: string; passwordHash: string; platformAdmin?: boolean }) {
@@ -1574,6 +1598,33 @@ export class TestApiStore implements ApiStore {
     return published.size;
   }
 
+  async listExpiryCandidateDeployments(options: { take?: number } = {}) {
+    const out: any[] = [];
+
+    for (const deployment of this.deployments.values()) {
+      const project = this.projects.get(deployment.projectId);
+
+      if (!project || project.deletedAt) continue;
+      if ((deployment as any).environment !== 'production' || deployment.status !== 'READY') continue;
+      if (deployment.provider !== 'server') continue;
+
+      const subscription = this.subscriptions.get(project.organizationId);
+      out.push({
+        id: deployment.id,
+        projectId: deployment.projectId,
+        organizationId: project.organizationId,
+        provider: deployment.provider,
+        environmentName: (deployment as any).environment,
+        status: deployment.status,
+        createdAt: (deployment as any).createdAt ?? now(),
+        planKey: subscription?.status === 'ACTIVE' ? subscription.planKey : undefined,
+        expiredAt: ((deployment as any).metadata ?? {})?.expiredAt,
+      });
+    }
+
+    return out.slice(0, options.take ?? 500);
+  }
+
   async listPublishedProjects(organizationId: string) {
     const projectIds = this.#orgProjectIds(organizationId);
     const latest = new Map<string, string>();
@@ -1882,7 +1933,17 @@ export class TestApiStore implements ApiStore {
 
     const project = this.projects.get(deployment.projectId);
 
-    return { projectId: deployment.projectId, status: deployment.status, projectDeletedAt: project?.deletedAt ?? null };
+    const subscription = project ? this.subscriptions.get(project.organizationId) : undefined;
+
+    return {
+      projectId: deployment.projectId,
+      status: deployment.status,
+      projectDeletedAt: project?.deletedAt ?? null,
+      createdAt: (deployment as any).createdAt ?? now(),
+      environmentName: (deployment as any).environment,
+      organizationId: project?.organizationId,
+      planKey: subscription?.status === 'ACTIVE' ? subscription.planKey : undefined,
+    };
   }
 
   async updateDeployment(

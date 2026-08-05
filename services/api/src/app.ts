@@ -28,9 +28,19 @@ import {
   type AuthenticatedUser,
 } from '@vibecore/auth';
 import {
+  assertPublicationStartable,
+  ExpiredPublicationStartError,
+  servingState,
+  stopExpiredServerDeployments,
+  type ServingState,
+} from './published-expiry-sweep.js';
+import {
   StripeBillingClient,
   assertQuota,
   assertPublishEntitlement,
+  isPublicationActive,
+  publishedProjectTtlDays,
+  toEntitlementPlanKey,
   EntitlementError,
   aiModelCatalog,
   availableMachineSizes,
@@ -6748,7 +6758,30 @@ async function startServerDeploymentViaManager(payload: {
   cpuLimit?: string;
   memoryRequest?: string;
   memoryLimit?: string;
+  /**
+   * État d'expiration du déploiement, lu par l'appelant. Fourni séparément parce
+   * que ce helper est un client HTTP sans accès au store.
+   */
+  expiryCheck?: {
+    candidate?: { environmentName?: string; createdAt: string; planKey?: string; expiredAt?: string };
+    ttlDays: number | null;
+  };
 }): Promise<{ ready: boolean; url: string; name: string; readyReplicas: number }> {
+  /*
+   * BARRIÈRE DE DÉMARRAGE. Point d'étranglement de TOUS les démarrages de
+   * workload serveur passant par l'API : redéploiement, réconciliation, reprise.
+   * Sans elle, l'extinction ne serait qu'une pause — le premier redémarrage
+   * ramènerait l'app en ligne.
+   */
+  if (payload.expiryCheck) {
+    assertPublicationStartable({
+      deploymentId: payload.deploymentId,
+      candidate: payload.expiryCheck.candidate,
+      ttlDays: payload.expiryCheck.ttlDays,
+      now: new Date(),
+    });
+  }
+
   const managerSecret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
 
   const response = await fetch(`${workspaceManagerUrl()}/server-deployments/start`, {
@@ -6782,6 +6815,35 @@ async function stopServerDeploymentViaManager(deploymentId: string): Promise<voi
     headers: { accept: 'application/json', ...(managerSecret ? { authorization: `Bearer ${managerSecret}` } : {}) },
     signal: AbortSignal.timeout(30_000),
   }).catch(() => undefined);
+}
+
+/**
+ * Arrêt STRICT — lève si le manager n'a pas confirmé.
+ *
+ * La variante ci-dessus avale tout (`.catch(() => undefined)`, aucun contrôle de
+ * `response.ok`) : c'est acceptable là où l'arrêt est un nettoyage best-effort,
+ * mais pas pour l'extinction d'une publication. Le balayage marquerait sinon le
+ * déploiement « éteint » alors que le manager a répondu 500 et que le workload
+ * tourne toujours — un échec transformé en succès apparent, exactement ce que
+ * l'invariant interdit.
+ *
+ * Constaté en réel : manager répondant 500, `stopped:["…"]` et `expiredAt` posé.
+ */
+async function stopServerDeploymentViaManagerStrict(deploymentId: string): Promise<void> {
+  const managerSecret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
+
+  const response = await fetch(
+    `${workspaceManagerUrl()}/server-deployments/${encodeURIComponent(deploymentId)}/stop`,
+    {
+      method: 'POST',
+      headers: { accept: 'application/json', ...(managerSecret ? { authorization: `Bearer ${managerSecret}` } : {}) },
+      signal: AbortSignal.timeout(30_000),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`workspace-manager a refusé l'arrêt de ${deploymentId} (HTTP ${response.status})`);
+  }
 }
 
 /*
@@ -7846,6 +7908,43 @@ export function shouldRetryAgentHop(opts: {
   return idempotent && transient;
 }
 
+
+/**
+ * Une publication Starter a-t-elle dépassé sa durée de vie ?
+ *
+ * L'offre annonce que l'app publiée « descend » au bout de 30 jours. Tant que
+ * cette extinction n'existe que dans le COMPTEUR d'entitlement, l'URL continue
+ * de répondre : le produit dirait une chose et le serveur en ferait une autre.
+ * Cette fonction est appliquée dans le chemin de SERVICE pour que l'extinction
+ * soit réelle.
+ *
+ * Ne s'applique qu'aux publications de PRODUCTION d'une org Starter : une
+ * preview n'est pas une publication, et un plan payant n'a pas de TTL.
+ */
+export function publishedDeploymentExpired(input: {
+  planKey?: string;
+  environmentName?: string;
+  createdAt?: string;
+  now?: Date;
+}): boolean {
+  if (input.environmentName !== 'production' || !input.createdAt) {
+    return false;
+  }
+
+  const plan = toEntitlementPlanKey(input.planKey);
+  const ttlDays = publishedProjectTtlDays(plan);
+
+  if (ttlDays === null) {
+    return false;
+  }
+
+  return !isPublicationActive({
+    plan,
+    publishedAt: new Date(input.createdAt),
+    now: input.now ?? new Date(),
+  });
+}
+
 export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyInstance> {
   const store = options.store ?? createDefaultStore();
   const agentMemory = options.agentMemory ?? createDefaultAgentMemory(store);
@@ -8284,6 +8383,55 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * SPA routes (anything that does not resolve to a real file) fall back
    * to index.html so client-side routers work.
    */
+  /*
+   * ÉTAT DE SERVICE d'un déploiement, pour preview-proxy.
+   *
+   * Le proxy transmet `d-<id>` DIRECTEMENT au Service in-cluster sans consulter
+   * l'API : il ne pouvait donc pas savoir qu'une publication Starter avait
+   * expiré, et servait l'app indéfiniment. Cette route lui donne l'autorité
+   * manquante.
+   *
+   * Publique et sans secret : elle ne révèle que ce qu'un visiteur découvre déjà
+   * en ouvrant l'URL (vivante ou éteinte), jamais l'identité du projet ni son
+   * org. `not-found` pour tout le reste — le proxy ne doit jamais servir une app
+   * parce que l'API n'a pas su répondre.
+   */
+  app.get('/deployments/:deploymentId/serving-state', async (request, reply) => {
+    const deploymentId = ((request.params as { deploymentId?: string }).deploymentId ?? '').trim();
+
+    if (!/^[A-Za-z0-9_-]{1,80}$/.test(deploymentId)) {
+      return reply.code(400).send({ error: 'Invalid deployment id', code: 'DEPLOY_INVALID_ID' });
+    }
+
+    const owner = await store.getDeploymentOwnerStatus(deploymentId).catch(() => undefined);
+
+    if (!owner || owner.projectDeletedAt || owner.status === 'CANCELED') {
+      reply.header('cache-control', 'no-store');
+
+      return reply.send({ state: 'not-found' satisfies ServingState });
+    }
+
+    const state = servingState({
+      candidate: {
+        environmentName: owner.environmentName,
+        createdAt: owner.createdAt ?? '',
+        planKey: owner.planKey,
+        status: owner.status,
+      },
+      ttlDays: publishedProjectTtlDays(toEntitlementPlanKey(owner.planKey)),
+      now: new Date(),
+    });
+
+    /*
+     * Cache TRÈS court côté proxy : une expiration doit prendre effet en
+     * secondes, pas au prochain redémarrage. Assez long malgré tout pour ne pas
+     * transformer chaque requête de l'app en aller-retour vers l'API.
+     */
+    reply.header('cache-control', 'public, max-age=15');
+
+    return reply.send({ state });
+  });
+
   app.get('/static-deployments/:deploymentId/*', async (request, reply) => {
     const params = request.params as { deploymentId?: string; '*'?: string };
     const deploymentId = (params.deploymentId ?? '').trim();
@@ -8320,6 +8468,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply
         .code(404)
         .send({ error: 'Static deployment artifact not found', code: 'STATIC_DEPLOY_ARTIFACT_NOT_FOUND' });
+    }
+
+    /*
+     * EXTINCTION RÉELLE de la publication Starter arrivée à 30 jours. 410 Gone
+     * (et non 404) : la ressource a bien existé et son URL est définitivement
+     * retirée — republier crée une nouvelle publication. Sans ce gate, le
+     * produit annonçait une extinction qui n'avait jamais lieu.
+     */
+    if (
+      publishedDeploymentExpired({
+        planKey: ownerStatus.planKey,
+        environmentName: ownerStatus.environmentName,
+        createdAt: ownerStatus.createdAt,
+      })
+    ) {
+      reply.header('cache-control', 'no-store');
+
+      return reply.code(410).send({
+        error: "Cette publication a expiré. Republiez le projet pour remettre l'adresse en ligne.",
+        code: 'PUBLISHED_DEPLOYMENT_EXPIRED',
+      });
     }
 
     let decodedPath: string;
@@ -9542,6 +9711,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.url === '/ready' ||
       request.url === '/metrics' ||
       request.url === '/synthetic/health' ||
+      /*
+       * État de service d'un déploiement : appelé par preview-proxy SANS
+       * credentials (il n'en a pas). Ne révèle que ce qu'un visiteur découvre en
+       * ouvrant l'URL publique — vivante ou éteinte — jamais l'identité du projet
+       * ni de son org.
+       */
+      /^\/deployments\/[A-Za-z0-9_-]{1,80}\/serving-state$/.test(request.url.split('?')[0]) ||
       request.url.startsWith('/auth/register') ||
       request.url.startsWith('/auth/login') ||
       request.url.startsWith('/auth/verify-email') ||
@@ -30856,6 +31032,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         try {
           started = await startServerDeploymentViaManager({
             deploymentId: queued.id,
+            expiryCheck: {
+              candidate: {
+                environmentName: queued.environment,
+                createdAt: queued.createdAt,
+                planKey: (await billingState(project.organizationId).catch(() => undefined))?.plan.key,
+                expiredAt: ((queued.metadata ?? {}) as Record<string, unknown>)?.expiredAt as string | undefined,
+              },
+              ttlDays: publishedProjectTtlDays(
+                toEntitlementPlanKey((await billingState(project.organizationId).catch(() => undefined))?.plan.key),
+              ),
+            },
             ...machineSizeResources(machineSize),
             image:
               serverImage ??
@@ -31589,6 +31776,46 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const reaped = await reapStaleDeployments(store, { timeoutMs: resolveDeployBuildTimeoutMs() });
 
     /*
+     * EXTINCTION 30 j des publications SERVER — la substance derrière le 410.
+     *
+     * Le workload est réellement ARRÊTÉ via le workspace-manager, puis la ligne
+     * est marquée. Sans cet arrêt, un 410 au niveau du proxy ne serait qu'une
+     * façade : l'app continuerait de tourner, de consommer des ressources, et
+     * resterait joignable par tout chemin ne passant pas par le proxy.
+     *
+     * Best-effort : un échec d'extinction ne doit pas faire échouer le reap, mais
+     * il est RENDU dans la réponse plutôt qu'avalé.
+     */
+    let publicationExpiry: Awaited<ReturnType<typeof stopExpiredServerDeployments>> | { error: string };
+
+    try {
+      publicationExpiry = await stopExpiredServerDeployments({
+        candidates: await store.listExpiryCandidateDeployments(),
+        ttlDaysForPlan: (planKey) => publishedProjectTtlDays(toEntitlementPlanKey(planKey)),
+        now: new Date(),
+        stopWorkload: (deploymentId) => stopServerDeploymentViaManagerStrict(deploymentId),
+        markExpired: async (deployment) => {
+          /*
+           * Marquage dans `metadata`, pas dans `status` : `DeploymentStatus` est
+           * un enum Prisma, l'étendre imposerait une migration pour un simple
+           * drapeau. `expiredAt` suffit à sortir la ligne des balayages suivants
+           * sans toucher au schéma.
+           */
+          const existing = await store.getDeployment(deployment.projectId, deployment.id).catch(() => undefined);
+          const metadata = ((existing?.metadata ?? {}) as Record<string, unknown>) ?? {};
+
+          await store.updateDeployment(deployment.projectId, deployment.id, {
+            metadata: { ...metadata, expiredAt: new Date().toISOString() },
+          });
+        },
+        onError: (deploymentId, error) =>
+          request.log?.error?.({ err: error, deploymentId }, 'failed to stop expired server deployment'),
+      });
+    } catch (error) {
+      publicationExpiry = { error: error instanceof Error ? error.message : String(error) };
+    }
+
+    /*
      * Same tick, second sweep: runtime metering for READY server deployments.
      * Bills observed ACTIVE machine time (replicas > 0) at the row's machine
      * size; a sleeping app advances its watermark for free. Best-effort — a
@@ -31608,7 +31835,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.log.error({ err: error }, 'server-deploy runtime metering sweep failed');
     }
 
-    return { ...reaped, runtimeMetering };
+    return { ...reaped, runtimeMetering, publicationExpiry };
   });
 
   /*
@@ -32196,45 +32423,95 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     /*
      * ---- Contrat Starter : projets publiés ACTIFS (pas « déploiements ») ----
      *
-     * L'offre gratuite autorise UN projet publié à la fois. Trois conséquences
-     * que le modèle précédent (« cap de déploiements ») ratait :
+     * L'offre gratuite autorise UN projet publié à la fois :
      *  - republier le MÊME projet est toujours autorisé — sinon on interdirait
      *    de corriger un bug en production ;
-     *  - seul un DEUXIÈME projet distinct déclenche l'invitation à monter de
-     *    plan ;
-     *  - une publication Starter s'éteint au bout de 30 jours et cesse alors de
-     *    consommer la place, ce qui permet de republier sans intervention.
+     *  - seul un DEUXIÈME projet distinct déclenche l'invitation à monter de plan.
      *
-     * Hors du flag crédits : un entitlement décrit l'OFFRE, pas le modèle de
-     * facturation à l'usage ; derrière un flag non défini, il n'applique rien.
+     * SÉRIALISÉ PAR ORGANISATION (advisory lock PostgreSQL, cf.
+     * withSerializedMutation) : lecture des publications + décision d'entitlement
+     * + création du déploiement forment UNE SEULE section critique. Séparées,
+     * deux publishes simultanés de projets différents lisaient tous les deux
+     * « 0 actif » et passaient tous les deux — le plafond ne tenait pas sous
+     * concurrence. Le lock est pris par ORG (et non par projet) parce que c'est
+     * l'org qui porte le quota.
+     *
+     * FAIL-CLOSED : aucune de ces lectures n'est neutralisée par un `.catch`.
+     * Une erreur de lecture des publications ou de l'état de facturation ne doit
+     * JAMAIS se traduire par « 0 publication active » — ce serait un quota remis
+     * à zéro par une panne. On refuse temporairement (503) et on réessaiera.
      */
-    const publications = await store.listPublishedProjects(project.organizationId).catch(() => []);
-    const entitlementPlanKey = (await billingState(project.organizationId).catch(() => undefined))?.plan.key;
+    const publishOutcome = await store.withSerializedMutation(
+      `publish:org:${project.organizationId}`,
+      async (): Promise<
+        { ok: true; deployment: Awaited<ReturnType<typeof store.createDeployment>> } | { ok: false; response: unknown; status: number }
+      > => {
+        let publications: Array<{ projectId: string; publishedAt: string }>;
+        let entitlementPlanKey: string | undefined;
 
-    try {
-      assertPublishEntitlement({
-        planKey: entitlementPlanKey,
-        targetProjectId: project.id,
-        publications: publications.map((p) => ({ projectId: p.projectId, publishedAt: new Date(p.publishedAt) })),
-      });
-    } catch (error) {
-      if (error instanceof EntitlementError) {
+        try {
+          publications = await store.listPublishedProjects(project.organizationId);
+          entitlementPlanKey = (await billingState(project.organizationId))?.plan.key;
+        } catch (error) {
+          request.log?.error?.(
+            { err: error, organizationId: project.organizationId },
+            'publish entitlement precheck failed — refusing (fail-closed)',
+          );
+
+          return {
+            ok: false,
+            status: 503,
+            response: {
+              error:
+                "Impossible de vérifier les limites de votre plan pour le moment. Réessayez dans un instant — aucune publication n'a été créée.",
+              code: 'ENTITLEMENT_CHECK_UNAVAILABLE',
+              retryable: true,
+            },
+          };
+        }
+
+        try {
+          assertPublishEntitlement({
+            planKey: entitlementPlanKey,
+            targetProjectId: project.id,
+            publications: publications.map((p) => ({ projectId: p.projectId, publishedAt: new Date(p.publishedAt) })),
+          });
+        } catch (error) {
+          if (error instanceof EntitlementError) {
+            return {
+              ok: false,
+              status: error.statusCode,
+              response: { error: error.message, code: error.code, ...error.details },
+            };
+          }
+
+          throw error;
+        }
+
+        // Création DANS la section critique : c'est elle qui rend le plafond réel.
+        const publishUrl = source.url ?? source.previewUrl ?? buildDeploymentUrl(project, source);
+
+        return { ok: true, deployment: await store.createDeployment(buildPublishedDeploymentInput(source, publishUrl)) };
+      },
+    );
+
+    if (!publishOutcome.ok) {
+      if (publishOutcome.status === 402) {
         await audit(request, store, {
           organizationId: project.organizationId,
           action: 'entitlement.refused',
           resourceType: 'deployment',
           resourceId: deploymentId,
-          metadata: { code: error.code, ...error.details },
+          metadata: publishOutcome.response as Record<string, unknown>,
         });
-
-        return reply.code(error.statusCode).send({ error: error.message, code: error.code, ...error.details });
       }
 
-      throw error;
+      return reply.code(publishOutcome.status).send(publishOutcome.response);
     }
 
-    const publishUrl = source.url ?? source.previewUrl ?? buildDeploymentUrl(project, source);
-    const published = await store.createDeployment(buildPublishedDeploymentInput(source, publishUrl));
+    const published = publishOutcome.deployment;
+
+
 
     /*
      * P2d: publishing gives the project a real PRODUCTION database, distinct

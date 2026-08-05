@@ -287,6 +287,81 @@ describe('Credit-pack purchase (Replit parity)', () => {
       }
     });
 
+    it('(5) REJEU CONCURRENT : deux publications SIMULTANÉES -> exactement un 201 et un 402', async () => {
+      const { app, store, org, token } = await setup();
+      try {
+        const a = await publishableProject(store, org.id, 'ProjA');
+        const b = await publishableProject(store, org.id, 'ProjB');
+
+        /*
+         * Lancées SANS await intermédiaire : les deux requêtes sont en vol en
+         * même temps. Sans section critique sérialisée, chacune lit « 0
+         * publication active » et les DEUX passent — le plafond ne tient pas.
+         */
+        const [r1, r2] = await Promise.all([
+          publish(app, token, a.project.id, a.source.id),
+          publish(app, token, b.project.id, b.source.id),
+        ]);
+
+        const codes = [r1.statusCode, r2.statusCode].sort();
+        expect(codes).toEqual([201, 402]);
+
+        // …et la DB ne contient qu'UNE publication de production.
+        const published = [...store.deployments.values()].filter(
+          (d: any) => d.environment === 'production' && d.status === 'READY',
+        );
+        expect(published).toHaveLength(1);
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('(5bis) rejeu concurrent à 5 projets distincts -> un seul 201', async () => {
+      const { app, store, org, token } = await setup();
+      try {
+        const projects = await Promise.all(
+          ['P1', 'P2', 'P3', 'P4', 'P5'].map((n) => publishableProject(store, org.id, n)),
+        );
+
+        const results = await Promise.all(
+          projects.map((p) => publish(app, token, p.project.id, p.source.id)),
+        );
+
+        expect(results.filter((r) => r.statusCode === 201)).toHaveLength(1);
+        expect(results.filter((r) => r.statusCode === 402)).toHaveLength(4);
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('(2) FAIL-CLOSED : lecture des publications en erreur -> 503, jamais un quota remis a zero', async () => {
+      const { app, store, org, token } = await setup();
+      try {
+        const a = await publishableProject(store, org.id, 'ProjA');
+        expect((await publish(app, token, a.project.id, a.source.id)).statusCode).toBe(201);
+
+        // La lecture du quota tombe en panne au moment de publier un 2e projet.
+        const b = await publishableProject(store, org.id, 'ProjB');
+        store.listPublishedProjects = async () => {
+          throw new Error('panne de lecture du quota');
+        };
+
+        const res = await publish(app, token, b.project.id, b.source.id);
+
+        // Surtout PAS 201 : une panne ne doit pas ouvrir le quota.
+        expect(res.statusCode).toBe(503);
+        expect(res.json()).toMatchObject({ code: 'ENTITLEMENT_CHECK_UNAVAILABLE', retryable: true });
+
+        // Et aucune publication supplémentaire n'a été créée.
+        const published = [...store.deployments.values()].filter(
+          (d: any) => d.environment === 'production' && d.status === 'READY',
+        );
+        expect(published).toHaveLength(1);
+      } finally {
+        await app.close();
+      }
+    });
+
     it("le contrat s'applique MÊME quand le modèle de crédits est dormant", async () => {
       delete (process.env as Record<string, string | undefined>).BILLING_CREDITS_ENABLED;
       const { app, store, org, token } = await setup();

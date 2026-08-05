@@ -650,6 +650,103 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
    * 'gone' → the manager says the Deployment does not exist (build failed and
    * was torn down, or deleted) — a terminal state page, never a wake loop.
    */
+  /*
+   * Cache d'état de service, très court.
+   *
+   * Sans cache, chaque requête d'une app déployée ajouterait un aller-retour
+   * vers l'API — inacceptable sur un chemin public à fort trafic. Avec un cache
+   * long, une extinction mettrait des minutes à prendre effet. 15 s tranche :
+   * l'app s'éteint en quelques secondes et l'API n'est sollicitée qu'une fois
+   * par fenêtre et par déploiement.
+   */
+  /*
+   * Cache d'état de service, avec DEUX régimes distincts — la dissymétrie est
+   * délibérée et porte tout l'invariant.
+   *
+   *  - « expiré » est COLLANT et sans expiration. L'extinction est MONOTONE :
+   *    une publication éteinte ne redevient jamais vivante (la republication crée
+   *    un NOUVEAU déploiement, donc un autre id). Une fois le verdict connu, une
+   *    panne de l'API ne doit plus jamais pouvoir rouvrir l'accès.
+   *  - « vivant » est caché avec un TTL court. Il doit être revérifié, puisque
+   *    c'est l'état qui, lui, peut changer.
+   */
+  const expiredDeployments = new Set<string>();
+  const liveUntil = new Map<string, number>();
+  const LIVE_CACHE_TTL_MS = 15_000;
+
+  /** Verdict du garde. `unknown` ⇒ on ne sait pas, donc on ne sert pas. */
+  type ServingVerdict = 'live' | 'expired' | 'unknown';
+
+  /**
+   * État de service d'une publication SERVER.
+   *
+   * Hiérarchie des réponses, du plus sûr au plus disponible :
+   *  1. connu expiré  -> `expired`, définitivement, sans interroger personne ;
+   *  2. connu vivant et frais -> `live` ;
+   *  3. sinon on interroge l'API ;
+   *  4. API injoignable ET aucun état frais -> `unknown`.
+   *
+   * `unknown` ne sert PAS l'application : un workload potentiellement expiré ne
+   * doit jamais renvoyer d'octets applicatifs. Le garde reste néanmoins une
+   * défense SECONDAIRE — l'autorité d'extinction est l'arrêt du workload côté
+   * manager, qui ne dépend pas de ce chemin.
+   */
+  const resolveServingVerdict = async (deploymentId: string): Promise<ServingVerdict> => {
+    // (1) Verdict collant : plus rien ne peut le contredire.
+    if (expiredDeployments.has(deploymentId)) {
+      return 'expired';
+    }
+
+    if (!apiBaseUrl) {
+      /*
+       * Sans API configurée (dev, tests unitaires du proxy), le garde est hors
+       * service : on laisse passer et l'extinction repose entièrement sur l'arrêt
+       * du workload. C'est une absence de configuration, pas un état indéterminé.
+       */
+      return 'live';
+    }
+
+    // (2) Vivant et encore frais.
+    const freshUntil = liveUntil.get(deploymentId);
+
+    if (freshUntil && Date.now() < freshUntil) {
+      return 'live';
+    }
+
+    // (3) Interroger l'autorité.
+    try {
+      const response = await fetchImpl(
+        `${apiBaseUrl}/deployments/${encodeURIComponent(deploymentId)}/serving-state`,
+        { method: 'GET', headers: { accept: 'application/json' } },
+      );
+
+      if (!response.ok) {
+        return 'unknown';
+      }
+
+      const body = (await response.json()) as { state?: string };
+
+      if (body?.state === 'expired') {
+        expiredDeployments.add(deploymentId);
+        liveUntil.delete(deploymentId);
+
+        return 'expired';
+      }
+
+      if (body?.state === 'live') {
+        liveUntil.set(deploymentId, Date.now() + LIVE_CACHE_TTL_MS);
+
+        return 'live';
+      }
+
+      // `not-found` ou réponse inattendue : on ne sait pas, donc on ne sert pas.
+      return 'unknown';
+    } catch {
+      // (4) API injoignable et aucun état frais : indéterminé.
+      return 'unknown';
+    }
+  };
+
   const wakeServerDeploy = async (deploymentId: string): Promise<'ready' | 'starting' | 'gone'> => {
     if (!serverDeployManagerUrl) {
       return 'starting';
@@ -1535,6 +1632,49 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
           path === REPORTER_SCRIPT_PATH ||
           path === BLANK_PREVIEW_PATH
         ) {
+          return;
+        }
+
+        /*
+         * EXTINCTION 30 j du chemin SERVER.
+         *
+         * Le proxy transmettait `d-<id>` DIRECTEMENT au Service in-cluster sans
+         * jamais consulter l'API : une publication Starter expirée restait donc
+         * joignable indéfiniment, alors que le chemin STATIQUE, lui, renvoyait
+         * bien 410. C'est ce trou que ce garde ferme.
+         *
+         * 410 Gone (et non 404) : la ressource a existé et son adresse est
+         * retirée. On refuse AVANT tout forward — aucun octet applicatif ne part
+         * vers l'amont, et l'amont lui-même a été arrêté par le balayage côté API
+         * (le 410 est la façade, l'arrêt est la substance).
+         */
+        const verdict = await resolveServingVerdict(deploy.deploymentId);
+
+        if (verdict === 'expired') {
+          reply.header('cache-control', 'no-store');
+          await reply.code(410).send({
+            error: 'Cette publication a expiré. Republiez le projet pour remettre l\'adresse en ligne.',
+            code: 'PUBLISHED_DEPLOYMENT_EXPIRED',
+          });
+
+          return;
+        }
+
+        if (verdict === 'unknown') {
+          /*
+           * État INDÉTERMINÉ : on ne peut pas établir si cette publication est
+           * encore valide. Servir reviendrait à renvoyer les octets d'un workload
+           * POTENTIELLEMENT expiré — c'est précisément ce qu'on refuse. 503 (et
+           * non 410) : on ne prétend pas qu'elle est éteinte, on dit qu'on ne
+           * sait pas, et l'appelant peut réessayer.
+           */
+          reply.header('cache-control', 'no-store');
+          await reply.code(503).header('retry-after', '5').send({
+            error: "Impossible de vérifier l'état de cette publication. Réessayez dans un instant.",
+            code: 'PUBLICATION_STATE_UNAVAILABLE',
+            retryable: true,
+          });
+
           return;
         }
 
