@@ -35,14 +35,19 @@ export const loader = ({ request }: LoaderFunctionArgs) => {
   return data({ notFoundPath: new URL(request.url).pathname }, { status: 404, statusText: 'Not Found' });
 };
 
-export const meta: MetaFunction = () => [{ title: 'Page not found · E-Code' }, { name: 'robots', content: 'noindex' }];
+export const meta: MetaFunction = () => [
+  { title: 'Page not found · E-Code' },
+  { name: 'description', content: 'This page could not be found on E-Code.' },
+  // BUG-MKT-009 — une page introuvable ne doit jamais entrer dans un index.
+  { name: 'robots', content: 'noindex, nofollow' },
+];
 
 function NotFoundView({ status = 404 }: { status?: number }) {
   /*
-   * The loader throws a 404 Response, so Remix renders this ErrorBoundary and the
-   * route `meta` (with the proper title) never runs — leaving the document title at
-   * the root default ("Loading..."). meta-on-error isn't supported in Remix v2, and
-   * React 18 doesn't hoist a <title> element, so set it client-side here.
+   * Filet pour le rendu via ErrorBoundary UNIQUEMENT. Sur le chemin normal, le
+   * loader RENVOIE désormais le 404 et `meta` pose le titre dès le SSR ; mais une
+   * route en erreur n'exécute pas `meta`, et React 18 ne hisse pas un <title>.
+   * Poser le titre ici reste donc nécessaire pour ce chemin résiduel.
    */
   useEffect(() => {
     document.title = status === 404 ? 'Page not found · E-Code' : `Error ${status} · E-Code`;
