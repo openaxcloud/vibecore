@@ -261,6 +261,26 @@ class ToolTimeoutError extends Error {
   }
 }
 
+/*
+ * Whether a `start` boltAction is launching a DEV SERVER (so it should be handed
+ * to the workbench's single tracked launcher) rather than some bespoke long-running
+ * command. Matches the package-manager dev/start scripts and the common framework
+ * dev CLIs; a command that is none of these keeps the legacy PTY path so it is
+ * never silently dropped.
+ */
+export function isDevServerStartCommand(command: string): boolean {
+  const normalized = (command ?? '').toLowerCase();
+
+  return (
+    /\b(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?(?:dev|start|serve|preview)\b/.test(normalized) ||
+    /(?:^|\s|\/|&&\s*)(?:npx\s+)?vite\b/.test(normalized) ||
+    /\b(?:next|astro|remix|nuxt|vinxi|ng|vue-cli-service|react-scripts|parcel|rsbuild|webpack(?:-dev-server)?)\s+(?:dev|serve|start)\b/.test(
+      normalized,
+    ) ||
+    /\bnpm\s+start\b/.test(normalized)
+  );
+}
+
 export class ActionRunner {
   #runtime: RuntimeAdapter;
   #currentExecutionPromise: Promise<void> = Promise.resolve();
@@ -270,6 +290,18 @@ export class ActionRunner {
   onAlert?: (alert: ActionAlert) => void;
   onSupabaseAlert?: (alert: SupabaseAlert) => void;
   onDeployAlert?: (alert: DeployAlert) => void;
+
+  /*
+   * Delegate a dev-server `start` action to the workbench's single tracked,
+   * install-aware launcher (startPreviewServer → streamCommand) instead of typing
+   * `npm run dev` into the jsh PTY. The PTY launch is untracked (never appears in
+   * /processes), not install-guaranteed (a slow install is Ctrl+C-killed by the
+   * next action), and races the tracked launcher on --strictPort 5173 — the
+   * structural cause of "dev server never starts". When this hook is wired there is
+   * exactly ONE launcher; when it is absent (tests / other embeddings) the runner
+   * falls back to the legacy PTY behaviour.
+   */
+  onStartDevServer?: (command: string) => Promise<unknown> | unknown;
   buildOutput?: { path: string; exitCode: number; output: string };
   #actionWatchdogs = new Map<string, ReturnType<typeof setTimeout>>();
 
@@ -279,12 +311,14 @@ export class ActionRunner {
     onAlert?: (alert: ActionAlert) => void,
     onSupabaseAlert?: (alert: SupabaseAlert) => void,
     onDeployAlert?: (alert: DeployAlert) => void,
+    onStartDevServer?: (command: string) => Promise<unknown> | unknown,
   ) {
     this.#runtime = runtime;
     this.#shellTerminal = getShellTerminal;
     this.onAlert = onAlert;
     this.onSupabaseAlert = onSupabaseAlert;
     this.onDeployAlert = onDeployAlert;
+    this.onStartDevServer = onStartDevServer;
   }
 
   addAction(data: ActionCallbackData) {
@@ -670,6 +704,19 @@ export class ActionRunner {
   async #runStartAction(action: ActionState) {
     if (action.type !== 'start') {
       unreachable('Expected shell action');
+    }
+
+    /*
+     * UNIFIED LAUNCHER: hand a dev-server start to the workbench's single tracked
+     * launcher (startPreviewServer) instead of the jsh PTY, so there is never a
+     * second, untracked, install-unaware dev server racing it on port 5173. Only a
+     * recognized dev-server command is delegated — a non-dev `start` (a bespoke
+     * script with no dev/start entry the tracked path could detect) still runs in
+     * the PTY so we never silently drop it. No-op fallback when the hook is unwired.
+     */
+    if (this.onStartDevServer && isDevServerStartCommand(action.content)) {
+      await this.onStartDevServer(action.content);
+      return { exitCode: 0, output: '' };
     }
 
     if (!this.#shellTerminal) {

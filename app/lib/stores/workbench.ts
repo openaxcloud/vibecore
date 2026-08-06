@@ -2676,6 +2676,15 @@ export class WorkbenchStore {
 
           this.deployAlert.set(alert);
         },
+        /*
+         * Unify the dev-server launch: the AI's `start` action delegates here
+         * instead of typing `npm run dev` into an untracked jsh PTY, so the dev
+         * server is launched ONCE, through the tracked + install-aware
+         * startPreviewServer/streamCommand path (which /processes sees and the
+         * conflict-heal can reap). Normal (non-forced) start so it dedups against
+         * the client's own auto-run rather than double-launching.
+         */
+        () => this.startPreviewServer(),
       ),
     });
   }

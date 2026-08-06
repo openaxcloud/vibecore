@@ -27,6 +27,7 @@ import {
   decidePreviewLoadOutcome,
   shouldReloadPreviewOnReadyEdge,
   shouldRunPreviewBootLoop,
+  MAX_PREVIEW_BOOT_ATTEMPTS,
 } from './preview-frame-recovery';
 import { EmptyState } from '~/components/ui/EmptyState';
 import { IconButton } from '~/components/ui/IconButton';
@@ -600,6 +601,10 @@ export const Preview = memo(
 
     // One-shot guard: auto-reload a blank (served-but-never-mounted) preview at most once.
     const blankRecoveredRef = useRef(false);
+    // How many times the boot loop has relaunched the dev server for the current
+    // (portless) session — bounds the auto-retry so a dev-server-absent 502 keeps
+    // relaunching but never hammers forever (see shouldRunPreviewBootLoop).
+    const bootAttemptsRef = useRef(0);
     const inputRef = useRef<HTMLInputElement>(null);
     const previewReloadTimer = useRef<number | undefined>();
     const previewLoadRetryRef = useRef(0);
@@ -1213,6 +1218,7 @@ export const Preview = memo(
           previewsLength: previews.length,
           previewRunFailed,
           hasWorkspaceError: Boolean(workspaceError),
+          bootAttempts: bootAttemptsRef.current,
         })
       ) {
         return;
@@ -1265,6 +1271,14 @@ export const Preview = memo(
         .finally(() => window.setTimeout(() => setIsStartingPreview(false), 2500));
     }, [autoStart, projectId, isStartingPreview, workspaceStatus]);
 
+    /* A detected port means the loop succeeded — reset the relaunch budget so a
+     * later death gets its own full budget. */
+    useEffect(() => {
+      if (previews.length > 0) {
+        bootAttemptsRef.current = 0;
+      }
+    }, [previews.length]);
+
     useEffect(() => {
       if (
         !shouldRunPreviewBootLoop({
@@ -1274,6 +1288,7 @@ export const Preview = memo(
           previewsLength: previews.length,
           previewRunFailed,
           hasWorkspaceError: Boolean(workspaceError),
+          bootAttempts: bootAttemptsRef.current,
         })
       ) {
         return undefined;
@@ -1292,6 +1307,21 @@ export const Preview = memo(
           return;
         }
 
+        /*
+         * Bounded auto-retry: once the relaunch budget is spent, stop looping and
+         * hand off to the manual recovery UI instead of hammering. previewRunFailed
+         * does NOT stop the loop before this (a dev-server-absent 502 keeps
+         * relaunching), so this cap is what terminates it.
+         */
+        if (bootAttemptsRef.current >= MAX_PREVIEW_BOOT_ATTEMPTS) {
+          setPreviewStatus('The dev server did not come up after several attempts. Try Run / Reinstall.');
+          setPreviewRunFailed(true);
+          setIsStartingPreview(false);
+          window.clearInterval(interval);
+
+          return;
+        }
+
         if (tick % 6 === 0) {
           /*
            * Force a real dependency (re)install, not just a dev-server restart.
@@ -1302,10 +1332,12 @@ export const Preview = memo(
            * isPreviewServerStarting() check above so it never overlaps an
            * in-flight install.
            */
+          bootAttemptsRef.current += 1;
           setIsStartingPreview(true);
           setPreviewStatus('Reinstalling dependencies and restarting the dev server...');
           void workbenchStore.reinstallDependencies().catch(() => undefined);
         } else if (tick % 2 === 0) {
+          bootAttemptsRef.current += 1;
           setIsStartingPreview(true);
           setPreviewStatus('Starting dev server and detecting runtime ports...');
           void workbenchStore.startPreviewServer().catch(() => undefined);
@@ -1324,6 +1356,7 @@ export const Preview = memo(
           previewsLength: previews.length,
           previewRunFailed,
           hasWorkspaceError: Boolean(workspaceError),
+          bootAttempts: bootAttemptsRef.current,
         })
       ) {
         return undefined;
