@@ -1,0 +1,361 @@
+{
+  "schemaVersion": 1,
+  "snapshotDate": "2026-08-05",
+  "status": "pass",
+  "scope": {
+    "slugs": [
+      "app-builder",
+      "website-builder",
+      "game-builder",
+      "dashboard-builder",
+      "chatbot-builder",
+      "internal-ai-builder",
+      "startups",
+      "freelancers"
+    ],
+    "excluded": ["enterprise"],
+    "source": "The exported en and fr objects in the eight in-scope Solutions copy modules.",
+    "scanner": "scripts/audit-solutions-fr-residuals.mjs"
+  },
+  "methodology": {
+    "leafDefinition": "Every statically extractable string leaf in each locale object; booleans, nulls and numeric literals are excluded.",
+    "structureGate": "EN and FR property paths must match exactly.",
+    "distinctValueDefinition": "A French leaf whose NFKC-normalized, whitespace-collapsed, case-folded value differs from the English value at the same property path.",
+    "distinctValueRateFormula": "distinctFrenchValues / englishLeaves * 100",
+    "validatedLocalizationRateFormula": "(distinctFrenchValues + authorizedIdenticalValues) / englishLeaves * 100",
+    "residualGate": "Exact EN/FR duplicates must match a documented identical-value rule; all other French leaves are scanned after narrowly allowlisted product, brand, technical and source-code spans are shielded.",
+    "reproductionCommands": [
+      "node scripts/audit-solutions-fr-residuals.mjs --json",
+      "pnpm exec vitest --run tests/unit/solutions-fr-residuals.test.mjs",
+      "node -e \"JSON.parse(require('node:fs').readFileSync('docs/deploy-evidence/2026-08-05-solutions-final/translation-coverage.json', 'utf8'))\"",
+      "git diff --check -- docs/deploy-evidence/2026-08-05-solutions-final/translation-coverage.json"
+    ]
+  },
+  "pages": [
+    {
+      "slug": "app-builder",
+      "file": "app/components/marketing/solutions/app-builder.copy.ts",
+      "leaves": { "en": 167, "fr": 167 },
+      "missingKeys": { "inFrench": [], "inEnglish": [] },
+      "distinctFrenchValues": 161,
+      "authorizedIdenticalCount": 6,
+      "distinctValueRatePercent": 96.41,
+      "validatedLocalizationRatePercent": 100,
+      "authorizedIdentical": [
+        {
+          "rule": "language-self-name",
+          "justification": "Language-switch choices use each language's self-name.",
+          "entries": [
+            { "path": "languageSwitch.english", "value": "English" },
+            { "path": "languageSwitch.french", "value": "Français" }
+          ]
+        },
+        {
+          "rule": "clock-time",
+          "justification": "Numeric 24-hour times are language-neutral.",
+          "entries": [
+            { "path": "prompt.demoLabels.calendar.slots[0].time", "value": "09:00" },
+            { "path": "prompt.demoLabels.calendar.slots[1].time", "value": "11:30" },
+            { "path": "prompt.demoLabels.calendar.slots[2].time", "value": "14:00" }
+          ]
+        },
+        {
+          "rule": "valid-french-homograph",
+          "justification": "The spelling is valid French as well as English in its recorded UI context.",
+          "entries": [{ "path": "prompt.demoLabels.database.tables[0].name", "value": "Clients" }]
+        }
+      ],
+      "residuals": { "before": null, "after": 0 }
+    },
+    {
+      "slug": "website-builder",
+      "file": "app/components/marketing/solutions/website-builder.copy.ts",
+      "leaves": { "en": 158, "fr": 158 },
+      "missingKeys": { "inFrench": [], "inEnglish": [] },
+      "distinctFrenchValues": 151,
+      "authorizedIdenticalCount": 7,
+      "distinctValueRatePercent": 95.57,
+      "validatedLocalizationRatePercent": 100,
+      "authorizedIdentical": [
+        {
+          "rule": "language-self-name",
+          "justification": "Language-switch choices use each language's self-name.",
+          "entries": [
+            { "path": "languageSwitch.english", "value": "English" },
+            { "path": "languageSwitch.french", "value": "Français" }
+          ]
+        },
+        {
+          "rule": "brand-or-proper-name",
+          "justification": "Brands, fictional product names, people, customers and place names must not be translated.",
+          "entries": [
+            { "path": "demo.brand", "value": "Meridian Studio" },
+            { "path": "demo.asideRows[1].value", "value": "Nouvelle-Aquitaine" }
+          ]
+        },
+        {
+          "rule": "valid-french-homograph",
+          "justification": "These spellings are valid French as well as English in their recorded UI context.",
+          "entries": [
+            { "path": "demo.nav[1]", "value": "Studio" },
+            { "path": "demo.nav[2]", "value": "Contact" },
+            { "path": "demo.primaryRows[1].meta", "value": "Public · 2024" }
+          ]
+        }
+      ],
+      "residuals": { "before": null, "after": 0 }
+    },
+    {
+      "slug": "game-builder",
+      "file": "app/components/marketing/solutions/game-builder.copy.ts",
+      "leaves": { "en": 158, "fr": 158 },
+      "missingKeys": { "inFrench": [], "inEnglish": [] },
+      "distinctFrenchValues": 152,
+      "authorizedIdenticalCount": 6,
+      "distinctValueRatePercent": 96.2,
+      "validatedLocalizationRatePercent": 100,
+      "authorizedIdentical": [
+        {
+          "rule": "language-self-name",
+          "justification": "Language-switch choices use each language's self-name.",
+          "entries": [
+            { "path": "languageSwitch.english", "value": "English" },
+            { "path": "languageSwitch.french", "value": "Français" }
+          ]
+        },
+        {
+          "rule": "brand-or-proper-name",
+          "justification": "Brands, fictional product names and people must not be translated.",
+          "entries": [
+            { "path": "demo.brand", "value": "TriviaClash" },
+            { "path": "demo.primaryRows[0].label", "value": "Nadia" },
+            { "path": "demo.primaryRows[1].label", "value": "Marco" },
+            { "path": "demo.primaryRows[2].label", "value": "Priya" }
+          ]
+        }
+      ],
+      "residuals": { "before": null, "after": 0 }
+    },
+    {
+      "slug": "dashboard-builder",
+      "file": "app/components/marketing/solutions/dashboard-builder.copy.ts",
+      "leaves": { "en": 158, "fr": 158 },
+      "missingKeys": { "inFrench": [], "inEnglish": [] },
+      "distinctFrenchValues": 151,
+      "authorizedIdenticalCount": 7,
+      "distinctValueRatePercent": 95.57,
+      "validatedLocalizationRatePercent": 100,
+      "authorizedIdentical": [
+        {
+          "rule": "language-self-name",
+          "justification": "Language-switch choices use each language's self-name.",
+          "entries": [
+            { "path": "languageSwitch.english", "value": "English" },
+            { "path": "languageSwitch.french", "value": "Français" }
+          ]
+        },
+        {
+          "rule": "brand-or-proper-name",
+          "justification": "Fictional product and customer names must not be translated; the customer names are example data, not real client claims.",
+          "entries": [
+            { "path": "demo.brand", "value": "PipelineIQ" },
+            { "path": "demo.primaryRows[0].label", "value": "Northwind Traders" },
+            { "path": "demo.primaryRows[1].label", "value": "Atlas Logistics" },
+            { "path": "demo.primaryRows[2].label", "value": "Beacon Retail Group" }
+          ]
+        },
+        {
+          "rule": "accepted-business-term",
+          "justification": "Pipeline is an established technical sales term and identifies the depicted product area.",
+          "entries": [{ "path": "demo.nav[1]", "value": "Pipeline" }]
+        }
+      ],
+      "residuals": { "before": null, "after": 0 }
+    },
+    {
+      "slug": "chatbot-builder",
+      "file": "app/components/marketing/solutions/chatbot-builder.copy.ts",
+      "leaves": { "en": 158, "fr": 158 },
+      "missingKeys": { "inFrench": [], "inEnglish": [] },
+      "distinctFrenchValues": 153,
+      "authorizedIdenticalCount": 5,
+      "distinctValueRatePercent": 96.84,
+      "validatedLocalizationRatePercent": 100,
+      "authorizedIdentical": [
+        {
+          "rule": "language-self-name",
+          "justification": "Language-switch choices use each language's self-name.",
+          "entries": [
+            { "path": "languageSwitch.english", "value": "English" },
+            { "path": "languageSwitch.french", "value": "Français" }
+          ]
+        },
+        {
+          "rule": "brand-or-proper-name",
+          "justification": "The fictional product name must not be translated.",
+          "entries": [{ "path": "demo.brand", "value": "HelpDesk Copilot" }]
+        },
+        {
+          "rule": "valid-french-homograph",
+          "justification": "These spellings are valid French as well as English in their recorded UI context.",
+          "entries": [
+            { "path": "demo.nav[1]", "value": "Sources" },
+            { "path": "demo.asideRows[0].label", "value": "Documentation" }
+          ]
+        }
+      ],
+      "residuals": { "before": null, "after": 0 }
+    },
+    {
+      "slug": "internal-ai-builder",
+      "file": "app/components/marketing/solutions/internal-ai-builder.copy.ts",
+      "leaves": { "en": 158, "fr": 158 },
+      "missingKeys": { "inFrench": [], "inEnglish": [] },
+      "distinctFrenchValues": 154,
+      "authorizedIdenticalCount": 4,
+      "distinctValueRatePercent": 97.47,
+      "validatedLocalizationRatePercent": 100,
+      "authorizedIdentical": [
+        {
+          "rule": "language-self-name",
+          "justification": "Language-switch choices use each language's self-name.",
+          "entries": [
+            { "path": "languageSwitch.english", "value": "English" },
+            { "path": "languageSwitch.french", "value": "Français" }
+          ]
+        },
+        {
+          "rule": "brand-or-proper-name",
+          "justification": "The fictional product name must not be translated.",
+          "entries": [{ "path": "demo.brand", "value": "PeopleOps" }]
+        },
+        {
+          "rule": "valid-french-homograph",
+          "justification": "The spelling is valid French as well as English in its recorded UI context.",
+          "entries": [{ "path": "demo.asideRows[1].label", "value": "Permissions" }]
+        }
+      ],
+      "residuals": { "before": null, "after": 0 }
+    },
+    {
+      "slug": "startups",
+      "file": "app/components/marketing/solutions/startups.copy.ts",
+      "leaves": { "en": 158, "fr": 158 },
+      "missingKeys": { "inFrench": [], "inEnglish": [] },
+      "distinctFrenchValues": 155,
+      "authorizedIdenticalCount": 3,
+      "distinctValueRatePercent": 98.1,
+      "validatedLocalizationRatePercent": 100,
+      "authorizedIdentical": [
+        {
+          "rule": "language-self-name",
+          "justification": "Language-switch choices use each language's self-name.",
+          "entries": [
+            { "path": "languageSwitch.english", "value": "English" },
+            { "path": "languageSwitch.french", "value": "Français" }
+          ]
+        },
+        {
+          "rule": "brand-or-proper-name",
+          "justification": "The fictional product name must not be translated.",
+          "entries": [{ "path": "demo.brand", "value": "Launchpad" }]
+        }
+      ],
+      "residuals": { "before": null, "after": 0 }
+    },
+    {
+      "slug": "freelancers",
+      "file": "app/components/marketing/solutions/freelancers.copy.ts",
+      "leaves": { "en": 158, "fr": 158 },
+      "missingKeys": { "inFrench": [], "inEnglish": [] },
+      "distinctFrenchValues": 155,
+      "authorizedIdenticalCount": 3,
+      "distinctValueRatePercent": 98.1,
+      "validatedLocalizationRatePercent": 100,
+      "authorizedIdentical": [
+        {
+          "rule": "language-self-name",
+          "justification": "Language-switch choices use each language's self-name.",
+          "entries": [
+            { "path": "languageSwitch.english", "value": "English" },
+            { "path": "languageSwitch.french", "value": "Français" }
+          ]
+        },
+        {
+          "rule": "brand-or-proper-name",
+          "justification": "The fictional studio name must not be translated.",
+          "entries": [{ "path": "demo.brand", "value": "Studio Ferro" }]
+        }
+      ],
+      "residuals": { "before": null, "after": 0 }
+    }
+  ],
+  "totals": {
+    "pages": 8,
+    "englishLeaves": 1273,
+    "frenchLeaves": 1273,
+    "missingKeys": { "inFrench": 0, "inEnglish": 0 },
+    "distinctFrenchValues": 1232,
+    "authorizedIdenticalValues": 41,
+    "distinctValueRatePercent": 96.78,
+    "validatedLocalizationRatePercent": 100,
+    "unapprovedIdenticalValues": 0,
+    "allowlistedTermOccurrences": 1101,
+    "finalResidualFindings": 0
+  },
+  "residuals": {
+    "editorialBaselineBeforeCorrections": {
+      "total": 54,
+      "provenance": "First scanner run on the pre-correction editorial working snapshot; its output was retained in the work log, not in a commit.",
+      "byFamily": {
+        "lobby": 28,
+        "onboarding": 8,
+        "workflow": 8,
+        "desktop": 5,
+        "live": 4,
+        "starter": 1
+      },
+      "byPage": null,
+      "byPageAvailability": "The first scanner artefact did not retain a per-page breakdown. No page-level baseline values are reconstructed or inferred."
+    },
+    "historicalHeadComparison": {
+      "revision": "aaafe93b7d09408479d8c1e7499632e5bcc59701",
+      "total": 116,
+      "provenance": "Reproducible comparison obtained by running the final scanner and allowlists against the eight copy files stored at historical HEAD. It is not the 54-finding editorial working-snapshot baseline.",
+      "byRule": {
+        "unlocalized-product-copy": 105,
+        "english-action-or-state": 9,
+        "unapproved-identical-value": 2
+      },
+      "byPage": {
+        "app-builder": 5,
+        "website-builder": 5,
+        "game-builder": 29,
+        "dashboard-builder": 11,
+        "chatbot-builder": 8,
+        "internal-ai-builder": 21,
+        "startups": 21,
+        "freelancers": 16
+      }
+    },
+    "afterCorrections": {
+      "total": 0,
+      "scannerStatus": "pass",
+      "byFamily": {
+        "identical-to-en": 0,
+        "english-marker": 0,
+        "english-prose": 0
+      },
+      "byPage": {
+        "app-builder": 0,
+        "website-builder": 0,
+        "game-builder": 0,
+        "dashboard-builder": 0,
+        "chatbot-builder": 0,
+        "internal-ai-builder": 0,
+        "startups": 0,
+        "freelancers": 0
+      }
+    }
+  }
+}

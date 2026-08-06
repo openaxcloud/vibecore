@@ -2,9 +2,9 @@
 
 ## Périmètre
 
-Refondre les neuf pages Solutions marketing sans toucher au shell IDE, à la preview/webview, à `Chat.client.tsx`, à `BaseChat.tsx`, au LLM, à `workspace-agent`, à `preview-proxy`, au backend, aux migrations ou à l'infrastructure.
+Finaliser les huit pages Solutions marketing `app-builder`, `website-builder`, `game-builder`, `dashboard-builder`, `chatbot-builder`, `internal-ai-builder`, `startups` et `freelancers`, sans toucher au shell IDE, à la preview/webview, à `Chat.client.tsx`, à `BaseChat.tsx`, au LLM, à `workspace-agent`, à `preview-proxy`, au backend, aux migrations ou à l'infrastructure. La page `enterprise` appartient à une session i18n séparée et reste hors périmètre.
 
-Ordre de livraison : SOL-01 App Builder, validation du commanditaire, puis SOL-02 à SOL-09. Les huit pages suivantes ne démarrent pas avant cette validation.
+Ordre de livraison : App Builder, puis les sept autres pages du périmètre après validation du socle visuel et éditorial.
 
 Les images de démonstration sont de vraies captures raster issues d'un rendu navigateur déterministe, jamais de simples schémas présentés comme des captures. App Builder fournit quatre écrans distincts en anglais et quatre en français, plus un sélecteur EN/FR persistant et des images Open Graph localisées. Chaque légende précise qu'il s'agit d'une démonstration exécutable avec données fictives ; elle ne prétend pas que la génération E-Code a été vérifiée si ce n'est pas le cas.
 
@@ -29,17 +29,17 @@ App Builder montre aussi une preuve séparée du flux de génération : un véri
 - SOL-04 : « Un tableau de bord de mes ventes, connecté à ma base, avec graphiques et filtres. »
 - SOL-05 : « Un assistant qui répond aux questions de mes clients à partir de ma documentation. »
 - SOL-06 : « Un agent interne qui cherche dans nos procédures RH, réservé à mes équipes. »
-- SOL-07 à SOL-09 : prompt réaliste propre au rôle et à ses contraintes, jamais un exemple générique recyclé.
+- Startups et Freelancers : prompt réaliste propre au rôle et à ses contraintes, jamais un exemple générique recyclé.
 
 ## Règles transverses
 
 - Aucun témoignage, logo client ou chiffre de confiance inventé.
 - Aucun ton de spécification : bannir « should be », « can be » et « is designed to ».
-- Aucun contenu mutualisé entre les neuf pages. Sans le titre, l'identité de la page reste évidente.
+- Aucun contenu mutualisé entre les huit pages. Sans le titre, l'identité de la page reste évidente.
 - Illustrations/captures E-Code uniquement ; aucune banque d'images. Chaque page montre plusieurs visuels produit qui démontrent le résultat concret du prompt, pas de simples pictogrammes ou cartes textuelles. Toute image sous la ligne de flottaison porte `loading="lazy"`, `width`, `height` et un texte alternatif réel.
 - App Builder montre au minimum le parcours de réservation, l'agenda d'équipe et les comptes clients/rappels, avec un traitement lisible en clair comme en sombre.
 - Tokens E-Code uniquement ; orange réservé aux actions ; zéro violet ; IBM Plex ; clair et sombre complets.
 - H1 : 28 px à 390 px, 32 px dès 768 px.
 - Responsive vérifié à 390, 768, 1024 et 1440 px ; cibles tactiles d'au moins 44 px ; focus visible et sémantique accessible.
 - Traductions complètes pour toutes les langues supportées ; title, description, canonical et Open Graph propres à la page.
-- Gates obligatoires : typecheck, lint, tests et build. Captures clair/sombre aux quatre largeurs avant le statut « Testé live ».
+- Gates obligatoires : typecheck, lint, tests et build. Les 96 captures finales couvrent clair/sombre à 390, 768 et 1440 px ; la matrice automatisée ajoute 1024 px pour atteindre 128 combinaisons. Aucun statut « Testé live » avant le passage intégral de ces deux preuves.
