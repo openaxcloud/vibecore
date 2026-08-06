@@ -2,7 +2,7 @@
 # (P0-A2-01 / P0-LS-16). Ne jamais éditer à la main — drift-check en CI. Le
 # champ validation reflète le dernier run du validateur sur l'arbre.
 schemaVersion: 1
-fileCount: 173
+fileCount: 175
 generatedAt: "2026-08-05T15:57:30Z"
 generatedFromCommit: 490e95016d53691c6d4764ce1f5cdef1dd262f82
 mergedCommit: 490e95016d53691c6d4764ce1f5cdef1dd262f82
@@ -127,6 +127,11 @@ documents:
     sha256: "71a19a82fd6b81fb75a12a21122197d362ee67a30828129c54924cc514c52745"
     schemaVersion: 1
     repoCommit: 42a48091
+    reviewer: UNKNOWN
+  - file: DESIGN_BATCH_SOLUTIONS_SPEC.md
+    sha256: "cac028c7ad8ade99c3a093d77af7e418a39f1463dd657ea3706f7cac23f771f4"
+    schemaVersion: null
+    repoCommit: null
     reviewer: UNKNOWN
   - file: DOMAIN_MODEL.md
     sha256: "3f83a06f85f7080266b98d8fb7e099d303d41995788e27da2206a5d3bb4ee52f"
@@ -367,6 +372,11 @@ documents:
     sha256: "e088547395efa548d9d793ce5a68e2906effcb2165e93fa2f466dec1a3c1e15f"
     schemaVersion: 1
     repoCommit: af9e4e83
+    reviewer: UNKNOWN
+  - file: SOLUTIONS_REAL_PROOF_BLOCKERS.md
+    sha256: "45c8bc3194327f4b66d04498b4dadd5042602fd146912f0bc8fc6da0085c4ce1"
+    schemaVersion: null
+    repoCommit: null
     reviewer: UNKNOWN
   - file: SOURCE_REGISTRY.yaml
     sha256: "357b1f11bdbd9fbc407758e428a3ba9f149a512230f5a0da1fc287d55368c940"
