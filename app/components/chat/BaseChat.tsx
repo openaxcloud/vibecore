@@ -1647,6 +1647,14 @@ function makePaneTab(panel: IdeWorkspacePanel, options: Partial<IdePaneTab> = {}
     panel,
     pinned: options.pinned,
     filePath: options.filePath,
+
+    /*
+     * `preview` était perdu ici : aucun onglet n'était donc jamais marqué
+     * comme onglet d'aperçu, et le filtre de remplacement (openWorkspacePanel)
+     * ne retirait jamais rien — les ouvertures « simple clic » s'empilaient en
+     * onglets permanents au lieu de réutiliser l'onglet d'aperçu.
+     */
+    preview: options.preview,
   };
 }
 
@@ -4912,8 +4920,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         setActivePaneId(targetPaneId);
         setPaneTree((currentTree) =>
           updateLeaf(currentTree, targetPaneId, (leaf) => {
+            /*
+             * L'arbre de panes par défaut porte un onglet éditeur SANS
+             * `filePath` (`tab-editor-default`), réinjecté à chaque
+             * restauration de layout. Son libellé retombe sur le document
+             * courant, si bien qu'ouvrir un fichier produisait DEUX onglets
+             * portant le même nom : le placeholder qui affiche le fichier
+             * courant, et le nouvel onglet réel — la dédup ne pouvait pas les
+             * rapprocher puisque le placeholder n'a pas de `filePath`. On
+             * ADOPTE donc l'onglet éditeur vide au lieu d'en créer un second.
+             * Cf. BUG-IDE-002.
+             */
             const existing = options.filePath
-              ? leaf.tabs.find((tab) => tab.panel === panel && tab.filePath === options.filePath)
+              ? (leaf.tabs.find((tab) => tab.panel === panel && tab.filePath === options.filePath) ??
+                (panel === 'editor' ? leaf.tabs.find((tab) => tab.panel === 'editor' && !tab.filePath) : undefined))
               : leaf.tabs.find((tab) => tab.panel === panel && !tab.filePath);
             const nextTab =
               existing ??
@@ -4928,7 +4948,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 : leaf.tabs;
             const tabs = existing
               ? baseTabs.map((tab) =>
-                  tab.id === existing.id ? { ...tab, preview: options.preview ?? tab.preview } : tab,
+                  tab.id === existing.id
+                    ? { ...tab, filePath: options.filePath ?? tab.filePath, preview: options.preview ?? tab.preview }
+                    : tab,
                 )
               : [...baseTabs, nextTab];
 

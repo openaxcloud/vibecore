@@ -1006,11 +1006,21 @@ export function DesktopCodeEditor({
 
         monacoRef.current = monaco;
 
-        const currentModel = monaco.editor.createModel(
-          value,
-          languageForPath(filePath, language),
-          modelUriForPath(monaco, filePath ?? 'untitled'),
-        );
+        /*
+         * Réutiliser un modèle existant : `createModel` JETTE si l'URI est déjà
+         * connue de Monaco (« Cannot add model because it already exists »), ce
+         * qui arrive en split-pane (deux éditeurs indexant les mêmes fichiers)
+         * ou après un remount. L'exception était avalée par le `.catch()` de
+         * l'import dynamique, qui loggait trompeusement un échec de chargement
+         * du module — et laissait un conteneur vide, mêmes symptômes que
+         * BUG-IDE-001. On ne dispose au démontage que le modèle qu'on a
+         * réellement créé, pour ne pas arracher celui d'un autre éditeur.
+         */
+        const modelUri = modelUriForPath(monaco, filePath ?? 'untitled');
+        const existingModel = monaco.editor.getModel(modelUri);
+        const ownsCurrentModel = !existingModel;
+        const currentModel =
+          existingModel ?? monaco.editor.createModel(value, languageForPath(filePath, language), modelUri);
 
         monaco.editor.defineTheme('vibecore-vs-dark', {
           base: 'vs-dark',
@@ -1165,7 +1175,10 @@ export function DesktopCodeEditor({
           disposable.dispose();
           selectionDisposable.dispose();
           providerDisposables.forEach((providerDisposable) => providerDisposable.dispose());
-          currentModel.dispose();
+
+          if (ownsCurrentModel) {
+            currentModel.dispose();
+          }
         });
       })
       .catch((error) => {
@@ -1211,7 +1224,13 @@ export function DesktopCodeEditor({
         targetModel = monaco.editor.createModel(value, languageForPath(filePath, language), uri);
       }
 
-      if (activeModel?.uri.toString() !== targetModel.uri.toString()) {
+      /*
+       * `isDisposed()` fait partie de la condition : comparer les seules URI
+       * laissait l'éditeur coincé sur un modèle disposé par ailleurs (l'URI
+       * reste égale, donc plus aucun réattachement). Filet de sécurité du
+       * défaut BUG-IDE-001.
+       */
+      if (activeModel?.uri.toString() !== targetModel.uri.toString() || activeModel.isDisposed()) {
         editor.setModel(targetModel);
       }
     }
@@ -1288,10 +1307,29 @@ export function DesktopCodeEditor({
         nextOwnedModelUris.add(uri.toString());
       }
 
+      /*
+       * NE JAMAIS disposer le modèle actuellement attaché à l'éditeur.
+       *
+       * L'index workspace exclut volontairement le fichier courant de
+       * `nextOwnedModelUris` (boucle ci-dessus). Sans cette garde, ouvrir un
+       * fichier qui avait déjà été indexé revenait à : l'attacher via
+       * `setModel` (plus haut dans cet effet), puis le disposer aussitôt ici —
+       * l'éditeur se retrouvait sans modèle exploitable, donc VIDE (ni texte,
+       * ni gouttière, ni numéros de ligne), alors que le fil d'ariane, la
+       * langue et la position du curseur restaient corrects (ils sont rendus
+       * hors de Monaco, depuis `currentDocument`). L'état ne se réparait pas
+       * seul : la comparaison de `setModel` porte sur l'URI, identique à celle
+       * du modèle disposé, donc plus aucun réattachement — d'où « vide jusqu'au
+       * rechargement ». Cf. BUG-IDE-001.
+       */
+      const attachedModelUri = editor.getModel()?.uri.toString();
+
       for (const uriString of ownedWorkspaceModelsRef.current) {
-        if (!nextOwnedModelUris.has(uriString)) {
-          monaco.editor.getModel(monaco.Uri.parse(uriString))?.dispose();
+        if (uriString === attachedModelUri || nextOwnedModelUris.has(uriString)) {
+          continue;
         }
+
+        monaco.editor.getModel(monaco.Uri.parse(uriString))?.dispose();
       }
 
       ownedWorkspaceModelsRef.current = nextOwnedModelUris;
