@@ -656,13 +656,24 @@ export class WorkbenchStore {
     }
   }
 
-  async startPreviewServer(options: { forceInstall?: boolean } = {}) {
-    // Dedup concurrent starts synchronously (before any await) — see #previewStarting.
-    if (this.#previewStartPromise) {
+  async startPreviewServer(options: { forceInstall?: boolean; forceRestart?: boolean } = {}) {
+    /*
+     * Dedup concurrent starts synchronously (before any await) — see #previewStarting.
+     * A USER-initiated recovery (Run / Reinstall → forceRestart) must bypass this
+     * dedup: a PRIOR start that WEDGED (an unbounded runtime await in
+     * #runStartPreviewServer never returned, so #previewStarting/#previewStartPromise
+     * were never cleared) would otherwise make every subsequent start — including the
+     * Run button — early-return the dead promise and relaunch NOTHING. That is the
+     * "Run does nothing" no-op. On an explicit forceRestart we punch through and
+     * relaunch for real.
+     */
+    const forceRestart = options.forceRestart ?? false;
+
+    if (!forceRestart && this.#previewStartPromise) {
       return this.#previewStartPromise;
     }
 
-    if (this.#previewStarting) {
+    if (!forceRestart && this.#previewStarting) {
       return 'preview starting';
     }
 
@@ -675,8 +686,9 @@ export class WorkbenchStore {
     }
   }
 
-  async #runStartPreviewServer(options: { forceInstall?: boolean } = {}) {
+  async #runStartPreviewServer(options: { forceInstall?: boolean; forceRestart?: boolean } = {}) {
     const forceInstall = options.forceInstall ?? false;
+    const forceRestart = options.forceRestart ?? false;
     const previousPreviewState = this.previewServerState.get();
 
     if (
@@ -701,7 +713,7 @@ export class WorkbenchStore {
 
     await this.refreshRuntimePorts().catch(() => undefined);
 
-    if (this.#previewStartPromise) {
+    if (!forceRestart && this.#previewStartPromise) {
       return this.#previewStartPromise;
     }
 
@@ -727,10 +739,14 @@ export class WorkbenchStore {
      * manifest sync / install / dev-server relaunch below, which would needlessly
      * stop and restart an app that is already up (the "from-scratch rebuild on
      * reopen" the resume path exists to avoid). A manual Reinstall (forceInstall)
-     * always bypasses this. Evaluating it BEFORE the manifest sync is what
-     * prevents a spurious dependenciesChanged from tearing down the live server.
+     * or a manual Run (forceRestart) always bypasses this — the user asked to
+     * relaunch, and adopting a "detected-ready" port that is actually a DYING
+     * untracked PTY dev server (bound 5173 then crashing) is exactly how Run
+     * became a no-op that reattaches to a corpse. Evaluating it BEFORE the manifest
+     * sync is what prevents a spurious dependenciesChanged from tearing down a live
+     * server on a NON-forced (auto) start.
      */
-    if (!forceInstall && (await this.#canShortCircuitToExistingPreview())) {
+    if (!forceInstall && !forceRestart && (await this.#canShortCircuitToExistingPreview())) {
       this.previewServerState.set({ status: 'running' });
       this.appendWorkspaceLog('Reattached to the already-running dev server.');
 
@@ -755,7 +771,11 @@ export class WorkbenchStore {
       await this.loadRuntimeFiles('.').catch(() => undefined);
     }
 
-    if (shouldInstall) {
+    if (shouldInstall || forceRestart) {
+      // A forced restart always tears down first, so the relaunch below reaches
+      // streamCommand — where the agent's conflict-heal frees port 5173 from ANY
+      // holder (including the untracked jsh-PTY dev server that stopPreviewServer's
+      // tracked-only kill cannot reap) before binding a fresh, tracked dev server.
       await this.stopPreviewServer();
     } else if (await this.#canShortCircuitToExistingPreview()) {
       this.previewServerState.set({ status: 'running' });
@@ -804,8 +824,19 @@ export class WorkbenchStore {
         const hasRuntimeDeps = Object.keys({ ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) }).some(
           (dep) => dep !== 'vite' && dep !== 'typescript',
         );
+
+        /*
+         * FAIL CLOSED: if the "are dependencies installed?" probe itself fails (the
+         * runtime is transiently unreachable — a 502 during provisioning, the exact
+         * window this bulletproof guard exists for), assume NOT installed and run the
+         * install. The old `.catch(() => true)` did the opposite — a probe failure was
+         * read as "installed", the install was SKIPPED, and `npm run dev` then died
+         * with `vite: command not found` (exit 127) against an empty node_modules,
+         * leaving no process and a 502 preview. An extra install is idempotent and
+         * cheap; skipping a needed one is a dead preview.
+         */
         const installed = await this.#packageDirectoryHasInstalledPreviewDependencies(pkgEntry[0], pkg).catch(
-          () => true,
+          () => false,
         );
 
         const alreadyInstalling = (command.setupCommands ?? []).some((c) => /install/i.test(c.label));
@@ -849,10 +880,31 @@ export class WorkbenchStore {
         }
 
         this.appendWorkspaceLog(`Starting preview with ${command.label}${command.cwd ? ` in ${command.cwd}` : ''}`);
-        await this.#streamWorkspaceCommand(command, {
+
+        const devExitCode = await this.#streamWorkspaceCommand(command, {
           exitMessage: 'Preview command exited with code',
           refreshPortsOnOutput: true,
         });
+
+        /*
+         * FAIL CLOSED, honestly. A long-lived dev server does not exit; if
+         * streamCommand RETURNED a non-zero code the dev command DIED (most often
+         * exit 127 `vite: command not found` against an empty node_modules, or a
+         * config crash) — the app is NOT running. Surface a clear error instead of
+         * letting the finally below optimistically report `running`/`idle` off a
+         * lingering/phantom port. This is the "workspace RUNNING + 0 processes + 502
+         * but status says Running on Port 5173" lie the P0 hinged on.
+         */
+        if (devExitCode !== 0) {
+          this.previewServerState.set({
+            status: 'error',
+            command: command.label,
+            error:
+              devExitCode === 127
+                ? `${command.label} failed (exit 127: command not found — dependencies are not installed). Try Reinstall.`
+                : `${command.label} exited with code ${devExitCode} — the dev server is not running.`,
+          });
+        }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         this.previewServerState.set({ status: 'error', command: command.label, error: message });
@@ -990,7 +1042,10 @@ export class WorkbenchStore {
   async restartPreviewServer() {
     await this.stopPreviewServer();
 
-    return this.startPreviewServer();
+    // forceRestart: an explicit user Run must relaunch for real — punch through a
+    // wedged start guard AND the "reattach to existing" short-circuit, so it can
+    // never be a no-op that adopts a dead/dying preview.
+    return this.startPreviewServer({ forceRestart: true });
   }
 
   /**
@@ -1003,7 +1058,7 @@ export class WorkbenchStore {
     this.appendWorkspaceLog('Reinstalling dependencies…');
     await this.stopPreviewServer();
 
-    return this.startPreviewServer({ forceInstall: true });
+    return this.startPreviewServer({ forceInstall: true, forceRestart: true });
   }
 
   /*
