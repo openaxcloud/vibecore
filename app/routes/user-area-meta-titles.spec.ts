@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 
 function titleOf(meta: unknown): string | undefined {
   const entries = typeof meta === 'function' ? (meta as (a: unknown) => unknown[])({}) : [];
+
   for (const entry of Array.isArray(entries) ? entries : []) {
     if (entry && typeof entry === 'object' && 'title' in entry) {
       return (entry as { title?: string }).title;

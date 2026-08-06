@@ -24,6 +24,7 @@ describe('resolveAccountDisplay (BUG-USR-001 — show the signed-in identity)', 
 
   it('uses the legacy profile username ONLY as a last resort', () => {
     expect(resolveAccountDisplay(null, 'legacy-name').displayName).toBe('legacy-name');
+
     // a real viewer identity always wins over the legacy localStorage profile
     expect(resolveAccountDisplay({ name: 'Real User' }, 'legacy-name').displayName).toBe('Real User');
   });

@@ -19,7 +19,8 @@ export async function loadViewer(): Promise<void> {
 
   // Already resolved or a load is in flight — the identity does not change per navigation.
   if (viewerStore.get() || inflight) {
-    return inflight ?? Promise.resolve();
+    await inflight;
+    return;
   }
 
   inflight = (async () => {
@@ -50,5 +51,5 @@ export async function loadViewer(): Promise<void> {
     }
   })();
 
-  return inflight;
+  await inflight;
 }

@@ -23,9 +23,7 @@ const clean = (value?: string | null): string => (typeof value === 'string' ? va
 
 /** Initials for the avatar chip. An email (single token with `@`) uses its first two letters. */
 export function accountInitials(label: string): string {
-  const parts = clean(label)
-    .split(/\s+/)
-    .filter(Boolean);
+  const parts = clean(label).split(/\s+/).filter(Boolean);
 
   if (parts.length === 0) {
     return '';
@@ -45,10 +43,13 @@ export function accountInitials(label: string): string {
 export interface AccountDisplay {
   /** The label to render (never empty — falls back to the placeholder). */
   displayName: string;
+
   /** Avatar initials, empty when only the placeholder is available. */
   initials: string;
+
   /** True when NO real identity was resolved (render the generic user icon, not initials). */
   isPlaceholder: boolean;
+
   /** Secondary line (email) when it is distinct from the display name. */
   secondary: string;
 }
@@ -62,12 +63,9 @@ export function resolveAccountDisplay(
   legacyUsername?: string | null,
 ): AccountDisplay {
   const email = clean(viewer?.email);
+
   const label =
-    clean(viewer?.displayName) ||
-    clean(viewer?.name) ||
-    clean(viewer?.username) ||
-    email ||
-    clean(legacyUsername);
+    clean(viewer?.displayName) || clean(viewer?.name) || clean(viewer?.username) || email || clean(legacyUsername);
 
   if (!label) {
     return { displayName: ACCOUNT_DISPLAY_PLACEHOLDER, initials: '', isPlaceholder: true, secondary: '' };

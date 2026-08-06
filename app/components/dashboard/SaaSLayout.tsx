@@ -94,6 +94,7 @@ import { EmptyState } from '~/components/ui/EmptyState';
 import UiPopover from '~/components/ui/Popover';
 import { RelativeTime } from '~/components/ui/RelativeTime';
 import { SkipLink } from '~/components/ui/SkipLink';
+import { resolveAccountDisplay } from '~/lib/account-identity';
 import {
   projectDeploymentSummary,
   projectLifecycleDisplayLabel,
@@ -102,7 +103,6 @@ import {
 import { profileStore } from '~/lib/stores/profile';
 import { themeStore, toggleTheme } from '~/lib/stores/theme';
 import { viewerStore, loadViewer } from '~/lib/stores/viewer';
-import { resolveAccountDisplay } from '~/lib/account-identity';
 import { resolveUserAreaSurface } from '~/lib/user-area-surface';
 import { statusDisplayLabel } from '~/lib/user-facing-labels';
 import { classNames } from '~/utils/classNames';
@@ -904,6 +904,8 @@ export function AppShell({
             />
           ) : null}
           <div className={classNames('mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8', contentClassName)}>
+            {/* BUG-USR-004: when the visual header is hidden (e.g. Workspace settings) still
+                expose exactly one <h1> landmark (sr-only) for a11y + cross-page consistency. */}
             {!hideHeader ? (
               <div
                 className="mb-6 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6"
@@ -925,8 +927,6 @@ export function AppShell({
                 </div>
               </div>
             ) : (
-              // BUG-USR-004: pages that hide the visual header (e.g. Workspace settings)
-              // must still expose exactly one <h1> landmark for a11y + consistency.
               <h1 className="sr-only">{displayedTitle}</h1>
             )}
             {showNavigationSkeleton ? (
@@ -1102,8 +1102,10 @@ function SidebarFooter({ collapsed, embedded = false }: { collapsed: boolean; em
   const viewer = useStore(viewerStore);
   const theme = useStore(themeStore);
 
-  // BUG-USR-001: show the authenticated identity (from /api/me), not the legacy
-  // localStorage profile which is empty for virtually every real user.
+  /*
+   * BUG-USR-001: show the authenticated identity (from /api/me), not the legacy
+   * localStorage profile which is empty for virtually every real user.
+   */
   useEffect(() => {
     void loadViewer();
   }, []);
