@@ -1,4 +1,5 @@
 import { mkdtemp, rm } from 'node:fs/promises';
+import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { signAgentToken } from '@vibecore/workspace-sdk';
@@ -15,6 +16,8 @@ import {
   injectViteDevArgs,
   isProductionBuildCommand,
   isTransientPackageCommand,
+  acquirePinnedDevPortLock,
+  killStalePinnedDevServers,
   pinnedDevServerPort,
   sanitizedChildEnv,
   type ProcessRecord,
@@ -314,7 +317,7 @@ describe('sanitizedChildEnv', () => {
   });
 });
 
-describe('sanitizedChildEnv PORT repoint', () => {
+describe('sanitizedChildEnv PORT handling', () => {
   const savedPort = process.env.PORT;
 
   afterEach(() => {
@@ -325,12 +328,14 @@ describe('sanitizedChildEnv PORT repoint', () => {
     }
   });
 
-  it("repoints a child that inherited the agent's control port (8080) to the pinned preview port in the preview env", () => {
-    // The agent image bakes PORT=8080; a child that honors PORT would otherwise
-    // bind the agent's control port and crash-loop on EADDRINUSE.
+  it("DELETES a child's inherited agent control port (8080) in the preview env (not repoint to Vite's 5173)", () => {
+    // The agent image bakes PORT=8080. A child that honors PORT must NOT inherit
+    // the agent's control port (EADDRINUSE) — and must NOT be repointed at 5173
+    // either, or it would fight Vite's --strictPort launch for that port. Deleting
+    // it lets a PORT-honoring framework fall back to its own default.
     process.env.PORT = '8080';
     const env = sanitizedChildEnv({ PORT: '8080', VITE_HMR_CLIENT_PORT: '443' }, { command: 'npm', args: ['run', 'dev'] });
-    expect(env.PORT).toBe('5173');
+    expect(env.PORT).toBeUndefined();
   });
 
   it('leaves PORT untouched outside the preview env (no VITE_HMR_CLIENT_PORT)', () => {
@@ -343,6 +348,122 @@ describe('sanitizedChildEnv PORT repoint', () => {
     process.env.PORT = '8080';
     const env = sanitizedChildEnv({ PORT: '3000', VITE_HMR_CLIENT_PORT: '443' }, { command: 'npm', args: ['run', 'dev'] });
     expect(env.PORT).toBe('3000');
+  });
+});
+
+describe('acquirePinnedDevPortLock', () => {
+  it('serializes concurrent pinned dev-server starts for the same port', async () => {
+    const order: string[] = [];
+
+    // Two starts race for the same port. Each: acquire → "critical section" → release.
+    const a = acquirePinnedDevPortLock(5173).then(async (release) => {
+      order.push('A:enter');
+      await new Promise((r) => setTimeout(r, 30));
+      order.push('A:exit');
+      release();
+    });
+
+    // Ensure B requests the lock while A holds it.
+    await new Promise((r) => setTimeout(r, 5));
+
+    const b = acquirePinnedDevPortLock(5173).then((release) => {
+      order.push('B:enter');
+      order.push('B:exit');
+      release();
+    });
+
+    await Promise.all([a, b]);
+
+    // B's critical section must not interleave with A's — A fully exits before B enters.
+    expect(order).toEqual(['A:enter', 'A:exit', 'B:enter', 'B:exit']);
+  });
+
+  it('does not serialize starts for DIFFERENT ports (independent locks)', async () => {
+    const release5173 = await acquirePinnedDevPortLock(5173);
+    // A different port must be acquirable immediately even while 5173 is held.
+    const release3000 = await acquirePinnedDevPortLock(3000);
+    release3000();
+    release5173();
+    expect(true).toBe(true); // reaching here without hanging is the assertion
+  });
+});
+
+describe('killStalePinnedDevServers (real process)', () => {
+  const TEST_PORT = 52173; // high port, avoids colliding with a real 5173 dev server
+  const spawned: import('node:child_process').ChildProcess[] = [];
+
+  afterEach(() => {
+    for (const child of spawned.splice(0)) {
+      try {
+        if (child.pid) {
+          process.kill(-child.pid, 'SIGKILL');
+        }
+      } catch {
+        try {
+          child.kill('SIGKILL');
+        } catch {
+          /* already gone */
+        }
+      }
+    }
+  });
+
+  const startHolder = async (): Promise<import('node:child_process').ChildProcessWithoutNullStreams> => {
+    const { spawn } = await import('node:child_process');
+    // Bind 0.0.0.0 to match the dev server's `--host` bind (and the agent's
+    // isPortBindable probe), so the conflict is deterministic across platforms.
+    const child = spawn(
+      process.execPath,
+      ['-e', `require('http').createServer((_,r)=>r.end('hi')).listen(${TEST_PORT},'0.0.0.0')`],
+      { detached: true, stdio: ['ignore', 'pipe', 'pipe'] },
+    ) as import('node:child_process').ChildProcessWithoutNullStreams;
+    spawned.push(child);
+    // wait until it is actually listening
+    for (let i = 0; i < 50; i++) {
+      const free = await new Promise<boolean>((resolve) => {
+        const probe = createServer();
+        probe.once('error', () => resolve(false));
+        probe.listen(TEST_PORT, '0.0.0.0', () => probe.close(() => resolve(true)));
+      });
+      if (!free) {
+        return child; // port is held → holder is up
+      }
+      await new Promise((r) => setTimeout(r, 40));
+    }
+    throw new Error('holder never bound the port');
+  };
+
+  it('kills a TRACKED prior dev server holding the pinned port so a restart binds cleanly (no EADDRINUSE)', async () => {
+    const holder = await startHolder();
+
+    const processes = new Map<
+      string,
+      { id: string; command: string; startedAt: string; process: import('node:child_process').ChildProcessWithoutNullStreams }
+    >();
+    processes.set('prior', {
+      id: 'prior',
+      command: `npm run dev -- --port ${TEST_PORT} --strictPort --host`,
+      startedAt: new Date().toISOString(),
+      process: holder,
+    });
+
+    const spawnArgs = ['--port', String(TEST_PORT), '--strictPort'];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const release = await killStalePinnedDevServers(processes as any, spawnArgs);
+
+    // The tracked holder was killed and dropped from the map.
+    expect(processes.has('prior')).toBe(false);
+
+    // The port is now free — a fresh strictPort-style bind (0.0.0.0, as the dev
+    // server does) succeeds instead of EADDRINUSE.
+    const bound = await new Promise<boolean>((resolve) => {
+      const srv = createServer();
+      srv.once('error', () => resolve(false));
+      srv.listen(TEST_PORT, '0.0.0.0', () => srv.close(() => resolve(true)));
+    });
+    expect(bound).toBe(true);
+
+    release?.();
   });
 });
 
