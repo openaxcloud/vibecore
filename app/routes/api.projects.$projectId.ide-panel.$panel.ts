@@ -13,6 +13,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { reconcileDebugSessions } from '~/lib/ide/debug-session-status';
 import { isSecurityScheduleDue, vulnerabilitiesFromSecretScan } from '~/lib/ide-panel-security';
 import {
   computeNextRunFromCron,
@@ -665,6 +666,16 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
         ),
       ]);
 
+      const debuggerState = readDebuggerState(envVars);
+
+      /*
+       * Report the real fate of each launch: a session is only "running" while
+       * its pid is still in the workspace's live process list. Read-side only —
+       * the stored blob keeps whatever start/stop wrote, and an unreadable
+       * process list downgrades nothing.
+       */
+      debuggerState.sessions = reconcileDebugSessions(debuggerState.sessions ?? [], runtimeProcesses);
+
       return json(
         panelEnvelope(panel, project.project, {
           ...(dashboard as any),
@@ -674,7 +685,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
           runtimeStatus,
           runtimeProcesses,
           runtimeLogs,
-          debuggerState: readDebuggerState(envVars),
+          debuggerState,
         }),
       );
     } catch (error) {
@@ -3419,7 +3430,7 @@ function normalizeDebugSession(input: any) {
     id: String(input?.id || randomUUID()),
     configId: String(input?.configId || ''),
     name: String(input?.name || 'Debug session').slice(0, 120),
-    status: ['running', 'paused', 'stopped', 'failed'].includes(input?.status) ? input.status : 'stopped',
+    status: ['running', 'paused', 'stopped', 'exited', 'failed'].includes(input?.status) ? input.status : 'stopped',
     adapter: String(input?.adapter || 'runtime-command'),
     command: String(input?.command || '').slice(0, 800),
     workspaceId: String(input?.workspaceId || ''),
