@@ -831,9 +831,11 @@ describe('project IDE memory ETag / If-Match', () => {
         };
       }
 
-      // Every PUT loses the version race — a sustained conflict (agent + IDE both
-      // writing during generation). Bump the server version each time so If-Match
-      // never matches.
+      /*
+       * Every PUT loses the version race — a sustained conflict (agent + IDE both
+       * writing during generation). Bump the server version each time so If-Match
+       * never matches.
+       */
       putCount += 1;
       serverVersion += 1;
 
@@ -854,8 +856,10 @@ describe('project IDE memory ETag / If-Match', () => {
 
     await getProjectIdeMemory(projectId);
 
-    // The key assertion: a persistent 412 must NOT surface as a thrown error that
-    // breaks the IDE — it resolves, leaving the merged state durably pending.
+    /*
+     * The key assertion: a persistent 412 must NOT surface as a thrown error that
+     * breaks the IDE — it resolves, leaving the merged state durably pending.
+     */
     await expect(saveProjectIdeMemory(projectId, { ui: { agentWidth: 800 } })).resolves.toBeUndefined();
 
     // It really did exhaust its retry budget on 412s (not a single lucky success).
