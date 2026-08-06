@@ -6,6 +6,7 @@ import {
   buildGitSshPushScript,
   buildSshConnectScript,
   ephemeralSshKeyPrelude,
+  describePackagesRunOutcome,
   isSshGitUrl,
   normalizeRuntimePorts,
   scopeDeploymentsForWorkspace,
@@ -67,6 +68,72 @@ describe('normalizeRuntimePorts', () => {
     expect(normalizeRuntimePorts(null)).toEqual([]);
     expect(normalizeRuntimePorts(undefined)).toEqual([]);
     expect(normalizeRuntimePorts({ ports: 'nope' })).toEqual([]);
+  });
+});
+
+describe('describePackagesRunOutcome', () => {
+  it('reports a successful install as 200 ok', () => {
+    expect(
+      describePackagesRunOutcome({ script: 'npm install lodash', exitCode: 0, status: 'succeeded', output: 'added 1' }),
+    ).toEqual({ ok: true, status: 200 });
+  });
+
+  it('reports a failed install as 422 with the real reason — not a hardcoded ok', () => {
+    /*
+     * The regression: this branch answered `{ok:true}` HTTP 200 for a run with
+     * exitCode 1, so the panel looked successful while nothing was installed.
+     */
+    const outcome = describePackagesRunOutcome({
+      script: 'npm install lodash',
+      exitCode: 1,
+      status: 'failed',
+      output: 'npm error code E404\nnpm error 404 Not Found\n',
+    });
+
+    expect(outcome.ok).toBe(false);
+    expect(outcome.status).toBe(422);
+    expect(outcome.error).toContain('npm install lodash failed (exit 1)');
+    expect(outcome.error).toContain('404 Not Found');
+  });
+
+  it('still explains the failure when the command produced no output', () => {
+    const outcome = describePackagesRunOutcome({ script: 'npm install', exitCode: 1, status: 'failed', output: '' });
+
+    expect(outcome.ok).toBe(false);
+    expect(outcome.error).toBe('npm install failed (exit 1)');
+  });
+
+  it('turns the exact run production answered "ok" for into a 422 with the npm reason', () => {
+    /*
+     * Captured live from prod on 2026-08-06: installing a package that cannot
+     * resolve recorded exitCode 1 / status failed, and the action still replied
+     * HTTP 200 {"ok":true}. Same run, through the fixed mapper.
+     */
+    const outcome = describePackagesRunOutcome({
+      script: 'npm install @vibecore/definitely-not-a-real-package-9f3a',
+      exitCode: 1,
+      status: 'failed',
+      output:
+        'npm error 404 Note that you can also install from a\n' +
+        'npm error 404 tarball, folder, http url, or git url.\n' +
+        'npm error A complete log of this run can be found in: /home/node/.npm/_logs/2026-08-06T16_04_17_441Z-debug-0.log',
+    });
+
+    expect(outcome.ok).toBe(false);
+    expect(outcome.status).toBe(422);
+    expect(outcome.error).toContain('npm install @vibecore/definitely-not-a-real-package-9f3a failed (exit 1)');
+    expect(outcome.error).toContain('404');
+  });
+
+  it('caps the quoted output so a huge npm log cannot blow up the response', () => {
+    const outcome = describePackagesRunOutcome({
+      script: 'npm install',
+      exitCode: 1,
+      status: 'failed',
+      output: 'x'.repeat(5000),
+    });
+
+    expect((outcome.error ?? '').length).toBeLessThan(400);
   });
 });
 

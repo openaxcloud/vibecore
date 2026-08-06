@@ -32,8 +32,48 @@ export interface SaveFileOptions {
    * changed on disk since it was loaded). 'throw' (default) surfaces the
    * conflict — correct for human saves. 'reconcile' merges JSON / adopts the
    * fresh version for other files, so parallel agent-patch lanes don't fail.
+   * 'overwrite' deliberately clobbers the remote version — only ever set from
+   * an explicit user choice in the conflict dialog.
    */
-  onRemoteConflict?: 'throw' | 'reconcile';
+  onRemoteConflict?: 'throw' | 'reconcile' | 'overwrite';
+}
+
+/*
+ * Thrown when a human save loses the optimistic-concurrency race: the file on
+ * disk changed after the editor loaded it (a parallel agent lane, a terminal
+ * command, or the reseed/reconcile that realigns the pod with project storage).
+ *
+ * It carries all three versions so the UI can offer a real choice — reload the
+ * remote version, overwrite it, or diff them — instead of a dead-end toast.
+ * Previously this was a bare Error, so every caller could only string-match the
+ * message and had nothing to show the user; the edit stayed dirty in the buffer
+ * with no way to resolve it and was lost on close/reload (BUG-IDE-004).
+ */
+export class RemoteFileConflictError extends Error {
+  readonly filePath: string;
+
+  /** What is on disk now — what "Reload" would adopt. */
+  readonly remoteContent: string;
+
+  /** The unsaved editor buffer — what "Overwrite" would write. Never discarded. */
+  readonly localContent: string;
+
+  /** What the editor originally loaded, so a 3-way diff is possible. */
+  readonly baselineContent: string;
+
+  constructor(input: { filePath: string; remoteContent: string; localContent: string; baselineContent: string }) {
+    // Message kept byte-identical: existing callers/specs match on this text.
+    super(`Remote file changed since it was loaded: ${input.filePath}`);
+    this.name = 'RemoteFileConflictError';
+    this.filePath = input.filePath;
+    this.remoteContent = input.remoteContent;
+    this.localContent = input.localContent;
+    this.baselineContent = input.baselineContent;
+  }
+}
+
+export function isRemoteFileConflictError(error: unknown): error is RemoteFileConflictError {
+  return error instanceof RemoteFileConflictError;
 }
 
 export interface File {
@@ -707,6 +747,37 @@ export class FilesStore {
     return this.files.get()[path];
   }
 
+  /**
+   * Adopt the version currently on disk as this file's persisted content, with
+   * no write back to the runtime — the disk already holds it.
+   *
+   * Used by the "Reload" resolution of a save conflict: it re-baselines the
+   * store so the editor stops reporting the file as dirty. Locking and binary
+   * flags are preserved, exactly as the save path does, so re-baselining never
+   * silently relabels a binary file or severs a folder lock.
+   */
+  adoptRemoteContent(filePath: string, content: string) {
+    const currentFile = this.files.get()[filePath];
+
+    if (currentFile && currentFile.type !== 'file') {
+      return;
+    }
+
+    this.files.setKey(filePath, {
+      type: 'file',
+      content,
+      isBinary: currentFile?.type === 'file' ? currentFile.isBinary : false,
+      isLocked: currentFile?.type === 'file' ? currentFile.isLocked : false,
+      lockedByFolder: currentFile?.type === 'file' ? currentFile.lockedByFolder : undefined,
+    });
+
+    /*
+     * Drop the modification baseline too: the buffer now matches disk, so this
+     * path is no longer a pending modification for the agent diff pipeline.
+     */
+    this.#modifiedFiles.delete(filePath);
+  }
+
   getFileModifications() {
     return computeFileModifications(this.files.get(), this.#modifiedFiles);
   }
@@ -817,12 +888,32 @@ export class FilesStore {
            * is clobbered silently; but the agent-patch pipeline opts into
            * `reconcile`, which merges (JSON) / adopts-fresh (other) instead of
            * failing with a stack of "Remote file changed since it was loaded".
+           * 'overwrite' is the user answering the conflict dialog with "keep
+           * mine": fall through to the write and clobber the remote version.
            */
-          if (options?.onRemoteConflict !== 'reconcile') {
-            throw new Error(`Remote file changed since it was loaded: ${filePath}`);
+          if (options?.onRemoteConflict === 'throw' || options?.onRemoteConflict === undefined) {
+            /*
+             * Throw the typed error so the caller can open the conflict dialog
+             * with all three versions in hand. The editor buffer is untouched —
+             * we bail out BEFORE writeFile — so the edit survives for whichever
+             * resolution the user picks.
+             */
+            throw new RemoteFileConflictError({
+              filePath,
+              remoteContent,
+              localContent: content,
+              baselineContent: oldContent,
+            });
           }
 
-          effectiveContent = reconcileRemoteWrite(filePath, remoteContent, content);
+          if (options.onRemoteConflict === 'reconcile') {
+            effectiveContent = reconcileRemoteWrite(filePath, remoteContent, content);
+          }
+
+          /*
+           * Re-baseline against what is actually on disk in both branches, so a
+           * follow-up save of the same buffer doesn't re-trigger the guard.
+           */
           baselineContent = remoteContent;
 
           this.files.setKey(filePath, {

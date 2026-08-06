@@ -2105,6 +2105,33 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       method: 'PUT',
       body: JSON.stringify({ key: PACKAGES_STATE_ENV_KEY, value: JSON.stringify(normalizePackagesState(state)) }),
     });
+
+    /*
+     * Report the run's REAL outcome. This branch used to fall through to the
+     * shared `{ ok: true }` return whatever `run.exitCode` was, so a failed
+     * `npm install` answered HTTP 200 "ok" and the only trace was the run
+     * history in a sidebar below the fold — the panel looked like it had
+     * succeeded while nothing was installed (BUG-IDE-005).
+     */
+    const outcome = describePackagesRunOutcome(run);
+
+    return json(
+      {
+        ok: outcome.ok,
+        ...(outcome.error ? { error: outcome.error } : {}),
+        run: {
+          id: run.id,
+          name: run.name,
+          script: run.script,
+          exitCode: run.exitCode,
+          status: run.status,
+          output: run.output,
+          packages: packageNames,
+          packageManager,
+        },
+      },
+      { status: outcome.status },
+    );
   } else if (panel === 'extensions') {
     /*
      * Extensions are MCP marketplace servers. Each action maps to a real
@@ -3226,6 +3253,38 @@ export function normalizeRuntimePorts(payload: unknown): unknown[] {
   const ports = (payload as { ports?: unknown })?.ports;
 
   return Array.isArray(ports) ? ports : [];
+}
+
+/*
+ * Map a Packages run onto the action's HTTP answer.
+ *
+ * The packages branch used to fall through to the shared `{ ok: true }` return
+ * whatever the run's exit code was, so a failed `npm install` replied 200 "ok"
+ * and the only trace was the run history in a sidebar below the fold — the
+ * panel looked like it had succeeded while nothing was installed (BUG-IDE-005).
+ *
+ * 422 is the right status: the request was well-formed and reached the runtime,
+ * the command ran, and it failed. The panel's generic submit renders `error`
+ * inline, so it carries the command and the tail of its output rather than the
+ * generic "Panel action failed".
+ */
+export function describePackagesRunOutcome(run: {
+  script?: string;
+  exitCode?: number;
+  status?: string;
+  output?: string;
+}): { ok: boolean; status: number; error?: string } {
+  if (run.status !== 'failed') {
+    return { ok: true, status: 200 };
+  }
+
+  const tail = (run.output ?? '').trim().split('\n').slice(-3).join(' ').slice(-300).trim();
+
+  return {
+    ok: false,
+    status: 422,
+    error: `${run.script ?? 'install'} failed (exit ${run.exitCode ?? 1})${tail ? `: ${tail}` : ''}`,
+  };
 }
 
 /** Persisted Ports config: primary port + per-port public/private visibility. */

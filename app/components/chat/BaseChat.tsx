@@ -64,6 +64,7 @@ import { projectAiMessagesToChatMessages, type ProjectAiMessagesResponse } from 
 import { ShareConversationButton } from './ShareConversationButton';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
 import { DatabaseWorkbench } from '~/components/database/DatabaseWorkbench';
+import { FileSaveConflictDialog } from '~/components/workbench/FileSaveConflictDialog';
 import { Menu } from '~/components/sidebar/Menu.client';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { EmptyState } from '~/components/ui/EmptyState';
@@ -4986,8 +4987,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       toast.error(`Failed to save file: ${error instanceof Error ? error.message : 'unknown error'}`);
     }, []);
 
+    /*
+     * Route saves through the conflict-aware path: a "changed on disk" race
+     * opens the resolution dialog (reload / keep mine / diff) instead of the
+     * dead-end toast that left the edit stranded (BUG-IDE-004). Every other
+     * failure still reaches handleSaveError.
+     */
     const onProjectEditorSave = useCallback(() => {
-      workbenchStore.saveCurrentDocument().catch(handleSaveError);
+      const filePath = workbenchStore.currentDocument.get()?.filePath;
+
+      if (!filePath) {
+        return;
+      }
+
+      workbenchStore.saveFileWithConflictPrompt(filePath).catch(handleSaveError);
     }, [handleSaveError]);
 
     /*
@@ -4998,7 +5011,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      */
     const saveProjectEditorFile = useCallback(
       (filePath: string) => {
-        workbenchStore.saveFile(filePath).catch(handleSaveError);
+        workbenchStore.saveFileWithConflictPrompt(filePath).catch(handleSaveError);
       },
       [handleSaveError],
     );
@@ -7865,6 +7878,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         {...(useMobileIde ? mobileSwipeHandlers : {})}
       >
         {!projectIdeMode && <ClientOnly>{() => <Menu />}</ClientOnly>}
+        {/*
+         * Save-conflict resolution, mounted at the IDE root so it covers every
+         * save surface (project editor, workbench, diff view) on desktop and
+         * mobile alike. Renders null unless a conflict is pending.
+         */}
+        <ClientOnly>{() => <FileSaveConflictDialog />}</ClientOnly>
         {/* DO NOT MODIFY — mobile Terminal tab frozen per Avi (ref IMG_9149). Header structure
             (back · activity · "Shell (Terminal)" · + · ⋮) is the reference; exclude from responsive/
             fan-out/parity passes. */}

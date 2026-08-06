@@ -7,7 +7,14 @@ import JSZip from 'jszip';
 import { atom, map, type MapStore, type ReadableAtom, type WritableAtom } from 'nanostores';
 import { toast } from 'react-toastify';
 import { EditorStore } from './editor';
-import { FilesStore, type FileMap, type ProjectStorageFile, type SaveFileOptions } from './files';
+import { clearFileSaveConflict, openFileSaveConflict } from './file-save-conflict';
+import {
+  FilesStore,
+  isRemoteFileConflictError,
+  type FileMap,
+  type ProjectStorageFile,
+  type SaveFileOptions,
+} from './files';
 import {
   appendWorkspaceLogLines,
   decodeArchiveEntry,
@@ -1838,14 +1845,20 @@ export class WorkbenchStore {
         return;
       }
 
-      this.saveFile(filePath).catch((error) => {
+      /*
+       * Autosave is the most common way a user meets a save conflict — the file
+       * changed on disk while they kept typing. Route it through the same
+       * conflict prompt as a manual save so the dialog opens with the choice,
+       * rather than a toast that only reports the loss (BUG-IDE-004).
+       */
+      this.saveFileWithConflictPrompt(filePath).catch((error) => {
         console.error(`Autosave failed for ${filePath}`, error);
 
         /*
-         * Surface autosave failures instead of swallowing them — silent loss of
-         * edits is the worst outcome. Dedupe per file (toastId) so a repeatedly
-         * failing autosave shows one non-stacking toast; the file stays in the
-         * unsaved set so a manual save can still retry.
+         * Surface non-conflict autosave failures instead of swallowing them —
+         * silent loss of edits is the worst outcome. Dedupe per file (toastId)
+         * so a repeatedly failing autosave shows one non-stacking toast; the
+         * file stays in the unsaved set so a manual save can still retry.
          */
         toast.error(`Autosave failed for ${filePath.split('/').pop()} — your changes are not saved.`, {
           toastId: `autosave-fail-${filePath}`,
@@ -1899,7 +1912,74 @@ export class WorkbenchStore {
     newUnsavedFiles.delete(filePath);
 
     this.unsavedFiles.set(newUnsavedFiles);
+
     this.#emitFileApplied(filePath, 'user');
+  }
+
+  /**
+   * Save a human edit, routing an optimistic-concurrency conflict to the
+   * conflict dialog instead of rejecting into a dead-end toast (BUG-IDE-004).
+   *
+   * Returns 'saved' or 'conflict'; any other failure still rejects so callers
+   * keep reporting real errors. The buffer is never touched here — on conflict
+   * the file stays dirty and the edit stays in the editor until the user picks
+   * a resolution.
+   */
+  async saveFileWithConflictPrompt(filePath: string): Promise<'saved' | 'conflict'> {
+    try {
+      await this.saveFile(filePath);
+      clearFileSaveConflict(filePath);
+
+      return 'saved';
+    } catch (error) {
+      if (!isRemoteFileConflictError(error)) {
+        throw error;
+      }
+
+      /*
+       * The guard compares against the baseline, so a remote write that landed
+       * on exactly the user's text still trips it. There is nothing to decide:
+       * adopt the identical remote version and report success rather than
+       * showing a dialog whose diff is empty.
+       */
+      if (error.remoteContent === error.localContent) {
+        await this.saveFile(filePath, { onRemoteConflict: 'overwrite' });
+        clearFileSaveConflict(filePath);
+
+        return 'saved';
+      }
+
+      openFileSaveConflict({
+        filePath,
+        remoteContent: error.remoteContent,
+        localContent: error.localContent,
+        baselineContent: error.baselineContent,
+        detectedAt: Date.now(),
+      });
+
+      return 'conflict';
+    }
+  }
+
+  /**
+   * "Reload" — discard the local edit and adopt what is on disk. Destructive by
+   * definition, so it is only ever reached from an explicit dialog choice.
+   */
+  async resolveFileConflictWithRemote(filePath: string, remoteContent: string) {
+    this.#editorStore.updateFile(filePath, remoteContent);
+    this.#filesStore.adoptRemoteContent(filePath, remoteContent);
+
+    const newUnsavedFiles = new Set(this.unsavedFiles.get());
+    newUnsavedFiles.delete(filePath);
+    this.unsavedFiles.set(newUnsavedFiles);
+
+    clearFileSaveConflict(filePath);
+  }
+
+  /** "Keep mine" — write the unsaved buffer over the remote version. */
+  async resolveFileConflictWithLocal(filePath: string) {
+    await this.saveFile(filePath, { onRemoteConflict: 'overwrite' });
+    clearFileSaveConflict(filePath);
   }
 
   async writeFileContent(filePath: string, content: string) {

@@ -126,15 +126,15 @@ agent joint en direct dans le pod avec un token valide → /files/write 200 (age
 + le contenu d'origine survit au create rejeté.
 
 ### BUG-IDE-004 — P1 — Éditeur : conflit de sauvegarde avalé silencieusement
-**État** : ⛔ **NON corrigé** (nécessite une vraie affordance UI de conflit)
+**État** : 💻 Codé (PR, non mergée) · ✅ **prouvé live sur pod prod réel**
 
 Quand le fichier a changé côté serveur depuis son ouverture, la sauvegarde est
-refusée — protection légitime — **mais l'échec ne sort que dans la console**.
-L'onglet reste marqué sale (`●`) sans message, sans bandeau, sans proposition de
-recharger/écraser/fusionner. L'édition n'est persistée **nulle part** (ni
-project storage, ni ide-state, ni runtime) et se perd à la fermeture.
+refusée — protection légitime — **mais l'échec ne sortait que dans la console**.
+L'onglet restait marqué sale (`●`) sans message, sans bandeau, sans proposition
+de recharger/écraser/fusionner. L'édition n'était persistée **nulle part** (ni
+project storage, ni ide-state, ni runtime) et se perdait à la fermeture.
 
-**Preuve** :
+**Preuve du défaut (constat initial)** :
 ```
 console : Autosave failed for /home/project/README.md
           Error: Remote file changed since it was loaded: /home/project/README.md
@@ -146,21 +146,68 @@ runtime  → README.md == '# qa-clusterb\n'                (édition absente)
 Déclencheur réaliste : le reseed/reconcile qui réaligne le runtime sur le
 project storage réécrit des fichiers que l'utilisateur peut avoir ouverts.
 
-**Recommandation** : bandeau de conflit non silencieux (Recharger / Écraser /
-Voir le diff) + conserver le buffer local tant que le conflit n'est pas résolu.
+**Correctif** — trois couches :
+
+1. **Erreur typée** `RemoteFileConflictError` portant `remoteContent`,
+   `localContent` et `baselineContent`. Le message reste byte-identique (des
+   appelants et specs le matchent), mais l'UI dispose enfin des trois versions.
+   Le throw se produit **avant** `writeFile` : le tampon n'est jamais touché.
+2. **Store de conflit** + `saveFileWithConflictPrompt()` qui renvoie
+   `'saved' | 'conflict'` au lieu de rejeter, et deux résolutions :
+   `resolveFileConflictWithLocal` (écrase) / `resolveFileConflictWithRemote`
+   (adopte le disque sans réécrire). Un conflit dont les deux versions sont
+   byte-identiques est résolu **sans** ouvrir de dialogue (diff vide inutile).
+3. **Dialogue** non fermable au backdrop, avec **View diff · Reload from disk ·
+   Keep my version · Keep editing** — « Keep editing » sort explicitement en
+   laissant le fichier sale et l'édition en mémoire.
+
+Tous les points de sauvegarde y passent : éditeur projet, onglet sale,
+**autosave**, Workbench et le revert du DiffView.
+
+**Preuve du correctif — LIVE contre un vrai pod prod** (`ws-2e1436ecf1bd10b8`,
+`api.e-code.ai`, aucun mock sous le store) :
+```
+✓ raises a typed conflict carrying every version, and writes nothing   1471ms
+✓ "Keep my version" writes the unsaved buffer to the real pod          1996ms
+✓ "Reload from disk" adopts the pod version without writing back        816ms
+→ RemoteFileConflictError { remoteContent:'the version on disk\n',
+                            localContent:'discarded edit\n',
+                            baselineContent:'baseline line\n' }
+→ après conflit, le pod contient toujours 'written by the agent\n' (rien écrasé)
+→ « Keep my version » → le pod contient 'my precious edit\n' (édition retrouvée)
+```
+Plus 7 tests sur le **vrai composant** (rendu + clics réels) : les 3 issues sont
+présentes, le diff affiche les deux versions, chaque bouton pilote la bonne
+action, et « Keep editing » ne déclenche **aucune** résolution.
+
+⚠️ La preuve navigateur bout-en-bout n'a pas pu être faite : la machine était
+au-dessus de `kern.maxfiles` (38 221 / 30 720 fd ouverts) à cause d'un serveur
+de dev d'une autre session, et un second Vite refusait de démarrer (`ENFILE`).
+La preuve ci-dessus attaque donc le vrai backend prod via le store réel, et le
+dialogue réel est testé au niveau composant.
 
 ### BUG-IDE-005 — P3 — Packages : l'action renvoie `{ok:true}` même quand le run échoue
-**État** : ⛔ **NON corrigé** (masquage ; atténué par BUG-IDE-001)
+**État** : 💻 Codé (PR, non mergée) · ✅ défaut reproduit live sur prod
 
-Le bloc `packages` de l'action retombe sur le `return json({ ok: true })`
-commun quel que soit `run.exitCode`. L'échec n'est visible que dans la liste
-« Install & runtime checks » de la sidebar du panneau (rendue `failed · exit 1`
-avec la sortie), c'est-à-dire **sous la ligne de flottaison** — d'où
-l'impression de succès observée en B2. Le correctif BUG-IDE-001 supprime la
-cause d'échec, mais le masquage subsiste pour toute autre défaillance d'install.
+Le bloc `packages` de l'action retombait sur le `return json({ ok: true })`
+commun quel que soit `run.exitCode`. L'échec n'était visible que dans la liste
+« Install & runtime checks » de la sidebar, c'est-à-dire **sous la ligne de
+flottaison** — d'où l'impression de succès observée en B2.
 
-**Recommandation** : propager le statut du run dans la réponse de l'action et
-afficher une erreur inline sous le bouton « Install package ».
+**Preuve du défaut (prod, code actuel)** — install d'un paquet inexistant :
+```
+POST /api/projects/…/ide-panel/packages → HTTP 200 {"ok":true}
+run enregistré → script  : npm install @vibecore/definitely-not-a-real-package-9f3a
+                 exitCode: 1
+                 status  : failed
+                 output  : npm error 404 … tarball, folder, http url, or git url.
+```
+
+**Correctif** — helper exporté `describePackagesRunOutcome()` : succès → 200 ;
+échec → **422** (requête valide, commande exécutée, commande échouée) avec un
+`error` porteur du script, du code de sortie et de la fin de la sortie npm — que
+le submit générique du panneau affiche déjà **inline**. 5 tests, dont un ancré
+sur la sortie npm **réellement capturée en prod** ci-dessus.
 
 ### Observations (pas des bugs)
 
@@ -173,9 +220,67 @@ afficher une erreur inline sous le bouton « Install package ».
   restart `QA_CLUSTERB_SECRET=[]`, après restart `[s3cr3t-value-42]`. Le
   panneau Secrets ne le signale pas (le panneau SSH, lui, le documente).
 - **Reveal d'un secret** exige `&confirm=1` — garde volontaire, pas un défaut.
-- **Frontière runtime ↔ project storage** : l'arbre de fichiers et git montrent
-  le project storage ; ce qui est créé dans le pod par le terminal/npm n'y
-  apparaît pas systématiquement. Écart de parité Replit à trancher produit.
+- **Frontière runtime ↔ project storage** : voir l'analyse dédiée ci-dessous.
+
+---
+
+## Écart Git ↔ FS du pod — analyse et recommandation
+
+**Question posée** : corrigeable proprement, ou décision produit ?
+**Réponse : décision produit.** Ce n'est pas un bug local, c'est une
+architecture à deux dépôts qu'aucun correctif ponctuel ne réconcilie.
+
+### Ce qui existe réellement aujourd'hui — deux dépôts disjoints
+
+| | Dépôt A — panneau Git | Dépôt B — push/pull SSH |
+|---|---|---|
+| Emplacement | `storageRoot()/<projectId>/.git` (pod **API**, partage Filestore/NFS) | `/workspace/.git` (**PVC du pod** workspace) |
+| Créé par | `GitCliProvider.ensureRepository` (`services/api/src/project-storage.ts`) | `git init -q` dans `GIT_SSH_PRELUDE` (`…ide-panel.$panel.ts`) |
+| Alimente | status, commits, branches, diff, stashes, graph, cherry-pick, conflits | `fetch` / `push` / `pull` vers GitHub & co. |
+| Contenu commité | `listProjectFilesIncludingIdeState(...)` = project storage | l'arbre réel du pod (`git add -A`) |
+
+Les deux ne partagent **aucune** histoire, aucun objet, aucun index.
+
+**Preuve live** (projet QA `cmshp9sy400uh0n8r9xxfru8s`, même instant) :
+```
+pod /workspace : NO_GIT
+                 fatal: not a git repository …
+                 fichiers réels : conflict.txt, package.json
+panneau Git    : branch main · commits ['chore: initial scaffold'] · changedFiles []
+```
+Le panneau affiche donc une branche et un commit d'un dépôt **que le pod ne
+possède même pas**, pendant que les fichiers réellement présents dans le pod
+n'apparaissent nulle part dans `git status`.
+
+Conséquences concrètes : ce que produit le terminal ou `npm` (lockfiles, fichiers
+générés, sortie de build) n'entre jamais dans l'historique du panneau ; et le
+dépôt que l'on **pousse** n'est pas celui dont on lit l'historique.
+
+### Options
+
+| | Approche | Coût | Risque |
+|---|---|---|---|
+| **A** | Synchroniser pod → project storage avant chaque opération git | lecture d'arbre + contenus à chaque `status` (exclusions `node_modules`, `.vite`, `dist` obligatoires) ; latence de plusieurs secondes sur une opération aujourd'hui instantanée | course pod↔storage pendant un run d'agent ; `status` devient coûteux alors qu'il est poll |
+| **B** | Déplacer git **dans le pod** (le dépôt de vérité = le PVC) | réécriture de tout `GitCliProvider` en commandes agent ; l'historique migre sur le PVC ; déploiements/exports/snapshots lisent encore le project storage et devraient suivre | migration de données (historiques existants), git indisponible pod éteint, PVC à sauvegarder |
+| **C** | Assumer la frontière et la rendre explicite dans l'UI | faible | ne referme pas l'écart de parité Replit |
+
+### Recommandation
+
+**B est la bonne cible** — c'est le modèle Replit, et c'est la seule option qui
+supprime la classe de bugs au lieu de la déplacer : un seul dépôt, sur le
+système de fichiers que l'utilisateur voit, celui-là même qu'on pousse.
+Le chemin SSH prouve déjà que git tourne correctement dans le pod.
+
+Mais c'est un **chantier**, pas un correctif : ~15 routes git, la migration des
+historiques existants, et l'alignement de Publish / export / snapshots qui lisent
+encore le project storage. À planifier comme un lot dédié, avec une décision
+explicite sur le dépôt de vérité.
+
+**En attendant, faire C** (petit, honnête, immédiat) : nommer le périmètre dans
+le panneau Git (« fichiers du projet », pas « espace de travail »), et signaler
+que ce qui est créé dans le terminal n'y figure pas tant qu'il n'est pas
+synchronisé. **Ne pas faire A** : cela paie le coût d'une synchronisation à
+chaque `status` tout en laissant deux dépôts en vie.
 
 ---
 
@@ -183,11 +288,12 @@ afficher une erreur inline sous le bouton « Install package ».
 
 | Bug | P | 📤 Dispatché | 💻 Codé | ✅ Testé live |
 |-----|---|--------------|---------|---------------|
-| BUG-IDE-001 Packages mauvais workspace | P1 | ✅ | ✅ (PR, non mergée) | ✅ reproduit + tests verts |
-| BUG-IDE-003 Ports jamais listés | P1 | ✅ | ✅ (PR, non mergée) | ✅ reproduit + tests verts |
-| BUG-IDE-002 EEXIST → 409 | P2 | ✅ | ✅ (PR, non mergée) | ✅ reproduit + tests verts |
-| BUG-IDE-004 Conflit de save avalé | P1 | ✅ | ⛔ | ✅ reproduit |
-| BUG-IDE-005 `ok:true` sur run échoué | P3 | ✅ | ⛔ | ✅ reproduit |
+| BUG-IDE-001 Packages mauvais workspace | P1 | ✅ | ✅ (PR #119, non mergée) | ✅ reproduit + tests verts |
+| BUG-IDE-003 Ports jamais listés | P1 | ✅ | ✅ (PR #119, non mergée) | ✅ reproduit + tests verts |
+| BUG-IDE-002 EEXIST → 409 | P2 | ✅ | ✅ (PR #119, non mergée) | ✅ reproduit + tests verts |
+| BUG-IDE-004 Conflit de save avalé | P1 | ✅ | ✅ (PR, non mergée) | ✅ **prouvé live sur pod prod** (3/3) + 7 tests composant |
+| BUG-IDE-005 `ok:true` sur run échoué | P3 | ✅ | ✅ (PR, non mergée) | ✅ défaut reproduit live prod + 5 tests |
+| Écart Git ↔ FS du pod | — | ✅ | — | ✅ deux dépôts disjoints prouvés live → **décision produit** |
 
 ⚠️ **Aucun déploiement prod effectué.** Les correctifs touchent `services/api` et
 `services/workspace-agent` (tiers runtime) : la mise en prod doit être validée
