@@ -73,8 +73,12 @@ export async function action({ request }: EnterpriseActionArgs) {
 }
 
 const PROFILE_FIELDS = [
-  { label: 'Name', name: 'name', type: 'text', placeholder: 'Ada Lovelace' },
-  { label: 'Email', name: 'email', type: 'email', placeholder: 'ada@example.com' },
+  /*
+   * BUG-USR-012: WCAG 1.3.5 — identify input purpose so password managers / browser
+   * autofill can fill these (they had no autocomplete, unlike the auth forms).
+   */
+  { label: 'Name', name: 'name', type: 'text', placeholder: 'Ada Lovelace', autoComplete: 'name' },
+  { label: 'Email', name: 'email', type: 'email', placeholder: 'ada@example.com', autoComplete: 'email' },
 ] as const;
 
 type FieldName = 'name' | 'email' | 'timezone';
@@ -122,6 +126,7 @@ export default function AccountSettingsIndex() {
                 className="h-[44px] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none focus:border-bolt-elements-focus focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
                 name={field.name}
                 type={field.type}
+                autoComplete={field.autoComplete}
                 placeholder={field.placeholder}
                 value={values[field.name]}
                 onChange={(event) => setValues((current) => ({ ...current, [field.name]: event.target.value }))}
