@@ -101,6 +101,8 @@ import {
 } from '~/lib/project-card-presentation';
 import { profileStore } from '~/lib/stores/profile';
 import { themeStore, toggleTheme } from '~/lib/stores/theme';
+import { viewerStore, loadViewer } from '~/lib/stores/viewer';
+import { resolveAccountDisplay } from '~/lib/account-identity';
 import { resolveUserAreaSurface } from '~/lib/user-area-surface';
 import { statusDisplayLabel } from '~/lib/user-facing-labels';
 import { classNames } from '~/utils/classNames';
@@ -922,7 +924,11 @@ export function AppShell({
                   {!pendingSurface && actions ? <div className="flex shrink-0 flex-wrap gap-2">{actions}</div> : null}
                 </div>
               </div>
-            ) : null}
+            ) : (
+              // BUG-USR-004: pages that hide the visual header (e.g. Workspace settings)
+              // must still expose exactly one <h1> landmark for a11y + consistency.
+              <h1 className="sr-only">{displayedTitle}</h1>
+            )}
             {showNavigationSkeleton ? (
               <div data-testid="user-area-navigation-skeleton">
                 <AsyncPanelSkeleton label="Loading workspace page" rows={5} />
@@ -1093,17 +1099,17 @@ function MobileSidebarDrawer({ open, onClose }: { open: boolean; onClose: () => 
 
 function SidebarFooter({ collapsed, embedded = false }: { collapsed: boolean; embedded?: boolean }) {
   const profile = useStore(profileStore);
+  const viewer = useStore(viewerStore);
   const theme = useStore(themeStore);
-  const displayName = profile.username?.trim() || 'Signed in user';
 
-  const initials = displayName
-    .split(/\s+/)
-    .map((part: string) => part[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
+  // BUG-USR-001: show the authenticated identity (from /api/me), not the legacy
+  // localStorage profile which is empty for virtually every real user.
+  useEffect(() => {
+    void loadViewer();
+  }, []);
 
-  const hasInitials = initials.length > 0 && profile.username?.trim();
+  const { displayName, initials, isPlaceholder, secondary } = resolveAccountDisplay(viewer, profile.username);
+  const hasInitials = !isPlaceholder && initials.length > 0;
 
   return (
     <div
@@ -1156,8 +1162,8 @@ function SidebarFooter({ collapsed, embedded = false }: { collapsed: boolean; em
           >
             <div className="border-b border-bolt-elements-borderColor px-3 py-2">
               <p className="truncate text-sm font-medium text-bolt-elements-textPrimary">{displayName}</p>
-              {profile.bio ? (
-                <p className="truncate text-[11px] text-bolt-elements-textTertiary">{profile.bio}</p>
+              {secondary || profile.bio ? (
+                <p className="truncate text-[11px] text-bolt-elements-textTertiary">{secondary || profile.bio}</p>
               ) : null}
             </div>
             <div className="grid gap-0.5 py-1">

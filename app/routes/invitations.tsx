@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Form, useActionData, useLoaderData, useSubmit } from 'react-router';
+import { Form, useActionData, useLoaderData, useSubmit, type MetaFunction } from 'react-router';
 import { EnterpriseFormPage, PrimaryButton, SelectField, TextField } from '~/components/enterprise/EnterpriseFormPage';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
 import {
@@ -121,6 +121,9 @@ export async function action({ request }: EnterpriseActionArgs) {
     throw error;
   }
 }
+
+// BUG-USR-003: missing meta made the tab fall back to the generic default title.
+export const meta: MetaFunction = () => [{ title: 'Invitations - E-Code' }];
 
 export default function InvitationsPage() {
   const { orgId, invitations, roles, canManageInvitations } = useLoaderData<typeof loader>();

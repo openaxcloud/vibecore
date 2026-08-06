@@ -1,5 +1,5 @@
 import { Mail } from 'lucide-react';
-import { Form, Link, useActionData, useNavigation } from 'react-router';
+import { Form, Link, useActionData, useNavigation, type MetaFunction } from 'react-router';
 import { AuthField, AuthScreen, AuthSubmit } from '~/components/auth/AuthScreen';
 import { apiRequest, formObject, json, type EnterpriseActionArgs } from '~/lib/enterprise-api.server';
 
@@ -36,6 +36,9 @@ export async function action({ request }: EnterpriseActionArgs) {
     return json({ error: 'Password reset service is not reachable. Please try again in a moment.' }, { status: 503 });
   }
 }
+
+// BUG-USR-003: without a meta the browser tab fell back to the generic default title.
+export const meta: MetaFunction = () => [{ title: 'Forgot password - E-Code' }];
 
 export default function ForgotPasswordPage() {
   const actionData = useActionData<typeof action>() as { status?: string; error?: string } | undefined;

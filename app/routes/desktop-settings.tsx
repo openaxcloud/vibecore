@@ -1,5 +1,6 @@
 import { KeyRound, Monitor, Wifi } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { MetaFunction } from 'react-router';
 import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
 import { AppShell, StatGrid } from '~/components/dashboard/SaaSLayout';
 import { EmptyState } from '~/components/ui/EmptyState';
@@ -17,6 +18,9 @@ interface DesktopSettingsState {
 }
 
 type DesktopSettingsPhase = 'checking' | 'ready' | 'unavailable' | 'error';
+
+// BUG-USR-003: missing meta made the tab fall back to the generic default title.
+export const meta: MetaFunction = () => [{ title: 'Desktop settings - E-Code' }];
 
 export default function DesktopSettingsRoute() {
   const [settings, setSettings] = useState<DesktopSettingsState>({
