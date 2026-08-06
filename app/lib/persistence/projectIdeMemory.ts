@@ -1013,6 +1013,20 @@ async function persistWithRetry(scope: string): Promise<void> {
         (conflictError as { status?: number }).status = 412;
         lastError = conflictError;
 
+        /*
+         * Back off before re-PUTting the re-merged state. A `continue` here used to
+         * skip the delay at the loop tail, so a sustained conflict (the agent and the
+         * IDE both writing ide-state during generation) fired the whole retry budget
+         * as back-to-back PUTs in a few ms — worsening the race and exhausting the
+         * retries instantly. A short growing delay lets the other writer settle so the
+         * next attempt lands with a fresh version.
+         */
+        const conflictDelay = SAVE_RETRY_DELAYS_MS[attempt] ?? SAVE_RETRY_DELAYS_MS[SAVE_RETRY_DELAYS_MS.length - 1];
+
+        if (conflictDelay !== undefined) {
+          await new Promise((resolve) => setTimeout(resolve, Math.min(conflictDelay, 500)));
+        }
+
         continue;
       }
 
@@ -1058,6 +1072,18 @@ async function persistWithRetry(scope: string): Promise<void> {
     if (delay !== undefined) {
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
+  }
+
+  /*
+   * Exhausted the retries on a persistent 412 conflict. The re-merged state is
+   * already durably held in localStorage + `pendingDirty`, so the next debounced
+   * flush (or the next reopen's reseed) will retry it against a fresh version. A
+   * transient version race is NOT a save failure the user must see — throwing it
+   * here surfaced as an IDE-breaking error toast / unhandled rejection. Return
+   * gracefully instead; genuine non-conflict failures still throw below.
+   */
+  if (lastError instanceof Error && (lastError as { status?: number }).status === 412) {
+    return;
   }
 
   throw lastError instanceof Error ? lastError : new Error('Failed to save project IDE memory');

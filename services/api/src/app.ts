@@ -16199,6 +16199,41 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { port, url, ready };
   });
 
+  /*
+   * Marker + tag for the same-origin preview error reporter injected into HTML
+   * served through the api-origin preview fallback. The reporter file lives in the
+   * app's public assets (public/vibecore-preview-reporter.js) and is served on the
+   * app origin, which is the SAME origin as this proxy path — so a bare
+   * `/vibecore-preview-reporter.js` resolves without a cross-origin/CSP hop. Kept
+   * byte-compatible with the preview-proxy's injected reporter so the IDE handler
+   * treats both transports identically. The marker makes injection idempotent (a
+   * page that already self-hosts the reporter, or a double-proxy, is not doubled).
+   */
+  const PREVIEW_REPORTER_MARKER = 'data-vibecore-reporter';
+  const PREVIEW_REPORTER_TAG = `<script src="/vibecore-preview-reporter.js" ${PREVIEW_REPORTER_MARKER}></script>`;
+
+  // Only buffer+inject a plausibly-small HTML document; larger bodies stream raw.
+  const MAX_PREVIEW_REPORTER_INJECT_BYTES = 2 * 1024 * 1024;
+
+  const injectPreviewReporterScript = (html: string): string => {
+    if (html.includes(PREVIEW_REPORTER_MARKER)) {
+      return html;
+    }
+
+    // Prefer end-of-<head> so the (classic, non-module) reporter runs before the
+    // app's deferred module scripts and can catch a load-time throw.
+    if (/<\/head>/i.test(html)) {
+      return html.replace(/<\/head>/i, `${PREVIEW_REPORTER_TAG}</head>`);
+    }
+
+    if (/<body[^>]*>/i.test(html)) {
+      return html.replace(/<body[^>]*>/i, (match) => `${match}${PREVIEW_REPORTER_TAG}`);
+    }
+
+    // No <head>/<body> (fragment/minimal doc): prepend so it still loads.
+    return `${PREVIEW_REPORTER_TAG}${html}`;
+  };
+
   const handleRuntimePreviewProxy = async (request: FastifyRequest, reply: FastifyReply) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const params = request.params as { port: string; '*': string };
@@ -16321,12 +16356,50 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     const contentLength = response.headers.get('content-length');
 
-    if (contentLength && !upstreamWasEncoded) {
-      reply.header('content-length', contentLength);
+    if (!response.body) {
+      if (contentLength && !upstreamWasEncoded) {
+        reply.header('content-length', contentLength);
+      }
+
+      return reply.code(response.status).send();
     }
 
-    if (!response.body) {
-      return reply.code(response.status).send();
+    /*
+     * Inject the preview error reporter into the top-level HTML document served
+     * on THIS same-origin fallback path (used when PREVIEW_URL_TEMPLATE is unset).
+     * The external preview-proxy injects the reporter on the *.preview host, but
+     * this api-origin proxy historically streamed the HTML RAW — so a preview
+     * served here (HTTP 200) that never mounts, or crashes on load, showed a
+     * SILENT BLANK with no in-iframe error overlay and no PREVIEW_BLANK signal to
+     * the IDE ("preview stayed empty / no visible preview status"). Injecting the
+     * same reporter (a same-origin <script>, since this document is app-origin)
+     * restores the blank-watchdog + error overlay on this path too, so a blank is
+     * never invisible. Only a small text/html document is buffered+rewritten; every
+     * other response (assets, big bundles, streams) still passes through untouched,
+     * so the OOM/streaming guarantees above are preserved.
+     */
+    const previewContentType = response.headers.get('content-type') ?? '';
+    const previewCharset = /charset\s*=\s*"?([\w-]+)"?/i.exec(previewContentType)?.[1]?.toLowerCase();
+    const previewIsUtf8 = !previewCharset || previewCharset === 'utf-8' || previewCharset === 'utf8';
+    const declaredLen = Number(contentLength ?? '');
+    const injectable =
+      previewContentType.includes('text/html') &&
+      previewIsUtf8 &&
+      (!Number.isFinite(declaredLen) || declaredLen <= MAX_PREVIEW_REPORTER_INJECT_BYTES);
+
+    if (injectable) {
+      const rawHtml = await response.text();
+      const injectedHtml =
+        rawHtml.length <= MAX_PREVIEW_REPORTER_INJECT_BYTES ? injectPreviewReporterScript(rawHtml) : rawHtml;
+      const outBuffer = Buffer.from(injectedHtml, 'utf8');
+
+      reply.header('content-length', String(outBuffer.byteLength));
+
+      return reply.code(response.status).send(outBuffer);
+    }
+
+    if (contentLength && !upstreamWasEncoded) {
+      reply.header('content-length', contentLength);
     }
 
     /*
