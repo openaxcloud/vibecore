@@ -5,6 +5,7 @@ export const meta: MetaFunction = () => [
   { title: 'About — E-Code' },
   { name: 'description', content: 'About E-Code — building AI-native software creation for everyone.' },
   ...socialMetaTags({
+      path: '/about',
     title: 'About — E-Code',
     description: 'About E-Code — building AI-native software creation for everyone.',
   }),

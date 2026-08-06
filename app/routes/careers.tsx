@@ -10,6 +10,7 @@ export const meta: MetaFunction = () => [
       'Join E-Code — help build AI-native software creation. Open roles across engineering, design and go-to-market.',
   },
   ...socialMetaTags({
+      path: '/careers',
     title: 'Careers — E-Code',
     description:
       'Join E-Code — help build AI-native software creation. Open roles across engineering, design and go-to-market.',

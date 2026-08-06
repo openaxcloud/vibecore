@@ -9,6 +9,7 @@ export const meta: MetaFunction = () => [
     content: 'Contact E-Code sales for Enterprise: SSO/SAML, single-tenant, VPC peering and dedicated support.',
   },
   ...socialMetaTags({
+      path: '/contact-sales',
     title: 'Contact Sales — E-Code',
     description: 'Contact E-Code sales for Enterprise: SSO/SAML, single-tenant, VPC peering and dedicated support.',
   }),

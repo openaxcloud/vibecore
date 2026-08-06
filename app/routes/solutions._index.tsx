@@ -1,4 +1,5 @@
 import { MarketingIndexPage, solutionPages } from '~/components/marketing/EcodeMarketingPages';
+import { socialMetaTags } from '~/utils/social-meta';
 
 export const meta = () => [
   { title: 'Solutions - E-Code' },
@@ -6,6 +7,7 @@ export const meta = () => [
     name: 'description',
     content: 'Explore E-Code solutions for app builders, websites, games, dashboards, AI agents and enterprise teams.',
   },
+  ...socialMetaTags({ path: '/solutions', title: 'E-Code Solutions', description: 'Explore E-Code solutions for app builders, websites, games, dashboards, AI agents and enterprise teams.' }),
 ];
 
 export default function SolutionsIndexRoute() {

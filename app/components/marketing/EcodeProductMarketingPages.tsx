@@ -674,20 +674,20 @@ const teamFeatures = [
 export function makeEcodeProductMeta(key: ProductPageKey): MetaFunction {
   const page = ecodeProductMarketingPages[key];
 
-  return () => [
+  return ({ location }) => [
     { title: `${page.title} - E-Code` },
     { name: 'description', content: page.description },
-    ...socialMetaTags({ title: `${page.title} - E-Code`, description: page.description }),
+    ...socialMetaTags({ title: `${page.title} - E-Code`, description: page.description, path: location?.pathname }),
   ];
 }
 
 export function makeEcodeCampaignMeta(key: CampaignPageKey): MetaFunction {
   const page = ecodeCampaignMarketingPages[key];
 
-  return () => [
+  return ({ location }) => [
     { title: `${page.title} - E-Code` },
     { name: 'description', content: page.description },
-    ...socialMetaTags({ title: `${page.title} - E-Code`, description: page.description }),
+    ...socialMetaTags({ title: `${page.title} - E-Code`, description: page.description, path: location?.pathname }),
   ];
 }
 

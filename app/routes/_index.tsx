@@ -11,7 +11,8 @@ export const meta: MetaFunction = () => [
     content:
       'E-Code is where you create software with AI agents: build full-stack apps from a prompt, collaborate in real time, and deploy to production. Starter (free), Core, Pro and Enterprise plans.',
   },
-  ...socialMetaTags({ title: 'E-Code', description: 'Build, ship and scale apps with AI agents.' }),
+  ...socialMetaTags({
+      path: '/', title: 'E-Code', description: 'Build, ship and scale apps with AI agents.' }),
 ];
 
 export default function IndexRoute() {
