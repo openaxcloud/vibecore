@@ -6,8 +6,10 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { MARKETING_SHELL_COPY } from '~/components/marketing/ecode-exact/marketing-shell.copy';
 import { APP_BUILDER_COPY } from '~/components/marketing/solutions/app-builder.copy';
 import {
-  APP_BUILDER_VISUAL_ASSETS,
+  getAppBuilderVisuals,
   resolveAppBuilderVisualLanguage,
+  type AppBuilderVisualAsset,
+  type AppBuilderVisualTheme,
 } from '~/components/marketing/solutions/app-builder.visuals';
 import type { SupportedLanguage } from '~/lib/i18n/language';
 
@@ -19,8 +21,8 @@ const FRENCH_PROMPT =
 
 const COPY = APP_BUILDER_COPY.fr;
 
-function actionAccessibleName(action: Readonly<{ label: string; ariaLabel: string }>) {
-  return `${action.label}. ${action.ariaLabel}`;
+function actionAccessibleName(action: Readonly<{ label: string; ariaLabel?: string }>) {
+  return action.ariaLabel?.trim() || action.label;
 }
 
 const VIEWPORTS = [
@@ -34,17 +36,23 @@ const THEMES = ['light', 'dark'] as const;
 const LANGUAGES = ['en', 'fr', 'es', 'ar'] as const satisfies readonly SupportedLanguage[];
 const CAPTURE_LANGUAGES = ['en', 'fr'] as const satisfies readonly SupportedLanguage[];
 
+const HERO_VISUAL_SIZES = '(min-width: 1200px) 560px, (min-width: 900px) 48vw, calc(100vw - 32px)';
+const CARD_VISUAL_SIZES = '(min-width: 1200px) 540px, (min-width: 768px) calc(100vw - 64px), calc(100vw - 32px)';
+
 const BANNED_PAGE_LANGUAGE =
   /(?:\bshould be\b|\bcan be\b|\bis designed to\b|trusted by|built for fortune 500|99[.,]99\s*%|4[ ,.]*500\+|10[ ,.]*000|18 global regions|soc\s*2|iso\s*27001|hipaa|customer testimonial|client testimonial)/i;
 
 const LARGE_SOCIAL_PROOF_NUMBER = /\b\d{1,3}(?:[ ,.']\d{3})+\+?\b/;
 
-type Theme = (typeof THEMES)[number];
+type Theme = AppBuilderVisualTheme;
 type Viewport = (typeof VIEWPORTS)[number];
 
-function expectedVisuals(copy: (typeof APP_BUILDER_COPY)[SupportedLanguage], language: SupportedLanguage) {
-  const visualLanguage = resolveAppBuilderVisualLanguage(language);
-  const assets = APP_BUILDER_VISUAL_ASSETS[visualLanguage];
+function expectedVisuals(
+  copy: (typeof APP_BUILDER_COPY)[SupportedLanguage],
+  language: SupportedLanguage,
+  theme: Theme,
+) {
+  const assets = getAppBuilderVisuals(language, theme);
 
   return [
     {
@@ -54,6 +62,7 @@ function expectedVisuals(copy: (typeof APP_BUILDER_COPY)[SupportedLanguage], lan
       disclaimer: copy.visuals.disclaimer,
       loading: 'eager',
       fetchPriority: 'high',
+      sizes: HERO_VISUAL_SIZES,
     },
     {
       testId: 'app-builder-visual-booking',
@@ -62,6 +71,7 @@ function expectedVisuals(copy: (typeof APP_BUILDER_COPY)[SupportedLanguage], lan
       disclaimer: copy.visuals.disclaimer,
       loading: 'lazy',
       fetchPriority: 'low',
+      sizes: CARD_VISUAL_SIZES,
     },
     {
       testId: 'app-builder-visual-schedule',
@@ -70,6 +80,7 @@ function expectedVisuals(copy: (typeof APP_BUILDER_COPY)[SupportedLanguage], lan
       disclaimer: copy.visuals.disclaimer,
       loading: 'lazy',
       fetchPriority: 'low',
+      sizes: CARD_VISUAL_SIZES,
     },
     {
       testId: 'app-builder-visual-reminder',
@@ -78,6 +89,7 @@ function expectedVisuals(copy: (typeof APP_BUILDER_COPY)[SupportedLanguage], lan
       disclaimer: copy.visuals.disclaimer,
       loading: 'lazy',
       fetchPriority: 'low',
+      sizes: CARD_VISUAL_SIZES,
     },
     {
       testId: 'app-builder-visual-ide-preview',
@@ -86,6 +98,7 @@ function expectedVisuals(copy: (typeof APP_BUILDER_COPY)[SupportedLanguage], lan
       disclaimer: copy.proof.disclaimer,
       loading: 'lazy',
       fetchPriority: 'low',
+      sizes: CARD_VISUAL_SIZES,
     },
     {
       testId: 'app-builder-visual-ide-iteration',
@@ -94,6 +107,7 @@ function expectedVisuals(copy: (typeof APP_BUILDER_COPY)[SupportedLanguage], lan
       disclaimer: copy.proof.disclaimer,
       loading: 'lazy',
       fetchPriority: 'low',
+      sizes: CARD_VISUAL_SIZES,
     },
   ] as const;
 }
@@ -199,10 +213,42 @@ async function expectKeyboardFocusIsVisible(page: Page) {
   ).toBe(true);
 }
 
-async function expectImagesAreValid(page: Page, copy = COPY, language: SupportedLanguage = 'fr') {
+async function expectResponsiveSourcesLoad(page: Page, asset: AppBuilderVisualAsset) {
+  const loadedSources = await page.evaluate(async (sources) => {
+    return Promise.all(
+      sources.map(
+        (source) =>
+          new Promise<{ height: number; pathname: string; width: number }>((resolveSource, rejectSource) => {
+            const image = new Image();
+
+            image.onload = () => {
+              resolveSource({
+                height: image.naturalHeight,
+                pathname: new URL(image.currentSrc || image.src, window.location.href).pathname,
+                width: image.naturalWidth,
+              });
+            };
+            image.onerror = () => rejectSource(new Error(`Unable to load responsive source ${source.src}`));
+            image.src = source.src;
+          }),
+      ),
+    );
+  }, asset.sources);
+
+  expect(loadedSources).toEqual(
+    asset.sources.map((source) => ({ height: source.height, pathname: source.src, width: source.width })),
+  );
+}
+
+async function expectImagesAreValid(
+  page: Page,
+  copy = COPY,
+  language: SupportedLanguage = 'fr',
+  theme: Theme = 'light',
+) {
   const root = page.getByTestId('app-builder-page');
   const images = root.locator('img');
-  const visuals = expectedVisuals(copy, language);
+  const visuals = expectedVisuals(copy, language, theme);
 
   await expect(images).toHaveCount(visuals.length);
 
@@ -220,8 +266,11 @@ async function expectImagesAreValid(page: Page, copy = COPY, language: Supported
 
     await expect(figure.locator('figcaption')).toContainText(visual.disclaimer);
     await expect(figure).toHaveAttribute('data-visual-language', visual.language);
+    await expect(figure).toHaveAttribute('data-visual-theme', theme);
     await expect(image).toHaveAttribute('alt', visual.alt);
     await expect(image).toHaveAttribute('src', visual.src);
+    await expect(image).toHaveAttribute('srcset', visual.srcSet);
+    await expect(image).toHaveAttribute('sizes', visual.sizes);
     await expect(image).toHaveAttribute('width', String(visual.width));
     await expect(image).toHaveAttribute('height', String(visual.height));
     await expect(image).toHaveAttribute('loading', visual.loading);
@@ -241,11 +290,30 @@ async function expectImagesAreValid(page: Page, copy = COPY, language: Supported
           image.evaluate((element) => {
             const htmlImage = element as HTMLImageElement;
 
-            return htmlImage.complete ? [htmlImage.naturalWidth, htmlImage.naturalHeight] : [0, 0];
+            return htmlImage.complete && htmlImage.naturalWidth > 0 && htmlImage.naturalHeight > 0;
           }),
         { message: `${visual.testId} must finish loading with non-zero intrinsic dimensions` },
       )
-      .toEqual([visual.width, visual.height]);
+      .toBe(true);
+
+    const selectedSource = await image.evaluate((element) => {
+      const htmlImage = element as HTMLImageElement;
+
+      return {
+        currentPathname: new URL(htmlImage.currentSrc, window.location.href).pathname,
+        naturalHeight: htmlImage.naturalHeight,
+        naturalWidth: htmlImage.naturalWidth,
+      };
+    });
+
+    expect(
+      visual.sources.map((source) => source.src),
+      `${visual.testId} must select one declared responsive WebP source`,
+    ).toContain(selectedSource.currentPathname);
+    expect(selectedSource.naturalWidth / selectedSource.naturalHeight).toBeCloseTo(visual.width / visual.height, 2);
+    expect(visual.sources.map((source) => source.width)).toEqual([720, visual.width]);
+    expect(visual.sources.every((source) => source.src.endsWith(`-${source.width}.webp`))).toBe(true);
+    await expectResponsiveSourcesLoad(page, visual);
 
     await image.evaluate(async (element) => {
       await (element as HTMLImageElement).decode();
@@ -258,12 +326,12 @@ async function expectImagesAreValid(page: Page, copy = COPY, language: Supported
   const fullSizeProofs = [
     {
       testId: 'app-builder-visual-ide-preview',
-      src: APP_BUILDER_VISUAL_ASSETS[resolveAppBuilderVisualLanguage(language)].idePreview.src,
+      src: getAppBuilderVisuals(language, theme).idePreview.src,
       title: copy.proof.preview.title,
     },
     {
       testId: 'app-builder-visual-ide-iteration',
-      src: APP_BUILDER_VISUAL_ASSETS[resolveAppBuilderVisualLanguage(language)].ideIteration.src,
+      src: getAppBuilderVisuals(language, theme).ideIteration.src,
       title: copy.proof.iteration.title,
     },
   ] as const;
@@ -313,20 +381,23 @@ async function prepareFullPageCapture(page: Page) {
 }
 
 async function expectLocalizedSeo(page: Page, copy = COPY, language: SupportedLanguage = 'fr') {
+  const localizedCanonicalUrl = `${CANONICAL_URL}?lang=${language}`;
+
   await expect(page).toHaveTitle(copy.seo.title);
   await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', copy.seo.description);
-  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', CANONICAL_URL);
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', localizedCanonicalUrl);
   await expect(page.locator('meta[property="og:type"]')).toHaveAttribute('content', 'website');
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', copy.seo.title);
   await expect(page.locator('meta[property="og:description"]')).toHaveAttribute('content', copy.seo.description);
-  await expect(page.locator('meta[property="og:url"]')).toHaveAttribute('content', CANONICAL_URL);
+  await expect(page.locator('meta[property="og:url"]')).toHaveAttribute('content', localizedCanonicalUrl);
 
   const ogImage = await page.locator('meta[property="og:image"]').getAttribute('content');
   expect(ogImage, 'OG image must be absolute').toBeTruthy();
   expect(new URL(ogImage!).pathname).toBe(
     `/assets/og/solutions/app-builder-${resolveAppBuilderVisualLanguage(language)}.png`,
   );
-  await expect(page.locator('meta[property="og:image:alt"]')).toHaveAttribute('content', copy.aria.demoLabel);
+  await expect(page.locator('meta[property="og:image:alt"]')).toHaveAttribute('content', copy.seo.ogImageAlt);
+  await expect(page.locator('meta[name="twitter:image:alt"]')).toHaveAttribute('content', copy.seo.ogImageAlt);
 }
 
 async function expectDenseSalesContent(page: Page, language: 'en' | 'fr') {
@@ -337,8 +408,14 @@ async function expectDenseSalesContent(page: Page, language: 'en' | 'fr') {
   await expect(root).toHaveAttribute('lang', language);
   await expect(root).toHaveAttribute('dir', 'ltr');
   await expect(page.getByTestId('app-builder-hero').getByRole('heading', { level: 1 })).toHaveText(copy.hero.title);
-  await expect(page.getByRole('link', { name: actionAccessibleName(copy.hero.primaryCta) })).toBeVisible();
-  await expect(page.getByRole('link', { name: actionAccessibleName(copy.hero.secondaryCta) })).toBeVisible();
+
+  const primaryCta = page.getByRole('link', { name: actionAccessibleName(copy.hero.primaryCta), exact: true });
+  const secondaryCta = page.getByRole('link', { name: actionAccessibleName(copy.hero.secondaryCta), exact: true });
+
+  await expect(primaryCta).toBeVisible();
+  await expect(primaryCta).toHaveAttribute('aria-label', copy.hero.primaryCta.ariaLabel);
+  await expect(secondaryCta).toBeVisible();
+  await expect(secondaryCta).toHaveAttribute('aria-label', copy.hero.secondaryCta.ariaLabel);
 
   await expect(page.getByTestId('app-builder-problem').locator('article')).toHaveCount(3);
   await expect(page.getByTestId('app-builder-prompt').locator('blockquote')).toHaveText(copy.prompt.text);
@@ -401,10 +478,15 @@ test.describe('App Builder solution sales page', () => {
     expect(html).toContain('<html lang="fr" dir="ltr"');
     expect(html).toContain(COPY.hero.title);
     expect(html).toContain(FRENCH_PROMPT);
-    expect(html).toContain('/assets/solutions/app-builder/fr/live-booking-app.png');
-    expect(html).toContain('/assets/solutions/app-builder/fr/mobile-booking.png');
-    expect(html).toContain('/assets/solutions/app-builder/fr/ide-agent-preview.png');
-    expect(html).toContain('/assets/solutions/app-builder/fr/ide-agent-iteration.png');
+    expect(html).toContain('/assets/solutions/app-builder/fr/light/live-booking-app-720.webp');
+    expect(html).toContain('/assets/solutions/app-builder/fr/light/live-booking-app-1440.webp');
+    expect(html).toContain('/assets/solutions/app-builder/fr/light/mobile-booking-720.webp');
+    expect(html).toContain('/assets/solutions/app-builder/fr/light/mobile-booking-900.webp');
+    expect(html).toContain('/assets/solutions/app-builder/fr/light/ide-agent-preview-1440.webp');
+    expect(html).toContain('/assets/solutions/app-builder/fr/light/ide-agent-iteration-1440.webp');
+    expect(html).toContain(`sizes="${HERO_VISUAL_SIZES}"`);
+    expect(html).toContain(`sizes="${CARD_VISUAL_SIZES}"`);
+    expect(html).toContain('data-visual-theme="light"');
     expect(html).toContain(COPY.visuals.system.alt);
     expect(html).toContain(COPY.visuals.items[2].alt);
     expect(html).toContain(COPY.proof.preview.alt);
@@ -416,7 +498,7 @@ test.describe('App Builder solution sales page', () => {
     test.setTimeout(90_000);
 
     const baseURL = runtimeBaseUrl(testInfo.project.use.baseURL?.toString());
-    const assets = APP_BUILDER_VISUAL_ASSETS.en;
+    const assets = getAppBuilderVisuals('en', 'dark');
 
     await page.setViewportSize(VIEWPORTS[0]);
     await configureLocalizedTheme(page, baseURL, 'dark', 'en');
@@ -481,7 +563,7 @@ test.describe('App Builder solution sales page', () => {
       await expect(page.getByTestId('app-builder-page')).toHaveAttribute('dir', direction);
       await expect(page.getByTestId('app-builder-hero').getByRole('heading', { level: 1 })).toHaveText(copy.hero.title);
       await expect(page.getByTestId('app-builder-prompt').locator('blockquote')).toHaveText(copy.prompt.text);
-      await expectImagesAreValid(page, copy, language);
+      await expectImagesAreValid(page, copy, language, 'dark');
       await expect(page.getByRole('link', { name: shellCopy.a11y.skipToContent })).toBeAttached();
       await expect(page.getByRole('navigation', { name: shellCopy.a11y.mainNavigation })).toBeVisible();
       await expect(page.getByTestId('link-login')).toHaveAccessibleName(shellCopy.navigation.logIn);
@@ -539,6 +621,7 @@ test.describe('App Builder solution sales page', () => {
     await page.goto(`${ROUTE}?lang=en`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
     await expect(page.getByTestId('app-builder-visual-hero')).toHaveAttribute('data-visual-language', 'en');
+    await expect(page.getByTestId('app-builder-visual-hero')).toHaveAttribute('data-visual-theme', 'light');
 
     const languageNavigation = page.getByRole('navigation', { name: APP_BUILDER_COPY.en.languageSwitch.label });
     await expect(
@@ -549,9 +632,10 @@ test.describe('App Builder solution sales page', () => {
     await expect(page).toHaveURL(new URL(`${ROUTE}?lang=fr`, baseURL).toString());
     await expect(page.locator('html')).toHaveAttribute('lang', 'fr');
     await expect(page.getByTestId('app-builder-visual-hero')).toHaveAttribute('data-visual-language', 'fr');
+    await expect(page.getByTestId('app-builder-visual-hero')).toHaveAttribute('data-visual-theme', 'light');
     await expect(page.getByTestId('app-builder-visual-hero').locator('img')).toHaveAttribute(
       'src',
-      APP_BUILDER_VISUAL_ASSETS.fr.hero.src,
+      getAppBuilderVisuals('fr', 'light').hero.src,
     );
 
     const cookies = await page.context().cookies(baseURL);
@@ -609,7 +693,7 @@ test.describe('App Builder solution sales page', () => {
           await expectNoHorizontalOverflow(page, viewport);
           await expectVisibleTargetsAreTouchable(page);
           await expectKeyboardFocusIsVisible(page);
-          await expectImagesAreValid(page, copy, language);
+          await expectImagesAreValid(page, copy, language, theme);
           await prepareFullPageCapture(page);
 
           const screenshotPath = resolve(

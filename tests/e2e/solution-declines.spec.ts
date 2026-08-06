@@ -2,12 +2,17 @@ import { expect, test, type Page } from '@playwright/test';
 
 import { CHATBOT_BUILDER_COPY } from '~/components/marketing/solutions/chatbot-builder.copy';
 import { DASHBOARD_BUILDER_COPY } from '~/components/marketing/solutions/dashboard-builder.copy';
-import { ENTERPRISE_COPY } from '~/components/marketing/solutions/enterprise.copy';
 import { FREELANCERS_COPY } from '~/components/marketing/solutions/freelancers.copy';
 import { GAME_BUILDER_COPY } from '~/components/marketing/solutions/game-builder.copy';
 import { INTERNAL_AI_BUILDER_COPY } from '~/components/marketing/solutions/internal-ai-builder.copy';
 import type { SolutionCopyByLanguage } from '~/components/marketing/solutions/solution-copy';
-import { SOLUTION_PROOF_VISUAL_SLOTS } from '~/components/marketing/solutions/solution-proof.visuals';
+import {
+  getSolutionProofVisuals,
+  SOLUTION_PROOF_VISUAL_SLOTS,
+  type CapturedSolutionProofVisualSlug,
+  type SolutionProofVisualAsset,
+  type SolutionProofVisualTheme,
+} from '~/components/marketing/solutions/solution-proof.visuals';
 import { STARTUPS_COPY } from '~/components/marketing/solutions/startups.copy';
 import { WEBSITE_BUILDER_COPY } from '~/components/marketing/solutions/website-builder.copy';
 
@@ -17,10 +22,9 @@ const SOLUTIONS = [
   { slug: 'dashboard-builder', copy: DASHBOARD_BUILDER_COPY },
   { slug: 'chatbot-builder', copy: CHATBOT_BUILDER_COPY },
   { slug: 'internal-ai-builder', copy: INTERNAL_AI_BUILDER_COPY },
-  { slug: 'enterprise', copy: ENTERPRISE_COPY },
   { slug: 'startups', copy: STARTUPS_COPY },
   { slug: 'freelancers', copy: FREELANCERS_COPY },
-] as const satisfies ReadonlyArray<{ slug: string; copy: SolutionCopyByLanguage }>;
+] as const satisfies ReadonlyArray<{ slug: CapturedSolutionProofVisualSlug; copy: SolutionCopyByLanguage }>;
 
 const VIEWPORTS = [
   { width: 390, height: 844 },
@@ -32,12 +36,20 @@ const VIEWPORTS = [
 const THEMES = ['light', 'dark'] as const;
 const LANGUAGES = ['en', 'fr'] as const;
 
+const HERO_VISUAL_SIZES = '(min-width: 1200px) 560px, (min-width: 900px) 48vw, calc(100vw - 32px)';
+const CARD_VISUAL_SIZES = '(min-width: 1200px) 540px, (min-width: 768px) calc(100vw - 64px), calc(100vw - 32px)';
+
+function actionAccessibleName(action: Readonly<{ label: string; ariaLabel?: string }>): string {
+  return action.ariaLabel?.trim() || action.label;
+}
+
 function runtimeBaseUrl(testBaseUrl: string | undefined): string {
   return testBaseUrl ?? process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:5173';
 }
 
-async function configureTheme(page: Page, baseURL: string, theme: (typeof THEMES)[number]) {
+async function configureTheme(page: Page, baseURL: string, theme: SolutionProofVisualTheme) {
   await page.context().addCookies([{ name: 'ecode_theme', value: theme, url: baseURL }]);
+  await page.addInitScript((nextTheme) => localStorage.setItem('bolt_theme', nextTheme), theme);
   await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
 }
 
@@ -84,54 +96,100 @@ async function expectTouchTargets(page: Page) {
   expect(undersized, 'every visible solution-page target must measure at least 44×44 CSS pixels').toEqual([]);
 }
 
+async function expectResponsiveSourcesLoad(page: Page, asset: SolutionProofVisualAsset) {
+  const loadedSources = await page.evaluate(async (sources) => {
+    return Promise.all(
+      sources.map(
+        (source) =>
+          new Promise<{ height: number; pathname: string; width: number }>((resolveSource, rejectSource) => {
+            const image = new Image();
+
+            image.onload = () => {
+              resolveSource({
+                height: image.naturalHeight,
+                pathname: new URL(image.currentSrc || image.src, window.location.href).pathname,
+                width: image.naturalWidth,
+              });
+            };
+            image.onerror = () => rejectSource(new Error(`Unable to load responsive source ${source.src}`));
+            image.src = source.src;
+          }),
+      ),
+    );
+  }, asset.sources);
+
+  expect(loadedSources).toEqual(
+    asset.sources.map((source) => ({ height: source.height, pathname: source.src, width: source.width })),
+  );
+}
+
 async function expectProofImages(
   page: Page,
-  slug: (typeof SOLUTIONS)[number]['slug'],
+  slug: CapturedSolutionProofVisualSlug,
   language: (typeof LANGUAGES)[number],
+  theme: SolutionProofVisualTheme,
 ) {
-  const filenames = {
-    prompt: 'ide-agent-prompt.png',
-    preview: 'ide-agent-preview.png',
-    webviewOverview: 'ide-webview-overview.png',
-    iteration: 'ide-agent-iteration.png',
-    webviewIteration: 'ide-webview-iteration.png',
-    files: 'ide-agent-files.png',
-  } as const;
-  const expectedSources = SOLUTION_PROOF_VISUAL_SLOTS.map(
-    (slot) => `/assets/solutions/${slug}/${language}/${filenames[slot]}`,
-  );
+  const assets = getSolutionProofVisuals(slug, language, theme);
 
   const figures = page.locator('[data-real-solution-proof="true"]');
   const images = figures.locator('img');
 
-  await expect(images).toHaveCount(6);
+  await expect(images).toHaveCount(SOLUTION_PROOF_VISUAL_SLOTS.length);
 
-  for (const [index, source] of expectedSources.entries()) {
+  for (const [index, slot] of SOLUTION_PROOF_VISUAL_SLOTS.entries()) {
+    const asset = assets[slot];
     const image = images.nth(index);
-    const slot = SOLUTION_PROOF_VISUAL_SLOTS[index];
+    const sizes = index === 0 ? HERO_VISUAL_SIZES : CARD_VISUAL_SIZES;
 
-    await expect(image).toHaveAttribute('src', source);
+    await expect(image).toHaveAttribute('src', asset.src);
+    await expect(image).toHaveAttribute('srcset', asset.srcSet);
+    await expect(image).toHaveAttribute('sizes', sizes);
     await expect(image).toHaveAttribute('width', '1440');
     await expect(image).toHaveAttribute('height', '900');
     await expect(image).toHaveAttribute('loading', index === 0 ? 'eager' : 'lazy');
+    await expect(image).toHaveAttribute('fetchpriority', index === 0 ? 'high' : 'low');
     await expect(image).toHaveAttribute('decoding', 'async');
     await expect(figures.nth(index)).toHaveAttribute('data-visual-solution', slug);
     await expect(figures.nth(index)).toHaveAttribute('data-visual-slot', slot);
+    await expect(figures.nth(index)).toHaveAttribute('data-visual-language', language);
+    await expect(figures.nth(index)).toHaveAttribute('data-visual-theme', theme);
 
     const alt = await image.getAttribute('alt');
 
     expect(alt?.trim().length).toBeGreaterThan(20);
+    expect(asset.sources.map((source) => source.width)).toEqual([720, 1440]);
+    expect(asset.sources.map((source) => source.height)).toEqual([450, 900]);
+    expect(asset.sources.every((source) => source.src.endsWith(`-${source.width}.webp`))).toBe(true);
 
     await image.scrollIntoViewIfNeeded();
     await expect
-      .poll(() =>
-        image.evaluate((element) => {
-          const htmlImage = element as HTMLImageElement;
+      .poll(
+        () =>
+          image.evaluate((element) => {
+            const htmlImage = element as HTMLImageElement;
 
-          return htmlImage.complete ? [htmlImage.naturalWidth, htmlImage.naturalHeight] : [0, 0];
-        }),
+            return htmlImage.complete && htmlImage.naturalWidth > 0 && htmlImage.naturalHeight > 0;
+          }),
+        { message: `${slug}/${language}/${theme}/${slot} must load a non-zero responsive image` },
       )
-      .toEqual([1440, 900]);
+      .toBe(true);
+
+    const selectedSource = await image.evaluate((element) => {
+      const htmlImage = element as HTMLImageElement;
+
+      return {
+        currentPathname: new URL(htmlImage.currentSrc, window.location.href).pathname,
+        naturalHeight: htmlImage.naturalHeight,
+        naturalWidth: htmlImage.naturalWidth,
+      };
+    });
+
+    expect(
+      asset.sources.map((source) => source.src),
+      `${slug}/${language}/${theme}/${slot} must select one declared responsive WebP source`,
+    ).toContain(selectedSource.currentPathname);
+    expect(selectedSource.naturalWidth / selectedSource.naturalHeight).toBeCloseTo(asset.width / asset.height, 2);
+    await expectResponsiveSourcesLoad(page, asset);
   }
 }
 
@@ -182,6 +240,16 @@ test.describe('declined solution sales pages', () => {
             await expect(page.getByTestId('solution-hero').getByRole('heading', { level: 1 })).toHaveText(
               copy.hero.title,
             );
+
+            const primaryCta = page
+              .getByTestId('solution-hero')
+              .getByRole('link', { name: actionAccessibleName(copy.hero.primaryCta), exact: true });
+            const secondaryCta = page
+              .getByTestId('solution-hero')
+              .getByRole('link', { name: actionAccessibleName(copy.hero.secondaryCta), exact: true });
+
+            await expect(primaryCta).toHaveAttribute('aria-label', copy.hero.primaryCta.ariaLabel);
+            await expect(secondaryCta).toHaveAttribute('aria-label', copy.hero.secondaryCta.ariaLabel);
             await expect(page.getByTestId('solution-ide-prompt')).toContainText(copy.proofLink.disclaimer);
             await expect(page.getByTestId('solution-problem').locator('article')).toHaveCount(3);
             await expect(page.getByTestId('solution-build').locator('blockquote')).toHaveText(copy.build.promptText);
@@ -206,7 +274,7 @@ test.describe('declined solution sales pages', () => {
 
             await expectNoHorizontalOverflow(page, viewport.width);
             await expectTouchTargets(page);
-            await expectProofImages(page, solution.slug, language);
+            await expectProofImages(page, solution.slug, language, theme);
 
             await page.evaluate(() => {
               if (document.activeElement instanceof HTMLElement) {

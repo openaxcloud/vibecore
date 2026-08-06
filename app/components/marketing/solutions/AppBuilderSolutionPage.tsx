@@ -1,3 +1,4 @@
+import { useStore } from '@nanostores/react';
 import {
   ArrowRight,
   Boxes,
@@ -17,19 +18,15 @@ import {
   Workflow,
   type LucideIcon,
 } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 
 import { APP_BUILDER_COPY, type AppBuilderCopy } from './app-builder.copy';
 import './app-builder.css';
-import {
-  APP_BUILDER_VISUAL_ASSETS,
-  resolveAppBuilderVisualLanguage,
-  type AppBuilderVisualAsset,
-  type AppBuilderVisualSet,
-} from './app-builder.visuals';
+import { getAppBuilderVisuals, type AppBuilderVisualAsset, type AppBuilderVisualSet } from './app-builder.visuals';
 import { EcodeExactPublicShell as PublicShell } from '~/components/marketing/ecode-exact/EcodeExactShell';
 import type { SupportedLanguage } from '~/lib/i18n/language';
+import { themeStore, type Theme } from '~/lib/stores/theme';
 
 const problemIcons = [Unplug, Boxes, Clock3] as const satisfies readonly LucideIcon[];
 const outputIcons = [MonitorSmartphone, Database, Workflow, Rocket] as const satisfies readonly LucideIcon[];
@@ -52,11 +49,31 @@ const featureIcons = [
   Code2,
 ] as const satisfies readonly LucideIcon[];
 
+const APP_BUILDER_HERO_VISUAL_SIZES = '(min-width: 1200px) 560px, (min-width: 900px) 48vw, calc(100vw - 32px)';
+
+const APP_BUILDER_CARD_VISUAL_SIZES =
+  '(min-width: 1200px) 540px, (min-width: 768px) calc(100vw - 64px), calc(100vw - 32px)';
+
+/**
+ * Keep SSR and the first hydration render deterministic, then follow the live
+ * E-Code theme store. The marketing toggle updates this store synchronously.
+ */
+function useAppBuilderVisualTheme(): Theme {
+  const resolvedTheme = useStore(themeStore);
+  const [visualTheme, setVisualTheme] = useState<Theme>('light');
+
+  useEffect(() => {
+    setVisualTheme(resolvedTheme);
+  }, [resolvedTheme]);
+
+  return visualTheme;
+}
+
 export function AppBuilderSolutionPage({ language }: { language: SupportedLanguage }) {
   const copy = APP_BUILDER_COPY[language];
   const direction = language === 'ar' ? 'rtl' : 'ltr';
-  const visualLanguage = resolveAppBuilderVisualLanguage(language);
-  const visualAssets = APP_BUILDER_VISUAL_ASSETS[visualLanguage];
+  const visualTheme = useAppBuilderVisualTheme();
+  const visualAssets = getAppBuilderVisuals(language, visualTheme);
 
   return (
     <PublicShell language={language}>
@@ -119,6 +136,7 @@ function Hero({
           disclaimer={copy.visuals.disclaimer}
           className="app-builder-product-visual--hero"
           eager
+          sizes={APP_BUILDER_HERO_VISUAL_SIZES}
           testId="app-builder-visual-hero"
         />
       </div>
@@ -215,12 +233,14 @@ function PromptSection({ copy, assets }: { copy: AppBuilderCopy; assets: AppBuil
             content={copy.visuals.items[0]}
             disclaimer={copy.visuals.disclaimer}
             className="app-builder-product-visual--booking"
+            sizes={APP_BUILDER_CARD_VISUAL_SIZES}
             testId="app-builder-visual-booking"
           />
           <ProductVisual
             asset={assets.schedule}
             content={copy.visuals.items[1]}
             disclaimer={copy.visuals.disclaimer}
+            sizes={APP_BUILDER_CARD_VISUAL_SIZES}
             testId="app-builder-visual-schedule"
           />
         </div>
@@ -265,6 +285,7 @@ function IdeProofSection({ copy, assets }: { copy: AppBuilderCopy; assets: AppBu
             disclaimer={copy.proof.disclaimer}
             className="app-builder-product-visual--ide-proof"
             openFullSizeLabel={copy.proof.openFullSizeLabel}
+            sizes={APP_BUILDER_CARD_VISUAL_SIZES}
             testId="app-builder-visual-ide-preview"
           />
           <ProductVisual
@@ -273,6 +294,7 @@ function IdeProofSection({ copy, assets }: { copy: AppBuilderCopy; assets: AppBu
             disclaimer={copy.proof.disclaimer}
             className="app-builder-product-visual--ide-iteration"
             openFullSizeLabel={copy.proof.openFullSizeLabel}
+            sizes={APP_BUILDER_CARD_VISUAL_SIZES}
             testId="app-builder-visual-ide-iteration"
           />
         </div>
@@ -329,6 +351,7 @@ function FeaturesSection({ copy, asset }: { copy: AppBuilderCopy; asset: AppBuil
             content={copy.visuals.items[2]}
             disclaimer={copy.visuals.disclaimer}
             className="app-builder-product-visual--feature"
+            sizes={APP_BUILDER_CARD_VISUAL_SIZES}
             testId="app-builder-visual-reminder"
           />
         </div>
@@ -431,6 +454,7 @@ function ProductVisual({
   disclaimer,
   eager = false,
   openFullSizeLabel,
+  sizes,
   testId,
 }: {
   asset: AppBuilderVisualAsset;
@@ -439,10 +463,10 @@ function ProductVisual({
   disclaimer: string;
   eager?: boolean;
   openFullSizeLabel?: string;
+  sizes: string;
   testId: string;
 }) {
   const captionId = `${testId}-caption`;
-
   const imagePriority = { fetchpriority: eager ? 'high' : 'low' };
 
   return (
@@ -450,12 +474,15 @@ function ProductVisual({
       className={`app-builder-product-visual ${className}`.trim()}
       aria-describedby={captionId}
       data-visual-language={asset.language}
+      data-visual-theme={asset.theme}
       data-testid={testId}
     >
       <div className="app-builder-product-visual__media">
         <img
           {...imagePriority}
           src={asset.src}
+          srcSet={asset.srcSet}
+          sizes={sizes}
           width={asset.width}
           height={asset.height}
           alt={content.alt}
@@ -513,7 +540,7 @@ function ActionLink({
   to,
   variant = 'primary',
 }: {
-  action: Readonly<{ label: string; ariaLabel: string }>;
+  action: Readonly<{ label: string; ariaLabel?: string }>;
   to: string;
   variant?: 'primary' | 'secondary';
 }) {
@@ -525,7 +552,7 @@ function ActionLink({
   );
 
   const className = `app-builder-action app-builder-action--${variant}`;
-  const accessibleName = `${action.label}. ${action.ariaLabel}`;
+  const accessibleName = action.ariaLabel?.trim() || action.label;
 
   if (to.startsWith('#')) {
     return (

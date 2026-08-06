@@ -24,6 +24,7 @@ export type AppBuilderCopy = Readonly<{
   seo: Readonly<{
     title: string;
     description: string;
+    ogImageAlt: string;
   }>;
   hero: Readonly<{
     eyebrow: string;
@@ -152,7 +153,8 @@ export const APP_BUILDER_COPY = {
     seo: {
       title: 'Business App Builder with Real Code | E-Code',
       description:
-        'Describe your workflow, users, data, and rules. E-Code turns it into editable source files with connected screens, a running Preview, project export, and publishing for supported static builds.',
+        'Describe your workflow. E-Code builds connected screens in editable source files, runs them in Preview, and guides project export and static publishing.',
+      ogImageAlt: 'E-Code App Builder workspace with a salon booking app running beside its editable project files.',
     },
     hero: {
       eyebrow: 'App Builder for real business workflows',
@@ -280,9 +282,9 @@ export const APP_BUILDER_COPY = {
         alt: 'E-Code IDE showing the salon booking prompt in the Agent panel, generated project files, and the booking application running in the Webview Preview tab.',
       },
       iteration: {
-        title: 'When Preview exposes an error, ask the agent to repair it',
-        body: 'This correction follow-up asks the agent to inspect a router runtime error, preserve every route, and verify the booking dashboard again. The exported project later passed typecheck and a production build independently; the red Problems badge records local Preview startup diagnostics, not a claim that every generation is error-free on the first pass.',
-        alt: 'E-Code IDE showing a follow-up prompt to repair a router runtime error beside the updated salon project and its running booking dashboard in the Webview Preview tab.',
+        title: 'The generated booking navigation is tested in the real Webview',
+        body: 'After generation, the proof runner opens Appointments in the live Webview and verifies the expected state while the prompt and project files remain visible. This proves an in-browser interface transition over fictional local data, not a connected booking service, database, authentication provider, or email delivery.',
+        alt: 'E-Code IDE showing the generated salon files and the verified Appointments view in the live Webview.',
       },
     },
     visuals: {
@@ -468,7 +470,9 @@ export const APP_BUILDER_COPY = {
     seo: {
       title: 'App Builder métier avec code source réel | E-Code',
       description:
-        'Décrivez votre processus, vos utilisateurs, vos données et vos règles. E-Code les transforme en fichiers source modifiables, écrans reliés, aperçu actif, export et publication des builds statiques pris en charge.',
+        'Décrivez votre processus. E-Code crée des écrans reliés en fichiers source modifiables, les exécute dans l’aperçu et guide export et publication statique.',
+      ogImageAlt:
+        'Workspace App Builder E-Code avec une app de réservation de salon active à côté de ses fichiers source modifiables.',
     },
     hero: {
       eyebrow: 'App Builder pour les processus métier réels',
@@ -519,7 +523,7 @@ export const APP_BUILDER_COPY = {
       intro:
         'La demande ci-dessous ressemble au message d’un propriétaire de salon. Les quatre éléments en détaillent le périmètre d’implémentation ; les captures montrent une démonstration fonctionnelle scénarisée pour cette page avec des données fictives, pas la trace d’une génération E-Code.',
       label: 'Exemple de prompt',
-      text: 'Crée une app de réservation pour mon salon de coiffure, avec agenda, comptes clients et rappels par email.',
+      text: 'Créez une app de réservation pour mon salon de coiffure, avec agenda, comptes clients et rappels par email.',
       outputs: [
         {
           title: 'Écrans de réservation',
@@ -535,11 +539,11 @@ export const APP_BUILDER_COPY = {
         },
         {
           title: 'Aperçu et déploiement',
-          body: 'E-Code exécute le projet généré dans l’aperçu pour vérifier chaque format d’écran. Les builds statiques pris en charge passent ensuite par une publication guidée vers une URL live ; les autres projets restent exportables vers leur propre hébergement.',
+          body: 'E-Code exécute le projet généré dans l’aperçu pour vérifier chaque format d’écran. Les builds statiques pris en charge passent ensuite par une publication guidée vers une URL publique ; les autres projets restent exportables vers leur propre hébergement.',
         },
       ],
       demoLabels: {
-        previewLabel: 'salon-reservation / aperçu live',
+        previewLabel: 'salon-reservation / aperçu actif',
         calendar: {
           title: 'Agenda des rendez-vous',
           date: 'Mardi 14 mai',
@@ -596,9 +600,9 @@ export const APP_BUILDER_COPY = {
         alt: 'IDE E-Code affichant le prompt de réservation dans le panneau Agent, les fichiers générés du projet et l’application de réservation active dans l’onglet Webview d’aperçu.',
       },
       iteration: {
-        title: 'Si l’aperçu révèle une erreur, demandez sa correction à l’agent',
-        body: 'Cette correction demande à l’agent d’examiner une erreur de routeur, de préserver toutes les pages et de revérifier le tableau de bord. La vérification indépendante de l’export confirme ensuite le passage du typecheck et du build de production ; la capture documente l’itération, pas une réussite parfaite dès le premier essai.',
-        alt: 'IDE E-Code affichant un prompt de suivi en français pour corriger une erreur de routeur, les fichiers mis à jour du projet et le tableau de bord de réservation actif dans l’onglet Webview d’aperçu.',
+        title: 'La navigation générée est testée dans la vraie Webview',
+        body: 'Après la génération, le runner de preuve ouvre Rendez-vous dans la Webview active et vérifie l’état attendu, tandis que le prompt et les fichiers restent visibles. Cette preuve couvre une transition réelle de l’interface sur des données locales fictives, pas un service de réservation, une base, une authentification ni un envoi d’emails connectés.',
+        alt: 'IDE E-Code montrant les fichiers du salon et la vue Rendez-vous vérifiée dans la Webview active.',
       },
     },
     visuals: {
@@ -650,7 +654,7 @@ export const APP_BUILDER_COPY = {
           body: 'Pour les builds statiques pris en charge, faites avancer la sortie relue dans l’assistant E-Code, où la configuration, la publication, l’état et les journaux restent visibles.',
         },
         {
-          title: 'URL live pour les builds statiques',
+          title: 'URL publique pour les builds statiques',
           body: 'Une version statique prise en charge reçoit une adresse E-Code partageable. Les projets avec serveur restent exportables vers le runtime et le processus d’hébergement dont ils ont besoin.',
         },
         {
@@ -734,7 +738,7 @@ export const APP_BUILDER_COPY = {
         {
           question: 'Où l’application est-elle hébergée ?',
           answer:
-            'Le projet s’exécute d’abord dans l’aperçu E-Code. L’assistant actuel publie les builds statiques pris en charge et renvoie une URL E-Code live. Pour une application avec serveur, exportez le code vers le runtime et le processus d’hébergement nécessaires.',
+            'Le projet s’exécute d’abord dans l’aperçu E-Code. L’assistant actuel publie les builds statiques pris en charge et renvoie une URL E-Code publique. Pour une application avec serveur, exportez le code vers le runtime et le processus d’hébergement nécessaires.',
         },
         {
           question: 'Puis-je connecter ma base de données existante ?',
@@ -744,7 +748,7 @@ export const APP_BUILDER_COPY = {
         {
           question: 'Puis-je reprendre une application existante ?',
           answer:
-            'Oui. Ouvrez un projet E-Code existant ou importez ses fichiers, puis expliquez l’écran, le processus ou l’intégration à ajouter ou modifier. L’agent travaille depuis la structure actuelle au lieu de remplacer l’application par un starter sans rapport.',
+            'Oui. Ouvrez un projet E-Code existant ou importez ses fichiers, puis expliquez l’écran, le processus ou l’intégration à ajouter ou modifier. L’agent travaille depuis la structure actuelle au lieu de remplacer l’application par un modèle de départ sans rapport.',
         },
         {
           question: 'Comment protéger les utilisateurs et les données ?',
@@ -786,6 +790,8 @@ export const APP_BUILDER_COPY = {
       title: 'Creador de aplicaciones de negocio con código real | E-Code',
       description:
         'Describe tu proceso, usuarios, datos y reglas. E-Code los convierte en archivos fuente editables, pantallas conectadas, Preview activa, exportación del proyecto y publicación para builds estáticos compatibles.',
+      ogImageAlt:
+        'Espacio App Builder de E-Code con una aplicación de reservas del salón junto a sus archivos fuente editables.',
     },
     hero: {
       eyebrow: 'App Builder para flujos de negocio reales',
@@ -1103,6 +1109,7 @@ export const APP_BUILDER_COPY = {
       title: 'منشئ تطبيقات أعمال بكود مصدري حقيقي | E-Code',
       description:
         'صِف سير العمل والمستخدمين والبيانات والقواعد. يحوّلها E-Code إلى ملفات مصدر قابلة للتعديل وشاشات مترابطة ومعاينة عاملة وتصدير للمشروع ونشر للإصدارات الثابتة المدعومة.',
+      ogImageAlt: 'مساحة App Builder في E-Code تعرض تطبيق حجز للصالون بجوار ملفات المصدر القابلة للتعديل.',
     },
     hero: {
       eyebrow: 'منشئ تطبيقات لسير العمل الفعلي',

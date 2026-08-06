@@ -1,14 +1,21 @@
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
 import { APP_BUILDER_COPY } from './app-builder.copy';
-import { APP_BUILDER_VISUAL_ASSETS } from './app-builder.visuals';
+import {
+  APP_BUILDER_VISUAL_ASSETS,
+  APP_BUILDER_VISUAL_THEMES,
+  getAppBuilderVisuals,
+  type AppBuilderVisualAsset,
+  type AppBuilderVisualSource,
+} from './app-builder.visuals';
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '~/lib/i18n/language';
 
 const EXPECTED_FRENCH_PROMPT =
-  'Crée une app de réservation pour mon salon de coiffure, avec agenda, comptes clients et rappels par email.';
+  'Créez une app de réservation pour mon salon de coiffure, avec agenda, comptes clients et rappels par email.';
 
 const BANNED_SPEC_LANGUAGE = /\b(?:should be|can be|is designed to)\b/i;
 
@@ -164,7 +171,46 @@ const SERVER_EXPORT_PATTERNS = {
 const BANNED_UNVERIFIED_FEATURES =
   /(?:Authentication, roles|Integrations and notifications|Authentification, rôles|Intégrations et notifications|Autenticación, roles|Integraciones y notificaciones|مصادقة وأدوار|تكاملات وإشعارات)/i;
 
-const APP_BUILDER_VISUALS = Object.values(APP_BUILDER_VISUAL_ASSETS).flatMap((assets) => Object.values(assets));
+const APP_BUILDER_VISUAL_LANGUAGES = ['en', 'fr'] as const;
+
+const APP_BUILDER_VISUALS: AppBuilderVisualAsset[] = APP_BUILDER_VISUAL_LANGUAGES.flatMap((language) =>
+  APP_BUILDER_VISUAL_THEMES.flatMap((theme) => Object.values(getAppBuilderVisuals(language, theme))),
+);
+
+const APP_BUILDER_VISUAL_SOURCES: AppBuilderVisualSource[] = APP_BUILDER_VISUALS.flatMap((asset) => [...asset.sources]);
+
+function readWebPDimensions(file: Buffer): { width: number; height: number } {
+  expect(file.subarray(0, 4).toString('ascii')).toBe('RIFF');
+  expect(file.subarray(8, 12).toString('ascii')).toBe('WEBP');
+
+  const chunk = file.subarray(12, 16).toString('ascii');
+
+  if (chunk === 'VP8X') {
+    return { width: file.readUIntLE(24, 3) + 1, height: file.readUIntLE(27, 3) + 1 };
+  }
+
+  if (chunk === 'VP8 ') {
+    expect(file.subarray(23, 26).toString('hex')).toBe('9d012a');
+
+    return { width: file.readUInt16LE(26) & 0x3fff, height: file.readUInt16LE(28) & 0x3fff };
+  }
+
+  if (chunk === 'VP8L') {
+    expect(file[20]).toBe(0x2f);
+
+    const byte0 = file[21];
+    const byte1 = file[22];
+    const byte2 = file[23];
+    const byte3 = file[24];
+
+    return {
+      width: 1 + byte0 + ((byte1 & 0x3f) << 8),
+      height: 1 + (byte1 >> 6) + (byte2 << 2) + ((byte3 & 0x0f) << 10),
+    };
+  }
+
+  throw new Error(`Unsupported WebP chunk ${chunk}`);
+}
 
 type Copy = (typeof APP_BUILDER_COPY)[SupportedLanguage];
 
@@ -345,7 +391,7 @@ describe('App Builder localized sales copy', () => {
       expect.stringMatching(/données.*visible/i),
       expect.stringMatching(/aperçu/i),
       expect.stringMatching(/publication.*statique/i),
-      expect.stringMatching(/url.*(?:live|ligne).*statique/i),
+      expect.stringMatching(/url.*(?:publique|en ligne).*statique/i),
       expect.stringMatching(/itération.*conversation/i),
     ]);
   });
@@ -390,13 +436,20 @@ describe('App Builder localized sales copy', () => {
         expect(proof.preview.body, `${language} must disclose what Preview does not prove`).toMatch(connectionPattern);
       }
 
-      expect(serialized, `${language} must describe the real correction shown in the second capture`).toMatch(
-        /correction|corriger|corrección|تصحيح/i,
-      );
-      expect(
-        proof.iteration.body,
-        `${language} must attribute build validation to the independently exported project`,
-      ).toMatch(/independent|indépendant|independiente|مستقلة/i);
+      if (language === 'en' || language === 'fr') {
+        expect(
+          proof.iteration.body,
+          `${language} must describe the verified navigation interaction shown in the second capture`,
+        ).toMatch(language === 'en' ? /opens Appointments.*verif/i : /ouvre Rendez-vous.*vérifi/i);
+      } else {
+        expect(serialized, `${language} must describe the real correction shown in the second capture`).toMatch(
+          /corrección|تصحيح/i,
+        );
+        expect(
+          proof.iteration.body,
+          `${language} must attribute build validation to the independently exported project`,
+        ).toMatch(/independiente|مستقلة/i);
+      }
     }
   });
 
@@ -454,7 +507,7 @@ describe('App Builder localized sales copy', () => {
     }
   });
 
-  it('ships real browser captures in English and French with explicit loading and sizing contracts', () => {
+  it('ships localized, themed responsive visual contracts with only the hero eager', () => {
     const ogPaths = ['en', 'fr'].map((language) =>
       resolve(process.cwd(), `public/assets/og/solutions/app-builder-${language}.png`),
     );
@@ -472,30 +525,88 @@ describe('App Builder localized sales copy', () => {
     }
 
     const componentSource = readFileSync(componentPath, 'utf8');
+    expect(componentSource).toContain('useStore(themeStore)');
+    expect(componentSource).toContain('getAppBuilderVisuals(language, visualTheme)');
     expect(componentSource).toContain("loading={eager ? 'eager' : 'lazy'}");
     expect(componentSource).toContain("fetchpriority: eager ? 'high' : 'low'");
     expect(componentSource).toContain('decoding="async"');
     expect(componentSource).toContain('alt={content.alt}');
+    expect(componentSource).toContain('srcSet={asset.srcSet}');
+    expect(componentSource).toContain('sizes={sizes}');
     expect(componentSource).toContain('width={asset.width}');
     expect(componentSource).toContain('height={asset.height}');
     expect(componentSource).toContain('data-visual-language={asset.language}');
+    expect(componentSource).toContain('data-visual-theme={asset.theme}');
+    expect(componentSource.match(/^\s+eager$/gm)).toHaveLength(1);
     expect(componentSource).not.toMatch(
       /prompt-to-booking-app\.svg|mobile-booking-flow\.svg|team-schedule\.svg|client-reminder-flow\.svg/,
     );
 
-    for (const visual of APP_BUILDER_VISUALS) {
-      const assetPath = resolve(process.cwd(), 'public', visual.src.slice(1));
+    expect(Object.keys(APP_BUILDER_VISUAL_ASSETS)).toEqual([...APP_BUILDER_VISUAL_LANGUAGES]);
+    expect(APP_BUILDER_VISUALS).toHaveLength(24);
+    expect(APP_BUILDER_VISUAL_SOURCES).toHaveLength(48);
+    expect(new Set(APP_BUILDER_VISUALS.map(({ src }) => src)).size).toBe(APP_BUILDER_VISUALS.length);
+    expect(new Set(APP_BUILDER_VISUAL_SOURCES.map(({ src }) => src)).size).toBe(APP_BUILDER_VISUAL_SOURCES.length);
 
-      expect(existsSync(assetPath), visual.src).toBe(true);
-      expect(statSync(assetPath).size, `${visual.src} must contain a real raster capture`).toBeGreaterThan(25_000);
+    for (const language of APP_BUILDER_VISUAL_LANGUAGES) {
+      const light = getAppBuilderVisuals(language, 'light');
+      const dark = getAppBuilderVisuals(language, 'dark');
 
-      const artwork = readFileSync(assetPath);
-      expect(artwork.subarray(0, 8).toString('hex'), `${visual.src} PNG signature`).toBe('89504e470d0a1a0a');
-      expect(artwork.subarray(12, 16).toString('ascii'), `${visual.src} IHDR chunk`).toBe('IHDR');
-      expect(artwork.readUInt32BE(16), `${visual.src} intrinsic width`).toBe(visual.width);
-      expect(artwork.readUInt32BE(20), `${visual.src} intrinsic height`).toBe(visual.height);
+      for (const slot of Object.keys(light) as (keyof typeof light)[]) {
+        const asset = light[slot];
+
+        expect(asset.src).toMatch(new RegExp(`/app-builder/${language}/light/.+-(?:900|1440)\\.webp$`));
+        expect(asset.srcSet).toContain(' 720w');
+        expect(asset.srcSet).toContain(` ${asset.width}w`);
+        expect(asset.sources[0].width).toBe(720);
+        expect(asset.sources[1].width).toBe(asset.width);
+        expect(asset.src).not.toBe(dark[slot].src);
+        expect(asset.theme).toBe('light');
+        expect(dark[slot].theme).toBe('dark');
+      }
+
+      expect(light.booking.sources).toEqual([
+        {
+          src: `/assets/solutions/app-builder/${language}/light/mobile-booking-720.webp`,
+          width: 720,
+          height: 840,
+        },
+        {
+          src: `/assets/solutions/app-builder/${language}/light/mobile-booking-900.webp`,
+          width: 900,
+          height: 1050,
+        },
+      ]);
+    }
+  });
+});
+
+describe.runIf(process.env.VERIFY_SOLUTION_PROOF_ASSETS === '1')('App Builder themed WebP files', () => {
+  it('requires all responsive sources at their declared dimensions with distinct pixels', () => {
+    const missing = APP_BUILDER_VISUAL_SOURCES.map((source) => resolve(process.cwd(), `public${source.src}`)).filter(
+      (path) => !existsSync(path),
+    );
+
+    expect(missing, `Missing App Builder WebP files:\n${missing.join('\n')}`).toEqual([]);
+
+    const hashes = new Map<string, string>();
+
+    for (const source of APP_BUILDER_VISUAL_SOURCES) {
+      const path = resolve(process.cwd(), `public${source.src}`);
+      const file = readFileSync(path);
+      const dimensions = readWebPDimensions(file);
+
+      expect(statSync(path).size, `${source.src} must contain a real raster capture`).toBeGreaterThan(5_000);
+      expect(dimensions.width, `${source.src} intrinsic width`).toBe(source.width);
+      expect(dimensions.height, `${source.src} intrinsic height`).toBe(source.height);
+
+      const digest = createHash('sha256').update(file).digest('hex');
+      const duplicate = hashes.get(digest);
+
+      expect(duplicate, `${source.src} duplicates ${duplicate ?? 'another capture'}`).toBeUndefined();
+      hashes.set(digest, source.src);
     }
 
-    expect(new Set(APP_BUILDER_VISUALS.map(({ src }) => src)).size).toBe(12);
+    expect(hashes.size).toBe(APP_BUILDER_VISUAL_SOURCES.length);
   });
 });

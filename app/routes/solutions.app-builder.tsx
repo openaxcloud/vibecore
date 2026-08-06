@@ -145,7 +145,6 @@ export const headers: HeadersFunction = ({ loaderHeaders, parentHeaders }) => {
 };
 
 export const links: LinksFunction = () => [
-  { rel: 'canonical', href: APP_BUILDER_CANONICAL_URL },
   { rel: 'alternate', href: `${APP_BUILDER_CANONICAL_URL}?lang=en`, hrefLang: 'en' },
   { rel: 'alternate', href: `${APP_BUILDER_CANONICAL_URL}?lang=fr`, hrefLang: 'fr' },
   { rel: 'alternate', href: APP_BUILDER_CANONICAL_URL, hrefLang: 'x-default' },
@@ -154,9 +153,10 @@ export const links: LinksFunction = () => [
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
   const language = data?.language ?? 'en';
   const copy = APP_BUILDER_COPY[language];
-  const imageAlt = copy.aria.demoLabel;
+  const imageAlt = copy.seo.ogImageAlt;
   const visualLanguage = language === 'fr' ? 'fr' : 'en';
   const ogImage = APP_BUILDER_OG_IMAGES[visualLanguage];
+  const localizedCanonicalUrl = `${APP_BUILDER_CANONICAL_URL}?lang=${language}`;
 
   const alternateLocales = SUPPORTED_LANGUAGES.filter((candidate) => candidate !== language).map((candidate) => ({
     property: 'og:locale:alternate',
@@ -167,9 +167,10 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
     { title: copy.seo.title },
     { name: 'description', content: copy.seo.description },
     { name: 'robots', content: 'index,follow' },
+    { tagName: 'link', rel: 'canonical', href: localizedCanonicalUrl },
     { property: 'og:type', content: 'website' },
     { property: 'og:site_name', content: 'E-Code' },
-    { property: 'og:url', content: APP_BUILDER_CANONICAL_URL },
+    { property: 'og:url', content: localizedCanonicalUrl },
     { property: 'og:locale', content: OPEN_GRAPH_LOCALES[language] },
     ...alternateLocales,
     { property: 'og:title', content: copy.seo.title },

@@ -3,12 +3,30 @@ import { mkdir, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 import { chromium, type Locator, type Page } from '@playwright/test';
+import sharp from 'sharp';
 
 type Locale = 'en' | 'fr';
+type Theme = 'light' | 'dark';
 type VisualName = 'live-booking-app' | 'mobile-booking' | 'team-schedule' | 'client-reminders';
 
 const OUTPUT_ROOT = resolve(process.cwd(), 'public/assets/solutions/app-builder');
-const OG_OUTPUT_ROOT = resolve(process.cwd(), 'public/assets/og/solutions');
+const WEBP_MIN_BYTES = 6_000;
+const WEBP_MAX_BYTES = 300_000;
+
+const LEGACY_ASSET_PATHS = [
+  ...(['en', 'fr'] as const).flatMap((locale) =>
+    [
+      'live-booking-app.png',
+      'mobile-booking.png',
+      'team-schedule.png',
+      'client-reminders.png',
+      'ide-agent-preview.png',
+      'ide-agent-iteration.png',
+    ].map((filename) => resolve(OUTPUT_ROOT, locale, filename)),
+  ),
+  resolve(process.cwd(), 'public/assets/og/solutions/app-builder-en.png'),
+  resolve(process.cwd(), 'public/assets/og/solutions/app-builder-fr.png'),
+] as const;
 
 const IBM_PLEX_SANS_URL =
   'https://fonts.gstatic.com/s/ibmplexsans/v23/zYXzKVElMYYaJe8bpLHnCwDKr932-G7dytD-Dmu1syxeKYbSB4Zh.woff2';
@@ -444,6 +462,120 @@ const BASE_CSS = String.raw`
   .og-shot img { display: block; width: 832px; height: 520px; object-fit: cover; object-position: 66% center; }
 `;
 
+/**
+ * The dark captures are a separately art-directed product surface. They use
+ * the same executable demo and interaction model as light mode, while every
+ * chrome, content, schedule and mobile layer is redrawn with dark tokens.
+ * This intentionally avoids image filters so text and status contrast remain
+ * native to the theme.
+ */
+const THEME_CSS = String.raw`
+  html[data-theme='dark'] {
+    color-scheme: dark;
+    --ink: #E8F0F7;
+    --muted: #9AAEC0;
+    --line: #314255;
+    --soft-line: #26384A;
+    --canvas: #07111C;
+    --surface: #101D2B;
+    --soft: #152536;
+    --navy: #050C14;
+    --navy-2: #0B1A29;
+    --blue: #70BDEB;
+    --blue-soft: #15354A;
+    --green: #70D6AE;
+    --green-soft: #12382D;
+    --orange: #FF7A22;
+    --orange-hover: #FF9147;
+    --shadow: 0 24px 68px rgba(0, 0, 0, 0.52);
+  }
+
+  html[data-theme='dark'] body { background: #07111C; }
+  html[data-theme='dark'] .capture { background:
+    radial-gradient(circle at 10% 0%, rgba(67,150,205,.16), transparent 30%),
+    linear-gradient(135deg, #07111C 0%, #0C1C2B 100%); }
+  html[data-theme='dark'] .browser { border-color: #34485B; background: var(--surface); }
+  html[data-theme='dark'] .browser-bar { border-bottom-color: #293B4D; background: #0A1521; }
+  html[data-theme='dark'] .browser-dot { background: #435669; }
+  html[data-theme='dark'] .browser-dot:nth-child(1) { background: #A75D52; }
+  html[data-theme='dark'] .browser-dot:nth-child(2) { background: #A98A52; }
+  html[data-theme='dark'] .browser-dot:nth-child(3) { background: #4F8D72; }
+  html[data-theme='dark'] .browser-url,
+  html[data-theme='dark'] .browser-tool { border-color: #304356; background: #122131; color: #9EB0C1; }
+  html[data-theme='dark'] .demo-pill { border-color: #3C5265; background: #152536; color: #B4C4D2; }
+  html[data-theme='dark'] .brand-mark { background: linear-gradient(145deg, #17364D, #091624); color: #DDF1FC; }
+  html[data-theme='dark'] .secondary-action,
+  html[data-theme='dark'] .filter { border-color: #405469; background: #162637; color: #D6E1EA; }
+  html[data-theme='dark'] .status--neutral { background: #1C2D3E; color: #AABAC8; }
+
+  html[data-theme='dark'] .salon-header { border-bottom-color: #26384A; background: rgba(11, 23, 35, .98); }
+  html[data-theme='dark'] .salon-nav { color: #A7B8C7; }
+  html[data-theme='dark'] .live-content { background:
+    linear-gradient(90deg, rgba(15,30,44,.98), rgba(15,30,44,.90)),
+    radial-gradient(circle at 82% 8%, #1C4A66 0%, transparent 38%); }
+  html[data-theme='dark'] .live-content h1 { color: #F2F7FB; }
+  html[data-theme='dark'] .service-card,
+  html[data-theme='dark'] .time-chip,
+  html[data-theme='dark'] .summary-card { border-color: #34495C; background: #142334; color: var(--ink); }
+  html[data-theme='dark'] .service-card.selected { border-color: #70BDEB; box-shadow: inset 0 0 0 1px #70BDEB; }
+  html[data-theme='dark'] .service-art { background: linear-gradient(135deg, #204A63, #172E42); }
+  html[data-theme='dark'] .service-art::after { border-color: rgba(201,229,244,.48); }
+  html[data-theme='dark'] .time-chip { color: #C0CFDB; }
+  html[data-theme='dark'] .time-chip.active { border-color: #70BDEB; background: #153A52; color: #9BD8FA; }
+  html[data-theme='dark'] .live-summary { border-left-color: #314255; background: #0C1926; }
+  html[data-theme='dark'] .summary-card { box-shadow: 0 14px 36px rgba(0,0,0,.30); }
+
+  html[data-theme='dark'] .admin-sidebar { background: linear-gradient(180deg, #050C14, #091725); }
+  html[data-theme='dark'] .admin-brand .brand-mark { background: #17364D; color: #DDF1FC; }
+  html[data-theme='dark'] .admin-brand span span { color: #91A8BA; }
+  html[data-theme='dark'] .admin-nav div { color: #9CB0C0; }
+  html[data-theme='dark'] .admin-nav div.active { background: #162D40; color: #F0F6FA; }
+  html[data-theme='dark'] .admin-main { background: #0B1723; }
+  html[data-theme='dark'] .admin-top { border-bottom-color: #2B3D50; background: #101D2B; }
+  html[data-theme='dark'] .calendar,
+  html[data-theme='dark'] .panel { border-color: #314457; background: #101F2E; }
+  html[data-theme='dark'] .calendar-head { border-bottom-color: #304255; background: #122333; }
+  html[data-theme='dark'] .calendar-head div { border-left-color: #283B4E; color: #C1CED9; }
+  html[data-theme='dark'] .time-axis { background: #0D1A27; }
+  html[data-theme='dark'] .time-axis span { color: #8398AA; }
+  html[data-theme='dark'] .day-column { border-left-color: #283A4C; background:
+    repeating-linear-gradient(to bottom, transparent 0, transparent calc(14.285% - 1px), #233649 calc(14.285% - 1px), #233649 14.285%); }
+  html[data-theme='dark'] .appointment { border-left-color: #70BDEB; background: #15374D; }
+  html[data-theme='dark'] .appointment.pending { border-left-color: #7F94A7; background: #233344; }
+  html[data-theme='dark'] .appointment strong { color: #D9EDF8; }
+  html[data-theme='dark'] .appointment span { color: #A9BBC9; }
+  html[data-theme='dark'] .open-slot { border-color: #587085; color: #91A6B7; }
+  html[data-theme='dark'] .panel-head,
+  html[data-theme='dark'] .contact-grid { border-color: #2C3F52; }
+  html[data-theme='dark'] .contact-grid div { border-color: #2C3F52; }
+  html[data-theme='dark'] .avatar,
+  html[data-theme='dark'] .mobile-service-icon { background: #1A425A; color: #B8E5FA; }
+  html[data-theme='dark'] .reminder-row { border-color: #2B4053; background: #142536; }
+  html[data-theme='dark'] .preferences { color: #A7B8C6; }
+
+  html[data-theme='dark'] .mobile-capture { background:
+    radial-gradient(circle at 12% 9%, rgba(46,148,201,.25), transparent 34%),
+    radial-gradient(circle at 92% 88%, rgba(27,92,122,.20), transparent 38%),
+    linear-gradient(145deg, #02070C, #091826); }
+  html[data-theme='dark'] .phone { border-color: #02060A; background: #0F1C29; box-shadow: 0 34px 90px rgba(0,0,0,.62), 0 0 0 1px #314558; }
+  html[data-theme='dark'] .phone-status,
+  html[data-theme='dark'] .phone-head { border-color: #2A3C4E; background: #0C1824; color: #EAF2F7; }
+  html[data-theme='dark'] .phone-app { background: #0B1723; }
+  html[data-theme='dark'] .phone-brand { background: #1B4057; color: #E4F5FC; }
+  html[data-theme='dark'] .phone-back { border-color: #3A4E61; color: #B9C8D4; }
+  html[data-theme='dark'] .step-track { background: #283B4E; }
+  html[data-theme='dark'] .mobile-service,
+  html[data-theme='dark'] .day,
+  html[data-theme='dark'] .slot { border-color: #33485B; background: #122232; color: #B8C8D5; }
+  html[data-theme='dark'] .day strong { color: #EAF2F7; }
+  html[data-theme='dark'] .day.active,
+  html[data-theme='dark'] .slot.active { border-color: #70BDEB; background: #153B52; color: #9CDBFA; }
+  html[data-theme='dark'] .mobile-context { color: #F1F7FA; }
+  html[data-theme='dark'] .mobile-context > p,
+  html[data-theme='dark'] .mobile-confirm p { color: #AFC1CF; }
+  html[data-theme='dark'] .mobile-confirm { border-color: #365065; background: rgba(18,40,56,.78); }
+`;
+
 const INTERACTION_SCRIPT = String.raw`
   (() => {
     const all = (selector) => Array.from(document.querySelectorAll(selector));
@@ -736,37 +868,21 @@ function clientReminders(locale: Locale) {
     </div>`;
 }
 
-function ogVisual(locale: Locale, screenshotData: string) {
-  const copy = COPY[locale];
-
-  const title =
-    locale === 'fr'
-      ? 'Décrivez le fonctionnement. Obtenez l’app de réservation.'
-      : 'Describe the workflow. Get the booking app.';
-  const body =
-    locale === 'fr'
-      ? 'Un prompt devient une interface de réservation concrète, avec agenda, comptes clients et rappels.'
-      : 'One prompt becomes a concrete booking interface with a calendar, client accounts and reminders.';
-
-  const kicker = locale === 'fr' ? 'CRÉATEUR D’APPLICATIONS' : 'APP BUILDER';
-
-  return `<main class="og-canvas"><div class="og-grid"></div><section class="og-copy"><div class="og-brand"><span class="og-brand-mark">E</span><strong>E-Code</strong></div><span class="og-kicker">${kicker}</span><h1>${title}</h1><p>${body}</p>${demoPill(copy.demo)}</section><section class="og-shot-wrap"><div class="og-shot"><img src="data:image/png;base64,${screenshotData}" alt=""></div></section></main>`;
-}
-
 const VISUALS: readonly {
   name: VisualName;
   width: number;
   height: number;
+  outputWidths: readonly [number, number];
   render: (locale: Locale) => string;
 }[] = [
-  { name: 'live-booking-app', width: 1440, height: 900, render: liveBooking },
-  { name: 'mobile-booking', width: 900, height: 1050, render: mobileBooking },
-  { name: 'team-schedule', width: 1440, height: 900, render: teamSchedule },
-  { name: 'client-reminders', width: 1440, height: 900, render: clientReminders },
+  { name: 'live-booking-app', width: 1440, height: 900, outputWidths: [720, 1440], render: liveBooking },
+  { name: 'mobile-booking', width: 900, height: 1050, outputWidths: [720, 900], render: mobileBooking },
+  { name: 'team-schedule', width: 1440, height: 900, outputWidths: [720, 1440], render: teamSchedule },
+  { name: 'client-reminders', width: 1440, height: 900, outputWidths: [720, 1440], render: clientReminders },
 ];
 
-function htmlDocument(locale: Locale, content: string, fontData: string) {
-  return `<!doctype html><html lang="${locale}"><head><meta charset="utf-8"><meta name="color-scheme" content="light"><style>@font-face{font-family:'IBM Plex Sans';font-style:normal;font-weight:100 900;font-display:block;src:url(data:font/woff2;base64,${fontData}) format('woff2');}${BASE_CSS}</style></head><body>${content}<script>${INTERACTION_SCRIPT}</script></body></html>`;
+function htmlDocument(locale: Locale, theme: Theme, content: string, fontData: string) {
+  return `<!doctype html><html lang="${locale}" data-theme="${theme}"><head><meta charset="utf-8"><meta name="color-scheme" content="${theme}"><style>@font-face{font-family:'IBM Plex Sans';font-style:normal;font-weight:100 900;font-display:block;src:url(data:font/woff2;base64,${fontData}) format('woff2');}${BASE_CSS}${THEME_CSS}</style></head><body>${content}<script>${INTERACTION_SCRIPT}</script></body></html>`;
 }
 
 async function loadPinnedFont() {
@@ -823,20 +939,86 @@ async function assertReady(page: Page, width: number, height: number) {
   }
 }
 
-async function assertPngDimensions(path: string, width: number, height: number) {
-  const png = await readFile(path);
-  const signature = png.subarray(0, 8).toString('hex');
+function sha256(bytes: Uint8Array) {
+  return createHash('sha256').update(bytes).digest('hex');
+}
 
-  if (signature !== '89504e470d0a1a0a') {
-    throw new Error(`${path} is not a PNG file`);
+async function snapshotLegacyAssetHashes() {
+  return new Map(
+    await Promise.all(
+      LEGACY_ASSET_PATHS.map(async (path) => {
+        const bytes = await readFile(path);
+        return [path, sha256(bytes)] as const;
+      }),
+    ),
+  );
+}
+
+async function assertLegacyAssetsUnchanged(expectedHashes: ReadonlyMap<string, string>) {
+  for (const [path, expectedHash] of expectedHashes) {
+    const actualHash = sha256(await readFile(path));
+
+    if (actualHash !== expectedHash) {
+      throw new Error(`Legacy asset changed while generating themed WebP files: ${path}`);
+    }
+  }
+}
+
+async function assertTheme(page: Page, theme: Theme) {
+  const result = (await page.evaluate(`() => {
+    const root = document.documentElement;
+    const rootStyle = getComputedStyle(root);
+
+    return {
+      bodyBackground: getComputedStyle(document.body).backgroundColor,
+      colorScheme: rootStyle.colorScheme,
+      surface: rootStyle.getPropertyValue('--surface').trim().toLowerCase(),
+      theme: root.dataset.theme,
+    };
+  }`)) as {
+    bodyBackground: string;
+    colorScheme: string;
+    surface: string;
+    theme: string | undefined;
+  };
+
+  const expected =
+    theme === 'dark'
+      ? { bodyBackground: 'rgb(7, 17, 28)', surface: '#101d2b' }
+      : { bodyBackground: 'rgb(237, 242, 246)', surface: '#ffffff' };
+
+  if (
+    result.theme !== theme ||
+    result.colorScheme !== theme ||
+    result.surface !== expected.surface ||
+    result.bodyBackground !== expected.bodyBackground
+  ) {
+    throw new Error(
+      `Theme contract failed for ${theme}: ${JSON.stringify(result)}; expected ${JSON.stringify(expected)}`,
+    );
+  }
+}
+
+async function assertWebp(path: string, width: number, height: number) {
+  const webp = await readFile(path);
+
+  if (webp.subarray(0, 4).toString('ascii') !== 'RIFF' || webp.subarray(8, 12).toString('ascii') !== 'WEBP') {
+    throw new Error(`${path} is not a WebP file`);
   }
 
-  const actualWidth = png.readUInt32BE(16);
-  const actualHeight = png.readUInt32BE(20);
+  const metadata = await sharp(webp).metadata();
 
-  if (actualWidth !== width || actualHeight !== height) {
-    throw new Error(`${path} is ${actualWidth}×${actualHeight}; expected ${width}×${height}`);
+  if (metadata.format !== 'webp' || metadata.width !== width || metadata.height !== height) {
+    throw new Error(
+      `${path} is ${metadata.format ?? 'unknown'} ${metadata.width ?? 0}×${metadata.height ?? 0}; expected WebP ${width}×${height}`,
+    );
   }
+
+  if (webp.byteLength < WEBP_MIN_BYTES || webp.byteLength > WEBP_MAX_BYTES) {
+    throw new Error(`${path} weighs ${webp.byteLength} bytes; expected ${WEBP_MIN_BYTES}–${WEBP_MAX_BYTES} bytes`);
+  }
+
+  return { bytes: webp.byteLength, hash: sha256(webp) };
 }
 
 async function assertText(locator: Locator, expected: string, label: string) {
@@ -928,79 +1110,107 @@ async function exerciseVisual(page: Page, visual: VisualName, locale: Locale) {
 }
 
 async function main() {
+  const legacyHashes = await snapshotLegacyAssetHashes();
   const fontData = await loadPinnedFont();
   const browser = await chromium.launch({ headless: true });
+  const outputHashes = new Map<string, string>();
+  const hashOwners = new Map<string, string>();
 
   try {
     for (const locale of ['en', 'fr'] as const) {
-      const outputDirectory = resolve(OUTPUT_ROOT, locale);
-      await mkdir(outputDirectory, { recursive: true });
+      for (const theme of ['light', 'dark'] as const) {
+        const outputDirectory = resolve(OUTPUT_ROOT, locale, theme);
+        await mkdir(outputDirectory, { recursive: true });
 
-      for (const visual of VISUALS) {
-        const context = await browser.newContext({
-          colorScheme: 'light',
-          deviceScaleFactor: 1,
-          locale: locale === 'fr' ? 'fr-FR' : 'en-US',
-          reducedMotion: 'reduce',
-          timezoneId: 'Europe/Paris',
-          viewport: { width: visual.width, height: visual.height },
-        });
+        for (const visual of VISUALS) {
+          const context = await browser.newContext({
+            colorScheme: theme,
+            deviceScaleFactor: 1,
+            locale: locale === 'fr' ? 'fr-FR' : 'en-US',
+            reducedMotion: 'reduce',
+            timezoneId: 'Europe/Paris',
+            viewport: { width: visual.width, height: visual.height },
+          });
 
-        const page = await context.newPage();
-        const html = htmlDocument(locale, visual.render(locale), fontData);
-        await page.setContent(html, { waitUntil: 'load' });
-        await assertReady(page, visual.width, visual.height);
-        await exerciseVisual(page, visual.name, locale);
+          try {
+            const page = await context.newPage();
+            const html = htmlDocument(locale, theme, visual.render(locale), fontData);
+            await page.setContent(html, { waitUntil: 'load' });
+            await assertReady(page, visual.width, visual.height);
+            await assertTheme(page, theme);
+            await exerciseVisual(page, visual.name, locale);
 
-        await page.setContent(html, { waitUntil: 'load' });
-        await assertReady(page, visual.width, visual.height);
+            /*
+             * Capture the same initial product state after proving that the
+             * executable demo works in this locale and theme.
+             */
+            await page.setContent(html, { waitUntil: 'load' });
+            await assertReady(page, visual.width, visual.height);
+            await assertTheme(page, theme);
 
-        const outputPath = resolve(outputDirectory, `${visual.name}.png`);
-        await page.screenshot({
-          animations: 'disabled',
-          caret: 'hide',
-          fullPage: false,
-          path: outputPath,
-          scale: 'css',
-          type: 'png',
-        });
-        await assertPngDimensions(outputPath, visual.width, visual.height);
-        await context.close();
-        process.stdout.write(`generated ${locale}/${visual.name}.png (${visual.width}×${visual.height})\n`);
+            const capture = await page.screenshot({
+              animations: 'disabled',
+              caret: 'hide',
+              fullPage: false,
+              scale: 'css',
+              type: 'png',
+            });
+
+            for (const outputWidth of visual.outputWidths) {
+              const outputHeight = Math.round((visual.height * outputWidth) / visual.width);
+              const outputPath = resolve(outputDirectory, `${visual.name}-${outputWidth}.webp`);
+
+              await sharp(capture)
+                .resize({
+                  fit: 'fill',
+                  height: outputHeight,
+                  kernel: sharp.kernel.lanczos3,
+                  width: outputWidth,
+                  withoutEnlargement: true,
+                })
+                .webp({ effort: 6, quality: outputWidth === visual.width ? 84 : 80, smartSubsample: true })
+                .toFile(outputPath);
+
+              const validation = await assertWebp(outputPath, outputWidth, outputHeight);
+              const outputKey = `${locale}/${theme}/${visual.name}-${outputWidth}`;
+              const existingOwner = hashOwners.get(validation.hash);
+
+              if (existingOwner) {
+                throw new Error(`Duplicate generated asset hash: ${existingOwner} and ${outputKey}`);
+              }
+
+              hashOwners.set(validation.hash, outputKey);
+              outputHashes.set(outputKey, validation.hash);
+              process.stdout.write(
+                `generated ${outputKey}.webp (${outputWidth}×${outputHeight}, ${(validation.bytes / 1024).toFixed(1)} KiB, ${validation.hash.slice(0, 12)})\n`,
+              );
+            }
+          } finally {
+            await context.close();
+          }
+        }
       }
-
-      await mkdir(OG_OUTPUT_ROOT, { recursive: true });
-
-      const liveCapture = await readFile(resolve(outputDirectory, 'live-booking-app.png'));
-
-      const context = await browser.newContext({
-        colorScheme: 'light',
-        deviceScaleFactor: 1,
-        locale: locale === 'fr' ? 'fr-FR' : 'en-US',
-        reducedMotion: 'reduce',
-        timezoneId: 'Europe/Paris',
-        viewport: { width: 1200, height: 630 },
-      });
-
-      const page = await context.newPage();
-      await page.setContent(htmlDocument(locale, ogVisual(locale, liveCapture.toString('base64')), fontData), {
-        waitUntil: 'load',
-      });
-      await assertReady(page, 1200, 630);
-
-      const outputPath = resolve(OG_OUTPUT_ROOT, `app-builder-${locale}.png`);
-      await page.screenshot({
-        animations: 'disabled',
-        caret: 'hide',
-        fullPage: false,
-        path: outputPath,
-        scale: 'css',
-        type: 'png',
-      });
-      await assertPngDimensions(outputPath, 1200, 630);
-      await context.close();
-      process.stdout.write(`generated og/app-builder-${locale}.png (1200×630)\n`);
     }
+
+    for (const locale of ['en', 'fr'] as const) {
+      for (const visual of VISUALS) {
+        for (const outputWidth of visual.outputWidths) {
+          const lightKey = `${locale}/light/${visual.name}-${outputWidth}`;
+          const darkKey = `${locale}/dark/${visual.name}-${outputWidth}`;
+          const lightHash = outputHashes.get(lightKey);
+          const darkHash = outputHashes.get(darkKey);
+
+          if (!lightHash || !darkHash || lightHash === darkHash) {
+            throw new Error(`Light and dark assets must be distinct for ${locale}/${visual.name}-${outputWidth}`);
+          }
+        }
+      }
+    }
+
+    await assertLegacyAssetsUnchanged(legacyHashes);
+    process.stdout.write(
+      `validated ${outputHashes.size} unique themed WebP assets; ${legacyHashes.size} legacy PNG/OG hashes unchanged\n`,
+    );
   } finally {
     await browser.close();
   }

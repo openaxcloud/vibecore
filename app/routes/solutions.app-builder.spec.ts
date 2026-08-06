@@ -121,9 +121,10 @@ describe('App Builder solution route', () => {
       { title: copy.seo.title },
       { name: 'description', content: copy.seo.description },
       { name: 'robots', content: 'index,follow' },
+      { tagName: 'link', rel: 'canonical', href: `${APP_BUILDER_CANONICAL_URL}?lang=fr` },
       { property: 'og:type', content: 'website' },
       { property: 'og:site_name', content: 'E-Code' },
-      { property: 'og:url', content: APP_BUILDER_CANONICAL_URL },
+      { property: 'og:url', content: `${APP_BUILDER_CANONICAL_URL}?lang=fr` },
       { property: 'og:locale', content: 'fr_FR' },
       { property: 'og:locale:alternate', content: 'en_US' },
       { property: 'og:locale:alternate', content: 'es_ES' },
@@ -134,18 +135,33 @@ describe('App Builder solution route', () => {
       { property: 'og:image:type', content: 'image/png' },
       { property: 'og:image:width', content: '1200' },
       { property: 'og:image:height', content: '630' },
-      { property: 'og:image:alt', content: copy.aria.demoLabel },
+      { property: 'og:image:alt', content: copy.seo.ogImageAlt },
       { name: 'twitter:card', content: 'summary_large_image' },
       { name: 'twitter:title', content: copy.seo.title },
       { name: 'twitter:description', content: copy.seo.description },
       { name: 'twitter:image', content: APP_BUILDER_OG_IMAGES.fr },
-      { name: 'twitter:image:alt', content: copy.aria.demoLabel },
+      { name: 'twitter:image:alt', content: copy.seo.ogImageAlt },
     ]);
   });
 
-  it('exposes the canonical App Builder URL', () => {
+  it.each(['en', 'fr', 'es', 'ar'] as const)('publishes the authored %s social image alternative', (language) => {
+    const metadata = meta({ data: { language } } as Parameters<typeof meta>[0]);
+    const expectedAlt = APP_BUILDER_COPY[language].seo.ogImageAlt;
+
+    expect(metadata).toContainEqual({ property: 'og:image:alt', content: expectedAlt });
+    expect(metadata).toContainEqual({ name: 'twitter:image:alt', content: expectedAlt });
+  });
+
+  it.each(['en', 'fr'] as const)('publishes the exact %s-localized canonical URL', (language) => {
+    const localizedCanonicalUrl = `${APP_BUILDER_CANONICAL_URL}?lang=${language}`;
+    const metadata = meta({ data: { language } } as Parameters<typeof meta>[0]);
+
+    expect(metadata).toContainEqual({ tagName: 'link', rel: 'canonical', href: localizedCanonicalUrl });
+    expect(metadata).toContainEqual({ property: 'og:url', content: localizedCanonicalUrl });
+  });
+
+  it('exposes reciprocal language alternates and an x-default URL', () => {
     expect(links()).toEqual([
-      { rel: 'canonical', href: APP_BUILDER_CANONICAL_URL },
       { rel: 'alternate', href: `${APP_BUILDER_CANONICAL_URL}?lang=en`, hrefLang: 'en' },
       { rel: 'alternate', href: `${APP_BUILDER_CANONICAL_URL}?lang=fr`, hrefLang: 'fr' },
       { rel: 'alternate', href: APP_BUILDER_CANONICAL_URL, hrefLang: 'x-default' },

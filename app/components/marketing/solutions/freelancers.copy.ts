@@ -1,4 +1,4 @@
-import type { SolutionCopyByLanguage } from './solution-copy';
+import type { CapturedSolutionCopyByLanguage } from './solution-copy';
 
 /**
  * SOL — Freelancers. Dedicated Studio Ferro delivery-workspace story in EN and
@@ -9,13 +9,15 @@ import type { SolutionCopyByLanguage } from './solution-copy';
 export const FREELANCERS_COPY = {
   en: {
     seo: {
-      title: 'Deliver Client Projects Faster | E-Code for Freelancers',
+      title: 'Deliver Client Projects with a Clean Handoff | E-Code for Freelancers',
       description:
         'Describe Studio Ferro. E-Code generates an editable delivery workspace with Preview and export; client reviews, payments, approvals, and email stay unconnected.',
+      ogImageAlt:
+        'E-Code Freelancers workspace with Studio Ferro files and a fictional client-delivery view in Webview.',
     },
     hero: {
       eyebrow: 'E-Code for freelancers and independent studios',
-      title: 'Deliver client projects faster, with a handoff that stays clean',
+      title: 'Deliver client projects with a handoff that stays clean',
       subtitle:
         'Describe the client brief once and E-Code turns it into a working app in editable source code. Start from your own repeatable patterns, share a preview link for review, iterate through the Agent, and hand off an exported project the client can inspect and continue.',
       primaryCta: { label: 'Start a client project', ariaLabel: 'Start a client project with E-Code' },
@@ -61,7 +63,7 @@ export const FREELANCERS_COPY = {
       eyebrow: 'From one-off builds to a repeatable delivery path',
       title: 'Client work is fast to start and slow to hand off cleanly',
       intro:
-        'A freelancer wins on speed and on trust. Rebuilding the same scaffolding for every client burns the speed, and a messy handoff — code the client cannot run, edit, or keep — burns the trust on the last day of the project.',
+        'A freelancer depends on efficient delivery and client trust. Rebuilding the same scaffolding for every client slows delivery, while a messy handoff — code the client cannot run, edit, or keep — erodes trust at the end of the project.',
       obstacles: [
         {
           title: 'Every project starts from zero',
@@ -120,14 +122,27 @@ export const FREELANCERS_COPY = {
         alt: 'Real E-Code Freelancers workspace showing the Studio Ferro prompt, Agent activity, generated React and TypeScript files, and a fictional local client-delivery workspace in Webview.',
       },
       iteration: {
-        title: '“Review delivery” opens the local approval state',
-        body: 'The follow-up capture keeps the Agent iteration visible after Webview opens “Approval requested” with approve and request-changes controls. It proves the interface transition, not a signature, payment, email, login, or real client decision.',
-        alt: 'Real E-Code Freelancers iteration showing generated Studio Ferro files and the Review delivery interaction opening Approval requested with local approve and request-changes controls in Webview.',
+        title: 'A verified “Review delivery” click opens the local approval state',
+        body: 'After the single generation, a verified click on “Review delivery” opens “Approval requested” with local approve and request-changes controls. It proves the interface transition, not a signature, payment, email, login, or real client decision.',
+        alt: 'E-Code Freelancers capture after the verified Review delivery click, with Studio Ferro files and Approval requested in Webview.',
       },
       cta: {
         label: 'Inspect the captured Studio Ferro run',
         ariaLabel: 'Inspect the captured E-Code Studio Ferro generation and Approval requested Webview interaction',
       },
+    },
+    proofVisualAlts: {
+      prompt:
+        'E-Code Agent prompt requesting Studio Ferro with project status, deliverables, invoice, time, and approvals.',
+      preview: 'E-Code workspace with generated Studio Ferro files and the fictional client-delivery view in Webview.',
+      webviewOverview:
+        'Studio Ferro in Webview with project status, deliverables, feedback, invoice, time, and approval controls.',
+      iteration:
+        'E-Code workspace after the verified Review delivery click, with Studio Ferro files and Approval requested.',
+      webviewIteration:
+        'Studio Ferro showing Approval requested with local approve and request-changes controls after the verified click.',
+      files:
+        'E-Code file tree for Studio Ferro with editable project, deliverable, invoice, time, and approval source.',
     },
     deliverables: {
       eyebrow: 'What the client handoff includes',
@@ -270,15 +285,17 @@ export const FREELANCERS_COPY = {
   },
   fr: {
     seo: {
-      title: 'Livrez vos projets clients plus vite | E-Code pour freelances',
+      title: 'Livrez vos projets clients avec une transmission propre | E-Code',
       description:
         'Décrivez Studio Ferro. E-Code génère un espace de livraison modifiable avec aperçu et export ; revues, paiements, validations et emails restent déconnectés.',
+      ogImageAlt:
+        'Workspace E-Code Freelancers avec fichiers Studio Ferro et espace fictif de livraison client dans la Webview.',
     },
     hero: {
       eyebrow: 'E-Code pour freelances et studios indépendants',
-      title: 'Livrez vos projets clients plus vite, avec un transfert qui reste propre',
+      title: 'Livrez vos projets clients avec une transmission qui reste propre',
       subtitle:
-        'Décrivez le brief client une fois et E-Code en fait une application fonctionnelle dans un vrai code source modifiable. Partez de vos propres modèles réutilisables, partagez un lien d’aperçu pour la revue, itérez avec l’Agent et transmettez un projet exporté que le client peut inspecter et poursuivre.',
+        'Décrivez le brief client une fois et E-Code en fait une application fonctionnelle sous forme de code source modifiable. Partez de vos propres modèles réutilisables, partagez un lien d’aperçu pour la revue, itérez avec l’Agent et transmettez un projet exporté que le client peut inspecter et poursuivre.',
       primaryCta: { label: 'Démarrer un projet client', ariaLabel: 'Démarrer un projet client avec E-Code' },
       secondaryCta: {
         label: 'Voir le parcours de livraison client',
@@ -294,13 +311,13 @@ export const FREELANCERS_COPY = {
       brandType: 'Espace local de livraison freelance',
       nav: ['Projet', 'Livrables', 'Gestion'],
       eyebrow: 'Espace client fictif',
-      title: 'Gardez livrable, feedback, facture et validation dans la même vue.',
+      title: 'Gardez livrable, retours, facture et validation dans la même vue.',
       intro:
-        'Un scénario Studio Ferro local et responsive avec statut du projet, livrables, fils de feedback, proposition, état de facture, suivi du temps et validation client.',
+        'Un scénario Studio Ferro local et responsive avec statut du projet, livrables, fils de commentaires, proposition, état de facture, suivi du temps et validation client.',
       primaryHeading: 'État de livraison fictif',
       primaryRows: [
-        { label: 'Identité visuelle — pack final', meta: 'livrable fictif · v3', status: 'Revue demandée' },
-        { label: 'Fil de feedback client', meta: 'commentaires locaux d’exemple' },
+        { label: 'Identité visuelle — lot final', meta: 'livrable fictif · v3', status: 'Revue demandée' },
+        { label: 'Fil de commentaires client', meta: 'commentaires locaux d’exemple' },
         { label: 'Statut du projet', meta: 'état de planning fictif' },
       ],
       asideHeading: 'Fiches freelance',
@@ -311,30 +328,30 @@ export const FREELANCERS_COPY = {
       ],
       asideCta: 'Examiner le livrable',
       disclaimer:
-        'Interface locale scénarisée · client, projet, livrables, feedback, facture, temps et validations fictifs · aucun paiement, signature, email, accès client ni accord externe · pas une trace de génération',
+        'Interface locale scénarisée · client, projet, livrables, retours, facture, temps et validations fictifs · aucun paiement, signature, email, accès client ni accord externe · pas une trace de génération',
       caption: {
         title: 'Un espace de livraison sans activité client inventée',
-        body: 'Cette interface locale présente revue d’un livrable, feedback, états commerciaux, temps et contrôles de validation sans prétendre qu’un vrai client a agi.',
+        body: 'Cette interface locale présente la revue d’un livrable, les commentaires, les états commerciaux, le temps et les contrôles de validation sans prétendre qu’un vrai client a agi.',
       },
-      alt: 'Espace freelance Studio Ferro scénarisé avec statut de projet, livrables, feedback, proposition, état de facture, temps et contrôles locaux de validation fictifs.',
+      alt: 'Espace freelance Studio Ferro scénarisé avec statut de projet, livrables, commentaires, proposition, état de facture, temps et contrôles locaux de validation fictifs.',
     },
     problem: {
       eyebrow: 'Des builds ponctuels à un parcours de livraison répétable',
       title: 'Le travail client démarre vite et se transmet lentement',
       intro:
-        'Un freelance gagne sur la vitesse et sur la confiance. Reconstruire le même échafaudage pour chaque client brûle la vitesse, et un transfert bâclé — un code que le client ne peut ni exécuter, ni modifier, ni conserver — brûle la confiance le dernier jour du projet.',
+        'Un freelance dépend d’une livraison efficace et de la confiance du client. Reconstruire le même échafaudage pour chaque mission ralentit la livraison, tandis qu’une transmission bâclée — un code que le client ne peut ni exécuter, ni modifier, ni conserver — entame la confiance en fin de projet.',
       obstacles: [
         {
           title: 'Chaque projet repart de zéro',
-          body: 'Recâbler l’authentification, la mise en page et les mêmes écrans de base pour chaque nouveau client mange les heures à consacrer à ce qui rend le projet spécifique.',
+          body: 'Recâbler l’authentification, la mise en page et les mêmes écrans de base pour chaque nouveau client absorbe le temps à consacrer à ce qui rend le projet spécifique.',
         },
         {
           title: 'La revue se fait par captures d’écran',
-          body: 'Envoyer des images et planifier des appels pour montrer l’avancement ralentit chaque tour de retours, et le client ne voit la vraie application en fonctionnement que tard.',
+          body: 'Envoyer des images et planifier des appels pour montrer l’avancement ralentit chaque cycle de retours, et le client ne voit la vraie application en fonctionnement que tard.',
         },
         {
-          title: 'Le transfert laisse des fils qui pendent',
-          body: 'Un zip sans structure claire, ou un build que vous seul savez exécuter, transforme la livraison finale en tickets de support et laisse le client dépendant de vous.',
+          title: 'La transmission laisse des zones d’ombre',
+          body: 'Une archive sans structure claire, ou un build que vous seul savez exécuter, transforme la livraison finale en tickets d’assistance et laisse le client dépendant de vous.',
         },
       ],
       bridge:
@@ -347,15 +364,15 @@ export const FREELANCERS_COPY = {
         'Ce brief freelance devient Studio Ferro dans des fichiers React et TypeScript modifiables. E-Code exécute l’espace de livraison dans la Webview, avec chaque projet et fiche commerciale conservés en données locales fictives.',
       label: 'Brief de livraison client',
       promptText:
-        'Crée Studio Ferro, un espace de livraison client pour un designer freelance. Ajoute statut du projet, livrables, fils de feedback, proposition, état de facture, suivi du temps et parcours de validation client avec des données locales fictives réalistes. Ne prétends pas avoir de paiements, signatures, emails ou authentification client réels. React et TypeScript accessibles et responsive, argile, encre, sauge et actions orange. Aucun violet.',
+        'Créez Studio Ferro, un espace de livraison client pour un designer freelance. Ajoutez le statut du projet, les livrables, les fils de commentaires, la proposition, l’état de facture, le suivi du temps et le parcours de validation client avec des données locales fictives réalistes. Ne prétendez pas avoir de paiements, de signatures, d’emails ou d’authentification client réels. React et TypeScript accessibles et responsive, argile, encre, sauge et actions orange. Aucun violet.',
       outputs: [
         {
           title: 'Vue projet et livrables',
           body: 'L’Agent crée un espace responsive avec statut du projet et cartes de livrables fictifs dans des fichiers modifiables.',
         },
         {
-          title: 'Feedback et états de revue',
-          body: 'Des fils locaux gardent les commentaires d’exemple auprès de chaque livrable. Ils n’envoient aucun email, n’identifient aucun vrai client et ne consignent aucune revue externe.',
+          title: 'Commentaires et états de revue',
+          body: 'Des fils locaux rattachent les commentaires d’exemple à chaque livrable. Ils n’envoient aucun email, n’identifient aucun vrai client et ne consignent aucune revue externe.',
         },
         {
           title: 'Proposition, état de facture et temps',
@@ -363,7 +380,7 @@ export const FREELANCERS_COPY = {
         },
         {
           title: 'Panneau de validation local dans la Webview',
-          body: 'Le clic sur « Examiner le livrable » ouvre « Validation demandée » avec les contrôles locaux approuver et demander des modifications, à côté de l’Agent et des fichiers générés. La capture prouve l’état UI, pas l’accord du client.',
+          body: 'Le clic sur « Examiner le livrable » ouvre « Validation demandée » avec des contrôles locaux pour approuver ou demander des modifications, à côté de l’Agent et des fichiers générés. La capture prouve l’état de l’interface, pas l’accord du client.',
         },
       ],
     },
@@ -373,29 +390,40 @@ export const FREELANCERS_COPY = {
       body: 'Ces captures dédiées réunissent le prompt Studio Ferro, l’activité de l’Agent, l’arborescence React et TypeScript générée et l’espace de livraison local. Le second état ouvre « Validation demandée » depuis « Examiner le livrable ».',
       galleryLabel: 'Génération Studio Ferro capturée et interaction Validation demandée dans E-Code',
       disclaimer:
-        'Génération E-Code capturée · client, projet, livrables, feedback, proposition, facture, temps et validations locaux fictifs · aucun paiement, signature, email, accès client, revue externe ni accord démontré',
+        'Génération E-Code capturée · client, projet, livrables, commentaires, proposition, facture, temps et validations locaux fictifs · aucun paiement, signature, email, accès client, revue externe ni accord démontré',
       openFullSizeLabel: 'Ouvrir la capture Studio Ferro en grand',
       preview: {
         title: 'Studio Ferro tourne à côté des fichiers créés par l’Agent',
-        body: 'La première capture montre le vrai échange avec l’Agent et l’arborescence générée pendant que la Webview affiche statut, livrables, feedback, proposition, état de facture, temps et avertissement sur les données locales.',
+        body: 'La première capture montre le vrai échange avec l’Agent et l’arborescence générée pendant que la Webview affiche statut, livrables, commentaires, proposition, état de facture, temps et avertissement sur les données locales.',
         alt: 'Vrai workspace Freelances E-Code montrant le prompt Studio Ferro, l’activité de l’Agent, les fichiers React et TypeScript générés et un espace local fictif de livraison client dans la Webview.',
       },
       iteration: {
-        title: '« Examiner le livrable » ouvre la validation locale',
-        body: 'La capture de suivi garde l’itération de l’Agent visible après l’ouverture de « Validation demandée » avec les contrôles approuver et demander des modifications. Elle prouve la transition UI, pas une signature, un paiement, un email, une connexion ni une décision client réelle.',
-        alt: 'Vraie itération Freelances E-Code montrant les fichiers Studio Ferro générés et l’interaction Examiner le livrable ouvrant Validation demandée avec contrôles locaux approuver et demander des modifications dans la Webview.',
+        title: 'Un clic vérifié sur « Examiner le livrable » ouvre la validation locale',
+        body: 'Après la génération unique, un clic vérifié sur « Examiner le livrable » ouvre « Validation demandée » avec les contrôles « Approuver » et « Demander des modifications ». La capture prouve la transition de l’interface, pas une signature, un paiement, un email, une connexion ni une décision client réelle.',
+        alt: 'Capture E-Code Freelancers après le clic vérifié sur Examiner le livrable, avec fichiers Studio Ferro et Validation demandée dans la Webview.',
       },
       cta: {
-        label: 'Inspecter le run Studio Ferro capturé',
+        label: 'Inspecter l’exécution Studio Ferro capturée',
         ariaLabel:
           'Inspecter la génération Studio Ferro capturée dans E-Code et l’état Validation demandée dans la Webview',
       },
+    },
+    proofVisualAlts: {
+      prompt: 'Prompt de l’Agent E-Code demandant Studio Ferro avec projet, livrables, facture, temps et validations.',
+      preview:
+        'Workspace E-Code avec fichiers Studio Ferro générés et espace fictif de livraison client dans la Webview.',
+      webviewOverview:
+        'Studio Ferro dans la Webview avec projet, livrables, commentaires, facture, temps et validations.',
+      iteration: 'Workspace E-Code après le clic vérifié sur Examiner le livrable, avec l’état Validation demandée.',
+      webviewIteration: 'Studio Ferro affichant Validation demandée et les contrôles locaux après le clic vérifié.',
+      files:
+        'Arborescence E-Code de Studio Ferro avec sources modifiables du projet, des livrables, du temps et des validations.',
     },
     deliverables: {
       eyebrow: 'Ce que comprend le transfert client',
       title: 'Un projet client que vous pouvez relire, livrer et transmettre',
       intro:
-        'Le projet reste inspectable du premier fichier généré jusqu’à l’aperçu et l’export. Les liens d’aperçu partageables portent la revue ; le transfert de la source exportée réduit la dépendance du client à votre workspace.',
+        'Le projet reste inspectable du premier fichier généré jusqu’à l’aperçu et l’export. Les liens d’aperçu partageables servent de support à la revue ; la transmission de la source exportée réduit la dépendance du client à votre workspace.',
       items: [
         {
           title: 'Source préparée pour le transfert',
@@ -407,11 +435,11 @@ export const FREELANCERS_COPY = {
         },
         {
           title: 'Aperçu responsive pour la revue',
-          body: 'Le projet compatible tourne dans l’aperçu sur desktop, tablette et mobile, pour donner au client une interface courante unique à relire plutôt qu’un dossier de captures.',
+          body: 'Le projet compatible tourne dans l’aperçu sur ordinateur, tablette et mobile, pour donner au client une interface courante unique à relire plutôt qu’un dossier de captures.',
         },
         {
           title: 'Publication guidée des projets statiques',
-          body: 'Les sites et frontends statiques pris en charge suivent le parcours de publication guidée E-Code, avec contenu final, domaines, analytics et validation client traités comme des étapes de livraison nommées.',
+          body: 'Les sites et frontends statiques pris en charge suivent le parcours de publication guidée E-Code, avec contenu final, domaines, outils d’analyse et validation client traités comme des étapes de livraison nommées.',
         },
         {
           title: 'URL statique en ligne et relais runtime',
@@ -435,7 +463,7 @@ export const FREELANCERS_COPY = {
         },
         {
           title: 'Liens d’aperçu pour la revue',
-          body: 'Partagez une URL d’aperçu active pour que les clients valident la vraie application, pas une maquette.',
+          body: 'Partagez une URL d’aperçu active pour que les clients relisent la vraie application, pas une maquette.',
         },
         {
           title: 'Transfert du code source',
@@ -447,7 +475,7 @@ export const FREELANCERS_COPY = {
         },
         {
           title: 'Livrables client responsives',
-          body: 'Statut du projet, fils de feedback, état de facture, temps et contrôles de validation restent utilisables en revue desktop ou sur le téléphone du client.',
+          body: 'Statut du projet, fils de commentaires, état de facture, temps et contrôles de validation restent utilisables en revue sur ordinateur ou sur le téléphone du client.',
         },
         {
           title: 'Fichiers projet exportables',
@@ -471,7 +499,7 @@ export const FREELANCERS_COPY = {
         },
         {
           title: 'Outils internes pour clients',
-          body: 'Petites interfaces de back-office qui modélisent un workflow client tout en rendant visibles les frontières de persistance, d’identité et d’autorisation.',
+          body: 'Petites interfaces de back-office qui modélisent un processus client tout en rendant visibles les frontières de persistance, d’identité et d’autorisation.',
         },
         {
           title: 'Prototypes pour propositions',
@@ -485,7 +513,7 @@ export const FREELANCERS_COPY = {
       intro: 'Ce que produit le parcours Freelances, et où sont ses limites.',
       items: [
         {
-          title: 'Le client obtient-il du vrai code ou un projet verrouillé ?',
+          title: 'Le client obtient-il un code source modifiable ou un projet verrouillé ?',
           body: 'Vous exportez des fichiers source modifiables — composants, routes, styles et contenu — au lieu de transmettre seulement une capture ou une maquette hébergée. La propriété et la réutilisation autorisée suivent les conditions E-Code applicables et votre contrat client.',
         },
         {
@@ -508,7 +536,7 @@ export const FREELANCERS_COPY = {
     },
     finalCta: {
       title: 'Démarrez un projet client et partagez-le aujourd’hui',
-      body: 'Transformez un brief client en une application fonctionnelle dans du vrai code source, partagez un lien d’aperçu pour la revue et transmettez un projet modifiable et exporté.',
+      body: 'Transformez un brief client en une application fonctionnelle sous forme de code source modifiable, partagez un lien d’aperçu pour la revue et transmettez un projet modifiable et exporté.',
       primaryCta: { label: 'Démarrer un projet client', ariaLabel: 'Démarrer un projet client avec E-Code' },
       secondaryCta: {
         label: 'Voir le parcours de livraison client',
@@ -530,4 +558,4 @@ export const FREELANCERS_COPY = {
       finalCtaLabel: 'Démarrer votre projet client',
     },
   },
-} as const satisfies SolutionCopyByLanguage;
+} as const satisfies CapturedSolutionCopyByLanguage;

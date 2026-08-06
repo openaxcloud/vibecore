@@ -9,8 +9,10 @@ import { INTERNAL_AI_BUILDER_COPY } from './internal-ai-builder.copy';
 import type { SolutionCopy, SolutionCopyByLanguage } from './solution-copy';
 import {
   getSolutionProofVisuals,
+  isCapturedSolutionProofVisualSlug,
   SOLUTION_PROOF_VISUAL_SLOTS,
-  SOLUTION_PROOF_VISUAL_SLUGS,
+  SOLUTION_PROOF_VISUAL_THEMES,
+  SOLUTION_SALES_PAGE_SLUGS,
   type SolutionProofVisualSlug,
 } from './solution-proof.visuals';
 import { STARTUPS_COPY } from './startups.copy';
@@ -33,11 +35,11 @@ const HONEST_DISCLAIMER = { en: 'not a generation record', fr: 'pas une trace de
 const REQUIRED_PROMPTS: Readonly<Partial<Record<SolutionProofVisualSlug, Readonly<Record<'en' | 'fr', string>>>>> = {
   'website-builder': {
     en: 'Build a showcase website for my architecture firm, with a portfolio, contact page, and blog.',
-    fr: 'Fais-moi un site vitrine pour mon cabinet d’architecte, avec portfolio, contact et blog.',
+    fr: 'Créez un site vitrine pour mon cabinet d’architecte, avec portfolio, contact et blog.',
   },
   'game-builder': {
     en: 'Build a multiplayer quiz game with real-time scoring and a leaderboard.',
-    fr: 'Crée un jeu de quiz multijoueur avec score en temps réel et classement.',
+    fr: 'Créez un jeu de quiz multijoueur avec score en temps réel et classement.',
   },
   'dashboard-builder': {
     en: 'Build a dashboard for my sales, connected to my database, with charts and filters.',
@@ -68,7 +70,7 @@ function assertStructure(copy: SolutionCopy) {
 }
 
 describe('declined solution sales pages (SOL-02 → SOL-09)', () => {
-  for (const slug of SOLUTION_PROOF_VISUAL_SLUGS) {
+  for (const slug of SOLUTION_SALES_PAGE_SLUGS) {
     const byLanguage = DECLINES[slug];
 
     describe(slug, () => {
@@ -84,32 +86,63 @@ describe('declined solution sales pages (SOL-02 → SOL-09)', () => {
           expect(copy.demo.disclaimer.toLowerCase()).toContain(HONEST_DISCLAIMER[language].toLowerCase());
         });
 
-        it(`${language}: describes dedicated IDE evidence without falling back to the App Builder salon`, () => {
+        it(`${language}: describes the IDE evidence assigned to its capture scope`, () => {
           const proof = JSON.stringify(copy.proofLink).toLowerCase();
 
-          expect(proof).not.toMatch(/app builder|salon/);
+          if (slug === 'enterprise') {
+            expect(proof).toMatch(/app builder/);
+            expect(proof).toMatch(/salon/);
+          } else {
+            expect(proof).not.toMatch(/app builder|salon/);
+          }
+
           expect(proof).toMatch(language === 'fr' ? /captur|preuve|réel|vrai/ : /captur|evidence|real/);
           expect(copy.proofLink.galleryLabel.length).toBeGreaterThan(20);
           expect(copy.proofLink.openFullSizeLabel.length).toBeGreaterThan(0);
         });
 
-        it(`${language}: resolves six dedicated, unique proof asset paths for its route slug`, () => {
-          const assets = getSolutionProofVisuals(slug, language);
-          const sources = SOLUTION_PROOF_VISUAL_SLOTS.map((slot) => assets[slot].src);
+        if (isCapturedSolutionProofVisualSlug(slug)) {
+          it(`${language}: resolves six dedicated, themed responsive asset sets for its route slug`, () => {
+            for (const theme of SOLUTION_PROOF_VISUAL_THEMES) {
+              const assets = getSolutionProofVisuals(slug, language, theme);
 
-          expect(assets.prompt.src).toBe(`/assets/solutions/${slug}/${language}/ide-agent-prompt.png`);
-          expect(assets.preview.src).toBe(`/assets/solutions/${slug}/${language}/ide-agent-preview.png`);
-          expect(assets.webviewOverview.src).toBe(`/assets/solutions/${slug}/${language}/ide-webview-overview.png`);
-          expect(assets.iteration.src).toBe(`/assets/solutions/${slug}/${language}/ide-agent-iteration.png`);
-          expect(assets.webviewIteration.src).toBe(`/assets/solutions/${slug}/${language}/ide-webview-iteration.png`);
-          expect(assets.files.src).toBe(`/assets/solutions/${slug}/${language}/ide-agent-files.png`);
-          expect(new Set(sources).size).toBe(6);
+              const sources = SOLUTION_PROOF_VISUAL_SLOTS.flatMap((slot) =>
+                assets[slot].sources.map((source) => source.src),
+              );
 
-          for (const slot of SOLUTION_PROOF_VISUAL_SLOTS) {
-            expect(assets[slot].slug).toBe(slug);
-            expect(assets[slot].language).toBe(language);
-          }
-        });
+              expect(assets.prompt.src).toBe(
+                `/assets/solutions/${slug}/${language}/${theme}/ide-agent-prompt-1440.webp`,
+              );
+              expect(assets.preview.src).toBe(
+                `/assets/solutions/${slug}/${language}/${theme}/ide-agent-preview-1440.webp`,
+              );
+              expect(assets.webviewOverview.src).toBe(
+                `/assets/solutions/${slug}/${language}/${theme}/ide-webview-overview-1440.webp`,
+              );
+              expect(assets.iteration.src).toBe(
+                `/assets/solutions/${slug}/${language}/${theme}/ide-agent-iteration-1440.webp`,
+              );
+              expect(assets.webviewIteration.src).toBe(
+                `/assets/solutions/${slug}/${language}/${theme}/ide-webview-iteration-1440.webp`,
+              );
+              expect(assets.files.src).toBe(`/assets/solutions/${slug}/${language}/${theme}/ide-agent-files-1440.webp`);
+              expect(new Set(sources).size).toBe(12);
+
+              for (const slot of SOLUTION_PROOF_VISUAL_SLOTS) {
+                expect(assets[slot].slug).toBe(slug);
+                expect(assets[slot].language).toBe(language);
+                expect(assets[slot].theme).toBe(theme);
+                expect(assets[slot].srcSet).toContain(' 720w');
+                expect(assets[slot].srcSet).toContain(' 1440w');
+              }
+            }
+          });
+        } else {
+          it(`${language}: keeps Enterprise outside the new captured visual registry`, () => {
+            expect(slug).toBe('enterprise');
+            expect(isCapturedSolutionProofVisualSlug(slug)).toBe(false);
+          });
+        }
 
         it(`${language}: fills every headline and body`, () => {
           expect(copy.seo.title.length).toBeGreaterThan(0);

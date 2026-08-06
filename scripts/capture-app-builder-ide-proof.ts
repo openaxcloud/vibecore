@@ -1,8 +1,9 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { chmod, mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { access, chmod, cp, mkdir, mkdtemp, readFile, rename, rm, unlink, writeFile } from 'node:fs/promises';
+import { basename, dirname, extname, resolve } from 'node:path';
 
 import { chromium, expect, type Page } from '@playwright/test';
+import sharp from 'sharp';
 
 type CaptureLocale = 'en' | 'fr';
 type CaptureSlug =
@@ -12,9 +13,10 @@ type CaptureSlug =
   | 'dashboard-builder'
   | 'chatbot-builder'
   | 'internal-ai-builder'
-  | 'enterprise'
   | 'startups'
   | 'freelancers';
+
+type CaptureTheme = 'light' | 'dark';
 
 type SolutionScenario = {
   prompt: string;
@@ -22,11 +24,12 @@ type SolutionScenario = {
   accountName: string;
   organizationName: string;
   expectedTerms: readonly string[];
+  requiredSourceTerms?: readonly string[];
   requiresDarkCanvas?: boolean;
   interaction: {
     role: 'button' | 'link';
     name: string;
-    expectedResult: string;
+    expectedResult: string | RegExp;
   };
 };
 
@@ -65,6 +68,8 @@ const API_BASE_URL = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'ht
 const GENERATION_TIMEOUT_MS = 12 * 60 * 1000;
 const PREVIEW_TIMEOUT_MS = Number(process.env.SOLUTION_PROOF_PREVIEW_TIMEOUT_MS ?? 5 * 60 * 1000);
 const PREVIEW_RESTART_TIMEOUT_MS = 3 * 60 * 1000;
+const RUNTIME_SYNC_GRACE_MS = Number(process.env.SOLUTION_PROOF_RUNTIME_SYNC_GRACE_MS ?? 20_000);
+const RUNTIME_RESEED_GRACE_MS = Number(process.env.SOLUTION_PROOF_RUNTIME_RESEED_GRACE_MS ?? 30_000);
 
 const PREVIEW_RUNTIME_ERROR_PATTERN =
   /internal server error|failed to resolve import|cannot find module|vite error|unexpected token|uncaught typeerror|plugin:vite|preview_upstream_unreachable|dev server on port .*not reachable|starting, or it crashed/i;
@@ -74,44 +79,45 @@ const PREVIEW_RECOVERABLE_NOT_RUNNING_PATTERN =
 const SOLUTION_SCENARIOS = {
   'app-builder': {
     en: {
-      prompt: 'Create a booking app for my hair salon, with a calendar, customer accounts, and email reminders.',
+      prompt:
+        'Create SalonFlow, a fictional local booking demo for a hair salon, with a calendar, customer profiles, and reminder previews. Display this persistent disclosure: Fictional local demo — no emails are sent; no real authentication or persistence. Add an Appointments navigation link that opens a dedicated view headed Upcoming appointments. Use realistic fictional local data only.',
       iterationPrompt:
-        'Use orange for every primary action and remove every purple accent. Keep the salon booking workflows intact.',
+        'Keep the SalonFlow booking demo fully testable in Webview. Preserve the Appointments link and its Upcoming appointments view. Keep the fictional-local-demo disclosure visible. Use orange for every primary action, remove every purple accent, run typecheck, and verify the actual Webview.',
       accountName: 'App Builder proof EN',
       organizationName: 'App Builder proof EN',
-      expectedTerms: ['Salon', 'Appointments'],
-      interaction: { role: 'link', name: 'Appointments', expectedResult: 'Appointments' },
+      expectedTerms: ['SalonFlow', 'Fictional local demo'],
+      interaction: { role: 'link', name: 'Appointments', expectedResult: 'Upcoming appointments' },
     },
     fr: {
       prompt:
-        'Crée une app de réservation pour mon salon de coiffure, avec agenda, comptes clients et rappels par email.',
+        'SalonFlow : créez une démonstration locale fictive de réservation pour un salon de coiffure, avec agenda, profils clients et aperçus de rappels. Affichez en permanence cette mention : Démo locale fictive — aucun email n’est envoyé ; aucune authentification ni persistance réelles. Ajoutez un lien Rendez-vous qui ouvre une vue dédiée titrée Prochains rendez-vous. Utilisez uniquement des données locales fictives réalistes.',
       iterationPrompt:
-        'Utilise l’orange pour toutes les actions principales et retire chaque accent violet. Garde les parcours de réservation du salon intacts.',
+        'Gardez la démonstration de réservation SalonFlow entièrement testable dans la Webview. Préservez le lien Rendez-vous et sa vue Prochains rendez-vous. Laissez visible la mention de démo locale fictive. Réservez l’orange aux actions principales, retirez tout violet, lancez le typecheck et vérifiez la vraie Webview.',
       accountName: 'Preuve App Builder FR',
       organizationName: 'Preuve App Builder FR',
-      expectedTerms: ['Salon', 'Rendez-vous'],
-      interaction: { role: 'link', name: 'Rendez-vous', expectedResult: 'Rendez-vous' },
+      expectedTerms: ['SalonFlow', 'Démo locale fictive'],
+      interaction: { role: 'link', name: 'Rendez-vous', expectedResult: 'Prochains rendez-vous' },
     },
   },
   'website-builder': {
     en: {
       prompt:
-        'Build a portfolio website for my architecture studio, with a project portfolio, contact form, and journal. Name it Meridian Studio. Use realistic fictional content and local sample data only. Create working Home, Projects, Studio, Journal, and Contact views. The contact form shows a local confirmation and never claims to send email. Use React and TypeScript with a concrete, warm limestone, black ink, and orange editorial theme. No purple.',
+        'Meridian Studio: create a bespoke public presentation for a fictional architecture practice as one compact React and TypeScript interface in src/main.tsx and src/styles.css. Display a persistent Fictional local demo label on every view. Build five working views—Home, Projects, Studio, Journal, and Contact—with an architecture project gallery, practice profile, project notes, and a contact form using realistic fictional local content only. The contact form shows a local confirmation and never claims to send email. Use timeless fictional project entries without founding dates, awards, real clients, completed-client claims, or operational history. Keep the content entirely about buildings, materials, the practice, and its project process; omit developer biographies, résumés, skill lists, service packages, and technology showcases. Use a concrete, warm limestone, black ink, and orange editorial direction. No purple.',
       iterationPrompt:
-        'Refine Meridian Studio for the Webview proof. Add a Projects navigation link that opens a dedicated view headed Selected work, with working project filters and project detail links. Keep the local-only contact confirmation explicit. Make orange the action color, remove every purple accent, run typecheck, and verify the actual Webview.',
+        'Refine Meridian Studio for the Webview proof. Add a Projects navigation link that opens a dedicated view headed Selected work, with working project filters and project detail links. Keep the Fictional local demo label and local-only contact confirmation visible. Make orange the action color, remove every purple accent, run typecheck, and verify the actual Webview.',
       accountName: 'Website proof EN',
       organizationName: 'Website proof EN',
-      expectedTerms: ['Meridian Studio', 'Projects', 'Contact'],
+      expectedTerms: ['Meridian Studio', 'Fictional local demo', 'Contact'],
       interaction: { role: 'link', name: 'Projects', expectedResult: 'Selected work' },
     },
     fr: {
       prompt:
-        'Fais-moi un site vitrine pour mon cabinet d’architecte, avec portfolio, contact et journal. Appelle-le Atelier Méridien. Utilise des contenus fictifs réalistes et uniquement des données locales. Crée des vues fonctionnelles Accueil, Projets, Studio, Journal et Contact. Le formulaire affiche une confirmation locale et ne prétend jamais envoyer un email. Utilise React et TypeScript avec un thème éditorial béton, pierre chaude, encre noire et orange. Aucun violet.',
+        'Meridian Studio : créez une présentation publique sur mesure pour un cabinet d’architecture fictif dans une interface React et TypeScript compacte, contenue dans src/main.tsx et src/styles.css. Affichez la mention persistante Démo locale fictive sur chaque vue. Construisez cinq vues fonctionnelles — Accueil, Projets, Studio, Journal et Contact — avec une galerie de projets d’architecture, le profil du cabinet, des notes de projet et un formulaire de contact fondés uniquement sur des contenus locaux fictifs réalistes. Le formulaire affiche une confirmation locale et ne prétend jamais envoyer un email. Utilisez des projets fictifs intemporels, sans date de fondation, prix, vrais clients, réalisations présentées comme réelles ni historique d’activité. Consacrez tout le contenu aux bâtiments, aux matériaux, au cabinet et à sa démarche ; écartez biographies de développeur, CV, listes de compétences, forfaits de services et présentations technologiques. Adoptez une direction éditoriale béton, pierre chaude, encre noire et orange. Aucun violet.',
       iterationPrompt:
-        'Affine Atelier Méridien pour la preuve Webview. Ajoute un lien Projets qui ouvre une vue dédiée titrée Projets sélectionnés, avec filtres fonctionnels et fiches projet. Garde la confirmation locale du contact explicite. Réserve l’orange aux actions, retire tout violet, lance le typecheck et vérifie le vrai Webview.',
+        'Affinez Meridian Studio pour la preuve Webview. Ajoutez un lien Projets qui ouvre une vue dédiée titrée Projets sélectionnés, avec filtres fonctionnels et fiches projet. Gardez visibles la mention Démo locale fictive et la confirmation locale du contact. Réservez l’orange aux actions, retirez tout violet, lancez le typecheck et vérifiez la vraie Webview.',
       accountName: 'Preuve Website FR',
       organizationName: 'Preuve Website FR',
-      expectedTerms: ['Atelier Méridien', 'Projets', 'Contact'],
+      expectedTerms: ['Meridian Studio', 'Démo locale fictive', 'Contact'],
       interaction: { role: 'link', name: 'Projets', expectedResult: 'Projets sélectionnés' },
     },
   },
@@ -123,20 +129,30 @@ const SOLUTION_SCENARIOS = {
         'Make the TriviaClash demo fully testable in Webview. Add a Start quiz button that opens Question 1, a working answer selection, countdown, score update, and final leaderboard using local state. Keep the no-network-backend disclosure visible. Make primary actions orange, remove every purple accent, run typecheck, and verify the actual Webview.',
       accountName: 'Game proof EN',
       organizationName: 'Game proof EN',
-      expectedTerms: ['TriviaClash', 'Leaderboard', 'local'],
+      expectedTerms: ['TriviaClash', 'local'],
+      requiredSourceTerms: ['Leaderboard'],
       requiresDarkCanvas: true,
-      interaction: { role: 'button', name: 'Start quiz', expectedResult: 'Question 1' },
+      interaction: {
+        role: 'button',
+        name: 'Start quiz',
+        expectedResult: /(?:question\s*1|1\s*\/\s*\d|what planet)/i,
+      },
     },
     fr: {
       prompt:
-        'Crée TriviaClash, une démo de quiz multijoueur avec lobby, questions chronométrées, score local en temps réel et classement. Utilise des joueurs fictifs réalistes et uniquement des données en mémoire ; indique clairement qu’aucun backend multijoueur réseau n’est connecté. Construis le parcours fonctionnel en React et TypeScript. Thème arcade sombre cyan, vert lime et actions orange. Aucun violet.',
+        'TriviaClash : créez une démo de quiz multijoueur avec salle d’attente, questions chronométrées, score local en temps réel et classement. Utilisez des joueurs fictifs réalistes et uniquement des données en mémoire ; indiquez clairement qu’aucun backend multijoueur réseau n’est connecté. Construisez le parcours fonctionnel en React et TypeScript. Thème arcade sombre cyan, vert lime et actions orange. Aucun violet.',
       iterationPrompt:
-        'Rends la démo TriviaClash entièrement testable dans le Webview. Ajoute un bouton Démarrer le quiz qui ouvre Question 1, un choix de réponse fonctionnel, un compte à rebours, la mise à jour du score et le classement final en état local. Garde visible la limite sans backend réseau. Actions principales orange, aucun violet, typecheck puis vérification du vrai Webview.',
+        'Rendez la démo TriviaClash entièrement testable dans la Webview. Ajoutez un bouton Démarrer le quiz qui ouvre Question 1, un choix de réponse fonctionnel, un compte à rebours, la mise à jour du score et le classement final en état local. Gardez visible la mention indiquant qu’aucun backend réseau n’est connecté. Réservez l’orange aux actions principales, retirez tout violet, lancez le typecheck puis vérifiez la vraie Webview.',
       accountName: 'Preuve Game FR',
       organizationName: 'Preuve Game FR',
-      expectedTerms: ['TriviaClash', 'Classement', 'local'],
+      expectedTerms: ['TriviaClash', 'local'],
+      requiredSourceTerms: ['Classement'],
       requiresDarkCanvas: true,
-      interaction: { role: 'button', name: 'Démarrer le quiz', expectedResult: 'Question 1' },
+      interaction: {
+        role: 'button',
+        name: 'Démarrer le quiz',
+        expectedResult: /(?:question\s*1|1\s*\/\s*\d|quelle planète)/i,
+      },
     },
   },
   'dashboard-builder': {
@@ -152,12 +168,12 @@ const SOLUTION_SCENARIOS = {
     },
     fr: {
       prompt:
-        'Crée PipelineIQ, un tableau de bord commercial connecté à un jeu de données local clairement indiqué, avec graphiques de chiffre d’affaires, étapes du pipeline, filtres de date et de région, et tableau des affaires. Ne prétends pas être connecté à une vraie base externe. Construis des vues React et TypeScript accessibles et responsive, thème dense graphite, bleu, vert et orange. Aucun violet.',
+        'PipelineIQ : créez un tableau de bord commercial connecté à un jeu de données local clairement indiqué, avec graphiques de chiffre d’affaires, étapes du pipeline, filtres de date et de région, et tableau des opportunités commerciales. Ne prétendez pas être connecté à une vraie base externe. Construisez une interface accessible et adaptative en React et TypeScript, avec un thème dense graphite, bleu, vert et orange. Aucun violet.',
       iterationPrompt:
-        'Améliore PipelineIQ dans le Webview. Ajoute des contrôles fonctionnels de date et région puis un bouton Appliquer les filtres qui met à jour les KPI et graphiques depuis les données locales et affiche Filtres appliqués. Ajoute un tableau des écarts aux objectifs. Garde visible la limite des données locales. Actions orange, aucun violet, typecheck puis vérification du vrai Webview.',
+        'Améliorez PipelineIQ dans la Webview. Ajoutez des contrôles fonctionnels de date et de région puis un bouton Appliquer les filtres qui met à jour les KPI et graphiques depuis les données locales et affiche Filtres appliqués. Ajoutez un tableau des écarts aux objectifs. Gardez visible la limite des données locales. Actions orange, aucun violet, typecheck puis vérification de la vraie Webview.',
       accountName: 'Preuve Dashboard FR',
       organizationName: 'Preuve Dashboard FR',
-      expectedTerms: ['PipelineIQ', 'Chiffre d’affaires', 'données locales'],
+      expectedTerms: ['PipelineIQ', 'Données locales'],
       interaction: { role: 'button', name: 'Appliquer les filtres', expectedResult: 'Filtres appliqués' },
     },
   },
@@ -174,9 +190,9 @@ const SOLUTION_SCENARIOS = {
     },
     fr: {
       prompt:
-        'Crée HelpDesk Copilot, un assistant support client qui répond depuis une petite documentation produit fictive stockée localement. Ajoute des questions suggérées, une conversation, des cartes sources citées et un état d’escalade. Ne prétends pas utiliser un LLM actif, une base vectorielle ou un helpdesk externe. Construis-le en React et TypeScript accessible et responsive, bleu, gris chaud et actions orange. Aucun violet.',
+        'HelpDesk Copilot : créez un assistant d’assistance client qui répond depuis une petite documentation produit fictive stockée localement. Ajoutez des questions suggérées, une conversation, des cartes sources citées et un mécanisme de transfert vers un humain. Ne prétendez pas utiliser un LLM actif, une base vectorielle ou un outil d’assistance externe. Construisez une interface accessible et adaptative en React et TypeScript, avec du bleu, du gris chaud et des actions orange. Aucun violet.',
       iterationPrompt:
-        'Rends HelpDesk Copilot réellement interactif dans le Webview. Ajoute le bouton suggéré Comment réinitialiser mon mot de passe ? ; son clic produit une réponse locale déterministe avec la source citée Accès au compte et une option d’escalade. Garde visible la limite de documentation locale. Actions orange, aucun violet, typecheck puis vérification du vrai Webview.',
+        'Rendez HelpDesk Copilot réellement interactif dans la Webview. Ajoutez le bouton suggéré Comment réinitialiser mon mot de passe ? ; son clic produit une réponse locale déterministe avec la source citée Accès au compte et une option de transfert à un humain. Gardez visible la limite de documentation locale. Actions orange, aucun violet, typecheck puis vérification de la vraie Webview.',
       accountName: 'Preuve Chatbot FR',
       organizationName: 'Preuve Chatbot FR',
       expectedTerms: ['HelpDesk Copilot', 'Sources', 'local'],
@@ -200,35 +216,13 @@ const SOLUTION_SCENARIOS = {
     },
     fr: {
       prompt:
-        'Crée PeopleOps, un espace interne de recherche dans les procédures RH pour les salariés. Utilise une bibliothèque fictive locale, des permissions présentées uniquement comme démo d’interface, des cartes de procédures citées, un historique et un état de feedback. Ne prétends pas avoir une authentification, un RAG, un SSO ou des documents externes réels. React et TypeScript accessibles et responsive, vert forêt, tons chauds et actions orange. Aucun violet.',
+        'PeopleOps : créez un espace interne de recherche dans les procédures RH pour les salariés. Utilisez une bibliothèque fictive locale, des permissions présentées uniquement comme démo d’interface, des cartes de procédures citées, un historique et un mécanisme de retour utilisateur. Ne prétendez pas avoir une authentification, un RAG, un SSO ou des documents externes réels. Construisez une interface accessible et adaptative en React et TypeScript, avec du vert forêt, des tons chauds et des actions orange. Aucun violet.',
       iterationPrompt:
-        'Rends PeopleOps vérifiable dans le Webview. Ajoute la suggestion Politique de congés annuels ; son clic affiche une réponse locale déterministe avec la procédure citée RH-04 et un contrôle de feedback. Garde visible la limite de bibliothèque locale et permissions de démonstration. Actions orange, aucun violet, typecheck puis vérification du vrai Webview.',
+        'Rendez PeopleOps vérifiable dans la Webview. Ajoutez la suggestion Politique de congés annuels ; son clic affiche une réponse locale déterministe avec la procédure citée RH-04 et un contrôle de retour utilisateur. Gardez visibles les limites de la bibliothèque locale et des permissions de démonstration. Réservez l’orange aux actions, retirez tout violet, lancez le typecheck puis vérifiez la vraie Webview.',
       accountName: 'Preuve Internal AI FR',
       organizationName: 'Preuve Internal AI FR',
       expectedTerms: ['PeopleOps', 'RH-04', 'locale'],
       interaction: { role: 'button', name: 'Politique de congés annuels', expectedResult: 'RH-04' },
-    },
-  },
-  enterprise: {
-    en: {
-      prompt:
-        'Create Northwind Control, a product release governance workspace for an enterprise software team. Include release readiness, approval checklist, environment status, ownership, and a local audit activity timeline. Treat SSO, RBAC, audit export, and deployment as interface demonstrations only; do not claim live enterprise integrations. Build accessible responsive React and TypeScript with graphite, steel blue, and orange actions. No purple.',
-      iterationPrompt:
-        'Make Northwind Control testable in Webview. Add a Review release button that opens an Approval checklist with owner, status, risk, and local approval controls. Keep the demo-only SSO, RBAC, audit, and deployment disclosure visible. Make primary actions orange, remove purple, run typecheck, and verify the actual Webview.',
-      accountName: 'Enterprise proof EN',
-      organizationName: 'Enterprise proof EN',
-      expectedTerms: ['Northwind Control', 'Release', 'demonstration'],
-      interaction: { role: 'button', name: 'Review release', expectedResult: 'Approval checklist' },
-    },
-    fr: {
-      prompt:
-        'Crée Northwind Control, un espace de gouvernance des mises en production pour une équipe logicielle d’entreprise. Ajoute la préparation de version, une checklist d’approbation, l’état des environnements, les responsables et un journal d’activité local. Présente le SSO, RBAC, export d’audit et déploiement uniquement comme démonstrations d’interface ; ne prétends pas avoir d’intégrations actives. React et TypeScript accessibles et responsive, graphite, bleu acier et actions orange. Aucun violet.',
-      iterationPrompt:
-        'Rends Northwind Control testable dans le Webview. Ajoute un bouton Examiner la version qui ouvre une Checklist d’approbation avec responsable, statut, risque et contrôles locaux. Garde visible la limite de démonstration pour SSO, RBAC, audit et déploiement. Actions orange, aucun violet, typecheck puis vérification du vrai Webview.',
-      accountName: 'Preuve Enterprise FR',
-      organizationName: 'Preuve Enterprise FR',
-      expectedTerms: ['Northwind Control', 'Version', 'démonstration'],
-      interaction: { role: 'button', name: 'Examiner la version', expectedResult: 'Checklist d’approbation' },
     },
   },
   startups: {
@@ -244,9 +238,9 @@ const SOLUTION_SCENARIOS = {
     },
     fr: {
       prompt:
-        'Crée Launchpad, un cockpit de lancement pour une équipe de startup en amorçage. Ajoute tunnel d’onboarding, liste d’attente, tableau d’expériences, notes d’entretiens clients, jalons produit et paramètres de trésorerie avec des données locales fictives réalistes. Ne prétends pas avoir d’analytics, billing, emails ou base externe actifs. React et TypeScript accessibles et responsive, corail, sarcelle, graphite et actions orange. Aucun violet.',
+        'Launchpad : créez un cockpit de lancement pour une équipe de startup en amorçage. Ajoutez un parcours d’intégration, une liste d’attente, un tableau d’expériences, des notes d’entretiens clients, des jalons produit et des paramètres de trésorerie avec des données locales fictives réalistes. Ne prétendez pas avoir d’outils d’analyse, de facturation, d’emails ou de base externe actifs. Construisez une interface accessible et adaptative en React et TypeScript, avec du corail, du bleu sarcelle, du graphite et des actions orange. Aucun violet.',
       iterationPrompt:
-        'Rends Launchpad interactif dans le Webview. Ajoute un bouton Ajouter une expérience qui ouvre un formulaire Nouvelle expérience, enregistre une carte locale et met à jour le compteur. Garde toutes les intégrations externes explicitement déconnectées. Actions orange, aucun violet, typecheck puis vérification du vrai Webview.',
+        'Rendez Launchpad interactif dans la Webview. Ajoutez un bouton Ajouter une expérience qui ouvre un formulaire Nouvelle expérience, enregistre une carte locale et met à jour le compteur. Gardez toutes les intégrations externes explicitement déconnectées. Actions orange, aucun violet, typecheck puis vérification de la vraie Webview.',
       accountName: 'Preuve Startups FR',
       organizationName: 'Preuve Startups FR',
       expectedTerms: ['Launchpad', 'Expériences', 'locales'],
@@ -266,9 +260,9 @@ const SOLUTION_SCENARIOS = {
     },
     fr: {
       prompt:
-        'Crée Studio Ferro, un espace de livraison client pour un designer freelance. Ajoute statut du projet, livrables, fils de feedback, proposition, état de facture, suivi du temps et parcours de validation client avec des données locales fictives réalistes. Ne prétends pas avoir de paiements, signatures, emails ou authentification client réels. React et TypeScript accessibles et responsive, argile, encre, sauge et actions orange. Aucun violet.',
+        'Studio Ferro : créez un espace de livraison client pour un designer freelance. Ajoutez le statut du projet, les livrables, les fils de commentaires, la proposition, le statut de la facture, le suivi du temps et le parcours de validation client avec des données locales fictives réalistes. Ne prétendez pas avoir de paiements, de signatures, d’emails ou d’authentification client réels. Construisez une interface accessible et adaptative en React et TypeScript, avec des tons argile, encre et sauge, et des actions orange. Aucun violet.',
       iterationPrompt:
-        'Rends Studio Ferro réellement interactif dans le Webview. Ajoute un bouton Examiner le livrable qui ouvre un panneau titré Validation demandée avec contrôles locaux approuver et demander des modifications. Garde paiements, signatures, emails et auth explicitement déconnectés. Actions orange, aucun violet, typecheck puis vérification du vrai Webview.',
+        'Rendez Studio Ferro réellement interactif dans la Webview. Ajoutez un bouton Examiner le livrable qui ouvre un panneau titré Validation demandée avec des contrôles locaux pour approuver ou demander des modifications. Indiquez explicitement que les paiements, signatures, emails et l’authentification ne sont pas connectés. Réservez l’orange aux actions, retirez tout violet, lancez le typecheck puis vérifiez la vraie Webview.',
       accountName: 'Preuve Freelancers FR',
       organizationName: 'Preuve Freelancers FR',
       expectedTerms: ['Studio Ferro', 'Livrables', 'locales'],
@@ -278,7 +272,14 @@ const SOLUTION_SCENARIOS = {
 } as const satisfies Record<CaptureSlug, Record<CaptureLocale, SolutionScenario>>;
 
 function readSlug(): CaptureSlug {
-  const value = process.argv.find((argument) => argument.startsWith('--solution='))?.split('=')[1] ?? 'app-builder';
+  const solutionValue = process.argv.find((argument) => argument.startsWith('--solution='))?.split('=')[1];
+  const slugValue = process.argv.find((argument) => argument.startsWith('--slug='))?.split('=')[1];
+
+  if (solutionValue && slugValue && solutionValue !== slugValue) {
+    throw new Error(`Conflicting solution arguments: --solution=${solutionValue} and --slug=${slugValue}`);
+  }
+
+  const value = solutionValue ?? slugValue ?? 'app-builder';
 
   if (value in SOLUTION_SCENARIOS) {
     return value as CaptureSlug;
@@ -291,16 +292,74 @@ function appBuilderFallback(slug: CaptureSlug, value: string | undefined) {
   return slug === 'app-builder' ? value?.trim() : undefined;
 }
 
-function creationPromptFor(slug: CaptureSlug, scenario: SolutionScenario) {
-  const runtimeContract =
-    slug === 'app-builder'
-      ? ''
-      : ' Keep the generated runtime deliberately reliable: a Vite React TypeScript frontend with a complete package.json dev script, index.html, src/main.tsx, and src/styles.css. Keep the entire working UI and local state in src/main.tsx and src/styles.css; do not create App.tsx or extra component files. Do not add tests, a backend, a router package, a component library, or any dependency beyond React, React DOM, TypeScript, and Vite. Bind Vite to 0.0.0.0. Save only complete valid source files. Never include antml, boltArtifact, boltAction, XML, or markdown wrappers in a saved file. Make the first rendered route immediately show the named product.';
+function errorMessageChain(error: unknown) {
+  const messages: string[] = [];
+  const seen = new Set<unknown>();
 
-  return `${scenario.prompt} Do not leave a generic starter or reuse unrelated template copy; the visible product name, content, and workflows must match this brief. Draw interface visuals in code or use bundled local assets only. Do not hotlink remote images, stock-photo services, fonts, scripts, or stylesheets.${runtimeContract}`;
+  let current = error;
+
+  while (current instanceof Error && !seen.has(current) && messages.length < 8) {
+    seen.add(current);
+    messages.push(current.message);
+    current = current.cause;
+  }
+
+  if (messages.length === 0) {
+    messages.push(String(error));
+  }
+
+  return messages.join(' <- ');
 }
 
-function repairPromptFor(slug: CaptureSlug, scenario: SolutionScenario, attempt: number) {
+function errorStackChain(error: unknown) {
+  const stacks: string[] = [];
+  const seen = new Set<unknown>();
+
+  let current = error;
+
+  while (current instanceof Error && !seen.has(current) && stacks.length < 8) {
+    seen.add(current);
+    stacks.push(current.stack ?? current.message);
+    current = current.cause;
+  }
+
+  if (stacks.length === 0) {
+    stacks.push(String(error));
+  }
+
+  return stacks.join('\nCaused by: ');
+}
+
+function creationPromptFor(
+  slug: CaptureSlug,
+  locale: CaptureLocale,
+  scenario: SolutionScenario,
+  { includeInteractionAcceptance = false }: { includeInteractionAcceptance?: boolean } = {},
+) {
+  const runtimeContract =
+    locale === 'fr'
+      ? ' Gardez un runtime généré volontairement fiable : une interface Vite, React et TypeScript avec un script dev complet dans package.json, ainsi que index.html, src/main.tsx et src/styles.css. Conservez toute l’interface fonctionnelle et son état local dans src/main.tsx et src/styles.css ; ne créez ni App.tsx ni fichier de composant supplémentaire. Gardez src/main.tsx sous 350 lignes et src/styles.css sous 300 lignes, avec une source compacte et sans commentaires explicatifs. N’ajoutez ni tests, ni backend, ni package de routage, ni bibliothèque de composants, ni dépendance autre que React, React DOM, TypeScript et Vite. Liez Vite à 0.0.0.0. Enregistrez uniquement des fichiers source complets et valides ; si l’espace manque, simplifiez la décoration au lieu de tronquer ou poursuivre un fichier. N’insérez jamais de balises antml, boltArtifact, boltAction, XML ou Markdown dans un fichier enregistré. La première route rendue doit afficher immédiatement le produit nommé.'
+      : ' Keep the generated runtime deliberately reliable: a Vite React TypeScript frontend with a complete package.json dev script, index.html, src/main.tsx, and src/styles.css. Keep the entire working UI and local state in src/main.tsx and src/styles.css; do not create App.tsx or extra component files. Keep src/main.tsx under 350 lines and src/styles.css under 300 lines, with compact source and no explanatory comments. Do not add tests, a backend, a router package, a component library, or any dependency beyond React, React DOM, TypeScript, and Vite. Bind Vite to 0.0.0.0. Save only complete valid source files; if space is tight, simplify decoration rather than truncating or continuing a file. Never include antml, boltArtifact, boltAction, XML, or markdown wrappers in a saved file. Make the first rendered route immediately show the named product.';
+
+  const interactionContract = includeInteractionAcceptance
+    ? locale === 'fr'
+      ? ` La génération initiale doit aussi satisfaire entièrement ce critère d’interaction : ${scenario.iterationPrompt}`
+      : ` The initial build must also satisfy this complete interaction acceptance requirement: ${scenario.iterationPrompt}`
+    : '';
+
+  const authenticityContract =
+    slug === 'website-builder'
+      ? locale === 'fr'
+        ? ' Respectez exclusivement l’identité et le contenu architectural de Meridian Studio. Rédigez en français professionnel tous les textes visibles, sauf les marques, le code et les termes techniques explicitement demandés, et vouvoyez toujours l’utilisateur. Dessinez les visuels de l’interface dans le code ou utilisez uniquement des ressources locales incluses. N’intégrez aucune image, banque d’images, police, script ou feuille de style distante.'
+        : ' Keep every visible name, section, and interaction specific to the Meridian Studio architecture practice. Write every visible interface string in professional English, except code and explicitly requested technical terms. Draw interface visuals in code or use bundled local assets only. Do not hotlink remote images, stock-photo services, fonts, scripts, or stylesheets.'
+      : locale === 'fr'
+        ? ' Ne laissez pas de modèle de départ générique et ne réutilisez pas le contenu d’un gabarit sans rapport : le nom du produit, le contenu et les parcours visibles doivent respecter ce brief. Rédigez en français professionnel tous les textes visibles de l’interface, sauf les marques, le code et les termes techniques explicitement demandés, et vouvoyez toujours l’utilisateur. Dessinez les visuels de l’interface dans le code ou utilisez uniquement des ressources locales incluses. N’intégrez aucune image, banque d’images, police, script ou feuille de style distante.'
+        : ' Do not leave a generic starter or reuse unrelated template copy; the visible product name, content, and workflows must match this brief. Write every visible interface string in professional English, except brands, code, and explicitly requested technical terms. Draw interface visuals in code or use bundled local assets only. Do not hotlink remote images, stock-photo services, fonts, scripts, or stylesheets.';
+
+  return `${scenario.prompt}${interactionContract}${authenticityContract}${runtimeContract}`;
+}
+
+function repairPromptFor(slug: CaptureSlug, locale: CaptureLocale, scenario: SolutionScenario, attempt: number) {
   const configuredPrompt =
     process.env.SOLUTION_PROOF_REPAIR_PROMPT?.trim() ??
     appBuilderFallback(slug, process.env.APP_BUILDER_PROOF_REPAIR_PROMPT);
@@ -309,13 +368,35 @@ function repairPromptFor(slug: CaptureSlug, scenario: SolutionScenario, attempt:
 
   const basePrompt =
     configuredPrompt ??
-    `The actual Webview is blank or contains a runtime error. Inspect the exact saved project files, current Vite diagnostics, and every entry in the IDE Problems panel. Replace every empty or truncated runtime file, remove accidental prose, markdown, boltArtifact, and boltAction wrappers from source files, then fix every TypeScript, import, syntax, test, and runtime error until Problems shows zero errors. Preserve this app's identity and verified local-only scope: ${appIdentity}. Remove remote image, font, script, and stylesheet URLs; use code-drawn or bundled local assets. Run typecheck, start the dev server, and only report success after the actual Webview contains the app. Do not add any external service, secret, or unsupported claim.`;
+    (locale === 'fr'
+      ? `La Webview réelle est vide ou contient une erreur de runtime. Inspectez les fichiers exacts enregistrés dans le projet, les diagnostics Vite actuels et chaque entrée du panneau IDE Problems. Remplacez tout fichier runtime vide ou tronqué, retirez la prose accidentelle ainsi que les enveloppes markdown, boltArtifact et boltAction des fichiers source, puis corrigez chaque erreur TypeScript, d’import, de syntaxe, de test et de runtime jusqu’à ce que Problems affiche zéro erreur. Préservez l’identité de cette app et son périmètre local vérifié : ${appIdentity}. Supprimez les URLs distantes d’images, de polices, de scripts et de feuilles de style ; utilisez des ressources dessinées dans le code ou incluses localement. Lancez le typecheck et le serveur de développement, puis n’annoncez la réussite qu’après avoir vérifié que la Webview réelle contient l’app. N’ajoutez aucun service externe, secret ou affirmation non étayée.`
+      : `The actual Webview is blank or contains a runtime error. Inspect the exact saved project files, current Vite diagnostics, and every entry in the IDE Problems panel. Replace every empty or truncated runtime file, remove accidental prose, markdown, boltArtifact, and boltAction wrappers from source files, then fix every TypeScript, import, syntax, test, and runtime error until Problems shows zero errors. Preserve this app's identity and verified local-only scope: ${appIdentity}. Remove remote image, font, script, and stylesheet URLs; use code-drawn or bundled local assets. Run typecheck, start the dev server, and only report success after the actual Webview contains the app. Do not add any external service, secret, or unsupported claim.`);
 
   if (attempt === 1) {
     return basePrompt;
   }
 
-  return `${basePrompt} This is repair attempt ${attempt}; the previous repair still left the Webview invalid. Do not trust the previous success message. Re-read the exact current file contents and verify visible Webview text before answering.`;
+  return locale === 'fr'
+    ? `${basePrompt} Il s’agit de la tentative de réparation ${attempt} ; la réparation précédente a laissé la Webview invalide. Ne vous fiez pas au précédent message de réussite. Relisez le contenu exact des fichiers actuels et vérifiez le texte visible dans la Webview avant de répondre.`
+    : `${basePrompt} This is repair attempt ${attempt}; the previous repair still left the Webview invalid. Do not trust the previous success message. Re-read the exact current file contents and verify visible Webview text before answering.`;
+}
+
+function identityRepairPromptFor(locale: CaptureLocale, scenario: SolutionScenario, iterationBrief: string) {
+  return locale === 'fr'
+    ? `${iterationBrief}La Webview visible affiche encore une interface générique sans rapport et n’implémente pas le produit ${scenario.expectedTerms[0]} demandé. Remplacez toute identité, tout texte, toute donnée d’exemple et tout parcours génériques par le brief dédié de mon prompt initial. L’interface rendue doit contenir visiblement les termes exacts suivants : ${scenario.expectedTerms.join(', ')}. Utilisez uniquement des exemples locaux fictifs réalistes, signalez clairement les limites et retirez toute affirmation inventée sur la performance, l’adoption, le chiffre d’affaires, les clients ou les délais de livraison. Gardez chaque ressource locale, réservez l’orange aux actions principales et n’utilisez aucun violet. Vérifiez la Webview réelle avant de répondre.`
+    : `${iterationBrief}The visible Webview is still an unrelated generic template and does not implement the requested ${scenario.expectedTerms[0]} product. Replace all generic starter branding, copy, sample metrics, and workflows with the dedicated brief from my original prompt. The rendered interface must visibly contain these exact theme terms: ${scenario.expectedTerms.join(', ')}. Use only realistic fictional local sample content, label limitations clearly, and remove fabricated performance, adoption, revenue, customer, or delivery claims. Keep every asset local, keep primary actions orange, and use no purple. Verify the actual Webview before answering.`;
+}
+
+function themeRepairPromptFor(locale: CaptureLocale, scenario: SolutionScenario, iterationBrief: string) {
+  const darkCanvasInstruction = scenario.requiresDarkCanvas
+    ? locale === 'fr'
+      ? ' Affichez toute l’application sur une surface sombre intentionnelle qui couvre la Webview, avec des contrôles stylés ; ne laissez aucune interface blanche par défaut du navigateur.'
+      : ' Render the entire application on a deliberate dark full-canvas surface with styled controls; do not leave browser-default white UI.'
+    : '';
+
+  return locale === 'fr'
+    ? `${iterationBrief}La Webview réelle de ${scenario.expectedTerms[0]} ne respecte pas la palette demandée. Préservez chaque parcours existant et chaque limite locale, retirez tout accent violet, mauve ou rose et utilisez l’orange pour les actions principales visibles.${darkCanvasInstruction} Gardez toutes les images, polices, scripts et feuilles de style en local. Vérifiez la Webview rendue avant d’annoncer la réussite.`
+    : `${iterationBrief}The actual Webview for ${scenario.expectedTerms[0]} does not match the requested palette. Preserve every existing workflow and local-only limitation, remove every purple, violet, mauve, and pink accent, and use orange for visible primary actions.${darkCanvasInstruction} Keep all images, fonts, scripts, and styles local. Verify the rendered Webview before reporting success.`;
 }
 
 function escapedPattern(value: string) {
@@ -363,6 +444,50 @@ async function selectCreationModel(page: Page) {
       .click();
     await expect(modelCombobox).toContainText(new RegExp(escapedPattern(modelName), 'i'));
   }
+}
+
+async function appendCreationModelFormFields(page: Page) {
+  const providerName = process.env.SOLUTION_PROOF_AI_PROVIDER?.trim();
+  const modelName = process.env.SOLUTION_PROOF_AI_MODEL?.trim();
+
+  if (!providerName && !modelName) {
+    return;
+  }
+
+  const form = page.locator('form[aria-label="Create project form"]');
+
+  await expect(form).toBeVisible({ timeout: 30_000 });
+  await page.evaluate(`(() => {
+    const form = document.querySelector('form[aria-label="Create project form"]');
+    if (!form) throw new Error('Create project form unavailable');
+    const values = ${JSON.stringify({
+      model: process.env.SOLUTION_PROOF_AI_MODEL?.trim(),
+      provider: process.env.SOLUTION_PROOF_AI_PROVIDER?.trim(),
+    })};
+    for (const [name, value] of Object.entries(values)) {
+      if (!value) continue;
+      let input = form.querySelector('input[name="' + name + '"]');
+      if (!input) {
+        input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        form.appendChild(input);
+      }
+      input.value = value;
+    }
+  })()`);
+
+  if (providerName) {
+    await expect(form.locator('input[name="provider"]')).toHaveValue(providerName);
+  }
+
+  if (modelName) {
+    await expect(form.locator('input[name="model"]')).toHaveValue(modelName);
+  }
+
+  process.stdout.write(
+    `${JSON.stringify({ status: 'creation-model-form-fields-applied', provider: providerName, model: modelName })}\n`,
+  );
 }
 
 function readLocale(): CaptureLocale {
@@ -541,7 +666,12 @@ async function resolveProjectId(page: Page, token: string) {
   return payload.project.id;
 }
 
-async function waitForGeneratedFiles(page: Page, projectId: string, token: string) {
+async function waitForGeneratedFiles(
+  page: Page,
+  projectId: string,
+  token: string,
+  { requireApplication = true }: { requireApplication?: boolean } = {},
+) {
   let lastPaths: string[] = [];
 
   await expect
@@ -558,10 +688,12 @@ async function waitForGeneratedFiles(page: Page, projectId: string, token: strin
         const hasPackage = lastPaths.some((path) => /(^|\/)package\.json$/.test(path));
         const hasApplication = lastPaths.some((path) => /(^|\/)(App\.(?:tsx|jsx)|main\.(?:tsx|jsx|js))$/.test(path));
 
-        return hasPackage && hasApplication;
+        return hasPackage && (!requireApplication || hasApplication);
       },
       {
-        message: 'The real agent run must create package.json and application source files',
+        message: requireApplication
+          ? 'The real agent run must create package.json and application source files'
+          : 'The repairable agent run must persist at least package.json',
         intervals: [1_000, 2_000, 3_000],
         timeout: GENERATION_TIMEOUT_MS,
       },
@@ -631,6 +763,30 @@ async function assertGeneratedSourcesAreUnwrapped(page: Page, projectId: string,
   }
 }
 
+async function assertScenarioSourceTerms(page: Page, projectId: string, token: string, scenario: SolutionScenario) {
+  if (!scenario.requiredSourceTerms?.length) {
+    return;
+  }
+
+  const projectState = await readProjectIdeState(page, projectId, token);
+
+  if (!projectState) {
+    throw new Error('The generated IDE state is unavailable before source-content verification');
+  }
+
+  const sourceText = projectState.files
+    .filter((file) => /\.(?:css|html|jsx?|tsx?)$/i.test(file.path ?? ''))
+    .map((file) => file.content ?? '')
+    .join('\n')
+    .toLocaleLowerCase();
+
+  const missingTerms = scenario.requiredSourceTerms.filter((term) => !sourceText.includes(term.toLocaleLowerCase()));
+
+  if (missingTerms.length > 0) {
+    throw new Error(`Generated source is missing required product behavior terms: ${missingTerms.join(', ')}`);
+  }
+}
+
 async function resolveRuntimeWorkspace(page: Page, projectId: string, token: string) {
   const response = await page.request.get(`${API_BASE_URL}/projects/${encodeURIComponent(projectId)}/workspaces`, {
     headers: { authorization: `Bearer ${token}` },
@@ -669,15 +825,23 @@ async function resolveRuntimeWorkspace(page: Page, projectId: string, token: str
 }
 
 async function runtimeFileContent(page: Page, workspaceId: string, token: string, path: string) {
-  const response = await page.request.get(
-    `${API_BASE_URL}/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/files/read?path=${encodeURIComponent(path)}`,
-    {
-      headers: { authorization: `Bearer ${token}` },
-      timeout: 20_000,
-    },
-  );
+  const response = await page.request
+    .get(
+      `${API_BASE_URL}/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/files/read?path=${encodeURIComponent(path)}`,
+      {
+        headers: { authorization: `Bearer ${token}` },
+        timeout: 45_000,
+      },
+    )
+    .catch((error: unknown) => {
+      const reason = error instanceof Error ? error.message.split('\n')[0] : String(error);
 
-  if (!response.ok()) {
+      process.stdout.write(`${JSON.stringify({ status: 'runtime-file-read-unavailable', path, reason })}\n`);
+
+      return undefined;
+    });
+
+  if (!response?.ok()) {
     return undefined;
   }
 
@@ -704,19 +868,67 @@ async function runtimeFileMismatches(page: Page, projectId: string, token: strin
     /(?:^|\/)(?:package\.json|index\.html|main\.(?:tsx|jsx|js)|styles\.css|App\.(?:tsx|jsx))$/i.test(file.path ?? ''),
   );
 
-  const comparisons = await Promise.all(
-    criticalFiles.map(async (file) => ({
+  const comparisons: Array<{ path: string; matches: boolean }> = [];
+
+  /*
+   * Runtime file reads are deliberately sequential. The production runtime
+   * endpoint can be cold while several proof projects start together, and a
+   * burst of parallel reads made a transient timeout fail an otherwise valid
+   * capture before the reconciliation path could run.
+   */
+  for (const file of criticalFiles) {
+    comparisons.push({
       path: file.path ?? '',
       matches:
         typeof file.content === 'string' &&
         file.content === (await runtimeFileContent(page, workspace.id, token, file.path ?? '')),
-    })),
-  );
+    });
+  }
 
   return {
     mismatches: comparisons.filter((comparison) => !comparison.matches).map((comparison) => comparison.path),
     workspace,
   };
+}
+
+async function writePersistedFilesToRuntime(page: Page, projectId: string, workspaceId: string, token: string) {
+  const projectState = await readProjectIdeState(page, projectId, token);
+
+  if (!projectState) {
+    throw new Error('The authoritative persisted files are unavailable for runtime reconciliation');
+  }
+
+  const files = projectState.files.filter(
+    (file): file is { path: string; content: string } =>
+      typeof file.path === 'string' && file.path.length > 0 && typeof file.content === 'string',
+  );
+
+  if (files.length === 0) {
+    throw new Error('The authoritative persisted project contains no files for runtime reconciliation');
+  }
+
+  process.stdout.write(
+    `${JSON.stringify({ status: 'runtime-authoritative-write-requested', fileCount: files.length })}\n`,
+  );
+
+  for (const file of files) {
+    const response = await page.request.put(
+      `${API_BASE_URL}/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/files/write`,
+      {
+        data: { path: file.path, content: file.content },
+        headers: { authorization: `Bearer ${token}` },
+        timeout: 60_000,
+      },
+    );
+
+    if (!response.ok()) {
+      throw new Error(`Runtime reconciliation failed for ${file.path} with HTTP ${response.status()}`);
+    }
+  }
+
+  process.stdout.write(
+    `${JSON.stringify({ status: 'runtime-authoritative-write-completed', fileCount: files.length })}\n`,
+  );
 }
 
 async function waitForRuntimeFilesToMatchPersisted(page: Page, projectId: string, token: string) {
@@ -732,7 +944,7 @@ async function waitForRuntimeFilesToMatchPersisted(page: Page, projectId: string
       {
         message: 'The running workspace should receive the authoritative persisted files without a restart',
         intervals: [2_000, 3_000, 5_000],
-        timeout: 60_000,
+        timeout: RUNTIME_SYNC_GRACE_MS,
       },
     )
     .toBe(0)
@@ -787,7 +999,7 @@ async function waitForRuntimeFilesToMatchPersisted(page: Page, projectId: string
       )
       .toBe('running');
 
-    await expect
+    const reconciledAfterRestart = await expect
       .poll(
         async () => {
           ({ mismatches: lastMismatches } = await runtimeFileMismatches(page, projectId, token));
@@ -797,10 +1009,81 @@ async function waitForRuntimeFilesToMatchPersisted(page: Page, projectId: string
         {
           message: `Runtime restart must reconcile persisted files: ${lastMismatches.join(', ')}`,
           intervals: [2_000, 3_000, 5_000],
-          timeout: PREVIEW_RESTART_TIMEOUT_MS,
+          timeout: RUNTIME_RESEED_GRACE_MS,
         },
       )
-      .toBe(0);
+      .toBe(0)
+      .then(() => true)
+      .catch(() => false);
+
+    if (!reconciledAfterRestart) {
+      await writePersistedFilesToRuntime(page, projectId, workspace.id, token);
+
+      const authoritativeRestartResponse = await page.request.post(
+        `${API_BASE_URL}/api/runtime/workspaces/${encodeURIComponent(workspace.id)}/restart`,
+        {
+          headers: { authorization: `Bearer ${token}` },
+          timeout: PREVIEW_RESTART_TIMEOUT_MS,
+        },
+      );
+
+      if (!authoritativeRestartResponse.ok()) {
+        throw new Error(
+          `Runtime restart after authoritative write failed with HTTP ${authoritativeRestartResponse.status()}`,
+        );
+      }
+
+      process.stdout.write(`${JSON.stringify({ status: 'runtime-authoritative-restart-requested' })}\n`);
+
+      await expect
+        .poll(
+          async () => {
+            const statusResponse = await page.request
+              .get(`${API_BASE_URL}/api/runtime/workspaces/${encodeURIComponent(workspace.id)}/status`, {
+                headers: { authorization: `Bearer ${token}` },
+                timeout: 20_000,
+              })
+              .catch(() => undefined);
+
+            if (!statusResponse?.ok()) {
+              return 'unavailable';
+            }
+
+            const payload = (await statusResponse.json()) as { status?: string };
+
+            return payload.status ?? 'unknown';
+          },
+          {
+            message: 'The runtime must return to running after the authoritative file write',
+            intervals: [2_000, 3_000, 5_000],
+            timeout: PREVIEW_TIMEOUT_MS,
+          },
+        )
+        .toBe('running');
+
+      const reconciledAfterAuthoritativeWrite = await expect
+        .poll(
+          async () => {
+            ({ mismatches: lastMismatches } = await runtimeFileMismatches(page, projectId, token));
+
+            return lastMismatches.length;
+          },
+          {
+            message: `The official runtime write must reconcile persisted files: ${lastMismatches.join(', ')}`,
+            intervals: [1_000, 2_000, 3_000],
+            timeout: PREVIEW_RESTART_TIMEOUT_MS,
+          },
+        )
+        .toBe(0)
+        .then(() => true)
+        .catch(() => false);
+
+      if (!reconciledAfterAuthoritativeWrite) {
+        throw new Error(
+          `Runtime files still diverge after authoritative write and restart: ${lastMismatches.join(', ') || 'unknown file'}`,
+        );
+      }
+    }
 
     process.stdout.write(`${JSON.stringify({ status: 'runtime-reseed-restart-completed' })}\n`);
   }
@@ -834,6 +1117,33 @@ async function readRuntimePreviewPorts(page: Page, projectId: string, token: str
     return ports.filter((port) => port.ready === true && typeof port.port === 'number');
   } catch {
     return [];
+  }
+}
+
+function officialRuntimePreviewUrl(ports: RuntimePreviewPort[], port = 5173) {
+  const candidate = ports.find(
+    (entry) => entry.port === port && entry.ready === true && typeof entry.url === 'string',
+  )?.url;
+
+  if (!candidate) {
+    return undefined;
+  }
+
+  try {
+    const parsed = new URL(candidate);
+
+    if (
+      parsed.protocol !== 'https:' ||
+      parsed.username ||
+      parsed.password ||
+      !parsed.hostname.endsWith('.preview.e-code.ai')
+    ) {
+      return undefined;
+    }
+
+    return parsed.href;
+  } catch {
+    return undefined;
   }
 }
 
@@ -1084,7 +1394,13 @@ async function repairGeneratedPreview(
   return repairBubble;
 }
 
-async function waitForPreview(page: Page, evidenceRoot: string, projectId: string, token: string) {
+async function waitForPreview(
+  page: Page,
+  evidenceRoot: string,
+  projectId: string,
+  token: string,
+  expectedIdentity?: string,
+) {
   await assertGeneratedSourcesAreUnwrapped(page, projectId, token);
   await waitForRuntimeFilesToMatchPersisted(page, projectId, token);
 
@@ -1179,7 +1495,47 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
     return observation.state === 'ready';
   };
 
+  const refreshNativeIframeForOfficialRuntime = async () => {
+    const officialUrl = officialRuntimePreviewUrl(await readRuntimePreviewPorts(page, projectId, token));
+
+    if (!officialUrl) {
+      return false;
+    }
+
+    const refreshPreviewButton = page.getByRole('button', { name: 'Refresh preview' }).first();
+
+    if (!(await refreshPreviewButton.isVisible().catch(() => false))) {
+      return false;
+    }
+
+    await refreshPreviewButton.click({ noWaitAfter: true });
+
+    process.stdout.write(
+      `${JSON.stringify({ status: 'preview-native-runtime-refresh-requested', origin: new URL(officialUrl).origin })}\n`,
+    );
+
+    const rendered = await waitForRenderedPreview(60_000);
+
+    if (!rendered) {
+      return false;
+    }
+
+    const iframeSource = await iframe.getAttribute('src').catch(() => null);
+
+    try {
+      return Boolean(iframeSource && new URL(iframeSource).origin === new URL(officialUrl).origin);
+    } catch {
+      return false;
+    }
+  };
+
   const startPreviewFromTerminal = async () => {
+    if (await probeRuntimePreview(page, projectId, token)) {
+      process.stdout.write(`${JSON.stringify({ status: 'preview-terminal-recovery-skipped-runtime-ready' })}\n`);
+
+      return;
+    }
+
     const dependencyInstallCommand = 'npm install --include=dev --prefer-offline --no-audit --no-fund';
     const viteVersionCommand = 'node_modules/.bin/vite --version';
     const terminalTabs = page.getByTestId('terminal-tabs-bar');
@@ -1200,7 +1556,7 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
         async () => {
           const rows = await terminalRows.innerText().catch(() => '');
 
-          return /[$#]\s*$/m.test(rows);
+          return /[$#]\s*$/.test(rows.trimEnd());
         },
         {
           message: 'The IDE Terminal must expose an interactive workspace prompt before starting Vite',
@@ -1235,7 +1591,7 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
         message: 'The IDE Terminal must return to an interactive prompt after installing dependencies',
         timeout: 60_000,
       })
-      .toMatch(/[$#]\s*$/m);
+      .toMatch(/[$#]\s*$/);
 
     await terminalInput.focus();
     await expect(terminalInput).toBeFocused();
@@ -1252,7 +1608,7 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
         message: 'The IDE Terminal must return after verifying Vite',
         timeout: 60_000,
       })
-      .toMatch(/[$#]\s*$/m);
+      .toMatch(/[$#]\s*$/);
     process.stdout.write(`${JSON.stringify({ status: 'preview-vite-executable-verified' })}\n`);
 
     await terminalInput.focus();
@@ -1365,9 +1721,18 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
       const attachedAfterDependencyRecovery = await waitForAttachedIframe(PREVIEW_RESTART_TIMEOUT_MS);
 
       if (!attachedAfterDependencyRecovery) {
-        await startPreviewFromTerminal();
-        await expect(iframe).toBeVisible({ timeout: PREVIEW_RESTART_TIMEOUT_MS });
-        await expect.poll(() => iframe.getAttribute('src')).not.toBe('about:blank');
+        const renderedAfterNativeRefresh = await refreshNativeIframeForOfficialRuntime();
+
+        if (!renderedAfterNativeRefresh) {
+          await startPreviewFromTerminal();
+        }
+
+        const attachedAfterTerminalRecovery =
+          renderedAfterNativeRefresh || (await waitForAttachedIframe(PREVIEW_RESTART_TIMEOUT_MS));
+
+        if (!attachedAfterTerminalRecovery && !(await refreshNativeIframeForOfficialRuntime())) {
+          throw new Error('The native Webview iframe did not attach after terminal recovery');
+        }
       }
     }
 
@@ -1412,12 +1777,19 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
           await refreshedAfterReloadButton.click({ noWaitAfter: true });
         }
 
-        await expect
+        const renderedAfterFinalReload = await expect
           .poll(readPreviewText, {
             message: 'The reloaded IDE must attach the running application to Webview',
             timeout: PREVIEW_TIMEOUT_MS,
           })
-          .toBeGreaterThan(120);
+          .toBeGreaterThan(120)
+          .then(() => true)
+          .catch(() => false);
+
+        if (!renderedAfterFinalReload && !(await refreshNativeIframeForOfficialRuntime())) {
+          await throwIfVisiblePreviewError();
+          throw new Error('The native Webview stayed empty after refresh and official runtime URL recovery');
+        }
       }
     }
   } catch (error) {
@@ -1450,9 +1822,12 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
       .innerText()
       .catch(() => 'No visible preview status');
 
-    throw new Error(`Preview stayed empty. Visible status: ${previewStatus.replace(/\s+/g, ' ').trim()}`, {
-      cause: error,
-    });
+    const underlyingFailure = errorMessageChain(error);
+
+    throw new Error(
+      `Preview stayed empty. Visible status: ${previewStatus.replace(/\s+/g, ' ').trim()}. Underlying failure: ${underlyingFailure}`,
+      { cause: error },
+    );
   }
 
   if (PREVIEW_RUNTIME_ERROR_PATTERN.test(previewText)) {
@@ -1538,16 +1913,69 @@ async function waitForPreview(page: Page, evidenceRoot: string, projectId: strin
     throw new Error(`Preview hotlinks ${assetAudit.remoteImages.length} remote images instead of local assets`);
   }
 
-  const previewShot = await iframe.screenshot({ animations: 'disabled', type: 'png' });
+  let previewShot = Buffer.alloc(0);
+  let previewEntropy = 0;
 
-  if (previewShot.byteLength < 20_000) {
-    throw new Error(`Preview screenshot is unexpectedly small (${previewShot.byteLength} bytes)`);
+  const waitForVisualSubstance = async (timeout: number) =>
+    expect
+      .poll(
+        async () => {
+          try {
+            previewShot = await iframe.screenshot({ animations: 'disabled', type: 'png' });
+            previewEntropy = (await sharp(previewShot).stats()).entropy;
+
+            return previewShot.byteLength >= 6_000 && previewEntropy >= 0.15;
+          } catch {
+            return false;
+          }
+        },
+        {
+          message: 'The attached Webview must render visually substantial application pixels',
+          intervals: [1_000, 2_000, 3_000],
+          timeout,
+        },
+      )
+      .toBe(true)
+      .then(() => true)
+      .catch(() => false);
+
+  let visuallySubstantial = await waitForVisualSubstance(60_000);
+
+  if (!visuallySubstantial && (await refreshNativeIframeForOfficialRuntime())) {
+    visuallySubstantial = await waitForVisualSubstance(60_000);
+  }
+
+  if (!visuallySubstantial) {
+    await mkdir(evidenceRoot, { recursive: true });
+
+    if (previewShot.byteLength > 0) {
+      await writeFile(resolve(evidenceRoot, '02-preview-low-substance.png'), previewShot);
+    }
+
+    throw new Error(
+      `Preview screenshot lacks visual substance (${previewShot.byteLength} bytes, entropy ${previewEntropy.toFixed(3)})`,
+    );
+  }
+
+  if (expectedIdentity && !previewText.toLocaleLowerCase().includes(expectedIdentity.toLocaleLowerCase())) {
+    if (await refreshNativeIframeForOfficialRuntime()) {
+      await readPreviewText();
+    }
+
+    if (!previewText.toLocaleLowerCase().includes(expectedIdentity.toLocaleLowerCase())) {
+      throw new Error(`Preview is missing the required ${expectedIdentity} identity after native runtime refresh`);
+    }
   }
 
   return { iframe, previewText, assetAudit };
 }
 
-async function waitForOrangePreview(page: Page, evidenceRoot: string, timeoutMs = PREVIEW_TIMEOUT_MS) {
+async function waitForOrangePreview(
+  page: Page,
+  evidenceRoot: string,
+  timeoutMs = PREVIEW_TIMEOUT_MS,
+  requireOrangeAction = true,
+) {
   let lastAudit = { orangeActionCount: 0, orangeCount: 0, purpleCount: 0 };
 
   try {
@@ -1569,35 +1997,74 @@ async function waitForOrangePreview(page: Page, evidenceRoot: string, timeoutMs 
 
             for (const element of previewDocument.querySelectorAll('*')) {
               const style = previewWindow.getComputedStyle(element);
+              const bounds = element.getBoundingClientRect();
 
-              const styleValues = [
-                style.color,
-                style.backgroundColor,
-                style.borderTopColor,
-                style.borderRightColor,
-                style.borderBottomColor,
-                style.borderLeftColor,
-                style.outlineColor,
-                style.fill,
-                style.stroke,
-              ];
+              const isEffectivelyVisible =
+                typeof element.checkVisibility !== 'function' ||
+                element.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true });
 
-              for (const value of styleValues) {
-                if (value && value !== 'none' && value !== 'transparent') {
-                  colors.add(value);
+              if (
+                bounds.width <= 0 ||
+                bounds.height <= 0 ||
+                bounds.right <= 0 ||
+                bounds.bottom <= 0 ||
+                bounds.left >= previewWindow.innerWidth ||
+                bounds.top >= previewWindow.innerHeight ||
+                style.display === 'none' ||
+                style.visibility === 'hidden' ||
+                Number(style.opacity) === 0 ||
+                !isEffectivelyVisible
+              ) {
+                continue;
+              }
+
+              const styles = [style];
+
+              for (const pseudo of ['::before', '::after']) {
+                const pseudoStyle = previewWindow.getComputedStyle(element, pseudo);
+
+                if (
+                  pseudoStyle.content !== 'none' &&
+                  pseudoStyle.display !== 'none' &&
+                  pseudoStyle.visibility !== 'hidden' &&
+                  Number(pseudoStyle.opacity) !== 0
+                ) {
+                  styles.push(pseudoStyle);
                 }
               }
 
-              if (
+              const styleValues = styles.flatMap((candidateStyle) => [
+                candidateStyle.color,
+                candidateStyle.backgroundColor,
+                candidateStyle.backgroundImage,
+                candidateStyle.borderTopColor,
+                candidateStyle.borderRightColor,
+                candidateStyle.borderBottomColor,
+                candidateStyle.borderLeftColor,
+                candidateStyle.outlineColor,
+                candidateStyle.boxShadow,
+                candidateStyle.textShadow,
+                candidateStyle.filter,
+                candidateStyle.fill,
+                candidateStyle.stroke,
+              ]);
+
+              const isInteractive =
                 element.matches('button, a[href], [role="button"], input[type="submit"]') &&
-                element.getBoundingClientRect().width > 0 &&
-                element.getBoundingClientRect().height > 0 &&
-                style.display !== 'none' &&
-                style.visibility !== 'hidden'
-              ) {
-                for (const value of styleValues) {
-                  if (value && value !== 'none' && value !== 'transparent') {
-                    interactiveColors.add(value);
+                !element.matches(':disabled, [aria-disabled="true"]');
+
+              for (const value of styleValues) {
+                if (!value || value === 'none' || value === 'transparent') {
+                  continue;
+                }
+
+                const tokens = value.match(/rgba?\([^)]*\)/gi) ?? [value];
+
+                for (const token of tokens) {
+                  colors.add(token);
+
+                  if (isInteractive) {
+                    interactiveColors.add(token);
                   }
                 }
               }
@@ -1669,11 +2136,15 @@ async function waitForOrangePreview(page: Page, evidenceRoot: string, timeoutMs 
             return { orangeActionCount, orangeCount, purpleCount };
           });
 
-          return lastAudit.orangeActionCount > 0 && lastAudit.orangeCount > 0 && lastAudit.purpleCount === 0;
+          return (
+            (!requireOrangeAction || (lastAudit.orangeActionCount > 0 && lastAudit.orangeCount > 0)) &&
+            lastAudit.purpleCount === 0
+          );
         },
         {
-          message:
-            'The refreshed Preview must contain an orange interactive action and no purple, violet, mauve, or pink accents',
+          message: requireOrangeAction
+            ? 'The refreshed Preview must contain an orange interactive action and no purple, violet, mauve, or pink accents'
+            : 'The interacted Preview must contain no purple, violet, mauve, or pink accents',
           timeout: timeoutMs,
         },
       )
@@ -1719,19 +2190,42 @@ async function verifyScenarioPreview(page: Page, scenario: SolutionScenario, evi
 
   const alternateTarget = frame.getByRole(alternateRole, { name: scenario.interaction.name, exact: true }).first();
 
+  const preferredTargetWithDecoration = frame
+    .getByRole(scenario.interaction.role, { name: scenario.interaction.name })
+    .first();
+
+  const alternateTargetWithDecoration = frame.getByRole(alternateRole, { name: scenario.interaction.name }).first();
+
   let actualRole: 'button' | 'link' | undefined;
+  let target = preferredTarget;
 
   await expect
     .poll(
       async () => {
         if (await preferredTarget.isVisible().catch(() => false)) {
           actualRole = scenario.interaction.role;
+          target = preferredTarget;
 
           return true;
         }
 
         if (await alternateTarget.isVisible().catch(() => false)) {
           actualRole = alternateRole;
+          target = alternateTarget;
+
+          return true;
+        }
+
+        if (await preferredTargetWithDecoration.isVisible().catch(() => false)) {
+          actualRole = scenario.interaction.role;
+          target = preferredTargetWithDecoration;
+
+          return true;
+        }
+
+        if (await alternateTargetWithDecoration.isVisible().catch(() => false)) {
+          actualRole = alternateRole;
+          target = alternateTargetWithDecoration;
 
           return true;
         }
@@ -1744,8 +2238,6 @@ async function verifyScenarioPreview(page: Page, scenario: SolutionScenario, evi
       },
     )
     .toBe(true);
-
-  const target = actualRole === scenario.interaction.role ? preferredTarget : alternateTarget;
 
   const beforeInteraction = await body.evaluate((previewBody) => ({
     html: previewBody.innerHTML,
@@ -1772,8 +2264,10 @@ async function verifyScenarioPreview(page: Page, scenario: SolutionScenario, evi
 
   const interactedBodyText = (await body.innerText()).replace(/\s+/g, ' ').trim();
 
+  const completeInteractionText = `${initialBodyText} ${interactedBodyText}`.toLocaleLowerCase();
+
   const missingTerms = scenario.expectedTerms.filter(
-    (term) => !interactedBodyText.toLocaleLowerCase().includes(term.toLocaleLowerCase()),
+    (term) => !completeInteractionText.includes(term.toLocaleLowerCase()),
   );
 
   if (missingTerms.length > 0) {
@@ -1792,7 +2286,10 @@ async function verifyScenarioPreview(page: Page, scenario: SolutionScenario, evi
 
   return {
     interaction: `${actualRole}:${scenario.interaction.name}`,
-    expectedResult: scenario.interaction.expectedResult,
+    expectedResult:
+      typeof scenario.interaction.expectedResult === 'string'
+        ? scenario.interaction.expectedResult
+        : scenario.interaction.expectedResult.source,
     interactiveCount,
   };
 }
@@ -1801,7 +2298,96 @@ async function verifyScenarioIdentity(page: Page, scenario: SolutionScenario, ti
   const body = page.frameLocator('iframe[data-testid="preview-iframe"]:visible').last().locator('body');
   const identity = scenario.expectedTerms[0];
 
-  await expect(body).toContainText(identity, { timeout });
+  await expect(body).toContainText(new RegExp(escapedPattern(identity), 'i'), { timeout });
+}
+
+async function verifyPreviewResponsiveState(
+  page: Page,
+  scenario: SolutionScenario,
+  evidenceRoot: string,
+  stage: string,
+  device: 'desktop' | 'tablet' | 'mobile',
+) {
+  const iframe = page.locator('iframe[data-testid="preview-iframe"]:visible').last();
+  const body = page.frameLocator('iframe[data-testid="preview-iframe"]:visible').last().locator('body');
+  const identity = scenario.expectedTerms[0];
+
+  let lastAudit = {
+    stage,
+    device,
+    textLength: 0,
+    imageBytes: 0,
+    entropy: 0,
+    horizontalOverflow: Number.POSITIVE_INFINITY,
+    identityVisible: false,
+  };
+
+  try {
+    await expect
+      .poll(
+        async () => {
+          const text = (await body.innerText().catch(() => '')).replace(/\s+/g, ' ').trim();
+
+          const layout = await body
+            .evaluate((previewBody) => {
+              const previewDocument = previewBody.ownerDocument;
+              const root = previewDocument.documentElement;
+              const rootOverflow = Math.max(0, root.scrollWidth - root.clientWidth);
+              const bodyOverflow = Math.max(0, previewBody.scrollWidth - previewBody.clientWidth);
+
+              return {
+                horizontalOverflow: Math.max(rootOverflow, bodyOverflow),
+              };
+            })
+            .catch(() => ({ horizontalOverflow: Number.POSITIVE_INFINITY }));
+
+          const image = await iframe.screenshot({ animations: 'disabled', type: 'png' }).catch(() => Buffer.alloc(0));
+
+          const entropy = image.byteLength > 0 ? (await sharp(image).stats()).entropy : 0;
+
+          lastAudit = {
+            stage,
+            device,
+            textLength: text.length,
+            imageBytes: image.byteLength,
+            entropy,
+            horizontalOverflow: layout.horizontalOverflow,
+            identityVisible: text.toLocaleLowerCase().includes(identity.toLocaleLowerCase()),
+          };
+
+          return (
+            lastAudit.identityVisible &&
+            lastAudit.textLength >= 80 &&
+            lastAudit.imageBytes >= 6_000 &&
+            lastAudit.entropy >= 0.15 &&
+            lastAudit.horizontalOverflow <= 1
+          );
+        },
+        {
+          message: `${stage} ${device} Preview must remain substantial, identified, and free of horizontal overflow`,
+          intervals: [500, 1_000, 2_000],
+          timeout: 60_000,
+        },
+      )
+      .toBe(true);
+  } catch (error) {
+    await mkdir(evidenceRoot, { recursive: true });
+
+    const safeStage = stage.replace(/[^a-z0-9-]+/gi, '-').toLocaleLowerCase();
+
+    await page.screenshot({
+      path: resolve(evidenceRoot, `07-responsive-${safeStage}-${device}-failed.png`),
+      animations: 'disabled',
+      caret: 'hide',
+    });
+
+    throw new Error(
+      `Responsive Preview audit failed for ${stage}/${device} (identity=${lastAudit.identityVisible}, text=${lastAudit.textLength}, bytes=${lastAudit.imageBytes}, entropy=${lastAudit.entropy.toFixed(3)}, overflow=${lastAudit.horizontalOverflow})`,
+      { cause: error },
+    );
+  }
+
+  return lastAudit;
 }
 
 async function verifyScenarioAppearance(page: Page, scenario: SolutionScenario) {
@@ -1852,7 +2438,10 @@ async function prepareIdeCapture(page: Page, bubble: ReturnType<Page['locator']>
   const dismissPreviewError = page.getByTestId('ide-agent-panel').getByRole('button', { name: 'Dismiss' }).last();
 
   if (await dismissPreviewError.isVisible().catch(() => false)) {
-    await dismissPreviewError.click();
+    const alert = dismissPreviewError.locator('xpath=ancestor::*[@role="alert"][1]');
+    const detail = (await alert.innerText().catch(() => 'Preview or terminal error')).replace(/\s+/g, ' ').trim();
+
+    throw new Error(`IDE error alert must be resolved before capture: ${detail}`);
   }
 
   const hideLogsButton = page.getByRole('button', { name: /Hide workspace logs/i }).first();
@@ -1885,17 +2474,500 @@ async function selectPreviewDevice(page: Page, device: 'desktop' | 'tablet' | 'm
   );
 }
 
+const CAPTURE_THEMES = ['light', 'dark'] as const satisfies readonly CaptureTheme[];
+
+async function applyCaptureTheme(page: Page, theme: CaptureTheme) {
+  await page.evaluate(`(() => {
+    const nextTheme = ${JSON.stringify(theme)};
+    localStorage.setItem('bolt_theme', nextTheme);
+    document.cookie = 'ecode_theme=' + nextTheme + '; Path=/; Max-Age=31536000; SameSite=Lax';
+
+    const root = document.documentElement;
+    root.setAttribute('data-theme', nextTheme);
+    root.classList.toggle('dark', nextTheme === 'dark');
+    root.classList.toggle('light', nextTheme === 'light');
+    root.style.colorScheme = nextTheme;
+  })()`);
+
+  await expect.poll(() => page.locator('html').getAttribute('data-theme')).toBe(theme);
+  await page.evaluate(`document.fonts && document.fonts.ready`);
+}
+
+type IdeShellAudit = {
+  alertsVisible: string[];
+  connected: boolean;
+  overlaysVisible: string[];
+  problemsSummary: string;
+  runtimeSummary: string;
+  workspaceSummary: string;
+};
+
+type ThemedCaptureAudit = {
+  filename: string;
+  states: Array<{
+    accent: { orangeActionCount: number; orangeCount: number; purpleCount: number };
+    device: 'desktop' | 'tablet' | 'mobile';
+    responsive: Awaited<ReturnType<typeof verifyPreviewResponsiveState>>;
+    shell: IdeShellAudit;
+    theme: CaptureTheme;
+  }>;
+  themeDifference: {
+    changedPixelRatio: number;
+    meanAbsoluteDifference: number;
+  };
+};
+
+async function readIdeShellAudit(page: Page): Promise<IdeShellAudit> {
+  const overlayTestIds = [
+    'preview-splash-sequence',
+    'preview-resume-skeleton',
+    'preview-loading-overlay',
+    'preview-not-running-state',
+  ];
+  const connectionStatus = page
+    .locator('.bolt-project-statusbar-primary .bolt-project-statusbar-pill[role="status"]')
+    .first();
+
+  const runtimeStatus = page.locator('.bolt-project-statusbar-runtime').first();
+  const workspaceStatus = page.locator('.bolt-project-statusbar-workspace').first();
+  const problemsButton = page.getByRole('button', { name: /^Open Problems\./ }).first();
+
+  const visibleErrorAlerts = page.locator(
+    '[role="alert"][aria-label="Preview Error"]:visible, [role="alert"][aria-label="Terminal Error"]:visible',
+  );
+
+  const [alertTexts, overlayVisibility, connectedText, runtimeSummary, workspaceSummary, problemsSummary] =
+    await Promise.all([
+      visibleErrorAlerts.allInnerTexts().catch(() => []),
+      Promise.all(
+        overlayTestIds.map(async (testId) => ({
+          testId,
+          visible: await page
+            .getByTestId(testId)
+            .isVisible()
+            .catch(() => false),
+        })),
+      ),
+      connectionStatus.innerText().catch(() => ''),
+      runtimeStatus.getAttribute('aria-label').catch(() => null),
+      workspaceStatus.innerText().catch(() => ''),
+      problemsButton.getAttribute('aria-label').catch(() => null),
+    ]);
+
+  return {
+    alertsVisible: alertTexts.map((text) => text.replace(/\s+/g, ' ').trim()).filter(Boolean),
+    connected: connectedText.trim() === 'Connected',
+    overlaysVisible: overlayVisibility.filter(({ visible }) => visible).map(({ testId }) => testId),
+    problemsSummary: problemsSummary ?? '',
+    runtimeSummary: runtimeSummary ?? '',
+    workspaceSummary: workspaceSummary.replace(/\s+/g, ' ').trim(),
+  };
+}
+
+function isIdeShellAuditReady(audit: IdeShellAudit) {
+  return (
+    audit.alertsVisible.length === 0 &&
+    audit.connected &&
+    audit.overlaysVisible.length === 0 &&
+    /^Running on \S+/.test(audit.runtimeSummary) &&
+    /Workspace\s*Running/i.test(audit.workspaceSummary) &&
+    audit.problemsSummary === 'Open Problems. 0 errors, 0 warnings.'
+  );
+}
+
+async function waitForStableIdeCaptureShell(page: Page, timeout = 120_000) {
+  let consecutiveReadySamples = 0;
+
+  let lastAudit: IdeShellAudit = {
+    alertsVisible: [],
+    connected: false,
+    overlaysVisible: [],
+    problemsSummary: '',
+    runtimeSummary: '',
+    workspaceSummary: '',
+  };
+
+  try {
+    await expect
+      .poll(
+        async () => {
+          lastAudit = await readIdeShellAudit(page);
+          consecutiveReadySamples = isIdeShellAuditReady(lastAudit) ? consecutiveReadySamples + 1 : 0;
+
+          return consecutiveReadySamples >= 3;
+        },
+        {
+          message: 'The IDE shell must remain Connected with a running runtime, zero Problems, and no preview overlay',
+          intervals: [250, 500, 750],
+          timeout,
+        },
+      )
+      .toBe(true);
+  } catch (error) {
+    const problemsButton = page.getByRole('button', { name: /^Open Problems\./ }).first();
+    const problemsPanel = page.getByRole('region', { name: 'Problems' });
+
+    if (/Open Problems\. [1-9]\d* errors?/.test(lastAudit.problemsSummary)) {
+      await problemsButton.click().catch(() => undefined);
+      await problemsPanel.waitFor({ state: 'visible', timeout: 10_000 }).catch(() => undefined);
+    }
+
+    const problemCounts = await problemsPanel
+      .locator('.bolt-project-problems-counts')
+      .getAttribute('aria-label')
+      .catch(() => null);
+
+    const problemDetails = (
+      await problemsPanel
+        .locator('.bolt-project-problem-item')
+        .allInnerTexts()
+        .catch(() => [])
+    )
+      .map((detail) => detail.replace(/\s+/g, ' ').trim())
+      .filter(Boolean);
+
+    const diagnostic = { ...lastAudit, problemCounts, problemDetails };
+
+    throw new Error(`The IDE shell did not stabilize before capture: ${JSON.stringify(diagnostic)}`, {
+      cause: error,
+    });
+  }
+
+  return lastAudit;
+}
+
+async function beginIdeScreenshotGuard(page: Page) {
+  await page.evaluate(`(() => {
+    const overlayIds = [
+      'preview-splash-sequence',
+      'preview-resume-skeleton',
+      'preview-loading-overlay',
+      'preview-not-running-state',
+    ];
+    const state = { violations: [], observer: null, interval: 0, check: null };
+    const check = () => {
+      const visibleOverlays = overlayIds.filter((testId) => {
+        const element = document.querySelector('[data-testid="' + testId + '"]');
+
+        if (!element) return false;
+
+        const style = getComputedStyle(element);
+        const bounds = element.getBoundingClientRect();
+
+        return style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity) !== 0 && bounds.width > 0 && bounds.height > 0;
+      });
+      const alertsVisible = Array.from(
+        document.querySelectorAll('[role="alert"][aria-label="Preview Error"], [role="alert"][aria-label="Terminal Error"]'),
+      )
+        .filter((element) => {
+          const style = getComputedStyle(element);
+          const bounds = element.getBoundingClientRect();
+
+          return style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity) !== 0 && bounds.width > 0 && bounds.height > 0;
+        })
+        .map((element) => (element.textContent || '').replace(/\s+/g, ' ').trim())
+        .filter(Boolean);
+      const connection = document.querySelector('.bolt-project-statusbar-primary .bolt-project-statusbar-pill[role="status"]')?.textContent?.trim() || '';
+      const runtime = document.querySelector('.bolt-project-statusbar-runtime')?.getAttribute('aria-label') || '';
+      const workspace = (document.querySelector('.bolt-project-statusbar-workspace')?.textContent || '').replace(/\\s+/g, ' ').trim();
+      const problems = document.querySelector('button[aria-label^="Open Problems."]')?.getAttribute('aria-label') || '';
+      const ready =
+        alertsVisible.length === 0 &&
+        visibleOverlays.length === 0 &&
+        connection === 'Connected' &&
+        /^Running on \\S+/.test(runtime) &&
+        /Workspace\\s*Running/i.test(workspace) &&
+        problems === 'Open Problems. 0 errors, 0 warnings.';
+
+      if (!ready && state.violations.length < 5) {
+        state.violations.push(JSON.stringify({ alertsVisible, visibleOverlays, connection, runtime, workspace, problems }));
+      }
+    };
+
+    state.check = check;
+    state.observer = new MutationObserver(check);
+    state.observer.observe(document.documentElement, { attributes: true, childList: true, characterData: true, subtree: true });
+    state.interval = window.setInterval(check, 50);
+    window.__ecodeProofCaptureGuard = state;
+    check();
+  })()`);
+}
+
+async function endIdeScreenshotGuard(page: Page) {
+  return page.evaluate<string[]>(`(() => {
+    const state = window.__ecodeProofCaptureGuard;
+
+    if (!state) return ['capture guard missing'];
+
+    state.check();
+    state.observer.disconnect();
+    window.clearInterval(state.interval);
+    delete window.__ecodeProofCaptureGuard;
+
+    return state.violations;
+  })()`);
+}
+
+async function compareCaptureThemes(stagingRoot: string, filename: string) {
+  const light = await sharp(resolve(stagingRoot, 'light', filename))
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const dark = await sharp(resolve(stagingRoot, 'dark', filename))
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  if (
+    light.info.width !== dark.info.width ||
+    light.info.height !== dark.info.height ||
+    light.info.channels !== dark.info.channels ||
+    light.data.byteLength !== dark.data.byteLength
+  ) {
+    throw new Error(`Light and dark captures for ${filename} must have identical pixel dimensions`);
+  }
+
+  let absoluteDifference = 0;
+  let changedPixels = 0;
+
+  const channels = light.info.channels;
+  const pixelCount = light.info.width * light.info.height;
+
+  for (let offset = 0; offset < light.data.byteLength; offset += channels) {
+    let pixelDifference = 0;
+
+    for (let channel = 0; channel < Math.min(3, channels); channel += 1) {
+      const difference = Math.abs(light.data[offset + channel] - dark.data[offset + channel]);
+
+      absoluteDifference += difference;
+      pixelDifference += difference;
+    }
+
+    if (pixelDifference >= 24) {
+      changedPixels += 1;
+    }
+  }
+
+  const changedPixelRatio = changedPixels / pixelCount;
+  const meanAbsoluteDifference = absoluteDifference / (pixelCount * 3);
+
+  if (changedPixelRatio < 0.02 || meanAbsoluteDifference < 2) {
+    throw new Error(
+      `Light and dark captures for ${filename} are not visually distinct (changed pixels=${changedPixelRatio.toFixed(4)}, mean difference=${meanAbsoluteDifference.toFixed(3)})`,
+    );
+  }
+
+  return { changedPixelRatio, meanAbsoluteDifference };
+}
+
+async function captureThemedIdeState(
+  page: Page,
+  stagingRoot: string,
+  filename: string,
+  options: {
+    evidenceRoot: string;
+    scenario: SolutionScenario;
+    verifySurface?: () => Promise<void>;
+  },
+): Promise<ThemedCaptureAudit> {
+  const states: ThemedCaptureAudit['states'] = [];
+
+  for (const theme of CAPTURE_THEMES) {
+    await applyCaptureTheme(page, theme);
+    await options.verifySurface?.();
+
+    const shell = await waitForStableIdeCaptureShell(page);
+    const selectedDevice = await page.getByRole('combobox', { name: 'Preview device' }).last().inputValue();
+
+    if (selectedDevice !== 'desktop' && selectedDevice !== 'tablet' && selectedDevice !== 'mobile') {
+      throw new Error(`Unknown Preview device before ${theme}/${filename} capture: ${selectedDevice || 'missing'}`);
+    }
+
+    await verifyScenarioAppearance(page, options.scenario);
+
+    const accent = await waitForOrangePreview(page, options.evidenceRoot, 60_000, false);
+
+    const responsive = await verifyPreviewResponsiveState(
+      page,
+      options.scenario,
+      options.evidenceRoot,
+      `${basename(filename, extname(filename))}-${theme}`,
+      selectedDevice,
+    );
+
+    const themeRoot = resolve(stagingRoot, theme);
+
+    await mkdir(themeRoot, { recursive: true });
+    await options.verifySurface?.();
+    await waitForStableIdeCaptureShell(page, 30_000);
+    await beginIdeScreenshotGuard(page);
+    await page.screenshot({
+      path: resolve(themeRoot, filename),
+      animations: 'disabled',
+      caret: 'hide',
+    });
+
+    const screenshotViolations = await endIdeScreenshotGuard(page);
+
+    if (screenshotViolations.length > 0) {
+      throw new Error(`IDE shell changed during ${theme}/${filename} capture: ${screenshotViolations.join(' | ')}`);
+    }
+
+    await options.verifySurface?.();
+    await waitForStableIdeCaptureShell(page, 30_000);
+
+    states.push({ accent, device: selectedDevice, responsive, shell, theme });
+  }
+
+  const themeDifference = await compareCaptureThemes(stagingRoot, filename);
+
+  /*
+   * The production IDE defaults to dark. Restore it so subsequent assertions
+   * and interactions run against the same deterministic state as generation.
+   */
+  await applyCaptureTheme(page, 'dark');
+
+  return { filename, states, themeDifference };
+}
+
+async function promoteVerifiedThemedAssets(stagingRoot: string, outputRoot: string, filenames: readonly string[]) {
+  const outputParent = dirname(outputRoot);
+
+  await mkdir(outputParent, { recursive: true });
+
+  const transactionRoot = await mkdtemp(resolve(outputParent, `.${basename(outputRoot)}-promotion-`));
+  const replacementRoot = resolve(transactionRoot, 'next');
+  const previousRoot = resolve(transactionRoot, 'previous');
+
+  const outputExists = await access(outputRoot)
+    .then(() => true)
+    .catch(() => false);
+
+  const promotedRelativePaths: string[] = [];
+
+  let previousMoved = false;
+  let replacementPublished = false;
+
+  try {
+    if (outputExists) {
+      await cp(outputRoot, replacementRoot, { recursive: true });
+    } else {
+      await mkdir(replacementRoot, { recursive: true });
+    }
+
+    for (const theme of CAPTURE_THEMES) {
+      const themeReplacementRoot = resolve(replacementRoot, theme);
+
+      await mkdir(themeReplacementRoot, { recursive: true });
+
+      for (const filename of filenames) {
+        const source = resolve(stagingRoot, theme, filename);
+        const extension = extname(filename);
+        const stem = basename(filename, extension);
+        const metadata = await sharp(source).metadata();
+
+        if (metadata.width !== 1440 || metadata.height !== 900) {
+          throw new Error(
+            `The verified ${theme} capture ${filename} must be 1440x900, received ${metadata.width ?? 0}x${metadata.height ?? 0}`,
+          );
+        }
+
+        const compactName = `${stem}-720.webp`;
+        const fullName = `${stem}-1440.webp`;
+        const compactReplacement = resolve(themeReplacementRoot, compactName);
+        const fullReplacement = resolve(themeReplacementRoot, fullName);
+
+        await sharp(source)
+          .resize({ width: 720, withoutEnlargement: true })
+          .webp({ effort: 6, quality: 80, smartSubsample: true })
+          .toFile(compactReplacement);
+        await sharp(source).webp({ effort: 6, quality: 84, smartSubsample: true }).toFile(fullReplacement);
+
+        for (const [candidate, width, height] of [
+          [compactReplacement, 720, 450],
+          [fullReplacement, 1440, 900],
+        ] as const) {
+          const [candidateMetadata, candidateBytes] = await Promise.all([
+            sharp(candidate).metadata(),
+            readFile(candidate).then((contents) => contents.byteLength),
+          ]);
+
+          if (
+            candidateMetadata.format !== 'webp' ||
+            candidateMetadata.width !== width ||
+            candidateMetadata.height !== height ||
+            candidateBytes < 5_000
+          ) {
+            throw new Error(
+              `Prepared asset ${candidate} failed validation (${candidateMetadata.format ?? 'unknown'}, ${candidateMetadata.width ?? 0}x${candidateMetadata.height ?? 0}, ${candidateBytes} bytes)`,
+            );
+          }
+        }
+
+        promotedRelativePaths.push(`${theme}/${compactName}`, `${theme}/${fullName}`);
+      }
+    }
+
+    if (outputExists) {
+      await rename(outputRoot, previousRoot);
+      previousMoved = true;
+    }
+
+    try {
+      await rename(replacementRoot, outputRoot);
+      replacementPublished = true;
+    } catch (error) {
+      if (previousMoved) {
+        await rename(previousRoot, outputRoot);
+        previousMoved = false;
+      }
+
+      throw error;
+    }
+
+    return promotedRelativePaths.map((relativePath) => resolve(outputRoot, relativePath));
+  } finally {
+    if (!replacementPublished && previousMoved) {
+      const currentOutputExists = await access(outputRoot)
+        .then(() => true)
+        .catch(() => false);
+
+      if (!currentOutputExists) {
+        await rename(previousRoot, outputRoot).catch(() => undefined);
+      }
+    }
+
+    await rm(transactionRoot, { recursive: true, force: true });
+  }
+}
+
 async function main() {
   const slug = readSlug();
   const locale = readLocale();
   const copy: SolutionScenario = SOLUTION_SCENARIOS[slug][locale];
-  const creationPrompt = creationPromptFor(slug, copy);
   const repairOnly = process.argv.includes('--repair-only');
   const iterationOnly = process.argv.includes('--iteration-only');
+  const singleGeneration = process.argv.includes('--single-generation');
   const resume = process.argv.includes('--resume');
+
+  const creationPrompt = creationPromptFor(slug, locale, copy, {
+    includeInteractionAcceptance: singleGeneration,
+  });
 
   const outputRoot = resolve(process.cwd(), 'public/assets/solutions', slug, locale);
   const evidenceRoot = resolve(process.cwd(), 'outputs/solutions', slug, 'ide-proof', locale);
+  await mkdir(evidenceRoot, { recursive: true });
+  await Promise.all([
+    unlink(resolve(evidenceRoot, 'capture-result.json')).catch(() => undefined),
+    unlink(resolve(evidenceRoot, 'capture-failure.txt')).catch(() => undefined),
+  ]);
+
+  /*
+   * Partial or rejected captures remain under ignored diagnostics. Nothing is
+   * published to public/assets until every runtime, interaction, console and
+   * Problems assertion below has passed.
+   */
+  const stagingRoot = await mkdtemp(resolve(evidenceRoot, '.asset-staging-'));
   const captureSessionPath = resolve(evidenceRoot, '.capture-session.json');
   const resumeSession = resume ? await readCaptureSession(captureSessionPath) : undefined;
 
@@ -1909,7 +2981,7 @@ async function main() {
   const iterationPrompt =
     process.env.SOLUTION_PROOF_ITERATION_PROMPT?.trim() ??
     appBuilderFallback(slug, process.env.APP_BUILDER_PROOF_ITERATION_PROMPT) ??
-    (slug === 'app-builder' ? undefined : copy.iterationPrompt);
+    copy.iterationPrompt;
   const browserProfile =
     process.env.SOLUTION_PROOF_BROWSER_PROFILE?.trim() ??
     appBuilderFallback(slug, process.env.APP_BUILDER_PROOF_BROWSER_PROFILE);
@@ -1920,6 +2992,10 @@ async function main() {
 
   if ((repairOnly || iterationOnly) && !existingProjectId) {
     throw new Error('--repair-only and --iteration-only require an existing SOLUTION_PROOF_PROJECT_ID');
+  }
+
+  if (singleGeneration && (repairOnly || iterationOnly)) {
+    throw new Error('--single-generation cannot be combined with repair or Agent iteration modes');
   }
 
   const contextOptions = {
@@ -1962,7 +3038,16 @@ async function main() {
 
     const page = await context.newPage();
     const consoleErrors: string[] = [];
+
+    const consoleErrorRecords: Array<{
+      columnNumber?: number;
+      lineNumber?: number;
+      message: string;
+      url: string;
+    }> = [];
+
     const previewConsoleErrors: string[] = [];
+    const unscopedConsoleErrors: string[] = [];
     const pageErrors: string[] = [];
 
     page.setDefaultNavigationTimeout(180_000);
@@ -1970,9 +3055,19 @@ async function main() {
       if (message.type() === 'error') {
         consoleErrors.push(message.text());
 
-        const locationUrl = message.location().url;
+        const location = message.location();
+        const locationUrl = location.url;
 
-        if (locationUrl && !locationUrl.startsWith(APP_BASE_URL) && !locationUrl.startsWith(API_BASE_URL)) {
+        consoleErrorRecords.push({
+          columnNumber: location.columnNumber,
+          lineNumber: location.lineNumber,
+          message: message.text(),
+          url: locationUrl,
+        });
+
+        if (!locationUrl) {
+          unscopedConsoleErrors.push(message.text());
+        } else if (!locationUrl.startsWith(APP_BASE_URL) && !locationUrl.startsWith(API_BASE_URL)) {
           previewConsoleErrors.push(message.text());
         }
       }
@@ -2018,6 +3113,7 @@ async function main() {
       }
 
       await selectCreationModel(page);
+      await appendCreationModelFormFields(page);
 
       await promptField.fill(creationPrompt);
       await page.getByRole('button', { name: 'Create project' }).click();
@@ -2069,6 +3165,8 @@ async function main() {
 
       throw new Error(`The E-Code IDE Agent panel did not load at ${page.url()}: ${surfaceText.slice(0, 500)}`);
     }
+
+    await selectCreationModel(page);
 
     const originalPromptVisible = await originalPromptBubble
       .waitFor({ state: 'visible', timeout: 10_000 })
@@ -2128,7 +3226,9 @@ async function main() {
       caret: 'hide',
     });
 
-    const generatedFiles = await waitForGeneratedFiles(page, projectId, token);
+    const generatedFiles = await waitForGeneratedFiles(page, projectId, token, {
+      requireApplication: !repairOnly,
+    });
 
     if (!repairOnly && !iterationOnly) {
       await waitForProjectToSettle(
@@ -2144,10 +3244,12 @@ async function main() {
       `${JSON.stringify({ status: 'initial-generation-settled', locale, generatedFiles: generatedFiles.length })}\n`,
     );
 
+    await assertScenarioSourceTerms(page, projectId, token, copy);
+
     if (repairOnly) {
-      const repairPrompt = repairPromptFor(slug, copy, 1);
+      const repairPrompt = repairPromptFor(slug, locale, copy, 1);
       const repairBubble = await repairGeneratedPreview(page, agentPanel, projectId, token, repairPrompt);
-      const { previewText } = await waitForPreview(page, evidenceRoot, projectId, token);
+      const { previewText } = await waitForPreview(page, evidenceRoot, projectId, token, copy.expectedTerms[0]);
 
       await repairBubble.scrollIntoViewIfNeeded();
       await page.screenshot({
@@ -2179,16 +3281,18 @@ async function main() {
 
     const iterationBrief = iterationPrompt ? `${iterationPrompt} ` : '';
 
-    for (let attempt = 0; attempt <= 3; attempt += 1) {
+    const maximumPreviewRepairAttempts = singleGeneration ? 0 : 3;
+
+    for (let attempt = 0; attempt <= maximumPreviewRepairAttempts; attempt += 1) {
       try {
-        ({ previewText } = await waitForPreview(page, evidenceRoot, projectId, token));
+        ({ previewText } = await waitForPreview(page, evidenceRoot, projectId, token, copy.expectedTerms[0]));
         break;
       } catch (previewError) {
-        if (iterationOnly || attempt === 3) {
+        if (iterationOnly || attempt === maximumPreviewRepairAttempts) {
           throw previewError;
         }
 
-        lastRepairPrompt = repairPromptFor(slug, copy, attempt + 1);
+        lastRepairPrompt = repairPromptFor(slug, locale, copy, attempt + 1);
         lastRepairBubble = await repairGeneratedPreview(page, agentPanel, projectId, token, lastRepairPrompt);
       }
     }
@@ -2212,63 +3316,138 @@ async function main() {
     }
 
     try {
-      await verifyScenarioIdentity(page, copy);
-    } catch {
-      const identityRepairPrompt = `${iterationBrief}The visible Webview is still an unrelated generic template and does not implement the requested ${copy.expectedTerms[0]} product. Replace all generic starter branding, copy, sample metrics, and workflows with the dedicated brief from my original prompt. The rendered interface must visibly contain these exact theme terms: ${copy.expectedTerms.join(', ')}. Use only realistic fictional local sample content, label limitations clearly, and remove fabricated performance, adoption, revenue, customer, or delivery claims. Keep every asset local, keep primary actions orange, and use no purple. Verify the actual Webview before answering.`;
-
-      iterationRepairBubble = await repairGeneratedPreview(page, agentPanel, projectId, token, identityRepairPrompt);
-      iterationRepairPrompt = identityRepairPrompt;
-      ({ previewText } = await waitForPreview(page, evidenceRoot, projectId, token));
       await verifyScenarioIdentity(page, copy, 60_000);
+    } catch (identityError) {
+      if (singleGeneration) {
+        ({ previewText } = await waitForPreview(page, evidenceRoot, projectId, token, copy.expectedTerms[0]));
+
+        try {
+          await verifyScenarioIdentity(page, copy, 60_000);
+        } catch {
+          throw new Error(
+            `The single-generation Preview does not contain the required ${copy.expectedTerms[0]} identity after a second official runtime recovery`,
+            { cause: identityError },
+          );
+        }
+      } else {
+        const identityRepairPrompt = identityRepairPromptFor(locale, copy, iterationBrief);
+
+        iterationRepairBubble = await repairGeneratedPreview(page, agentPanel, projectId, token, identityRepairPrompt);
+        iterationRepairPrompt = identityRepairPrompt;
+        ({ previewText } = await waitForPreview(page, evidenceRoot, projectId, token, copy.expectedTerms[0]));
+        await verifyScenarioIdentity(page, copy, 60_000);
+      }
     }
 
-    const promptOutput = resolve(outputRoot, 'ide-agent-prompt.png');
-    const previewOutput = resolve(outputRoot, 'ide-agent-preview.png');
-    const webviewOverviewOutput = resolve(outputRoot, 'ide-webview-overview.png');
-    await mkdir(dirname(previewOutput), { recursive: true });
+    const promptFilename = 'ide-agent-prompt.png';
+    const previewFilename = 'ide-agent-preview.png';
+    const webviewOverviewFilename = 'ide-webview-overview.png';
+    const promptOutput = resolve(outputRoot, 'dark', 'ide-agent-prompt-1440.webp');
+    const previewOutput = resolve(outputRoot, 'dark', 'ide-agent-preview-1440.webp');
+    const webviewOverviewOutput = resolve(outputRoot, 'dark', 'ide-webview-overview-1440.webp');
+    const verifiedCaptureFilenames: string[] = [];
 
     let initialAccentAudit: { orangeActionCount: number; orangeCount: number; purpleCount: number } | undefined;
+
+    const responsiveAccentAudits: Array<{
+      stage: string;
+      device: 'desktop' | 'tablet' | 'mobile';
+      audit: { orangeActionCount: number; orangeCount: number; purpleCount: number };
+    }> = [];
+
+    const responsiveStateAudits: Array<Awaited<ReturnType<typeof verifyPreviewResponsiveState>>> = [];
+    const themedCaptureAudits: ThemedCaptureAudit[] = [];
 
     if (!iterationOnly) {
       try {
         await verifyScenarioAppearance(page, copy);
         initialAccentAudit = await waitForOrangePreview(page, evidenceRoot, 60_000);
-      } catch {
-        const themeRepairPrompt = `${iterationBrief}The actual Webview for ${copy.expectedTerms[0]} does not match the requested palette. Preserve every existing workflow and local-only limitation, remove every purple, violet, mauve, and pink accent, and use orange for visible primary actions. ${copy.requiresDarkCanvas ? 'Render the entire application on a deliberate dark full-canvas surface with styled controls; do not leave browser-default white UI.' : ''} Keep all images, fonts, scripts, and styles local. Verify the rendered Webview before reporting success.`;
+      } catch (error) {
+        if (singleGeneration) {
+          const detail = error instanceof Error ? error.message : String(error);
+
+          throw new Error(
+            `The single-generation ${copy.expectedTerms[0]} Preview failed the appearance audit: ${detail}`,
+            { cause: error },
+          );
+        }
+
+        const themeRepairPrompt = themeRepairPromptFor(locale, copy, iterationBrief);
 
         iterationRepairBubble = await repairGeneratedPreview(page, agentPanel, projectId, token, themeRepairPrompt);
         iterationRepairPrompt = themeRepairPrompt;
-        ({ previewText } = await waitForPreview(page, evidenceRoot, projectId, token));
+        ({ previewText } = await waitForPreview(page, evidenceRoot, projectId, token, copy.expectedTerms[0]));
         await verifyScenarioAppearance(page, copy);
         initialAccentAudit = await waitForOrangePreview(page, evidenceRoot);
       }
 
+      responsiveAccentAudits.push({ stage: 'initial', device: 'desktop', audit: initialAccentAudit });
+
       await selectPreviewDevice(page, 'desktop');
+      responsiveStateAudits.push(await verifyPreviewResponsiveState(page, copy, evidenceRoot, 'initial', 'desktop'));
       await prepareIdeCapture(page, promptBubble);
-      await page.screenshot({ path: promptOutput, animations: 'disabled', caret: 'hide' });
+      themedCaptureAudits.push(
+        await captureThemedIdeState(page, stagingRoot, promptFilename, { scenario: copy, evidenceRoot }),
+      );
+      verifiedCaptureFilenames.push(promptFilename);
 
       const completedAgentBubble = agentPanel.locator('.bolt-chat-message-row-assistant').last();
 
-      const previewBubble = (await completedAgentBubble.isVisible().catch(() => false))
-        ? completedAgentBubble
-        : promptBubble;
+      const previewBubble =
+        locale === 'fr'
+          ? promptBubble
+          : (await completedAgentBubble.isVisible().catch(() => false))
+            ? completedAgentBubble
+            : promptBubble;
+
+      if (locale === 'fr') {
+        await selectPreviewDevice(page, 'tablet');
+        await verifyScenarioAppearance(page, copy);
+        responsiveAccentAudits.push({
+          stage: 'preview',
+          device: 'tablet',
+          audit: await waitForOrangePreview(page, evidenceRoot, 60_000, false),
+        });
+        responsiveStateAudits.push(await verifyPreviewResponsiveState(page, copy, evidenceRoot, 'preview', 'tablet'));
+      }
 
       await prepareIdeCapture(page, previewBubble);
-      await page.screenshot({ path: previewOutput, animations: 'disabled', caret: 'hide' });
+      themedCaptureAudits.push(
+        await captureThemedIdeState(page, stagingRoot, previewFilename, { scenario: copy, evidenceRoot }),
+      );
+      verifiedCaptureFilenames.push(previewFilename);
 
-      await selectPreviewDevice(page, 'tablet');
+      const overviewDevice = locale === 'fr' ? 'mobile' : 'tablet';
+
+      await selectPreviewDevice(page, overviewDevice);
+      await verifyScenarioAppearance(page, copy);
+      responsiveAccentAudits.push({
+        stage: 'overview',
+        device: overviewDevice,
+        audit: await waitForOrangePreview(page, evidenceRoot, 60_000, false),
+      });
+      responsiveStateAudits.push(
+        await verifyPreviewResponsiveState(page, copy, evidenceRoot, 'overview', overviewDevice),
+      );
       await prepareIdeCapture(page, promptBubble);
-      await page.screenshot({ path: webviewOverviewOutput, animations: 'disabled', caret: 'hide' });
+      themedCaptureAudits.push(
+        await captureThemedIdeState(page, stagingRoot, webviewOverviewFilename, {
+          scenario: copy,
+          evidenceRoot,
+        }),
+      );
+      verifiedCaptureFilenames.push(webviewOverviewFilename);
       await selectPreviewDevice(page, 'desktop');
     }
 
     let iterationBubble: ReturnType<typeof agentPanel.locator> | undefined;
     let accentAudit = initialAccentAudit;
+    let interactionAccentAudit: { orangeActionCount: number; orangeCount: number; purpleCount: number } | undefined;
     let scenarioAudit: Awaited<ReturnType<typeof verifyScenarioPreview>>;
     let iterationOutput: string | undefined;
     let webviewIterationOutput: string | undefined;
 
-    if (iterationPrompt) {
+    if (iterationPrompt && !singleGeneration) {
       if (iterationRepairBubble && iterationRepairPrompt) {
         iterationBubble = iterationRepairBubble;
         await expect(iterationBubble).toBeVisible({ timeout: 60_000 });
@@ -2307,94 +3486,278 @@ async function main() {
 
       process.stdout.write(`${JSON.stringify({ status: 'orange-iteration-settled', locale })}\n`);
 
-      ({ previewText } = await waitForPreview(page, evidenceRoot, projectId, token));
+      ({ previewText } = await waitForPreview(page, evidenceRoot, projectId, token, copy.expectedTerms[0]));
       await verifyScenarioAppearance(page, copy);
       accentAudit = await waitForOrangePreview(page, evidenceRoot);
       scenarioAudit = await verifyScenarioPreview(page, copy, evidenceRoot);
+      await verifyScenarioAppearance(page, copy);
+      interactionAccentAudit = await waitForOrangePreview(page, evidenceRoot, 60_000, false);
+      responsiveAccentAudits.push({ stage: 'interaction', device: 'desktop', audit: interactionAccentAudit });
+      responsiveStateAudits.push(
+        await verifyPreviewResponsiveState(page, copy, evidenceRoot, 'interaction', 'desktop'),
+      );
       await prepareIdeCapture(page, iterationBubble);
-      iterationOutput = resolve(outputRoot, 'ide-agent-iteration.png');
-      await page.screenshot({ path: iterationOutput, animations: 'disabled', caret: 'hide' });
+
+      const iterationFilename = 'ide-agent-iteration.png';
+      iterationOutput = resolve(outputRoot, 'dark', 'ide-agent-iteration-1440.webp');
+      themedCaptureAudits.push(
+        await captureThemedIdeState(page, stagingRoot, iterationFilename, { scenario: copy, evidenceRoot }),
+      );
+      verifiedCaptureFilenames.push(iterationFilename);
 
       await selectPreviewDevice(page, 'mobile');
+      await verifyScenarioAppearance(page, copy);
+      responsiveAccentAudits.push({
+        stage: 'interaction',
+        device: 'mobile',
+        audit: await waitForOrangePreview(page, evidenceRoot, 60_000, false),
+      });
+      responsiveStateAudits.push(await verifyPreviewResponsiveState(page, copy, evidenceRoot, 'interaction', 'mobile'));
       await prepareIdeCapture(page, iterationBubble);
-      webviewIterationOutput = resolve(outputRoot, 'ide-webview-iteration.png');
-      await page.screenshot({ path: webviewIterationOutput, animations: 'disabled', caret: 'hide' });
+
+      const webviewIterationFilename = 'ide-webview-iteration.png';
+      webviewIterationOutput = resolve(outputRoot, 'dark', 'ide-webview-iteration-1440.webp');
+      themedCaptureAudits.push(
+        await captureThemedIdeState(page, stagingRoot, webviewIterationFilename, {
+          scenario: copy,
+          evidenceRoot,
+        }),
+      );
+      verifiedCaptureFilenames.push(webviewIterationFilename);
+      await selectPreviewDevice(page, 'desktop');
+    } else if (singleGeneration) {
+      ({ previewText } = await waitForPreview(page, evidenceRoot, projectId, token, copy.expectedTerms[0]));
+      scenarioAudit = await verifyScenarioPreview(page, copy, evidenceRoot);
+      await verifyScenarioAppearance(page, copy);
+      interactionAccentAudit = await waitForOrangePreview(page, evidenceRoot, 60_000, false);
+      responsiveAccentAudits.push({ stage: 'interaction', device: 'desktop', audit: interactionAccentAudit });
+      responsiveStateAudits.push(
+        await verifyPreviewResponsiveState(page, copy, evidenceRoot, 'interaction', 'desktop'),
+      );
+      process.stdout.write(`${JSON.stringify({ status: 'single-generation-interaction-verified', locale })}\n`);
+
+      await prepareIdeCapture(page, promptBubble);
+
+      const interactionFilename = 'ide-agent-iteration.png';
+      iterationOutput = resolve(outputRoot, 'dark', 'ide-agent-iteration-1440.webp');
+      themedCaptureAudits.push(
+        await captureThemedIdeState(page, stagingRoot, interactionFilename, { scenario: copy, evidenceRoot }),
+      );
+      verifiedCaptureFilenames.push(interactionFilename);
+
+      await selectPreviewDevice(page, 'mobile');
+      await verifyScenarioAppearance(page, copy);
+      responsiveAccentAudits.push({
+        stage: 'interaction',
+        device: 'mobile',
+        audit: await waitForOrangePreview(page, evidenceRoot, 60_000, false),
+      });
+      responsiveStateAudits.push(await verifyPreviewResponsiveState(page, copy, evidenceRoot, 'interaction', 'mobile'));
+      await prepareIdeCapture(page, promptBubble);
+
+      const webviewInteractionFilename = 'ide-webview-iteration.png';
+      webviewIterationOutput = resolve(outputRoot, 'dark', 'ide-webview-iteration-1440.webp');
+      themedCaptureAudits.push(
+        await captureThemedIdeState(page, stagingRoot, webviewInteractionFilename, {
+          scenario: copy,
+          evidenceRoot,
+        }),
+      );
+      verifiedCaptureFilenames.push(webviewInteractionFilename);
       await selectPreviewDevice(page, 'desktop');
     } else {
       scenarioAudit = await verifyScenarioPreview(page, copy, evidenceRoot);
+      await verifyScenarioAppearance(page, copy);
+      interactionAccentAudit = await waitForOrangePreview(page, evidenceRoot, 60_000, false);
+      responsiveStateAudits.push(
+        await verifyPreviewResponsiveState(page, copy, evidenceRoot, 'interaction', 'desktop'),
+      );
     }
 
-    const editorButton = page.getByRole('button', { name: 'Editor' }).first();
+    const addTabButton = page.getByTestId('tab-add').first();
 
-    if (await editorButton.isVisible().catch(() => false)) {
-      await editorButton.click();
+    await expect(addTabButton).toBeVisible({ timeout: 60_000 });
+    await addTabButton.click();
 
-      const appFile = page
+    const filesTool = page.getByTestId('feature-files').first();
+
+    await expect(filesTool).toBeVisible({ timeout: 60_000 });
+    await filesTool.click();
+
+    const collapsedSourceFolder = page.locator('.bolt-file-tree-node[title$="/src"][aria-expanded="false"]').first();
+
+    if (await collapsedSourceFolder.isVisible().catch(() => false)) {
+      await collapsedSourceFolder.click();
+    }
+
+    const appFile = page
+      .locator(
+        '.bolt-file-tree-name[title="App.tsx"], .bolt-file-tree-name[title="App.jsx"], .bolt-file-tree-name[title="main.tsx"], .bolt-file-tree-name[title="main.jsx"]',
+      )
+      .first();
+
+    await expect(appFile).toBeVisible({ timeout: 60_000 });
+
+    await verifyScenarioAppearance(page, copy);
+    responsiveAccentAudits.push({
+      stage: 'files',
+      device: 'desktop',
+      audit: await waitForOrangePreview(page, evidenceRoot, 60_000, false),
+    });
+    responsiveStateAudits.push(await verifyPreviewResponsiveState(page, copy, evidenceRoot, 'files', 'desktop'));
+
+    await (iterationBubble ?? promptBubble).scrollIntoViewIfNeeded();
+
+    const filesFilename = 'ide-agent-files.png';
+
+    const verifyFilesSurface = async () => {
+      const libraryPanel = page.locator('aside[aria-label="Project library panel"]:visible').last();
+
+      const libraryHeader = libraryPanel.locator('.bolt-project-right-files-header').getByText('Library', {
+        exact: true,
+      });
+
+      const fileTree = libraryPanel.locator('.bolt-project-file-tree:visible').last();
+      const filesView = fileTree.getByRole('button', { name: 'Files', exact: true });
+      const sourceFolder = fileTree.locator('.bolt-file-tree-node[title$="/src"]:visible').first();
+
+      const visibleAppFile = fileTree
         .locator(
           '.bolt-file-tree-name[title="App.tsx"], .bolt-file-tree-name[title="App.jsx"], .bolt-file-tree-name[title="main.tsx"], .bolt-file-tree-name[title="main.jsx"]',
         )
         .first();
 
-      if (await appFile.isVisible().catch(() => false)) {
-        await appFile.click();
-      }
+      await expect(libraryPanel).toBeVisible({ timeout: 30_000 });
+      await expect(libraryHeader).toBeVisible();
+      await expect(fileTree).toBeVisible();
+      await expect(filesView).toHaveAttribute('aria-pressed', 'true');
+      await expect(sourceFolder).toHaveAttribute('aria-expanded', 'true');
+      await expect(visibleAppFile).toBeVisible();
+    };
 
-      await (iterationBubble ?? promptBubble).scrollIntoViewIfNeeded();
+    await verifyFilesSurface();
+    themedCaptureAudits.push(
+      await captureThemedIdeState(page, stagingRoot, filesFilename, {
+        scenario: copy,
+        evidenceRoot,
+        verifySurface: verifyFilesSurface,
+      }),
+    );
+    verifiedCaptureFilenames.push(filesFilename);
+
+    const problemsButton = page.getByRole('button', { name: /^Open Problems\./ }).first();
+    await expect(problemsButton).toBeVisible({ timeout: 60_000 });
+
+    const problemsSummary = await problemsButton.getAttribute('aria-label');
+
+    await problemsButton.click();
+
+    const problemsPanel = page.getByRole('region', { name: 'Problems' });
+    await expect(problemsPanel).toBeVisible({ timeout: 60_000 });
+
+    const problemItems = problemsPanel.locator('.bolt-project-problem-item');
+    const problemDetailCount = await problemItems.count();
+    const problemDetails = (await problemItems.allInnerTexts()).map((detail) => detail.replace(/\s+/g, ' ').trim());
+    const panelCounts = await problemsPanel.locator('.bolt-project-problems-counts').getAttribute('aria-label');
+
+    const emptyStateVisible = await problemsPanel
+      .getByRole('heading', { name: 'No problems detected' })
+      .isVisible()
+      .catch(() => false);
+    const problemsAreClear =
+      problemsSummary === 'Open Problems. 0 errors, 0 warnings.' &&
+      panelCounts === '0 errors, 0 warnings' &&
+      problemDetailCount === 0 &&
+      emptyStateVisible;
+
+    if (!problemsAreClear) {
       await page.screenshot({
-        path: resolve(outputRoot, 'ide-agent-files.png'),
+        path: resolve(evidenceRoot, '06-problems-failed.png'),
         animations: 'disabled',
         caret: 'hide',
       });
+
+      throw new Error(
+        `Generated project Problems gate failed (summary=${problemsSummary ?? 'missing'}, panel=${panelCounts ?? 'missing'}, items=${problemDetailCount}, empty=${emptyStateVisible}): ${problemDetails.join(' | ') || 'details unavailable'}`,
+      );
     }
 
-    const problemsButton = page.getByRole('button', { name: /^Open Problems\./ }).first();
-    const problemsSummary = await problemsButton.getAttribute('aria-label').catch(() => null);
+    if (consoleErrorRecords.length > 0) {
+      const details = consoleErrorRecords
+        .slice(0, 5)
+        .map(
+          ({ columnNumber, lineNumber, message, url }) =>
+            `${url || 'no-url'}:${lineNumber ?? 0}:${columnNumber ?? 0} ${message.replace(/\s+/g, ' ').trim().slice(0, 300)}`,
+        )
+        .join(' | ');
 
-    let problemDetailCount = 0;
+      throw new Error(
+        `The E-Code proof emitted ${consoleErrorRecords.length} console errors: ${details || 'details unavailable'}`,
+      );
+    }
 
-    if (await problemsButton.isVisible().catch(() => false)) {
-      await problemsButton.click();
+    if (pageErrors.length > 0) {
+      throw new Error(`The E-Code capture page emitted ${pageErrors.length} uncaught page errors: ${pageErrors[0]}`);
+    }
 
-      const problemsPanel = page.getByRole('region', { name: 'Problems' });
+    const expectedCaptureCount = iterationOnly ? 3 : 6;
 
-      if (await problemsPanel.isVisible().catch(() => false)) {
-        problemDetailCount = await problemsPanel.locator('.bolt-project-problem-item').count();
+    if (verifiedCaptureFilenames.length !== expectedCaptureCount) {
+      throw new Error(
+        `Expected ${expectedCaptureCount} verified capture states, received ${verifiedCaptureFilenames.length}`,
+      );
+    }
+
+    const publishableCaptureFilenames =
+      slug === 'app-builder'
+        ? verifiedCaptureFilenames.filter(
+            (filename) => filename === 'ide-agent-preview.png' || filename === 'ide-agent-iteration.png',
+          )
+        : verifiedCaptureFilenames;
+
+    const promotedAssets = await promoteVerifiedThemedAssets(stagingRoot, outputRoot, publishableCaptureFilenames);
+
+    if (slug !== 'app-builder') {
+      for (const filename of verifiedCaptureFilenames) {
+        await unlink(resolve(outputRoot, filename)).catch(() => undefined);
       }
     }
 
-    if (problemDetailCount > 0) {
-      throw new Error(`Generated project still exposes ${problemDetailCount} IDE problems`);
-    }
+    await rm(stagingRoot, { recursive: true, force: true });
 
-    if (previewConsoleErrors.length > 0) {
-      throw new Error(`Generated Preview emitted ${previewConsoleErrors.length} console errors`);
-    }
+    const captureResult = {
+      locale,
+      projectId,
+      prompt: creationPrompt,
+      generatedFileCount: generatedFiles.length,
+      previewTextSample: previewText.slice(0, 240),
+      consoleErrorCount: consoleErrors.length,
+      consoleErrorDetails: consoleErrorRecords,
+      previewConsoleErrorCount: previewConsoleErrors.length,
+      unscopedConsoleErrorCount: unscopedConsoleErrors.length,
+      pageErrorCount: pageErrors.length,
+      previewOutput,
+      promptOutput,
+      webviewOverviewOutput,
+      iterationOutput,
+      webviewIterationOutput,
+      accentAudit,
+      interactionAccentAudit,
+      responsiveAccentAudits,
+      responsiveStateAudits,
+      themedCaptureAudits,
+      scenarioAudit,
+      problemsSummary,
+      problemDetailCount,
+      problemDetails,
+      promotedAssetCount: promotedAssets.length,
+      promotedAssets,
+    };
 
-    process.stdout.write(
-      JSON.stringify(
-        {
-          locale,
-          projectId,
-          prompt: creationPrompt,
-          generatedFileCount: generatedFiles.length,
-          previewTextSample: previewText.slice(0, 240),
-          consoleErrorCount: consoleErrors.length,
-          previewConsoleErrorCount: previewConsoleErrors.length,
-          pageErrorCount: pageErrors.length,
-          previewOutput,
-          promptOutput,
-          webviewOverviewOutput,
-          iterationOutput,
-          webviewIterationOutput,
-          accentAudit,
-          scenarioAudit,
-          problemsSummary,
-          problemDetailCount,
-        },
-        null,
-        2,
-      ) + '\n',
-    );
+    const serializedCaptureResult = JSON.stringify(captureResult, null, 2);
+
+    await writeFile(resolve(evidenceRoot, 'capture-result.json'), `${serializedCaptureResult}\n`, 'utf8');
+    process.stdout.write(`${serializedCaptureResult}\n`);
 
     await context.close();
     context = undefined!;
@@ -2408,4 +3771,29 @@ async function main() {
   }
 }
 
-await main();
+try {
+  await main();
+} catch (error) {
+  const failure = errorStackChain(error);
+
+  const redactedFailure = failure
+    .replace(/Bearer\s+[^\s]+/gi, 'Bearer [REDACTED]')
+    .replace(/^\s*- cookie:.*$/gim, '    - cookie: [REDACTED]')
+    .replace(/session_[A-Za-z0-9_-]+/g, 'session_[REDACTED]');
+
+  try {
+    const failureSlug = readSlug();
+    const failureLocale = readLocale();
+    const failureRoot = resolve(process.cwd(), 'outputs/solutions', failureSlug, 'ide-proof', failureLocale);
+
+    await mkdir(failureRoot, { recursive: true });
+    await unlink(resolve(failureRoot, 'capture-result.json')).catch(() => undefined);
+    await writeFile(resolve(failureRoot, 'capture-failure.txt'), `${redactedFailure}\n`, 'utf8');
+  } catch {
+    // The stderr output below remains authoritative if even failure persistence cannot be initialized.
+  }
+
+  process.stderr.write(`${redactedFailure}\n`);
+
+  process.exitCode = 1;
+}

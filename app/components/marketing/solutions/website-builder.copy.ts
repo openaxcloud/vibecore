@@ -1,4 +1,4 @@
-import type { SolutionCopyByLanguage } from './solution-copy';
+import type { CapturedSolutionCopyByLanguage } from './solution-copy';
 
 /**
  * SOL-02 — Website Builder. Dedicated architecture-studio story in EN and FR.
@@ -11,6 +11,8 @@ export const WEBSITE_BUILDER_COPY = {
       title: 'Website Builder with Real Code | E-Code',
       description:
         'Describe your architecture studio site. E-Code generates editable source and a running Preview; contact delivery, CMS data, and production setup stay separate.',
+      ogImageAlt:
+        'E-Code Website Builder workspace with Meridian Studio files and its architecture portfolio in Webview.',
     },
     hero: {
       eyebrow: 'Website Builder for real content sites',
@@ -115,14 +117,24 @@ export const WEBSITE_BUILDER_COPY = {
         alt: 'Real E-Code workspace showing an architecture-studio website prompt, Agent activity, generated React files, and the portfolio homepage running in Webview.',
       },
       iteration: {
-        title: 'A second prompt turns Projects into an explorable view',
-        body: 'The follow-up asks the Agent to add Projects navigation, a “Selected work” heading, working filters, and project detail links. The capture shows that updated local view in the same Webview; it does not demonstrate a CMS, database, or deployed contact service.',
-        alt: 'Real E-Code Website Builder workspace showing the Projects iteration prompt, generated Meridian Studio files, and the Selected work view with local project filters in Webview.',
+        title: 'A verified Projects click opens the explorable portfolio view',
+        body: 'After the single generation, a verified click on “Projects” opens “Selected work” with local filters and project detail links. The capture does not demonstrate a CMS, database, or deployed contact service.',
+        alt: 'E-Code Website Builder capture after the verified Projects click, with Meridian Studio files and Selected work open in Webview.',
       },
       cta: {
         label: 'Inspect the architecture-site run',
         ariaLabel: 'Inspect the captured E-Code architecture-site generation',
       },
+    },
+    proofVisualAlts: {
+      prompt: 'E-Code Agent prompt requesting the Meridian Studio architecture portfolio, contact page, and journal.',
+      preview:
+        'E-Code workspace with generated React files and the Meridian Studio portfolio homepage open in Webview.',
+      webviewOverview: 'Meridian Studio portfolio in Webview with fictional projects and a sample enquiry panel.',
+      iteration:
+        'E-Code workspace after the verified Projects click, with Meridian Studio files and Selected work in Webview.',
+      webviewIteration: 'Meridian Studio Selected work view opened by the verified Projects navigation interaction.',
+      files: 'E-Code file tree for Meridian Studio with editable portfolio components and journal routes.',
     },
     deliverables: {
       eyebrow: 'What your architecture site includes',
@@ -252,15 +264,17 @@ export const WEBSITE_BUILDER_COPY = {
   },
   fr: {
     seo: {
-      title: 'Générateur de site web avec vrai code | E-Code',
+      title: 'Générateur de site web avec un code source modifiable | E-Code',
       description:
         'Décrivez le site de votre cabinet d’architecture. E-Code génère le code modifiable et l’aperçu actif ; contact, CMS et mise en production restent séparés.',
+      ogImageAlt:
+        'Workspace E-Code Website Builder avec fichiers Meridian Studio et portfolio d’architecture dans la Webview.',
     },
     hero: {
       eyebrow: 'Générateur de site pour de vrais sites de contenu',
       title: 'Transformez votre studio et son travail en un site que vous inspectez et façonnez',
       subtitle:
-        'Décrivez les pages, le récit et le travail à montrer. E-Code en fait un site vitrine responsive dans un vrai code source modifiable. Inspectez chaque fichier, exécutez le site dans l’aperçu, affinez-le avec l’Agent et publiez les builds statiques pris en charge vers une URL en ligne.',
+        'Décrivez les pages, le récit et le travail à montrer. E-Code en fait un site vitrine responsive sous forme de code source modifiable. Inspectez chaque fichier, exécutez le site dans l’aperçu, affinez-le avec l’Agent et publiez les builds statiques pris en charge vers une URL en ligne.',
       primaryCta: { label: 'Décrivez votre site', ariaLabel: 'Décrivez votre site web avec E-Code' },
       secondaryCta: {
         label: 'Voir le parcours du site',
@@ -276,7 +290,7 @@ export const WEBSITE_BUILDER_COPY = {
     },
     demo: {
       badge: 'Données fictives',
-      brand: 'Atelier Méridien',
+      brand: 'Meridian Studio',
       brandType: 'Agence d’architecture fictive',
       nav: ['Projets', 'Studio', 'Contact'],
       eyebrow: 'Sélection d’exemple',
@@ -329,9 +343,9 @@ export const WEBSITE_BUILDER_COPY = {
       eyebrow: 'Un prompt lance le site',
       title: 'Décrivez les pages, pas le framework',
       intro:
-        'La demande ci-dessous se lit comme un mot d’un propriétaire de studio. Les quatre éléments cartographient son périmètre d’implémentation dans de vrais fichiers source, pas un template verrouillé.',
+        'La demande ci-dessous se lit comme un mot d’un propriétaire de studio. Les quatre éléments en précisent le périmètre d’implémentation dans de vrais fichiers source, pas un template verrouillé.',
       label: 'Brief du cabinet d’architecture',
-      promptText: 'Fais-moi un site vitrine pour mon cabinet d’architecte, avec portfolio, contact et blog.',
+      promptText: 'Créez un site vitrine pour mon cabinet d’architecte, avec portfolio, contact et blog.',
       outputs: [
         {
           title: 'Cinq vues responsives',
@@ -361,24 +375,35 @@ export const WEBSITE_BUILDER_COPY = {
       openFullSizeLabel: 'Ouvrir la capture du site d’architecture en grand',
       preview: {
         title: 'La page d’accueil du cabinet tourne à côté de ses fichiers source',
-        body: 'La première capture montre le brief initial et le travail de l’Agent auprès de l’arborescence générée et de la page d’accueil responsive active dans la Webview E-Code.',
+        body: 'La première capture montre le brief initial et le travail de l’Agent à côté de l’arborescence générée et de la page d’accueil responsive active dans la Webview E-Code.',
         alt: 'Vrai workspace E-Code montrant le prompt d’un site de cabinet d’architecture, l’activité de l’Agent, les fichiers React générés et le portfolio actif dans la Webview.',
       },
       iteration: {
-        title: 'Un second prompt transforme Projets en vue explorable',
-        body: 'Le suivi demande à l’Agent une navigation Projets, le titre « Projets sélectionnés », des filtres fonctionnels et des liens de fiches. La capture montre cette vue locale mise à jour dans la même Webview ; elle ne démontre ni CMS, ni base, ni service de contact déployé.',
-        alt: 'Vrai workspace Website Builder E-Code montrant le prompt d’itération Projets, les fichiers d’Atelier Méridien et la vue Projets sélectionnés avec filtres locaux dans la Webview.',
+        title: 'Un clic vérifié sur Projets ouvre la vue explorable du portfolio',
+        body: 'Après la génération unique, un clic vérifié sur « Projets » ouvre « Projets sélectionnés » avec des filtres locaux et des liens de fiches. La capture ne démontre ni CMS, ni base, ni service de contact déployé.',
+        alt: 'Capture E-Code Website Builder après le clic vérifié sur Projets, avec fichiers Meridian Studio et vue Projets sélectionnés dans la Webview.',
       },
       cta: {
-        label: 'Inspecter le run du site d’architecture',
+        label: 'Inspecter l’exécution du site d’architecture',
         ariaLabel: 'Inspecter la génération E-Code capturée du site d’architecture',
       },
+    },
+    proofVisualAlts: {
+      prompt: 'Prompt de l’Agent E-Code demandant le portfolio, le contact et le journal du cabinet Meridian Studio.',
+      preview: 'Workspace E-Code avec fichiers React générés et accueil du portfolio Meridian Studio dans la Webview.',
+      webviewOverview:
+        'Portfolio Meridian Studio dans la Webview, avec projets fictifs et panneau de demande d’exemple.',
+      iteration:
+        'Workspace E-Code après le clic vérifié sur Projets, avec fichiers Meridian Studio et vue Projets sélectionnés.',
+      webviewIteration:
+        'Vue Projets sélectionnés de Meridian Studio ouverte par l’interaction de navigation Projets vérifiée.',
+      files: 'Arborescence E-Code de Meridian Studio avec composants de portfolio et routes du journal modifiables.',
     },
     deliverables: {
       eyebrow: 'Ce que comprend votre site d’architecture',
       title: 'Un site responsive que vous inspectez, exportez et faites évoluer',
       intro:
-        'Atelier Méridien reste inspectable, de ses composants portfolio et routes de journal jusqu’à l’aperçu et l’export. Les sites statiques pris en charge ajoutent une mise en ligne guidée sans masquer la source éditoriale.',
+        'Meridian Studio reste inspectable, de ses composants portfolio et routes de journal jusqu’à l’aperçu et l’export. Les sites statiques pris en charge ajoutent une mise en ligne guidée sans masquer la source éditoriale.',
       items: [
         {
           title: 'La source du site reste inspectable',
@@ -390,7 +415,7 @@ export const WEBSITE_BUILDER_COPY = {
         },
         {
           title: 'Le site responsive tourne dans l’aperçu',
-          body: 'Ouvrez le portfolio et le parcours de contact dans l’aperçu actif, puis inspectez les mises en page desktop, tablette et mobile pendant vos ajustements.',
+          body: 'Ouvrez le portfolio et le parcours de contact dans l’aperçu actif, puis inspectez les mises en page sur ordinateur, tablette et mobile pendant vos ajustements.',
         },
         {
           title: 'Mise en ligne guidée des sites statiques pris en charge',
@@ -427,7 +452,7 @@ export const WEBSITE_BUILDER_COPY = {
         { title: 'SEO et métadonnées sociales', body: 'Titres, descriptions et balises Open Graph générés par page.' },
         {
           title: 'Mises en page portfolio responsives',
-          body: 'Grilles de projets, études de cas, articles du journal et contact se recomposent du desktop du studio au téléphone d’un client.',
+          body: 'Grilles de projets, études de cas, articles du journal et contact se recomposent de l’ordinateur du studio au téléphone d’un client.',
         },
         {
           title: 'Gardez la source éditoriale ouverte',
@@ -465,12 +490,12 @@ export const WEBSITE_BUILDER_COPY = {
       intro: 'Ce que produit le parcours Générateur de site, et où sont ses limites.',
       items: [
         {
-          title: 'J’obtiens du vrai code ou un template verrouillé ?',
+          title: 'J’obtiens un code source modifiable ou un template verrouillé ?',
           body: 'Vous obtenez des fichiers source modifiables — vues, navigation, composants, styles et contenu — que vous lisez, versionnez et exportez. Aucun verrouillage propriétaire.',
         },
         {
           title: 'Le site est-il responsive ?',
-          body: 'Oui. Les mises en page sont générées pour s’adapter à desktop, tablette et mobile, et vous les vérifiez dans l’aperçu à chaque taille avant de publier.',
+          body: 'Oui. Les mises en page sont générées pour s’adapter aux écrans d’ordinateur, de tablette et de mobile, et vous les vérifiez dans l’aperçu à chaque taille avant de publier.',
         },
         {
           title: 'Puis-je publier vers une URL en ligne ?',
@@ -488,7 +513,7 @@ export const WEBSITE_BUILDER_COPY = {
     },
     finalCta: {
       title: 'Décrivez votre site et voyez-le tourner',
-      body: 'Transformez les pages que vous avez en tête en un site responsive dans du vrai code source, exécutez-le dans l’aperçu et publiez les builds statiques pris en charge.',
+      body: 'Transformez les pages que vous avez en tête en un site responsive sous forme de code source modifiable, exécutez-le dans l’aperçu et publiez les builds statiques pris en charge.',
       primaryCta: { label: 'Décrivez votre site', ariaLabel: 'Décrivez votre site web avec E-Code' },
       secondaryCta: {
         label: 'Voir le parcours du site',
@@ -502,7 +527,7 @@ export const WEBSITE_BUILDER_COPY = {
       problemLabel: 'Le problème de la création de site',
       buildLabel: 'Comment fonctionne le Générateur de site',
       outputListLabel: 'Résultats de la génération de site',
-      proofLinkLabel: 'Inspecter la preuve du workflow Générateur de site',
+      proofLinkLabel: 'Inspecter la preuve du processus du Générateur de site',
       deliverablesLabel: 'Ce que livre le Générateur de site',
       featuresLabel: 'Capacités du Générateur de site',
       useCasesLabel: 'Cas d’usage du Générateur de site',
@@ -510,4 +535,4 @@ export const WEBSITE_BUILDER_COPY = {
       finalCtaLabel: 'Commencer à construire votre site',
     },
   },
-} as const satisfies SolutionCopyByLanguage;
+} as const satisfies CapturedSolutionCopyByLanguage;

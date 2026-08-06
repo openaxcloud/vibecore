@@ -44,8 +44,22 @@ export type SolutionDemo = Readonly<{
   alt: string;
 }>;
 
+/**
+ * Authored alternatives for the six real-capture placements used by shared
+ * solution pages. These stay separate from captions: an alt describes what is
+ * visible, while a caption can explain the surrounding product claim.
+ */
+export type SolutionProofVisualAltCopy = Readonly<{
+  prompt: string;
+  preview: string;
+  webviewOverview: string;
+  iteration: string;
+  webviewIteration: string;
+  files: string;
+}>;
+
 export type SolutionCopy = Readonly<{
-  seo: Readonly<{ title: string; description: string }>;
+  seo: Readonly<{ title: string; description: string; ogImageAlt?: string }>;
   hero: Readonly<{
     eyebrow: string;
     title: string;
@@ -82,6 +96,9 @@ export type SolutionCopy = Readonly<{
     preview: ContentItem & Readonly<{ alt: string }>;
     iteration: ContentItem & Readonly<{ alt: string }>;
   }>;
+
+  /** Enterprise stays on its legacy visual branch and intentionally omits this block. */
+  proofVisualAlts?: SolutionProofVisualAltCopy;
   deliverables: Readonly<{ eyebrow: string; title: string; intro: string; items: SixItems }>;
   features: Readonly<{ eyebrow: string; title: string; intro: string; items: SixItems }>;
   useCases: Readonly<{ eyebrow: string; title: string; intro: string; items: FourItems }>;
@@ -110,6 +127,14 @@ export type SolutionCopy = Readonly<{
  */
 export type BilingualLanguage = 'en' | 'fr';
 export type SolutionCopyByLanguage = Record<BilingualLanguage, SolutionCopy>;
+
+/** Compile-time contract for the seven shared pages backed by real capture sets. */
+export type CapturedSolutionCopy = SolutionCopy &
+  Readonly<{
+    seo: SolutionCopy['seo'] & Readonly<{ ogImageAlt: string }>;
+    proofVisualAlts: SolutionProofVisualAltCopy;
+  }>;
+export type CapturedSolutionCopyByLanguage = Record<BilingualLanguage, CapturedSolutionCopy>;
 
 export function toBilingual(language: SupportedLanguage): BilingualLanguage {
   return language === 'fr' ? 'fr' : 'en';

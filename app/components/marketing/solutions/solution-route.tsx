@@ -152,7 +152,7 @@ export function makeSolutionRoute(config: SolutionRouteConfig, copy: SolutionCop
   };
 
   const links: LinksFunction = () => [
-    { rel: 'canonical', href: config.canonicalUrl },
+    ...(config.slug === 'enterprise' ? [{ rel: 'canonical', href: config.canonicalUrl }] : []),
     { rel: 'alternate', href: `${config.canonicalUrl}?lang=en`, hrefLang: 'en' },
     { rel: 'alternate', href: `${config.canonicalUrl}?lang=fr`, hrefLang: 'fr' },
     { rel: 'alternate', href: config.canonicalUrl, hrefLang: 'x-default' },
@@ -161,8 +161,16 @@ export function makeSolutionRoute(config: SolutionRouteConfig, copy: SolutionCop
   const meta: MetaFunction = ({ data }) => {
     const language = (data as { language?: BilingualLanguage } | undefined)?.language ?? 'en';
     const pageCopy = copy[language];
-    const imageAlt = `${pageCopy.hero.title} — E-Code`;
+    const imageAlt = config.slug === 'enterprise' ? `${pageCopy.hero.title} — E-Code` : pageCopy.seo.ogImageAlt;
+
+    if (!imageAlt) {
+      throw new Error(`Captured solution ${config.slug} is missing its localized seo.ogImageAlt.`);
+    }
+
     const ogImage = config.ogImage[language];
+
+    const localizedCanonicalUrl =
+      config.slug === 'enterprise' ? config.canonicalUrl : `${config.canonicalUrl}?lang=${language}`;
 
     const alternateLocales = (['en', 'fr'] as const)
       .filter((candidate) => candidate !== language)
@@ -172,9 +180,12 @@ export function makeSolutionRoute(config: SolutionRouteConfig, copy: SolutionCop
       { title: pageCopy.seo.title },
       { name: 'description', content: pageCopy.seo.description },
       { name: 'robots', content: 'index,follow' },
+      ...(config.slug === 'enterprise'
+        ? []
+        : [{ tagName: 'link', rel: 'canonical', href: localizedCanonicalUrl } as const]),
       { property: 'og:type', content: 'website' },
       { property: 'og:site_name', content: 'E-Code' },
-      { property: 'og:url', content: config.canonicalUrl },
+      { property: 'og:url', content: localizedCanonicalUrl },
       { property: 'og:locale', content: OPEN_GRAPH_LOCALES[language] },
       ...alternateLocales,
       { property: 'og:title', content: pageCopy.seo.title },

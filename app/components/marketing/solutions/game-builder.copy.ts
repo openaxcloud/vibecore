@@ -1,4 +1,4 @@
-import type { SolutionCopyByLanguage } from './solution-copy';
+import type { CapturedSolutionCopyByLanguage } from './solution-copy';
 
 /**
  * SOL — Game Builder. Dedicated browser-quiz story in EN and FR. All player
@@ -11,6 +11,7 @@ export const GAME_BUILDER_COPY = {
       title: 'Game Builder with Real Code | E-Code',
       description:
         'Describe TriviaClash. E-Code generates an editable browser quiz with lobby, timed questions, local scores, and leaderboard; remote multiplayer needs a backend.',
+      ogImageAlt: 'E-Code Game Builder workspace with TriviaClash files and a local quiz running in Webview.',
     },
     hero: {
       eyebrow: 'Game Builder for playable browser prototypes',
@@ -29,7 +30,7 @@ export const GAME_BUILDER_COPY = {
       brandType: 'Local quiz prototype',
       nav: ['Lobby', 'Play', 'Leaderboard'],
       eyebrow: 'Scripted round 3 of 5',
-      title: 'Which capital sits on the Bosphorus strait?',
+      title: 'Which city sits on the Bosphorus strait?',
       intro:
         'A responsive quiz concept that presents a lobby, timed questions, and a shared-score interface in one clear round loop.',
       primaryHeading: 'Local sample scoreboard',
@@ -115,14 +116,24 @@ export const GAME_BUILDER_COPY = {
         alt: 'Real E-Code Game Builder workspace showing the TriviaClash prompt, Agent activity, generated React files, and the dark local lobby with a Start quiz button in Webview.',
       },
       iteration: {
-        title: 'The next prompt opens Question 1 in the same Webview',
-        body: 'The follow-up asks for a testable Start quiz flow, answer choices, countdown, local scoring, and a final leaderboard. The capture shows the verified Start quiz transition to Question 1; it does not prove answer scoring, persistence, or synchronization between remote players.',
-        alt: 'Real E-Code Game Builder iteration showing the testable-flow prompt, generated TriviaClash files, and Question 1 opened from the local lobby in Webview.',
+        title: 'A verified Start quiz click opens Question 1',
+        body: 'After the single generation, a verified click on “Start quiz” opens Question 1 in the same Webview. The capture proves that interface transition, not answer scoring, persistence, or synchronization between remote players.',
+        alt: 'E-Code Game Builder capture after the verified Start quiz click, with TriviaClash files and Question 1 open in Webview.',
       },
       cta: {
         label: 'Inspect the captured quiz run',
         ariaLabel: 'Inspect the captured E-Code quiz-game generation and local play state',
       },
+    },
+    proofVisualAlts: {
+      prompt: 'E-Code Agent prompt requesting TriviaClash with a multiplayer quiz flow, scoring, and leaderboard.',
+      preview: 'E-Code workspace with generated TriviaClash files and the dark local lobby open in Webview.',
+      webviewOverview:
+        'TriviaClash lobby in Webview with fictional players, a local-only notice, and Start quiz action.',
+      iteration:
+        'E-Code workspace after the verified Start quiz click, with TriviaClash files and Question 1 in Webview.',
+      webviewIteration: 'TriviaClash Question 1 opened from the local lobby after the verified Start quiz interaction.',
+      files: 'E-Code file tree for TriviaClash with editable lobby, question, scoring, and leaderboard source.',
     },
     deliverables: {
       eyebrow: 'What the playable quiz includes',
@@ -262,15 +273,16 @@ export const GAME_BUILDER_COPY = {
   },
   fr: {
     seo: {
-      title: 'Générateur de jeu avec vrai code | E-Code',
+      title: 'Générateur de jeu avec un code source modifiable | E-Code',
       description:
-        'Décrivez TriviaClash. E-Code génère un quiz web modifiable avec lobby, questions, scores et classement locaux ; le multijoueur distant exige un backend.',
+        'Décrivez TriviaClash. E-Code génère un quiz web modifiable avec une salle d’attente, des questions, des scores et un classement gérés localement ; le multijoueur distant exige un backend.',
+      ogImageAlt: 'Workspace E-Code Game Builder avec fichiers TriviaClash et quiz local actif dans la Webview.',
     },
     hero: {
       eyebrow: 'Générateur de jeu pour prototypes web jouables',
       title: 'Transformez une idée de jeu en un build web que vous jouez et inspectez',
       subtitle:
-        'Décrivez le quiz, les manches chronométrées et le classement. E-Code génère les fichiers React et TypeScript, ouvre TriviaClash dans la Webview et garde la conversation avec l’Agent à côté du jeu actif. Le parcours capturé utilise des joueurs fictifs et un état local au navigateur ; les joueurs distants exigent un backend connecté et testé.',
+        'Décrivez le quiz, les manches chronométrées et le classement. E-Code génère les fichiers React et TypeScript, ouvre TriviaClash dans la Webview et garde la conversation avec l’Agent à côté du jeu actif. Le parcours capturé utilise des joueurs fictifs et un état local dans le navigateur ; les joueurs distants exigent un backend connecté et testé.',
       primaryCta: { label: 'Décrivez votre jeu', ariaLabel: 'Décrivez votre jeu avec E-Code' },
       secondaryCta: {
         label: 'Voir la boucle jouable',
@@ -284,14 +296,14 @@ export const GAME_BUILDER_COPY = {
       badge: 'Données fictives',
       brand: 'TriviaClash',
       brandType: 'Prototype de quiz local',
-      nav: ['Lobby', 'Jouer', 'Classement'],
+      nav: ['Salle d’attente', 'Jouer', 'Classement'],
       eyebrow: 'Manche scénarisée 3 sur 5',
-      title: 'Quelle capitale se trouve sur le détroit du Bosphore ?',
+      title: 'Quelle ville se trouve sur le détroit du Bosphore ?',
       intro:
-        'Un concept de quiz responsive qui présente un lobby, des questions chronométrées et une interface de score partagé dans une boucle de manches claire.',
+        'Un concept de quiz responsive qui présente une salle d’attente, des questions chronométrées et une interface de score partagé dans une boucle de manches claire.',
       primaryHeading: 'Classement local d’exemple',
       primaryRows: [
-        { label: 'Nadia', meta: '1 240 pts fictifs', status: 'Tête d’exemple' },
+        { label: 'Nadia', meta: '1 240 pts fictifs', status: 'Première (exemple)' },
         { label: 'Marco', meta: '1 180 pts fictifs' },
         { label: 'Priya', meta: '1 095 pts fictifs' },
       ],
@@ -299,7 +311,7 @@ export const GAME_BUILDER_COPY = {
       asideRows: [
         { label: 'Catégorie', value: 'Géographie' },
         { label: 'Chrono local', value: '0:12 fictif' },
-        { label: 'Joueurs d’exemple', value: '3 locaux' },
+        { label: 'Joueurs d’exemple', value: '3 joueurs locaux' },
       ],
       asideCta: 'Tester la réponse locale',
       disclaimer:
@@ -331,23 +343,23 @@ export const GAME_BUILDER_COPY = {
         },
       ],
       bridge:
-        'E-Code part du quiz décrit et produit une source React et TypeScript modifiable pour le lobby, les questions, le chrono, le score et le classement. Vous testez ce parcours local dans l’aperçu et demandez le changement suivant sans quitter le projet. Aucun service réseau ne se cache derrière la démo.',
+        'E-Code part du quiz décrit et produit une source React et TypeScript modifiable pour la salle d’attente, les questions, le chrono, le score et le classement. Vous testez ce parcours local dans l’aperçu et demandez le changement suivant sans quitter le projet. Aucun service réseau ne se cache derrière la démo.',
     },
     build: {
       eyebrow: 'Un prompt lance le jeu',
       title: 'Décrivez les manches, pas le moteur',
       intro:
-        'La demande ci-dessous se lit comme un mot d’un concepteur de jeu. Les quatre éléments cartographient son périmètre d’implémentation dans de vrais fichiers source, pas un moteur verrouillé.',
+        'La demande ci-dessous se lit comme un mot d’un concepteur de jeu. Les quatre éléments en précisent le périmètre d’implémentation dans de vrais fichiers source, pas un moteur verrouillé.',
       label: 'Brief du jeu de quiz',
-      promptText: 'Crée un jeu de quiz multijoueur avec score en temps réel et classement.',
+      promptText: 'Créez un jeu de quiz multijoueur avec score en temps réel et classement.',
       outputs: [
         {
-          title: 'Un lobby local fonctionnel',
-          body: 'TriviaClash s’ouvre sur un lobby arcade sombre avec des joueurs fictifs, une limite locale visible et une action orange « Démarrer le quiz ».',
+          title: 'Une salle d’attente locale fonctionnelle',
+          body: 'TriviaClash s’ouvre sur une salle d’attente de style arcade sombre, avec des joueurs fictifs, une limite locale visible et une action orange « Démarrer le quiz ».',
         },
         {
           title: 'Des questions chronométrées en état React',
-          body: 'Le démarrage ouvre Question 1. Choix de réponse, compte à rebours, mise à jour du score et classement final fonctionnent depuis un état local au navigateur dans les fichiers React et TypeScript modifiables.',
+          body: 'Le démarrage ouvre Question 1. Choix de réponse, compte à rebours, mise à jour du score et classement final fonctionnent depuis un état local dans le navigateur, au sein de fichiers React et TypeScript modifiables.',
         },
         {
           title: 'Scores et classement fictifs',
@@ -355,50 +367,63 @@ export const GAME_BUILDER_COPY = {
         },
         {
           title: 'Agent, fichiers et Webview jouable',
-          body: 'Le prompt initial, le travail de l’Agent, les fichiers générés et la Webview active restent visibles dans le même IDE pendant que le lobby local ouvre la première question.',
+          body: 'Le prompt initial, le travail de l’Agent, les fichiers générés et la Webview active restent visibles dans le même IDE pendant que la salle d’attente locale mène à la première question.',
         },
       ],
     },
     proofLink: {
       eyebrow: 'Règles du quiz → Agent → Webview jouable',
       title: 'Jouez au quiz assemblé par l’Agent dans l’IDE',
-      body: 'Ces captures E-Code dédiées montrent le prompt TriviaClash, l’échange avec l’Agent, les fichiers React et TypeScript générés, puis le lobby local et la première question actifs dans la Webview.',
+      body: 'Ces captures E-Code dédiées montrent le prompt TriviaClash, l’échange avec l’Agent, les fichiers React et TypeScript générés, puis la salle d’attente locale et la première question, toutes deux actives dans la Webview.',
       galleryLabel: 'Génération capturée du jeu de quiz et partie locale dans E-Code',
       disclaimer:
         'Génération E-Code capturée · joueurs, questions et scores fictifs · état local du navigateur uniquement · aucun multijoueur réseau, serveur temps réel, système de comptes ni classement persistant démontré',
       openFullSizeLabel: 'Ouvrir la capture du jeu de quiz en pleine résolution',
       preview: {
-        title: 'TriviaClash s’ouvre sur son lobby local',
-        body: 'La première capture garde la demande initiale et l’activité de l’Agent auprès des fichiers générés pendant que la Webview affiche le lobby sombre de TriviaClash, ses joueurs fictifs, la limite locale et l’action « Démarrer le quiz ».',
-        alt: 'Vrai workspace Game Builder E-Code montrant le prompt TriviaClash, l’activité de l’Agent, les fichiers React générés et le lobby local sombre avec le bouton Démarrer le quiz dans la Webview.',
+        title: 'TriviaClash s’ouvre sur sa salle d’attente locale',
+        body: 'La première capture garde la demande initiale et l’activité de l’Agent à côté des fichiers générés pendant que la Webview affiche la salle d’attente sombre de TriviaClash, ses joueurs fictifs, la limite locale et l’action « Démarrer le quiz ».',
+        alt: 'Vrai workspace Game Builder E-Code montrant le prompt TriviaClash, l’activité de l’Agent, les fichiers React générés et la salle d’attente locale sombre avec le bouton Démarrer le quiz dans la Webview.',
       },
       iteration: {
-        title: 'Le prompt suivant ouvre Question 1 dans la même Webview',
-        body: 'Le suivi demande un démarrage testable, des choix de réponse, un compte à rebours, un score local et un classement final. La capture montre la transition vérifiée de « Démarrer le quiz » vers Question 1 ; elle ne prouve ni calcul du score, ni persistance, ni synchronisation entre joueurs distants.',
-        alt: 'Vraie itération Game Builder E-Code montrant le prompt de parcours testable, les fichiers TriviaClash et Question 1 ouverte depuis le lobby local dans la Webview.',
+        title: 'Un clic vérifié sur Démarrer le quiz ouvre Question 1',
+        body: 'Après la génération unique, un clic vérifié sur « Démarrer le quiz » ouvre Question 1 dans la même Webview. La capture prouve cette transition d’interface, pas le calcul du score, la persistance ni la synchronisation entre joueurs distants.',
+        alt: 'Capture E-Code Game Builder après le clic vérifié sur Démarrer le quiz, avec fichiers TriviaClash et Question 1 dans la Webview.',
       },
       cta: {
-        label: 'Inspecter le run capturé du quiz',
+        label: 'Inspecter l’exécution capturée du quiz',
         ariaLabel: 'Inspecter la génération E-Code capturée du jeu de quiz et son état de partie local',
       },
+    },
+    proofVisualAlts: {
+      prompt: 'Prompt de l’Agent E-Code demandant TriviaClash avec quiz multijoueur, score et classement.',
+      preview:
+        'Workspace E-Code avec fichiers TriviaClash générés et salle d’attente locale sombre ouverte dans la Webview.',
+      webviewOverview:
+        'Salle d’attente de TriviaClash dans la Webview avec joueurs fictifs, limite locale et action Démarrer le quiz.',
+      iteration:
+        'Workspace E-Code après le clic vérifié sur Démarrer le quiz, avec fichiers TriviaClash et Question 1.',
+      webviewIteration:
+        'Question 1 de TriviaClash ouverte depuis la salle d’attente après l’interaction Démarrer le quiz vérifiée.',
+      files:
+        'Arborescence E-Code de TriviaClash avec sources modifiables de la salle d’attente, des questions, du score et du classement.',
     },
     deliverables: {
       eyebrow: 'Ce que comprend le quiz jouable',
       title: 'Une base de jeu jouable que vous inspectez et faites évoluer',
       intro:
-        'TriviaClash reste inspectable, de l’état du lobby et des questions chronométrées jusqu’au score local, à l’aperçu et à l’export. Les quiz statiques pris en charge ajoutent une publication guidée tout en gardant explicite la frontière multijoueur.',
+        'TriviaClash reste inspectable, de l’état de la salle d’attente et des questions chronométrées jusqu’au score local, à l’aperçu et à l’export. Les quiz statiques pris en charge ajoutent une publication guidée tout en gardant explicite la frontière multijoueur.',
       items: [
         {
           title: 'Un code de jeu ouvert et exportable',
-          body: 'Le lobby, les vues de questions, l’état local, les contrôles de réponse, la présentation du chrono, le classement et les styles restent lisibles, versionnables et transportables hors d’E-Code.',
+          body: 'La salle d’attente, les vues de questions, l’état local, les contrôles de réponse, la présentation du chrono, le classement et les styles restent lisibles, versionnables et transportables hors d’E-Code.',
         },
         {
           title: 'Un état de partie local, pas un serveur caché',
-          body: 'Lobby, question, chrono, score et classement fonctionnent localement dans le navigateur. Le projet capturé n’inclut ni backend multijoueur réseau ni stockage persistant.',
+          body: 'Salle d’attente, question, chrono, score et classement fonctionnent localement dans le navigateur. Le projet capturé n’inclut ni backend multijoueur réseau ni stockage persistant.',
         },
         {
           title: 'Un aperçu jouable à chaque format cible',
-          body: 'Exécutez le parcours local des manches dans l’aperçu actif et testez les contrôles et le classement sur desktop, tablette et mobile.',
+          body: 'Exécutez le parcours local des manches dans l’aperçu actif et testez les contrôles et le classement sur ordinateur, tablette et mobile.',
         },
         {
           title: 'Publication guidée du frontend statique',
@@ -416,13 +441,13 @@ export const GAME_BUILDER_COPY = {
     },
     features: {
       eyebrow: 'Pensé pour de vrais jeux dans le navigateur',
-      title: 'Lobby de quiz, manches chronométrées et scores locaux dans un code que vous maîtrisez',
+      title: 'Salle d’attente du quiz, manches chronométrées et scores locaux dans un code que vous maîtrisez',
       intro:
         'Le parcours Générateur de jeu garde la source générée de TriviaClash, ses états locaux et la Webview active dans un seul flux inspectable.',
       items: [
         {
-          title: 'Du lobby à Question 1',
-          body: 'La transition « Démarrer le quiz » fait passer le jeu local du lobby des joueurs à la première question chronométrée.',
+          title: 'De la salle d’attente à Question 1',
+          body: 'La transition « Démarrer le quiz » fait passer le jeu local de la salle d’attente des joueurs à la première question chronométrée.',
         },
         {
           title: 'Interface multijoueur locale explicite',
@@ -434,7 +459,7 @@ export const GAME_BUILDER_COPY = {
         },
         {
           title: 'Test en jeu dans la Webview',
-          body: 'Jouez le lobby et la question dans la vraie Webview E-Code pendant que le prompt Agent et les fichiers restent inspectables.',
+          body: 'Parcourez la salle d’attente et la question dans la vraie Webview E-Code pendant que le prompt Agent et les fichiers restent inspectables.',
         },
         {
           title: 'Surface de jeu responsive',
@@ -454,7 +479,7 @@ export const GAME_BUILDER_COPY = {
       items: [
         {
           title: 'Quiz et trivia multijoueur',
-          body: 'Parcours de lobby, questions chronométrées et score partagé prêts à brancher à un service de partie temps réel.',
+          body: 'Parcours depuis la salle d’attente, questions chronométrées et score partagé prêts à brancher à un service de partie temps réel.',
         },
         {
           title: 'Jeux en classe et formation',
@@ -466,7 +491,7 @@ export const GAME_BUILDER_COPY = {
         },
         {
           title: 'Tests de quiz en équipe',
-          body: 'Prototypez le texte du lobby, le rythme des questions, le score local et le classement avant d’ajouter un service de partie distante.',
+          body: 'Prototypez le texte de la salle d’attente, le rythme des questions, le score local et le classement avant d’ajouter un service de partie distante.',
         },
       ],
     },
@@ -477,15 +502,15 @@ export const GAME_BUILDER_COPY = {
       items: [
         {
           title: 'J’obtiens du vrai code ou un moteur verrouillé ?',
-          body: 'Vous obtenez une source React et TypeScript modifiable pour le lobby, les questions, l’état local, les contrôles et les styles. Le projet TriviaClash capturé n’est ni une vidéo ni une maquette statique.',
+          body: 'Vous obtenez une source React et TypeScript modifiable pour la salle d’attente, les questions, l’état local, les contrôles et les styles. Le projet TriviaClash capturé n’est ni une vidéo ni une maquette statique.',
         },
         {
           title: 'Le multijoueur est-il réel ?',
-          body: 'Pas dans la démonstration intégrée : elle utilise des données de partie fictives et aucun backend connecté. La source générée peut modéliser le lobby et l’état de partie, mais les joueurs distants exigent un service temps réel que vous connectez, sécurisez et testez.',
+          body: 'Pas dans la démonstration intégrée : elle utilise des données de partie fictives et aucun backend connecté. La source générée peut modéliser la salle d’attente et l’état de partie, mais les joueurs distants exigent un service temps réel que vous connectez, sécurisez et testez.',
         },
         {
           title: 'Puis-je tester le jeu avant de publier ?',
-          body: 'Oui. E-Code exécute le parcours local des manches dans l’aperçu sur desktop, tablette et mobile. Le test d’une partie distante commence après le branchement du service réseau.',
+          body: 'Oui. E-Code exécute le parcours local des manches dans l’aperçu sur ordinateur, tablette et mobile. Le test d’une partie distante commence après le branchement du service réseau.',
         },
         {
           title: 'Puis-je connecter un backend temps réel ou une base ?',
@@ -493,13 +518,13 @@ export const GAME_BUILDER_COPY = {
         },
         {
           title: 'Comment modifier le jeu ensuite ?',
-          body: 'Modifiez directement le lobby et les manches ou demandez à l’Agent un type de question, une règle de score ou un état de classement, puis testez le diff dans l’aperçu.',
+          body: 'Modifiez directement la salle d’attente et les manches ou demandez à l’Agent un type de question, une règle de score ou un état de classement, puis testez le diff dans l’aperçu.',
         },
       ],
     },
     finalCta: {
       title: 'Décrivez votre jeu et jouez ses premières manches',
-      body: 'Transformez le jeu que vous avez en tête en une boucle web, un lobby et un système de score modifiables, testez le parcours local dans l’aperçu, puis connectez le service qui anime les parties distantes.',
+      body: 'Transformez le jeu que vous avez en tête en une boucle web, une salle d’attente et un système de score modifiables, testez le parcours local dans l’aperçu, puis connectez le service qui anime les parties distantes.',
       primaryCta: { label: 'Décrivez votre jeu', ariaLabel: 'Décrivez votre jeu avec E-Code' },
       secondaryCta: {
         label: 'Voir la boucle jouable',
@@ -513,7 +538,7 @@ export const GAME_BUILDER_COPY = {
       problemLabel: 'Le problème de la création de jeu',
       buildLabel: 'Comment fonctionne le Générateur de jeu',
       outputListLabel: 'Résultats de la génération de jeu',
-      proofLinkLabel: 'Ouvrir la preuve du workflow Générateur de jeu',
+      proofLinkLabel: 'Ouvrir la preuve du processus du Générateur de jeu',
       deliverablesLabel: 'Ce que livre le Générateur de jeu',
       featuresLabel: 'Capacités du Générateur de jeu',
       useCasesLabel: 'Cas d’usage du Générateur de jeu',
@@ -521,4 +546,4 @@ export const GAME_BUILDER_COPY = {
       finalCtaLabel: 'Commencer à construire votre jeu',
     },
   },
-} as const satisfies SolutionCopyByLanguage;
+} as const satisfies CapturedSolutionCopyByLanguage;
