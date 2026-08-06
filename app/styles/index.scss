@@ -25871,7 +25871,17 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
   .bolt-mobile-agent-context-bar button {
     display: inline-flex !important;
+
+    /*
+     * BUG-IDE-003 — sans largeur mini ni `nowrap`, la piste `auto` de la
+     * grille se faisait écraser par le titre voisin : le label « Prompt »
+     * débordait de sa bordure et se faisait couper par l'`overflow: hidden`
+     * du conteneur, jusqu'au bord de l'écran à 390 px. `max-content` empêche
+     * la piste de descendre sous la largeur du texte.
+     */
+    min-width: max-content;
     height: 30px;
+    flex-shrink: 0;
     align-items: center;
     justify-content: center;
     border: 1px solid var(--mobile-nav-border);
@@ -25881,6 +25891,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     font-size: 12px;
     font-weight: 700;
     padding: 0 10px;
+    white-space: nowrap;
   }
 
   .bolt-mobile-agent-start-state {
