@@ -29,83 +29,40 @@ import {
   useMarketingNavigate,
   usePublicAuth,
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
+import type { BlogListingPost } from '~/lib/marketing/blog-listing';
 
-interface BlogPost {
-  category: string;
-  icon: LucideIcon;
-  title: string;
-  excerpt: string;
-  date: string;
+/*
+ * BUG-MKT-011 — la liste vient désormais du registre qui sert `/blog/:slug`.
+ * L'ancienne interface locale n'avait AUCUN champ `slug` : un lien vers un
+ * article n'était pas seulement absent, il était inexprimable. Tous les
+ * « Read more » portaient donc `href="/blog"` et renvoyaient à la page courante.
+ */
+interface BlogProps {
+  featured: BlogListingPost | null;
+  posts: BlogListingPost[];
+  categories: string[];
 }
 
-const PRODUCT = '/ecode-static/assets/product';
+/*
+ * Le registre ne porte pas d'icône : on en dérive une de la catégorie, avec un
+ * repli explicite pour qu'une catégorie inédite reste rendue plutôt que de
+ * casser la carte.
+ */
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  Product: Bot,
+  'AI Agent': Workflow,
+  Engineering: Radio,
+  Deployments: Rocket,
+  Tutorial: Wrench,
+  Pricing: CreditCard,
+  Collaboration: Users,
+};
 
-export default function Blog() {
+const iconForCategory = (category: string): LucideIcon => CATEGORY_ICONS[category] ?? Newspaper;
+
+export default function Blog({ featured, posts, categories }: BlogProps) {
   const navigate = useMarketingNavigate();
   const { user } = usePublicAuth();
-
-  const categories = ['All', 'Product', 'AI Agent', 'Deployments', 'Pricing', 'Collaboration', 'Engineering'];
-
-  const featured = {
-    category: 'Product',
-    title: 'Introducing the E-Code Agent: from prompt to production in one flow',
-    excerpt:
-      'Our autonomous coding agent plans, writes, runs and previews your app end to end. Describe what you want in plain language and watch a full-stack project come to life in the IDE — then ship it to a live URL with a single click.',
-    date: 'June 16, 2026',
-    icon: Bot,
-    image: `${PRODUCT}/ide.png`,
-  };
-
-  const posts: BlogPost[] = [
-    {
-      category: 'AI Agent',
-      icon: Workflow,
-      title: 'How parallel sub-agents reach consensus on your code',
-      excerpt:
-        'A look under the hood at how E-Code fans a task out to multiple sub-agents, compares their proposals, and merges them into a single high-confidence change.',
-      date: 'June 10, 2026',
-    },
-    {
-      category: 'Deployments',
-      icon: Rocket,
-      title: 'Zero-config deployments: static and full-stack, instantly',
-      excerpt:
-        'Push from chat to a live URL with no YAML. We walk through how E-Code snapshots your build and serves it on managed infrastructure.',
-      date: 'June 4, 2026',
-    },
-    {
-      category: 'Pricing',
-      icon: CreditCard,
-      title: 'Effort-based pricing: pay for outcomes, not idle seats',
-      excerpt:
-        'Why we moved away from flat per-seat plans toward billing that tracks the real compute and agent effort your projects actually use.',
-      date: 'May 28, 2026',
-    },
-    {
-      category: 'Collaboration',
-      icon: Users,
-      title: 'Real-time multiplayer editing comes to the E-Code IDE',
-      excerpt:
-        'Presence, shared cursors and live agent activity let your whole team build in the same workspace without stepping on each other.',
-      date: 'May 20, 2026',
-    },
-    {
-      category: 'Engineering',
-      icon: Radio,
-      title: 'Streaming the agent: how we render thinking in real time',
-      excerpt:
-        'The SSE pipeline that powers per-lane streaming output, the backpressure tricks we use, and how we keep the editor responsive under load.',
-      date: 'May 12, 2026',
-    },
-    {
-      category: 'Product',
-      icon: Wrench,
-      title: 'Self-repair: when the agent fixes its own mistakes',
-      excerpt:
-        'E-Code now detects failed builds and broken previews, then retries with a corrected plan — turning dead ends into shipped features.',
-      date: 'May 5, 2026',
-    },
-  ];
 
   const [selectedCategory, setSelectedCategory] = useState('All');
   const visiblePosts = filterPostsByCategory(posts, selectedCategory);
@@ -161,59 +118,63 @@ export default function Blog() {
           </div>
         </section>
 
-        {/* Featured Post */}
-        <section className="py-responsive">
-          <div className="container-responsive">
-            <h2 className="mkt-h2 mb-8">Featured</h2>
+        {/* Featured Post — masqué plutôt que rendu vide si le registre n'a rien. */}
+        {featured && (
+          <section className="py-responsive">
+            <div className="container-responsive">
+              <h2 className="mkt-h2 mb-8">Featured</h2>
 
-            <Card className="overflow-hidden" data-testid="link-featured-post">
-              <div className="grid md:grid-cols-2 gap-0">
-                {/* Real product capture, framed */}
-                <figure className="relative bg-bolt-elements-background-depth-2 border-b md:border-b-0 md:border-r border-bolt-elements-borderColor">
-                  <div className="flex items-center gap-2 px-4 py-2.5 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-3">
-                    <span className="h-2.5 w-2.5 rounded-full bg-[#F26207]/70" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-[#F99D25]/70" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/30" />
-                    <span className="ml-2 mkt-small text-muted-foreground font-medium truncate">E-Code Workspace</span>
-                  </div>
-                  <img
-                    src={featured.image}
-                    alt="The E-Code IDE showing the AI Agent panel, code editor, file tree and live preview together in one workspace"
-                    width={1440}
-                    height={900}
-                    loading="lazy"
-                    className="block w-full h-full object-cover"
-                    data-testid="img-featured-post"
-                  />
-                </figure>
-                <div className="p-8 flex flex-col justify-center">
-                  <Badge variant="secondary" className="w-fit mb-3">
-                    {featured.category}
-                  </Badge>
-                  <h3 className="mkt-h3 mb-3">{featured.title}</h3>
-                  <p className="mkt-body text-muted-foreground mb-6">{featured.excerpt}</p>
-                  <div className="flex items-center justify-between">
-                    <div className="mkt-small text-muted-foreground">
-                      <span className="font-medium text-foreground">E-Code Team</span>
-                      <span className="flex items-center gap-1 mt-1">
-                        <Calendar className="h-3.5 w-3.5" />
-                        {featured.date}
+              <Card className="overflow-hidden" data-testid="link-featured-post">
+                <div className="grid md:grid-cols-2 gap-0">
+                  {/* Real product capture, framed */}
+                  <figure className="relative bg-bolt-elements-background-depth-2 border-b md:border-b-0 md:border-r border-bolt-elements-borderColor">
+                    <div className="flex items-center gap-2 px-4 py-2.5 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-3">
+                      <span className="h-2.5 w-2.5 rounded-full bg-[#F26207]/70" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-[#F99D25]/70" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/30" />
+                      <span className="ml-2 mkt-small text-muted-foreground font-medium truncate">
+                        E-Code Workspace
                       </span>
                     </div>
-                    <a
-                      href="/blog"
-                      className="flex items-center gap-1 text-[14px] font-medium text-[#F26207]"
-                      data-testid="link-featured-read-more"
-                    >
-                      Read more
-                      <ArrowRight className="h-4 w-4" />
-                    </a>
+                    <img
+                      src={featured.coverImage}
+                      alt={`Cover image for the article “${featured.title}”`}
+                      width={1440}
+                      height={900}
+                      loading="lazy"
+                      className="block w-full h-full object-cover"
+                      data-testid="img-featured-post"
+                    />
+                  </figure>
+                  <div className="p-8 flex flex-col justify-center">
+                    <Badge variant="secondary" className="w-fit mb-3">
+                      {featured.category}
+                    </Badge>
+                    <h3 className="mkt-h3 mb-3">{featured.title}</h3>
+                    <p className="mkt-body text-muted-foreground mb-6">{featured.excerpt}</p>
+                    <div className="flex items-center justify-between">
+                      <div className="mkt-small text-muted-foreground">
+                        <span className="font-medium text-foreground">{featured.author}</span>
+                        <span className="flex items-center gap-1 mt-1">
+                          <Calendar className="h-3.5 w-3.5" />
+                          {featured.date} · {featured.readTime} min read
+                        </span>
+                      </div>
+                      <a
+                        href={featured.href}
+                        className="flex items-center gap-1 text-[14px] font-medium text-[#F26207]"
+                        data-testid="link-featured-read-more"
+                      >
+                        Read more
+                        <ArrowRight className="h-4 w-4" />
+                      </a>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Card>
-          </div>
-        </section>
+              </Card>
+            </div>
+          </section>
+        )}
 
         {/* Latest Posts */}
         <section className="py-responsive bg-muted">
@@ -222,9 +183,9 @@ export default function Blog() {
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {visiblePosts.map((post) => {
-                const Icon = post.icon;
+                const Icon = iconForCategory(post.category);
                 return (
-                  <Card key={post.title} className="flex flex-col hover:shadow-lg transition-shadow">
+                  <Card key={post.slug} className="flex flex-col hover:shadow-lg transition-shadow">
                     <CardHeader>
                       <div className="flex items-center justify-between mb-2">
                         <Badge variant="secondary">{post.category}</Badge>
@@ -238,14 +199,14 @@ export default function Blog() {
                     <CardContent className="mt-auto">
                       <div className="flex items-center justify-between">
                         <div className="mkt-small text-muted-foreground">
-                          <span className="font-medium text-foreground">E-Code Team</span>
+                          <span className="font-medium text-foreground">{post.author}</span>
                           <span className="flex items-center gap-1 mt-1">
                             <Calendar className="h-3.5 w-3.5" />
-                            {post.date}
+                            {post.date} · {post.readTime} min read
                           </span>
                         </div>
                         <a
-                          href="/blog"
+                          href={post.href}
                           className="flex items-center gap-1 text-[14px] font-medium text-[#F26207] min-h-[44px]"
                           data-testid="link-read-more"
                         >

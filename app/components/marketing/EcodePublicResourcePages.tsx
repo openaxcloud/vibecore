@@ -388,6 +388,8 @@ export function TemplatesMarketingPage({ categories, templates }: TemplatesPageP
                 src="/ecode-static/assets/product/ide.png"
                 alt="E-Code IDE with file tree, editor and live preview"
                 caption="The preserved E-Code IDE your template opens into."
+                width={1440}
+                height={900}
               />
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
@@ -619,6 +621,8 @@ export function CommunityMarketingPage({ posts, categories, challenges, contribu
                 src="/ecode-static/assets/product/dashboard.png"
                 alt="E-Code project dashboard showing real workspaces and deployment status"
                 caption="The dashboard you continue into after signing in."
+                width={1200}
+                height={747}
               />
             </div>
             <div className="grid gap-4 md:grid-cols-2">
@@ -711,16 +715,42 @@ function ResourceHero({
   );
 }
 
-function ProductCapture({ src, alt, caption }: { src: string; alt: string; caption: string }) {
+/*
+ * BUG-MKT-013 — `width`/`height` sont OBLIGATOIRES ici, et c'est délibéré.
+ *
+ * L'image était rendue en `lazy` et en `h-auto w-full` sans dimensions : le
+ * navigateur ne pouvait réserver aucune hauteur avant le chargement, donc tout
+ * le contenu situé en dessous sautait au moment où l'image arrivait. Les rendre
+ * requises fait porter la garantie par le TYPE plutôt que par la vigilance —
+ * un futur appel qui les oublierait ne compilerait pas.
+ *
+ * Ce sont les dimensions INTRINSÈQUES du fichier : elles ne fixent pas la taille
+ * d'affichage (que `h-auto w-full` continue de piloter), elles donnent le ratio
+ * qui permet de réserver la place.
+ */
+function ProductCapture({
+  src,
+  alt,
+  caption,
+  width,
+  height,
+}: {
+  src: string;
+  alt: string;
+  caption: string;
+  width: number;
+  height: number;
+}) {
   return (
     <figure className="mt-8 overflow-hidden rounded-xl border border-[var(--ecode-border)] bg-[var(--ecode-surface)] shadow-[0_24px_80px_-48px_rgba(242,98,7,0.55)]">
       <img
         src={src}
         alt={alt}
+        width={width}
+        height={height}
         loading="lazy"
         decoding="async"
         className="block h-auto w-full"
-        sizes="(min-width: 1024px) 40vw, 100vw"
       />
       <figcaption className="border-t border-[var(--ecode-border)] px-4 py-3 text-[12px] text-[var(--ecode-text-muted)]">
         {caption}
