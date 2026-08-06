@@ -349,6 +349,37 @@ describe('workspace-agent', () => {
     expect(read.json()).toMatchObject({ content: 'export const ok = true;', encoding: 'utf8' });
   });
 
+  it('reports an existing path on /files/create as 409 EEXIST, not an uncoded 500', async () => {
+    const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
+    const headers = { authorization: `Bearer ${token}` };
+
+    const first = await app.inject({
+      method: 'POST',
+      url: '/files/create',
+      headers,
+      payload: { path: 'notes.txt', content: 'first' },
+    });
+    expect(first.statusCode).toBe(200);
+
+    /*
+     * Second create collides on flag 'wx'. Uncoded this surfaced as a 500 that
+     * the API relabelled WORKSPACE_AGENT_REQUEST_FAILED (502) — the dead-pod
+     * signal — so "New file" on an existing name read as "Internal server error".
+     */
+    const conflict = await app.inject({
+      method: 'POST',
+      url: '/files/create',
+      headers,
+      payload: { path: 'notes.txt', content: 'second' },
+    });
+    expect(conflict.statusCode).toBe(409);
+    expect(conflict.json()).toMatchObject({ code: 'EEXIST' });
+
+    // The original content must survive the rejected create.
+    const read = await app.inject({ method: 'GET', url: '/files/read?path=notes.txt', headers });
+    expect(read.json()).toMatchObject({ content: 'first' });
+  });
+
   it('reads a binary file back as lossless base64 (no utf8 corruption)', async () => {
     const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
     const headers = { authorization: `Bearer ${token}` };

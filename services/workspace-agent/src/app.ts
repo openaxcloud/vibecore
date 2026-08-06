@@ -1609,6 +1609,18 @@ function rethrowFsError(error: unknown): never {
   }
 
   /*
+   * `/files/create` writes with flag 'wx', so creating a name that already
+   * exists is an ordinary, expected conflict — not a server fault. Left
+   * uncoded it escaped as a 500 and the API relabelled it
+   * WORKSPACE_AGENT_REQUEST_FAILED (502), which is the *dead pod* signal: the
+   * IDE showed "Internal server error" for "New file" on an existing name, and
+   * the 502 also trips the local-runtime fallback in dev.
+   */
+  if (code === 'EEXIST') {
+    throw Object.assign(new Error('File already exists'), { statusCode: 409, code: 'EEXIST' });
+  }
+
+  /*
    * Disk full / quota exceeded must surface as a distinct, actionable status —
    * otherwise an uncoded 500 bubbles up as a generic WORKSPACE_AGENT_REQUEST_FAILED
    * 502 on the API side (indistinguishable from a dead pod, and it wrongly
