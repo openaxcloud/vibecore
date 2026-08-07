@@ -19747,6 +19747,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       files: publicFiles(files),
       git: await gitProvider.status(project.id),
       recentActivity: await store.listProjectActivity(project.id, { limit: 20, order: 'desc' }),
+
+      /*
+       * The IDE Monitoring panel reads `data.deployments` for its Deployments
+       * metric and its deployment timeline, and this payload is what feeds it.
+       * Without the key both fell back to the empty array, so a project with
+       * live READY deployments reported "0" and "No deployment recorded"
+       * (proven live 2026-08-06 on a project with three READY static deploys).
+       * Read-only listing — no provider reconcile, which belongs to the
+       * deployments routes.
+       */
+      deployments: await store.listDeployments(project.id).catch(() => []),
     };
   });
   app.get('/projects/:projectId/packages', async (request) => {
@@ -30717,6 +30728,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       let started: { ready: boolean; url: string; name: string; readyReplicas: number } | undefined;
       let serverError: string | undefined;
 
+      /*
+       * The runtime the pipeline actually detected (or that .ecode/deploy.json
+       * declared), lifted out of the detection block so the persisted row can
+       * carry it. The row is created with the STATIC heuristic's guess
+       * (outputDirectory 'dist' → "vite"), which the panel then showed for a
+       * plain Node app — proven live 2026-08-06 (BUG-DEPLOY-006).
+       */
+      let detectedFramework: string | undefined;
+
       const serverPort = Number(process.env.SERVER_DEPLOY_PORT) || 3000;
 
       /*
@@ -30936,6 +30956,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             const detectionError = detection as { error: string };
             serverError = `${detectionError.error} You can also declare {"run": "<command>"} in .ecode/deploy.json.`;
           } else {
+            detectedFramework = runPlan.framework;
+
             buildProgress.onLog({
               timestamp: nowIso(),
               level: 'info',
@@ -31209,6 +31231,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       const readyRow = await store.updateDeployment(project.id, queued.id, {
         status: serverStatus,
+
+        /*
+         * The row was created with the STATIC heuristic's guess (outputDirectory
+         * 'dist' → "vite"), which the panel then showed for a plain Node/Express
+         * app whose real run plan the pipeline had already detected and logged as
+         * "node". Persist what actually ran.
+         */
+        framework: detectedFramework ?? queued.framework,
         url: ok ? serverUrl : undefined,
         previewUrl: ok && body.environment !== 'production' ? serverUrl : undefined,
         productionUrl: ok && body.environment === 'production' ? serverUrl : undefined,
@@ -31229,7 +31259,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             ...(imageBuildInfo ? { image: imageBuildInfo } : {}),
           },
         },
-        logs: [...createDeploymentLogs(body, { ...queued, url: serverUrl }, project), ...liveLog],
+        logs: [
+          ...createDeploymentLogs(
+            body,
+            { ...queued, url: serverUrl, framework: detectedFramework ?? queued.framework },
+            project,
+          ),
+          ...liveLog,
+        ],
 
         /*
          * A converging (BUILDING) deploy is not finished — leaving finishedAt
