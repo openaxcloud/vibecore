@@ -557,6 +557,22 @@ exports.Prisma.DeploymentEnvironmentScalarFieldEnum = {
   name: 'name'
 };
 
+exports.Prisma.ReleaseManifestScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  deploymentId: 'deploymentId',
+  environment: 'environment',
+  version: 'version',
+  provider: 'provider',
+  artifactKind: 'artifactKind',
+  artifactRef: 'artifactRef',
+  artifactDigest: 'artifactDigest',
+  storeGeneration: 'storeGeneration',
+  configDigest: 'configDigest',
+  dbMigrationPoint: 'dbMigrationPoint',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.RateCardScalarFieldEnum = {
   id: 'id',
   version: 'version',
@@ -1505,11 +1521,16 @@ exports.Prisma.GalleryListingScalarFieldEnum = {
   authorName: 'authorName',
   authorUserId: 'authorUserId',
   appUrl: 'appUrl',
+  thumbnailUrl: 'thumbnailUrl',
   remixAllowed: 'remixAllowed',
   licenseId: 'licenseId',
   licenseText: 'licenseText',
   licenseTextSha256: 'licenseTextSha256',
   piiConsentVersion: 'piiConsentVersion',
+  rightsConfirmedAt: 'rightsConfirmedAt',
+  rightsConfirmedBy: 'rightsConfirmedBy',
+  piiPolicyAcceptedAt: 'piiPolicyAcceptedAt',
+  piiPolicyAcceptedBy: 'piiPolicyAcceptedBy',
   viewCount: 'viewCount',
   useCount: 'useCount',
   createdAt: 'createdAt',
@@ -1589,6 +1610,36 @@ exports.Prisma.LedgerReconciliationRunScalarFieldEnum = {
   discrepancies: 'discrepancies',
   runAt: 'runAt',
   metadata: 'metadata'
+};
+
+exports.Prisma.PreviewReadinessBeaconScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  port: 'port',
+  status: 'status',
+  detail: 'detail',
+  reportedAt: 'reportedAt'
+};
+
+exports.Prisma.WorkspaceLifecycleEventScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  state: 'state',
+  reason: 'reason',
+  detail: 'detail',
+  at: 'at'
+};
+
+exports.Prisma.WorkspacePostMortemScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  reason: 'reason',
+  finalState: 'finalState',
+  ports: 'ports',
+  processes: 'processes',
+  problems: 'problems',
+  logsTail: 'logsTail',
+  capturedAt: 'capturedAt'
 };
 
 exports.Prisma.SortOrder = {
@@ -1816,6 +1867,7 @@ exports.Prisma.ModelName = {
   ProjectStorageObject: 'ProjectStorageObject',
   Deployment: 'Deployment',
   DeploymentEnvironment: 'DeploymentEnvironment',
+  ReleaseManifest: 'ReleaseManifest',
   RateCard: 'RateCard',
   AuditLog: 'AuditLog',
   SecurityEventResolution: 'SecurityEventResolution',
@@ -1896,7 +1948,10 @@ exports.Prisma.ModelName = {
   LedgerEntry: 'LedgerEntry',
   LedgerReservation: 'LedgerReservation',
   LedgerFxRate: 'LedgerFxRate',
-  LedgerReconciliationRun: 'LedgerReconciliationRun'
+  LedgerReconciliationRun: 'LedgerReconciliationRun',
+  PreviewReadinessBeacon: 'PreviewReadinessBeacon',
+  WorkspaceLifecycleEvent: 'WorkspaceLifecycleEvent',
+  WorkspacePostMortem: 'WorkspacePostMortem'
 };
 
 /**

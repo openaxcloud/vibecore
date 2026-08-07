@@ -43,6 +43,7 @@ import type {
   CollaborationPresenceRecord,
   CustomRoleRecord,
   DeploymentRecord,
+  ReleaseManifestRecord,
   DomainVerificationRecord,
   EmailDeliveryEventRecord,
   EnterpriseSettingsRecord,
@@ -1280,11 +1281,16 @@ export class PrismaApiStore implements ApiStore {
     authorName: string;
     authorUserId: string | null;
     appUrl: string | null;
+    thumbnailUrl: string | null;
     remixAllowed: boolean;
     licenseId: string | null;
     licenseText: string | null;
     licenseTextSha256: string | null;
     piiConsentVersion: string | null;
+    rightsConfirmedAt: Date | null;
+    rightsConfirmedBy: string | null;
+    piiPolicyAcceptedAt: Date | null;
+    piiPolicyAcceptedBy: string | null;
     viewCount: number;
     useCount: number;
     createdAt: Date;
@@ -1304,11 +1310,16 @@ export class PrismaApiStore implements ApiStore {
       authorName: row.authorName,
       authorUserId: row.authorUserId ?? undefined,
       appUrl: row.appUrl ?? undefined,
+      thumbnailUrl: row.thumbnailUrl ?? undefined,
       remixAllowed: row.remixAllowed,
       licenseId: row.licenseId ?? undefined,
       licenseText: row.licenseText ?? undefined,
       licenseTextSha256: row.licenseTextSha256 ?? undefined,
       piiConsentVersion: row.piiConsentVersion ?? undefined,
+      rightsConfirmedAt: row.rightsConfirmedAt ?? undefined,
+      rightsConfirmedBy: row.rightsConfirmedBy ?? undefined,
+      piiPolicyAcceptedAt: row.piiPolicyAcceptedAt ?? undefined,
+      piiPolicyAcceptedBy: row.piiPolicyAcceptedBy ?? undefined,
       viewCount: row.viewCount,
       useCount: row.useCount,
       createdAt: row.createdAt.toISOString(),
@@ -1329,11 +1340,16 @@ export class PrismaApiStore implements ApiStore {
     authorName: string;
     authorUserId?: string;
     appUrl?: string;
+    thumbnailUrl?: string;
     remixAllowed?: boolean;
     licenseId?: string;
     licenseText?: string;
     licenseTextSha256?: string;
     piiConsentVersion?: string;
+    rightsConfirmedAt?: Date;
+    rightsConfirmedBy?: string;
+    piiPolicyAcceptedAt?: Date;
+    piiPolicyAcceptedBy?: string;
     publishedAt?: string;
   }) {
     const status = input.status ?? 'PUBLISHED';
@@ -1351,18 +1367,20 @@ export class PrismaApiStore implements ApiStore {
         authorName: input.authorName,
         authorUserId: input.authorUserId ?? null,
         appUrl: input.appUrl ?? null,
+        thumbnailUrl: input.thumbnailUrl ?? null,
         remixAllowed: input.remixAllowed ?? false, // FAIL-CLOSED : jamais remixable sans choix explicite
         licenseId: input.licenseId ?? null,
         licenseText: input.licenseText ?? null,
         licenseTextSha256: input.licenseTextSha256 ?? null,
         piiConsentVersion: input.piiConsentVersion ?? null,
+        // Trace auditable des confirmations de curation (P0-V3-05, réserve #8).
+        rightsConfirmedAt: input.rightsConfirmedAt ?? null,
+        rightsConfirmedBy: input.rightsConfirmedBy ?? null,
+        piiPolicyAcceptedAt: input.piiPolicyAcceptedAt ?? null,
+        piiPolicyAcceptedBy: input.piiPolicyAcceptedBy ?? null,
         // A row published at creation records publishedAt so the detail page
         // can show a real date; a PENDING_REVIEW row leaves it null.
-        publishedAt: input.publishedAt
-          ? new Date(input.publishedAt)
-          : status === 'PUBLISHED'
-            ? new Date()
-            : null,
+        publishedAt: input.publishedAt ? new Date(input.publishedAt) : status === 'PUBLISHED' ? new Date() : null,
       },
     });
 
@@ -2458,6 +2476,84 @@ export class PrismaApiStore implements ApiStore {
     return rows.length;
   }
 
+  async listExpiryCandidateDeployments(options: { take?: number } = {}) {
+    const rows = await this.prisma.deployment.findMany({
+      where: {
+        environmentName: 'production',
+        status: 'READY',
+        provider: 'server',
+        project: { deletedAt: null },
+      },
+      select: {
+        id: true,
+        projectId: true,
+        provider: true,
+        environmentName: true,
+        status: true,
+        createdAt: true,
+        metadata: true,
+        project: {
+          select: {
+            organizationId: true,
+            organization: {
+              select: {
+                subscriptions: {
+                  where: { status: 'ACTIVE' },
+                  select: { plan: { select: { key: true } } },
+                  take: 1,
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+      take: options.take ?? 500,
+    });
+
+    return rows.map((row) => ({
+      id: row.id,
+      projectId: row.projectId,
+      organizationId: row.project?.organizationId,
+      provider: row.provider,
+      environmentName: row.environmentName ?? undefined,
+      status: row.status,
+      createdAt: row.createdAt.toISOString(),
+      planKey: row.project?.organization?.subscriptions?.[0]?.plan?.key,
+      expiredAt: ((row.metadata ?? {}) as Record<string, unknown>)?.expiredAt as string | undefined,
+    }));
+  }
+
+  async listPublishedProjects(organizationId: string) {
+    /*
+     * Une ligne par PROJET, datée de sa publication la plus récente : republier
+     * ne doit pas faire compter le projet deux fois, et l'expiration se calcule
+     * sur la publication la plus récente.
+     */
+    const rows = await this.prisma.deployment.findMany({
+      where: {
+        project: { organizationId, deletedAt: null },
+        environmentName: 'production',
+        status: 'READY',
+      },
+      select: { projectId: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const latest = new Map<string, Date>();
+
+    for (const row of rows) {
+      if (!latest.has(row.projectId)) {
+        latest.set(row.projectId, row.createdAt);
+      }
+    }
+
+    return [...latest.entries()].map(([projectId, publishedAt]) => ({
+      projectId,
+      publishedAt: publishedAt.toISOString(),
+    }));
+  }
+
   async createSnapshot(input: {
     projectId: string;
     label?: string;
@@ -2763,17 +2859,49 @@ export class PrismaApiStore implements ApiStore {
   async getDeploymentOwnerStatus(deploymentId: string) {
     const deployment = await this.prisma.deployment.findUnique({
       where: { id: deploymentId },
-      select: { projectId: true, status: true, project: { select: { deletedAt: true } } },
+      select: {
+        projectId: true,
+        status: true,
+        createdAt: true,
+        environmentName: true,
+        /*
+         * L'org et son abonnement sont nécessaires ICI : l'extinction à 30 jours
+         * d'une publication Starter se décide dans le chemin de SERVICE, pas
+         * seulement dans le compteur.
+         */
+        project: {
+          select: {
+            deletedAt: true,
+            organizationId: true,
+            organization: {
+              select: {
+                // Relation au PLURIEL : on ne retient que l'abonnement ACTIF.
+                subscriptions: {
+                  where: { status: 'ACTIVE' },
+                  select: { status: true, plan: { select: { key: true } } },
+                  take: 1,
+                },
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!deployment) {
       return undefined;
     }
 
+    const subscription = deployment.project?.organization?.subscriptions?.[0];
+
     return {
       projectId: deployment.projectId,
       status: deployment.status,
       projectDeletedAt: deployment.project?.deletedAt ?? null,
+      createdAt: deployment.createdAt.toISOString(),
+      environmentName: deployment.environmentName ?? undefined,
+      organizationId: deployment.project?.organizationId,
+      planKey: subscription?.status === 'ACTIVE' ? subscription.plan?.key : undefined,
     };
   }
 
@@ -2847,6 +2975,48 @@ export class PrismaApiStore implements ApiStore {
         take: 500,
       })
     ).map(mapDeployment);
+  }
+
+  async createReleaseManifest(input: {
+    projectId: string;
+    deploymentId: string;
+    environment: string;
+    version: number;
+    provider: string;
+    artifactKind: 'static-snapshot' | 'server-image';
+    artifactRef: string;
+    artifactDigest: string;
+    storeGeneration?: string;
+    configDigest?: string;
+    dbMigrationPoint?: string;
+  }) {
+    return mapReleaseManifest(
+      await this.prisma.releaseManifest.create({
+        data: {
+          projectId: input.projectId,
+          deploymentId: input.deploymentId,
+          environment: input.environment,
+          version: input.version,
+          provider: input.provider,
+          artifactKind: input.artifactKind,
+          artifactRef: input.artifactRef,
+          artifactDigest: input.artifactDigest,
+          storeGeneration: input.storeGeneration ?? null,
+          configDigest: input.configDigest ?? null,
+          dbMigrationPoint: input.dbMigrationPoint ?? null,
+        },
+      }),
+    );
+  }
+
+  async listReleaseManifests(projectId: string, environment: string, options?: { take?: number }) {
+    return (
+      await this.prisma.releaseManifest.findMany({
+        where: { projectId, environment },
+        orderBy: { version: 'desc' },
+        take: options?.take ?? 100,
+      })
+    ).map(mapReleaseManifest);
   }
 
   async getActiveRateCard() {
@@ -6185,6 +6355,24 @@ function mapDeployment(deployment: any): DeploymentRecord {
     canceledAt: toIso(deployment.canceledAt),
     createdAt: toIso(deployment.createdAt)!,
     updatedAt: toIso(deployment.updatedAt),
+  };
+}
+
+function mapReleaseManifest(row: any): ReleaseManifestRecord {
+  return {
+    id: row.id,
+    projectId: row.projectId,
+    deploymentId: row.deploymentId,
+    environment: row.environment,
+    version: row.version,
+    provider: row.provider,
+    artifactKind: row.artifactKind,
+    artifactRef: row.artifactRef,
+    artifactDigest: row.artifactDigest,
+    storeGeneration: row.storeGeneration ?? undefined,
+    configDigest: row.configDigest ?? undefined,
+    dbMigrationPoint: row.dbMigrationPoint ?? undefined,
+    createdAt: toIso(row.createdAt)!,
   };
 }
 

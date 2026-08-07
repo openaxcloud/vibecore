@@ -2,6 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { createReadStream, existsSync, readFileSync } from 'node:fs';
 import { lstat, mkdir, readdir, readFile, readlink, realpath, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { createServer as createNetServer } from 'node:net';
 import { networkInterfaces, type NetworkInterfaceInfo } from 'node:os';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { Readable } from 'node:stream';
@@ -189,6 +190,30 @@ export function sanitizedChildEnv(
   }
 
   /*
+   * The agent's own control port (PORT — baked into the agent image as 8080)
+   * leaks into every child via process.env. A dev server that HONORS PORT
+   * (Express, CRA, Next, a bare node:http `listen(process.env.PORT)`) would then
+   * try to bind the agent's control port and crash-loop on EADDRINUSE — never
+   * listening, never appearing in /ports, so the preview never comes up. (A Vite
+   * app escapes only because Vite ignores PORT and we pin it to 5173 via args.)
+   * In the preview env (VITE_HMR_CLIENT_PORT is injected there) DELETE the
+   * inherited control port so a PORT-honoring framework falls back to its own
+   * default (3000, etc.) — surfaced by /ports and reachable via its own preview
+   * host — instead of colliding with the agent. We must NOT repoint it at Vite's
+   * pinned port (5173): a project that runs BOTH Vite and a PORT-honoring helper
+   * (or any second server) would then have the helper bind 5173 first and make
+   * the Vite `--strictPort` launch die with "Port 5173 is already in use". An
+   * explicit `--port`/`-p` flag still wins because frameworks read PORT only as a
+   * default. No-op outside the preview env.
+   */
+  const agentControlPort = Number(process.env.PORT) || 8080;
+  const childPort = Number(env.PORT);
+
+  if (env.VITE_HMR_CLIENT_PORT && Number.isFinite(childPort) && childPort === agentControlPort) {
+    delete env.PORT;
+  }
+
+  /*
    * Activate the shared Nix toolchain (Nix v2 signed catalog) so a Python/Go
    * project's `python`, `uv`, `pip`, `virtualenv`, `go` resolve automatically —
    * no manual venv-path munging, no per-project setup. The alpine base image has
@@ -275,7 +300,14 @@ export function nixToolchainBinDirs(catalogPath: string = NIX_CATALOG_PATH): str
  * their own ports and which would choke on `--strictPort` — are left untouched, as
  * are `vite build`/`vite preview` and any command already carrying an explicit port.
  */
-export const VITE_DEV_PIN_ARGS = ['--port', '5173', '--strictPort', '--host'] as const;
+/**
+ * The port the preview proxy targets for a Vite app and where the dev server is
+ * pinned. Single-sourced so the `--port` pin and the child-env `PORT` repoint
+ * (sanitizedChildEnv) can never drift apart.
+ */
+export const PREVIEW_DEV_PORT = 5173;
+
+export const VITE_DEV_PIN_ARGS = ['--port', String(PREVIEW_DEV_PORT), '--strictPort', '--host'] as const;
 
 const PACKAGE_MANAGER_BINS = new Set(['npm', 'pnpm', 'yarn', 'bun']);
 const RUNNER_SUBCOMMANDS = new Set(['exec', 'dlx', 'x']);
@@ -521,50 +553,157 @@ export function pinnedDevServerPort(spawnArgs: readonly string[]): number | null
   return Number.isInteger(port) && port > 0 && port <= 65535 ? port : null;
 }
 
-/**
- * Idempotent dev-server (re)start. A Vite dev command is pinned to 5173 with
- * `--strictPort`, so if a PRIOR dev server still holds the port the new spawn dies
- * immediately with "Port 5173 already in use" — the exact crash that turned the
- * IDE's preview retry into an endless reload with a blank app (the dev server
- * never comes back). Before launching a pinned dev command, SIGKILL any tracked
- * dev server already pinned to the SAME port (whole process group, so vite's
- * esbuild children die too) and give the kernel a beat to release the socket, so
- * the restart always binds cleanly instead of crash-looping.
+/*
+ * Per-port serialization for pinned dev-server starts. Two dev-server launches
+ * that race (the auto-run-preview boot AND an explicit "Run", or a reseed restart
+ * overlapping a user start) can BOTH pass the conflict-heal while the port is
+ * momentarily free and then BOTH reach the `--strictPort` bind → one crashes with
+ * "Port <n> already in use". Chaining each pinned start for a given port behind
+ * the previous one turns a concurrent double-start into a clean sequential
+ * restart. Keyed by port; the map holds at most a couple of entries.
  */
-async function killStalePinnedDevServers(processes: Map<string, ProcessRecord>, spawnArgs: readonly string[]) {
+const pinnedDevPortLocks = new Map<number, Promise<void>>();
+
+/*
+ * Authoritative "is this port free?" check: briefly bind it ourselves. Works on
+ * every platform (no /proc dependency) and, unlike reading /proc/net/tcp, reflects
+ * the true bindability the strictPort dev-server launch is about to test — including
+ * the short post-SIGKILL window where a dead holder's socket is not yet released.
+ * Binds to 0.0.0.0 so it collides with a dev server bound on any local interface.
+ */
+async function isPortBindable(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const probe = createNetServer();
+    probe.once('error', () => resolve(false));
+    probe.listen(port, '0.0.0.0', () => {
+      probe.close(() => resolve(true));
+    });
+  });
+}
+
+export async function acquirePinnedDevPortLock(port: number): Promise<() => void> {
+  const prior = pinnedDevPortLocks.get(port) ?? Promise.resolve();
+
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+
+  // The next acquirer waits until THIS holder releases.
+  const chained = prior.then(() => held);
+  pinnedDevPortLocks.set(port, chained);
+
+  await prior.catch(() => undefined);
+
+  return () => {
+    release();
+    // Drop the entry once we are the tail, so the map never grows unbounded.
+    if (pinnedDevPortLocks.get(port) === chained) {
+      pinnedDevPortLocks.delete(port);
+    }
+  };
+}
+
+/**
+ * Guarantee the pinned dev-server port is FREE before a `--strictPort` launch.
+ *
+ * A Vite dev command is pinned to 5173 with `--strictPort`, so if ANYTHING still
+ * holds the port the new spawn dies immediately with "Port 5173 already in use" —
+ * the crash that turns the IDE's preview retry into an endless reload with a blank
+ * app (the dev server never comes back). Two classes of holder cause it:
+ *   1. a TRACKED prior dev server (normal restart) — killed by command marker;
+ *   2. an UNTRACKED holder the marker misses — an orphan left when the agent
+ *      process restarted (pod alive), a dev server started from the terminal, or
+ *      a command whose marker didn't match. killStale used to ignore these, so the
+ *      restart crash-looped.
+ * Kill the tracked ones (whole process group, so vite's esbuild children die too),
+ * then ACTIVELY confirm the socket is released — and if an untracked holder
+ * remains, resolve its pid from /proc and SIGKILL it — retrying briefly until the
+ * port is free. Linux-only for step 2 (/proc); on a dev host readListeningPorts
+ * yields nothing, so it falls back to the tracked kill + settle.
+ */
+export async function killStalePinnedDevServers(
+  processes: Map<string, ProcessRecord>,
+  spawnArgs: readonly string[],
+): Promise<(() => void) | undefined> {
   const port = pinnedDevServerPort(spawnArgs);
 
   if (port === null) {
-    return;
+    return undefined;
   }
 
-  const marker = `--port ${port} --strictPort`;
-  const stale = [...processes.values()].filter((record) => record.command.includes(marker));
+  /*
+   * Take the per-port lock BEFORE freeing the port and hold it across the caller's
+   * spawn (the caller releases it a beat after spawning), so a concurrent pinned
+   * start can't free-then-bind the same port in the window between our free and
+   * our bind. On any failure here, release before rethrowing so the lock can't leak.
+   */
+  const release = await acquirePinnedDevPortLock(port);
 
-  if (stale.length === 0) {
-    return;
-  }
+  try {
+    const marker = `--port ${port} --strictPort`;
+    const stale = [...processes.values()].filter((record) => record.command.includes(marker));
 
-  for (const record of stale) {
-    try {
-      if (record.process.pid) {
-        process.kill(-record.process.pid, 'SIGKILL');
-      } else {
-        record.process.kill('SIGKILL');
-      }
-    } catch {
+    for (const record of stale) {
       try {
-        record.process.kill('SIGKILL');
+        if (record.process.pid) {
+          process.kill(-record.process.pid, 'SIGKILL');
+        } else {
+          record.process.kill('SIGKILL');
+        }
       } catch {
-        // already exited
+        try {
+          record.process.kill('SIGKILL');
+        } catch {
+          // already exited
+        }
       }
+
+      processes.delete(record.id);
     }
 
-    processes.delete(record.id);
-  }
+    /*
+     * Confirm the socket is actually BINDABLE before returning (the strictPort bind
+     * is about to run). We probe by briefly binding the port ourselves — authoritative
+     * and cross-platform, and it also absorbs the short window after a SIGKILL where
+     * the holder is dead but the socket has not been released yet (the old fixed
+     * 600ms settle). While it is still held, resolve the owning pid from /proc and
+     * SIGKILL that untracked orphan too. Bounded (~1.8s) so a launch never hangs; the
+     * agent runs alone in its pod, so the only thing that binds this port is a user
+     * dev server, safe to reclaim.
+     */
+    for (let attempt = 0; attempt < 12; attempt++) {
+      if (await isPortBindable(port)) {
+        break; // free — safe to bind
+      }
 
-  // Brief pause so the OS releases the listening socket before the strictPort bind.
-  await new Promise((settle) => setTimeout(settle, 600));
+      // Still held: find whoever LISTENs on it (Linux /proc) and kill the orphan.
+      const listening = await readListeningPorts();
+      const inode = listening.get(port);
+      const pid = inode !== undefined ? (await readSocketInodeToPid()).get(inode) : undefined;
+
+      if (pid !== undefined && pid !== process.pid) {
+        try {
+          process.kill(-pid, 'SIGKILL');
+        } catch {
+          try {
+            process.kill(pid, 'SIGKILL');
+          } catch {
+            // already gone; the next probe will confirm the socket is free
+          }
+        }
+      }
+
+      // Give the kernel a beat to release the socket before re-probing / binding.
+      await new Promise((settle) => setTimeout(settle, 150));
+    }
+
+    // Held on success — the caller releases it shortly after the strictPort spawn.
+    return release;
+  } catch (error) {
+    release();
+    throw error;
+  }
 }
 
 export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
@@ -1609,6 +1748,18 @@ function rethrowFsError(error: unknown): never {
   }
 
   /*
+   * `/files/create` writes with flag 'wx', so creating a name that already
+   * exists is an ordinary, expected conflict — not a server fault. Left
+   * uncoded it escaped as a 500 and the API relabelled it
+   * WORKSPACE_AGENT_REQUEST_FAILED (502), which is the *dead pod* signal: the
+   * IDE showed "Internal server error" for "New file" on an existing name, and
+   * the 502 also trips the local-runtime fallback in dev.
+   */
+  if (code === 'EEXIST') {
+    throw Object.assign(new Error('File already exists'), { statusCode: 409, code: 'EEXIST' });
+  }
+
+  /*
    * Disk full / quota exceeded must surface as a distinct, actionable status —
    * otherwise an uncoded 500 bubbles up as a generic WORKSPACE_AGENT_REQUEST_FAILED
    * 502 on the API side (indistinguishable from a dead pod, and it wrongly
@@ -1980,8 +2131,16 @@ async function runCommand(
   // Force a Vite dev server onto 5173 in the preview env (no-op otherwise). See injectViteDevArgs.
   const spawnArgs = pinViteDevArgs(cwd, command, normalizedArgs);
 
-  // Idempotent restart: free the pinned port from a prior dev server first (see runCommandStream).
-  await killStalePinnedDevServers(options.processes, spawnArgs);
+  // Idempotent restart: free the pinned port from a prior/orphan dev server, under a
+  // per-port lock held across the spawn below (see runCommandStream + killStalePinnedDevServers).
+  const releasePinnedLock = await killStalePinnedDevServers(options.processes, spawnArgs);
+
+  // Release the port lock a beat after the spawn so this child claims the port before
+  // a concurrent pinned start's port-free check runs. Scheduled now so it fires even if
+  // spawn throws (no deadlock).
+  if (releasePinnedLock) {
+    setTimeout(releasePinnedLock, 1200);
+  }
 
   const id = createHash('sha256')
     /*
@@ -2178,11 +2337,19 @@ async function runCommandStream(
   const spawnArgs = pinViteDevArgs(cwd, command, normalizedArgs);
 
   /*
-   * Idempotent restart: tear down any prior dev server still pinned to this port
-   * so the strictPort spawn below never dies on "port already in use" (the crash
-   * that stranded the preview on an endless reload).
+   * Idempotent restart: tear down any prior/orphan dev server holding this port,
+   * under a per-port lock held across the spawn below, so the strictPort spawn never
+   * dies on "port already in use" (the crash that stranded the preview on an endless
+   * reload) — including when two starts race or an orphan survived an agent restart.
    */
-  await killStalePinnedDevServers(options.processes, spawnArgs);
+  const releasePinnedLock = await killStalePinnedDevServers(options.processes, spawnArgs);
+
+  // Release the port lock a beat after the spawn so this child claims the port before
+  // a concurrent pinned start's port-free check runs. Scheduled now so it fires even if
+  // spawn throws (no deadlock).
+  if (releasePinnedLock) {
+    setTimeout(releasePinnedLock, 1200);
+  }
 
   const id = createHash('sha256')
     // randomUUID() guards against same-millisecond id collisions (see runCommand).

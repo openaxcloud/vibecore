@@ -48,6 +48,77 @@ describe('preview-proxy', () => {
     expect(response.body).toContain('Starting your app');
   });
 
+  it('serves the holding page (not a silent blank) when the dev server answers a 0-byte 404 (index.html not yet synced)', async () => {
+    // Vite serves `GET /` as a 404 with an empty body while its index.html has not
+    // yet landed on disk; the port is already LISTENING so /ports reports ready.
+    const fetchImpl = (async () =>
+      new Response(null, { status: 404 })) as unknown as typeof fetch;
+
+    const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/p/ws_1/5173/',
+      headers: { accept: 'text/html,*/*', 'sec-fetch-dest': 'iframe' },
+    });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.headers['content-type']).toContain('text/html');
+    expect(response.headers['retry-after']).toBe('2');
+    expect(response.body).toContain('Starting your app');
+  });
+
+  it('serves the holding page when the dev server is still booting (503, empty body) for a document nav', async () => {
+    const fetchImpl = (async () =>
+      new Response(null, { status: 503 })) as unknown as typeof fetch;
+
+    const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/p/ws_1/5173/',
+      headers: { accept: 'text/html', 'sec-fetch-dest': 'document' },
+    });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.body).toContain('Starting your app');
+  });
+
+  it('passes through a REAL app 404 page (text/html with a body) unchanged — never masks it', async () => {
+    const fetchImpl = (async () =>
+      new Response('<!doctype html><title>Not found</title><h1>404 — no such route</h1>', {
+        status: 404,
+        headers: { 'content-type': 'text/html; charset=utf-8' },
+      })) as unknown as typeof fetch;
+
+    const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/p/ws_1/5173/no-such-route',
+      headers: { accept: 'text/html', 'sec-fetch-dest': 'document' },
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.body).toContain('404 — no such route');
+  });
+
+  it('passes through a sub-resource 404 (script/XHR) unchanged — only document navs get the holding page', async () => {
+    const fetchImpl = (async () =>
+      new Response(null, { status: 404 })) as unknown as typeof fetch;
+
+    const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/p/ws_1/5173/assets/missing.js',
+      headers: { accept: '*/*', 'sec-fetch-dest': 'script' },
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.body).not.toContain('Starting your app');
+  });
+
   it('still returns a JSON error for asset/XHR sub-requests when the dev server is unreachable', async () => {
     const fetchImpl = (async () => {
       throw new Error('connect ECONNREFUSED 127.0.0.1:4173');

@@ -2882,6 +2882,20 @@ describe('SaaS API', () => {
 
     await store.upsertSubscription({ organizationId: auth.organization.id, planKey: 'free', status: 'ACTIVE' });
 
+    /*
+     * Le plan gratuit n'a PLUS de plafond de projets inventé (l'ancien « 3 »
+     * était sans source). Ce test porte sur le MÉCANISME de quota et sur les
+     * overrides : on pose donc explicitement un plafond administratif de 3, puis
+     * on vérifie qu'il bloque et qu'un override ultérieur le relève.
+     */
+    await store.createQuotaOverride({
+      organizationId: auth.organization.id,
+      key: 'projects.count',
+      limit: 3,
+      reason: 'plafond administratif pour ce test',
+      createdByUserId: auth.user.id,
+    });
+
     const projectNames = ['One', 'Two', 'Three'];
 
     for (const name of projectNames) {
@@ -2932,6 +2946,7 @@ describe('SaaS API', () => {
       reason: 'contract expansion',
       createdByUserId: auth.user.id,
     });
+
 
     const allowed = await app.inject({
       method: 'POST',
@@ -3369,7 +3384,11 @@ describe('SaaS API', () => {
       });
       expect(billing.statusCode).toBe(200);
       expect(billing.json().plan.key).toBe('free');
-      expect(billing.json().limits['projects.count']).toBe(3);
+      /*
+       * Plus de plafond de projets inventé sur le plan gratuit : la valeur
+       * annoncée doit être « pas de plafond d'offre », pas « 3 ».
+       */
+      expect(billing.json().limits['projects.count']).toBeGreaterThan(1000);
     } finally {
       process.env.STRIPE_WEBHOOK_SECRET = previousSecret;
       await app.close();
@@ -5608,6 +5627,110 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
         command: 'pnpm',
         args: ['add', '-D', 'left-pad', '@scope/util@^1.2.0'],
       });
+    } finally {
+      await runtime.close();
+      await app.close();
+    }
+  });
+
+  it('installs into the workspace the caller names, not the deterministic per-user pod', async () => {
+    const store = new TestApiStore();
+    const projectStorage = new MemoryProjectStorage();
+    const runtime = await startRuntimeServices({ commandStdout: 'added 1 package in 1s\n' });
+    const app = await buildTestApiApp({ store, projectStorage });
+    const auth = await register(app, { email: 'pkg-ws@example.com', organizationName: 'Package Workspace Org' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Package Workspace Project' },
+    });
+
+    const projectId = project.json().project.id as string;
+
+    /*
+     * An explicitly created workspace gets a cuid, NOT the deterministic
+     * `ws-<hash>` id. The Packages panel resolves and displays this record (and
+     * offers a workspace selector), so the install has to land in this pod.
+     * Before the fix the route ignored the panel's workspace and derived the
+     * per-user id from the projectId, hitting a pod that does not exist — every
+     * install 502'd while the panel still reported success.
+     */
+    const workspace = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/workspaces`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Panel workspace' },
+    });
+
+    const workspaceId = workspace.json().workspace.id as string;
+    expect(workspaceId).not.toBe(deterministicRuntimeWorkspaceId(projectId, auth.user.id));
+
+    await projectStorage.writeFiles(projectId, [{ path: 'package.json', content: '{\n  "name": "app"\n}\n' }]);
+
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/projects/${projectId}/packages/install`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { packages: ['lodash'], workspaceId },
+      });
+
+      expect(response.statusCode).toBe(201);
+      expect(response.json().workspaceId).toBe(workspaceId);
+      expect(runtime.commandBodies).toHaveLength(1);
+      expect(runtime.commandBodies[0]).toMatchObject({ command: 'npm', args: ['install', 'lodash'] });
+    } finally {
+      await runtime.close();
+      await app.close();
+    }
+  });
+
+  it('refuses a workspace id that belongs to a different project', async () => {
+    const store = new TestApiStore();
+    const projectStorage = new MemoryProjectStorage();
+    const runtime = await startRuntimeServices();
+    const app = await buildTestApiApp({ store, projectStorage });
+    const auth = await register(app, { email: 'pkg-x@example.com', organizationName: 'Package Cross Org' });
+
+    const makeProject = async (name: string) => {
+      const created = await app.inject({
+        method: 'POST',
+        url: `/orgs/${auth.organization.id}/projects`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { name },
+      });
+
+      return created.json().project.id as string;
+    };
+
+    const targetProjectId = await makeProject('Target');
+    const otherProjectId = await makeProject('Other');
+
+    const otherWorkspace = await app.inject({
+      method: 'POST',
+      url: `/projects/${otherProjectId}/workspaces`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Other workspace' },
+    });
+
+    try {
+      /*
+       * Both projects belong to the caller, so permission checks alone would let
+       * this through — the pairing itself has to be rejected or an install could
+       * be aimed at another project's pod.
+       */
+      const response = await app.inject({
+        method: 'POST',
+        url: `/projects/${targetProjectId}/packages/install`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { packages: ['lodash'], workspaceId: otherWorkspace.json().workspace.id },
+      });
+
+      expect(response.statusCode).toBe(403);
+      expect(response.json().code).toBe('WORKSPACE_PROJECT_MISMATCH');
+      expect(runtime.calls).not.toContain('POST /commands/run');
     } finally {
       await runtime.close();
       await app.close();

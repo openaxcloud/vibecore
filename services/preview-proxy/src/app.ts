@@ -303,6 +303,46 @@ export function parseServerDeployHost(
 }
 
 /*
+ * STATIC-deploy host (`s-<deploymentId>.<previewDomain>`) — LAUNCH-BLOCKER fix
+ * 2026-08-01. A published static app used to be served from the API origin,
+ * which forces an opaque `CSP: sandbox` (no allow-same-origin) to strip the
+ * ambient cookie authority; that breaks localStorage and the SPA renders BLANK.
+ * Giving each deployment its own origin removes the ambient authority by
+ * construction (the session cookie is host-only on the API host), so the app
+ * can run with a real origin. Same label grammar as `d-` and never collides
+ * with it or with a `<ws>-<port>` preview host.
+ */
+export function parseStaticDeployHost(
+  hostHeader: string | undefined,
+  previewDomain: string | undefined,
+): { deploymentId: string } | null {
+  if (!hostHeader || !previewDomain) {
+    return null;
+  }
+
+  const host = hostHeader.split(':')[0].trim().toLowerCase();
+
+  const suffix = `.${previewDomain
+    .trim()
+    .toLowerCase()
+    .replace(/^\.+|\.+$/g, '')}`;
+
+  if (suffix === '.' || !host.endsWith(suffix)) {
+    return null;
+  }
+
+  const label = host.slice(0, host.length - suffix.length);
+
+  if (!label || label.includes('.')) {
+    return null;
+  }
+
+  const match = /^s-([a-z0-9]{6,})$/.exec(label);
+
+  return match ? { deploymentId: match[1] } : null;
+}
+
+/*
  * Build the in-cluster upstream base URL for a server deployment from the
  * template (default: the workspace-manager's `app-<id>` Service on port 80).
  * Returns null when the substituted value is not a usable http(s) URL so a bad
@@ -599,6 +639,23 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
 
     request.log.warn({ event: 'preview.blank', url }, 'preview served but the app never mounted (#root empty)');
 
+    /*
+     * BLOCKER #5: relay the blank signal to the api so /ports readiness stops
+     * reporting this port ready (the port probe alone can't see a blank DOM).
+     * The beacon lands on the preview host `<ws>-<port>.<previewDomain>`, so the
+     * (workspaceId, port) come straight from the request Host. Best-effort: a
+     * missing api url/secret or a failed POST just falls back to the log above.
+     */
+    const parsedHost = parsePreviewHost(request.headers.host, previewDomain);
+
+    if (parsedHost && apiBaseUrl && proxySharedSecret) {
+      void fetchImpl(`${apiBaseUrl}/internal/preview/beacon`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${proxySharedSecret}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ workspaceId: parsedHost.workspaceId, port: Number(parsedHost.port), status: 'blank' }),
+      }).catch(() => undefined);
+    }
+
     return reply.code(204).send();
   });
 
@@ -617,6 +674,103 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
    * 'gone' → the manager says the Deployment does not exist (build failed and
    * was torn down, or deleted) — a terminal state page, never a wake loop.
    */
+  /*
+   * Cache d'état de service, très court.
+   *
+   * Sans cache, chaque requête d'une app déployée ajouterait un aller-retour
+   * vers l'API — inacceptable sur un chemin public à fort trafic. Avec un cache
+   * long, une extinction mettrait des minutes à prendre effet. 15 s tranche :
+   * l'app s'éteint en quelques secondes et l'API n'est sollicitée qu'une fois
+   * par fenêtre et par déploiement.
+   */
+  /*
+   * Cache d'état de service, avec DEUX régimes distincts — la dissymétrie est
+   * délibérée et porte tout l'invariant.
+   *
+   *  - « expiré » est COLLANT et sans expiration. L'extinction est MONOTONE :
+   *    une publication éteinte ne redevient jamais vivante (la republication crée
+   *    un NOUVEAU déploiement, donc un autre id). Une fois le verdict connu, une
+   *    panne de l'API ne doit plus jamais pouvoir rouvrir l'accès.
+   *  - « vivant » est caché avec un TTL court. Il doit être revérifié, puisque
+   *    c'est l'état qui, lui, peut changer.
+   */
+  const expiredDeployments = new Set<string>();
+  const liveUntil = new Map<string, number>();
+  const LIVE_CACHE_TTL_MS = 15_000;
+
+  /** Verdict du garde. `unknown` ⇒ on ne sait pas, donc on ne sert pas. */
+  type ServingVerdict = 'live' | 'expired' | 'unknown';
+
+  /**
+   * État de service d'une publication SERVER.
+   *
+   * Hiérarchie des réponses, du plus sûr au plus disponible :
+   *  1. connu expiré  -> `expired`, définitivement, sans interroger personne ;
+   *  2. connu vivant et frais -> `live` ;
+   *  3. sinon on interroge l'API ;
+   *  4. API injoignable ET aucun état frais -> `unknown`.
+   *
+   * `unknown` ne sert PAS l'application : un workload potentiellement expiré ne
+   * doit jamais renvoyer d'octets applicatifs. Le garde reste néanmoins une
+   * défense SECONDAIRE — l'autorité d'extinction est l'arrêt du workload côté
+   * manager, qui ne dépend pas de ce chemin.
+   */
+  const resolveServingVerdict = async (deploymentId: string): Promise<ServingVerdict> => {
+    // (1) Verdict collant : plus rien ne peut le contredire.
+    if (expiredDeployments.has(deploymentId)) {
+      return 'expired';
+    }
+
+    if (!apiBaseUrl) {
+      /*
+       * Sans API configurée (dev, tests unitaires du proxy), le garde est hors
+       * service : on laisse passer et l'extinction repose entièrement sur l'arrêt
+       * du workload. C'est une absence de configuration, pas un état indéterminé.
+       */
+      return 'live';
+    }
+
+    // (2) Vivant et encore frais.
+    const freshUntil = liveUntil.get(deploymentId);
+
+    if (freshUntil && Date.now() < freshUntil) {
+      return 'live';
+    }
+
+    // (3) Interroger l'autorité.
+    try {
+      const response = await fetchImpl(
+        `${apiBaseUrl}/deployments/${encodeURIComponent(deploymentId)}/serving-state`,
+        { method: 'GET', headers: { accept: 'application/json' } },
+      );
+
+      if (!response.ok) {
+        return 'unknown';
+      }
+
+      const body = (await response.json()) as { state?: string };
+
+      if (body?.state === 'expired') {
+        expiredDeployments.add(deploymentId);
+        liveUntil.delete(deploymentId);
+
+        return 'expired';
+      }
+
+      if (body?.state === 'live') {
+        liveUntil.set(deploymentId, Date.now() + LIVE_CACHE_TTL_MS);
+
+        return 'live';
+      }
+
+      // `not-found` ou réponse inattendue : on ne sait pas, donc on ne sert pas.
+      return 'unknown';
+    } catch {
+      // (4) API injoignable et aucun état frais : indéterminé.
+      return 'unknown';
+    }
+  };
+
   const wakeServerDeploy = async (deploymentId: string): Promise<'ready' | 'starting' | 'gone'> => {
     if (!serverDeployManagerUrl) {
       return 'starting';
@@ -722,6 +876,132 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
    * `alreadyWoke` guards the scale-to-zero retry: on an unreachable upstream we
    * wake the deployment once and re-enter; the flag prevents a wake loop.
    */
+  /*
+   * STATIC-deploy host (`s-<id>.<previewDomain>`) → the API's public artifact
+   * route, served in-cluster. LAUNCH-BLOCKER fix 2026-08-01: the published app
+   * gets its OWN origin, so it no longer needs the opaque sandbox that broke
+   * localStorage and blanked every storage-using SPA.
+   *
+   * The public Host is forwarded as `x-forwarded-host` so the API knows the
+   * request landed on the dedicated origin and may grant `allow-same-origin`.
+   * A browser cannot be made to send that header on a top-level navigation, so
+   * a document loaded straight from the API origin can never obtain the flag.
+   */
+  const handleStaticDeployRequest = async (
+    request: FastifyRequest,
+    reply: FastifyReply,
+    deploymentId: string,
+  ): Promise<unknown> => {
+    if (!apiBaseUrl) {
+      return reply
+        .code(500)
+        .send({ error: 'Static deploy upstream misconfigured', code: 'STATIC_DEPLOY_UPSTREAM_INVALID' });
+    }
+
+    const rawPath = request.url.startsWith('/') ? request.url : `/${request.url}`;
+    const upstreamBase = `${apiBaseUrl}/static-deployments/${encodeURIComponent(deploymentId)}`;
+
+    let upstream: URL;
+
+    try {
+      upstream = new URL(`${upstreamBase}${rawPath}`);
+    } catch {
+      return reply.code(400).send({ error: 'Invalid deploy path', code: 'STATIC_DEPLOY_PATH_INVALID' });
+    }
+
+    // An app-controlled path can never repoint us off the API origin.
+    if (upstream.origin !== new URL(apiBaseUrl).origin) {
+      return reply.code(400).send({ error: 'Invalid deploy path', code: 'STATIC_DEPLOY_PATH_INVALID' });
+    }
+
+    const publicHost = (request.headers.host ?? '').split(':')[0].trim().toLowerCase();
+    const headers: Record<string, string> = {
+      'x-vibecore-static-deploy': deploymentId,
+      ...(publicHost ? { 'x-forwarded-host': publicHost } : {}),
+    };
+
+    for (const [name, value] of Object.entries(request.headers)) {
+      if (typeof value !== 'string') {
+        continue;
+      }
+
+      const lower = name.toLowerCase();
+
+      if (
+        lower === 'host' ||
+        lower === 'connection' ||
+        lower === 'keep-alive' ||
+        lower === 'transfer-encoding' ||
+        lower === 'content-length' ||
+        lower === 'upgrade' ||
+        lower === 'forwarded' ||
+        lower === 'cookie' ||
+        lower === 'authorization' ||
+        lower.startsWith('x-forwarded-') ||
+        lower.startsWith('x-vibecore-')
+      ) {
+        continue;
+      }
+
+      headers[name] = value;
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
+
+    try {
+      const upstreamResponse = await fetchImpl(upstream, {
+        method: request.method === 'HEAD' ? 'HEAD' : 'GET',
+        headers,
+        signal: controller.signal,
+        redirect: 'manual',
+      });
+
+      clearTimeout(timeout);
+      reply.status(upstreamResponse.status);
+
+      const upstreamWasEncoded = upstreamResponse.headers.has('content-encoding');
+
+      upstreamResponse.headers.forEach((value, name) => {
+        const lower = name.toLowerCase();
+
+        if (
+          lower === 'content-encoding' ||
+          lower === 'transfer-encoding' ||
+          lower === 'connection' ||
+          lower === 'keep-alive' ||
+          (upstreamWasEncoded && lower === 'content-length')
+        ) {
+          return;
+        }
+
+        reply.header(name, value);
+      });
+
+      if (!upstreamResponse.body) {
+        return reply.send();
+      }
+
+      const readable = Readable.fromWeb(upstreamResponse.body as ReadableStream<Uint8Array>);
+      readable.on('close', () => clearTimeout(timeout));
+      reply.raw.on('close', () => {
+        if (!reply.raw.writableFinished) {
+          controller.abort();
+        }
+      });
+
+      return reply.send(readable);
+    } catch (error: any) {
+      clearTimeout(timeout);
+
+      if (error?.name === 'AbortError') {
+        return reply.code(504).send({ error: 'Static deploy upstream timeout', code: 'STATIC_DEPLOY_UPSTREAM_TIMEOUT' });
+      }
+
+      return reply.code(502).send({ error: 'Static deploy upstream failed', code: 'STATIC_DEPLOY_UPSTREAM_FAILED' });
+    }
+  };
+
   const handleServerDeployRequest = async (
     request: FastifyRequest,
     reply: FastifyReply,
@@ -1101,6 +1381,54 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
        */
       clearTimeout(timeout);
 
+      /*
+       * Startup-window guard against a SILENT BLANK preview. A dev server that is
+       * LISTENING but not yet serving its app answers a top-level navigation with
+       * a "not ready" response — most often a 0-byte 404: Vite serves `GET /` as a
+       * 404 with an empty body while its `index.html` has not yet been synced onto
+       * disk (reproduced in situ), and the agent + this proxy forward that 404
+       * verbatim. `/ports` meanwhile reports the port ready (it only means the
+       * socket is open), so the user is left staring at a white screen — the
+       * recurring "Webview blanc" launch-blocker — for as long as the window lasts
+       * (~3 min observed) before the same URL flips to 200.
+       *
+       * For a document/iframe navigation, convert that into the auto-refreshing
+       * "Starting your app…" holding page so the preview is NEVER a silent blank:
+       * it reloads every 2s and shows the real app the instant the server serves
+       * content. Scoped tightly so a genuine app response is never masked — only a
+       * top-level document navigation, only 404/502/503, and only when the body is
+       * empty or not HTML. A real app 404 page (text/html WITH a body) is passed
+       * through unchanged. Sub-resource 404s (scripts/XHR) never match
+       * wantsHtmlDocument, so a missing asset still surfaces to the app as a 404.
+       */
+      const upstreamCt = upstreamResponse.headers.get('content-type') ?? '';
+      const upstreamLenHeader = upstreamResponse.headers.get('content-length');
+      const isNotReadyStatus =
+        upstreamResponse.status === 404 || upstreamResponse.status === 502 || upstreamResponse.status === 503;
+
+      /*
+       * "Not serving the app yet" signature: an EMPTY body (an explicit
+       * content-length: 0, e.g. Vite's 0-byte 404 before index.html lands) OR a
+       * non-HTML body. A real app 404 PAGE is text/html WITH a body — content-type
+       * text/html and no explicit zero length — so it passes through untouched.
+       * (A missing content-length must NOT read as empty, or a real 404 page with
+       * no declared length would be masked.)
+       */
+      const declaredZeroLength = upstreamLenHeader !== null && Number(upstreamLenHeader) === 0;
+      const notServingApp = declaredZeroLength || !upstreamCt.includes('text/html');
+
+      if (isNotReadyStatus && wantsHtmlDocument(request) && notServingApp) {
+        // Release the upstream socket; the not-ready body is empty/irrelevant.
+        await (upstreamResponse.body as ReadableStream<Uint8Array> | null)?.cancel().catch(() => undefined);
+
+        return reply
+          .code(503)
+          .header('content-type', 'text/html; charset=utf-8')
+          .header('retry-after', '2')
+          .header('cache-control', 'no-store')
+          .send(PREVIEW_STARTING_HTML);
+      }
+
       reply.status(upstreamResponse.status);
 
       const contentType = upstreamResponse.headers.get('content-type') ?? '';
@@ -1358,7 +1686,71 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
           return;
         }
 
+        /*
+         * EXTINCTION 30 j du chemin SERVER.
+         *
+         * Le proxy transmettait `d-<id>` DIRECTEMENT au Service in-cluster sans
+         * jamais consulter l'API : une publication Starter expirée restait donc
+         * joignable indéfiniment, alors que le chemin STATIQUE, lui, renvoyait
+         * bien 410. C'est ce trou que ce garde ferme.
+         *
+         * 410 Gone (et non 404) : la ressource a existé et son adresse est
+         * retirée. On refuse AVANT tout forward — aucun octet applicatif ne part
+         * vers l'amont, et l'amont lui-même a été arrêté par le balayage côté API
+         * (le 410 est la façade, l'arrêt est la substance).
+         */
+        const verdict = await resolveServingVerdict(deploy.deploymentId);
+
+        if (verdict === 'expired') {
+          reply.header('cache-control', 'no-store');
+          await reply.code(410).send({
+            error: 'Cette publication a expiré. Republiez le projet pour remettre l\'adresse en ligne.',
+            code: 'PUBLISHED_DEPLOYMENT_EXPIRED',
+          });
+
+          return;
+        }
+
+        if (verdict === 'unknown') {
+          /*
+           * État INDÉTERMINÉ : on ne peut pas établir si cette publication est
+           * encore valide. Servir reviendrait à renvoyer les octets d'un workload
+           * POTENTIELLEMENT expiré — c'est précisément ce qu'on refuse. 503 (et
+           * non 410) : on ne prétend pas qu'elle est éteinte, on dit qu'on ne
+           * sait pas, et l'appelant peut réessayer.
+           */
+          reply.header('cache-control', 'no-store');
+          await reply.code(503).header('retry-after', '5').send({
+            error: "Impossible de vérifier l'état de cette publication. Réessayez dans un instant.",
+            code: 'PUBLICATION_STATE_UNAVAILABLE',
+            retryable: true,
+          });
+
+          return;
+        }
+
         await handleServerDeployRequest(request, reply, deploy.deploymentId);
+
+        return;
+      }
+
+      /*
+       * Static-deployment host (`s-<id>.<previewDomain>`): a published static
+       * app on its own origin. Same precedence rules as the `d-` host above.
+       */
+      const staticDeploy = parseStaticDeployHost(request.headers.host, previewDomain);
+
+      if (staticDeploy) {
+        if (
+          path === '/health' ||
+          path === INSPECTOR_SCRIPT_PATH ||
+          path === REPORTER_SCRIPT_PATH ||
+          path === BLANK_PREVIEW_PATH
+        ) {
+          return;
+        }
+
+        await handleStaticDeployRequest(request, reply, staticDeploy.deploymentId);
 
         return;
       }

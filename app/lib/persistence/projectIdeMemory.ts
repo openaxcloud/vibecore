@@ -49,12 +49,34 @@ export type ProjectIdePaneLeaf = {
 export type ProjectIdePaneSplit = {
   type: 'split';
   id: string;
-  direction: 'horizontal';
+
+  /**
+   * RPL-IDE-001.2: panes split horizontally AND vertically. Older persisted
+   * layouts only stored `'horizontal'`; the field stays a superset so existing
+   * JSON keeps loading (additive migration).
+   */
+  direction: 'horizontal' | 'vertical';
+
+  /** Fraction occupied by `first`, clamped 0.1–0.9. Absent on legacy 50/50 splits. */
+  ratio?: number;
   first: ProjectIdePaneNode;
   second: ProjectIdePaneNode;
 };
 
 export type ProjectIdePaneNode = ProjectIdePaneLeaf | ProjectIdePaneSplit;
+
+/**
+ * RPL-IDE-001.3: a pane that has been popped out of the docked tree into a
+ * floating position within the window. `dockOrigin` lets it return to exactly
+ * where it came from.
+ */
+export interface ProjectIdeFloatingPane {
+  id: string;
+  pane: ProjectIdePaneLeaf;
+  bounds: { x: number; y: number; width: number; height: number };
+  zIndex: number;
+  dockOrigin?: unknown;
+}
 
 export interface ProjectIdeMemory {
   chat?: {
@@ -103,6 +125,26 @@ export interface ProjectIdeMemory {
     activeWorkspacePanel?: ProjectIdeWorkspacePanel;
     paneTree?: ProjectIdePaneNode;
     activePaneId?: string;
+
+    /** RPL-IDE-001.3: floating panes of the primary (window-main) window. */
+    floatingPanes?: ProjectIdeFloatingPane[];
+
+    /**
+     * RPL-IDE-001.1: per-window Project Editor layouts. Each browser tab/window
+     * (keyed by its `peWindow` id) persists its own docked tree + floating panes
+     * so multiple screens stay coherent and independent across reloads. The
+     * legacy `paneTree`/`activePaneId`/`floatingPanes` above remain the source of
+     * truth for `window-main` (back-compat); secondary windows live only here.
+     */
+    projectEditorWindows?: Record<
+      string,
+      {
+        paneTree?: ProjectIdePaneNode;
+        activePaneId?: string;
+        floatingPanes?: ProjectIdeFloatingPane[];
+        updatedAt?: string;
+      }
+    >;
     agentWidth?: number;
     terminalBottomOpen?: boolean;
     terminalBottomHeight?: number;
@@ -971,6 +1013,20 @@ async function persistWithRetry(scope: string): Promise<void> {
         (conflictError as { status?: number }).status = 412;
         lastError = conflictError;
 
+        /*
+         * Back off before re-PUTting the re-merged state. A `continue` here used to
+         * skip the delay at the loop tail, so a sustained conflict (the agent and the
+         * IDE both writing ide-state during generation) fired the whole retry budget
+         * as back-to-back PUTs in a few ms — worsening the race and exhausting the
+         * retries instantly. A short growing delay lets the other writer settle so the
+         * next attempt lands with a fresh version.
+         */
+        const conflictDelay = SAVE_RETRY_DELAYS_MS[attempt] ?? SAVE_RETRY_DELAYS_MS[SAVE_RETRY_DELAYS_MS.length - 1];
+
+        if (conflictDelay !== undefined) {
+          await new Promise((resolve) => setTimeout(resolve, Math.min(conflictDelay, 500)));
+        }
+
         continue;
       }
 
@@ -1016,6 +1072,18 @@ async function persistWithRetry(scope: string): Promise<void> {
     if (delay !== undefined) {
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
+  }
+
+  /*
+   * Exhausted the retries on a persistent 412 conflict. The re-merged state is
+   * already durably held in localStorage + `pendingDirty`, so the next debounced
+   * flush (or the next reopen's reseed) will retry it against a fresh version. A
+   * transient version race is NOT a save failure the user must see — throwing it
+   * here surfaced as an IDE-breaking error toast / unhandled rejection. Return
+   * gracefully instead; genuine non-conflict failures still throw below.
+   */
+  if (lastError instanceof Error && (lastError as { status?: number }).status === 412) {
+    return;
   }
 
   throw lastError instanceof Error ? lastError : new Error('Failed to save project IDE memory');

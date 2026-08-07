@@ -7,6 +7,7 @@ import JSZip from 'jszip';
 import { atom, map, type MapStore, type ReadableAtom, type WritableAtom } from 'nanostores';
 import { toast } from 'react-toastify';
 import { EditorStore } from './editor';
+import { fileHistoryStore } from './fileHistory';
 import { FilesStore, type FileMap, type ProjectStorageFile, type SaveFileOptions } from './files';
 import {
   appendWorkspaceLogLines,
@@ -403,6 +404,9 @@ export class WorkbenchStore {
   configureProject(projectId?: string) {
     const changed = this.#projectId !== projectId;
     this.#projectId = projectId;
+
+    // Bind per-file History (append-only, independent of Git) to this project.
+    fileHistoryStore.configure(projectId);
 
     if (changed) {
       this.#runtimeFilesLoadedProjectId = undefined;
@@ -1899,6 +1903,10 @@ export class WorkbenchStore {
     newUnsavedFiles.delete(filePath);
 
     this.unsavedFiles.set(newUnsavedFiles);
+
+    // Append a File History version for this human save (deduped if unchanged).
+    void fileHistoryStore.capture(filePath, document.value, 'save');
+
     this.#emitFileApplied(filePath, 'user');
   }
 
@@ -1914,7 +1922,36 @@ export class WorkbenchStore {
     const newUnsavedFiles = new Set(this.unsavedFiles.get());
     newUnsavedFiles.delete(filePath);
     this.unsavedFiles.set(newUnsavedFiles);
+
+    // Append a File History version for this programmatic/agent write.
+    void fileHistoryStore.capture(filePath, content, 'agent');
+
     this.#emitFileApplied(filePath, 'user');
+  }
+
+  /**
+   * Restore a File History version append-only: write its content to disk and
+   * record it as a NEW version (`source: 'restore'`) so nothing in the history
+   * is lost. Returns the created version, or undefined if the content already
+   * matches the latest (no-op restore).
+   */
+  async restoreFileVersion(filePath: string, content: string, restoredFromSeq: number) {
+    const documents = this.#editorStore.documents.get();
+
+    if (documents[filePath]) {
+      this.#editorStore.updateFile(filePath, content);
+    }
+
+    await this.#filesStore.saveFile(filePath, content);
+
+    const newUnsavedFiles = new Set(this.unsavedFiles.get());
+    newUnsavedFiles.delete(filePath);
+    this.unsavedFiles.set(newUnsavedFiles);
+
+    const version = await fileHistoryStore.capture(filePath, content, 'restore', { restoredFromSeq });
+    this.#emitFileApplied(filePath, 'user');
+
+    return version;
   }
 
   async saveCurrentDocument() {

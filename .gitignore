@@ -5,6 +5,8 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+# Les preuves de déploiement doivent être suivies malgré la règle *.log ci-dessus.
+!docs/deploy-evidence/**
 
 node_modules
 dist
@@ -82,3 +84,9 @@ docs/instructions/Roadmap.md
 !LAUNCH_READINESS.md
 .qodo
 .vibecore-audit/
+.rebuild/
+
+# responsive-matrix verification output (local only)
+scratch-matrix/
+
+.blk-*.mjs

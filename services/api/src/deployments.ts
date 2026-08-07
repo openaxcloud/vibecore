@@ -1,7 +1,9 @@
 import { spawn } from 'node:child_process';
-import { access, cp, mkdir, readFile, rm, stat } from 'node:fs/promises';
-import { join, resolve, sep } from 'node:path';
+import { createHash } from 'node:crypto';
+import { access, cp, mkdir, readdir, readFile, rm, stat } from 'node:fs/promises';
+import { join, relative, resolve, sep } from 'node:path';
 import { z } from 'zod';
+import { hashSnapshotEntries, type SnapshotEntry } from './release-manifest.js';
 import type { DeploymentRecord, ProjectRecord } from './store.js';
 
 export const deploymentProviders = [
@@ -708,6 +710,20 @@ export function serverDeployHost(deploymentId: string) {
 
 export function buildDeploymentUrl(project: ProjectRecord, deployment: DeploymentRecord) {
   if (deployment.provider === 'static') {
+    /*
+     * Prefer the deployment's DEDICATED origin (`s-<id>.<previewDomain>`): on the
+     * API origin the artifact must be served in an opaque sandbox, which breaks
+     * localStorage and renders storage-using SPAs blank (LAUNCH-BLOCKER
+     * 2026-08-01). Falls back to the legacy same-origin URL when no preview
+     * domain is configured (local dev/tests); that URL keeps working either way
+     * because the route redirects to the dedicated origin when one exists.
+     */
+    const dedicated = staticDeployDedicatedOrigin(deployment.id);
+
+    if (dedicated) {
+      return `${dedicated}/`;
+    }
+
     return `${staticDeployPublicBaseUrl()}/static-deployments/${deployment.id}/`;
   }
 
@@ -1425,6 +1441,100 @@ export async function removeStaticDeploymentSnapshot(deploymentId: string) {
   await rm(target, { recursive: true, force: true });
 }
 
+/** Recursively collect every regular file under `root` as a root-relative path. */
+async function walkFiles(root: string, dir: string, out: string[]): Promise<void> {
+  const entries = await readdir(dir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const child = join(dir, entry.name);
+
+    if (entry.isDirectory()) {
+      await walkFiles(root, child, out);
+    } else if (entry.isFile()) {
+      out.push(relative(root, child));
+    }
+  }
+}
+
+/**
+ * P0-V3-08: deterministic content digest of a static snapshot directory. Hashes
+ * every file's bytes, binds it to its relative path, and folds the sorted set into
+ * one `sha256:…` (see hashSnapshotEntries). This is the manifest's `artifactDigest`
+ * for static releases — recomputing it at rollback time and comparing proves the
+ * restored bytes are byte-identical to what was published (no blind rollback).
+ * Returns undefined if the directory is missing (nothing to hash).
+ */
+export async function computeStaticSnapshotDigest(deploymentId: string): Promise<string | undefined> {
+  const root = staticDeploymentSnapshotDir(deploymentId);
+
+  if (!(await pathExists(root))) {
+    return undefined;
+  }
+
+  const files: string[] = [];
+  await walkFiles(root, root, files);
+
+  const entries: SnapshotEntry[] = [];
+
+  for (const rel of files) {
+    const bytes = await readFile(join(root, rel));
+    entries.push({
+      // Normalise to forward slashes so the digest is stable across platforms.
+      path: rel.split(sep).join('/'),
+      sha256: createHash('sha256').update(bytes).digest('hex'),
+    });
+  }
+
+  return hashSnapshotEntries(entries);
+}
+
+/**
+ * Re-materialise a previous release's static snapshot into a NEW deployment's
+ * snapshot dir so the rollback serves the old bytes under its own id/URL. Copies
+ * from the retained source snapshot; throws SNAPSHOT_SOURCE_MISSING if the source
+ * bytes are gone (the caller turns that into a fail-closed 409 — never a rollback
+ * that serves an empty dir). Rewrites the index.html base path for the new id.
+ */
+export async function restoreStaticSnapshotInto(
+  fromDeploymentId: string,
+  toDeploymentId: string,
+): Promise<{ indexHtmlPath?: string }> {
+  const source = staticDeploymentSnapshotDir(fromDeploymentId);
+
+  if (!(await pathExists(source))) {
+    throw Object.assign(new Error(`Static snapshot for ${fromDeploymentId} is missing on disk.`), {
+      statusCode: 409,
+      code: 'ROLLBACK_SNAPSHOT_SOURCE_MISSING',
+    });
+  }
+
+  const target = staticDeploymentSnapshotDir(toDeploymentId);
+  await rm(target, { recursive: true, force: true });
+  await mkdir(target, { recursive: true });
+  await cp(source, target, { recursive: true });
+
+  const indexHtmlPath = join(target, 'index.html');
+
+  if (await pathExists(indexHtmlPath)) {
+    const original = await readFile(indexHtmlPath, 'utf8');
+    // The source index.html was rewritten for the OLD id's base path; re-point it
+    // to the new id's base so assets resolve under /static-deployments/<newId>/.
+    const restored = original.replaceAll(
+      `/static-deployments/${fromDeploymentId}/`,
+      `/static-deployments/${toDeploymentId}/`,
+    );
+
+    if (restored !== original) {
+      const { writeFile } = await import('node:fs/promises');
+      await writeFile(indexHtmlPath, restored, 'utf8');
+    }
+
+    return { indexHtmlPath };
+  }
+
+  return {};
+}
+
 export function createDeploymentLogs(
   input: CreateDeploymentRequest,
   deployment: DeploymentRecord,
@@ -1492,4 +1602,75 @@ export function createDeploymentLogs(
     level: 'info' as const,
     message: redactDeploymentLog(message, input.envVars),
   }));
+}
+
+/* ---------------------------------------------------------------------------
+ * LAUNCH-BLOCKER (2026-08-01): a deployed static app rendered BLANK for
+ * anonymous visitors.
+ *
+ * Measured cause: the public artifact route is served from the SAME origin as
+ * the authenticated API (`STATIC_DEPLOY_BASE_URL` unset ⇒ fallback
+ * `PUBLIC_API_BASE_URL` = https://api.e-code.ai), which forces a hard
+ * `Content-Security-Policy: sandbox` WITHOUT `allow-same-origin` to strip the
+ * ambient cookie authority. That puts the document in an OPAQUE origin, where
+ * `localStorage`/`sessionStorage` throw SecurityError — every SPA that touches
+ * storage during boot dies before painting, leaving `#root` empty. Reproduced
+ * in a real browser with the exact prod headers: opaque ⇒ SecurityError + empty
+ * root; with `allow-same-origin` ⇒ the app renders.
+ *
+ * Fix: give each deployment its OWN origin `s-<deploymentId>.<previewDomain>`
+ * (the same shape the server deploys already use with `d-<id>`). The session
+ * cookie is host-only on the API host (verified live: `Path=/; Secure;
+ * HttpOnly; SameSite=Lax`, no Domain) and CORS is a strict allowlist, so a
+ * different origin carries NO ambient authority — the sandbox can then keep
+ * `allow-same-origin` (storage works) while cross-origin isolation is what
+ * actually protects the API.
+ */
+
+/** Host label prefix for a static deployment's dedicated origin. */
+export const STATIC_DEPLOY_HOST_PREFIX = 's-';
+
+/**
+ * Dedicated public origin of a static deployment, e.g.
+ * `https://s-<deploymentId>.preview.e-code.ai`. Returns null when no preview
+ * domain is configured (local dev / tests), so callers fall back to the legacy
+ * same-origin URL instead of emitting a broken host.
+ */
+export function staticDeployDedicatedOrigin(deploymentId: string): string | null {
+  const domain = process.env.PREVIEW_DOMAIN?.trim().replace(/^\.+|\.+$/g, '');
+
+  if (!domain || !/^[a-z0-9]{6,}$/i.test(deploymentId)) {
+    return null;
+  }
+
+  return `https://${STATIC_DEPLOY_HOST_PREFIX}${deploymentId.toLowerCase()}.${domain.toLowerCase()}`;
+}
+
+/**
+ * True when the incoming Host is the deployment's dedicated origin. The Host a
+ * browser sends is derived from the URL it navigated to and cannot be forged by
+ * page JS, so this is a safe signal for relaxing the sandbox: a document loaded
+ * from the API origin always reports the API host and therefore stays opaque.
+ */
+export function isDedicatedStaticDeployHost(
+  hostHeader: string | undefined,
+  deploymentId: string,
+  forwardedHost?: string | undefined,
+): boolean {
+  const origin = staticDeployDedicatedOrigin(deploymentId);
+
+  /*
+   * The preview-proxy reaches this route over the in-cluster Service, so the
+   * literal Host is the internal name; it forwards the PUBLIC host as
+   * `x-forwarded-host`. Neither header can be set by page JS on a top-level
+   * navigation, so a document loaded from the API origin can never claim the
+   * dedicated host and thus never obtains `allow-same-origin`.
+   */
+  const candidate = (forwardedHost ?? hostHeader ?? '').split(',')[0];
+
+  if (!origin || !candidate) {
+    return false;
+  }
+
+  return candidate.split(':')[0].trim().toLowerCase() === new URL(origin).hostname;
 }
