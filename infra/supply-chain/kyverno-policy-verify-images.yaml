@@ -1,0 +1,85 @@
+# B7 — admission-time verification that platform images carry a valid cosign
+# signature produced by the Cloud KMS key `ecode-supply-chain/cosign-images`.
+#
+# Scope is deliberately narrow:
+#   * namespace `vibecore` only (the platform services). User workspace pods in
+#     `workspaces` run images built per-publish and are NOT covered here; the
+#     webhook is not even invoked for them (see kyverno-values.yaml layer 1).
+#   * only images from vibecore-prod-containers. Anything else in the namespace
+#     is out of scope rather than implicitly denied, so adding e.g. a sidecar
+#     from another registry does not become an outage.
+#
+# Verification is fully OFFLINE: a static public key, no KMS call and no Rekor
+# transparency-log lookup at admission time (`ignoreTlog: true`, matching
+# `--tlog-upload=false` on the signing side). Admission therefore does not
+# depend on Cloud KMS, sigstore.dev or IAM being reachable.
+#
+# ROLLBACK: set failureAction back to Audit (and webhookConfiguration
+# .failurePolicy back to Ignore). Full removal: `kubectl delete clusterpolicy
+# verify-platform-image-signatures`, which drops the generated webhook rules.
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: verify-platform-image-signatures
+  annotations:
+    policies.kyverno.io/title: Verify platform image signatures (cosign)
+    policies.kyverno.io/category: Supply chain
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/description: >-
+      Platform service images must be signed by the ecode-supply-chain
+      cosign-images Cloud KMS key. Unsigned or foreign-signed images are
+      refused at admission.
+spec:
+  # verifyImages is an admission-time rule; background scanning cannot perform
+  # signature verification, so this is off by design.
+  background: false
+  webhookConfiguration:
+    # PHASE 1 (current): Ignore — a Kyverno outage or an unreachable webhook
+    # cannot block platform pod creation. Flip to Fail only once Audit-phase
+    # PolicyReports prove the webhook is genuinely reached.
+    failurePolicy: Ignore
+  rules:
+    - name: cosign-verify-prod-containers
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - vibecore
+      verifyImages:
+        - type: Cosign
+          imageReferences:
+            - "europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-containers/*"
+          # PHASE 1 (current): Audit — report, do not refuse.
+          failureAction: Audit
+          # required: a matching image with NO signature at all is a failure,
+          # not a silent pass. This is what makes the negative test meaningful.
+          required: true
+          # PHASE 1 (current): false — Kyverno rejects mutateDigest:true while
+          # failureAction is Audit ("mutateDigest must be set to false for
+          # 'Audit' failure action"), since an audited-but-failed image must
+          # still be admitted unmodified. Flips to true together with Enforce,
+          # which pins the verified tag to the digest that was actually
+          # verified so a tag repointed between admission and image pull cannot
+          # swap the content (TOCTOU).
+          mutateDigest: false
+          # Images are referenced by SHA tag by the chart, not by digest; the
+          # mutation above supplies the digest. Requiring a pre-existing digest
+          # would reject every current Deployment.
+          verifyDigest: false
+          attestors:
+            - count: 1
+              entries:
+                - keys:
+                    # Public half of
+                    # projects/vibecore-495216/locations/europe-west9/keyRings/
+                    # ecode-supply-chain/cryptoKeys/cosign-images (version 1).
+                    publicKeys: |-
+                      -----BEGIN PUBLIC KEY-----
+                      MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEC7bB+oj+8EmnkWe3XoC1eHNaIkzd
+                      K89Qz6u8henF2DW4q0No7M9ty2ofFV5DaSeeX7lh0obHoQMA0liueiYKEQ==
+                      -----END PUBLIC KEY-----
+                    signatureAlgorithm: sha256
+                    rekor:
+                      ignoreTlog: true

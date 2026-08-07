@@ -1,0 +1,23 @@
+### Zero-disruption check — Kyverno in the admission path, policy in Audit
+### date: 2026-08-03T13:51:40Z
+
+-- every platform Deployment fully ready --
+   vibecore-vibecore-platform-admin                   2/2
+   vibecore-vibecore-platform-ai-gateway              2/2
+   vibecore-vibecore-platform-api                     4/4
+   vibecore-vibecore-platform-preview-proxy           2/2
+   vibecore-vibecore-platform-screenshotter           1/1
+   vibecore-vibecore-platform-web                     2/2
+   vibecore-vibecore-platform-worker                  1/1
+   vibecore-vibecore-platform-workspace-manager       7/7
+
+-- pods still being admitted through the webhook (recent CronJob pods) --
+   vibecore-vibecore-platform-cron-connector-reconnect-297627l9bqk  Completed 6m42s
+   vibecore-vibecore-platform-workspace-manager-7d55979578-tc9w5    Running 6m10s
+   vibecore-vibecore-platform-cron-siem-deliver-29762750-tckvn      Completed 102s
+   vibecore-vibecore-platform-cron-deploy-reap-29762750-qr8tf       Completed 102s
+
+-- policy / webhook resting state --
+   failureAction  = Audit
+   failurePolicy  = Ignore
+   nsSelector     = {"matchExpressions":[{"key":"kubernetes.io/metadata.name","operator":"In","values":["vibecore"]},{"key":"kubernetes.io/metadata.name","operator":"NotIn","values":["kyverno"]}]}
