@@ -491,8 +491,18 @@ integrationDescribe('barrier reads fail CLOSED on a real database error', () => 
   let deadManager: WorkspaceManager;
 
   beforeAll(() => {
-    const previous = process.env.DATABASE_URL;
-    process.env.DATABASE_URL = 'postgresql://vibecore:gate1_ephemeral@127.0.0.1:32769/does_not_exist_purge52';
+    const previous = process.env.DATABASE_URL!;
+
+    /*
+     * Same host/port/credentials as the live DB, but a database name that cannot
+     * exist — so the failure is a genuine server-side error on a reachable server,
+     * and the test stays portable to whatever DATABASE_URL the replay uses (a
+     * hardcoded host would fail for the wrong reason, or not at all, elsewhere).
+     */
+    const dead = new URL(previous);
+    dead.pathname = '/does_not_exist_purge52_r_p3_06';
+
+    process.env.DATABASE_URL = dead.toString();
     deadPrisma = createDatabaseClient();
     process.env.DATABASE_URL = previous;
 
