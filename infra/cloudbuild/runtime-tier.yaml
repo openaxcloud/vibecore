@@ -269,9 +269,18 @@ steps:
           # Resolve locally from the daemon: the tag was just pushed, so
           # RepoDigests holds the immutable digest without a registry round-trip.
           digest_ref="$(docker inspect --format='{{index .RepoDigests 0}}' "$ref")"
-          REFS="$REFS $digest_ref"
+          # Double-dollar is REQUIRED here. Cloud Build resolves substitutions
+          # over the raw config text (comments included) before the step runs,
+          # and it treats any single-dollar UPPERCASE name as a substitution
+          # key. REFS is neither a built-in nor a `_`-prefixed substitution, so
+          # the single-dollar form makes `gcloud builds submit` reject the whole
+          # config with INVALID_ARGUMENT ("key in the template ... is not a
+          # valid built-in substitution") and the build never starts. Lowercase
+          # shell vars (img, ref, digest_ref) are left alone by the
+          # substituter, which is why only this one bites.
+          REFS="$$REFS $digest_ref"
         done
-        bash scripts/cosign-sign-images.sh $REFS
+        bash scripts/cosign-sign-images.sh $$REFS
 
   # ---- 5. vulnerability scan (non-blocking) ----
   - id: scan-images
