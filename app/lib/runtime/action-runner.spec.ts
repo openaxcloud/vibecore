@@ -260,6 +260,7 @@ describe('ActionRunner abort / start finalization', () => {
     };
 
     runner.addAction(startData);
+
     const runPromise = runner.runAction(startData, false);
     await vi.advanceTimersByTimeAsync(2_000);
     await runPromise;
@@ -267,6 +268,7 @@ describe('ActionRunner abort / start finalization', () => {
 
     // The single tracked launcher was used…
     expect(onStartDevServer).toHaveBeenCalledWith('npm run dev');
+
     // …and NO PTY dev server was spawned → no untracked phantom racing port 5173.
     expect(executeCommand).not.toHaveBeenCalled();
     expect(runner.actions.get()[startData.actionId]?.status).toBe('complete');
@@ -295,6 +297,7 @@ describe('ActionRunner abort / start finalization', () => {
     };
 
     runner.addAction(startData);
+
     const runPromise = runner.runAction(startData, false);
     await vi.advanceTimersByTimeAsync(2_000);
     await runPromise;

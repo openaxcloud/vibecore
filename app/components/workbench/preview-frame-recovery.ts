@@ -122,12 +122,12 @@ export function shouldRunPreviewBootLoop(input: {
   }
 
   return (
-    input.autoStart &&
-    input.workspaceReady &&
-    !input.hasStaticPreview &&
-    input.previewsLength === 0
-    // NOTE: previewRunFailed is intentionally NOT a bail here — a dev-server-absent
-    // 502 on a healthy workspace must keep relaunching, bounded by bootAttempts.
+    input.autoStart && input.workspaceReady && !input.hasStaticPreview && input.previewsLength === 0
+
+    /*
+     * NOTE: previewRunFailed is intentionally NOT a bail here — a dev-server-absent
+     * 502 on a healthy workspace must keep relaunching, bounded by bootAttempts.
+     */
   );
 }
 

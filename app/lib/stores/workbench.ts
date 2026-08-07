@@ -2680,6 +2680,7 @@ export class WorkbenchStore {
 
           this.deployAlert.set(alert);
         },
+
         /*
          * Unify the dev-server launch: the AI's `start` action delegates here
          * instead of typing `npm run dev` into an untracked jsh PTY, so the dev
