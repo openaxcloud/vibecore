@@ -383,4 +383,78 @@ describe('password-protected static deployments (endpoint)', () => {
     });
     expect(gate.statusCode).toBe(503);
   });
+
+  /*
+   * SEC-1b — le fail-open relevé par le contre-audit, prouvé DE BOUT EN BOUT.
+   *
+   * `accessConfigFromMetadata` retombait sur `public` pour tout mode qui n'était
+   * pas exactement `password`. Le cas le plus net est `locked` lui-même : la
+   * décision fail-closed de SEC-1 ne survivait pas à un aller-retour en base — le
+   * déploiement était reservi au monde entier au rechargement suivant.
+   *
+   * Chaque mode est vérifié sur la vraie route de service, avec du contenu réel
+   * sur disque, pour que la preuve ne dépende pas d'un raisonnement sur le code.
+   */
+  const unknownAccessModes = ['private', 'locked', '123', 'password-protected', 'PASSWORD', 'future-mode'];
+
+  for (const [index, mode] of unknownAccessModes.entries()) {
+    it(`SEC-1b: mode d'accès inconnu ${JSON.stringify(mode)} -> 503 verrouillé, JAMAIS public`, async () => {
+      const store = new TestApiStore();
+      const app = await buildApiApp({ emailProvider: new QuietEmailProvider(), store });
+      const reg = await app.inject({
+        method: 'POST',
+        url: '/auth/register',
+        payload: {
+          email: `unknown-mode-${index}@example.com`,
+          password: 'password123',
+          name: 'U',
+          organizationName: 'U Org',
+        },
+      });
+      const auth = reg.json() as { token: string; organization: { id: string } };
+      const proj = await app.inject({
+        method: 'POST',
+        url: `/orgs/${auth.organization.id}/projects`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { name: 'U Project' },
+      });
+      const projectId = (proj.json() as { project: { id: string } }).project.id;
+
+      const deployment = await store.createDeployment({
+        projectId,
+        provider: 'static',
+        environment: 'preview',
+        status: 'READY',
+        url: 'https://example.test/x',
+        metadata: { access: { mode } },
+      });
+      const dir = staticDeploymentSnapshotDir(deployment.id);
+      await mkdir(dir, { recursive: true });
+      await writeFile(join(dir, 'index.html'), '<!doctype html><body>SECRET CONTENT</body>', 'utf8');
+
+      const res = await serve(app, deployment.id);
+
+      expect(res.statusCode).toBe(503);
+      expect(res.statusCode).not.toBe(200);
+      expect((res.json() as { code: string }).code).toBe('DEPLOYMENT_ACCESS_LOCKED');
+
+      // ZÉRO octet applicatif : c'est la propriété qui compte, pas le seul statut.
+      expect(res.body).not.toContain('SECRET CONTENT');
+
+      /*
+       * Un état verrouillé est « gated » : sa réponse ne doit jamais être
+       * réutilisable par un cache partagé pour un autre visiteur.
+       */
+      expect(res.headers['cache-control']).toContain('no-store');
+      expect(String(res.headers.vary ?? '')).toContain('Cookie');
+
+      // Et il n'existe aucun mot de passe capable de le déverrouiller.
+      const gate = await app.inject({
+        method: 'POST',
+        url: `/static-deployments/${deployment.id}/__access`,
+        payload: { password: 'anything' },
+      });
+      expect(gate.statusCode).toBe(503);
+    });
+  }
 });
