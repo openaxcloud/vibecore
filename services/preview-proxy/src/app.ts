@@ -130,6 +130,20 @@ export interface PreviewProxyOptions {
    */
   serverDeployManagerUrl?: string;
   serverDeployManagerSecret?: string;
+
+  /*
+   * How long the proxy is willing to BLOCK a browser request while a deployment
+   * wakes. This must stay comfortably below the ingress `proxy_read_timeout`
+   * (nginx default 60s): the wake used to be awaited for up to 90s, so a server
+   * app that could not become ready (crash loop) blew past the ingress deadline
+   * and the browser got a raw `504 Gateway Time-out` from nginx instead of the
+   * branded holding page — proven live 2026-08-06 (BUG-DEPLOY-003).
+   *
+   * The wake is not lost when this expires: the manager scales the Deployment to
+   * 1 before it starts polling readiness, so the scale-up proceeds server-side
+   * while the auto-refreshing holding page picks the app up on a later refresh.
+   */
+  serverDeployWakeWaitMs?: number;
 }
 
 /*
@@ -477,6 +491,16 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
   const serverDeployManagerSecret =
     options.serverDeployManagerSecret ?? process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
 
+  /*
+   * Client-visible wake budget (see PreviewProxyOptions.serverDeployWakeWaitMs).
+   * Kept well under the ingress read timeout so the branded page always wins the
+   * race against nginx's own gateway error.
+   */
+  const serverDeployWakeWaitMs = Math.max(
+    1_000,
+    options.serverDeployWakeWaitMs ?? (Number(process.env.SERVER_DEPLOY_WAKE_WAIT_MS) || 12_000),
+  );
+
   const enforceTenant = options.enforceTenant ?? process.env.PREVIEW_PROXY_ENFORCE_TENANT === 'true';
   const tenantSecret = options.tenantSecret ?? process.env.PREVIEW_TENANT_SECRET;
   const enforcePrivatePorts = options.enforcePrivatePorts ?? process.env.PREVIEW_ENFORCE_PRIVATE_PORTS === 'true';
@@ -762,8 +786,15 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
             ...(serverDeployManagerSecret ? { authorization: `Bearer ${serverDeployManagerSecret}` } : {}),
           },
 
-          // Wake = scale + pull + install + boot; allow well beyond a normal request.
-          signal: AbortSignal.timeout(90_000),
+          /*
+           * Wake = scale + pull + install + boot, which can take far longer than
+           * this budget. We deliberately stop WAITING at serverDeployWakeWaitMs
+           * and hand the browser the auto-refreshing holding page rather than
+           * holding the connection open past the ingress timeout — the manager
+           * has already scaled the Deployment to 1 by then, so the boot carries
+           * on and a later refresh lands on the live app.
+           */
+          signal: AbortSignal.timeout(serverDeployWakeWaitMs),
         },
       );
 
@@ -976,6 +1007,14 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     reply: FastifyReply,
     deploymentId: string,
     alreadyWoke = false,
+
+    /*
+     * Absolute wall-clock budget for THIS browser request, shared with the
+     * post-wake retry below. Without it the retry started a fresh
+     * requestTimeoutMs window on top of the first attempt plus the wake, and the
+     * total could still outlive the ingress read timeout (BUG-DEPLOY-003).
+     */
+    deadlineAt = Date.now() + requestTimeoutMs + serverDeployWakeWaitMs,
   ): Promise<unknown> => {
     const upstreamBase = serverDeployUpstreamUrl(deploymentId, serverDeployUpstreamTemplate);
 
@@ -1030,7 +1069,10 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     }
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
+
+    // Never wait past the shared deadline — see the `deadlineAt` note above.
+    const attemptTimeoutMs = Math.max(1_000, Math.min(requestTimeoutMs, deadlineAt - Date.now()));
+    const timeout = setTimeout(() => controller.abort(), attemptTimeoutMs);
 
     let streamingHandoff = false;
 
@@ -1091,9 +1133,14 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
 
       return reply.send(readable);
     } catch (error: any) {
-      if (error?.name === 'AbortError') {
-        return reply.code(504).send({ error: 'Deploy upstream timeout', code: 'SERVER_DEPLOY_UPSTREAM_TIMEOUT' });
-      }
+      /*
+       * An AbortError here means the app did not answer inside the attempt
+       * budget — an app that is booting (or wedged) looks exactly like one that
+       * is asleep, so it takes the same wake + holding-page path below rather
+       * than short-circuiting to a bare JSON 504 the browser would render as a
+       * finished page (BUG-DEPLOY-003).
+       */
+      const timedOut = error?.name === 'AbortError';
 
       /*
        * Scale-to-zero wake path: an unreachable upstream (connection refused / no
@@ -1101,13 +1148,13 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
        * Ask the manager to wake it, then retry the forward exactly once. The
        * `alreadyWoke` guard prevents a wake loop if it comes up unreachable again.
        */
-      if (!alreadyWoke) {
+      if (!alreadyWoke && Date.now() < deadlineAt) {
         clearTimeout(timeout);
 
         const woke = await wakeServerDeploy(deploymentId);
 
         if (woke === 'ready') {
-          return handleServerDeployRequest(request, reply, deploymentId, true);
+          return handleServerDeployRequest(request, reply, deploymentId, true, deadlineAt);
         }
 
         if (woke === 'gone') {
@@ -1136,6 +1183,10 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
        */
       if (wantsHtmlDocument(request)) {
         return reply.code(503).type('text/html').header('cache-control', 'no-store').send(PREVIEW_STARTING_HTML);
+      }
+
+      if (timedOut) {
+        return reply.code(504).send({ error: 'Deploy upstream timeout', code: 'SERVER_DEPLOY_UPSTREAM_TIMEOUT' });
       }
 
       return reply

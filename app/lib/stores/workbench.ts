@@ -772,10 +772,12 @@ export class WorkbenchStore {
     }
 
     if (shouldInstall || forceRestart) {
-      // A forced restart always tears down first, so the relaunch below reaches
-      // streamCommand — where the agent's conflict-heal frees port 5173 from ANY
-      // holder (including the untracked jsh-PTY dev server that stopPreviewServer's
-      // tracked-only kill cannot reap) before binding a fresh, tracked dev server.
+      /*
+       * A forced restart always tears down first, so the relaunch below reaches
+       * streamCommand — where the agent's conflict-heal frees port 5173 from ANY
+       * holder (including the untracked jsh-PTY dev server that stopPreviewServer's
+       * tracked-only kill cannot reap) before binding a fresh, tracked dev server.
+       */
       await this.stopPreviewServer();
     } else if (await this.#canShortCircuitToExistingPreview()) {
       this.previewServerState.set({ status: 'running' });
@@ -1042,9 +1044,11 @@ export class WorkbenchStore {
   async restartPreviewServer() {
     await this.stopPreviewServer();
 
-    // forceRestart: an explicit user Run must relaunch for real — punch through a
-    // wedged start guard AND the "reattach to existing" short-circuit, so it can
-    // never be a no-op that adopts a dead/dying preview.
+    /*
+     * forceRestart: an explicit user Run must relaunch for real — punch through a
+     * wedged start guard AND the "reattach to existing" short-circuit, so it can
+     * never be a no-op that adopts a dead/dying preview.
+     */
     return this.startPreviewServer({ forceRestart: true });
   }
 
