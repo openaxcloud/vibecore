@@ -45,27 +45,68 @@ export function deriveDeploymentAccessSecret(baseSecret: string): string {
 }
 
 /**
- * Read the access config off a deployment's metadata JSON, defaulting to PUBLIC.
+ * Read the access config off a deployment's metadata JSON.
  *
- * SEC-1 (fail-closed): a deployment the owner marked `password` whose stored hash
- * is absent/empty must NOT degrade to public — that would silently expose a
- * deployment the owner intended to gate. It becomes `locked` (serves nothing)
- * until a valid password is re-set.
+ * SEC-1 (fail-closed) — ALLOW-LIST, not deny-list. Only two states may serve
+ * content publicly, and both must be recognised POSITIVELY:
+ *
+ *   1. `access` totally absent (or null)  → public — the legitimate default for
+ *      a deployment that was never gated.
+ *   2. `mode === 'public'` explicitly     → public — the owner said so.
+ *   3. `mode === 'password'` + non-empty string hash → password.
+ *   4. ANYTHING ELSE                      → locked (serves nothing, 503).
+ *
+ * The previous shape was `if (mode === 'password') {…} return public`, which
+ * made public the fallback for every unrecognised state: an unknown or future
+ * mode, a non-string mode, a partially-applied migration, corrupted JSON — all
+ * silently world-readable. Worst of all it did not survive its own round-trip:
+ * a deployment this very function had classified `locked` was read back as
+ * PUBLIC, so the SEC-1 fail-closed decision leaked open the moment it was
+ * persisted and re-read.
+ *
+ * Rule of thumb encoded here: an access config we cannot fully understand is
+ * evidence that SOMETHING was configured. Refusing to serve is recoverable
+ * (the owner re-sets the password); serving is not (the content is out).
  */
 export function accessConfigFromMetadata(metadata: unknown): DeploymentAccessConfig {
-  const access = (metadata as { access?: unknown } | null | undefined)?.access as
-    | { mode?: unknown; passwordHash?: unknown }
-    | undefined;
+  const container = metadata as { access?: unknown } | null | undefined;
+  const access = container && typeof container === 'object' ? container.access : undefined;
 
-  if (access && access.mode === 'password') {
-    if (typeof access.passwordHash === 'string' && access.passwordHash.length > 0) {
-      return { mode: 'password', passwordHash: access.passwordHash };
+  // 1. Jamais configuré → public. C'est le seul défaut ouvert légitime.
+  if (access === undefined || access === null) {
+    return { mode: 'public' };
+  }
+
+  /*
+   * Une configuration PRÉSENTE mais inexploitable (chaîne, nombre, tableau) ne
+   * peut pas être traitée comme « pas de configuration » : quelqu'un a écrit
+   * quelque chose là, et on ne sait pas quoi.
+   */
+  if (typeof access !== 'object' || Array.isArray(access)) {
+    return { mode: 'locked' };
+  }
+
+  const { mode, passwordHash } = access as { mode?: unknown; passwordHash?: unknown };
+
+  // 2. Ouverture EXPLICITE — reconnue positivement, jamais par défaut.
+  if (mode === 'public') {
+    return { mode: 'public' };
+  }
+
+  // 3. Protégé : n'est exploitable qu'avec un hash réellement utilisable.
+  if (mode === 'password') {
+    if (typeof passwordHash === 'string' && passwordHash.length > 0) {
+      return { mode: 'password', passwordHash };
     }
 
     return { mode: 'locked' };
   }
 
-  return { mode: 'public' };
+  /*
+   * 4. Tout le reste — `locked` relu depuis la base, mode inconnu ou futur,
+   * mode non-string, valeur corrompue. On refuse de servir.
+   */
+  return { mode: 'locked' };
 }
 
 /** One cookie per deployment so unlocking one app never unlocks another sharing a host. */

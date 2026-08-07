@@ -61,6 +61,94 @@ describe('accessConfigFromMetadata', () => {
     expect(accessConfigFromMetadata({ access: { mode: 'password', passwordHash: '' } }).mode).toBe('locked');
     expect(accessConfigFromMetadata({ access: { mode: 'password', passwordHash: 123 } }).mode).toBe('locked');
   });
+
+  it('reads an EXPLICIT public config as public', () => {
+    // L'ouverture doit être reconnue positivement, pas obtenue par défaut.
+    expect(accessConfigFromMetadata({ access: { mode: 'public' } }).mode).toBe('public');
+  });
+
+  /*
+   * SEC-1b — le fail-open que le contre-audit a trouvé.
+   *
+   * L'ancienne forme était `if (mode === 'password') {…} return public` : PUBLIC
+   * servait de repli à tout état non reconnu. Ces cas ne sont pas théoriques —
+   * `locked` en fait partie, donc la décision fail-closed de SEC-1 ne survivait
+   * même pas à son propre aller-retour de persistance.
+   */
+  describe('SEC-1b: an UNRECOGNISED access config fails closed to locked — never public', () => {
+    const unknownModes = [
+      'private',
+      'locked', // ← relu depuis la base : l'ancien code le rouvrait en public
+      '123',
+      'password-protected', // proche de `password`, mais PAS `password`
+      'PASSWORD', // la casse ne doit pas ouvrir
+      'future-mode-not-yet-known',
+      '',
+    ];
+
+    for (const mode of unknownModes) {
+      it(`mode ${JSON.stringify(mode)} → locked`, () => {
+        const config = accessConfigFromMetadata({ access: { mode } });
+
+        expect(config.mode).toBe('locked');
+        expect(config.mode).not.toBe('public');
+        // Un état verrouillé ne doit jamais transporter de secret exploitable.
+        expect(config.passwordHash).toBeUndefined();
+      });
+    }
+
+    it('a non-string mode → locked', () => {
+      for (const mode of [123, true, null, {}, [], undefined]) {
+        expect(accessConfigFromMetadata({ access: { mode } }).mode, JSON.stringify(mode)).toBe('locked');
+      }
+    });
+
+    it('an access block that is present but not an object → locked', () => {
+      /*
+       * `{ access: 'password' }` est le piège : quelqu'un a écrit quelque chose,
+       * mais pas la forme attendue. Le traiter comme « absent » le rendrait
+       * public.
+       */
+      for (const access of ['password', 'public', 42, true, []]) {
+        expect(accessConfigFromMetadata({ access }).mode, JSON.stringify(access)).toBe('locked');
+      }
+    });
+
+    it('an EMPTY access block (partially applied migration) → locked', () => {
+      expect(accessConfigFromMetadata({ access: {} }).mode).toBe('locked');
+      expect(accessConfigFromMetadata({ access: { passwordHash: 'h' } }).mode).toBe('locked');
+    });
+
+    it('the ONLY inputs that yield public are: no access at all, or an explicit public mode', () => {
+      /*
+       * Contrôle de couverture : on énumère un échantillon large et on vérifie
+       * que l'ensemble des entrées « publiques » est exactement celui attendu.
+       * Sans lui, ajouter un nouveau chemin ouvrant passerait inaperçu.
+       */
+      const inputs: Array<{ label: string; metadata: unknown }> = [
+        { label: 'undefined', metadata: undefined },
+        { label: 'null', metadata: null },
+        { label: '{}', metadata: {} },
+        { label: 'access: null', metadata: { access: null } },
+        { label: 'access: undefined', metadata: { access: undefined } },
+        { label: 'mode public', metadata: { access: { mode: 'public' } } },
+        { label: 'mode password + hash', metadata: { access: { mode: 'password', passwordHash: 'h' } } },
+        { label: 'mode password sans hash', metadata: { access: { mode: 'password' } } },
+        { label: 'mode private', metadata: { access: { mode: 'private' } } },
+        { label: 'mode locked', metadata: { access: { mode: 'locked' } } },
+        { label: 'access chaîne', metadata: { access: 'password' } },
+        { label: 'access vide', metadata: { access: {} } },
+      ];
+
+      const publicOnes = inputs
+        .filter((i) => accessConfigFromMetadata(i.metadata).mode === 'public')
+        .map((i) => i.label);
+
+      expect(publicOnes.sort()).toEqual(
+        ['undefined', 'null', '{}', 'access: null', 'access: undefined', 'mode public'].sort(),
+      );
+    });
+  });
 });
 
 describe('deriveDeploymentAccessSecret (SEC-6 dedicated key)', () => {
