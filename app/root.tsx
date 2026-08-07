@@ -67,6 +67,21 @@ export function loader({ request }: LoaderFunctionArgs) {
   const canonical = new URL(request.url);
 
   /*
+   * TLS termine sur l'ingress : le serveur d'application reçoit du HTTP en
+   * clair, donc `request.url` porte le schéma `http:`. Sans cette correction,
+   * chaque page émettait `<link rel="canonical" href="http://e-code.ai/">` et
+   * un `og:url` en http — un canonical qui désigne une AUTRE origine que celle
+   * réellement servie, ce que les moteurs traitent comme du contenu dupliqué.
+   * On fait donc confiance à `X-Forwarded-Proto` (posé par l'ingress) et on ne
+   * retient que le premier maillon de la chaîne.
+   */
+  const forwardedProto = (request.headers.get('x-forwarded-proto') ?? '').split(',')[0].trim().toLowerCase();
+
+  if (forwardedProto === 'https' || forwardedProto === 'http') {
+    canonical.protocol = `${forwardedProto}:`;
+  }
+
+  /*
    * The canonical URL is the stable English document, never a stateful query
    * variant. Besides avoiding duplicate crawl space, clearing the complete
    * query string prevents OAuth codes, invitation tokens and search input from

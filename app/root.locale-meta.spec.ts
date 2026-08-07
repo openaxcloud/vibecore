@@ -39,6 +39,48 @@ describe('root locale and SEO metadata', () => {
     expect(metadata).toContainEqual({ name: 'twitter:image', content: 'https://e-code.ai/social_preview_index.jpg' });
   });
 
+  it('derives the canonical scheme from X-Forwarded-Proto behind the TLS-terminating ingress', () => {
+    /*
+     * Reproduit la condition de PRODUCTION, pas une URL de test commode : TLS
+     * termine sur l'ingress, donc l'application reçoit du http en clair et
+     * `request.url` porte `http:`. Les autres cas de ce fichier construisent
+     * directement des URL `https://`, ce qui masquait le défaut — la prod
+     * servait `<link rel="canonical" href="http://e-code.ai/">`, un canonical
+     * pointant vers une origine autre que celle réellement servie.
+     */
+    const result = loader({
+      request: new Request('http://e-code.ai/pricing', { headers: { 'x-forwarded-proto': 'https' } }),
+      params: {},
+      context: {},
+    });
+
+    const data = dataOf<{ seo: { canonical: string; english: string; french: string } }>(result);
+
+    expect(data.seo).toEqual({
+      canonical: 'https://e-code.ai/pricing',
+      english: 'https://e-code.ai/pricing',
+      french: 'https://e-code.ai/pricing?lang=fr',
+    });
+
+    // Une chaîne de proxys ne retient que le maillon d'origine.
+    const chained = dataOf<{ seo: { canonical: string } }>(
+      loader({
+        request: new Request('http://e-code.ai/pricing', { headers: { 'x-forwarded-proto': 'https, http' } }),
+        params: {},
+        context: {},
+      }),
+    );
+
+    expect(chained.seo.canonical).toBe('https://e-code.ai/pricing');
+
+    // Sans en-tête (dev local en http), on ne réécrit rien.
+    const local = dataOf<{ seo: { canonical: string } }>(
+      loader({ request: new Request('http://localhost:5173/pricing'), params: {}, context: {} }),
+    );
+
+    expect(local.seo.canonical).toBe('http://localhost:5173/pricing');
+  });
+
   it('strips all stateful and sensitive query parameters from SEO URLs', () => {
     const result = loader({
       request: new Request('https://e-code.ai/invitations/accept?lang=fr&token=invitation-secret&utm_source=test'),
