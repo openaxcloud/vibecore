@@ -527,9 +527,11 @@ describe('WorkbenchStore reloaded and review-first actions', () => {
   });
 
   it('surfaces an honest error (not "running"/"idle") when the dev server dies with exit 127', async () => {
-    // A dev server that dies (e.g. `vite: command not found` against an empty
-    // node_modules) must NOT be reported as running. This is the P0 lie: workspace
-    // RUNNING + 0 processes + 502, yet the status claimed "Running on Port 5173".
+    /*
+     * A dev server that dies (e.g. `vite: command not found` against an empty
+     * node_modules) must NOT be reported as running. This is the P0 lie: workspace
+     * RUNNING + 0 processes + 502, yet the status claimed "Running on Port 5173".
+     */
     runtimeFiles.set(
       'package.json',
       JSON.stringify({
