@@ -1359,6 +1359,17 @@ const packagesInstallSchema = z.object({
   // Optional override; when omitted the manager is detected from the lockfile.
   packageManager: z.enum(['npm', 'pnpm', 'yarn', 'bun']).optional(),
   timeoutMs: z.number().int().positive().max(600_000).optional(),
+
+  /*
+   * Target workspace. The Packages panel resolves and displays a specific
+   * workspace (and offers a workspace selector), so the install has to run in
+   * THAT pod. Without it this route fell back to the projectId, which
+   * authorizeRuntimeWorkspace turns into the deterministic per-user
+   * `ws-<hash>` id — a pod that does not exist whenever the project's active
+   * workspace is a different record, making every install 502 while the panel
+   * still reported success.
+   */
+  workspaceId: z.string().trim().min(1).optional(),
 });
 const domainSchema = z.object({
   domain: z
@@ -19821,8 +19832,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    // Resolve to the project's dedicated per-user workspace pod (never shared).
-    const authorized = await authorizeRuntimeWorkspace(request, projectId, 'workspaces:write');
+    /*
+     * Resolve to the workspace pod the caller is actually looking at (never
+     * shared). Falling back to the projectId keeps pre-workspaceId clients
+     * working, but when the panel names a workspace we must install THERE —
+     * see packagesInstallSchema.workspaceId.
+     */
+    const authorized = await authorizeRuntimeWorkspace(request, body.workspaceId ?? projectId, 'workspaces:write');
+
+    /*
+     * A caller-supplied workspace id is only trusted after confirming it belongs
+     * to this project; otherwise the projectId in the path (already permission
+     * checked) could be paired with a workspace from another project the user
+     * happens to own, installing into the wrong pod.
+     */
+    if (authorized.projectId !== projectId) {
+      throw Object.assign(new Error('Workspace does not belong to this project'), {
+        statusCode: 403,
+        code: 'WORKSPACE_PROJECT_MISMATCH',
+      });
+    }
 
     if (await isTerminalAccessRevoked(authorized, request)) {
       throw Object.assign(new Error('Terminal access is restricted for this project role'), {
