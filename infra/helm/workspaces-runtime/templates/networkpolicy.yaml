@@ -30,6 +30,20 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
+    # The project's integrated database (CNPG, `project-databases`). The Database
+    # panel talks to Postgres from the API pod, so the panel itself works even
+    # without this rule — but the user's app, running in THIS pod, could not open
+    # a socket: DNS resolved the pooler and the TCP connect then hung until the
+    # client gave up (proven live 2026-08-06, cluster-C audit). The deployed app
+    # already had this egress via `server-deploy-egress`; dev and prod must agree,
+    # otherwise code that works once deployed is broken in the IDE.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.databaseNamespace | default "project-databases" | quote }}
+      ports:
+        - protocol: TCP
+          port: 5432
     - to:
         - ipBlock:
             cidr: {{ .Values.network.packageRegistryCidr | quote }}
