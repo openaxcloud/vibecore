@@ -94,9 +94,11 @@ describe('shouldRunPreviewBootLoop', () => {
   });
 
   it('KEEPS relaunching on a dev-server-absent 502 (previewRunFailed) while the workspace is healthy', () => {
-    // The regression this fixes: a transient 502 preview_upstream_unreachable set
-    // previewRunFailed and STOPPED the loop, stranding the dev server down. With a
-    // healthy workspace and no port, the loop must keep relaunching it.
+    /*
+     * The regression this fixes: a transient 502 preview_upstream_unreachable set
+     * previewRunFailed and STOPPED the loop, stranding the dev server down. With a
+     * healthy workspace and no port, the loop must keep relaunching it.
+     */
     expect(shouldRunPreviewBootLoop({ ...base, previewRunFailed: true })).toBe(true);
   });
 
@@ -105,16 +107,17 @@ describe('shouldRunPreviewBootLoop', () => {
       false,
     );
     expect(shouldRunPreviewBootLoop({ ...base, bootAttempts: MAX_PREVIEW_BOOT_ATTEMPTS + 5 })).toBe(false);
+
     // Still under budget → keeps running.
-    expect(shouldRunPreviewBootLoop({ ...base, previewRunFailed: true, bootAttempts: MAX_PREVIEW_BOOT_ATTEMPTS - 1 })).toBe(
-      true,
-    );
+    expect(
+      shouldRunPreviewBootLoop({ ...base, previewRunFailed: true, bootAttempts: MAX_PREVIEW_BOOT_ATTEMPTS - 1 }),
+    ).toBe(true);
   });
 
   it('still bails immediately on a genuine workspace error even under budget', () => {
-    expect(shouldRunPreviewBootLoop({ ...base, hasWorkspaceError: true, previewRunFailed: true, bootAttempts: 0 })).toBe(
-      false,
-    );
+    expect(
+      shouldRunPreviewBootLoop({ ...base, hasWorkspaceError: true, previewRunFailed: true, bootAttempts: 0 }),
+    ).toBe(false);
   });
 
   it('does not run for a static preview or when autoStart is off', () => {

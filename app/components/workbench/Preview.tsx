@@ -601,9 +601,12 @@ export const Preview = memo(
 
     // One-shot guard: auto-reload a blank (served-but-never-mounted) preview at most once.
     const blankRecoveredRef = useRef(false);
-    // How many times the boot loop has relaunched the dev server for the current
-    // (portless) session — bounds the auto-retry so a dev-server-absent 502 keeps
-    // relaunching but never hammers forever (see shouldRunPreviewBootLoop).
+
+    /*
+     * How many times the boot loop has relaunched the dev server for the current
+     * (portless) session — bounds the auto-retry so a dev-server-absent 502 keeps
+     * relaunching but never hammers forever (see shouldRunPreviewBootLoop).
+     */
     const bootAttemptsRef = useRef(0);
     const inputRef = useRef<HTMLInputElement>(null);
     const previewReloadTimer = useRef<number | undefined>();
@@ -1271,8 +1274,10 @@ export const Preview = memo(
         .finally(() => window.setTimeout(() => setIsStartingPreview(false), 2500));
     }, [autoStart, projectId, isStartingPreview, workspaceStatus]);
 
-    /* A detected port means the loop succeeded — reset the relaunch budget so a
-     * later death gets its own full budget. */
+    /*
+     * A detected port means the loop succeeded — reset the relaunch budget so a
+     * later death gets its own full budget.
+     */
     useEffect(() => {
       if (previews.length > 0) {
         bootAttemptsRef.current = 0;
