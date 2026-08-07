@@ -118,11 +118,19 @@ const publicMarketingCases: Array<{
 
 describe('dynamic surface routes return a true HTTP 404 for unknown slugs', () => {
   for (const { name, loader, knownParams, unknownParams } of cases) {
-    it(`${name}: throws a 404 Response for an unknown slug`, async () => {
+    it(`${name}: yields a 404 Response for an unknown slug`, async () => {
       const result = await runLoader(loader, unknownParams);
 
-      expect(result.threw).toBe(true);
-      expect(result.status).toBe(404);
+      /*
+       * Two valid shapes of a TRUE 404 (BUG-MKT-005): either the loader throws a
+       * 404 Response, or it RETURNS a data() response carrying status 404 (the
+       * root $slug surface does the latter so React Router still runs its own
+       * ErrorBoundary-free branded not-found page). Both commit HTTP 404 before
+       * the document status is sealed — what this regression test locks.
+       */
+      const status = result.threw ? result.status : result.response?.status;
+
+      expect(status).toBe(404);
     });
 
     it(`${name}: does not throw for a known slug`, async () => {
@@ -132,8 +140,10 @@ describe('dynamic surface routes return a true HTTP 404 for unknown slugs', () =
     });
   }
 
-  it('also throws a 404 when the slug param is entirely absent', async () => {
-    expect((await runLoader(rootSurfaceLoader as Loader, {})).status).toBe(404);
+  it('also yields a 404 when the slug param is entirely absent', async () => {
+    const result = await runLoader(rootSurfaceLoader as Loader, {});
+
+    expect(result.threw ? result.status : result.response?.status).toBe(404);
   });
 });
 

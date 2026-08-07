@@ -8,6 +8,7 @@ import {
   type PublicCommunityEvent,
   type PublicCommunityPost,
 } from '~/components/marketing/EcodePublicResourcePages';
+import { socialMetaTags } from '~/utils/social-meta';
 
 export const meta: MetaFunction = () => [
   { title: 'Community - E-Code' },
@@ -15,6 +16,11 @@ export const meta: MetaFunction = () => [
     name: 'description',
     content: 'Public E-Code builder community with discussions, challenges, contributors and marketing navigation.',
   },
+  ...socialMetaTags({
+    path: '/community',
+    title: 'E-Code Community',
+    description: 'Templates, bounties, forum and community projects built with E-Code.',
+  }),
 ];
 
 const communityPosts: PublicCommunityPost[] = [

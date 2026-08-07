@@ -21,6 +21,7 @@ export const meta: MetaFunction = () => [
     content: 'Public E-Code template gallery powered by real E-Code starter templates.',
   },
   ...socialMetaTags({
+    path: '/templates',
     title: 'Templates - E-Code',
     description: 'Public E-Code template gallery powered by real E-Code starter templates.',
   }),
