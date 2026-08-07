@@ -1,5 +1,7 @@
-import type { MetaFunction } from 'react-router';
+import { useLoaderData, type MetaFunction } from 'react-router';
 import Blog from '~/components/marketing/ecode-exact/pages/Blog';
+import { buildBlogListing } from '~/lib/marketing/blog-listing';
+import { ecodeBlogPosts } from '~/lib/marketing/ecode-public-api-data.server';
 import { socialMetaTags } from '~/utils/social-meta';
 
 export const meta: MetaFunction = () => [
@@ -12,6 +14,17 @@ export const meta: MetaFunction = () => [
   }),
 ];
 
+/*
+ * BUG-MKT-011 — la liste est DÉRIVÉE du registre qui sert `/blog/:slug`, et non
+ * plus écrite en dur dans le composant. C'est ce qui garantit que tout billet
+ * listé est réellement atteignable : les deux vues ne peuvent plus diverger.
+ */
+export function loader() {
+  return buildBlogListing(ecodeBlogPosts);
+}
+
 export default function BlogRoute() {
-  return <Blog />;
+  const { featured, posts, categories } = useLoaderData<typeof loader>();
+
+  return <Blog featured={featured} posts={posts} categories={categories} />;
 }
