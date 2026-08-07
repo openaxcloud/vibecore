@@ -48,6 +48,77 @@ describe('preview-proxy', () => {
     expect(response.body).toContain('Starting your app');
   });
 
+  it('serves the holding page (not a silent blank) when the dev server answers a 0-byte 404 (index.html not yet synced)', async () => {
+    // Vite serves `GET /` as a 404 with an empty body while its index.html has not
+    // yet landed on disk; the port is already LISTENING so /ports reports ready.
+    const fetchImpl = (async () =>
+      new Response(null, { status: 404 })) as unknown as typeof fetch;
+
+    const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/p/ws_1/5173/',
+      headers: { accept: 'text/html,*/*', 'sec-fetch-dest': 'iframe' },
+    });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.headers['content-type']).toContain('text/html');
+    expect(response.headers['retry-after']).toBe('2');
+    expect(response.body).toContain('Starting your app');
+  });
+
+  it('serves the holding page when the dev server is still booting (503, empty body) for a document nav', async () => {
+    const fetchImpl = (async () =>
+      new Response(null, { status: 503 })) as unknown as typeof fetch;
+
+    const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/p/ws_1/5173/',
+      headers: { accept: 'text/html', 'sec-fetch-dest': 'document' },
+    });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.body).toContain('Starting your app');
+  });
+
+  it('passes through a REAL app 404 page (text/html with a body) unchanged — never masks it', async () => {
+    const fetchImpl = (async () =>
+      new Response('<!doctype html><title>Not found</title><h1>404 — no such route</h1>', {
+        status: 404,
+        headers: { 'content-type': 'text/html; charset=utf-8' },
+      })) as unknown as typeof fetch;
+
+    const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/p/ws_1/5173/no-such-route',
+      headers: { accept: 'text/html', 'sec-fetch-dest': 'document' },
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.body).toContain('404 — no such route');
+  });
+
+  it('passes through a sub-resource 404 (script/XHR) unchanged — only document navs get the holding page', async () => {
+    const fetchImpl = (async () =>
+      new Response(null, { status: 404 })) as unknown as typeof fetch;
+
+    const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/p/ws_1/5173/assets/missing.js',
+      headers: { accept: '*/*', 'sec-fetch-dest': 'script' },
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.body).not.toContain('Starting your app');
+  });
+
   it('still returns a JSON error for asset/XHR sub-requests when the dev server is unreachable', async () => {
     const fetchImpl = (async () => {
       throw new Error('connect ECONNREFUSED 127.0.0.1:4173');
@@ -880,6 +951,104 @@ describe('preview-proxy', () => {
       // Woke exactly once, hit upstream exactly twice (original + one retry) — no loop.
       expect(activateCalls).toBe(1);
       expect(upstreamHits).toBe(2);
+
+      await app.close();
+    });
+
+    /*
+     * BUG-DEPLOY-003 (proven live 2026-08-06): a crash-looping app never becomes
+     * ready, so the manager's activate call hung for its full readiness poll. The
+     * proxy waited it out and the browser was answered by nginx with a raw
+     * `504 Gateway Time-out` at the ingress read timeout — the branded page never
+     * shipped. The wake wait is now bounded well under that timeout.
+     */
+    it('gives up waiting on a wake that never becomes ready and serves the branded page, not a gateway error', async () => {
+      let activateAborted = false;
+
+      const fetchImpl = (async (url: any, init: any) => {
+        const href = typeof url === 'string' ? url : (url.href ?? url.toString());
+
+        if (href.endsWith('/activate')) {
+          // A crash-looping app: the manager polls readiness and never answers.
+          return new Promise((_resolve, reject) => {
+            init.signal?.addEventListener('abort', () => {
+              activateAborted = true;
+              reject(Object.assign(new Error('aborted'), { name: 'AbortError' }));
+            });
+          });
+        }
+
+        if (href.includes('app-clr8x9abc123')) {
+          throw new Error('ECONNREFUSED');
+        }
+
+        return new Response('{}', { status: 200 });
+      }) as unknown as typeof fetch;
+
+      const app = await buildPreviewProxyApp({
+        fetchImpl,
+        previewDomain: 'preview.e-code.ai',
+        serverDeployManagerUrl: 'http://workspace-manager.test',
+        serverDeployWakeWaitMs: 1_000,
+      });
+
+      const startedAt = Date.now();
+      const response = await app.inject({
+        method: 'GET',
+        url: '/',
+        headers: { host: 'd-clr8x9abc123.preview.e-code.ai', accept: 'text/html' },
+      });
+
+      expect(response.statusCode).toBe(503);
+      expect(response.body).toContain('Starting your app');
+      expect(activateAborted).toBe(true);
+
+      // Bounded by the configured wake budget, nowhere near the old 90s wait.
+      expect(Date.now() - startedAt).toBeLessThan(10_000);
+
+      await app.close();
+    });
+
+    /*
+     * An app that accepts the connection but never responds looked identical to a
+     * gateway failure: the abort short-circuited to a bare JSON 504 that a browser
+     * renders as a finished page. It now takes the same wake + holding-page path.
+     */
+    it('serves the branded holding page when the app accepts the connection but never responds', async () => {
+      const fetchImpl = (async (url: any, init: any) => {
+        const href = typeof url === 'string' ? url : (url.href ?? url.toString());
+
+        if (href.endsWith('/activate')) {
+          return new Response(JSON.stringify({ ready: false, readyReplicas: 0 }), { status: 200 });
+        }
+
+        if (href.includes('app-clr8x9abc123')) {
+          return new Promise((_resolve, reject) => {
+            init.signal?.addEventListener('abort', () =>
+              reject(Object.assign(new Error('aborted'), { name: 'AbortError' })),
+            );
+          });
+        }
+
+        return new Response('{}', { status: 200 });
+      }) as unknown as typeof fetch;
+
+      const app = await buildPreviewProxyApp({
+        fetchImpl,
+        previewDomain: 'preview.e-code.ai',
+        serverDeployManagerUrl: 'http://workspace-manager.test',
+        requestTimeoutMs: 1_000,
+        serverDeployWakeWaitMs: 1_000,
+      });
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/',
+        headers: { host: 'd-clr8x9abc123.preview.e-code.ai', accept: 'text/html' },
+      });
+
+      expect(response.statusCode).toBe(503);
+      expect(response.body).toContain('Starting your app');
 
       await app.close();
     });

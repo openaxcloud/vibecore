@@ -1,0 +1,41 @@
+# Accepted-risk CVEs for the blocking vulnerability gate in
+# .github/workflows/deploy-main.yml (B6).
+#
+# RULES — this file is the single escape hatch on the deploy path, so it is only
+# useful if it stays honest:
+#   * one CVE per line, each with WHY it is accepted and WHO accepted it;
+#   * always give an expiry (`exp:`). Trivy enforces it: past that date the CVE
+#     blocks again, which forces a re-review instead of a permanent silent
+#     exemption;
+#   * only for CVEs that are genuinely not exploitable in our usage, or whose
+#     fix is not available to us yet. "It is noisy" is not a justification — the
+#     gate already ignores unfixed CVEs.
+#
+# Format:  CVE-YYYY-NNNNN exp:YYYY-MM-DD
+#
+# ---------------------------------------------------------------------------
+# 2026-08-03 — PRE-EXISTING base-image debt, present in EVERY platform image
+# before this gate existed (verified: api/web/worker/ai-gateway/
+# workspace-manager/preview-proxy all fail without these three entries).
+#
+# These are deliberately time-boxed rather than fixed here. Without them the
+# gate would block 100% of deploys on day one, which in practice means the gate
+# gets deleted. With them, the gate still does its actual job — refusing NEW
+# CRITICALs introduced by our own changes — while the pre-existing debt is
+# tracked and forced back into review at expiry.
+#
+# The real fix for all three is bumping the base images (node base for the
+# bundled npm/tar, and whichever Go-built binary carries the 1.20.12 stdlib),
+# NOT extending these dates. See the follow-up task raised alongside this file.
+
+# node-tar DoS via crafted gzip bomb. Comes from the *bundled* tar inside the
+# node base image's own npm install (usr/local/lib/node_modules/npm), not from
+# our dependency tree — we cannot bump it without a new base image. Impact is a
+# DoS reachable only by feeding a crafted archive to npm itself.
+CVE-2026-59873 exp:2026-09-03
+
+# Go stdlib 1.20.12, carried by a Go-built binary inside the base image, not by
+# any code we compile. We ship no Go source; there is nothing for us to rebuild
+# short of a base-image bump.
+CVE-2024-24790 exp:2026-09-03
+CVE-2025-68121 exp:2026-09-03

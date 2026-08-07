@@ -81,10 +81,10 @@ export const ecodeLegalPages = {
 export function makeEcodeLegalMeta(key: LegalPageKey): MetaFunction {
   const page = ecodeLegalPages[key];
 
-  return () => [
+  return ({ location }) => [
     { title: `${page.title} - E-Code` },
     { name: 'description', content: page.description },
-    ...socialMetaTags({ title: `${page.title} - E-Code`, description: page.description }),
+    ...socialMetaTags({ title: `${page.title} - E-Code`, description: page.description, path: location?.pathname }),
   ];
 }
 

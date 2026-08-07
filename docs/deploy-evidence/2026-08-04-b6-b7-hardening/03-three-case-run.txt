@@ -1,0 +1,35 @@
+==================================================================
+ Cosign/Kyverno 3-case admission proof (B7 hardening, PR #81)
+ repo commit : 818228a4c9c01d765b53fe8b94f3c8a1ab4591a8
+ cosign      : v2.4.3
+ kyverno CLI : 1.13.4
+==================================================================
+
+### Layer 1 — cosign verify against the trusted key, BY DIGEST
+### (the exact cryptographic predicate Kyverno evaluates; proves digest-binding)
+  signed    vibecore-prod-containers/app-signed@sha256:5c37336f4c7d79dbb6ad04ea8ff1dbf8a88feeaf3b116c5eeaf04976ae36e485
+            => signature VALID   => ADMIT
+  unsigned  vibecore-prod-containers/app-unsigned@sha256:bd14c4eaa293a4c7ae0eadc0c9af9bd2234e0e75ead91d34f1a1331aa88213bd
+            => signature INVALID => REFUSE
+  otherkey  vibecore-prod-containers/app-otherkey@sha256:c07b305090b469add49d1b174174b11b96f46fb429d7a373c6ab25b02367b2cd
+            => signature INVALID => REFUSE
+
+### Layer 2 — the ACTUAL Kyverno policy engine (failureAction: Enforce)
+--- case 'signed' ---
+    pass: 2, fail: 0, warn: 0, error: 0, skip: 0 
+--- case 'unsigned' ---
+    1 - cosign-verify-prod-containers failed to verify image localhost:5001/vibecore-prod-containers/app-unsigned@sha256:bd14c4eaa293a4c7ae0eadc0c9af9bd2234e0e75ead91d34f1a1331aa88213bd: .attestors[0].entries[0].keys: no signatures found
+    1 - cosign-verify-prod-containers unverified image localhost:5001/vibecore-prod-containers/app-unsigned@sha256:bd14c4eaa293a4c7ae0eadc0c9af9bd2234e0e75ead91d34f1a1331aa88213bd
+    pass: 0, fail: 2, warn: 0, error: 0, skip: 0 
+--- case 'otherkey' ---
+    1 - cosign-verify-prod-containers failed to verify image localhost:5001/vibecore-prod-containers/app-otherkey@sha256:c07b305090b469add49d1b174174b11b96f46fb429d7a373c6ab25b02367b2cd: .attestors[0].entries[0].keys: no matching signatures: invalid signature when validating ASN.1 encoded signature
+    1 - cosign-verify-prod-containers unverified image localhost:5001/vibecore-prod-containers/app-otherkey@sha256:c07b305090b469add49d1b174174b11b96f46fb429d7a373c6ab25b02367b2cd
+    pass: 0, fail: 2, warn: 0, error: 0, skip: 0 
+
+### Parity — same unsigned image under failureAction: Audit (PROD's phase)
+    policy verify-platform-image-signatures -> resource vibecore/Pod/app-unsigned failed as audit warning:
+    policy verify-platform-image-signatures -> resource vibecore/Pod/app-unsigned failed as audit warning:
+    pass: 0, fail: 0, warn: 2, error: 0, skip: 0 
+    => Audit: warn only, Pod ADMITTED + PolicyReport. Enforce: Pod REFUSED.
+
+DONE.

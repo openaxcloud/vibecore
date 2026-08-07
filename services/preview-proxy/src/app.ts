@@ -130,6 +130,20 @@ export interface PreviewProxyOptions {
    */
   serverDeployManagerUrl?: string;
   serverDeployManagerSecret?: string;
+
+  /*
+   * How long the proxy is willing to BLOCK a browser request while a deployment
+   * wakes. This must stay comfortably below the ingress `proxy_read_timeout`
+   * (nginx default 60s): the wake used to be awaited for up to 90s, so a server
+   * app that could not become ready (crash loop) blew past the ingress deadline
+   * and the browser got a raw `504 Gateway Time-out` from nginx instead of the
+   * branded holding page — proven live 2026-08-06 (BUG-DEPLOY-003).
+   *
+   * The wake is not lost when this expires: the manager scales the Deployment to
+   * 1 before it starts polling readiness, so the scale-up proceeds server-side
+   * while the auto-refreshing holding page picks the app up on a later refresh.
+   */
+  serverDeployWakeWaitMs?: number;
 }
 
 /*
@@ -477,6 +491,16 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
   const serverDeployManagerSecret =
     options.serverDeployManagerSecret ?? process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
 
+  /*
+   * Client-visible wake budget (see PreviewProxyOptions.serverDeployWakeWaitMs).
+   * Kept well under the ingress read timeout so the branded page always wins the
+   * race against nginx's own gateway error.
+   */
+  const serverDeployWakeWaitMs = Math.max(
+    1_000,
+    options.serverDeployWakeWaitMs ?? (Number(process.env.SERVER_DEPLOY_WAKE_WAIT_MS) || 12_000),
+  );
+
   const enforceTenant = options.enforceTenant ?? process.env.PREVIEW_PROXY_ENFORCE_TENANT === 'true';
   const tenantSecret = options.tenantSecret ?? process.env.PREVIEW_TENANT_SECRET;
   const enforcePrivatePorts = options.enforcePrivatePorts ?? process.env.PREVIEW_ENFORCE_PRIVATE_PORTS === 'true';
@@ -650,6 +674,103 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
    * 'gone' → the manager says the Deployment does not exist (build failed and
    * was torn down, or deleted) — a terminal state page, never a wake loop.
    */
+  /*
+   * Cache d'état de service, très court.
+   *
+   * Sans cache, chaque requête d'une app déployée ajouterait un aller-retour
+   * vers l'API — inacceptable sur un chemin public à fort trafic. Avec un cache
+   * long, une extinction mettrait des minutes à prendre effet. 15 s tranche :
+   * l'app s'éteint en quelques secondes et l'API n'est sollicitée qu'une fois
+   * par fenêtre et par déploiement.
+   */
+  /*
+   * Cache d'état de service, avec DEUX régimes distincts — la dissymétrie est
+   * délibérée et porte tout l'invariant.
+   *
+   *  - « expiré » est COLLANT et sans expiration. L'extinction est MONOTONE :
+   *    une publication éteinte ne redevient jamais vivante (la republication crée
+   *    un NOUVEAU déploiement, donc un autre id). Une fois le verdict connu, une
+   *    panne de l'API ne doit plus jamais pouvoir rouvrir l'accès.
+   *  - « vivant » est caché avec un TTL court. Il doit être revérifié, puisque
+   *    c'est l'état qui, lui, peut changer.
+   */
+  const expiredDeployments = new Set<string>();
+  const liveUntil = new Map<string, number>();
+  const LIVE_CACHE_TTL_MS = 15_000;
+
+  /** Verdict du garde. `unknown` ⇒ on ne sait pas, donc on ne sert pas. */
+  type ServingVerdict = 'live' | 'expired' | 'unknown';
+
+  /**
+   * État de service d'une publication SERVER.
+   *
+   * Hiérarchie des réponses, du plus sûr au plus disponible :
+   *  1. connu expiré  -> `expired`, définitivement, sans interroger personne ;
+   *  2. connu vivant et frais -> `live` ;
+   *  3. sinon on interroge l'API ;
+   *  4. API injoignable ET aucun état frais -> `unknown`.
+   *
+   * `unknown` ne sert PAS l'application : un workload potentiellement expiré ne
+   * doit jamais renvoyer d'octets applicatifs. Le garde reste néanmoins une
+   * défense SECONDAIRE — l'autorité d'extinction est l'arrêt du workload côté
+   * manager, qui ne dépend pas de ce chemin.
+   */
+  const resolveServingVerdict = async (deploymentId: string): Promise<ServingVerdict> => {
+    // (1) Verdict collant : plus rien ne peut le contredire.
+    if (expiredDeployments.has(deploymentId)) {
+      return 'expired';
+    }
+
+    if (!apiBaseUrl) {
+      /*
+       * Sans API configurée (dev, tests unitaires du proxy), le garde est hors
+       * service : on laisse passer et l'extinction repose entièrement sur l'arrêt
+       * du workload. C'est une absence de configuration, pas un état indéterminé.
+       */
+      return 'live';
+    }
+
+    // (2) Vivant et encore frais.
+    const freshUntil = liveUntil.get(deploymentId);
+
+    if (freshUntil && Date.now() < freshUntil) {
+      return 'live';
+    }
+
+    // (3) Interroger l'autorité.
+    try {
+      const response = await fetchImpl(
+        `${apiBaseUrl}/deployments/${encodeURIComponent(deploymentId)}/serving-state`,
+        { method: 'GET', headers: { accept: 'application/json' } },
+      );
+
+      if (!response.ok) {
+        return 'unknown';
+      }
+
+      const body = (await response.json()) as { state?: string };
+
+      if (body?.state === 'expired') {
+        expiredDeployments.add(deploymentId);
+        liveUntil.delete(deploymentId);
+
+        return 'expired';
+      }
+
+      if (body?.state === 'live') {
+        liveUntil.set(deploymentId, Date.now() + LIVE_CACHE_TTL_MS);
+
+        return 'live';
+      }
+
+      // `not-found` ou réponse inattendue : on ne sait pas, donc on ne sert pas.
+      return 'unknown';
+    } catch {
+      // (4) API injoignable et aucun état frais : indéterminé.
+      return 'unknown';
+    }
+  };
+
   const wakeServerDeploy = async (deploymentId: string): Promise<'ready' | 'starting' | 'gone'> => {
     if (!serverDeployManagerUrl) {
       return 'starting';
@@ -665,8 +786,15 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
             ...(serverDeployManagerSecret ? { authorization: `Bearer ${serverDeployManagerSecret}` } : {}),
           },
 
-          // Wake = scale + pull + install + boot; allow well beyond a normal request.
-          signal: AbortSignal.timeout(90_000),
+          /*
+           * Wake = scale + pull + install + boot, which can take far longer than
+           * this budget. We deliberately stop WAITING at serverDeployWakeWaitMs
+           * and hand the browser the auto-refreshing holding page rather than
+           * holding the connection open past the ingress timeout — the manager
+           * has already scaled the Deployment to 1 by then, so the boot carries
+           * on and a later refresh lands on the live app.
+           */
+          signal: AbortSignal.timeout(serverDeployWakeWaitMs),
         },
       );
 
@@ -879,6 +1007,14 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     reply: FastifyReply,
     deploymentId: string,
     alreadyWoke = false,
+
+    /*
+     * Absolute wall-clock budget for THIS browser request, shared with the
+     * post-wake retry below. Without it the retry started a fresh
+     * requestTimeoutMs window on top of the first attempt plus the wake, and the
+     * total could still outlive the ingress read timeout (BUG-DEPLOY-003).
+     */
+    deadlineAt = Date.now() + requestTimeoutMs + serverDeployWakeWaitMs,
   ): Promise<unknown> => {
     const upstreamBase = serverDeployUpstreamUrl(deploymentId, serverDeployUpstreamTemplate);
 
@@ -933,7 +1069,10 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     }
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
+
+    // Never wait past the shared deadline — see the `deadlineAt` note above.
+    const attemptTimeoutMs = Math.max(1_000, Math.min(requestTimeoutMs, deadlineAt - Date.now()));
+    const timeout = setTimeout(() => controller.abort(), attemptTimeoutMs);
 
     let streamingHandoff = false;
 
@@ -994,9 +1133,14 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
 
       return reply.send(readable);
     } catch (error: any) {
-      if (error?.name === 'AbortError') {
-        return reply.code(504).send({ error: 'Deploy upstream timeout', code: 'SERVER_DEPLOY_UPSTREAM_TIMEOUT' });
-      }
+      /*
+       * An AbortError here means the app did not answer inside the attempt
+       * budget — an app that is booting (or wedged) looks exactly like one that
+       * is asleep, so it takes the same wake + holding-page path below rather
+       * than short-circuiting to a bare JSON 504 the browser would render as a
+       * finished page (BUG-DEPLOY-003).
+       */
+      const timedOut = error?.name === 'AbortError';
 
       /*
        * Scale-to-zero wake path: an unreachable upstream (connection refused / no
@@ -1004,13 +1148,13 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
        * Ask the manager to wake it, then retry the forward exactly once. The
        * `alreadyWoke` guard prevents a wake loop if it comes up unreachable again.
        */
-      if (!alreadyWoke) {
+      if (!alreadyWoke && Date.now() < deadlineAt) {
         clearTimeout(timeout);
 
         const woke = await wakeServerDeploy(deploymentId);
 
         if (woke === 'ready') {
-          return handleServerDeployRequest(request, reply, deploymentId, true);
+          return handleServerDeployRequest(request, reply, deploymentId, true, deadlineAt);
         }
 
         if (woke === 'gone') {
@@ -1039,6 +1183,10 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
        */
       if (wantsHtmlDocument(request)) {
         return reply.code(503).type('text/html').header('cache-control', 'no-store').send(PREVIEW_STARTING_HTML);
+      }
+
+      if (timedOut) {
+        return reply.code(504).send({ error: 'Deploy upstream timeout', code: 'SERVER_DEPLOY_UPSTREAM_TIMEOUT' });
       }
 
       return reply
@@ -1232,6 +1380,54 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
        * lifecycle via stream end/close/error.
        */
       clearTimeout(timeout);
+
+      /*
+       * Startup-window guard against a SILENT BLANK preview. A dev server that is
+       * LISTENING but not yet serving its app answers a top-level navigation with
+       * a "not ready" response — most often a 0-byte 404: Vite serves `GET /` as a
+       * 404 with an empty body while its `index.html` has not yet been synced onto
+       * disk (reproduced in situ), and the agent + this proxy forward that 404
+       * verbatim. `/ports` meanwhile reports the port ready (it only means the
+       * socket is open), so the user is left staring at a white screen — the
+       * recurring "Webview blanc" launch-blocker — for as long as the window lasts
+       * (~3 min observed) before the same URL flips to 200.
+       *
+       * For a document/iframe navigation, convert that into the auto-refreshing
+       * "Starting your app…" holding page so the preview is NEVER a silent blank:
+       * it reloads every 2s and shows the real app the instant the server serves
+       * content. Scoped tightly so a genuine app response is never masked — only a
+       * top-level document navigation, only 404/502/503, and only when the body is
+       * empty or not HTML. A real app 404 page (text/html WITH a body) is passed
+       * through unchanged. Sub-resource 404s (scripts/XHR) never match
+       * wantsHtmlDocument, so a missing asset still surfaces to the app as a 404.
+       */
+      const upstreamCt = upstreamResponse.headers.get('content-type') ?? '';
+      const upstreamLenHeader = upstreamResponse.headers.get('content-length');
+      const isNotReadyStatus =
+        upstreamResponse.status === 404 || upstreamResponse.status === 502 || upstreamResponse.status === 503;
+
+      /*
+       * "Not serving the app yet" signature: an EMPTY body (an explicit
+       * content-length: 0, e.g. Vite's 0-byte 404 before index.html lands) OR a
+       * non-HTML body. A real app 404 PAGE is text/html WITH a body — content-type
+       * text/html and no explicit zero length — so it passes through untouched.
+       * (A missing content-length must NOT read as empty, or a real 404 page with
+       * no declared length would be masked.)
+       */
+      const declaredZeroLength = upstreamLenHeader !== null && Number(upstreamLenHeader) === 0;
+      const notServingApp = declaredZeroLength || !upstreamCt.includes('text/html');
+
+      if (isNotReadyStatus && wantsHtmlDocument(request) && notServingApp) {
+        // Release the upstream socket; the not-ready body is empty/irrelevant.
+        await (upstreamResponse.body as ReadableStream<Uint8Array> | null)?.cancel().catch(() => undefined);
+
+        return reply
+          .code(503)
+          .header('content-type', 'text/html; charset=utf-8')
+          .header('retry-after', '2')
+          .header('cache-control', 'no-store')
+          .send(PREVIEW_STARTING_HTML);
+      }
 
       reply.status(upstreamResponse.status);
 
@@ -1487,6 +1683,49 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
           path === REPORTER_SCRIPT_PATH ||
           path === BLANK_PREVIEW_PATH
         ) {
+          return;
+        }
+
+        /*
+         * EXTINCTION 30 j du chemin SERVER.
+         *
+         * Le proxy transmettait `d-<id>` DIRECTEMENT au Service in-cluster sans
+         * jamais consulter l'API : une publication Starter expirée restait donc
+         * joignable indéfiniment, alors que le chemin STATIQUE, lui, renvoyait
+         * bien 410. C'est ce trou que ce garde ferme.
+         *
+         * 410 Gone (et non 404) : la ressource a existé et son adresse est
+         * retirée. On refuse AVANT tout forward — aucun octet applicatif ne part
+         * vers l'amont, et l'amont lui-même a été arrêté par le balayage côté API
+         * (le 410 est la façade, l'arrêt est la substance).
+         */
+        const verdict = await resolveServingVerdict(deploy.deploymentId);
+
+        if (verdict === 'expired') {
+          reply.header('cache-control', 'no-store');
+          await reply.code(410).send({
+            error: 'Cette publication a expiré. Republiez le projet pour remettre l\'adresse en ligne.',
+            code: 'PUBLISHED_DEPLOYMENT_EXPIRED',
+          });
+
+          return;
+        }
+
+        if (verdict === 'unknown') {
+          /*
+           * État INDÉTERMINÉ : on ne peut pas établir si cette publication est
+           * encore valide. Servir reviendrait à renvoyer les octets d'un workload
+           * POTENTIELLEMENT expiré — c'est précisément ce qu'on refuse. 503 (et
+           * non 410) : on ne prétend pas qu'elle est éteinte, on dit qu'on ne
+           * sait pas, et l'appelant peut réessayer.
+           */
+          reply.header('cache-control', 'no-store');
+          await reply.code(503).header('retry-after', '5').send({
+            error: "Impossible de vérifier l'état de cette publication. Réessayez dans un instant.",
+            code: 'PUBLICATION_STATE_UNAVAILABLE',
+            retryable: true,
+          });
+
           return;
         }
 

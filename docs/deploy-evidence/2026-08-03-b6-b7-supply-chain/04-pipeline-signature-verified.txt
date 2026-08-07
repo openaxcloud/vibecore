@@ -1,0 +1,14 @@
+### B7 — signature produced by the PIPELINE (Cloud Build 9ce8599a), verified against the policy's public key
+### date: 2026-08-03T13:36:23Z
+### build: 9ce8599a-fc01-495c-a53e-49d5b8bc5c77  status: SUCCESS
+
+$ cosign verify --key infra/supply-chain/cosign-images.pub --insecure-ignore-tlog=true europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-containers/workspace-agent@sha256:21ff06cd8a642e58d8dd02faca53967e33c1403fab8be99ac9d45cd87a75efa8
+WARNING: Skipping tlog verification is an insecure practice that lacks of transparency and auditability verification for the signature.
+
+Verification for europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-containers/workspace-agent@sha256:21ff06cd8a642e58d8dd02faca53967e33c1403fab8be99ac9d45cd87a75efa8 --
+The following checks were performed on each of these signatures:
+  - The cosign claims were validated
+  - The signatures were verified against the specified public key
+
+[{"critical":{"identity":{"docker-reference":"europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-containers/workspace-agent"},"image":{"docker-manifest-digest":"sha256:21ff06cd8a642e58d8dd02faca53967e33c1403fab8be99ac9d45cd87a75efa8"},"type":"cosign container image signature"},"optional":null}]
+VERIFY EXIT=0

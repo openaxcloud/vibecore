@@ -31,6 +31,9 @@ import {
   StripeBillingClient,
   assertQuota,
   assertPublishEntitlement,
+  isPublicationActive,
+  publishedProjectTtlDays,
+  toEntitlementPlanKey,
   EntitlementError,
   aiModelCatalog,
   availableMachineSizes,
@@ -121,41 +124,6 @@ import {
   type AgentMemoryScope,
   type AgentMemoryType,
 } from './agent-memory.js';
-import { createWorkspaceBuildAgent, type WsLike } from './deploy-workspace-agent.js';
-import {
-  detectPodPackageManager,
-  runWorkspaceStaticBuild,
-  type WorkspaceStaticBuildResult,
-} from './deploy-workspace-build.js';
-import {
-  buildImageContextFromRevision,
-  describeEcodeLockFailure,
-  type AppBuildRunPayload,
-  type RevisionImageContextResult,
-} from './server-deploy-revision.js';
-import {
-  buildServerDeployEnv,
-  snapshotWorkspaceAppSource,
-  snapshotWorkspaceImageContext,
-} from './server-deploy-transfer.js';
-import {
-  buildServerBootScript,
-  detectDeployTarget,
-  detectPackageManagerInstall,
-  detectServerRuntime,
-  isDetectionError,
-  type ServerRuntimePlan,
-} from './server-runtime-detect.js';
-import { runAppImageBuild } from './app-image-build.js';
-import { generateAuthJwtSecret, generateAuthScaffoldFiles, isAuthScaffoldEnabled } from './auth-scaffold.js';
-import { shouldRetirePresenceRow } from './collaboration-presence-cleanup.js';
-import {
-  checkServiceShutdown,
-  openCheckpoint,
-  reportCheckpointPaygUsage,
-  reportUsagePaygUsage,
-  settleCheckpoint,
-} from './credits-service.js';
 import {
   DELETION_GRACE_PERIOD_DAYS,
   canCancelDeletion,
@@ -305,6 +273,29 @@ import {
   resetAgentRoutingCache,
   seedAgentRoutingCard,
 } from './agent-routing-service.js';
+import { runAppImageBuild } from './app-image-build.js';
+import { generateAuthJwtSecret, generateAuthScaffoldFiles, isAuthScaffoldEnabled } from './auth-scaffold.js';
+import { shouldRetirePresenceRow } from './collaboration-presence-cleanup.js';
+import {
+  checkServiceShutdown,
+  openCheckpoint,
+  reportCheckpointPaygUsage,
+  reportUsagePaygUsage,
+  settleCheckpoint,
+} from './credits-service.js';
+import { createWorkspaceBuildAgent, type WsLike } from './deploy-workspace-agent.js';
+import {
+  detectPodPackageManager,
+  runWorkspaceStaticBuild,
+  type WorkspaceStaticBuildResult,
+} from './deploy-workspace-build.js';
+import {
+  assertPublicationStartable,
+  ExpiredPublicationStartError,
+  servingState,
+  stopExpiredServerDeployments,
+  type ServingState,
+} from './published-expiry-sweep.js';
 import {
   MachineSizeError,
   getActiveRateCard,
@@ -312,24 +303,16 @@ import {
   maxSchedulableVcpu,
   resolveDeployMachineSize,
 } from './rate-card-service.js';
-import { resolveRollbackImage, resolveRollbackSecrets, type SecretPolicy } from './release-rollback.js';
 import {
   assertArtifactMatchesManifest,
   configDigest,
   RollbackManifestError,
   selectPreviousRelease,
 } from './release-manifest.js';
+import { resolveRollbackImage, resolveRollbackSecrets, type SecretPolicy } from './release-rollback.js';
 import { recordIbanMasked, recordUnknownIbanCountry, shouldLogUnknownIbanCountry } from './remix-pii-metrics.js';
 import { computeWorkspaceRestorePlan, isPortReadyFromProbe, type PortProbeResult } from './runtime-readiness.js';
 import { aggregatePreviewReadiness } from './runtime-readiness.js';
-import {
-  recordPreviewBeacon,
-  readClientBeacon,
-  recordLifecycleFromStatus,
-  captureWorkspacePostMortem,
-  getWorkspaceDiagnostics,
-  type PreviewBeaconStatus,
-} from './workspace-diagnostics.js';
 import { flattenRuntimeTreeFilePaths, normalizeRuntimePath, persistedFileContentMatches } from './runtime-reseed.js';
 import { describeCron } from './scheduled-tasks-cron.js';
 import {
@@ -348,11 +331,30 @@ import {
   type SandboxExec,
   type WorkflowResolver,
 } from './scheduled-tasks.js';
+import {
+  buildImageContextFromRevision,
+  describeEcodeLockFailure,
+  type AppBuildRunPayload,
+  type RevisionImageContextResult,
+} from './server-deploy-revision.js';
+import {
+  buildServerDeployEnv,
+  snapshotWorkspaceAppSource,
+  snapshotWorkspaceImageContext,
+} from './server-deploy-transfer.js';
+import {
+  buildServerBootScript,
+  detectDeployTarget,
+  detectPackageManagerInstall,
+  detectServerRuntime,
+  isDetectionError,
+  type ServerRuntimePlan,
+} from './server-runtime-detect.js';
+import { auditSkill, type SkillContent } from './skill-audit.js';
+import { parseSkillManifest, type SkillManifest } from './skill-manifest.js';
 import { isKnownSkill, resolveProjectSkills, resolveSkill } from './skills-catalog.js';
 import { fetchSkillRepoInstructions } from './skills-github-fetch.js';
 import { SKILL_REPO_CATALOG, findRepoEntry, normalizeOwnerRepo } from './skills-repo-catalog.js';
-import { auditSkill, type SkillContent } from './skill-audit.js';
-import { parseSkillManifest, type SkillManifest } from './skill-manifest.js';
 import { nextSpendAlertPct, spendAlertEmailContent } from './spend-alerts.js';
 import {
   API_KEY_SCOPES,
@@ -378,6 +380,14 @@ import {
   permissionsForAction,
 } from './strike-system.js';
 import { createThumbnailCapturer, ThumbnailCapturer, type ThumbnailLogger } from './thumbnail-capture.js';
+import {
+  recordPreviewBeacon,
+  readClientBeacon,
+  recordLifecycleFromStatus,
+  captureWorkspacePostMortem,
+  getWorkspaceDiagnostics,
+  type PreviewBeaconStatus,
+} from './workspace-diagnostics.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -665,7 +675,12 @@ const projectResolveQuerySchema = z.object({
 const workspaceParams = z.object({ workspaceId: z.string().min(1) });
 
 const createProjectSchema = z.object({
-  name: z.string().min(1),
+  /*
+   * BUG-USR-009: trim BEFORE min(1) so a whitespace-only name ("   ") is rejected
+   * like an empty one (previously it passed min(1) and created a project literally
+   * named "   " with slug "project"); cap length so a 400-char name can't be stored.
+   */
+  name: z.string().trim().min(1).max(200),
   slug: z.string().min(2).optional(),
   description: z.string().optional(),
 });
@@ -719,7 +734,11 @@ const gitRemoteUrlSchema = z
   .max(2048)
   .refine(isSafeGitRemoteUrl, 'Git remote URL must be an HTTPS or SSH URL.');
 const projectSettingsSchema = z.object({
-  name: z.string().min(1).optional(),
+  /*
+   * BUG-USR-009: same trim+cap as create — a rename to "   " or a 400-char string
+   * must be rejected consistently with the empty-name rejection.
+   */
+  name: z.string().trim().min(1).max(200).optional(),
   description: z.string().optional(),
   gitRepositoryUrl: gitRemoteUrlSchema.optional(),
   gitDefaultBranch: z.string().min(1).optional(),
@@ -765,6 +784,7 @@ const skillToggleBody = z.object({
   scope: installedSkillScope.default('project'),
   enabled: z.boolean(),
 });
+
 /** RPL-SK-001.4 revoke + RPL-SK-001.3 approve / audit-journal. */
 const skillRevokeBody = z.object({
   ownerRepo: z.string().min(1).max(220),
@@ -1350,6 +1370,17 @@ const packagesInstallSchema = z.object({
   // Optional override; when omitted the manager is detected from the lockfile.
   packageManager: z.enum(['npm', 'pnpm', 'yarn', 'bun']).optional(),
   timeoutMs: z.number().int().positive().max(600_000).optional(),
+
+  /*
+   * Target workspace. The Packages panel resolves and displays a specific
+   * workspace (and offers a workspace selector), so the install has to run in
+   * THAT pod. Without it this route fell back to the projectId, which
+   * authorizeRuntimeWorkspace turns into the deterministic per-user
+   * `ws-<hash>` id — a pod that does not exist whenever the project's active
+   * workspace is a different record, making every install 502 while the panel
+   * still reported success.
+   */
+  workspaceId: z.string().trim().min(1).optional(),
 });
 const domainSchema = z.object({
   domain: z
@@ -6647,14 +6678,18 @@ async function writeReleaseManifest(
       artifactRef = `static-deployments/${deployment.id}`;
       artifactDigest = digest;
     } else if (deployment.provider === 'server') {
-      const image = ((deployment.metadata as Record<string, unknown> | undefined)?.serverDeploy as
-        | { image?: { imageRef?: string; imageUri?: string; imageDigest?: string; storeGeneration?: string } }
-        | undefined)?.image;
+      const image = (
+        (deployment.metadata as Record<string, unknown> | undefined)?.serverDeploy as
+          | { image?: { imageRef?: string; imageUri?: string; imageDigest?: string; storeGeneration?: string } }
+          | undefined
+      )?.image;
 
       if (!image?.imageDigest) {
-        // A server release with no retained digest can never be a rollback target
-        // (resolveRollbackImage refuses it) — recording a manifest without one
-        // would be a lie, so skip. Rollback then fail-closes on the missing digest.
+        /*
+         * A server release with no retained digest can never be a rollback target
+         * (resolveRollbackImage refuses it) — recording a manifest without one
+         * would be a lie, so skip. Rollback then fail-closes on the missing digest.
+         */
         logger.warn({ deploymentId: deployment.id }, 'release_manifest.server_no_digest');
         return;
       }
@@ -6749,7 +6784,31 @@ async function startServerDeploymentViaManager(payload: {
   cpuLimit?: string;
   memoryRequest?: string;
   memoryLimit?: string;
+
+  /**
+   * État d'expiration du déploiement, lu par l'appelant. Fourni séparément parce
+   * que ce helper est un client HTTP sans accès au store.
+   */
+  expiryCheck?: {
+    candidate?: { environmentName?: string; createdAt: string; planKey?: string; expiredAt?: string };
+    ttlDays: number | null;
+  };
 }): Promise<{ ready: boolean; url: string; name: string; readyReplicas: number }> {
+  /*
+   * BARRIÈRE DE DÉMARRAGE. Point d'étranglement de TOUS les démarrages de
+   * workload serveur passant par l'API : redéploiement, réconciliation, reprise.
+   * Sans elle, l'extinction ne serait qu'une pause — le premier redémarrage
+   * ramènerait l'app en ligne.
+   */
+  if (payload.expiryCheck) {
+    assertPublicationStartable({
+      deploymentId: payload.deploymentId,
+      candidate: payload.expiryCheck.candidate,
+      ttlDays: payload.expiryCheck.ttlDays,
+      now: new Date(),
+    });
+  }
+
   const managerSecret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
 
   const response = await fetch(`${workspaceManagerUrl()}/server-deployments/start`, {
@@ -6783,6 +6842,32 @@ async function stopServerDeploymentViaManager(deploymentId: string): Promise<voi
     headers: { accept: 'application/json', ...(managerSecret ? { authorization: `Bearer ${managerSecret}` } : {}) },
     signal: AbortSignal.timeout(30_000),
   }).catch(() => undefined);
+}
+
+/**
+ * Arrêt STRICT — lève si le manager n'a pas confirmé.
+ *
+ * La variante ci-dessus avale tout (`.catch(() => undefined)`, aucun contrôle de
+ * `response.ok`) : c'est acceptable là où l'arrêt est un nettoyage best-effort,
+ * mais pas pour l'extinction d'une publication. Le balayage marquerait sinon le
+ * déploiement « éteint » alors que le manager a répondu 500 et que le workload
+ * tourne toujours — un échec transformé en succès apparent, exactement ce que
+ * l'invariant interdit.
+ *
+ * Constaté en réel : manager répondant 500, `stopped:["…"]` et `expiredAt` posé.
+ */
+async function stopServerDeploymentViaManagerStrict(deploymentId: string): Promise<void> {
+  const managerSecret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
+
+  const response = await fetch(`${workspaceManagerUrl()}/server-deployments/${encodeURIComponent(deploymentId)}/stop`, {
+    method: 'POST',
+    headers: { accept: 'application/json', ...(managerSecret ? { authorization: `Bearer ${managerSecret}` } : {}) },
+    signal: AbortSignal.timeout(30_000),
+  });
+
+  if (!response.ok) {
+    throw new Error(`workspace-manager a refusé l'arrêt de ${deploymentId} (HTTP ${response.status})`);
+  }
 }
 
 /*
@@ -7847,6 +7932,42 @@ export function shouldRetryAgentHop(opts: {
   return idempotent && transient;
 }
 
+/**
+ * Une publication Starter a-t-elle dépassé sa durée de vie ?
+ *
+ * L'offre annonce que l'app publiée « descend » au bout de 30 jours. Tant que
+ * cette extinction n'existe que dans le COMPTEUR d'entitlement, l'URL continue
+ * de répondre : le produit dirait une chose et le serveur en ferait une autre.
+ * Cette fonction est appliquée dans le chemin de SERVICE pour que l'extinction
+ * soit réelle.
+ *
+ * Ne s'applique qu'aux publications de PRODUCTION d'une org Starter : une
+ * preview n'est pas une publication, et un plan payant n'a pas de TTL.
+ */
+export function publishedDeploymentExpired(input: {
+  planKey?: string;
+  environmentName?: string;
+  createdAt?: string;
+  now?: Date;
+}): boolean {
+  if (input.environmentName !== 'production' || !input.createdAt) {
+    return false;
+  }
+
+  const plan = toEntitlementPlanKey(input.planKey);
+  const ttlDays = publishedProjectTtlDays(plan);
+
+  if (ttlDays === null) {
+    return false;
+  }
+
+  return !isPublicationActive({
+    plan,
+    publishedAt: new Date(input.createdAt),
+    now: input.now ?? new Date(),
+  });
+}
+
 export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyInstance> {
   const store = options.store ?? createDefaultStore();
   const agentMemory = options.agentMemory ?? createDefaultAgentMemory(store);
@@ -7855,8 +7976,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     options.mcpMarketplace ??
     (store instanceof PrismaApiStore ? createDefaultMcpMarketplaceService(store.prisma) : undefined);
 
-  // BLOCKER #5/#6: persisted readiness beacons + workspace diagnostics live on
-  // the Prisma client. Undefined off Prisma (tests) — helpers are best-effort.
+  /*
+   * BLOCKER #5/#6: persisted readiness beacons + workspace diagnostics live on
+   * the Prisma client. Undefined off Prisma (tests) — helpers are best-effort.
+   */
   const diagnosticsDb = store instanceof PrismaApiStore ? store.prisma : undefined;
 
   const projectStorage = options.projectStorage ?? new LocalProjectStorage();
@@ -8285,6 +8408,55 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * SPA routes (anything that does not resolve to a real file) fall back
    * to index.html so client-side routers work.
    */
+  /*
+   * ÉTAT DE SERVICE d'un déploiement, pour preview-proxy.
+   *
+   * Le proxy transmet `d-<id>` DIRECTEMENT au Service in-cluster sans consulter
+   * l'API : il ne pouvait donc pas savoir qu'une publication Starter avait
+   * expiré, et servait l'app indéfiniment. Cette route lui donne l'autorité
+   * manquante.
+   *
+   * Publique et sans secret : elle ne révèle que ce qu'un visiteur découvre déjà
+   * en ouvrant l'URL (vivante ou éteinte), jamais l'identité du projet ni son
+   * org. `not-found` pour tout le reste — le proxy ne doit jamais servir une app
+   * parce que l'API n'a pas su répondre.
+   */
+  app.get('/deployments/:deploymentId/serving-state', async (request, reply) => {
+    const deploymentId = ((request.params as { deploymentId?: string }).deploymentId ?? '').trim();
+
+    if (!/^[A-Za-z0-9_-]{1,80}$/.test(deploymentId)) {
+      return reply.code(400).send({ error: 'Invalid deployment id', code: 'DEPLOY_INVALID_ID' });
+    }
+
+    const owner = await store.getDeploymentOwnerStatus(deploymentId).catch(() => undefined);
+
+    if (!owner || owner.projectDeletedAt || owner.status === 'CANCELED') {
+      reply.header('cache-control', 'no-store');
+
+      return reply.send({ state: 'not-found' satisfies ServingState });
+    }
+
+    const state = servingState({
+      candidate: {
+        environmentName: owner.environmentName,
+        createdAt: owner.createdAt ?? '',
+        planKey: owner.planKey,
+        status: owner.status,
+      },
+      ttlDays: publishedProjectTtlDays(toEntitlementPlanKey(owner.planKey)),
+      now: new Date(),
+    });
+
+    /*
+     * Cache TRÈS court côté proxy : une expiration doit prendre effet en
+     * secondes, pas au prochain redémarrage. Assez long malgré tout pour ne pas
+     * transformer chaque requête de l'app en aller-retour vers l'API.
+     */
+    reply.header('cache-control', 'public, max-age=15');
+
+    return reply.send({ state });
+  });
+
   app.get('/static-deployments/:deploymentId/*', async (request, reply) => {
     const params = request.params as { deploymentId?: string; '*'?: string };
     const deploymentId = (params.deploymentId ?? '').trim();
@@ -8321,6 +8493,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply
         .code(404)
         .send({ error: 'Static deployment artifact not found', code: 'STATIC_DEPLOY_ARTIFACT_NOT_FOUND' });
+    }
+
+    /*
+     * EXTINCTION RÉELLE de la publication Starter arrivée à 30 jours. 410 Gone
+     * (et non 404) : la ressource a bien existé et son URL est définitivement
+     * retirée — republier crée une nouvelle publication. Sans ce gate, le
+     * produit annonçait une extinction qui n'avait jamais lieu.
+     */
+    if (
+      publishedDeploymentExpired({
+        planKey: ownerStatus.planKey,
+        environmentName: ownerStatus.environmentName,
+        createdAt: ownerStatus.createdAt,
+      })
+    ) {
+      reply.header('cache-control', 'no-store');
+
+      return reply.code(410).send({
+        error: "Cette publication a expiré. Republiez le projet pour remettre l'adresse en ligne.",
+        code: 'PUBLISHED_DEPLOYMENT_EXPIRED',
+      });
     }
 
     let decodedPath: string;
@@ -8420,6 +8613,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * API-origin URL now redirects here.
      */
     const dedicatedOrigin = staticDeployDedicatedOrigin(deploymentId);
+
     const onDedicatedHost = isDedicatedStaticDeployHost(
       request.headers.host,
       deploymentId,
@@ -9543,6 +9737,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.url === '/ready' ||
       request.url === '/metrics' ||
       request.url === '/synthetic/health' ||
+      /*
+       * État de service d'un déploiement : appelé par preview-proxy SANS
+       * credentials (il n'en a pas). Ne révèle que ce qu'un visiteur découvre en
+       * ouvrant l'URL publique — vivante ou éteinte — jamais l'identité du projet
+       * ni de son org.
+       */
+      /^\/deployments\/[A-Za-z0-9_-]{1,80}\/serving-state$/.test(request.url.split('?')[0]) ||
       request.url.startsWith('/auth/register') ||
       request.url.startsWith('/auth/login') ||
       request.url.startsWith('/auth/verify-email') ||
@@ -13355,8 +13556,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const db = diagnosticsDb;
 
     const [ports, processes, problems, logsTail] = await Promise.all([
-      agentRequest<{ ports: unknown }>(workspaceId, '/ports').then((r) => r.ports).catch(() => undefined),
-      agentRequest<{ processes: unknown }>(workspaceId, '/processes').then((r) => r.processes).catch(() => undefined),
+      agentRequest<{ ports: unknown }>(workspaceId, '/ports')
+        .then((r) => r.ports)
+        .catch(() => undefined),
+      agentRequest<{ processes: unknown }>(workspaceId, '/processes')
+        .then((r) => r.processes)
+        .catch(() => undefined),
       db.previewReadinessBeacon
         .findMany({ where: { workspaceId } })
         .then((rows) => rows.map((r) => ({ port: r.port, status: r.status, detail: r.detail, at: r.reportedAt })))
@@ -15926,9 +16131,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     let managerStatus: string | undefined;
 
     try {
-      const managerWorkspace = await managerRequest<{ status?: string }>(
-        `/workspaces/${authorized.workspaceId}`,
-      );
+      const managerWorkspace = await managerRequest<{ status?: string }>(`/workspaces/${authorized.workspaceId}`);
       managerStatus = managerWorkspace?.status;
     } catch (error) {
       if (!isRuntimeManagerUnavailable(error)) {
@@ -15941,12 +16144,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return Promise.all(
       result.ports.map(async (port) => {
         if (localFallback) {
-          // Local-runtime fallback serves the dev server directly on the host
-          // (no agent to probe through) — report ready without probing.
-          return { ...port, type: 'open', ready: true, url: previewUrlForWorkspacePort(authorized.workspaceId, port.port) };
+          /*
+           * Local-runtime fallback serves the dev server directly on the host
+           * (no agent to probe through) — report ready without probing.
+           */
+          return {
+            ...port,
+            type: 'open',
+            ready: true,
+            url: previewUrlForWorkspacePort(authorized.workspaceId, port.port),
+          };
         }
 
         const portReady = await probePortReady(authorized.workspaceId, port.port);
+
         const clientBeacon = diagnosticsDb
           ? await readClientBeacon(diagnosticsDb, authorized.workspaceId, port.port).catch(() => 'none' as const)
           : ('none' as const);
@@ -15968,6 +16179,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }),
     );
   });
+
   /*
    * BLOCKER #6: reconstruct WHY a workspace died after the pod is gone — the
    * timestamped lifecycle trail + the post-mortem snapshots (last ports /
@@ -16009,8 +16221,55 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const url = previewUrlForWorkspacePort(authorized.workspaceId, port);
 
-    return { port, url, ready: true };
+    /*
+     * Drive `ready` from a real HTTP probe of the served content, exactly like the
+     * `/ports` listing does. Reporting `ready: true` unconditionally was a
+     * readiness lie: a dev server that has bound its port but not yet served its
+     * app (e.g. Vite answering `GET /` with a 0-byte 404 before `index.html` is
+     * synced) was reported ready, so a caller of this single-port endpoint latched
+     * onto a preview that renders blank. isPortReadyFromProbe requires a 2xx/3xx
+     * AND a non-empty body, so this is false during the startup window and flips
+     * true only when the hostname actually serves.
+     */
+    const ready = await probePortReady(authorized.workspaceId, port);
+
+    return { port, url, ready };
   });
+
+  /*
+   * Marker + tag for the same-origin preview error reporter injected into HTML
+   * served through the api-origin preview fallback. The reporter file lives in the
+   * app's public assets (public/vibecore-preview-reporter.js) and is served on the
+   * app origin, which is the SAME origin as this proxy path — so a bare
+   * `/vibecore-preview-reporter.js` resolves without a cross-origin/CSP hop. Kept
+   * byte-compatible with the preview-proxy's injected reporter so the IDE handler
+   * treats both transports identically. The marker makes injection idempotent (a
+   * page that already self-hosts the reporter, or a double-proxy, is not doubled).
+   */
+  const PREVIEW_REPORTER_MARKER = 'data-vibecore-reporter';
+  const PREVIEW_REPORTER_TAG = `<script src="/vibecore-preview-reporter.js" ${PREVIEW_REPORTER_MARKER}></script>`;
+
+  // Only buffer+inject a plausibly-small HTML document; larger bodies stream raw.
+  const MAX_PREVIEW_REPORTER_INJECT_BYTES = 2 * 1024 * 1024;
+
+  const injectPreviewReporterScript = (html: string): string => {
+    if (html.includes(PREVIEW_REPORTER_MARKER)) {
+      return html;
+    }
+
+    // Prefer end-of-<head> so the (classic, non-module) reporter runs before the
+    // app's deferred module scripts and can catch a load-time throw.
+    if (/<\/head>/i.test(html)) {
+      return html.replace(/<\/head>/i, `${PREVIEW_REPORTER_TAG}</head>`);
+    }
+
+    if (/<body[^>]*>/i.test(html)) {
+      return html.replace(/<body[^>]*>/i, (match) => `${match}${PREVIEW_REPORTER_TAG}`);
+    }
+
+    // No <head>/<body> (fragment/minimal doc): prepend so it still loads.
+    return `${PREVIEW_REPORTER_TAG}${html}`;
+  };
 
   const handleRuntimePreviewProxy = async (request: FastifyRequest, reply: FastifyReply) => {
     const { workspaceId } = parse(workspaceParams, request.params);
@@ -16134,12 +16393,50 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     const contentLength = response.headers.get('content-length');
 
-    if (contentLength && !upstreamWasEncoded) {
-      reply.header('content-length', contentLength);
+    if (!response.body) {
+      if (contentLength && !upstreamWasEncoded) {
+        reply.header('content-length', contentLength);
+      }
+
+      return reply.code(response.status).send();
     }
 
-    if (!response.body) {
-      return reply.code(response.status).send();
+    /*
+     * Inject the preview error reporter into the top-level HTML document served
+     * on THIS same-origin fallback path (used when PREVIEW_URL_TEMPLATE is unset).
+     * The external preview-proxy injects the reporter on the *.preview host, but
+     * this api-origin proxy historically streamed the HTML RAW — so a preview
+     * served here (HTTP 200) that never mounts, or crashes on load, showed a
+     * SILENT BLANK with no in-iframe error overlay and no PREVIEW_BLANK signal to
+     * the IDE ("preview stayed empty / no visible preview status"). Injecting the
+     * same reporter (a same-origin <script>, since this document is app-origin)
+     * restores the blank-watchdog + error overlay on this path too, so a blank is
+     * never invisible. Only a small text/html document is buffered+rewritten; every
+     * other response (assets, big bundles, streams) still passes through untouched,
+     * so the OOM/streaming guarantees above are preserved.
+     */
+    const previewContentType = response.headers.get('content-type') ?? '';
+    const previewCharset = /charset\s*=\s*"?([\w-]+)"?/i.exec(previewContentType)?.[1]?.toLowerCase();
+    const previewIsUtf8 = !previewCharset || previewCharset === 'utf-8' || previewCharset === 'utf8';
+    const declaredLen = Number(contentLength ?? '');
+    const injectable =
+      previewContentType.includes('text/html') &&
+      previewIsUtf8 &&
+      (!Number.isFinite(declaredLen) || declaredLen <= MAX_PREVIEW_REPORTER_INJECT_BYTES);
+
+    if (injectable) {
+      const rawHtml = await response.text();
+      const injectedHtml =
+        rawHtml.length <= MAX_PREVIEW_REPORTER_INJECT_BYTES ? injectPreviewReporterScript(rawHtml) : rawHtml;
+      const outBuffer = Buffer.from(injectedHtml, 'utf8');
+
+      reply.header('content-length', String(outBuffer.byteLength));
+
+      return reply.code(response.status).send(outBuffer);
+    }
+
+    if (contentLength && !upstreamWasEncoded) {
+      reply.header('content-length', contentLength);
     }
 
     /*
@@ -17877,6 +18174,42 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       await requireAssignableOrganizationRole(store, orgId, roleKey);
       await requireRoleAssignableByCaller(store, orgId, member.roleKey, roleKey);
 
+      const inviteEmail = body.email.trim().toLowerCase();
+
+      /*
+       * BUG-USR-010: refuse inviting an email that is ALREADY a member of the org
+       * (this also covers self-invite — previously a caller could invite their own
+       * already-member address and it returned 201, creating a dead pending invite).
+       */
+      const members = await store.listMembers(orgId);
+
+      if (members.some((existingMember) => (existingMember.userEmail ?? '').trim().toLowerCase() === inviteEmail)) {
+        return reply
+          .code(409)
+          .send({ error: 'That person is already a member of this organization.', code: 'ALREADY_MEMBER' });
+      }
+
+      /*
+       * BUG-USR-011: refuse a duplicate PENDING invitation for the same email
+       * (previously two invites to the same address both returned 201, producing
+       * duplicate rows in the Pending invitations list with ambiguous resend/accept).
+       */
+      const pendingInvites = await store.listOrganizationInvites(orgId);
+      const nowMs = Date.now();
+
+      const hasPending = pendingInvites.some(
+        (invite) =>
+          invite.email.trim().toLowerCase() === inviteEmail &&
+          !invite.acceptedAt &&
+          new Date(invite.expiresAt).getTime() > nowMs,
+      );
+
+      if (hasPending) {
+        return reply
+          .code(409)
+          .send({ error: 'There is already a pending invitation for that email.', code: 'ALREADY_INVITED' });
+      }
+
       const token = createOpaqueToken('invite');
 
       const invitation = await store.createOrganizationInvite({
@@ -18829,9 +19162,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply.code(201).send({ project });
   });
+
   const importCreateSchema = z.object({
     provider: z.enum(IMPORT_HUB_PROVIDERS as [string, ...string[]]),
     sourceRef: z.string().optional(),
+
     /*
      * Mandatory idempotency key (safety billing): a retried create with the same
      * key replays the same import and never double-reserves credits.
@@ -18933,6 +19268,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     // Staging expires (idle) — the sweeper / timeout path uses this.
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
     const job = await store.createImportJob({
       organizationId: orgId,
       actorUserId: request.currentUser?.id,
@@ -18943,6 +19279,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     importIdemIndex.set(idemMapKey, job.id);
 
     let state: ImportState = 'RECEIVED';
+
     const advance = async (to: ImportState, patch: Record<string, unknown> = {}) => {
       assertImportTransition(state, to);
       state = to;
@@ -18971,6 +19308,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       // SCANNING — read-only detection; content is never mutated here.
       await advance('SCANNING');
+
       const findings = scanStagedFilesForSecrets(stagedFiles);
 
       // Log counts + kinds ONLY — never a raw value (I-IMP redacted logs).
@@ -19049,14 +19387,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       .string()
       .min(1)
       .parse((request.params as { importJobId: string }).importJobId);
+
     const body = parse(importConsentSchema, request.body);
 
     const job = await store.getImportJob(importJobId);
+
     if (!job || job.organizationId !== orgId) {
       throw Object.assign(new Error('Import job not found'), { statusCode: 404, code: 'IMPORT_JOB_NOT_FOUND' });
     }
 
     const staged = importStaging.get(importJobId);
+
     if (!staged) {
       throw Object.assign(new Error('Import staging expired or already committed'), {
         statusCode: 409,
@@ -19069,6 +19410,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     // I-IMP-1: block while any finding is unresolved.
     const blocked = unresolvedFindings(findings, consent);
+
     if (blocked.length > 0) {
       return reply.status(409).send({
         error: 'Import blocked: resolve every secret finding (keep or redact) before committing.',
@@ -19079,6 +19421,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     let state = job.state as ImportState;
+
     const advance = async (to: ImportState, patch: Record<string, unknown> = {}) => {
       assertImportTransition(state, to);
       state = to;
@@ -19128,6 +19471,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           ?.split('/')
           .pop()
           ?.replace(/\.git$/, '') || `Imported ${job.provider}`;
+
       /*
        * Record the origin in the fixed sourceType enum where a member exists
        * (github/gitlab/bitbucket/zip); other hub tiles fall back to 'blank'
@@ -19202,29 +19546,34 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/orgs/:orgId/imports/:importJobId/cancel', async (request, reply) => {
     const { orgId } = parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'projects:write');
+
     const importJobId = z
       .string()
       .min(1)
       .parse((request.params as { importJobId: string }).importJobId);
 
     const job = await store.getImportJob(importJobId);
+
     if (!job || job.organizationId !== orgId) {
       throw Object.assign(new Error('Import job not found'), { statusCode: 404, code: 'IMPORT_JOB_NOT_FOUND' });
     }
 
     await cleanupImport(importJobId, 'CANCELLED');
+
     return reply.send({ import: { importJobId, state: 'CANCELLED' } });
   });
 
   app.get('/orgs/:orgId/imports/:importJobId', async (request) => {
     const { orgId } = parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'projects:read');
+
     const importJobId = z
       .string()
       .min(1)
       .parse((request.params as { importJobId: string }).importJobId);
 
     const job = await store.getImportJob(importJobId);
+
     if (!job || job.organizationId !== orgId) {
       throw Object.assign(new Error('Import job not found'), { statusCode: 404, code: 'IMPORT_JOB_NOT_FOUND' });
     }
@@ -19476,6 +19825,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       files: publicFiles(files),
       git: await gitProvider.status(project.id),
       recentActivity: await store.listProjectActivity(project.id, { limit: 20, order: 'desc' }),
+
+      /*
+       * The IDE Monitoring panel reads `data.deployments` for its Deployments
+       * metric and its deployment timeline, and this payload is what feeds it.
+       * Without the key both fell back to the empty array, so a project with
+       * live READY deployments reported "0" and "No deployment recorded"
+       * (proven live 2026-08-06 on a project with three READY static deploys).
+       * Read-only listing — no provider reconcile, which belongs to the
+       * deployments routes.
+       */
+      deployments: await store.listDeployments(project.id).catch(() => []),
     };
   });
   app.get('/projects/:projectId/packages', async (request) => {
@@ -19561,8 +19921,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    // Resolve to the project's dedicated per-user workspace pod (never shared).
-    const authorized = await authorizeRuntimeWorkspace(request, projectId, 'workspaces:write');
+    /*
+     * Resolve to the workspace pod the caller is actually looking at (never
+     * shared). Falling back to the projectId keeps pre-workspaceId clients
+     * working, but when the panel names a workspace we must install THERE —
+     * see packagesInstallSchema.workspaceId.
+     */
+    const authorized = await authorizeRuntimeWorkspace(request, body.workspaceId ?? projectId, 'workspaces:write');
+
+    /*
+     * A caller-supplied workspace id is only trusted after confirming it belongs
+     * to this project; otherwise the projectId in the path (already permission
+     * checked) could be paired with a workspace from another project the user
+     * happens to own, installing into the wrong pod.
+     */
+    if (authorized.projectId !== projectId) {
+      throw Object.assign(new Error('Workspace does not belong to this project'), {
+        statusCode: 403,
+        code: 'WORKSPACE_PROJECT_MISMATCH',
+      });
+    }
 
     if (await isTerminalAccessRevoked(authorized, request)) {
       throw Object.assign(new Error('Terminal access is restricted for this project role'), {
@@ -20256,9 +20634,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * skill DISABLED, pending explicit approval.
      */
     const parsedManifest = parseSkillManifest(instructions);
+
     const auditManifest: SkillManifest = parsedManifest.ok
       ? parsedManifest.manifest
       : { name, description, allowedTools: [], metadata: {}, body: instructions, resources: [], raw: instructions };
+
     const auditContent: SkillContent = { manifest: auditManifest, resourceContents: {} };
     const audit = auditSkill(auditContent);
     const auditedAt = new Date().toISOString();
@@ -20404,8 +20784,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: `'${ownerRepo}' is not installed`, code: 'SKILL_NOT_INSTALLED' });
     }
 
-    // Fail-closed: the store refuses to enable a revoked or audit-rejected skill,
-    // returning it still-disabled. Surface that as a 409 rather than a false 200.
+    /*
+     * Fail-closed: the store refuses to enable a revoked or audit-rejected skill,
+     * returning it still-disabled. Surface that as a 409 rather than a false 200.
+     */
     if (body.enabled && !updated.enabled) {
       const reason = updated.revokedAt ? 'has been revoked' : 'was rejected by the security audit';
 
@@ -22292,6 +22674,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { project: transferred };
   });
+
   const remixSchema = z.object({
     name: z.string().min(1),
     slug: z.string().min(2).optional(),
@@ -22321,6 +22704,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     sourceFiles: ProjectFile[];
     sourceSnapshotId?: string;
     sourceListingId?: string;
+
     /*
      * License + consent (I-RMX-3, P0-V3-05). A gallery remix passes the
      * VERSIONED license captured from the listing plus the consent version the
@@ -22329,8 +22713,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     licenseSnapshot?: RemixLicenseSnapshot;
     consentVersion?: string;
+
     /** Mask PII in the source files before cloning (cross-user remix only). */
     sanitizePii?: boolean;
+
     /** Author's explicit versioned PII consent — skips masking, recorded. */
     piiConsentVersion?: string;
   }): Promise<
@@ -22359,6 +22745,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     let state: RemixState = 'SNAPSHOT_PINNED';
+
     const advance = async (to: RemixState, patch: Record<string, unknown> = {}) => {
       assertRemixTransition(state, to);
       state = to;
@@ -22366,8 +22753,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     };
 
     try {
-      // (1) SNAPSHOT_PINNED — the caller already resolved & pinned the source
-      // file set (live or a snapshot archive); nothing to read here.
+      /*
+       * (1) SNAPSHOT_PINNED — the caller already resolved & pinned the source
+       * file set (live or a snapshot archive); nothing to read here.
+       */
       const sourceFiles = params.sourceFiles;
 
       // (2) CREDENTIALS_DETACHED — references (keys) only, recorded BEFORE any clone.
@@ -22381,8 +22770,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * any materialized copy out of the clone files. Never persisted onto the clone.
        */
       const materializedValues: Array<{ key: string; value: string }> = [];
+
       for (const ref of detached.secretKeys) {
         const full = await store.getProjectSecret(sourceProject.id, ref);
+
         if (full?.valueEncrypted) {
           try {
             materializedValues.push({ key: ref, value: decryptJson<{ value: string }>(full.valueEncrypted).value });
@@ -22391,6 +22782,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           }
         }
       }
+
       for (const envVar of sourceEnvVars) {
         if (typeof envVar.value === 'string' && envVar.value.length > 0) {
           materializedValues.push({ key: envVar.key, value: envVar.value });
@@ -22412,6 +22804,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           content: file.content,
           encoding: file.encoding,
         }));
+
         const { files: maskedFiles, masked, observations } = maskPiiInFiles(remixFiles);
 
         /*
@@ -22456,6 +22849,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }
 
         const residual = scanFilesForPii(maskedFiles);
+
         if (residual.length > 0) {
           throw new RemixInvariantError(
             `SOURCE_SANITIZED left ${residual.length} PII span(s) unmasked`,
@@ -22467,8 +22861,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         piiMaskedCount = masked.length;
         await advance('SOURCE_SANITIZED', { piiFindings: masked, piiMaskedCount });
       } else {
-        // Owner self-remix, or author consent on file — nothing masked, and the
-        // job says WHY (consent version or absence of a cross-user flow).
+        /*
+         * Owner self-remix, or author consent on file — nothing masked, and the
+         * job says WHY (consent version or absence of a cross-user flow).
+         */
         await advance('SOURCE_SANITIZED', { piiFindings: [], piiMaskedCount: 0 });
       }
 
@@ -22514,6 +22910,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         });
         return { ok: false, findings, remixJobId: job.id };
       }
+
       await advance('SCANNING', { scanFindings: [] });
 
       // (8) INDEXING — honest completion marker (project code index does not exist yet).
@@ -22580,9 +22977,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const storagePolicy = body.storagePolicy as RemixStoragePolicy;
 
     try {
-      // Plain project-to-project remix: pin the LIVE source file set, clone into
-      // the SAME org. (A gallery remix pins a snapshot and targets the remixer's
-      // org — see POST /gallery/:slug/remix.)
+      /*
+       * Plain project-to-project remix: pin the LIVE source file set, clone into
+       * the SAME org. (A gallery remix pins a snapshot and targets the remixer's
+       * org — see POST /gallery/:slug/remix.)
+       */
       const sourceFiles = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
 
       const result = await runSecureRemixClone({
@@ -22593,8 +22992,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         name: body.name,
         slug: body.slug,
         sourceFiles,
-        // Same-org self-remix: the org already owns this data — no cross-user
-        // license/PII flow, so nothing to mask and no consent to capture.
+
+        /*
+         * Same-org self-remix: the org already owns this data — no cross-user
+         * license/PII flow, so nothing to mask and no consent to capture.
+         */
         sanitizePii: false,
       });
 
@@ -22638,6 +23040,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       .string()
       .min(1)
       .parse((request.params as { remixJobId: string }).remixJobId);
+
     const job = await store.getRemixJob(remixJobId);
 
     if (!job || job.sourceProjectId !== project.id) {
@@ -22684,9 +23087,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     author: row.authorName,
     appUrl: row.appUrl ?? null,
     thumbnailUrl: row.thumbnailUrl ?? null,
-    // License + fork rights are PUBLIC listing facts (P0-V3-05): a remixer
-    // must see what they'd accept before clicking Remix. Never the text sha
-    // alone — the detail route carries the full text.
+
+    /*
+     * License + fork rights are PUBLIC listing facts (P0-V3-05): a remixer
+     * must see what they'd accept before clicking Remix. Never the text sha
+     * alone — the detail route carries the full text.
+     */
     remixAllowed: row.remixAllowed,
     license: row.licenseId ? { id: row.licenseId, textSha256: row.licenseTextSha256 ?? null } : null,
     piiHandling: row.piiConsentVersion
@@ -22706,6 +23112,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/gallery', async (request) => {
     const query = parse(galleryListQuery, request.query);
+
     const listings = await store.listGalleryListings({
       category: query.category,
       query: query.q,
@@ -22720,9 +23127,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     const all = query.category || query.q ? await store.listGalleryListings({}) : listings;
     const counts = new Map<string, number>();
+
     for (const listing of all) {
       counts.set(listing.category, (counts.get(listing.category) ?? 0) + 1);
     }
+
     const categories = [...counts.entries()]
       .map(([id, count]) => ({ id, count }))
       .sort((a, b) => b.count - a.count || a.id.localeCompare(b.id));
@@ -22739,25 +23148,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       .string()
       .min(1)
       .parse((request.params as { slug: string }).slug);
+
     const listing = await store.getGalleryListingBySlug(slug);
 
     if (!listing || listing.status !== 'PUBLISHED') {
       return reply.status(404).send({ error: 'Listing not found', code: 'GALLERY_LISTING_NOT_FOUND' });
     }
 
-    // A public detail view counts once per request (best-effort; never blocks the
-    // read). Capture the post-view count BEFORE incrementing so the response is
-    // correct regardless of whether the store returns a fresh row or a live ref.
+    /*
+     * A public detail view counts once per request (best-effort; never blocks the
+     * read). Capture the post-view count BEFORE incrementing so the response is
+     * correct regardless of whether the store returns a fresh row or a live ref.
+     */
     const views = listing.viewCount + 1;
     await store.incrementGalleryListingViews(listing.id).catch(() => undefined);
 
     return {
       listing: {
         ...toPublicListing(listing),
+
         // detail-only: the immutable release the Remix reproduces (provenance, no secret)
         sourceSnapshotId: listing.sourceSnapshotId,
-        // detail-only: the FULL versioned license text a remixer accepts, and
-        // the consent-text version their acceptance is recorded under.
+
+        /*
+         * detail-only: the FULL versioned license text a remixer accepts, and
+         * the consent-text version their acceptance is recorded under.
+         */
         licenseText: listing.licenseText ?? null,
         remixConsentVersion: REMIX_CONSENT_VERSION,
         views,
@@ -22769,6 +23185,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     organizationId: z.string().min(1),
     name: z.string().min(1).optional(),
     slug: z.string().min(2).optional(),
+
     /*
      * Explicit, versioned acceptance (I-RMX-3). The UI sends acceptLicense
      * after showing the license block; the server refuses a remix without it —
@@ -22788,12 +23205,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       .string()
       .min(1)
       .parse((request.params as { slug: string }).slug);
+
     const body = parse(galleryRemixSchema, request.body);
 
     // The clone lands in the remixer's org — authorize membership there.
     await requireOrg(request, store, body.organizationId, 'projects:write');
 
     const listing = await store.getGalleryListingBySlug(slug);
+
     if (!listing || listing.status !== 'PUBLISHED') {
       return reply.status(404).send({ error: 'Listing not found', code: 'GALLERY_LISTING_NOT_FOUND' });
     }
@@ -22806,8 +23225,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    // FAIL-CLOSED en profondeur : même un listing marqué remixable ne se
-    // remixe pas sans licence explicite enregistrée (aucun fallback).
+    /*
+     * FAIL-CLOSED en profondeur : même un listing marqué remixable ne se
+     * remixe pas sans licence explicite enregistrée (aucun fallback).
+     */
     if (!listing.licenseId || !listing.licenseTextSha256) {
       return reply.status(403).send({
         error: 'This listing has no explicit license — remixing is closed by default.',
@@ -22849,16 +23270,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const sourceProject = await store.getProject(listing.sourceProjectId);
+
     if (!sourceProject) {
       return reply.status(409).send({ error: 'Source project unavailable', code: 'GALLERY_SOURCE_MISSING' });
     }
 
-    // Pin the IMMUTABLE release: read the clone's files from the listing's snapshot
-    // archive, NOT the live source project.
+    /*
+     * Pin the IMMUTABLE release: read the clone's files from the listing's snapshot
+     * archive, NOT the live source project.
+     */
     const snapshot = await store.getSnapshot(listing.sourceSnapshotId);
+
     if (!snapshot || snapshot.projectId !== listing.sourceProjectId) {
       return reply.status(409).send({ error: 'Pinned release unavailable', code: 'GALLERY_SNAPSHOT_MISSING' });
     }
+
     const sourceFiles = await getSnapshotFiles(snapshot);
 
     /*
@@ -22886,6 +23312,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         sourceListingId: listing.id,
         licenseSnapshot,
         consentVersion: REMIX_CONSENT_VERSION,
+
         // Cross-user flow: mask PII unless the AUTHOR consented (versioned).
         sanitizePii: true,
         piiConsentVersion: listing.piiConsentVersion,
@@ -22921,6 +23348,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const message = error instanceof Error ? error.message : String(error);
         return reply.status(error.statusCode).send({ error: message, code: error.code });
       }
+
       throw error;
     }
   });
@@ -22939,9 +23367,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     authorName: z.string().min(1),
     authorUserId: z.string().min(1).optional(),
     appUrl: z.string().url().optional(),
-    // Card preview image: either an https URL or a root-relative static asset
-    // (/gallery-apps/<id>/thumbnail.png) served by the web app. Rejected
-    // otherwise so a listing can't point the grid at an arbitrary scheme.
+
+    /*
+     * Card preview image: either an https URL or a root-relative static asset
+     * (/gallery-apps/<id>/thumbnail.png) served by the web app. Rejected
+     * otherwise so a listing can't point the grid at an arbitrary scheme.
+     */
     thumbnailUrl: z
       .string()
       .trim()
@@ -22952,6 +23383,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       .optional(),
     featured: z.boolean().optional(),
     status: z.enum(['PUBLISHED', 'PENDING_REVIEW', 'UNPUBLISHED']).optional(),
+
     /*
      * License + PII declarations captured at CURATION (P0-V3-05). licenseText
      * is hashed server-side — the sha256 pin is computed, never client-supplied.
@@ -22962,6 +23394,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     licenseId: z.string().min(1).max(64).optional(),
     licenseText: z.string().min(1).max(100_000).optional(),
     piiConsentVersion: z.string().min(1).max(64).optional(),
+
     /*
      * FAIL-CLOSED (directive 20/07) : rendre un listing remixable exige que
      * l'AUTEUR ait explicitement (1) choisi une licence autorisant le remix,
@@ -22985,8 +23418,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const body = parse(adminGalleryListingSchema, request.body ?? {});
 
-    // FAIL-CLOSED : pas de listing remixable sans licence explicite + droits
-    // confirmés + politique PII acceptée. Le défaut est NON-remixable.
+    /*
+     * FAIL-CLOSED : pas de listing remixable sans licence explicite + droits
+     * confirmés + politique PII acceptée. Le défaut est NON-remixable.
+     */
     if (body.remixAllowed === true) {
       if (!body.licenseId || !body.licenseText) {
         return reply.status(400).send({
@@ -23027,11 +23462,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const sourceProject = await store.getProject(body.sourceProjectId);
+
     if (!sourceProject) {
       return reply.status(404).send({ error: 'Source project not found', code: 'GALLERY_SOURCE_MISSING' });
     }
 
     const snapshot = await store.getSnapshot(body.sourceSnapshotId);
+
     if (!snapshot || snapshot.projectId !== body.sourceProjectId) {
       return reply
         .status(400)
@@ -23049,8 +23486,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       const listing = await store.createGalleryListing({
         ...body,
-        // Version pin computed HERE: the accepted license text is identified by
-        // content hash, not by whatever a client claims (P0-V3-05).
+
+        /*
+         * Version pin computed HERE: the accepted license text is identified by
+         * content hash, not by whatever a client claims (P0-V3-05).
+         */
         licenseTextSha256: body.licenseText
           ? createHash('sha256').update(body.licenseText, 'utf8').digest('hex')
           : undefined,
@@ -23072,8 +23512,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           remixAllowed: listing.remixAllowed,
           licenseId: listing.licenseId ?? null,
           piiConsentVersion: listing.piiConsentVersion ?? null,
-          // La confirmation des droits doit être retrouvable dans l'audit, pas
-          // seulement dans la table (réserve #8).
+
+          /*
+           * La confirmation des droits doit être retrouvable dans l'audit, pas
+           * seulement dans la table (réserve #8).
+           */
           rightsConfirmedAt: listing.rightsConfirmedAt?.toISOString() ?? null,
           rightsConfirmedBy: listing.rightsConfirmedBy ?? null,
           piiPolicyAcceptedAt: listing.piiPolicyAcceptedAt?.toISOString() ?? null,
@@ -23087,6 +23530,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       if (error instanceof Error && /unique|slug/i.test(error.message)) {
         return reply.status(409).send({ error: 'A listing with that slug already exists', code: 'GALLERY_SLUG_TAKEN' });
       }
+
       throw error;
     }
   });
@@ -24063,6 +24507,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       model: modeLine.model,
       multiplier: modeLine.multiplier,
     };
+
     let escalation: typeof base | undefined;
     let classifier: { provider: string; model: string } | undefined;
 
@@ -24077,6 +24522,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       const turboLine = routingLine(card, 'turbo');
+
       const turboOrgEnabled = await evaluateFeatureFlag(store, 'agent_turbo', {
         userId: request.currentUser?.id,
         organizationId: project.organizationId,
@@ -24183,6 +24629,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (body.agentRouting) {
       try {
         const routingCard = await getActiveAgentRoutingCard(store);
+
         const callBilling = computeAgentCallBilling(
           routingCard,
           body.agentRouting.lineKey,
@@ -26328,6 +26775,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       const price = lineUserPrice(candidate, line);
+
       const simulatedCostCents =
         (row.tokensIn * line.costInCentsPerM + row.tokensOut * line.costOutCentsPerM) / 1_000_000;
       const simulatedCreditCents = line.billedToUser
@@ -30469,6 +30917,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       let started: { ready: boolean; url: string; name: string; readyReplicas: number } | undefined;
       let serverError: string | undefined;
 
+      /*
+       * The runtime the pipeline actually detected (or that .ecode/deploy.json
+       * declared), lifted out of the detection block so the persisted row can
+       * carry it. The row is created with the STATIC heuristic's guess
+       * (outputDirectory 'dist' → "vite"), which the panel then showed for a
+       * plain Node app — proven live 2026-08-06 (BUG-DEPLOY-006).
+       */
+      let detectedFramework: string | undefined;
+
       const serverPort = Number(process.env.SERVER_DEPLOY_PORT) || 3000;
 
       /*
@@ -30681,13 +31138,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               : detection;
 
           if (ecodeLockFailure) {
-            // The typed code leads the persisted error (machine-parseable),
-            // e.g. "Server deploy: ECODE_LOCK_GENERATION_REVOKED: ecode.lock.json pins …".
+            /*
+             * The typed code leads the persisted error (machine-parseable),
+             * e.g. "Server deploy: ECODE_LOCK_GENERATION_REVOKED: ecode.lock.json pins …".
+             */
             serverError = `Server deploy: ${ecodeLockFailure.logLine}`;
           } else if (!runPlan) {
             const detectionError = detection as { error: string };
             serverError = `${detectionError.error} You can also declare {"run": "<command>"} in .ecode/deploy.json.`;
           } else {
+            detectedFramework = runPlan.framework;
+
             buildProgress.onLog({
               timestamp: nowIso(),
               level: 'info',
@@ -30886,6 +31347,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         try {
           started = await startServerDeploymentViaManager({
             deploymentId: queued.id,
+            expiryCheck: {
+              candidate: {
+                environmentName: queued.environment,
+                createdAt: queued.createdAt,
+                planKey: (await billingState(project.organizationId).catch(() => undefined))?.plan.key,
+                expiredAt: ((queued.metadata ?? {}) as Record<string, unknown>)?.expiredAt as string | undefined,
+              },
+              ttlDays: publishedProjectTtlDays(
+                toEntitlementPlanKey((await billingState(project.organizationId).catch(() => undefined))?.plan.key),
+              ),
+            },
             ...machineSizeResources(machineSize),
             image:
               serverImage ??
@@ -30950,6 +31422,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       const readyRow = await store.updateDeployment(project.id, queued.id, {
         status: serverStatus,
+
+        /*
+         * The row was created with the STATIC heuristic's guess (outputDirectory
+         * 'dist' → "vite"), which the panel then showed for a plain Node/Express
+         * app whose real run plan the pipeline had already detected and logged as
+         * "node". Persist what actually ran.
+         */
+        framework: detectedFramework ?? queued.framework,
         url: ok ? serverUrl : undefined,
         previewUrl: ok && body.environment !== 'production' ? serverUrl : undefined,
         productionUrl: ok && body.environment === 'production' ? serverUrl : undefined,
@@ -30970,7 +31450,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             ...(imageBuildInfo ? { image: imageBuildInfo } : {}),
           },
         },
-        logs: [...createDeploymentLogs(body, { ...queued, url: serverUrl }, project), ...liveLog],
+        logs: [
+          ...createDeploymentLogs(
+            body,
+            { ...queued, url: serverUrl, framework: detectedFramework ?? queued.framework },
+            project,
+          ),
+          ...liveLog,
+        ],
 
         /*
          * A converging (BUILDING) deploy is not finished — leaving finishedAt
@@ -31190,8 +31677,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       finishedAt: status === 'BUILDING' ? undefined : new Date().toISOString(),
     });
 
-    // P0-V3-08: record the immutable release manifest for a successful publish so
-    // a later rollback is deterministic + fail-closed. Best-effort; never blocks.
+    /*
+     * P0-V3-08: record the immutable release manifest for a successful publish so
+     * a later rollback is deterministic + fail-closed. Best-effort; never blocks.
+     */
     await writeReleaseManifest(store, app.log, ready, body.envVars);
 
     /*
@@ -31240,6 +31729,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   app.post('/projects/:projectId/nix-lock', async (request, reply) => {
     const { projectId } = parse(projectParams, request.params);
+
     const body = parse(
       z.object({
         generation: z.string().min(1).optional(),
@@ -31247,6 +31737,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }),
       request.body ?? {},
     );
+
     const project = await requireProject(request, store, projectId, 'projects:write');
 
     const registry = (() => {
@@ -31298,9 +31789,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       lock = buildEcodeLock(generation, body.bundles);
 
-      // The write-side runs the SAME gates as the publish-side read: a concrete
-      // generation pin (point 1) AND exhaustive catalog binding (point 3). The
-      // platform never writes a lock it would itself refuse at publish time.
+      /*
+       * The write-side runs the SAME gates as the publish-side read: a concrete
+       * generation pin (point 1) AND exhaustive catalog binding (point 3). The
+       * platform never writes a lock it would itself refuse at publish time.
+       */
       assertLockPublishable(lock);
       assertLockAgainstRegistry(lock, registry);
     } catch (error) {
@@ -31619,6 +32112,46 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const reaped = await reapStaleDeployments(store, { timeoutMs: resolveDeployBuildTimeoutMs() });
 
     /*
+     * EXTINCTION 30 j des publications SERVER — la substance derrière le 410.
+     *
+     * Le workload est réellement ARRÊTÉ via le workspace-manager, puis la ligne
+     * est marquée. Sans cet arrêt, un 410 au niveau du proxy ne serait qu'une
+     * façade : l'app continuerait de tourner, de consommer des ressources, et
+     * resterait joignable par tout chemin ne passant pas par le proxy.
+     *
+     * Best-effort : un échec d'extinction ne doit pas faire échouer le reap, mais
+     * il est RENDU dans la réponse plutôt qu'avalé.
+     */
+    let publicationExpiry: Awaited<ReturnType<typeof stopExpiredServerDeployments>> | { error: string };
+
+    try {
+      publicationExpiry = await stopExpiredServerDeployments({
+        candidates: await store.listExpiryCandidateDeployments(),
+        ttlDaysForPlan: (planKey) => publishedProjectTtlDays(toEntitlementPlanKey(planKey)),
+        now: new Date(),
+        stopWorkload: (deploymentId) => stopServerDeploymentViaManagerStrict(deploymentId),
+        markExpired: async (deployment) => {
+          /*
+           * Marquage dans `metadata`, pas dans `status` : `DeploymentStatus` est
+           * un enum Prisma, l'étendre imposerait une migration pour un simple
+           * drapeau. `expiredAt` suffit à sortir la ligne des balayages suivants
+           * sans toucher au schéma.
+           */
+          const existing = await store.getDeployment(deployment.projectId, deployment.id).catch(() => undefined);
+          const metadata = ((existing?.metadata ?? {}) as Record<string, unknown>) ?? {};
+
+          await store.updateDeployment(deployment.projectId, deployment.id, {
+            metadata: { ...metadata, expiredAt: new Date().toISOString() },
+          });
+        },
+        onError: (deploymentId, error) =>
+          request.log?.error?.({ err: error, deploymentId }, 'failed to stop expired server deployment'),
+      });
+    } catch (error) {
+      publicationExpiry = { error: error instanceof Error ? error.message : String(error) };
+    }
+
+    /*
      * Same tick, second sweep: runtime metering for READY server deployments.
      * Bills observed ACTIVE machine time (replicas > 0) at the row's machine
      * size; a sleeping app advances its watermark for free. Best-effort — a
@@ -31638,7 +32171,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.log.error({ err: error }, 'server-deploy runtime metering sweep failed');
     }
 
-    return { ...reaped, runtimeMetering };
+    return { ...reaped, runtimeMetering, publicationExpiry };
   });
 
   /*
@@ -32226,45 +32759,97 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     /*
      * ---- Contrat Starter : projets publiés ACTIFS (pas « déploiements ») ----
      *
-     * L'offre gratuite autorise UN projet publié à la fois. Trois conséquences
-     * que le modèle précédent (« cap de déploiements ») ratait :
+     * L'offre gratuite autorise UN projet publié à la fois :
      *  - republier le MÊME projet est toujours autorisé — sinon on interdirait
      *    de corriger un bug en production ;
-     *  - seul un DEUXIÈME projet distinct déclenche l'invitation à monter de
-     *    plan ;
-     *  - une publication Starter s'éteint au bout de 30 jours et cesse alors de
-     *    consommer la place, ce qui permet de republier sans intervention.
+     *  - seul un DEUXIÈME projet distinct déclenche l'invitation à monter de plan.
      *
-     * Hors du flag crédits : un entitlement décrit l'OFFRE, pas le modèle de
-     * facturation à l'usage ; derrière un flag non défini, il n'applique rien.
+     * SÉRIALISÉ PAR ORGANISATION (advisory lock PostgreSQL, cf.
+     * withSerializedMutation) : lecture des publications + décision d'entitlement
+     * + création du déploiement forment UNE SEULE section critique. Séparées,
+     * deux publishes simultanés de projets différents lisaient tous les deux
+     * « 0 actif » et passaient tous les deux — le plafond ne tenait pas sous
+     * concurrence. Le lock est pris par ORG (et non par projet) parce que c'est
+     * l'org qui porte le quota.
+     *
+     * FAIL-CLOSED : aucune de ces lectures n'est neutralisée par un `.catch`.
+     * Une erreur de lecture des publications ou de l'état de facturation ne doit
+     * JAMAIS se traduire par « 0 publication active » — ce serait un quota remis
+     * à zéro par une panne. On refuse temporairement (503) et on réessaiera.
      */
-    const publications = await store.listPublishedProjects(project.organizationId).catch(() => []);
-    const entitlementPlanKey = (await billingState(project.organizationId).catch(() => undefined))?.plan.key;
+    const publishOutcome = await store.withSerializedMutation(
+      `publish:org:${project.organizationId}`,
+      async (): Promise<
+        | { ok: true; deployment: Awaited<ReturnType<typeof store.createDeployment>> }
+        | { ok: false; response: unknown; status: number }
+      > => {
+        let publications: Array<{ projectId: string; publishedAt: string }>;
+        let entitlementPlanKey: string | undefined;
 
-    try {
-      assertPublishEntitlement({
-        planKey: entitlementPlanKey,
-        targetProjectId: project.id,
-        publications: publications.map((p) => ({ projectId: p.projectId, publishedAt: new Date(p.publishedAt) })),
-      });
-    } catch (error) {
-      if (error instanceof EntitlementError) {
+        try {
+          publications = await store.listPublishedProjects(project.organizationId);
+          entitlementPlanKey = (await billingState(project.organizationId))?.plan.key;
+        } catch (error) {
+          request.log?.error?.(
+            { err: error, organizationId: project.organizationId },
+            'publish entitlement precheck failed — refusing (fail-closed)',
+          );
+
+          return {
+            ok: false,
+            status: 503,
+            response: {
+              error:
+                "Impossible de vérifier les limites de votre plan pour le moment. Réessayez dans un instant — aucune publication n'a été créée.",
+              code: 'ENTITLEMENT_CHECK_UNAVAILABLE',
+              retryable: true,
+            },
+          };
+        }
+
+        try {
+          assertPublishEntitlement({
+            planKey: entitlementPlanKey,
+            targetProjectId: project.id,
+            publications: publications.map((p) => ({ projectId: p.projectId, publishedAt: new Date(p.publishedAt) })),
+          });
+        } catch (error) {
+          if (error instanceof EntitlementError) {
+            return {
+              ok: false,
+              status: error.statusCode,
+              response: { error: error.message, code: error.code, ...error.details },
+            };
+          }
+
+          throw error;
+        }
+
+        // Création DANS la section critique : c'est elle qui rend le plafond réel.
+        const publishUrl = source.url ?? source.previewUrl ?? buildDeploymentUrl(project, source);
+
+        return {
+          ok: true,
+          deployment: await store.createDeployment(buildPublishedDeploymentInput(source, publishUrl)),
+        };
+      },
+    );
+
+    if (!publishOutcome.ok) {
+      if (publishOutcome.status === 402) {
         await audit(request, store, {
           organizationId: project.organizationId,
           action: 'entitlement.refused',
           resourceType: 'deployment',
           resourceId: deploymentId,
-          metadata: { code: error.code, ...error.details },
+          metadata: publishOutcome.response as Record<string, unknown>,
         });
-
-        return reply.code(error.statusCode).send({ error: error.message, code: error.code, ...error.details });
       }
 
-      throw error;
+      return reply.code(publishOutcome.status).send(publishOutcome.response);
     }
 
-    const publishUrl = source.url ?? source.previewUrl ?? buildDeploymentUrl(project, source);
-    const published = await store.createDeployment(buildPublishedDeploymentInput(source, publishUrl));
+    const published = publishOutcome.deployment;
 
     /*
      * P2d: publishing gives the project a real PRODUCTION database, distinct
@@ -32693,7 +33278,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       throw error;
     }
 
-    const appendRollbackManifest = async (rollbackId: string, artifactKind: string, artifactRef: string, artifactDigest: string) => {
+    const appendRollbackManifest = async (
+      rollbackId: string,
+      artifactKind: string,
+      artifactRef: string,
+      artifactDigest: string,
+    ) => {
       await store.withSerializedMutation(`release-manifest:${project.id}:${environment}`, async () => {
         const latest = await store.listReleaseManifests(project.id, environment, { take: 1 });
         const nextVersion = (latest[0]?.version ?? 0) + 1;
@@ -32762,7 +33352,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             status: 'FAILED',
             logs: [
               ...rollback.logs,
-              { timestamp: new Date().toISOString(), level: 'error', message: `Rollback restore failed: ${(error as Error).message}` },
+              {
+                timestamp: new Date().toISOString(),
+                level: 'error',
+                message: `Rollback restore failed: ${(error as Error).message}`,
+              },
             ],
             finishedAt: new Date().toISOString(),
           })
@@ -32775,6 +33369,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       const url = buildDeploymentUrl(project, rollback);
+
       const ready = await store.updateDeployment(project.id, rollback.id, {
         status: 'READY',
         url,
@@ -32791,8 +33386,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         ],
       });
 
-      // The restored copy is a first-class release too — record its OWN manifest
-      // (new monotonic version), digested from the freshly-materialised bytes.
+      /*
+       * The restored copy is a first-class release too — record its OWN manifest
+       * (new monotonic version), digested from the freshly-materialised bytes.
+       */
       const restoredDigest = (await computeStaticSnapshotDigest(rollback.id)) ?? previous.artifactDigest;
       await appendRollbackManifest(rollback.id, 'static-snapshot', `static-deployments/${rollback.id}`, restoredDigest);
 
@@ -32849,10 +33446,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const currentSecrets = await resolveProjectSecretValues(store, project.id).catch(
           (): Record<string, string> => ({}),
         );
+
         const secretResolution = resolveRollbackSecrets({ policy: 'CURRENT', currentSecrets, pinnedSecrets: null });
 
         const rbHost = serverDeployHost(rollback.id);
         const rbPort = Number(process.env.SERVER_DEPLOY_PORT) || 3000;
+
         const rbEnv = buildServerDeployEnv({
           deploymentId: rollback.id,
           port: rbPort,
@@ -32860,6 +33459,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           projectSecrets: secretResolution.secrets,
           envOverrides: {},
         });
+
         const deployRateCard = await getActiveRateCard(store);
         const machineSize = machineSizeFromCard(deployRateCard, undefined);
 
@@ -32879,6 +33479,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
         const ok = Boolean(started?.ready);
         const rbUrl = started?.url ?? `https://${rbHost}`;
+
         const ready = await store.updateDeployment(project.id, rollback.id, {
           status: ok ? 'READY' : 'BUILDING',
           url: ok ? rbUrl : undefined,
@@ -32930,7 +33531,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             url: '',
             logs: [
               ...rollback.logs,
-              { timestamp: new Date().toISOString(), level: 'error', message: `Rollback refused: ${(error as Error).message}` },
+              {
+                timestamp: new Date().toISOString(),
+                level: 'error',
+                message: `Rollback refused: ${(error as Error).message}`,
+              },
             ],
             finishedAt: new Date().toISOString(),
           })
@@ -33108,6 +33713,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           imageRef: (image.imageRef ?? image.imageUri ?? '').replace(/:[^:/]+$/, ''),
           imageDigest: image.imageDigest ?? '',
           createdAt: new Date().toISOString(),
+
           // CTR-RUNTIME-NIX point 2: carry the ORIGINAL release's pinned generation.
           ...(image.storeGeneration ? { storeGeneration: image.storeGeneration } : {}),
         };
@@ -33152,6 +33758,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           env: rbEnv,
           healthPath: process.env.SERVER_DEPLOY_HEALTH_PATH || '/',
           nixStorePvcName: nixStorePvcForProject(project.id),
+
           /*
            * Re-pin the ORIGINAL release's generation (expert refusal v3 point 2):
            * the rollback is evaluated against the generation THAT release used,
@@ -33178,6 +33785,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               applied: Boolean(started),
               rolledBackFromDigest: plan.imageDigest,
               secretPolicy: secretResolution.policy,
+
               // Persist the re-pinned generation so a rollback-of-a-rollback carries it too.
               image: {
                 imageRef: retained.imageRef,

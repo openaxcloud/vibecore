@@ -6,6 +6,19 @@
  * them to the parent IDE (cross-origin via postMessage(..., '*')) as
  * PREVIEW_ERROR / PREVIEW_UNHANDLED_REJECTION / PREVIEW_CONSOLE messages.
  *
+ * It also carries a blank-preview fail-safe: when the app is served (HTTP 200)
+ * but never renders (an uncaught error at module-eval — e.g. a stray
+ * "Cannot redefine property: process" from a colliding polyfill/extension — or a
+ * missing entry script), the SPA mount node stays empty and the user sees a
+ * SILENT white screen. That is invisible with no error state, which is exactly
+ * the recurring "Webview blanc" launch-blocker. To make it never invisible the
+ * reporter (a) reports promptly (~1.5s after a load-time uncaught error, instead
+ * of only the slow 18s silent-blank watchdog) and (b) renders a visible in-frame
+ * overlay naming the real error — so the failure is diagnosable from inside the
+ * iframe regardless of how the parent IDE surfaces it. The overlay ONLY draws
+ * when the mount is genuinely empty and is fully try/catch-guarded, so it can
+ * never cover or break a working app.
+ *
  * Kept byte-compatible with public/vibecore-preview-reporter.js (the WebContainer
  * copy) for the error/unhandledrejection payloads so the IDE handler in
  * app/components/workbench/Preview.tsx treats both transports identically.
@@ -24,7 +37,19 @@ export const REPORTER_SCRIPT = `(function () {
     }
   }
 
+  /*
+   * Remember the last uncaught error message so the blank-preview overlay can
+   * name the real cause (e.g. "Cannot redefine property: process") instead of a
+   * generic "never rendered". Set by the error/unhandledrejection handlers.
+   */
+  var lastErrorMessage = '';
+
   window.addEventListener('error', function (event) {
+    if (event.message) {
+      lastErrorMessage = String(event.message);
+    } else if (event.error && event.error.message) {
+      lastErrorMessage = String(event.error.message);
+    }
     send({
       type: 'PREVIEW_ERROR',
       message: event.message || 'Unknown runtime error',
@@ -34,6 +59,7 @@ export const REPORTER_SCRIPT = `(function () {
       stack: event.error && event.error.stack ? String(event.error.stack) : undefined,
       ts: Date.now(),
     });
+    scheduleLoadErrorBlankCheck();
   });
 
   window.addEventListener('unhandledrejection', function (event) {
@@ -46,12 +72,14 @@ export const REPORTER_SCRIPT = `(function () {
     } else if (reason !== undefined) {
       message = String(reason);
     }
+    lastErrorMessage = message;
     send({
       type: 'PREVIEW_UNHANDLED_REJECTION',
       message: message,
       stack: stack,
       ts: Date.now(),
     });
+    scheduleLoadErrorBlankCheck();
   });
 
   function formatArg(arg) {
@@ -86,13 +114,68 @@ export const REPORTER_SCRIPT = `(function () {
     return mount.children.length === 0 && bodyText.length === 0;
   }
 
+  /*
+   * Fail-safe visible overlay. Turns a silent white screen into a diagnosable
+   * state by drawing a minimal error card INTO the blank frame, naming the real
+   * error when we have one. Guards: draws at most once, only while the mount is
+   * genuinely empty (never covers a working app), and everything is wrapped so a
+   * DOM failure here can never throw into — or break — the page it is protecting.
+   */
+  var OVERLAY_ID = '__vibecorePreviewBlankOverlay';
+  function renderBlankOverlay(detail) {
+    try {
+      if (!document.body || document.getElementById(OVERLAY_ID) || !mountIsEmpty()) {
+        return;
+      }
+      var wrap = document.createElement('div');
+      wrap.id = OVERLAY_ID;
+      wrap.setAttribute('role', 'alert');
+      wrap.style.cssText = 'position:fixed;inset:0;z-index:2147483646;display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:24px;background:#0d1117;color:#c9d1d9;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;';
+      var card = document.createElement('div');
+      card.style.cssText = 'max-width:520px;width:100%;';
+      var h = document.createElement('div');
+      h.style.cssText = 'font-size:15px;font-weight:600;margin:0 0 8px;color:#f0f6fc;';
+      h.textContent = 'This preview failed to load';
+      var p = document.createElement('div');
+      p.style.cssText = 'font-size:13px;line-height:1.5;color:#8b949e;margin:0 0 14px;';
+      p.textContent = 'The dev server is running but the app never rendered — an error in the app code stopped it before it could mount.';
+      card.appendChild(h);
+      card.appendChild(p);
+      if (detail) {
+        var pre = document.createElement('div');
+        pre.style.cssText = 'font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.45;color:#ffa198;background:#161b22;border:1px solid #30363d;border-radius:6px;padding:10px 12px;margin:0 0 14px;white-space:pre-wrap;word-break:break-word;';
+        pre.textContent = detail;
+        card.appendChild(pre);
+      }
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = 'Reload preview';
+      btn.style.cssText = 'font:inherit;font-size:13px;font-weight:500;color:#fff;background:#238636;border:0;border-radius:6px;padding:8px 14px;cursor:pointer;';
+      btn.addEventListener('click', function () {
+        try {
+          location.reload();
+        } catch (error) {
+          // ignore; a reload failure must not throw out of the click handler.
+        }
+      });
+      card.appendChild(btn);
+      wrap.appendChild(card);
+      document.body.appendChild(wrap);
+    } catch (error) {
+      // fail-safe: the overlay must never break the page it is trying to explain.
+    }
+  }
+
   var blankReported = false;
   function reportBlank() {
     if (blankReported || !mountIsEmpty()) {
       return;
     }
     blankReported = true;
-    var payload = { type: 'PREVIEW_BLANK', message: 'Preview served but the app never mounted', url: location.href, ts: Date.now() };
+    var message = lastErrorMessage
+      ? 'Preview served but the app never mounted: ' + lastErrorMessage
+      : 'Preview served but the app never mounted';
+    var payload = { type: 'PREVIEW_BLANK', message: message, url: location.href, ts: Date.now() };
     send(payload);
     try {
       if (navigator && typeof navigator.sendBeacon === 'function') {
@@ -101,7 +184,24 @@ export const REPORTER_SCRIPT = `(function () {
     } catch (error) {
       // best-effort server log; never break the page.
     }
+    renderBlankOverlay(lastErrorMessage);
   }
+
+  /*
+   * When an uncaught error fires, the app is likely already dead — but give a
+   * slow/late mount a short grace before deciding. If the mount is STILL empty
+   * ~1.5s after a load-time error, it is definitively broken, so surface it now
+   * instead of waiting for the 18s silent-blank watchdog. Scheduled at most once.
+   */
+  var loadErrorCheckScheduled = false;
+  function scheduleLoadErrorBlankCheck() {
+    if (loadErrorCheckScheduled) {
+      return;
+    }
+    loadErrorCheckScheduled = true;
+    setTimeout(reportBlank, 1500);
+  }
+
   setTimeout(function () {
     if (mountIsEmpty()) {
       setTimeout(reportBlank, 8000);

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import type { LoaderFunctionArgs, MetaFunction } from 'react-router';
-import { isRouteErrorResponse, Link, useRouteError } from 'react-router';
+import { data, isRouteErrorResponse, Link, useRouteError } from 'react-router';
 
 import { LinkButton, PublicShell } from '~/components/dashboard/SaaSLayout';
 
@@ -19,23 +19,36 @@ import { LinkButton, PublicShell } from '~/components/dashboard/SaaSLayout';
 
 export const loader = ({ request }: LoaderFunctionArgs) => {
   /*
-   * A thrown Response is the documented Remix way to signal an expected 404.
-   * It is intentionally NOT a thrown Error, so it is never logged at error level.
+   * BUG-MKT-005 : on RENVOIE un 404 au lieu de le LEVER.
+   *
+   * Une Response levée fait rendre l'ErrorBoundary, et React Router n'exécute
+   * PAS le `meta` d'une route en erreur : le titre servi restait donc celui de
+   * la racine. Le correctif client (`document.title` dans un effet) ne répare
+   * que la navigation interne — un crawler, un partage social ou un `curl` ne
+   * voient que le HTML du serveur, où le titre était générique.
+   *
+   * En renvoyant les données avec `status: 404`, le composant rend normalement,
+   * `meta` s'exécute au SSR, et le statut HTTP reste 404. La propriété qui
+   * motivait le `throw` est préservée : ce n'est toujours pas une erreur, donc
+   * rien n'est journalisé au niveau error.
    */
-  throw new Response(`Not Found: ${new URL(request.url).pathname}`, {
-    status: 404,
-    statusText: 'Not Found',
-  });
+  return data({ notFoundPath: new URL(request.url).pathname }, { status: 404, statusText: 'Not Found' });
 };
 
-export const meta: MetaFunction = () => [{ title: 'Page not found · E-Code' }, { name: 'robots', content: 'noindex' }];
+export const meta: MetaFunction = () => [
+  { title: 'Page not found · E-Code' },
+  { name: 'description', content: 'This page could not be found on E-Code.' },
+
+  // BUG-MKT-009 — une page introuvable ne doit jamais entrer dans un index.
+  { name: 'robots', content: 'noindex, nofollow' },
+];
 
 function NotFoundView({ status = 404 }: { status?: number }) {
   /*
-   * The loader throws a 404 Response, so Remix renders this ErrorBoundary and the
-   * route `meta` (with the proper title) never runs — leaving the document title at
-   * the root default ("Loading..."). meta-on-error isn't supported in Remix v2, and
-   * React 18 doesn't hoist a <title> element, so set it client-side here.
+   * Filet pour le rendu via ErrorBoundary UNIQUEMENT. Sur le chemin normal, le
+   * loader RENVOIE désormais le 404 et `meta` pose le titre dès le SSR ; mais une
+   * route en erreur n'exécute pas `meta`, et React 18 ne hisse pas un <title>.
+   * Poser le titre ici reste donc nécessaire pour ce chemin résiduel.
    */
   useEffect(() => {
     document.title = status === 404 ? 'Page not found · E-Code' : `Error ${status} · E-Code`;
@@ -74,9 +87,9 @@ function NotFoundView({ status = 404 }: { status?: number }) {
 }
 
 /*
- * The loader always throws, so in practice the ErrorBoundary renders. The default
- * export is kept as a defensive fallback in case the route is ever reached without
- * the loader (e.g. a future client-only navigation path).
+ * Chemin NORMAL depuis que le loader renvoie (au lieu de lever) : c'est ce
+ * composant qui rend, donc `meta` s'applique et le titre est correct dès le SSR.
+ * L'ErrorBoundary reste en filet pour les erreurs réellement inattendues.
  */
 export default function SplatRoute() {
   return <NotFoundView status={404} />;

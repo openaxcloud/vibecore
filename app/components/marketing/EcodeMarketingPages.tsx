@@ -1197,10 +1197,20 @@ export const newsletterPages = {
 } as const satisfies Record<string, MarketingPageDefinition>;
 
 export function makeMarketingMeta(page: MarketingPageDefinition): MetaFunction {
-  return () => [
+  /*
+   * BUG-MKT-003 : le canonical est dérivé de `location.pathname`, jamais d'un
+   * chemin recopié. Un canonical FAUX est pire qu'absent — il désigne
+   * explicitement la mauvaise page aux moteurs — et une table de correspondance
+   * écrite à la main dérive au premier renommage de route.
+   */
+  return ({ location }) => [
     { title: `${page.title} - E-Code` },
     { name: 'description', content: page.description },
-    ...socialMetaTags({ title: `${page.title} - E-Code`, description: page.description }),
+    ...socialMetaTags({
+      title: `${page.title} - E-Code`,
+      description: page.description,
+      path: location?.pathname,
+    }),
   ];
 }
 
