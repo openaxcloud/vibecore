@@ -14,6 +14,40 @@ import { REPORTER_SCRIPT } from './reporter-script.js';
  */
 const MAX_INJECT_BYTES = 4 * 1024 * 1024;
 
+/**
+ * The preview MUST stay embeddable by the IDE (app.e-code.ai) as a cross-origin
+ * iframe. A user dev server (or a framework/plugin/middleware it runs) that emits
+ * `X-Frame-Options` or a Content-Security-Policy `frame-ancestors` directive would
+ * FORBID that framing — the browser blocks the frame with "Framing … violates …
+ * frame-ancestors" and the IDE shows a SILENT BLANK at HTTP 200 (the app renders
+ * fine when opened top-level, which is why a direct fetch/tab shows real content).
+ * Every proxy hop forwards upstream headers verbatim, so nothing removed these.
+ *
+ * Neutralise them on the way to the browser: DROP `X-Frame-Options` entirely (it
+ * only forbids framing), and strip ONLY the `frame-ancestors` directive from any
+ * CSP while KEEPING the app's other CSP protections. Returns the header value to
+ * forward, or `null` to drop the header. Pure/exported for unit tests.
+ */
+export function sanitizePreviewFramingHeader(name: string, value: string): string | null {
+  const lower = name.toLowerCase();
+
+  if (lower === 'x-frame-options') {
+    return null;
+  }
+
+  if (lower === 'content-security-policy') {
+    const kept = value
+      .split(';')
+      .map((directive) => directive.trim())
+      .filter((directive) => directive.length > 0 && !/^frame-ancestors\b/i.test(directive));
+
+    // If frame-ancestors was the only directive, drop the header entirely.
+    return kept.length > 0 ? kept.join('; ') : null;
+  }
+
+  return value;
+}
+
 /*
  * Auto-refreshing holding page served for the iframe's top-level navigation when
  * the upstream dev server is bound-but-not-yet-serving (still compiling) or briefly
@@ -975,7 +1009,14 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
           return;
         }
 
-        reply.header(name, value);
+        // Never let the served app forbid the IDE from framing its own preview.
+        const framingSafe = sanitizePreviewFramingHeader(name, value);
+
+        if (framingSafe === null) {
+          return;
+        }
+
+        reply.header(name, framingSafe);
       });
 
       if (!upstreamResponse.body) {
@@ -1111,7 +1152,14 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
           return;
         }
 
-        reply.header(name, value);
+        // Never let the served app forbid the IDE from framing its own preview.
+        const framingSafe = sanitizePreviewFramingHeader(name, value);
+
+        if (framingSafe === null) {
+          return;
+        }
+
+        reply.header(name, framingSafe);
       });
 
       if (!upstreamResponse.body) {
@@ -1472,7 +1520,14 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
           return;
         }
 
-        reply.header(name, value);
+        // Never let the served app forbid the IDE from framing its own preview.
+        const framingSafe = sanitizePreviewFramingHeader(name, value);
+
+        if (framingSafe === null) {
+          return;
+        }
+
+        reply.header(name, framingSafe);
       });
 
       if (!upstreamResponse.body) {

@@ -16350,9 +16350,38 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const upstreamWasEncoded = response.headers.has('content-encoding');
 
     for (const [key, value] of response.headers.entries()) {
-      if (!['content-encoding', 'content-length', 'transfer-encoding', 'connection'].includes(key.toLowerCase())) {
-        reply.header(key, value);
+      const lower = key.toLowerCase();
+
+      if (['content-encoding', 'content-length', 'transfer-encoding', 'connection'].includes(lower)) {
+        continue;
       }
+
+      /*
+       * Keep the preview embeddable by the IDE as an iframe: a served app that
+       * emits `X-Frame-Options` or a CSP `frame-ancestors` directive would block
+       * the framing and leave the IDE a silent blank at HTTP 200. Drop
+       * X-Frame-Options; strip ONLY the frame-ancestors directive from any CSP,
+       * keeping the app's other CSP protections. Mirrors the preview-proxy's
+       * sanitizePreviewFramingHeader for this same-origin fallback path.
+       */
+      if (lower === 'x-frame-options') {
+        continue;
+      }
+
+      if (lower === 'content-security-policy') {
+        const kept = value
+          .split(';')
+          .map((directive) => directive.trim())
+          .filter((directive) => directive.length > 0 && !/^frame-ancestors\b/i.test(directive));
+
+        if (kept.length > 0) {
+          reply.header(key, kept.join('; '));
+        }
+
+        continue;
+      }
+
+      reply.header(key, value);
     }
 
     /*

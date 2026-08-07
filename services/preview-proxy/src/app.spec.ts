@@ -5,6 +5,7 @@ import {
   injectInspectorScript,
   parseServerDeployHost,
   readCookie,
+  sanitizePreviewFramingHeader,
   serverDeployUpstreamUrl,
   signPreviewTenantToken,
   verifyPreviewTenantToken,
@@ -1052,5 +1053,65 @@ describe('preview-proxy', () => {
 
       await app.close();
     });
+
+    it('strips upstream X-Frame-Options and CSP frame-ancestors so the IDE can frame the preview (blank-at-200 fix)', async () => {
+      const fetchImpl = (async () =>
+        new Response('<!doctype html><div id="root">app</div>', {
+          status: 200,
+          headers: {
+            'content-type': 'text/html; charset=utf-8',
+            'x-frame-options': 'SAMEORIGIN',
+            'content-security-policy': "default-src 'self'; frame-ancestors 'self'",
+          },
+        })) as unknown as typeof fetch;
+
+      const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/p/ws_1/5173/',
+        headers: { accept: 'text/html', 'sec-fetch-dest': 'iframe' },
+      });
+
+      expect(response.statusCode).toBe(200);
+      // X-Frame-Options dropped entirely.
+      expect(response.headers['x-frame-options']).toBeUndefined();
+      // CSP kept, but only the frame-ancestors directive removed.
+      const csp = String(response.headers['content-security-policy'] ?? '');
+      expect(csp).not.toMatch(/frame-ancestors/i);
+      expect(csp).toContain("default-src 'self'");
+      // Framing-enable headers still present.
+      expect(response.headers['cross-origin-resource-policy']).toBe('cross-origin');
+      expect(response.headers['cross-origin-embedder-policy']).toBe('credentialless');
+
+      await app.close();
+    });
+  });
+});
+
+describe('sanitizePreviewFramingHeader', () => {
+  it('drops X-Frame-Options entirely (case-insensitive)', () => {
+    expect(sanitizePreviewFramingHeader('X-Frame-Options', 'DENY')).toBeNull();
+    expect(sanitizePreviewFramingHeader('x-frame-options', 'SAMEORIGIN')).toBeNull();
+  });
+
+  it('removes ONLY the frame-ancestors directive from a CSP, keeping the rest', () => {
+    expect(sanitizePreviewFramingHeader('content-security-policy', "default-src 'self'; frame-ancestors 'self'")).toBe(
+      "default-src 'self'",
+    );
+    expect(
+      sanitizePreviewFramingHeader('Content-Security-Policy', "frame-ancestors 'none'; script-src 'self' 'unsafe-inline'"),
+    ).toBe("script-src 'self' 'unsafe-inline'");
+  });
+
+  it('drops the CSP header when frame-ancestors was its only directive', () => {
+    expect(sanitizePreviewFramingHeader('content-security-policy', "frame-ancestors 'self'")).toBeNull();
+    expect(sanitizePreviewFramingHeader('content-security-policy', 'frame-ancestors https://example.com')).toBeNull();
+  });
+
+  it('passes an unrelated header through unchanged', () => {
+    expect(sanitizePreviewFramingHeader('content-type', 'text/html')).toBe('text/html');
+    // A CSP without frame-ancestors is untouched.
+    expect(sanitizePreviewFramingHeader('content-security-policy', "default-src 'self'")).toBe("default-src 'self'");
   });
 });
