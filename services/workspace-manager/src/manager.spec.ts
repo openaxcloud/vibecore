@@ -136,6 +136,49 @@ class TestWorkspaceStore implements WorkspaceStore {
 
     return true;
   }
+
+  /*
+   * R-P3-06: mirrors the Prisma conditional UPDATE. The compare and the set happen in
+   * ONE synchronous block with no await between them, so — like the single SQL
+   * statement — no other caller can interleave inside the CAS.
+   */
+  async releasePurgeFence(workspaceId: string, fenceToken: string | undefined) {
+    const existing = this.workspaces.get(workspaceId);
+
+    if (!existing?.purgeFrozen || (existing.purgeFenceToken ?? undefined) !== (fenceToken ?? undefined)) {
+      return false;
+    }
+
+    this.workspaces.set(workspaceId, {
+      ...existing,
+      purgeFrozen: false,
+      purgeFenceToken: undefined,
+      purgeFrozenAt: undefined,
+    });
+
+    return true;
+  }
+
+  async releaseStalePurgeFence(workspaceId: string, observed: { fenceToken?: string; frozenAt?: string }) {
+    const existing = this.workspaces.get(workspaceId);
+
+    if (
+      !existing?.purgeFrozen ||
+      (existing.purgeFenceToken ?? undefined) !== (observed.fenceToken ?? undefined) ||
+      (existing.purgeFrozenAt ?? undefined) !== (observed.frozenAt ?? undefined)
+    ) {
+      return false;
+    }
+
+    this.workspaces.set(workspaceId, {
+      ...existing,
+      purgeFrozen: false,
+      purgeFenceToken: undefined,
+      purgeFrozenAt: undefined,
+    });
+
+    return true;
+  }
 }
 
 /*
@@ -364,6 +407,165 @@ describe('WorkspaceManager', () => {
     // Attempt N+1's own token lifts its own barrier.
     await manager.unfreezeWorkspace('workspace_1', 'owner-N1');
     expect((await store.get('workspace_1'))!.purgeFrozen).toBe(false);
+  });
+
+  /*
+   * R-P3-06 (expert reserve on PR #52 @ 3bd148b4). The R-P3-05 test above only ever
+   * ran the delayed unfreeze SEQUENTIALLY, so the old read-then-write passed it: by
+   * the time it read, the new token was already committed and the app-side check
+   * bailed. The defect only shows when the newer freeze lands INSIDE the window
+   * between that read and the unconditional write. These tests interleave there.
+   * The real-Postgres versions live in purge-fence-cas.integration.spec.ts.
+   */
+  it('account-purge P3 (R-P3-06, ABA): a newer freeze committed INSIDE the release window survives (release is a CAS, not a read-then-write)', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+
+    /* Commits attempt N+1's freeze at the exact moment attempt N's release fires. */
+    class InterleavingStore extends TestWorkspaceStore {
+      supersede?: () => Promise<void>;
+
+      override async releasePurgeFence(workspaceId: string, fenceToken: string | undefined) {
+        const hook = this.supersede;
+        this.supersede = undefined;
+        await hook?.();
+
+        return super.releasePurgeFence(workspaceId, fenceToken);
+      }
+    }
+
+    const store = new InterleavingStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+    await manager.startWorkspace(input);
+
+    await manager.freezeWorkspace('workspaces', 'workspace_1', 'owner-N');
+
+    store.supersede = async () => {
+      await store.update('workspace_1', {
+        purgeFrozen: true,
+        purgeFenceToken: 'owner-N1',
+        purgeFrozenAt: new Date().toISOString(),
+      });
+    };
+
+    // Attempt N's release lands AFTER attempt N+1 owns the barrier → must be a no-op.
+    expect(await manager.unfreezeWorkspace('workspace_1', 'owner-N')).toEqual({ released: false });
+
+    const after = (await store.get('workspace_1'))!;
+    expect(after.purgeFrozen).toBe(true);
+    expect(after.purgeFenceToken).toBe('owner-N1');
+
+    // And the reprovision the barrier exists to block is still refused.
+    await expect(manager.startWorkspace(input)).rejects.toThrow('WORKSPACE_PURGE_FROZEN');
+  });
+
+  it('account-purge P3 (R-P3-06): the reconciler does NOT lift a barrier re-frozen between its scan and its write', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+
+    /* Re-freezes the runtime in the reconciler's TOCTOU window (after list()). */
+    class RescanRacingStore extends TestWorkspaceStore {
+      refreeze?: () => Promise<void>;
+
+      override async list() {
+        const rows = await super.list();
+        const hook = this.refreeze;
+        this.refreeze = undefined;
+        await hook?.();
+
+        return rows;
+      }
+    }
+
+    const store = new RescanRacingStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+    await manager.startWorkspace(input);
+
+    // An orphaned-looking barrier: old enough that the sweep will target it.
+    await manager.freezeWorkspace('workspaces', 'workspace_1', 'owner-abandoned');
+    await store.update('workspace_1', { purgeFrozenAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString() });
+
+    store.refreeze = async () => {
+      await store.update('workspace_1', {
+        purgeFrozen: true,
+        purgeFenceToken: 'owner-N1',
+        purgeFrozenAt: new Date().toISOString(),
+      });
+    };
+
+    expect(await manager.reconcileStaleWorkspaceFreezes(24 * 60 * 60 * 1000)).toEqual({ reconciled: 0 });
+
+    const after = (await store.get('workspace_1'))!;
+    expect(after.purgeFrozen).toBe(true);
+    expect(after.purgeFenceToken).toBe('owner-N1');
+  });
+
+  it('account-purge P3 (R-P3-06): a barrier read that ERRORS refuses the reprovision — never fails open', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+
+    class UnreadableStore extends TestWorkspaceStore {
+      override async get(workspaceId: string) {
+        throw Object.assign(new Error('connection terminated unexpectedly'), { code: '08006' });
+
+        return super.get(workspaceId);
+      }
+    }
+
+    const manager = new WorkspaceManager(
+      new UnreadableStore(),
+      k8s,
+      new TestEventBus(),
+      'test-workspace-agent-secret',
+    );
+
+    // Pre-fix this read was `.catch(() => undefined)` → "no barrier" → start proceeded.
+    await expect(manager.startWorkspace(input)).rejects.toThrow('WORKSPACE_PURGE_BARRIER_UNVERIFIABLE');
+
+    // A freeze whose row cannot be read must not claim the barrier either.
+    await expect(manager.freezeWorkspace('workspaces', 'workspace_1', 'owner-N')).rejects.toThrow(
+      'WORKSPACE_FREEZE_PERSIST_FAILED',
+    );
+  });
+
+  it('account-purge P3 (R-P3-06): the FINAL post-create barrier check fails CLOSED — objects are revoked when it cannot be read', async () => {
+    /*
+     * Poisons the store only once every pre-create assertNotPurgeFrozen has passed and
+     * the Service is applied — so the next barrier read is the FINAL linearisation
+     * check (isPurgeFrozen), which used to swallow the error and report "not frozen",
+     * leaving a live Pod on a runtime whose barrier state was unknown.
+     */
+    class PoisonAfterServiceStore extends TestWorkspaceStore {
+      poisoned = false;
+
+      override async get(workspaceId: string) {
+        if (this.poisoned) {
+          throw Object.assign(new Error('connection terminated unexpectedly'), { code: '08006' });
+        }
+
+        return super.get(workspaceId);
+      }
+    }
+
+    const store = new PoisonAfterServiceStore();
+
+    class PoisoningK8sClient extends TestWorkspaceK8sClient {
+      override async apply(object: K8sObject) {
+        const applied = await super.apply(object);
+
+        if (object.kind === 'Service') {
+          store.poisoned = true;
+        }
+
+        return applied;
+      }
+    }
+
+    const k8s = new PoisoningK8sClient();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+
+    await expect(manager.startWorkspace(input)).rejects.toThrow('WORKSPACE_PURGE_FROZEN');
+
+    // Fail-closed means the objects this start just created are revoked, not left live.
+    expect(k8s.events).toContain('delete:Pod:workspace-workspace_1');
+    expect(k8s.events).toContain('delete:Service:workspace-workspace_1');
   });
 
   it('account-purge P3 (R-P3-04): a barrier orphaned by an abandoned purge is RECOVERABLE by the stale-freeze reconciler (never left frozen forever)', async () => {
