@@ -137,6 +137,81 @@ All platform Deployments now set `strategy.rollingUpdate.maxUnavailable: 0` /
 `preStop` drain (`infra/helm/platform/templates/deployments.yaml`). A rollout no
 longer briefly drops nginx's healthy upstreams. See commit `5c2c3586`.
 
+## Two-phase activation of deployment password protection (P104 / SEC-8)
+
+**Why the deploy is special.** An api build from *before* the P104 cutover
+answered a public static deployment with `Cache-Control: public, max-age=60`. A
+shared cache may replay that entry for 60 s **with no revalidation**, and the
+origin cannot purge what a third-party cache already stored. So if an owner
+switched a deployment to `password` inside that window, an anonymous visitor
+kept receiving the pre-protection **public** copy: protection real at the
+origin, absent at the edge. Post-cutover the origin emits
+`public, no-cache, must-revalidate`, so every reuse revalidates through the gate
+and the window is closed *permanently* — but only once every pre-cutover pod is
+gone **and** its last response has aged out.
+
+`kubectl rollout status` proves neither: it returns as soon as the new ReplicaSet
+is complete, while old pods can still be terminating **and still serving**
+through their preStop drain.
+
+**The interlock.** `DEPLOYMENT_ACCESS_ACTIVATION_ENABLED` (platform-env
+configmap). `0` ⇒ the api refuses to *activate* protection
+(`503 DEPLOYMENT_ACCESS_ACTIVATION_DISABLED`); `1` ⇒ activation open. It gates
+*activation only*: enforcement of an already-protected deployment never depends
+on it, and un-protecting stays allowed at `0`. Chart default is `0` — fail-closed,
+so a lost value postpones activation instead of permitting a defeatable one.
+
+**What `deploy-main.yml` does automatically:**
+
+1. **Detect** (`Detect password-activation cutover`) — reads the live flag and
+   whether the tree being deployed carries the interlock at all.
+   * flag already `1` → steady state, single upgrade, flag re-asserted.
+   * flag absent/`0` → **cutover**: run the full sequence below.
+   * tree lacks the interlock (rollback to old code) → disarm to `0` + `::warning::`.
+2. **Phase 1** — `helm upgrade` with `deploymentAccessActivationEnabled=0`: the
+   new code rolls out with activation still closed.
+3. **Barrier** (`scripts/deploy-cache-window.mjs`) — polls until **zero** pods
+   run anything other than the image the Deployment now wants (terminating pods
+   included), then requires **60 s + 30 s margin** of that being *continuously*
+   true. The clock arms when the last old pod disappears, and **re-arms from
+   zero** if one ever reappears (HPA on the old ReplicaSet, partial rollback).
+   Timeout ⇒ the step fails with the release still at `0`.
+4. **Phase 2** — second `helm upgrade` setting the flag to `1`, then
+   `rollout status`. Both phase-2 steps share the barrier's `if:` guard.
+5. **Verify** — reads the flag back from the live configmap and asserts the api
+   pod template actually consumes it.
+
+The barrier costs ~90 s **once**, on the cutover deploy only.
+
+### Replaying the proof (no cluster needed)
+
+```bash
+# Barrier state machine: fake clock, exact timings, re-arm / terminating-pod /
+# timeout / empty-read cases.
+pnpm vitest --run scripts/deploy-cache-window.spec.mjs
+
+# The workflow's own decision: parses .github/workflows/deploy-main.yml and
+# EXECUTES its real `run:` shell against a fake kubectl + fake source tree.
+pnpm vitest --run scripts/deploy-activation-sequencing.spec.mjs
+
+# Chart renders the interlock fail-closed (default, values-prod, --reuse-values
+# simulation), schema rejects bad values, --set can still arm it. Needs `helm`.
+node scripts/validate-helm-access-activation-flag.mjs
+
+# App side: fail-closed activation, enforcement NOT gated by the flag,
+# un-protect still allowed, post-cutover cache headers.
+pnpm --filter @vibecore/api test -- src/tests/deployment-password.spec.ts
+```
+
+### Manual deploys
+
+The two-phase sequence lives in `deploy-main.yml`. If you deploy by hand
+(section above), the flag is **not** managed for you: `--reuse-values` keeps
+whatever the release stores. To perform a cutover manually, run the phase-1
+upgrade with `--set-string platformEnv.runtime.deploymentAccessActivationEnabled=0`,
+then `EXPECTED_IMAGE=<api image> node scripts/deploy-cache-window.mjs`, then
+repeat the upgrade with `=1`.
+
 ## Related existing docs
 `docs/GCP_DEPLOYMENT.md` (initial provisioning), `docs/GCP_RUNBOOK.md`,
 `docs/RELEASE_PROCESS.md`, `docs/infra-deploy-tiers.md` (compute deploy tiers).

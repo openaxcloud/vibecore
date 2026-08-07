@@ -11,12 +11,17 @@
       "properties": {
         "runtime": {
           "type": "object",
-          "required": ["serverDeployRollbackFromDigest"],
+          "required": ["serverDeployRollbackFromDigest", "deploymentAccessActivationEnabled"],
           "properties": {
             "serverDeployRollbackFromDigest": {
               "type": "string",
               "enum": ["0", "1"],
               "description": "D2 (approved 2026-07-17): '1' = server rollback re-deploys the retained image by digest (I-REL-1, fail-closed). '0' = explicit kill switch — the api refuses server rollbacks (409) rather than reviving the URL-copy row that re-deploys nothing. Any other value (including '' or a bare boolean) is rejected at upgrade time."
+            },
+            "deploymentAccessActivationEnabled": {
+              "type": "string",
+              "enum": ["0", "1"],
+              "description": "P104 / SEC-8 two-phase activation interlock. '0' (chart default, fail-closed) = the api refuses to ACTIVATE deployment password protection (503 DEPLOYMENT_ACCESS_ACTIVATION_DISABLED); '1' = activation open. Enforcement of an already-protected deployment is never gated by this flag, and un-protecting (mode=public) stays allowed at '0'. Only deploy-main.yml sets '1', and only after the last pre-cutover pod is gone and its last public max-age=60 response has expired. Any other value (including '' or a bare boolean) is rejected at upgrade time."
             }
           }
         }

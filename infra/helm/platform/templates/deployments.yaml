@@ -88,6 +88,16 @@ spec:
           # requests don't hit a socket that's already closing (the "upstream
           # prematurely closed connection" 502 seen during CD cutovers). `node`
           # is present in every service image (the worker liveness uses it too).
+          #
+          # NOTE for P104 / SEC-8: this window is about CONNECTIONS, not about
+          # cache freshness, and lengthening it would not help there. A pod that
+          # is draining still answers, and a pre-cutover pod's answer carries
+          # `Cache-Control: max-age=60` — reusable for a further 60s after the pod
+          # is gone. That is why the deploy workflow does not reason about this
+          # value at all: its barrier (scripts/deploy-cache-window.mjs) waits for
+          # the pod OBJECT to disappear — which happens only after the full preStop
+          # + grace period, whatever they are set to — and only then starts the
+          # 60s+margin clock. Changing this number stays safe by construction.
           lifecycle:
             preStop:
               exec:
