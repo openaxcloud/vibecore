@@ -19,13 +19,13 @@ stdout | src/purge-fence-cas.integration.spec.ts > stale-freeze reconciler is ve
 stdout | src/purge-fence-cas.integration.spec.ts > barrier reads fail CLOSED on a real database error > the read really does reject (the harness is not silently succeeding)
 prisma:error 
 Invalid `any).workspaceRuntime.findUnique()` invocation in
-/Users/hb/dev/vibecore-purge52/services/workspace-manager/src/purge-fence-cas.integration.spec.ts:508:55
+/Users/hb/dev/vibecore-purge52/services/workspace-manager/src/purge-fence-cas.integration.spec.ts:518:55
 
-  505 
-  506 it('the read really does reject (the harness is not silently succeeding)', async () => {
-  507   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-→ 508   await expect((deadPrisma as any).workspaceRuntime.findUnique(
-Can't reach database server at 127.0.0.1:32769
+  515 
+  516 it('the read really does reject (the harness is not silently succeeding)', async () => {
+  517   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+→ 518   await expect((deadPrisma as any).workspaceRuntime.findUnique(
+Database `does_not_exist_purge52_r_p3_06` does not exist on the database server
 
 stdout | src/purge-fence-cas.integration.spec.ts > barrier reads fail CLOSED on a real database error > startWorkspace REFUSES when the purge barrier cannot be read
 prisma:error 
@@ -36,10 +36,10 @@ Invalid `this.prisma.workspaceRuntime.findUnique()` invocation in
   264 
   265 async get(workspaceId: string): Promise<WorkspaceRecord | undefined> {
 → 266   const row = (await this.prisma.workspaceRuntime.findUnique(
-Can't reach database server at 127.0.0.1:32769
+Database `does_not_exist_purge52_r_p3_06` does not exist on the database server
 
 stdout | src/purge-fence-cas.integration.spec.ts > barrier reads fail CLOSED on a real database error > startWorkspace REFUSES when the purge barrier cannot be read
-[proof] fail-closed → WORKSPACE_PURGE_BARRIER_UNVERIFIABLE: could not read the purge barrier for ws-failclosed-msji04j8-r6l276 — reprovision r
+[proof] fail-closed → WORKSPACE_PURGE_BARRIER_UNVERIFIABLE: could not read the purge barrier for ws-failclosed-msji5e0f-7yaxze — reprovision r
 
 stdout | src/purge-fence-cas.integration.spec.ts > barrier reads fail CLOSED on a real database error > freezeWorkspace REFUSES rather than routing down the "no runtime row" branch
 prisma:error 
@@ -50,12 +50,12 @@ Invalid `this.prisma.workspaceRuntime.findUnique()` invocation in
   264 
   265 async get(workspaceId: string): Promise<WorkspaceRecord | undefined> {
 → 266   const row = (await this.prisma.workspaceRuntime.findUnique(
-Can't reach database server at 127.0.0.1:32769
+Database `does_not_exist_purge52_r_p3_06` does not exist on the database server
 
- ✓ src/purge-fence-cas.integration.spec.ts (14 tests) 317ms
+ ✓ src/purge-fence-cas.integration.spec.ts (14 tests) 183ms
 
  Test Files  1 passed (1)
       Tests  14 passed (14)
-   Start at  01:10:11
-   Duration  715ms (transform 123ms, setup 0ms, collect 277ms, tests 317ms, environment 0ms, prepare 33ms)
+   Start at  01:14:16
+   Duration  569ms (transform 122ms, setup 0ms, collect 278ms, tests 183ms, environment 0ms, prepare 34ms)
 
