@@ -9,6 +9,7 @@ import {
 } from 'ai';
 import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
 import { z } from 'zod';
+import { clientStoresServicesText, type ClientStoresServicesKey } from '~/lib/i18n/catalogs/client-stores-services';
 import { isBlockedMcpUrl } from '~/lib/services/mcp-url-guard';
 import type { ToolCallAnnotation } from '~/types/context';
 import {
@@ -41,7 +42,7 @@ export class MCPConfigRejectedError extends Error {
 export const stdioServerConfigSchema = z
   .object({
     type: z.enum(['stdio']).optional(),
-    command: z.string().min(1, 'Command cannot be empty'),
+    command: z.string().min(1, clientStoresServicesText('clientServices.mcp.commandEmpty')),
     args: z.array(z.string()).optional(),
     cwd: z.string().optional(),
     env: z.record(z.string()).optional(),
@@ -55,7 +56,7 @@ export type STDIOServerConfig = z.infer<typeof stdioServerConfigSchema>;
 export const sseServerConfigSchema = z
   .object({
     type: z.enum(['sse']).optional(),
-    url: z.string().url('URL must be a valid URL format'),
+    url: z.string().url(clientStoresServicesText('clientServices.mcp.urlInvalid')),
     headers: z.record(z.string()).optional(),
   })
   .transform((data) => ({
@@ -67,7 +68,7 @@ export type SSEServerConfig = z.infer<typeof sseServerConfigSchema>;
 export const streamableHTTPServerConfigSchema = z
   .object({
     type: z.enum(['streamable-http']).optional(),
-    url: z.string().url('URL must be a valid URL format'),
+    url: z.string().url(clientStoresServicesText('clientServices.mcp.urlInvalid')),
     headers: z.record(z.string()).optional(),
   })
   .transform((data) => ({
@@ -137,14 +138,23 @@ export type MCPServerAvailable = {
 };
 export type MCPServerUnavailable = {
   status: 'unavailable';
-  error: string;
+  error: MCPUnavailableCode;
   client: MCPClient | null;
   config: MCPServerConfig;
 };
 export type MCPServer = MCPServerAvailable | MCPServerUnavailable;
 
+export type MCPUnavailableCode = 'MCP_CONFIGURATION_REJECTED' | 'MCP_CONNECTION_FAILED' | 'MCP_TOOLS_UNAVAILABLE';
+
+const MCP_UNAVAILABLE_CODE = {
+  configurationRejected: 'MCP_CONFIGURATION_REJECTED',
+  connectionFailed: 'MCP_CONNECTION_FAILED',
+  toolsUnavailable: 'MCP_TOOLS_UNAVAILABLE',
+} as const satisfies Readonly<Record<string, MCPUnavailableCode>>;
+
 export class MCPService {
   private static _instance: MCPService;
+  private readonly _language?: string | null;
   private _tools: ToolSet = {};
   private _toolsWithoutExecute: ToolSet = {};
   private _mcpToolsPerServer: MCPServerTools = {};
@@ -154,6 +164,14 @@ export class MCPService {
   };
 
   private _closed = false;
+
+  constructor(language?: string | null) {
+    this._language = language;
+  }
+
+  private _text(key: ClientStoresServicesKey, values: Readonly<Record<string, string | number | bigint>> = {}): string {
+    return clientStoresServicesText(key, values, this._language);
+  }
 
   /**
    * Process-wide shared instance. Do NOT use this for per-request work that
@@ -189,7 +207,7 @@ export class MCPService {
     const hasUrlField = config.url !== undefined;
 
     if (hasStdioField && hasUrlField) {
-      throw new Error(`cannot have "command" and "url" defined for the same server.`);
+      throw new Error(this._text('clientServices.mcp.commandAndUrlConflict'));
     }
 
     if (!config.type && hasStdioField) {
@@ -197,11 +215,11 @@ export class MCPService {
     }
 
     if (hasUrlField && !config.type) {
-      throw new Error(`missing "type" field, only "sse" and "streamable-http" are valid options.`);
+      throw new Error(this._text('clientServices.mcp.typeRequired'));
     }
 
     if (!['stdio', 'sse', 'streamable-http'].includes(config.type)) {
-      throw new Error(`provided "type" is invalid, only "stdio", "sse" or "streamable-http" are valid options.`);
+      throw new Error(this._text('clientServices.mcp.typeInvalid'));
     }
 
     /*
@@ -215,18 +233,16 @@ export class MCPService {
     const allowStdio = (globalThis as any).process?.env?.MCP_ALLOW_STDIO_SERVERS === 'true';
 
     if (config.type === 'stdio' && !allowStdio) {
-      throw new MCPConfigRejectedError(
-        `local (stdio) MCP servers are disabled on this deployment; use a remote server (type "sse" or "streamable-http").`,
-      );
+      throw new MCPConfigRejectedError(this._text('clientServices.mcp.stdioDisabled'));
     }
 
     // Check for type/field mismatch
     if (config.type === 'stdio' && !hasStdioField) {
-      throw new Error(`missing "command" field.`);
+      throw new Error(this._text('clientServices.mcp.commandRequired'));
     }
 
     if (['sse', 'streamable-http'].includes(config.type) && !hasUrlField) {
-      throw new Error(`missing "url" field.`);
+      throw new Error(this._text('clientServices.mcp.urlRequired'));
     }
 
     /*
@@ -241,17 +257,17 @@ export class MCPService {
       typeof config.url === 'string' &&
       isBlockedMcpUrl(config.url)
     ) {
-      throw new MCPConfigRejectedError(
-        `MCP server URL "${config.url}" is not allowed (must be a public https endpoint, not a loopback/private/metadata address).`,
-      );
+      throw new MCPConfigRejectedError(this._text('clientServices.mcp.urlBlocked'));
     }
 
     try {
       return mcpServerConfigSchema.parse(config);
     } catch (validationError) {
       if (validationError instanceof z.ZodError) {
-        const errorMessages = validationError.errors.map((err) => `${err.path.join('.')}: ${err.message}`).join('; ');
-        throw new Error(`Invalid configuration for server "${serverName}": ${errorMessages}`);
+        const publicError = new Error(this._text('clientServices.mcp.configurationInvalid', { server: serverName }), {
+          cause: validationError,
+        });
+        throw publicError;
       }
 
       throw validationError;
@@ -355,7 +371,7 @@ export class MCPService {
           logger.error(`Failed to get tools from server ${serverName}:`, error);
           this._mcpToolsPerServer[serverName] = {
             status: 'unavailable',
-            error: 'could not retrieve tools from server',
+            error: MCP_UNAVAILABLE_CODE.toolsUnavailable,
             client,
             config,
           };
@@ -375,7 +391,10 @@ export class MCPService {
 
         this._mcpToolsPerServer[serverName] = {
           status: 'unavailable',
-          error: (error as Error).message,
+          error:
+            error instanceof MCPConfigRejectedError
+              ? MCP_UNAVAILABLE_CODE.configurationRejected
+              : MCP_UNAVAILABLE_CODE.connectionFailed,
           client,
           config,
         };
@@ -415,7 +434,7 @@ export class MCPService {
           logger.error(`Failed to get tools from server ${serverName}:`, error);
           this._mcpToolsPerServer[serverName] = {
             status: 'unavailable',
-            error: 'could not retrieve tools from server',
+            error: MCP_UNAVAILABLE_CODE.toolsUnavailable,
             client,
             config: server.config,
           };
@@ -426,7 +445,7 @@ export class MCPService {
         logger.error(`Failed to connect to server ${serverName}:`, error);
         this._mcpToolsPerServer[serverName] = {
           status: 'unavailable',
-          error: 'could not connect to server',
+          error: MCP_UNAVAILABLE_CODE.connectionFailed,
           client,
           config: server.config,
         };
@@ -468,7 +487,9 @@ export class MCPService {
     const { toolCallId, toolName } = toolCall;
 
     if (this.isValidToolName(toolName)) {
-      const { description = 'No description available' } = this.toolsWithoutExecute[toolName];
+      const { description = this._text('clientServices.mcp.toolDescriptionUnavailable') } =
+        this.toolsWithoutExecute[toolName];
+
       const serverName = this._toolNamesToServerNames.get(toolName);
 
       if (serverName) {

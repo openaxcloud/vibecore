@@ -2,12 +2,15 @@
  * @vitest-environment jsdom
  */
 
-import { cleanup, render } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { I18nextProvider } from 'react-i18next';
+import { toast } from 'react-toastify';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { MessagePatchReview } from './MessagePatchReview';
 import { REQUIRE_AI_CHANGE_REVIEW_STORAGE_KEY } from '~/lib/hooks/useAutoApplyEnabled';
 import type { FileActionDiff } from '~/lib/hooks/useFileActionDiff';
+import { createI18nInstance } from '~/lib/i18n/runtime';
 import type { FileActionBlock } from '~/types/message-blocks';
 import { buildReviewableDiffHunks, summarizeReviewableDiffHunks } from '~/utils/diff';
 
@@ -63,41 +66,103 @@ const MESSAGE_WITH_TWO_FILES = [
 ].join('\n');
 
 describe('<MessagePatchReview />', () => {
+  function renderReview(props: React.ComponentProps<typeof MessagePatchReview>, language: 'en' | 'fr' = 'en') {
+    const i18n = createI18nInstance(language);
+
+    const result = render(
+      <I18nextProvider i18n={i18n}>
+        <MessagePatchReview {...props} />
+      </I18nextProvider>,
+    );
+
+    return { ...result, i18n };
+  }
+
   afterEach(() => {
     window.localStorage.removeItem(REQUIRE_AI_CHANGE_REVIEW_STORAGE_KEY);
     cleanup();
   });
 
   it('renders nothing by default because auto-apply starts enabled', () => {
-    const { container } = render(
-      <MessagePatchReview messageId="m-default" content={MESSAGE_WITH_TWO_FILES} parts={undefined} />,
-    );
+    const { container } = renderReview({
+      messageId: 'm-default',
+      content: MESSAGE_WITH_TWO_FILES,
+      parts: undefined,
+    });
+
     expect(container.firstChild).toBeNull();
   });
 
   it('renders nothing when review is not required (auto-apply enabled)', () => {
     window.localStorage.setItem(REQUIRE_AI_CHANGE_REVIEW_STORAGE_KEY, 'false');
 
-    const { container } = render(
-      <MessagePatchReview messageId="m-auto" content={MESSAGE_WITH_TWO_FILES} parts={undefined} />,
-    );
+    const { container } = renderReview({
+      messageId: 'm-auto',
+      content: MESSAGE_WITH_TWO_FILES,
+      parts: undefined,
+    });
     expect(container.firstChild).toBeNull();
   });
 
   it('renders the review panel when the user requires review of AI changes', () => {
     window.localStorage.setItem(REQUIRE_AI_CHANGE_REVIEW_STORAGE_KEY, 'true');
 
-    const { container } = render(
-      <MessagePatchReview messageId="m-review" content={MESSAGE_WITH_TWO_FILES} parts={undefined} />,
-    );
+    const { container } = renderReview({
+      messageId: 'm-review',
+      content: MESSAGE_WITH_TWO_FILES,
+      parts: undefined,
+    });
     expect(container.firstChild).not.toBeNull();
     expect(container.querySelector('.bolt-message-patch-review')).not.toBeNull();
   });
 
   it('renders nothing when the message has no file actions', () => {
-    const { container } = render(
-      <MessagePatchReview messageId="m-empty" content="Just narration, no actions." parts={undefined} />,
-    );
+    const { container } = renderReview({
+      messageId: 'm-empty',
+      content: 'Just narration, no actions.',
+      parts: undefined,
+    });
     expect(container.firstChild).toBeNull();
+  });
+
+  it('renders French plurals, preserves paths, and switches all review chrome live', async () => {
+    window.localStorage.setItem(REQUIRE_AI_CHANGE_REVIEW_STORAGE_KEY, 'true');
+
+    const { i18n } = renderReview({ messageId: 'm-fr', content: MESSAGE_WITH_TWO_FILES, parts: undefined }, 'fr');
+
+    expect(screen.getByText('Fichiers modifiés')).toBeTruthy();
+    expect(screen.getByLabelText('2 fichiers')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Tout accepter (2 fichiers)' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Tout refuser (2 fichiers)' })).toBeTruthy();
+    expect(screen.getByText('src/one.ts')).toBeTruthy();
+
+    await act(async () => {
+      await i18n.changeLanguage('en');
+    });
+
+    expect(screen.getByText('Files changed')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Accept all (2 files)' })).toBeTruthy();
+    expect(screen.getByText('src/one.ts')).toBeTruthy();
+  });
+
+  it('summarizes apply failures safely without rendering the thrown error', async () => {
+    window.localStorage.setItem(REQUIRE_AI_CHANGE_REVIEW_STORAGE_KEY, 'true');
+
+    const errorSpy = vi.spyOn(toast, 'error').mockImplementation(() => 'patch-summary' as never);
+
+    const onApply = vi.fn(async () => {
+      throw new Error('upstream secret detail');
+    });
+
+    renderReview({ messageId: 'm-failure', content: MESSAGE_WITH_TWO_FILES, parts: undefined, onApply }, 'fr');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tout accepter (2 fichiers)' }));
+
+    await waitFor(() => {
+      expect(errorSpy).toHaveBeenCalledWith('0 fichier appliqué ; échec pour 2 fichiers.');
+    });
+    expect(screen.queryByText(/upstream secret detail/i)).toBeNull();
+
+    errorSpy.mockRestore();
   });
 });

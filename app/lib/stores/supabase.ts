@@ -1,5 +1,16 @@
 import { atom } from 'nanostores';
+import {
+  formatClientRuntimeResidualCopy,
+  getClientRuntimeResidualCopy,
+} from '~/lib/i18n/catalogs/client-runtime-residual';
+import { getI18nInstance } from '~/lib/i18n/runtime';
 import type { SupabaseUser, SupabaseStats, SupabaseApiKey, SupabaseCredentials } from '~/types/supabase';
+
+function getSupabaseStoreCopy() {
+  const i18n = getI18nInstance();
+
+  return getClientRuntimeResidualCopy(i18n.resolvedLanguage ?? i18n.language);
+}
 
 export interface SupabaseProject {
   id: string;
@@ -130,9 +141,12 @@ export function updateSupabaseConnection(connection: Partial<SupabaseConnectionS
       if (selectedProject) {
         connection.project = selectedProject;
       } else {
+        const copy = getSupabaseStoreCopy();
         connection.project = {
           id: connection.selectedProjectId,
-          name: `Project ${connection.selectedProjectId.substring(0, 8)}...`,
+          name: formatClientRuntimeResidualCopy(copy['clientRuntime.connection.fallbackProjectName'], {
+            identifier: `${connection.selectedProjectId.substring(0, 8)}…`,
+          }),
           region: 'unknown',
           organization_id: '',
           status: 'active',
@@ -176,6 +190,7 @@ export function initializeSupabaseConnection() {
 }
 
 export async function fetchSupabaseStats(token: string) {
+  const copy = getSupabaseStoreCopy();
   isFetchingStats.set(true);
 
   try {
@@ -191,7 +206,9 @@ export async function fetchSupabaseStats(token: string) {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to fetch projects');
+      throw new Error(
+        formatClientRuntimeResidualCopy(copy['clientRuntime.connection.projectsFetchFailed'], { provider: 'Supabase' }),
+      );
     }
 
     const data = (await response.json()) as any;
@@ -241,6 +258,7 @@ export async function hydrateSupabaseFromUserConnection() {
 }
 
 export async function fetchProjectApiKeys(projectId: string, token: string) {
+  const copy = getSupabaseStoreCopy();
   isFetchingApiKeys.set(true);
 
   try {
@@ -256,7 +274,7 @@ export async function fetchProjectApiKeys(projectId: string, token: string) {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to fetch API keys');
+      throw new Error(copy['clientRuntime.connection.apiKeysFetchFailed']);
     }
 
     const data = (await response.json()) as any;

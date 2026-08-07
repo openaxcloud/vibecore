@@ -5,6 +5,7 @@ import {
   isKnownSkill,
   resolveProjectSkills,
   resolveSkill,
+  skillCatalogForLocale,
   type SkillOverride,
 } from './skills-catalog.js';
 
@@ -29,6 +30,16 @@ describe('skills catalog', () => {
 });
 
 describe('resolveProjectSkills', () => {
+  it('localizes names, descriptions, and display labels while keeping stable codes', () => {
+    const english = resolveProjectSkills([], 'en-US').find((skill) => skill.id === 'code-review');
+    const french = resolveProjectSkills([], 'fr-FR').find((skill) => skill.id === 'code-review');
+
+    expect(english).toMatchObject({ name: 'Code review', category: 'quality', categoryLabel: 'Quality' });
+    expect(french).toMatchObject({ name: 'Revue de code', category: 'quality', categoryLabel: 'Qualité' });
+    expect(french?.description).toContain('Analysez les diffs');
+    expect(skillCatalogForLocale('de-DE')).toBe(SKILL_CATALOG);
+  });
+
   it('returns the full catalog at defaults when there are no overrides', () => {
     const skills = resolveProjectSkills([]);
 
@@ -77,6 +88,7 @@ describe('resolveProjectSkills', () => {
     ];
 
     expect(resolveSkill('code-review', overrides)).toMatchObject({ id: 'code-review', enabled: false });
+    expect(resolveSkill('code-review', overrides, 'fr')).toMatchObject({ name: 'Revue de code' });
     expect(resolveSkill('not-a-skill', overrides)).toBeUndefined();
   });
 });

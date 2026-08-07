@@ -14,7 +14,7 @@ describe('user-area recoverable async states', () => {
 
     expect(projects).toContain('failedOrganizationCount');
     expect(projects).toContain('allOrganizationsFailed');
-    expect(projects).toContain('Projects could not load');
+    expect(projects).toContain("t('projects.loadFailedTitle')");
     expect(projects).toContain('onRetry={revalidator.revalidate}');
   });
 
@@ -24,11 +24,11 @@ describe('user-area recoverable async states', () => {
     const notifications = source('app/routes/notifications.tsx');
 
     expect(billing).toContain('creditsUnavailable');
-    expect(billing).toContain('Credits and usage could not load');
+    expect(billing).toContain("t('billing.credits.errorTitle')");
     expect(usage).toContain('breakdownUnavailable');
     expect(usage).toContain('memberLimitsUnavailable');
     expect(notifications).toContain('feedUnavailable');
-    expect(notifications).toContain('Notification inbox could not load');
+    expect(notifications).toContain("t('notifications.feed.loadErrorTitle')");
   });
 
   it('never guesses account security state after a failed read', () => {
@@ -37,9 +37,17 @@ describe('user-area recoverable async states', () => {
     const sessions = source('app/routes/session-security.tsx');
 
     expect(security).toContain('mfaUnavailable');
-    expect(security).toContain('We will not guess whether protection is enabled.');
-    expect(organizationSecurity).toContain('The editor is hidden to prevent fallback values');
-    expect(sessions).toContain('Active sessions could not load');
+    expect(security).toContain("copy['securitySettings.mfa.errorTitle']");
+    expect(security).toContain("copy['securitySettings.mfa.errorDescription']");
+    expect(security).toContain('onRetry={revalidator.revalidate}');
+    expect(organizationSecurity).toContain('loadErrorKind');
+    expect(organizationSecurity).toContain("copy['organizationSecurity.load.errorTitle']");
+    expect(organizationSecurity).toContain("copy['organizationSecurity.load.errorDescription']");
+    expect(organizationSecurity).toContain('onRetry={revalidator.revalidate}');
+    expect(sessions).toContain('sessionsUnavailable');
+    expect(sessions).toContain("copy['sessionSecurity.sessions.errorTitle']");
+    expect(sessions).toContain("copy['sessionSecurity.sessions.errorDescription']");
+    expect(sessions).toContain('onRetry={revalidator.revalidate}');
   });
 
   it('times out and exposes retry for the global notification panel', () => {
@@ -47,7 +55,7 @@ describe('user-area recoverable async states', () => {
 
     expect(layout).toContain('TOP_BAR_FEED_TIMEOUT_MS = 12_000');
     expect(layout).toContain("phase: 'loading' | 'ready' | 'error'");
-    expect(layout).toContain('Notifications could not load');
+    expect(layout).toContain("t('userArea.notifications.loadFailed')");
     expect(layout).toContain('onRetry={retry}');
   });
 
@@ -56,13 +64,14 @@ describe('user-area recoverable async states', () => {
     const invoices = source('app/routes/invoices.tsx');
     const recentProjects = source('app/routes/recent-projects.tsx');
 
-    expect(support).toContain('Support tickets could not load');
+    expect(support).toContain("copy['support.load.errorTitle']");
+    expect(support).toContain("copy['support.load.errorDescription']");
     expect(support).toContain('onRetry={revalidator.revalidate}');
     expect(invoices).toContain('invoicesUnavailable');
-    expect(invoices).toContain('Invoices could not load');
+    expect(invoices).toContain("'invoices.errorTitle'");
     expect(invoices).toContain('onRetry={revalidator.revalidate}');
     expect(recentProjects).toContain('projectsUnavailable');
-    expect(recentProjects).toContain('Recent projects could not load');
+    expect(recentProjects).toContain("t('recentProjects.loadFailedTitle')");
     expect(recentProjects).toContain('onRetry={revalidator.revalidate}');
   });
 
@@ -70,8 +79,8 @@ describe('user-area recoverable async states', () => {
     const desktop = source('app/routes/desktop-settings.tsx');
 
     expect(desktop).toContain("type DesktopSettingsPhase = 'checking' | 'ready' | 'unavailable' | 'error'");
-    expect(desktop).toContain('<AsyncPanelSkeleton label="Loading desktop settings"');
-    expect(desktop).toContain('Desktop settings could not load');
+    expect(desktop).toContain("copy['desktopSettings.loading.label']");
+    expect(desktop).toContain("copy['desktopSettings.error.title']");
     expect(desktop).toContain('onRetry={() => void loadDesktopSettings()}');
   });
 
@@ -79,19 +88,19 @@ describe('user-area recoverable async states', () => {
     const domains = source('app/routes/organization-domains.tsx');
     const siem = source('app/routes/organization-siem.tsx');
 
-    expect(domains).toContain('Domains could not load');
+    expect(domains).toContain("copy['organizationDomains.load.errorTitle']");
     expect(domains).toContain('onRetry={revalidator.revalidate}');
-    expect(domains).toContain('Domain controls are hidden because the latest request failed.');
-    expect(siem).toContain('SIEM webhooks could not load');
+    expect(domains).toContain("copy['organizationDomains.load.errorDescription']");
+    expect(siem).toContain("copy['organizationSiem.load.errorTitle']");
     expect(siem).toContain('onRetry={revalidator.revalidate}');
-    expect(siem).toContain('Webhook controls are hidden because the latest request failed.');
+    expect(siem).toContain("copy['organizationSiem.load.errorDescription']");
   });
 
   it('hides audit exports and the false empty state when the audit list fails', () => {
     const auditLogs = source('app/routes/audit-logs.tsx');
 
-    expect(auditLogs).toContain('Audit logs could not load');
-    expect(auditLogs).toContain('Events and exports are hidden because the latest request failed.');
+    expect(auditLogs).toContain("copy['auditLogs.load.errorTitle']");
+    expect(auditLogs).toContain("copy['auditLogs.load.errorDescription']");
     expect(auditLogs).toContain('onRetry={revalidator.revalidate}');
     expect(auditLogs).toContain("listErrorKind: 'permission' as const");
     expect(auditLogs).toContain('if (isReauthRedirect(error))');
@@ -101,14 +110,15 @@ describe('user-area recoverable async states', () => {
     const members = source('app/routes/organization-members.tsx');
     const accountData = source('app/routes/account-settings.data.tsx');
 
-    expect(members).toContain('Members could not load');
-    expect(members).toContain('Invitations and member controls are hidden.');
+    expect(members).toContain("copy['organizationMembers.load.errorTitle']");
+    expect(members).toContain("copy['organizationMembers.load.permissionDescription']");
     expect(members).toContain('onRetry={revalidator.revalidate}');
     expect(members).toContain('if (isReauthRedirect(error))');
-    expect(accountData).toContain('Data and privacy settings could not load');
-    expect(accountData).toContain('exports, and deletion controls are hidden');
+    expect(accountData).toContain('copy.load.errorTitle');
+    expect(accountData).toContain('copy.load.errorDescription');
     expect(accountData).toContain('onRetry={revalidator.revalidate}');
-    expect(accountData).toContain("new Intl.DateTimeFormat('en-GB'");
+    expect(accountData).toContain('formatAccountDataDate(');
+    expect(accountData).not.toContain("new Intl.DateTimeFormat('en-GB'");
     expect(accountData).not.toContain('toLocaleString(undefined');
   });
 });

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { toResponse } from '~/lib/test/rr7-data';
 
 /*
  * The Dashboard/Projects cards point <img src> at this route. It proxies the
@@ -10,6 +11,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
  *   - no url / a backend 404 (feature off, no capture yet) → 204 (No Content) so the
  *     card falls back to its "No preview yet" placeholder via <img> onError WITHOUT
  *     logging a console "Failed to load resource" error on every render (BUG-USR-002).
+ *   - an auth / upstream failure keeps its real status instead of being masked.
  */
 const apiRequest = vi.fn();
 
@@ -46,8 +48,19 @@ describe('project thumbnail route (card image proxy)', () => {
     expect(response.headers.get('location')).toBe('https://storage.example/signed-read');
   });
 
-  it('204s (card keeps its placeholder, no console error) when the backend returns no url', async () => {
+  it('returns a non-cacheable 204 (card keeps its placeholder) when the backend returns no url', async () => {
     apiRequest.mockResolvedValueOnce({});
+
+    const { loader } = await import('./api.projects.$projectId.thumbnail');
+    const response = await loader(loaderArgs());
+
+    expect(response.status).toBe(204);
+    expect(response.headers.get('Cache-Control')).toBe('private, no-store');
+    expect(await response.text()).toBe('');
+  });
+
+  it('returns 204 when the backend reports that no capture exists yet', async () => {
+    apiRequest.mockRejectedValueOnce(new Response(null, { status: 404 }));
 
     const { loader } = await import('./api.projects.$projectId.thumbnail');
     const response = await loader(loaderArgs());
@@ -55,13 +68,19 @@ describe('project thumbnail route (card image proxy)', () => {
     expect(response.status).toBe(204);
   });
 
-  it('204s when the backend throws (feature off / no bucket / no capture yet)', async () => {
-    apiRequest.mockRejectedValueOnce(new Response(null, { status: 404 }));
-
+  it('preserves authorization and upstream failures instead of masking them as a missing capture', async () => {
     const { loader } = await import('./api.projects.$projectId.thumbnail');
-    const response = await loader(loaderArgs());
 
-    expect(response.status).toBe(204);
+    for (const status of [401, 403, 500]) {
+      apiRequest.mockRejectedValueOnce(new Response(null, { status }));
+
+      const response = await loader(loaderArgs());
+
+      expect(response.status).toBe(status);
+    }
+
+    apiRequest.mockRejectedValueOnce(new Error('upstream unavailable'));
+    expect((await loader(loaderArgs())).status).toBe(502);
   });
 
   it('404s when the project id is missing', async () => {
@@ -124,8 +143,9 @@ describe('project thumbnail upload proxy (action)', () => {
   it('404s without touching the backend when the project id is missing', async () => {
     const { action } = await import('./api.projects.$projectId.thumbnail');
     const result = await action({ request: new Request('https://app.test/x', { method: 'POST' }), params: {} } as any);
+    const response = toResponse(result) as Response;
 
-    expect(result.init.status).toBe(404);
+    expect(response.status).toBe(404);
     expect(apiRequest).not.toHaveBeenCalled();
   });
 });

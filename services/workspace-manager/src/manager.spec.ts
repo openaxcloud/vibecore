@@ -886,7 +886,7 @@ describe('detectPodTerminalFailure — Unschedulable handling', () => {
     expect(failure).not.toBeNull();
     expect(failure?.code).toBe('WORKSPACE_POD_UNSCHEDULABLE');
     expect(failure?.message).toContain('no capacity available');
-    expect(failure?.message).toContain('0/3 nodes are available');
+    expect(failure?.message).not.toContain('0/3 nodes are available');
   });
 
   it('does NOT fail an Unschedulable pod still inside the grace window (autoscaler scale-up)', () => {

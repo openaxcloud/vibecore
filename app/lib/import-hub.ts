@@ -26,6 +26,7 @@ import {
   Zap,
   type LucideIcon,
 } from 'lucide-react';
+import { getImportHubCopy, type ImportHubKey } from '~/lib/i18n/catalogs/import-hub';
 
 export type ImportHubProviderId =
   | 'github'
@@ -68,133 +69,74 @@ export interface ImportHubProvider {
   badge?: string;
 }
 
-export const IMPORT_HUB_CATEGORY_LABELS: Record<ImportHubCategory, string> = {
-  git: 'Git repositories',
-  export: 'Agent & builder exports',
-  data: 'Data',
-  design: 'Design',
-  ai: 'AI',
-  blank: 'Start fresh',
-};
+function categoryCopyKey(category: ImportHubCategory): ImportHubKey {
+  return `importHub.category.${category}` as ImportHubKey;
+}
+
+export function getImportHubCategoryLabels(language?: string | null): Record<ImportHubCategory, string> {
+  const copy = getImportHubCopy(language);
+
+  return {
+    git: copy[categoryCopyKey('git')],
+    export: copy[categoryCopyKey('export')],
+    data: copy[categoryCopyKey('data')],
+    design: copy[categoryCopyKey('design')],
+    ai: copy[categoryCopyKey('ai')],
+    blank: copy[categoryCopyKey('blank')],
+  };
+}
+
+export const IMPORT_HUB_CATEGORY_LABELS: Record<ImportHubCategory, string> = getImportHubCategoryLabels('en');
 
 /**
  * The canonical hub registry. Kept in the documented order. Every entry routes
  * to a REAL destination; `credential` entries route to a page that explains the
  * exact token needed and never pretends the import happened.
  */
-export const IMPORT_HUB_PROVIDERS: ImportHubProvider[] = [
-  {
-    id: 'github',
-    label: 'GitHub',
-    description: 'Import a public repository by URL — including a quick express import from a paste.',
-    icon: Github,
-    category: 'git',
-    status: 'ready',
-    to: '/import-github',
-  },
-  {
-    id: 'bitbucket',
-    label: 'Bitbucket',
-    description: 'Import a Bitbucket repository by URL into a persistent project.',
-    icon: GitBranch,
-    category: 'git',
-    status: 'ready',
-    to: '/import-github?source=bitbucket',
-  },
-  {
-    id: 'zip',
-    label: 'ZIP archive',
-    description: 'Upload a .zip of your code and turn it into a persistent workspace.',
-    icon: FileArchive,
-    category: 'export',
-    status: 'ready',
-    to: '/import-zip',
-  },
-  {
-    id: 'spreadsheet',
-    label: 'Spreadsheet',
-    description: 'Paste or upload CSV/TSV and generate a real, sortable data app.',
-    icon: Table2,
-    category: 'data',
-    status: 'ready',
-    to: '/import/spreadsheet',
-  },
-  {
-    id: 'bolt',
-    label: 'Bolt',
-    description: 'Import a Bolt export archive. Files are staged and scanned for secrets before commit.',
-    icon: Zap,
-    category: 'export',
-    status: 'ready',
-    to: '/import-zip?source=bolt',
-  },
-  {
-    id: 'lovable',
-    label: 'Lovable',
-    description: 'Import a Lovable export archive with secret detection and a preview before it lands.',
-    icon: Heart,
-    category: 'export',
-    status: 'ready',
-    to: '/import-zip?source=lovable',
-  },
-  {
-    id: 'base44',
-    label: 'Base44',
-    description: 'Import a Base44 export archive into an isolated, persistent project.',
-    icon: Boxes,
-    category: 'export',
-    status: 'ready',
-    to: '/import-zip?source=base44',
-  },
-  {
-    id: 'previous-agent-export',
-    label: 'Previous Agent export',
-    description: 'Bring an export from another AI builder and continue it in the E-Code IDE.',
-    icon: PackageOpen,
-    category: 'export',
-    status: 'ready',
-    to: '/import-zip?source=previous-agent-export',
-  },
-  {
-    id: 'empty',
-    label: 'Empty project',
-    description: 'Start from a blank workspace — no agent, framework or scaffolding. For power users.',
-    icon: FilePlus2,
-    category: 'blank',
-    status: 'ready',
-    to: '/import/empty',
-  },
-  {
-    id: 'vercel',
-    label: 'Vercel',
-    description: 'Import a Vercel project. Requires connecting a Vercel access token.',
-    icon: Triangle,
-    category: 'export',
-    status: 'credential',
-    to: '/import/vercel',
-    badge: 'Connect token',
-  },
-  {
-    id: 'figma',
-    label: 'Figma',
-    description: 'Import a Figma design. Requires a Figma personal access token.',
-    icon: Figma,
-    category: 'design',
-    status: 'credential',
-    to: '/import/figma',
-    badge: 'Connect token',
-  },
-  {
-    id: 'claude',
-    label: 'Claude',
-    description: 'Import a Claude design/artifact source. Requires the source to connect.',
-    icon: Sparkles,
-    category: 'ai',
-    status: 'credential',
-    to: '/import/claude',
-    badge: 'Connect source',
-  },
+type ImportHubProviderDefinition = readonly [
+  id: ImportHubProviderId,
+  icon: LucideIcon,
+  category: ImportHubCategory,
+  status: ImportHubStatus,
+  to: string,
 ];
+
+const IMPORT_HUB_PROVIDER_DEFINITIONS: readonly ImportHubProviderDefinition[] = [
+  ['github', Github, 'git', 'ready', '/import-github'],
+  ['bitbucket', GitBranch, 'git', 'ready', '/import-github?source=bitbucket'],
+  ['zip', FileArchive, 'export', 'ready', '/import-zip'],
+  ['spreadsheet', Table2, 'data', 'ready', '/import/spreadsheet'],
+  ['bolt', Zap, 'export', 'ready', '/import-zip?source=bolt'],
+  ['lovable', Heart, 'export', 'ready', '/import-zip?source=lovable'],
+  ['base44', Boxes, 'export', 'ready', '/import-zip?source=base44'],
+  ['previous-agent-export', PackageOpen, 'export', 'ready', '/import-zip?source=previous-agent-export'],
+  ['empty', FilePlus2, 'blank', 'ready', '/import/empty'],
+  ['vercel', Triangle, 'export', 'credential', '/import/vercel'],
+  ['figma', Figma, 'design', 'credential', '/import/figma'],
+  ['claude', Sparkles, 'ai', 'credential', '/import/claude'],
+];
+
+function providerCopyKey(id: ImportHubProviderId, field: 'label' | 'description' | 'badge'): ImportHubKey {
+  return `importHub.provider.${id}.${field}` as ImportHubKey;
+}
+
+export function getImportHubProviders(language?: string | null): ImportHubProvider[] {
+  const copy = getImportHubCopy(language);
+
+  return IMPORT_HUB_PROVIDER_DEFINITIONS.map(([id, icon, category, status, to]) => ({
+    id,
+    label: copy[providerCopyKey(id, 'label')],
+    description: copy[providerCopyKey(id, 'description')],
+    icon,
+    category,
+    status,
+    to,
+    ...(status === 'credential' ? { badge: copy[providerCopyKey(id, 'badge')] } : {}),
+  }));
+}
+
+/** English remains the stable default and fallback for existing consumers. */
+export const IMPORT_HUB_PROVIDERS: ImportHubProvider[] = getImportHubProviders('en');
 
 /** Provider ids that have a real, executing import path today. */
 export const IMPORT_HUB_READY_IDS: ImportHubProviderId[] = IMPORT_HUB_PROVIDERS.filter(
@@ -206,6 +148,6 @@ export const IMPORT_HUB_CREDENTIAL_IDS: ImportHubProviderId[] = IMPORT_HUB_PROVI
   (provider) => provider.status === 'credential',
 ).map((provider) => provider.id);
 
-export function getImportHubProvider(id: string): ImportHubProvider | undefined {
-  return IMPORT_HUB_PROVIDERS.find((provider) => provider.id === id);
+export function getImportHubProvider(id: string, language?: string | null): ImportHubProvider | undefined {
+  return getImportHubProviders(language).find((provider) => provider.id === id);
 }

@@ -186,7 +186,7 @@ export async function resolveAgentRoute(input: {
         ok: false,
         statusCode: 403,
         code: body.code ?? 'AGENT_MODE_NOT_ALLOWED',
-        message: body.error ?? 'This agent mode is not available on your plan.',
+        message: body.error ?? '',
       };
     }
 
@@ -292,7 +292,7 @@ export async function decideTaskHardness(input: {
     logger.warn(
       JSON.stringify({
         event: 'agent-mode.classifier.failed',
-        error: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? { kind: 'error', name: error.name } : { kind: typeof error },
       }),
     );
 

@@ -1,14 +1,15 @@
 import type { PrismaClient } from '../generated/client/index.js';
+import rawConnectorCopy from './seed-connector-catalog.copy.json' with { type: 'json' };
+
+export const CONNECTOR_CATALOG_LOCALES = ['en', 'fr'] as const;
+export type ConnectorCatalogLocale = (typeof CONNECTOR_CATALOG_LOCALES)[number];
 
 type ConnectorAuthType = 'oauth' | 'api_key';
-
 type ConnectorSection = 'connectors' | 'git_providers' | 'managed';
-
 type ConnectorPlanTier = 'free' | 'pro' | 'enterprise';
-
 type ApiKeyFieldType = 'text' | 'password';
 
-type ApiKeyField = {
+export type ApiKeyField = {
   name: string;
   label: string;
   type: ApiKeyFieldType;
@@ -16,7 +17,7 @@ type ApiKeyField = {
   placeholder?: string;
 };
 
-type ConnectorCatalogSeed = {
+export type ConnectorCatalogSeed = {
   provider: string;
   displayName: string;
   description: string;
@@ -43,16 +44,29 @@ type ConnectorCatalogSeed = {
   enabled?: boolean;
 };
 
-// Phase 0 seeds. GitHub is the Phase 1 first OAuth provider end-to-end.
-// The four other entries are stubs so the existing Settings tabs
-// (Vercel, Supabase, GitLab, Netlify) and the upcoming IDE panel can
-// reference a catalog row. Real OAuth credentials and API-key field
-// definitions for those four are finalized in phases 2-3.
-export const CONNECTOR_CATALOG_SEEDS: ConnectorCatalogSeed[] = [
+type ApiKeyFieldSeed = Omit<ApiKeyField, 'label' | 'placeholder'>;
+type ConnectorCatalogSeedCore = Omit<
+  ConnectorCatalogSeed,
+  'apiKeyFields' | 'description' | 'displayName' | 'triggerDescriptions'
+> & {
+  apiKeyFields?: ApiKeyFieldSeed[];
+};
+type ConnectorCopy = Readonly<{
+  displayName: string;
+  description: string;
+  apiKeyFields?: Readonly<Record<string, Readonly<{ label: string; placeholder?: string }>>>;
+  triggerDescriptions?: Readonly<Record<string, string>>;
+}>;
+
+const DEFAULT_LOCALE: ConnectorCatalogLocale = 'en';
+
+const CONNECTOR_COPY = rawConnectorCopy as Readonly<
+  Record<ConnectorCatalogLocale, Readonly<Record<string, ConnectorCopy>>>
+>;
+
+const CONNECTOR_CATALOG_SEED_CORES = Object.freeze([
   {
     provider: 'github',
-    displayName: 'GitHub',
-    description: 'Access GitHub repositories, users, and organizations from your e-code apps.',
     category: 'dev',
     authType: 'oauth',
     section: 'connectors',
@@ -90,18 +104,6 @@ export const CONNECTOR_CATALOG_SEEDS: ConnectorCatalogSeed[] = [
       'pull_request_deleted',
       'commit_created',
     ],
-    triggerDescriptions: {
-      repo_created: 'Repo Created',
-      repo_updated: 'Repo Updated',
-      repo_deleted: 'Repo Deleted',
-      issue_created: 'Issue Created',
-      issue_updated: 'Issue Updated',
-      issue_deleted: 'Issue Deleted',
-      pull_request_created: 'Pull Request Created',
-      pull_request_updated: 'Pull Request Updated',
-      pull_request_deleted: 'Pull Request Deleted',
-      commit_created: 'Commit Created',
-    },
     webhookSupport: true,
     webhookSignatureScheme: 'github_hmac_sha256',
     minPlanTier: 'pro',
@@ -112,21 +114,11 @@ export const CONNECTOR_CATALOG_SEEDS: ConnectorCatalogSeed[] = [
   },
   {
     provider: 'vercel',
-    displayName: 'Vercel',
-    description: 'Manage Vercel deployments, projects, domains, and team settings from your e-code apps.',
     category: 'dev',
     authType: 'api_key',
     section: 'connectors',
     logoUrl: '/integrations/logos/vercel.svg',
-    apiKeyFields: [
-      {
-        name: 'accessToken',
-        label: 'Access Token',
-        type: 'password',
-        required: true,
-        placeholder: 'Personal or Team Access Token',
-      },
-    ],
+    apiKeyFields: [{ name: 'accessToken', type: 'password', required: true }],
     apiKeyTestEndpoint: 'https://api.vercel.com/v2/user',
     minPlanTier: 'pro',
     forAgentUse: true,
@@ -135,21 +127,11 @@ export const CONNECTOR_CATALOG_SEEDS: ConnectorCatalogSeed[] = [
   },
   {
     provider: 'supabase',
-    displayName: 'Supabase',
-    description: 'Access Supabase projects, databases, auth, storage, and edge functions.',
     category: 'data',
     authType: 'api_key',
     section: 'connectors',
     logoUrl: '/integrations/logos/supabase.svg',
-    apiKeyFields: [
-      {
-        name: 'accessToken',
-        label: 'Access Token',
-        type: 'password',
-        required: true,
-        placeholder: 'Supabase Management API token',
-      },
-    ],
+    apiKeyFields: [{ name: 'accessToken', type: 'password', required: true }],
     apiKeyTestEndpoint: 'https://api.supabase.com/v1/projects',
     minPlanTier: 'pro',
     forAgentUse: true,
@@ -158,20 +140,11 @@ export const CONNECTOR_CATALOG_SEEDS: ConnectorCatalogSeed[] = [
   },
   {
     provider: 'netlify',
-    displayName: 'Netlify',
-    description: 'Manage Netlify sites, deployments, environment variables, and edge functions.',
     category: 'dev',
     authType: 'api_key',
     section: 'connectors',
     logoUrl: '/integrations/logos/netlify.svg',
-    apiKeyFields: [
-      {
-        name: 'accessToken',
-        label: 'Personal Access Token',
-        type: 'password',
-        required: true,
-      },
-    ],
+    apiKeyFields: [{ name: 'accessToken', type: 'password', required: true }],
     apiKeyTestEndpoint: 'https://api.netlify.com/api/v1/user',
     minPlanTier: 'pro',
     forAgentUse: true,
@@ -180,8 +153,6 @@ export const CONNECTOR_CATALOG_SEEDS: ConnectorCatalogSeed[] = [
   },
   {
     provider: 'gitlab',
-    displayName: 'GitLab',
-    description: 'Connect to GitLab to manage projects, issues, merge requests, and pipelines.',
     category: 'dev',
     authType: 'oauth',
     section: 'connectors',
@@ -190,7 +161,17 @@ export const CONNECTOR_CATALOG_SEEDS: ConnectorCatalogSeed[] = [
     tokenUrl: 'https://gitlab.com/oauth/token',
     userInfoUrl: 'https://gitlab.com/api/v4/user',
     defaultScopes: ['read_user', 'read_api', 'read_repository', 'write_repository'],
-    availableScopes: ['read_user', 'read_api', 'api', 'read_repository', 'write_repository', 'sudo', 'openid', 'profile', 'email'],
+    availableScopes: [
+      'read_user',
+      'read_api',
+      'api',
+      'read_repository',
+      'write_repository',
+      'sudo',
+      'openid',
+      'profile',
+      'email',
+    ],
     minPlanTier: 'pro',
     forAgentUse: true,
     displayOrder: 20,
@@ -198,8 +179,6 @@ export const CONNECTOR_CATALOG_SEEDS: ConnectorCatalogSeed[] = [
   },
   {
     provider: 'bitbucket',
-    displayName: 'Bitbucket',
-    description: 'Connect to Bitbucket to manage repositories, branches and pull requests.',
     category: 'dev',
     authType: 'oauth',
     section: 'connectors',
@@ -214,11 +193,57 @@ export const CONNECTOR_CATALOG_SEEDS: ConnectorCatalogSeed[] = [
     displayOrder: 30,
     enabled: true,
   },
-];
+] satisfies readonly ConnectorCatalogSeedCore[]);
 
-// MCP catalog entries that are surfaced inside the new IDE Integrations
-// panel as "MCP Servers for e-code Agent". Slugs match the existing
-// seed-mcp-catalog entries; the flag only flips on rows that exist.
+export function normalizeConnectorCatalogLocale(locale?: string | null): ConnectorCatalogLocale {
+  return locale?.trim().toLowerCase().split(/[-_]/)[0] === 'fr' ? 'fr' : DEFAULT_LOCALE;
+}
+
+function buildConnectorCatalogSeeds(locale: ConnectorCatalogLocale): readonly ConnectorCatalogSeed[] {
+  return Object.freeze(
+    CONNECTOR_CATALOG_SEED_CORES.map((seed) => {
+      const copy = CONNECTOR_COPY[locale][seed.provider] ?? CONNECTOR_COPY.en[seed.provider];
+      const { apiKeyFields: apiKeyFieldSeeds, ...seedWithoutApiKeyFields } = seed;
+
+      if (!copy) {
+        throw new Error(`Missing connector catalog copy: ${seed.provider}`);
+      }
+
+      const apiKeyFields = apiKeyFieldSeeds?.map((field) => {
+        const fieldCopy =
+          copy.apiKeyFields?.[field.name] ?? CONNECTOR_COPY.en[seed.provider]?.apiKeyFields?.[field.name];
+
+        if (!fieldCopy) {
+          throw new Error(`Missing connector API key field copy: ${seed.provider}.${field.name}`);
+        }
+
+        return Object.freeze({ ...field, ...fieldCopy });
+      });
+
+      return Object.freeze({
+        ...seedWithoutApiKeyFields,
+        displayName: copy.displayName,
+        description: copy.description,
+        ...(apiKeyFields ? { apiKeyFields } : {}),
+        ...(copy.triggerDescriptions ? { triggerDescriptions: { ...copy.triggerDescriptions } } : {}),
+      });
+    }),
+  );
+}
+
+const CONNECTOR_SEEDS_BY_LOCALE = Object.freeze({
+  en: buildConnectorCatalogSeeds('en'),
+  fr: buildConnectorCatalogSeeds('fr'),
+}) satisfies Readonly<Record<ConnectorCatalogLocale, readonly ConnectorCatalogSeed[]>>;
+
+/** English is persisted because the current Prisma schema stores one canonical string per field. */
+export const CONNECTOR_CATALOG_SEEDS = CONNECTOR_SEEDS_BY_LOCALE.en;
+
+/** Localized API projection that leaves provider ids, scopes, URLs, and field names unchanged. */
+export function getConnectorCatalogSeeds(locale?: string | null): readonly ConnectorCatalogSeed[] {
+  return CONNECTOR_SEEDS_BY_LOCALE[normalizeConnectorCatalogLocale(locale)];
+}
+
 const MCP_FEATURED_FOR_IDE_PANEL_SLUGS = ['google-maps', 'sentry'];
 
 export async function seedConnectorCatalog(prisma: PrismaClient): Promise<void> {
@@ -252,10 +277,7 @@ export async function seedConnectorCatalog(prisma: PrismaClient): Promise<void> 
 
     await prisma.connectorCatalog.upsert({
       where: { provider: entry.provider },
-      create: {
-        provider: entry.provider,
-        ...baseData,
-      },
+      create: { provider: entry.provider, ...baseData },
       update: baseData,
     });
   }

@@ -14,7 +14,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
  * apiRequest throws on an expired session / MFA-required during a page
  * navigation, turning a needed /login redirect into a dead-end inline
  * "Unable to load runtime logs" banner. The fix re-throws redirect (3xx) and
- * server (5xx) Responses while still degrading genuine non-redirect failures.
+ * authentication Responses while degrading runtime-snapshot failures into a
+ * recoverable, non-sensitive inline state.
  */
 const apiRequest = vi.fn();
 
@@ -87,19 +88,16 @@ describe('projects logs loader re-auth propagation', () => {
     expect((thrown as Response).headers.get('location')).toBe('/login');
   });
 
-  it('re-throws 5xx server Responses instead of degrading them', async () => {
+  it('degrades a runtime 5xx into a safe inline state', async () => {
     mockProjectAndWorkspace();
     apiRequest.mockRejectedValueOnce(apiErrorResponse(503, 'runtime unavailable'));
 
     const { loader } = await import('./projects.$projectId.logs');
 
-    const thrown = await loader(loaderArgs()).then(
-      () => null,
-      (error: unknown) => error,
-    );
+    const data = readPageData(await loader(loaderArgs()));
 
-    expect(thrown).toBeInstanceOf(Response);
-    expect((thrown as Response).status).toBe(503);
+    expect(data.runtimeLogs).toEqual({ logs: [], unavailable: true });
+    expect(JSON.stringify(data.runtimeLogs)).not.toContain('runtime unavailable');
   });
 
   it('degrades a genuine non-redirect Error into an inline runtimeLogs error', async () => {
@@ -110,7 +108,8 @@ describe('projects logs loader re-auth propagation', () => {
 
     const data = readPageData(await loader(loaderArgs()));
 
-    expect(data.runtimeLogs).toEqual({ logs: [], error: 'snapshot buffer empty' });
+    expect(data.runtimeLogs).toEqual({ logs: [], unavailable: true });
+    expect(JSON.stringify(data.runtimeLogs)).not.toContain('snapshot buffer empty');
   });
 
   it('returns the snapshot logs on success', async () => {

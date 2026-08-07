@@ -47,9 +47,25 @@ export interface SocialMetaInput {
 
   /** `website` par défaut ; `article` pour un billet de blog. */
   type?: 'website' | 'article';
+
+  /**
+   * Alternative textuelle de l'image sociale.
+   *
+   * Par défaut le TITRE de la page, pas une constante anglaise : sur une page
+   * servie en français, un alt figé en anglais est précisément la régression
+   * que la localisation corrige. Les pages dont l'illustration mérite une
+   * description propre passent leur propre valeur (déjà traduite).
+   */
+  imageAlt?: string;
 }
 
-export function socialMetaTags({ title, description, path, type = 'website' }: SocialMetaInput): MetaDescriptor[] {
+export function socialMetaTags({
+  title,
+  description,
+  path,
+  type = 'website',
+  imageAlt = title,
+}: SocialMetaInput): MetaDescriptor[] {
   const url = path ? canonicalUrl(path) : undefined;
 
   return [
@@ -62,7 +78,7 @@ export function socialMetaTags({ title, description, path, type = 'website' }: S
     { property: 'og:image:type', content: 'image/jpeg' },
     { property: 'og:image:width', content: '1200' },
     { property: 'og:image:height', content: '630' },
-    { property: 'og:image:alt', content: DEFAULT_OG_IMAGE_ALT },
+    { property: 'og:image:alt', content: imageAlt },
     { name: 'twitter:card', content: 'summary_large_image' },
 
     /*
@@ -72,7 +88,7 @@ export function socialMetaTags({ title, description, path, type = 'website' }: S
     { name: 'twitter:title', content: title },
     { name: 'twitter:description', content: description },
     { name: 'twitter:image', content: DEFAULT_OG_IMAGE },
-    { name: 'twitter:image:alt', content: DEFAULT_OG_IMAGE_ALT },
+    { name: 'twitter:image:alt', content: imageAlt },
     ...(url ? [{ tagName: 'link', rel: 'canonical', href: url } as unknown as MetaDescriptor] : []),
   ];
 }

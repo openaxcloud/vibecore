@@ -334,7 +334,16 @@ describe('sanitizedChildEnv PORT handling', () => {
     // either, or it would fight Vite's --strictPort launch for that port. Deleting
     // it lets a PORT-honoring framework fall back to its own default.
     process.env.PORT = '8080';
-    const env = sanitizedChildEnv({ PORT: '8080', VITE_HMR_CLIENT_PORT: '443' }, { command: 'npm', args: ['run', 'dev'] });
+    const env = sanitizedChildEnv(
+      { PORT: '8080', VITE_HMR_CLIENT_PORT: '443' },
+      { command: 'npm', args: ['run', 'dev'] },
+    );
+
+    /*
+     * Le port de contrôle hérité est SUPPRIMÉ, jamais repointé sur 5173 : un
+     * projet qui lance aussi un serveur honorant PORT prendrait 5173 avant Vite
+     * et ferait échouer son `--strictPort` avec « Port 5173 is already in use ».
+     */
     expect(env.PORT).toBeUndefined();
   });
 
@@ -346,7 +355,10 @@ describe('sanitizedChildEnv PORT handling', () => {
 
   it('respects a project that explicitly chose its own (non-control) PORT', () => {
     process.env.PORT = '8080';
-    const env = sanitizedChildEnv({ PORT: '3000', VITE_HMR_CLIENT_PORT: '443' }, { command: 'npm', args: ['run', 'dev'] });
+    const env = sanitizedChildEnv(
+      { PORT: '3000', VITE_HMR_CLIENT_PORT: '443' },
+      { command: 'npm', args: ['run', 'dev'] },
+    );
     expect(env.PORT).toBe('3000');
   });
 });
@@ -560,6 +572,44 @@ describe('workspace-agent', () => {
     const read = await app.inject({ method: 'GET', url: '/files/read?path=does/not/exist.ts', headers });
     expect(read.statusCode).toBe(404);
     expect(read.json()).toMatchObject({ code: 'ENOENT' });
+  });
+
+  it('returns localized French file errors with stable codes and response language metadata', async () => {
+    const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
+    const read = await app.inject({
+      method: 'GET',
+      url: '/files/read?path=does/not/exist.ts',
+      headers: {
+        authorization: `Bearer ${token}`,
+        'accept-language': 'en;q=0.2, fr-FR;q=0.9',
+      },
+    });
+
+    expect(read.statusCode).toBe(404);
+    expect(read.headers['content-language']).toBe('fr');
+    expect(read.headers.vary).toContain('Accept-Language');
+    expect(read.json()).toMatchObject({
+      code: 'ENOENT',
+      error: 'Fichier introuvable.',
+      message: 'Fichier introuvable.',
+    });
+  });
+
+  it('localizes validation failures without echoing raw schema text', async () => {
+    const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
+    const response = await app.inject({
+      method: 'POST',
+      url: '/files/write',
+      headers: { authorization: `Bearer ${token}`, 'accept-language': 'fr' },
+      payload: { path: 'bad\u0000path', content: 'nope' },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({
+      code: 'VALIDATION_ERROR',
+      error: 'La requête est invalide.',
+    });
+    expect(response.body).not.toContain('control characters');
   });
 
   it('blocks path traversal', async () => {
@@ -938,6 +988,36 @@ describe('workspace-agent', () => {
       socket.send(`${process.execPath} -e "console.log('terminal-critical-path')"\n`);
 
       await expect.poll(() => messages.join(''), { timeout: 5_000 }).toContain('terminal-critical-path');
+    } finally {
+      socket.close();
+      await app.close();
+    }
+  });
+
+  it('localizes terminal-session limit errors from the WebSocket Accept-Language header', async () => {
+    const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId, maxProcesses: 0 });
+    await app.listen({ host: '127.0.0.1', port: 0 });
+
+    const address = app.server.address();
+
+    if (!address || typeof address === 'string') {
+      throw new Error('Workspace agent did not bind to a TCP port');
+    }
+
+    const socket = new WebSocket(`ws://127.0.0.1:${address.port}/terminal?token=${encodeURIComponent(token)}`, {
+      headers: { 'accept-language': 'fr-FR' },
+    });
+
+    try {
+      const frame = await new Promise<string>((resolve, reject) => {
+        socket.addEventListener('message', (event) => resolve(String(event.data)), { once: true });
+        socket.addEventListener('error', () => reject(new Error('Terminal WebSocket failed to open')), { once: true });
+      });
+      const event = JSON.parse(frame) as { data?: string };
+
+      expect(event.data).toContain('[erreur du terminal]');
+      expect(event.data).toContain('Trop de sessions de terminal sont ouvertes.');
+      expect(event.data).not.toContain('Too many terminal sessions');
     } finally {
       socket.close();
       await app.close();

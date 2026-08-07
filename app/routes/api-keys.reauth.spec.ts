@@ -8,7 +8,7 @@ import { shouldRethrowActionError } from '~/lib/route-reauth';
  * body-less 3xx with a Location header) when the session expired mid-flight
  * (login redirect on 401) or MFA is required (redirect to /mfa-setup on 403),
  * because the '/api-keys' route path is a page navigation. On such a 3xx,
- * error.json() rejects, so the user saw a generic "Request failed." alert at
+ * error.json() rejects, so the user saw a generic inline error alert at
  * status 302 and was never sent to re-authenticate — the create/revoke form was
  * stuck and broken. 5xx server failures were likewise swallowed inline instead
  * of reaching the error boundary.
@@ -16,8 +16,9 @@ import { shouldRethrowActionError } from '~/lib/route-reauth';
  * The action now re-throws re-auth (3xx) and server (5xx) Responses via
  * shouldRethrowActionError BEFORE the inline-error handling, so the framework
  * performs the redirect / the boundary handles the failure. 4xx Responses
- * (validation / not-found / forbidden with a body) still fall through to the
- * inline banner. This spec pins that contract for both the create (POST
+ * (validation / not-found / forbidden) still fall through to the inline banner,
+ * where their status is mapped to a reviewed catalog code rather than exposing
+ * the upstream body. This spec pins that contract for both the create (POST
  * /api/keys) and revoke (DELETE /api/keys/:id) paths.
  */
 describe('api-keys action re-auth handling', () => {
@@ -41,8 +42,8 @@ describe('api-keys action re-auth handling', () => {
     expect(shouldRethrowActionError(new Response('down', { status: 503 }))).toBe(true);
   });
 
-  it('does NOT re-throw 4xx API errors — those stay inline banners with their body message', () => {
-    // create-path validation / forbidden / not-found carry an actionable body message.
+  it('does NOT re-throw 4xx API errors — those stay inline as safe catalog codes', () => {
+    // Create-path validation / forbidden / not-found statuses are mapped by the route.
     expect(shouldRethrowActionError(new Response('forbidden', { status: 403 }))).toBe(false);
     expect(shouldRethrowActionError(new Response('unauthorized', { status: 401 }))).toBe(false);
     expect(shouldRethrowActionError(new Response('no such key', { status: 404 }))).toBe(false);

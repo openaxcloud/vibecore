@@ -78,7 +78,7 @@ describe('E-Code public theme wrappers', () => {
      * helper (reflects the real active theme: Sun/Light, Moon/Dark) instead of the
      * old inline 'System'/'Dark' string.
      */
-    expect(source).toContain('getThemeSwitcherPresentation(theme)');
+    expect(source).toContain('getThemeSwitcherPresentation(theme, copy.theme)');
     expect(source).toContain('{copy.a11y.mobileMenuTitle}');
     expect(source).toContain('{copy.a11y.mobileMenuDescription}');
     expect(shellCopy).toContain("mobileMenuTitle: 'Mobile navigation menu'");
@@ -145,14 +145,21 @@ describe('E-Code public theme wrappers', () => {
 
   it('keeps community and templates as public marketing pages with login-gated product actions', () => {
     const resourcePages = readFileSync(new URL('./EcodePublicResourcePages.tsx', import.meta.url), 'utf8');
+
+    const resourceCopy = readFileSync(
+      new URL('../../lib/i18n/catalogs/marketing-public-resource.ts', import.meta.url),
+      'utf8',
+    );
+
     const communityRoute = readFileSync(new URL('../../routes/community.tsx', import.meta.url), 'utf8');
     const loginRoute = readFileSync(new URL('../../routes/login.tsx', import.meta.url), 'utf8');
 
     expect(resourcePages).toContain('data-public-resource-page="community"');
-    expect(resourcePages).toContain('Connect with builders shipping real E-Code projects');
-    expect(resourcePages).toContain('Community feed');
-    expect(resourcePages).toContain('Active challenges');
-    expect(resourcePages).toContain('Top contributors');
+    expect(resourcePages).toContain('getMarketingPublicResourceCopy(language).community');
+    expect(resourceCopy).toContain('Connect with builders shipping real E-Code projects');
+    expect(resourceCopy).toContain('Community feed');
+    expect(resourceCopy).toContain('Active challenges');
+    expect(resourceCopy).toContain('Top contributors');
     expect(resourcePages).toContain("loginReturnTo('/community')");
     expect(resourcePages).toContain('templateProjectReturnTo(template.slug)');
     expect(resourcePages).not.toContain('Open related template');

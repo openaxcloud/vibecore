@@ -1,4 +1,5 @@
 import { apiRequest, type EnterpriseActionArgs, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 
 /*
  * Browser-accessible proxy for the Git pane's Settings → Connections section.
@@ -28,7 +29,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 
 export async function action({ request }: EnterpriseActionArgs) {
   if (request.method !== 'POST') {
-    return Response.json({ error: 'Method not allowed' }, { status: 405 });
+    return remainingApiErrorResponse(request, 'METHOD_NOT_ALLOWED', 405);
   }
 
   const form = await request.formData();
@@ -36,7 +37,7 @@ export async function action({ request }: EnterpriseActionArgs) {
   const userConnectionId = String(form.get('userConnectionId') ?? '').trim();
 
   if (intent !== 'revoke' || !userConnectionId) {
-    return Response.json({ error: 'A revoke intent and userConnectionId are required.' }, { status: 400 });
+    return remainingApiErrorResponse(request, 'CONNECTION_REVOKE_REQUEST_INVALID', 400);
   }
 
   try {
@@ -48,9 +49,8 @@ export async function action({ request }: EnterpriseActionArgs) {
 
     return Response.json({ ok: true, ...result });
   } catch (error) {
-    return Response.json(
-      { error: error instanceof Error ? error.message : 'Unable to disconnect this account.' },
-      { status: 502 },
-    );
+    const status = error instanceof Response && error.status !== 500 ? error.status : 502;
+
+    return remainingApiErrorResponse(request, 'CONNECTION_REVOKE_FAILED', status);
   }
 }

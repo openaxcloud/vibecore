@@ -1,11 +1,13 @@
 import { Check, Copy, Play, Table2, RefreshCw } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useFetcher } from 'react-router';
 import { QueryHistoryControl } from './QueryHistoryControl';
 import { clearQueryHistory, readQueryHistory, recordQueryHistory, removeQueryHistory } from './query-history';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { EmptyState } from '~/components/ui/EmptyState';
 import Popover from '~/components/ui/Popover';
+import { formatDatabaseStudioCopy, getDatabaseStudioCopy } from '~/lib/i18n/catalogs/database-studio';
 import { classNames } from '~/utils/classNames';
 
 /*
@@ -172,6 +174,8 @@ function normalizeRows(result: QueryResult): { columns: string[]; rows: unknown[
 const CELL_TRUNCATION_THRESHOLD = 35;
 
 function CopyCellValueButton({ value }: { value: string }) {
+  const { i18n } = useTranslation();
+  const copy = getDatabaseStudioCopy(i18n.resolvedLanguage ?? i18n.language);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -196,13 +200,16 @@ function CopyCellValueButton({ value }: { value: string }) {
       className="inline-flex shrink-0 items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 py-1 text-[11px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
     >
       {copied ? <Check className="h-3 w-3" aria-hidden /> : <Copy className="h-3 w-3" aria-hidden />}
-      {copied ? 'Copied' : 'Copy'}
+      {copied ? copy['databaseStudio.copied'] : copy['databaseStudio.copy']}
     </button>
   );
 }
 
 /** Read-mode cell value: plain text, or a popover exposing the full value when truncated. */
 function CellValue({ value }: { value: string }) {
+  const { i18n } = useTranslation();
+  const copy = getDatabaseStudioCopy(i18n.resolvedLanguage ?? i18n.language);
+
   if (value.length <= CELL_TRUNCATION_THRESHOLD) {
     return <>{value}</>;
   }
@@ -216,7 +223,7 @@ function CellValue({ value }: { value: string }) {
       trigger={
         <button
           type="button"
-          title="Show full value"
+          title={copy['databaseStudio.showFullValue']}
           className="block w-full cursor-pointer truncate text-left underline decoration-dotted underline-offset-2 hover:text-bolt-elements-textPrimary"
         >
           {value}
@@ -225,7 +232,9 @@ function CellValue({ value }: { value: string }) {
     >
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[11px] font-medium text-bolt-elements-textTertiary">Full value</span>
+          <span className="text-[11px] font-medium text-bolt-elements-textTertiary">
+            {copy['databaseStudio.fullValue']}
+          </span>
           <CopyCellValueButton value={value} />
         </div>
         <pre
@@ -240,6 +249,13 @@ function CellValue({ value }: { value: string }) {
 }
 
 export function DatabaseStudio({ projectId }: { projectId: string }) {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getDatabaseStudioCopy(language);
+
+  const text = (template: string, values: Readonly<Record<string, string | number>> = {}) =>
+    formatDatabaseStudioCopy(template, values);
+
   const base = `/api/projects/${encodeURIComponent(projectId)}/ide-panel/database`;
   const connFetcher = useFetcher();
   const schemaFetcher = useFetcher();
@@ -294,6 +310,8 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
     schemaFetcher.data && typeof schemaFetcher.data === 'object'
       ? ((schemaFetcher.data as { error?: unknown }).error as string | undefined)
       : undefined;
+  const visibleSchemaError =
+    schemaError && language.toLowerCase().startsWith('fr') ? copy['databaseStudio.safeConnectionError'] : schemaError;
 
   const running = queryFetcher.state !== 'idle';
 
@@ -362,11 +380,14 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
   const result = queryFetcher.data?.result ? normalizeRows(queryFetcher.data.result) : null;
   const queryError = queryFetcher.data?.error ?? queryFetcher.data?.result?.error;
 
+  const visibleQueryError =
+    queryError && language.toLowerCase().startsWith('fr') ? copy['databaseStudio.safeQueryError'] : queryError;
+
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
       {/* Connection (Dev/Prod/external) selector */}
       <div className="flex items-center gap-2">
-        <label className="text-[12px] text-bolt-elements-textSecondary">Connection</label>
+        <label className="text-[12px] text-bolt-elements-textSecondary">{copy['databaseStudio.connection']}</label>
         <select
           value={connectionKey}
           onChange={(e) => setConnectionKey(e.target.value)}
@@ -385,7 +406,7 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
           className="inline-flex items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 py-1 text-[12px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary disabled:opacity-60"
         >
           <RefreshCw className={classNames('h-3.5 w-3.5', loadingSchema && 'animate-spin')} aria-hidden />
-          Refresh schema
+          {copy['databaseStudio.refreshSchema']}
         </button>
       </div>
 
@@ -393,23 +414,25 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
         {/* Table browser */}
         <aside className="min-h-0 overflow-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2">
           <div className="mb-2 flex items-center gap-1.5 px-1 text-[12px] font-medium text-bolt-elements-textSecondary">
-            <Table2 className="h-3.5 w-3.5" aria-hidden /> Tables
+            <Table2 className="h-3.5 w-3.5" aria-hidden /> {copy['databaseStudio.tables']}
           </div>
           {tables.length === 0 ? (
-            schemaError && !loadingSchema ? (
+            visibleSchemaError && !loadingSchema ? (
               <div className="px-1 py-2" role="alert">
-                <p className="text-[12px] font-medium text-[var(--status-error-text)]">Connection failed</p>
-                <p className="mt-1 break-words text-[12px] text-[var(--status-error-text)]">{schemaError}</p>
+                <p className="text-[12px] font-medium text-[var(--status-error-text)]">
+                  {copy['databaseStudio.connectionFailed']}
+                </p>
+                <p className="mt-1 break-words text-[12px] text-[var(--status-error-text)]">{visibleSchemaError}</p>
               </div>
             ) : loadingSchema ? (
-              <EmptyState variant="compact" icon="i-ph:circle-notch" title="Loading schema…" />
+              <EmptyState variant="compact" icon="i-ph:circle-notch" title={copy['databaseStudio.loadingSchema']} />
             ) : (
               <EmptyState
                 variant="compact"
                 icon={Table2}
-                title="No tables"
-                description="No tables found for this connection."
-                actionLabel="Refresh schema"
+                title={copy['databaseStudio.noTables']}
+                description={copy['databaseStudio.noTablesDescription']}
+                actionLabel={copy['databaseStudio.refreshSchema']}
                 onAction={() => loadSchema(connectionKey)}
               />
             )
@@ -444,7 +467,7 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
               onChange={(e) => setSql(e.target.value)}
               spellCheck={false}
               rows={4}
-              aria-label="SQL query"
+              aria-label={copy['databaseStudio.sqlQuery']}
               onKeyDown={(e) => {
                 if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
                   e.preventDefault();
@@ -461,9 +484,9 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
                 className="inline-flex items-center gap-1.5 rounded-md bg-[var(--vc-ide-accent-action)] px-3 py-1.5 text-[13px] font-medium text-white hover:opacity-90 disabled:opacity-60"
               >
                 <Play className="h-3.5 w-3.5" aria-hidden />
-                {running ? 'Running…' : 'Run'}
+                {running ? copy['databaseStudio.running'] : copy['databaseStudio.run']}
               </button>
-              <span className="text-[11px] text-bolt-elements-textTertiary">⌘/Ctrl + Enter</span>
+              <span className="text-[11px] text-bolt-elements-textTertiary">{copy['databaseStudio.shortcut']}</span>
               {isProductionConnection ? (
                 <span
                   className="inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-medium"
@@ -472,9 +495,9 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
                     background: 'color-mix(in srgb, var(--vc-ide-accent-error) 12%, transparent)',
                     border: '1px solid color-mix(in srgb, var(--vc-ide-accent-error) 40%, transparent)',
                   }}
-                  title="The active connection looks like a production database — destructive statements ask for confirmation before running."
+                  title={copy['databaseStudio.productionTitle']}
                 >
-                  Production
+                  {copy['databaseStudio.production']}
                 </span>
               ) : null}
               <QueryHistoryControl
@@ -490,7 +513,7 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
                   onClick={() => downloadCsv(result.columns, result.rows)}
                   className="rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-[12px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
                 >
-                  Export CSV
+                  {copy['databaseStudio.exportCsv']}
                 </button>
               ) : null}
               {selectedTable ? (
@@ -507,7 +530,7 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
                     }}
                     className="rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-[12px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
                   >
-                    + Insert row
+                    {copy['databaseStudio.insertRow']}
                   </button>
                   <button
                     type="button"
@@ -520,7 +543,7 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
                         : 'border-bolt-elements-borderColor text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
                     )}
                   >
-                    {editMode ? 'Editing — click a cell' : 'Edit'}
+                    {editMode ? copy['databaseStudio.editing'] : copy['databaseStudio.edit']}
                   </button>
                 </>
               ) : null}
@@ -528,11 +551,13 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
           </div>
 
           <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2">
-            {queryError ? (
+            {visibleQueryError ? (
               <div className="p-3" role="alert">
-                <p className="text-[12px] font-medium text-[var(--status-error-text)]">Query failed</p>
+                <p className="text-[12px] font-medium text-[var(--status-error-text)]">
+                  {copy['databaseStudio.queryFailed']}
+                </p>
                 <p className="mt-1 whitespace-pre-wrap break-words font-mono text-[12px] text-[var(--status-error-text)]">
-                  {queryError}
+                  {visibleQueryError}
                 </p>
               </div>
             ) : result && result.rows.length ? (
@@ -581,21 +606,26 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
                 </tbody>
               </table>
             ) : running ? (
-              <EmptyState variant="compact" icon="i-ph:circle-notch" title="Running query…" className="m-3" />
+              <EmptyState
+                variant="compact"
+                icon="i-ph:circle-notch"
+                title={copy['databaseStudio.runningQuery']}
+                className="m-3"
+              />
             ) : result ? (
               <EmptyState
                 variant="compact"
                 icon="i-ph:rows"
-                title="No rows returned"
-                description="The query ran successfully but returned no rows."
+                title={copy['databaseStudio.noRows']}
+                description={copy['databaseStudio.noRowsDescription']}
                 className="m-3"
               />
             ) : (
               <EmptyState
                 variant="compact"
                 icon="i-ph:table"
-                title="No results yet"
-                description="Run a query or pick a table on the left to see results."
+                title={copy['databaseStudio.noResults']}
+                description={copy['databaseStudio.noResultsDescription']}
                 className="m-3"
               />
             )}
@@ -617,28 +647,22 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
 
           setPendingSql(null);
         }}
-        title="Run destructive statement?"
+        title={copy['databaseStudio.destructive.title']}
         variant="destructive"
-        confirmLabel="Run statement"
+        confirmLabel={copy['databaseStudio.destructive.confirm']}
         description={
           <span className="flex flex-col gap-2">
             <span className="block text-[13px]">
-              This statement can modify or delete data
-              {isProductionConnection ? (
-                <>
-                  {' on the '}
-                  <strong style={{ color: 'var(--status-error-text)' }}>production</strong>
-                  {' database'}
-                </>
-              ) : null}
-              . Review it before running:
+              {isProductionConnection
+                ? copy['databaseStudio.destructive.productionDescription']
+                : copy['databaseStudio.destructive.description']}
             </span>
             <span className="block max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-2 font-mono text-[12px] text-bolt-elements-textPrimary">
               {pendingSql}
             </span>
             {activeConnection ? (
               <span className="block text-[11px] text-bolt-elements-textTertiary">
-                Connection: {activeConnection.label}
+                {text(copy['databaseStudio.destructive.connection'], { connection: activeConnection.label })}
               </span>
             ) : null}
           </span>

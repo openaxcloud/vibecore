@@ -1,9 +1,23 @@
 import type { RuntimeAdapter, TerminalSession } from '@vibecore/runtime-contract';
 import { atom, type WritableAtom } from 'nanostores';
 import { buildResizePlan, type TerminalSessionEntry } from './terminal-resize';
+import { formatTerminalSpawnFailure } from '~/lib/i18n/catalogs/client-visible-errors';
 import type { ITerminal } from '~/types/terminal';
 import { newBoltShellProcess, newShellProcess } from '~/utils/shell';
 import { coloredText } from '~/utils/terminal';
+
+function terminalFailureDiagnostic(error: unknown): { name: string; code?: string } | undefined {
+  if (!(error instanceof Error)) {
+    return undefined;
+  }
+
+  const code = (error as Error & { code?: unknown }).code;
+
+  return {
+    name: error.name,
+    ...(typeof code === 'string' && code.length > 0 ? { code } : {}),
+  };
+}
 
 export class TerminalStore {
   #runtime: RuntimeAdapter;
@@ -49,8 +63,10 @@ export class TerminalStore {
   async attachBoltTerminal(terminal: ITerminal) {
     try {
       await this.#boltTerminal.init(this.#runtime, terminal);
-    } catch (error: any) {
-      terminal.write(coloredText.red('Failed to spawn bolt shell\n\n') + error.message);
+    } catch (error: unknown) {
+      console.warn('Managed terminal shell could not be started', terminalFailureDiagnostic(error));
+      terminal.write(`${coloredText.red(formatTerminalSpawnFailure('managed'))}\n\n`);
+
       return;
     }
   }
@@ -89,8 +105,10 @@ export class TerminalStore {
       }
 
       this.#terminals.push({ terminal, process: shellProcess });
-    } catch (error: any) {
-      terminal.write(coloredText.red('Failed to spawn shell\n\n') + error.message);
+    } catch (error: unknown) {
+      console.warn('Terminal shell could not be started', terminalFailureDiagnostic(error));
+      terminal.write(`${coloredText.red(formatTerminalSpawnFailure('shell'))}\n\n`);
+
       return;
     }
   }
@@ -123,7 +141,7 @@ export class TerminalStore {
      * `void | Promise<void>` return of the RuntimeContract resize signature.
      */
     for (const target of buildResizePlan(sessions, cols, rows)) {
-      void Promise.resolve(target.process.resize(target.cols, target.rows)).catch(() => {});
+      void Promise.resolve(target.process.resize(target.cols, target.rows)).catch(() => undefined);
     }
   }
 

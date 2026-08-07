@@ -1,8 +1,15 @@
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { LoaderFunctionArgs, MetaFunction } from 'react-router';
-import { data, isRouteErrorResponse, Link, useRouteError } from 'react-router';
+import { data as json, isRouteErrorResponse, Link, useLoaderData, useRouteError } from 'react-router';
 
 import { LinkButton, PublicShell } from '~/components/dashboard/SaaSLayout';
+import {
+  buildPublicRouteMeta,
+  getPublicRouteSeoCopy,
+  interpolatePublicRouteSeoCopy,
+} from '~/lib/i18n/catalogs/public-route-seo';
+import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 
 /*
  * Remix v2 splat route. It matches any URL that no more specific route claims —
@@ -11,48 +18,64 @@ import { LinkButton, PublicShell } from '~/components/dashboard/SaaSLayout';
  *
  * Before this route existed those requests produced no route match, and Remix
  * surfaced an ERROR-level `No route matches URL '…'` log on every scan. By
- * claiming the URL here and throwing a 404 *Response* (not a JS Error), the
- * request resolves as an expected "Not Found": Remix renders the ErrorBoundary
- * below and never routes the thrown Response through `handleError`/`console.error`,
- * so error budgets and paging stay clean.
+ * claiming the URL here and returning route data with a 404 status, the request
+ * resolves as an expected missing page without reaching `handleError` or
+ * `console.error`, so error budgets and paging stay clean. Rendering the normal
+ * route also lets React Router emit localized metadata for the 404 response.
  */
 
 export const loader = ({ request }: LoaderFunctionArgs) => {
-  /*
-   * BUG-MKT-005 : on RENVOIE un 404 au lieu de le LEVER.
-   *
-   * Une Response levée fait rendre l'ErrorBoundary, et React Router n'exécute
-   * PAS le `meta` d'une route en erreur : le titre servi restait donc celui de
-   * la racine. Le correctif client (`document.title` dans un effet) ne répare
-   * que la navigation interne — un crawler, un partage social ou un `curl` ne
-   * voient que le HTML du serveur, où le titre était générique.
-   *
-   * En renvoyant les données avec `status: 404`, le composant rend normalement,
-   * `meta` s'exécute au SSR, et le statut HTTP reste 404. La propriété qui
-   * motivait le `throw` est préservée : ce n'est toujours pas une erreur, donc
-   * rien n'est journalisé au niveau error.
-   */
-  return data({ notFoundPath: new URL(request.url).pathname }, { status: 404, statusText: 'Not Found' });
+  const locale = resolveRequestLocale(request);
+  const copy = getPublicRouteSeoCopy(locale.language);
+
+  return json(
+    { language: locale.language, status: 404 as const },
+    {
+      status: 404,
+      statusText: copy['publicRouteSeo.notFound.httpStatus'],
+      headers: localeResponseHeaders(request, locale),
+    },
+  );
 };
 
-export const meta: MetaFunction = () => [
-  { title: 'Page not found · E-Code' },
-  { name: 'description', content: 'This page could not be found on E-Code.' },
-
-  // BUG-MKT-009 — une page introuvable ne doit jamais entrer dans un index.
-  { name: 'robots', content: 'noindex, nofollow' },
-];
-
-function NotFoundView({ status = 404 }: { status?: number }) {
+export const meta: MetaFunction<typeof loader> = ({ data, location, matches }) => {
   /*
-   * Filet pour le rendu via ErrorBoundary UNIQUEMENT. Sur le chemin normal, le
-   * loader RENVOIE désormais le 404 et `meta` pose le titre dès le SSR ; mais une
-   * route en erreur n'exécute pas `meta`, et React 18 ne hisse pas un <title>.
-   * Poser le titre ici reste donc nécessaire pour ce chemin résiduel.
+   * `matches` / `location` sont optionnels ici : `meta` est aussi appelé hors
+   * d'un rendu de route complet (tests, rendu d'erreur). Y accéder sans garde
+   * faisait échouer le `meta` — donc plus de titre ni de `noindex` du tout.
+   */
+  const rootData = matches?.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
+  const language = data?.language ?? rootData?.language;
+  const copy = getPublicRouteSeoCopy(language);
+
+  return buildPublicRouteMeta({
+    language,
+    pathname: location?.pathname ?? '/',
+    robots: 'noindex,follow',
+    seo: {
+      title: copy['publicRouteSeo.notFound.seo.title'],
+      description: copy['publicRouteSeo.notFound.seo.description'],
+      imageAlt: copy['publicRouteSeo.notFound.seo.imageAlt'],
+    },
+  });
+};
+
+export function NotFoundView({ status = 404 }: { status?: number }) {
+  const { i18n } = useTranslation();
+  const copy = getPublicRouteSeoCopy(i18n.resolvedLanguage ?? i18n.language);
+  const isNotFound = status === 404;
+  const values = { status };
+
+  /*
+   * Unexpected route errors still render through this boundary. React Router
+   * cannot derive boundary status from route metadata, so keep the client title
+   * aligned with the rendered status as a defensive recovery path.
    */
   useEffect(() => {
-    document.title = status === 404 ? 'Page not found · E-Code' : `Error ${status} · E-Code`;
-  }, [status]);
+    document.title = isNotFound
+      ? copy['publicRouteSeo.notFound.seo.title']
+      : interpolatePublicRouteSeoCopy(copy['publicRouteSeo.notFound.errorTitle'], values);
+  }, [copy, isNotFound, status]);
 
   return (
     <PublicShell>
@@ -62,24 +85,22 @@ function NotFoundView({ status = 404 }: { status?: number }) {
         aria-labelledby="not-found-heading"
       >
         <span className="text-sm font-semibold uppercase tracking-[0.2em] text-bolt-elements-textTertiary">
-          {status === 404 ? '404' : `Error ${status}`}
+          {isNotFound ? status : interpolatePublicRouteSeoCopy(copy['publicRouteSeo.notFound.errorLabel'], values)}
         </span>
         <h1 id="not-found-heading" className="text-3xl font-semibold text-bolt-elements-textPrimary">
-          {status === 404 ? 'This page could not be found' : 'Something went wrong'}
+          {isNotFound ? copy['publicRouteSeo.notFound.heading'] : copy['publicRouteSeo.notFound.errorHeading']}
         </h1>
         <p className="max-w-md text-sm leading-6 text-bolt-elements-textSecondary">
-          {status === 404
-            ? 'The page you are looking for may have been moved, renamed, or never existed. Check the address or head back to a known place.'
-            : 'The request could not be completed. Try again, or head back to a known place.'}
+          {isNotFound ? copy['publicRouteSeo.notFound.description'] : copy['publicRouteSeo.notFound.errorDescription']}
         </p>
         <div className="flex flex-wrap items-center justify-center gap-3">
-          <LinkButton to="/">Back to homepage</LinkButton>
+          <LinkButton to="/">{copy['publicRouteSeo.notFound.home']}</LinkButton>
           <LinkButton to="/dashboard" variant="outline">
-            Go to dashboard
+            {copy['publicRouteSeo.notFound.dashboard']}
           </LinkButton>
         </div>
         <Link to="/help-center" className="text-xs text-bolt-elements-textTertiary underline-offset-4 hover:underline">
-          Visit the help center
+          {copy['publicRouteSeo.notFound.help']}
         </Link>
       </section>
     </PublicShell>
@@ -87,20 +108,21 @@ function NotFoundView({ status = 404 }: { status?: number }) {
 }
 
 /*
- * Chemin NORMAL depuis que le loader renvoie (au lieu de lever) : c'est ce
- * composant qui rend, donc `meta` s'applique et le titre est correct dès le SSR.
- * L'ErrorBoundary reste en filet pour les erreurs réellement inattendues.
+ * The catch-all loader returns a normal route payload with an HTTP 404 status so
+ * localized metadata and content are rendered together without logging an incident.
  */
 export default function SplatRoute() {
-  return <NotFoundView status={404} />;
+  const data = useLoaderData<typeof loader>();
+
+  return <NotFoundView status={data.status} />;
 }
 
 export function ErrorBoundary() {
   const error = useRouteError();
 
   /*
-   * 404s (and any other thrown Response) are expected here — render a clean page.
-   * Deliberately no console.error / logStore.logError: these are not incidents.
+   * Any thrown Response is expected here — render a clean page. Deliberately no
+   * console.error / logStore.logError: these are not incidents.
    */
   if (isRouteErrorResponse(error)) {
     return <NotFoundView status={error.status} />;

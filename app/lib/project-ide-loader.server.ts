@@ -1,5 +1,7 @@
 import { previewTenantCookie } from '~/lib/.server/preview-tenant';
 import { apiErrorMessage, apiRequest, json } from '~/lib/enterprise-api.server';
+import { getEnterpriseApiErrorCopy } from '~/lib/i18n/catalogs/enterprise-api-errors';
+import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 
 export type ProjectWorkspaceSummary = {
   id: string;
@@ -94,8 +96,11 @@ export function shouldRethrowResolveError(error: unknown): error is Response {
 }
 
 export async function loadProjectIdeData(request: Request, projectId: string) {
+  const locale = resolveRequestLocale(request);
+  const copy = getEnterpriseApiErrorCopy(locale.language);
+
   if (!projectId) {
-    throw new Response('Project not found', { status: 404 });
+    throw new Response(copy.projectMissing, { status: 404, headers: localeResponseHeaders(request, locale) });
   }
 
   const url = new URL(request.url);
@@ -147,6 +152,12 @@ export async function loadProjectIdeData(request: Request, projectId: string) {
       Date.now(),
     );
 
+    const headers = localeResponseHeaders(request, locale);
+
+    if (previewCookie) {
+      headers.append('Set-Cookie', previewCookie);
+    }
+
     return json<ProjectLoaderData>(
       {
         projectId,
@@ -168,7 +179,7 @@ export async function loadProjectIdeData(request: Request, projectId: string) {
         currentWorkspaceId,
         primaryWorkspaceId,
       },
-      previewCookie ? { headers: { 'Set-Cookie': previewCookie } } : undefined,
+      { headers },
     );
   } catch (error) {
     /*
@@ -184,20 +195,23 @@ export async function loadProjectIdeData(request: Request, projectId: string) {
       throw error;
     }
 
-    const message = await apiErrorMessage(error, 'Project API unavailable');
+    const message = await apiErrorMessage(error, copy.requestFailed);
 
-    return json<ProjectLoaderData>({
-      projectId,
-      project: { id: projectId, name: projectId },
-      workspace: null,
-      organization: null,
-      git: {},
-      collaborators: [],
-      notifications: [],
-      initialIdePanels: {},
-      workspaces: [],
-      projectApiError: message,
-    });
+    return json<ProjectLoaderData>(
+      {
+        projectId,
+        project: { id: projectId, name: projectId },
+        workspace: null,
+        organization: null,
+        git: {},
+        collaborators: [],
+        notifications: [],
+        initialIdePanels: {},
+        workspaces: [],
+        projectApiError: message,
+      },
+      { headers: localeResponseHeaders(request, locale) },
+    );
   }
 }
 

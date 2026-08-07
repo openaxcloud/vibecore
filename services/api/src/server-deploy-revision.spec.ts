@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { buildImageContextFromRevision, describeEcodeLockFailure, type AppBuildRunPayload } from './server-deploy-revision.js';
+import { appPublicEnglish } from './app-public-copy.js';
+import {
+  buildImageContextFromRevision,
+  describeEcodeLockFailure,
+  type AppBuildRunPayload,
+} from './server-deploy-revision.js';
 import { assertLockAgainstRegistry, assertLockPublishable, parseNixGenerationRegistry } from '@vibecore/k8s-client';
 import { serverDeployContextObjectKey, serverDeployRevisionObjectKey } from './server-deploy-transfer.js';
 import type { SnapshotAgent } from './server-deploy-transfer.js';
@@ -43,7 +48,12 @@ const baseOpts = (over: Partial<Parameters<typeof buildImageContextFromRevision>
   installCommand: 'npm install --include=dev',
   buildCommand: 'npm run build' as string | null,
   timeoutSeconds: 300,
-  runAppBuild: vi.fn(async () => ({ exitCode: 0, output: '[build] uploaded artifact\n', timedOut: false, phase: 'Succeeded' })),
+  runAppBuild: vi.fn(async () => ({
+    exitCode: 0,
+    output: '[build] uploaded artifact\n',
+    timedOut: false,
+    phase: 'Succeeded',
+  })),
   ...over,
 });
 
@@ -83,7 +93,8 @@ describe('buildImageContextFromRevision', () => {
     const result = await buildImageContextFromRevision(opts);
 
     expect(result.ok).toBe(false);
-    expect(result.message).toContain('exit 1');
+    expect(result.message).toBe(appPublicEnglish('SERVER_REVISION_BUILD_FAILED'));
+    expect(result.message).not.toContain('npm ERR! boom');
     expect(lines.join('\n')).toContain('npm ERR! boom');
   });
 
@@ -95,7 +106,7 @@ describe('buildImageContextFromRevision', () => {
     );
 
     expect(result.ok).toBe(false);
-    expect(result.message).toContain('timed out');
+    expect(result.message).toBe(appPublicEnglish('SERVER_REVISION_BUILD_TIMEOUT'));
   });
 
   it('propagates a failed revision snapshot as-is', async () => {
@@ -198,7 +209,10 @@ describe('describeEcodeLockFailure (typed code survives into the artifact)', () 
       [
         () =>
           assertLockAgainstRegistry(
-            { ...gen3Lock, bundles: [...gen3Lock.bundles, { name: 'ghc', storePath: '/nix/store/x', sha256: 'e'.repeat(64) }] },
+            {
+              ...gen3Lock,
+              bundles: [...gen3Lock.bundles, { name: 'ghc', storePath: '/nix/store/x', sha256: 'e'.repeat(64) }],
+            },
             registry,
           ),
         'ECODE_LOCK_BUNDLE_UNKNOWN',

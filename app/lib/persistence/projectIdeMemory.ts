@@ -1,5 +1,6 @@
 import type { Message } from 'ai';
 import type { IChatMetadata } from './db';
+import { formatPersistenceRuntimeCopy, getPersistenceRuntimeCopy } from '~/lib/i18n/catalogs/persistence-runtime';
 
 export type ProjectIdePanel = 'webview' | 'console' | 'network' | 'files';
 export type ProjectIdeWorkspacePanel =
@@ -706,7 +707,7 @@ export async function getProjectIdeMemory(projectId: string, workspaceId?: strin
     }
 
     if (!response.ok) {
-      throw new Error(`Failed to load project IDE memory (${response.status})`);
+      throw Object.assign(new Error(), { code: 'PROJECT_IDE_MEMORY_LOAD_FAILED', status: response.status });
     }
 
     const payload = (await response.json()) as IdeStateEnvelope;
@@ -1009,7 +1010,7 @@ async function persistWithRetry(scope: string): Promise<void> {
           pendingDirty.set(scope, memoryForServerSave(merged, dirty));
         }
 
-        const conflictError = new Error('IDE state was modified by another session');
+        const conflictError = new Error(getPersistenceRuntimeCopy()['persistence.ide.concurrentChange']);
         (conflictError as { status?: number }).status = 412;
         lastError = conflictError;
 
@@ -1031,7 +1032,11 @@ async function persistWithRetry(scope: string): Promise<void> {
       }
 
       if (!response.ok) {
-        const error = new Error(`Failed to save project IDE memory (${response.status})`);
+        const error = new Error(
+          formatPersistenceRuntimeCopy(getPersistenceRuntimeCopy()['persistence.ide.saveFailed'], {
+            status: String(response.status),
+          }),
+        );
         (error as { status?: number }).status = response.status;
 
         if (response.status >= 400 && response.status < 500 && response.status !== 408 && response.status !== 429) {
@@ -1086,5 +1091,7 @@ async function persistWithRetry(scope: string): Promise<void> {
     return;
   }
 
-  throw lastError instanceof Error ? lastError : new Error('Failed to save project IDE memory');
+  throw lastError instanceof Error
+    ? lastError
+    : new Error(getPersistenceRuntimeCopy()['persistence.ide.saveFailedGeneric']);
 }

@@ -19,8 +19,11 @@ async function setup() {
     name: 'Skills User',
     passwordHash: hashPassword('password123'),
   });
+
   const org = await store.createOrganization({ name: 'Skills Org', slug: 'skills-org', ownerUserId: user.id });
+
   await store.createSession({ userId: user.id, token: 'skills-token', expiresAt: new Date(Date.now() + 3600_000) });
+
   const project = await store.createProject({ organizationId: org.id, name: 'Skills Project', slug: 'skills-project' });
 
   return { app, token: 'skills-token', project };
@@ -29,6 +32,30 @@ async function setup() {
 const auth = (token: string) => ({ authorization: `Bearer ${token}` });
 
 describe('skills registry API', () => {
+  it('localizes builtin metadata from the manual cookie and emits Content-Language', async () => {
+    const { app, token, project } = await setup();
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/projects/${project.id}/skills`,
+      headers: {
+        ...auth(token),
+        cookie: 'vibecore-lang=fr',
+        'accept-language': 'en-US',
+      },
+    });
+
+    const review = res.json().skills.find((skill: { id: string }) => skill.id === 'code-review');
+
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['content-language']).toBe('fr');
+    expect(review).toMatchObject({
+      name: 'Revue de code',
+      category: 'quality',
+      categoryLabel: 'Qualité',
+    });
+  });
+
   it('lists the full builtin catalog at its defaults', async () => {
     const { app, token, project } = await setup();
 
@@ -39,7 +66,9 @@ describe('skills registry API', () => {
     });
 
     expect(res.statusCode).toBe(200);
+
     const skills = res.json().skills as Array<{ id: string; enabled: boolean; updatedAt: string | null }>;
+
     expect(skills).toHaveLength(SKILL_CATALOG.length);
 
     const review = skills.find((skill) => skill.id === 'code-review')!;
@@ -94,11 +123,13 @@ describe('skills registry API', () => {
     const res = await app.inject({
       method: 'POST',
       url: `/projects/${project.id}/skills/not-a-real-skill/enable`,
-      headers: auth(token),
+      headers: { ...auth(token), 'accept-language': 'fr-FR' },
     });
 
     expect(res.statusCode).toBe(404);
     expect(res.json().code).toBe('SKILL_NOT_FOUND');
+    expect(res.json().error).toBe('Le skill demandé est introuvable.');
+    expect(res.headers['content-language']).toBe('fr');
   });
 
   it('rejects unauthenticated access', async () => {

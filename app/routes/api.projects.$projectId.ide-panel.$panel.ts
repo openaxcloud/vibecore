@@ -13,6 +13,13 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import {
+  apiRuntimeRoutesEn,
+  formatApiRuntimeRoutesCopy,
+  getApiRuntimeRoutesCopy,
+  type ApiRuntimeRoutesCopy,
+} from '~/lib/i18n/catalogs/api-runtime-routes';
+import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { reconcileDebugSessions } from '~/lib/ide/debug-session-status';
 import { isSecurityScheduleDue, vulnerabilitiesFromSecretScan } from '~/lib/ide-panel-security';
 import {
@@ -89,8 +96,13 @@ function panelEnvelope<T>(panel: string, project: unknown, data: T): IdePanelEnv
   };
 }
 
-function panelEnvelopeError(panel: string, project: unknown, error: unknown): IdePanelEnvelope<null> {
-  const message = error instanceof Error ? error.message : 'Failed to load panel data';
+function panelEnvelopeError(
+  panel: string,
+  project: unknown,
+  error: unknown,
+  language?: string | null,
+): IdePanelEnvelope<null> {
+  const copy = getApiRuntimeRoutesCopy(language);
   const status = (error as { status?: number } | undefined)?.status;
 
   const code =
@@ -106,6 +118,19 @@ function panelEnvelopeError(panel: string, project: unknown, error: unknown): Id
 
   const retryable = !status || status >= 500 || status === 408 || status === 429;
 
+  const message =
+    code === 'PANEL_AUTH'
+      ? copy['apiRuntime.panel.authenticationRequired']
+      : code === 'PANEL_FORBIDDEN'
+        ? copy['apiRuntime.panel.forbidden']
+        : code === 'PANEL_NOT_FOUND'
+          ? copy['apiRuntime.panel.notFound']
+          : code === 'PANEL_BACKEND_UNAVAILABLE'
+            ? copy['apiRuntime.panel.backendUnavailable']
+            : copy['apiRuntime.panel.loadFailed'];
+
+  console.error('IDE panel request failed:', { panel, status, error });
+
   return {
     panel,
     project,
@@ -115,8 +140,10 @@ function panelEnvelopeError(panel: string, project: unknown, error: unknown): Id
   };
 }
 
-function panelErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : 'Runtime request failed';
+function panelErrorMessage(error: unknown, language?: string | null) {
+  console.error('IDE runtime request failed:', error);
+
+  return getApiRuntimeRoutesCopy(language)['apiRuntime.panel.runtimeFailed'];
 }
 
 export function scopeDeploymentsForWorkspace(
@@ -185,16 +212,23 @@ async function resolvePanelWorkspace(
   return { workspaceList, primaryWorkspaceId, activeWorkspaceId, selectedWorkspaceId };
 }
 
-async function loadOverviewPanelEnvelope(request: Request, projectId: string, project: unknown) {
+async function loadOverviewPanelEnvelope(
+  request: Request,
+  projectId: string,
+  project: unknown,
+  language?: string | null,
+) {
   try {
     const [dashboard, packages, collaborators, gitGraph, envVars] = await Promise.all([
-      apiRequest(request, `/projects/${projectId}/dashboard`).catch((error) => ({ error: panelErrorMessage(error) })),
+      apiRequest(request, `/projects/${projectId}/dashboard`).catch((error) => ({
+        error: panelErrorMessage(error, language),
+      })),
       apiRequest(request, `/projects/${projectId}/packages`).catch(() => null),
       apiRequest(request, `/projects/${projectId}/collaboration`).catch(() => ({ collaborators: [] })),
       apiRequest(request, `/projects/${projectId}/git/graph`).catch(() => ({ commits: [] })),
       apiRequest(request, `/projects/${projectId}/env-vars`).catch((error) => ({
         envVars: [],
-        error: panelErrorMessage(error),
+        error: panelErrorMessage(error, language),
       })),
     ]);
 
@@ -214,20 +248,21 @@ async function loadOverviewPanelEnvelope(request: Request, projectId: string, pr
       presence: collaborationData?.presence ?? [],
       overview: buildProjectOverviewInsights({
         project: project as any,
+        language,
         dashboard: dashboardData as any,
         packages: packageData as any,
         gitGraph: gitGraphData as any,
         collaboration: collaborationData as any,
       }),
-      workflowsState: readWorkflowsState(envVars),
-      terminalState: readTerminalState(envVars),
+      workflowsState: readWorkflowsState(envVars, language),
+      terminalState: readTerminalState(envVars, language),
       packagesState: readPackagesState(envVars),
     });
   } catch (error) {
     return panelEnvelope('overview', project, {
-      overview: buildProjectOverviewInsights({ project: project as any }),
-      loadError: panelErrorMessage(error),
-      workflowsState: defaultWorkflowsState(),
+      overview: buildProjectOverviewInsights({ project: project as any, language }),
+      loadError: panelErrorMessage(error, language),
+      workflowsState: defaultWorkflowsState(language),
       terminalState: defaultTerminalState(),
       packagesState: defaultPackagesState(),
     });
@@ -238,7 +273,7 @@ function encodeServerSentEvent(eventName: string, data: unknown) {
   return `event: ${eventName}\ndata: ${JSON.stringify(data)}\n\n`;
 }
 
-function streamOverviewPanel(request: Request, projectId: string, project: unknown) {
+function streamOverviewPanel(request: Request, projectId: string, project: unknown, language?: string | null) {
   const encoder = new TextEncoder();
 
   let interval: ReturnType<typeof setInterval> | undefined;
@@ -270,7 +305,7 @@ function streamOverviewPanel(request: Request, projectId: string, project: unkno
         sending = true;
 
         try {
-          const envelope = await loadOverviewPanelEnvelope(request, projectId, project);
+          const envelope = await loadOverviewPanelEnvelope(request, projectId, project, language);
 
           if (!closed) {
             controller.enqueue(encoder.encode(encodeServerSentEvent('overview', envelope)));
@@ -278,7 +313,7 @@ function streamOverviewPanel(request: Request, projectId: string, project: unkno
         } catch (error) {
           if (!closed) {
             controller.enqueue(
-              encoder.encode(encodeServerSentEvent('error', panelEnvelopeError('overview', project, error))),
+              encoder.encode(encodeServerSentEvent('error', panelEnvelopeError('overview', project, error, language))),
             );
           }
         } finally {
@@ -333,12 +368,14 @@ const panelEndpoints: Record<string, (projectId: string) => string> = {
   settings: (projectId) => `/projects/${projectId}/settings`,
 };
 
-export async function loader({ request, params }: EnterpriseLoaderArgs) {
+async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
+  const language = resolveRequestLocale(request).language;
+  const copy = getApiRuntimeRoutesCopy(language);
   const projectId = params.projectId;
   const panel = params.panel;
 
   if (!projectId || !panel) {
-    throw json({ error: 'Project panel not found' }, { status: 404 });
+    throw json({ error: copy['apiRuntime.panel.panelNotFound'], code: 'PANEL_NOT_FOUND' }, { status: 404 });
   }
 
   const project = await apiRequest<{ project: unknown }>(request, `/projects/${projectId}`);
@@ -348,11 +385,11 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     panel === 'overview' &&
     (url.searchParams.get('stream') === '1' || request.headers.get('accept')?.includes('text/event-stream'))
   ) {
-    return streamOverviewPanel(request, projectId, project.project);
+    return streamOverviewPanel(request, projectId, project.project, language);
   }
 
   if (panel === 'overview') {
-    return json(await loadOverviewPanelEnvelope(request, projectId, project.project));
+    return json(await loadOverviewPanelEnvelope(request, projectId, project.project, language));
   }
 
   if (panel === 'domains') {
@@ -360,7 +397,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
       const organizationId = (project.project as any)?.organizationId;
 
       if (!organizationId) {
-        throw new Error('Project organization is missing');
+        throw Object.assign(new Error(), { code: 'PROJECT_ORGANIZATION_MISSING' });
       }
 
       const [domains, deployments] = await Promise.all([
@@ -375,7 +412,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
         }),
       );
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error));
+      return json(panelEnvelopeError(panel, project.project, error, language));
     }
   }
 
@@ -439,7 +476,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
       const [status, branches, graph, stashes] = await Promise.all([
         apiRequest(request, withWorkspace(`/projects/${projectId}/git/status`)).catch((error) => ({
           status: { branch: 'main', changedFiles: [], fileStatuses: [], conflicts: [], ahead: 0, behind: 0 },
-          gitLoadError: panelErrorMessage(error),
+          gitLoadError: panelErrorMessage(error, language),
         })),
         apiRequest(request, withWorkspace(`/projects/${projectId}/git/branches`)).catch(() => ({
           branches: [],
@@ -497,7 +534,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
         }),
       );
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error));
+      return json(panelEnvelopeError(panel, project.project, error, language));
     }
   }
 
@@ -544,7 +581,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
         }),
       );
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error));
+      return json(panelEnvelopeError(panel, project.project, error, language));
     }
   }
 
@@ -577,7 +614,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
         }),
       );
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error));
+      return json(panelEnvelopeError(panel, project.project, error, language));
     }
   }
 
@@ -596,7 +633,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
         ? await apiRequest(
             request,
             `/projects/${projectId}/databases/schema?key=${encodeURIComponent(schemaKey)}`,
-          ).catch((error) => ({ schemaError: panelErrorMessage(error) }))
+          ).catch((error) => ({ schemaError: panelErrorMessage(error, language) }))
         : {};
 
       return json(
@@ -610,7 +647,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
         }),
       );
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error));
+      return json(panelEnvelopeError(panel, project.project, error, language));
     }
   }
 
@@ -654,21 +691,21 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
       const [runtimeStatus, runtimeProcesses, runtimeLogs] = await Promise.all([
         apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/status`).catch((error) => ({
-          error: panelErrorMessage(error),
+          error: panelErrorMessage(error, language),
         })),
         apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/processes`).catch((error) => ({
-          error: panelErrorMessage(error),
+          error: panelErrorMessage(error, language),
           processes: [],
         })),
         apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/logs/snapshot`).catch(
           (error) => ({
-            error: panelErrorMessage(error),
+            error: panelErrorMessage(error, language),
             logs: [],
           }),
         ),
       ]);
 
-      const debuggerState = readDebuggerState(envVars);
+      const debuggerState = readDebuggerState(envVars, language);
 
       /*
        * Report the real fate of each launch: a session is only "running" while
@@ -691,7 +728,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
         }),
       );
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error));
+      return json(panelEnvelopeError(panel, project.project, error, language));
     }
   }
 
@@ -706,7 +743,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
         data: null,
         error: {
           code: 'PANEL_REVEAL_REQUIRES_CONFIRMATION',
-          message: 'Secret reveal requires explicit user confirmation. Add &confirm=1 once acknowledged.',
+          message: copy['apiRuntime.panel.secretConfirmation'],
           retryable: true,
         },
       });
@@ -722,7 +759,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
       return json(panelEnvelope(panel, project.project, data));
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error));
+      return json(panelEnvelopeError(panel, project.project, error, language));
     }
   }
 
@@ -748,7 +785,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
         }),
       );
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error));
+      return json(panelEnvelopeError(panel, project.project, error, language));
     }
   }
 
@@ -776,7 +813,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
           }),
         );
       } catch (error) {
-        return json(panelEnvelopeError(panel, project.project, error));
+        return json(panelEnvelopeError(panel, project.project, error, language));
       }
     }
 
@@ -800,12 +837,12 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
           ? await Promise.all([
               apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/status`).catch(
                 (error) => ({
-                  error: panelErrorMessage(error),
+                  error: panelErrorMessage(error, language),
                 }),
               ),
               apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/ports`).catch(
                 (error) => ({
-                  error: panelErrorMessage(error),
+                  error: panelErrorMessage(error, language),
                   ports: [],
                 }),
               ),
@@ -832,7 +869,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
         }),
       );
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error));
+      return json(panelEnvelopeError(panel, project.project, error, language));
     }
   }
 
@@ -855,7 +892,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
         }),
       );
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error));
+      return json(panelEnvelopeError(panel, project.project, error, language));
     }
   }
 
@@ -872,7 +909,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
       ]);
 
       const packageData = packages as Record<string, any> | null;
-      const workflowsState = readWorkflowsState(envVars);
+      const workflowsState = readWorkflowsState(envVars, language);
       const scheduleNow = new Date();
 
       /*
@@ -972,7 +1009,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
         }),
       );
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error));
+      return json(panelEnvelopeError(panel, project.project, error, language));
     }
   }
 
@@ -989,7 +1026,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
        * commands in the workspace and mutate project env-vars, so they are triggered
        * from the action (POST) path, never from a plain panel read/navigation.
        */
-      const securityState = readSecurityState(envVars);
+      const securityState = readSecurityState(envVars, language);
 
       return json(
         panelEnvelope(panel, project.project, {
@@ -1001,7 +1038,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
         }),
       );
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error));
+      return json(panelEnvelopeError(panel, project.project, error, language));
     }
   }
 
@@ -1009,12 +1046,21 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     try {
       const [settings, account, sessions, envVars, secrets, aiUsage, organizations] = await Promise.all([
         apiRequest(request, `/projects/${projectId}/settings`),
-        apiRequest(request, '/auth/me').catch((error) => ({ error: panelErrorMessage(error) })),
-        apiRequest(request, '/auth/sessions').catch((error) => ({ error: panelErrorMessage(error), sessions: [] })),
+        apiRequest(request, '/auth/me').catch((error) => ({ error: panelErrorMessage(error, language) })),
+        apiRequest(request, '/auth/sessions').catch((error) => ({
+          error: panelErrorMessage(error, language),
+          sessions: [],
+        })),
         apiRequest(request, `/projects/${projectId}/env-vars`),
         apiRequest(request, `/projects/${projectId}/secrets`),
-        apiRequest(request, '/ai/usage').catch((error) => ({ error: panelErrorMessage(error), usage: [] })),
-        apiRequest(request, '/orgs').catch((error) => ({ error: panelErrorMessage(error), organizations: [] })),
+        apiRequest(request, '/ai/usage').catch((error) => ({
+          error: panelErrorMessage(error, language),
+          usage: [],
+        })),
+        apiRequest(request, '/orgs').catch((error) => ({
+          error: panelErrorMessage(error, language),
+          organizations: [],
+        })),
       ]);
 
       const orgs = (organizations as any)?.organizations ?? [];
@@ -1023,9 +1069,9 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
       const billing = billingOrg?.id
         ? await apiRequest(request, `/orgs/${billingOrg.id}/billing`).catch((error) => ({
-            error: panelErrorMessage(error),
+            error: panelErrorMessage(error, language),
           }))
-        : { error: 'No organization available for billing.' };
+        : { error: copy['apiRuntime.panel.billingOrganizationMissing'] };
 
       return json(
         panelEnvelope(panel, project.project, {
@@ -1041,7 +1087,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
         }),
       );
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error));
+      return json(panelEnvelopeError(panel, project.project, error, language));
     }
   }
 
@@ -1061,16 +1107,16 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
       const [runtimeStatus, runtimeFiles, runtimeProcesses, runtimePorts] = await Promise.all([
         apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/status`).catch((error) => ({
-          error: panelErrorMessage(error),
+          error: panelErrorMessage(error, language),
         })),
         apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/files`).catch((error) => ({
-          error: panelErrorMessage(error),
+          error: panelErrorMessage(error, language),
         })),
         apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/processes`).catch((error) => ({
-          error: panelErrorMessage(error),
+          error: panelErrorMessage(error, language),
         })),
         apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/ports`).catch((error) => ({
-          error: panelErrorMessage(error),
+          error: panelErrorMessage(error, language),
         })),
       ]);
 
@@ -1085,7 +1131,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
           runtimeFiles,
           runtimeProcesses,
           runtimePorts,
-          terminalState: readTerminalState(envVars),
+          terminalState: readTerminalState(envVars, language),
           workspaces: workspaceCtx.workspaceList,
           primaryWorkspaceId: workspaceCtx.primaryWorkspaceId,
           activeWorkspaceId: workspaceCtx.activeWorkspaceId,
@@ -1093,7 +1139,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
         }),
       );
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error));
+      return json(panelEnvelopeError(panel, project.project, error, language));
     }
   }
 
@@ -1112,17 +1158,17 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
       const [runtimeStatus, runtimeProcesses, runtimePorts, runtimeLogs] = await Promise.all([
         apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/status`).catch((error) => ({
-          error: panelErrorMessage(error),
+          error: panelErrorMessage(error, language),
         })),
         apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/processes`).catch((error) => ({
-          error: panelErrorMessage(error),
+          error: panelErrorMessage(error, language),
         })),
         apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/ports`).catch((error) => ({
-          error: panelErrorMessage(error),
+          error: panelErrorMessage(error, language),
         })),
         apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/logs/snapshot`).catch(
           (error) => ({
-            error: panelErrorMessage(error),
+            error: panelErrorMessage(error, language),
             logs: [],
           }),
         ),
@@ -1145,7 +1191,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
         }),
       );
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error));
+      return json(panelEnvelopeError(panel, project.project, error, language));
     }
   }
 
@@ -1182,7 +1228,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
         }),
       );
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error));
+      return json(panelEnvelopeError(panel, project.project, error, language));
     }
   }
 
@@ -1219,14 +1265,14 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
         }),
       );
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error));
+      return json(panelEnvelopeError(panel, project.project, error, language));
     }
   }
 
   const endpoint = panelEndpoints[panel];
 
   if (!endpoint) {
-    throw json({ error: 'Unsupported IDE panel' }, { status: 404 });
+    throw json({ error: copy['apiRuntime.panel.unsupportedPanel'], code: 'UNSUPPORTED_PANEL' }, { status: 404 });
   }
 
   try {
@@ -1234,7 +1280,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
     return json(panelEnvelope(panel, project.project, data));
   } catch (error) {
-    return json(panelEnvelopeError(panel, project.project, error));
+    return json(panelEnvelopeError(panel, project.project, error, language));
   }
 }
 
@@ -1259,12 +1305,14 @@ async function objectStorageResultOrDisabled(error: unknown): Promise<ReturnType
   throw error;
 }
 
-export async function action({ request, params }: EnterpriseActionArgs) {
+async function actionHandler({ request, params }: EnterpriseActionArgs) {
+  const language = resolveRequestLocale(request).language;
+  const copy = getApiRuntimeRoutesCopy(language);
   const projectId = params.projectId;
   const panel = params.panel;
 
   if (!projectId || !panel) {
-    throw json({ error: 'Project panel not found' }, { status: 404 });
+    throw json({ error: copy['apiRuntime.panel.panelNotFound'], code: 'PANEL_NOT_FOUND' }, { status: 404 });
   }
 
   /*
@@ -1284,7 +1332,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       body = formObject(await request.formData()) as Record<string, string>;
     }
   } catch {
-    throw json({ error: 'Invalid request body — expected form-encoded or application/json.' }, { status: 400 });
+    throw json({ error: copy['apiRuntime.panel.invalidBody'], code: 'INVALID_REQUEST_BODY' }, { status: 400 });
   }
 
   const intent = body.intent ?? 'default';
@@ -1295,7 +1343,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       const snapshotId = (body.snapshotId ?? '').trim();
 
       if (!snapshotId) {
-        throw json({ error: 'snapshotId is required for restore' }, { status: 400 });
+        throw json({ error: copy['apiRuntime.panel.snapshotRequired'], code: 'SNAPSHOT_REQUIRED' }, { status: 400 });
       }
 
       await apiRequest(request, `/projects/${projectId}/snapshots/${encodeURIComponent(snapshotId)}/restore`, {
@@ -1327,13 +1375,21 @@ export async function action({ request, params }: EnterpriseActionArgs) {
               .json()
               .catch(() => ({}))) as { code?: string; error?: string };
 
-            databaseOutcome = classifyDatabaseRestoreError({
-              status: error.status,
-              code: payload.code,
-              message: payload.error ?? 'Database restore failed.',
-            });
+            databaseOutcome = classifyDatabaseRestoreError(
+              {
+                status: error.status,
+                code: payload.code,
+                message: payload.error ?? 'DATABASE_RESTORE_FAILED',
+              },
+              language,
+            );
           } else {
-            databaseOutcome = { kind: 'failed', status: 502, message: 'Database restore failed.' };
+            console.error('Database restore failed:', error);
+            databaseOutcome = {
+              kind: 'failed',
+              status: 502,
+              message: copy['apiRuntime.snapshot.failed'],
+            };
           }
         }
       }
@@ -1342,7 +1398,11 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     } else {
       await apiRequest(request, `/projects/${projectId}/snapshots`, {
         method: 'POST',
-        body: JSON.stringify({ label: body.label || 'Manual checkpoint', kind: 'manual', manifest: {} }),
+        body: JSON.stringify({
+          label: body.label || copy['apiRuntime.panel.manualCheckpoint'],
+          kind: 'manual',
+          manifest: {},
+        }),
       });
     }
   } else if (panel === 'deployments') {
@@ -1351,7 +1411,13 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       const deploymentId = (body.deploymentId ?? '').trim();
 
       if (!deploymentId) {
-        throw json({ error: `deploymentId is required for ${intent}` }, { status: 400 });
+        throw json(
+          {
+            error: formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.deploymentRequired'], { action: intent }),
+            code: 'DEPLOYMENT_REQUIRED',
+          },
+          { status: 400 },
+        );
       }
 
       await apiRequest(request, `/projects/${projectId}/deployments/${encodeURIComponent(deploymentId)}/${intent}`, {
@@ -1413,22 +1479,25 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     const envVars = await apiRequest(request, `/projects/${projectId}/env-vars`);
     const dashboard = await apiRequest<any>(request, `/projects/${projectId}/dashboard`).catch(() => null);
     const workspaceId = dashboard?.workspace?.id ?? projectId;
-    const state = readDebuggerState(envVars);
+    const state = readDebuggerState(envVars, language);
     const now = new Date().toISOString();
 
     if (intent === 'save-config') {
-      const config = normalizeLaunchConfig({
-        id: body.configId || randomUUID(),
-        name: body.name,
-        type: body.type,
-        request: body.request,
-        command: body.command,
-        program: body.program,
-        cwd: body.cwd,
-        args: parseDebugArgs(body.args ?? ''),
-        env: parseEnvVars(body.env ?? ''),
-        stopOnEntry: body.stopOnEntry === 'true',
-      });
+      const config = normalizeLaunchConfig(
+        {
+          id: body.configId || randomUUID(),
+          name: body.name,
+          type: body.type,
+          request: body.request,
+          command: body.command,
+          program: body.program,
+          cwd: body.cwd,
+          args: parseDebugArgs(body.args ?? ''),
+          env: parseEnvVars(body.env ?? ''),
+          stopOnEntry: body.stopOnEntry === 'true',
+        },
+        language,
+      );
       state.launchConfigs = [
         config,
         ...state.launchConfigs.filter((candidate: any) => candidate.id !== config.id),
@@ -1470,11 +1539,14 @@ export async function action({ request, params }: EnterpriseActionArgs) {
         state.launchConfigs.find((candidate: any) => candidate.id === body.configId) ?? state.launchConfigs[0];
 
       if (!config) {
-        throw json({ error: 'Create a launch configuration before starting the debugger.' }, { status: 400 });
+        throw json(
+          { error: copy['apiRuntime.panel.debugConfigurationRequired'], code: 'DEBUG_CONFIGURATION_REQUIRED' },
+          { status: 400 },
+        );
       }
 
       const sessionId = randomUUID();
-      const command = buildDebugLaunchCommand(config);
+      const command = buildDebugLaunchCommand(config, language);
       const wrapper = `mkdir -p .vibecore/debug && nohup sh -lc ${shellQuote(command)} > .vibecore/debug/${sessionId}.log 2>&1 & echo $!`;
 
       const result = await apiRequest<{ output?: string; exitCode?: number }>(
@@ -1529,7 +1601,10 @@ export async function action({ request, params }: EnterpriseActionArgs) {
 
     await apiRequest(request, `/projects/${projectId}/env-vars`, {
       method: 'PUT',
-      body: JSON.stringify({ key: DEBUGGER_STATE_ENV_KEY, value: JSON.stringify(normalizeDebuggerState(state)) }),
+      body: JSON.stringify({
+        key: DEBUGGER_STATE_ENV_KEY,
+        value: JSON.stringify(normalizeDebuggerState(state, language)),
+      }),
     });
   } else if (panel === 'collaborators') {
     if (intent === 'comment') {
@@ -1596,7 +1671,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
 
     if (!organizationId) {
       return json(
-        { error: 'This project is not linked to an organization, so domains cannot be managed.' },
+        { error: copy['apiRuntime.panel.domainsOrganizationMissing'], code: 'PROJECT_ORGANIZATION_REQUIRED' },
         {
           status: 400,
         },
@@ -1728,7 +1803,10 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       const secretKey = provider ? SETTINGS_BYOK_SECRET_KEY_MAP[provider] : undefined;
 
       if (!secretKey) {
-        throw json({ error: 'Unsupported AI provider' }, { status: 400 });
+        throw json(
+          { error: copy['apiRuntime.panel.unsupportedAiProvider'], code: 'UNSUPPORTED_AI_PROVIDER' },
+          { status: 400 },
+        );
       }
 
       await apiRequest(request, `/projects/${projectId}/secrets`, {
@@ -1754,7 +1832,10 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       const secretKey = provider ? SETTINGS_BYOK_SECRET_KEY_MAP[provider] : undefined;
 
       if (!secretKey) {
-        throw json({ error: 'Unsupported AI provider' }, { status: 400 });
+        throw json(
+          { error: copy['apiRuntime.panel.unsupportedAiProvider'], code: 'UNSUPPORTED_AI_PROVIDER' },
+          { status: 400 },
+        );
       }
 
       await apiRequest(request, `/projects/${projectId}/secrets`, {
@@ -1777,7 +1858,11 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       await apiRequest(request, `/projects/${projectId}/snapshots`, {
         method: 'POST',
         body: JSON.stringify({
-          label: body.label || `Database backup ${new Date().toISOString()}`,
+          label:
+            body.label ||
+            formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.databaseBackupName'], {
+              timestamp: new Date().toISOString(),
+            }),
           kind: 'manual',
           manifest: { scope: 'database', source: 'mobile-ide' },
         }),
@@ -1790,7 +1875,10 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       const snapshotId = (body.snapshotId ?? '').trim();
 
       if (!snapshotId) {
-        throw json({ error: 'snapshotId is required for restore-backup' }, { status: 400 });
+        throw json(
+          { error: copy['apiRuntime.panel.backupSnapshotRequired'], code: 'BACKUP_SNAPSHOT_REQUIRED' },
+          { status: 400 },
+        );
       }
 
       await apiRequest(request, `/projects/${projectId}/snapshots/${encodeURIComponent(snapshotId)}/restore`, {
@@ -1917,7 +2005,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       const key = (body.key ?? '').trim();
 
       if (!key) {
-        throw json({ error: 'key is required for upload-url' }, { status: 400 });
+        throw json({ error: copy['apiRuntime.panel.uploadKeyRequired'] }, { status: 400 });
       }
 
       try {
@@ -1933,7 +2021,10 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       const key = (body.key ?? '').trim();
 
       if (!key) {
-        throw json({ error: 'key is required for download-url' }, { status: 400 });
+        throw json(
+          { error: copy['apiRuntime.panel.downloadKeyRequired'], code: 'OBJECT_KEY_REQUIRED' },
+          { status: 400 },
+        );
       }
 
       try {
@@ -1950,7 +2041,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       const to = (body.to ?? '').trim();
 
       if (!from || !to) {
-        throw json({ error: 'from and to are required for move' }, { status: 400 });
+        throw json({ error: copy['apiRuntime.panel.movePathsRequired'], code: 'MOVE_PATHS_REQUIRED' }, { status: 400 });
       }
 
       try {
@@ -1966,7 +2057,10 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       const payload = body.prefix ? { prefix: body.prefix } : { key: (body.key ?? '').trim() };
 
       if (!('prefix' in payload ? payload.prefix : payload.key)) {
-        throw json({ error: 'key or prefix is required for delete-object' }, { status: 400 });
+        throw json(
+          { error: copy['apiRuntime.panel.deleteKeyRequired'], code: 'OBJECT_KEY_OR_PREFIX_REQUIRED' },
+          { status: 400 },
+        );
       }
 
       try {
@@ -1999,7 +2093,10 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       const scope = body.scope === 'workspace' ? 'workspace' : 'project';
 
       if (!ownerRepo) {
-        throw json({ error: 'ownerRepo is required' }, { status: 400 });
+        throw json(
+          { error: copy['apiRuntime.panel.repositoryRequired'], code: 'REPOSITORY_REQUIRED' },
+          { status: 400 },
+        );
       }
 
       if (intent === 'install') {
@@ -2051,7 +2148,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     const skillId = (body.skillId ?? '').trim();
 
     if (!skillId) {
-      throw json({ error: 'skillId is required' }, { status: 400 });
+      throw json({ error: copy['apiRuntime.panel.skillRequired'], code: 'SKILL_REQUIRED' }, { status: 400 });
     }
 
     const action = intent === 'disable' ? 'disable' : 'enable';
@@ -2088,8 +2185,9 @@ export async function action({ request, params }: EnterpriseActionArgs) {
           packageManager,
           packages: packageNames,
           dev: body.devDependency === 'true',
-          name: packageRunName(intent, packageManager),
+          name: packageRunName(intent, packageManager, language),
           startedAt: now,
+          language,
 
           // Same pod audit/outdated target below — see runPackageInstall.workspaceId.
           workspaceId: packages?.workspace?.id ?? body.workspaceId?.trim() ?? undefined,
@@ -2097,9 +2195,13 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       : await runTerminalCommand(
           request,
           workspaceId,
-          packagePanelCommand({ intent, packageManager, packages: packageNames, dev: body.devDependency === 'true' }),
-          packageRunName(intent, packageManager),
+          packagePanelCommand(
+            { intent, packageManager, packages: packageNames, dev: body.devDependency === 'true' },
+            language,
+          ),
+          packageRunName(intent, packageManager, language),
           now,
+          language,
         );
 
     state.runs.unshift({
@@ -2127,7 +2229,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       const slug = (body.extension ?? '').trim();
 
       if (!slug) {
-        throw json({ error: 'extension (catalog slug) is required' }, { status: 400 });
+        throw json({ error: copy['apiRuntime.panel.extensionRequired'] }, { status: 400 });
       }
 
       // Derive a valid alias from the slug (alphanumeric/dash/underscore, ≤64).
@@ -2146,7 +2248,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       const installId = (body.installId ?? '').trim();
 
       if (!installId) {
-        throw json({ error: 'installId is required' }, { status: 400 });
+        throw json({ error: copy['apiRuntime.panel.installRequired'] }, { status: 400 });
       }
 
       await apiRequest(request, `/mcp/installs/${encodeURIComponent(installId)}`, { method: 'DELETE' });
@@ -2154,7 +2256,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       const installId = (body.installId ?? '').trim();
 
       if (!installId) {
-        throw json({ error: 'installId is required' }, { status: 400 });
+        throw json({ error: copy['apiRuntime.panel.installRequired'] }, { status: 400 });
       }
 
       await apiRequest(request, `/mcp/installs/${encodeURIComponent(installId)}`, {
@@ -2162,7 +2264,10 @@ export async function action({ request, params }: EnterpriseActionArgs) {
         body: JSON.stringify({ enabled: action === 'enable' }),
       });
     } else {
-      throw json({ error: `unsupported extensionAction: ${action}` }, { status: 400 });
+      throw json(
+        { error: formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.unsupportedExtensionAction'], { action }) },
+        { status: 400 },
+      );
     }
   } else if (panel === 'integrations') {
     const envVars = await apiRequest(request, `/projects/${projectId}/env-vars`);
@@ -2174,7 +2279,10 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       const integrationId = body.integrationId;
 
       if (!integrationId) {
-        throw json({ error: 'integrationId is required' }, { status: 400 });
+        throw json(
+          { error: copy['apiRuntime.panel.integrationRequired'], code: 'INTEGRATION_REQUIRED' },
+          { status: 400 },
+        );
       }
 
       state.integrations[integrationId] = {
@@ -2206,7 +2314,10 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       const integrationId = body.integrationId;
 
       if (!integrationId) {
-        throw json({ error: 'integrationId is required' }, { status: 400 });
+        throw json(
+          { error: copy['apiRuntime.panel.integrationRequired'], code: 'INTEGRATION_REQUIRED' },
+          { status: 400 },
+        );
       }
 
       state.integrations[integrationId] = {
@@ -2225,7 +2336,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
 
       state.webhooks.unshift({
         id,
-        name: body.name || 'Project webhook',
+        name: body.name || copy['apiRuntime.panel.projectWebhook'],
         url: body.url,
         events: events.length ? events : ['all'],
         active: true,
@@ -2270,7 +2381,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
 
       state.apiKeys.unshift({
         id,
-        name: body.name || 'Project API key',
+        name: body.name || copy['apiRuntime.panel.projectApiKey'],
         prefix,
         permissions: (body.permissions ?? 'read,write')
           .split(',')
@@ -2292,7 +2403,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     } else if (intent === 'create-stream') {
       state.eventStreams.unshift({
         id: randomUUID(),
-        name: body.name || 'Project event stream',
+        name: body.name || copy['apiRuntime.panel.projectEventStream'],
         destination: body.destination || 'AWS Kinesis',
         events: (body.events ?? '*')
           .split(',')
@@ -2314,7 +2425,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     });
   } else if (panel === 'workflows') {
     const envVars = await apiRequest(request, `/projects/${projectId}/env-vars`);
-    const state = readWorkflowsState(envVars);
+    const state = readWorkflowsState(envVars, language);
     const now = new Date().toISOString();
     const workflowId = body.workflowId ? Number(body.workflowId) : undefined;
     const taskId = body.taskId ? Number(body.taskId) : undefined;
@@ -2329,7 +2440,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       state.workflows.unshift({
         id,
         projectId,
-        name: body.name || 'Project workflow',
+        name: body.name || copy['apiRuntime.panel.projectWorkflow'],
         executionMode: body.executionMode === 'parallel' ? 'parallel' : 'sequential',
         isRunButton: body.isRunButton === 'true',
         isGenerated: body.isGenerated === 'true',
@@ -2384,10 +2495,16 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       const scheduleEnabled = body.scheduleEnabled === 'true';
       const cronRaw = typeof body.cron === 'string' ? body.cron.trim() : '';
       const timezone = typeof body.timezone === 'string' && body.timezone.trim() ? body.timezone.trim() : 'UTC';
-      const validation = cronRaw ? validateCron(cronRaw) : { valid: false, error: 'Schedule is empty.' };
+      const validation = cronRaw ? validateCron(cronRaw) : { valid: false };
 
       if (scheduleEnabled && !validation.valid) {
-        throw json({ error: validation.error ?? 'Invalid cron schedule.' }, { status: 400 });
+        throw json(
+          {
+            error: cronRaw ? copy['apiRuntime.panel.scheduleInvalid'] : copy['apiRuntime.panel.scheduleEmpty'],
+            code: cronRaw ? 'INVALID_CRON_SCHEDULE' : 'EMPTY_CRON_SCHEDULE',
+          },
+          { status: 400 },
+        );
       }
 
       const cron = validation.valid ? validation.normalized! : cronRaw || null;
@@ -2413,7 +2530,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
         scheduled = await apiRequest(request, `/projects/${projectId}/scheduled-tasks/${existing.id}`, {
           method: 'PATCH',
           body: JSON.stringify({
-            name: String(workflow?.name ?? 'Workflow'),
+            name: String(workflow?.name ?? copy['apiRuntime.panel.projectWorkflow']),
             cron,
             timezone,
             enabled,
@@ -2426,7 +2543,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
           body: JSON.stringify({
             kind: 'WORKFLOW',
             workflowId,
-            name: String(workflow?.name ?? 'Workflow'),
+            name: String(workflow?.name ?? copy['apiRuntime.panel.projectWorkflow']),
             cron,
             timezone,
             enabled,
@@ -2467,7 +2584,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       const taskId = String(body.scheduledTaskId ?? '');
 
       if (!taskId) {
-        throw json({ error: 'This workflow has no armed schedule to run.' }, { status: 400 });
+        throw json({ error: copy['apiRuntime.panel.workflowNotArmed'], code: 'WORKFLOW_NOT_ARMED' }, { status: 400 });
       }
 
       await apiRequest(request, `/projects/${projectId}/scheduled-tasks/${taskId}/run`, { method: 'POST' });
@@ -2583,7 +2700,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       const workflow = state.workflows.find((item: any) => item.id === workflowId);
 
       if (!workflow) {
-        throw json({ error: 'workflowId is invalid' }, { status: 400 });
+        throw json({ error: copy['apiRuntime.panel.workflowInvalid'], code: 'INVALID_WORKFLOW' }, { status: 400 });
       }
 
       const run = await runWorkflowTasks(
@@ -2593,6 +2710,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
         state,
         workflow,
         now,
+        language,
       );
 
       /*
@@ -2627,12 +2745,15 @@ export async function action({ request, params }: EnterpriseActionArgs) {
 
     await apiRequest(request, `/projects/${projectId}/env-vars`, {
       method: 'PUT',
-      body: JSON.stringify({ key: WORKFLOWS_STATE_ENV_KEY, value: JSON.stringify(normalizeWorkflowsState(state)) }),
+      body: JSON.stringify({
+        key: WORKFLOWS_STATE_ENV_KEY,
+        value: JSON.stringify(normalizeWorkflowsState(state, language)),
+      }),
     });
   } else if (panel === 'security') {
     const envVars = await apiRequest(request, `/projects/${projectId}/env-vars`);
     const dashboard = await apiRequest<any>(request, `/projects/${projectId}/dashboard`).catch(() => null);
-    const state = readSecurityState(envVars);
+    const state = readSecurityState(envVars, language);
     const now = new Date().toISOString();
 
     if (intent === 'settings') {
@@ -2667,7 +2788,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       );
     } else if (intent === 'scan') {
       const workspaceId = dashboard?.workspace?.id ?? projectId;
-      await runSecurityScan(request, projectId, workspaceId, state, now);
+      await runSecurityScan(request, projectId, workspaceId, state, now, language);
     }
 
     /*
@@ -2677,16 +2798,19 @@ export async function action({ request, params }: EnterpriseActionArgs) {
      */
     if (intent !== 'scan' && isSecurityScheduleDue(state, new Date(now))) {
       const workspaceId = dashboard?.workspace?.id ?? projectId;
-      await runSecurityScan(request, projectId, workspaceId, state, now);
+      await runSecurityScan(request, projectId, workspaceId, state, now, language);
     }
 
     await apiRequest(request, `/projects/${projectId}/env-vars`, {
       method: 'PUT',
-      body: JSON.stringify({ key: SECURITY_STATE_ENV_KEY, value: JSON.stringify(normalizeSecurityState(state)) }),
+      body: JSON.stringify({
+        key: SECURITY_STATE_ENV_KEY,
+        value: JSON.stringify(normalizeSecurityState(state, language)),
+      }),
     });
   } else if (panel === 'terminal') {
     const envVars = await apiRequest(request, `/projects/${projectId}/env-vars`);
-    const state = readTerminalState(envVars);
+    const state = readTerminalState(envVars, language);
     const dashboard = await apiRequest<any>(request, `/projects/${projectId}/dashboard`).catch(() => null);
     const workspaceId = dashboard?.workspace?.id ?? projectId;
     const now = new Date().toISOString();
@@ -2714,7 +2838,15 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       );
     } else if (intent === 'run-script') {
       const script = body.script ?? '';
-      const run = await runTerminalCommand(request, workspaceId, script, body.name || 'Terminal script', now);
+
+      const run = await runTerminalCommand(
+        request,
+        workspaceId,
+        script,
+        body.name || copy['apiRuntime.panel.terminalScript'],
+        now,
+        language,
+      );
       state.scriptRuns.unshift(run);
       state.scriptRuns = state.scriptRuns.slice(0, 20);
     } else if (intent === 'stop-process') {
@@ -2778,7 +2910,10 @@ export async function action({ request, params }: EnterpriseActionArgs) {
 
       await apiRequest(request, `/projects/${projectId}/env-vars`, {
         method: 'PUT',
-        body: JSON.stringify({ key: TERMINAL_STATE_ENV_KEY, value: JSON.stringify(normalizeTerminalState(state)) }),
+        body: JSON.stringify({
+          key: TERMINAL_STATE_ENV_KEY,
+          value: JSON.stringify(normalizeTerminalState(state, language)),
+        }),
       });
 
       return json({
@@ -2803,7 +2938,10 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       const connection = state.sshConnections.find((item: any) => item.id === body.connectionId);
 
       if (!connection) {
-        throw json({ error: 'SSH connection not found' }, { status: 400 });
+        throw json(
+          { error: copy['apiRuntime.panel.sshConnectionMissing'], code: 'SSH_CONNECTION_NOT_FOUND' },
+          { status: 400 },
+        );
       }
 
       /*
@@ -2819,7 +2957,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
         username: connection.username,
       });
 
-      const run = await runTerminalCommand(request, workspaceId, command, `SSH ${connection.name}`, now);
+      const run = await runTerminalCommand(request, workspaceId, command, `SSH ${connection.name}`, now, language);
       state.scriptRuns.unshift(run);
       state.scriptRuns = state.scriptRuns.slice(0, 20);
       state.sshConnections = state.sshConnections.map((item: any) =>
@@ -2842,20 +2980,20 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       const connection = state.sshConnections.find((item: any) => item.id === body.connectionId);
 
       if (!connection) {
-        throw json({ error: 'SSH connection not found' }, { status: 400 });
+        throw json(
+          { error: copy['apiRuntime.panel.sshConnectionMissing'], code: 'SSH_CONNECTION_NOT_FOUND' },
+          { status: 400 },
+        );
       }
 
       const repoUrl = (body.repoUrl ?? '').trim();
 
       if (!isSshGitUrl(repoUrl)) {
-        throw json(
-          { error: 'Enter an SSH git URL such as git@github.com:owner/repo.git or ssh://host/path.git' },
-          { status: 400 },
-        );
+        throw json({ error: copy['apiRuntime.panel.sshUrlInvalid'], code: 'INVALID_SSH_GIT_URL' }, { status: 400 });
       }
 
       const command = buildGitSshLsRemoteScript({ keyEnvVar: terminalSshSecretKey(connection.id), repoUrl });
-      const run = await runTerminalCommand(request, workspaceId, command, `git ls-remote ${repoUrl}`, now);
+      const run = await runTerminalCommand(request, workspaceId, command, `git ls-remote ${repoUrl}`, now, language);
       state.scriptRuns.unshift(run);
       state.scriptRuns = state.scriptRuns.slice(0, 20);
       state.sshConnections = state.sshConnections.map((item: any) =>
@@ -2872,7 +3010,10 @@ export async function action({ request, params }: EnterpriseActionArgs) {
 
     await apiRequest(request, `/projects/${projectId}/env-vars`, {
       method: 'PUT',
-      body: JSON.stringify({ key: TERMINAL_STATE_ENV_KEY, value: JSON.stringify(normalizeTerminalState(state)) }),
+      body: JSON.stringify({
+        key: TERMINAL_STATE_ENV_KEY,
+        value: JSON.stringify(normalizeTerminalState(state, language)),
+      }),
     });
   } else if (panel === 'git') {
     const workspaceId = body.workspaceId?.trim() || undefined;
@@ -2886,7 +3027,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       await apiRequest(request, `/projects/${projectId}/git/commit`, {
         method: 'POST',
         body: JSON.stringify({
-          message: body.message || 'Update project files',
+          message: body.message || copy['apiRuntime.panel.updateProjectFiles'],
           files,
           workspaceId,
           authorName: body.authorName?.trim() || undefined,
@@ -2911,6 +3052,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
             branch: branchName,
             remoteUrl,
             message: body.message,
+            language,
           });
         } else {
           await apiRequest(request, `/projects/${projectId}/git/push`, {
@@ -2931,7 +3073,15 @@ export async function action({ request, params }: EnterpriseActionArgs) {
        */
       if (remoteUrl && isSshGitUrl(remoteUrl)) {
         if (intent === 'sync' || intent === 'pull') {
-          await runWorkspaceSshGit({ request, projectId, workspaceId, op: 'pull', branch: branchName, remoteUrl });
+          await runWorkspaceSshGit({
+            request,
+            projectId,
+            workspaceId,
+            op: 'pull',
+            branch: branchName,
+            remoteUrl,
+            language,
+          });
         }
 
         if (intent === 'sync' || intent === 'push') {
@@ -2943,6 +3093,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
             branch: branchName,
             remoteUrl,
             message: body.message,
+            language,
           });
         }
       } else if (intent === 'sync') {
@@ -3038,7 +3189,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       await apiRequest(request, `/projects/${projectId}/git/pull-requests`, {
         method: 'POST',
         body: JSON.stringify({
-          title: body.title || 'Project update',
+          title: body.title || copy['apiRuntime.panel.projectUpdate'],
           sourceBranch: body.sourceBranch || 'main',
           targetBranch: body.targetBranch || 'main',
           body: body.body,
@@ -3047,10 +3198,111 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       });
     }
   } else {
-    throw json({ error: 'Unsupported IDE panel action' }, { status: 404 });
+    throw json(
+      { error: copy['apiRuntime.panel.unsupportedAction'], code: 'UNSUPPORTED_PANEL_ACTION' },
+      { status: 404 },
+    );
   }
 
   return json({ ok: true });
+}
+
+type RouteDataResult = {
+  type: 'DataWithResponseInit';
+  data: unknown;
+  init?: number | ResponseInit;
+};
+
+function isRouteDataResult(value: unknown): value is RouteDataResult {
+  return (
+    Boolean(value) &&
+    typeof value === 'object' &&
+    (value as { type?: unknown }).type === 'DataWithResponseInit' &&
+    'data' in (value as object)
+  );
+}
+
+function mergeLocaleHeaders(request: Request, initial?: HeadersInit): Headers {
+  const localeResolution = resolveRequestLocale(request);
+  const headers = localeResponseHeaders(request, localeResolution);
+
+  new Headers(initial).forEach((value, key) => {
+    if (key.toLowerCase() === 'set-cookie' && headers.has('Set-Cookie')) {
+      headers.append(key, value);
+    } else {
+      headers.set(key, value);
+    }
+  });
+
+  return headers;
+}
+
+function localizeRouteResult(request: Request, result: unknown): unknown {
+  if (result instanceof Response) {
+    return new Response(result.body, {
+      status: result.status,
+      statusText: result.statusText,
+      headers: mergeLocaleHeaders(request, result.headers),
+    });
+  }
+
+  if (isRouteDataResult(result)) {
+    const init = typeof result.init === 'number' ? { status: result.init } : (result.init ?? {});
+
+    return json(result.data, { ...init, headers: mergeLocaleHeaders(request, init.headers) });
+  }
+
+  return result;
+}
+
+async function runLocalizedRoute<TArgs extends EnterpriseLoaderArgs | EnterpriseActionArgs>(
+  args: TArgs,
+  handler: (args: TArgs) => Promise<unknown>,
+): Promise<unknown> {
+  const { request } = args;
+  const copy = getApiRuntimeRoutesCopy(resolveRequestLocale(request).language);
+
+  try {
+    return localizeRouteResult(request, await handler(args));
+  } catch (error) {
+    if (isRouteDataResult(error)) {
+      throw localizeRouteResult(request, error);
+    }
+
+    if (error instanceof Response && error.status >= 300 && error.status < 400) {
+      throw localizeRouteResult(request, error);
+    }
+
+    console.error('IDE panel route failed:', error);
+
+    const status =
+      error instanceof Response
+        ? error.status
+        : Number((error as { status?: unknown } | undefined)?.status) >= 400 &&
+            Number((error as { status?: unknown } | undefined)?.status) <= 599
+          ? Number((error as { status?: unknown }).status)
+          : 500;
+    const message =
+      status === 401
+        ? copy['apiRuntime.panel.authenticationRequired']
+        : status === 403
+          ? copy['apiRuntime.panel.forbidden']
+          : status === 404
+            ? copy['apiRuntime.panel.notFound']
+            : status >= 500
+              ? copy['apiRuntime.panel.backendUnavailable']
+              : copy['apiRuntime.panel.loadFailed'];
+
+    throw json({ error: message, code: 'PANEL_REQUEST_FAILED' }, { status, headers: mergeLocaleHeaders(request) });
+  }
+}
+
+export async function loader(args: EnterpriseLoaderArgs) {
+  return runLocalizedRoute(args, loaderHandler);
+}
+
+export async function action(args: EnterpriseActionArgs) {
+  return runLocalizedRoute(args, actionHandler);
 }
 
 function parseEnvVars(value: string) {
@@ -3361,18 +3613,23 @@ function parsePackageList(value: string) {
     .slice(0, 20);
 }
 
-function defaultDebuggerState() {
+function defaultDebuggerState(language?: string | null) {
+  const copy = getApiRuntimeRoutesCopy(language);
+
   return {
     launchConfigs: [
-      normalizeLaunchConfig({
-        id: 'node-inspector-dev',
-        name: 'Node inspector: development server',
-        type: 'node',
-        request: 'launch',
-        command: 'npm run dev',
-        cwd: '.',
-        stopOnEntry: false,
-      }),
+      normalizeLaunchConfig(
+        {
+          id: 'node-inspector-dev',
+          name: copy['apiRuntime.panel.nodeInspectorDevelopment'],
+          type: 'node',
+          request: 'launch',
+          command: 'npm run dev',
+          cwd: '.',
+          stopOnEntry: false,
+        },
+        language,
+      ),
     ],
     breakpoints: [],
     watches: [],
@@ -3380,40 +3637,50 @@ function defaultDebuggerState() {
   };
 }
 
-function readDebuggerState(envVarsResponse: unknown) {
+function readDebuggerState(envVarsResponse: unknown, language?: string | null) {
   const envVars = (envVarsResponse as any)?.envVars ?? [];
   const raw = envVars.find((item: any) => item.key === DEBUGGER_STATE_ENV_KEY)?.value;
 
   if (typeof raw !== 'string' || !raw.trim()) {
-    return defaultDebuggerState();
+    return defaultDebuggerState(language);
   }
 
   try {
-    return normalizeDebuggerState(JSON.parse(raw));
+    return normalizeDebuggerState(JSON.parse(raw), language);
   } catch {
-    return defaultDebuggerState();
+    return defaultDebuggerState(language);
   }
 }
 
-function normalizeDebuggerState(input: any) {
-  const fallback = defaultDebuggerState();
+function normalizeDebuggerState(input: any, language?: string | null) {
+  const fallback = defaultDebuggerState(language);
 
   const launchConfigs = Array.isArray(input?.launchConfigs)
-    ? input.launchConfigs.map(normalizeLaunchConfig).slice(0, 20)
+    ? input.launchConfigs.map((config: any) => normalizeLaunchConfig(config, language)).slice(0, 20)
     : fallback.launchConfigs;
 
   return {
     launchConfigs: launchConfigs.length ? launchConfigs : fallback.launchConfigs,
     breakpoints: Array.isArray(input?.breakpoints) ? input.breakpoints.map(normalizeBreakpoint).slice(0, 200) : [],
     watches: Array.isArray(input?.watches) ? input.watches.map(normalizeWatchExpression).slice(0, 80) : [],
-    sessions: Array.isArray(input?.sessions) ? input.sessions.map(normalizeDebugSession).slice(0, 20) : [],
+    sessions: Array.isArray(input?.sessions)
+      ? input.sessions.map((session: any) => normalizeDebugSession(session, language)).slice(0, 20)
+      : [],
   };
 }
 
-function normalizeLaunchConfig(input: any) {
+function normalizeLaunchConfig(input: any, language?: string | null) {
+  const copy = getApiRuntimeRoutesCopy(language);
+  const inputName = input?.name;
+
+  const normalizedName =
+    inputName === apiRuntimeRoutesEn['apiRuntime.panel.nodeInspectorDevelopment']
+      ? copy['apiRuntime.panel.nodeInspectorDevelopment']
+      : inputName;
+
   return {
     id: String(input?.id || randomUUID()),
-    name: String(input?.name || 'Debug configuration').slice(0, 120),
+    name: String(normalizedName || copy['apiRuntime.panel.debugConfiguration']).slice(0, 120),
     type: ['node', 'python', 'shell', 'browser'].includes(input?.type) ? input.type : 'node',
     request: input?.request === 'attach' ? 'attach' : 'launch',
     command: typeof input?.command === 'string' ? input.command.trim().slice(0, 800) : '',
@@ -3448,11 +3715,19 @@ function normalizeWatchExpression(input: any) {
   };
 }
 
-function normalizeDebugSession(input: any) {
+function normalizeDebugSession(input: any, language?: string | null) {
+  const copy = getApiRuntimeRoutesCopy(language);
+
   return {
     id: String(input?.id || randomUUID()),
     configId: String(input?.configId || ''),
-    name: String(input?.name || 'Debug session').slice(0, 120),
+    name: String(input?.name || copy['apiRuntime.panel.debugSession']).slice(0, 120),
+
+    /*
+     * 'exited' fait partie des statuts acceptés : c'est celui que pose la
+     * réconciliation quand le pid d'une session a disparu de la liste des
+     * processus. L'omettre reclassait ces sessions en 'stopped'.
+     */
     status: ['running', 'paused', 'stopped', 'exited', 'failed'].includes(input?.status) ? input.status : 'stopped',
     adapter: String(input?.adapter || 'runtime-command'),
     command: String(input?.command || '').slice(0, 800),
@@ -3476,7 +3751,9 @@ function parseDebugArgs(value: string) {
     .slice(0, 32);
 }
 
-function buildDebugLaunchCommand(config: any) {
+function buildDebugLaunchCommand(config: any, language?: string | null) {
+  const copy = getApiRuntimeRoutesCopy(language);
+
   if (config.command) {
     return config.command;
   }
@@ -3485,7 +3762,10 @@ function buildDebugLaunchCommand(config: any) {
 
   if (config.type === 'python') {
     if (!config.program) {
-      throw json({ error: 'Python launch requires a program path or command.' }, { status: 400 });
+      throw json(
+        { error: copy['apiRuntime.panel.pythonLaunchInvalid'], code: 'PYTHON_LAUNCH_INVALID' },
+        { status: 400 },
+      );
     }
 
     return `python -m debugpy --listen 0.0.0.0:5678 ${config.stopOnEntry ? '--wait-for-client ' : ''}${shellQuote(
@@ -3495,14 +3775,14 @@ function buildDebugLaunchCommand(config: any) {
 
   if (config.type === 'shell') {
     if (!config.program) {
-      throw json({ error: 'Shell launch requires a program path or command.' }, { status: 400 });
+      throw json({ error: copy['apiRuntime.panel.shellLaunchInvalid'], code: 'SHELL_LAUNCH_INVALID' }, { status: 400 });
     }
 
     return `${shellQuote(config.program)}${args ? ` ${args}` : ''}`;
   }
 
   if (!config.program) {
-    throw json({ error: 'Node launch requires a program path or command.' }, { status: 400 });
+    throw json({ error: copy['apiRuntime.panel.nodeLaunchInvalid'], code: 'NODE_LAUNCH_INVALID' }, { status: 400 });
   }
 
   return `node ${config.stopOnEntry ? '--inspect-brk=0.0.0.0:9229' : '--inspect=0.0.0.0:9229'} ${shellQuote(
@@ -3510,28 +3790,34 @@ function buildDebugLaunchCommand(config: any) {
   )}${args ? ` ${args}` : ''}`;
 }
 
-function packageRunName(intent: string, packageManager: ProjectPackageManager) {
+function packageRunName(intent: string, packageManager: ProjectPackageManager, language?: string | null) {
+  const copy = getApiRuntimeRoutesCopy(language);
+
   if (intent === 'audit') {
-    return `${packageManager} security audit`;
+    return formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.packageAudit'], { manager: packageManager });
   }
 
   if (intent === 'outdated') {
-    return `${packageManager} outdated check`;
+    return formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.packageOutdated'], { manager: packageManager });
   }
 
   if (intent === 'install-package') {
-    return `${packageManager} add package`;
+    return formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.packageAdd'], { manager: packageManager });
   }
 
-  return `${packageManager} install`;
+  return formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.packageInstall'], { manager: packageManager });
 }
 
-function packagePanelCommand(input: {
-  intent: string;
-  packageManager: ProjectPackageManager;
-  packages: string[];
-  dev: boolean;
-}) {
+function packagePanelCommand(
+  input: {
+    intent: string;
+    packageManager: ProjectPackageManager;
+    packages: string[];
+    dev: boolean;
+  },
+  language?: string | null,
+) {
+  const copy = getApiRuntimeRoutesCopy(language);
   const quotedPackages = input.packages.map(shellQuote).join(' ');
 
   if (input.intent === 'audit') {
@@ -3568,7 +3854,7 @@ function packagePanelCommand(input: {
 
   if (input.intent === 'install-package') {
     if (!input.packages.length) {
-      throw json({ error: 'At least one package is required' }, { status: 400 });
+      throw json({ error: copy['apiRuntime.panel.packageRequired'], code: 'PACKAGE_REQUIRED' }, { status: 400 });
     }
 
     if (input.packageManager === 'pnpm') {
@@ -3608,7 +3894,7 @@ function defaultTerminalState() {
   };
 }
 
-function readTerminalState(envVarsResponse: unknown) {
+function readTerminalState(envVarsResponse: unknown, language?: string | null) {
   const envVars = (envVarsResponse as any)?.envVars ?? [];
   const raw = envVars.find((item: any) => item.key === TERMINAL_STATE_ENV_KEY)?.value;
 
@@ -3617,18 +3903,20 @@ function readTerminalState(envVarsResponse: unknown) {
   }
 
   try {
-    return normalizeTerminalState(JSON.parse(raw));
+    return normalizeTerminalState(JSON.parse(raw), language);
   } catch {
     return defaultTerminalState();
   }
 }
 
-function normalizeTerminalState(input: any) {
+function normalizeTerminalState(input: any, language?: string | null) {
+  const copy = getApiRuntimeRoutesCopy(language);
+
   return {
     sshConnections: Array.isArray(input?.sshConnections)
       ? input.sshConnections.map((connection: any) => ({
           id: String(connection.id || randomUUID()),
-          name: String(connection.name || connection.host || 'SSH connection'),
+          name: String(connection.name || connection.host || copy['apiRuntime.panel.sshConnection']),
           host: String(connection.host || ''),
           port: Number(connection.port) || 22,
           username: String(connection.username || ''),
@@ -3988,26 +4276,19 @@ async function runWorkspaceSshGit(input: {
   branch: string;
   remoteUrl: string;
   message?: string;
+  language?: string | null;
 }): Promise<{ output: string }> {
+  const copy = getApiRuntimeRoutesCopy(input.language);
   const workspaceId = await resolveSshGitWorkspaceId(input.request, input.projectId, input.workspaceId);
 
   if (!workspaceId) {
-    throw json(
-      { error: 'Open the workspace before pushing or pulling over SSH — this project has no running workspace yet.' },
-      { status: 409 },
-    );
+    throw json({ error: copy['apiRuntime.panel.workspaceRequired'], code: 'WORKSPACE_REQUIRED' }, { status: 409 });
   }
 
   const connections = await loadProjectSshConnections(input.request, input.projectId);
 
   if (connections.length === 0) {
-    throw json(
-      {
-        error:
-          'No SSH key is configured for this project. Add or generate one in Terminal → SSH, then restart the workspace and retry.',
-      },
-      { status: 400 },
-    );
+    throw json({ error: copy['apiRuntime.panel.sshKeyRequired'], code: 'SSH_KEY_REQUIRED' }, { status: 400 });
   }
 
   const connection = selectSshConnectionForOrigin(connections, input.remoteUrl);
@@ -4015,9 +4296,10 @@ async function runWorkspaceSshGit(input: {
   if (!connection) {
     throw json(
       {
-        error: `Several SSH keys are configured and none matches the origin host (${
-          sshHostFromGitUrl(input.remoteUrl) ?? 'unknown'
-        }). Add a key whose host matches the remote, or keep a single key.`,
+        error: formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.sshKeyAmbiguous'], {
+          host: sshHostFromGitUrl(input.remoteUrl) ?? 'unknown',
+        }),
+        code: 'SSH_KEY_AMBIGUOUS',
       },
       { status: 400 },
     );
@@ -4031,7 +4313,7 @@ async function runWorkspaceSshGit(input: {
           keyEnvVar,
           repoUrl: input.remoteUrl,
           branch: input.branch,
-          message: input.message?.trim() || 'Update from workspace',
+          message: input.message?.trim() || copy['apiRuntime.panel.updateFromWorkspace'],
         })
       : input.op === 'pull'
         ? buildGitSshPullScript({ keyEnvVar, repoUrl: input.remoteUrl, branch: input.branch })
@@ -4043,13 +4325,17 @@ async function runWorkspaceSshGit(input: {
     script,
     `git ${input.op} ${input.remoteUrl}`,
     new Date().toISOString(),
+    input.language,
   );
 
   if (run.exitCode !== 0) {
+    console.error('Git over SSH failed:', { operation: input.op, exitCode: run.exitCode, output: run.output });
     throw json(
       {
-        error: `git ${input.op} over SSH failed (exit ${run.exitCode}).`,
-        detail: run.output.slice(-1200),
+        error: formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.sshOperationFailed'], {
+          operation: input.op,
+          exitCode: run.exitCode,
+        }),
         code: 'GIT_SSH_FAILED',
       },
       { status: 400 },
@@ -4065,11 +4351,13 @@ async function runTerminalCommand(
   script: string,
   name: string,
   startedAt: string,
+  language?: string | null,
 ) {
+  const copy = getApiRuntimeRoutesCopy(language);
   const command = script.trim();
 
   if (!command) {
-    throw json({ error: 'Script is required' }, { status: 400 });
+    throw json({ error: copy['apiRuntime.panel.scriptRequired'], code: 'SCRIPT_REQUIRED' }, { status: 400 });
   }
 
   const finishedAt = new Date().toISOString();
@@ -4095,13 +4383,15 @@ async function runTerminalCommand(
       finishedAt,
     };
   } catch (error) {
+    console.error('Runtime command failed:', error);
+
     return {
       id: randomUUID(),
       name,
       script: command,
       exitCode: 1,
       status: 'failed',
-      output: panelErrorMessage(error),
+      output: panelErrorMessage(error, language),
       startedAt,
       finishedAt,
     };
@@ -4124,6 +4414,7 @@ async function runPackageInstall(
     dev: boolean;
     name: string;
     startedAt: string;
+    language?: string | null;
 
     /*
      * The workspace the panel resolved and is displaying. Audit/outdated already
@@ -4163,20 +4454,30 @@ async function runPackageInstall(
       finishedAt: finishedAt(),
     };
   } catch (error) {
+    console.error('Package installation failed:', error);
+
     return {
       id: randomUUID(),
       name: input.name,
       script: `${input.packageManager} install`,
       exitCode: 1,
       status: 'failed',
-      output: panelErrorMessage(error),
+      output: panelErrorMessage(error, input.language),
       startedAt: input.startedAt,
       finishedAt: finishedAt(),
     };
   }
 }
 
-async function runSecurityScan(request: Request, projectId: string, workspaceId: string, state: any, now: string) {
+async function runSecurityScan(
+  request: Request,
+  projectId: string,
+  workspaceId: string,
+  state: any,
+  now: string,
+  language?: string | null,
+) {
+  const copy = getApiRuntimeRoutesCopy(language);
   const scannerProfile = state.settings.scannerProfile ?? 'workspace-runtime';
 
   const runDependencyAudit =
@@ -4186,18 +4487,34 @@ async function runSecurityScan(request: Request, projectId: string, workspaceId:
   const runSastScan = state.settings.sastEnabled && ['workspace-runtime', 'sast'].includes(scannerProfile);
 
   const auditCommand = runDependencyAudit ? 'npm audit --json || true' : 'node -e "console.log(\\"{}\\")"';
-  const auditRun = await runTerminalCommand(request, workspaceId, auditCommand, 'Security dependency audit', now);
-  const findings = vulnerabilitiesFromAuditOutput(auditRun.output, now);
+
+  const auditRun = await runTerminalCommand(
+    request,
+    workspaceId,
+    auditCommand,
+    copy['apiRuntime.panel.securityDependencyAudit'],
+    now,
+    language,
+  );
+
+  const findings = vulnerabilitiesFromAuditOutput(auditRun.output, now, language);
 
   if (runSecretScan) {
     const secretRun = await runTerminalCommand(
       request,
       workspaceId,
       "grep -RInE '(api[_-]?key|secret|password|token)\\s*[:=]' . --exclude-dir=node_modules --exclude-dir=.git | head -50 || true",
-      'Security secret scan',
+      copy['apiRuntime.panel.securitySecretScan'],
       now,
+      language,
     );
-    findings.push(...vulnerabilitiesFromSecretScan(secretRun.output, now));
+    findings.push(
+      ...vulnerabilitiesFromSecretScan(secretRun.output, now).map((finding) => ({
+        ...finding,
+        title: copy['apiRuntime.panel.securitySecretFinding'],
+        recommendation: copy['apiRuntime.panel.securitySecretAdvice'],
+      })),
+    );
   }
 
   if (runSastScan) {
@@ -4205,10 +4522,11 @@ async function runSecurityScan(request: Request, projectId: string, workspaceId:
       request,
       workspaceId,
       "grep -RInE '(dangerouslySetInnerHTML|eval\\(|new Function\\(|innerHTML\\s*=|document\\.write\\(|child_process|exec\\(|spawn\\(|cors\\(|Access-Control-Allow-Origin)' . --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=build | head -80 || true",
-      'Security static code scan',
+      copy['apiRuntime.panel.securityStaticScan'],
       now,
+      language,
     );
-    findings.push(...vulnerabilitiesFromSastOutput(sastRun.output, now));
+    findings.push(...vulnerabilitiesFromSastOutput(sastRun.output, now, language));
   }
 
   const existingById = new Map(state.vulnerabilities.map((item: any) => [item.id, item]));
@@ -4220,7 +4538,14 @@ async function runSecurityScan(request: Request, projectId: string, workspaceId:
     status: auditRun.status === 'succeeded' ? 'completed' : 'failed',
     startedAt: now,
     completedAt: new Date().toISOString(),
-    summary: `${findings.length} finding${findings.length === 1 ? '' : 's'}`,
+    summary: formatApiRuntimeRoutesCopy(
+      copy[
+        findings.length === 1
+          ? 'apiRuntime.panel.securityFindingCount_one'
+          : 'apiRuntime.panel.securityFindingCount_other'
+      ],
+      { count: new Intl.NumberFormat(language === 'fr' ? 'fr-FR' : 'en-US').format(findings.length) },
+    ),
     exitCode: auditRun.exitCode,
     counts: securitySeverityCounts(findings),
     sources: securitySourceCounts(findings),
@@ -4261,7 +4586,7 @@ function defaultSecurityState() {
   };
 }
 
-function readSecurityState(envVarsResponse: unknown) {
+function readSecurityState(envVarsResponse: unknown, language?: string | null) {
   const envVars = (envVarsResponse as any)?.envVars ?? [];
   const raw = envVars.find((item: any) => item.key === SECURITY_STATE_ENV_KEY)?.value;
 
@@ -4270,14 +4595,18 @@ function readSecurityState(envVarsResponse: unknown) {
   }
 
   try {
-    return normalizeSecurityState(JSON.parse(raw));
+    return normalizeSecurityState(JSON.parse(raw), language);
   } catch {
     return defaultSecurityState();
   }
 }
 
-function normalizeSecurityState(input: any) {
+function normalizeSecurityState(input: any, language?: string | null) {
+  const copy = getApiRuntimeRoutesCopy(language);
   const fallback = defaultSecurityState();
+
+  const localizedSecurityText = (value: unknown, key: keyof ApiRuntimeRoutesCopy) =>
+    value === apiRuntimeRoutesEn[key] ? copy[key] : value;
 
   return {
     settings: {
@@ -4316,7 +4645,24 @@ function normalizeSecurityState(input: any) {
       ? input.vulnerabilities.map((vulnerability: any) => ({
           id: String(vulnerability.id || randomUUID()),
           packageName: String(vulnerability.packageName || vulnerability.title || 'workspace'),
-          title: String(vulnerability.title || vulnerability.packageName || 'Security finding'),
+          title: String(
+            vulnerability.title === `${vulnerability.packageName} dependency advisory`
+              ? formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.securityDependencyAdvisory'], {
+                  name: vulnerability.packageName,
+                })
+              : localizedSecurityText(
+                  localizedSecurityText(
+                    localizedSecurityText(
+                      localizedSecurityText(vulnerability.title, 'apiRuntime.panel.securitySecretFinding'),
+                      'apiRuntime.panel.securityCommandFinding',
+                    ),
+                    'apiRuntime.panel.securityDomFinding',
+                  ),
+                  'apiRuntime.panel.securityReviewFinding',
+                ) ||
+                  vulnerability.packageName ||
+                  copy['apiRuntime.panel.securityFinding'],
+          ),
           severity: ['critical', 'high', 'moderate', 'low', 'info'].includes(vulnerability.severity)
             ? vulnerability.severity
             : 'info',
@@ -4324,7 +4670,25 @@ function normalizeSecurityState(input: any) {
           hidden: Boolean(vulnerability.hidden),
           source: String(vulnerability.source || 'workspace-runtime'),
           details: String(vulnerability.details || ''),
-          recommendation: vulnerability.recommendation ? String(vulnerability.recommendation) : undefined,
+          recommendation: vulnerability.recommendation
+            ? String(
+                localizedSecurityText(
+                  localizedSecurityText(
+                    localizedSecurityText(
+                      localizedSecurityText(
+                        localizedSecurityText(vulnerability.recommendation, 'apiRuntime.panel.securitySecretAdvice'),
+                        'apiRuntime.panel.securityUpdateRemediation',
+                      ),
+                      'apiRuntime.panel.securityPinRemediation',
+                    ),
+                    'apiRuntime.panel.securityCommandAdvice',
+                  ),
+                  vulnerability.recommendation === apiRuntimeRoutesEn['apiRuntime.panel.securityDomAdvice']
+                    ? 'apiRuntime.panel.securityDomAdvice'
+                    : 'apiRuntime.panel.securityReviewAdvice',
+                ),
+              )
+            : undefined,
           createdAt: vulnerability.createdAt,
           updatedAt: vulnerability.updatedAt,
         }))
@@ -4332,7 +4696,9 @@ function normalizeSecurityState(input: any) {
   };
 }
 
-function vulnerabilitiesFromAuditOutput(output: string, timestamp: string) {
+function vulnerabilitiesFromAuditOutput(output: string, timestamp: string, language?: string | null) {
+  const copy = getApiRuntimeRoutesCopy(language);
+
   try {
     const parsed = JSON.parse(output || '{}');
 
@@ -4342,15 +4708,18 @@ function vulnerabilitiesFromAuditOutput(output: string, timestamp: string) {
     return Object.entries(vulnerabilities).map(([name, value]: [string, any]) => ({
       id: `npm:${name}`,
       packageName: name,
-      title: `${name} dependency advisory`,
+      title: formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.securityDependencyAdvisory'], { name }),
       severity: normalizeSeverity(value?.severity),
       status: 'open',
       hidden: false,
       source: 'npm-audit',
-      details: `${value?.via?.length ?? 0} advisory path(s), ${value?.effects?.length ?? 0} effect(s).`,
+      details: formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.securityAuditDetails'], {
+        paths: new Intl.NumberFormat(language === 'fr' ? 'fr-FR' : 'en-US').format(value?.via?.length ?? 0),
+        effects: new Intl.NumberFormat(language === 'fr' ? 'fr-FR' : 'en-US').format(value?.effects?.length ?? 0),
+      }),
       recommendation: value?.fixAvailable
-        ? 'Run the package manager update recommended by npm audit.'
-        : 'Review advisory and pin a safe dependency version.',
+        ? copy['apiRuntime.panel.securityUpdateRemediation']
+        : copy['apiRuntime.panel.securityPinRemediation'],
       createdAt: timestamp,
       updatedAt: timestamp,
     }));
@@ -4359,7 +4728,9 @@ function vulnerabilitiesFromAuditOutput(output: string, timestamp: string) {
   }
 }
 
-function vulnerabilitiesFromSastOutput(output: string, timestamp: string) {
+function vulnerabilitiesFromSastOutput(output: string, timestamp: string, language?: string | null) {
+  const copy = getApiRuntimeRoutesCopy(language);
+
   return output
     .split(/\r?\n/)
     .map((line) => line.trim())
@@ -4373,20 +4744,20 @@ function vulnerabilitiesFromSastOutput(output: string, timestamp: string) {
         id: `sast:${index}:${line.slice(0, 100)}`,
         packageName: 'workspace',
         title: isCommandExecution
-          ? 'Potential command execution sink'
+          ? copy['apiRuntime.panel.securityCommandFinding']
           : isDomSink
-            ? 'Potential unsafe DOM injection sink'
-            : 'Static security review item',
+            ? copy['apiRuntime.panel.securityDomFinding']
+            : copy['apiRuntime.panel.securityReviewFinding'],
         severity: isCommandExecution ? 'high' : isDomSink ? 'moderate' : 'low',
         status: 'open',
         hidden: false,
         source: 'sast',
         details: line,
         recommendation: isCommandExecution
-          ? 'Validate inputs, avoid shell interpolation, and restrict command execution to allow-listed operations.'
+          ? copy['apiRuntime.panel.securityCommandAdvice']
           : isDomSink
-            ? 'Sanitize untrusted HTML and prefer safe rendering primitives.'
-            : 'Review the matched source line and document why the pattern is safe.',
+            ? copy['apiRuntime.panel.securityDomAdvice']
+            : copy['apiRuntime.panel.securityReviewAdvice'],
         createdAt: timestamp,
         updatedAt: timestamp,
       };
@@ -4423,13 +4794,15 @@ function normalizeSeverity(value: unknown) {
   return ['critical', 'high', 'moderate', 'low', 'info'].includes(severity) ? severity : 'info';
 }
 
-function defaultWorkflowsState() {
+function defaultWorkflowsState(language?: string | null) {
+  const copy = getApiRuntimeRoutesCopy(language);
+
   return {
     workflows: [
       {
         id: 1001,
         projectId: null,
-        name: 'Run development server',
+        name: copy['apiRuntime.panel.runDevelopmentServer'],
         executionMode: 'sequential',
         isRunButton: true,
         isGenerated: true,
@@ -4451,30 +4824,35 @@ function defaultWorkflowsState() {
   };
 }
 
-function readWorkflowsState(envVarsResponse: unknown) {
+function readWorkflowsState(envVarsResponse: unknown, language?: string | null) {
   const envVars = (envVarsResponse as any)?.envVars ?? [];
   const raw = envVars.find((item: any) => item.key === WORKFLOWS_STATE_ENV_KEY)?.value;
 
   if (typeof raw !== 'string' || !raw.trim()) {
-    return defaultWorkflowsState();
+    return defaultWorkflowsState(language);
   }
 
   try {
-    return normalizeWorkflowsState(JSON.parse(raw));
+    return normalizeWorkflowsState(JSON.parse(raw), language);
   } catch {
-    return defaultWorkflowsState();
+    return defaultWorkflowsState(language);
   }
 }
 
-function normalizeWorkflowsState(input: any) {
-  const fallback = defaultWorkflowsState();
+function normalizeWorkflowsState(input: any, language?: string | null) {
+  const copy = getApiRuntimeRoutesCopy(language);
+  const fallback = defaultWorkflowsState(language);
   const workflows = Array.isArray(input?.workflows) ? input.workflows : fallback.workflows;
 
   return {
     workflows: workflows.map((workflow: any, index: number) => ({
       id: Number(workflow.id) || Date.now() + index,
       projectId: workflow.projectId ?? null,
-      name: String(workflow.name || 'Project workflow'),
+      name: String(
+        workflow.name === apiRuntimeRoutesEn['apiRuntime.panel.runDevelopmentServer']
+          ? copy['apiRuntime.panel.runDevelopmentServer']
+          : workflow.name || copy['apiRuntime.panel.projectWorkflow'],
+      ),
       executionMode: workflow.executionMode === 'parallel' ? 'parallel' : 'sequential',
       isRunButton: Boolean(workflow.isRunButton),
       isGenerated: Boolean(workflow.isGenerated),
@@ -4522,8 +4900,11 @@ async function runWorkflowTasks(
   state: WorkflowStateLike,
   workflow: WorkflowLike,
   startedAt: string,
+  language?: string | null,
 ) {
-  return runWorkflowSteps({
+  const copy = getApiRuntimeRoutesCopy(language);
+
+  const run = await runWorkflowSteps({
     state,
     workflow,
     startedAt,
@@ -4539,4 +4920,44 @@ async function runWorkflowTasks(
         },
       ),
   });
+
+  const localizeMessage = (message: string) => {
+    if (message === 'Workflow is disabled.') {
+      return copy['apiRuntime.panel.workflowDisabled'];
+    }
+
+    if (message === 'Nested workflow depth limit reached') {
+      return copy['apiRuntime.panel.workflowDepthLimit'];
+    }
+
+    if (message === 'Workflow task has no command') {
+      return copy['apiRuntime.panel.workflowTaskCommandMissing'];
+    }
+
+    const target = message.match(/^Target workflow (.*) was not found$/u);
+
+    if (target) {
+      return formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.workflowTargetMissing'], { target: target[1] });
+    }
+
+    const nested = message.match(/^Nested workflow "(.*)" failed$/u);
+
+    if (nested) {
+      return formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.workflowNestedFailed'], { name: nested[1] });
+    }
+
+    const exit = message.match(/^Command exited with (\d+)$/u);
+
+    if (exit) {
+      return formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.workflowCommandFailed'], { exitCode: exit[1] });
+    }
+
+    return message;
+  };
+
+  return {
+    ...run,
+    logs: run.logs.map((entry) => ({ ...entry, message: localizeMessage(entry.message) })),
+    steps: run.steps.map((step) => ({ ...step, outputTail: localizeMessage(step.outputTail) })),
+  };
 }

@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import React, { forwardRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Input } from './Input';
 import { classNames } from '~/utils/classNames';
 
@@ -30,6 +31,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
     { className, onClear, showClearButton = true, iconClassName, containerClassName, loading = false, ...props },
     ref,
   ) => {
+    const { t } = useTranslation();
     const hasValue = Boolean(props.value);
 
     return (
@@ -65,8 +67,8 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
               transition={{ duration: 0.15 }}
               type="button"
               onClick={onClear}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-bolt-elements-textTertiary hover:text-bolt-elements-textSecondary p-1 rounded-full hover:bg-bolt-elements-background-depth-2"
-              aria-label="Clear search"
+              className="absolute right-0 top-1/2 inline-flex min-h-11 min-w-11 -translate-y-1/2 items-center justify-center rounded-full text-bolt-elements-textTertiary hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textSecondary"
+              aria-label={t('sharedUi.clearSearch')}
             >
               <span className="i-ph:x w-3.5 h-3.5" />
             </motion.button>

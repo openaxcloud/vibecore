@@ -39,7 +39,7 @@
 
     send({
       type: 'PREVIEW_ERROR',
-      message: event.message || 'Unknown runtime error',
+      message: event.message || undefined,
       filename: event.filename || undefined,
       lineno: event.lineno || undefined,
       colno: event.colno || undefined,
@@ -52,7 +52,7 @@
 
   window.addEventListener('unhandledrejection', (event) => {
     var reason = event.reason;
-    var message = 'Unhandled promise rejection';
+    var message;
     var stack;
 
     if (reason && typeof reason === 'object') {

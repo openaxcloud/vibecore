@@ -1,46 +1,81 @@
 import { type ActionFunctionArgs } from 'react-router';
 import { resolveConnectorToken } from '~/lib/connectors/connector-token.server';
+import { getApiRuntimeRoutesCopy } from '~/lib/i18n/catalogs/api-runtime-routes';
+import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('api.supabase.query');
 
 export async function action({ request }: ActionFunctionArgs) {
+  const localeResolution = resolveRequestLocale(request);
+  const copy = getApiRuntimeRoutesCopy(localeResolution.language);
+
+  const responseHeaders = (initial?: HeadersInit) => {
+    const headers = localeResponseHeaders(request, localeResolution);
+
+    new Headers(initial).forEach((value, key) => headers.set(key, value));
+
+    return headers;
+  };
+  const jsonResponse = (data: unknown, init?: ResponseInit) =>
+    new Response(JSON.stringify(data), {
+      ...init,
+      headers: responseHeaders({ 'Content-Type': 'application/json; charset=utf-8', ...init?.headers }),
+    });
+
   if (request.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 });
-  }
-
-  const authHeader = request.headers.get('Authorization');
-
-  /*
-   * Cross-device: prefer the server-decrypted UserConnection token over the
-   * Authorization header (which carries the localStorage token). Falls back to
-   * the header when the user has no active server connection.
-   */
-  const serverToken = await resolveConnectorToken(request, 'supabase');
-  const upstreamAuth = serverToken ? `Bearer ${serverToken}` : authHeader;
-
-  if (!upstreamAuth) {
-    return new Response('No authorization token provided', { status: 401 });
+    return new Response(copy['apiRuntime.generic.methodNotAllowed'], {
+      status: 405,
+      headers: responseHeaders({ 'Content-Type': 'text/plain; charset=utf-8', Allow: 'POST' }),
+    });
   }
 
   try {
-    const { projectId, query } = (await request.json()) as any;
+    const authHeader = request.headers.get('Authorization');
+
+    /*
+     * Cross-device: prefer the server-decrypted UserConnection token over the
+     * Authorization header (which carries the localStorage token). Falls back to
+     * the header when the user has no active server connection.
+     */
+    const serverToken = await resolveConnectorToken(request, 'supabase');
+    const upstreamAuth = serverToken ? `Bearer ${serverToken}` : authHeader;
+
+    if (!upstreamAuth) {
+      return new Response(copy['apiRuntime.supabase.authorizationRequired'], {
+        status: 401,
+        headers: responseHeaders({ 'Content-Type': 'text/plain; charset=utf-8' }),
+      });
+    }
+
+    let payload: unknown;
+
+    try {
+      payload = await request.json();
+    } catch {
+      return jsonResponse(
+        { error: { code: 'INVALID_JSON', message: copy['apiRuntime.generic.invalidJson'] } },
+        { status: 400 },
+      );
+    }
+
+    const { projectId, query } = (payload ?? {}) as { projectId?: unknown; query?: unknown };
 
     if (!projectId || typeof projectId !== 'string' || !query || typeof query !== 'string') {
-      return new Response(JSON.stringify({ error: { message: 'projectId and query are required' } }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(
+        { error: { code: 'QUERY_FIELDS_REQUIRED', message: copy['apiRuntime.supabase.fieldsRequired'] } },
+        { status: 400 },
+      );
     }
 
     if (!/^[a-zA-Z0-9-]+$/.test(projectId)) {
-      return new Response(JSON.stringify({ error: { message: 'Invalid projectId' } }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(
+        { error: { code: 'INVALID_PROJECT_ID', message: copy['apiRuntime.supabase.invalidProjectId'] } },
+        { status: 400 },
+      );
     }
 
-    logger.debug('Executing query:', { projectId, query });
+    logger.debug('Executing Supabase query', { projectId });
 
     const response = await fetch(`https://api.supabase.com/v1/projects/${projectId}/database/query`, {
       method: 'POST',
@@ -53,68 +88,42 @@ export async function action({ request }: ActionFunctionArgs) {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
+      /*
+       * Provider error bodies can contain SQL fragments, host names or secret
+       * material. The UI only needs the stable code and HTTP status, so never
+       * copy the upstream body (or status text) into logs or the response.
+       */
+      logger.error('SUPABASE_QUERY_UPSTREAM_FAILED', { status: response.status });
 
-      let errorData;
-
-      try {
-        errorData = JSON.parse(errorText);
-      } catch {
-        errorData = { message: errorText };
-      }
-
-      logger.error(
-        'Supabase API error:',
-        JSON.stringify({
-          status: response.status,
-          statusText: response.statusText,
-          error: errorData,
-        }),
-      );
-
-      return new Response(
-        JSON.stringify({
-          error: {
-            status: response.status,
-            statusText: response.statusText,
-            message: errorData.message || errorData.error || errorText,
-            details: errorData,
-          },
-        }),
+      return jsonResponse(
         {
-          status: response.status,
-          headers: {
-            'Content-Type': 'application/json',
+          error: {
+            code: 'SUPABASE_QUERY_FAILED',
+            status: response.status,
+            message: copy['apiRuntime.supabase.upstreamFailure'],
           },
         },
+        { status: response.status },
       );
     }
 
     const result = await response.json();
 
-    return new Response(JSON.stringify(result), {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    return jsonResponse(result);
   } catch (error) {
     logger.error('Query execution error:', error);
-    return new Response(
-      JSON.stringify({
+    return jsonResponse(
+      {
         /*
          * Never leak the server stack trace to the client — it exposes internal
          * file paths and module structure. The full error is logged above.
          */
         error: {
-          message: error instanceof Error ? error.message : 'Query execution failed',
-        },
-      }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
+          code: 'QUERY_EXECUTION_FAILED',
+          message: copy['apiRuntime.supabase.queryFailed'],
         },
       },
+      { status: 500 },
     );
   }
 }

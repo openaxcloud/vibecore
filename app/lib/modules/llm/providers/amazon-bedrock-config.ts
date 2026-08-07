@@ -1,3 +1,5 @@
+import { formatBedrockConfigFailure } from '~/lib/i18n/catalogs/client-visible-errors';
+
 /**
  * Pure, dependency-free parsing/validation for the Amazon Bedrock provider
  * configuration JSON. Kept in its own module (no BaseProvider import) so it can
@@ -10,15 +12,13 @@ export interface AWSBedRockConfig {
   sessionToken?: string;
 }
 
-export function parseAndValidateBedrockConfig(apiKey: string): AWSBedRockConfig {
+export function parseAndValidateBedrockConfig(apiKey: string, language?: string | null): AWSBedRockConfig {
   let parsedConfig: unknown;
 
   try {
     parsedConfig = JSON.parse(apiKey);
   } catch {
-    throw new Error(
-      'Invalid AWS Bedrock configuration format. Please provide a valid JSON string containing region, accessKeyId, and secretAccessKey.',
-    );
+    throw new Error(formatBedrockConfigFailure('invalidFormat', language));
   }
 
   /*
@@ -27,17 +27,13 @@ export function parseAndValidateBedrockConfig(apiKey: string): AWSBedRockConfig 
    * from destructuring (e.g. destructuring `null` throws).
    */
   if (typeof parsedConfig !== 'object' || parsedConfig === null || Array.isArray(parsedConfig)) {
-    throw new Error(
-      'Invalid AWS Bedrock configuration format. Please provide a valid JSON string containing region, accessKeyId, and secretAccessKey.',
-    );
+    throw new Error(formatBedrockConfigFailure('invalidFormat', language));
   }
 
   const { region, accessKeyId, secretAccessKey, sessionToken } = parsedConfig as Partial<AWSBedRockConfig>;
 
   if (!region || !accessKeyId || !secretAccessKey) {
-    throw new Error(
-      'Missing required AWS credentials. Configuration must include region, accessKeyId, and secretAccessKey.',
-    );
+    throw new Error(formatBedrockConfigFailure('missingCredentials', language));
   }
 
   return {

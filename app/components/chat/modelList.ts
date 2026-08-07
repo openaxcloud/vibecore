@@ -1,3 +1,4 @@
+import { chatControlsEn } from '~/lib/i18n/catalogs/chat-controls';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import { AUTO_MODEL } from '~/utils/constants';
 
@@ -11,8 +12,13 @@ import { AUTO_MODEL } from '~/utils/constants';
  */
 export const AUTO_MODEL_OPTION: ModelInfo = {
   name: AUTO_MODEL,
-  label: 'Auto — economical (recommended)',
-  provider: 'Auto',
+
+  /*
+   * Technical fallback only. ModelSelector replaces this with its live,
+   * localized label before the entry can be rendered.
+   */
+  label: chatControlsEn['chatControls.model.autoLabel'],
+  provider: AUTO_MODEL,
   maxTokenAllowed: 200_000,
 };
 

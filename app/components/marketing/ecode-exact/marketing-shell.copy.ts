@@ -641,12 +641,13 @@ const fr = {
         description: 'Reliez les agents aux outils et sources de contexte approuvés via MCP.',
       },
       polyglotBackends: {
-        title: 'Backends polyglottes',
-        description: 'Générez et exécutez des services backend dans les langages courants avec des logs en direct.',
+        title: 'Services applicatifs polyglottes',
+        description:
+          'Générez et exécutez des services applicatifs dans les langages courants avec des journaux en direct.',
       },
       deployments: {
         title: 'Déploiements',
-        description: 'Mettez en ligne avec gestion des domaines, logs, contrôles d’état et retours arrière.',
+        description: 'Mettez en ligne avec gestion des domaines, journaux, contrôles d’état et retours arrière.',
       },
       bounties: {
         title: 'Missions',
@@ -658,7 +659,7 @@ const fr = {
       },
       appBuilder: {
         title: 'Créateur d’applications',
-        description: 'Transformez un processus métier en application full-stack opérationnelle.',
+        description: 'Transformez un processus métier en application complète et opérationnelle.',
       },
       websiteBuilder: {
         title: 'Créateur de sites web',
@@ -721,7 +722,7 @@ const fr = {
         description: 'Démarrez avec des fondations sélectionnées pour des produits et secteurs courants.',
       },
       marketplace: {
-        title: 'Marketplace',
+        title: 'Place de marché',
         description: 'Trouvez des bases, méthodes d’implémentation et fondations de projet réutilisables.',
       },
       caseStudies: {
@@ -798,7 +799,7 @@ const fr = {
       desktopApp: 'Application de bureau',
       collaboration: 'Collaboration',
       mcpIntegrations: 'Intégrations MCP',
-      polyglotBackends: 'Backends polyglottes',
+      polyglotBackends: 'Services applicatifs polyglottes',
       teams: 'Équipes',
       deployments: 'Déploiements',
       pricing: 'Tarifs',
@@ -808,7 +809,7 @@ const fr = {
       blog: 'Blog',
       community: 'Communauté',
       templates: 'Modèles',
-      marketplace: 'Marketplace',
+      marketplace: 'Place de marché',
       languages: 'Langages',
       status: 'État des services',
       forum: 'Forum',

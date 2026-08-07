@@ -85,4 +85,18 @@ describe('buildCommunityCategories', () => {
       expect(category.postCount).toBe(0);
     }
   });
+
+  it('localizes category labels without changing stable ids or computed counts', () => {
+    const english = buildCommunityCategories(templates, 'en');
+    const french = buildCommunityCategories(templates, 'fr');
+
+    expect(french.map(({ id, name, postCount }) => ({ id, name, postCount }))).toEqual([
+      { id: 'showcase', name: 'Réalisations', postCount: 3 },
+      { id: 'tutorials', name: 'Tutoriels', postCount: 3 },
+      { id: 'challenges', name: 'Défis', postCount: 0 },
+      { id: 'discussion', name: 'Discussions', postCount: 2 },
+    ]);
+    expect(french.map((category) => category.id)).toEqual(english.map((category) => category.id));
+    expect(french.map((category) => category.postCount)).toEqual(english.map((category) => category.postCount));
+  });
 });

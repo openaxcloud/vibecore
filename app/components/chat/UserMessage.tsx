@@ -1,7 +1,3 @@
-/*
- * @ts-nocheck
- * Preventing TS checks with files presented in the video for a better presentation.
- */
 import type {
   TextUIPart,
   ReasoningUIPart,
@@ -11,9 +7,15 @@ import type {
   StepStartUIPart,
 } from '@ai-sdk/ui-utils';
 import { useStore } from '@nanostores/react';
+import { useTranslation } from 'react-i18next';
 import { Markdown } from './Markdown';
 import { useCoarsePointer } from '~/components/sidebar/HistoryItem';
 import { stripInternalAgentScaffolding } from '~/lib/chat/agent-message-scaffolding';
+import {
+  formatChatResidualsCopy,
+  formatChatResidualsNumber,
+  getChatResidualsCopy,
+} from '~/lib/i18n/catalogs/chat-residuals';
 import { profileStore } from '~/lib/stores/profile';
 import { classNames } from '~/utils/classNames';
 import { MODEL_REGEX, PROVIDER_REGEX } from '~/utils/constants';
@@ -39,14 +41,16 @@ function EditMessageButton({ messageId, text }: { messageId: string; text: strin
    * fine pointer keep the hover reveal but also surface it on keyboard focus.
    */
   const coarse = useCoarsePointer();
+  const { i18n } = useTranslation();
+  const copy = getChatResidualsCopy(i18n.resolvedLanguage ?? i18n.language);
 
   return (
     <button
       type="button"
-      aria-label="Edit and resend this message"
-      data-vc-tooltip="Edit & resend"
+      aria-label={copy['chatResiduals.user.editAria']}
+      data-vc-tooltip={copy['chatResiduals.user.editTooltip']}
       className={classNames(
-        'bolt-user-message-edit transition-opacity text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary focus-visible:opacity-100',
+        'bolt-user-message-edit flex min-h-11 min-w-11 items-center justify-center rounded-md text-bolt-elements-textTertiary outline-none transition-opacity hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-bolt-elements-focus',
         coarse ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
       )}
       onClick={() => {
@@ -63,6 +67,9 @@ function EditMessageButton({ messageId, text }: { messageId: string; text: strin
 }
 
 export function UserMessage({ content, parts, messageId, canEdit }: UserMessageProps) {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getChatResidualsCopy(language);
   const profile = useStore(profileStore);
 
   // Extract images from parts - look for file parts with image mime types
@@ -83,7 +90,7 @@ export function UserMessage({ content, parts, messageId, canEdit }: UserMessageP
               {profile?.avatar ? (
                 <img
                   src={profile.avatar}
-                  alt={profile?.username || 'User'}
+                  alt={profile?.username || copy['chatResiduals.user.avatarAlt']}
                   className="w-[25px] h-[25px] object-cover rounded-full"
                   loading="eager"
                   decoding="sync"
@@ -105,7 +112,9 @@ export function UserMessage({ content, parts, messageId, canEdit }: UserMessageP
             <img
               key={index}
               src={`data:${item.mimeType};base64,${item.data}`}
-              alt={`Image ${index + 1}`}
+              alt={formatChatResidualsCopy(copy['chatResiduals.user.imageAlt'], {
+                count: formatChatResidualsNumber(index + 1, language),
+              })}
               className="max-w-full h-auto rounded-lg"
               style={{ maxHeight: '512px', objectFit: 'contain' }}
             />
@@ -130,7 +139,9 @@ export function UserMessage({ content, parts, messageId, canEdit }: UserMessageP
             <div className="h-16 w-16 bg-transparent outline-none">
               <img
                 src={`data:${item.mimeType};base64,${item.data}`}
-                alt={`Image ${index + 1}`}
+                alt={formatChatResidualsCopy(copy['chatResiduals.user.imageAlt'], {
+                  count: formatChatResidualsNumber(index + 1, language),
+                })}
                 className="h-full w-full rounded-lg"
                 style={{ objectFit: 'fill' }}
               />

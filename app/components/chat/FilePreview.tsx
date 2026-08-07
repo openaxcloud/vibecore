@@ -1,4 +1,6 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
+import { formatClientAstResidualCopy, getClientAstResidualCopy } from '~/lib/i18n/catalogs/client-ast-residual';
 
 interface FilePreviewProps {
   files: File[];
@@ -7,6 +9,9 @@ interface FilePreviewProps {
 }
 
 const FilePreview: React.FC<FilePreviewProps> = ({ files, imageDataList, onRemove }) => {
+  const { i18n } = useTranslation();
+  const copy = getClientAstResidualCopy(i18n.resolvedLanguage ?? i18n.language);
+
   if (!files || files.length === 0) {
     return null;
   }
@@ -33,7 +38,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({ files, imageDataList, onRemov
           <button
             type="button"
             onClick={() => onRemove(index)}
-            aria-label={`Remove ${file.name}`}
+            aria-label={formatClientAstResidualCopy(copy['clientAst.chat.file.remove'], { file: file.name })}
             className="absolute -right-3 -top-3 z-10 flex h-11 w-11 items-center justify-center"
           >
             <span className="flex h-7 w-7 items-center justify-center rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 shadow-md transition-colors hover:bg-bolt-elements-background-depth-3">

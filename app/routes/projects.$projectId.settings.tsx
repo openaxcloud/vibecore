@@ -1,18 +1,24 @@
 import * as RadixDialog from '@radix-ui/react-dialog';
 import { useEffect, useId, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
 import { Form, useActionData, useFetcher, useLoaderData, useNavigate, useNavigation } from 'react-router';
 import { ProjectShell } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import { Dialog, DialogDescription, DialogTitle } from '~/components/ui/Dialog';
 import {
-  apiErrorMessage,
   apiRequest,
   json,
   redirect,
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import {
+  formatProjectSettingsCopy,
+  getProjectSettingsCopy,
+  type ProjectSettingsCopy,
+} from '~/lib/i18n/catalogs/project-settings';
+import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { projectAction, projectPageLoader } from '~/lib/project-route.server';
 
 type SettingsData = {
@@ -26,12 +32,18 @@ type SettingsData = {
   };
 };
 
-export const meta: MetaFunction = () => [{ title: 'Project settings - E-Code' }];
+export const meta: MetaFunction = ({ matches }) => {
+  const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
+
+  return [{ title: getProjectSettingsCopy(rootData?.language)['projectSettings.metaTitle'] }];
+};
 export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 export const loader = (args: EnterpriseLoaderArgs) =>
   projectPageLoader<SettingsData>(args, (projectId) => `/projects/${projectId}/settings`);
-export const action = (args: EnterpriseActionArgs) =>
-  projectAction(args, {
+export const action = (args: EnterpriseActionArgs) => {
+  const copy = getProjectSettingsCopy(resolveRequestLocale(args.request).language);
+
+  return projectAction(args, {
     /* Metadata (name / description / git) — a full <Form> submit that redirects on success. */
     default: async ({ request, projectId, body }) => {
       try {
@@ -57,9 +69,8 @@ export const action = (args: EnterpriseActionArgs) =>
         }
 
         const status = error instanceof Response ? error.status : 400;
-        const msg = await apiErrorMessage(error, 'Unable to save settings. Check the values and try again.');
 
-        return json({ error: msg }, { status });
+        return json({ error: copy['projectSettings.errors.save'] }, { status });
       }
 
       return redirect(`/projects/${projectId}/settings`);
@@ -84,14 +95,22 @@ export const action = (args: EnterpriseActionArgs) =>
         }
 
         const status = error instanceof Response ? error.status : 400;
-        const msg = await apiErrorMessage(error, 'Unable to rename the project URL. Try a different slug.');
 
-        return json({ ok: false, error: msg }, { status });
+        return json(
+          {
+            ok: false,
+            error: status === 409 ? copy['projectSettings.errors.slugTaken'] : copy['projectSettings.errors.rename'],
+          },
+          { status },
+        );
       }
     },
   });
+};
 
 export default function ProjectSettingsPage() {
+  const { i18n } = useTranslation();
+  const copy = getProjectSettingsCopy(i18n.resolvedLanguage ?? i18n.language);
   const { project } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as { error?: string } | undefined;
   const saving = useNavigation().state === 'submitting';
@@ -99,12 +118,12 @@ export default function ProjectSettingsPage() {
   return (
     <ProjectShell
       projectId={project.id}
-      title="Project settings"
-      description="Update persistent project metadata, visibility and runtime preferences."
+      title={copy['projectSettings.title']}
+      description={copy['projectSettings.description']}
     >
       <Form
         method="post"
-        className="grid gap-4 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6"
+        className="grid gap-4 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 sm:p-6"
       >
         {actionData?.error ? (
           <p
@@ -114,20 +133,32 @@ export default function ProjectSettingsPage() {
             {actionData.error}
           </p>
         ) : null}
-        <Field label="Project name" name="name" defaultValue={project.name} required />
-        <Field label="Description" name="description" defaultValue={project.description ?? ''} />
-        <Field label="Git repository URL" name="gitRepositoryUrl" defaultValue={project.gitRepositoryUrl ?? ''} />
-        <Field label="Default branch" name="gitDefaultBranch" defaultValue={project.gitDefaultBranch ?? 'main'} />
+        <Field label={copy['projectSettings.fields.name']} name="name" defaultValue={project.name} required />
+        <Field
+          label={copy['projectSettings.fields.description']}
+          name="description"
+          defaultValue={project.description ?? ''}
+        />
+        <Field
+          label={copy['projectSettings.fields.repositoryUrl']}
+          name="gitRepositoryUrl"
+          defaultValue={project.gitRepositoryUrl ?? ''}
+        />
+        <Field
+          label={copy['projectSettings.fields.defaultBranch']}
+          name="gitDefaultBranch"
+          defaultValue={project.gitDefaultBranch ?? 'main'}
+        />
         <div>
           <Button type="submit" variant="primary" disabled={saving} aria-busy={saving}>
-            {saving ? 'Saving…' : 'Save changes'}
+            {saving ? copy['projectSettings.actions.saving'] : copy['projectSettings.actions.save']}
           </Button>
         </div>
       </Form>
 
-      <SlugCard slug={project.slug ?? ''} />
+      <SlugCard slug={project.slug ?? ''} copy={copy} />
 
-      <DangerZone projectId={project.id} projectName={project.name} />
+      <DangerZone projectId={project.id} projectName={project.name} copy={copy} />
     </ProjectShell>
   );
 }
@@ -137,7 +168,7 @@ export default function ProjectSettingsPage() {
  * canonical URL to the new one, so existing links keep working during the
  * transition. Uses a fetcher so validation/success stays local to this card.
  */
-function SlugCard({ slug }: { slug: string }) {
+function SlugCard({ slug, copy }: { slug: string; copy: ProjectSettingsCopy }) {
   const fetcher = useFetcher<{ ok?: boolean; slug?: string; error?: string }>();
   const [value, setValue] = useState(slug);
   const busy = fetcher.state !== 'idle';
@@ -161,18 +192,17 @@ function SlugCard({ slug }: { slug: string }) {
   return (
     <fetcher.Form
       method="post"
-      className="mt-6 grid gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6"
+      className="mt-6 grid gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 sm:p-6"
     >
       <input type="hidden" name="intent" value="rename-slug" />
       <div>
-        <h2 className="text-sm font-semibold text-bolt-elements-textPrimary">Project URL slug</h2>
-        <p className="mt-1 text-sm text-bolt-elements-textSecondary">
-          Changing the slug updates the project&apos;s canonical URL. The old URL keeps redirecting here for 30 days so
-          existing links don&apos;t break.
-        </p>
+        <h2 className="break-words text-sm font-semibold text-bolt-elements-textPrimary">
+          {copy['projectSettings.slug.title']}
+        </h2>
+        <p className="mt-1 text-sm text-bolt-elements-textSecondary">{copy['projectSettings.slug.description']}</p>
       </div>
       <label htmlFor={inputId} className="grid gap-2 text-sm font-medium">
-        Slug
+        {copy['projectSettings.slug.label']}
         <input
           id={inputId}
           name="slug"
@@ -180,13 +210,14 @@ function SlugCard({ slug }: { slug: string }) {
           onChange={(event) => setValue(event.target.value)}
           spellCheck={false}
           autoCapitalize="none"
-          placeholder="my-project"
+          placeholder={copy['projectSettings.slug.placeholder']}
           className="h-10 max-w-md rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 font-mono text-sm outline-none focus:border-[var(--vc-ide-accent-action)]"
         />
       </label>
       {normalized && normalized !== value ? (
         <p className="text-xs text-bolt-elements-textTertiary">
-          Will be saved as <span className="font-mono text-bolt-elements-textSecondary">{normalized}</span>
+          {copy['projectSettings.slug.normalized']}{' '}
+          <span className="break-all font-mono text-bolt-elements-textSecondary">{normalized}</span>
         </p>
       ) : null}
       {fetcher.data?.error ? (
@@ -196,12 +227,12 @@ function SlugCard({ slug }: { slug: string }) {
       ) : null}
       {justRenamed ? (
         <p className="text-sm text-bolt-elements-icon-success" role="status">
-          URL slug updated. The previous URL will redirect here for 30 days.
+          {copy['projectSettings.slug.updated']}
         </p>
       ) : null}
       <div>
         <Button type="submit" variant="primary" disabled={!changed || busy} aria-busy={busy}>
-          {busy ? 'Saving…' : 'Update slug'}
+          {busy ? copy['projectSettings.actions.saving'] : copy['projectSettings.slug.update']}
         </Button>
       </div>
     </fetcher.Form>
@@ -215,7 +246,15 @@ function SlugCard({ slug }: { slug: string }) {
  * `delete-permanent` intent (which forwards the confirmation to the API for a
  * server-side re-check), then returns to the dashboard. No window.confirm.
  */
-function DangerZone({ projectId, projectName }: { projectId: string; projectName: string }) {
+function DangerZone({
+  projectId,
+  projectName,
+  copy,
+}: {
+  projectId: string;
+  projectName: string;
+  copy: ProjectSettingsCopy;
+}) {
   const fetcher = useFetcher<{ ok?: boolean; error?: string }>();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -239,12 +278,12 @@ function DangerZone({ projectId, projectName }: { projectId: string; projectName
   }, [open]);
 
   return (
-    <section className="mt-6 grid gap-3 rounded-lg border border-bolt-elements-icon-error/40 bg-bolt-elements-background-depth-2 p-6">
+    <section className="mt-6 grid gap-3 rounded-lg border border-bolt-elements-icon-error/40 bg-bolt-elements-background-depth-2 p-4 sm:p-6">
       <div>
-        <h2 className="text-sm font-semibold text-bolt-elements-icon-error">Danger zone</h2>
-        <p className="mt-1 text-sm text-bolt-elements-textSecondary">
-          Permanently delete this project and all of its data. This action cannot be undone.
-        </p>
+        <h2 className="break-words text-sm font-semibold text-bolt-elements-icon-error">
+          {copy['projectSettings.danger.title']}
+        </h2>
+        <p className="mt-1 text-sm text-bolt-elements-textSecondary">{copy['projectSettings.danger.description']}</p>
       </div>
       {fetcher.data?.error ? (
         <p className="text-sm text-bolt-elements-icon-error" role="alert">
@@ -257,7 +296,7 @@ function DangerZone({ projectId, projectName }: { projectId: string; projectName
           onClick={() => setOpen(true)}
           className="rounded-md border border-bolt-elements-icon-error bg-bolt-elements-button-danger-background px-3 py-2 text-sm font-medium text-bolt-elements-button-danger-text hover:bg-bolt-elements-button-danger-backgroundHover"
         >
-          Delete this project
+          {copy['projectSettings.danger.open']}
         </button>
       </div>
 
@@ -265,14 +304,16 @@ function DangerZone({ projectId, projectName }: { projectId: string; projectName
         {open ? (
           <Dialog showCloseButton onClose={() => setOpen(false)} onBackdrop={() => setOpen(false)}>
             <div className="p-6">
-              <DialogTitle className="text-bolt-elements-icon-error">Delete “{projectName}”?</DialogTitle>
+              <DialogTitle className="break-words text-bolt-elements-icon-error">
+                {formatProjectSettingsCopy(copy['projectSettings.danger.dialogTitle'], { project: projectName })}
+              </DialogTitle>
               <DialogDescription className="mb-4">
-                This permanently deletes the project and every file, secret and deployment it owns. This cannot be
-                undone. Type <strong className="font-mono text-bolt-elements-textPrimary">{projectName}</strong> to
-                confirm.
+                {copy['projectSettings.danger.dialogDescription']} {copy['projectSettings.danger.confirmPrefix']}{' '}
+                <strong className="break-all font-mono text-bolt-elements-textPrimary">{projectName}</strong>{' '}
+                {copy['projectSettings.danger.confirmSuffix']}
               </DialogDescription>
               <label htmlFor={inputId} className="sr-only">
-                Type the project name to confirm deletion
+                {copy['projectSettings.danger.confirmLabel']}
               </label>
               <input
                 id={inputId}
@@ -290,12 +331,12 @@ function DangerZone({ projectId, projectName }: { projectId: string; projectName
                   }
                 }}
               />
-              <div className="flex justify-end gap-2">
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                 <Button variant="outline" type="button" onClick={() => setOpen(false)} disabled={busy}>
-                  Cancel
+                  {copy['projectSettings.danger.cancel']}
                 </Button>
                 <Button variant="destructive" type="button" disabled={!canDelete} onClick={submitDelete}>
-                  {busy ? 'Deleting…' : 'Delete project'}
+                  {busy ? copy['projectSettings.danger.deleting'] : copy['projectSettings.danger.delete']}
                 </Button>
               </div>
             </div>

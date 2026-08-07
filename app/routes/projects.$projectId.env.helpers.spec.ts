@@ -35,6 +35,27 @@ describe('buildEnvVarRows (scoped)', () => {
     expect(rows[0].kind).toBe('empty');
   });
 
+  it('localizes empty and saved rows without changing variable identifiers', () => {
+    const emptyRows = buildEnvVarRows([], 'preview', 'fr');
+    expect(emptyRows[0]).toEqual({
+      kind: 'empty',
+      title: 'Aucune variable dans Aperçu',
+      detail: 'Ajoutez la première variable de l’environnement Aperçu.',
+    });
+
+    const variableRows = buildEnvVarRows(
+      [{ id: '1', key: 'VITE_API_URL', value: 'https://api.example.com', scope: 'production' }],
+      'production',
+      'fr',
+    );
+    expect(variableRows[0]).toEqual({
+      kind: 'var',
+      id: '1',
+      key: 'VITE_API_URL',
+      detail: 'Enregistrée pour ce projet',
+    });
+  });
+
   it('shows ONLY variables in the requested scope (legacy no-scope rows are production)', () => {
     const vars: EnvVarRecord[] = [
       { id: '1', key: 'PROD_ONLY', value: 'p' }, // no scope → production

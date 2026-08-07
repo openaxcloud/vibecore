@@ -1,4 +1,5 @@
 import type { AgentRunResult } from '../agent-executor.js';
+import { aiGatewayMessage, type AiGatewayLocale } from '../public-i18n.js';
 import { aggregateClaims, buildClaimVote, determineParticipation } from './voting.js';
 import { detectAllConflicts } from './conflict-detection.js';
 import {
@@ -79,7 +80,11 @@ function computeOutcome(
   return 'PARTIAL';
 }
 
-function buildConsolidated(results: AgentRunResult[], votes: ClaimVote[]): ConsolidatedResult {
+function buildConsolidated(
+  results: AgentRunResult[],
+  votes: ClaimVote[],
+  locale: AiGatewayLocale = 'en',
+): ConsolidatedResult {
   const accepted = votes.filter((vote) => vote.decision === 'accepted');
   const rejected = votes.filter((vote) => vote.decision === 'rejected');
 
@@ -90,7 +95,7 @@ function buildConsolidated(results: AgentRunResult[], votes: ClaimVote[]): Conso
     .join('\n\n');
 
   return {
-    summary: summary || 'No sub-agent produced a usable summary.',
+    summary: summary || aiGatewayMessage('consensusEmptySummary', locale),
     acceptedRisks: accepted.filter((v) => v.type === 'risk').map((v) => v.claim),
     acceptedVerification: accepted.filter((v) => v.type === 'verification').map((v) => v.claim),
     acceptedFiles: accepted.filter((v) => v.type === 'file').map((v) => v.claim),
@@ -110,10 +115,10 @@ export class QuorumConsensus implements ConsensusEngine {
 
     const claimVotes = aggregations.map((agg) => buildClaimVote(agg, threshold, input.roleWeights));
 
-    const conflicts = detectAllConflicts(input.results);
+    const conflicts = detectAllConflicts(input.results, input.locale);
     const outcome = computeOutcome(claimVotes, participating.length, input.results.length, threshold);
     const agreementScore = computeAgreementScore(claimVotes);
-    const consolidated = buildConsolidated(input.results, claimVotes);
+    const consolidated = buildConsolidated(input.results, claimVotes, input.locale);
 
     return {
       algorithm: this.algorithm,

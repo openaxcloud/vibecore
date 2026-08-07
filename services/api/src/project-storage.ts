@@ -4,6 +4,7 @@ import { hostname } from 'node:os';
 import { dirname, join, normalize, relative } from 'node:path';
 import { promisify } from 'node:util';
 import JSZip from 'jszip';
+import { appPublicEnglish } from './app-public-copy.js';
 
 const execFile = promisify(execFileCallback);
 
@@ -239,7 +240,7 @@ const SAFE_WORKSPACE_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
 
 function workspaceSubpath(workspaceId: string, filePath = '') {
   if (!SAFE_WORKSPACE_ID.test(workspaceId)) {
-    throw new Error('Invalid workspaceId');
+    throw new Error(appPublicEnglish('INVALID_WORKSPACE_ID'));
   }
 
   return filePath
@@ -277,7 +278,7 @@ function safeProjectPath(projectId: string, filePath = '') {
   const target = normalize(join(root, filePath));
 
   if (relative(root, target).startsWith('..')) {
-    throw new Error('Invalid project file path');
+    throw new Error(appPublicEnglish('INVALID_PROJECT_PATH'));
   }
 
   return target;
@@ -323,7 +324,7 @@ const SAFE_PROJECT_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
 
 async function acquireFileLock(projectId: string): Promise<() => Promise<void>> {
   if (!SAFE_PROJECT_ID.test(projectId)) {
-    throw new Error('Invalid projectId');
+    throw new Error(appPublicEnglish('INVALID_PROJECT_PATH'));
   }
 
   const root = locksRoot();
@@ -393,7 +394,10 @@ async function acquireFileLock(projectId: string): Promise<() => Promise<void>> 
 
       if (Date.now() - startedAt > PROJECT_LOCK_ACQUIRE_TIMEOUT_MS) {
         await unlink(sentinelPath).catch(() => undefined);
-        throw new Error(`Timed out acquiring project lock for ${projectId}`);
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_LOCK_TIMEOUT', { projectId })), {
+          code: 'PROJECT_LOCK_TIMEOUT',
+          statusCode: 503,
+        });
       }
 
       const delay = Math.min(
@@ -781,7 +785,7 @@ export class GitCliProvider implements GitProvider {
     }
 
     if (!SAFE_WORKSPACE_ID.test(workspaceId)) {
-      throw new Error('Invalid workspaceId');
+      throw new Error(appPublicEnglish('INVALID_WORKSPACE_ID'));
     }
 
     return safeProjectPath(projectId, `${SECONDARY_WORKSPACES_DIR}/${workspaceId}`);
@@ -1034,7 +1038,7 @@ export class GitCliProvider implements GitProvider {
       const staged = await this.git(input.projectId, ['diff', '--cached', '--name-only'], input.workspaceId);
 
       if (!staged.trim()) {
-        throw Object.assign(new Error('No changes to commit.'), {
+        throw Object.assign(new Error(appPublicEnglish('GIT_NOTHING_TO_COMMIT')), {
           statusCode: 400,
           code: 'GIT_NOTHING_TO_COMMIT',
         });
@@ -1097,7 +1101,7 @@ export class GitCliProvider implements GitProvider {
           .filter(Boolean);
 
         if (conflicts.length > 0) {
-          throw Object.assign(new Error('Pull produced merge conflicts that must be resolved.'), {
+          throw Object.assign(new Error(appPublicEnglish('GIT_MERGE_CONFLICT')), {
             statusCode: 409,
             code: 'GIT_MERGE_CONFLICT',
             conflicts,
@@ -1276,7 +1280,10 @@ export class GitCliProvider implements GitProvider {
     const rev = sha.replace(/[^a-zA-Z0-9]/g, '');
 
     if (!rev) {
-      throw Object.assign(new Error('Invalid commit'), { statusCode: 400, code: 'GIT_BAD_REVISION' });
+      throw Object.assign(new Error(appPublicEnglish('GIT_BAD_REVISION')), {
+        statusCode: 400,
+        code: 'GIT_BAD_REVISION',
+      });
     }
 
     return withProjectLock(projectId, async () => {
@@ -1452,11 +1459,9 @@ export class GitCliProvider implements GitProvider {
      * guidance rather than a 500 — the operation isn't broken, it's simply not
      * supported by the local-git provider.
      */
-    throw Object.assign(
-      new Error(
-        'Pull request creation requires a connected GitHub account. Use the Git tab to push your branch, then create the PR on GitHub.',
-      ),
-      { statusCode: 501, code: 'NOT_SUPPORTED' },
-    );
+    throw Object.assign(new Error(appPublicEnglish('GIT_PR_REQUIRES_GITHUB')), {
+      statusCode: 501,
+      code: 'NOT_SUPPORTED',
+    });
   }
 }

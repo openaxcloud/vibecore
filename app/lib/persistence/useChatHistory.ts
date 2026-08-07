@@ -1,6 +1,7 @@
 import { generateId, type JSONValue, type Message } from 'ai';
 import { atom } from 'nanostores';
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useLoaderData, useNavigate, useSearchParams } from 'react-router';
 import { toast } from 'react-toastify';
 import {
@@ -17,6 +18,12 @@ import {
 } from './db';
 import { getProjectIdeMemory, saveProjectIdeMemory } from './projectIdeMemory';
 import type { Snapshot } from './types';
+import {
+  getChatHistoryCopy,
+  getChatHistorySafeError,
+  resolveProjectAssistantDescription,
+  type ChatHistoryErrorKey,
+} from '~/lib/i18n/catalogs/chat-history';
 import { runtimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import type { FileMap } from '~/lib/stores/files';
 import { logStore } from '~/lib/stores/logs'; // Import logStore
@@ -62,7 +69,7 @@ const LOCAL_CHAT_WARNING_KEY = 'vibecore:local-chat-warning-ack';
  * built, so warn the user once per device that their history is device-local
  * and won't follow them to another browser/machine.
  */
-function warnLocalChatPersistence() {
+function warnLocalChatPersistence(message: string) {
   if (typeof window === 'undefined') {
     return;
   }
@@ -77,13 +84,28 @@ function warnLocalChatPersistence() {
     // localStorage may be unavailable (e.g. private mode); still show the toast once this session.
   }
 
-  toast.info('Chat history is stored locally on this device and will not sync across devices.', {
+  toast.info(message, {
     toastId: 'local-chat-persistence',
     autoClose: 8000,
   });
 }
 
+/** Keep the user-visible event log useful without persisting provider or storage exception details. */
+function logSafeChatHistoryError(message: string) {
+  console.error(message);
+  logStore.logError(message);
+}
+
 export function useChatHistory() {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
+  const copy = getChatHistoryCopy(language);
+
+  const safeError = useCallback(
+    (key: ChatHistoryErrorKey, error?: unknown) => getChatHistorySafeError(key, language, error),
+    [language],
+  );
+
   const navigate = useNavigate();
   const { id: mixedId, projectId } = useLoaderData<{ id?: string; projectId?: string }>();
   const [searchParams] = useSearchParams();
@@ -98,9 +120,9 @@ export function useChatHistory() {
       setReady(true);
 
       if (persistenceEnabled) {
-        const error = new Error('Chat persistence is unavailable');
-        logStore.logError('Chat persistence initialization failed', error);
-        toast.error('Chat persistence is unavailable');
+        const message = safeError('chatHistory.error.persistenceUnavailable');
+        logSafeChatHistoryError(message);
+        toast.error(message);
       }
 
       return;
@@ -129,28 +151,43 @@ export function useChatHistory() {
           setArchivedMessages(memory.chat?.archivedMessages ?? []);
           setInitialMessages(messages);
           setUrlId(storedMessages?.urlId);
-          description.set(storedMessages?.description ?? memory.chat?.description ?? 'Project assistant');
+          description.set(
+            resolveProjectAssistantDescription(
+              storedMessages?.description ?? memory.chat?.description,
+              projectChatId,
+              projectId,
+              language,
+            ),
+          );
           chatId.set(projectChatId);
           chatMetadata.set(storedMessages?.metadata ?? memory.chat?.metadata);
 
           if (!storedMessages && db) {
-            await setMessages(db, projectChatId, [], undefined, 'Project assistant', undefined, memory.chat?.metadata);
+            await setMessages(
+              db,
+              projectChatId,
+              [],
+              undefined,
+              copy['chatHistory.fallback.projectAssistant'],
+              undefined,
+              memory.chat?.metadata,
+            );
           }
 
           setReady(true);
         })
         .catch((error) => {
-          console.error(error);
-          logStore.logError('Failed to load project IDE chat memory', error);
-          toast.error('Failed to load project IDE memory: ' + error.message, {
+          const message = safeError('chatHistory.error.loadProjectMemory', error);
+          logSafeChatHistoryError(message);
+          toast.error(message, {
             toastId: `project-ide-memory-load-${projectId}`,
           });
           chatId.set(`project:${projectId}`);
-          description.set('Project assistant');
+          description.set(copy['chatHistory.fallback.projectAssistant']);
           setReady(true);
         });
     } else if (mixedId) {
-      warnLocalChatPersistence();
+      warnLocalChatPersistence(copy['chatHistory.warning.localOnly']);
       Promise.all([
         getMessages(db!, mixedId),
         getSnapshot(db!, mixedId), // Fetch snapshot from DB
@@ -222,7 +259,7 @@ export function useChatHistory() {
                 {
                   id: generateId(),
                   role: 'user',
-                  content: `Restore project from snapshot`, // Removed newline
+                  content: copy['chatHistory.restore.userPrompt'],
                   annotations: ['no-store', 'hidden'],
                 },
                 {
@@ -230,8 +267,8 @@ export function useChatHistory() {
                   role: 'assistant',
 
                   // Combine followup message and the artifact with files and command actions
-                  content: `Restored your chat from a snapshot. You can revert this message to load the full chat history.
-                  <boltArtifact id="restored-project-setup" title="Restored Project & Setup" type="bundled">
+                  content: `${copy['chatHistory.restore.assistantIntro']}
+                  <boltArtifact id="restored-project-setup" title="${escapeBoltActionAttribute(copy['chatHistory.restore.artifactTitle'])}" type="bundled">
                   ${Object.entries(snapshot?.files || {})
                     .map(([key, value]) => {
                       if (value?.type === 'file') {
@@ -286,20 +323,19 @@ ${value.content}
           setReady(true);
         })
         .catch((error) => {
-          console.error(error);
-
-          logStore.logError('Failed to load chat messages or snapshot', error); // Updated error message
-          toast.error('Failed to load chat: ' + (error instanceof Error ? error.message : String(error))); // More specific error
+          const message = safeError('chatHistory.error.loadChat', error);
+          logSafeChatHistoryError(message);
+          toast.error(message);
 
           // Without this the UI stays stuck on the loading state forever after a load failure.
           setReady(true);
         });
     } else {
       // Handle case where there is no mixedId (e.g., new chat)
-      warnLocalChatPersistence();
+      warnLocalChatPersistence(copy['chatHistory.warning.localOnly']);
       setReady(true);
     }
-  }, [mixedId, projectId, db, navigate, searchParams]); // Added db, navigate, searchParams dependencies
+  }, [mixedId, projectId, db, navigate, searchParams, copy, safeError]);
 
   const takeSnapshot = useCallback(
     async (chatIdx: string, files: FileMap, _chatId?: string | undefined, chatSummary?: string) => {
@@ -319,46 +355,51 @@ ${value.content}
       try {
         await setSnapshot(db, id, snapshot);
       } catch (error) {
-        console.error('Failed to save snapshot:', error);
-        toast.error('Failed to save chat snapshot.');
+        const message = safeError('chatHistory.error.saveSnapshot', error);
+        logSafeChatHistoryError(message);
+        toast.error(message);
       }
     },
-    [db],
+    [db, safeError],
   );
 
-  const restoreSnapshot = useCallback(async (id: string, snapshot?: Snapshot) => {
-    // const snapshotStr = localStorage.getItem(`snapshot:${id}`); // Remove localStorage usage
-    const validSnapshot = snapshot || { chatIndex: '', files: {} };
+  const restoreSnapshot = useCallback(
+    async (id: string, snapshot?: Snapshot) => {
+      // const snapshotStr = localStorage.getItem(`snapshot:${id}`); // Remove localStorage usage
+      const validSnapshot = snapshot || { chatIndex: '', files: {} };
 
-    if (!validSnapshot?.files) {
-      return;
-    }
-
-    /*
-     * forEach(async …) fired every dir-create and file-write concurrently and
-     * unordered: files could be written before their parent directory existed
-     * and any rejection became an unhandled promise. Create all directories
-     * first, then write files, sequentially, so parents exist and errors surface.
-     */
-    try {
-      for (const [key, value] of Object.entries(validSnapshot.files)) {
-        if (value?.type === 'folder') {
-          await runtimeAdapter.createDirectory(toRuntimePath(key));
-        }
+      if (!validSnapshot?.files) {
+        return;
       }
 
-      for (const [key, value] of Object.entries(validSnapshot.files)) {
-        if (value?.type === 'file') {
-          await runtimeAdapter.writeFile(toRuntimePath(key), value.content);
+      /*
+       * forEach(async …) fired every dir-create and file-write concurrently and
+       * unordered: files could be written before their parent directory existed
+       * and any rejection became an unhandled promise. Create all directories
+       * first, then write files, sequentially, so parents exist and errors surface.
+       */
+      try {
+        for (const [key, value] of Object.entries(validSnapshot.files)) {
+          if (value?.type === 'folder') {
+            await runtimeAdapter.createDirectory(toRuntimePath(key));
+          }
         }
-      }
-    } catch (error) {
-      console.error('Failed to restore snapshot files:', error);
-      logStore.logError('Failed to restore snapshot files', error);
-    }
 
-    // workbenchStore.files.setKey(snapshot?.files)
-  }, []);
+        for (const [key, value] of Object.entries(validSnapshot.files)) {
+          if (value?.type === 'file') {
+            await runtimeAdapter.writeFile(toRuntimePath(key), value.content);
+          }
+        }
+      } catch (error) {
+        const message = safeError('chatHistory.error.restoreSnapshot', error);
+        logSafeChatHistoryError(message);
+        toast.error(message, { toastId: `chat-snapshot-restore-${id}` });
+      }
+
+      // workbenchStore.files.setKey(snapshot?.files)
+    },
+    [safeError],
+  );
 
   return {
     ready: projectId ? ready : !mixedId || ready,
@@ -374,8 +415,9 @@ ${value.content}
         await setMessages(db, id, initialMessages, urlId, description.get(), undefined, metadata);
         chatMetadata.set(metadata);
       } catch (error) {
-        toast.error('Failed to update chat metadata');
-        console.error(error);
+        const message = safeError('chatHistory.error.updateMetadata', error);
+        logSafeChatHistoryError(message);
+        toast.error(message);
       }
     },
     storeMessageHistory: async (messages: Message[]) => {
@@ -395,15 +437,16 @@ ${value.content}
             chat: {
               id: finalChatId,
               urlId,
-              description: description.get() ?? 'Project assistant',
+              description: description.get() ?? copy['chatHistory.fallback.projectAssistant'],
               metadata: chatMetadata.get(),
               messages: [],
               clearMessages: true,
               archivedMessages,
             },
           }).catch((error) => {
-            logStore.logError('Failed to persist empty project chat memory', error);
-            toast.error('Failed to persist project chat memory');
+            const message = safeError('chatHistory.error.persistProjectMemory', error);
+            logSafeChatHistoryError(message);
+            toast.error(message);
           });
         }
 
@@ -462,8 +505,9 @@ ${value.content}
       const finalChatId = chatId.get();
 
       if (!finalChatId) {
-        console.error('Cannot save messages, chat ID is not set.');
-        toast.error('Failed to save chat messages: Chat ID missing.');
+        const message = safeError('chatHistory.error.missingChatId');
+        logSafeChatHistoryError(message);
+        toast.error(message);
 
         return;
       }
@@ -500,8 +544,9 @@ ${value.content}
             archivedMessages,
           },
         }).catch((error) => {
-          logStore.logError('Failed to persist project chat memory', error);
-          toast.error('Failed to persist project chat memory');
+          const message = safeError('chatHistory.error.persistProjectMemory', error);
+          logSafeChatHistoryError(message);
+          toast.error(message);
         });
       }
     },
@@ -513,10 +558,11 @@ ${value.content}
       try {
         const newId = await duplicateChat(db, mixedId || listItemId);
         navigate(`/chat/${newId}`);
-        toast.success('Chat duplicated successfully');
+        toast.success(copy['chatHistory.success.duplicated']);
       } catch (error) {
-        toast.error('Failed to duplicate chat');
-        console.log(error);
+        const message = safeError('chatHistory.error.duplicate', error);
+        logSafeChatHistoryError(message);
+        toast.error(message);
       }
     },
     importChat: async (description: string, messages: Message[], metadata?: IChatMetadata) => {
@@ -527,13 +573,11 @@ ${value.content}
       try {
         const newId = await createChatFromMessages(db, description, messages, metadata);
         window.location.href = `/chat/${newId}`;
-        toast.success('Chat imported successfully');
+        toast.success(copy['chatHistory.success.imported']);
       } catch (error) {
-        if (error instanceof Error) {
-          toast.error('Failed to import chat: ' + error.message);
-        } else {
-          toast.error('Failed to import chat');
-        }
+        const message = safeError('chatHistory.error.import', error);
+        logSafeChatHistoryError(message);
+        toast.error(message);
       }
     },
     exportChat: async (id = urlId) => {
@@ -541,29 +585,35 @@ ${value.content}
         return;
       }
 
-      const chat = await getMessages(db, id);
+      try {
+        const chat = await getMessages(db, id);
 
-      // getMessages resolves undefined for an unknown id; guard before dereferencing.
-      if (!chat) {
-        toast.error('Failed to export chat: chat not found');
-        return;
+        // getMessages resolves undefined for an unknown id; guard before dereferencing.
+        if (!chat) {
+          toast.error(safeError('chatHistory.error.exportNotFound'));
+          return;
+        }
+
+        const chatData = {
+          messages: chat.messages,
+          description: chat.description,
+          exportDate: new Date().toISOString(),
+        };
+
+        const blob = new Blob([JSON.stringify(chatData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${copy['chatHistory.export.filePrefix']}-${new Date().toISOString()}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        const message = safeError('chatHistory.error.export', error);
+        logSafeChatHistoryError(message);
+        toast.error(message);
       }
-
-      const chatData = {
-        messages: chat.messages,
-        description: chat.description,
-        exportDate: new Date().toISOString(),
-      };
-
-      const blob = new Blob([JSON.stringify(chatData, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `chat-${new Date().toISOString()}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
     },
   };
 }

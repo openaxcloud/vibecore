@@ -2,8 +2,9 @@
  * @vitest-environment jsdom
  */
 
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { FilesStore } from './files';
+import { setUserLanguagePreference } from '~/lib/i18n/language';
 
 /*
  * Reproduces the production bug: in remote-kubernetes mode createFile() substitutes
@@ -33,14 +34,18 @@ function makeRemoteRuntime() {
       writeFile: vi.fn(async (path: string, content: string) => {
         disk.set(path, content);
       }),
-      watchFiles: vi.fn(async () => () => {}),
-      watchPorts: vi.fn(async () => () => {}),
+      watchFiles: vi.fn(async () => () => undefined),
+      watchPorts: vi.fn(async () => () => undefined),
     } as unknown as ConstructorParameters<typeof FilesStore>[0],
     disk,
   };
 }
 
 describe('FilesStore.createFile — empty file first-save (remote-kubernetes)', () => {
+  beforeEach(() => {
+    setUserLanguagePreference('en');
+  });
+
   it('does NOT falsely reject the first save of a freshly-created empty file', async () => {
     const { runtime, disk } = makeRemoteRuntime();
     const store = new FilesStore(runtime);
@@ -76,5 +81,20 @@ describe('FilesStore.createFile — empty file first-save (remote-kubernetes)', 
     disk.set('src/file.ts', 'changed by someone else');
 
     await expect(store.saveFile(path, 'my edit')).rejects.toThrow(/Remote file changed/);
+  });
+
+  it('surfaces the same conflict in French without translating the file path', async () => {
+    setUserLanguagePreference('fr');
+
+    const { runtime, disk } = makeRemoteRuntime();
+    const store = new FilesStore(runtime);
+    const path = '/home/project/src/App.tsx';
+
+    await store.createFile(path, 'original');
+    disk.set('src/App.tsx', 'concurrent change');
+
+    await expect(store.saveFile(path, 'my edit')).rejects.toThrow(
+      'Le fichier a changé dans l’espace de travail après son chargement : /home/project/src/App.tsx.',
+    );
   });
 });

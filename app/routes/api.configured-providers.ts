@@ -1,6 +1,7 @@
 import type { LoaderFunction } from 'react-router';
 import { data as json } from 'react-router';
 import { readSessionToken } from '~/lib/enterprise-api.server';
+import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 import { LLMManager } from '~/lib/modules/llm/manager';
 
 interface ConfiguredProvider {
@@ -25,7 +26,7 @@ export const loader: LoaderFunction = async ({ context, request }) => {
    * ones who reach the Connections settings that consume this) may read it.
    */
   if (!readSessionToken(request)) {
-    return json({ error: 'Unauthorized' }, { status: 401 });
+    return remainingApiErrorResponse(request, 'UNAUTHORIZED', 401);
   }
 
   try {

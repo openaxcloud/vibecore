@@ -13,10 +13,11 @@
 import { data as json, type ActionFunctionArgs } from 'react-router';
 
 import { apiRequest } from '~/lib/enterprise-api.server';
+import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 
 export async function action({ request }: ActionFunctionArgs) {
   if (request.method !== 'POST') {
-    return json({ error: 'Method not allowed' }, { status: 405 });
+    return remainingApiErrorResponse(request, 'METHOD_NOT_ALLOWED', 405);
   }
 
   let body: unknown;
@@ -24,7 +25,7 @@ export async function action({ request }: ActionFunctionArgs) {
   try {
     body = await request.json();
   } catch {
-    return json({ error: 'Invalid JSON body' }, { status: 400 });
+    return remainingApiErrorResponse(request, 'INVALID_JSON_BODY', 400);
   }
 
   try {
@@ -41,11 +42,8 @@ export async function action({ request }: ActionFunctionArgs) {
 
     return json({ token: result.token, expiresAt: result.expiresAt });
   } catch (error) {
-    // apiRequest throws a Remix `json()` Response on upstream failure.
-    if (error instanceof Response) {
-      return error;
-    }
+    const status = error instanceof Response && error.status !== 500 ? error.status : 502;
 
-    return json({ error: 'Failed to create share link' }, { status: 502 });
+    return remainingApiErrorResponse(request, 'CHAT_SHARE_FAILED', status);
   }
 }

@@ -23,6 +23,7 @@
  *   opus-4-8 $5/$25, haiku-4-5 $1/$5 per 1M in/out.
  * - OpenAI (GPT-5.6 family GA 2026-07-09): gpt-5.6-sol $5/$30 per 1M.
  */
+import { agentRoutingLabel, agentRoutingValidationMessage, type AgentRoutingLocale } from './agent-routing-i18n.js';
 
 export type AgentMode = 'lite' | 'economy' | 'power';
 
@@ -116,7 +117,7 @@ export const BUILTIN_AGENT_ROUTING_CARD: AgentRoutingCard = {
   lines: [
     {
       key: 'lite',
-      label: 'Lite',
+      label: agentRoutingLabel('lite'),
       provider: 'anthropic',
       model: 'claude-haiku-4-5',
       costInCentsPerM: 100,
@@ -128,7 +129,7 @@ export const BUILTIN_AGENT_ROUTING_CARD: AgentRoutingCard = {
     },
     {
       key: 'economy',
-      label: 'Economy',
+      label: agentRoutingLabel('economy'),
       provider: 'anthropic',
       model: 'claude-opus-4-8',
       costInCentsPerM: 500,
@@ -140,7 +141,7 @@ export const BUILTIN_AGENT_ROUTING_CARD: AgentRoutingCard = {
     },
     {
       key: 'power',
-      label: 'Power',
+      label: agentRoutingLabel('power'),
       provider: 'anthropic',
       model: 'claude-fable-5',
       costInCentsPerM: 1000,
@@ -152,7 +153,7 @@ export const BUILTIN_AGENT_ROUTING_CARD: AgentRoutingCard = {
     },
     {
       key: 'high-effort',
-      label: 'High effort (escalation)',
+      label: agentRoutingLabel('high-effort'),
       provider: 'anthropic',
       model: 'claude-fable-5',
       costInCentsPerM: 1000,
@@ -164,7 +165,7 @@ export const BUILTIN_AGENT_ROUTING_CARD: AgentRoutingCard = {
     },
     {
       key: 'turbo',
-      label: 'Turbo',
+      label: agentRoutingLabel('turbo'),
       provider: 'openai',
       model: 'gpt-5.6-sol',
       costInCentsPerM: 500,
@@ -176,7 +177,7 @@ export const BUILTIN_AGENT_ROUTING_CARD: AgentRoutingCard = {
     },
     {
       key: 'classifier',
-      label: 'Harness classifier',
+      label: agentRoutingLabel('classifier'),
       provider: 'anthropic',
       model: 'claude-haiku-4-5',
       costInCentsPerM: 100,
@@ -342,16 +343,30 @@ export interface AgentRoutingValidationError {
   message: string;
 }
 
+/** Clone only visible labels; provider/model identifiers and pricing remain unchanged. */
+export function localizeAgentRoutingCardLabels(
+  card: AgentRoutingCard,
+  locale: AgentRoutingLocale = 'en',
+): AgentRoutingCard {
+  return {
+    ...card,
+    lines: card.lines.map((line) => ({ ...line, label: agentRoutingLabel(line.key, locale) })),
+  };
+}
+
 /** Structural validation for an admin-submitted card (before the margin gate). */
-export function validateAgentRoutingCard(card: AgentRoutingCard): AgentRoutingValidationError[] {
+export function validateAgentRoutingCard(
+  card: AgentRoutingCard,
+  locale: AgentRoutingLocale = 'en',
+): AgentRoutingValidationError[] {
   const errors: AgentRoutingValidationError[] = [];
 
   if (!Number.isFinite(card.baseUserInCentsPerM) || card.baseUserInCentsPerM < 0) {
-    errors.push({ message: 'baseUserInCentsPerM must be a non-negative number' });
+    errors.push({ message: agentRoutingValidationMessage('baseInput', locale) });
   }
 
   if (!Number.isFinite(card.baseUserOutCentsPerM) || card.baseUserOutCentsPerM < 0) {
-    errors.push({ message: 'baseUserOutCentsPerM must be a non-negative number' });
+    errors.push({ message: agentRoutingValidationMessage('baseOutput', locale) });
   }
 
   const seen = new Set<string>();
@@ -360,43 +375,46 @@ export function validateAgentRoutingCard(card: AgentRoutingCard): AgentRoutingVa
     const line = routingLine(card, key);
 
     if (!line) {
-      errors.push({ line: key, message: `missing routing line "${key}"` });
+      errors.push({ line: key, message: agentRoutingValidationMessage('missingLine', locale, { line: key }) });
       continue;
     }
 
     if (seen.has(key)) {
-      errors.push({ line: key, message: `duplicate routing line "${key}"` });
+      errors.push({ line: key, message: agentRoutingValidationMessage('duplicateLine', locale, { line: key }) });
     }
 
     seen.add(key);
 
     if (!line.provider.trim() || !line.model.trim()) {
-      errors.push({ line: key, message: 'provider and model are required' });
+      errors.push({ line: key, message: agentRoutingValidationMessage('providerModelRequired', locale) });
     }
 
     if (!Number.isFinite(line.costInCentsPerM) || line.costInCentsPerM < 0) {
-      errors.push({ line: key, message: 'costInCentsPerM must be a non-negative number' });
+      errors.push({ line: key, message: agentRoutingValidationMessage('inputCost', locale) });
     }
 
     if (!Number.isFinite(line.costOutCentsPerM) || line.costOutCentsPerM < 0) {
-      errors.push({ line: key, message: 'costOutCentsPerM must be a non-negative number' });
+      errors.push({ line: key, message: agentRoutingValidationMessage('outputCost', locale) });
     }
 
     if (!Number.isFinite(line.multiplier) || line.multiplier < 0) {
-      errors.push({ line: key, message: 'multiplier must be a non-negative number' });
+      errors.push({ line: key, message: agentRoutingValidationMessage('multiplier', locale) });
     }
   }
 
   for (const line of card.lines) {
     if (!AGENT_ROUTING_LINE_KEYS.includes(line.key)) {
-      errors.push({ line: line.key, message: `unknown routing line "${line.key}"` });
+      errors.push({
+        line: line.key,
+        message: agentRoutingValidationMessage('unknownLine', locale, { line: line.key }),
+      });
     }
   }
 
   const economy = routingLine(card, 'economy');
 
   if (economy && (!economy.active || economy.multiplier !== 1)) {
-    errors.push({ line: 'economy', message: 'economy is the default mode: it must stay active with multiplier 1' });
+    errors.push({ line: 'economy', message: agentRoutingValidationMessage('economyInvariant', locale) });
   }
 
   return errors;

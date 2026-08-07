@@ -14,6 +14,7 @@
  * byte flows through the agent `/files/read` path. Node app SOURCE (deps rebuilt
  * in the deploy pod) is almost always well under that.
  */
+import { appPublicEnglish } from './app-public-copy.js';
 import { assertValidObjectKey, type ObjectStorage } from './object-storage.js';
 
 /** The subset of the workspace build agent this module needs. */
@@ -100,7 +101,7 @@ export async function snapshotWorkspaceAppSource(opts: {
     return {
       ok: false,
       error: 'AGENT_UNREACHABLE',
-      message: 'The workspace could not be reached to snapshot the app.',
+      message: appPublicEnglish('SERVER_SNAPSHOT_AGENT_UNREACHABLE'),
     };
   }
 
@@ -108,7 +109,7 @@ export async function snapshotWorkspaceAppSource(opts: {
     return {
       ok: false,
       error: 'SNAPSHOT_FAILED',
-      message: `Could not package the app source (tar exited ${tarStep.exitCode ?? 'timeout'}).`,
+      message: appPublicEnglish('SERVER_SNAPSHOT_PACKAGE_FAILED'),
     };
   }
 
@@ -122,7 +123,7 @@ export async function snapshotWorkspaceAppSource(opts: {
     return {
       ok: false,
       error: 'SNAPSHOT_FAILED',
-      message: `Could not read the app snapshot from the workspace (${(error as Error).message ?? 'unknown error'}).`,
+      message: appPublicEnglish('SERVER_SNAPSHOT_READ_FAILED'),
     };
   }
 
@@ -133,7 +134,7 @@ export async function snapshotWorkspaceAppSource(opts: {
   const raw = Buffer.from(base64, 'base64');
 
   if (raw.byteLength === 0) {
-    return { ok: false, error: 'SNAPSHOT_EMPTY', message: 'The app snapshot was empty.' };
+    return { ok: false, error: 'SNAPSHOT_EMPTY', message: appPublicEnglish('SERVER_SNAPSHOT_EMPTY') };
   }
 
   // Preferred: object storage (no pod-spec size pressure). Falls back to inline if
@@ -162,9 +163,7 @@ export async function snapshotWorkspaceAppSource(opts: {
     return {
       ok: false,
       error: 'APP_TOO_LARGE',
-      message:
-        `The app source (${Math.ceil(raw.byteLength / 1024)}KB) is too large for inline transfer ` +
-        `(${Math.floor(inlineLimit / 1024)}KB limit). Enable object storage for large server deploys.`,
+      message: appPublicEnglish('SERVER_SNAPSHOT_TOO_LARGE'),
     };
   }
 
@@ -227,7 +226,7 @@ export async function snapshotWorkspaceImageContext(opts: {
     return {
       ok: false,
       error: 'STORAGE_UNAVAILABLE',
-      message: 'Snapshot-image deploys need object storage (the full app snapshot is uploaded to it).',
+      message: appPublicEnglish('SERVER_IMAGE_STORAGE_REQUIRED'),
     };
   }
 
@@ -244,7 +243,7 @@ export async function snapshotWorkspaceImageContext(opts: {
     return {
       ok: false,
       error: 'STORAGE_UNAVAILABLE',
-      message: `Could not prepare object storage for the app snapshot (${(error as Error).message ?? 'unknown error'}).`,
+      message: appPublicEnglish('SERVER_IMAGE_STORAGE_PREPARE_FAILED'),
     };
   }
 
@@ -290,7 +289,7 @@ export async function snapshotWorkspaceImageContext(opts: {
     return {
       ok: false,
       error: 'AGENT_UNREACHABLE',
-      message: 'The workspace could not be reached to snapshot the app.',
+      message: appPublicEnglish('SERVER_SNAPSHOT_AGENT_UNREACHABLE'),
     };
   }
 
@@ -299,7 +298,7 @@ export async function snapshotWorkspaceImageContext(opts: {
     return {
       ok: false,
       error: uploadedBytes === undefined ? 'SNAPSHOT_FAILED' : 'UPLOAD_FAILED',
-      message: `Could not snapshot + upload the app (exit ${step.exitCode ?? 'timeout'}).`,
+      message: appPublicEnglish('SERVER_IMAGE_UPLOAD_FAILED'),
     };
   }
 
@@ -321,8 +320,7 @@ export async function snapshotWorkspaceImageContext(opts: {
  */
 
 /** GCS object key of a deployment's revision tarball (kept, not tmp/ — it IS the replayable input). */
-export const serverDeployRevisionObjectKey = (deploymentId: string) =>
-  `revisions/server-deploy/${deploymentId}.tgz`;
+export const serverDeployRevisionObjectKey = (deploymentId: string) => `revisions/server-deploy/${deploymentId}.tgz`;
 
 /*
  * Derivable-state exclusions. Aligned with the workspace agent's
@@ -377,7 +375,7 @@ export async function snapshotWorkspaceRevision(opts: {
     return {
       ok: false,
       error: 'STORAGE_UNAVAILABLE',
-      message: 'Revision-based deploys need object storage (the project revision is uploaded to it).',
+      message: appPublicEnglish('SERVER_REVISION_STORAGE_REQUIRED'),
     };
   }
 
@@ -394,7 +392,7 @@ export async function snapshotWorkspaceRevision(opts: {
     return {
       ok: false,
       error: 'STORAGE_UNAVAILABLE',
-      message: `Could not prepare object storage for the revision (${(error as Error).message ?? 'unknown error'}).`,
+      message: appPublicEnglish('SERVER_REVISION_STORAGE_PREPARE_FAILED'),
     };
   }
 
@@ -437,7 +435,7 @@ export async function snapshotWorkspaceRevision(opts: {
     return {
       ok: false,
       error: 'AGENT_UNREACHABLE',
-      message: 'The workspace could not be reached to capture the project revision.',
+      message: appPublicEnglish('SERVER_REVISION_AGENT_UNREACHABLE'),
     };
   }
 
@@ -445,7 +443,7 @@ export async function snapshotWorkspaceRevision(opts: {
     return {
       ok: false,
       error: bytes === undefined ? 'SNAPSHOT_FAILED' : 'UPLOAD_FAILED',
-      message: `Could not capture + upload the project revision (exit ${step.exitCode ?? 'timeout'}).`,
+      message: appPublicEnglish('SERVER_REVISION_UPLOAD_FAILED'),
     };
   }
 

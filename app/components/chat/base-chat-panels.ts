@@ -5,6 +5,13 @@
  * component.
  */
 
+import {
+  formatAutoApplyFailure,
+  formatSnapshotRestoreFailure,
+  type AutoApplyFailureReason,
+  type SnapshotRestoreFailure,
+} from '~/lib/i18n/catalogs/client-visible-errors';
+
 /**
  * A mid-session backend 401 surfaces as code 'PANEL_AUTH' on the panel envelope
  * (the API never redirects /api/* requests). Either the coded error or a raw 401
@@ -35,11 +42,11 @@ export function panelAuthRedirectTarget(currentUrl: string): string {
   return `/login?returnTo=${encodeURIComponent(returnTo)}`;
 }
 
-const SNAPSHOT_RESTORE_MESSAGES: Record<string, string> = {
-  SNAPSHOT_STORAGE_MISSING: 'Rollback failed: the checkpoint snapshot is no longer available.',
-  SNAPSHOT_STORAGE_CHECKSUM_MISMATCH: 'Rollback failed: the checkpoint snapshot is corrupted.',
-  FORBIDDEN: "Rollback failed: you don't have permission to restore this checkpoint.",
-  RBAC_FORBIDDEN: "Rollback failed: you don't have permission to restore this checkpoint.",
+const SNAPSHOT_RESTORE_FAILURES: Readonly<Record<string, SnapshotRestoreFailure>> = {
+  SNAPSHOT_STORAGE_MISSING: 'snapshotMissing',
+  SNAPSHOT_STORAGE_CHECKSUM_MISMATCH: 'snapshotCorrupted',
+  FORBIDDEN: 'forbidden',
+  RBAC_FORBIDDEN: 'forbidden',
 };
 
 /**
@@ -50,42 +57,47 @@ const SNAPSHOT_RESTORE_MESSAGES: Record<string, string> = {
 export function describeSnapshotRestoreFailure(
   httpStatus: number,
   payload: { error?: { code?: string; message?: string } | string } | undefined,
+  language?: string | null,
 ): string {
   const code = typeof payload?.error === 'object' ? payload?.error?.code : undefined;
 
-  if (code && SNAPSHOT_RESTORE_MESSAGES[code]) {
-    return SNAPSHOT_RESTORE_MESSAGES[code];
-  }
-
-  const message = typeof payload?.error === 'object' ? payload?.error?.message : payload?.error;
-
-  if (typeof message === 'string' && message.trim().length > 0) {
-    return `Rollback failed: ${message}`;
+  if (code && SNAPSHOT_RESTORE_FAILURES[code]) {
+    return formatSnapshotRestoreFailure(SNAPSHOT_RESTORE_FAILURES[code], language);
   }
 
   if (httpStatus === 403) {
-    return "Rollback failed: you don't have permission to restore this checkpoint.";
+    return formatSnapshotRestoreFailure('forbidden', language);
   }
 
   if (httpStatus >= 500) {
-    return 'Rollback failed: the server could not restore this checkpoint. No changes were made.';
+    return formatSnapshotRestoreFailure('server', language);
   }
 
-  return 'Rollback failed. No changes were made.';
+  return formatSnapshotRestoreFailure('generic', language);
 }
 
 /**
  * Copy for a silent auto-apply failure (patch rejected/threw) so the user learns
  * a file edit didn't land instead of the agent appearing to silently succeed.
  */
-export function describeAutoApplyFailure(filePath: string, error?: unknown): string {
-  const name = filePath && filePath.trim().length > 0 ? filePath : 'the file';
+export function describeAutoApplyFailure(filePath: string, error?: unknown, language?: string | null): string {
+  let reason: AutoApplyFailureReason = 'review';
 
   if (error instanceof Error && error.message.trim().length > 0) {
-    return `Couldn't apply ${name} — ${error.message}`;
+    const diagnostic = error.message.toLowerCase();
+
+    if (/(?:permission|denied|forbidden|eacces|eperm)/u.test(diagnostic)) {
+      reason = 'permission';
+    } else if (/(?:not found|no such file|enoent)/u.test(diagnostic)) {
+      reason = 'missing';
+    } else if (/(?:locked|busy|ebusy)/u.test(diagnostic)) {
+      reason = 'locked';
+    } else if (/(?:conflict|changed|stale|outdated)/u.test(diagnostic)) {
+      reason = 'conflict';
+    }
   }
 
-  return `Couldn't apply ${name} — review the change`;
+  return formatAutoApplyFailure(filePath, reason, language);
 }
 
 export interface AutoApplyProposalSnapshot {

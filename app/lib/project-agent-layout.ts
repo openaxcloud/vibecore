@@ -14,8 +14,14 @@ export function defaultProjectAgentPanelWidth(viewportWidth?: number) {
   return clampProjectAgentPanelWidth(viewportWidth * 0.25);
 }
 
-export function projectAgentStopLabel(providerName?: string, model?: string) {
-  const target = `${providerName ?? ''} ${model ?? ''}`.toLowerCase();
+const PROJECT_AGENT_STOP_COPY = {
+  en: { claude: 'Stop Claude', agent: 'Stop agent' },
+  fr: { claude: 'Arrêter Claude', agent: 'Arrêter l’agent' },
+} as const;
 
-  return target.includes('anthropic') || target.includes('claude') ? 'Stop Claude' : 'Stop agent';
+export function projectAgentStopLabel(providerName?: string, model?: string, language?: string | null) {
+  const target = `${providerName ?? ''} ${model ?? ''}`.toLowerCase();
+  const copy = language?.toLowerCase().startsWith('fr') ? PROJECT_AGENT_STOP_COPY.fr : PROJECT_AGENT_STOP_COPY.en;
+
+  return target.includes('anthropic') || target.includes('claude') ? copy.claude : copy.agent;
 }

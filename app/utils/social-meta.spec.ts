@@ -2,7 +2,8 @@
  * Métadonnées publiques — garde de non-régression SEO/social.
  *
  * Couvre BUG-MKT-003 (canonical), 004 (og:title), 006 (og:url), 007 (og:type /
- * og:site_name) et 008 (twitter:title / twitter:description).
+ * og:site_name) et 008 (twitter:title / twitter:description), ainsi que la
+ * localisation de l'alternative textuelle de l'image sociale.
  */
 import { describe, expect, it } from 'vitest';
 
@@ -82,5 +83,37 @@ describe('socialMetaTags', () => {
       expect(get(tags, key)).toMatch(/^https:\/\//);
     }
     expect(get(tags, 'twitter:image', 'name')).toMatch(/^https:\/\//);
+  });
+
+  it('uses the localized title as the default social image alternative', () => {
+    /*
+     * Le repli est le titre (déjà traduit) et non une constante anglaise :
+     * sur une page servie en français, un alt figé en anglais est la
+     * régression que la localisation corrige.
+     */
+    const localized = socialMetaTags({
+      title: 'Créez, déployez et faites évoluer vos applications avec E-Code',
+      description: 'Une plateforme de développement complète.',
+    });
+
+    expect(localized).toContainEqual({
+      property: 'og:image:alt',
+      content: 'Créez, déployez et faites évoluer vos applications avec E-Code',
+    });
+    expect(localized).toContainEqual({
+      name: 'twitter:image:alt',
+      content: 'Créez, déployez et faites évoluer vos applications avec E-Code',
+    });
+  });
+
+  it('accepts a specific localized alternative when the artwork needs more context', () => {
+    const withAlt = socialMetaTags({
+      title: 'Tarifs E-Code',
+      description: 'Comparez les offres.',
+      imageAlt: 'Aperçu des offres E-Code',
+    });
+
+    expect(withAlt).toContainEqual({ property: 'og:image:alt', content: 'Aperçu des offres E-Code' });
+    expect(withAlt).toContainEqual({ name: 'twitter:image:alt', content: 'Aperçu des offres E-Code' });
   });
 });

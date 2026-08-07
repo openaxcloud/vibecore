@@ -1,4 +1,5 @@
-import { STARTER_TEMPLATES } from '~/utils/constants';
+import { getPublicGalleryCopy, type PublicGalleryKey } from '~/lib/i18n/catalogs/public-gallery';
+import { getStarterTemplates, STARTER_TEMPLATES } from '~/utils/constants';
 
 type StarterTemplate = (typeof STARTER_TEMPLATES)[number];
 
@@ -70,20 +71,26 @@ const AUTHOR: EcodeTemplateAuthor = {
 
 const UPDATED_AT = '2026-06-09T00:00:00.000Z';
 
-const WORKSPACE_TEMPLATES: Array<{
+type WorkspaceTemplateDefinition = {
   id: string;
-  name: string;
-  description: string;
+  nameKey: PublicGalleryKey;
+  descriptionKey: PublicGalleryKey;
   category: string;
   difficulty: EcodeTemplate['difficulty'];
   tags: string[];
   technologies: string[];
-}> = [
+};
+
+type WorkspaceTemplate = Omit<WorkspaceTemplateDefinition, 'nameKey' | 'descriptionKey'> & {
+  name: string;
+  description: string;
+};
+
+const WORKSPACE_TEMPLATE_DEFINITIONS: readonly WorkspaceTemplateDefinition[] = [
   {
     id: 'react-saas',
-    name: 'React SaaS',
-    description:
-      'Production SaaS starter with React, Vite, TypeScript, authenticated dashboard surfaces and deploy-ready structure.',
+    nameKey: 'publicGallery.workspace.reactSaas.name',
+    descriptionKey: 'publicGallery.workspace.reactSaas.description',
     category: 'web',
     difficulty: 'intermediate',
     tags: ['react', 'vite', 'typescript', 'saas', 'dashboard'],
@@ -91,9 +98,8 @@ const WORKSPACE_TEMPLATES: Array<{
   },
   {
     id: 'next-dashboard',
-    name: 'Next dashboard',
-    description:
-      'Full-stack dashboard starter with Next.js, Prisma, Tailwind CSS and database-backed operational screens.',
+    nameKey: 'publicGallery.workspace.nextDashboard.name',
+    descriptionKey: 'publicGallery.workspace.nextDashboard.description',
     category: 'web',
     difficulty: 'intermediate',
     tags: ['nextjs', 'prisma', 'tailwind', 'dashboard', 'fullstack'],
@@ -101,9 +107,8 @@ const WORKSPACE_TEMPLATES: Array<{
   },
   {
     id: 'fastify-api',
-    name: 'Fastify API',
-    description:
-      'Backend service starter with Node.js, Fastify, PostgreSQL-style persistence boundaries and production API conventions.',
+    nameKey: 'publicGallery.workspace.fastifyApi.name',
+    descriptionKey: 'publicGallery.workspace.fastifyApi.description',
     category: 'api',
     difficulty: 'advanced',
     tags: ['node', 'fastify', 'postgresql', 'api', 'backend'],
@@ -111,9 +116,8 @@ const WORKSPACE_TEMPLATES: Array<{
   },
   {
     id: 'ai-agent',
-    name: 'AI agent',
-    description:
-      'Agent runtime starter with tool orchestration, streaming events, provider routing and IDE integration points.',
+    nameKey: 'publicGallery.workspace.aiAgent.name',
+    descriptionKey: 'publicGallery.workspace.aiAgent.description',
     category: 'ml-ai',
     difficulty: 'advanced',
     tags: ['ai', 'agents', 'tools', 'streaming', 'typescript'],
@@ -121,9 +125,8 @@ const WORKSPACE_TEMPLATES: Array<{
   },
   {
     id: 'landing-page',
-    name: 'Landing page',
-    description:
-      'Responsive marketing starter for conversion pages, polished content sections and production-ready routing.',
+    nameKey: 'publicGallery.workspace.landingPage.name',
+    descriptionKey: 'publicGallery.workspace.landingPage.description',
     category: 'web',
     difficulty: 'beginner',
     tags: ['remix', 'tailwind', 'marketing', 'landing-page'],
@@ -131,9 +134,8 @@ const WORKSPACE_TEMPLATES: Array<{
   },
   {
     id: 'mobile-starter',
-    name: 'Mobile starter',
-    description:
-      'Mobile app starter with Expo, React and TypeScript for shared frontend packages and device-first flows.',
+    nameKey: 'publicGallery.workspace.mobileStarter.name',
+    descriptionKey: 'publicGallery.workspace.mobileStarter.description',
     category: 'mobile',
     difficulty: 'intermediate',
     tags: ['expo', 'react', 'typescript', 'mobile'],
@@ -141,12 +143,12 @@ const WORKSPACE_TEMPLATES: Array<{
   },
 ];
 
-const CATEGORY_LABELS: Record<string, string> = {
-  api: 'APIs & Backend',
-  mobile: 'Mobile',
-  'ml-ai': 'AI & ML',
-  starter: 'Starter Kits',
-  web: 'Web Apps',
+const CATEGORY_LABEL_KEYS: Record<string, PublicGalleryKey> = {
+  api: 'publicGallery.category.api',
+  mobile: 'publicGallery.category.mobile',
+  'ml-ai': 'publicGallery.category.mlAi',
+  starter: 'publicGallery.category.starter',
+  web: 'publicGallery.category.web',
 };
 
 const SIMPLE_CATEGORY_ALIASES: Record<string, string> = {
@@ -156,7 +158,7 @@ const SIMPLE_CATEGORY_ALIASES: Record<string, string> = {
   webapp: 'web',
 };
 
-export function listEcodeTemplates(options: ListTemplatesOptions = {}) {
+export function listEcodeTemplates(options: ListTemplatesOptions = {}, language?: string | null) {
   const query = normalize(options.query);
   const category = normalizeCategory(options.category);
   const tags = (options.tags ?? []).map(normalize).filter(Boolean);
@@ -164,7 +166,7 @@ export function listEcodeTemplates(options: ListTemplatesOptions = {}) {
   const difficulties = (options.difficulty ?? []).map(normalize).filter(Boolean);
   const maxPrice = options.maxPrice;
 
-  let templates = getEcodeTemplateCatalog().filter((template) => {
+  let templates = getEcodeTemplateCatalog(language).filter((template) => {
     if (category && template.category !== category) {
       return false;
     }
@@ -228,10 +230,11 @@ export function paginateTemplates(
   };
 }
 
-export function getEcodeTemplateCategories(): EcodeTemplateCategory[] {
+export function getEcodeTemplateCategories(language?: string | null): EcodeTemplateCategory[] {
   const counts = new Map<string, number>();
+  const copy = getPublicGalleryCopy(language);
 
-  for (const template of getEcodeTemplateCatalog()) {
+  for (const template of getEcodeTemplateCatalog(language)) {
     counts.set(template.category, (counts.get(template.category) ?? 0) + 1);
   }
 
@@ -240,7 +243,7 @@ export function getEcodeTemplateCategories(): EcodeTemplateCategory[] {
     .map(([slug, count]) => ({
       id: slug,
       slug,
-      name: CATEGORY_LABELS[slug] ?? titleCase(slug),
+      name: CATEGORY_LABEL_KEYS[slug] ? copy[CATEGORY_LABEL_KEYS[slug]] : titleCase(slug),
       count,
     }));
 }
@@ -276,22 +279,30 @@ export function getEcodeTemplateSuggestions(query: string | null, limit = 5): st
     .slice(0, limit);
 }
 
-export function getEcodeTemplateById(templateId: string) {
+export function getEcodeTemplateById(templateId: string, language?: string | null) {
   const normalizedId = normalize(templateId);
 
-  return getEcodeTemplateCatalog().find(
+  return getEcodeTemplateCatalog(language).find(
     (template) => normalize(template.id) === normalizedId || normalize(template.slug) === normalizedId,
   );
 }
 
-export function getEcodeTemplateCatalog(): EcodeTemplate[] {
-  const starterTemplates = STARTER_TEMPLATES.map(mapStarterTemplate);
-  const workspaceTemplates = WORKSPACE_TEMPLATES.map(mapWorkspaceTemplate);
+export function getEcodeTemplateCatalog(language?: string | null): EcodeTemplate[] {
+  const copy = getPublicGalleryCopy(language);
+  const starterTemplates = getStarterTemplates(language).map(mapStarterTemplate);
+
+  const workspaceTemplates = WORKSPACE_TEMPLATE_DEFINITIONS.map(
+    ({ nameKey, descriptionKey, ...template }): WorkspaceTemplate => ({
+      ...template,
+      name: copy[nameKey],
+      description: copy[descriptionKey],
+    }),
+  ).map(mapWorkspaceTemplate);
 
   return [...workspaceTemplates, ...starterTemplates];
 }
 
-function mapWorkspaceTemplate(template: (typeof WORKSPACE_TEMPLATES)[number], index: number): EcodeTemplate {
+function mapWorkspaceTemplate(template: WorkspaceTemplate, index: number): EcodeTemplate {
   return buildTemplate({
     id: template.id,
     name: template.name,

@@ -1,37 +1,66 @@
 import { FilePlus2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
 import { Form, useActionData, useNavigation } from 'react-router';
 import { AppShell } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import {
-  apiErrorMessage,
   apiRequest,
   firstOrganization,
   firstOrganizationOrNull,
   formObject,
   isApiResponse,
+  json,
   redirect,
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
-import { shouldRethrowActionError } from '~/lib/route-reauth';
+import { getImportRoutesCopy } from '~/lib/i18n/catalogs/import-routes';
+import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
+import { isReauthRedirect } from '~/lib/route-reauth';
 import { projectIdePath } from '~/utils/project-url';
 
-export const meta: MetaFunction = () => [{ title: 'Empty project - E-Code' }];
+const IMPORT_EMPTY_CANONICAL_URL = 'https://e-code.ai/import/empty';
+
+export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
+  const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
+  const language = data?.language ?? rootData?.language;
+  const copy = getImportRoutesCopy(language);
+  const title = copy['importRoutes.empty.meta.title'];
+  const description = copy['importRoutes.empty.meta.description'];
+  const french = language === 'fr';
+
+  return [
+    { title },
+    { name: 'description', content: description },
+    { property: 'og:title', content: title },
+    { property: 'og:description', content: description },
+    { property: 'og:type', content: 'website' },
+    { property: 'og:url', content: IMPORT_EMPTY_CANONICAL_URL },
+    { property: 'og:locale', content: french ? 'fr_FR' : 'en_US' },
+    { property: 'og:locale:alternate', content: french ? 'en_US' : 'fr_FR' },
+    { name: 'twitter:title', content: title },
+    { name: 'twitter:description', content: description },
+    { tagName: 'link', rel: 'canonical', href: IMPORT_EMPTY_CANONICAL_URL },
+    { tagName: 'link', rel: 'alternate', hrefLang: 'en', href: `${IMPORT_EMPTY_CANONICAL_URL}?lang=en` },
+    { tagName: 'link', rel: 'alternate', hrefLang: 'fr', href: `${IMPORT_EMPTY_CANONICAL_URL}?lang=fr` },
+    { tagName: 'link', rel: 'alternate', hrefLang: 'x-default', href: IMPORT_EMPTY_CANONICAL_URL },
+  ];
+};
 
 type Project = { id: string; slug?: string };
-
-const PROJECT_QUOTA_MESSAGE =
-  'Your workspace has reached its project limit. Upgrade the plan or ask an admin for a quota override before creating another project.';
+type ImportEmptyErrorCode = 'quota' | 'createFailed';
+type ImportEmptyActionData = { errorCode: ImportEmptyErrorCode };
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
+  const localeResolution = resolveRequestLocale(request);
   const organization = await firstOrganizationOrNull(request);
 
   if (!organization) {
     return redirect('/');
   }
 
-  return null;
+  return json({ language: localeResolution.language }, { headers: localeResponseHeaders(request, localeResolution) });
 }
 
 /**
@@ -41,76 +70,91 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
  * straight in the IDE, ready to edit, with no generation step.
  */
 export async function action({ request }: EnterpriseActionArgs) {
-  const organization = await firstOrganization(request);
+  const localeResolution = resolveRequestLocale(request);
+  const copy = getImportRoutesCopy(localeResolution.language);
+
+  const actionError = (errorCode: ImportEmptyErrorCode, status: number) =>
+    json<ImportEmptyActionData>({ errorCode }, { status, headers: localeResponseHeaders(request, localeResolution) });
+
   const body = formObject(await request.formData()) as { name?: string };
-  const name = body.name?.trim() || 'Empty project';
+  const name = body.name?.trim() || copy['importRoutes.empty.generated.defaultName'];
 
   let result: { project: Project };
 
   try {
+    const organization = await firstOrganization(request);
     result = await apiRequest<{ project: Project }>(request, `/orgs/${organization.id}/projects`, {
       method: 'POST',
       body: JSON.stringify({ name }),
     });
+
+    return redirect(
+      projectIdePath({ id: result.project.id, slug: result.project.slug, organizationSlug: organization.slug }),
+    );
   } catch (error) {
-    if (shouldRethrowActionError(error)) {
+    if (isReauthRedirect(error) || (error instanceof Response && error.status === 401)) {
       throw error;
     }
 
     if (isApiResponse(error, 402) || isApiResponse(error, 429)) {
-      const message = await apiErrorMessage(error, '');
-      return { error: /quota exceeded for projects\.count/i.test(message) ? PROJECT_QUOTA_MESSAGE : message };
+      return actionError('quota', error.status);
     }
 
-    if (isApiResponse(error)) {
-      return { error: await apiErrorMessage(error, 'Could not create an empty project.') };
-    }
-
-    throw error;
+    return actionError('createFailed', error instanceof Response ? error.status : 500);
   }
-
-  return redirect(
-    projectIdePath({ id: result.project.id, slug: result.project.slug, organizationSlug: organization.slug }),
-  );
 }
 
 export default function ImportEmptyPage() {
-  const actionData = useActionData<typeof action>() as { error?: string } | undefined;
+  const { i18n } = useTranslation();
+  const copy = getImportRoutesCopy(i18n.resolvedLanguage ?? i18n.language);
+  const actionData = useActionData<typeof action>() as ImportEmptyActionData | undefined;
   const navigation = useNavigation();
   const creating = navigation.state === 'submitting';
+  const actionError = actionData?.errorCode ? copy[`importRoutes.empty.error.${actionData.errorCode}`] : null;
 
   return (
-    <AppShell
-      title="Empty project"
-      description="Start from a blank workspace — no agent, no framework, no scaffolding. The project opens straight in the IDE, ready to edit."
-    >
+    <AppShell title={copy['importRoutes.empty.page.title']} description={copy['importRoutes.empty.page.description']}>
       <Form
         method="post"
         className="w-full max-w-full rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 sm:p-6"
       >
         <FilePlus2 className="mb-4 h-6 w-6 text-bolt-elements-textTertiary" aria-hidden />
-        {actionData?.error ? (
+        {actionError ? (
           <p role="alert" className="mb-4 text-sm text-[var(--status-error-text)]">
-            {actionData.error}
+            {actionError}
           </p>
         ) : null}
         <label className="grid gap-2 text-sm font-medium">
-          Project name
+          {copy['importRoutes.empty.form.projectName']}
           <input
-            className="h-10 w-full min-w-0 max-w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-base outline-none sm:text-sm"
+            className="min-h-11 w-full min-w-0 max-w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-base outline-none sm:text-sm"
             name="name"
-            placeholder="Empty project"
+            placeholder={copy['importRoutes.empty.form.projectPlaceholder']}
             defaultValue=""
-            aria-label="Project name"
+            aria-label={copy['importRoutes.empty.form.projectName']}
           />
         </label>
         <p className="mt-2 text-xs font-normal text-bolt-elements-textTertiary">
-          A blank workspace with only the minimal files the runtime needs to start. Nothing is generated.
+          {copy['importRoutes.empty.form.help']}
         </p>
         <div className="mt-5">
-          <Button type="submit" className="w-full sm:w-auto" disabled={creating} aria-busy={creating}>
-            {creating ? 'Creating…' : 'Create empty project'}
+          <Button
+            type="submit"
+            className="min-h-11 w-full whitespace-normal sm:w-auto"
+            disabled={creating}
+            aria-busy={creating}
+          >
+            {creating ? copy['importRoutes.empty.form.creating'] : copy['importRoutes.empty.form.submit']}
           </Button>
+          {creating ? (
+            <div
+              className="mt-3 h-1 w-full overflow-hidden rounded-full bg-bolt-elements-background-depth-1"
+              role="progressbar"
+              aria-label={copy['importRoutes.empty.form.progress']}
+            >
+              <div className="h-full w-full animate-pulse rounded-full bg-[var(--vc-ide-accent-action)]" />
+            </div>
+          ) : null}
         </div>
       </Form>
     </AppShell>

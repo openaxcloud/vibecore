@@ -18,6 +18,8 @@ describe('formatRailBadgeValue', () => {
     expect(formatRailBadgeValue(12_000)).toBe('12K');
     expect(formatRailBadgeValue(150_000)).toBe('150K');
     expect(formatRailBadgeValue(2_500_000)).toBe('2.5M');
+    expect(formatRailBadgeValue(1234, 'fr-FR')).toBe('1,2 k');
+    expect(formatRailBadgeValue(2_500_000, 'fr-FR')).toBe('2,5 M');
   });
 
   it('floors non-integer inputs', () => {

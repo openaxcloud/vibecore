@@ -20,6 +20,8 @@ describe('project panel refresh helpers', () => {
     expect(formatProjectPanelRefreshCadence(15_000)).toBe('15s');
     expect(formatProjectPanelRefreshCadence(60_000)).toBe('1m');
     expect(formatProjectPanelRefreshCadence(120_000)).toBe('2m');
+    expect(formatProjectPanelRefreshCadence(15_000, 'fr-FR')).toBe('15 s');
+    expect(formatProjectPanelRefreshCadence(120_000, 'fr-FR')).toBe('2 min');
   });
 
   it('formats freshness labels', () => {
@@ -29,5 +31,8 @@ describe('project panel refresh helpers', () => {
     expect(formatProjectPanelUpdatedLabel('2026-05-27T11:59:58.000Z', now)).toBe('Updated just now');
     expect(formatProjectPanelUpdatedLabel('2026-05-27T11:59:20.000Z', now)).toBe('Updated 40s ago');
     expect(formatProjectPanelUpdatedLabel('2026-05-27T11:54:00.000Z', now)).toBe('Updated 6m ago');
+    expect(formatProjectPanelUpdatedLabel(undefined, now, 'fr-FR')).toBe('En attente de la première mise à jour');
+    expect(formatProjectPanelUpdatedLabel('2026-05-27T11:59:58.000Z', now, 'fr-FR')).toBe('Mis à jour à l’instant');
+    expect(formatProjectPanelUpdatedLabel('2026-05-27T11:59:20.000Z', now, 'fr-FR')).toBe('Mis à jour il y a 40 s');
   });
 });

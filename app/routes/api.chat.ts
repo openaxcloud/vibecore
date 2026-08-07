@@ -22,7 +22,7 @@ import {
 } from '~/lib/.server/llm/agent-orchestration';
 import { createAgentPlan } from '~/lib/.server/llm/create-agent-plan';
 import { createConnectionRequestDataPart, detectConnectorNeeds } from '~/lib/.server/llm/connector-prompt';
-import { ChatQuotaError, serializeChatStreamError } from './api.chat.quota-error';
+import { buildChatStreamErrorPayload, ChatQuotaError } from './api.chat.quota-error';
 import { apiRequest } from '~/lib/enterprise-api.server';
 import type { ConnectorDataPart, ExistingAccountConnection } from '~/lib/chat/connector-messages';
 import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS, type FileMap } from '~/lib/.server/llm/constants';
@@ -72,6 +72,20 @@ import {
   createPortfolioTemplateStreamChunks,
   shouldUsePortfolioTemplate,
 } from '~/utils/portfolio-template';
+import {
+  API_CHAT_PROGRESS_LABELS,
+  formatApiChatCopy,
+  getApiChatCopy,
+  localizeApiChatAgentResultSummary,
+  localizeApiChatConflictDescription,
+  localizeApiChatModeError,
+  localizeApiChatOrchestrationReason,
+  localizeApiChatQuotaError,
+  localizeApiChatRole,
+  localizeApiChatRoleTitle,
+  localizeApiChatStreamError,
+} from '~/lib/i18n/catalogs/api-chat';
+import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 
 export async function action(args: ActionFunctionArgs) {
   return chatAction(args);
@@ -79,6 +93,12 @@ export async function action(args: ActionFunctionArgs) {
 
 const logger = createScopedLogger('api.chat');
 const RECENT_HISTORY_MESSAGES = 12;
+const AGENT_MODES_GATED_PLAN_REASON = 'plan';
+const ORCHESTRATION_FALLBACK_SUFFIX = 'Falling back to single-model lanes.';
+const ORCHESTRATION_FALLBACK_DIAGNOSTIC = `Sub-agent executor failed. ${ORCHESTRATION_FALLBACK_SUFFIX}`;
+const SUMMARY_REUSE_SAME_WINDOW_REASON = 'palier-unchanged';
+const SUMMARY_SKIP_RECENT_WINDOW_REASON = 'history-within-recent-window';
+const CONTEXT_SELECTION_REUSE_REASON = 'inputs-unchanged';
 
 function parseCookies(cookieHeader: string): Record<string, string> {
   const cookies: Record<string, string> = {};
@@ -114,6 +134,33 @@ function parseCookies(cookieHeader: string): Record<string, string> {
 
 async function chatAction({ context, request }: ActionFunctionArgs) {
   let clientDisconnected = false;
+
+  const localeResolution = resolveRequestLocale(request);
+  const language = localeResolution.language;
+  const copy = getApiChatCopy(language);
+
+  const responseHeaders = (initial?: HeadersInit): Headers => {
+    const headers = localeResponseHeaders(request, localeResolution);
+
+    new Headers(initial).forEach((value, key) => {
+      headers.set(key, value);
+    });
+
+    return headers;
+  };
+
+  const serializeLocalizedStreamError = (error: unknown): string => {
+    const payload = buildChatStreamErrorPayload(error);
+
+    if (error instanceof ChatQuotaError) {
+      return JSON.stringify(payload);
+    }
+
+    return JSON.stringify({
+      ...payload,
+      message: localizeApiChatStreamError(language, classifyStreamError(error), payload.message),
+    });
+  };
 
   const streamRecovery = new StreamRecoveryManager({
     timeout: 45000,
@@ -188,9 +235,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
      * A malformed JSON body would otherwise throw before the try block below,
      * surfacing as an unhandled 500 instead of a clear 400.
      */
-    return new Response(JSON.stringify({ error: true, message: 'Invalid JSON body' }), {
+    return new Response(JSON.stringify({ error: true, message: copy.invalidJsonBody }), {
       status: 400,
-      headers: { 'Content-Type': 'application/json' },
+      headers: responseHeaders({ 'Content-Type': 'application/json' }),
       statusText: 'Bad Request',
     });
   }
@@ -275,11 +322,18 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         JSON.stringify({ event: 'agent-mode.refused', projectId, code: routeResult.code, mode: agentSelection.mode }),
       );
 
-      return new Response(JSON.stringify({ error: true, code: routeResult.code, message: routeResult.message }), {
-        status: routeResult.statusCode,
-        headers: { 'Content-Type': 'application/json' },
-        statusText: 'Forbidden',
-      });
+      return new Response(
+        JSON.stringify({
+          error: true,
+          code: routeResult.code,
+          message: localizeApiChatModeError(language, routeResult.message),
+        }),
+        {
+          status: routeResult.statusCode,
+          headers: responseHeaders({ 'Content-Type': 'application/json' }),
+          statusText: 'Forbidden',
+        },
+      );
     }
 
     if (routeResult.ok === true) {
@@ -367,7 +421,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
      * credentials into another tenant's concurrent chat. Closed on disconnect
      * and on completion below.
      */
-    const mcpService = new MCPService();
+    const mcpService = new MCPService(language);
     request.signal?.addEventListener('abort', () => void mcpService.close(), { once: true });
 
     /*
@@ -466,6 +520,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           });
 
           if (!quota.ok) {
+            const quotaMessage = localizeApiChatQuotaError(language, quota.code, quota.message);
+
             logger.warn(
               JSON.stringify({
                 event: 'chat.quota.blocked',
@@ -476,17 +532,17 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             );
             dataStream.writeData({
               type: 'progress',
-              label: 'quota-exceeded',
+              label: API_CHAT_PROGRESS_LABELS.quotaExceeded,
               status: 'complete',
               order: progressCounter++,
-              message: quota.message,
+              message: quotaMessage,
             } satisfies ProgressAnnotation);
             dataStream.writeMessageAnnotation({
               type: 'error',
               value: {
                 code: quota.code,
                 statusCode: quota.statusCode,
-                message: quota.message,
+                message: quotaMessage,
               },
             });
             streamRecovery.stop();
@@ -511,7 +567,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
              * silently. createDataStream's onError serialises this into a payload
              * Chat.client.handleError can parse.
              */
-            throw new ChatQuotaError(quota.message, quota.statusCode, quota.code);
+            throw new ChatQuotaError(quotaMessage, quota.statusCode, quota.code);
           }
 
           /*
@@ -588,18 +644,18 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
           dataStream.writeData({
             type: 'progress',
-            label: 'portfolio-template',
+            label: API_CHAT_PROGRESS_LABELS.portfolioTemplate,
             status: 'complete',
             order: progressCounter++,
-            message: 'Loaded cached portfolio template',
+            message: copy.loadedPortfolioTemplate,
           } satisfies ProgressAnnotation);
 
           dataStream.writeData({
             type: 'progress',
-            label: 'response',
+            label: API_CHAT_PROGRESS_LABELS.response,
             status: 'in-progress',
             order: progressCounter++,
-            message: 'Streaming cached portfolio files',
+            message: copy.streamingPortfolioFiles,
           } satisfies ProgressAnnotation);
 
           for (const chunk of streamChunks) {
@@ -614,10 +670,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           });
           dataStream.writeData({
             type: 'progress',
-            label: 'response',
+            label: API_CHAT_PROGRESS_LABELS.response,
             status: 'complete',
             order: progressCounter++,
-            message: 'Response Generated',
+            message: copy.responseGenerated,
           } satisfies ProgressAnnotation);
           dataStream.write(
             formatDataStreamPart('finish_step', {
@@ -743,6 +799,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
          */
         await emitConnectorConnectionRequests({
           dataStream,
+          language,
           processedMessages,
           projectId,
           request,
@@ -770,7 +827,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           logger.info(JSON.stringify({ event: 'chat.premiumModes.gated', projectId }));
           dataStream.writeMessageAnnotation({
             type: 'agentModesGated',
-            reason: 'plan',
+            reason: AGENT_MODES_GATED_PLAN_REASON,
             gated: ['turboMode', 'highPowerModel'].filter((mode) => (agentPower as Record<string, unknown>)[mode]),
           } as unknown as ContextAnnotation);
         }
@@ -863,10 +920,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
           dataStream.writeData({
             type: 'progress',
-            label: 'response',
+            label: API_CHAT_PROGRESS_LABELS.response,
             status: 'complete',
             order: progressCounter++,
-            message: 'Plan ready — approve to build',
+            message: copy.planReady,
           } satisfies ProgressAnnotation);
 
           const planUsage = { completionTokens: 0, promptTokens: 0 };
@@ -926,10 +983,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           if (orchestrationPlan.mode === 'parallel-subagents') {
             dataStream.writeData({
               type: 'progress',
-              label: 'orchestration',
+              label: API_CHAT_PROGRESS_LABELS.orchestration,
               status: 'in-progress',
               order: progressCounter++,
-              message: 'Executing specialist agent lanes',
+              message: copy.executingSpecialistLanes,
             } satisfies ProgressAnnotation);
 
             try {
@@ -973,7 +1030,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                         type: 'agentLaneStream',
                         kind: 'start',
                         roleId: event.roleId,
-                        title: event.title,
+                        title: localizeApiChatRoleTitle(language, event.roleId, event.title),
                       } satisfies ContextAnnotation);
                     } else if (event.type === 'lane-delta') {
                       dataStream.writeMessageAnnotation({
@@ -988,7 +1045,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                         kind: 'done',
                         roleId: event.roleId,
                         status: event.result.status,
-                        summary: event.result.summary,
+                        summary: localizeApiChatAgentResultSummary(language, event.result.status, event.result.summary),
                       } satisfies ContextAnnotation);
                     }
                   },
@@ -1021,26 +1078,50 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               agentOrchestrationContext = [agentOrchestrationContext, createAgentExecutionContext(execution)]
                 .filter(Boolean)
                 .join('\n');
-              dataStream.writeMessageAnnotation(buildAgentExecutionAnnotation(execution) satisfies ContextAnnotation);
+
+              const executionAnnotation = buildAgentExecutionAnnotation(execution);
+
+              const localizedExecutionAnnotation = {
+                ...executionAnnotation,
+                results: executionAnnotation.results.map((result) => ({
+                  ...result,
+                  summary: localizeApiChatAgentResultSummary(language, result.status, result.summary),
+                })),
+                consensus: executionAnnotation.consensus
+                  ? {
+                      ...executionAnnotation.consensus,
+                      conflicts: executionAnnotation.consensus.conflicts.map((conflict) => ({
+                        ...conflict,
+                        description: localizeApiChatConflictDescription(language, conflict),
+                      })),
+                    }
+                  : undefined,
+              } satisfies ContextAnnotation;
+
+              dataStream.writeMessageAnnotation(localizedExecutionAnnotation as unknown as JSONValue);
             } catch (error) {
-              const message =
+              const diagnostic =
                 error instanceof AgentExecutorError
-                  ? `${error.message} Falling back to single-model lanes.`
-                  : 'Sub-agent executor failed. Falling back to single-model lanes.';
-              logger.warn(message);
+                  ? `${error.message} ${ORCHESTRATION_FALLBACK_SUFFIX}`
+                  : ORCHESTRATION_FALLBACK_DIAGNOSTIC;
+              logger.warn(diagnostic);
               orchestrationPlan = {
                 ...orchestrationPlan,
                 mode: 'single-model-lanes',
-                reason: message,
+                reason: diagnostic,
               };
             }
           }
 
+          const localizedOrchestrationRoles = orchestrationPlan.roles.map((role) =>
+            localizeApiChatRole(language, role),
+          );
+
           dataStream.writeMessageAnnotation({
             type: 'agentOrchestration',
             mode: orchestrationPlan.mode,
-            reason: orchestrationPlan.reason,
-            roles: orchestrationPlan.roles.map((role) => ({
+            reason: localizeApiChatOrchestrationReason(language, orchestrationPlan.reason),
+            roles: localizedOrchestrationRoles.map((role) => ({
               id: role.id,
               title: role.title,
               responsibility: role.responsibility,
@@ -1049,10 +1130,12 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
           dataStream.writeData({
             type: 'progress',
-            label: 'orchestration',
+            label: API_CHAT_PROGRESS_LABELS.orchestration,
             status: 'complete',
             order: progressCounter++,
-            message: `Agent lanes planned: ${orchestrationPlan.roles.map((role) => role.title).join(', ')}`,
+            message: formatApiChatCopy(language, 'plannedAgentLanes', {
+              roles: localizedOrchestrationRoles.map((role) => role.title).join(', '),
+            }),
           } satisfies ProgressAnnotation);
         }
 
@@ -1107,16 +1190,22 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
               if (memoizedSummary !== undefined) {
                 // INFO (not debug): prod drops debug logs, so this reuse must be INFO to be countable.
-                logger.info(JSON.stringify({ event: 'chat.summary.reused', projectId, reason: 'palier-unchanged' }));
+                logger.info(
+                  JSON.stringify({
+                    event: 'chat.summary.reused',
+                    projectId,
+                    reason: SUMMARY_REUSE_SAME_WINDOW_REASON,
+                  }),
+                );
                 summary = memoizedSummary;
               } else {
                 logger.debug('Generating Chat Summary');
                 dataStream.writeData({
                   type: 'progress',
-                  label: 'summary',
+                  label: API_CHAT_PROGRESS_LABELS.summary,
                   status: 'in-progress',
                   order: progressCounter++,
-                  message: 'Analysing Request',
+                  message: copy.analysingRequest,
                 } satisfies ProgressAnnotation);
 
                 summary = await createSummary({
@@ -1143,10 +1232,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
                 dataStream.writeData({
                   type: 'progress',
-                  label: 'summary',
+                  label: API_CHAT_PROGRESS_LABELS.summary,
                   status: 'complete',
                   order: progressCounter++,
-                  message: 'Analysis Complete',
+                  message: copy.analysisComplete,
                 } satisfies ProgressAnnotation);
               }
 
@@ -1165,7 +1254,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 JSON.stringify({
                   event: 'chat.summary.skipped',
                   projectId,
-                  reason: 'history-within-recent-window',
+                  reason: SUMMARY_SKIP_RECENT_WINDOW_REASON,
                   messages: processedMessages.length,
                   estimatedHistoryTokens,
                 }),
@@ -1175,10 +1264,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             logger.debug('Updating Context Buffer');
             dataStream.writeData({
               type: 'progress',
-              label: 'context',
+              label: API_CHAT_PROGRESS_LABELS.context,
               status: 'in-progress',
               order: progressCounter++,
-              message: 'Determining Files to Read',
+              message: copy.determiningFilesToRead,
             } satisfies ProgressAnnotation);
 
             /*
@@ -1200,7 +1289,11 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             if (memoizedSelection) {
               // INFO (not debug): prod drops debug logs, so this reuse must be INFO to be countable.
               logger.info(
-                JSON.stringify({ event: 'chat.contextSelection.reused', projectId, reason: 'inputs-unchanged' }),
+                JSON.stringify({
+                  event: 'chat.contextSelection.reused',
+                  projectId,
+                  reason: CONTEXT_SELECTION_REUSE_REASON,
+                }),
               );
               filteredFiles = memoizedSelection;
             } else {
@@ -1248,10 +1341,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
             dataStream.writeData({
               type: 'progress',
-              label: 'context',
+              label: API_CHAT_PROGRESS_LABELS.context,
               status: 'complete',
               order: progressCounter++,
-              message: 'Code Files Selected',
+              message: copy.codeFilesSelected,
             } satisfies ProgressAnnotation);
           } catch (contextError) {
             logger.warn('Context optimization failed; continuing without selected context', contextError);
@@ -1259,10 +1352,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             summary = undefined;
             dataStream.writeData({
               type: 'progress',
-              label: 'context',
+              label: API_CHAT_PROGRESS_LABELS.context,
               status: 'complete',
               order: progressCounter++,
-              message: 'Context optimization skipped',
+              message: copy.contextOptimizationSkipped,
             } satisfies ProgressAnnotation);
           }
         }
@@ -1348,11 +1441,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               try {
                 dataStream.writeData({
                   type: 'progress',
-                  label: 'response',
+                  label: API_CHAT_PROGRESS_LABELS.response,
                   status: 'complete',
                   order: progressCounter++,
-                  message:
-                    'No files were generated — this model did not emit any file actions. Pick a more capable model (e.g. GPT-4o or Claude Sonnet) and try again.',
+                  message: copy.noFilesGenerated,
                 } satisfies ProgressAnnotation);
                 logger.warn(
                   `[chat] build produced no file actions (model likely too weak); projectId=${projectId ?? 'n/a'}`,
@@ -1517,10 +1609,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
                 dataStream.writeData({
                   type: 'progress',
-                  label: 'response',
+                  label: API_CHAT_PROGRESS_LABELS.response,
                   status: 'complete',
                   order: progressCounter++,
-                  message: 'Response Generated',
+                  message: copy.responseGenerated,
                 } satisfies ProgressAnnotation);
                 await new Promise((resolve) => setTimeout(resolve, 0));
                 await persistAgentMemoryCandidate(request, {
@@ -1548,10 +1640,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 warnIfNoFilesGenerated();
                 dataStream.writeData({
                   type: 'progress',
-                  label: 'response',
+                  label: API_CHAT_PROGRESS_LABELS.response,
                   status: 'complete',
                   order: progressCounter++,
-                  message: 'Response truncated: maximum continuation segments reached',
+                  message: copy.responseTruncatedSegments,
                 } satisfies ProgressAnnotation);
 
                 await safeCloseMcp();
@@ -1572,10 +1664,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 warnIfNoFilesGenerated();
                 dataStream.writeData({
                   type: 'progress',
-                  label: 'response',
+                  label: API_CHAT_PROGRESS_LABELS.response,
                   status: 'complete',
                   order: progressCounter++,
-                  message: 'Response truncated: model returned no further content',
+                  message: copy.responseTruncatedNoContent,
                 } satisfies ProgressAnnotation);
 
                 await safeCloseMcp();
@@ -1663,10 +1755,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 await safeCloseMcp();
                 dataStream.writeData({
                   type: 'progress',
-                  label: 'response',
+                  label: API_CHAT_PROGRESS_LABELS.response,
                   status: 'complete',
                   order: progressCounter++,
-                  message: 'Response interrupted: continuation failed',
+                  message: copy.responseInterrupted,
                 } satisfies ProgressAnnotation);
               }
 
@@ -1685,10 +1777,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
         dataStream.writeData({
           type: 'progress',
-          label: 'response',
+          label: API_CHAT_PROGRESS_LABELS.response,
           status: 'in-progress',
           order: progressCounter++,
-          message: 'Generating Response',
+          message: copy.generatingResponse,
         } satisfies ProgressAnnotation);
 
         /*
@@ -1844,7 +1936,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         if (error instanceof ChatQuotaError) {
           logger.info(`stream onError code=${error.code} (quota)`);
 
-          return serializeChatStreamError(error);
+          return serializeLocalizedStreamError(error);
         }
 
         const code = clientDisconnected ? 'STREAM_ABORTED' : classifyStreamError(error);
@@ -1872,12 +1964,11 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         }
 
         /*
-         * Serialise as a JSON error part carrying the REAL error message + code +
-         * isRetryable, instead of the opaque "Custom error: [UNKNOWN] …" string the
-         * client couldn't parse. Chat.client.handleError JSON-parses this and shows
-         * the actual cause (and auto-retries transient failures).
+         * Serialise as a structured JSON error part carrying the stable code and
+         * retryability. English retains the provider diagnostic; French maps the
+         * code to reviewed copy so SDK details and secrets never reach the UI.
          */
-        return serializeChatStreamError(error);
+        return serializeLocalizedStreamError(error);
       },
     }).pipeThrough(
       new TransformStream({
@@ -1930,19 +2021,22 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
     return new Response(dataStream, {
       status: 200,
-      headers: {
+      headers: responseHeaders({
         'Content-Type': 'text/event-stream; charset=utf-8',
         Connection: 'keep-alive',
         'Cache-Control': 'no-cache',
         'Text-Encoding': 'chunked',
-      },
+      }),
     });
   } catch (error: any) {
     logger.error(error);
 
+    const errorCode = classifyStreamError(error);
+    const rawMessage = typeof error?.message === 'string' ? error.message : '';
+
     const errorResponse = {
       error: true,
-      message: error.message || 'An unexpected error occurred',
+      message: localizeApiChatStreamError(language, errorCode, rawMessage || copy.unexpectedError),
       statusCode: error.statusCode || 500,
       isRetryable: error.isRetryable !== false, // Default to retryable unless explicitly false
       provider: error.provider || 'unknown',
@@ -1952,13 +2046,13 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
       return new Response(
         JSON.stringify({
           ...errorResponse,
-          message: 'Invalid or missing API key',
+          message: copy.invalidApiKey,
           statusCode: 401,
           isRetryable: false,
         }),
         {
           status: 401,
-          headers: { 'Content-Type': 'application/json' },
+          headers: responseHeaders({ 'Content-Type': 'application/json' }),
           statusText: 'Unauthorized',
         },
       );
@@ -1966,7 +2060,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
     return new Response(JSON.stringify(errorResponse), {
       status: errorResponse.statusCode,
-      headers: { 'Content-Type': 'application/json' },
+      headers: responseHeaders({ 'Content-Type': 'application/json' }),
       statusText: 'Error',
     });
   }
@@ -1994,6 +2088,7 @@ interface AccountConnectionResponse {
  */
 async function emitConnectorConnectionRequests(input: {
   dataStream: { writeMessageAnnotation: (annotation: JSONValue) => void };
+  language: string;
   processedMessages: Messages;
   projectId?: string;
   request: Request;
@@ -2010,7 +2105,7 @@ async function emitConnectorConnectionRequests(input: {
     return;
   }
 
-  const detected = detectConnectorNeeds({ prompt });
+  const detected = detectConnectorNeeds({ prompt, language: input.language });
 
   if (detected.length === 0) {
     return;
@@ -2063,9 +2158,10 @@ async function emitConnectorConnectionRequests(input: {
       dataPart = createConnectionRequestDataPart({
         messageId: generateId(),
         provider: need.provider,
-        reason: `The request mentions ${need.provider}. Connect it so the agent can read or write ${need.provider} data on your behalf.`,
+        reason: formatApiChatCopy(input.language, 'connectorReason', { provider: need.provider }),
         resumeToken: generateId(),
         existingAccountConnections: existingAccountConnections.length > 0 ? existingAccountConnections : undefined,
+        language: input.language,
       });
     } catch {
       /*

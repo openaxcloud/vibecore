@@ -1,3 +1,4 @@
+import { fileTreeEn, formatFileTreeCopy, type FileTreeCopy } from '~/lib/i18n/catalogs/file-tree';
 import type { FileMap } from '~/lib/stores/files';
 import type { FileHistory } from '~/types/actions';
 import { WORK_DIR } from '~/utils/constants';
@@ -9,6 +10,9 @@ export interface MaterialFileIcon {
   color: string;
   label: string;
 }
+
+type FileTypeLabelKey = keyof FileTreeCopy['fileTypes'];
+type MaterialFileIconDefinition = Omit<MaterialFileIcon, 'label'> & { labelKey: FileTypeLabelKey };
 
 export interface OutlineSymbol {
   id: string;
@@ -27,52 +31,55 @@ export interface FileTimelineEntry {
   timestamp?: number;
 }
 
-const EXTENSION_ICONS: Record<string, MaterialFileIcon> = {
-  ts: { icon: 'i-ph:file-ts', color: '#3178c6', label: 'TypeScript' },
-  tsx: { icon: 'i-ph:file-ts', color: '#3178c6', label: 'TypeScript React' },
-  js: { icon: 'i-ph:file-js', color: '#f7df1e', label: 'JavaScript' },
-  jsx: { icon: 'i-ph:file-js', color: '#61dafb', label: 'JavaScript React' },
-  json: { icon: 'i-ph:brackets-curly', color: '#f5a623', label: 'JSON' },
-  css: { icon: 'i-ph:paint-brush', color: '#42a5f5', label: 'CSS' },
-  scss: { icon: 'i-ph:paint-brush-broad', color: '#cf649a', label: 'SCSS' },
-  sass: { icon: 'i-ph:paint-brush-broad', color: '#cf649a', label: 'Sass' },
-  html: { icon: 'i-ph:code', color: '#e44d26', label: 'HTML' },
-  md: { icon: 'i-ph:article', color: '#8a94a7', label: 'Markdown' },
-  mdx: { icon: 'i-ph:article', color: '#8a94a7', label: 'MDX' },
-  py: { icon: 'i-ph:file-py', color: '#3776ab', label: 'Python' },
-  go: { icon: 'i-ph:file-code', color: '#00add8', label: 'Go' },
-  rs: { icon: 'i-ph:file-code', color: '#dea584', label: 'Rust' },
-  java: { icon: 'i-ph:coffee', color: '#f89820', label: 'Java' },
-  png: { icon: 'i-ph:image', color: '#7e57c2', label: 'Image' },
-  jpg: { icon: 'i-ph:image', color: '#7e57c2', label: 'Image' },
-  jpeg: { icon: 'i-ph:image', color: '#7e57c2', label: 'Image' },
-  gif: { icon: 'i-ph:image', color: '#7e57c2', label: 'Image' },
-  webp: { icon: 'i-ph:image', color: '#7e57c2', label: 'Image' },
-  svg: { icon: 'i-ph:vector-three', color: '#ffb13b', label: 'SVG' },
-  lock: { icon: 'i-ph:lock-simple', color: '#8a94a7', label: 'Lockfile' },
-  yml: { icon: 'i-ph:gear-six', color: '#cb6ce6', label: 'YAML' },
-  yaml: { icon: 'i-ph:gear-six', color: '#cb6ce6', label: 'YAML' },
+const EXTENSION_ICONS: Record<string, MaterialFileIconDefinition> = {
+  ts: { icon: 'i-ph:file-ts', color: '#3178c6', labelKey: 'typescript' },
+  tsx: { icon: 'i-ph:file-ts', color: '#3178c6', labelKey: 'typescriptReact' },
+  js: { icon: 'i-ph:file-js', color: '#f7df1e', labelKey: 'javascript' },
+  jsx: { icon: 'i-ph:file-js', color: '#61dafb', labelKey: 'javascriptReact' },
+  json: { icon: 'i-ph:brackets-curly', color: '#f5a623', labelKey: 'json' },
+  css: { icon: 'i-ph:paint-brush', color: '#42a5f5', labelKey: 'css' },
+  scss: { icon: 'i-ph:paint-brush-broad', color: '#cf649a', labelKey: 'scss' },
+  sass: { icon: 'i-ph:paint-brush-broad', color: '#cf649a', labelKey: 'sass' },
+  html: { icon: 'i-ph:code', color: '#e44d26', labelKey: 'html' },
+  md: { icon: 'i-ph:article', color: '#8a94a7', labelKey: 'markdown' },
+  mdx: { icon: 'i-ph:article', color: '#8a94a7', labelKey: 'mdx' },
+  py: { icon: 'i-ph:file-py', color: '#3776ab', labelKey: 'python' },
+  go: { icon: 'i-ph:file-code', color: '#00add8', labelKey: 'go' },
+  rs: { icon: 'i-ph:file-code', color: '#dea584', labelKey: 'rust' },
+  java: { icon: 'i-ph:coffee', color: '#f89820', labelKey: 'java' },
+  png: { icon: 'i-ph:image', color: '#7e57c2', labelKey: 'image' },
+  jpg: { icon: 'i-ph:image', color: '#7e57c2', labelKey: 'image' },
+  jpeg: { icon: 'i-ph:image', color: '#7e57c2', labelKey: 'image' },
+  gif: { icon: 'i-ph:image', color: '#7e57c2', labelKey: 'image' },
+  webp: { icon: 'i-ph:image', color: '#7e57c2', labelKey: 'image' },
+  svg: { icon: 'i-ph:vector-three', color: '#ffb13b', labelKey: 'svg' },
+  lock: { icon: 'i-ph:lock-simple', color: '#8a94a7', labelKey: 'lockfile' },
+  yml: { icon: 'i-ph:gear-six', color: '#cb6ce6', labelKey: 'yaml' },
+  yaml: { icon: 'i-ph:gear-six', color: '#cb6ce6', labelKey: 'yaml' },
 };
 
-const SPECIAL_FILE_ICONS: Record<string, MaterialFileIcon> = {
-  'package.json': { icon: 'i-ph:package', color: '#cb3837', label: 'npm package manifest' },
-  'package-lock.json': { icon: 'i-ph:lock-simple', color: '#8a94a7', label: 'npm lockfile' },
-  'pnpm-lock.yaml': { icon: 'i-ph:lock-simple', color: '#f69220', label: 'pnpm lockfile' },
-  'yarn.lock': { icon: 'i-ph:lock-simple', color: '#2c8ebb', label: 'Yarn lockfile' },
-  'vite.config.ts': { icon: 'i-ph:lightning', color: '#41d1ff', label: 'Vite config' },
-  'vite.config.js': { icon: 'i-ph:lightning', color: '#41d1ff', label: 'Vite config' },
-  'tsconfig.json': { icon: 'i-ph:gear-six', color: '#3178c6', label: 'TypeScript config' },
-  '.env': { icon: 'i-ph:key', color: '#10b981', label: 'Environment file' },
-  '.env.example': { icon: 'i-ph:key', color: '#10b981', label: 'Environment example' },
-  dockerfile: { icon: 'i-ph:cube', color: '#2496ed', label: 'Dockerfile' },
+const SPECIAL_FILE_ICONS: Record<string, MaterialFileIconDefinition> = {
+  'package.json': { icon: 'i-ph:package', color: '#cb3837', labelKey: 'npmPackageManifest' },
+  'package-lock.json': { icon: 'i-ph:lock-simple', color: '#8a94a7', labelKey: 'npmLockfile' },
+  'pnpm-lock.yaml': { icon: 'i-ph:lock-simple', color: '#f69220', labelKey: 'pnpmLockfile' },
+  'yarn.lock': { icon: 'i-ph:lock-simple', color: '#2c8ebb', labelKey: 'yarnLockfile' },
+  'vite.config.ts': { icon: 'i-ph:lightning', color: '#41d1ff', labelKey: 'viteConfig' },
+  'vite.config.js': { icon: 'i-ph:lightning', color: '#41d1ff', labelKey: 'viteConfig' },
+  'tsconfig.json': { icon: 'i-ph:gear-six', color: '#3178c6', labelKey: 'typescriptConfig' },
+  '.env': { icon: 'i-ph:key', color: '#10b981', labelKey: 'environmentFile' },
+  '.env.example': { icon: 'i-ph:key', color: '#10b981', labelKey: 'environmentExample' },
+  dockerfile: { icon: 'i-ph:cube', color: '#2496ed', labelKey: 'dockerfile' },
 };
 
-export function materialFileIcon(filePathOrName: string): MaterialFileIcon {
+export function materialFileIcon(
+  filePathOrName: string,
+  labels: FileTreeCopy['fileTypes'] = fileTreeEn.fileTypes,
+): MaterialFileIcon {
   const name = filePathOrName.split('/').pop()?.toLowerCase() ?? filePathOrName.toLowerCase();
   const special = SPECIAL_FILE_ICONS[name];
 
   if (special) {
-    return special;
+    return { icon: special.icon, color: special.color, label: labels[special.labelKey] };
   }
 
   /*
@@ -81,18 +88,20 @@ export function materialFileIcon(filePathOrName: string): MaterialFileIcon {
    * extension and fall through to the generic icon).
    */
   if (name === '.env' || name.startsWith('.env.')) {
-    return SPECIAL_FILE_ICONS['.env'];
+    const environment = SPECIAL_FILE_ICONS['.env'];
+
+    return environment
+      ? { icon: environment.icon, color: environment.color, label: labels[environment.labelKey] }
+      : { icon: 'i-ph:file-duotone', color: 'var(--vc-ide-text-secondary)', label: labels.file };
   }
 
   const extension = name.split('.').pop() ?? '';
 
-  return (
-    EXTENSION_ICONS[extension] ?? {
-      icon: 'i-ph:file-duotone',
-      color: 'var(--vc-ide-text-secondary)',
-      label: 'File',
-    }
-  );
+  const definition = EXTENSION_ICONS[extension];
+
+  return definition
+    ? { icon: definition.icon, color: definition.color, label: labels[definition.labelKey] }
+    : { icon: 'i-ph:file-duotone', color: 'var(--vc-ide-text-secondary)', label: labels.file };
 }
 
 export function normalizeWorkspacePath(filePath: string): string {
@@ -247,8 +256,11 @@ export function buildFileTimeline(
   files: FileMap,
   fileHistory: Record<string, FileHistory>,
   gitStatusByPath?: Record<string, GitFileStatus | string | undefined>,
+  options?: { locale?: string; copy?: FileTreeCopy['timeline'] },
 ): FileTimelineEntry[] {
   const entries: FileTimelineEntry[] = [];
+  const timelineCopy = options?.copy ?? fileTreeEn.timeline;
+  const locale = options?.locale ?? 'en-US';
 
   for (const [filePath, history] of Object.entries(fileHistory)) {
     const latest = history.versions.at(-1);
@@ -257,7 +269,9 @@ export function buildFileTimeline(
       id: `history:${filePath}:${latest?.timestamp ?? filePath}`,
       filePath,
       label: filePath.split('/').pop() ?? filePath,
-      detail: latest?.timestamp ? `Edited ${new Date(latest.timestamp).toLocaleString()}` : 'Edited in this session',
+      detail: latest?.timestamp
+        ? formatFileTreeCopy(timelineCopy.editedAt, { date: new Date(latest.timestamp).toLocaleString(locale) })
+        : timelineCopy.editedThisSession,
       timestamp: latest?.timestamp,
     });
   }
@@ -273,7 +287,7 @@ export function buildFileTimeline(
       id: `git:${filePath}:${status}`,
       filePath,
       label: filePath.split('/').pop() ?? filePath,
-      detail: `Git status: ${status}`,
+      detail: formatFileTreeCopy(timelineCopy.gitStatus, { status }),
       status,
     });
   }

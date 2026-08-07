@@ -16,6 +16,15 @@ import Fastify, { type FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { isBinaryBuffer } from './binary-detection.js';
 import { createPreviewWsBridgeHandler } from './preview-ws-proxy.js';
+import {
+  localizedWorkspaceAgentError,
+  workspaceAgentError,
+  workspaceAgentLocaleFromHeader,
+  workspaceAgentMessage,
+  workspaceAgentMessageKeyForEnglish,
+  type WorkspaceAgentLocale,
+  type WorkspaceAgentPublicError,
+} from './public-i18n.js';
 import { TerminalSessionManager, type TerminalSession } from './terminal-session.js';
 
 export interface WorkspaceAgentOptions {
@@ -53,7 +62,9 @@ const safePathString = z
   .string()
   .min(1)
 
-  .refine((value) => !/[\u0000-\u001f\u007f]/.test(value), { message: 'Path contains control characters' });
+  .refine((value) => !/[\u0000-\u001f\u007f]/.test(value), {
+    message: workspaceAgentMessage('pathControlCharacters'),
+  });
 
 const filePathSchema = z.object({ path: safePathString });
 
@@ -773,6 +784,41 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
   });
 
   app.addHook('onRequest', async (request, reply) => {
+    const locale = workspaceAgentLocaleFromHeader(request.headers['accept-language']);
+    reply.header('content-language', locale);
+    reply.header('vary', 'Accept-Language');
+  });
+
+  app.setErrorHandler((error, request, reply) => {
+    const locale = workspaceAgentLocaleFromHeader(request.headers['accept-language']);
+
+    if (error instanceof z.ZodError) {
+      const message = workspaceAgentMessage('validationFailed', locale);
+
+      return reply.code(400).send({ statusCode: 400, error: message, message, code: 'VALIDATION_ERROR' });
+    }
+
+    const typed = error as WorkspaceAgentPublicError;
+    const statusCode = typeof typed.statusCode === 'number' ? typed.statusCode : 500;
+    const exactKey = workspaceAgentMessageKeyForEnglish(typed.message);
+    const message =
+      typed.publicMessageKey || exactKey
+        ? workspaceAgentMessage(typed.publicMessageKey ?? exactKey!, locale, typed.publicMessageValues)
+        : workspaceAgentMessage(statusCode >= 500 ? 'internalServerError' : 'requestFailed', locale);
+
+    if (statusCode >= 500) {
+      request.log.error({ err: error, code: typed.code }, 'workspace-agent request failed');
+    }
+
+    return reply.code(statusCode).send({
+      statusCode,
+      error: message,
+      message,
+      code: typed.code ?? 'WORKSPACE_AGENT_ERROR',
+    });
+  });
+
+  app.addHook('onRequest', async (request, reply) => {
     /*
      * /health and /busy are unauthenticated, cluster-internal liveness/activity
      * probes for the workspace-manager (start-gate + GC busy guard). Both are
@@ -792,14 +838,20 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
      * than silently fall open. Dev/local (no WORKSPACE_ID) stays lenient.
      */
     if (!workspaceId && process.env.NODE_ENV === 'production') {
-      return reply.code(503).send({ error: 'workspace identity not configured' });
+      const locale = workspaceAgentLocaleFromHeader(request.headers['accept-language']);
+      const message = workspaceAgentMessage('workspaceIdentityNotConfigured', locale);
+
+      return reply.code(503).send({ error: message, message, code: 'WORKSPACE_IDENTITY_NOT_CONFIGURED' });
     }
 
     const token = readBearerToken(request);
     const verified = token ? verifyAgentToken(token, tokenSecret, workspaceId) : false;
 
     if (!verified) {
-      return reply.code(401).send({ error: 'unauthorized' });
+      const locale = workspaceAgentLocaleFromHeader(request.headers['accept-language']);
+      const message = workspaceAgentMessage('unauthorized', locale);
+
+      return reply.code(401).send({ error: message, message, code: 'WORKSPACE_AGENT_UNAUTHORIZED' });
     }
   });
 
@@ -845,17 +897,17 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     const realRel = relative(await canonicalRoot(root), realPath);
 
     if (realRel === '..' || realRel.startsWith(`..${sep}`)) {
-      throw Object.assign(new Error('Path escapes workspace root'), { statusCode: 400, code: 'EACCES' });
+      throw workspaceAgentError('pathEscapesRoot', { statusCode: 400, code: 'EACCES' });
     }
 
     const fileStat = await stat(realPath).catch(rethrowFsError);
 
     if (fileStat.size > maxFileBytes) {
-      throw Object.assign(new Error('File is too large to read'), { statusCode: 413, code: 'FILE_TOO_LARGE' });
+      throw workspaceAgentError('fileTooLargeToRead', { statusCode: 413, code: 'FILE_TOO_LARGE' });
     }
 
     if (fileStat.isDirectory()) {
-      throw Object.assign(new Error('Path is a directory'), { statusCode: 400, code: 'EISDIR' });
+      throw workspaceAgentError('pathIsDirectory', { statusCode: 400, code: 'EISDIR' });
     }
 
     /*
@@ -866,7 +918,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
      * nodes are likewise rejected.
      */
     if (!fileStat.isFile()) {
-      throw Object.assign(new Error('Path is not a regular file'), { statusCode: 400, code: 'EINVAL' });
+      throw workspaceAgentError('pathNotRegularFile', { statusCode: 400, code: 'EINVAL' });
     }
 
     /*
@@ -1058,7 +1110,10 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     const targetPath = (request.params as { '*': string })['*'] ?? '';
 
     if (!Number.isInteger(port) || port <= 0 || port > 65535) {
-      return reply.code(400).send({ error: 'invalid_port' });
+      const locale = workspaceAgentLocaleFromHeader(request.headers['accept-language']);
+      const message = workspaceAgentMessage('invalidPort', locale);
+
+      return reply.code(400).send({ error: message, message, code: 'INVALID_PORT' });
     }
 
     /*
@@ -1069,7 +1124,10 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     const selfPort = numericEnv(process.env.PORT, 8080);
 
     if (port === selfPort) {
-      return reply.code(400).send({ error: 'invalid_port' });
+      const locale = workspaceAgentLocaleFromHeader(request.headers['accept-language']);
+      const message = workspaceAgentMessage('invalidPort', locale);
+
+      return reply.code(400).send({ error: message, message, code: 'INVALID_PORT' });
     }
 
     const queryIndex = request.url.indexOf('?');
@@ -1149,8 +1207,17 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
       );
 
       return reply.code(502).send({
-        error: 'preview_upstream_unreachable',
-        message: `Dev server on port ${port} is not reachable yet. It may still be starting, or it crashed — check the dev server logs.`,
+        error: workspaceAgentMessage(
+          'previewUnavailable',
+          workspaceAgentLocaleFromHeader(request.headers['accept-language']),
+          { port },
+        ),
+        message: workspaceAgentMessage(
+          'previewUnavailable',
+          workspaceAgentLocaleFromHeader(request.headers['accept-language']),
+          { port },
+        ),
+        code: 'PREVIEW_UPSTREAM_UNREACHABLE',
       });
     }
 
@@ -1239,8 +1306,9 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
 
   app.register(async (terminalApp) => {
     await terminalApp.register(websocket);
-    terminalApp.get('/commands/stream', { websocket: true }, (rawSocket) => {
+    terminalApp.get('/commands/stream', { websocket: true }, (rawSocket, request) => {
       const socket = normalizeWebSocket(rawSocket);
+      const locale = workspaceAgentLocaleFromHeader(request.headers['accept-language']);
 
       /*
        * Track EVERY child spawned on this socket, not just the most recent one. A client
@@ -1276,7 +1344,10 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
             socket.send(
               JSON.stringify({
                 type: 'error',
-                error: { message: error instanceof Error ? error.message : String(error) },
+                error: {
+                  message: localizedWorkspaceAgentError(error, locale, 'commandStreamFailed'),
+                  code: (error as WorkspaceAgentPublicError | undefined)?.code ?? 'COMMAND_STREAM_FAILED',
+                },
                 timestamp: new Date().toISOString(),
               }),
             );
@@ -1291,6 +1362,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
           maxOutputBytes,
           maxProcesses,
           streamTimeoutMs,
+          locale,
           processes,
           socket,
           isOpen: () => !socketClosed,
@@ -1309,7 +1381,10 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
             socket.send(
               JSON.stringify({
                 type: 'error',
-                error: { message: error instanceof Error ? error.message : String(error) },
+                error: {
+                  message: localizedWorkspaceAgentError(error, locale, 'commandStreamFailed'),
+                  code: (error as WorkspaceAgentPublicError | undefined)?.code ?? 'COMMAND_STREAM_FAILED',
+                },
                 timestamp: new Date().toISOString(),
               }),
             );
@@ -1380,6 +1455,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
      */
     terminalApp.get('/terminal', { websocket: true }, (rawSocket, request) => {
       const socket = normalizeWebSocket(rawSocket);
+      const locale = workspaceAgentLocaleFromHeader(request.headers['accept-language']);
       const requestUrl = new URL(request.url ?? '/terminal', 'http://workspace.local');
       const requestedSessionId = (requestUrl.searchParams.get('sessionId') ?? '').trim();
 
@@ -1506,7 +1582,13 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
           }
         })
         .catch((error) => {
-          sendOutput(`\r\n[terminal error] ${error instanceof Error ? error.message : String(error)}\r\n`);
+          sendOutput(
+            `\r\n[${workspaceAgentMessage('terminalErrorPrefix', locale)}] ${localizedWorkspaceAgentError(
+              error,
+              locale,
+              'terminalSessionFailed',
+            )}\r\n`,
+          );
 
           /*
            * Shell session creation failed: close the socket instead of leaving a
@@ -1606,7 +1688,10 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
             socket.send(
               JSON.stringify({
                 type: 'stdout',
-                data: `\r\n[terminal error] ${error instanceof Error ? error.message : String(error)}\r\n`,
+                data: `\r\n[${workspaceAgentMessage('terminalErrorPrefix', locale)}] ${workspaceAgentMessage(
+                  'terminalOperationFailed',
+                  locale,
+                )}\r\n`,
                 timestamp: new Date().toISOString(),
               }),
             );
@@ -1672,7 +1757,7 @@ function normalizeWebSocket(rawSocket: unknown) {
     typeof candidate.send !== 'function' ||
     (typeof candidate.on !== 'function' && typeof candidate.addEventListener !== 'function')
   ) {
-    throw new Error('Unsupported WebSocket implementation');
+    throw workspaceAgentError('unsupportedWebSocket');
   }
 
   return {
@@ -1736,15 +1821,15 @@ function rethrowFsError(error: unknown): never {
   const code = (error as NodeJS.ErrnoException)?.code;
 
   if (code === 'ENOENT') {
-    throw Object.assign(new Error('File not found'), { statusCode: 404, code: 'ENOENT' });
+    throw workspaceAgentError('fileNotFound', { statusCode: 404, code: 'ENOENT' });
   }
 
   if (code === 'EISDIR') {
-    throw Object.assign(new Error('Path is a directory'), { statusCode: 400, code: 'EISDIR' });
+    throw workspaceAgentError('pathIsDirectory', { statusCode: 400, code: 'EISDIR' });
   }
 
   if (code === 'ENOTDIR') {
-    throw Object.assign(new Error('Path is not a directory'), { statusCode: 400, code: 'ENOTDIR' });
+    throw workspaceAgentError('pathNotDirectory', { statusCode: 400, code: 'ENOTDIR' });
   }
 
   /*
@@ -1766,7 +1851,7 @@ function rethrowFsError(error: unknown): never {
    * triggers the local-runtime fallback in dev).
    */
   if (code === 'ENOSPC' || code === 'EDQUOT') {
-    throw Object.assign(new Error('Workspace disk is full'), { statusCode: 507, code: 'WORKSPACE_DISK_FULL' });
+    throw workspaceAgentError('workspaceDiskFull', { statusCode: 507, code: 'WORKSPACE_DISK_FULL' });
   }
 
   throw error;
@@ -1777,7 +1862,7 @@ function resolveWorkspacePath(root: string, unsafePath: string) {
   const rel = relative(root, resolved);
 
   if (rel.startsWith('..') || rel === '..' || (resolve(root) === resolved && unsafePath.includes('..'))) {
-    throw new Error('Path escapes workspace root');
+    throw workspaceAgentError('pathEscapesRoot', { statusCode: 400, code: 'EACCES' });
   }
 
   return resolved;
@@ -1825,7 +1910,7 @@ async function assertRealPathContained(root: string, safePath: string): Promise<
   });
 
   if (finalStat?.isSymbolicLink()) {
-    throw Object.assign(new Error('Path is a symbolic link'), { statusCode: 400, code: 'EACCES' });
+    throw workspaceAgentError('pathSymbolicLink', { statusCode: 400, code: 'EACCES' });
   }
 
   let probe = safePath;
@@ -1843,7 +1928,7 @@ async function assertRealPathContained(root: string, safePath: string): Promise<
       const rel = relative(realRoot, real);
 
       if (rel === '..' || rel.startsWith(`..${sep}`)) {
-        throw Object.assign(new Error('Path escapes workspace root'), { statusCode: 400, code: 'EACCES' });
+        throw workspaceAgentError('pathEscapesRoot', { statusCode: 400, code: 'EACCES' });
       }
 
       return;
@@ -1887,7 +1972,7 @@ function assertContentSize(content: string, maxFileBytes: number, encoding?: 'ut
     encoding === 'base64' ? decodeWriteContent(content, encoding).byteLength : Buffer.byteLength(content);
 
   if (byteLength > maxFileBytes) {
-    throw Object.assign(new Error('File is too large'), { statusCode: 413, code: 'FILE_TOO_LARGE' });
+    throw workspaceAgentError('fileTooLarge', { statusCode: 413, code: 'FILE_TOO_LARGE' });
   }
 }
 
@@ -2115,14 +2200,14 @@ async function runCommand(
   },
 ) {
   if (options.processes.size >= options.maxProcesses) {
-    throw new Error('Process limit reached');
+    throw workspaceAgentError('processLimitReached', { statusCode: 429, code: 'PROCESS_LIMIT_REACHED' });
   }
 
   const normalizedArgs = normalizeShellCommandArgs(command, args);
   const signal = detectCommandAbuse(command, normalizedArgs);
 
   if (signal) {
-    throw Object.assign(new Error(`Command blocked by abuse policy: ${signal.reason}`), {
+    throw workspaceAgentError('commandBlocked', {
       statusCode: 409,
       code: `ABUSE_${signal.type.toUpperCase()}`,
     });
@@ -2307,6 +2392,7 @@ async function runCommandStream(
     maxOutputBytes: number;
     maxProcesses: number;
     streamTimeoutMs: number;
+    locale: WorkspaceAgentLocale;
     processes: Map<string, ProcessRecord>;
     socket: ReturnType<typeof normalizeWebSocket>;
     isOpen: () => boolean;
@@ -2315,14 +2401,14 @@ async function runCommandStream(
   },
 ) {
   if (options.processes.size >= options.maxProcesses) {
-    throw new Error('Process limit reached');
+    throw workspaceAgentError('processLimitReached', { statusCode: 429, code: 'PROCESS_LIMIT_REACHED' });
   }
 
   const normalizedArgs = normalizeShellCommandArgs(command, args);
   const signal = detectCommandAbuse(command, normalizedArgs);
 
   if (signal) {
-    throw Object.assign(new Error(`Command blocked by abuse policy: ${signal.reason}`), {
+    throw workspaceAgentError('commandBlocked', {
       statusCode: 409,
       code: `ABUSE_${signal.type.toUpperCase()}`,
     });
@@ -2509,7 +2595,12 @@ async function runCommandStream(
         options.socket.send(
           JSON.stringify({
             type: 'error',
-            error: { message: `Command timed out after ${options.streamTimeoutMs}ms` },
+            error: {
+              message: workspaceAgentMessage('commandTimedOut', options.locale, {
+                milliseconds: options.streamTimeoutMs,
+              }),
+              code: 'COMMAND_TIMEOUT',
+            },
             timestamp: new Date().toISOString(),
           }),
         );
@@ -2559,7 +2650,10 @@ async function runCommandStream(
           options.socket.send(
             JSON.stringify({
               type: 'error',
-              error: { message: error instanceof Error ? error.message : String(error) },
+              error: {
+                message: workspaceAgentMessage('commandStartFailed', options.locale),
+                code: 'COMMAND_START_FAILED',
+              },
               timestamp: new Date().toISOString(),
             }),
           );

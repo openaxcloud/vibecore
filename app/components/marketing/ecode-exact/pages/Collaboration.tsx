@@ -1,15 +1,18 @@
 import {
-  Users,
+  Building2,
+  Eye,
+  FolderGit2,
+  GraduationCap,
+  MessageSquare,
   MousePointer2,
   PencilLine,
-  MessageSquare,
-  FolderGit2,
-  Eye,
-  ShieldCheck,
   Rocket,
-  GraduationCap,
-  Building2,
+  ShieldCheck,
+  Users,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+
 import {
   EcodeExactPublicFooter as PublicFooter,
   EcodeExactPublicNavbar as PublicNavbar,
@@ -22,116 +25,77 @@ import {
   CardHeader,
   CardTitle,
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
+import {
+  getMarketingExactCaseStudiesCollaborationCopy,
+  type CollaborationFeatureId,
+  type CollaborationUseCaseId,
+} from '~/lib/i18n/catalogs/marketing-exact-case-studies-collaboration';
+
+const COLLABORATION_FEATURE_ICONS: Record<CollaborationFeatureId, LucideIcon> = {
+  cursors: MousePointer2,
+  editing: PencilLine,
+  comments: MessageSquare,
+  workspaces: FolderGit2,
+  presence: Eye,
+  roles: ShieldCheck,
+};
+
+const COLLABORATION_USE_CASE_ICONS: Record<CollaborationUseCaseId, LucideIcon> = {
+  pairing: Rocket,
+  education: GraduationCap,
+  teams: Building2,
+};
 
 export default function Collaboration() {
-  const features = [
-    {
-      icon: MousePointer2,
-      title: 'Multiplayer Cursors',
-      description: 'See every teammate move through the editor in real time, each with their own color and name.',
-    },
-    {
-      icon: PencilLine,
-      title: 'Live Editing',
-      description: 'Type together in the same file with conflict-free sync — no refreshing, no overwriting.',
-    },
-    {
-      icon: MessageSquare,
-      title: 'Inline Comments',
-      description: 'Drop threaded comments on any line of code and resolve discussions where the work happens.',
-    },
-    {
-      icon: FolderGit2,
-      title: 'Shared Workspaces',
-      description: 'One workspace, one URL. Invite your team and everyone lands in the same running environment.',
-    },
-    {
-      icon: Eye,
-      title: 'Live Presence',
-      description: 'Know who is online, which file they are viewing, and what the AI agent is doing right now.',
-    },
-    {
-      icon: ShieldCheck,
-      title: 'Roles & Permissions',
-      description: 'Granular access controls — owner, editor, and viewer roles keep your projects safe.',
-    },
-  ];
+  const { i18n } = useTranslation();
+  const copy = getMarketingExactCaseStudiesCollaborationCopy(i18n.resolvedLanguage ?? i18n.language).exactCollaboration;
 
-  const useCases = [
-    {
-      icon: Rocket,
-      title: 'Pair Programming',
-      description: 'Build features side by side with a teammate or with the E-Code AI agent, all in one session.',
-    },
-    {
-      icon: GraduationCap,
-      title: 'Teaching & Onboarding',
-      description: 'Guide new developers through a live codebase with shared cursors and inline explanations.',
-    },
-    {
-      icon: Building2,
-      title: 'Team Projects',
-      description: 'Coordinate a whole team across shared workspaces with clear roles and reviewable comments.',
-    },
-  ];
-
-  const presenceSignals = [
-    {
-      title: 'Active Editors',
-      description: 'Live avatars show exactly who is typing in the project at any moment.',
-    },
-    {
-      title: 'Follow Mode',
-      description: 'Jump to a teammate and follow their cursor through files as they navigate.',
-    },
-    {
-      title: 'Agent Activity',
-      description: 'Watch the AI agent plan, edit, and run commands alongside your team in real time.',
-    },
-    {
-      title: 'Comment Threads',
-      description: 'Resolve, reopen, and reply to feedback without ever leaving the editor.',
-    },
-  ];
+  const features = copy.features.items.map((feature) => ({
+    ...feature,
+    icon: COLLABORATION_FEATURE_ICONS[feature.id],
+  }));
+  const useCases = copy.useCases.items.map((useCase) => ({
+    ...useCase,
+    icon: COLLABORATION_USE_CASE_ICONS[useCase.id],
+  }));
 
   return (
     <div className="min-h-screen flex flex-col" data-testid="page-collaboration">
       <PublicNavbar />
 
       <main className="flex-1">
-        {/* Hero Section */}
         <section className="py-responsive bg-gradient-to-b from-background to-muted">
           <div className="container-responsive">
             <div className="text-center max-w-3xl mx-auto">
-              <Users className="h-12 w-12 mx-auto mb-4" style={{ color: 'var(--ecode-accent)' }} />
-              <h1 className="text-4xl font-bold mb-4" data-testid="heading-collaboration">
-                Build together, in real time
+              <Users className="h-12 w-12 mx-auto mb-4" style={{ color: 'var(--ecode-accent)' }} aria-hidden />
+              <h1 className="mkt-h1 font-bold mb-4" data-testid="heading-collaboration">
+                {copy.hero.title}
               </h1>
-              <p className="text-[15px] text-muted-foreground mb-8">
-                Code, comment, and ship side by side. E-Code brings your whole team — and the AI agent — into one
-                shared, always-live workspace.
-              </p>
-              <Badge variant="secondary" className="text-[15px] px-4 py-2">
-                Real-Time Multiplayer
+              <p className="mkt-lead text-muted-foreground mb-8">{copy.hero.description}</p>
+              <Badge
+                variant="secondary"
+                className="inline-flex max-w-full whitespace-normal px-4 py-2 text-center text-[15px]"
+              >
+                {copy.hero.badge}
               </Badge>
             </div>
           </div>
         </section>
 
-        {/* Feature Grid */}
         <section className="py-responsive">
           <div className="container-responsive">
-            <h2 className="text-3xl font-bold text-center mb-12">Collaboration Features</h2>
+            <h2 className="mkt-h2 font-bold text-center mb-12">{copy.features.title}</h2>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {features.map((feature) => {
                 const Icon = feature.icon;
+
                 return (
-                  <Card key={feature.title}>
+                  <Card key={feature.id} className="h-full">
                     <CardContent className="pt-6 text-center">
-                      <Icon className="h-12 w-12 mx-auto mb-4" style={{ color: 'var(--ecode-accent)' }} />
-                      <h3 className="font-semibold mb-2">{feature.title}</h3>
-                      <p className="text-[13px] text-muted-foreground">{feature.description}</p>
+                      <Icon className="h-12 w-12 mx-auto mb-4" style={{ color: 'var(--ecode-accent)' }} aria-hidden />
+                      <h3 className="mkt-h3 font-semibold mb-2">{feature.title}</h3>
+                      <p className="mkt-body text-muted-foreground leading-relaxed">{feature.description}</p>
                     </CardContent>
                   </Card>
                 );
@@ -140,24 +104,21 @@ export default function Collaboration() {
           </div>
         </section>
 
-        {/* Presence Detail */}
         <section className="py-responsive bg-muted">
           <div className="container-responsive">
             <div className="max-w-4xl mx-auto">
-              <h2 className="text-3xl font-bold text-center mb-12">Always know who is here</h2>
+              <h2 className="mkt-h2 font-bold text-center mb-12">{copy.presence.title}</h2>
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Presence that keeps everyone in sync</CardTitle>
-                  <CardDescription>
-                    E-Code surfaces live signals so your team never steps on each other&apos;s work
-                  </CardDescription>
+                  <CardTitle>{copy.presence.cardTitle}</CardTitle>
+                  <CardDescription>{copy.presence.cardDescription}</CardDescription>
                 </CardHeader>
                 <CardContent className="grid md:grid-cols-2 gap-6">
-                  {presenceSignals.map((signal) => (
-                    <div key={signal.title}>
-                      <h4 className="font-semibold mb-2">{signal.title}</h4>
-                      <p className="text-muted-foreground">{signal.description}</p>
+                  {copy.presence.items.map((signal) => (
+                    <div key={signal.id}>
+                      <h3 className="mkt-h3 font-semibold mb-2">{signal.title}</h3>
+                      <p className="mkt-body text-muted-foreground leading-relaxed">{signal.description}</p>
                     </div>
                   ))}
                 </CardContent>
@@ -166,20 +127,20 @@ export default function Collaboration() {
           </div>
         </section>
 
-        {/* Use Cases */}
         <section className="py-responsive">
           <div className="container-responsive">
-            <h2 className="text-3xl font-bold text-center mb-12">How teams use it</h2>
+            <h2 className="mkt-h2 font-bold text-center mb-12">{copy.useCases.title}</h2>
 
             <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
               {useCases.map((useCase) => {
                 const Icon = useCase.icon;
+
                 return (
-                  <Card key={useCase.title}>
+                  <Card key={useCase.id} className="h-full">
                     <CardContent className="pt-6">
-                      <Icon className="h-10 w-10 mb-4" style={{ color: 'var(--ecode-accent)' }} />
-                      <h3 className="font-semibold mb-2">{useCase.title}</h3>
-                      <p className="text-[13px] text-muted-foreground">{useCase.description}</p>
+                      <Icon className="h-10 w-10 mb-4" style={{ color: 'var(--ecode-accent)' }} aria-hidden />
+                      <h3 className="mkt-h3 font-semibold mb-2">{useCase.title}</h3>
+                      <p className="mkt-body text-muted-foreground leading-relaxed">{useCase.description}</p>
                     </CardContent>
                   </Card>
                 );
@@ -188,22 +149,18 @@ export default function Collaboration() {
           </div>
         </section>
 
-        {/* CTA */}
         <section className="py-responsive bg-muted">
           <div className="container-responsive text-center">
-            <h2 className="text-3xl font-bold mb-4">Start building together today</h2>
-            <p className="text-[15px] text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Spin up a shared workspace, invite your team, and let everyone — including the AI agent — code in the same
-              place at the same time.
-            </p>
-            <button
-              className="px-6 py-3 text-primary-foreground rounded-md min-h-[44px]"
+            <h2 className="mkt-h2 font-bold mb-4">{copy.cta.title}</h2>
+            <p className="mkt-lead text-muted-foreground mb-8 max-w-2xl mx-auto">{copy.cta.description}</p>
+            <a
+              href="/register"
+              className="inline-flex w-full max-w-sm sm:w-auto items-center justify-center rounded-md px-6 py-3 text-primary-foreground min-h-[44px] transition-opacity hover:opacity-90"
               style={{ backgroundColor: 'var(--ecode-accent)' }}
-              onClick={() => (window.location.href = '/register')}
               data-testid="button-collaboration-cta"
             >
-              Create a Shared Workspace
-            </button>
+              {copy.cta.button}
+            </a>
           </div>
         </section>
       </main>

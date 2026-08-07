@@ -1,4 +1,10 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+  formatRepositorySelectorDate,
+  formatRepositorySelectorNumber,
+  getRepositorySelectorCopy,
+} from '~/lib/i18n/catalogs/repository-selector';
 import type { GitLabProjectInfo } from '~/types/GitLab';
 
 interface RepositoryCardProps {
@@ -7,6 +13,10 @@ interface RepositoryCardProps {
 }
 
 export function RepositoryCard({ repo, onClone }: RepositoryCardProps) {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
+  const copy = getRepositorySelectorCopy(language);
+
   return (
     <a
       key={repo.name}
@@ -27,13 +37,13 @@ export function RepositoryCard({ repo, onClone }: RepositoryCardProps) {
             </h5>
           </div>
           <div className="flex shrink-0 items-center gap-3 text-xs text-bolt-elements-textSecondary">
-            <span className="flex items-center gap-1" title="Stars">
+            <span className="flex items-center gap-1" title={copy['repositorySelector.card.stars']}>
               <div className="i-ph:star w-3.5 h-3.5 text-bolt-elements-icon-warning" />
-              {repo.star_count.toLocaleString()}
+              {formatRepositorySelectorNumber(repo.star_count, language)}
             </span>
-            <span className="flex items-center gap-1" title="Forks">
+            <span className="flex items-center gap-1" title={copy['repositorySelector.card.forks']}>
               <div className="i-ph:git-fork w-3.5 h-3.5 text-bolt-elements-icon-info" />
-              {repo.forks_count.toLocaleString()}
+              {formatRepositorySelectorNumber(repo.forks_count, language)}
             </span>
           </div>
         </div>
@@ -43,17 +53,13 @@ export function RepositoryCard({ repo, onClone }: RepositoryCardProps) {
         )}
 
         <div className="flex items-center gap-3 text-xs text-bolt-elements-textSecondary">
-          <span className="flex items-center gap-1" title="Default Branch">
+          <span className="flex items-center gap-1" title={copy['repositorySelector.card.defaultBranch']}>
             <div className="i-ph:git-branch w-3.5 h-3.5" />
             {repo.default_branch}
           </span>
-          <span className="flex items-center gap-1" title="Last Updated">
+          <span className="flex items-center gap-1" title={copy['repositorySelector.card.lastUpdated']}>
             <div className="i-ph:clock w-3.5 h-3.5" />
-            {new Date(repo.updated_at).toLocaleDateString(undefined, {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric',
-            })}
+            {formatRepositorySelectorDate(repo.updated_at, language)}
           </span>
           <div className="flex items-center gap-2 ml-auto">
             {onClone && (
@@ -64,15 +70,15 @@ export function RepositoryCard({ repo, onClone }: RepositoryCardProps) {
                   onClone(repo);
                 }}
                 className="flex items-center gap-1 px-2 py-1 rounded text-xs bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-background-depth-3 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors"
-                title="Clone repository"
+                title={copy['repositorySelector.card.cloneTitle']}
               >
                 <div className="i-ph:git-branch w-3.5 h-3.5" />
-                Clone
+                {copy['repositorySelector.card.clone']}
               </button>
             )}
             <span className="flex items-center gap-1 group-hover:text-bolt-elements-item-contentAccent transition-colors">
               <div className="i-ph:arrow-square-out w-3.5 h-3.5" />
-              View
+              {copy['repositorySelector.card.view']}
             </span>
           </div>
         </div>

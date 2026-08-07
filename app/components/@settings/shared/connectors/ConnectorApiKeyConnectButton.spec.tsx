@@ -5,6 +5,10 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConnectorApiKeyConnectButton } from './ConnectorApiKeyConnectButton';
 
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({ i18n: { language: 'en', resolvedLanguage: 'en' } }),
+}));
+
 vi.mock('~/lib/stores/logs', () => ({
   logStore: {
     logSystem: vi.fn(),

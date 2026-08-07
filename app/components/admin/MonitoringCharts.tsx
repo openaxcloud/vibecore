@@ -27,6 +27,13 @@ import {
 } from 'chart.js';
 import { useEffect, useState } from 'react';
 import { Bar, Doughnut, Line } from 'react-chartjs-2';
+import { useTranslation } from 'react-i18next';
+import {
+  formatMonitoringCurrency,
+  formatMonitoringNumber,
+  formatMonitoringPlural,
+  getMonitoringChartsCopy,
+} from '~/lib/i18n/catalogs/monitoring-charts';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, PointElement, LineElement);
 
@@ -79,7 +86,7 @@ function resolveSeriesPalette(): string[] {
 
 function useChartTheme() {
   const [theme, setTheme] = useState({
-    text: 'rgba(120, 120, 130, 0.9)',
+    foreground: 'rgba(120, 120, 130, 0.9)',
     grid: 'rgba(140, 140, 150, 0.16)',
   });
 
@@ -87,7 +94,7 @@ function useChartTheme() {
     const read = () => {
       const isDark = document.documentElement.classList.contains('dark');
       setTheme({
-        text: isDark ? 'rgba(220, 222, 228, 0.85)' : 'rgba(60, 62, 70, 0.85)',
+        foreground: isDark ? 'rgba(220, 222, 228, 0.85)' : 'rgba(60, 62, 70, 0.85)',
         grid: isDark ? 'rgba(220, 222, 228, 0.12)' : 'rgba(60, 62, 70, 0.12)',
       });
     };
@@ -113,17 +120,24 @@ type Labeled = { labels: string[]; values: number[] };
 /** AI cost (USD) over time — line chart. */
 export function CostOverTimeChart({ labels, values }: Labeled) {
   const t = useChartTheme();
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getMonitoringChartsCopy(language);
 
   const options: ChartOptions<'line'> = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
-      tooltip: { callbacks: { label: (c) => `$${Number(c.parsed.y).toFixed(2)}` } },
+      tooltip: { callbacks: { label: (c) => formatMonitoringCurrency(Number(c.parsed.y), language) } },
     },
     scales: {
-      x: { ticks: { color: t.text, maxRotation: 0, autoSkip: true }, grid: { color: t.grid } },
-      y: { ticks: { color: t.text, callback: (v) => `$${v}` }, grid: { color: t.grid }, beginAtZero: true },
+      x: { ticks: { color: t.foreground, maxRotation: 0, autoSkip: true }, grid: { color: t.grid } },
+      y: {
+        ticks: { color: t.foreground, callback: (v) => formatMonitoringCurrency(Number(v), language) },
+        grid: { color: t.grid },
+        beginAtZero: true,
+      },
     },
   };
 
@@ -131,7 +145,7 @@ export function CostOverTimeChart({ labels, values }: Labeled) {
     labels,
     datasets: [
       {
-        label: 'AI cost (USD)',
+        label: copy['monitoringCharts.aiCostUsd'],
         data: values,
         borderColor: seriesColor(0),
         backgroundColor: 'rgba(0, 153, 255, 0.18)',
@@ -149,6 +163,8 @@ export function CostOverTimeChart({ labels, values }: Labeled) {
 /** Cost (USD) broken down by provider/model — horizontal bar. */
 export function CostByCategoryChart({ labels, values, axisLabel }: Labeled & { axisLabel: string }) {
   const t = useChartTheme();
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
 
   const options: ChartOptions<'bar'> = {
     indexAxis: 'y',
@@ -156,11 +172,15 @@ export function CostByCategoryChart({ labels, values, axisLabel }: Labeled & { a
     maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
-      tooltip: { callbacks: { label: (c) => `$${Number(c.parsed.x).toFixed(2)}` } },
+      tooltip: { callbacks: { label: (c) => formatMonitoringCurrency(Number(c.parsed.x), language) } },
     },
     scales: {
-      x: { ticks: { color: t.text, callback: (v) => `$${v}` }, grid: { color: t.grid }, beginAtZero: true },
-      y: { ticks: { color: t.text }, grid: { color: t.grid } },
+      x: {
+        ticks: { color: t.foreground, callback: (v) => formatMonitoringCurrency(Number(v), language) },
+        grid: { color: t.grid },
+        beginAtZero: true,
+      },
+      y: { ticks: { color: t.foreground }, grid: { color: t.grid } },
     },
   };
 
@@ -182,13 +202,24 @@ export function CostByCategoryChart({ labels, values, axisLabel }: Labeled & { a
 /** Token volume by provider — doughnut. */
 export function TokensByProviderChart({ labels, values }: Labeled) {
   const t = useChartTheme();
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getMonitoringChartsCopy(language);
 
   const options: ChartOptions<'doughnut'> = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { position: 'bottom', labels: { color: t.text, boxWidth: 12, padding: 12 } },
-      tooltip: { callbacks: { label: (c) => `${c.label}: ${Number(c.parsed).toLocaleString()} tokens` } },
+      legend: { position: 'bottom', labels: { color: t.foreground, boxWidth: 12, padding: 12 } },
+      tooltip: {
+        callbacks: {
+          label: (c) =>
+            `${c.label}: ${formatMonitoringPlural(Number(c.parsed), language, {
+              one: copy['monitoringCharts.tokenCount_one'],
+              other: copy['monitoringCharts.tokenCount_other'],
+            })}`,
+        },
+      },
     },
     cutout: '58%',
   };
@@ -197,7 +228,7 @@ export function TokensByProviderChart({ labels, values }: Labeled) {
     labels,
     datasets: [
       {
-        label: 'Tokens',
+        label: copy['monitoringCharts.tokens'],
         data: values,
         backgroundColor: labels.map((_, i) => seriesColor(i)),
         borderWidth: 0,
@@ -223,7 +254,9 @@ export function CategoryBarChart({
   format,
 }: Labeled & { axisLabel: string; colorOffset?: number; format?: (value: number) => string }) {
   const t = useChartTheme();
-  const fmt = format ?? ((value: number) => value.toLocaleString());
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const fmt = format ?? ((value: number) => formatMonitoringNumber(value, language));
 
   const options: ChartOptions<'bar'> = {
     responsive: true,
@@ -233,8 +266,8 @@ export function CategoryBarChart({
       tooltip: { callbacks: { label: (c) => `${c.label}: ${fmt(Number(c.parsed.y))}` } },
     },
     scales: {
-      x: { ticks: { color: t.text, autoSkip: false, maxRotation: 30 }, grid: { color: t.grid } },
-      y: { ticks: { color: t.text, precision: 0 }, grid: { color: t.grid }, beginAtZero: true },
+      x: { ticks: { color: t.foreground, autoSkip: false, maxRotation: 30 }, grid: { color: t.grid } },
+      y: { ticks: { color: t.foreground, precision: 0 }, grid: { color: t.grid }, beginAtZero: true },
     },
   };
 
@@ -272,19 +305,21 @@ export function GroupedBarChart({
   valueFormat?: (value: number) => string;
 }) {
   const t = useChartTheme();
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
 
-  const format = valueFormat ?? ((value: number) => Number(value).toLocaleString());
+  const format = valueFormat ?? ((value: number) => formatMonitoringNumber(Number(value), language));
 
   const options: ChartOptions<'bar'> = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { position: 'bottom', labels: { color: t.text, boxWidth: 12, padding: 12 } },
+      legend: { position: 'bottom', labels: { color: t.foreground, boxWidth: 12, padding: 12 } },
       tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${format(Number(c.parsed.y))}` } },
     },
     scales: {
-      x: { stacked, ticks: { color: t.text, autoSkip: true, maxRotation: 30 }, grid: { color: t.grid } },
-      y: { stacked, ticks: { color: t.text }, grid: { color: t.grid }, beginAtZero: true },
+      x: { stacked, ticks: { color: t.foreground, autoSkip: true, maxRotation: 30 }, grid: { color: t.grid } },
+      y: { stacked, ticks: { color: t.foreground }, grid: { color: t.grid }, beginAtZero: true },
     },
   };
 
@@ -304,6 +339,9 @@ export function GroupedBarChart({
 /** Latency histogram — per-bucket observation counts as a vertical bar. */
 export function HistogramBucketChart({ labels, values }: Labeled) {
   const t = useChartTheme();
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getMonitoringChartsCopy(language);
 
   const options: ChartOptions<'bar'> = {
     responsive: true,
@@ -313,17 +351,21 @@ export function HistogramBucketChart({ labels, values }: Labeled) {
       tooltip: {
         callbacks: {
           title: (items) => `≤ ${items[0]?.label ?? ''}`,
-          label: (c) => `${Number(c.parsed.y).toLocaleString()} observations`,
+          label: (c) =>
+            formatMonitoringPlural(Number(c.parsed.y), language, {
+              one: copy['monitoringCharts.observationCount_one'],
+              other: copy['monitoringCharts.observationCount_other'],
+            }),
         },
       },
     },
     scales: {
       x: {
-        title: { display: true, text: 'Bucket upper bound (seconds)', color: t.text },
-        ticks: { color: t.text, autoSkip: false, maxRotation: 0 },
+        title: { display: true, text: copy['monitoringCharts.bucketUpperBound'], color: t.foreground },
+        ticks: { color: t.foreground, autoSkip: false, maxRotation: 0 },
         grid: { color: t.grid },
       },
-      y: { ticks: { color: t.text, precision: 0 }, grid: { color: t.grid }, beginAtZero: true },
+      y: { ticks: { color: t.foreground, precision: 0 }, grid: { color: t.grid }, beginAtZero: true },
     },
   };
 
@@ -331,7 +373,7 @@ export function HistogramBucketChart({ labels, values }: Labeled) {
     labels,
     datasets: [
       {
-        label: 'Observations',
+        label: copy['monitoringCharts.observations'],
         data: values,
         backgroundColor: seriesColor(1),
         borderRadius: 3,
@@ -345,17 +387,24 @@ export function HistogramBucketChart({ labels, values }: Labeled) {
 /** Cost (USD) by organization — vertical bar. */
 export function CostByOrgChart({ labels, values }: Labeled) {
   const t = useChartTheme();
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getMonitoringChartsCopy(language);
 
   const options: ChartOptions<'bar'> = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
-      tooltip: { callbacks: { label: (c) => `$${Number(c.parsed.y).toFixed(2)}` } },
+      tooltip: { callbacks: { label: (c) => formatMonitoringCurrency(Number(c.parsed.y), language) } },
     },
     scales: {
-      x: { ticks: { color: t.text, autoSkip: false }, grid: { color: t.grid } },
-      y: { ticks: { color: t.text, callback: (v) => `$${v}` }, grid: { color: t.grid }, beginAtZero: true },
+      x: { ticks: { color: t.foreground, autoSkip: false }, grid: { color: t.grid } },
+      y: {
+        ticks: { color: t.foreground, callback: (v) => formatMonitoringCurrency(Number(v), language) },
+        grid: { color: t.grid },
+        beginAtZero: true,
+      },
     },
   };
 
@@ -363,7 +412,7 @@ export function CostByOrgChart({ labels, values }: Labeled) {
     labels,
     datasets: [
       {
-        label: 'AI cost (USD)',
+        label: copy['monitoringCharts.aiCostUsd'],
         data: values,
         backgroundColor: labels.map((_, i) => seriesColor(i + 1)),
         borderRadius: 4,

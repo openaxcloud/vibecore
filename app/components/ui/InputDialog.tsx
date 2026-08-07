@@ -1,10 +1,11 @@
 import * as RadixDialog from '@radix-ui/react-dialog';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Button } from './Button';
-import { Dialog, DialogDescription, DialogTitle } from './Dialog';
+import { Dialog, DialogDescription, DialogTitle, useDialogLanguage } from './Dialog';
 import { FieldError, fieldErrorProps } from './FieldError';
 import { Input } from './Input';
 import { Label } from './Label';
+import { getDataSettingsCopy } from '~/lib/i18n/catalogs/search-data-settings';
 
 /**
  * Props for the InputDialog component (design handoff G5).
@@ -56,6 +57,11 @@ export interface InputDialogProps {
   confirmLabel?: string;
 
   /**
+   * Optional cancel label. Defaults to the active locale.
+   */
+  cancelLabel?: string;
+
+  /**
    * Optional validator. Return an error message to block submission,
    * or undefined when the value is acceptable.
    */
@@ -75,9 +81,14 @@ export function InputDialog({
   label,
   placeholder,
   initialValue = '',
-  confirmLabel = 'Save',
+  confirmLabel,
+  cancelLabel,
   validate,
 }: InputDialogProps) {
+  const language = useDialogLanguage();
+  const sharedCopy = getDataSettingsCopy(language).sharedDialog;
+  const resolvedConfirmLabel = confirmLabel ?? sharedCopy.save;
+  const resolvedCancelLabel = cancelLabel ?? sharedCopy.cancel;
   const [value, setValue] = useState(initialValue);
   const [error, setError] = useState<string | undefined>(undefined);
 
@@ -105,7 +116,7 @@ export function InputDialog({
   return (
     <RadixDialog.Root open={isOpen} onOpenChange={onClose}>
       <Dialog showCloseButton={false}>
-        <form onSubmit={handleSubmit} className="p-6 bg-bolt-elements-background-depth-2 relative z-10">
+        <form onSubmit={handleSubmit} className="relative z-10 min-w-0 bg-bolt-elements-background-depth-2 p-4 sm:p-6">
           <DialogTitle>{title}</DialogTitle>
           {description ? <DialogDescription>{description}</DialogDescription> : null}
           <div className="mt-4 mb-4">
@@ -125,15 +136,20 @@ export function InputDialog({
             />
             <FieldError fieldId="input-dialog-value" error={error} />
           </div>
-          <div className="flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              className="!h-auto min-h-11 !whitespace-normal break-words py-2 text-center leading-tight"
+            >
+              {resolvedCancelLabel}
             </Button>
             <Button
               type="submit"
-              className="bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent hover:bg-bolt-elements-button-primary-backgroundHover"
+              className="!h-auto min-h-11 !whitespace-normal break-words bg-bolt-elements-item-backgroundAccent py-2 text-center leading-tight text-bolt-elements-item-contentAccent hover:bg-bolt-elements-button-primary-backgroundHover"
             >
-              {confirmLabel}
+              {resolvedConfirmLabel}
             </Button>
           </div>
         </form>

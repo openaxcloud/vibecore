@@ -3,7 +3,6 @@ import type { MetaFunction } from 'react-router';
 import { Form, Link, useActionData, useLoaderData } from 'react-router';
 import { EnterpriseFormPage } from '~/components/enterprise/EnterpriseFormPage';
 import {
-  apiErrorMessage,
   apiRequest,
   firstOrganizationOrNull,
   isApiResponse,
@@ -13,10 +12,22 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
-import { formatUserAreaNumber } from '~/lib/i18n/user-area-locale';
+import {
+  formatUpgradeAmount,
+  formatUpgradeCopy,
+  getUpgradeCopy,
+  resolveUpgradeLanguage,
+  upgradeLimitLabel,
+  type UpgradeCopy,
+} from '~/lib/i18n/catalogs/upgrade';
+import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { isReauthRedirect } from '~/lib/route-reauth';
 
-export const meta: MetaFunction = () => [{ title: 'Upgrade - E-Code' }];
+export const meta: MetaFunction = ({ matches }) => {
+  const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
+
+  return [{ title: getUpgradeCopy(rootData?.language)['upgrade.metaTitle'] }];
+};
 
 /*
  * Plan keys the checkout endpoint actually accepts (billingCheckoutSchema minus
@@ -30,9 +41,6 @@ const CHECKOUTABLE_PLAN_KEYS = new Set(['pro', 'team']);
  * one of these is live, POST /billing/checkout 409s and changes go via portal.
  */
 const ACTIVE_SUBSCRIPTION_STATUSES = new Set(['ACTIVE', 'TRIALING', 'PAST_DUE']);
-
-// Prices are shown in euros with the same figures as the billing page (no conversion).
-const euros = (cents: number) => `€${(cents / 100).toFixed(0)}`;
 
 /*
  * The public pricing page links here with display-tier keys (free/core/teams);
@@ -59,6 +67,7 @@ interface UpgradePlan {
 }
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
+  const language = resolveUpgradeLanguage(resolveRequestLocale(request).language);
   const url = new URL(request.url);
   const suggestedPlan = normalizePlanKey(url.searchParams.get('plan'));
 
@@ -111,6 +120,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
       currentPlanKey: billing.plan.key,
       subscriptionStatus: billing.subscription?.status ?? null,
       billingAccessLimited: false,
+      language,
     });
   } catch (error) {
     /*
@@ -126,6 +136,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
         currentPlanKey: null,
         subscriptionStatus: null,
         billingAccessLimited: true,
+        language,
       });
     }
 
@@ -134,10 +145,11 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 }
 
 export async function action({ request }: EnterpriseActionArgs) {
+  const copy = getUpgradeCopy(resolveRequestLocale(request).language);
   const organization = await firstOrganizationOrNull(request);
 
   if (!organization) {
-    return json({ error: 'No organization found for your account.' }, { status: 400 });
+    return json({ error: copy['upgrade.errors.organization'] }, { status: 400 });
   }
 
   const form = await request.formData();
@@ -161,22 +173,19 @@ export async function action({ request }: EnterpriseActionArgs) {
       }
 
       if (isApiResponse(error)) {
-        return json(
-          { error: await apiErrorMessage(error, 'The billing portal is unavailable right now. Please try again.') },
-          { status: error.status },
-        );
+        return json({ error: copy['upgrade.errors.portal'] }, { status: error.status });
       }
 
-      console.error('Failed to open the billing portal:', error);
+      console.error(error);
 
-      return json({ error: 'The billing portal is temporarily unavailable. Please try again later.' });
+      return json({ error: copy['upgrade.errors.portalTemporary'] });
     }
   }
 
   const rawPlanKey = String(form.get('planKey') ?? '');
 
   if (!CHECKOUTABLE_PLAN_KEYS.has(rawPlanKey)) {
-    return json({ error: 'Choose a plan that supports self-serve checkout.' }, { status: 400 });
+    return json({ error: copy['upgrade.errors.invalidPlan'] }, { status: 400 });
   }
 
   const interval = String(form.get('interval') ?? 'monthly') === 'annual' ? 'annual' : 'monthly';
@@ -206,19 +215,16 @@ export async function action({ request }: EnterpriseActionArgs) {
     }
 
     if (isApiResponse(error)) {
-      return json(
-        { error: await apiErrorMessage(error, 'Checkout is unavailable right now. Please try again later.') },
-        { status: error.status },
-      );
+      return json({ error: copy['upgrade.errors.checkout'] }, { status: error.status });
     }
 
     /*
      * Non-Response failures (e.g. AbortSignal.timeout or a hung api pod) would
      * otherwise crash the page; surface a friendly message instead.
      */
-    console.error('Failed to start checkout:', error);
+    console.error(error);
 
-    return json({ error: 'Checkout is temporarily unavailable. Please try again later.' });
+    return json({ error: copy['upgrade.errors.checkoutTemporary'] });
   }
 }
 
@@ -226,46 +232,57 @@ export async function action({ request }: EnterpriseActionArgs) {
  * Real, quota-enforced plan limits (the same records the api enforces) rendered
  * as the card's feature summary — no marketing copy invented here.
  */
-function planHighlights(limits: Record<string, number>): string[] {
-  const rows: Array<[string, (n: number) => string]> = [
-    ['projects.count', (n) => `${formatUserAreaNumber(n)} projects`],
-    ['workspaces.active', (n) => `${formatUserAreaNumber(n)} active workspace${n === 1 ? '' : 's'}`],
-    ['team.members', (n) => (n === 1 ? '1 member' : `${formatUserAreaNumber(n)} team members`)],
-    ['ai.messages', (n) => `${formatUserAreaNumber(n)} AI messages / month`],
-    ['storage.gb', (n) => `${formatUserAreaNumber(n)} GB storage`],
+function planHighlights(limits: Record<string, number>, copy: UpgradeCopy, language: 'en' | 'fr'): string[] {
+  const numberFormatter = new Intl.NumberFormat(language === 'fr' ? 'fr-FR' : 'en-US');
+
+  const rows: Array<[string, (count: number) => string]> = [
+    ['projects.count', (count) => upgradeLimitLabel(copy, language, 'projects', count)],
+    ['workspaces.active', (count) => upgradeLimitLabel(copy, language, 'workspaces', count)],
+    ['team.members', (count) => upgradeLimitLabel(copy, language, 'members', count)],
+    ['ai.messages', (count) => upgradeLimitLabel(copy, language, 'messages', count)],
+    [
+      'storage.gb',
+      (count) =>
+        formatUpgradeCopy(copy['upgrade.limit.storage'], {
+          count: numberFormatter.format(count),
+        }),
+    ],
   ];
 
   return rows.filter(([key]) => typeof limits[key] === 'number').map(([key, format]) => format(limits[key]));
 }
 
 const ACTION_CTA_CLASS =
-  'inline-flex h-9 w-full items-center justify-center rounded-md bg-[var(--vc-ide-accent-action)] px-4 text-sm font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] disabled:cursor-not-allowed disabled:opacity-60';
+  'inline-flex min-h-9 w-full items-center justify-center whitespace-normal rounded-md bg-[var(--vc-ide-accent-action)] px-4 py-2 text-center text-sm font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] disabled:cursor-not-allowed disabled:opacity-60';
 
 const OUTLINE_CTA_CLASS =
-  'inline-flex h-9 w-full items-center justify-center rounded-md border border-bolt-elements-borderColor px-4 text-sm font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] disabled:cursor-not-allowed disabled:opacity-60';
+  'inline-flex min-h-9 w-full items-center justify-center whitespace-normal rounded-md border border-bolt-elements-borderColor px-4 py-2 text-center text-sm font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] disabled:cursor-not-allowed disabled:opacity-60';
 
 export default function UpgradePage() {
   const actionData = useActionData<typeof action>() as { error?: string } | undefined;
   const data = useLoaderData<typeof loader>();
+  const language = resolveUpgradeLanguage(data.language);
+  const copy = getUpgradeCopy(language);
 
   const [billingInterval, setBillingInterval] = useState<'monthly' | 'annual'>(
     data.interval === 'annual' ? 'annual' : 'monthly',
   );
 
   if (data.billingAccessLimited) {
+    const [accessBefore, accessAfter] = copy['upgrade.access.restricted'].split('{billingPage}');
+
     return (
       <EnterpriseFormPage
-        title="Upgrade"
-        description="Move your organization to a higher plan."
+        title={copy['upgrade.title']}
+        description={copy['upgrade.access.description']}
         error={actionData?.error}
       >
-        <p className="text-sm text-bolt-elements-textSecondary">
-          Plan and price details are available to organization owners and billing administrators only. Ask an owner to
-          upgrade, or check your role on the{' '}
+        <p className="break-words text-sm text-bolt-elements-textSecondary">
+          {accessBefore}
           <Link to="/billing" className="underline">
-            billing page
+            {copy['upgrade.access.billingPage']}
           </Link>
-          .
+          {accessAfter}
         </p>
       </EnterpriseFormPage>
     );
@@ -276,26 +293,25 @@ export default function UpgradePage() {
 
   return (
     <EnterpriseFormPage
-      title="Upgrade"
-      description="Plans and prices below come from the live billing catalog — the same records Stripe checkout charges against."
+      title={copy['upgrade.title']}
+      description={copy['upgrade.description']}
       error={actionData?.error}
     >
       <Form method="post" reloadDocument className="space-y-4">
         {hasActiveSubscription ? (
-          <p className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textSecondary">
-            Your organization already has an active subscription. Plan changes (including downgrades) are made in the
-            Stripe billing portal and are prorated by Stripe.
+          <p className="break-words rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textSecondary">
+            {copy['upgrade.subscription.active']}
           </p>
         ) : (
-          <p className="text-sm text-bolt-elements-textSecondary">
-            Starting a plan opens Stripe Checkout; your subscription begins immediately at the price shown.
-          </p>
+          <p className="break-words text-sm text-bolt-elements-textSecondary">{copy['upgrade.subscription.new']}</p>
         )}
         {!hasActiveSubscription && annualAvailable ? (
           <fieldset className="space-y-1">
-            <legend className="text-sm font-medium text-bolt-elements-textPrimary">Billing interval</legend>
-            <div className="flex gap-4 text-sm text-bolt-elements-textSecondary">
-              <label className="flex items-center gap-1.5">
+            <legend className="text-sm font-medium text-bolt-elements-textPrimary">
+              {copy['upgrade.interval.legend']}
+            </legend>
+            <div className="flex flex-col gap-3 text-sm text-bolt-elements-textSecondary sm:flex-row sm:flex-wrap sm:gap-4">
+              <label className="flex min-h-[44px] items-center gap-1.5">
                 <input
                   type="radio"
                   name="interval"
@@ -303,9 +319,9 @@ export default function UpgradePage() {
                   checked={billingInterval === 'monthly'}
                   onChange={() => setBillingInterval('monthly')}
                 />
-                Monthly
+                {copy['upgrade.interval.monthly']}
               </label>
-              <label className="flex items-center gap-1.5">
+              <label className="flex min-h-[44px] items-center gap-1.5">
                 <input
                   type="radio"
                   name="interval"
@@ -313,7 +329,7 @@ export default function UpgradePage() {
                   checked={billingInterval === 'annual'}
                   onChange={() => setBillingInterval('annual')}
                 />
-                Annual — the discounted annual amount is shown at Stripe checkout
+                <span className="break-words">{copy['upgrade.interval.annual']}</span>
               </label>
             </div>
           </fieldset>
@@ -336,59 +352,63 @@ export default function UpgradePage() {
                       : 'border-bolt-elements-borderColor'
                 }`}
               >
-                <div className="flex items-center justify-between gap-2">
-                  <h2 className="text-base font-semibold text-bolt-elements-textPrimary">{plan.name}</h2>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h2 className="break-words text-base font-semibold text-bolt-elements-textPrimary">{plan.name}</h2>
                   {isCurrent ? (
                     <span className="rounded-full border border-bolt-elements-borderColor px-2 py-0.5 text-xs font-medium text-bolt-elements-textSecondary">
-                      Your plan
+                      {copy['upgrade.badge.current']}
                     </span>
                   ) : isSuggested ? (
                     <span className="rounded-full bg-[var(--vc-ide-accent-action)] px-2 py-0.5 text-xs font-medium text-white">
-                      Suggested
+                      {copy['upgrade.badge.suggested']}
                     </span>
                   ) : null}
                 </div>
                 <p className="text-2xl font-bold text-bolt-elements-textPrimary">
                   {isEnterprise ? (
-                    'Custom'
+                    copy['upgrade.price.custom']
                   ) : (
                     <>
-                      {euros(plan.monthlyCents)}
-                      <span className="text-sm font-normal text-bolt-elements-textSecondary"> / month</span>
+                      {formatUpgradeAmount(plan.monthlyCents, language)}
+                      <span className="text-sm font-normal text-bolt-elements-textSecondary">
+                        {copy['upgrade.price.month']}
+                      </span>
                     </>
                   )}
                 </p>
                 {billingInterval === 'annual' && isCheckoutable && !hasActiveSubscription && !plan.annualAvailable ? (
-                  <p className="text-xs text-bolt-elements-textSecondary">
-                    No annual price is configured for this plan — it bills monthly.
+                  <p className="break-words text-xs text-bolt-elements-textSecondary">
+                    {copy['upgrade.price.noAnnual']}
                   </p>
                 ) : null}
                 <ul className="flex-1 space-y-1 text-xs text-bolt-elements-textSecondary">
                   {isEnterprise ? (
-                    <li>Custom quotas, SSO/SAML, premium support</li>
+                    <li>{copy['upgrade.enterprise.features']}</li>
                   ) : (
-                    planHighlights(plan.limits).map((highlight) => <li key={highlight}>{highlight}</li>)
+                    planHighlights(plan.limits, copy, language).map((highlight) => <li key={highlight}>{highlight}</li>)
                   )}
                 </ul>
                 {isCurrent ? (
                   <button type="button" disabled className={OUTLINE_CTA_CLASS}>
-                    Current plan
+                    {copy['upgrade.actions.current']}
                   </button>
                 ) : isEnterprise ? (
                   <Link to="/contact-sales" className={OUTLINE_CTA_CLASS}>
-                    Talk to sales
+                    {copy['upgrade.actions.sales']}
                   </Link>
                 ) : hasActiveSubscription ? (
                   <button type="submit" name="intent" value="portal" className={OUTLINE_CTA_CLASS}>
-                    {plan.monthlyCents === 0 ? 'Downgrade in billing portal' : 'Change in billing portal'}
+                    {plan.monthlyCents === 0
+                      ? copy['upgrade.actions.downgradePortal']
+                      : copy['upgrade.actions.changePortal']}
                   </button>
                 ) : isCheckoutable ? (
                   <button type="submit" name="planKey" value={plan.key} className={ACTION_CTA_CLASS}>
-                    Upgrade to {plan.name}
+                    {formatUpgradeCopy(copy['upgrade.actions.upgrade'], { plan: plan.name })}
                   </button>
                 ) : (
                   <button type="button" disabled className={OUTLINE_CTA_CLASS}>
-                    No checkout needed
+                    {copy['upgrade.actions.noCheckout']}
                   </button>
                 )}
               </div>
@@ -396,10 +416,10 @@ export default function UpgradePage() {
           })}
         </div>
       </Form>
-      <p className="mt-4 text-sm text-bolt-elements-textSecondary">
-        Need Enterprise (SSO/SAML, custom quotas, premium support)?{' '}
+      <p className="mt-4 break-words text-sm text-bolt-elements-textSecondary">
+        {copy['upgrade.enterprise.prompt']}{' '}
         <Link to="/contact-sales" className="underline">
-          Talk to sales
+          {copy['upgrade.actions.sales']}
         </Link>
         .
       </p>

@@ -50,4 +50,46 @@ describe('GET /orgs/:orgId/credits — included grant + billing cycle', () => {
     expect(res.statusCode).toBe(200);
     expect(res.json().monthlyGrantCents).toBe(0);
   });
+
+  it('localizes platform ledger reasons for the user while preserving operator adjustments', async () => {
+    const { app, store, org, token } = await setup();
+
+    await store.recordCreditEntry({
+      organizationId: org.id,
+      deltaCents: -10,
+      kind: 'CONSUMPTION',
+      reason: 'workspace compute',
+    });
+    await store.recordCreditEntry({
+      organizationId: org.id,
+      deltaCents: 2_500,
+      kind: 'GRANT',
+      reason: 'pro monthly grant',
+    });
+    await store.recordCreditEntry({
+      organizationId: org.id,
+      deltaCents: 100,
+      kind: 'ADJUSTMENT',
+      reason: 'Customer goodwill for London workspace',
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/orgs/${org.id}/credits`,
+      headers: {
+        authorization: `Bearer ${token}`,
+        'accept-language': 'fr-FR,fr;q=0.9,en;q=0.7',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['content-language']).toBe('fr');
+    expect((response.json().ledger as Array<{ reason: string }>).map((entry) => entry.reason)).toEqual(
+      expect.arrayContaining([
+        'Calcul de l’espace de travail',
+        'Attribution mensuelle du forfait pro',
+        'Customer goodwill for London workspace',
+      ]),
+    );
+  });
 });

@@ -1,6 +1,7 @@
 import type { LoaderFunction } from 'react-router';
 import { getApiKeysFromCookie } from '~/lib/api/cookies';
 import { readSessionToken } from '~/lib/enterprise-api.server';
+import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 import { LLMManager } from '~/lib/modules/llm/manager';
 
 export const loader: LoaderFunction = async ({ context, request }) => {
@@ -10,7 +11,7 @@ export const loader: LoaderFunction = async ({ context, request }) => {
    * Gated like the sibling /api/configured-providers.
    */
   if (!readSessionToken(request)) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    return remainingApiErrorResponse(request, 'UNAUTHORIZED', 401);
   }
 
   const url = new URL(request.url);

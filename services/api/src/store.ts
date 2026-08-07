@@ -461,6 +461,8 @@ export interface NotificationRecord {
   category: string;
   title: string;
   body?: string;
+  messageKey?: string;
+  messageParams?: Record<string, unknown>;
   linkUrl?: string;
   metadata?: Record<string, unknown>;
   readAt?: string;
@@ -1228,6 +1230,7 @@ export interface ApiStore {
     name?: string;
     passwordHash: string;
     platformAdmin?: boolean;
+    language?: string;
   }): Promise<UserRecord>;
   updateUser(input: {
     userId: string;
@@ -2262,6 +2265,8 @@ export interface ApiStore {
     category?: string;
     title: string;
     body?: string;
+    messageKey?: string;
+    messageParams?: Record<string, unknown>;
     linkUrl?: string;
     metadata?: Record<string, unknown>;
   }): Promise<NotificationRecord>;

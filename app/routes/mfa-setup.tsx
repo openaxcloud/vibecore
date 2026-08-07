@@ -13,11 +13,22 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { getMfaSetupCopy, resolveMfaSetupLanguage, type MfaSetupCopy } from '~/lib/i18n/catalogs/mfa-setup';
+import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { isReauthRedirect } from '~/lib/route-reauth';
 
-export const meta: MetaFunction = () => [{ title: 'Two-factor authentication - E-Code' }];
+export const meta: MetaFunction = ({ matches }) => {
+  const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
 
-type MfaLoaderData = { status: 'enabled' | 'reauth' | 'setup'; secret?: string; otpauthUrl?: string };
+  return [{ title: getMfaSetupCopy(rootData?.language)['mfaSetup.metaTitle'] }];
+};
+
+type MfaLoaderData = {
+  status: 'enabled' | 'reauth' | 'setup';
+  language: 'en' | 'fr';
+  secret?: string;
+  otpauthUrl?: string;
+};
 
 /*
  * Replit-style: the QR is ready the instant the page loads — no "generate
@@ -27,10 +38,11 @@ type MfaLoaderData = { status: 'enabled' | 'reauth' | 'setup'; secret?: string; 
  * once reauthed, the loader re-runs and the QR appears.
  */
 export async function loader({ request }: EnterpriseLoaderArgs) {
+  const language = resolveMfaSetupLanguage(resolveRequestLocale(request).language);
   const me = await apiRequest<{ user?: { mfaEnabled?: boolean } }>(request, '/auth/me');
 
   if (me?.user?.mfaEnabled) {
-    return json<MfaLoaderData>({ status: 'enabled' });
+    return json<MfaLoaderData>({ status: 'enabled', language });
   }
 
   try {
@@ -39,10 +51,15 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
       redirectOn401: false,
     });
 
-    return json<MfaLoaderData>({ status: 'setup', secret: setup.secret, otpauthUrl: setup.otpauthUrl });
+    return json<MfaLoaderData>({
+      status: 'setup',
+      language,
+      secret: setup.secret,
+      otpauthUrl: setup.otpauthUrl,
+    });
   } catch (error) {
     if (error instanceof Response && error.status === 403) {
-      return json<MfaLoaderData>({ status: 'reauth' });
+      return json<MfaLoaderData>({ status: 'reauth', language });
     }
 
     throw error;
@@ -52,6 +69,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 type MfaActionData = { error?: string; enabled?: boolean; codes?: string[]; message?: string };
 
 export async function action({ request }: EnterpriseActionArgs) {
+  const copy = getMfaSetupCopy(resolveRequestLocale(request).language);
   const body = formObject(await request.formData()) as { intent?: string; password?: string; code?: string };
 
   /*
@@ -67,7 +85,7 @@ export async function action({ request }: EnterpriseActionArgs) {
       });
     } catch (error) {
       if (error instanceof Response) {
-        return json<MfaActionData>({ error: 'That password didn’t match. Try again.' }, { status: error.status });
+        return json<MfaActionData>({ error: copy['mfaSetup.errors.passwordMismatch'] }, { status: error.status });
       }
 
       throw error;
@@ -85,16 +103,7 @@ export async function action({ request }: EnterpriseActionArgs) {
     });
   } catch (error) {
     if (error instanceof Response) {
-      let message = 'That code didn’t match — check your authenticator app and try again.';
-
-      try {
-        const payload = (await error.clone().json()) as { error?: string };
-        message = payload.error ?? message;
-      } catch {
-        message = error.statusText || message;
-      }
-
-      return json<MfaActionData>({ error: message }, { status: error.status });
+      return json<MfaActionData>({ error: copy['mfaSetup.errors.invalidCode'] }, { status: error.status });
     }
 
     throw error;
@@ -122,13 +131,12 @@ export async function action({ request }: EnterpriseActionArgs) {
 
     return json<MfaActionData>({
       enabled: true,
-      message:
-        'Two-factor authentication is on, but we couldn’t generate recovery codes. Visit /recovery-codes to create them.',
+      message: copy['mfaSetup.errors.recoveryCodes'],
     });
   }
 }
 
-function CopyButton({ value, label = 'Copy' }: { value: string; label?: string }) {
+function CopyButton({ value, copy, label }: { value: string; copy: MfaSetupCopy; label?: string }) {
   const [copied, setCopied] = useState(false);
 
   return (
@@ -143,39 +151,39 @@ function CopyButton({ value, label = 'Copy' }: { value: string; label?: string }
           })
           .catch(() => undefined);
       }}
-      className="inline-flex items-center gap-1.5 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2.5 py-1.5 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-2"
+      className="inline-flex min-h-[44px] items-center gap-1.5 whitespace-normal rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2.5 py-1.5 text-left text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-2"
     >
       {copied ? (
         <Check className="h-3.5 w-3.5" style={{ color: 'var(--status-success-text)' }} />
       ) : (
         <Copy className="h-3.5 w-3.5" />
       )}
-      {copied ? 'Copied' : label}
+      {copied ? copy['mfaSetup.copy.copied'] : (label ?? copy['mfaSetup.copy.copy'])}
     </button>
   );
 }
 
-function RecoveryCodes({ codes }: { codes: string[] }) {
+function RecoveryCodes({ codes, copy }: { codes: string[]; copy: MfaSetupCopy }) {
   const text = codes.join('\n');
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-2" data-testid="mfa-recovery-codes">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2" data-testid="mfa-recovery-codes">
         {codes.map((code) => (
           <code
             key={code}
-            className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-center font-mono text-sm tracking-wider text-bolt-elements-textPrimary"
+            className="break-all rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-center font-mono text-sm tracking-wider text-bolt-elements-textPrimary"
           >
             {code}
           </code>
         ))}
       </div>
       <div className="flex flex-wrap gap-2">
-        <CopyButton value={text} label="Copy all" />
+        <CopyButton value={text} copy={copy} label={copy['mfaSetup.copy.all']} />
         <button
           type="button"
           onClick={() => {
-            const blob = new Blob([`E-Code recovery codes\n\n${text}\n`], { type: 'text/plain' });
+            const blob = new Blob([`${copy['mfaSetup.download.heading']}\n\n${text}\n`], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -183,9 +191,9 @@ function RecoveryCodes({ codes }: { codes: string[] }) {
             a.click();
             URL.revokeObjectURL(url);
           }}
-          className="inline-flex items-center gap-1.5 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2.5 py-1.5 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-2"
+          className="inline-flex min-h-[44px] items-center gap-1.5 whitespace-normal rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2.5 py-1.5 text-left text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-2"
         >
-          <Download className="h-3.5 w-3.5" /> Download
+          <Download className="h-3.5 w-3.5" /> {copy['mfaSetup.download']}
         </button>
       </div>
     </div>
@@ -194,6 +202,8 @@ function RecoveryCodes({ codes }: { codes: string[] }) {
 
 export default function MfaSetupPage() {
   const loaderData = useLoaderData<typeof loader>() as MfaLoaderData;
+  const language = resolveMfaSetupLanguage(loaderData.language);
+  const copy = getMfaSetupCopy(language);
   const actionData = useActionData<typeof action>() as MfaActionData | undefined;
   const navigation = useNavigation();
   const isSubmitting = navigation.state === 'submitting';
@@ -201,47 +211,45 @@ export default function MfaSetupPage() {
   // 1) Done — MFA just enabled: show recovery codes (or a fallback if minting failed).
   if (actionData?.enabled) {
     return (
-      <EnterpriseFormPage
-        title="Two-factor authentication is on"
-        description="Save your recovery codes — each works once if you ever lose your authenticator."
-      >
+      <EnterpriseFormPage title={copy['mfaSetup.complete.title']} description={copy['mfaSetup.complete.description']}>
         <div className="space-y-6" data-testid="mfa-setup-complete">
           <div
-            className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium"
+            className="flex flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium"
             style={{
               borderColor: 'color-mix(in srgb, var(--status-success-text) 30%, transparent)',
               background: 'color-mix(in srgb, var(--status-success-text) 10%, transparent)',
               color: 'var(--status-success-text)',
             }}
           >
-            <ShieldCheck className="h-4 w-4" /> Two-factor authentication enabled
+            <ShieldCheck className="h-4 w-4" /> {copy['mfaSetup.complete.badge']}
           </div>
           {actionData.codes ? (
             <div>
-              <p className="mb-2 text-sm font-medium text-bolt-elements-textPrimary">Recovery codes</p>
-              <p className="mb-3 text-xs text-bolt-elements-textSecondary">
-                Store these in your password manager. Each can be used once if you lose access to your authenticator.
+              <p className="mb-2 break-words text-sm font-medium text-bolt-elements-textPrimary">
+                {copy['mfaSetup.recovery.title']}
               </p>
-              <RecoveryCodes codes={actionData.codes} />
+              <p className="mb-3 break-words text-xs text-bolt-elements-textSecondary">
+                {copy['mfaSetup.recovery.description']}
+              </p>
+              <RecoveryCodes codes={actionData.codes} copy={copy} />
             </div>
           ) : (
             <p className="rounded-md border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] px-3 py-2 text-sm text-[var(--status-warning-text)]">
-              {actionData.message ??
-                'Two-factor authentication is on, but we couldn’t generate recovery codes. Visit /recovery-codes to create them.'}
+              {actionData.message ?? copy['mfaSetup.errors.recoveryCodes']}
             </p>
           )}
           <div className="flex flex-wrap gap-3">
             <Link
               to="/dashboard"
-              className="inline-flex items-center justify-center rounded-md bg-bolt-elements-button-primary-background px-4 py-2 text-sm font-medium text-bolt-elements-button-primary-text hover:opacity-90"
+              className="inline-flex min-h-[44px] items-center justify-center whitespace-normal rounded-md bg-bolt-elements-button-primary-background px-4 py-2 text-center text-sm font-medium text-bolt-elements-button-primary-text hover:opacity-90"
             >
-              Done
+              {copy['mfaSetup.complete.done']}
             </Link>
             <Link
               to="/security-settings"
-              className="inline-flex items-center justify-center rounded-md border border-bolt-elements-borderColor px-4 py-2 text-sm font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1"
+              className="inline-flex min-h-[44px] items-center justify-center whitespace-normal rounded-md border border-bolt-elements-borderColor px-4 py-2 text-center text-sm font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1"
             >
-              Security settings
+              {copy['mfaSetup.securitySettings']}
             </Link>
           </div>
         </div>
@@ -252,33 +260,30 @@ export default function MfaSetupPage() {
   // 2) Already enabled.
   if (loaderData.status === 'enabled') {
     return (
-      <EnterpriseFormPage
-        title="Two-factor authentication"
-        description="Your account is protected with an authenticator app."
-      >
+      <EnterpriseFormPage title={copy['mfaSetup.enabled.title']} description={copy['mfaSetup.enabled.description']}>
         <div className="space-y-5">
           <div
-            className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium"
+            className="flex flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium"
             style={{
               borderColor: 'color-mix(in srgb, var(--status-success-text) 30%, transparent)',
               background: 'color-mix(in srgb, var(--status-success-text) 10%, transparent)',
               color: 'var(--status-success-text)',
             }}
           >
-            <ShieldCheck className="h-4 w-4" /> Two-factor authentication is enabled
+            <ShieldCheck className="h-4 w-4" /> {copy['mfaSetup.enabled.badge']}
           </div>
           <div className="flex flex-wrap gap-3">
             <Link
               to="/recovery-codes"
-              className="inline-flex items-center justify-center rounded-md border border-bolt-elements-borderColor px-4 py-2 text-sm font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1"
+              className="inline-flex min-h-[44px] items-center justify-center whitespace-normal rounded-md border border-bolt-elements-borderColor px-4 py-2 text-center text-sm font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1"
             >
-              Recovery codes
+              {copy['mfaSetup.recovery.title']}
             </Link>
             <Link
               to="/security-settings"
-              className="inline-flex items-center justify-center rounded-md border border-bolt-elements-borderColor px-4 py-2 text-sm font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1"
+              className="inline-flex min-h-[44px] items-center justify-center whitespace-normal rounded-md border border-bolt-elements-borderColor px-4 py-2 text-center text-sm font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1"
             >
-              Disable in Security settings
+              {copy['mfaSetup.enabled.disable']}
             </Link>
           </div>
         </div>
@@ -290,14 +295,14 @@ export default function MfaSetupPage() {
   if (loaderData.status === 'reauth') {
     return (
       <EnterpriseFormPage
-        title="Confirm your password"
-        description="For your security, confirm your password before setting up two-factor authentication."
+        title={copy['mfaSetup.reauth.title']}
+        description={copy['mfaSetup.reauth.description']}
         error={actionData?.error}
       >
         <Form method="post" className="space-y-4">
           <input type="hidden" name="intent" value="reauth" />
           <label className="block text-sm font-medium text-bolt-elements-textPrimary">
-            Password
+            {copy['mfaSetup.reauth.password']}
             <input
               className="mt-2 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2.5 text-sm outline-none focus:border-bolt-elements-focus"
               name="password"
@@ -309,7 +314,7 @@ export default function MfaSetupPage() {
             />
           </label>
           <PrimaryButton type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Confirming…' : 'Continue'}
+            {isSubmitting ? copy['mfaSetup.reauth.confirming'] : copy['mfaSetup.reauth.continue']}
           </PrimaryButton>
         </Form>
       </EnterpriseFormPage>
@@ -319,8 +324,8 @@ export default function MfaSetupPage() {
   // 4) Enrollment — one screen: scan the QR, enter the code.
   return (
     <EnterpriseFormPage
-      title="Set up two-factor authentication"
-      description="Scan the QR code with an authenticator app (Google Authenticator, 1Password, Authy…), then enter the 6-digit code."
+      title={copy['mfaSetup.setup.title']}
+      description={copy['mfaSetup.setup.description']}
       error={actionData?.error}
     >
       <div className="space-y-6">
@@ -328,22 +333,23 @@ export default function MfaSetupPage() {
           <div
             className="shrink-0 rounded-lg border border-bolt-elements-borderColor bg-white p-3"
             data-testid="mfa-setup-qr"
+            aria-label={copy['mfaSetup.setup.qrAria']}
           >
             {loaderData.otpauthUrl ? <QRCode value={loaderData.otpauthUrl} size={172} quietZone={6} /> : null}
           </div>
           <div className="min-w-0 flex-1 space-y-2">
-            <p className="text-sm font-medium text-bolt-elements-textPrimary">Can’t scan it?</p>
-            <p className="text-xs text-bolt-elements-textSecondary">
-              Enter this setup key manually in your authenticator app.
+            <p className="break-words text-sm font-medium text-bolt-elements-textPrimary">
+              {copy['mfaSetup.setup.cannotScan']}
             </p>
-            <div className="flex items-center gap-2">
+            <p className="break-words text-xs text-bolt-elements-textSecondary">{copy['mfaSetup.setup.manual']}</p>
+            <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
               <code
-                className="min-w-0 flex-1 truncate rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 font-mono text-xs tracking-wider text-bolt-elements-textPrimary"
+                className="min-w-0 flex-1 break-all rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 font-mono text-xs tracking-wider text-bolt-elements-textPrimary"
                 data-testid="mfa-setup-secret"
               >
                 {loaderData.secret}
               </code>
-              <CopyButton value={loaderData.secret ?? ''} />
+              <CopyButton value={loaderData.secret ?? ''} copy={copy} />
             </div>
           </div>
         </div>
@@ -351,7 +357,7 @@ export default function MfaSetupPage() {
         <Form method="post" className="space-y-4">
           <input type="hidden" name="intent" value="verify" />
           <label className="block text-sm font-medium text-bolt-elements-textPrimary">
-            6-digit code
+            {copy['mfaSetup.setup.code']}
             <input
               className="mt-2 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2.5 text-center font-mono text-lg tracking-[0.4em] outline-none focus:border-bolt-elements-focus"
               name="code"
@@ -368,7 +374,7 @@ export default function MfaSetupPage() {
             />
           </label>
           <PrimaryButton type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Enabling…' : 'Enable two-factor authentication'}
+            {isSubmitting ? copy['mfaSetup.setup.enabling'] : copy['mfaSetup.setup.enable']}
           </PrimaryButton>
         </Form>
       </div>

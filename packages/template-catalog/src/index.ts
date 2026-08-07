@@ -1,4 +1,11 @@
-export { GALLERY_DEMO_APP_SUMMARIES, getGalleryDemoAppSummary, listGalleryDemoAppSummaries } from './metadata.js';
+export {
+  GALLERY_DEMO_APP_LOCALES,
+  GALLERY_DEMO_APP_SUMMARIES,
+  getGalleryDemoAppSummary,
+  listGalleryDemoAppSummaries,
+  normalizeGalleryDemoAppLocale,
+  type GalleryDemoAppLocale,
+} from './metadata.js';
 export {
   GALLERY_DEMO_APP_ARTIFACT_TYPES,
   GALLERY_DEMO_APP_CATEGORIES,

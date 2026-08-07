@@ -1,6 +1,7 @@
 /* eslint-disable import/order */
 import { Cpu, Server, BookOpen, Activity, PackageOpen, Monitor, Loader2, RotateCw, ExternalLink } from 'lucide-react';
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import ErrorBoundary from './ErrorBoundary';
 import { ModelCardSkeleton } from './LoadingSkeleton';
 import ModelCard from './ModelCard';
@@ -26,6 +27,9 @@ import type { OllamaModel, LMStudioModel } from './types';
 type ViewMode = 'dashboard' | 'guide' | 'status';
 
 export default function LocalProvidersTab() {
+  const { t, i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
+
   const { providers, updateProviderSettings } = useSettings();
   const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
   const [editingProvider, setEditingProvider] = useState<string | null>(null);
@@ -132,7 +136,7 @@ export default function LocalProvidersTab() {
       const response = await fetch(`${ollamaBaseUrl}/api/tags`);
 
       if (!response.ok) {
-        throw new Error('Failed to fetch models');
+        throw new Error(t('settings.copy.failedToFetchModels_0b3be248'));
       }
 
       const data = (await response.json()) as { models: OllamaModel[] };
@@ -150,7 +154,7 @@ export default function LocalProvidersTab() {
        * showing a misleading "No Models Installed" empty state when Ollama was
        * simply unreachable.
        */
-      toast(`Could not reach Ollama at ${ollamaBaseUrl}. Is it running?`, { type: 'error' });
+      toast(t('settings.localProviders.ollama.unreachable', { url: ollamaBaseUrl }), { type: 'error' });
     } finally {
       setIsLoadingModels(false);
     }
@@ -163,7 +167,7 @@ export default function LocalProvidersTab() {
       const response = await fetch(`${baseUrl}/v1/models`);
 
       if (!response.ok) {
-        throw new Error('Failed to fetch LM Studio models');
+        throw new Error(t('settings.copy.failedToFetchLmStudioModels_c239153d'));
       }
 
       const data = (await response.json()) as { data: LMStudioModel[] };
@@ -181,9 +185,9 @@ export default function LocalProvidersTab() {
       filteredProviders.forEach((provider) => {
         updateProviderSettings(provider.name, { ...provider.settings, enabled });
       });
-      toast(enabled ? 'All local providers enabled' : 'All local providers disabled');
+      toast(enabled ? t('settings.localProviders.allEnabled') : t('settings.localProviders.allDisabled'));
     },
-    [filteredProviders, updateProviderSettings, toast],
+    [filteredProviders, updateProviderSettings, t, toast],
   );
 
   const handleToggleProvider = useCallback(
@@ -193,12 +197,15 @@ export default function LocalProvidersTab() {
         enabled,
       });
 
-      logStore.logProvider(`Provider ${provider.name} ${enabled ? 'enabled' : 'disabled'}`, {
+      const message = enabled
+        ? t('settings.localProviders.providerEnabled', { provider: provider.name })
+        : t('settings.localProviders.providerDisabled', { provider: provider.name });
+      logStore.logProvider(message, {
         provider: provider.name,
       });
-      toast(`${provider.name} ${enabled ? 'enabled' : 'disabled'}`);
+      toast(message);
     },
-    [updateProviderSettings, toast],
+    [updateProviderSettings, t, toast],
   );
 
   const handleUpdateBaseUrl = useCallback(
@@ -207,9 +214,9 @@ export default function LocalProvidersTab() {
         ...provider.settings,
         baseUrl: newBaseUrl,
       });
-      toast(`${provider.name} base URL updated`);
+      toast(t('settings.localProviders.baseUrlUpdated', { provider: provider.name }));
     },
-    [updateProviderSettings, toast],
+    [updateProviderSettings, t, toast],
   );
 
   const handleUpdateOllamaModel = async (modelName: string) => {
@@ -223,14 +230,14 @@ export default function LocalProvidersTab() {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to update ${modelName}`);
+        throw new Error(t('settings.localProviders.modelUpdateFailed', { model: modelName }));
       }
 
       // Handle streaming response
       const reader = response.body?.getReader();
 
       if (!reader) {
-        throw new Error('No response reader available');
+        throw new Error(t('settings.copy.noResponseReaderAvailable_f8d0dbf8'));
       }
 
       while (true) {
@@ -272,12 +279,12 @@ export default function LocalProvidersTab() {
       setOllamaModels((prev) =>
         prev.map((m) => (m.name === modelName ? { ...m, status: 'updated', progress: undefined } : m)),
       );
-      toast(`Successfully updated ${modelName}`);
+      toast(t('settings.localProviders.modelUpdated', { model: modelName }));
     } catch {
       setOllamaModels((prev) =>
         prev.map((m) => (m.name === modelName ? { ...m, status: 'error', progress: undefined } : m)),
       );
-      toast(`Failed to update ${modelName}`, { type: 'error' });
+      toast(t('settings.localProviders.modelUpdateFailed', { model: modelName }), { type: 'error' });
     }
   };
 
@@ -294,13 +301,13 @@ export default function LocalProvidersTab() {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to delete ${modelName}`);
+        throw new Error(t('settings.localProviders.modelDeleteFailed', { model: modelName }));
       }
 
       setOllamaModels((current) => current.filter((m) => m.name !== modelName));
-      toast(`Deleted ${modelName}`);
+      toast(t('settings.localProviders.modelDeleted', { model: modelName }));
     } catch {
-      toast(`Failed to delete ${modelName}`, { type: 'error' });
+      toast(t('settings.localProviders.modelDeleteFailed', { model: modelName }), { type: 'error' });
     }
   };
 
@@ -335,9 +342,11 @@ export default function LocalProvidersTab() {
               void performDeleteOllamaModel(modelName);
             }
           }}
-          title={`Delete ${modelPendingDelete ?? 'this model'}?`}
-          description="The model is removed from your local Ollama installation."
-          confirmLabel="Delete model"
+          title={t('settings.localProviders.deleteModelTitle', {
+            model: modelPendingDelete ?? t('settings.localProviders.thisModel'),
+          })}
+          description={t('settings.copy.theModelIsRemovedFromYourLocalOllama_493efb34')}
+          confirmLabel={t('settings.localProviders.deleteModel')}
           variant="destructive"
         />
         {/* Header */}
@@ -347,17 +356,23 @@ export default function LocalProvidersTab() {
               <Cpu className="w-6 h-6 text-[var(--vc-ide-accent-action)]" />
             </div>
             <div>
-              <h2 className="text-2xl font-semibold text-bolt-elements-textPrimary">Local AI Providers</h2>
-              <p className="text-sm text-bolt-elements-textSecondary">Configure and manage your local AI models</p>
+              <h2 className="text-2xl font-semibold text-bolt-elements-textPrimary">
+                {t('settings.copy.localAiProviders_96f3a73f')}
+              </h2>
+              <p className="text-sm text-bolt-elements-textSecondary">
+                {t('settings.copy.configureAndManageYourLocalAiModels_c35365c0')}
+              </p>
             </div>
           </div>
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-bolt-elements-textSecondary">Enable All</span>
+              <span className="text-sm font-medium text-bolt-elements-textSecondary">
+                {t('settings.copy.enableAll_87b3b5dd')}
+              </span>
               <Switch
                 checked={categoryEnabled}
                 onCheckedChange={handleToggleCategory}
-                aria-label="Toggle all local providers"
+                aria-label={t('settings.copy.toggleAllLocalProviders_465107a9')}
               />
             </div>
             <div className="flex items-center gap-2">
@@ -368,7 +383,7 @@ export default function LocalProvidersTab() {
                 className="bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-background-depth-3 border-bolt-elements-borderColor hover:border-[color-mix(in_srgb,var(--vc-ide-accent-action)_30%,transparent)] transition-all duration-200 gap-2"
               >
                 <BookOpen className="w-4 h-4" />
-                Setup Guide
+                {t('settings.copy.setupGuide_03418fd0')}
               </Button>
               <Button
                 variant="outline"
@@ -377,7 +392,7 @@ export default function LocalProvidersTab() {
                 className="bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-background-depth-3 border-bolt-elements-borderColor hover:border-[color-mix(in_srgb,var(--vc-ide-accent-action)_30%,transparent)] transition-all duration-200 gap-2"
               >
                 <Activity className="w-4 h-4" />
-                Status
+                {t('settings.copy.status_920e413c')}
               </Button>
             </div>
           </div>
@@ -403,7 +418,9 @@ export default function LocalProvidersTab() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <PackageOpen className="w-5 h-5 text-[var(--vc-ide-accent-action)]" />
-                        <h3 className="text-lg font-semibold text-bolt-elements-textPrimary">Installed Models</h3>
+                        <h3 className="text-lg font-semibold text-bolt-elements-textPrimary">
+                          {t('settings.copy.installedModels_672a72ad')}
+                        </h3>
                       </div>
                       <Button
                         variant="outline"
@@ -417,7 +434,7 @@ export default function LocalProvidersTab() {
                         ) : (
                           <RotateCw className="w-4 h-4 mr-2" />
                         )}
-                        Refresh
+                        {t('settings.copy.refresh_0e916101')}
                       </Button>
                     </div>
                   </CardHeader>
@@ -431,19 +448,21 @@ export default function LocalProvidersTab() {
                     ) : ollamaModels.length === 0 ? (
                       <div className="text-center py-8">
                         <PackageOpen className="w-16 h-16 mx-auto text-bolt-elements-textTertiary mb-4" />
-                        <h3 className="text-lg font-medium text-bolt-elements-textPrimary mb-2">No Models Installed</h3>
+                        <h3 className="text-lg font-medium text-bolt-elements-textPrimary mb-2">
+                          {t('settings.copy.noModelsInstalled_b31146f0')}
+                        </h3>
                         <p className="text-sm text-bolt-elements-textSecondary mb-4">
-                          Visit{' '}
+                          {t('settings.copy.visit_1c8ac867')}{' '}
                           <a
                             href="https://ollama.com/library"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-[var(--vc-ide-accent-action)] hover:underline inline-flex items-center gap-1"
                           >
-                            ollama.com/library
+                            {t('settings.copy.ollamaComLibrary_57198fd8')}
                             <ExternalLink className="w-3 h-3" />
                           </a>{' '}
-                          to browse available models
+                          {t('settings.copy.toBrowseAvailableModels_c8726096')}
                         </p>
                         <Button
                           variant="outline"
@@ -458,7 +477,9 @@ export default function LocalProvidersTab() {
                             className="flex items-center justify-center gap-2"
                           >
                             <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-300 flex-shrink-0" />
-                            <span className="flex-1 text-center font-medium">Browse Models</span>
+                            <span className="flex-1 text-center font-medium">
+                              {t('settings.copy.browseModels_b556fa77')}
+                            </span>
                           </a>
                         </Button>
                       </div>
@@ -485,7 +506,9 @@ export default function LocalProvidersTab() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Monitor className="w-5 h-5 text-blue-500" />
-                        <h3 className="text-lg font-semibold text-bolt-elements-textPrimary">Available Models</h3>
+                        <h3 className="text-lg font-semibold text-bolt-elements-textPrimary">
+                          {t('settings.copy.availableModels_14494560')}
+                        </h3>
                       </div>
                       <Button
                         variant="outline"
@@ -499,7 +522,7 @@ export default function LocalProvidersTab() {
                         ) : (
                           <RotateCw className="w-4 h-4 mr-2" />
                         )}
-                        Refresh
+                        {t('settings.copy.refresh_0e916101')}
                       </Button>
                     </div>
                   </CardHeader>
@@ -513,9 +536,11 @@ export default function LocalProvidersTab() {
                     ) : lmStudioModels.length === 0 ? (
                       <div className="text-center py-8">
                         <Monitor className="w-16 h-16 mx-auto text-bolt-elements-textTertiary mb-4" />
-                        <h3 className="text-lg font-medium text-bolt-elements-textPrimary mb-2">No Models Available</h3>
+                        <h3 className="text-lg font-medium text-bolt-elements-textPrimary mb-2">
+                          {t('settings.copy.noModelsAvailable_906fca33')}
+                        </h3>
                         <p className="text-sm text-bolt-elements-textSecondary mb-4">
-                          Make sure LM Studio is running with the local server started and CORS enabled.
+                          {t('settings.copy.makeSureLmStudioIsRunningWithThe_e527657d')}
                         </p>
                         <Button
                           variant="outline"
@@ -530,7 +555,9 @@ export default function LocalProvidersTab() {
                             className="flex items-center justify-center gap-2"
                           >
                             <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-300 flex-shrink-0" />
-                            <span className="flex-1 text-center font-medium">Get LM Studio</span>
+                            <span className="flex-1 text-center font-medium">
+                              {t('settings.copy.getLmStudio_047c5f4f')}
+                            </span>
                           </a>
                         </Button>
                       </div>
@@ -545,7 +572,7 @@ export default function LocalProvidersTab() {
                                     {model.id}
                                   </h4>
                                   <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-500">
-                                    Available
+                                    {t('settings.copy.available_e6744473')}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-4 text-xs text-bolt-elements-textSecondary">
@@ -555,12 +582,17 @@ export default function LocalProvidersTab() {
                                   </div>
                                   <div className="flex items-center gap-1">
                                     <Activity className="w-3 h-3" />
-                                    <span>Owned by: {model.owned_by}</span>
+                                    <span>
+                                      {t('settings.copy.ownedBy_1fad1458')} {model.owned_by}
+                                    </span>
                                   </div>
                                   {model.created && (
                                     <div className="flex items-center gap-1">
                                       <Activity className="w-3 h-3" />
-                                      <span>Created: {new Date(model.created * 1000).toLocaleDateString()}</span>
+                                      <span>
+                                        {t('settings.copy.created_22d435a3')}{' '}
+                                        {new Date(model.created * 1000).toLocaleDateString(language)}
+                                      </span>
                                     </div>
                                   )}
                                 </div>
@@ -581,9 +613,11 @@ export default function LocalProvidersTab() {
           <Card className="bg-bolt-elements-background-depth-2">
             <CardContent className="p-8 text-center">
               <Server className="w-16 h-16 mx-auto text-bolt-elements-textTertiary mb-4" />
-              <h3 className="text-lg font-medium text-bolt-elements-textPrimary mb-2">No Local Providers Available</h3>
+              <h3 className="text-lg font-medium text-bolt-elements-textPrimary mb-2">
+                {t('settings.copy.noLocalProvidersAvailable_e31262b5')}
+              </h3>
               <p className="text-sm text-bolt-elements-textSecondary">
-                Local providers will appear here when they're configured in the system.
+                {t('settings.copy.localProvidersWillAppearHereWhenTheyRe_83d24736')}
               </p>
             </CardContent>
           </Card>

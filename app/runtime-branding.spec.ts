@@ -10,9 +10,10 @@ function source(file: string) {
 describe('runtime E-Code branding', () => {
   it('removes the upstream landing tagline from the empty chat surface', () => {
     const chat = source('app/components/chat/BaseChat.tsx');
+    const chatCatalog = source('app/lib/i18n/catalogs/chat.ts');
 
-    expect(chat).toContain('Turn ideas into working software');
-    expect(chat).not.toContain('Where ideas begin');
+    expect(chatCatalog).toContain('Turn ideas into working software');
+    expect(`${chat}\n${chatCatalog}`).not.toContain('Where ideas begin');
   });
 
   it('identifies E-Code in network and diagnostic surfaces', () => {
@@ -93,14 +94,16 @@ describe('runtime E-Code branding', () => {
 
   it('uses E-Code in user-facing agent guidance while preserving compatibility identifiers', () => {
     const walkthrough = source('app/components/docs/AgentWalkthrough.tsx');
+    const walkthroughCatalog = source('app/lib/i18n/catalogs/agent-walkthrough.ts');
     const chat = source('app/components/chat/BaseChat.tsx');
+    const chatCatalog = source('app/lib/i18n/catalogs/chat.ts');
     const prompt = source('app/lib/common/prompts/discuss-prompt.ts');
 
-    expect(walkthrough).toContain('Standalone E-Code safety:');
-    expect(chat).toContain("reason: 'Core E-Code workflow'");
+    expect(walkthroughCatalog).toContain('Standalone E-Code safety:');
+    expect(chatCatalog).toContain('Core E-Code workflow');
     expect(prompt).toContain('E-Code ALWAYS uses stock photos from Pexels');
     expect(prompt).toContain('E-Code NEVER downloads the images');
-    expect(`${walkthrough}\n${chat}\n${prompt}`).not.toMatch(
+    expect(`${walkthrough}\n${walkthroughCatalog}\n${chat}\n${chatCatalog}\n${prompt}`).not.toMatch(
       /Standalone Bolt safety|Core Bolt workflow|Bolt (?:ALWAYS|NEVER)/,
     );
 

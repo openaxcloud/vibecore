@@ -9,9 +9,10 @@
  */
 
 import { memo, useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { searchSlashCommands, type SlashCommand } from '~/lib/chat/slash-commands';
-import { t } from '~/lib/i18n/dictionary';
+import { formatSlashCommandsCopy, getSlashCommandsCopy } from '~/lib/i18n/catalogs/slash-commands';
 
 export interface SlashCommandsPaletteProps {
   /** Text typed after the leading `/` (no slash, no argument). */
@@ -39,7 +40,10 @@ export interface SlashCommandsPaletteProps {
 
 export const SlashCommandsPalette = memo(
   ({ query, onSelect, onDismiss, pendingArgument, recentSlashCommandIds }: SlashCommandsPaletteProps) => {
-    const commands = searchSlashCommands(query, { recentSlashCommandIds });
+    const { i18n } = useTranslation();
+    const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
+    const copy = getSlashCommandsCopy(language);
+    const commands = searchSlashCommands(query, { language, recentSlashCommandIds });
     const [activeIndex, setActiveIndex] = useState(0);
 
     useEffect(() => {
@@ -90,12 +94,12 @@ export const SlashCommandsPalette = memo(
         <div
           className="bolt-slash-commands-palette"
           role="listbox"
-          aria-label="Slash commands"
+          aria-label={copy['slashCommands.palette.aria']}
           data-empty="true"
           tabIndex={-1}
           onKeyDown={handleKeyDown}
         >
-          <p className="bolt-slash-commands-empty">{t('slashCommands.empty')}</p>
+          <p className="bolt-slash-commands-empty break-words">{copy['slashCommands.palette.empty']}</p>
         </div>
       );
     }
@@ -104,7 +108,7 @@ export const SlashCommandsPalette = memo(
       <div
         className="bolt-slash-commands-palette"
         role="listbox"
-        aria-label="Slash commands"
+        aria-label={copy['slashCommands.palette.aria']}
         tabIndex={-1}
         onKeyDown={handleKeyDown}
       >
@@ -118,15 +122,20 @@ export const SlashCommandsPalette = memo(
                 role="option"
                 aria-selected={isActive}
                 data-active={isActive ? 'true' : 'false'}
-                className="bolt-slash-commands-item"
+                className="bolt-slash-commands-item min-w-0"
                 onMouseEnter={() => setActiveIndex(index)}
                 onClick={() => onSelect(command)}
               >
                 <span className="bolt-slash-commands-keyword">/{command.id}</span>
-                <span className="bolt-slash-commands-label">{command.label}</span>
-                <span className="bolt-slash-commands-description">{command.description}</span>
+                <span className="bolt-slash-commands-label min-w-0 break-words">{command.label}</span>
+                <span className="bolt-slash-commands-description min-w-0 break-words">{command.description}</span>
                 {command.shortcut ? (
-                  <span className="bolt-slash-commands-shortcut" aria-label={`Shortcut ${command.shortcut}`}>
+                  <span
+                    className="bolt-slash-commands-shortcut"
+                    aria-label={formatSlashCommandsCopy(copy['slashCommands.palette.shortcutAria'], {
+                      shortcut: command.shortcut,
+                    })}
+                  >
                     {command.shortcut}
                   </span>
                 ) : null}
@@ -135,9 +144,9 @@ export const SlashCommandsPalette = memo(
           })}
         </ul>
         {pendingArgument ? (
-          <footer className="bolt-slash-commands-footer">
-            <span>Argument: </span>
-            <code>{pendingArgument}</code>
+          <footer className="bolt-slash-commands-footer min-w-0 break-words">
+            <span>{copy['slashCommands.palette.argument']} </span>
+            <code className="break-all">{pendingArgument}</code>
           </footer>
         ) : null}
       </div>

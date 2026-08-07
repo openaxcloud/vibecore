@@ -1,6 +1,7 @@
 import { useStore } from '@nanostores/react';
 import { motion } from 'framer-motion';
 import React, { useEffect, useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { logStore } from '~/lib/stores/logs';
 import {
@@ -14,6 +15,9 @@ import {
 import { classNames } from '~/utils/classNames';
 
 export default function VercelConnection() {
+  const { t, i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
+
   console.log('VercelConnection component mounted');
 
   const connection = useStore(vercelConnection);
@@ -53,7 +57,7 @@ export default function VercelConnection() {
         const result = await autoConnectVercel();
 
         if (result.success) {
-          toast.success('Connected to Vercel automatically');
+          toast.success(t('settings.copy.connectedToVercelAutomatically_a5d70873'));
         } else {
           console.error('Vercel auto-connection failed:', result.error);
         }
@@ -82,7 +86,7 @@ export default function VercelConnection() {
       });
 
       if (!response.ok) {
-        throw new Error('Invalid token or unauthorized');
+        throw new Error(t('settings.copy.invalidTokenOrUnauthorized_8599db09'));
       }
 
       const userData = (await response.json()) as any;
@@ -92,11 +96,11 @@ export default function VercelConnection() {
       });
 
       await fetchVercelStats(connection.token);
-      toast.success('Successfully connected to Vercel');
+      toast.success(t('settings.copy.successfullyConnectedToVercel_b11bdb69'));
     } catch (error) {
       console.error('Auth error:', error);
-      logStore.logError('Failed to authenticate with Vercel', { error });
-      toast.error('Failed to connect to Vercel');
+      logStore.logError(t('settings.vercel.authenticationFailed'), { error });
+      toast.error(t('settings.copy.failedToConnectToVercel_13100f98'));
       updateVercelConnection({ user: null, token: '' });
     } finally {
       isConnecting.set(false);
@@ -105,7 +109,7 @@ export default function VercelConnection() {
 
   const handleDisconnect = () => {
     updateVercelConnection({ user: null, token: '' });
-    toast.success('Disconnected from Vercel');
+    toast.success(t('settings.copy.disconnectedFromVercel_f567b00a'));
   };
 
   console.log('connection', connection);
@@ -127,7 +131,9 @@ export default function VercelConnection() {
               crossOrigin="anonymous"
               src={`https://cdn.simpleicons.org/vercel/black`}
             />
-            <h3 className="text-base font-medium text-bolt-elements-textPrimary">Vercel Connection</h3>
+            <h3 className="text-base font-medium text-bolt-elements-textPrimary">
+              {t('settings.copy.vercelConnection_197535ea')}
+            </h3>
           </div>
         </div>
 
@@ -135,7 +141,7 @@ export default function VercelConnection() {
           <div className="space-y-4">
             <div>
               <label htmlFor="vercel-access-token" className="block text-sm text-bolt-elements-textSecondary mb-2">
-                Personal Access Token
+                {t('settings.copy.personalAccessToken_5572fccc')}
               </label>
               <input
                 id="vercel-access-token"
@@ -143,7 +149,7 @@ export default function VercelConnection() {
                 value={connection.token}
                 onChange={(e) => updateVercelConnection({ ...connection, token: e.target.value })}
                 disabled={connecting}
-                placeholder="Enter your Vercel personal access token"
+                placeholder={t('settings.copy.enterYourVercelPersonalAccessToken_b1562395')}
                 className={classNames(
                   'w-full px-3 py-2 rounded-lg text-sm',
                   'bg-bolt-elements-background-depth-3',
@@ -160,25 +166,33 @@ export default function VercelConnection() {
                   rel="noopener noreferrer"
                   className="text-bolt-elements-borderColorActive hover:underline inline-flex items-center gap-1"
                 >
-                  Get your token
+                  {t('settings.copy.getYourToken_41c867bf')}
                   <div className="i-ph:arrow-square-out w-4 h-4" />
                 </a>
                 <div className="mt-2 text-xs text-bolt-elements-textSecondary bg-bolt-elements-background-depth-1 p-2 rounded">
                   <p className="flex items-center gap-1">
                     <span className="i-ph:lightbulb w-3.5 h-3.5 text-bolt-elements-icon-success" />
-                    <span className="font-medium">Tip:</span> You can also set{' '}
+                    <span className="font-medium">{t('settings.copy.tip_ab744fe2')}</span>{' '}
+                    {t('settings.copy.youCanAlsoSet_dcbb043f')}{' '}
                     <code className="px-1 py-0.5 bg-bolt-elements-background-depth-2 rounded text-xs">
                       VITE_VERCEL_ACCESS_TOKEN
                     </code>{' '}
-                    in your .env.local for automatic connection.
+                    {t('settings.copy.inYourEnvLocalForAutomaticConnection_aaddd8e9')}
                   </p>
                 </div>
                 {/* Debug info — dev-only (was leaking internal token state into the prod UI). */}
                 {import.meta.env?.DEV && (
                   <div className="mt-2 text-xs text-bolt-elements-textTertiary">
-                    <p>Debug: Token present: {connection.token ? '✅' : '❌'}</p>
-                    <p>Debug: User present: {connection.user ? '✅' : '❌'}</p>
-                    <p>Debug: Env token: {import.meta.env?.VITE_VERCEL_ACCESS_TOKEN ? '✅' : '❌'}</p>
+                    <p>
+                      {t('settings.copy.debugTokenPresent_55c6fdda')} {connection.token ? '✅' : '❌'}
+                    </p>
+                    <p>
+                      {t('settings.copy.debugUserPresent_b0ff1699')} {connection.user ? '✅' : '❌'}
+                    </p>
+                    <p>
+                      {t('settings.copy.debugEnvToken_21052265')}{' '}
+                      {import.meta.env?.VITE_VERCEL_ACCESS_TOKEN ? '✅' : '❌'}
+                    </p>
                   </div>
                 )}
               </div>
@@ -199,12 +213,12 @@ export default function VercelConnection() {
                 {connecting ? (
                   <>
                     <div className="i-ph:spinner-gap animate-spin" />
-                    Connecting...
+                    {t('settings.copy.connecting_5f04ae9e')}
                   </>
                 ) : (
                   <>
                     <div className="i-ph:plug-charging w-4 h-4" />
-                    Connect
+                    {t('settings.copy.connect_1a2303ed')}
                   </>
                 )}
               </button>
@@ -218,14 +232,15 @@ export default function VercelConnection() {
                     const result = await autoConnectVercel();
 
                     if (result.success) {
-                      toast.success('Manual auto-connect successful');
+                      toast.success(t('settings.copy.manualAutoConnectSuccessful_d99f22b3'));
                     } else {
-                      toast.error(`Manual auto-connect failed: ${result.error}`);
+                      console.error('Manual Vercel auto-connect failed', result.error);
+                      toast.error(t('settings.vercel.autoConnectFailed'));
                     }
                   }}
                   className="px-3 py-2 rounded-lg text-xs bg-blue-500 text-white hover:bg-blue-600"
                 >
-                  Test Auto-Connect
+                  {t('settings.copy.testAutoConnect_bf008333')}
                 </button>
               )}
             </div>
@@ -243,11 +258,11 @@ export default function VercelConnection() {
                   )}
                 >
                   <div className="i-ph:plug w-4 h-4" />
-                  Disconnect
+                  {t('settings.copy.disconnect_acfc5be7')}
                 </button>
                 <span className="text-sm text-bolt-elements-textSecondary flex items-center gap-1">
                   <div className="i-ph:check-circle w-4 h-4 text-green-500" />
-                  Connected to Vercel
+                  {t('settings.copy.connectedToVercel_699b4165')}
                 </span>
               </div>
             </div>
@@ -260,15 +275,15 @@ export default function VercelConnection() {
                 src={`https://vercel.com/api/www/avatar?u=${connection.user?.username || connection.user?.user?.username}`}
                 referrerPolicy="no-referrer"
                 crossOrigin="anonymous"
-                alt="User Avatar"
+                alt={t('settings.copy.userAvatar_2a87bfe3')}
                 className="w-12 h-12 rounded-full border-2 border-bolt-elements-borderColorActive"
               />
               <div>
                 <h4 className="text-sm font-medium text-bolt-elements-textPrimary">
-                  {connection.user?.username || connection.user?.user?.username || 'Vercel User'}
+                  {connection.user?.username || connection.user?.user?.username || t('settings.vercel.user')}
                 </h4>
                 <p className="text-sm text-bolt-elements-textSecondary">
-                  {connection.user?.email || connection.user?.user?.email || 'No email available'}
+                  {connection.user?.email || connection.user?.user?.email || t('settings.vercel.noEmail')}
                 </p>
               </div>
             </div>
@@ -276,7 +291,7 @@ export default function VercelConnection() {
             {fetchingStats ? (
               <div className="flex items-center gap-2 text-sm text-bolt-elements-textSecondary">
                 <div className="i-ph:spinner-gap w-4 h-4 animate-spin" />
-                Fetching Vercel projects...
+                {t('settings.copy.fetchingVercelProjects_a1e62108')}
               </div>
             ) : (
               <div>
@@ -285,7 +300,8 @@ export default function VercelConnection() {
                   className="w-full bg-transparent text-left text-sm font-medium text-bolt-elements-textPrimary mb-3 flex items-center gap-2"
                 >
                   <div className="i-ph:buildings w-4 h-4" />
-                  Your Projects ({connection.stats?.totalProjects || 0})
+                  {t('settings.copy.yourProjects_638a3b27')}
+                  {connection.stats?.totalProjects || 0})
                   <div
                     className={classNames(
                       'i-ph:caret-down w-4 h-4 ml-auto transition-transform',
@@ -325,7 +341,7 @@ export default function VercelConnection() {
                                   <span>•</span>
                                   <span className="flex items-center gap-1">
                                     <div className="i-ph:clock w-3 h-3" />
-                                    {new Date(project.createdAt).toLocaleDateString()}
+                                    {new Date(project.createdAt).toLocaleDateString(language)}
                                   </span>
                                 </>
                               ) : project.latestDeployments && project.latestDeployments.length > 0 ? (
@@ -341,7 +357,7 @@ export default function VercelConnection() {
                                   <span>•</span>
                                   <span className="flex items-center gap-1">
                                     <div className="i-ph:clock w-3 h-3" />
-                                    {new Date(project.latestDeployments[0].created).toLocaleDateString()}
+                                    {new Date(project.latestDeployments[0].created).toLocaleDateString(language)}
                                   </span>
                                 </>
                               ) : null}
@@ -362,7 +378,7 @@ export default function VercelConnection() {
                 ) : isProjectsExpanded ? (
                   <div className="text-sm text-bolt-elements-textSecondary flex items-center gap-2">
                     <div className="i-ph:info w-4 h-4" />
-                    No projects found in your Vercel account
+                    {t('settings.copy.noProjectsFoundInYourVercelAccount_95b15497')}
                   </div>
                 ) : null}
               </div>

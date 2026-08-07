@@ -1,4 +1,5 @@
 import { apiRequest, json, type EnterpriseActionArgs, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const url = new URL(request.url);
@@ -12,7 +13,7 @@ export async function action({ request }: EnterpriseActionArgs) {
   const method = request.method.toUpperCase();
 
   if (method !== 'POST') {
-    return json({ ok: false, error: 'Method not allowed' }, { status: 405 });
+    return remainingApiErrorResponse(request, 'METHOD_NOT_ALLOWED', 405, { extra: { ok: false } });
   }
 
   const body = await request.text();

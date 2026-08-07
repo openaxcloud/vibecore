@@ -1,13 +1,10 @@
-import {
-  apiErrorMessage,
-  apiRequest,
-  json,
-  type EnterpriseActionArgs,
-  type EnterpriseLoaderArgs,
-} from '~/lib/enterprise-api.server';
+import { apiRequest, json, type EnterpriseActionArgs, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 import {
   decodeRuntimeFileContent,
   parseProjectFileWriteBody,
+  ProjectFileIoError,
+  type ProjectFileWritePayload,
   type RuntimeFileReadResponse,
 } from '~/lib/project-file-io';
 import { contentTypeForProjectFile, normalizeProjectFilePath } from '~/lib/project-file-route';
@@ -22,11 +19,11 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
   const normalizedPath = normalizeProjectFilePath(params['*']);
 
   if (!projectId) {
-    throw json({ ok: false, error: 'Project not found' }, { status: 404 });
+    throw remainingApiErrorResponse(request, 'PROJECT_NOT_FOUND', 404, { extra: { ok: false } });
   }
 
   if (!normalizedPath.ok) {
-    throw json({ ok: false, error: normalizedPath.error }, { status: 400 });
+    throw remainingApiErrorResponse(request, 'PROJECT_FILE_PATH_INVALID', 400, { extra: { ok: false } });
   }
 
   let file: RuntimeFileReadResponse;
@@ -50,33 +47,32 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     const status = error instanceof Response ? error.status : 502;
 
     if (status === 404) {
-      throw json(
-        {
-          ok: false,
-          error: 'Project file not found',
-          path: normalizedPath.path,
-        },
-        { status: 404 },
-      );
+      throw remainingApiErrorResponse(request, 'PROJECT_FILE_NOT_FOUND', 404, {
+        extra: { ok: false, path: normalizedPath.path },
+      });
     }
 
-    const message = await apiErrorMessage(error, 'Project file read failed');
     const normalizedStatus = error instanceof Response && error.status !== 500 ? error.status : 502;
 
-    throw json(
-      {
-        ok: false,
-        error: message,
-        code:
-          normalizedStatus === 401 || normalizedStatus === 403
-            ? 'PROJECT_FILE_AUTH_REQUIRED'
-            : 'PROJECT_FILE_READ_UNAVAILABLE',
-      },
-      { status: normalizedStatus },
+    throw remainingApiErrorResponse(
+      request,
+      normalizedStatus === 401 || normalizedStatus === 403 ? 'PROJECT_FILE_AUTH_REQUIRED' : 'PROJECT_FILE_READ_FAILED',
+      normalizedStatus,
+      { extra: { ok: false } },
     );
   }
 
-  const bytes = decodeRuntimeFileContent(file);
+  let bytes: Uint8Array;
+
+  try {
+    bytes = decodeRuntimeFileContent(file);
+  } catch (error) {
+    if (error instanceof ProjectFileIoError) {
+      throw remainingApiErrorResponse(request, error.code, error.status, { extra: { ok: false } });
+    }
+
+    throw remainingApiErrorResponse(request, 'PROJECT_FILE_READ_FAILED', 502, { extra: { ok: false } });
+  }
 
   /*
    * Project files are attacker-controlled content served from the app's own
@@ -101,22 +97,33 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
 export async function action({ request, params }: EnterpriseActionArgs) {
   if (request.method.toUpperCase() !== 'PUT') {
-    throw json({ ok: false, error: 'Method not allowed' }, { status: 405 });
+    throw remainingApiErrorResponse(request, 'METHOD_NOT_ALLOWED', 405, { extra: { ok: false } });
   }
 
   const projectId = params.id;
   const normalizedPath = normalizeProjectFilePath(params['*']);
 
   if (!projectId) {
-    throw json({ ok: false, error: 'Project not found' }, { status: 404 });
+    throw remainingApiErrorResponse(request, 'PROJECT_NOT_FOUND', 404, { extra: { ok: false } });
   }
 
   if (!normalizedPath.ok) {
-    throw json({ ok: false, error: normalizedPath.error }, { status: 400 });
+    throw remainingApiErrorResponse(request, 'PROJECT_FILE_PATH_INVALID', 400, { extra: { ok: false } });
   }
 
   const rawBody = await request.text();
-  const payload = await parseProjectFileWriteBody(rawBody, request.headers.get('content-type'));
+
+  let payload: ProjectFileWritePayload;
+
+  try {
+    payload = await parseProjectFileWriteBody(rawBody, request.headers.get('content-type'));
+  } catch (error) {
+    if (error instanceof ProjectFileIoError) {
+      throw remainingApiErrorResponse(request, error.code, error.status, { extra: { ok: false } });
+    }
+
+    throw remainingApiErrorResponse(request, 'PROJECT_FILE_WRITE_BODY_INVALID', 400, { extra: { ok: false } });
+  }
 
   try {
     await apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(projectId)}/files/write`, {
@@ -128,16 +135,13 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       }),
     });
   } catch (error) {
-    const message = await apiErrorMessage(error, 'Project file write failed');
     const status = error instanceof Response && error.status !== 500 ? error.status : 502;
 
-    throw json(
-      {
-        ok: false,
-        error: message,
-        code: status === 401 || status === 403 ? 'PROJECT_FILE_AUTH_REQUIRED' : 'PROJECT_FILE_WRITE_UNAVAILABLE',
-      },
-      { status },
+    throw remainingApiErrorResponse(
+      request,
+      status === 401 || status === 403 ? 'PROJECT_FILE_AUTH_REQUIRED' : 'PROJECT_FILE_WRITE_FAILED',
+      status,
+      { extra: { ok: false } },
     );
   }
 

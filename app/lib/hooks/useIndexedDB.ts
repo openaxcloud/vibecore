@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { formatPersistenceRuntimeCopy, getPersistenceRuntimeCopy } from '~/lib/i18n/catalogs/persistence-runtime';
 
 /**
  * Hook to initialize and provide access to the IndexedDB database
@@ -57,11 +58,18 @@ export function useIndexedDB() {
         };
 
         request.onerror = (event) => {
-          setError(new Error(`Database error: ${(event.target as IDBOpenDBRequest).error?.message}`));
+          const copy = getPersistenceRuntimeCopy();
+          const message = (event.target as IDBOpenDBRequest).error?.message ?? copy['persistence.error.unknown'];
+
+          setError(new Error(formatPersistenceRuntimeCopy(copy['persistence.error.database'], { message })));
           setIsLoading(false);
         };
       } catch (err) {
-        setError(err instanceof Error ? err : new Error('Unknown error initializing database'));
+        setError(
+          err instanceof Error
+            ? err
+            : new Error(getPersistenceRuntimeCopy()['persistence.error.databaseInitialization']),
+        );
         setIsLoading(false);
       }
     };

@@ -66,6 +66,7 @@ describe('projects/new responsive UI contract', () => {
     expect(routeSource).not.toContain('Authenticated template flow already wired');
     expect(routeSource).not.toContain('vc-new-project-glow');
     expect(stylesSource).not.toContain('.vc-new-project-glow');
-    expect(routeSource).toContain('Choose a curated starter and customize it with the agent.');
+    expect(routeSource).toContain('copy.templates.description');
+    expect(routeSource).not.toContain('Choose a curated starter and customize it with the agent.');
   });
 });

@@ -11,6 +11,11 @@
  * cassant l'autre est exactement la régression probable :
  *   1. le statut HTTP reste 404 (pas de soft-404 en 200, qui serait indexé) ;
  *   2. le `meta` produit bien titre + `noindex`.
+ *
+ * L'invariant porté ici est « jamais indexée », donc on vérifie `noindex` et
+ * non la variante exacte de la directive : les pages introuvables localisées
+ * émettent `noindex,follow` (les robots peuvent suivre les liens sortants sans
+ * indexer la page), ce qui satisfait pleinement l'invariant.
  */
 import { describe, expect, it } from 'vitest';
 
@@ -49,7 +54,7 @@ describe('404 multi-segments (route splat)', () => {
     const tags = splatMeta(metaArgs({}));
 
     expect(title(tags)).toBe(NOT_FOUND_TITLE);
-    expect(tag(tags, 'robots')).toBe('noindex, nofollow');
+    expect(tag(tags, 'robots')).toMatch(/\bnoindex\b/);
   });
 });
 
@@ -58,7 +63,7 @@ describe('404 à un segment (route slug — celle qui gère /page-inexistante)',
     const tags = slugMeta(metaArgs({ slug: 'page-inexistante-xyz' }));
 
     expect(title(tags)).toBe(NOT_FOUND_TITLE);
-    expect(tag(tags, 'robots')).toBe('noindex, nofollow');
+    expect(tag(tags, 'robots')).toMatch(/\bnoindex\b/);
   });
 
   it('ne marque PAS en noindex une page de surface qui existe', () => {

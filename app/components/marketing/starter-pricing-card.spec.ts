@@ -16,6 +16,7 @@ import { join } from 'node:path';
 
 import { creditPlanCatalog } from '@vibecore/billing';
 import { describe, expect, it } from 'vitest';
+import { pricingMarketingCopy, pricingPlanCopy } from '~/lib/i18n/catalogs/marketing-product';
 
 const root = join(__dirname, '..', '..', '..');
 const readSource = (relative: string) => readFileSync(join(root, relative), 'utf8');
@@ -82,16 +83,23 @@ describe('les deux pages de prix ne publient plus de valeur sans source', () => 
   }
 
   it('les deux pages annoncent UN projet publié à la fois', () => {
-    expect(withoutComments(readSource(MARKETING_PAGE))).toMatch(
-      /One published project at a time|Published projects at a time/,
-    );
+    expect(pricingPlanCopy.en.free.features).toContain('One published project at a time');
+    expect(pricingPlanCopy.fr.free.features).toContain('Un projet publié à la fois');
+    expect(pricingMarketingCopy.en.comparisonRows).toContainEqual([
+      'Published projects at a time',
+      '1',
+      'Unlimited',
+      'Unlimited',
+      'Unlimited',
+    ]);
     expect(withoutComments(readSource(EXACT_PRICING_PAGE))).toMatch(
       /One published project at a time|Published projects at a time/,
     );
   });
 
   it('les deux pages décrivent les crédits Agent comme quotidiens', () => {
-    expect(withoutComments(readSource(MARKETING_PAGE)).toLowerCase()).toMatch(/refreshed every day|daily/);
+    expect(pricingPlanCopy.en.free.features.join(' ').toLowerCase()).toMatch(/refreshed every day|daily/);
+    expect(pricingPlanCopy.fr.free.features.join(' ').toLowerCase()).toMatch(/renouvelés chaque jour|quotidiens/);
     expect(withoutComments(readSource(EXACT_PRICING_PAGE)).toLowerCase()).toMatch(/refreshed every day|daily/);
   });
 

@@ -6,6 +6,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import ServiceStatusTab from './ServiceStatusTab';
 import { deriveServiceStatusView } from './service-status-view';
 
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({ i18n: { language: 'en', resolvedLanguage: 'en' } }),
+}));
+
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
@@ -69,7 +73,7 @@ describe('ServiceStatusTab', () => {
       expect(container.querySelector('[role="status"]')).toBeNull();
     });
 
-    const rows = container.querySelectorAll('.space-y-3 > div');
+    const rows = container.querySelectorAll('[role="listitem"]');
     expect(rows.length).toBe(4);
     expect(container.textContent).toContain('/api/health');
   });
@@ -86,6 +90,6 @@ describe('ServiceStatusTab', () => {
       expect(screen.getByText('/api/health')).not.toBeNull();
     });
 
-    expect(screen.getAllByText('200').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('HTTP 200').length).toBeGreaterThan(0);
   });
 });

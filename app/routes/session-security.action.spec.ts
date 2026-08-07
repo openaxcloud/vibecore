@@ -8,12 +8,14 @@
  * session. That swallowed the redirect into a 3xx-status JSON body with no
  * Location header, dead-ending the user on a page they can no longer
  * authenticate against. These tests assert the action now re-throws those
- * re-auth redirects (so the framework performs the navigation) while still
- * rendering genuine 4xx/5xx API failures inline.
+ * re-auth redirects (so the framework performs the navigation), re-throws 5xx
+ * responses to the route boundary and maps safe 4xx failures to semantic codes.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const apiRequest = vi.fn();
+const firstOrganizationOrNull = vi.fn();
+const currentSessionTokenHash = vi.fn();
 
 vi.mock('~/lib/enterprise-api.server', async () => {
   const actual = await vi.importActual<typeof import('~/lib/enterprise-api.server')>('~/lib/enterprise-api.server');
@@ -21,19 +23,31 @@ vi.mock('~/lib/enterprise-api.server', async () => {
   return {
     ...actual,
     apiRequest: (...args: unknown[]) => apiRequest(...args),
+    firstOrganizationOrNull: (...args: unknown[]) => firstOrganizationOrNull(...args),
+    currentSessionTokenHash: (...args: unknown[]) => currentSessionTokenHash(...args),
   };
 });
 
-import { action } from './session-security';
+import { action, loader } from './session-security';
 
-function formRequest(fields: Record<string, string>): Request {
+function formRequest(fields: Record<string, string>, language = 'en'): Request {
   const form = new FormData();
 
   for (const [key, value] of Object.entries(fields)) {
     form.set(key, value);
   }
 
-  return new Request('http://localhost/session-security', { method: 'POST', body: form });
+  return new Request('http://localhost/session-security', {
+    method: 'POST',
+    body: form,
+    headers: { Cookie: `vibecore-lang=${language}` },
+  });
+}
+
+function pageRequest(language = 'en'): Request {
+  return new Request('http://localhost/session-security', {
+    headers: { Cookie: `vibecore-lang=${language}` },
+  });
 }
 
 /*
@@ -43,7 +57,7 @@ function formRequest(fields: Record<string, string>): Request {
  */
 async function runAction(fields: Record<string, string>) {
   const result = (await action({ request: formRequest(fields) } as never)) as {
-    data: { error?: string; status?: string };
+    data: { errorCode?: string; statusCode?: string };
     init?: { status?: number } | number | null;
   };
 
@@ -76,9 +90,10 @@ describe('session-security action error handling', () => {
     await expect(action({ request: formRequest({ orgId: 'org_1' }) } as never)).rejects.toBe(mfaRedirect);
   });
 
-  it('returns an inline 403 error (not a thrown Response) when the api forbids the request', async () => {
+  it('returns a stable inline 403 code without exposing the raw API error', async () => {
+    const rawApiError = 'You lack permission to manage session policy.';
     apiRequest.mockRejectedValueOnce(
-      new Response(JSON.stringify({ error: 'You lack permission to manage session policy.' }), {
+      new Response(JSON.stringify({ error: rawApiError }), {
         status: 403,
         headers: { 'content-type': 'application/json' },
       }),
@@ -87,21 +102,21 @@ describe('session-security action error handling', () => {
     const { status, body } = await runAction({ orgId: 'org_1' });
 
     expect(status).toBe(403);
-    expect(body.error).toBe('You lack permission to manage session policy.');
+    expect(body.errorCode).toBe('forbidden');
+    expect(JSON.stringify(body)).not.toContain(rawApiError);
   });
 
-  it('falls back to a generic message when a 4xx api response has no error body', async () => {
+  it('maps a bodyless conflict to a localizable code', async () => {
     /*
-     * 4xx client errors are rendered inline; a bodyless one falls back to the
-     * generic apiErrorMessage default. (5xx/3xx are rethrown to the framework —
-     * covered by the re-auth-redirect tests + route-reauth's shouldRethrowActionError.)
+     * The response body is deliberately ignored: only the status-derived code
+     * reaches the browser, while 5xx/3xx responses go to the framework.
      */
     apiRequest.mockRejectedValueOnce(new Response('', { status: 409 }));
 
     const { status, body } = await runAction({ orgId: 'org_1' });
 
     expect(status).toBe(409);
-    expect(body.error).toBe('Action failed. Please try again.');
+    expect(body.errorCode).toBe('conflict');
   });
 
   it('rethrows a 5xx api response to the framework error boundary', async () => {
@@ -112,18 +127,29 @@ describe('session-security action error handling', () => {
   });
 
   it('returns an unavailable error for a non-Response throw (network/timeout)', async () => {
-    apiRequest.mockRejectedValueOnce(new Error('fetch failed'));
+    const rawNetworkError = 'fetch failed against private session host';
+    apiRequest.mockRejectedValueOnce(new Error(rawNetworkError));
 
     const { body } = await runAction({ orgId: 'org_1' });
 
-    expect(body.error).toContain('temporarily unavailable');
+    expect(body.errorCode).toBe('unavailable');
+    expect(JSON.stringify(body)).not.toContain(rawNetworkError);
   });
 
   it('still validates a missing orgId before touching the api', async () => {
     const { status, body } = await runAction({ sessionDurationMinutes: '60' });
 
     expect(status).toBe(400);
-    expect(body.error).toBe('Your organization is unavailable. Reload the page and try again.');
+    expect(body.errorCode).toBe('organizationUnavailable');
+    expect(apiRequest).not.toHaveBeenCalled();
+  });
+
+  it('validates a missing session without exposing an implementation identifier', async () => {
+    const { status, body } = await runAction({ intent: 'revoke' });
+
+    expect(status).toBe(400);
+    expect(body.errorCode).toBe('sessionRequired');
+    expect(JSON.stringify(body)).not.toContain('session id');
     expect(apiRequest).not.toHaveBeenCalled();
   });
 
@@ -132,7 +158,102 @@ describe('session-security action error handling', () => {
 
     const { body } = await runAction({ orgId: 'org_1', sessionDurationMinutes: '120' });
 
-    expect(body.status).toContain('saved');
-    expect(body.error).toBeUndefined();
+    expect(body.statusCode).toBe('policySaved');
+    expect(body.errorCode).toBeUndefined();
+  });
+
+  it('returns distinct success codes for one revoked session and all other sessions', async () => {
+    apiRequest.mockResolvedValue(undefined);
+
+    await expect(runAction({ intent: 'revoke', sessionId: 'session_2' })).resolves.toMatchObject({
+      body: { statusCode: 'sessionRevoked' },
+    });
+    await expect(runAction({ intent: 'revoke-all' })).resolves.toMatchObject({
+      body: { statusCode: 'otherSessionsRevoked' },
+    });
+  });
+});
+
+describe('session-security loader locale and recovery', () => {
+  beforeEach(() => {
+    apiRequest.mockReset();
+    firstOrganizationOrNull.mockReset();
+    currentSessionTokenHash.mockReset();
+    firstOrganizationOrNull.mockResolvedValue({ id: 'org_1' });
+    currentSessionTokenHash.mockReturnValue('current-hash');
+  });
+
+  it('returns the manual French locale and localized device labels', async () => {
+    apiRequest.mockResolvedValueOnce({
+      sessions: [
+        {
+          id: 'session_1',
+          tokenHash: 'current-hash',
+          ipAddress: '203.0.113.10',
+          userAgent: 'Mozilla/5.0 (Macintosh) AppleWebKit Chrome/126.0',
+          createdAt: '2026-06-02T14:05:00.000Z',
+          expiresAt: '2026-07-02T14:05:00.000Z',
+        },
+      ],
+    });
+
+    const result = (await loader({ request: pageRequest('fr') } as never)) as {
+      data: {
+        language: string;
+        sessionsUnavailable: boolean;
+        sessions: Array<{ device: string; current: boolean; tokenHash?: string }>;
+      };
+    };
+
+    expect(result.data.language).toBe('fr');
+    expect(result.data.sessionsUnavailable).toBe(false);
+    expect(result.data.sessions).toEqual([expect.objectContaining({ device: 'Chrome sur macOS', current: true })]);
+    expect(result.data.sessions[0]).not.toHaveProperty('tokenHash');
+  });
+
+  it('uses English as the catalog fallback for an unsupported route locale', async () => {
+    apiRequest.mockResolvedValueOnce({
+      sessions: [
+        {
+          id: 'session_1',
+          userAgent: undefined,
+          createdAt: '2026-06-02T14:05:00.000Z',
+          expiresAt: '2026-07-02T14:05:00.000Z',
+        },
+      ],
+    });
+
+    const request = new Request('http://localhost/session-security?lang=es');
+
+    const result = (await loader({ request } as never)) as {
+      data: { language: string; sessions: Array<{ device: string }> };
+    };
+
+    expect(result.data.language).toBe('en');
+    expect(result.data.sessions[0]?.device).toBe('Unknown device');
+  });
+
+  it('turns a session-list failure into a recoverable state without serializing the raw error', async () => {
+    const rawError = 'network down on private session database';
+    apiRequest.mockRejectedValueOnce(new Error(rawError));
+
+    const result = (await loader({ request: pageRequest('fr') } as never)) as {
+      data: { language: string; sessionsUnavailable: boolean; sessions: unknown[] };
+    };
+
+    expect(result.data).toEqual({
+      orgId: 'org_1',
+      language: 'fr',
+      sessions: [],
+      sessionsUnavailable: true,
+    });
+    expect(JSON.stringify(result.data)).not.toContain(rawError);
+  });
+
+  it('rethrows authentication redirects from the sessions endpoint', async () => {
+    const redirect = new Response(null, { status: 302, headers: { Location: '/login' } });
+    apiRequest.mockRejectedValueOnce(redirect);
+
+    await expect(loader({ request: pageRequest('fr') } as never)).rejects.toBe(redirect);
   });
 });
