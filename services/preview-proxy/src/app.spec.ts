@@ -416,6 +416,62 @@ describe('preview-proxy', () => {
     await app.close();
   });
 
+  it("BLOCKER #5: relays a failed-asset 'error' beacon to the api readiness endpoint", async () => {
+    const { fn: fetchImpl, calls } = recordingFetch(async () => new Response('', { status: 204 }));
+
+    const app = await buildPreviewProxyApp({
+      fetchImpl,
+      resolveAgent: async () => fakeAgent,
+      previewDomain: 'preview.e-code.ai',
+      apiBaseUrl: 'http://api.local',
+      proxySharedSecret: 'preview-secret',
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/__vibecore/preview-blank',
+      headers: { 'content-type': 'application/json', host: 'ws-abc-5173.preview.e-code.ai' },
+      payload: JSON.stringify({
+        url: 'https://ws-abc-5173.preview.e-code.ai/',
+        ts: 1,
+        status: 'error',
+        detail: 'Failed to load stylesheet: /assets/index.css',
+      }),
+    });
+
+    expect(response.statusCode).toBe(204);
+
+    const relay = calls.find((c) => c.url.pathname === '/internal/preview/beacon');
+    expect(relay).toBeDefined();
+    const relayed = JSON.parse(String(relay!.init.body));
+    expect(relayed).toMatchObject({ workspaceId: 'ws-abc', port: 5173, status: 'error' });
+    expect(relayed.detail).toContain('stylesheet');
+    await app.close();
+  });
+
+  it("BLOCKER #5: a body without status defaults to 'blank' (back-compat with older reporters)", async () => {
+    const { fn: fetchImpl, calls } = recordingFetch(async () => new Response('', { status: 204 }));
+
+    const app = await buildPreviewProxyApp({
+      fetchImpl,
+      resolveAgent: async () => fakeAgent,
+      previewDomain: 'preview.e-code.ai',
+      apiBaseUrl: 'http://api.local',
+      proxySharedSecret: 'preview-secret',
+    });
+
+    await app.inject({
+      method: 'POST',
+      url: '/__vibecore/preview-blank',
+      headers: { 'content-type': 'application/json', host: 'ws-abc-5173.preview.e-code.ai' },
+      payload: JSON.stringify({ url: 'https://ws-abc-5173.preview.e-code.ai/', ts: 1 }),
+    });
+
+    const relay = calls.find((c) => c.url.pathname === '/internal/preview/beacon');
+    expect(JSON.parse(String(relay!.init.body))).toMatchObject({ status: 'blank' });
+    await app.close();
+  });
+
   it('REGRESSION: injecting the reporter/inspector NEVER strips the app entry script (blank-preview guard)', () => {
     const withEntry =
       '<!doctype html><html><head><title>App</title></head>' +

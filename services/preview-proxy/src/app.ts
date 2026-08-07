@@ -621,24 +621,45 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
    */
   app.post(BLANK_PREVIEW_PATH, async (request, reply) => {
     let url = 'unknown';
+    // Tri-state readiness signal from the reporter: 'blank' (never mounted) is the
+    // default for back-compat with older reporters that posted only { url }, and
+    // 'error' is a broken-but-rendered app (failed stylesheet/script — #5).
+    let status: 'blank' | 'error' = 'blank';
+    let detail: string | undefined;
 
     try {
-      const body = typeof request.body === 'string' ? JSON.parse(request.body) : (request.body as { url?: unknown });
+      const body =
+        typeof request.body === 'string'
+          ? JSON.parse(request.body)
+          : (request.body as { url?: unknown; status?: unknown; detail?: unknown });
 
       if (body && typeof body.url === 'string') {
         url = body.url;
+      }
+
+      if (body && body.status === 'error') {
+        status = 'error';
+      }
+
+      if (body && typeof body.detail === 'string') {
+        detail = body.detail.slice(0, 500);
       }
     } catch {
       // malformed beacon — still record the event.
     }
 
-    request.log.warn({ event: 'preview.blank', url }, 'preview served but the app never mounted (#root empty)');
+    request.log.warn(
+      { event: status === 'error' ? 'preview.asset_error' : 'preview.blank', url, detail },
+      status === 'error'
+        ? 'preview rendered but a critical asset failed to load'
+        : 'preview served but the app never mounted (#root empty)',
+    );
 
     /*
-     * BLOCKER #5: relay the blank signal to the api so /ports readiness stops
-     * reporting this port ready (the port probe alone can't see a blank DOM).
-     * The beacon lands on the preview host `<ws>-<port>.<previewDomain>`, so the
-     * (workspaceId, port) come straight from the request Host. Best-effort: a
+     * BLOCKER #5: relay the signal to the api so /ports readiness stops reporting
+     * this port ready (the port probe alone can't see a blank DOM or a failed
+     * asset). The beacon lands on the preview host `<ws>-<port>.<previewDomain>`, so
+     * the (workspaceId, port) come straight from the request Host. Best-effort: a
      * missing api url/secret or a failed POST just falls back to the log above.
      */
     const parsedHost = parsePreviewHost(request.headers.host, previewDomain);
@@ -647,7 +668,12 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       void fetchImpl(`${apiBaseUrl}/internal/preview/beacon`, {
         method: 'POST',
         headers: { authorization: `Bearer ${proxySharedSecret}`, 'content-type': 'application/json' },
-        body: JSON.stringify({ workspaceId: parsedHost.workspaceId, port: Number(parsedHost.port), status: 'blank' }),
+        body: JSON.stringify({
+          workspaceId: parsedHost.workspaceId,
+          port: Number(parsedHost.port),
+          status,
+          ...(detail ? { detail } : {}),
+        }),
       }).catch(() => undefined);
     }
 

@@ -166,6 +166,25 @@ export const REPORTER_SCRIPT = `(function () {
     }
   }
 
+  /*
+   * Relay a readiness signal to the preview-proxy (which persists it for the api's
+   * /ports readiness check). status is 'blank' (never mounted) or 'error' (a broken
+   * app that DID render a DOM, so the blank watchdog can't see it — a failed
+   * stylesheet/script). Best-effort; never throws into the page.
+   */
+  function beaconPreviewState(status, url, detail) {
+    try {
+      if (navigator && typeof navigator.sendBeacon === 'function') {
+        navigator.sendBeacon(
+          '/__vibecore/preview-blank',
+          JSON.stringify({ url: url, ts: Date.now(), status: status, detail: detail || undefined }),
+        );
+      }
+    } catch (error) {
+      // best-effort server log; never break the page.
+    }
+  }
+
   var blankReported = false;
   function reportBlank() {
     if (blankReported || !mountIsEmpty()) {
@@ -177,15 +196,38 @@ export const REPORTER_SCRIPT = `(function () {
       : 'Preview served but the app never mounted';
     var payload = { type: 'PREVIEW_BLANK', message: message, url: location.href, ts: Date.now() };
     send(payload);
-    try {
-      if (navigator && typeof navigator.sendBeacon === 'function') {
-        navigator.sendBeacon('/__vibecore/preview-blank', JSON.stringify({ url: payload.url, ts: payload.ts }));
-      }
-    } catch (error) {
-      // best-effort server log; never break the page.
-    }
+    beaconPreviewState('blank', payload.url, lastErrorMessage);
     renderBlankOverlay(lastErrorMessage);
   }
+
+  /*
+   * BLOCKER #5 — failed critical assets. A 404'd stylesheet or entry script fires
+   * the 'error' event on the ELEMENT (never bubbles), so it is invisible to the
+   * bubble-phase window handler above AND to the blank watchdog (the DOM may still
+   * render, just unstyled/broken — the documented "JavaScript rendered without its
+   * stylesheet"). A capture-phase listener sees it; beacon 'error' so /ports stops
+   * reporting the port ready. Reported at most once to avoid a flood.
+   */
+  var assetErrorReported = false;
+  window.addEventListener(
+    'error',
+    function (event) {
+      var target = event.target;
+      if (assetErrorReported || !target || target === window || typeof target.tagName !== 'string') {
+        return;
+      }
+      var tag = target.tagName.toUpperCase();
+      var isStylesheet = tag === 'LINK' && String(target.rel || '').toLowerCase().indexOf('stylesheet') !== -1;
+      var isScript = tag === 'SCRIPT';
+      if (!isStylesheet && !isScript) {
+        return;
+      }
+      var resource = target.href || target.src || '';
+      assetErrorReported = true;
+      beaconPreviewState('error', location.href, 'Failed to load ' + (isStylesheet ? 'stylesheet' : 'script') + ': ' + resource);
+    },
+    true,
+  );
 
   /*
    * When an uncaught error fires, the app is likely already dead — but give a
