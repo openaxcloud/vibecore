@@ -3705,25 +3705,37 @@ async function reconcileDeploymentStatus(store: ApiStore, deployment: Deployment
       if (live && live.readyReplicas >= 1) {
         const url = `https://${serverMeta.host}`;
 
-        return store.updateDeployment(deployment.projectId, deployment.id, {
-          status: 'READY',
-          url,
-          previewUrl: deployment.environment !== 'production' ? url : undefined,
-          productionUrl: deployment.environment === 'production' ? url : undefined,
-          metadata: {
-            ...(deployment.metadata as Record<string, unknown>),
-            serverDeploy: { ...serverMeta, ready: true, readyReplicas: live.readyReplicas },
-          },
-          logs: [
-            ...deployment.logs,
-            {
-              timestamp: new Date().toISOString(),
-              level: 'info' as const,
-              message: `Server deploy: ready with ${live.readyReplicas} replica(s) at ${url}.`,
+        /*
+         * Expert reserve: this asynchronous BUILDING→READY promotion is a REAL READY
+         * transition and was persisting the row with no rollback marker at all — a crash
+         * right after this commit left a READY server release with `rollbackable` ABSENT
+         * (not false), no reason and no manifest, i.e. fail-open. Seal it fail-closed in
+         * the same write; reconcileRollbackManifest — which runs immediately after this
+         * function on both deployment read paths — writes the manifest and flips the flag.
+         */
+        return store.updateDeployment(
+          deployment.projectId,
+          deployment.id,
+          sealPendingRollback(deployment, {
+            status: 'READY' as const,
+            url,
+            previewUrl: deployment.environment !== 'production' ? url : undefined,
+            productionUrl: deployment.environment === 'production' ? url : undefined,
+            metadata: {
+              ...(deployment.metadata as Record<string, unknown>),
+              serverDeploy: { ...serverMeta, ready: true, readyReplicas: live.readyReplicas },
             },
-          ],
-          finishedAt: new Date().toISOString(),
-        });
+            logs: [
+              ...deployment.logs,
+              {
+                timestamp: new Date().toISOString(),
+                level: 'info' as const,
+                message: `Server deploy: ready with ${live.readyReplicas} replica(s) at ${url}.`,
+              },
+            ],
+            finishedAt: new Date().toISOString(),
+          }),
+        );
       }
     }
   }
@@ -6751,23 +6763,60 @@ async function writeReleaseManifest(
  * flag (external providers manage their own history and are never our rollback
  * target). Returns the (possibly patched) deployment record to return to the API.
  */
+/** Transient marker: READY is persisted, the durable manifest is not written yet. */
+const MANIFEST_PENDING_REASON = 'manifest_pending';
+
+/** Only static/server releases are ever OUR rollback target — see reflectRollbackability. */
+function rollbackFlagApplies(provider: unknown): boolean {
+  return provider === 'static' || provider === 'server';
+}
+
 /**
- * Expert atomicity reserve — CRASH-ATOMIC fail-closed marker written INTO the READY
- * transition itself. Previously the order was (1) row→READY, (2) writeReleaseManifest,
- * (3) reflectRollbackability; a crash between (1) and (2) left a READY deployment with
- * NO manifest AND NO rollbackable flag — so "manifest absent ⇒ READY_NON_ROLLBACKABLE"
- * was not crash-atomic. A READY static/server row now starts life rollbackable:false
- * ('manifest_pending') in the SAME write that flips it READY, so a crash before the
- * durable manifest can never present a READY deployment as rollbackable. It is flipped
- * to true only AFTER the manifest is durable (reflectRollbackability), and a reconciler
- * (reconcileRollbackManifest) durably repairs a row stuck 'manifest_pending'.
+ * Expert atomicity reserve (2nd round) — THE choke point for the READY↔manifest
+ * invariant. Every mutation that persists a static/server deployment at READY MUST
+ * pass through here.
+ *
+ * The refused lot only sealed the nominal publish/redeploy path, so the OTHER
+ * transitions that reach READY still persisted a row with no marker at all (or, on
+ * the create/rollback-copy paths, with a `rollbackable:true` INHERITED from the source
+ * row) before any manifest existed. A crash there — or simply no crash at all, for the
+ * inheriting paths — presented a READY deployment as rollbackable with no manifest
+ * behind it. That is fail-OPEN, which is exactly what the whole lot promises not to do.
+ *
+ * The invariant this enforces, structurally rather than per-call-site:
+ *
+ *   a static/server deployment row is NEVER persisted at READY with
+ *   `rollbackable !== false` unless its manifest is ALREADY durable.
+ *
+ * So a READY row starts life `rollbackable:false` + 'manifest_pending' in the SAME
+ * write that flips it READY (and any inherited flag is overwritten, never merged).
+ * `reflectRollbackability` is the ONLY writer allowed to set `rollbackable:true`, and
+ * it runs strictly AFTER the manifest write returns durable; `reconcileRollbackManifest`
+ * durably repairs a row left at 'manifest_pending' by a crash, on the read path.
+ *
+ * `row` supplies the provider (and, for a metadata-less patch, the metadata to preserve);
+ * for a create, the input IS the row.
  */
-function pendingRollbackMetadata(provider: string, isReady: boolean): Record<string, unknown> {
-  if (isReady && (provider === 'static' || provider === 'server')) {
-    return { rollbackable: false, rollbackUnavailableReason: 'manifest_pending' };
+function sealPendingRollback<P extends { status?: unknown; metadata?: unknown }>(
+  row: { provider?: unknown; metadata?: unknown },
+  patch: P,
+): P {
+  if (patch.status !== 'READY' || !rollbackFlagApplies(row.provider)) {
+    return patch;
   }
 
-  return {};
+  /*
+   * Base on the patch's own metadata when it carries one (the call site is rewriting
+   * metadata wholesale), else on the row's, so sealing never WIPES metadata. The two
+   * rollback keys are then forced — an inherited `rollbackable:true` from a source or
+   * rollback-target row must not survive into a row that has no manifest of its own.
+   */
+  const base = (patch.metadata ?? row.metadata ?? {}) as Record<string, unknown>;
+
+  return {
+    ...patch,
+    metadata: { ...base, rollbackable: false, rollbackUnavailableReason: MANIFEST_PENDING_REASON },
+  };
 }
 
 async function reflectRollbackability(
@@ -31169,36 +31218,50 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             : `Server deploy: failed${serverError ? ` (${serverError})` : ''}.`,
       });
 
-      const readyRow = await store.updateDeployment(project.id, queued.id, {
-        status: serverStatus,
-        url: ok ? serverUrl : undefined,
-        previewUrl: ok && body.environment !== 'production' ? serverUrl : undefined,
-        productionUrl: ok && body.environment === 'production' ? serverUrl : undefined,
-        metadata: {
-          ...(queued.metadata as Record<string, unknown>),
-          serverDeploy: {
-            host,
-            ready: ok,
-            readyReplicas: started?.readyReplicas ?? 0,
+      const sealedServerRow = await store.updateDeployment(
+        project.id,
+        queued.id,
+        sealPendingRollback(queued, {
+          status: serverStatus,
+          url: ok ? serverUrl : undefined,
+          previewUrl: ok && body.environment !== 'production' ? serverUrl : undefined,
+          productionUrl: ok && body.environment === 'production' ? serverUrl : undefined,
+          metadata: {
+            ...(queued.metadata as Record<string, unknown>),
+            serverDeploy: {
+              host,
+              ready: ok,
+              readyReplicas: started?.readyReplicas ?? 0,
 
-            /*
-             * Marks a row whose k8s manifests are live so reconcile-on-read can
-             * re-check readiness against the manager (BUILDING → READY / teardown).
-             */
-            applied: manifestsApplied,
+              /*
+               * Marks a row whose k8s manifests are live so reconcile-on-read can
+               * re-check readiness against the manager (BUILDING → READY / teardown).
+               */
+              applied: manifestsApplied,
 
-            // Snapshot-image deploys: which image runs + its size (Replit cap: 8GiB).
-            ...(imageBuildInfo ? { image: imageBuildInfo } : {}),
+              // Snapshot-image deploys: which image runs + its size (Replit cap: 8GiB).
+              ...(imageBuildInfo ? { image: imageBuildInfo } : {}),
+            },
           },
-        },
-        logs: [...createDeploymentLogs(body, { ...queued, url: serverUrl }, project), ...liveLog],
+          logs: [...createDeploymentLogs(body, { ...queued, url: serverUrl }, project), ...liveLog],
 
-        /*
-         * A converging (BUILDING) deploy is not finished — leaving finishedAt
-         * unset keeps reconcile's stale-timeout clock running from startedAt.
-         */
-        finishedAt: converging ? undefined : nowIso(),
-      });
+          /*
+           * A converging (BUILDING) deploy is not finished — leaving finishedAt
+           * unset keeps reconcile's stale-timeout clock running from startedAt.
+           */
+          finishedAt: converging ? undefined : nowIso(),
+        }),
+      );
+
+      /*
+       * Expert reserve: this is the PRIMARY server publish path and it recorded NO
+       * ReleaseManifest at all — a READY server release was only ever given one later,
+       * by the read-path reconciler, and until someone read it the row carried no
+       * rollback marker whatsoever. Record it here like the static/hook path does, then
+       * reflect durability. Fail-closed in between: the row above is 'manifest_pending'.
+       */
+      const serverManifest = await writeReleaseManifest(store, app.log, sealedServerRow, body.envVars);
+      const readyRow = await reflectRollbackability(store, sealedServerRow, serverManifest);
 
       if (shouldRecordDeploymentUsage(readyRow.status)) {
         await recordUsage(request, project.organizationId, 'deployments.count');
@@ -31396,23 +31459,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           ? url
           : undefined;
 
-    const ready = await store.updateDeployment(project.id, queued.id, {
-      status,
-      url: resolvedUrl,
-      previewUrl: isReady && body.environment !== 'production' ? resolvedUrl : undefined,
-      productionUrl: isReady && body.environment === 'production' ? resolvedUrl : undefined,
-      metadata: {
-        ...(queued.metadata as Record<string, unknown>),
-        providerBuildId: hookResult?.buildId,
-        hookStatus: hookResult?.status,
-        staticBuildOk: body.provider === 'static' ? !staticBuildFailed : undefined,
-
-        // Crash-atomic: READY starts non-rollbackable until the manifest is durable.
-        ...pendingRollbackMetadata(body.provider, isReady),
-      },
-      logs: augmentedLogs,
-      finishedAt: status === 'BUILDING' ? undefined : new Date().toISOString(),
-    });
+    // Crash-atomic: sealPendingRollback forces READY to start non-rollbackable.
+    const ready = await store.updateDeployment(
+      project.id,
+      queued.id,
+      sealPendingRollback(queued, {
+        status,
+        url: resolvedUrl,
+        previewUrl: isReady && body.environment !== 'production' ? resolvedUrl : undefined,
+        productionUrl: isReady && body.environment === 'production' ? resolvedUrl : undefined,
+        metadata: {
+          ...(queued.metadata as Record<string, unknown>),
+          providerBuildId: hookResult?.buildId,
+          hookStatus: hookResult?.status,
+          staticBuildOk: body.provider === 'static' ? !staticBuildFailed : undefined,
+        },
+        logs: augmentedLogs,
+        finishedAt: status === 'BUILDING' ? undefined : new Date().toISOString(),
+      }),
+    );
 
     /*
      * P0-V3-08 (reserve #1): record the immutable release manifest for a
@@ -32503,7 +32568,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const publishUrl = source.url ?? source.previewUrl ?? buildDeploymentUrl(project, source);
-    const published = await store.createDeployment(buildPublishedDeploymentInput(source, publishUrl));
+
+    /*
+     * Expert reserve — "create immediately READY". Promote-to-production CREATES its row
+     * already at READY, copying the source's metadata wholesale: it therefore INHERITED
+     * the source's `rollbackable:true` while having no ReleaseManifest of its own in the
+     * production environment. That is fail-open with no crash required at all. Seal the
+     * create fail-closed, then record the production manifest and reflect the real
+     * outcome (a static promotion shares the source's bytes and has no snapshot under its
+     * own id → honest terminal `no_static_snapshot`, never an inherited true).
+     */
+    const publishedPending = await store.createDeployment(
+      sealPendingRollback(source, buildPublishedDeploymentInput(source, publishUrl)),
+    );
+    const publishManifest = await writeReleaseManifest(store, app.log, publishedPending, undefined);
+    const published = await reflectRollbackability(store, publishedPending, publishManifest);
 
     /*
      * P2d: publishing gives the project a real PRODUCTION database, distinct
@@ -32840,23 +32919,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           ? url
           : undefined;
 
-    const ready = await store.updateDeployment(project.id, redeploy.id, {
-      status: redeployStatus,
-      url: resolvedUrl,
-      previewUrl: redeployReady && redeploy.environment !== 'production' ? resolvedUrl : undefined,
-      productionUrl: redeployReady && redeploy.environment === 'production' ? resolvedUrl : undefined,
-      metadata: {
-        ...(redeploy.metadata as Record<string, unknown>),
-        providerBuildId: hookResult?.buildId,
-        hookStatus: hookResult?.status,
-        staticBuildOk: source.provider === 'static' ? !staticBuildFailed : undefined,
-
-        // Crash-atomic: READY starts non-rollbackable until the manifest is durable.
-        ...pendingRollbackMetadata(source.provider, redeployReady),
-      },
-      logs: [...redeploy.logs, ...rebuildLogs],
-      finishedAt: redeployStatus === 'BUILDING' ? undefined : new Date().toISOString(),
-    });
+    // Crash-atomic: sealPendingRollback forces READY to start non-rollbackable.
+    const ready = await store.updateDeployment(
+      project.id,
+      redeploy.id,
+      sealPendingRollback(redeploy, {
+        status: redeployStatus,
+        url: resolvedUrl,
+        previewUrl: redeployReady && redeploy.environment !== 'production' ? resolvedUrl : undefined,
+        productionUrl: redeployReady && redeploy.environment === 'production' ? resolvedUrl : undefined,
+        metadata: {
+          ...(redeploy.metadata as Record<string, unknown>),
+          providerBuildId: hookResult?.buildId,
+          hookStatus: hookResult?.status,
+          staticBuildOk: source.provider === 'static' ? !staticBuildFailed : undefined,
+        },
+        logs: [...redeploy.logs, ...rebuildLogs],
+        finishedAt: redeployStatus === 'BUILDING' ? undefined : new Date().toISOString(),
+      }),
+    );
 
     /*
      * P0-V3-08 (reserve #1): a redeploy is a new published version too — record its
@@ -33092,26 +33173,40 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       const url = buildDeploymentUrl(project, rollback);
 
-      const ready = await store.updateDeployment(project.id, rollback.id, {
-        status: 'READY',
-        url,
-        previewUrl: environment !== 'production' ? url : undefined,
-        productionUrl: environment === 'production' ? url : undefined,
-        finishedAt: new Date().toISOString(),
-        metadata: {
-          ...(rollback.metadata as Record<string, unknown>),
-          rollbackable: restoredRollbackable,
-          restoredArtifactDigest: restoredDigest,
-          ...(restoredRollbackable ? {} : { rollbackUnavailableReason: restoredRollbackReason }),
-        },
-        logs: [
-          ...rollback.logs,
-          {
-            timestamp: new Date().toISOString(),
-            level: 'info',
-            message: `Rolled back to release v${previous.version} (deployment ${previous.deploymentId}); source digest ${previous.artifactDigest} verified byte-identical before restore, restored bytes digest ${restoredDigest} recorded.`,
+      /*
+       * The manifest above is ALREADY durable when we get here, so this path could
+       * legitimately write rollbackable:true in the READY flip. It still goes through
+       * the seal + reflectRollbackability so that ONE rule holds everywhere with no
+       * per-site exception to audit: nothing writes `rollbackable:true` except
+       * reflectRollbackability, strictly after a durable manifest.
+       */
+      const readyPending = await store.updateDeployment(
+        project.id,
+        rollback.id,
+        sealPendingRollback(rollback, {
+          status: 'READY' as const,
+          url,
+          previewUrl: environment !== 'production' ? url : undefined,
+          productionUrl: environment === 'production' ? url : undefined,
+          finishedAt: new Date().toISOString(),
+          metadata: {
+            ...(rollback.metadata as Record<string, unknown>),
+            restoredArtifactDigest: restoredDigest,
           },
-        ],
+          logs: [
+            ...rollback.logs,
+            {
+              timestamp: new Date().toISOString(),
+              level: 'info' as const,
+              message: `Rolled back to release v${previous.version} (deployment ${previous.deploymentId}); source digest ${previous.artifactDigest} verified byte-identical before restore, restored bytes digest ${restoredDigest} recorded.`,
+            },
+          ],
+        }),
+      );
+
+      const ready = await reflectRollbackability(store, readyPending, {
+        recorded: restoredRollbackable,
+        reason: restoredRollbackReason,
       });
 
       return reply.code(201).send({
@@ -33227,40 +33322,67 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const ok = Boolean(started?.ready);
         const rbUrl = started?.url ?? `https://${rbHost}`;
 
-        const ready = await store.updateDeployment(project.id, rollback.id, {
-          status: ok ? 'READY' : 'BUILDING',
-          url: ok ? rbUrl : undefined,
-          previewUrl: ok && environment !== 'production' ? rbUrl : undefined,
-          productionUrl: ok && environment === 'production' ? rbUrl : undefined,
-          metadata: {
-            ...(rollback.metadata as Record<string, unknown>),
-            serverDeploy: {
-              host: rbHost,
-              ready: ok,
-              readyReplicas: started?.readyReplicas ?? 0,
-              applied: Boolean(started),
-              rolledBackFromDigest: plan.imageDigest,
-              image: {
-                imageRef: previous.artifactRef,
-                imageUri: plan.pullRef,
-                imageDigest: plan.imageDigest,
-                ...(plan.storeGeneration ? { storeGeneration: plan.storeGeneration } : {}),
+        /*
+         * Expert reserve — SERVER ROLLBACK. The order here was (1) row→READY,
+         * (2) appendRollbackManifest: exactly the window the lot claimed to have closed,
+         * left open on this path. A crash between them produced a READY server rollback
+         * with no manifest and no marker. Seal the READY flip 'manifest_pending', append
+         * the manifest, then reflect — same three beats as the publish path.
+         */
+        const readyPending = await store.updateDeployment(
+          project.id,
+          rollback.id,
+          sealPendingRollback(rollback, {
+            status: ok ? ('READY' as const) : ('BUILDING' as const),
+            url: ok ? rbUrl : undefined,
+            previewUrl: ok && environment !== 'production' ? rbUrl : undefined,
+            productionUrl: ok && environment === 'production' ? rbUrl : undefined,
+            metadata: {
+              ...(rollback.metadata as Record<string, unknown>),
+              serverDeploy: {
+                host: rbHost,
+                ready: ok,
+                readyReplicas: started?.readyReplicas ?? 0,
+                applied: Boolean(started),
+                rolledBackFromDigest: plan.imageDigest,
+                image: {
+                  imageRef: previous.artifactRef,
+                  imageUri: plan.pullRef,
+                  imageDigest: plan.imageDigest,
+                  ...(plan.storeGeneration ? { storeGeneration: plan.storeGeneration } : {}),
+                },
               },
             },
-          },
-          logs: [
-            ...rollback.logs,
-            {
-              timestamp: new Date().toISOString(),
-              level: 'info',
-              message: `Rolled back to release v${previous.version} by digest ${plan.pullRef} (revision-independent, I-REL-1).`,
-            },
-          ],
-          finishedAt: ok ? new Date().toISOString() : undefined,
-        });
+            logs: [
+              ...rollback.logs,
+              {
+                timestamp: new Date().toISOString(),
+                level: 'info' as const,
+                message: `Rolled back to release v${previous.version} by digest ${plan.pullRef} (revision-independent, I-REL-1).`,
+              },
+            ],
+            finishedAt: ok ? new Date().toISOString() : undefined,
+          }),
+        );
+
+        let ready = readyPending;
 
         if (ok) {
-          await appendRollbackManifest(rollback.id, 'server-image', previous.artifactRef, previous.artifactDigest);
+          let rolledBackRecorded = true;
+          let rolledBackReason: string | undefined;
+
+          try {
+            await appendRollbackManifest(rollback.id, 'server-image', previous.artifactRef, previous.artifactDigest);
+          } catch (error) {
+            rolledBackRecorded = false;
+            rolledBackReason = 'manifest_append_failed';
+            app.log.warn({ err: error, deploymentId: rollback.id }, 'release_manifest.rollback_append_failed');
+          }
+
+          ready = await reflectRollbackability(store, readyPending, {
+            recorded: rolledBackRecorded,
+            reason: rolledBackReason,
+          });
         }
 
         return reply.code(201).send({
@@ -33366,37 +33488,46 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const rollback = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
       await ensureQuota(request, project.organizationId, 'deployments.count');
 
-      return store.createDeployment({
-        projectId: project.id,
-        workspaceId: target.workspaceId,
-        provider: target.provider,
-        environment: target.environment,
-        status: willTriggerProviderRollback || willServerDigestRollback ? 'QUEUED' : 'READY',
-        url: target.url,
-        previewUrl: target.previewUrl,
-        productionUrl: target.productionUrl,
-        framework: target.framework,
-        buildCommand: target.buildCommand,
-        outputDirectory: target.outputDirectory,
-        branch: target.branch,
-        commitSha: target.commitSha,
-        customDomain: target.customDomain,
-        metadata: {
-          ...(target.metadata as Record<string, unknown>),
-          rollbackTargetId: target.id,
-          restoredProviderBuildId: (target.metadata as Record<string, unknown>)?.providerBuildId,
-        },
-        rolledBackFromId: target.id,
-        startedAt: new Date().toISOString(),
-        finishedAt: new Date().toISOString(),
-        logs: [
-          {
-            timestamp: new Date().toISOString(),
-            level: 'info',
-            message: `Rolled back to deployment ${target.id} (${target.provider} buildId=${(target.metadata as Record<string, unknown>)?.providerBuildId ?? 'unknown'}, url=${target.url ?? 'n/a'})`,
+      /*
+       * Expert reserve — the OTHER "create immediately READY". A non-provider, non-server
+       * target (i.e. static) is created straight at READY here, copying the TARGET row's
+       * metadata — so it inherited the target's `rollbackable:true` while owning no
+       * manifest and no snapshot under its own id. Seal it; the read-path reconciler then
+       * resolves it honestly (no snapshot of its own → terminal, never a blind true).
+       */
+      return store.createDeployment(
+        sealPendingRollback(target, {
+          projectId: project.id,
+          workspaceId: target.workspaceId,
+          provider: target.provider,
+          environment: target.environment,
+          status: willTriggerProviderRollback || willServerDigestRollback ? ('QUEUED' as const) : ('READY' as const),
+          url: target.url,
+          previewUrl: target.previewUrl,
+          productionUrl: target.productionUrl,
+          framework: target.framework,
+          buildCommand: target.buildCommand,
+          outputDirectory: target.outputDirectory,
+          branch: target.branch,
+          commitSha: target.commitSha,
+          customDomain: target.customDomain,
+          metadata: {
+            ...(target.metadata as Record<string, unknown>),
+            rollbackTargetId: target.id,
+            restoredProviderBuildId: (target.metadata as Record<string, unknown>)?.providerBuildId,
           },
-        ],
-      });
+          rolledBackFromId: target.id,
+          startedAt: new Date().toISOString(),
+          finishedAt: new Date().toISOString(),
+          logs: [
+            {
+              timestamp: new Date().toISOString(),
+              level: 'info' as const,
+              message: `Rolled back to deployment ${target.id} (${target.provider} buildId=${(target.metadata as Record<string, unknown>)?.providerBuildId ?? 'unknown'}, url=${target.url ?? 'n/a'})`,
+            },
+          ],
+        }),
+      );
     });
     const providerRollback = willTriggerProviderRollback
       ? await triggerProviderRollback(
@@ -33409,30 +33540,34 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (providerRollback) {
       const rollbackFailed = providerRollback.status === 'failed';
-      finalDeployment = await store.updateDeployment(project.id, rollback.id, {
-        // QUEUED → READY on success / FAILED on failure (allowed by the monotonic guard).
-        status: rollbackFailed ? 'FAILED' : 'READY',
+      finalDeployment = await store.updateDeployment(
+        project.id,
+        rollback.id,
+        sealPendingRollback(rollback, {
+          // QUEUED → READY on success / FAILED on failure (allowed by the monotonic guard).
+          status: rollbackFailed ? ('FAILED' as const) : ('READY' as const),
 
-        /*
-         * On a FAILED provider rollback, clear the live URLs copied from the target
-         * deployment up-front — the provider never actually switched traffic, so a
-         * FAILED row advertising the target's preview/production URL is misleading
-         * (dashboards/links point at a rollback that didn't happen).
-         */
-        ...(rollbackFailed ? { url: '', previewUrl: '', productionUrl: '' } : {}),
-        logs: [
-          ...rollback.logs,
-          {
-            timestamp: new Date().toISOString(),
-            level: providerRollback.status === 'failed' ? ('error' as const) : ('info' as const),
-            message: providerRollback.log,
+          /*
+           * On a FAILED provider rollback, clear the live URLs copied from the target
+           * deployment up-front — the provider never actually switched traffic, so a
+           * FAILED row advertising the target's preview/production URL is misleading
+           * (dashboards/links point at a rollback that didn't happen).
+           */
+          ...(rollbackFailed ? { url: '', previewUrl: '', productionUrl: '' } : {}),
+          logs: [
+            ...rollback.logs,
+            {
+              timestamp: new Date().toISOString(),
+              level: providerRollback.status === 'failed' ? ('error' as const) : ('info' as const),
+              message: providerRollback.log,
+            },
+          ],
+          metadata: {
+            ...(rollback.metadata as Record<string, unknown>),
+            providerRollbackStatus: providerRollback.status,
           },
-        ],
-        metadata: {
-          ...(rollback.metadata as Record<string, unknown>),
-          providerRollbackStatus: providerRollback.status,
-        },
-      });
+        }),
+      );
     }
 
     /*
@@ -33530,40 +33665,59 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
         const ok = Boolean(started?.ready);
         const rbUrl = started?.url ?? `https://${rbHost}`;
-        finalDeployment = await store.updateDeployment(project.id, rollback.id, {
-          status: ok ? 'READY' : 'BUILDING',
-          url: ok ? rbUrl : undefined,
-          previewUrl: ok && target.environment !== 'production' ? rbUrl : undefined,
-          productionUrl: ok && target.environment === 'production' ? rbUrl : undefined,
-          metadata: {
-            ...(rollback.metadata as Record<string, unknown>),
-            serverDeploy: {
-              host: rbHost,
-              ready: ok,
-              readyReplicas: started?.readyReplicas ?? 0,
-              applied: Boolean(started),
-              rolledBackFromDigest: plan.imageDigest,
-              secretPolicy: secretResolution.policy,
+        /*
+         * Expert reserve — this server digest-rollback promoted the row to READY and
+         * recorded NO manifest at all, so the row advertised itself with whatever
+         * `rollbackable` it had inherited from the target. Seal the READY flip, then let
+         * writeReleaseManifest/reflectRollbackability decide: the re-deployed image digest
+         * is in the metadata we just wrote, so a manifest CAN be recorded for it.
+         */
+        const readyPending = await store.updateDeployment(
+          project.id,
+          rollback.id,
+          sealPendingRollback(rollback, {
+            status: ok ? ('READY' as const) : ('BUILDING' as const),
+            url: ok ? rbUrl : undefined,
+            previewUrl: ok && target.environment !== 'production' ? rbUrl : undefined,
+            productionUrl: ok && target.environment === 'production' ? rbUrl : undefined,
+            metadata: {
+              ...(rollback.metadata as Record<string, unknown>),
+              serverDeploy: {
+                host: rbHost,
+                ready: ok,
+                readyReplicas: started?.readyReplicas ?? 0,
+                applied: Boolean(started),
+                rolledBackFromDigest: plan.imageDigest,
+                secretPolicy: secretResolution.policy,
 
-              // Persist the re-pinned generation so a rollback-of-a-rollback carries it too.
-              image: {
-                imageRef: retained.imageRef,
-                imageUri: plan.pullRef,
-                imageDigest: plan.imageDigest,
-                ...(plan.storeGeneration ? { storeGeneration: plan.storeGeneration } : {}),
+                // Persist the re-pinned generation so a rollback-of-a-rollback carries it too.
+                image: {
+                  imageRef: retained.imageRef,
+                  imageUri: plan.pullRef,
+                  imageDigest: plan.imageDigest,
+                  ...(plan.storeGeneration ? { storeGeneration: plan.storeGeneration } : {}),
+                },
               },
             },
-          },
-          logs: [
-            ...rollback.logs,
-            {
-              timestamp: new Date().toISOString(),
-              level: 'info' as const,
-              message: `Rollback re-deployed the retained image by digest ${plan.pullRef} (revision-independent, I-REL-1; secretPolicy=${secretResolution.policy})`,
-            },
-          ],
-          finishedAt: ok ? new Date().toISOString() : undefined,
-        });
+            logs: [
+              ...rollback.logs,
+              {
+                timestamp: new Date().toISOString(),
+                level: 'info' as const,
+                message: `Rollback re-deployed the retained image by digest ${plan.pullRef} (revision-independent, I-REL-1; secretPolicy=${secretResolution.policy})`,
+              },
+            ],
+            finishedAt: ok ? new Date().toISOString() : undefined,
+          }),
+        );
+
+        finalDeployment = ok
+          ? await reflectRollbackability(
+              store,
+              readyPending,
+              await writeReleaseManifest(store, app.log, readyPending, undefined),
+            )
+          : readyPending;
       } catch (error) {
         const code = (error as { code?: string }).code ?? 'ROLLBACK_FAILED';
         const statusCode = (error as { statusCode?: number }).statusCode ?? 502;
