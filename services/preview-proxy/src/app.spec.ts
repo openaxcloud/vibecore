@@ -954,5 +954,103 @@ describe('preview-proxy', () => {
 
       await app.close();
     });
+
+    /*
+     * BUG-DEPLOY-003 (proven live 2026-08-06): a crash-looping app never becomes
+     * ready, so the manager's activate call hung for its full readiness poll. The
+     * proxy waited it out and the browser was answered by nginx with a raw
+     * `504 Gateway Time-out` at the ingress read timeout — the branded page never
+     * shipped. The wake wait is now bounded well under that timeout.
+     */
+    it('gives up waiting on a wake that never becomes ready and serves the branded page, not a gateway error', async () => {
+      let activateAborted = false;
+
+      const fetchImpl = (async (url: any, init: any) => {
+        const href = typeof url === 'string' ? url : (url.href ?? url.toString());
+
+        if (href.endsWith('/activate')) {
+          // A crash-looping app: the manager polls readiness and never answers.
+          return new Promise((_resolve, reject) => {
+            init.signal?.addEventListener('abort', () => {
+              activateAborted = true;
+              reject(Object.assign(new Error('aborted'), { name: 'AbortError' }));
+            });
+          });
+        }
+
+        if (href.includes('app-clr8x9abc123')) {
+          throw new Error('ECONNREFUSED');
+        }
+
+        return new Response('{}', { status: 200 });
+      }) as unknown as typeof fetch;
+
+      const app = await buildPreviewProxyApp({
+        fetchImpl,
+        previewDomain: 'preview.e-code.ai',
+        serverDeployManagerUrl: 'http://workspace-manager.test',
+        serverDeployWakeWaitMs: 1_000,
+      });
+
+      const startedAt = Date.now();
+      const response = await app.inject({
+        method: 'GET',
+        url: '/',
+        headers: { host: 'd-clr8x9abc123.preview.e-code.ai', accept: 'text/html' },
+      });
+
+      expect(response.statusCode).toBe(503);
+      expect(response.body).toContain('Starting your app');
+      expect(activateAborted).toBe(true);
+
+      // Bounded by the configured wake budget, nowhere near the old 90s wait.
+      expect(Date.now() - startedAt).toBeLessThan(10_000);
+
+      await app.close();
+    });
+
+    /*
+     * An app that accepts the connection but never responds looked identical to a
+     * gateway failure: the abort short-circuited to a bare JSON 504 that a browser
+     * renders as a finished page. It now takes the same wake + holding-page path.
+     */
+    it('serves the branded holding page when the app accepts the connection but never responds', async () => {
+      const fetchImpl = (async (url: any, init: any) => {
+        const href = typeof url === 'string' ? url : (url.href ?? url.toString());
+
+        if (href.endsWith('/activate')) {
+          return new Response(JSON.stringify({ ready: false, readyReplicas: 0 }), { status: 200 });
+        }
+
+        if (href.includes('app-clr8x9abc123')) {
+          return new Promise((_resolve, reject) => {
+            init.signal?.addEventListener('abort', () =>
+              reject(Object.assign(new Error('aborted'), { name: 'AbortError' })),
+            );
+          });
+        }
+
+        return new Response('{}', { status: 200 });
+      }) as unknown as typeof fetch;
+
+      const app = await buildPreviewProxyApp({
+        fetchImpl,
+        previewDomain: 'preview.e-code.ai',
+        serverDeployManagerUrl: 'http://workspace-manager.test',
+        requestTimeoutMs: 1_000,
+        serverDeployWakeWaitMs: 1_000,
+      });
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/',
+        headers: { host: 'd-clr8x9abc123.preview.e-code.ai', accept: 'text/html' },
+      });
+
+      expect(response.statusCode).toBe(503);
+      expect(response.body).toContain('Starting your app');
+
+      await app.close();
+    });
   });
 });
