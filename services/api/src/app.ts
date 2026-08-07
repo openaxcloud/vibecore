@@ -121,31 +121,12 @@ import {
   type AgentMemoryScope,
   type AgentMemoryType,
 } from './agent-memory.js';
-import { createWorkspaceBuildAgent, type WsLike } from './deploy-workspace-agent.js';
 import {
-  detectPodPackageManager,
-  runWorkspaceStaticBuild,
-  type WorkspaceStaticBuildResult,
-} from './deploy-workspace-build.js';
-import {
-  buildImageContextFromRevision,
-  describeEcodeLockFailure,
-  type AppBuildRunPayload,
-  type RevisionImageContextResult,
-} from './server-deploy-revision.js';
-import {
-  buildServerDeployEnv,
-  snapshotWorkspaceAppSource,
-  snapshotWorkspaceImageContext,
-} from './server-deploy-transfer.js';
-import {
-  buildServerBootScript,
-  detectDeployTarget,
-  detectPackageManagerInstall,
-  detectServerRuntime,
-  isDetectionError,
-  type ServerRuntimePlan,
-} from './server-runtime-detect.js';
+  agentRoutingCardSchema,
+  getActiveAgentRoutingCard,
+  resetAgentRoutingCache,
+  seedAgentRoutingCard,
+} from './agent-routing-service.js';
 import { runAppImageBuild } from './app-image-build.js';
 import { generateAuthJwtSecret, generateAuthScaffoldFiles, isAuthScaffoldEnabled } from './auth-scaffold.js';
 import { shouldRetirePresenceRow } from './collaboration-presence-cleanup.js';
@@ -164,34 +145,6 @@ import {
   purgeDueAtMs,
 } from './data-deletion.js';
 import { clusterName, resolveDatabaseTier, resolveDefaultDatabaseProvisioner } from './database-provisioner.js';
-import {
-  IMPORT_HUB_PROVIDERS,
-  ImportInvariantError,
-  applyConsentedRedactions,
-  assertImportTransition,
-  assertScanBranch,
-  scanBranchTarget,
-  scanStagedFilesForSecrets,
-  unresolvedFindings,
-  type ConsentDecision,
-  type ImportFile,
-  type ImportState,
-} from './import-pipeline.js';
-import { ImportCreditLedger, estimateImportReservation } from './import-billing.js';
-import {
-  REMIX_CONSENT_VERSION,
-  RemixInvariantError,
-  assertRemixTransition,
-  detachCredentials,
-  maskPiiInFiles,
-  scanClonedFilesForSecrets,
-  scanFilesForPii,
-  scrubSecretsFromFiles,
-  type RemixLicenseSnapshot,
-  type RemixState,
-  type RemixStoragePolicy,
-} from './remix-pipeline.js';
-import { evaluateLicenseForRemix, listDerivativeAllowedLicenseIds } from './license-policy.js';
 import {
   databaseRollbackEntitlement,
   isDatabaseRollbackEnabled,
@@ -299,12 +252,27 @@ import {
   type StoredArchive,
 } from './project-storage.js';
 import { aggregateProviderMetrics } from './provider-metrics.js';
+import { createWorkspaceBuildAgent, type WsLike } from './deploy-workspace-agent.js';
 import {
-  agentRoutingCardSchema,
-  getActiveAgentRoutingCard,
-  resetAgentRoutingCache,
-  seedAgentRoutingCard,
-} from './agent-routing-service.js';
+  detectPodPackageManager,
+  runWorkspaceStaticBuild,
+  type WorkspaceStaticBuildResult,
+} from './deploy-workspace-build.js';
+import { ImportCreditLedger, estimateImportReservation } from './import-billing.js';
+import {
+  IMPORT_HUB_PROVIDERS,
+  ImportInvariantError,
+  applyConsentedRedactions,
+  assertImportTransition,
+  assertScanBranch,
+  scanBranchTarget,
+  scanStagedFilesForSecrets,
+  unresolvedFindings,
+  type ConsentDecision,
+  type ImportFile,
+  type ImportState,
+} from './import-pipeline.js';
+import { evaluateLicenseForRemix, listDerivativeAllowedLicenseIds } from './license-policy.js';
 import {
   MachineSizeError,
   getActiveRateCard,
@@ -313,27 +281,32 @@ import {
   resolveDeployMachineSize,
 } from './rate-card-service.js';
 import {
+  assertArtifactMatchesManifest,
+  configDigest,
+  RollbackManifestError,
+  selectPreviousRelease,
+} from './release-manifest.js';
+import {
   assertConfigDigestMatches,
   resolveRollbackImage,
   resolveRollbackSecrets,
   type SecretPolicy,
 } from './release-rollback.js';
 import {
-  assertArtifactMatchesManifest,
-  configDigest,
-  RollbackManifestError,
-  selectPreviousRelease,
-} from './release-manifest.js';
+  REMIX_CONSENT_VERSION,
+  RemixInvariantError,
+  assertRemixTransition,
+  detachCredentials,
+  maskPiiInFiles,
+  scanClonedFilesForSecrets,
+  scanFilesForPii,
+  scrubSecretsFromFiles,
+  type RemixLicenseSnapshot,
+  type RemixState,
+  type RemixStoragePolicy,
+} from './remix-pipeline.js';
 import { computeWorkspaceRestorePlan, isPortReadyFromProbe, type PortProbeResult } from './runtime-readiness.js';
 import { aggregatePreviewReadiness } from './runtime-readiness.js';
-import {
-  recordPreviewBeacon,
-  readClientBeacon,
-  recordLifecycleFromStatus,
-  captureWorkspacePostMortem,
-  getWorkspaceDiagnostics,
-  type PreviewBeaconStatus,
-} from './workspace-diagnostics.js';
 import { flattenRuntimeTreeFilePaths, normalizeRuntimePath, persistedFileContentMatches } from './runtime-reseed.js';
 import { describeCron } from './scheduled-tasks-cron.js';
 import {
@@ -352,11 +325,30 @@ import {
   type SandboxExec,
   type WorkflowResolver,
 } from './scheduled-tasks.js';
+import {
+  buildImageContextFromRevision,
+  describeEcodeLockFailure,
+  type AppBuildRunPayload,
+  type RevisionImageContextResult,
+} from './server-deploy-revision.js';
+import {
+  buildServerDeployEnv,
+  snapshotWorkspaceAppSource,
+  snapshotWorkspaceImageContext,
+} from './server-deploy-transfer.js';
+import {
+  buildServerBootScript,
+  detectDeployTarget,
+  detectPackageManagerInstall,
+  detectServerRuntime,
+  isDetectionError,
+  type ServerRuntimePlan,
+} from './server-runtime-detect.js';
+import { auditSkill, type SkillContent } from './skill-audit.js';
+import { parseSkillManifest, type SkillManifest } from './skill-manifest.js';
 import { isKnownSkill, resolveProjectSkills, resolveSkill } from './skills-catalog.js';
 import { fetchSkillRepoInstructions } from './skills-github-fetch.js';
 import { SKILL_REPO_CATALOG, findRepoEntry, normalizeOwnerRepo } from './skills-repo-catalog.js';
-import { auditSkill, type SkillContent } from './skill-audit.js';
-import { parseSkillManifest, type SkillManifest } from './skill-manifest.js';
 import { nextSpendAlertPct, spendAlertEmailContent } from './spend-alerts.js';
 import {
   API_KEY_SCOPES,
@@ -382,6 +374,14 @@ import {
   permissionsForAction,
 } from './strike-system.js';
 import { createThumbnailCapturer, ThumbnailCapturer, type ThumbnailLogger } from './thumbnail-capture.js';
+import {
+  recordPreviewBeacon,
+  readClientBeacon,
+  recordLifecycleFromStatus,
+  captureWorkspacePostMortem,
+  getWorkspaceDiagnostics,
+  type PreviewBeaconStatus,
+} from './workspace-diagnostics.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -769,6 +769,7 @@ const skillToggleBody = z.object({
   scope: installedSkillScope.default('project'),
   enabled: z.boolean(),
 });
+
 /** RPL-SK-001.4 revoke + RPL-SK-001.3 approve / audit-journal. */
 const skillRevokeBody = z.object({
   ownerRepo: z.string().min(1).max(220),
@@ -6658,12 +6659,14 @@ async function writeReleaseManifest(
     let artifactDigest: string;
     let storeGeneration: string | undefined;
 
-    // The config fingerprint recorded on the manifest. For server releases this
-    // MUST fingerprint the SAME effective config the rollback will recompute at
-    // restore time (the resolved project secrets), otherwise the reserve-#4
-    // config-digest invariant compares apples to oranges. Resolving the secrets
-    // here can throw (unreadable ciphertext / store error): that is caught below
-    // and yields a NON-rollbackable publish rather than a bogus digest.
+    /*
+     * The config fingerprint recorded on the manifest. For server releases this
+     * MUST fingerprint the SAME effective config the rollback will recompute at
+     * restore time (the resolved project secrets), otherwise the reserve-#4
+     * config-digest invariant compares apples to oranges. Resolving the secrets
+     * here can throw (unreadable ciphertext / store error): that is caught below
+     * and yields a NON-rollbackable publish rather than a bogus digest.
+     */
     let cfgDigest: string;
 
     if (deployment.provider === 'static') {
@@ -6679,14 +6682,18 @@ async function writeReleaseManifest(
       artifactDigest = digest;
       cfgDigest = configDigest(envVars ?? {});
     } else if (deployment.provider === 'server') {
-      const image = ((deployment.metadata as Record<string, unknown> | undefined)?.serverDeploy as
-        | { image?: { imageRef?: string; imageUri?: string; imageDigest?: string; storeGeneration?: string } }
-        | undefined)?.image;
+      const image = (
+        (deployment.metadata as Record<string, unknown> | undefined)?.serverDeploy as
+          | { image?: { imageRef?: string; imageUri?: string; imageDigest?: string; storeGeneration?: string } }
+          | undefined
+      )?.image;
 
       if (!image?.imageDigest) {
-        // A server release with no retained digest can never be a rollback target
-        // (resolveRollbackImage refuses it) — recording a manifest without one
-        // would be a lie, so skip. Rollback then fail-closes on the missing digest.
+        /*
+         * A server release with no retained digest can never be a rollback target
+         * (resolveRollbackImage refuses it) — recording a manifest without one
+         * would be a lie, so skip. Rollback then fail-closes on the missing digest.
+         */
         logger.warn({ deploymentId: deployment.id }, 'release_manifest.server_no_digest');
         return { recorded: false, reason: 'server_no_digest' };
       }
@@ -6695,8 +6702,11 @@ async function writeReleaseManifest(
       artifactRef = (image.imageRef ?? image.imageUri ?? '').replace(/:[^:/]+$/, '');
       artifactDigest = image.imageDigest;
       storeGeneration = image.storeGeneration;
-      // Fingerprint the actual injected secret set (reserve #4). resolveProjectSecretValues
-      // is the SAME resolver the rollback uses, so the two digests are comparable.
+
+      /*
+       * Fingerprint the actual injected secret set (reserve #4). resolveProjectSecretValues
+       * is the SAME resolver the rollback uses, so the two digests are comparable.
+       */
       cfgDigest = configDigest(await resolveProjectSecretValues(store, deployment.projectId));
     } else {
       return { recorded: false, reason: 'external_provider' };
@@ -6724,8 +6734,10 @@ async function writeReleaseManifest(
 
     return { recorded: true };
   } catch (error) {
-    // A manifest write must still NEVER fail an already-succeeded publish, but its
-    // failure is no longer silent: the caller marks the deployment non-rollbackable.
+    /*
+     * A manifest write must still NEVER fail an already-succeeded publish, but its
+     * failure is no longer silent: the caller marks the deployment non-rollbackable.
+     */
     logger.warn({ err: error, deploymentId: deployment.id }, 'release_manifest.append_failed');
     return { recorded: false, reason: 'append_failed' };
   }
@@ -6739,6 +6751,25 @@ async function writeReleaseManifest(
  * flag (external providers manage their own history and are never our rollback
  * target). Returns the (possibly patched) deployment record to return to the API.
  */
+/**
+ * Expert atomicity reserve — CRASH-ATOMIC fail-closed marker written INTO the READY
+ * transition itself. Previously the order was (1) row→READY, (2) writeReleaseManifest,
+ * (3) reflectRollbackability; a crash between (1) and (2) left a READY deployment with
+ * NO manifest AND NO rollbackable flag — so "manifest absent ⇒ READY_NON_ROLLBACKABLE"
+ * was not crash-atomic. A READY static/server row now starts life rollbackable:false
+ * ('manifest_pending') in the SAME write that flips it READY, so a crash before the
+ * durable manifest can never present a READY deployment as rollbackable. It is flipped
+ * to true only AFTER the manifest is durable (reflectRollbackability), and a reconciler
+ * (reconcileRollbackManifest) durably repairs a row stuck 'manifest_pending'.
+ */
+function pendingRollbackMetadata(provider: string, isReady: boolean): Record<string, unknown> {
+  if (isReady && (provider === 'static' || provider === 'server')) {
+    return { rollbackable: false, rollbackUnavailableReason: 'manifest_pending' };
+  }
+
+  return {};
+}
+
 async function reflectRollbackability(
   store: ApiStore,
   deployment: DeploymentRecord,
@@ -6748,13 +6779,65 @@ async function reflectRollbackability(
     return deployment;
   }
 
+  /*
+   * Start from the row's metadata but DROP any transient 'manifest_pending' marker so
+   * a recorded manifest clears it (leaving a stale reason next to rollbackable:true).
+   */
+  const base = { ...(deployment.metadata as Record<string, unknown>) };
+  delete base.rollbackUnavailableReason;
+
   return store.updateDeployment(deployment.projectId, deployment.id, {
     metadata: {
-      ...(deployment.metadata as Record<string, unknown>),
+      ...base,
       rollbackable: outcome.recorded,
       ...(outcome.recorded ? {} : { rollbackUnavailableReason: outcome.reason ?? 'manifest_unavailable' }),
     },
   });
+}
+
+/**
+ * Durable repair for the crash window: a READY static/server deployment that is not
+ * rollbackable:true (e.g. crashed right after READY at 'manifest_pending', or a
+ * best-effort manifest write failed) is reconciled on read. If a manifest already
+ * exists for it, just flip the flag true; otherwise write the manifest now and reflect
+ * the outcome. Idempotent: a row already rollbackable:true is left untouched, and the
+ * existing-manifest check prevents a duplicate manifest version. Never throws into the
+ * read path.
+ */
+async function reconcileRollbackManifest(
+  store: ApiStore,
+  logger: { warn: (obj: unknown, msg?: string) => void },
+  deployment: DeploymentRecord,
+): Promise<DeploymentRecord> {
+  try {
+    if (deployment.status !== 'READY' || (deployment.provider !== 'static' && deployment.provider !== 'server')) {
+      return deployment;
+    }
+
+    const meta = (deployment.metadata as Record<string, unknown> | undefined) ?? {};
+
+    if (meta.rollbackable === true) {
+      return deployment;
+    }
+
+    const environment = deployment.environment ?? 'preview';
+    const manifests = await store.listReleaseManifests(deployment.projectId, environment);
+    const alreadyRecorded = manifests.some((manifest) => manifest.deploymentId === deployment.id);
+
+    if (alreadyRecorded) {
+      // Manifest is durable (crash between write and flag flip) — just repair the flag.
+      return reflectRollbackability(store, deployment, { recorded: true });
+    }
+
+    // No manifest ⇒ crashed before the write. Write it now and reflect the real outcome.
+    const outcome = await writeReleaseManifest(store, logger, deployment, undefined);
+
+    return reflectRollbackability(store, deployment, outcome);
+  } catch (error) {
+    logger.warn({ err: error, deploymentId: deployment.id }, 'release_manifest.reconcile_failed');
+
+    return deployment;
+  }
 }
 
 /*
@@ -7920,8 +8003,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     options.mcpMarketplace ??
     (store instanceof PrismaApiStore ? createDefaultMcpMarketplaceService(store.prisma) : undefined);
 
-  // BLOCKER #5/#6: persisted readiness beacons + workspace diagnostics live on
-  // the Prisma client. Undefined off Prisma (tests) — helpers are best-effort.
+  /*
+   * BLOCKER #5/#6: persisted readiness beacons + workspace diagnostics live on
+   * the Prisma client. Undefined off Prisma (tests) — helpers are best-effort.
+   */
   const diagnosticsDb = store instanceof PrismaApiStore ? store.prisma : undefined;
 
   const projectStorage = options.projectStorage ?? new LocalProjectStorage();
@@ -8490,6 +8575,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * API-origin URL now redirects here.
      */
     const dedicatedOrigin = staticDeployDedicatedOrigin(deploymentId);
+
     const onDedicatedHost = isDedicatedStaticDeployHost(
       request.headers.host,
       deploymentId,
@@ -13425,8 +13511,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const db = diagnosticsDb;
 
     const [ports, processes, problems, logsTail] = await Promise.all([
-      agentRequest<{ ports: unknown }>(workspaceId, '/ports').then((r) => r.ports).catch(() => undefined),
-      agentRequest<{ processes: unknown }>(workspaceId, '/processes').then((r) => r.processes).catch(() => undefined),
+      agentRequest<{ ports: unknown }>(workspaceId, '/ports')
+        .then((r) => r.ports)
+        .catch(() => undefined),
+      agentRequest<{ processes: unknown }>(workspaceId, '/processes')
+        .then((r) => r.processes)
+        .catch(() => undefined),
       db.previewReadinessBeacon
         .findMany({ where: { workspaceId } })
         .then((rows) => rows.map((r) => ({ port: r.port, status: r.status, detail: r.detail, at: r.reportedAt })))
@@ -15996,9 +16086,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     let managerStatus: string | undefined;
 
     try {
-      const managerWorkspace = await managerRequest<{ status?: string }>(
-        `/workspaces/${authorized.workspaceId}`,
-      );
+      const managerWorkspace = await managerRequest<{ status?: string }>(`/workspaces/${authorized.workspaceId}`);
       managerStatus = managerWorkspace?.status;
     } catch (error) {
       if (!isRuntimeManagerUnavailable(error)) {
@@ -16011,12 +16099,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return Promise.all(
       result.ports.map(async (port) => {
         if (localFallback) {
-          // Local-runtime fallback serves the dev server directly on the host
-          // (no agent to probe through) — report ready without probing.
-          return { ...port, type: 'open', ready: true, url: previewUrlForWorkspacePort(authorized.workspaceId, port.port) };
+          /*
+           * Local-runtime fallback serves the dev server directly on the host
+           * (no agent to probe through) — report ready without probing.
+           */
+          return {
+            ...port,
+            type: 'open',
+            ready: true,
+            url: previewUrlForWorkspacePort(authorized.workspaceId, port.port),
+          };
         }
 
         const portReady = await probePortReady(authorized.workspaceId, port.port);
+
         const clientBeacon = diagnosticsDb
           ? await readClientBeacon(diagnosticsDb, authorized.workspaceId, port.port).catch(() => 'none' as const)
           : ('none' as const);
@@ -16038,6 +16134,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }),
     );
   });
+
   /*
    * BLOCKER #6: reconstruct WHY a workspace died after the pod is gone — the
    * timestamped lifecycle trail + the post-mortem snapshots (last ports /
@@ -18899,9 +18996,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply.code(201).send({ project });
   });
+
   const importCreateSchema = z.object({
     provider: z.enum(IMPORT_HUB_PROVIDERS as [string, ...string[]]),
     sourceRef: z.string().optional(),
+
     /*
      * Mandatory idempotency key (safety billing): a retried create with the same
      * key replays the same import and never double-reserves credits.
@@ -19003,6 +19102,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     // Staging expires (idle) — the sweeper / timeout path uses this.
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
     const job = await store.createImportJob({
       organizationId: orgId,
       actorUserId: request.currentUser?.id,
@@ -19013,6 +19113,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     importIdemIndex.set(idemMapKey, job.id);
 
     let state: ImportState = 'RECEIVED';
+
     const advance = async (to: ImportState, patch: Record<string, unknown> = {}) => {
       assertImportTransition(state, to);
       state = to;
@@ -19041,6 +19142,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       // SCANNING — read-only detection; content is never mutated here.
       await advance('SCANNING');
+
       const findings = scanStagedFilesForSecrets(stagedFiles);
 
       // Log counts + kinds ONLY — never a raw value (I-IMP redacted logs).
@@ -19119,14 +19221,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       .string()
       .min(1)
       .parse((request.params as { importJobId: string }).importJobId);
+
     const body = parse(importConsentSchema, request.body);
 
     const job = await store.getImportJob(importJobId);
+
     if (!job || job.organizationId !== orgId) {
       throw Object.assign(new Error('Import job not found'), { statusCode: 404, code: 'IMPORT_JOB_NOT_FOUND' });
     }
 
     const staged = importStaging.get(importJobId);
+
     if (!staged) {
       throw Object.assign(new Error('Import staging expired or already committed'), {
         statusCode: 409,
@@ -19139,6 +19244,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     // I-IMP-1: block while any finding is unresolved.
     const blocked = unresolvedFindings(findings, consent);
+
     if (blocked.length > 0) {
       return reply.status(409).send({
         error: 'Import blocked: resolve every secret finding (keep or redact) before committing.',
@@ -19149,6 +19255,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     let state = job.state as ImportState;
+
     const advance = async (to: ImportState, patch: Record<string, unknown> = {}) => {
       assertImportTransition(state, to);
       state = to;
@@ -19198,6 +19305,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           ?.split('/')
           .pop()
           ?.replace(/\.git$/, '') || `Imported ${job.provider}`;
+
       /*
        * Record the origin in the fixed sourceType enum where a member exists
        * (github/gitlab/bitbucket/zip); other hub tiles fall back to 'blank'
@@ -19272,29 +19380,34 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/orgs/:orgId/imports/:importJobId/cancel', async (request, reply) => {
     const { orgId } = parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'projects:write');
+
     const importJobId = z
       .string()
       .min(1)
       .parse((request.params as { importJobId: string }).importJobId);
 
     const job = await store.getImportJob(importJobId);
+
     if (!job || job.organizationId !== orgId) {
       throw Object.assign(new Error('Import job not found'), { statusCode: 404, code: 'IMPORT_JOB_NOT_FOUND' });
     }
 
     await cleanupImport(importJobId, 'CANCELLED');
+
     return reply.send({ import: { importJobId, state: 'CANCELLED' } });
   });
 
   app.get('/orgs/:orgId/imports/:importJobId', async (request) => {
     const { orgId } = parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'projects:read');
+
     const importJobId = z
       .string()
       .min(1)
       .parse((request.params as { importJobId: string }).importJobId);
 
     const job = await store.getImportJob(importJobId);
+
     if (!job || job.organizationId !== orgId) {
       throw Object.assign(new Error('Import job not found'), { statusCode: 404, code: 'IMPORT_JOB_NOT_FOUND' });
     }
@@ -20326,9 +20439,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * skill DISABLED, pending explicit approval.
      */
     const parsedManifest = parseSkillManifest(instructions);
+
     const auditManifest: SkillManifest = parsedManifest.ok
       ? parsedManifest.manifest
       : { name, description, allowedTools: [], metadata: {}, body: instructions, resources: [], raw: instructions };
+
     const auditContent: SkillContent = { manifest: auditManifest, resourceContents: {} };
     const audit = auditSkill(auditContent);
     const auditedAt = new Date().toISOString();
@@ -20474,8 +20589,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: `'${ownerRepo}' is not installed`, code: 'SKILL_NOT_INSTALLED' });
     }
 
-    // Fail-closed: the store refuses to enable a revoked or audit-rejected skill,
-    // returning it still-disabled. Surface that as a 409 rather than a false 200.
+    /*
+     * Fail-closed: the store refuses to enable a revoked or audit-rejected skill,
+     * returning it still-disabled. Surface that as a 409 rather than a false 200.
+     */
     if (body.enabled && !updated.enabled) {
       const reason = updated.revokedAt ? 'has been revoked' : 'was rejected by the security audit';
 
@@ -22362,6 +22479,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { project: transferred };
   });
+
   const remixSchema = z.object({
     name: z.string().min(1),
     slug: z.string().min(2).optional(),
@@ -22391,6 +22509,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     sourceFiles: ProjectFile[];
     sourceSnapshotId?: string;
     sourceListingId?: string;
+
     /*
      * License + consent (I-RMX-3, P0-V3-05). A gallery remix passes the
      * VERSIONED license captured from the listing plus the consent version the
@@ -22399,8 +22518,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     licenseSnapshot?: RemixLicenseSnapshot;
     consentVersion?: string;
+
     /** Mask PII in the source files before cloning (cross-user remix only). */
     sanitizePii?: boolean;
+
     /** Author's explicit versioned PII consent — skips masking, recorded. */
     piiConsentVersion?: string;
   }): Promise<
@@ -22429,6 +22550,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     let state: RemixState = 'SNAPSHOT_PINNED';
+
     const advance = async (to: RemixState, patch: Record<string, unknown> = {}) => {
       assertRemixTransition(state, to);
       state = to;
@@ -22436,8 +22558,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     };
 
     try {
-      // (1) SNAPSHOT_PINNED — the caller already resolved & pinned the source
-      // file set (live or a snapshot archive); nothing to read here.
+      /*
+       * (1) SNAPSHOT_PINNED — the caller already resolved & pinned the source
+       * file set (live or a snapshot archive); nothing to read here.
+       */
       const sourceFiles = params.sourceFiles;
 
       // (2) CREDENTIALS_DETACHED — references (keys) only, recorded BEFORE any clone.
@@ -22451,8 +22575,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * any materialized copy out of the clone files. Never persisted onto the clone.
        */
       const materializedValues: Array<{ key: string; value: string }> = [];
+
       for (const ref of detached.secretKeys) {
         const full = await store.getProjectSecret(sourceProject.id, ref);
+
         if (full?.valueEncrypted) {
           try {
             materializedValues.push({ key: ref, value: decryptJson<{ value: string }>(full.valueEncrypted).value });
@@ -22461,6 +22587,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           }
         }
       }
+
       for (const envVar of sourceEnvVars) {
         if (typeof envVar.value === 'string' && envVar.value.length > 0) {
           materializedValues.push({ key: envVar.key, value: envVar.value });
@@ -22482,9 +22609,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           content: file.content,
           encoding: file.encoding,
         }));
+
         const { files: maskedFiles, masked } = maskPiiInFiles(remixFiles);
 
         const residual = scanFilesForPii(maskedFiles);
+
         if (residual.length > 0) {
           throw new RemixInvariantError(
             `SOURCE_SANITIZED left ${residual.length} PII span(s) unmasked`,
@@ -22496,8 +22625,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         piiMaskedCount = masked.length;
         await advance('SOURCE_SANITIZED', { piiFindings: masked, piiMaskedCount });
       } else {
-        // Owner self-remix, or author consent on file — nothing masked, and the
-        // job says WHY (consent version or absence of a cross-user flow).
+        /*
+         * Owner self-remix, or author consent on file — nothing masked, and the
+         * job says WHY (consent version or absence of a cross-user flow).
+         */
         await advance('SOURCE_SANITIZED', { piiFindings: [], piiMaskedCount: 0 });
       }
 
@@ -22543,6 +22674,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         });
         return { ok: false, findings, remixJobId: job.id };
       }
+
       await advance('SCANNING', { scanFindings: [] });
 
       // (8) INDEXING — honest completion marker (project code index does not exist yet).
@@ -22609,9 +22741,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const storagePolicy = body.storagePolicy as RemixStoragePolicy;
 
     try {
-      // Plain project-to-project remix: pin the LIVE source file set, clone into
-      // the SAME org. (A gallery remix pins a snapshot and targets the remixer's
-      // org — see POST /gallery/:slug/remix.)
+      /*
+       * Plain project-to-project remix: pin the LIVE source file set, clone into
+       * the SAME org. (A gallery remix pins a snapshot and targets the remixer's
+       * org — see POST /gallery/:slug/remix.)
+       */
       const sourceFiles = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
 
       const result = await runSecureRemixClone({
@@ -22622,8 +22756,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         name: body.name,
         slug: body.slug,
         sourceFiles,
-        // Same-org self-remix: the org already owns this data — no cross-user
-        // license/PII flow, so nothing to mask and no consent to capture.
+
+        /*
+         * Same-org self-remix: the org already owns this data — no cross-user
+         * license/PII flow, so nothing to mask and no consent to capture.
+         */
         sanitizePii: false,
       });
 
@@ -22667,6 +22804,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       .string()
       .min(1)
       .parse((request.params as { remixJobId: string }).remixJobId);
+
     const job = await store.getRemixJob(remixJobId);
 
     if (!job || job.sourceProjectId !== project.id) {
@@ -22713,9 +22851,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     author: row.authorName,
     appUrl: row.appUrl ?? null,
     thumbnailUrl: row.thumbnailUrl ?? null,
-    // License + fork rights are PUBLIC listing facts (P0-V3-05): a remixer
-    // must see what they'd accept before clicking Remix. Never the text sha
-    // alone — the detail route carries the full text.
+
+    /*
+     * License + fork rights are PUBLIC listing facts (P0-V3-05): a remixer
+     * must see what they'd accept before clicking Remix. Never the text sha
+     * alone — the detail route carries the full text.
+     */
     remixAllowed: row.remixAllowed,
     license: row.licenseId ? { id: row.licenseId, textSha256: row.licenseTextSha256 ?? null } : null,
     piiHandling: row.piiConsentVersion
@@ -22735,6 +22876,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/gallery', async (request) => {
     const query = parse(galleryListQuery, request.query);
+
     const listings = await store.listGalleryListings({
       category: query.category,
       query: query.q,
@@ -22749,9 +22891,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     const all = query.category || query.q ? await store.listGalleryListings({}) : listings;
     const counts = new Map<string, number>();
+
     for (const listing of all) {
       counts.set(listing.category, (counts.get(listing.category) ?? 0) + 1);
     }
+
     const categories = [...counts.entries()]
       .map(([id, count]) => ({ id, count }))
       .sort((a, b) => b.count - a.count || a.id.localeCompare(b.id));
@@ -22768,25 +22912,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       .string()
       .min(1)
       .parse((request.params as { slug: string }).slug);
+
     const listing = await store.getGalleryListingBySlug(slug);
 
     if (!listing || listing.status !== 'PUBLISHED') {
       return reply.status(404).send({ error: 'Listing not found', code: 'GALLERY_LISTING_NOT_FOUND' });
     }
 
-    // A public detail view counts once per request (best-effort; never blocks the
-    // read). Capture the post-view count BEFORE incrementing so the response is
-    // correct regardless of whether the store returns a fresh row or a live ref.
+    /*
+     * A public detail view counts once per request (best-effort; never blocks the
+     * read). Capture the post-view count BEFORE incrementing so the response is
+     * correct regardless of whether the store returns a fresh row or a live ref.
+     */
     const views = listing.viewCount + 1;
     await store.incrementGalleryListingViews(listing.id).catch(() => undefined);
 
     return {
       listing: {
         ...toPublicListing(listing),
+
         // detail-only: the immutable release the Remix reproduces (provenance, no secret)
         sourceSnapshotId: listing.sourceSnapshotId,
-        // detail-only: the FULL versioned license text a remixer accepts, and
-        // the consent-text version their acceptance is recorded under.
+
+        /*
+         * detail-only: the FULL versioned license text a remixer accepts, and
+         * the consent-text version their acceptance is recorded under.
+         */
         licenseText: listing.licenseText ?? null,
         remixConsentVersion: REMIX_CONSENT_VERSION,
         views,
@@ -22798,6 +22949,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     organizationId: z.string().min(1),
     name: z.string().min(1).optional(),
     slug: z.string().min(2).optional(),
+
     /*
      * Explicit, versioned acceptance (I-RMX-3). The UI sends acceptLicense
      * after showing the license block; the server refuses a remix without it —
@@ -22817,12 +22969,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       .string()
       .min(1)
       .parse((request.params as { slug: string }).slug);
+
     const body = parse(galleryRemixSchema, request.body);
 
     // The clone lands in the remixer's org — authorize membership there.
     await requireOrg(request, store, body.organizationId, 'projects:write');
 
     const listing = await store.getGalleryListingBySlug(slug);
+
     if (!listing || listing.status !== 'PUBLISHED') {
       return reply.status(404).send({ error: 'Listing not found', code: 'GALLERY_LISTING_NOT_FOUND' });
     }
@@ -22835,8 +22989,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    // FAIL-CLOSED en profondeur : même un listing marqué remixable ne se
-    // remixe pas sans licence explicite enregistrée (aucun fallback).
+    /*
+     * FAIL-CLOSED en profondeur : même un listing marqué remixable ne se
+     * remixe pas sans licence explicite enregistrée (aucun fallback).
+     */
     if (!listing.licenseId || !listing.licenseTextSha256) {
       return reply.status(403).send({
         error: 'This listing has no explicit license — remixing is closed by default.',
@@ -22878,16 +23034,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const sourceProject = await store.getProject(listing.sourceProjectId);
+
     if (!sourceProject) {
       return reply.status(409).send({ error: 'Source project unavailable', code: 'GALLERY_SOURCE_MISSING' });
     }
 
-    // Pin the IMMUTABLE release: read the clone's files from the listing's snapshot
-    // archive, NOT the live source project.
+    /*
+     * Pin the IMMUTABLE release: read the clone's files from the listing's snapshot
+     * archive, NOT the live source project.
+     */
     const snapshot = await store.getSnapshot(listing.sourceSnapshotId);
+
     if (!snapshot || snapshot.projectId !== listing.sourceProjectId) {
       return reply.status(409).send({ error: 'Pinned release unavailable', code: 'GALLERY_SNAPSHOT_MISSING' });
     }
+
     const sourceFiles = await getSnapshotFiles(snapshot);
 
     /*
@@ -22915,6 +23076,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         sourceListingId: listing.id,
         licenseSnapshot,
         consentVersion: REMIX_CONSENT_VERSION,
+
         // Cross-user flow: mask PII unless the AUTHOR consented (versioned).
         sanitizePii: true,
         piiConsentVersion: listing.piiConsentVersion,
@@ -22950,6 +23112,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const message = error instanceof Error ? error.message : String(error);
         return reply.status(error.statusCode).send({ error: message, code: error.code });
       }
+
       throw error;
     }
   });
@@ -22968,9 +23131,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     authorName: z.string().min(1),
     authorUserId: z.string().min(1).optional(),
     appUrl: z.string().url().optional(),
-    // Card preview image: either an https URL or a root-relative static asset
-    // (/gallery-apps/<id>/thumbnail.png) served by the web app. Rejected
-    // otherwise so a listing can't point the grid at an arbitrary scheme.
+
+    /*
+     * Card preview image: either an https URL or a root-relative static asset
+     * (/gallery-apps/<id>/thumbnail.png) served by the web app. Rejected
+     * otherwise so a listing can't point the grid at an arbitrary scheme.
+     */
     thumbnailUrl: z
       .string()
       .trim()
@@ -22981,6 +23147,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       .optional(),
     featured: z.boolean().optional(),
     status: z.enum(['PUBLISHED', 'PENDING_REVIEW', 'UNPUBLISHED']).optional(),
+
     /*
      * License + PII declarations captured at CURATION (P0-V3-05). licenseText
      * is hashed server-side — the sha256 pin is computed, never client-supplied.
@@ -22991,6 +23158,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     licenseId: z.string().min(1).max(64).optional(),
     licenseText: z.string().min(1).max(100_000).optional(),
     piiConsentVersion: z.string().min(1).max(64).optional(),
+
     /*
      * FAIL-CLOSED (directive 20/07) : rendre un listing remixable exige que
      * l'AUTEUR ait explicitement (1) choisi une licence autorisant le remix,
@@ -23014,8 +23182,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const body = parse(adminGalleryListingSchema, request.body ?? {});
 
-    // FAIL-CLOSED : pas de listing remixable sans licence explicite + droits
-    // confirmés + politique PII acceptée. Le défaut est NON-remixable.
+    /*
+     * FAIL-CLOSED : pas de listing remixable sans licence explicite + droits
+     * confirmés + politique PII acceptée. Le défaut est NON-remixable.
+     */
     if (body.remixAllowed === true) {
       if (!body.licenseId || !body.licenseText) {
         return reply.status(400).send({
@@ -23056,11 +23226,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const sourceProject = await store.getProject(body.sourceProjectId);
+
     if (!sourceProject) {
       return reply.status(404).send({ error: 'Source project not found', code: 'GALLERY_SOURCE_MISSING' });
     }
 
     const snapshot = await store.getSnapshot(body.sourceSnapshotId);
+
     if (!snapshot || snapshot.projectId !== body.sourceProjectId) {
       return reply
         .status(400)
@@ -23078,8 +23250,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       const listing = await store.createGalleryListing({
         ...body,
-        // Version pin computed HERE: the accepted license text is identified by
-        // content hash, not by whatever a client claims (P0-V3-05).
+
+        /*
+         * Version pin computed HERE: the accepted license text is identified by
+         * content hash, not by whatever a client claims (P0-V3-05).
+         */
         licenseTextSha256: body.licenseText
           ? createHash('sha256').update(body.licenseText, 'utf8').digest('hex')
           : undefined,
@@ -23101,8 +23276,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           remixAllowed: listing.remixAllowed,
           licenseId: listing.licenseId ?? null,
           piiConsentVersion: listing.piiConsentVersion ?? null,
-          // La confirmation des droits doit être retrouvable dans l'audit, pas
-          // seulement dans la table (réserve #8).
+
+          /*
+           * La confirmation des droits doit être retrouvable dans l'audit, pas
+           * seulement dans la table (réserve #8).
+           */
           rightsConfirmedAt: listing.rightsConfirmedAt?.toISOString() ?? null,
           rightsConfirmedBy: listing.rightsConfirmedBy ?? null,
           piiPolicyAcceptedAt: listing.piiPolicyAcceptedAt?.toISOString() ?? null,
@@ -23116,6 +23294,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       if (error instanceof Error && /unique|slug/i.test(error.message)) {
         return reply.status(409).send({ error: 'A listing with that slug already exists', code: 'GALLERY_SLUG_TAKEN' });
       }
+
       throw error;
     }
   });
@@ -24092,6 +24271,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       model: modeLine.model,
       multiplier: modeLine.multiplier,
     };
+
     let escalation: typeof base | undefined;
     let classifier: { provider: string; model: string } | undefined;
 
@@ -24106,6 +24286,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       const turboLine = routingLine(card, 'turbo');
+
       const turboOrgEnabled = await evaluateFeatureFlag(store, 'agent_turbo', {
         userId: request.currentUser?.id,
         organizationId: project.organizationId,
@@ -24212,6 +24393,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (body.agentRouting) {
       try {
         const routingCard = await getActiveAgentRoutingCard(store);
+
         const callBilling = computeAgentCallBilling(
           routingCard,
           body.agentRouting.lineKey,
@@ -26357,6 +26539,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       const price = lineUserPrice(candidate, line);
+
       const simulatedCostCents =
         (row.tokensIn * line.costInCentsPerM + row.tokensOut * line.costOutCentsPerM) / 1_000_000;
       const simulatedCreditCents = line.billedToUser
@@ -29624,7 +29807,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * a client polling this endpoint sees real status transitions.
      */
     const reconciled = await Promise.all(
-      deployments.map((deployment) => reconcileDeploymentStatus(store, deployment).catch(() => deployment)),
+      deployments.map((deployment) =>
+        reconcileDeploymentStatus(store, deployment)
+          /*
+           * Durably repair a READY row stuck 'manifest_pending' after a crash between
+           * the READY flip and the manifest write (expert atomicity reserve).
+           */
+          .then((settled) => reconcileRollbackManifest(store, app.log, settled))
+          .catch(() => deployment),
+      ),
     );
 
     return { deployments: reconciled.map(annotateRollbackAvailability) };
@@ -29687,11 +29878,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: 'Deployment not found', code: 'DEPLOYMENT_NOT_FOUND' });
     }
 
-    return {
-      deployment: annotateRollbackAvailability(
-        await reconcileDeploymentStatus(store, deployment).catch(() => deployment),
-      ),
-    };
+    const settled = await reconcileDeploymentStatus(store, deployment).catch(() => deployment);
+    const repaired = await reconcileRollbackManifest(store, app.log, settled).catch(() => settled);
+
+    return { deployment: annotateRollbackAvailability(repaired) };
   });
 
   /*
@@ -30710,8 +30900,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               : detection;
 
           if (ecodeLockFailure) {
-            // The typed code leads the persisted error (machine-parseable),
-            // e.g. "Server deploy: ECODE_LOCK_GENERATION_REVOKED: ecode.lock.json pins …".
+            /*
+             * The typed code leads the persisted error (machine-parseable),
+             * e.g. "Server deploy: ECODE_LOCK_GENERATION_REVOKED: ecode.lock.json pins …".
+             */
             serverError = `Server deploy: ${ecodeLockFailure.logLine}`;
           } else if (!runPlan) {
             const detectionError = detection as { error: string };
@@ -31214,16 +31406,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         providerBuildId: hookResult?.buildId,
         hookStatus: hookResult?.status,
         staticBuildOk: body.provider === 'static' ? !staticBuildFailed : undefined,
+
+        // Crash-atomic: READY starts non-rollbackable until the manifest is durable.
+        ...pendingRollbackMetadata(body.provider, isReady),
       },
       logs: augmentedLogs,
       finishedAt: status === 'BUILDING' ? undefined : new Date().toISOString(),
     });
 
-    // P0-V3-08 (reserve #1): record the immutable release manifest for a
-    // successful publish so a later rollback is deterministic + fail-closed, then
-    // reflect DURABILITY onto the row: a manifest that could not be written yields
-    // an explicit READY_NON_ROLLBACKABLE state (metadata.rollbackable=false) rather
-    // than a silent "rollbackable" lie. Never blocks the publish itself.
+    /*
+     * P0-V3-08 (reserve #1): record the immutable release manifest for a
+     * successful publish so a later rollback is deterministic + fail-closed, then
+     * reflect DURABILITY onto the row: a manifest that could not be written yields
+     * an explicit READY_NON_ROLLBACKABLE state (metadata.rollbackable=false) rather
+     * than a silent "rollbackable" lie. Never blocks the publish itself.
+     */
     const manifestOutcome = await writeReleaseManifest(store, app.log, ready, body.envVars);
     const published = await reflectRollbackability(store, ready, manifestOutcome);
 
@@ -31278,6 +31475,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   app.post('/projects/:projectId/nix-lock', async (request, reply) => {
     const { projectId } = parse(projectParams, request.params);
+
     const body = parse(
       z.object({
         generation: z.string().min(1).optional(),
@@ -31285,6 +31483,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }),
       request.body ?? {},
     );
+
     const project = await requireProject(request, store, projectId, 'projects:write');
 
     const registry = (() => {
@@ -31336,9 +31535,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       lock = buildEcodeLock(generation, body.bundles);
 
-      // The write-side runs the SAME gates as the publish-side read: a concrete
-      // generation pin (point 1) AND exhaustive catalog binding (point 3). The
-      // platform never writes a lock it would itself refuse at publish time.
+      /*
+       * The write-side runs the SAME gates as the publish-side read: a concrete
+       * generation pin (point 1) AND exhaustive catalog binding (point 3). The
+       * platform never writes a lock it would itself refuse at publish time.
+       */
       assertLockPublishable(lock);
       assertLockAgainstRegistry(lock, registry);
     } catch (error) {
@@ -32649,14 +32850,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         providerBuildId: hookResult?.buildId,
         hookStatus: hookResult?.status,
         staticBuildOk: source.provider === 'static' ? !staticBuildFailed : undefined,
+
+        // Crash-atomic: READY starts non-rollbackable until the manifest is durable.
+        ...pendingRollbackMetadata(source.provider, redeployReady),
       },
       logs: [...redeploy.logs, ...rebuildLogs],
       finishedAt: redeployStatus === 'BUILDING' ? undefined : new Date().toISOString(),
     });
 
-    // P0-V3-08 (reserve #1): a redeploy is a new published version too — record its
-    // manifest durably and reflect rollbackability (READY_NON_ROLLBACKABLE on a
-    // manifest failure) exactly like the create path.
+    /*
+     * P0-V3-08 (reserve #1): a redeploy is a new published version too — record its
+     * manifest durably and reflect rollbackability (READY_NON_ROLLBACKABLE on a
+     * manifest failure) exactly like the create path.
+     */
     const manifestOutcome = await writeReleaseManifest(store, app.log, ready, sourceEnvVars);
     const published = await reflectRollbackability(store, ready, manifestOutcome);
 
@@ -32734,7 +32940,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       throw error;
     }
 
-    const appendRollbackManifest = async (rollbackId: string, artifactKind: string, artifactRef: string, artifactDigest: string) => {
+    const appendRollbackManifest = async (
+      rollbackId: string,
+      artifactKind: string,
+      artifactRef: string,
+      artifactDigest: string,
+    ) => {
       await store.withSerializedMutation(`release-manifest:${project.id}:${environment}`, async () => {
         const latest = await store.listReleaseManifests(project.id, environment, { take: 1 });
         const nextVersion = (latest[0]?.version ?? 0) + 1;
@@ -32803,7 +33014,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             status: 'FAILED',
             logs: [
               ...rollback.logs,
-              { timestamp: new Date().toISOString(), level: 'error', message: `Rollback restore failed: ${(error as Error).message}` },
+              {
+                timestamp: new Date().toISOString(),
+                level: 'error',
+                message: `Rollback restore failed: ${(error as Error).message}`,
+              },
             ],
             finishedAt: new Date().toISOString(),
           })
@@ -32863,7 +33078,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       let restoredRollbackReason: string | undefined;
 
       try {
-        await appendRollbackManifest(rollback.id, 'static-snapshot', `static-deployments/${rollback.id}`, restoredDigest);
+        await appendRollbackManifest(
+          rollback.id,
+          'static-snapshot',
+          `static-deployments/${rollback.id}`,
+          restoredDigest,
+        );
       } catch (error) {
         restoredRollbackable = false;
         restoredRollbackReason = 'manifest_append_failed';
@@ -32871,6 +33091,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       const url = buildDeploymentUrl(project, rollback);
+
       const ready = await store.updateDeployment(project.id, rollback.id, {
         status: 'READY',
         url,
@@ -32977,6 +33198,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
         const rbHost = serverDeployHost(rollback.id);
         const rbPort = Number(process.env.SERVER_DEPLOY_PORT) || 3000;
+
         const rbEnv = buildServerDeployEnv({
           deploymentId: rollback.id,
           port: rbPort,
@@ -32984,6 +33206,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           projectSecrets: secretResolution.secrets,
           envOverrides: {},
         });
+
         const deployRateCard = await getActiveRateCard(store);
         const machineSize = machineSizeFromCard(deployRateCard, undefined);
 
@@ -33003,6 +33226,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
         const ok = Boolean(started?.ready);
         const rbUrl = started?.url ?? `https://${rbHost}`;
+
         const ready = await store.updateDeployment(project.id, rollback.id, {
           status: ok ? 'READY' : 'BUILDING',
           url: ok ? rbUrl : undefined,
@@ -33054,7 +33278,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             url: '',
             logs: [
               ...rollback.logs,
-              { timestamp: new Date().toISOString(), level: 'error', message: `Rollback refused: ${(error as Error).message}` },
+              {
+                timestamp: new Date().toISOString(),
+                level: 'error',
+                message: `Rollback refused: ${(error as Error).message}`,
+              },
             ],
             finishedAt: new Date().toISOString(),
           })
@@ -33232,6 +33460,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           imageRef: (image.imageRef ?? image.imageUri ?? '').replace(/:[^:/]+$/, ''),
           imageDigest: image.imageDigest ?? '',
           createdAt: new Date().toISOString(),
+
           // CTR-RUNTIME-NIX point 2: carry the ORIGINAL release's pinned generation.
           ...(image.storeGeneration ? { storeGeneration: image.storeGeneration } : {}),
         };
@@ -33288,6 +33517,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           env: rbEnv,
           healthPath: process.env.SERVER_DEPLOY_HEALTH_PATH || '/',
           nixStorePvcName: nixStorePvcForProject(project.id),
+
           /*
            * Re-pin the ORIGINAL release's generation (expert refusal v3 point 2):
            * the rollback is evaluated against the generation THAT release used,
@@ -33314,6 +33544,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               applied: Boolean(started),
               rolledBackFromDigest: plan.imageDigest,
               secretPolicy: secretResolution.policy,
+
               // Persist the re-pinned generation so a rollback-of-a-rollback carries it too.
               image: {
                 imageRef: retained.imageRef,
