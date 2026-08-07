@@ -76,6 +76,7 @@ import { DatabaseWorkbench } from '~/components/database/DatabaseWorkbench';
 import { Menu } from '~/components/sidebar/Menu.client';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { EmptyState } from '~/components/ui/EmptyState';
+import { FilterChip } from '~/components/ui/FilterChip';
 import { InputDialog } from '~/components/ui/InputDialog';
 import { PanelBoundary, PanelErrorBoundary, PanelLoading, ZoneErrorBoundary } from '~/components/ui/PanelBoundary';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
@@ -96,6 +97,7 @@ import {
 } from '~/lib/project-agent-layout';
 import type { FileMap } from '~/lib/stores/files';
 import { buildRuntimeDiagnostics, useDiagnosticsStore, type Diagnostic } from '~/lib/stores/diagnostics';
+import { parseProblemLocation, type ProblemLocation } from '~/lib/stores/problem-location';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { DEFAULT_THEME, applyThemeToDocument, kTheme, themeStore, toggleTheme, type Theme } from '~/lib/stores/theme';
 import type { ProviderInfo } from '~/types/model';
@@ -10346,17 +10348,14 @@ function TerminalTabsFallback() {
   );
 }
 
-const PROBLEM_LOCATION_PATTERN = /((?:\/|\.{0,2}\/)?[\w@][\w@./-]*\.[a-z]{2,6}):(\d+)(?::\d+)?/i;
-
 /*
  * Runtime diagnostics are parsed log lines with no structured file/line field,
- * so recover a `path.ext:line` mention from the text when one exists. Entries
- * without a parseable location stay plain rows.
+ * so recover the location from the text when one exists (see
+ * ~/lib/stores/problem-location for the two dev-server shapes it handles).
+ * Entries without a parseable location stay plain rows.
  */
-function extractProblemLocation(diagnostic: Diagnostic): { path: string; line: number } | null {
-  const match = PROBLEM_LOCATION_PATTERN.exec(`${diagnostic.message}\n${diagnostic.detail ?? ''}`);
-
-  return match ? { path: match[1], line: Number.parseInt(match[2], 10) } : null;
+function extractProblemLocation(diagnostic: Diagnostic): ProblemLocation | null {
+  return parseProblemLocation(`${diagnostic.message}\n${diagnostic.detail ?? ''}`);
 }
 
 function resolveProblemWorkbenchPath(filePath: string): string | undefined {
@@ -21027,7 +21026,15 @@ function panelTitle(panel: string) {
     settings: 'Settings',
   };
 
-  return titles[panel] ?? panel;
+  /*
+   * `skills`, `studio` and `ports` were absent from the map above, so the old
+   * `?? panel` fallback rendered the raw id: the tab read "skills", the heading
+   * read "studio" and the empty state read "No studio yet" (audit cluster D,
+   * BUG-IDE-002). ECODE_MOBILE_TAB_META already carries the product name for
+   * every panel, so defer to it instead of maintaining a second list that can
+   * drift again the next time a panel is added.
+   */
+  return titles[panel] ?? ECODE_MOBILE_TAB_META[panel]?.name ?? panel;
 }
 
 function panelIcon(panel: string) {
