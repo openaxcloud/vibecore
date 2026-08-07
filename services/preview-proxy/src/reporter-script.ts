@@ -201,19 +201,30 @@ export const REPORTER_SCRIPT = `(function () {
   }
 
   /*
-   * BLOCKER #5 — failed critical assets. A 404'd stylesheet or entry script fires
-   * the 'error' event on the ELEMENT (never bubbles), so it is invisible to the
-   * bubble-phase window handler above AND to the blank watchdog (the DOM may still
-   * render, just unstyled/broken — the documented "JavaScript rendered without its
-   * stylesheet"). A capture-phase listener sees it; beacon 'error' so /ports stops
-   * reporting the port ready. Reported at most once to avoid a flood.
+   * BLOCKER #5 — failed critical assets. A 404'd stylesheet or entry script does NOT
+   * bubble and leaves the DOM rendered-but-broken (the documented "JavaScript
+   * rendered without its stylesheet"), so it is invisible to the bubble-phase window
+   * handler above AND to the blank watchdog. Beacon 'error' so /ports stops reporting
+   * the port ready. Reported at most once.
    */
   var assetErrorReported = false;
+  function reportAssetError(detail) {
+    if (assetErrorReported) {
+      return;
+    }
+    assetErrorReported = true;
+    beaconPreviewState('error', location.href, detail);
+  }
+
+  /*
+   * (a) Capture-phase element 'error' — catches a <script> failure and any asset
+   * that fails AFTER this reporter has installed (dynamically inserted links, etc.).
+   */
   window.addEventListener(
     'error',
     function (event) {
       var target = event.target;
-      if (assetErrorReported || !target || target === window || typeof target.tagName !== 'string') {
+      if (!target || target === window || typeof target.tagName !== 'string') {
         return;
       }
       var tag = target.tagName.toUpperCase();
@@ -222,12 +233,50 @@ export const REPORTER_SCRIPT = `(function () {
       if (!isStylesheet && !isScript) {
         return;
       }
-      var resource = target.href || target.src || '';
-      assetErrorReported = true;
-      beaconPreviewState('error', location.href, 'Failed to load ' + (isStylesheet ? 'stylesheet' : 'script') + ': ' + resource);
+      reportAssetError('Failed to load ' + (isStylesheet ? 'stylesheet' : 'script') + ': ' + (target.href || target.src || ''));
     },
     true,
   );
+
+  /*
+   * (b) Load-time stylesheet sweep — the RELIABLE path. The external reporter
+   * script can install too late to catch a stylesheet that failed near-instantly
+   * (a refused/404 link fires its error before this script even downloads, and a
+   * capture listener never sees an event that already fired). But the window 'load'
+   * event fires only AFTER every <link rel=stylesheet> has settled (loaded OR
+   * failed), and a FAILED stylesheet has a null link.sheet at that point — a
+   * timing-independent signal. Skip disabled links and media queries that don't
+   * apply (their null sheet is legitimate).
+   */
+  function sweepFailedStylesheets() {
+    try {
+      var links = document.querySelectorAll('link[rel~="stylesheet"]');
+      for (var i = 0; i < links.length; i += 1) {
+        var link = links[i];
+        if (link.disabled || !link.href) {
+          continue;
+        }
+        if (link.media && window.matchMedia && !window.matchMedia(link.media).matches) {
+          continue;
+        }
+        if (!link.sheet) {
+          reportAssetError('Failed to load stylesheet: ' + link.href);
+          return;
+        }
+      }
+    } catch (error) {
+      // never break the page for a diagnostic sweep.
+    }
+  }
+
+  if (document.readyState === 'complete') {
+    sweepFailedStylesheets();
+  } else {
+    window.addEventListener('load', function () {
+      // a 500ms cushion lets a just-settled sheet attach before we read link.sheet.
+      setTimeout(sweepFailedStylesheets, 500);
+    });
+  }
 
   /*
    * When an uncaught error fires, the app is likely already dead — but give a
