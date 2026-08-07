@@ -54,6 +54,45 @@ class TestWorkspaceStore implements WorkspaceStore {
 
     return true;
   }
+
+  /* R-P3-06: conditional release — compare and set with no await between. */
+  async releasePurgeFence(workspaceId: string, fenceToken: string | undefined) {
+    const existing = this.workspaces.get(workspaceId);
+
+    if (!existing?.purgeFrozen || (existing.purgeFenceToken ?? undefined) !== (fenceToken ?? undefined)) {
+      return false;
+    }
+
+    this.workspaces.set(workspaceId, {
+      ...existing,
+      purgeFrozen: false,
+      purgeFenceToken: undefined,
+      purgeFrozenAt: undefined,
+    });
+
+    return true;
+  }
+
+  async releaseStalePurgeFence(workspaceId: string, observed: { fenceToken?: string; frozenAt?: string }) {
+    const existing = this.workspaces.get(workspaceId);
+
+    if (
+      !existing?.purgeFrozen ||
+      (existing.purgeFenceToken ?? undefined) !== (observed.fenceToken ?? undefined) ||
+      (existing.purgeFrozenAt ?? undefined) !== (observed.frozenAt ?? undefined)
+    ) {
+      return false;
+    }
+
+    this.workspaces.set(workspaceId, {
+      ...existing,
+      purgeFrozen: false,
+      purgeFenceToken: undefined,
+      purgeFrozenAt: undefined,
+    });
+
+    return true;
+  }
 }
 
 class TestK8sClient implements WorkspaceK8sClient {
