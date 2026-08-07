@@ -65,7 +65,15 @@ function rowToRecord(row: PrismaRuntimeRow): WorkspaceRecord {
     ...(row.error ? { error: row.error } : {}),
     ...(row.lastMeteredAt ? { lastMeteredAt: row.lastMeteredAt.toISOString() } : {}),
     purgeFrozen: Boolean(row.purgeFrozen),
-    ...(row.purgeFenceToken ? { purgeFenceToken: row.purgeFenceToken } : {}),
+    /*
+     * R-P3-06: distinguish NULL from '' — a truthiness test folded an empty-string
+     * token into "no token". Harmless while the release was an unconditional update,
+     * but the reconciler's CAS now feeds this value straight back into the WHERE
+     * clause: a ''-fenced row read as token-less would CAS against NULL, match 0 rows,
+     * and be unreclaimable FOREVER. Callers do write `fenceToken ?? ''` (app.ts), so
+     * map the column faithfully rather than rely on that never being reached.
+     */
+    ...(row.purgeFenceToken !== null ? { purgeFenceToken: row.purgeFenceToken } : {}),
     ...(row.purgeFrozenAt ? { purgeFrozenAt: row.purgeFrozenAt.toISOString() } : {}),
   };
 }
@@ -190,6 +198,65 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
     const result = await this.prisma.workspaceRuntime.updateMany({
       where: { id: workspaceId, lastMeteredAt: expected ? new Date(expected) : null },
       data: { lastMeteredAt: new Date(next) },
+    });
+
+    return result.count === 1;
+  }
+
+  /**
+   * RR-CODEX-14 v6 (R-P3-06): atomic compare-and-set release of the purge barrier.
+   *
+   * The whole point is that the ownership test lives in the WHERE clause, evaluated
+   * by Postgres under the row lock the UPDATE takes — NOT in application code against
+   * a value read in an earlier statement. Verified against the PostgreSQL 16 statement
+   * log (log_statement=all), Prisma emits exactly:
+   *
+   *   UPDATE "public"."WorkspaceRuntime"
+   *      SET "purgeFrozen" = $1, "purgeFenceToken" = $2, "purgeFrozenAt" = $3, "updatedAt" = $4
+   *    WHERE ("public"."WorkspaceRuntime"."id" = $5
+   *           AND "public"."WorkspaceRuntime"."purgeFrozen" = $6
+   *           AND "public"."WorkspaceRuntime"."purgeFenceToken" = $7)
+   *
+   * so a delayed release from a superseded purge attempt matches 0 rows: the row it
+   * meant to unfreeze no longer carries its token. `count === 1` is the only success.
+   *
+   * `fenceToken: undefined` maps to `purgeFenceToken IS NULL` (Prisma emits the null-safe
+   * form, NOT `= NULL`, confirmed in the same statement log — otherwise a token-less
+   * barrier would be unreleasable and wedge the runtime until the 24h reconciler).
+   * That preserves R-P3-03: a token-less caller matches only a token-less barrier and
+   * can never lift a FENCED one.
+   */
+  async releasePurgeFence(workspaceId: string, fenceToken: string | undefined): Promise<boolean> {
+    const result = await this.prisma.workspaceRuntime.updateMany({
+      where: {
+        id: workspaceId,
+        purgeFrozen: true,
+        purgeFenceToken: fenceToken ?? null,
+      },
+      data: { purgeFrozen: false, purgeFenceToken: null, purgeFrozenAt: null },
+    });
+
+    return result.count === 1;
+  }
+
+  /**
+   * RR-CODEX-14 v6 (R-P3-06): CAS release for the stale-barrier reconciler, conditioned
+   * on the FULL snapshot version the staleness verdict was computed from. A purge that
+   * re-froze the runtime after the scan changes both purgeFenceToken and purgeFrozenAt,
+   * so this UPDATE matches 0 rows and the fresh barrier survives the sweep.
+   */
+  async releaseStalePurgeFence(
+    workspaceId: string,
+    observed: { fenceToken?: string; frozenAt?: string },
+  ): Promise<boolean> {
+    const result = await this.prisma.workspaceRuntime.updateMany({
+      where: {
+        id: workspaceId,
+        purgeFrozen: true,
+        purgeFenceToken: observed.fenceToken ?? null,
+        purgeFrozenAt: observed.frozenAt ? new Date(observed.frozenAt) : null,
+      },
+      data: { purgeFrozen: false, purgeFenceToken: null, purgeFrozenAt: null },
     });
 
     return result.count === 1;

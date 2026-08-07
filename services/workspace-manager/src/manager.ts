@@ -96,6 +96,34 @@ export interface WorkspaceStore {
    * each run GC on the same dead-pod row and otherwise double-bill the window.
    */
   claimMeterWindow(workspaceId: string, expected: string | undefined, next: string): Promise<boolean>;
+
+  /*
+   * RR-CODEX-14 v6 (R-P3-06): ATOMIC compare-and-set release of the purge barrier.
+   * Lifts the barrier ONLY if the row is still frozen AND still owned by exactly
+   * `fenceToken` — a single conditional UPDATE, never a read-then-write-by-id.
+   *
+   * This closes the ABA the expert reproduced on real Postgres: attempt N0 reads a
+   * barrier it owns, is delayed, attempt N1 re-freezes the runtime with its OWN
+   * token, and N0's delayed unconditional `UPDATE ... WHERE id = ?` then wiped N1's
+   * live barrier (purgeFrozen went false mid-erasure → reprovision allowed). With
+   * the token in the WHERE clause the delayed write matches 0 rows and is a no-op.
+   *
+   * Returns true only if this caller's CAS actually lifted the barrier.
+   */
+  releasePurgeFence(workspaceId: string, fenceToken: string | undefined): Promise<boolean>;
+
+  /*
+   * RR-CODEX-14 v6 (R-P3-06): the reconciler's equivalent CAS. The staleness verdict
+   * is computed on a SNAPSHOT read (list()), so the release must be conditioned on
+   * that exact snapshot version — (purgeFrozen, purgeFenceToken, purgeFrozenAt) — or
+   * the reconciler carries the same TOCTOU: a barrier re-frozen by a NEW purge between
+   * the scan and the write would be lifted on the strength of the OLD row's age.
+   * A fresh freeze always changes both the token and purgeFrozenAt, so the CAS misses.
+   */
+  releaseStalePurgeFence(
+    workspaceId: string,
+    observed: { fenceToken?: string; frozenAt?: string },
+  ): Promise<boolean>;
 }
 
 export interface EventBus {
@@ -141,6 +169,55 @@ export class JsonWorkspaceStore implements WorkspaceStore {
     }
 
     workspaces.set(workspaceId, { ...existing, lastMeteredAt: next });
+    await this.write(workspaces);
+
+    return true;
+  }
+
+  /*
+   * R-P3-06: conditional release. This single-file dev store cannot offer the DB's
+   * row-level atomicity (it is documented single-replica), but it MUST still refuse a
+   * release whose token/version no longer matches — otherwise a superseded attempt
+   * silently lifts a live barrier here too. Production runs PrismaWorkspaceStore,
+   * where the same condition is a single conditional UPDATE.
+   */
+  async releasePurgeFence(workspaceId: string, fenceToken: string | undefined) {
+    const workspaces = await this.read();
+    const existing = workspaces.get(workspaceId);
+
+    if (!existing?.purgeFrozen || (existing.purgeFenceToken ?? undefined) !== (fenceToken ?? undefined)) {
+      return false;
+    }
+
+    workspaces.set(workspaceId, {
+      ...existing,
+      purgeFrozen: false,
+      purgeFenceToken: undefined,
+      purgeFrozenAt: undefined,
+    });
+    await this.write(workspaces);
+
+    return true;
+  }
+
+  async releaseStalePurgeFence(workspaceId: string, observed: { fenceToken?: string; frozenAt?: string }) {
+    const workspaces = await this.read();
+    const existing = workspaces.get(workspaceId);
+
+    if (
+      !existing?.purgeFrozen ||
+      (existing.purgeFenceToken ?? undefined) !== (observed.fenceToken ?? undefined) ||
+      (existing.purgeFrozenAt ?? undefined) !== (observed.frozenAt ?? undefined)
+    ) {
+      return false;
+    }
+
+    workspaces.set(workspaceId, {
+      ...existing,
+      purgeFrozen: false,
+      purgeFenceToken: undefined,
+      purgeFrozenAt: undefined,
+    });
     await this.write(workspaces);
 
     return true;
@@ -1274,7 +1351,22 @@ export class WorkspaceManager {
    * a Secret/Pod/Service delete failed, so a write path could still be live.
    */
   async freezeWorkspace(namespace: string, workspaceId: string, fenceToken?: string): Promise<void> {
-    const workspace = await this.store.get(workspaceId).catch(() => undefined);
+    /*
+     * R-P3-06: fail-CLOSED read. Swallowing a DB error here routed a workspace that
+     * DOES exist down the "no runtime row" branch, which skips the k8s revoke entirely
+     * and could report the barrier acquired while Secret/Pod/Service were still live.
+     * An unreadable row means we cannot prove what has to be revoked → refuse the freeze.
+     */
+    let workspace: WorkspaceRecord | undefined;
+
+    try {
+      workspace = await this.store.get(workspaceId);
+    } catch (error) {
+      throw new Error(
+        `WORKSPACE_FREEZE_PERSIST_FAILED: could not read runtime ${workspaceId} to freeze it: ` +
+          `${(error as Error)?.message ?? error}`,
+      );
+    }
 
     const nowIso = new Date().toISOString();
 
@@ -1356,19 +1448,19 @@ export class WorkspaceManager {
    * that OWNS a fence token requires an EXACT match; an ABSENT caller token is refused
    * exactly like a wrong one (a token-less caller can never lift a fenced barrier).
    */
-  async unfreezeWorkspace(workspaceId: string, fenceToken?: string): Promise<void> {
-    const workspace = await this.store.get(workspaceId).catch(() => undefined);
+  async unfreezeWorkspace(workspaceId: string, fenceToken?: string): Promise<{ released: boolean }> {
+    /*
+     * R-P3-06 (expert reserve, PR #52): this was a READ of the fence token followed by
+     * an UNCONDITIONAL `update(workspaceId, …)` by id. Between the two statements a
+     * NEWER purge attempt could re-freeze the runtime with its own token, and this
+     * delayed write then cleared THAT barrier — purgeFrozen=false during an active
+     * erasure window (classic ABA). There is no application-side check that can fix a
+     * read-then-write; the ownership test has to be IN the write. Single conditional
+     * UPDATE, and 0 rows affected means we do NOT unfreeze.
+     */
+    const released = await this.store.releasePurgeFence(workspaceId, fenceToken);
 
-    if (!workspace?.purgeFrozen) {
-      return;
-    }
-
-    // R-P3-03: a stored fence token REQUIRES an exact match — absent/mismatched → refuse.
-    if (workspace.purgeFenceToken && workspace.purgeFenceToken !== fenceToken) {
-      return; // not our barrier (wrong token OR no token supplied)
-    }
-
-    await this.store.update(workspaceId, { purgeFrozen: false, purgeFenceToken: undefined, purgeFrozenAt: undefined });
+    return { released };
   }
 
   /**
@@ -1390,10 +1482,28 @@ export class WorkspaceManager {
       const frozenAtMs = row.purgeFrozenAt ? new Date(row.purgeFrozenAt).getTime() : 0;
 
       if (frozenAtMs < cutoff) {
+        /*
+         * R-P3-06: same TOCTOU as unfreezeWorkspace — `row` is a SNAPSHOT from the
+         * list() above, and a purge may have re-frozen this runtime since. Release
+         * with a CAS on the exact observed version (token + frozenAt), so a barrier
+         * that was refreshed after the scan is NEVER lifted on the old row's age.
+         * A CAS miss (or a DB error) leaves the runtime frozen — fail-closed.
+         */
         await this.store
-          .update(row.id, { purgeFrozen: false, purgeFenceToken: undefined, purgeFrozenAt: undefined })
-          .then(() => {
-            reconciled += 1;
+          /*
+           * `!== undefined`, NOT truthiness: an EMPTY-STRING token is a real stored
+           * value and must go into the CAS verbatim. Folding '' into "absent" makes
+           * the CAS compare against NULL, match 0 rows, and leave that barrier
+           * unreclaimable forever — the opposite of what this reconciler is for.
+           */
+          .releaseStalePurgeFence(row.id, {
+            ...(row.purgeFenceToken !== undefined ? { fenceToken: row.purgeFenceToken } : {}),
+            ...(row.purgeFrozenAt !== undefined ? { frozenAt: row.purgeFrozenAt } : {}),
+          })
+          .then((released) => {
+            if (released) {
+              reconciled += 1;
+            }
           })
           .catch(() => undefined);
       }
@@ -1409,7 +1519,23 @@ export class WorkspaceManager {
    * erasing (the reprovision-after-zero-check-before-tombstone race).
    */
   private async assertNotPurgeFrozen(workspaceId: string): Promise<void> {
-    const existing = await this.store.get(workspaceId).catch(() => undefined);
+    /*
+     * R-P3-06 (expert reserve, PR #52): this read used to `.catch(() => undefined)`,
+     * so a DB error was indistinguishable from "no barrier" and the guard failed OPEN
+     * — a transient Postgres blip during an erasure window silently authorised the
+     * exact reprovision the barrier exists to refuse. A barrier we cannot READ is a
+     * barrier we must ASSUME is set: on error we refuse the reprovision.
+     */
+    let existing: WorkspaceRecord | undefined;
+
+    try {
+      existing = await this.store.get(workspaceId);
+    } catch (error) {
+      throw new Error(
+        `WORKSPACE_PURGE_BARRIER_UNVERIFIABLE: could not read the purge barrier for ${workspaceId} — ` +
+          `reprovision refused (fail-closed): ${(error as Error)?.message ?? error}`,
+      );
+    }
 
     if (existing?.purgeFrozen) {
       throw new Error(
@@ -1418,11 +1544,20 @@ export class WorkspaceManager {
     }
   }
 
-  /** RR-CODEX-14 v5 (R-P3-01): boolean form of the barrier check (no throw). */
+  /**
+   * RR-CODEX-14 v5 (R-P3-01): boolean form of the barrier check (no throw).
+   * R-P3-06: FAIL-CLOSED — an unreadable barrier reports FROZEN, so the caller revokes
+   * what it created and aborts rather than leaving a live Pod on a possibly-frozen
+   * runtime. Never let a DB error read as "not frozen".
+   */
   private async isPurgeFrozen(workspaceId: string): Promise<boolean> {
-    const existing = await this.store.get(workspaceId).catch(() => undefined);
+    try {
+      const existing = await this.store.get(workspaceId);
 
-    return Boolean(existing?.purgeFrozen);
+      return Boolean(existing?.purgeFrozen);
+    } catch {
+      return true;
+    }
   }
 
   #gcInFlight = false;
