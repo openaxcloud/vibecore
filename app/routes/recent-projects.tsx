@@ -83,7 +83,11 @@ export default function RecentProjectsPage() {
           />
         )
       ) : (
-        <ProjectGrid projects={projects} />
+        <>
+          {/* BUG-USR-007: h1→h2→h3 heading order (cards are h3); sr-only. */}
+          <h2 className="sr-only">Recent projects</h2>
+          <ProjectGrid projects={projects} />
+        </>
       )}
     </AppShell>
   );
