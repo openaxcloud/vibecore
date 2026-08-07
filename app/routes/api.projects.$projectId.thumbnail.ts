@@ -10,8 +10,11 @@ import {
 /*
  * Serves a project's REAL captured preview thumbnail. The API returns a short-lived
  * signed object-storage URL for the latest screenshot; we 302 the <img> straight to
- * it. If no thumbnail has been captured yet (or it's unavailable) we return 404 so
- * the card shows its neutral placeholder instead of a fake mock.
+ * it. If no thumbnail has been captured yet (or it's unavailable) we return 204 (No
+ * Content): the <img> still fires onError so the card shows its neutral placeholder,
+ * but — unlike a 404 — a 2xx is NOT logged as a "Failed to load resource" console
+ * error on every dashboard/projects render for every draft project (BUG-USR-002). A
+ * genuinely malformed request (missing project id) is still a real 404.
  */
 export async function loader({ request, params }: EnterpriseLoaderArgs) {
   if (!params.projectId) {
@@ -22,12 +25,12 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     const result = await apiRequest<{ url?: string }>(request, `/projects/${params.projectId}/thumbnail`);
 
     if (!result?.url) {
-      return new Response(null, { status: 404 });
+      return new Response(null, { status: 204 });
     }
 
     return redirect(result.url);
   } catch {
-    return new Response(null, { status: 404 });
+    return new Response(null, { status: 204 });
   }
 }
 
