@@ -19,6 +19,7 @@ export function loader({ request }: LoaderFunctionArgs) {
     status: 200,
     headers: {
       'content-type': 'application/xml; charset=utf-8',
+
       /*
        * Cache court : le sitemap doit refléter une nouvelle page en heures, pas
        * en jours, sans pour autant être recalculé à chaque passage de robot.

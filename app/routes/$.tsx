@@ -38,6 +38,7 @@ export const loader = ({ request }: LoaderFunctionArgs) => {
 export const meta: MetaFunction = () => [
   { title: 'Page not found · E-Code' },
   { name: 'description', content: 'This page could not be found on E-Code.' },
+
   // BUG-MKT-009 — une page introuvable ne doit jamais entrer dans un index.
   { name: 'robots', content: 'noindex, nofollow' },
 ];

@@ -7,7 +7,11 @@ import { socialMetaTags } from '~/utils/social-meta';
 export const meta: MetaFunction = () => [
   { title: 'Security — E-Code' },
   { name: 'description', content: 'E-Code security practices and vulnerability disclosure.' },
-  ...socialMetaTags({ path: '/security', title: 'E-Code Security', description: 'How E-Code protects your code, data and deployments.' }),
+  ...socialMetaTags({
+    path: '/security',
+    title: 'E-Code Security',
+    description: 'How E-Code protects your code, data and deployments.',
+  }),
 ];
 
 export default function SecurityRoute() {

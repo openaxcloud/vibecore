@@ -32,8 +32,8 @@ export const DEFAULT_OG_IMAGE_ALT = 'E-Code — build, ship and scale production
 export function canonicalUrl(path: string): string {
   const withoutQuery = path.split('?')[0].split('#')[0];
   const withLeadingSlash = withoutQuery.startsWith('/') ? withoutQuery : `/${withoutQuery}`;
-  const normalized =
-    withLeadingSlash.length > 1 ? withLeadingSlash.replace(/\/+$/, '') : '/';
+
+  const normalized = withLeadingSlash.length > 1 ? withLeadingSlash.replace(/\/+$/, '') : '/';
 
   return `${MARKETING_SITE_URL}${normalized === '/' ? '' : normalized}` || MARKETING_SITE_URL;
 }
@@ -41,8 +41,10 @@ export function canonicalUrl(path: string): string {
 export interface SocialMetaInput {
   title: string;
   description: string;
+
   /** Chemin de la page (`/pricing`). Omis ⇒ pas de canonical ni d'og:url. */
   path?: string;
+
   /** `website` par défaut ; `article` pour un billet de blog. */
   type?: 'website' | 'article';
 }
@@ -62,6 +64,7 @@ export function socialMetaTags({ title, description, path, type = 'website' }: S
     { property: 'og:image:height', content: '630' },
     { property: 'og:image:alt', content: DEFAULT_OG_IMAGE_ALT },
     { name: 'twitter:card', content: 'summary_large_image' },
+
     /*
      * Sans titre ni description explicites, la carte Twitter retombe sur ce
      * qu'elle devine dans la page — souvent le premier texte venu.

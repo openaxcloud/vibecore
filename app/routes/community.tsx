@@ -16,7 +16,11 @@ export const meta: MetaFunction = () => [
     name: 'description',
     content: 'Public E-Code builder community with discussions, challenges, contributors and marketing navigation.',
   },
-  ...socialMetaTags({ path: '/community', title: 'E-Code Community', description: 'Templates, bounties, forum and community projects built with E-Code.' }),
+  ...socialMetaTags({
+    path: '/community',
+    title: 'E-Code Community',
+    description: 'Templates, bounties, forum and community projects built with E-Code.',
+  }),
 ];
 
 const communityPosts: PublicCommunityPost[] = [

@@ -49,6 +49,7 @@ describe('inventaire du sitemap', () => {
     for (const path of paths) {
       expect(path.startsWith('/'), path).toBe(true);
       expect(path, path).not.toMatch(/^\/(api|admin|account|billing|register|login)/);
+
       // Une page atteignable seulement après une action ne doit pas être indexée.
       expect(path, path).not.toMatch(/newsletter|confirmed|unsubscribe/);
     }
@@ -70,6 +71,7 @@ describe('rendu du document', () => {
     expect(xml.startsWith('<?xml version="1.0" encoding="UTF-8"?>')).toBe(true);
     expect(xml).toContain('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">');
     expect(xml.trimEnd().endsWith('</urlset>')).toBe(true);
+
     // Autant de <url> que d'entrées, et les balises sont équilibrées.
     expect((xml.match(/<url>/g) ?? []).length).toBe(sitemapEntries().length);
     expect((xml.match(/<url>/g) ?? []).length).toBe((xml.match(/<\/url>/g) ?? []).length);
@@ -93,6 +95,7 @@ describe('rendu du document', () => {
 
   it('échappe les caractères XML', () => {
     expect(escapeXml(`a&b<c>"d'e`)).toBe('a&amp;b&lt;c&gt;&quot;d&apos;e');
+
     // Aucune esperluette nue ne doit subsister dans le document rendu.
     expect(xml).not.toMatch(/&(?!amp;|lt;|gt;|quot;|apos;)/);
   });

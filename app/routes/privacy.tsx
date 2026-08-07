@@ -7,7 +7,11 @@ import { socialMetaTags } from '~/utils/social-meta';
 export const meta: MetaFunction = () => [
   { title: 'Privacy Policy — E-Code' },
   { name: 'description', content: 'E-Code Privacy Policy.' },
-  ...socialMetaTags({ path: '/privacy', title: 'E-Code Privacy Policy', description: 'How E-Code collects, uses and protects your personal data.' }),
+  ...socialMetaTags({
+    path: '/privacy',
+    title: 'E-Code Privacy Policy',
+    description: 'How E-Code collects, uses and protects your personal data.',
+  }),
 ];
 
 export default function PrivacyRoute() {

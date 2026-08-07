@@ -14,8 +14,10 @@ import { solutionPages } from '~/components/marketing/EcodeMarketingPages';
 
 export interface SitemapEntry {
   path: string;
+
   /** Indication de fréquence pour les robots — jamais une garantie. */
   changefreq: 'daily' | 'weekly' | 'monthly' | 'yearly';
+
   /** Priorité RELATIVE au sein du site, pas un classement absolu. */
   priority: number;
 }

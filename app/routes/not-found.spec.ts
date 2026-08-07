@@ -14,10 +14,9 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { ecodeSurfacePages } from '~/components/marketing/EcodeSurfacePages';
-
 import { loader as splatLoader, meta as splatMeta } from './$';
 import { meta as slugMeta } from './$slug';
+import { ecodeSurfacePages } from '~/components/marketing/EcodeSurfacePages';
 
 const NOT_FOUND_TITLE = 'Page not found · E-Code';
 

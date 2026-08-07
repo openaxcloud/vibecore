@@ -7,7 +7,12 @@ export const meta = () => [
     name: 'description',
     content: 'Explore E-Code solutions for app builders, websites, games, dashboards, AI agents and enterprise teams.',
   },
-  ...socialMetaTags({ path: '/solutions', title: 'E-Code Solutions', description: 'Explore E-Code solutions for app builders, websites, games, dashboards, AI agents and enterprise teams.' }),
+  ...socialMetaTags({
+    path: '/solutions',
+    title: 'E-Code Solutions',
+    description:
+      'Explore E-Code solutions for app builders, websites, games, dashboards, AI agents and enterprise teams.',
+  }),
 ];
 
 export default function SolutionsIndexRoute() {

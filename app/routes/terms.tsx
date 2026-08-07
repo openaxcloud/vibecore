@@ -7,7 +7,11 @@ import { socialMetaTags } from '~/utils/social-meta';
 export const meta: MetaFunction = () => [
   { title: 'Terms of Service — E-Code' },
   { name: 'description', content: 'E-Code Terms of Service.' },
-  ...socialMetaTags({ path: '/terms', title: 'E-Code Terms of Service', description: 'The terms governing your use of the E-Code platform.' }),
+  ...socialMetaTags({
+    path: '/terms',
+    title: 'E-Code Terms of Service',
+    description: 'The terms governing your use of the E-Code platform.',
+  }),
 ];
 
 export default function TermsRoute() {

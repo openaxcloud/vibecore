@@ -1,10 +1,10 @@
 import { data, redirect, useLoaderData, type LoaderFunctionArgs, type MetaFunction } from 'react-router';
+import { LinkButton, PublicShell } from '~/components/dashboard/SaaSLayout';
 import {
   EcodeSurfacePageBySlug,
   getEcodeSurfacePage,
   makeEcodeSurfaceMetaTags,
 } from '~/components/marketing/EcodeSurfacePages';
-import { LinkButton, PublicShell } from '~/components/dashboard/SaaSLayout';
 import { hasValidWebSession } from '~/lib/.server/require-session';
 import { resolveSurfaceTwin } from '~/lib/surface-twins';
 
@@ -54,6 +54,7 @@ export const meta: MetaFunction = ({ params }) => {
     : [
         { title: 'Page not found · E-Code' },
         { name: 'description', content: 'This page could not be found on E-Code.' },
+
         // Une page introuvable ne doit jamais entrer dans un index.
         { name: 'robots', content: 'noindex, nofollow' },
       ];
