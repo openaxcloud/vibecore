@@ -7,6 +7,7 @@ import {
   buildSshConnectScript,
   ephemeralSshKeyPrelude,
   isSshGitUrl,
+  normalizeRuntimePorts,
   scopeDeploymentsForWorkspace,
   selectSshConnectionForOrigin,
   sshHostFromGitUrl,
@@ -34,6 +35,38 @@ describe('scopeDeploymentsForWorkspace', () => {
 
   it('keeps only legacy project deployments when no workspace is selected', () => {
     expect(scopeDeploymentsForWorkspace(deployments)).toEqual([deployments[0]]);
+  });
+});
+
+describe('normalizeRuntimePorts', () => {
+  const runtimePort = {
+    port: 5173,
+    processId: 'dc0deaa323e2',
+    type: 'open',
+    ready: true,
+    url: 'https://ws-1-5173.preview.e-code.ai/',
+  };
+
+  it('keeps the bare array the runtime ports route actually returns', () => {
+    expect(normalizeRuntimePorts([runtimePort])).toEqual([runtimePort]);
+  });
+
+  it('unwraps the {ports: []} shape used by the loader failure fallback', () => {
+    expect(normalizeRuntimePorts({ ports: [runtimePort] })).toEqual([runtimePort]);
+  });
+
+  it('never yields the spread-array object that made the panel list no port', () => {
+    /*
+     * The regression: `{...[port]}` produced `{0: port}`, which is neither an
+     * array nor `.ports`, so the panel reader returned [] while :5173 was live.
+     */
+    expect(normalizeRuntimePorts({ 0: runtimePort })).toEqual([]);
+  });
+
+  it('falls back to empty for null/undefined/non-list payloads', () => {
+    expect(normalizeRuntimePorts(null)).toEqual([]);
+    expect(normalizeRuntimePorts(undefined)).toEqual([]);
+    expect(normalizeRuntimePorts({ ports: 'nope' })).toEqual([]);
   });
 });
 
