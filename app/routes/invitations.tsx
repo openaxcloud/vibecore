@@ -138,7 +138,9 @@ export default function InvitationsPage() {
       {canManageInvitations ? (
         <Form method="post" className="space-y-4">
           <input type="hidden" name="orgId" value={orgId} />
-          <TextField label="Email" name="email" type="email" required />
+          {/* BUG-USR-012: this is the invitee's email, NOT the current user's — autoComplete="off"
+              so the browser doesn't autofill the signed-in user's own address here. */}
+          <TextField label="Email" name="email" type="email" required autoComplete="off" />
           <SelectField
             label="Role"
             name="roleKey"
