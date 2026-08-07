@@ -2,18 +2,19 @@
 #
 # Replayable proof for the expert counter-audit: READY ↔ ReleaseManifest atomicity.
 #
-# It runs ONE spec twice against the SAME working tree:
+# It runs ONE spec twice against the SAME checkout:
 #
-#   RED   the spec vs. the code with the fix REVERTED (git stash of the two source
-#         files only — the spec itself stays in place). The crash-injection tests on
-#         the real transitions must FAIL, and they must fail with the two fail-OPEN
-#         shapes the refusal described: `rollbackable` ABSENT, or INHERITED true.
-#   GREEN the spec vs. the code with the fix applied. All tests pass.
+#   RED   the spec vs. the code with the fix REVERTED — the two fixed source files are
+#         checked out from the PARENT commit (the refused SHA), while the spec itself,
+#         which did not exist there, stays in place. The crash-injection tests on the
+#         real transitions must FAIL, with the two fail-OPEN shapes the refusal
+#         described: `rollbackable` ABSENT, or INHERITED true.
+#   GREEN the spec vs. the code at HEAD. All tests pass.
 #
 # A test that is green in both states proves nothing; RED-then-GREEN is the point.
 #
 # Usage:  bash scripts/prove-rollback-ready-atomicity.sh
-# Needs:  a clean-ish worktree (the script stashes/restores only the two fixed files).
+# Needs:  the two fixed source files committed and unmodified in the worktree.
 
 set -uo pipefail
 
@@ -35,21 +36,18 @@ run_spec() {
      --pool=forks --poolOptions.forks.singleFork=true "$SPEC" 2>&1) | grep -vE '^\{"level"'
 }
 
-echo "=== [1/2] RED — fix reverted, spec unchanged ======================="
-git stash push --quiet -m "prove-rollback-atomicity" -- "${FIXED_SOURCES[@]}"
-STASHED=$?
+PARENT="$(git rev-parse HEAD^)"
 
-if [ "$STASHED" -ne 0 ]; then
-  echo "nothing to stash: the fix is not present in the working tree; RED phase is not meaningful." >&2
-fi
+echo "=== [1/2] RED — fix reverted to parent $PARENT, spec unchanged ====="
+# Always put the fix back, even if the RED run explodes or the script is interrupted.
+trap 'git checkout --quiet HEAD -- "${FIXED_SOURCES[@]}"' EXIT INT TERM
+git checkout --quiet "$PARENT" -- "${FIXED_SOURCES[@]}"
 
 run_spec | tee /tmp/rollback-atomicity-RED.txt
 echo
 
-# Always put the fix back, even if the RED run exploded.
-if [ "$STASHED" -eq 0 ]; then
-  git stash pop --quiet
-fi
+git checkout --quiet HEAD -- "${FIXED_SOURCES[@]}"
+trap - EXIT INT TERM
 
 echo "=== [2/2] GREEN — fix applied ======================================"
 run_spec | tee /tmp/rollback-atomicity-GREEN.txt

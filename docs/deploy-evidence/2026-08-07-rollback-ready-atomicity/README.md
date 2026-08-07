@@ -84,18 +84,41 @@ Transitions covered, each with a crash case and a no-crash case:
 bash scripts/prove-rollback-ready-atomicity.sh
 ```
 
-It runs the same spec twice against the same tree: **RED** with the two fixed source
-files stashed (spec unchanged), then **GREEN** with the fix applied. A test green in
-both states proves nothing; RED-then-GREEN is the point.
+It runs the same spec twice against the same checkout: **RED** with the two fixed source
+files checked out from the parent (refused) commit — the spec, which did not exist there,
+stays in place — then **GREEN** at HEAD. A test green in both states proves nothing;
+RED-then-GREEN is the point.
+
+Verdict block from the run on the new SHA:
+
+```
+RED   :       Tests  6 failed | 4 passed (10)
+GREEN :       Tests  10 passed (10)
+
+Fail-open shapes observed in the RED run (both must appear):
+   4 rollbackable must be false, got true
+   4 rollbackable must be false, got undefined
+```
 
 ### RED — spec vs. the refused code
 
 ```
+   ✓ static publish BUILDING→READY (runDeploymentBuildFlow) > crash right after the READY commit leaves the row FAIL-CLOSED with no manifest
+   ✓ static publish BUILDING→READY (runDeploymentBuildFlow) > reconciler repairs the crashed row DURABLY on the next read
+   ✓ static publish BUILDING→READY (runDeploymentBuildFlow) > without a crash the flag is true ONLY alongside a durable manifest
+   × server BUILDING→READY (reconcileDeploymentStatus, on read) > crash right after the promotion commit leaves the row FAIL-CLOSED
+   ✓ server BUILDING→READY (reconcileDeploymentStatus, on read) > with no crash the promotion is completed by the reconciler (manifest, then true)
+   × promote-to-production create-READY > crash right after the create commit leaves the production row FAIL-CLOSED
+   × promote-to-production create-READY > without a crash the production row gets its OWN production manifest
+   × server rollback-to-previous READY > crash right after the rollback READY commit leaves the row FAIL-CLOSED
+   × server rollback-to-previous READY > without a crash the rollback records its manifest BEFORE claiming rollbackable
+   × rollback-to-deployment never inherits the target rollbackable:true
+
  Test Files  1 failed (1)
       Tests  6 failed | 4 passed (10)
 ```
 
-The six failures are the two fail-open shapes, on the real transitions:
+Assertion messages — the two fail-open shapes, on the real transitions:
 
 ```
 crashed server promotion:      rollbackable must be false, got undefined
@@ -129,6 +152,37 @@ $ npx vitest --run --config vitest.config.ts --pool=forks --poolOptions.forks.si
  Test Files  6 passed (6)
       Tests  37 passed (37)
 ```
+
+### Full `services/api` suite — the six failures were contention, not logic
+
+A full-suite run (`--pool=forks --poolOptions.forks.maxForks=3`) on a loaded machine
+reported 6 failures across 4 files. Every one was `Test timed out in 120000ms` /
+`180000ms` — **no assertion failed** — with per-file durations of 283s / 297s / 219s /
+181s. The host was saturated at the time (`kern.num_files` 29912 of a 30720 maximum, with
+a dozen other worktrees and dev servers running); an earlier parallel attempt had already
+died on a vitest IPC error, and one of the four files (`vitest-config-discovery.spec.ts`)
+has nothing to do with this change.
+
+Replayed in isolation once the host was quiet (`kern.num_files` 11458):
+
+```
+$ npx vitest --run --config vitest.config.ts --pool=forks --poolOptions.forks.singleFork=true \
+    src/tests/rollback-ready-transition-crash.spec.ts \
+    src/tests/deployment-rollback-digest.spec.ts \
+    src/tests/rollback-fault-injection.spec.ts \
+    src/tests/vitest-config-discovery.spec.ts
+
+ ✓ src/tests/rollback-ready-transition-crash.spec.ts (10 tests)   3136ms
+ ✓ src/tests/deployment-rollback-digest.spec.ts      (6 tests)    1757ms
+ ✓ src/tests/rollback-fault-injection.spec.ts        (7 tests)    2040ms
+ ✓ src/tests/vitest-config-discovery.spec.ts         (1 test)    17195ms
+
+ Test Files  4 passed (4)
+      Tests  24 passed (24)
+```
+
+3.1s versus 283s for the same file is the contention signature. CI, which runs on a
+dedicated runner, is the arbiter.
 
 ## Local environment caveats (not shipped, not masking anything)
 
