@@ -1359,6 +1359,17 @@ const packagesInstallSchema = z.object({
   // Optional override; when omitted the manager is detected from the lockfile.
   packageManager: z.enum(['npm', 'pnpm', 'yarn', 'bun']).optional(),
   timeoutMs: z.number().int().positive().max(600_000).optional(),
+
+  /*
+   * Target workspace. The Packages panel resolves and displays a specific
+   * workspace (and offers a workspace selector), so the install has to run in
+   * THAT pod. Without it this route fell back to the projectId, which
+   * authorizeRuntimeWorkspace turns into the deterministic per-user
+   * `ws-<hash>` id — a pod that does not exist whenever the project's active
+   * workspace is a different record, making every install 502 while the panel
+   * still reported success.
+   */
+  workspaceId: z.string().trim().min(1).optional(),
 });
 const domainSchema = z.object({
   domain: z
@@ -16199,6 +16210,41 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { port, url, ready };
   });
 
+  /*
+   * Marker + tag for the same-origin preview error reporter injected into HTML
+   * served through the api-origin preview fallback. The reporter file lives in the
+   * app's public assets (public/vibecore-preview-reporter.js) and is served on the
+   * app origin, which is the SAME origin as this proxy path — so a bare
+   * `/vibecore-preview-reporter.js` resolves without a cross-origin/CSP hop. Kept
+   * byte-compatible with the preview-proxy's injected reporter so the IDE handler
+   * treats both transports identically. The marker makes injection idempotent (a
+   * page that already self-hosts the reporter, or a double-proxy, is not doubled).
+   */
+  const PREVIEW_REPORTER_MARKER = 'data-vibecore-reporter';
+  const PREVIEW_REPORTER_TAG = `<script src="/vibecore-preview-reporter.js" ${PREVIEW_REPORTER_MARKER}></script>`;
+
+  // Only buffer+inject a plausibly-small HTML document; larger bodies stream raw.
+  const MAX_PREVIEW_REPORTER_INJECT_BYTES = 2 * 1024 * 1024;
+
+  const injectPreviewReporterScript = (html: string): string => {
+    if (html.includes(PREVIEW_REPORTER_MARKER)) {
+      return html;
+    }
+
+    // Prefer end-of-<head> so the (classic, non-module) reporter runs before the
+    // app's deferred module scripts and can catch a load-time throw.
+    if (/<\/head>/i.test(html)) {
+      return html.replace(/<\/head>/i, `${PREVIEW_REPORTER_TAG}</head>`);
+    }
+
+    if (/<body[^>]*>/i.test(html)) {
+      return html.replace(/<body[^>]*>/i, (match) => `${match}${PREVIEW_REPORTER_TAG}`);
+    }
+
+    // No <head>/<body> (fragment/minimal doc): prepend so it still loads.
+    return `${PREVIEW_REPORTER_TAG}${html}`;
+  };
+
   const handleRuntimePreviewProxy = async (request: FastifyRequest, reply: FastifyReply) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const params = request.params as { port: string; '*': string };
@@ -16321,12 +16367,50 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     const contentLength = response.headers.get('content-length');
 
-    if (contentLength && !upstreamWasEncoded) {
-      reply.header('content-length', contentLength);
+    if (!response.body) {
+      if (contentLength && !upstreamWasEncoded) {
+        reply.header('content-length', contentLength);
+      }
+
+      return reply.code(response.status).send();
     }
 
-    if (!response.body) {
-      return reply.code(response.status).send();
+    /*
+     * Inject the preview error reporter into the top-level HTML document served
+     * on THIS same-origin fallback path (used when PREVIEW_URL_TEMPLATE is unset).
+     * The external preview-proxy injects the reporter on the *.preview host, but
+     * this api-origin proxy historically streamed the HTML RAW — so a preview
+     * served here (HTTP 200) that never mounts, or crashes on load, showed a
+     * SILENT BLANK with no in-iframe error overlay and no PREVIEW_BLANK signal to
+     * the IDE ("preview stayed empty / no visible preview status"). Injecting the
+     * same reporter (a same-origin <script>, since this document is app-origin)
+     * restores the blank-watchdog + error overlay on this path too, so a blank is
+     * never invisible. Only a small text/html document is buffered+rewritten; every
+     * other response (assets, big bundles, streams) still passes through untouched,
+     * so the OOM/streaming guarantees above are preserved.
+     */
+    const previewContentType = response.headers.get('content-type') ?? '';
+    const previewCharset = /charset\s*=\s*"?([\w-]+)"?/i.exec(previewContentType)?.[1]?.toLowerCase();
+    const previewIsUtf8 = !previewCharset || previewCharset === 'utf-8' || previewCharset === 'utf8';
+    const declaredLen = Number(contentLength ?? '');
+    const injectable =
+      previewContentType.includes('text/html') &&
+      previewIsUtf8 &&
+      (!Number.isFinite(declaredLen) || declaredLen <= MAX_PREVIEW_REPORTER_INJECT_BYTES);
+
+    if (injectable) {
+      const rawHtml = await response.text();
+      const injectedHtml =
+        rawHtml.length <= MAX_PREVIEW_REPORTER_INJECT_BYTES ? injectPreviewReporterScript(rawHtml) : rawHtml;
+      const outBuffer = Buffer.from(injectedHtml, 'utf8');
+
+      reply.header('content-length', String(outBuffer.byteLength));
+
+      return reply.code(response.status).send(outBuffer);
+    }
+
+    if (contentLength && !upstreamWasEncoded) {
+      reply.header('content-length', contentLength);
     }
 
     /*
@@ -19663,6 +19747,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       files: publicFiles(files),
       git: await gitProvider.status(project.id),
       recentActivity: await store.listProjectActivity(project.id, { limit: 20, order: 'desc' }),
+
+      /*
+       * The IDE Monitoring panel reads `data.deployments` for its Deployments
+       * metric and its deployment timeline, and this payload is what feeds it.
+       * Without the key both fell back to the empty array, so a project with
+       * live READY deployments reported "0" and "No deployment recorded"
+       * (proven live 2026-08-06 on a project with three READY static deploys).
+       * Read-only listing — no provider reconcile, which belongs to the
+       * deployments routes.
+       */
+      deployments: await store.listDeployments(project.id).catch(() => []),
     };
   });
   app.get('/projects/:projectId/packages', async (request) => {
@@ -19748,8 +19843,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    // Resolve to the project's dedicated per-user workspace pod (never shared).
-    const authorized = await authorizeRuntimeWorkspace(request, projectId, 'workspaces:write');
+    /*
+     * Resolve to the workspace pod the caller is actually looking at (never
+     * shared). Falling back to the projectId keeps pre-workspaceId clients
+     * working, but when the panel names a workspace we must install THERE —
+     * see packagesInstallSchema.workspaceId.
+     */
+    const authorized = await authorizeRuntimeWorkspace(request, body.workspaceId ?? projectId, 'workspaces:write');
+
+    /*
+     * A caller-supplied workspace id is only trusted after confirming it belongs
+     * to this project; otherwise the projectId in the path (already permission
+     * checked) could be paired with a workspace from another project the user
+     * happens to own, installing into the wrong pod.
+     */
+    if (authorized.projectId !== projectId) {
+      throw Object.assign(new Error('Workspace does not belong to this project'), {
+        statusCode: 403,
+        code: 'WORKSPACE_PROJECT_MISMATCH',
+      });
+    }
 
     if (await isTerminalAccessRevoked(authorized, request)) {
       throw Object.assign(new Error('Terminal access is restricted for this project role'), {
@@ -30615,6 +30728,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       let started: { ready: boolean; url: string; name: string; readyReplicas: number } | undefined;
       let serverError: string | undefined;
 
+      /*
+       * The runtime the pipeline actually detected (or that .ecode/deploy.json
+       * declared), lifted out of the detection block so the persisted row can
+       * carry it. The row is created with the STATIC heuristic's guess
+       * (outputDirectory 'dist' → "vite"), which the panel then showed for a
+       * plain Node app — proven live 2026-08-06 (BUG-DEPLOY-006).
+       */
+      let detectedFramework: string | undefined;
+
       const serverPort = Number(process.env.SERVER_DEPLOY_PORT) || 3000;
 
       /*
@@ -30834,6 +30956,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             const detectionError = detection as { error: string };
             serverError = `${detectionError.error} You can also declare {"run": "<command>"} in .ecode/deploy.json.`;
           } else {
+            detectedFramework = runPlan.framework;
+
             buildProgress.onLog({
               timestamp: nowIso(),
               level: 'info',
@@ -31107,6 +31231,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       const readyRow = await store.updateDeployment(project.id, queued.id, {
         status: serverStatus,
+
+        /*
+         * The row was created with the STATIC heuristic's guess (outputDirectory
+         * 'dist' → "vite"), which the panel then showed for a plain Node/Express
+         * app whose real run plan the pipeline had already detected and logged as
+         * "node". Persist what actually ran.
+         */
+        framework: detectedFramework ?? queued.framework,
         url: ok ? serverUrl : undefined,
         previewUrl: ok && body.environment !== 'production' ? serverUrl : undefined,
         productionUrl: ok && body.environment === 'production' ? serverUrl : undefined,
@@ -31127,7 +31259,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             ...(imageBuildInfo ? { image: imageBuildInfo } : {}),
           },
         },
-        logs: [...createDeploymentLogs(body, { ...queued, url: serverUrl }, project), ...liveLog],
+        logs: [
+          ...createDeploymentLogs(
+            body,
+            { ...queued, url: serverUrl, framework: detectedFramework ?? queued.framework },
+            project,
+          ),
+          ...liveLog,
+        ],
 
         /*
          * A converging (BUILDING) deploy is not finished — leaving finishedAt

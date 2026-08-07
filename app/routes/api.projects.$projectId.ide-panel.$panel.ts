@@ -565,9 +565,11 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
         apiRequest(request, `/projects/${projectId}/env-vars`).catch(() => ({ envVars: [] })),
       ]);
 
+      const ports = normalizeRuntimePorts(runtimePorts);
+
       return json(
         panelEnvelope(panel, project.project, {
-          ...(runtimePorts as any),
+          ports,
           portsState: readPortsState(envVars),
           workspaces: workspaceCtx.workspaceList,
           selectedWorkspaceId: workspaceCtx.selectedWorkspaceId,
@@ -2088,6 +2090,9 @@ export async function action({ request, params }: EnterpriseActionArgs) {
           dev: body.devDependency === 'true',
           name: packageRunName(intent, packageManager),
           startedAt: now,
+
+          // Same pod audit/outdated target below — see runPackageInstall.workspaceId.
+          workspaceId: packages?.workspace?.id ?? body.workspaceId?.trim() ?? undefined,
         })
       : await runTerminalCommand(
           request,
@@ -3216,6 +3221,24 @@ const DEBUGGER_STATE_ENV_KEY = 'VIBECORE_DEBUGGER_STATE';
 const EXTENSIONS_STATE_ENV_KEY = 'VIBECORE_EXTENSIONS_STATE';
 const PORTS_STATE_ENV_KEY = 'VIBECORE_PORTS_STATE';
 
+/*
+ * GET /api/runtime/workspaces/:id/ports answers with a BARE ARRAY of forwarded
+ * ports, while this loader's failure fallback uses `{ports: []}`. The envelope
+ * used to spread whatever came back, so the live array became `{0:{port:5173}}`
+ * and the panel's reader (which accepts an array or `.ports`) always fell
+ * through to empty — the Ports panel listed nothing while the runtime was
+ * actively serving. Collapse both shapes onto the `ports` key.
+ */
+export function normalizeRuntimePorts(payload: unknown): unknown[] {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  const ports = (payload as { ports?: unknown })?.ports;
+
+  return Array.isArray(ports) ? ports : [];
+}
+
 /** Persisted Ports config: primary port + per-port public/private visibility. */
 function readPortsState(envVarsResponse: unknown): { primaryPort?: number; visibility: Record<string, string> } {
   const envVars = (envVarsResponse as any)?.envVars ?? [];
@@ -4101,6 +4124,14 @@ async function runPackageInstall(
     dev: boolean;
     name: string;
     startedAt: string;
+
+    /*
+     * The workspace the panel resolved and is displaying. Audit/outdated already
+     * ran against it via runTerminalCommand; install used to omit it entirely,
+     * so the API fell back to the deterministic per-user workspace id and every
+     * install 502'd whenever that was not the project's active pod.
+     */
+    workspaceId?: string;
   },
 ) {
   const finishedAt = () => new Date().toISOString();
@@ -4117,6 +4148,7 @@ async function runPackageInstall(
         packages: input.packages,
         dev: input.dev,
         packageManager: input.packageManager,
+        ...(input.workspaceId ? { workspaceId: input.workspaceId } : {}),
       }),
     });
 

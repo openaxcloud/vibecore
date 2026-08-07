@@ -5633,6 +5633,110 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     }
   });
 
+  it('installs into the workspace the caller names, not the deterministic per-user pod', async () => {
+    const store = new TestApiStore();
+    const projectStorage = new MemoryProjectStorage();
+    const runtime = await startRuntimeServices({ commandStdout: 'added 1 package in 1s\n' });
+    const app = await buildTestApiApp({ store, projectStorage });
+    const auth = await register(app, { email: 'pkg-ws@example.com', organizationName: 'Package Workspace Org' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Package Workspace Project' },
+    });
+
+    const projectId = project.json().project.id as string;
+
+    /*
+     * An explicitly created workspace gets a cuid, NOT the deterministic
+     * `ws-<hash>` id. The Packages panel resolves and displays this record (and
+     * offers a workspace selector), so the install has to land in this pod.
+     * Before the fix the route ignored the panel's workspace and derived the
+     * per-user id from the projectId, hitting a pod that does not exist — every
+     * install 502'd while the panel still reported success.
+     */
+    const workspace = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/workspaces`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Panel workspace' },
+    });
+
+    const workspaceId = workspace.json().workspace.id as string;
+    expect(workspaceId).not.toBe(deterministicRuntimeWorkspaceId(projectId, auth.user.id));
+
+    await projectStorage.writeFiles(projectId, [{ path: 'package.json', content: '{\n  "name": "app"\n}\n' }]);
+
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/projects/${projectId}/packages/install`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { packages: ['lodash'], workspaceId },
+      });
+
+      expect(response.statusCode).toBe(201);
+      expect(response.json().workspaceId).toBe(workspaceId);
+      expect(runtime.commandBodies).toHaveLength(1);
+      expect(runtime.commandBodies[0]).toMatchObject({ command: 'npm', args: ['install', 'lodash'] });
+    } finally {
+      await runtime.close();
+      await app.close();
+    }
+  });
+
+  it('refuses a workspace id that belongs to a different project', async () => {
+    const store = new TestApiStore();
+    const projectStorage = new MemoryProjectStorage();
+    const runtime = await startRuntimeServices();
+    const app = await buildTestApiApp({ store, projectStorage });
+    const auth = await register(app, { email: 'pkg-x@example.com', organizationName: 'Package Cross Org' });
+
+    const makeProject = async (name: string) => {
+      const created = await app.inject({
+        method: 'POST',
+        url: `/orgs/${auth.organization.id}/projects`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { name },
+      });
+
+      return created.json().project.id as string;
+    };
+
+    const targetProjectId = await makeProject('Target');
+    const otherProjectId = await makeProject('Other');
+
+    const otherWorkspace = await app.inject({
+      method: 'POST',
+      url: `/projects/${otherProjectId}/workspaces`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Other workspace' },
+    });
+
+    try {
+      /*
+       * Both projects belong to the caller, so permission checks alone would let
+       * this through — the pairing itself has to be rejected or an install could
+       * be aimed at another project's pod.
+       */
+      const response = await app.inject({
+        method: 'POST',
+        url: `/projects/${targetProjectId}/packages/install`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { packages: ['lodash'], workspaceId: otherWorkspace.json().workspace.id },
+      });
+
+      expect(response.statusCode).toBe(403);
+      expect(response.json().code).toBe('WORKSPACE_PROJECT_MISMATCH');
+      expect(runtime.calls).not.toContain('POST /commands/run');
+    } finally {
+      await runtime.close();
+      await app.close();
+    }
+  });
+
   it('defaults to npm install and rejects package specs with shell metacharacters', async () => {
     const store = new TestApiStore();
     const projectStorage = new MemoryProjectStorage();
