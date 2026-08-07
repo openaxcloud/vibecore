@@ -34163,6 +34163,107 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply;
   });
+  /*
+   * P104: set a deployment's access mode. Owner-only. `password` protects the
+   * deployment behind the /__access gate (hash stored, never the plaintext);
+   * `public` clears it. Rotating or clearing the password invalidates every
+   * previously-issued access cookie for free (the cookie is bound to the hash).
+   */
+  app.post('/projects/:projectId/deployments/:deploymentId/access', async (request, reply) => {
+    const { projectId, deploymentId } = parse(deploymentActionParams, request.params);
+    const body = parse(
+      z.object({
+        mode: z.enum(['public', 'password']),
+        password: z.string().min(4).max(200).optional(),
+      }),
+      request.body ?? {},
+    );
+
+    if (body.mode === 'password' && !body.password) {
+      return reply.code(400).send({ error: 'A password is required for mode=password', code: 'DEPLOYMENT_ACCESS_PASSWORD_REQUIRED' });
+    }
+
+    const project = await requireProject(request, store, projectId, 'projects:write');
+    const deployment = await store.getDeployment(project.id, deploymentId);
+
+    if (!deployment) {
+      return reply.code(404).send({ error: 'Deployment not found', code: 'DEPLOYMENT_NOT_FOUND' });
+    }
+
+    /*
+     * SEC-8 — two-phase activation interlock (deploy-time, NOT a product toggle).
+     *
+     * An api build from BEFORE the P104 cutover answered a public static
+     * deployment with `Cache-Control: public, max-age=60`: a shared cache may
+     * reuse that entry, with no revalidation, for 60s after it was emitted. The
+     * origin cannot purge it. So switching a deployment to `password` inside that
+     * window does NOT protect it — an anonymous visitor keeps getting the cached
+     * public copy until it ages out. Post-cutover we emit `no-cache,
+     * must-revalidate`, so every reuse revalidates through the gate and the
+     * window is closed for good — but only once the last pre-cutover pod is gone
+     * AND its final response has expired.
+     *
+     * DEPLOYMENT_ACCESS_ACTIVATION_ENABLED is that interlock, driven by
+     * .github/workflows/deploy-main.yml: phase 1 rolls the new code with the flag
+     * at '0', the workflow waits for every pre-cutover pod to disappear plus the
+     * full legacy max-age (+ margin), and only then does phase 2 set '1'.
+     *
+     * Deliberately fail-closed on ANY value other than '1' (absent, '', '0',
+     * typo): a lost env var must postpone activation, never silently permit an
+     * activation that the cache can defeat.
+     *
+     * Scope is exactly ONE direction of exactly ONE route:
+     *   - ENFORCEMENT is untouched — an already-protected deployment stays gated
+     *     even at '0' (proven in deployment-password.spec.ts).
+     *   - mode=public (un-protecting) stays allowed at '0': it only ever
+     *     de-escalates, and trapping an owner behind a deploy flag would be worse.
+     *
+     * Placed AFTER requireProject + the 404 so the deploy state is only ever
+     * disclosed to someone already authorized on this deployment, and still
+     * BEFORE any mutation.
+     */
+    if (body.mode === 'password' && process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED !== '1') {
+      return reply.code(503).send({
+        error:
+          'Password protection cannot be activated yet: the deployment cache-drain window has not elapsed. Retry shortly.',
+        code: 'DEPLOYMENT_ACCESS_ACTIVATION_DISABLED',
+      });
+    }
+
+    const metadata = { ...(deployment.metadata as Record<string, unknown>) };
+
+    if (body.mode === 'password') {
+      metadata.access = { mode: 'password', passwordHash: hashPassword(body.password!) };
+    } else {
+      delete metadata.access;
+    }
+
+    /*
+     * Re-derive the public URL: a gated deployment must advertise the API-origin
+     * URL (where the gate works), a public one the dedicated origin. Only for
+     * static — other providers' URLs are unaffected by access mode.
+     */
+    const nextUrl =
+      deployment.provider === 'static'
+        ? buildDeploymentUrl(project, { ...deployment, metadata })
+        : deployment.url;
+
+    const updated = await store.updateDeployment(project.id, deployment.id, {
+      metadata,
+      ...(nextUrl && nextUrl !== deployment.url ? { url: nextUrl } : {}),
+    });
+
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'deployment.access.set',
+      resourceType: 'deployment',
+      resourceId: deployment.id,
+      metadata: { mode: body.mode },
+    });
+
+    return { deployment: updated, accessMode: body.mode };
+  });
+
   app.post('/projects/:projectId/deployments/:deploymentId/cancel', async (request, reply) => {
     const { projectId, deploymentId } = parse(deploymentActionParams, request.params);
     const project = await requireProject(request, store, projectId, 'projects:write');

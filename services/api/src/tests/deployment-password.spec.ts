@@ -26,12 +26,22 @@ class QuietEmailProvider implements EmailProvider {
 describe('password-protected static deployments (endpoint)', () => {
   const prev = process.env.STATIC_DEPLOY_STORAGE_DIR;
   const prevSecret = process.env.DEPLOYMENT_ACCESS_TOKEN_SECRET;
+  const prevActivation = process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED;
   let storageDir: string;
 
   beforeEach(async () => {
     storageDir = await mkdtemp(join(tmpdir(), 'pwd-'));
     process.env.STATIC_DEPLOY_STORAGE_DIR = storageDir;
     process.env.DEPLOYMENT_ACCESS_TOKEN_SECRET = DEP_SECRET;
+
+    /*
+     * SEC-8: activation is gated by a DEPLOY-TIME interlock (see the SEC-8 block
+     * on the /access route). These tests exercise the PRODUCT behaviour, which is
+     * what prod looks like once the deploy workflow's drain barrier has armed the
+     * flag — so arm it here. The interlock's own behaviour, including the fact
+     * that enforcement does NOT depend on it, is proven in its own describe below.
+     */
+    process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED = '1';
   });
 
   afterEach(async () => {
@@ -39,6 +49,8 @@ describe('password-protected static deployments (endpoint)', () => {
     else process.env.STATIC_DEPLOY_STORAGE_DIR = prev;
     if (prevSecret === undefined) delete process.env.DEPLOYMENT_ACCESS_TOKEN_SECRET;
     else process.env.DEPLOYMENT_ACCESS_TOKEN_SECRET = prevSecret;
+    if (prevActivation === undefined) delete process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED;
+    else process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED = prevActivation;
     await rm(storageDir, { recursive: true, force: true });
   });
 
@@ -457,4 +469,139 @@ describe('password-protected static deployments (endpoint)', () => {
       expect(gate.statusCode).toBe(503);
     });
   }
+
+  /*
+   * SEC-8 — the DEPLOY-TIME activation interlock.
+   *
+   * Context: an api build from before the P104 cutover answered a public static
+   * deployment with `Cache-Control: public, max-age=60`, reusable from a shared
+   * cache for 60s with no revalidation and unpurgeable from the origin. Turning on
+   * password protection inside that window protects the origin only — anonymous
+   * visitors keep getting the cached public copy. The deploy workflow therefore
+   * rolls the new code with activation CLOSED, waits for every pre-cutover pod to
+   * disappear plus the full legacy max-age, and only then arms this flag
+   * (.github/workflows/deploy-main.yml; barrier in scripts/deploy-cache-window.mjs).
+   *
+   * What must hold in the code, and is proven here:
+   *   - activation refuses, fail-closed, on ANY value that is not exactly '1';
+   *   - ENFORCEMENT never depends on the flag (that would be a far worse bug than
+   *     the one being fixed: disarming would UNPROTECT live deployments);
+   *   - un-protecting stays available at '0' — the interlock must not trap owners.
+   */
+  describe('SEC-8 deploy-time activation interlock', () => {
+    for (const value of ['0', '', 'true', 'yes', undefined] as const) {
+      it(`refuses to ACTIVATE protection when the flag is ${value === undefined ? 'absent' : `'${value}'`} (fail-closed)`, async () => {
+        const { app, auth, projectId, deploymentId } = await setup();
+
+        if (value === undefined) {
+          delete process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED;
+        } else {
+          process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED = value;
+        }
+
+        const res = await setAccess(app, projectId, deploymentId, auth.token, {
+          mode: 'password',
+          password: 'letmein',
+        });
+
+        expect(res.statusCode).toBe(503);
+        expect((res.json() as { code: string }).code).toBe('DEPLOYMENT_ACCESS_ACTIVATION_DISABLED');
+
+        /*
+         * And it genuinely did not half-apply: the deployment is still public, so
+         * the owner is never left believing it is protected when it is not.
+         */
+        const still = await serve(app, deploymentId);
+        expect(still.statusCode).toBe(200);
+        expect(still.body).toContain('SECRET CONTENT');
+      });
+    }
+
+    it("activates normally once the flag is exactly '1'", async () => {
+      const { app, auth, projectId, deploymentId } = await setup();
+
+      process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED = '0';
+      expect((await setAccess(app, projectId, deploymentId, auth.token, { mode: 'password', password: 'letmein' })).statusCode).toBe(503);
+
+      process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED = '1';
+      const ok = await setAccess(app, projectId, deploymentId, auth.token, { mode: 'password', password: 'letmein' });
+      expect(ok.statusCode).toBe(200);
+      expect((ok.json() as { accessMode: string }).accessMode).toBe('password');
+      expect((await serve(app, deploymentId)).statusCode).toBe(401);
+    });
+
+    it('does NOT gate ENFORCEMENT — an already-protected deployment stays gated when the flag is disarmed', async () => {
+      const { app, auth, projectId, deploymentId } = await setup();
+
+      // Armed: protect it (this is the state prod is in after a normal deploy).
+      process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED = '1';
+      expect((await setAccess(app, projectId, deploymentId, auth.token, { mode: 'password', password: 'letmein' })).statusCode).toBe(200);
+
+      /*
+       * Now disarm — a chart rollback to a pre-cutover revision, a dropped value,
+       * a phase-1 redeploy. THE CONTENT MUST STAY PROTECTED. If the interlock ever
+       * gated enforcement, this deploy-time flag would silently world-open every
+       * password-protected deployment: strictly worse than the cache window it
+       * exists to close.
+       */
+      process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED = '0';
+
+      const anon = await serve(app, deploymentId);
+      expect(anon.statusCode).toBe(401);
+      expect(anon.body).not.toContain('SECRET CONTENT');
+
+      // And the gate still works for someone who knows the password.
+      const gate = await app.inject({
+        method: 'POST',
+        url: `/static-deployments/${deploymentId}/__access`,
+        payload: { password: 'letmein' },
+      });
+      expect(gate.statusCode).toBe(200);
+
+      const cookie = gate.cookies.find((c) => c.name === accessCookieName(deploymentId));
+
+      if (!cookie) {
+        throw new Error('access cookie was not set');
+      }
+
+      const unlocked = await serve(app, deploymentId, { [accessCookieName(deploymentId)]: cookie.value });
+      expect(unlocked.statusCode).toBe(200);
+      expect(unlocked.body).toContain('SECRET CONTENT');
+    });
+
+    it('still allows UN-protecting while disarmed — the interlock must not trap an owner', async () => {
+      const { app, auth, projectId, deploymentId } = await setup();
+
+      process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED = '1';
+      expect((await setAccess(app, projectId, deploymentId, auth.token, { mode: 'password', password: 'letmein' })).statusCode).toBe(200);
+
+      process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED = '0';
+
+      // mode=public only ever de-escalates, so it is never blocked.
+      const opened = await setAccess(app, projectId, deploymentId, auth.token, { mode: 'public' });
+      expect(opened.statusCode).toBe(200);
+      expect((opened.json() as { accessMode: string }).accessMode).toBe('public');
+
+      const res = await serve(app, deploymentId);
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toContain('SECRET CONTENT');
+    });
+
+    it('keeps the post-cutover cache headers that make the interlock terminal', async () => {
+      /*
+       * The barrier only has to run ONCE because the code it gates emits
+       * `no-cache, must-revalidate` on public deployments: every reuse revalidates
+       * through the gate, so no future activation can be defeated by a cache. If
+       * this assertion ever fails, the one-shot cutover reasoning in
+       * deploy-main.yml is void and the barrier would have to run on every deploy.
+       */
+      const { app, deploymentId } = await setup();
+      const res = await serve(app, deploymentId);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.headers['cache-control']).toContain('no-cache');
+      expect(res.headers['cache-control']).toContain('must-revalidate');
+      expect(res.headers['cache-control']).not.toContain('max-age=60');
+    });
+  });
 });
