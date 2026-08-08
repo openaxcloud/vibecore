@@ -40,13 +40,20 @@ output "database_url" {
   # `pg` adapter, which ignores it. The from-scratch install failed on exactly
   # that (`TlsConnectionError: unable to verify the first certificate`) — the
   # migration hook and the api both died with an encrypted-but-unverifiable
-  # certificate. `no-verify` is a `pg`/libpq mode: encrypt, do not verify.
+  # certificate.
+  #
+  # `no-verify` is a node-postgres convention (`pg-connection-string` maps it to
+  # `ssl.rejectUnauthorized = false`), NOT a libpq mode — libpq only knows
+  # disable/allow/prefer/require/verify-ca/verify-full and rejects this URL with
+  # `invalid sslmode value: "no-verify"`. So this output is for the PLATFORM
+  # (Prisma/pg) only: to reach the same instance with psql/pg_dump, swap it for
+  # `sslmode=require`, which is libpq's encrypt-without-verifying.
   #
   # The rigorous alternative is to download the instance CA and use
   # sslmode=verify-ca with sslrootcert — rejected here because it makes the
   # secret depend on a per-instance file the throwaway env would have to ship.
-  value       = "postgresql://vibecore:${random_password.sql_app.result}@${google_sql_database_instance.postgres.private_ip_address}:5432/vibecore?sslmode=no-verify"
-  sensitive   = true
+  value     = "postgresql://vibecore:${random_password.sql_app.result}@${google_sql_database_instance.postgres.private_ip_address}:5432/vibecore?sslmode=no-verify"
+  sensitive = true
 }
 
 output "buckets" {

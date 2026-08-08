@@ -134,6 +134,11 @@ platformEnv:
 ingress:
   className: nginx
   issuerName: letsencrypt-dns01
+  # ClusterIssuer for the WILDCARD preview certificate. Empty = same as
+  # issuerName, which is right whenever that issuer solves DNS-01. An
+  # environment on HTTP-01 must point this elsewhere: ACME cannot issue a
+  # wildcard over HTTP-01, so the Certificate would never become Ready.
+  previewIssuerName: ''
   tlsSecretName: vibecore-platform-tls
   previewTlsSecretName: vibecore-preview-wildcard-tls
   proxyReadTimeoutSeconds: 180
