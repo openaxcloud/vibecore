@@ -6,7 +6,9 @@
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-TF_DIR="$REPO/infra/terraform/envs/audit-test"
+# Overridable for the same reason as in mint-secrets.sh: the Terraform state may
+# live outside the checkout this script runs from.
+TF_DIR="${TF_DIR:-$REPO/infra/terraform/envs/audit-test}"
 SRC="$REPO/infra/helm/platform/values-audit-test.yaml"
 OUT="${OUT:-$TF_DIR/credentials/values-audit-test.rendered.yaml}"
 
