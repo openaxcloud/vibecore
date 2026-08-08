@@ -327,6 +327,15 @@ après sinistre n'a aucune garantie d'atterrir sur le même datapath. Les deux
 règles ne font qu'**ajouter** une autorisation (les NetworkPolicies sont une
 union), donc les épingler ne peut rien casser.
 
+**Un huitième point, trouvé en rejouant l'installation à neuf.** Le §2 annonce
+un ClusterIssuer auto-signé pour le wildcard preview, mais le chart n'avait
+qu'une seule clé d'issuer pour ses deux Ingress : le certificat
+`*.preview.<ip>.sslip.io` visait donc l'issuer HTTP-01, alors qu'ACME n'émet un
+wildcard qu'en DNS-01. Résultat : `READY=False` définitif et cert-manager qui
+rejoue indéfiniment une commande impossible, pendant toute la vie du cluster.
+Corrigé par `ingress.previewIssuerName` (vide = l'issuer principal, donc la prod
+en DNS-01 est inchangée ; `selfsigned-preview` dans `values-audit-test.yaml`).
+
 Par ailleurs, `google_service_networking_connection` a échoué une première fois
 en `UNAUTHENTICATED` (agent de service pas encore prêt juste après l'activation
 de l'API) et a réussi au ré-`apply` suivant, sans modification : **re-lancer
