@@ -151,9 +151,19 @@ git archive HEAD | tar -x -C "$SRC"
   --substitutions=_PROJECT=vibecore-audit-test-20260807,_REPO=vibecore-audit-containers,_SHORT_SHA=$SHA \
   --timeout=7200s .)  # 7200s au PREMIER build (registry vide, cache froid)
 
-# Déploiement Helm — release `vibecore-audit`, JAMAIS `vibecore`
-helm upgrade --install vibecore-audit infra/helm/platform \
-  --namespace vibecore --create-namespace \
+# Déploiement Helm.
+# Release `vibecore` / namespace `vibecore` — MÊMES NOMS que la prod, à dessein :
+# les URL in-cluster de values-audit-test.yaml (`vibecore-vibecore-platform-api`
+# …) dérivent du nom de release, donc le renommer casserait le câblage interne.
+# Le garde-fou n'est pas le nom de la release, c'est le CLUSTER : les scripts
+# refusent de tourner si le contexte kubectl contient `vibecore-prod`.
+#
+# PAS de `--create-namespace` : le namespace a déjà été créé, avec les marqueurs
+# d'adoption Helm, par addons.sh / mint-secrets.sh (étapes 4 et 5). Le chart le
+# template lui aussi, et `--create-namespace` en produirait une version que Helm
+# refuse ensuite d'adopter (§7, blocage n°2).
+helm upgrade --install vibecore infra/helm/platform \
+  --namespace vibecore \
   -f infra/helm/platform/values.yaml \
   -f infra/terraform/envs/audit-test/credentials/values-audit-test.rendered.yaml \
   --set global.imageTag="$SHA" \
@@ -240,11 +250,16 @@ reproduiront sur tout nouveau projet GCP.
    ```
 
 2. **`sandbox.gke.io/runtime` est un label géré par GKE.** Le déclarer
-   manuellement dans `node_config.labels` fait échouer la création du pool en
-   `400`. Il faut uniquement déclarer `sandbox_config { sandbox_type = "gvisor" }`
-   et laisser GKE poser le label. ⚠️ **Le module de production
-   `infra/terraform/modules/gke-workspaces/main.tf:78` le déclare encore** — une
-   reconstruction du cluster workspaces à neuf échouerait de la même manière.
+   manuellement dans `node_config.labels` fait échouer la création du pool :
+   `Error 400: Node labels with key "sandbox.gke.io/runtime" are managed by GKE
+   and must not be manually specified.` Il faut uniquement déclarer
+   `sandbox_config { sandbox_type = "gvisor" }` et laisser GKE poser le label —
+   vérifié en réel : un pool créé avec `sandbox_config` seul porte bien le label
+   `sandbox.gke.io/runtime=gvisor` **et** le taint `NoSchedule` correspondant,
+   donc le contrat de scheduling est inchangé. Le module de production
+   `infra/terraform/modules/gke-workspaces/main.tf` le déclarait encore (une
+   reconstruction à neuf du cluster workspaces aurait échoué de la même
+   manière) — **corrigé**.
 
 3. **Cloud SQL crée désormais en édition `ENTERPRISE_PLUS` par défaut**, qui
    refuse les tiers partagés (`db-g1-small`) et impose une machine
@@ -290,19 +305,27 @@ Ces points ne se voient jamais sur la prod (état déjà convergé, ressources
 préexistantes) mais bloquent **toute installation depuis zéro** — donc aussi une
 reprise après sinistre. Chacun a été constaté en réel ici.
 
-| # | Symptôme | Cause | Correctif appliqué |
+Le premier montage les a contournés **à la main** (kubectl, annotations,
+NetworkPolicies hors Helm), ce qui ne répare que ce cluster-ci. Ils sont
+désormais corrigés **dans le code du repo**, et la colonne « Correctif » dit où :
+
+| # | Symptôme | Cause | Correctif (dans le repo) |
 |---|---|---|---|
-| 1 | Job de migration `FailedCreate`, install bloquée | Le job Prisma est un hook **pre-install** qui référence un ServiceAccount rendu plus tard comme ressource normale | Créer les 7 ServiceAccounts avant le `helm install` (et les annoter pour Helm) |
-| 2 | Helm refuse : `invalid ownership metadata` | Namespace/SA créés hors Helm | `app.kubernetes.io/managed-by=Helm` + annotations `meta.helm.sh/release-*` |
-| 3 | API en CrashLoop : `EMAIL_HTTP_ENDPOINT is required in production` | Garde fail-closed | Puits e-mail in-cluster (200 + journalisation) plutôt qu'une vraie clé Resend |
-| 4 | API en CrashLoop : `API_CORS_ORIGINS must list explicit HTTPS origins` | **La clé n'existe nulle part dans le chart** ; en prod elle est posée hors-bande | Générée dans le secret par `mint-secrets.sh` à partir de l'IP du LB |
-| 5 | Prisma : `TlsConnectionError: unable to verify the first certificate` | Cloud SQL présente un certificat signé par une CA propre à l'instance ; Prisma 7 passe par l'adaptateur `pg` (`sslaccept=accept_invalid_certs` sans effet) | `?sslmode=no-verify` dans `DATABASE_URL` |
-| 6 | API `/ready` 503, Redis `ETIMEDOUT`, puis **tout DNS en `EAI_AGAIN`** | La policy egress est évaluée **avant** la traduction d'adresse : la destination réelle est la **ClusterIP** (Redis `10.30.15.96`, kube-dns `10.30.0.10`), qu'aucune règle n'autorise — les règles par `podSelector`/`namespaceSelector` ne matchent donc jamais | `redisCidr` = CIDR des **services** (`10.30.0.0/20`) + NetworkPolicy `allow-dns-clusterip` |
-| 7 | Toutes les URL publiques en **504**, et aucun certificat émis | `allow-ingress-controller` exige **deux** labels sur le namespace `ingress-nginx`, dont un que le chart ingress-nginx ne pose pas ; et les pods solveurs ACME, créés dans `vibecore`, ne portent aucun label plateforme donc le `deny-all` les rend injoignables | Label `app.kubernetes.io/name=ingress-nginx` sur le namespace + NetworkPolicy `allow-acme-solver-ingress` |
+| 1 | Job de migration `FailedCreate` (`error looking up service account …-api: not found`), puis rollback `--atomic` : rien n'est installé | Le job Prisma est un hook **pre-install** qui référence le ServiceAccount de l'api, rendu plus tard comme ressource **normale** (les hooks passent avant). `automountServiceAccountToken: false` n'y change rien : l'admission vérifie l'existence du SA avant de décider du jeton | `templates/migrations-job.yaml` : le job porte son **propre** ServiceAccount, rendu en hook `pre-install` au poids **-20** (le job est à -10) |
+| 2 | Helm refuse : `invalid ownership metadata; label validation error: missing key "app.kubernetes.io/managed-by"` | Le namespace doit exister avant `helm` (secret de release + hooks), mais le chart le template aussi — un `kubectl apply` nu, comme `--create-namespace`, crée un objet que Helm n'a pas le droit d'adopter | `scripts/audit-env/lib.sh` : `audit_env_ensure_namespace` crée le namespace **avec** les 3 marqueurs d'adoption Helm (`managed-by` + `meta.helm.sh/release-{name,namespace}`) |
+| 3 | API en CrashLoop : `EMAIL_HTTP_ENDPOINT is required in production` | Garde fail-closed | `scripts/audit-env/addons.sh` : puits e-mail in-cluster (200 + journalisation intégrale) plutôt qu'une vraie clé Resend. Il était créé à la main, il est maintenant dans le script |
+| 4 | API en CrashLoop : `API_CORS_ORIGINS must list explicit HTTPS origins` | **La clé n'existait nulle part dans le chart** ; en prod elle est posée hors-bande dans le secret | `templates/configmap.yaml` : `API_CORS_ORIGINS` **dérivé** de `global.appDomain` + `global.marketingDomain` (+ sa forme `www.` si apex). Dérivé et non une clé de values parce que le CD déploie en `--reuse-values`, qui **perd** toute clé nouvelle. Sur `values-prod.yaml` le rendu est *byte-identique* à ce que la prod sert aujourd'hui |
+| 5 | Prisma : `TlsConnectionError: unable to verify the first certificate` | Cloud SQL présente un certificat signé par une CA propre à l'instance. `sslaccept=accept_invalid_certs` est un paramètre du moteur Prisma, et Prisma 7 passe par l'adaptateur `pg`, qui l'ignore | `infra/terraform/envs/audit-test/outputs.tf` : `?sslmode=no-verify` (mode `pg`/libpq : on chiffre, on ne vérifie pas la chaîne) |
+| 6 | API `/ready` 503, Redis `ETIMEDOUT`, puis **tout DNS en `EAI_AGAIN`** | La policy egress est évaluée **avant** la traduction d'adresse : la destination réelle est la **ClusterIP** (Redis `10.30.15.96`, kube-dns `10.30.0.10`), qu'aucune règle n'autorise — les règles par `podSelector`/`namespaceSelector` ne matchent donc jamais | `redisCidr` = CIDR des **services** (déjà dans `values-audit-test.yaml`) **+** `templates/networkpolicy.yaml` : `allow-dns-clusterip`, rendu dès que `networkPolicy.serviceCidr` est posé (vide par défaut). Épinglé aussi dans `values-prod.yaml` (inerte sur la prod actuelle, en Dataplane V2) |
+| 7 | Toutes les URL publiques en **504**, et aucun certificat émis | `allow-ingress-controller` exige **deux** labels sur le namespace `ingress-nginx`, dont un que le chart ingress-nginx ne pose pas ; et les pods solveurs ACME, créés dans `vibecore`, ne portent aucun label plateforme donc le `deny-all` les rend injoignables | Label posé par `addons.sh` (+ avertissement dans `values.yaml`) **et** `templates/networkpolicy.yaml` : `allow-acme-solver-ingress`, activé par défaut (inerte là où HTTP-01 n'est pas utilisé, la prod étant en DNS-01) |
 
 Les points 6 et 7 méritent une remarque : ils dépendent du datapath. Ce cluster
-utilise Calico en datapath classique ; la prod peut se comporter autrement. Mais
-sur ce datapath, **la plateforme ne démarre pas** avec les seules règles du chart.
+utilise Calico en datapath classique ; la prod tourne en `ADVANCED_DATAPATH`
+(Dataplane V2) et n'en a pas besoin aujourd'hui. Mais sur ce datapath, **la
+plateforme ne démarre pas** avec les seules règles du chart — et une reprise
+après sinistre n'a aucune garantie d'atterrir sur le même datapath. Les deux
+règles ne font qu'**ajouter** une autorisation (les NetworkPolicies sont une
+union), donc les épingler ne peut rien casser.
 
 Par ailleurs, `google_service_networking_connection` a échoué une première fois
 en `UNAUTHENTICATED` (agent de service pas encore prêt juste après l'activation

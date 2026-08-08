@@ -8,7 +8,13 @@
 #   Redis          — replaces Memorystore HA 5GB (~$250/mo); also makes the
 #                    "Redis failure" injection scenario trivial (kill the pod)
 #   NFS provisioner— replaces Filestore 1TiB (~$200/mo) for dynamic RWX
+#   email sink    — replaces Resend; the api is fail-closed on EMAIL_HTTP_ENDPOINT
 set -euo pipefail
+
+NS="${NS:-vibecore}"
+RELEASE="${RELEASE:-vibecore}"
+# shellcheck source=scripts/audit-env/lib.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
 ctx="$(kubectl config current-context)"
 case "$ctx" in
@@ -54,8 +60,8 @@ helm upgrade --install nfs-provisioner \
   --wait --timeout 10m
 
 echo "==> Redis (in-cluster, remplace Memorystore)"
-kubectl create namespace vibecore --dry-run=client -o yaml | kubectl apply -f -
-kubectl -n vibecore apply -f - <<'YAML'
+audit_env_ensure_namespace "$NS" "$RELEASE"
+kubectl -n "$NS" apply -f - <<'YAML'
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -133,27 +139,63 @@ spec:
   selfSigned: {}
 YAML
 
-echo "==> add-ons installes. LB_IP=$LB_IP"
-
-echo "==> NetworkPolicy DNS (ClusterIP)"
-# Le chart autorise le DNS via namespaceSelector kube-system. Sous Calico en
-# datapath classique, la policy egress est evaluee AVANT la traduction d'adresse :
-# la destination est la ClusterIP de kube-dns (10.30.0.10), pas une IP de pod
-# kube-system — la regle ne matche jamais et TOUTE resolution DNS echoue
-# (EAI_AGAIN). Sans ceci, l'api ne joint ni Redis ni les autres services par nom.
-kubectl -n vibecore apply -f - <<'YAML'
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
+echo "==> puits e-mail (remplace Resend)"
+# L'api est fail-closed : avec environment=production elle REFUSE DE DEMARRER
+# sans EMAIL_HTTP_ENDPOINT (« EMAIL_HTTP_ENDPOINT is required in production »).
+# Plutot que d'affaiblir l'environnement — ce qui cesserait d'exercer les chemins
+# de code de production que l'audit veut precisement verifier — l'e-mail sortant
+# est dirige vers ce puits in-cluster : il repond 200 et journalise la requete
+# complete. Chaque e-mail devient observable via
+#   kubectl -n vibecore logs deploy/email-sink
+# et aucun ne part vers l'exterieur. values-audit-test.yaml pointe
+# platformEnv.email.httpEndpoint sur son Service.
+#
+# Le label app.kubernetes.io/part-of=vibecore n'est pas cosmetique : la policy
+# allow-intra-namespace-platform du chart ne reouvre le trafic pod-a-pod QUE
+# entre pods qui le portent. Sans lui, deny-all-default bloque api -> puits.
+kubectl -n "$NS" apply -f - <<'YAML'
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: allow-dns-clusterip
-  labels: { env: audit-test }
+  name: email-sink
+  labels: { app: email-sink, env: audit-test, app.kubernetes.io/part-of: vibecore }
 spec:
-  podSelector: {}
-  policyTypes: [Egress]
-  egress:
-    - to:
-        - ipBlock: { cidr: 10.30.0.0/20 }
-      ports:
-        - { protocol: UDP, port: 53 }
-        - { protocol: TCP, port: 53 }
+  replicas: 1
+  selector: { matchLabels: { app: email-sink } }
+  template:
+    metadata:
+      labels: { app: email-sink, env: audit-test, app.kubernetes.io/part-of: vibecore }
+    spec:
+      containers:
+        - name: echo
+          image: mendhak/http-https-echo:31
+          env:
+            - { name: HTTP_PORT, value: "8080" }
+            - { name: DISABLE_REQUEST_LOGS, value: "false" }
+          ports: [{ containerPort: 8080 }]
+          resources:
+            requests: { cpu: 25m, memory: 64Mi }
+            limits: { cpu: 200m, memory: 256Mi }
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: email-sink
+  labels: { app: email-sink, env: audit-test, app.kubernetes.io/part-of: vibecore }
+spec:
+  selector: { app: email-sink }
+  ports: [{ port: 8080, targetPort: 8080 }]
 YAML
+
+# NOTE : la NetworkPolicy allow-dns-clusterip vivait ici. Elle est desormais
+# rendue par le chart (networkPolicy.serviceCidr, cf. values-audit-test.yaml) :
+# un correctif hors-bande ne repare que CE cluster, alors que le probleme frappe
+# toute installation a neuf, reprise apres sinistre incluse.
+
+echo "==> add-ons installes. LB_IP=$LB_IP"

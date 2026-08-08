@@ -9,9 +9,14 @@
 set -euo pipefail
 
 NS="${NS:-vibecore}"
+RELEASE="${RELEASE:-vibecore}"
 SECRET_NAME="${SECRET_NAME:-vibecore-platform-secrets}"
-TF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../infra/terraform/envs/audit-test" && pwd)"
+# Overridable: the Terraform state of an env provisioned earlier may live outside
+# the checkout this script is being run from (a git worktree, say).
+TF_DIR="${TF_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../infra/terraform/envs/audit-test" && pwd)}"
 OUT_DIR="${OUT_DIR:-$TF_DIR/credentials}"
+# shellcheck source=scripts/audit-env/lib.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
 ctx="$(kubectl config current-context)"
 case "$ctx" in
@@ -24,13 +29,12 @@ rnd() { openssl rand -hex 32; }
 DATABASE_URL="$(terraform -chdir="$TF_DIR" output -raw database_url)"
 REDIS_URL="redis://vibecore-redis.${NS}.svc.cluster.local:6379"
 
-# API_CORS_ORIGINS is NOT templated by the chart anywhere — in production it is
-# provisioned out of band. The API is fail-closed on it: with NODE_ENV=production
-# it refuses to boot unless this lists explicit HTTPS origins. So a from-scratch
-# install has to supply it, which is exactly what this does.
-LB_IP="${LB_IP:-$(kubectl -n ingress-nginx get svc ingress-nginx-controller \
-  -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null)}"
-API_CORS_ORIGINS="https://app.${LB_IP}.sslip.io,https://www.${LB_IP}.sslip.io,https://api.${LB_IP}.sslip.io"
+# API_CORS_ORIGINS n'est PLUS mint ici : le chart le rend desormais dans son
+# ConfigMap, derive de global.appDomain / global.marketingDomain. Il etait absent
+# du chart, pose hors-bande en prod, et l'api est fail-closed dessus — une
+# installation a neuf partait donc en CrashLoopBackOff. Un secret genere ici
+# n'aurait repare que cet environnement ; la clef doit venir du chart pour que
+# n'importe quelle installation (reprise apres sinistre incluse) tienne debout.
 
 mkdir -p "$OUT_DIR"
 chmod 700 "$OUT_DIR"
@@ -50,11 +54,10 @@ SIEM_SIGNING_SECRET=$(rnd)
 PREVIEW_PROXY_SHARED_SECRET=$(rnd)
 WORKSPACE_MANAGER_SHARED_SECRET=$(rnd)
 EMAIL_HTTP_TOKEN=$(rnd)
-API_CORS_ORIGINS=$API_CORS_ORIGINS
 EOF
 chmod 600 "$ENV_FILE"
 
-kubectl create namespace "$NS" --dry-run=client -o yaml | kubectl apply -f -
+audit_env_ensure_namespace "$NS" "$RELEASE"
 kubectl -n "$NS" create secret generic "$SECRET_NAME" \
   --from-env-file="$ENV_FILE" \
   --dry-run=client -o yaml | kubectl apply -f -

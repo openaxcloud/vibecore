@@ -32,6 +32,44 @@ data:
   PUBLIC_API_BASE_URL: {{ .Values.platformEnv.publicApiBaseUrl | quote }}
   {{- end }}
 
+{{- /*
+  API_CORS_ORIGINS — the api is FAIL-CLOSED on it: with environment=production
+  it refuses to boot unless this lists explicit https:// origins
+  (services/api/src/app.ts, "Production startup blocked: API_CORS_ORIGINS must
+  list explicit HTTPS origins"). Until now the key existed NOWHERE in this
+  chart; on prod it was provisioned out of band, straight into
+  vibecore-platform-secrets. So a from-scratch install of this chart — a
+  disaster recovery included — produced an api in CrashLoopBackOff, and the
+  chart alone could not bring the platform up. Reproduced on the audit test
+  cluster, 2026-08-07.
+
+  The DEFAULT is derived from the chart's own public hostnames — app domain,
+  marketing domain, and the `www.` form of the marketing domain when it is
+  apex — so any new environment is self-sufficient with no out-of-band step.
+  The derivation is not a guess: on values-prod.yaml it renders
+  "https://app.e-code.ai,https://e-code.ai,https://www.e-code.ai", byte-identical
+  to what prod serves today. The api's own hostname is deliberately NOT in the
+  list: an Origin header only ever arrives from the app or marketing front ends.
+
+  Derived rather than a `platformEnv.apiCorsOrigins` value BECAUSE CD deploys
+  with `helm upgrade --reuse-values`, which DROPS newly-added values keys — a
+  values-only default would silently vanish on the next prod deploy. The
+  override key still exists for an environment whose origins the chart cannot
+  know; it just isn't load-bearing for prod.
+
+  Precedence note: the Deployments mount `envFrom: secretRef` BEFORE
+  `configMapRef`, and the Kubelet lets the later source win, so this key
+  OVERRIDES any API_CORS_ORIGINS still sitting in the platform secret. That is
+  the intent — the chart becomes the single source of truth.
+*/}}
+  {{- $cors := list }}
+  {{- with .Values.global.appDomain }}{{ $cors = append $cors (printf "https://%s" .) }}{{ end }}
+  {{- with .Values.global.marketingDomain }}
+  {{-   $cors = append $cors (printf "https://%s" .) }}
+  {{-   if not (hasPrefix "www." .) }}{{ $cors = append $cors (printf "https://www.%s" .) }}{{ end }}
+  {{- end }}
+  API_CORS_ORIGINS: {{ .Values.platformEnv.apiCorsOrigins | default (join "," $cors) | quote }}
+
   # Google OAuth — well-known endpoints, redirect URI derived from the chart.
   GOOGLE_AUTHORIZATION_URL: {{ .Values.platformEnv.google.authorizationUrl | quote }}
   GOOGLE_TOKEN_URL: {{ .Values.platformEnv.google.tokenUrl | quote }}

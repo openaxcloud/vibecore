@@ -147,6 +147,11 @@ networkPolicy:
   ingressControllerNamespaceSelector:
     kubernetes.io/metadata.name: ingress-nginx
     app.kubernetes.io/name: ingress-nginx
+  # Cluster SERVICES range. Renders allow-dns-clusterip — load-bearing on this
+  # cluster's Calico classic datapath, where egress policy is evaluated before
+  # service DNAT: without it kube-dns's ClusterIP (10.30.0.10) matches no rule
+  # and every lookup fails with EAI_AGAIN.
+  serviceCidr: 10.30.0.0/20
   # The default deny-all makes these two rules load-bearing: get them wrong and
   # the platform comes up "healthy" but cannot reach its database. `__SQL_CIDR__`
   # is the Private Service Access range Terraform allocated for Cloud SQL and is
