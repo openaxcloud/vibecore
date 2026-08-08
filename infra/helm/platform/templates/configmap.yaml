@@ -123,8 +123,20 @@ data:
   # DB_ROLLBACK_ENABLED is "true"; setting it "false" fully disables the feature.
   # Bucket/GSA/shared-cluster are this prod cluster's CNPG coordinates (Phase 1).
   DB_ROLLBACK_ENABLED: "true"
-  DB_BACKUP_BUCKET: "vibecore-495216-vibecore-prod-backups"
-  DB_BACKUP_GSA: "cnpg-backups@vibecore-495216.iam.gserviceaccount.com"
+{{- /*
+  Overridable, but DEFAULTING to the prod literals so the `--reuse-values` CD
+  path renders byte-identically to before (a dropped values key falls back to
+  the literal). The override exists so a NON-prod install of this chart — the
+  ephemeral audit environment — cannot point its database backups at the
+  production bucket and production service account. Nil-safe: `platformEnv.
+  dbBackup` is absent under --reuse-values.
+
+  Deliberately a Helm comment, not a YAML `#` comment: anything rendered into
+  this ConfigMap changes `checksum/platform-env` and would roll all seven
+  production Deployments on the next deploy.
+*/}}
+  DB_BACKUP_BUCKET: {{ (.Values.platformEnv.dbBackup | default dict).bucket | default "vibecore-495216-vibecore-prod-backups" | quote }}
+  DB_BACKUP_GSA: {{ (.Values.platformEnv.dbBackup | default dict).gsa | default "cnpg-backups@vibecore-495216.iam.gserviceaccount.com" | quote }}
   DB_SHARED_CLUSTER: "shared-pg-0"
   # Per-project GCS object storage (services/api/src/object-storage.ts). Same
   # hardcoded-literal rule as DB_ROLLBACK_ENABLED above: a manual `kubectl set
