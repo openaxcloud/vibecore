@@ -36,6 +36,15 @@ secrets:
 ingress:
   className: nginx
   issuerName: letsencrypt-http01
+  # The preview host is a wildcard (`*.preview.<ip>.sslip.io`), and Let's Encrypt
+  # only issues wildcards over DNS-01 — which this project has no Cloud DNS zone
+  # for. addons.sh therefore installs a self-signed ClusterIssuer for it. Until
+  # the chart could express it, the wildcard Certificate was pointed at the
+  # HTTP-01 issuer and stayed READY=False for the life of the environment, with
+  # cert-manager retrying an order that can never succeed. What is under test on
+  # the preview hosts is the proxy's behaviour, not the certificate chain — so
+  # Playwright must run with ignoreHTTPSErrors against them (§2).
+  previewIssuerName: selfsigned-preview
   tlsSecretName: vibecore-platform-tls
   previewTlsSecretName: vibecore-preview-wildcard-tls
   proxyReadTimeoutSeconds: 180
