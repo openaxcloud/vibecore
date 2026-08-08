@@ -11,6 +11,20 @@
   hook-weight -10 puts it before everything else in the same install
   pass. hook-delete-policy cleans the previous successful run before
   creating the next, while leaving the failed Pod around for triage.
+
+  The Job carries its OWN ServiceAccount, rendered as a hook at weight
+  -20 so it exists before the Job. It used to reference the api's
+  ServiceAccount instead — which templates/serviceaccounts.yaml renders
+  as a NORMAL resource, i.e. AFTER every pre-install hook. On an
+  established release that is invisible (the api SA is already there from
+  a previous pass), but a FROM-SCRATCH install deadlocks: the Job is
+  admitted, then the ServiceAccount admission plugin rejects its Pod with
+    Error creating: pods ... is forbidden: error looking up service
+    account vibecore/...-api: serviceaccount "...-api" not found
+  so the Job reports FailedCreate until activeDeadlineSeconds, --atomic
+  rolls the release back, and nothing is ever installed. Proven on the
+  audit test cluster, 2026-08-07 — and it is exactly the path a disaster
+  recovery would take.
 */}}
 {{- $migrations := .Values.migrations | default dict -}}
 {{- $migrationsEnabled := true -}}
@@ -19,6 +33,22 @@
 {{-   $migrationsEnabled = $migrations.enabled -}}
 {{- end -}}
 {{- if $migrationsEnabled }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "vibecore-platform.fullname" . }}-prisma-migrate
+  labels:
+    app.kubernetes.io/name: prisma-migrate
+    app.kubernetes.io/component: migration
+    app.kubernetes.io/part-of: vibecore
+  annotations:
+    # -20 < the Job's -10, so Helm creates this first within the same hook pass.
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-20"
+    # Recreated on every pass; NOT deleted after the hook, so a `kubectl describe`
+    # on a failed migration Pod still resolves its ServiceAccount during triage.
+    "helm.sh/hook-delete-policy": before-hook-creation
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -42,9 +72,12 @@ spec:
         app.kubernetes.io/component: migration
         app.kubernetes.io/part-of: vibecore
     spec:
-      serviceAccountName: {{ include "vibecore-platform.fullname" . }}-api
+      serviceAccountName: {{ include "vibecore-platform.fullname" . }}-prisma-migrate
       # The migration job runs prisma against the DB only; it never calls the
       # kube-apiserver, so don't mount a usable SA token (matches the Deployments).
+      # NOTE: `automountServiceAccountToken: false` does NOT waive the SA's
+      # existence — the admission plugin looks it up before deciding about the
+      # token — hence the hook-ordered ServiceAccount above.
       automountServiceAccountToken: false
       restartPolicy: Never
       securityContext:

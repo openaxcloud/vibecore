@@ -29,14 +29,23 @@ output "postgres_connection_name" {
 
 output "database_url" {
   description = "DATABASE_URL for the test platform. Test-only credential."
-  # sslmode=require is NOT optional: the instance runs ssl_mode=ENCRYPTED_ONLY
-  # (as prod does), so a plain connection is refused by the server.
-  # sslaccept=accept_invalid_certs: Cloud SQL presents a certificate signed by a
-  # per-instance CA, which Prisma's client cannot chain to a public root
-  # ("TlsConnectionError: unable to verify the first certificate"). The traffic
-  # stays encrypted; only chain verification is waived. The rigorous alternative
-  # is to download the instance CA and use sslmode=verify-ca with sslrootcert.
-  value       = "postgresql://vibecore:${random_password.sql_app.result}@${google_sql_database_instance.postgres.private_ip_address}:5432/vibecore?sslmode=require&sslaccept=accept_invalid_certs"
+  # TLS is NOT optional: the instance runs ssl_mode=ENCRYPTED_ONLY (as prod
+  # does), so a cleartext connection is refused by the server. And Cloud SQL
+  # presents a certificate signed by a per-instance CA that chains to no public
+  # root, so verification has to be waived — the traffic stays encrypted, only
+  # chain validation is skipped.
+  #
+  # `sslmode=no-verify`, NOT `sslmode=require&sslaccept=accept_invalid_certs`:
+  # `sslaccept` is a Prisma-engine parameter, and Prisma 7 connects through the
+  # `pg` adapter, which ignores it. The from-scratch install failed on exactly
+  # that (`TlsConnectionError: unable to verify the first certificate`) — the
+  # migration hook and the api both died with an encrypted-but-unverifiable
+  # certificate. `no-verify` is a `pg`/libpq mode: encrypt, do not verify.
+  #
+  # The rigorous alternative is to download the instance CA and use
+  # sslmode=verify-ca with sslrootcert — rejected here because it makes the
+  # secret depend on a per-instance file the throwaway env would have to ship.
+  value       = "postgresql://vibecore:${random_password.sql_app.result}@${google_sql_database_instance.postgres.private_ip_address}:5432/vibecore?sslmode=no-verify"
   sensitive   = true
 }
 

@@ -75,9 +75,21 @@ resource "google_container_node_pool" "sandbox" {
       "https://www.googleapis.com/auth/servicecontrol",
       "https://www.googleapis.com/auth/trace.append",
     ]
-    labels = merge(var.labels, { "vibecore.ai/node-pool" = "sandbox", "sandbox.gke.io/runtime" = "gvisor" })
+    # `sandbox.gke.io/runtime=gvisor` is NOT declared here: GKE now REFUSES a
+    # node pool whose node_config.labels sets it, with
+    #   Error 400: Node labels with key "sandbox.gke.io/runtime" are managed by
+    #   GKE and must not be manually specified.
+    # GKE poses it itself from sandbox_config below, so declaring it by hand made
+    # a from-scratch rebuild of this cluster fail (reproduced on the audit test
+    # project, 2026-08-07). The scheduling contract is unchanged — verified live
+    # on a pool created with sandbox_config alone: the node carries
+    # `sandbox.gke.io/runtime=gvisor` plus the matching NoSchedule taint.
+    labels = merge(var.labels, { "vibecore.ai/node-pool" = "sandbox" })
     tags   = ["vibecore-workspace-sandbox"]
 
+    # Sole supported way to obtain a gVisor pool. Also poses the
+    # `sandbox.gke.io/runtime=gvisor` node label and the matching
+    # `sandbox.gke.io/runtime=gvisor:NoSchedule` taint.
     sandbox_config {
       sandbox_type = "gvisor"
     }

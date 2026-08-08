@@ -383,6 +383,15 @@ networkPolicy:
   ingressControllerNamespaceSelector:
     kubernetes.io/metadata.name: ingress-nginx
     app.kubernetes.io/name: ingress-nginx
+  # Services range of vibecore-prod-app, read live:
+  #   gcloud container clusters describe vibecore-prod-app --region europe-west9 \
+  #     --project vibecore-495216 --format='value(servicesIpv4Cidr)'  ->  10.30.0.0/20
+  # Renders allow-dns-clusterip. Current prod does NOT need it — it runs
+  # ADVANCED_DATAPATH (Dataplane V2), where the namespaceSelector DNS rule
+  # matches — and a NetworkPolicy union can only add an allow, so this is inert
+  # here. It is pinned because a DR rebuild may land on a dataplane that
+  # evaluates egress before service DNAT, where its absence takes ALL DNS down.
+  serviceCidr: 10.30.0.0/20
   # PINNED to the EXACT ranges the live cluster uses (Cloud SQL 10.237.1.2 ∈
   # 10.237.1.0/24:5432, Memorystore Redis 10.237.0.4 ∈ 10.237.0.0/24:6379).
   # Previously prod relied on the chart's inline staging defaults; a fresh/DR
