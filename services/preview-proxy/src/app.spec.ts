@@ -898,6 +898,123 @@ describe('preview-proxy', () => {
       expect(response.statusCode).not.toBe(401);
       await app.close();
     });
+
+    /*
+     * FAIL-CLOSED. The lookup used to return "public" on every failure path, so
+     * an api outage / misrouted API_BASE_URL / malformed body silently published
+     * every private port. Each case below must now DENY (401), and each is a
+     * separate test because they are separate branches that all used to leak.
+     */
+    describe('fails closed when the port-access lookup does not prove the port is public', () => {
+      const denyCases: Array<[string, typeof fetch]> = [
+        [
+          'api answers 5xx',
+          (async (input: URL | string | Request) => {
+            const url = String(input instanceof URL ? input.href : input);
+
+            if (url.includes('/internal/preview/port-access')) {
+              return new Response('boom', { status: 503 });
+            }
+
+            throw new Error('connect ECONNREFUSED dev-server');
+          }) as unknown as typeof fetch,
+        ],
+        [
+          'api answers 404 (e.g. API_BASE_URL points at the wrong port)',
+          (async (input: URL | string | Request) => {
+            const url = String(input instanceof URL ? input.href : input);
+
+            if (url.includes('/internal/preview/port-access')) {
+              return new Response('not found', { status: 404 });
+            }
+
+            throw new Error('connect ECONNREFUSED dev-server');
+          }) as unknown as typeof fetch,
+        ],
+        [
+          'lookup throws (api unreachable)',
+          (async () => {
+            throw new Error('connect ECONNREFUSED api');
+          }) as unknown as typeof fetch,
+        ],
+        [
+          'body omits the `private` field',
+          (async (input: URL | string | Request) => {
+            const url = String(input instanceof URL ? input.href : input);
+
+            if (url.includes('/internal/preview/port-access')) {
+              return new Response(JSON.stringify({ ok: true }), {
+                headers: { 'content-type': 'application/json' },
+              });
+            }
+
+            throw new Error('connect ECONNREFUSED dev-server');
+          }) as unknown as typeof fetch,
+        ],
+      ];
+
+      for (const [label, fetchImpl] of denyCases) {
+        it(`denies with 401 when ${label}`, async () => {
+          const app = await buildPreviewProxyApp({
+            ...privateOpts,
+            fetchImpl,
+            resolveAgent: async () => fakeAgent,
+          });
+
+          const response = await app.inject({
+            method: 'GET',
+            url: '/p/ws_1/4173/',
+            headers: { accept: 'text/html' },
+          });
+
+          expect(response.statusCode).toBe(401);
+          expect(response.body).toContain('private');
+          await app.close();
+        });
+      }
+
+      it('still lets a valid session through when the lookup is failing', async () => {
+        const token = signPreviewTenantToken('org_1', Date.now() + 60_000, 'tenant-secret');
+        const app = await buildPreviewProxyApp({
+          ...privateOpts,
+          fetchImpl: (async () => {
+            throw new Error('connect ECONNREFUSED api');
+          }) as unknown as typeof fetch,
+          resolveAgent: async () => fakeAgent,
+        });
+
+        const response = await app.inject({
+          method: 'GET',
+          url: '/p/ws_1/4173/',
+          headers: { accept: 'text/html', cookie: `vc_preview=${token}` },
+        });
+
+        expect(response.statusCode).not.toBe(401);
+        await app.close();
+      });
+
+      it('does nothing when enforcement is off (unopted environments untouched)', async () => {
+        const app = await buildPreviewProxyApp({
+          apiBaseUrl: 'http://api.test',
+          proxySharedSecret: 'preview-secret',
+          tenantSecret: 'tenant-secret',
+          enforcePrivatePorts: false,
+          fetchImpl: (async () => {
+            throw new Error('connect ECONNREFUSED api');
+          }) as unknown as typeof fetch,
+          resolveAgent: async () => fakeAgent,
+        });
+
+        const response = await app.inject({
+          method: 'GET',
+          url: '/p/ws_1/4173/',
+          headers: { accept: 'text/html' },
+        });
+
+        expect(response.statusCode).not.toBe(401);
+        await app.close();
+      });
+    });
   });
 
   describe('server deployments (Replit-parity durable runtime)', () => {

@@ -103,6 +103,16 @@ platformEnv:
     # reviving the silent URL-copy row this replaced. Required by
     # values.schema.json so an upgrade can never drop it unnoticed.
     serverDeployRollbackFromDigest: '1'
+  # Preview isolation enforcement (services/preview-proxy). Empty = OFF.
+  # 'true' on enforceTenant makes a preview request without a valid `vc_preview`
+  # cookie a hard 403; 'true' on enforcePrivatePorts makes a port marked private
+  # require a preview session, and the lookup behind it is fail-closed. Both
+  # require PREVIEW_TENANT_SECRET in the platform Secret — the proxy refuses to
+  # boot without it. See templates/configmap.yaml for what to verify before
+  # enabling these in production.
+  preview:
+    enforceTenant: ''
+    enforcePrivatePorts: ''
   email:
     httpEndpoint: ''
     from: ''

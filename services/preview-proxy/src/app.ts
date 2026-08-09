@@ -564,27 +564,6 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     );
   }
 
-  /* Is this workspace's port marked private? Fail-open on any lookup error. */
-  const isPortPrivate = async (workspaceId: string, port: string): Promise<boolean> => {
-    if (!enforcePrivatePorts || !apiBaseUrl || !proxySharedSecret) {
-      return false;
-    }
-
-    try {
-      const response = await fetchImpl(
-        `${apiBaseUrl}/internal/preview/port-access?workspaceId=${encodeURIComponent(workspaceId)}&port=${encodeURIComponent(port)}`,
-        { headers: { authorization: `Bearer ${proxySharedSecret}` } },
-      );
-
-      if (!response.ok) {
-        return false;
-      }
-
-      return ((await response.json()) as { private?: boolean })?.private === true;
-    } catch {
-      return false;
-    }
-  };
 
   /* Login-required page shown when a private port is hit without a session. */
   const app = Fastify({ logger: options.logger ?? false });
@@ -596,6 +575,75 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
    * without it, POST/PUT/PATCH bodies are silently dropped.
    */
   app.addContentTypeParser('*', (_req, _payload, done) => done(null, undefined));
+
+  /*
+   * Is this workspace's port marked private?
+   *
+   * FAIL-CLOSED. This used to `return false` — i.e. "public" — on every failure
+   * path: a non-2xx answer, a malformed body, a timeout, a DNS blip, the api
+   * being down. That made the private-port gate an availability-dependent
+   * control: anything that broke the lookup silently PUBLISHED every private
+   * port on the internet, and did so without a trace in the logs. It is exactly
+   * how the duplicate API_BASE_URL bug (port :80 vs 3001) went unnoticed for
+   * weeks — every lookup was failing, so every port read as public.
+   *
+   * A gate whose failure mode is "allow" is not a gate. When enforcement is on
+   * and we cannot establish that a port is public, we now treat it as PRIVATE,
+   * which costs a login page on a real outage and leaks nothing. The trade is
+   * deliberate: the alternative trades tenant isolation for uptime.
+   *
+   * When enforcement is OFF the answer is `false` as before — the flag is the
+   * single switch, and an environment that has not opted in is untouched.
+   */
+  const isPortPrivate = async (workspaceId: string, port: string): Promise<boolean> => {
+    if (!enforcePrivatePorts) {
+      return false;
+    }
+
+    // Enforcement on but misconfigured: deny. The boot guard above already
+    // rejects this combination, so reaching here means the config changed under
+    // us — still not a reason to serve a possibly-private port.
+    if (!apiBaseUrl || !proxySharedSecret) {
+      app.log?.error?.({ workspaceId, port }, 'preview private-port lookup unconfigured — failing closed');
+
+      return true;
+    }
+
+    try {
+      const response = await fetchImpl(
+        `${apiBaseUrl}/internal/preview/port-access?workspaceId=${encodeURIComponent(workspaceId)}&port=${encodeURIComponent(port)}`,
+        { headers: { authorization: `Bearer ${proxySharedSecret}` } },
+      );
+
+      if (!response.ok) {
+        app.log?.error?.(
+          { workspaceId, port, status: response.status },
+          'preview private-port lookup failed — failing closed (treating port as private)',
+        );
+
+        return true;
+      }
+
+      const body = (await response.json()) as { private?: boolean };
+
+      // Only an explicit `private: false` proves the port is public. A body
+      // missing the field is an unknown answer, not a public one.
+      if (typeof body?.private !== 'boolean') {
+        app.log?.error?.({ workspaceId, port }, 'preview private-port lookup malformed — failing closed');
+
+        return true;
+      }
+
+      return body.private;
+    } catch (error) {
+      app.log?.error?.(
+        { workspaceId, port, err: error instanceof Error ? error.message : String(error) },
+        'preview private-port lookup threw — failing closed (treating port as private)',
+      );
+
+      return true;
+    }
+  };
 
   /*
    * The IDE (app.e-code.ai) is cross-origin isolated — it sends

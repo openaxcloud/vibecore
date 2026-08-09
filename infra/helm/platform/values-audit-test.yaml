@@ -66,6 +66,15 @@ platformEnv:
   # email is pointed at an in-cluster sink that answers 200 and logs the full
   # request. Better than a real Resend key here: every email is observable via
   # `kubectl -n vibecore logs deploy/email-sink`, and none ever leaves.
+  # Isolation preview ENFORCÉE ici — c'est l'objet de l'audit. `enforceTenant`
+  # rend 403 toute requête preview sans cookie `vc_preview` valide, et
+  # `enforcePrivatePorts` exige une session sur un port marqué privé, la
+  # recherche derrière étant fail-closed. Les deux exigent PREVIEW_TENANT_SECRET
+  # dans le Secret plateforme (mint-secrets.sh le génère) : sans lui le proxy
+  # refuse de démarrer, ce qui est le bon comportement.
+  preview:
+    enforceTenant: 'true'
+    enforcePrivatePorts: 'true'
   email:
     httpEndpoint: 'http://email-sink.vibecore.svc.cluster.local:8080/'
     from: 'no-reply@audit-test.example.com'
