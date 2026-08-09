@@ -216,8 +216,8 @@ gcloud builds submit --project=$P --region=europe-west9 \
   --substitutions="$(sub),_VITE_RUNTIME_MODE=remote-kubernetes,_VITE_RUNTIME_API_BASE_URL=https://api.$LB_IP.sslip.io/api/runtime,_VITE_BYOK_DISABLED=true,_SIGN_IMAGES=0" \
   --timeout=3600s .
 
-# NOTE `_SIGN_IMAGES=0` : single-web.yaml est le SEUL config par service qui
-#      signe l'image (cosign), et il vise la cle KMS de CE projet — or seul le
+# NOTE `_SIGN_IMAGES=0` : single-web.yaml et workspace-agent.yaml signent
+#      l'image (cosign) — single-service.yaml non — et visent la cle KMS de CE projet — or seul le
 #      projet de prod possede le keyring `ecode-supply-chain`. Sans cette
 #      surcharge, l'etape echoue en `SERVICE_DISABLED` APRES avoir pousse
 #      l'image : build rouge, artefact pourtant publie et bon. A ne JAMAIS
@@ -226,7 +226,7 @@ gcloud builds submit --project=$P --region=europe-west9 \
 # 4. l'agent runtime des workspaces (tag `sha-<SHA>`, pas `<SHA>`).
 gcloud builds submit --project=$P --region=europe-west9 \
   --config=infra/cloudbuild/workspace-agent.yaml \
-  --substitutions=_PROJECT=$P,_REPO=$R,_SHORT_SHA=$SHA --timeout=3600s .
+  --substitutions=_PROJECT=$P,_REPO=$R,_SHORT_SHA=$SHA,_SIGN_IMAGES=0 --timeout=3600s .
 
 # Déploiement Helm.
 # Release `vibecore` / namespace `vibecore` — MÊMES NOMS que la prod, à dessein :
