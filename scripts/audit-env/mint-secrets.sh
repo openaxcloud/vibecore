@@ -54,6 +54,10 @@ WORKSPACE_AGENT_TOKEN_SECRET=$(rnd)
 BACKUP_ENCRYPTION_KEY=$(rnd)
 SIEM_SIGNING_SECRET=$(rnd)
 PREVIEW_PROXY_SHARED_SECRET=$(rnd)
+# HMAC du cookie `vc_preview`. Requis des que l'isolation preview est enforcee
+# (values-audit-test.yaml : platformEnv.preview.*) — le preview-proxy REFUSE de
+# demarrer sans lui, et l'app ne peut pas signer le cookie sans lui non plus.
+PREVIEW_TENANT_SECRET=$(rnd)
 WORKSPACE_MANAGER_SHARED_SECRET=$(rnd)
 EMAIL_HTTP_TOKEN=$(rnd)
 EOF
