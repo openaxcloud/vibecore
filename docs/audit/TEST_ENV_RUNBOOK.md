@@ -441,6 +441,24 @@ rejoue indéfiniment une commande impossible, pendant toute la vie du cluster.
 Corrigé par `ingress.previewIssuerName` (vide = l'issuer principal, donc la prod
 en DNS-01 est inchangée ; `selfsigned-preview` dans `values-audit-test.yaml`).
 
+### Contre-audit : ce que le premier passage laissait passer
+
+Le contre-audit de la PR #125 a relevé, en plus, quatre défauts qui n'étaient pas
+des blocages d'installation mais des **faiblesses réelles**, corrigés ici :
+
+| Défaut | Ce qu'il permettait | Correctif |
+|---|---|---|
+| Les garde-fous des scripts ne testaient qu'une **sous-chaîne du NOM** du contexte kubectl (`*vibecore-prod*`) | Un `kubectl config rename-context` suffisait : `mint-secrets.sh` écrasait alors le Secret de **production** avec des valeurs de test (JWT, cookies, clés de chiffrement rotés). Le motif ne matche même pas l'ID du projet de prod, `vibecore-495216` | `lib.sh` : trois preuves d'identité obligatoires — endpoint du cluster obtenu de l'API GKE pour projet/zone/nom **exacts**, `providerID` des nœuds vivants, labels `env=audit-test`+`ephemeral=true` lus côté serveur |
+| `down.sh` acceptait **tout** `AUDIT_PROJECT_ID` sauf un unique ID de prod codé en dur | Un projet de staging, un projet client ou un futur projet de prod se faisait supprimer | Liste d'autorisation d'**un** élément au lieu de l'exclusion d'un élément, + liaison projet ↔ état Terraform ↔ cluster vérifiée par ID exact avant tout `destroy` |
+| `down.sh` concluait « prod intacte » en lisant le contexte **courant** | Pendant un teardown d'audit, il lisait le cluster d'**audit** : un teardown ayant détruit la prod se serait quand même conclu par « prod intacte » | `--kube-context` explicite ; l'absence de ce contexte est un **échec**, pas un succès silencieux |
+| La porte private-port du preview-proxy répondait « public » sur **tous** ses chemins d'échec | N'importe quel incident (api injoignable, 5xx, corps malformé) **publiait** chaque port privé. C'est ainsi que le doublon `API_BASE_URL` (:80 au lieu de 3001) est passé inaperçu des semaines | Fail-closed : seul un `private: false` explicite prouve qu'un port est public, chaque refus est journalisé. `platformEnv.preview.*` active l'enforcement (activé ici, **pas** en prod — voir `templates/configmap.yaml`) |
+
+Deux points hors sécurité relevés au même moment : l'autorisation DNS couvrait
+toute la plage des Services sur `:53` (restreinte à la ClusterIP de kube-dns en
+`/32`), et le second label du namespace `ingress-nginx` n'était posé que par ce
+script d'audit — il est désormais un manifeste versionné appliqué aussi par
+`deploy-main.yml`, donc une reconstruction est 100 % IaC.
+
 Par ailleurs, `google_service_networking_connection` a échoué une première fois
 en `UNAUTHENTICATED` (agent de service pas encore prêt juste après l'activation
 de l'API) et a réussi au ré-`apply` suivant, sans modification : **re-lancer
