@@ -7,13 +7,21 @@
 #                     --location=europe-west1 --project=<PROJECT>
 set -euo pipefail
 
-PROJECT_ID="${AUDIT_PROJECT_ID:-vibecore-audit-test-20260807}"
-PROD_PROJECT="vibecore-495216"
+# shellcheck source=scripts/audit-env/lib.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
+
+# Non surchargeable : ce script arme la SUPPRESSION d'un projet. Liste
+# d'autorisation d'un seul ID, jamais l'exclusion d'un seul ID de prod.
+PROJECT_ID="$AUDIT_ENV_PROJECT_ID"
 LOCATION="${SCHEDULER_LOCATION:-europe-west9}" # meme region que le reste ; une autre region renvoie NOT_FOUND
 FIRE_CRON="${FIRE_CRON:-0 3 14 8 *}"           # 2026-08-14 03:00 UTC = J+7
 SA_NAME="audit-teardown"
 
-[[ "$PROJECT_ID" == "$PROD_PROJECT" ]] && { echo "REFUS: cible = PROD." >&2; exit 1; }
+if [[ -n "${AUDIT_PROJECT_ID:-}" && "${AUDIT_PROJECT_ID}" != "$PROJECT_ID" ]]; then
+  echo "REFUS (fail-closed): AUDIT_PROJECT_ID='$AUDIT_PROJECT_ID' n'est pas le projet d'audit." >&2
+  exit 1
+fi
+audit_env_require_audit_project "$PROJECT_ID"
 
 gcloud services enable cloudscheduler.googleapis.com --project="$PROJECT_ID"
 

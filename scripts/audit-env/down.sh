@@ -10,26 +10,44 @@
 # Then it VERIFIES the disappearance rather than trusting the exit codes.
 set -euo pipefail
 
-PROJECT_ID="${AUDIT_PROJECT_ID:-vibecore-audit-test-20260807}"
-PROD_PROJECT="vibecore-495216"
-TF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../infra/terraform/envs/audit-test" && pwd)"
-SKIP_PROJECT_DELETE="${SKIP_PROJECT_DELETE:-0}"
+# shellcheck source=scripts/audit-env/lib.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
-if [[ "$PROJECT_ID" == "$PROD_PROJECT" ]]; then
-  echo "REFUS: AUDIT_PROJECT_ID pointe sur la PROD ($PROD_PROJECT)." >&2
+# Le projet cible n'est PAS surchargeable. L'ancienne version acceptait
+# n'importe quel AUDIT_PROJECT_ID sauf un unique ID de prod codé en dur : tout
+# autre projet de l'organisation — staging, un projet client, un futur projet de
+# prod — passait la garde et se faisait supprimer. Une liste d'autorisation d'un
+# seul élément remplace l'exclusion d'un seul élément.
+PROJECT_ID="$AUDIT_ENV_PROJECT_ID"
+TF_DIR="${TF_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../infra/terraform/envs/audit-test" && pwd)}"
+SKIP_PROJECT_DELETE="${SKIP_PROJECT_DELETE:-0}"
+# Contexte kubectl de la PROD, pour le contrôle d'intégrité final. Explicite : le
+# lire dans le contexte ambiant faisait passer la release d'AUDIT pour celle de
+# prod, donc un « prod intacte » qui ne prouvait rien.
+PROD_KUBE_CONTEXT="${PROD_KUBE_CONTEXT:-connectgateway_vibecore-495216_europe-west9_vibecore-prod-app}"
+
+if [[ -n "${AUDIT_PROJECT_ID:-}" && "${AUDIT_PROJECT_ID}" != "$PROJECT_ID" ]]; then
+  echo "REFUS (fail-closed): AUDIT_PROJECT_ID='$AUDIT_PROJECT_ID' n'est pas le projet d'audit." >&2
+  echo "       Ce script ne détruit que '$PROJECT_ID'. Modifier lib.sh pour en changer." >&2
   exit 1
 fi
 
-echo "==> Cible: $PROJECT_ID (la prod $PROD_PROJECT n'est jamais touchee)"
+# Liaison projet <-> état Terraform <-> cluster. Chacune est vérifiée par ID
+# EXACT : sans ça rien ne garantit que l'état qu'on va `destroy` décrit bien le
+# projet qu'on va supprimer.
+audit_env_require_audit_project "$PROJECT_ID"
+audit_env_require_tf_state_binding "$TF_DIR"
+
+echo "==> Cible verrouillee: $PROJECT_ID (etat TF + cluster lies, prod jamais touchee)"
 
 echo "==> [1/3] terraform destroy"
-if [[ -f "$TF_DIR/terraform.tfstate" ]]; then
-  terraform -chdir="$TF_DIR" destroy -input=false -auto-approve || {
-    echo "!! destroy partiel — la suppression du projet ci-dessous reste le filet" >&2
-  }
-else
-  echo "    (pas d'etat terraform local, on passe au filet projet)"
-fi
+# L'existence de l'état et son appartenance à CE projet sont déjà prouvées par
+# audit_env_require_tf_state_binding ci-dessus — plus de branche « pas d'état,
+# on passe directement à la suppression du projet », qui détruisait un projet
+# sans avoir jamais pu vérifier à quoi son état correspondait.
+terraform -chdir="$TF_DIR" destroy -input=false -auto-approve || {
+  echo "!! destroy partiel — la suppression du projet ci-dessous reste le filet" >&2
+}
 
 if [[ "$SKIP_PROJECT_DELETE" == "1" ]]; then
   echo "==> [2/3] suppression du projet SAUTEE (SKIP_PROJECT_DELETE=1)"
@@ -67,9 +85,24 @@ for n in "$n_clusters" "$n_sql" "$n_vms" "$n_buckets"; do
 done
 
 echo "==> CONTROLE PROD (doit etre intacte)"
-prod_rev="$(helm -n vibecore list -o json 2>/dev/null | python3 -c 'import json,sys;print(json.load(sys.stdin)[0]["revision"])' 2>/dev/null || echo '?')"
-prod_status="$(helm -n vibecore list -o json 2>/dev/null | python3 -c 'import json,sys;print(json.load(sys.stdin)[0]["status"])' 2>/dev/null || echo '?')"
-echo "    release vibecore ........ revision=$prod_rev status=$prod_status"
+# --kube-context EXPLICITE. Sans lui, cette commande interrogeait le contexte
+# courant — c'est-a-dire, pendant un teardown d'audit, le cluster d'AUDIT : elle
+# affichait la release d'audit sous l'etiquette « prod » et un teardown qui
+# aurait detruit la prod se serait quand meme conclu par « prod intacte ».
+if kubectl config get-contexts -o name 2>/dev/null | grep -qx "$PROD_KUBE_CONTEXT"; then
+  prod_json="$(helm --kube-context="$PROD_KUBE_CONTEXT" -n vibecore list -o json 2>/dev/null || echo '[]')"
+  prod_rev="$(printf '%s' "$prod_json" | python3 -c 'import json,sys;d=json.load(sys.stdin);print(d[0]["revision"] if d else "AUCUNE")' 2>/dev/null || echo '?')"
+  prod_status="$(printf '%s' "$prod_json" | python3 -c 'import json,sys;d=json.load(sys.stdin);print(d[0]["status"] if d else "AUCUNE")' 2>/dev/null || echo '?')"
+  echo "    release vibecore (prod) . revision=$prod_rev status=$prod_status  [contexte: $PROD_KUBE_CONTEXT]"
+  if [[ "$prod_rev" == "AUCUNE" || "$prod_rev" == "?" ]]; then
+    echo "    !! la release de PROD est illisible — a verifier a la main avant de conclure" >&2
+    fail=1
+  fi
+else
+  echo "    contexte prod '$PROD_KUBE_CONTEXT' absent du kubeconfig."
+  echo "    !! controle d'integrite prod NON EFFECTUE (pas un succes) — passer PROD_KUBE_CONTEXT" >&2
+  fail=1
+fi
 
 if [[ "$fail" == "0" ]]; then
   echo "==> TEARDOWN VERIFIE: plus aucune ressource facturee dans $PROJECT_ID"
