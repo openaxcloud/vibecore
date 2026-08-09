@@ -53,7 +53,25 @@ export class PlaywrightPageRenderer implements PageRenderer {
     return this.#launching;
   }
 
-  async render(input: { url: string; width: number; height: number }): Promise<Buffer> {
+  async render(input: {
+    url: string;
+    width: number;
+    height: number;
+
+    /*
+     * Jeton tenant `vc_preview` fourni par l'API pour l'organisation du projet.
+     *
+     * Ce renderer travaille dans un contexte navigateur volontairement vierge
+     * (aucun cookie ne doit fuir d'un projet à l'autre), donc il ne porte PAS le
+     * cookie `vc_preview` qu'un vrai navigateur enverrait. Dès que le
+     * preview-proxy applique l'isolation tenant, sa requête reçoit un
+     * 403 PREVIEW_TENANT_FORBIDDEN et TOUTE vignette casse — constaté en réel sur
+     * le cluster d'audit le 2026-08-09. Le jeton est donc transporté dans
+     * l'en-tête interne que le proxy accepte, et uniquement vers les hôtes de
+     * preview (jamais vers un hôte tiers).
+     */
+    tenantToken?: string;
+  }): Promise<Buffer> {
     const browser = await this.#browserInstance();
     const context = await browser.newContext({
       viewport: { width: input.width, height: input.height },
@@ -94,7 +112,17 @@ export class PlaywrightPageRenderer implements PageRenderer {
             // http page's subresources are http/relative). Preserve the original
             // preview Host so the proxy routes to the right workspace.
             const target = `${proxy.protocol}//${proxy.host}${requestUrl.pathname}${requestUrl.search}`;
-            await route.continue({ url: target, headers: { ...route.request().headers(), host: requestUrl.host } });
+            await route.continue({
+              url: target,
+              headers: {
+                ...route.request().headers(),
+                host: requestUrl.host,
+                // Porté seulement ici : on est dans la branche « hôte de preview
+                // vérifié par l'allowlist », donc le jeton ne peut pas partir
+                // vers un hôte tiers.
+                ...(input.tenantToken ? { 'x-vibecore-preview-tenant': input.tenantToken } : {}),
+              },
+            });
           } catch {
             // Never let a routing hiccup crash the process (an unhandled throw in a
             // route handler would take down the pod). Fall back to the original.

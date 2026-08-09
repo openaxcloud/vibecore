@@ -31823,7 +31823,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(202).send({ scheduled: false, enabled: false });
     }
 
-    thumbnailCapturer.schedule(project.id, body.url);
+    thumbnailCapturer.schedule(project.id, body.url, project.organizationId);
 
     return reply.code(202).send({ scheduled: true, enabled: true });
   });
@@ -32504,7 +32504,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
 
       if (readyRow.url) {
-        thumbnailCapturer.schedule(project.id, readyRow.url);
+        thumbnailCapturer.schedule(project.id, readyRow.url, project.organizationId);
       }
 
       return readyRow;
@@ -32728,7 +32728,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * debounced, inert unless the screenshotter is configured).
      */
     if (ready.url) {
-      thumbnailCapturer.schedule(project.id, ready.url);
+      thumbnailCapturer.schedule(project.id, ready.url, project.organizationId);
     }
 
     return ready;
@@ -34357,7 +34357,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * unless the screenshotter is configured).
      */
     if (ready.url) {
-      thumbnailCapturer.schedule(project.id, ready.url);
+      thumbnailCapturer.schedule(project.id, ready.url, project.organizationId);
     }
 
     return reply

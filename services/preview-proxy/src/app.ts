@@ -481,6 +481,42 @@ export function sanitizePreviewFramingHeader(name: string, value: string): strin
  * the header is absent or the named cookie is not present. Tolerant of the
  * surrounding `; ` separators and missing values.
  */
+/*
+ * En-tête interne portant le MÊME jeton que le cookie `vc_preview`.
+ *
+ * Pourquoi un en-tête en plus du cookie : le screenshotter (vignettes de projet)
+ * rend un preview depuis un contexte navigateur volontairement vierge — « fresh,
+ * isolated context so cookies/storage never leak between projects » — et il
+ * RÉÉCRIT l'URL vers le Service in-cluster du proxy en conservant le Host. Un
+ * cookie devrait donc être posé sur l'hôte de preview puis survivre à la
+ * réécriture http (donc non-`Secure`), ce qui multiplie les pièges. Le jeton est
+ * la même chaîne signée : le transporter dans un en-tête explicite n'affaiblit
+ * rien, et c'est même plus sûr côté CSRF qu'un cookie envoyé automatiquement.
+ *
+ * L'en-tête est retiré avant tout forward vers l'amont (voir les boucles de
+ * construction d'en-têtes) : le serveur de dev du tenant ne doit jamais le voir.
+ */
+export const PREVIEW_TENANT_HEADER = 'x-vibecore-preview-tenant';
+
+/** Jeton tenant présenté par la requête, cookie ou en-tête interne. */
+export function readPreviewTenantToken(headers: {
+  cookie?: string | string[] | undefined;
+  [key: string]: unknown;
+}): string | undefined {
+  const raw = headers[PREVIEW_TENANT_HEADER];
+  const fromHeader = Array.isArray(raw) ? raw[0] : typeof raw === 'string' ? raw : undefined;
+
+  if (fromHeader && fromHeader.trim()) {
+    return fromHeader.trim();
+  }
+
+  const cookieHeader = Array.isArray(headers.cookie) ? headers.cookie[0] : headers.cookie;
+
+  return readCookie(cookieHeader, PREVIEW_TENANT_COOKIE_NAME);
+}
+
+export const PREVIEW_TENANT_COOKIE_NAME = 'vc_preview';
+
 export function readCookie(cookieHeader: string | undefined, name: string): string | undefined {
   if (!cookieHeader) {
     return undefined;
@@ -1353,7 +1389,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
 
     if (enforceTenant) {
       requesterOrgId = verifyPreviewTenantToken(
-        readCookie(request.headers.cookie, 'vc_preview'),
+        readPreviewTenantToken(request.headers),
         tenantSecret,
         Date.now(),
       );
@@ -1372,7 +1408,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       const sessionOrgId =
         requesterOrgId ??
         (tenantSecret
-          ? verifyPreviewTenantToken(readCookie(request.headers.cookie, 'vc_preview'), tenantSecret, Date.now())
+          ? verifyPreviewTenantToken(readPreviewTenantToken(request.headers), tenantSecret, Date.now())
           : undefined);
 
       if (!sessionOrgId) {
@@ -1439,6 +1475,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
         lower === 'host' ||
         lower === 'authorization' ||
         lower === 'cookie' ||
+        lower === PREVIEW_TENANT_HEADER ||
         lower === 'connection' ||
         lower === 'keep-alive' ||
         lower === 'transfer-encoding' ||
@@ -1938,6 +1975,11 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
   attachPreviewWebSocketProxy(app.server, {
     previewDomain,
     resolveAgent,
+    // Same policy as the HTTP door — see PreviewWsProxyDeps for why this is not
+    // optional: without it, UPGRADE bypassed the tenant gate that GET enforces.
+    enforceTenant,
+    resolveRequesterOrgId: (headers) =>
+      tenantSecret ? verifyPreviewTenantToken(readPreviewTenantToken(headers), tenantSecret, Date.now()) : undefined,
     logger: { warn: (message) => app.log.warn(message) },
   });
 
