@@ -262,15 +262,38 @@ Sans cette étape, provisionner un workspace échoue et l'aperçu n'a rien à se
 — c'est un second chart, à installer explicitement :
 
 ```bash
+# `runtimeClass.enabled=false` n'est PAS optionnel sur GKE : voir l'encadré ci-dessous.
 helm upgrade --install vibecore-workspaces infra/helm/workspaces-runtime \
   --namespace workspaces --create-namespace \
   --set namespace=workspaces --set platformNamespace=vibecore \
+  --set runtimeClass.enabled=false \
   --wait --timeout 5m
 
 # Contrôles : la RuntimeClass gVisor existe, et le default-deny est en place.
 kubectl get runtimeclass gvisor
 kubectl -n workspaces get networkpolicy
 ```
+
+> **Neuvième blocage d'installation à neuf : la RuntimeClass `gvisor` appartient à
+> GKE.** Sans `--set runtimeClass.enabled=false`, `helm install` de ce chart
+> échoue systématiquement sur un cluster GKE muni d'un pool gVisor :
+> ```
+> Error: unable to continue with install: RuntimeClass "gvisor" in namespace ""
+> exists and cannot be imported into the current release: invalid ownership
+> metadata; label validation error: missing key "app.kubernetes.io/managed-by"
+> ```
+> Constaté en réel le 2026-08-09, et la cause est nette : sur ce cluster la
+> RuntimeClass a été créée à `14:33:36Z`, deux minutes après le cluster
+> (`14:31:07Z`), et porte `addonmanager.kubernetes.io/mode: Reconcile` +
+> `kubernetes.io/cluster-service: true` — c'est un **addon géré par GKE**, alors
+> que la release Helm n'avait jamais existé. Le mode `Reconcile` signifie de plus
+> que GKE **réécrirait** toute modification, donc le chart ne doit surtout pas
+> prétendre la posséder. Le template reste utile pour un cluster non-GKE, d'où le
+> commutateur plutôt qu'une suppression.
+>
+> Même famille que le blocage n°2 (`invalid ownership metadata`), et même leçon :
+> l'installation à neuf casse là où l'infrastructure fournit déjà l'objet que le
+> chart croit créer.
 
 ### 4.c Armer le TTL — le vrai garde-fou de coût
 
