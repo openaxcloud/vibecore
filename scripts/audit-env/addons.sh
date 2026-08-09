@@ -16,11 +16,12 @@ RELEASE="${RELEASE:-vibecore}"
 # shellcheck source=scripts/audit-env/lib.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
-ctx="$(kubectl config current-context)"
-case "$ctx" in
-  *vibecore-prod*) echo "REFUS: contexte kubectl = PROD ($ctx)." >&2; exit 1 ;;
-esac
-echo "==> contexte kubectl: $ctx"
+# Fail-closed: prouve que le contexte courant EST le cluster d'audit (endpoint
+# GKE + providerID des nœuds + labels), au lieu de se contenter d'un nom de
+# contexte qui ne contient pas « vibecore-prod ». Un alias de contexte suffisait
+# à faire passer l'ancienne garde — et ce script écrit dans le namespace de la
+# plateforme.
+audit_env_require_audit_cluster
 
 echo "==> ingress-nginx"
 helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx >/dev/null 2>&1 || true

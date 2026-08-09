@@ -18,11 +18,13 @@ OUT_DIR="${OUT_DIR:-$TF_DIR/credentials}"
 # shellcheck source=scripts/audit-env/lib.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
-ctx="$(kubectl config current-context)"
-case "$ctx" in
-  *vibecore-prod*) echo "REFUS: le contexte kubectl courant est la PROD ($ctx)." >&2; exit 1 ;;
-esac
-echo "==> contexte kubectl: $ctx"
+# Fail-closed AVANT de générer quoi que ce soit : ce script REMPLACE le Secret
+# de la plateforme (`kubectl apply`). L'ancienne garde ne refusait qu'un nom de
+# contexte contenant « vibecore-prod » ; un simple `kubectl config
+# rename-context` la contournait et le Secret de PRODUCTION était écrasé par
+# des valeurs de test — soit une panne totale (JWT/cookies/chiffrement rotés).
+# On exige désormais la preuve que le contexte dial bien le cluster d'audit.
+audit_env_require_audit_cluster
 
 rnd() { openssl rand -hex 32; }
 
