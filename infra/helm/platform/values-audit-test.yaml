@@ -25,6 +25,17 @@ global:
   # a self-signed issuer for the preview wildcard instead.
   dns01:
     enabled: false
+  # Workload Identity : annote les ServiceAccounts k8s pour qu'ils s'authentifient
+  # comme le compte de service GCP qui a `objectAdmin` sur les buckets. Sans ces
+  # annotations, les pods retombent sur le compte de service des nœuds, dont les
+  # scopes sont volontairement minimaux : chaque écriture GCS (object storage,
+  # snapshots, sauvegardes de base) échoue en 403 qui ressemble à un problème de
+  # droits sur le bucket alors que l'IAM du bucket est correct. La moitié
+  # symétrique (roles/iam.workloadIdentityUser) est dans
+  # infra/terraform/envs/audit-test/main.tf — les deux sont nécessaires.
+  workloadIdentity:
+    api: 'vibecore-audit-app@vibecore-audit-test-20260807.iam.gserviceaccount.com'
+    worker: 'vibecore-audit-app@vibecore-audit-test-20260807.iam.gserviceaccount.com'
   labels:
     app.kubernetes.io/part-of: vibecore
     env: audit-test

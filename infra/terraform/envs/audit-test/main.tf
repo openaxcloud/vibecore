@@ -289,3 +289,28 @@ resource "google_storage_bucket_iam_member" "app_object_admin" {
   role     = "roles/storage.objectAdmin"
   member   = "serviceAccount:${google_service_account.app.email}"
 }
+
+# The half that was missing. Granting the GCP service account objectAdmin on the
+# buckets (above) does nothing on its own: a pod authenticates as its KUBERNETES
+# service account, and without this binding + the matching
+# `iam.gke.io/gcp-service-account` annotation (global.workloadIdentity in
+# values-audit-test.yaml) Workload Identity has no link between the two. The pods
+# then fall back to the node service account, whose scopes are deliberately
+# minimal — so every GCS write (object storage, snapshots, database backups)
+# fails with a 403 that looks like a bucket-permission problem while the bucket
+# IAM is in fact correct.
+#
+# One binding per KUBERNETES service account that touches GCS. The member format
+# is fixed by GKE: serviceAccount:<PROJECT>.svc.id.goog[<namespace>/<ksa>].
+# The KSA names come from the chart's fullname (release `vibecore`, chart
+# `vibecore-platform`) — see infra/helm/platform/templates/serviceaccounts.yaml.
+resource "google_service_account_iam_member" "app_workload_identity" {
+  for_each = toset([
+    "vibecore-vibecore-platform-api",
+    "vibecore-vibecore-platform-worker",
+  ])
+
+  service_account_id = google_service_account.app.name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "serviceAccount:${var.project_id}.svc.id.goog[vibecore/${each.value}]"
+}
