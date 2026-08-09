@@ -9,8 +9,12 @@ inter-tenant, concurrence.
 > `vibecore-prod-app` / `vibecore-prod-workspaces`, release Helm `vibecore` dans
 > le namespace `vibecore` — n'est **jamais** touchée par ce runbook. Toutes les
 > commandes ci-dessous ciblent explicitement le projet de test. Les scripts
-> `scripts/audit-env/*.sh` refusent de s'exécuter si le contexte `kubectl`
-> courant contient `vibecore-prod`.
+> `scripts/audit-env/*.sh` refusent de s'exécuter tant qu'ils n'ont pas **prouvé**
+> qu'ils visent l'environnement d'audit : endpoint du cluster obtenu via l'API GKE
+> pour le projet/zone/nom EXACTS, `providerID` des nœuds vivants, et labels
+> `env=audit-test` + `ephemeral=true` lus côté serveur. Un nom de contexte n'est
+> jamais pris au mot — c'est un alias local, et un `kubectl config rename-context`
+> suffisait à contourner l'ancienne garde.
 
 ---
 
@@ -115,10 +119,37 @@ gcloud container clusters get-credentials vibecore-audit-cluster \
 
 # 6. Rendu des valeurs Helm (IP du LB + CIDR Cloud SQL)
 ./scripts/audit-env/render-values.sh
+
+# 7. Droits Cloud Build dans un projet neuf (sinon 403 dès l'upload — §7.1)
+PN=$(gcloud projects describe vibecore-audit-test-20260807 --format='value(projectNumber)')
+for r in roles/storage.admin roles/artifactregistry.writer roles/logging.logWriter; do
+  gcloud projects add-iam-policy-binding vibecore-audit-test-20260807 \
+    --member="serviceAccount:$PN-compute@developer.gserviceaccount.com" \
+    --role="$r" --condition=None >/dev/null
+done
 ```
 
+> **Workload Identity / GCS.** `terraform apply` crée le compte de service GCP,
+> lui donne `objectAdmin` sur les buckets **et** le lie aux ServiceAccounts
+> Kubernetes `…-api` / `…-worker` (`roles/iam.workloadIdentityUser`). La moitié
+> symétrique est l'annotation `iam.gke.io/gcp-service-account`, portée par
+> `global.workloadIdentity` dans `values-audit-test.yaml`. **Les deux sont
+> nécessaires** : un pod s'authentifie comme son ServiceAccount *Kubernetes*, donc
+> sans le lien il retombe sur le compte de service des nœuds — aux scopes
+> volontairement minimaux — et chaque écriture GCS (object storage, snapshots,
+> sauvegardes de base) échoue en 403 qui ressemble à un problème de droits sur le
+> bucket alors que l'IAM du bucket est correct.
+>
+> Contrôle :
+> ```bash
+> gcloud iam service-accounts get-iam-policy \
+>   vibecore-audit-app@vibecore-audit-test-20260807.iam.gserviceaccount.com \
+>   --project vibecore-audit-test-20260807 \
+>   --format='value(bindings.members)' | tr ';' '\n' | grep svc.id.goog
+> ```
+
 > **Note budget.** Un budget GCP **alerte**, il ne coupe pas la facturation. Le
-> vrai garde-fou de coût est le TTL et le teardown du §6.
+> vrai garde-fou de coût est le TTL du §4.c et le teardown du §6.
 
 ---
 
@@ -132,31 +163,69 @@ Construire depuis un **export propre du commit** (et non depuis l'arbre de
 travail) : c'est ce qui garantit qu'une image correspond exactement à un SHA,
 condition d'une preuve d'audit recevable.
 
+> ⚠️ **Ne pas utiliser `cloudbuild.yaml` (le monolithe) sur un registry vide.**
+> Il meurt en `INTERNAL_ERROR` après ~57 min, de façon reproductible et
+> **indépendamment du timeout** — détails et fausses pistes écartées au §7.5. La
+> séquence ci-dessous est celle qui marche, et elle construit les 9 images en
+> quelques minutes.
+
 ```bash
+P=vibecore-audit-test-20260807
+R=vibecore-audit-containers
 SHA=$(git rev-parse --short=10 HEAD)
 SRC=$(mktemp -d)
 git archive HEAD | tar -x -C "$SRC"
+cd "$SRC"
 
-# 7 images plateforme (~10-15 min, étapes en parallèle)
-(cd "$SRC" && gcloud builds submit \
-  --project=vibecore-audit-test-20260807 --region=europe-west9 \
-  --config=cloudbuild.yaml \
-  --substitutions=_PROJECT=vibecore-audit-test-20260807,_REPO=vibecore-audit-containers,_SHORT_SHA=$SHA \
-  --timeout=7200s .)  # 7200s au PREMIER build (registry vide, cache froid)
+sub() { echo "_PROJECT=$P,_REPO=$R,_SHORT_SHA=$SHA,_DEPS_TAG=$SHA"; }
 
-# image runtime workspace-agent (config séparée, tag sha-<SHA>)
-(cd "$SRC" && gcloud builds submit \
-  --project=vibecore-audit-test-20260807 --region=europe-west9 \
+# 1. deps d'abord : toutes les autres images en héritent (~4 min).
+gcloud builds submit --project=$P --region=europe-west9 \
+  --config=infra/cloudbuild/deps-only.yaml \
+  --substitutions=_PROJECT=$P,_REPO=$R,_SHORT_SHA=$SHA --timeout=3600s .
+
+# 2. les 6 services backend, un build par service (parallélisables : lancer
+#    chaque ligne en tâche de fond puis `wait`).
+for s in api worker admin ai-gateway workspace-manager preview-proxy; do
+  case "$s" in
+    api)               PKG=@vibecore/api;               CMD="node dist/server.js" ;;
+    worker)            PKG=@vibecore/worker;            CMD="node dist/worker.js" ;;
+    admin)             PKG=@vibecore/admin;             CMD="node dist/server.js" ;;
+    ai-gateway)        PKG=@vibecore/ai-gateway;        CMD="node dist/server.js" ;;
+    workspace-manager) PKG=@vibecore/workspace-manager; CMD="node dist/server.js" ;;
+    preview-proxy)     PKG=@vibecore/preview-proxy;     CMD="node dist/server.js" ;;
+  esac
+  gcloud builds submit --project=$P --region=europe-west9 \
+    --config=infra/cloudbuild/single-service.yaml \
+    --substitutions="$(sub),_SERVICE=$s,_PACKAGE_FILTER=$PKG,_START_CMD=$CMD" \
+    --timeout=3600s . &
+done
+wait
+
+# 3. le web. Les 3 valeurs Vite sont figées DANS l'image au build et leurs
+#    valeurs par défaut visent la PRODUCTION : sans ces surcharges, l'app de
+#    test appelle l'API de prod (le navigateur de l'auditeur tape api.e-code.ai
+#    depuis une page servie par l'env de test — et personne ne le voit tant
+#    qu'on ne regarde pas l'onglet réseau).
+LB_IP=$(kubectl -n ingress-nginx get svc ingress-nginx-controller \
+  -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+gcloud builds submit --project=$P --region=europe-west9 \
+  --config=infra/cloudbuild/single-web.yaml \
+  --substitutions="$(sub),_VITE_RUNTIME_MODE=remote-kubernetes,_VITE_RUNTIME_API_BASE_URL=https://api.$LB_IP.sslip.io/api/runtime,_VITE_BYOK_DISABLED=true" \
+  --timeout=3600s .
+
+# 4. l'agent runtime des workspaces (tag `sha-<SHA>`, pas `<SHA>`).
+gcloud builds submit --project=$P --region=europe-west9 \
   --config=infra/cloudbuild/workspace-agent.yaml \
-  --substitutions=_PROJECT=vibecore-audit-test-20260807,_REPO=vibecore-audit-containers,_SHORT_SHA=$SHA \
-  --timeout=7200s .)  # 7200s au PREMIER build (registry vide, cache froid)
+  --substitutions=_PROJECT=$P,_REPO=$R,_SHORT_SHA=$SHA --timeout=3600s .
 
 # Déploiement Helm.
 # Release `vibecore` / namespace `vibecore` — MÊMES NOMS que la prod, à dessein :
 # les URL in-cluster de values-audit-test.yaml (`vibecore-vibecore-platform-api`
 # …) dérivent du nom de release, donc le renommer casserait le câblage interne.
-# Le garde-fou n'est pas le nom de la release, c'est le CLUSTER : les scripts
-# refusent de tourner si le contexte kubectl contient `vibecore-prod`.
+# Le garde-fou n'est pas le nom de la release, c'est l'IDENTITE PROUVEE du
+# cluster : les scripts vérifient endpoint GKE + providerID des noeuds + labels
+# (cf. scripts/audit-env/lib.sh), jamais le nom du contexte.
 #
 # PAS de `--create-namespace` : le namespace a déjà été créé, avec les marqueurs
 # d'adoption Helm, par addons.sh / mint-secrets.sh (étapes 4 et 5). Le chart le
@@ -175,6 +244,40 @@ helm upgrade --install vibecore infra/helm/platform \
 > fige `values-prod.yaml` et impose de re-`--set` les clés. Ici on passe le
 > fichier de valeurs complet à chaque fois : l'environnement est jetable, on
 > veut un déploiement déterministe et reproductible depuis le repo.
+
+### 4.b Runtime des workspaces — sans quoi aucun workspace ne démarre
+
+Le chart `platform` ne crée **pas** le namespace `workspaces` ni ce qui le rend
+utilisable (RuntimeClass gVisor, NetworkPolicies d'isolation, quota, LimitRange).
+Sans cette étape, provisionner un workspace échoue et l'aperçu n'a rien à servir
+— c'est un second chart, à installer explicitement :
+
+```bash
+helm upgrade --install vibecore-workspaces infra/helm/workspaces-runtime \
+  --namespace workspaces --create-namespace \
+  --set namespace=workspaces --set platformNamespace=vibecore \
+  --wait --timeout 5m
+
+# Contrôles : la RuntimeClass gVisor existe, et le default-deny est en place.
+kubectl get runtimeclass gvisor
+kubectl -n workspaces get networkpolicy
+```
+
+### 4.c Armer le TTL — le vrai garde-fou de coût
+
+Un budget GCP **alerte**, il ne coupe rien (§3). Le seul mécanisme qui borne
+réellement la dépense est le teardown programmé, et il doit être armé
+explicitement — l'oublier laisse tourner un cluster + un Cloud SQL
+indéfiniment :
+
+```bash
+./scripts/audit-env/schedule-teardown.sh
+
+# Contrôle : le job existe et sa prochaine exécution est bien à J+7.
+gcloud scheduler jobs describe audit-env-teardown \
+  --location=europe-west9 --project=vibecore-audit-test-20260807 \
+  --format='value(name,schedule,scheduleTime,state)'
+```
 
 ---
 
