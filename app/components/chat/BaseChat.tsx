@@ -4094,7 +4094,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           color: 'var(--vc-ide-accent-error)',
           text: t('chat.copy.varStatusErrorText_f1e5857c'),
         } as const)
-      : workspaceLoading || runtimeWorkspaceStatus === 'STARTING' || runtimeWorkspaceStatus === 'PENDING'
+      : /*
+         * `runtimeWorkspaceStatus` est une WorkspaceSession, PAS une chaîne : les deux
+         * comparaisons `=== 'STARTING'` / `=== 'PENDING'` étaient donc toujours fausses
+         * (TS2367, masqué par le `@ts-nocheck`). Conséquence réelle : pendant tout le
+         * cold start la barre affichait « Connected » au lieu de « Reconnecting ».
+         * On lit le champ `status` et on compare en minuscules, comme `workspaceUiState`,
+         * parce que le domaine de valeurs mélange les deux casses selon la source.
+         */
+        workspaceLoading ||
+          ['starting', 'booting', 'pending'].includes(runtimeWorkspaceStatus?.status?.toLowerCase() ?? '')
         ? ({
             state: 'reconnecting',
             label: t('chat.copy.reconnecting_9d80f91f'),
@@ -17764,7 +17773,13 @@ function ConsensusVoteDetail({ detail }: { detail: ConsensusRecordDetailView }) 
                 <span className="text-bolt-elements-textPrimary">{conflict.description}</span>
                 {conflict.involvedRoles.length ? (
                   <span className="text-bolt-elements-textSecondary">
-                    ({conflict.involvedRoles.map(consensusLaneLabel).join(', ')})
+                    {/*
+                     * `consensusLaneLabel(t, roleId)` — passé nu à `.map` il recevait
+                     * (roleId, index) : `t` valait la chaîne du rôle, donc `t(...)`
+                     * jetait « t is not a function » et faisait tomber la liste des
+                     * conflits. Masqué par le `@ts-nocheck` (TS2345).
+                     */}
+                    ({conflict.involvedRoles.map((roleId: string) => consensusLaneLabel(t, roleId)).join(', ')})
                   </span>
                 ) : null}
               </li>
@@ -18171,7 +18186,15 @@ function ProjectMonitoringPanel({
   reload?: () => void | Promise<void>;
   busy: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+
+  /*
+   * `language` alimente formatBaseChatAstNumber/DateTime plus bas. Il manquait :
+   * la migration i18n a ajouté l'argument aux appels sans déclarer la variable,
+   * et le `@ts-nocheck` en tête de fichier masquait les 5 TS2304 — donc le
+   * panneau jetait `ReferenceError: language is not defined` au rendu.
+   */
+  const language = resolvedBaseChatLanguage(i18n);
   const [windowSize, setWindowSize] = useState<'15m' | '1h' | '24h'>('1h');
   const deployments: any[] = Array.isArray(data.deployments) ? data.deployments : [];
   const allActivity: any[] = Array.isArray(data.recentActivity) ? data.recentActivity : [];
@@ -19392,7 +19415,10 @@ function ProjectIntegrationsPanel({
   onSubmit: any;
   busy: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+
+  // Même défaut que ProjectMonitoringPanel : `language` utilisé plus bas sans être déclaré.
+  const language = resolvedBaseChatLanguage(i18n);
   const state = data.integrationsState ?? {};
   const integrationState = state.integrations ?? {};
   const webhooks = state.webhooks ?? [];
