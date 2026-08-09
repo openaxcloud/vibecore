@@ -95,7 +95,14 @@ export function LanguageSwitch({
             type="button"
             className={`inline-flex min-h-[36px] min-w-[40px] items-center justify-center rounded-full px-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] focus-visible:ring-offset-1 ${
               active
-                ? 'bg-[var(--vc-action-primary)] text-white shadow-sm'
+                ? /*
+                   * BUG-MKT-010 : le foreground DOIT venir du token apparié, jamais d'un
+                   * `text-white` codé en dur. `--vc-action-primary` vaut l'orange de marque
+                   * dans le scope marketing et le bleu d'action ailleurs ; le blanc figé
+                   * mesurait 3,22:1 sur l'orange (< AA 4,5:1). Le token donne 5,51:1 sur
+                   * l'orange et 4,95:1 sur le bleu — les deux scopes passent.
+                   */
+                  'bg-[var(--vc-action-primary)] text-[var(--vc-action-primary-foreground)] shadow-sm'
                 : 'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary'
             }`}
             aria-pressed={active}

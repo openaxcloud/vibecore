@@ -80,11 +80,16 @@ export default function Careers() {
                 {copy.hero.title}
               </h1>
               <p className="mkt-lead text-bolt-elements-textSecondary mb-8">{copy.hero.description}</p>
+              {/*
+               * BUG-MKT-010 : voir About.tsx — l'orange accent forcé sur le fond ambre
+               * `bg-secondary` mesurait 1,73:1 live. Le foreground par défaut du Badge
+               * donne 11,26:1 sur le même fond de marque.
+               */}
               <div className="flex flex-wrap items-center justify-center gap-3">
-                <Badge variant="secondary" className="px-4 py-1.5 text-[13px]" style={{ color: '#F26207' }}>
+                <Badge variant="secondary" className="px-4 py-1.5 text-[13px]">
                   {openRoles.length} {copy.hero.openRoles}
                 </Badge>
-                <Badge variant="secondary" className="px-4 py-1.5 text-[13px]" style={{ color: '#F26207' }}>
+                <Badge variant="secondary" className="px-4 py-1.5 text-[13px]">
                   {copy.hero.remote}
                 </Badge>
               </div>

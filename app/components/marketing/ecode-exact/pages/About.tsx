@@ -64,7 +64,13 @@ export default function About() {
         <section className="border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-1">
           <div className="container-responsive py-16 sm:py-20 lg:py-28">
             <div className="text-center max-w-3xl mx-auto">
-              <Badge variant="secondary" className="mb-6 px-4 py-1.5 text-[13px]" style={{ color: '#F26207' }}>
+              {/*
+               * BUG-MKT-010 : pas de surcharge de couleur ici. Le fond `bg-secondary`
+               * est déjà l'ambre de marque ; y forcer l'orange accent donnait 1,73:1
+               * (mesuré live), sous le seuil AA de 4,5:1. Le `text-secondary-foreground`
+               * par défaut du Badge donne 11,26:1 sur ce même fond, sans toucher à la marque.
+               */}
+              <Badge variant="secondary" className="mb-6 px-4 py-1.5 text-[13px]">
                 {copy.hero.badge}
               </Badge>
               <h1 className="mkt-h1 tracking-tight text-bolt-elements-textPrimary mb-6">{copy.hero.title}</h1>
