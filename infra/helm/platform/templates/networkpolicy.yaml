@@ -47,11 +47,11 @@ spec:
         - protocol: TCP
           port: 5432
 {{- $np := .Values.networkPolicy | default dict }}
-{{- $svcCidr := $np.serviceCidr | default "" }}
+{{- $dnsIp := $np.dnsServiceIp | default "" }}
 {{- /* `| default true` would turn an explicit `false` back into true. */}}
 {{- $acmeSolver := true }}
 {{- if hasKey $np "acmeHttp01Solver" }}{{ $acmeSolver = $np.acmeHttp01Solver }}{{ end }}
-{{- if $svcCidr }}
+{{- if $dnsIp }}
 ---
 # DNS, allowed by ClusterIP and not by namespaceSelector.
 #
@@ -66,11 +66,13 @@ spec:
 # because the "allow DNS" rule is right there in the chart.
 #
 # Reproduced on the audit test cluster (Calico, classic datapath), 2026-08-07:
-# kube-dns ClusterIP 10.30.0.10, services range 10.30.0.0/20.
+# kube-dns ClusterIP 10.30.0.10.
 #
-# Empty by default, so this renders only for the environments that need it —
-# `networkPolicy.serviceCidr` must be the cluster's SERVICES range (NOT the pod
-# range: the pod range is the DNAT *result*, which the policy never sees).
+# Scoped to the kube-dns ClusterIP as a /32, NOT to the whole Service range: the
+# earlier version allowed :53 to every Service address in the cluster, which
+# would also reach any tenant- or third-party Service that happens to listen on
+# 53 — a needlessly wide hole for a rule whose only job is to reach one address.
+# Empty by default, so this renders only for the environments that need it.
 # NetworkPolicies are a union, so this only ever ADDS an allow.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -84,7 +86,7 @@ spec:
   egress:
     - to:
         - ipBlock:
-            cidr: {{ $svcCidr | quote }}
+            cidr: {{ printf "%s/32" $dnsIp | quote }}
       ports:
         - protocol: UDP
           port: 53

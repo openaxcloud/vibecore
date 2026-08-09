@@ -410,6 +410,23 @@ jobs:
             --project="${GCP_PROJECT_ID}"
           kubectl config current-context
 
+      # The chart's `allow-ingress-controller` NetworkPolicy selects the
+      # ingress-nginx namespace on TWO labels, and nothing creates the second one
+      # (`app.kubernetes.io/name`): the apiserver adds only
+      # `kubernetes.io/metadata.name`, and the upstream ingress-nginx chart labels
+      # its workloads, not its namespace. It was set by hand on this cluster long
+      # ago, so prod looks fine — but a rebuild or DR would come up with every
+      # public URL on 504 and no issuable certificate. Applying the manifest here
+      # puts it inside the automated deploy path, on every run, idempotently.
+      # Deliberately BEFORE `helm upgrade`: the policy is useless if the label
+      # lands after the rules that select on it.
+      - name: Ensure ingress-nginx namespace labels (NetworkPolicy selector)
+        run: |
+          set -euo pipefail
+          kubectl apply -f infra/kubernetes/ingress-nginx/namespace.yaml
+          kubectl get namespace ingress-nginx \
+            -o jsonpath='{.metadata.labels}{"\n"}'
+
       - name: Record current release revision (for rollback)
         run: |
           set -euo pipefail

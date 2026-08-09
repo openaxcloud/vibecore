@@ -317,12 +317,12 @@ networkPolicy:
   ingressControllerNamespaceSelector:
     kubernetes.io/metadata.name: ingress-nginx
     app.kubernetes.io/name: ingress-nginx
-  # Cluster SERVICES range (`gcloud container clusters describe ... --format=
-  # 'value(servicesIpv4Cidr)'`). Renders `allow-dns-clusterip`: on a dataplane
-  # that evaluates egress BEFORE service DNAT, :53 to the kube-system NAMESPACE
-  # never matches, because the destination is kube-dns's ClusterIP. Empty =
+  # kube-dns's ClusterIP (`kubectl -n kube-system get svc kube-dns -o
+  # jsonpath='{.spec.clusterIP}'`). Renders `allow-dns-clusterip` as a /32: on a
+  # dataplane that evaluates egress BEFORE service DNAT, :53 to the kube-system
+  # NAMESPACE never matches, because the destination is this address. Empty =
   # rule not rendered. See templates/networkpolicy.yaml for the full story.
-  serviceCidr: ''
+  dnsServiceIp: ''
   # Renders `allow-acme-solver-ingress`, without which cert-manager's HTTP-01
   # solver Pods are unreachable and no certificate is ever issued. Inert when
   # HTTP-01 is unused (no solver Pod matches), hence default-on.

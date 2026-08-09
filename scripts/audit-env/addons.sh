@@ -23,6 +23,16 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 # plateforme.
 audit_env_require_audit_cluster
 
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
+# Namespace de l'ingress AVANT le chart, avec les DEUX labels que sélectionne
+# allow-ingress-controller. Déclaratif et partagé avec la prod
+# (.github/workflows/deploy-main.yml applique le même fichier) : c'était un
+# `kubectl label` impératif propre à ce script, donc une étape manuelle qu'une
+# reprise après sinistre n'aurait jamais exécutée.
+echo "==> namespace ingress-nginx (labels de la NetworkPolicy)"
+kubectl apply -f "$REPO_ROOT/infra/kubernetes/ingress-nginx/namespace.yaml"
+
 echo "==> ingress-nginx"
 helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx >/dev/null 2>&1 || true
 helm repo add jetstack https://charts.jetstack.io >/dev/null 2>&1 || true
@@ -30,17 +40,13 @@ helm repo add nfs-ganesha-server-and-external-provisioner \
   https://kubernetes-sigs.github.io/nfs-ganesha-server-and-external-provisioner >/dev/null 2>&1 || true
 helm repo update >/dev/null
 
+# Pas de --create-namespace : le namespace est deja cree ci-dessus, LABELLE.
 helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
-  --namespace ingress-nginx --create-namespace \
+  --namespace ingress-nginx \
   --set controller.replicaCount=1 \
   --set controller.resources.requests.cpu=100m \
   --set controller.resources.requests.memory=180Mi \
   --wait --timeout 10m
-
-# La policy allow-ingress-controller du chart exige DEUX labels sur le namespace
-# ingress-nginx. Le chart ingress-nginx n'en pose qu'un : sans celui-ci, tout
-# trafic entrant est bloque par le deny-all et chaque URL publique rend 504.
-kubectl label namespace ingress-nginx app.kubernetes.io/name=ingress-nginx --overwrite >/dev/null
 
 echo "==> cert-manager"
 helm upgrade --install cert-manager jetstack/cert-manager \
@@ -195,7 +201,7 @@ spec:
 YAML
 
 # NOTE : la NetworkPolicy allow-dns-clusterip vivait ici. Elle est desormais
-# rendue par le chart (networkPolicy.serviceCidr, cf. values-audit-test.yaml) :
+# rendue par le chart (networkPolicy.dnsServiceIp, cf. values-audit-test.yaml) :
 # un correctif hors-bande ne repare que CE cluster, alors que le probleme frappe
 # toute installation a neuf, reprise apres sinistre incluse.
 
