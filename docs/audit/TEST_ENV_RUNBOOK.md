@@ -186,14 +186,16 @@ gcloud builds submit --project=$P --region=europe-west9 \
 
 # 2. les 6 services backend, un build par service (parallélisables : lancer
 #    chaque ligne en tâche de fond puis `wait`).
+# PKG/CMD doivent rester identiques a cloudbuild.yaml (le monolithe) : `tsx`
+# et non `node`, et admin sert des fichiers statiques via serve.mjs.
 for s in api worker admin ai-gateway workspace-manager preview-proxy; do
   case "$s" in
-    api)               PKG=@vibecore/api;               CMD="node dist/server.js" ;;
-    worker)            PKG=@vibecore/worker;            CMD="node dist/worker.js" ;;
-    admin)             PKG=@vibecore/admin;             CMD="node dist/server.js" ;;
-    ai-gateway)        PKG=@vibecore/ai-gateway;        CMD="node dist/server.js" ;;
-    workspace-manager) PKG=@vibecore/workspace-manager; CMD="node dist/server.js" ;;
-    preview-proxy)     PKG=@vibecore/preview-proxy;     CMD="node dist/server.js" ;;
+    api)               PKG=@vibecore/api;               CMD="tsx dist/server.js" ;;
+    worker)            PKG=@vibecore/worker;            CMD="tsx dist/index.js" ;;
+    admin)             PKG=@vibecore/admin;             CMD="node serve.mjs" ;;
+    ai-gateway)        PKG=@vibecore/ai-gateway;        CMD="tsx dist/server.js" ;;
+    workspace-manager) PKG=@vibecore/workspace-manager; CMD="tsx dist/server.js" ;;
+    preview-proxy)     PKG=@vibecore/preview-proxy;     CMD="tsx dist/server.js" ;;
   esac
   gcloud builds submit --project=$P --region=europe-west9 \
     --config=infra/cloudbuild/single-service.yaml \
