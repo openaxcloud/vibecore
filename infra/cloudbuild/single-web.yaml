@@ -48,6 +48,11 @@ substitutions:
   # Cosign signing key (B7) — see infra/cloudbuild/runtime-tier.yaml.
   _KMS_KEYRING: ecode-supply-chain
   _KMS_KEY: cosign-images
+  # '1' = signer (defaut, comportement de la prod, etape FATALE si elle echoue).
+  # '0' = sauter : indispensable dans un projet qui n'a pas le keyring KMS
+  # ci-dessus, sinon le build est rouge apres avoir pousse l'image. Ne jamais
+  # mettre '0' pour la prod : Kyverno y refuse les images non signees.
+  _SIGN_IMAGES: '1'
 options:
   machineType: E2_HIGHCPU_8
   logging: CLOUD_LOGGING_ONLY
@@ -132,6 +137,23 @@ steps:
         docker push ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/web:${_SHORT_SHA}
         docker push ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/web:latest
 
+  # Signature cosign. Reste FATALE quand elle est demandee : la prod est protegee
+  # par Kyverno, qui refuse une image non signee, donc une signature « best
+  # effort » y serait un faux sentiment de securite.
+  #
+  # Mais elle vise la cle KMS de ${_PROJECT}, or seul le projet de prod possede le
+  # keyring `ecode-supply-chain`. Sur tout AUTRE projet — l'environnement de test
+  # d'audit, une reprise apres sinistre montee dans un projet neuf — l'etape
+  # echouait avec `SERVICE_DISABLED: Cloud Key Management Service (KMS) API has
+  # not been used in project ... before or it is disabled`, APRES avoir pousse
+  # l'image : le build etait rouge alors que l'artefact etait publie et bon.
+  # C'est le seul des deux configs par service qui signe (single-service.yaml ne
+  # signe pas du tout), donc web etait la seule image impossible a construire
+  # proprement dans un projet neuf.
+  #
+  # `_SIGN_IMAGES` vaut '1' par defaut : la prod ne change pas. Un projet sans
+  # chaine d'approvisionnement le met a '0' et l'etape s'annonce sautee au lieu
+  # d'echouer en silence apres coup.
   - id: sign-image
     name: gcr.io/cloud-builders/docker
     waitFor: ['push-image', 'fetch-cosign']
@@ -142,6 +164,12 @@ steps:
       - -c
       - |
         set -euo pipefail
+        if [ "${_SIGN_IMAGES}" != "1" ]; then
+          echo "::: signature SAUTEE (_SIGN_IMAGES=${_SIGN_IMAGES})"
+          echo "::: l'image est poussee mais NON signee — interdit pour la prod,"
+          echo "::: ou Kyverno exige une signature valide."
+          exit 0
+        fi
         export PATH="/workspace:$$PATH"
         ref="${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/web:${_SHORT_SHA}"
         digest_ref="$(docker inspect --format='{{index .RepoDigests 0}}' "$ref")"

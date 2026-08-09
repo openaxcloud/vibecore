@@ -213,8 +213,15 @@ LB_IP=$(kubectl -n ingress-nginx get svc ingress-nginx-controller \
   -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 gcloud builds submit --project=$P --region=europe-west9 \
   --config=infra/cloudbuild/single-web.yaml \
-  --substitutions="$(sub),_VITE_RUNTIME_MODE=remote-kubernetes,_VITE_RUNTIME_API_BASE_URL=https://api.$LB_IP.sslip.io/api/runtime,_VITE_BYOK_DISABLED=true" \
+  --substitutions="$(sub),_VITE_RUNTIME_MODE=remote-kubernetes,_VITE_RUNTIME_API_BASE_URL=https://api.$LB_IP.sslip.io/api/runtime,_VITE_BYOK_DISABLED=true,_SIGN_IMAGES=0" \
   --timeout=3600s .
+
+# NOTE `_SIGN_IMAGES=0` : single-web.yaml est le SEUL config par service qui
+#      signe l'image (cosign), et il vise la cle KMS de CE projet — or seul le
+#      projet de prod possede le keyring `ecode-supply-chain`. Sans cette
+#      surcharge, l'etape echoue en `SERVICE_DISABLED` APRES avoir pousse
+#      l'image : build rouge, artefact pourtant publie et bon. A ne JAMAIS
+#      mettre a 0 pour la prod, ou Kyverno refuse une image non signee.
 
 # 4. l'agent runtime des workspaces (tag `sha-<SHA>`, pas `<SHA>`).
 gcloud builds submit --project=$P --region=europe-west9 \
