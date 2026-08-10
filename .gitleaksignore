@@ -34,3 +34,20 @@ docs/deploy-evidence/2026-07-22-gallery-pricing-har/gallery-pricing.har:generic-
 docs/parity/baseline/snapshots/2026-08-05/legal-terms.html:generic-api-key:17
 docs/parity/baseline/snapshots/2026-08-06/legal-terms.html:generic-api-key:17
 docs/parity/baseline/snapshots/2026-08-07/legal-terms.html:generic-api-key:17
+
+# 2026-08-10 — suite directe des trois lignes ci-dessus. Le collecteur baseline
+# (P0-04) tourne QUOTIDIENNEMENT : chaque capture de replit.com/legal/terms
+# arrive sous un chemin daté neuf, donc sous un fingerprint neuf, et la garde
+# redevient rouge tant que la ligne du jour n'est pas auditée. Les captures des
+# 08, 09 et 10/08 portent le MÊME `_key` Sanity `84971a3c25ef` — vérifié ici :
+# c'est le `_key` du span dont le texte est « If you have any questions about
+# these Terms, please contact », l'un des 357 `_key` de 12 hex du même document
+# Portable Text. Identifiant de bloc, pas une clé d'accès.
+# Constat opérationnel : ces trois captures ont été commitées sans déclencher le
+# CD, donc la dette n'est apparue qu'au push suivant — le déploiement de `main`
+# était bloqué depuis le 08/08. Rendre l'exemption durable (allowlist de chemin
+# plutôt que fingerprint par jour) revient à cesser de scanner ce répertoire :
+# c'est un arbitrage sécurité qui revient à Avi, pas une correction de bug.
+docs/parity/baseline/snapshots/2026-08-08/legal-terms.html:generic-api-key:17
+docs/parity/baseline/snapshots/2026-08-09/legal-terms.html:generic-api-key:17
+docs/parity/baseline/snapshots/2026-08-10/legal-terms.html:generic-api-key:17
