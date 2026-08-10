@@ -101,6 +101,7 @@ import {
 } from './catalogs/marketing-landing-templates-video';
 import { marketingLandingWorkflowEn, marketingLandingWorkflowFr } from './catalogs/marketing-landing-workflow';
 import { marketingPricingRouteEn, marketingPricingRouteFr } from './catalogs/marketing-pricing-route';
+import { marketingSolutionsRouteEn, marketingSolutionsRouteFr } from './catalogs/marketing-solutions-route';
 import { marketingSurfaceDynamicEn, marketingSurfaceDynamicFr } from './catalogs/marketing-surface-dynamic';
 import { mfaSetupEn, mfaSetupFr } from './catalogs/mfa-setup';
 import { mobileIdeTabsEn, mobileIdeTabsFr } from './catalogs/mobile-ide-tabs';
@@ -221,6 +222,7 @@ const RESOURCES: Record<SupportedLanguage, { translation: Record<string, string>
       ...marketingLandingRemainingEn,
       ...marketingLandingWorkflowEn,
       ...marketingPricingRouteEn,
+      ...marketingSolutionsRouteEn,
       ...marketingSurfaceDynamicEn,
       ...mfaSetupEn,
       ...modelApiEn,
@@ -372,6 +374,7 @@ const RESOURCES: Record<SupportedLanguage, { translation: Record<string, string>
       ...marketingLandingRemainingFr,
       ...marketingLandingWorkflowFr,
       ...marketingPricingRouteFr,
+      ...marketingSolutionsRouteFr,
       ...marketingSurfaceDynamicFr,
       ...mfaSetupFr,
       ...modelApiFr,
