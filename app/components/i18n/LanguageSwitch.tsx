@@ -80,7 +80,7 @@ export function LanguageSwitch({
 
   return (
     <div
-      className={`inline-flex min-h-[44px] shrink-0 items-center rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-1 text-xs font-semibold shadow-sm ${className}`}
+      className={`inline-flex min-h-[44px] shrink-0 items-center rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 text-xs font-semibold shadow-sm ${className}`}
       role="group"
       aria-label={t('locale.switchLabel')}
       data-testid="language-switch"
@@ -93,7 +93,7 @@ export function LanguageSwitch({
           <button
             key={language}
             type="button"
-            className={`inline-flex min-h-[36px] min-w-[40px] items-center justify-center rounded-full px-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] focus-visible:ring-offset-1 ${
+            className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full px-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] focus-visible:ring-offset-1 ${
               active
                 ? 'bg-[var(--vc-action-primary)] text-white shadow-sm'
                 : 'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary'

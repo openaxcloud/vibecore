@@ -2,7 +2,7 @@
 
 import '@testing-library/jest-dom/vitest';
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { I18nextProvider } from 'react-i18next';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -48,6 +48,33 @@ describe('LanguageSwitch', () => {
         expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ language: 'fr' }), keepalive: true }),
       ),
     );
+  });
+
+  /*
+   * The group already declared min-h-[44px], but its own padding shrank the
+   * buttons — the actual tap targets — to 40x36 on the deployed marketing
+   * shell. Only the interactive element counts towards the >=44px rule.
+   */
+  it('gives each locale button a tap target of at least 44px', () => {
+    const { container } = render(
+      <I18nextProvider i18n={createI18nInstance('en')}>
+        <LanguageSwitch />
+      </I18nextProvider>,
+    );
+
+    // This suite renders without auto-cleanup, so scope queries to this render.
+    const { getByRole, getByTestId } = within(container);
+
+    for (const name of ['Current language: English', 'French']) {
+      const button = getByRole('button', { name });
+
+      expect(button.className).toContain('min-h-[44px]');
+      expect(button.className).toContain('min-w-[44px]');
+      expect(button.className).not.toContain('min-h-[36px]');
+      expect(button.className).not.toContain('min-w-[40px]');
+    }
+
+    expect(getByTestId('language-switch').className).not.toMatch(/\bp-1\b/);
   });
 
   it('replaces a conflicting locale query while preserving route state and the hash', () => {
