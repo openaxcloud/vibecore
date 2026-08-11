@@ -1,0 +1,9 @@
+############ TEMOIN PROD — AVANT les essais live ############
+date : 2026-08-11T07:28:09Z
+NAME    	NAMESPACE	REVISION	UPDATED                               	STATUS  	CHART                  	APP VERSION
+vibecore	vibecore 	972     	2026-08-10 07:29:54.55409778 +0000 UTC	deployed	vibecore-platform-0.1.0	0.1.0      
+
+revision relevee : 972
+NB: la revision de prod n'est pas 970. Elle a bouge deux fois pendant cette
+    revue (970 -> 971 -> 972, dernier deploiement le 2026-08-10).
+    Le temoin est donc RELEVE avant/apres, jamais suppose.

@@ -111,4 +111,13 @@ const overriddenPlatform = helmTemplate([
 assertIncludes(overriddenPlatform, 'app.kubernetes.io/name: "edge-nginx"', 'overridden ingress controller app label');
 assertIncludes(overriddenPlatform, 'kubernetes.io/metadata.name: "edge-nginx"', 'overridden ingress controller namespace label');
 
+/*
+ * Les scripts audit-env doivent passer un contexte cluster EXPLICITE à chaque
+ * appel helm/kubectl. Sans ça, `HELM_KUBECONTEXT=<prod>` fait valider l'audit et
+ * muter la production — la cible validée n'est pas la cible utilisée.
+ */
+execFileSync(process.execPath, [resolve(root, '../scripts/audit-env/check-pinned-context.mjs')], {
+  stdio: 'inherit',
+});
+
 console.log('infra scaffold valid');

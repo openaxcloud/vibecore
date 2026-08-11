@@ -13,6 +13,10 @@ set -euo pipefail
 # shellcheck source=scripts/audit-env/lib.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
+# Epingle la cible AVANT toute chose : neutralise HELM_KUBECONTEXT & co, derive le
+# contexte depuis les constantes epinglees, et arme audit_helm/audit_kubectl.
+audit_env_pin_cluster_target
+
 # Le projet cible n'est PAS surchargeable. L'ancienne version acceptait
 # n'importe quel AUDIT_PROJECT_ID sauf un unique ID de prod codé en dur : tout
 # autre projet de l'organisation — staging, un projet client, un futur projet de

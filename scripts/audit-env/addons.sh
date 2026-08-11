@@ -16,6 +16,10 @@ RELEASE="${RELEASE:-vibecore}"
 # shellcheck source=scripts/audit-env/lib.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
+# Epingle la cible AVANT toute chose : neutralise HELM_KUBECONTEXT & co, derive le
+# contexte depuis les constantes epinglees, et arme audit_helm/audit_kubectl.
+audit_env_pin_cluster_target
+
 # Fail-closed: prouve que le contexte courant EST le cluster d'audit (endpoint
 # GKE + providerID des nœuds + labels), au lieu de se contenter d'un nom de
 # contexte qui ne contient pas « vibecore-prod ». Un alias de contexte suffisait
@@ -31,7 +35,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # `kubectl label` impératif propre à ce script, donc une étape manuelle qu'une
 # reprise après sinistre n'aurait jamais exécutée.
 echo "==> namespace ingress-nginx (labels de la NetworkPolicy)"
-kubectl apply -f "$REPO_ROOT/infra/kubernetes/ingress-nginx/namespace.yaml"
+audit_kubectl apply -f "$REPO_ROOT/infra/kubernetes/ingress-nginx/namespace.yaml"
 
 echo "==> ingress-nginx"
 helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx >/dev/null 2>&1 || true
@@ -41,7 +45,7 @@ helm repo add nfs-ganesha-server-and-external-provisioner \
 helm repo update >/dev/null
 
 # Pas de --create-namespace : le namespace est deja cree ci-dessus, LABELLE.
-helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+audit_helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
   --namespace ingress-nginx \
   --set controller.replicaCount=1 \
   --set controller.resources.requests.cpu=100m \
@@ -49,14 +53,14 @@ helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
   --wait --timeout 10m
 
 echo "==> cert-manager"
-helm upgrade --install cert-manager jetstack/cert-manager \
+audit_helm upgrade --install cert-manager jetstack/cert-manager \
   --namespace cert-manager --create-namespace \
   --set crds.enabled=true \
   --set resources.requests.cpu=50m \
   --wait --timeout 10m
 
 echo "==> NFS provisioner (StorageClass 'nfs', RWX)"
-helm upgrade --install nfs-provisioner \
+audit_helm upgrade --install nfs-provisioner \
   nfs-ganesha-server-and-external-provisioner/nfs-server-provisioner \
   --namespace nfs --create-namespace \
   --set persistence.enabled=true \
@@ -68,7 +72,7 @@ helm upgrade --install nfs-provisioner \
 
 echo "==> Redis (in-cluster, remplace Memorystore)"
 audit_env_ensure_namespace "$NS" "$RELEASE"
-kubectl -n "$NS" apply -f - <<'YAML'
+audit_kubectl -n "$NS" apply -f - <<'YAML'
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -108,7 +112,7 @@ YAML
 
 echo "==> attente de l'IP externe du load balancer"
 for _ in $(seq 1 60); do
-  LB_IP="$(kubectl -n ingress-nginx get svc ingress-nginx-controller \
+  LB_IP="$(audit_kubectl -n ingress-nginx get svc ingress-nginx-controller \
     -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)"
   [[ -n "$LB_IP" ]] && break
   sleep 10
@@ -117,7 +121,7 @@ done
 echo "==> LB_IP=$LB_IP  (domaines: app.$LB_IP.sslip.io, etc.)"
 
 echo "==> ClusterIssuers (HTTP-01 reel + self-signed pour le wildcard preview)"
-kubectl apply -f - <<YAML
+audit_kubectl apply -f - <<YAML
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
@@ -160,7 +164,7 @@ echo "==> puits e-mail (remplace Resend)"
 # Le label app.kubernetes.io/part-of=vibecore n'est pas cosmetique : la policy
 # allow-intra-namespace-platform du chart ne reouvre le trafic pod-a-pod QUE
 # entre pods qui le portent. Sans lui, deny-all-default bloque api -> puits.
-kubectl -n "$NS" apply -f - <<'YAML'
+audit_kubectl -n "$NS" apply -f - <<'YAML'
 apiVersion: apps/v1
 kind: Deployment
 metadata:

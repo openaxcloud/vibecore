@@ -10,6 +10,10 @@ set -euo pipefail
 # shellcheck source=scripts/audit-env/lib.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
+# Epingle la cible AVANT toute chose : neutralise HELM_KUBECONTEXT & co, derive le
+# contexte depuis les constantes epinglees, et arme audit_helm/audit_kubectl.
+audit_env_pin_cluster_target
+
 # Non surchargeable : ce script arme la SUPPRESSION d'un projet. Liste
 # d'autorisation d'un seul ID, jamais l'exclusion d'un seul ID de prod.
 PROJECT_ID="$AUDIT_ENV_PROJECT_ID"
