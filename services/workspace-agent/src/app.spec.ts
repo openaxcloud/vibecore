@@ -545,6 +545,46 @@ describe('workspace-agent', () => {
     expect(read.json()).toMatchObject({ content: 'first' });
   });
 
+  /*
+   * The 409 above is the message a user reads every time they name a new file
+   * after one that exists — an ordinary mistake, not a rare failure. It was
+   * thrown as a raw `new Error('File already exists')`, bypassing the catalogue
+   * that every neighbouring branch uses, so a French user got English copy and
+   * the i18n guard went red on the regression.
+   *
+   * Asserting both locales (not just "it is not the old literal") is what keeps
+   * the branch wired to the catalogue rather than merely reworded.
+   */
+  it('localizes the 409 EEXIST conflict copy per accept-language, preserving status and code', async () => {
+    const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
+    const headers = { authorization: `Bearer ${token}` };
+
+    expect(
+      (await app.inject({ method: 'POST', url: '/files/create', headers, payload: { path: 'dup.txt', content: 'a' } }))
+        .statusCode,
+    ).toBe(200);
+
+    const french = await app.inject({
+      method: 'POST',
+      url: '/files/create',
+      headers: { ...headers, 'accept-language': 'fr-FR' },
+      payload: { path: 'dup.txt', content: 'b' },
+    });
+    const english = await app.inject({
+      method: 'POST',
+      url: '/files/create',
+      headers: { ...headers, 'accept-language': 'en-US' },
+      payload: { path: 'dup.txt', content: 'b' },
+    });
+
+    expect(french.statusCode).toBe(409);
+    expect(english.statusCode).toBe(409);
+    expect(french.json()).toMatchObject({ code: 'EEXIST' });
+    expect(english.json()).toMatchObject({ code: 'EEXIST' });
+    expect(french.json().error).toBe('Un fichier portant ce nom existe déjà.');
+    expect(english.json().error).toBe('A file with this name already exists.');
+  });
+
   it('reads a binary file back as lossless base64 (no utf8 corruption)', async () => {
     const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
     const headers = { authorization: `Bearer ${token}` };

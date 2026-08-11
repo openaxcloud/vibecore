@@ -12,6 +12,8 @@ export const previewProxyEn = {
   SERVER_DEPLOY_UPSTREAM_TIMEOUT: 'The deployment service timed out.',
   SERVER_DEPLOY_NOT_LIVE: 'This deployment is not live because its last publish failed or it was deleted.',
   SERVER_DEPLOY_UPSTREAM_ERROR: 'The deployment service is unavailable. Please try again.',
+  PUBLISHED_DEPLOYMENT_EXPIRED: 'This publication has expired. Publish the project again to bring its address back online.',
+  PUBLICATION_STATE_UNAVAILABLE: 'This publication’s state could not be verified. Please try again in a moment.',
   PREVIEW_PORT_INVALID: 'The preview port is invalid.',
   PREVIEW_TENANT_FORBIDDEN: 'You do not have access to this preview.',
   PREVIEW_AGENT_NOT_FOUND: 'The workspace preview is not reachable yet. Please try again.',
@@ -50,6 +52,10 @@ export const previewProxyFr: PreviewProxyCopy = {
   SERVER_DEPLOY_NOT_LIVE:
     'Ce déploiement n’est pas en ligne, car sa dernière publication a échoué ou il a été supprimé.',
   SERVER_DEPLOY_UPSTREAM_ERROR: 'Le service de déploiement est indisponible. Veuillez réessayer.',
+  PUBLISHED_DEPLOYMENT_EXPIRED:
+    'Cette publication a expiré. Republiez le projet pour remettre l’adresse en ligne.',
+  PUBLICATION_STATE_UNAVAILABLE:
+    'Impossible de vérifier l’état de cette publication. Réessayez dans un instant.',
   PREVIEW_PORT_INVALID: 'Le port d’aperçu est invalide.',
   PREVIEW_TENANT_FORBIDDEN: 'Vous n’avez pas accès à cet aperçu.',
   PREVIEW_AGENT_NOT_FOUND: 'L’aperçu de l’espace de travail est encore inaccessible. Veuillez réessayer.',

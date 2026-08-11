@@ -1841,7 +1841,7 @@ function rethrowFsError(error: unknown): never {
    * the 502 also trips the local-runtime fallback in dev.
    */
   if (code === 'EEXIST') {
-    throw Object.assign(new Error('File already exists'), { statusCode: 409, code: 'EEXIST' });
+    throw workspaceAgentError('fileAlreadyExists', { statusCode: 409, code: 'EEXIST' });
   }
 
   /*

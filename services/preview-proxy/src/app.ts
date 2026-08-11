@@ -4,7 +4,12 @@ import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest }
 
 import { INSPECTOR_SCRIPT } from './inspector-script.js';
 import { attachPreviewWebSocketProxy } from './preview-ws-proxy.js';
-import { applyPreviewProxyLocale, previewProxyHtml, sendPreviewProxyError } from './public-i18n.js';
+import {
+  applyPreviewProxyLocale,
+  getPreviewProxyCopy,
+  previewProxyHtml,
+  sendPreviewProxyError,
+} from './public-i18n.js';
 import { REPORTER_SCRIPT } from './reporter-script.js';
 
 /*
@@ -1730,10 +1735,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
 
         if (verdict === 'expired') {
           reply.header('cache-control', 'no-store');
-          await reply.code(410).send({
-            error: 'Cette publication a expiré. Republiez le projet pour remettre l\'adresse en ligne.',
-            code: 'PUBLISHED_DEPLOYMENT_EXPIRED',
-          });
+          await sendPreviewProxyError(request, reply, 410, 'PUBLISHED_DEPLOYMENT_EXPIRED');
 
           return;
         }
@@ -1746,9 +1748,10 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
            * non 410) : on ne prétend pas qu'elle est éteinte, on dit qu'on ne
            * sait pas, et l'appelant peut réessayer.
            */
+          applyPreviewProxyLocale(reply, request);
           reply.header('cache-control', 'no-store');
           await reply.code(503).header('retry-after', '5').send({
-            error: "Impossible de vérifier l'état de cette publication. Réessayez dans un instant.",
+            error: getPreviewProxyCopy(request.headers).PUBLICATION_STATE_UNAVAILABLE,
             code: 'PUBLICATION_STATE_UNAVAILABLE',
             retryable: true,
           });

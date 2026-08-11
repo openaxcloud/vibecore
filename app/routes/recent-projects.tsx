@@ -93,7 +93,7 @@ export default function RecentProjectsPage() {
       ) : (
         <>
           {/* BUG-USR-007: h1→h2→h3 heading order (cards are h3); sr-only. */}
-          <h2 className="sr-only">Recent projects</h2>
+          <h2 className="sr-only">{t('recentProjects.listHeading')}</h2>
           <ProjectGrid projects={projects} />
         </>
       )}

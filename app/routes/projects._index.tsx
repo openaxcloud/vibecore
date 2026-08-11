@@ -279,7 +279,7 @@ export default function ProjectsPage() {
           </div>
           {/* BUG-USR-007: section landmark so the heading order is h1→h2→h3 (the
               project cards are h3); sr-only keeps the existing visual design. */}
-          <h2 className="sr-only">Your projects</h2>
+          <h2 className="sr-only">{t('projects.listHeading')}</h2>
           {noMatches ? (
             <EmptyState
               icon={SearchX}

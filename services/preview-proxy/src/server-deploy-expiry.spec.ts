@@ -212,3 +212,112 @@ describe('TEST POSITIF — extinction réelle du chemin SERVER', () => {
     }
   });
 });
+
+/*
+ * Ces deux refus (410 / 503) sont les SEULES pages que voit le visiteur d'une
+ * publication éteinte : à ce stade il n'y a plus d'application pour parler à sa
+ * place. Leur copie était écrite en dur en FRANÇAIS, donc servie en français à
+ * un visiteur anglophone — et, comme elle contournait le catalogue, elle a
+ * rouvert la dette que la garde i18n `scan-source.mjs` surveille.
+ *
+ * On verrouille ici les DEUX directions (fr et en) et la négociation par
+ * en-tête, pas seulement « la chaîne n'est plus en dur » : c'est la différence
+ * entre une garde verte et un comportement réellement localisé.
+ */
+describe('refus de publication — copie localisée (régression garde i18n)', () => {
+  it('410 expiré : copie FR/EN négociée, statut et code inchangés', async () => {
+    const french = await (async () => {
+      const { impl } = makeFetch({ servingState: 'expired' });
+      const proxy = await buildProxy(impl);
+
+      try {
+        return await proxy.inject({
+          method: 'GET',
+          url: '/',
+          headers: { host: DEPLOY_HOST, 'accept-language': 'fr-FR' },
+        });
+      } finally {
+        await proxy.close();
+      }
+    })();
+
+    const english = await (async () => {
+      const { impl } = makeFetch({ servingState: 'expired' });
+      const proxy = await buildProxy(impl);
+
+      try {
+        return await proxy.inject({
+          method: 'GET',
+          url: '/',
+          headers: { host: DEPLOY_HOST, 'accept-language': 'en-US' },
+        });
+      } finally {
+        await proxy.close();
+      }
+    })();
+
+    expect(french.statusCode).toBe(410);
+    expect(english.statusCode).toBe(410);
+    expect(french.headers['content-language']).toBe('fr');
+    expect(english.headers['content-language']).toBe('en');
+    expect(french.json().error).toBe(
+      'Cette publication a expiré. Republiez le projet pour remettre l’adresse en ligne.',
+    );
+    expect(english.json().error).toBe(
+      'This publication has expired. Publish the project again to bring its address back online.',
+    );
+    expect(french.json().code).toBe('PUBLISHED_DEPLOYMENT_EXPIRED');
+    expect(english.json().code).toBe('PUBLISHED_DEPLOYMENT_EXPIRED');
+
+    // Le refus reste non cachable : une réponse 410 mise en cache survivrait à une republication.
+    expect(french.headers['cache-control']).toBe('no-store');
+  });
+
+  it('503 état indéterminé : copie FR/EN négociée, retry-after et retryable préservés', async () => {
+    const french = await (async () => {
+      const { impl } = makeFetch({ apiFails: true });
+      const proxy = await buildProxy(impl);
+
+      try {
+        return await proxy.inject({
+          method: 'GET',
+          url: '/',
+          headers: { host: DEPLOY_HOST, 'accept-language': 'fr-FR' },
+        });
+      } finally {
+        await proxy.close();
+      }
+    })();
+
+    const english = await (async () => {
+      const { impl } = makeFetch({ apiFails: true });
+      const proxy = await buildProxy(impl);
+
+      try {
+        return await proxy.inject({
+          method: 'GET',
+          url: '/',
+          headers: { host: DEPLOY_HOST, 'accept-language': 'en-US' },
+        });
+      } finally {
+        await proxy.close();
+      }
+    })();
+
+    expect(french.statusCode).toBe(503);
+    expect(english.statusCode).toBe(503);
+    expect(french.json().error).toBe(
+      'Impossible de vérifier l’état de cette publication. Réessayez dans un instant.',
+    );
+    expect(english.json().error).toBe(
+      'This publication’s state could not be verified. Please try again in a moment.',
+    );
+
+    // Le contrat de reprise ne doit pas être perdu en passant par le catalogue.
+    for (const response of [french, english]) {
+      expect(response.json()).toMatchObject({ code: 'PUBLICATION_STATE_UNAVAILABLE', retryable: true });
+      expect(response.headers['retry-after']).toBe('5');
+      expect(response.headers['cache-control']).toBe('no-store');
+    }
+  });
+});

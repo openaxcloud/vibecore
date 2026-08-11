@@ -116,6 +116,7 @@ export const userAreaEn = {
   'userArea.surface.workspace.description': 'This workspace page is temporarily unavailable.',
   'projects.metaTitle': 'Projects - E-Code',
   'projects.title': 'Projects',
+  'projects.listHeading': 'Your projects',
   'projects.description':
     'Browse persistent E-Code projects, switch between grid and list views, and open managed workspaces.',
   'projects.create': 'Create project',
@@ -145,6 +146,7 @@ export const userAreaEn = {
   'projects.lastActivity': 'Last activity',
   'recentProjects.metaTitle': 'Recent projects - E-Code',
   'recentProjects.title': 'Recent projects',
+  'recentProjects.listHeading': 'Recent projects',
   'recentProjects.description': 'Continue from the projects and workspaces you touched most recently.',
   'recentProjects.loading': 'Loading recent projects',
   'recentProjects.loadFailedTitle': 'Recent projects could not load',
@@ -177,6 +179,7 @@ export const userAreaEn = {
   'userArea.template.signInToUse': 'Sign in to use',
   'workspaceTemplates.metaTitle': 'Workspace templates - E-Code',
   'workspaceTemplates.title': 'Templates',
+  'workspaceTemplates.listHeading': 'Workspace templates',
   'workspaceTemplates.description':
     'Create production workspaces from curated starters with persistent files, runtime defaults and audit-visible project activity.',
   'workspaceTemplates.emptyProject': 'Empty project',
@@ -464,6 +467,7 @@ export const userAreaFr = {
   'userArea.surface.workspace.description': 'Cette page de l’espace de travail est temporairement indisponible.',
   'projects.metaTitle': 'Projets - E-Code',
   'projects.title': 'Projets',
+  'projects.listHeading': 'Vos projets',
   'projects.description':
     'Parcourez vos projets E-Code persistants, choisissez une vue en grille ou en liste et ouvrez vos espaces de travail gérés.',
   'projects.create': 'Créer un projet',
@@ -493,6 +497,7 @@ export const userAreaFr = {
   'projects.lastActivity': 'Dernière activité',
   'recentProjects.metaTitle': 'Projets récents - E-Code',
   'recentProjects.title': 'Projets récents',
+  'recentProjects.listHeading': 'Projets récents',
   'recentProjects.description':
     'Reprenez votre travail à partir des projets et espaces de travail utilisés le plus récemment.',
   'recentProjects.loading': 'Chargement des projets récents',
@@ -527,6 +532,7 @@ export const userAreaFr = {
   'userArea.template.signInToUse': 'Se connecter pour l’utiliser',
   'workspaceTemplates.metaTitle': 'Modèles d’espace de travail - E-Code',
   'workspaceTemplates.title': 'Modèles',
+  'workspaceTemplates.listHeading': 'Modèles d’espace de travail',
   'workspaceTemplates.description':
     'Créez des espaces de travail de production à partir de modèles sélectionnés, avec fichiers persistants, paramètres de l’environnement d’exécution et activité de projet auditable.',
   'workspaceTemplates.emptyProject': 'Projet vide',

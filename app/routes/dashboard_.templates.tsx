@@ -124,7 +124,7 @@ export default function DashboardTemplatesPage() {
       ) : null}
       {/* BUG-USR-007: section landmark so heading order is h1→h2→h3 (template cards
           are h3); sr-only keeps the visual design unchanged. */}
-      <h2 className="sr-only">Workspace templates</h2>
+      <h2 className="sr-only">{t('workspaceTemplates.listHeading')}</h2>
       <TemplateGallery mode="authenticated" />
     </AppShell>
   );
