@@ -1,0 +1,11 @@
+=== ce que l amont a REELLEMENT recu (vrai Chromium, mode LEGACY) ===
+  Host: 127.0.0.1:55739   url: /   tenant: present
+
+=== verifications ===
+  OK   Host recu = celui du proxy (le navigateur le recalcule, donc inutilisable pour router) — Host=127.0.0.1:55739
+  ECHEC autorite de routage presente dans le CHEMIN — url=/
+  OK   jeton tenant recu sur l en-tete interne
+  ECHEC le document est servi (200, donc le proxy a pu router) — status=404
+  OK   capture PNG reelle et non vide — 7846 octets
+
+2 verification(s) en echec

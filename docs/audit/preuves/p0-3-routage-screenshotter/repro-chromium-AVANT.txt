@@ -1,0 +1,8 @@
+
+=== ce que le serveur amont a REELLEMENT recu ===
+  Host: 127.0.0.1:55701
+  url : /
+  en-tete tenant present: oui
+
+Host attendu par le proxy pour router : ws-test-5173.preview.e-code.ai
+ROUTAGE CASSE : le Host de preview est perdu, le proxy ne peut pas router

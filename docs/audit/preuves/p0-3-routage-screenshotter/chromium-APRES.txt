@@ -1,0 +1,13 @@
+=== ce que l amont a REELLEMENT recu (vrai Chromium) ===
+  Host: 127.0.0.1:55728   url: /p/ws-test/5173/   tenant: present
+
+=== verifications ===
+  OK   Host recu = celui du proxy (le navigateur le recalcule, donc inutilisable pour router) — Host=127.0.0.1:55728
+  OK   autorite de routage presente dans le CHEMIN — url=/p/ws-test/5173/
+  OK   jeton tenant recu sur l en-tete interne
+  OK   le document est servi (200, donc le proxy a pu router) — status=200
+  OK   capture PNG reelle et non vide — 10106 octets
+
+capture ecrite: /private/tmp/claude-501/-Users-hb-dev-vibecore/3d889db4-9892-4dbb-ad47-3a71b7f6bd96/scratchpad/preuves-p0-2-3/vignette-reelle.png (10106 octets)
+
+ROUTAGE PROUVE

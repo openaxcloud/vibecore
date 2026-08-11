@@ -1,5 +1,6 @@
 import { type Browser, chromium } from 'playwright-core';
 import type { PageRenderer } from './app.js';
+import { previewProxyPathUrl } from './preview-proxy-path.js';
 
 /*
  * The real headless renderer. Chromium is provided by the container base image
@@ -85,11 +86,26 @@ export class PlaywrightPageRenderer implements PageRenderer {
       /*
        * Route preview requests through the in-cluster preview-proxy. The public
        * preview URL resolves to the cluster's own external LB, which an in-cluster
-       * pod can't reach (hairpin). We rewrite the URL to the internal proxy while
-       * PRESERVING the original Host header — the proxy routes by Host, so it lands
-       * on the right workspace. Covers the document AND all subresources (JS/CSS/
-       * assets are loaded from the same preview host). The SSRF allowlist has
-       * already vetted the input URL in app.ts, so this only redirects vetted hosts.
+       * pod can't reach (hairpin), so the URL is rewritten to the internal proxy.
+       *
+       * L'AUTORITÉ DE ROUTAGE VOYAGE DANS LE CHEMIN, PAS DANS `Host`.
+       *
+       * La version précédente réécrivait l'URL en croyant conserver le `Host`
+       * d'origine (`headers: { host: requestUrl.host }`) pour que le proxy route
+       * par hôte. C'est impossible : `Host` est un en-tête interdit à la
+       * modification, et Chromium le RECALCULE à partir de la nouvelle URL. Rejoué
+       * avec un vrai Chromium, le serveur amont recevait
+       * `Host: 127.0.0.1:<port>` — l'hôte de preview était perdu, `parsePreviewHost`
+       * renvoyait null, et la requête tombait en 404. La « preuve » précédente
+       * posait ce header via `http.request`, ce qu'un navigateur ne peut pas faire :
+       * elle validait une forme de requête, pas le trajet réel du renderer.
+       *
+       * On passe donc par la route CHEMIN que le proxy expose déjà,
+       * `/p/<workspaceId>/<port>/…` (app.all('/p/:workspaceId/:port/*')), et qui
+       * aboutit au MÊME `handlePreviewRequest` — donc à la même porte tenant. Un
+       * chemin n'est pas un en-tête interdit : le navigateur le transmet tel quel.
+       * Couvre le document ET les sous-ressources, puisque chaque requête vers un
+       * hôte de preview est réécrite de la même façon.
        */
       const suffixes = this.options.previewHostSuffixes ?? [];
       const isPreviewHost = (h: string) => suffixes.some((suffix) => h === suffix || h.endsWith(`.${suffix}`));
@@ -107,19 +123,27 @@ export class PlaywrightPageRenderer implements PageRenderer {
               return;
             }
 
-            // route.continue requires the SAME protocol; the proxy is http, so the
-            // request must already be http (we force http on the nav below, and an
-            // http page's subresources are http/relative). Preserve the original
-            // preview Host so the proxy routes to the right workspace.
-            const target = `${proxy.protocol}//${proxy.host}${requestUrl.pathname}${requestUrl.search}`;
+            const target = previewProxyPathUrl(proxy, requestUrl, suffixes);
+
+            if (!target) {
+              // Hôte de preview dont on ne sait pas extraire workspace+port : on ne
+              // devine pas une cible de routage, on laisse la requête telle quelle
+              // (elle échouera visiblement plutôt que d'atterrir n'importe où).
+              await route.continue();
+              return;
+            }
+
+            // route.continue exige le MÊME protocole ; le proxy est en http, d'où
+            // le forçage http de la navigation ci-dessous.
             await route.continue({
               url: target,
               headers: {
                 ...route.request().headers(),
-                host: requestUrl.host,
                 // Porté seulement ici : on est dans la branche « hôte de preview
                 // vérifié par l'allowlist », donc le jeton ne peut pas partir
-                // vers un hôte tiers.
+                // vers un hôte tiers. `Host` n'est délibérément PAS surchargé :
+                // le navigateur l'ignorerait et cela masquerait le vrai mécanisme
+                // de routage, qui est le chemin.
                 ...(input.tenantToken ? { 'x-vibecore-preview-tenant': input.tenantToken } : {}),
               },
             });
