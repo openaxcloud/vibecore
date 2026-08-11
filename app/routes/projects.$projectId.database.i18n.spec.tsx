@@ -89,7 +89,7 @@ function renderPage(loaderData: unknown, actionData?: unknown) {
 }
 
 function actionRequest(fields: Record<string, string>) {
-  const body = new URLSearchParams(fields);
+  const body = new URLSearchParams(fields).toString();
 
   return action({
     request: new Request('https://e-code.ai/projects/project-1/database?lang=fr', {
