@@ -5,6 +5,13 @@
 #                NetworkPolicy egress allow-list is fail-closed on it.
 set -euo pipefail
 
+# shellcheck source=scripts/audit-env/lib.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
+
+# Epingle la cible AVANT toute chose : neutralise HELM_KUBECONTEXT & co, derive le
+# contexte depuis les constantes epinglees, et arme audit_helm/audit_kubectl.
+audit_env_pin_cluster_target
+
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # Overridable for the same reason as in mint-secrets.sh: the Terraform state may
 # live outside the checkout this script runs from.
@@ -12,7 +19,7 @@ TF_DIR="${TF_DIR:-$REPO/infra/terraform/envs/audit-test}"
 SRC="$REPO/infra/helm/platform/values-audit-test.yaml"
 OUT="${OUT:-$TF_DIR/credentials/values-audit-test.rendered.yaml}"
 
-LB_IP="${LB_IP:-$(kubectl -n ingress-nginx get svc ingress-nginx-controller \
+LB_IP="${LB_IP:-$(audit_kubectl -n ingress-nginx get svc ingress-nginx-controller \
   -o jsonpath='{.status.loadBalancer.ingress[0].ip}')}"
 [[ -n "$LB_IP" ]] || { echo "!! LB_IP introuvable" >&2; exit 1; }
 

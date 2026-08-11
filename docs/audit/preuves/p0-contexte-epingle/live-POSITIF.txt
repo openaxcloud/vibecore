@@ -1,0 +1,31 @@
+############ LIVE POSITIF — environnement propre, contexte audit ############
+date: 2026-08-11T07:28:23Z
+env hostile injectee: AUCUNE
+
+
+==> cible epinglee: contexte 'gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster' (KUBECONFIG=/Users/hb/.kube/config)
+==> garde-fou projet OK: vibecore-audit-test-20260807 [env=audit-test;ephemeral=true;owner=platform-audit;ttl-days=7]
+==> garde-fou cluster OK: contexte 'gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster' -> https://34.155.33.130
+==> namespace ingress-nginx (labels de la NetworkPolicy)
+namespace/ingress-nginx unchanged
+==> ingress-nginx
+STATUS: deployed
+==> cert-manager
+STATUS: deployed
+cert-manager v1.21.1 has been deployed successfully!
+==> NFS provisioner (StorageClass 'nfs', RWX)
+STATUS: deployed
+A storage class named 'nfs' has now been created
+==> Redis (in-cluster, remplace Memorystore)
+namespace/vibecore unchanged
+deployment.apps/vibecore-redis unchanged
+service/vibecore-redis unchanged
+==> attente de l'IP externe du load balancer
+==> LB_IP=34.163.208.161  (domaines: app.34.163.208.161.sslip.io, etc.)
+==> ClusterIssuers (HTTP-01 reel + self-signed pour le wildcard preview)
+clusterissuer.cert-manager.io/letsencrypt-http01 unchanged
+clusterissuer.cert-manager.io/selfsigned-preview unchanged
+==> puits e-mail (remplace Resend)
+deployment.apps/email-sink unchanged
+service/email-sink unchanged
+==> add-ons installes. LB_IP=34.163.208.161

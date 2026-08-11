@@ -24,6 +24,101 @@ _audit_env_die() {
   exit 1
 }
 
+# ---------------------------------------------------------------------------
+# Épinglage de la cible cluster — LA cible validée doit être LA cible utilisée.
+#
+# LE DÉFAUT QUE CECI FERME. Les gardes vérifiaient le contexte kubectl *courant*,
+# puis les scripts appelaient `helm` et `kubectl` SANS contexte explicite. Or
+# Helm ne résout pas sa cible via le contexte courant : il consulte d'abord ses
+# variables d'environnement. Reproduit en lecture seule sur cette branche :
+#
+#   contexte courant = audit  ->  audit_env_require_audit_cluster : PASSE
+#   HELM_KUBECONTEXT=<prod> helm -n vibecore list  ->  revision 971 = PRODUCTION
+#   (sans la variable)      helm -n vibecore list  ->  revision 4   = audit
+#
+# Autrement dit `addons.sh` pouvait VALIDER l'audit puis lancer ses trois
+# `helm upgrade --install` contre la PROD. La cible validée n'était pas la cible
+# utilisée : une garde qui contrôle A pendant que l'outil frappe B ne garde rien.
+#
+# La correction tient en trois temps, dans cet ordre :
+#   1. NEUTRALISER l'ambiant — toute variable capable de rediriger Helm ou
+#      kubectl est effacée. Pas « lue puis validée » : effacée. Une valeur
+#      d'environnement n'a aucune autorité sur la cible de ces scripts.
+#   2. DÉRIVER la cible une seule fois, depuis les constantes épinglées
+#      ci-dessus (jamais depuis l'environnement ni le contexte courant).
+#   3. FORCER cette cible sur CHAQUE appel, via les enveloppes `audit_kubectl`
+#      et `audit_helm`. Un appel nu redevient possible à écrire, donc
+#      scripts/audit-env/check-pinned-context.mjs échoue s'il en reste un — la
+#      règle est vérifiée par la CI (Gate 1), pas seulement par la relecture.
+# ---------------------------------------------------------------------------
+
+# Variables qui redirigent Helm vers un AUTRE cluster, y compris vers un
+# apiserver arbitraire sans passer par le kubeconfig (HELM_KUBEAPISERVER +
+# HELM_KUBETOKEN suffisent). HELM_NAMESPACE est incluse : elle déplace la cible
+# d'un `helm upgrade` sans changer de cluster.
+readonly AUDIT_ENV_HOSTILE_ENV_VARS=(
+  HELM_KUBECONTEXT
+  HELM_KUBEAPISERVER
+  HELM_KUBETOKEN
+  HELM_KUBECAFILE
+  HELM_KUBEASUSER
+  HELM_KUBEASGROUPS
+  HELM_KUBEINSECURE_SKIP_TLS_VERIFY
+  HELM_KUBETLS_SERVER_NAME
+  HELM_NAMESPACE
+)
+
+# Épingle la cible. Idempotent, à appeler tout en haut de chaque script.
+audit_env_pin_cluster_target() {
+  local var found=() ctx
+
+  # --- 1. neutraliser l'ambiant -------------------------------------------
+  for var in "${AUDIT_ENV_HOSTILE_ENV_VARS[@]}"; do
+    if [[ -n "${!var:-}" ]]; then
+      found+=("$var=${!var}")
+    fi
+    unset "$var"
+  done
+
+  # KUBECONFIG est le second vecteur : un autre fichier, donc un autre
+  # « contexte courant », vu à la fois par helm et par kubectl. On impose le
+  # chemin par défaut au lieu d'honorer l'override.
+  if [[ -n "${KUBECONFIG:-}" && "${KUBECONFIG}" != "$HOME/.kube/config" ]]; then
+    found+=("KUBECONFIG=${KUBECONFIG}")
+  fi
+  export KUBECONFIG="$HOME/.kube/config"
+
+  if ((${#found[@]} > 0)); then
+    echo "==> variables de redirection IGNOREES (l'environnement ne choisit pas la cible) :" >&2
+    printf '      %s\n' "${found[@]}" >&2
+  fi
+
+  # --- 2. dériver la cible, depuis les constantes épinglées ----------------
+  # Format écrit par `gcloud container clusters get-credentials` (runbook §3).
+  ctx="gke_${AUDIT_ENV_PROJECT_ID}_${AUDIT_ENV_CLUSTER_ZONE}_${AUDIT_ENV_CLUSTER_NAME}"
+
+  kubectl config get-contexts -o name 2>/dev/null | grep -qx "$ctx" ||
+    _audit_env_die "contexte '$ctx' absent de $KUBECONFIG — lancer d'abord: gcloud container clusters get-credentials $AUDIT_ENV_CLUSTER_NAME --zone $AUDIT_ENV_CLUSTER_ZONE --project $AUDIT_ENV_PROJECT_ID"
+
+  AUDIT_KUBE_CONTEXT="$ctx"
+  readonly AUDIT_KUBE_CONTEXT
+  export AUDIT_KUBE_CONTEXT
+
+  echo "==> cible epinglee: contexte '$AUDIT_KUBE_CONTEXT' (KUBECONFIG=$KUBECONFIG)"
+}
+
+# --- 3. enveloppes : la cible est passée EXPLICITEMENT, toujours -----------
+# Aucun appel ne doit contourner ces deux fonctions.
+audit_kubectl() {
+  [[ -n "${AUDIT_KUBE_CONTEXT:-}" ]] || _audit_env_die "audit_kubectl appelé avant audit_env_pin_cluster_target."
+  command kubectl --context="$AUDIT_KUBE_CONTEXT" "$@"
+}
+
+audit_helm() {
+  [[ -n "${AUDIT_KUBE_CONTEXT:-}" ]] || _audit_env_die "audit_helm appelé avant audit_env_pin_cluster_target."
+  command helm --kube-context="$AUDIT_KUBE_CONTEXT" "$@"
+}
+
 # Assert that the GCP PROJECT itself is the audit project, by exact ID plus the
 # ephemeral labels. Used by the scripts that act on the project (teardown, TTL)
 # and as the first half of the cluster check.
@@ -81,13 +176,15 @@ audit_env_require_audit_cluster() {
   command -v kubectl >/dev/null || _audit_env_die "kubectl absent."
   command -v gcloud >/dev/null || _audit_env_die "gcloud absent."
 
-  ctx="$(kubectl config current-context 2>/dev/null)" ||
-    _audit_env_die "aucun contexte kubectl courant."
+  # La cible épinglée, PAS le contexte courant : c'est tout l'objet du
+  # correctif — on valide exactement ce que les enveloppes vont utiliser.
+  [[ -n "${AUDIT_KUBE_CONTEXT:-}" ]] || audit_env_pin_cluster_target
+  ctx="$AUDIT_KUBE_CONTEXT"
 
   audit_env_require_audit_project "$AUDIT_ENV_PROJECT_ID"
 
   # --- A. endpoint réellement composé par le contexte courant ---------------
-  server="$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}' 2>/dev/null)"
+  server="$(kubectl config view --minify --context="$ctx" -o jsonpath='{.clusters[0].cluster.server}' 2>/dev/null)"
   [[ -n "$server" ]] || _audit_env_die "endpoint du contexte '$ctx' illisible."
 
   want_endpoint="$(gcloud container clusters describe "$AUDIT_ENV_CLUSTER_NAME" \
@@ -100,7 +197,7 @@ audit_env_require_audit_cluster() {
     _audit_env_die "le contexte '$ctx' dial '$server', or le cluster d'audit est 'https://$want_endpoint'."
 
   # --- B. providerID des nœuds vivants -------------------------------------
-  provider="$(kubectl get nodes -o jsonpath='{.items[0].spec.providerID}' 2>/dev/null)"
+  provider="$(audit_kubectl get nodes -o jsonpath='{.items[0].spec.providerID}' 2>/dev/null)"
   [[ -n "$provider" ]] || _audit_env_die "aucun nœud lisible sur '$ctx'."
   provider_project="$(printf '%s' "$provider" | sed -E 's#^gce://([^/]+)/.*#\1#')"
   [[ "$provider_project" == "$AUDIT_ENV_PROJECT_ID" ]] ||
@@ -167,7 +264,7 @@ audit_env_require_tf_state_binding() {
 audit_env_ensure_namespace() {
   local ns="${1:?namespace}"
   local release="${2:?helm release name}"
-  kubectl apply -f - <<YAML
+  audit_kubectl apply -f - <<YAML
 apiVersion: v1
 kind: Namespace
 metadata:

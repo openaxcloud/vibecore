@@ -1,0 +1,16 @@
+############ TEMOIN PROD — APRES les deux essais live ############
+date: 2026-08-11T07:31:46Z
+NAME    	NAMESPACE	REVISION	UPDATED                               	STATUS  	CHART                  	APP VERSION
+vibecore	vibecore 	972     	2026-08-10 07:29:54.55409778 +0000 UTC	deployed	vibecore-platform-0.1.0	0.1.0      
+
+revision AVANT : 972
+revision APRES : 972
+VERDICT: PROD INCHANGEE (revision identique)
+
+--- les add-ons ont bien atterri sur l'AUDIT ---
+NAME               	NAMESPACE    	REVISION	UPDATED                             	STATUS  	CHART                       	APP VERSION
+cert-manager       	cert-manager 	7       	2026-08-11 10:31:01.414231 +0300 IDT	deployed	cert-manager-v1.21.1        	v1.21.1    
+ingress-nginx      	ingress-nginx	7       	2026-08-11 10:30:11.078921 +0300 IDT	deployed	ingress-nginx-4.15.1        	1.15.1     
+nfs-provisioner    	nfs          	7       	2026-08-11 10:31:23.957147 +0300 IDT	deployed	nfs-server-provisioner-1.8.0	4.0.8      
+vibecore           	vibecore     	4       	2026-08-09 19:22:29.141227 +0300 IDT	deployed	vibecore-platform-0.1.0     	0.1.0      
+vibecore-workspaces	workspaces   	1       	2026-08-09 18:00:20.753198 +0300 IDT	deployed	workspaces-runtime-0.1.0    	0.1.0      

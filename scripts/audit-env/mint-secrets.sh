@@ -18,6 +18,10 @@ OUT_DIR="${OUT_DIR:-$TF_DIR/credentials}"
 # shellcheck source=scripts/audit-env/lib.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
+# Epingle la cible AVANT toute chose : neutralise HELM_KUBECONTEXT & co, derive le
+# contexte depuis les constantes epinglees, et arme audit_helm/audit_kubectl.
+audit_env_pin_cluster_target
+
 # Fail-closed AVANT de générer quoi que ce soit : ce script REMPLACE le Secret
 # de la plateforme (`kubectl apply`). L'ancienne garde ne refusait qu'un nom de
 # contexte contenant « vibecore-prod » ; un simple `kubectl config
@@ -64,9 +68,14 @@ EOF
 chmod 600 "$ENV_FILE"
 
 audit_env_ensure_namespace "$NS" "$RELEASE"
-kubectl -n "$NS" create secret generic "$SECRET_NAME" \
+# Les DEUX cotes du tube passent par l'enveloppe. Le `| kubectl apply` etait le
+# plus dangereux appel nu de tout le repo : c'est celui qui ECRIT le Secret de la
+# plateforme, et il etait sur une ligne de continuation — donc invisible a un
+# survol du debut de ligne. C'est pour ce genre d'oubli que
+# scripts/audit-env/check-pinned-context.mjs existe.
+audit_kubectl -n "$NS" create secret generic "$SECRET_NAME" \
   --from-env-file="$ENV_FILE" \
-  --dry-run=client -o yaml | kubectl apply -f -
+  --dry-run=client -o yaml | audit_kubectl apply -f -
 
 echo "==> secret $NS/$SECRET_NAME applique ($(grep -c '=' "$ENV_FILE") cles)"
 echo "==> valeurs en clair: $ENV_FILE (chmod 600, gitignore)"

@@ -7,6 +7,13 @@
 # is public).
 set -euo pipefail
 
+# shellcheck source=scripts/audit-env/lib.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
+
+# Epingle la cible AVANT toute chose : neutralise HELM_KUBECONTEXT & co, derive le
+# contexte depuis les constantes epinglees, et arme audit_helm/audit_kubectl.
+audit_env_pin_cluster_target
+
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TF_DIR="$REPO/infra/terraform/envs/audit-test"
 OUT="$TF_DIR/credentials/TEST_ENV_ACCESS.md"
@@ -14,7 +21,7 @@ PROJECT_ID="vibecore-audit-test-20260807"
 
 tf() { terraform -chdir="$TF_DIR" output -raw "$1" 2>/dev/null || echo "(indisponible)"; }
 
-LB_IP="$(kubectl -n ingress-nginx get svc ingress-nginx-controller \
+LB_IP="$(audit_kubectl -n ingress-nginx get svc ingress-nginx-controller \
   -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo '(non deploye)')"
 
 mkdir -p "$(dirname "$OUT")"
@@ -71,7 +78,7 @@ gcloud container clusters get-credentials $(tf cluster_name) \\
 L'instance n'a **pas d'IP publique** (comme en prod). Y accéder depuis le cluster :
 
 \`\`\`bash
-kubectl -n vibecore run psql-audit --rm -it --restart=Never \\
+audit_kubectl -n vibecore run psql-audit --rm -it --restart=Never \\
   --image=postgres:16-alpine -- \\
   psql "\$(terraform -chdir=infra/terraform/envs/audit-test output -raw database_url)"
 \`\`\`

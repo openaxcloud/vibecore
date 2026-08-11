@@ -1,0 +1,20 @@
+=== Test de regression : cible validee == cible utilisee ===
+
+  environnement hostile: HELM_KUBECONTEXT=<prod>, HELM_NAMESPACE=vibecore
+      --- cibles enregistrees ---
+      kubectl|gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster|--context=gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster get nodes -o jsonpath={.items[0].spec.providerID}
+      kubectl|gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster|--context=gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster apply -f /Users/hb/dev/vibecore-fresh-install/infra/kubernetes/ingress-nginx/namespace.yaml
+      helm|gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster|--kube-context=gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster upgrade --install ingress-nginx ingress-nginx/ingress-nginx --namespace ingress-nginx --set controller.replicaCount=1 --set controller.resources.requests.cpu=100m --set controller.resources.requests.memory=180Mi --wait --timeout 10m
+      helm|gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster|--kube-context=gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster upgrade --install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --set crds.enabled=true --set resources.requests.cpu=50m --wait --timeout 10m
+      helm|gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster|--kube-context=gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster upgrade --install nfs-provisioner nfs-ganesha-server-and-external-provisioner/nfs-server-provisioner --namespace nfs --create-namespace --set persistence.enabled=true --set persistence.size=50Gi --set storageClass.name=nfs --set storageClass.defaultClass=false --set storageClass.accessModes[0]=ReadWriteMany --wait --timeout 10m
+      kubectl|gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster|--context=gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster apply -f -
+      kubectl|gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster|--context=gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster -n vibecore apply -f -
+      kubectl|gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster|--context=gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster -n ingress-nginx get svc ingress-nginx-controller -o jsonpath={.status.loadBalancer.ingress[0].ip}
+      kubectl|gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster|--context=gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster apply -f -
+      kubectl|gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster|--context=gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster -n vibecore apply -f -
+      --- fin ---
+      appels vers l'audit : 10
+      appels AMBIANTS (cible choisie par l'environnement) : 0
+      appels vers la PROD : 0
+
+OK: aucune cible ambiante, aucune cible prod — l'environnement ne choisit plus.
