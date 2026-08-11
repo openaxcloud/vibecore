@@ -16876,9 +16876,37 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const upstreamWasEncoded = response.headers.has('content-encoding');
 
     for (const [key, value] of response.headers.entries()) {
-      if (!['content-encoding', 'content-length', 'transfer-encoding', 'connection'].includes(key.toLowerCase())) {
-        reply.header(key, value);
+      if (['content-encoding', 'content-length', 'transfer-encoding', 'connection'].includes(key.toLowerCase())) {
+        continue;
       }
+
+      /*
+       * Same framing rule as the preview-proxy: this same-origin fallback serves
+       * the preview when PREVIEW_URL_TEMPLATE / PREVIEW_PROXY_URL is absent, so
+       * without this an upstream X-Frame-Options / CSP frame-ancestors blocks
+       * the IDE's iframe and the Webview goes blank at HTTP 200. Kept inline
+       * rather than imported: services/api must not depend on preview-proxy.
+       */
+      const lower = key.toLowerCase();
+
+      if (lower === 'x-frame-options') {
+        continue;
+      }
+
+      if (lower === 'content-security-policy' || lower === 'content-security-policy-report-only') {
+        const kept = value
+          .split(';')
+          .map((directive) => directive.trim())
+          .filter((directive) => directive.length > 0 && !/^frame-ancestors(\s|$)/i.test(directive));
+
+        if (kept.length > 0) {
+          reply.header(key, kept.join('; '));
+        }
+
+        continue;
+      }
+
+      reply.header(key, value);
     }
 
     /*

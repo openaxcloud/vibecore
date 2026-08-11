@@ -432,6 +432,45 @@ export function verifyPreviewTenantToken(
 }
 
 /*
+ * Decide what a preview response may say about who is allowed to frame it.
+ *
+ * The IDE embeds the preview as a cross-origin iframe. Every hop of this proxy
+ * forwards upstream headers verbatim, so a dev server — or any plugin or
+ * framework the user's own app happens to run — that emits `X-Frame-Options` or
+ * a CSP `frame-ancestors` directive makes the browser refuse the frame. The
+ * request still returns 200 with the full document, so the failure surfaces as
+ * a silently blank Webview: nothing in the network tab looks wrong, and reading
+ * the same URL directly works because that is top-level, not framed.
+ *
+ * Returns `null` to drop the header, or the value to send.
+ *
+ * Deliberately narrow: `X-Frame-Options` has no non-framing meaning and is
+ * dropped whole, while a CSP loses ONLY its `frame-ancestors` directive and
+ * keeps every other protection the app asked for (`default-src`, `script-src`,
+ * …). This is a preview surface whose framer is our own IDE; it is not a
+ * general-purpose proxy, and it is not a licence to strip security headers
+ * wholesale.
+ */
+export function sanitizePreviewFramingHeader(name: string, value: string): string | null {
+  const lower = name.toLowerCase();
+
+  if (lower === 'x-frame-options') {
+    return null;
+  }
+
+  if (lower !== 'content-security-policy' && lower !== 'content-security-policy-report-only') {
+    return value;
+  }
+
+  const kept = value
+    .split(';')
+    .map((directive) => directive.trim())
+    .filter((directive) => directive.length > 0 && !/^frame-ancestors(\s|$)/i.test(directive));
+
+  return kept.length > 0 ? kept.join('; ') : null;
+}
+
+/**
  * Pull a single cookie value out of a raw Cookie header. Returns undefined when
  * the header is absent or the named cookie is not present. Tolerant of the
  * surrounding `; ` separators and missing values.
@@ -999,7 +1038,18 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
           return;
         }
 
-        reply.header(name, value);
+        /*
+         * The IDE frames this response cross-origin; an upstream
+         * X-Frame-Options / CSP frame-ancestors would make the browser refuse
+         * the frame and leave a blank Webview at HTTP 200.
+         */
+        const framingSafe = sanitizePreviewFramingHeader(name, value);
+
+        if (framingSafe === null) {
+          return;
+        }
+
+        reply.header(name, framingSafe);
       });
 
       if (!upstreamResponse.body) {
@@ -1133,7 +1183,18 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
           return;
         }
 
-        reply.header(name, value);
+        /*
+         * The IDE frames this response cross-origin; an upstream
+         * X-Frame-Options / CSP frame-ancestors would make the browser refuse
+         * the frame and leave a blank Webview at HTTP 200.
+         */
+        const framingSafe = sanitizePreviewFramingHeader(name, value);
+
+        if (framingSafe === null) {
+          return;
+        }
+
+        reply.header(name, framingSafe);
       });
 
       if (!upstreamResponse.body) {
@@ -1504,7 +1565,18 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
           return;
         }
 
-        reply.header(name, value);
+        /*
+         * The IDE frames this response cross-origin; an upstream
+         * X-Frame-Options / CSP frame-ancestors would make the browser refuse
+         * the frame and leave a blank Webview at HTTP 200.
+         */
+        const framingSafe = sanitizePreviewFramingHeader(name, value);
+
+        if (framingSafe === null) {
+          return;
+        }
+
+        reply.header(name, framingSafe);
       });
 
       if (!upstreamResponse.body) {

@@ -5,6 +5,7 @@ import {
   injectInspectorScript,
   parseServerDeployHost,
   readCookie,
+  sanitizePreviewFramingHeader,
   serverDeployUpstreamUrl,
   signPreviewTenantToken,
   verifyPreviewTenantToken,
@@ -1161,5 +1162,86 @@ describe('preview-proxy', () => {
 
       await app.close();
     });
+  });
+});
+
+/*
+ * BUG-PREVIEW-FRAMING-BLOCKED. The Webview stayed blank while the request
+ * itself returned 200 with the whole document — reading the same URL directly
+ * worked, because that is top-level and not framed. The proxy forwarded the
+ * upstream's `X-Frame-Options` / CSP `frame-ancestors` verbatim, so the browser
+ * refused the IDE's cross-origin iframe and reported nothing an HTTP-level
+ * check could see.
+ */
+describe('sanitizePreviewFramingHeader', () => {
+  it('drops X-Frame-Options whole, whatever its case or value', () => {
+    expect(sanitizePreviewFramingHeader('X-Frame-Options', 'DENY')).toBeNull();
+    expect(sanitizePreviewFramingHeader('x-frame-options', 'SAMEORIGIN')).toBeNull();
+  });
+
+  it('removes ONLY frame-ancestors from a CSP and keeps every other directive', () => {
+    expect(sanitizePreviewFramingHeader('content-security-policy', "default-src 'self'; frame-ancestors 'self'")).toBe(
+      "default-src 'self'",
+    );
+    expect(
+      sanitizePreviewFramingHeader(
+        'Content-Security-Policy',
+        "default-src 'self'; frame-ancestors 'none'; script-src 'unsafe-inline'",
+      ),
+    ).toBe("default-src 'self'; script-src 'unsafe-inline'");
+  });
+
+  it('drops a CSP that carried nothing but frame-ancestors', () => {
+    expect(sanitizePreviewFramingHeader('content-security-policy', "frame-ancestors 'self'")).toBeNull();
+  });
+
+  it('also sanitizes the report-only CSP, which browsers honour for framing reports', () => {
+    expect(
+      sanitizePreviewFramingHeader('content-security-policy-report-only', "default-src 'self'; frame-ancestors 'self'"),
+    ).toBe("default-src 'self'");
+  });
+
+  it('does not touch a directive that merely starts with the same letters', () => {
+    expect(sanitizePreviewFramingHeader('content-security-policy', 'frame-ancestors-not-a-directive foo')).toBe(
+      'frame-ancestors-not-a-directive foo',
+    );
+  });
+
+  it('leaves unrelated headers exactly as they are', () => {
+    expect(sanitizePreviewFramingHeader('content-type', 'text/html')).toBe('text/html');
+    expect(sanitizePreviewFramingHeader('cross-origin-resource-policy', 'cross-origin')).toBe('cross-origin');
+  });
+});
+
+describe('preview-proxy — framing headers through the real app', () => {
+  it('strips upstream framing headers so the IDE can frame the preview, keeping the rest of the CSP', async () => {
+    const fetchImpl = (async () =>
+      new Response('<!doctype html><html><head></head><body><div id="root">app</div></body></html>', {
+        status: 200,
+        headers: {
+          'content-type': 'text/html; charset=utf-8',
+          'x-frame-options': 'SAMEORIGIN',
+          'content-security-policy': "default-src 'self'; frame-ancestors 'self'",
+        },
+      })) as unknown as typeof fetch;
+
+    const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/p/ws_1/5173/',
+      headers: { accept: 'text/html', 'sec-fetch-dest': 'iframe' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['x-frame-options']).toBeUndefined();
+
+    const csp = String(response.headers['content-security-policy'] ?? '');
+    expect(csp).not.toMatch(/frame-ancestors/i);
+
+    // The app's own protections must survive — this strips framing, not security.
+    expect(csp).toContain("default-src 'self'");
+
+    await app.close();
   });
 });
