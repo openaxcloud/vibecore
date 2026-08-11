@@ -1216,6 +1216,29 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
         lower === 'content-length' ||
         lower === 'upgrade' ||
         lower === 'forwarded' ||
+        /*
+         * `cookie` et `authorization` NE DOIVENT JAMAIS atteindre l'amont ici.
+         *
+         * Cet amont est le workload DÉPLOYÉ PAR UN UTILISATEUR : du code arbitraire,
+         * sur un hôte public `d-<id>.<previewDomain>`. Or le cookie de tenant
+         * `vc_preview` est posé avec `Domain=.e-code.ai` et vit 12 h, donc le
+         * navigateur l'envoie AUSSI à cet hôte. Le transmettre livrait le jeton
+         * tenant à l'application publiée, qui n'avait plus qu'à le rejouer pour
+         * accéder aux previews de son propriétaire. Même raisonnement pour
+         * `authorization` : tout bearer que le navigateur porte pour ce domaine.
+         *
+         * Le chemin statique `s-<id>` les retirait déjà (même boucle, ~40 lignes
+         * plus haut) ; celui-ci ne le faisait pas. L'asymétrie entre deux chemins
+         * qui exposent tous deux du code utilisateur était le défaut : un
+         * mécanisme d'exfiltration de credential, pas une simple négligence
+         * d'en-tête.
+         *
+         * Relevé au contre-audit du SHA 3c7c775f. Le test
+         * `services/preview-proxy/src/server-deploy-header-leak.spec.ts` échoue si
+         * l'un des deux réapparaît.
+         */
+        lower === 'cookie' ||
+        lower === 'authorization' ||
         lower.startsWith('x-forwarded-') ||
         lower.startsWith('x-vibecore-')
       ) {

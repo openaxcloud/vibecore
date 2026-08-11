@@ -1,0 +1,10 @@
+############ LIVE — le VRAI proxy route-t-il la forme CHEMIN ? ############
+date: 2026-08-11T13:06:44Z  proxy tag: 3a537e9a7e  TENANT=true PRIVATE=true
+workspace reel ws-route (org_route), pod gVisor, serveur de dev sur 5173
+Requete faite comme le renderer : vers le Service in-cluster du proxy, SANS
+poser Host (le navigateur ne peut pas), autorite dans le CHEMIN.
+
+  chemin + jeton LEGITIME                       HTTP 200  <!doctype html><html><head><script data-ecode-hmr-shim>(func
+  chemin + jeton INTRUS                         HTTP 404  {"error":"The workspace preview is not reachable yet. Please
+  chemin SANS jeton                             HTTP 403  {"error":"You do not have access to this preview.","code":"P
+  ancienne forme: racine sans autorite          HTTP 404  {"message":"Route GET:/ not found","error":"Not Found","stat
