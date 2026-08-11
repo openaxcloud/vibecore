@@ -33127,7 +33127,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
            * sans toucher au schéma.
            */
           const existing = await store.getDeployment(deployment.projectId, deployment.id).catch(() => undefined);
-          const metadata = ((existing?.metadata ?? {}) as Record<string, unknown>) ?? {};
+          const metadata = (existing?.metadata ?? {}) as Record<string, unknown>;
 
           await store.updateDeployment(deployment.projectId, deployment.id, {
             metadata: { ...metadata, expiredAt: new Date().toISOString() },
