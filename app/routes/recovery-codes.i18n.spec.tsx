@@ -148,7 +148,7 @@ async function runAction(password: string) {
     request: new Request('https://e-code.ai/recovery-codes?lang=fr', {
       method: 'POST',
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ password }),
+      body: new URLSearchParams({ password }).toString(),
     }),
     params: {},
     context: {},

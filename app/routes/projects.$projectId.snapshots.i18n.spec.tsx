@@ -162,7 +162,7 @@ async function runAction(fields: Record<string, string>, projectId = 'project-1'
     request: new Request(`https://e-code.ai/projects/${projectId}/snapshots?lang=fr`, {
       method: 'POST',
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams(fields),
+      body: new URLSearchParams(fields).toString(),
     }),
     params: { projectId },
     context: {},

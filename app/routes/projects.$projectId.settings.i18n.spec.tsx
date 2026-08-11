@@ -133,7 +133,7 @@ describe('project settings i18n', () => {
         'accept-language': 'fr-FR,fr;q=0.9',
         'content-type': 'application/x-www-form-urlencoded',
       },
-      body: new URLSearchParams({ intent: 'rename-slug', slug: 'already-used' }),
+      body: new URLSearchParams({ intent: 'rename-slug', slug: 'already-used' }).toString(),
     });
     const result = (await action({ request, params: { projectId: 'project-1' }, context: {} } as never)) as {
       data: { error?: string };

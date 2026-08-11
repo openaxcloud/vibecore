@@ -79,7 +79,7 @@ function actionRequest(token: string, language = 'fr') {
   return new Request(`https://e-code.ai/invitations/accept?lang=${language}`, {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ token }),
+    body: new URLSearchParams({ token }).toString(),
   });
 }
 

@@ -192,7 +192,7 @@ async function runAction(fields: Record<string, string>) {
     request: new Request('https://e-code.ai/account-settings/connected', {
       method: 'POST',
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams(fields),
+      body: new URLSearchParams(fields).toString(),
     }),
   } as never)) as {
     data: { statusCode?: string; errorCode?: string };
@@ -391,7 +391,7 @@ describe('connected accounts loader and action', () => {
         request: new Request('https://e-code.ai/account-settings/connected', {
           method: 'POST',
           headers: { 'content-type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({ intent: 'unlink-identity', provider: 'github' }),
+          body: new URLSearchParams({ intent: 'unlink-identity', provider: 'github' }).toString(),
         }),
       } as never),
     ).rejects.toBe(loginRedirect);

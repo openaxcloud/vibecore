@@ -162,7 +162,7 @@ describe('organization switcher i18n', () => {
       request: request('/organization-switcher?lang=fr', {
         method: 'POST',
         headers: { 'content-type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ name: '' }),
+        body: new URLSearchParams({ name: '' }).toString(),
       }),
     } as never);
 
@@ -177,7 +177,7 @@ describe('organization switcher i18n', () => {
       request: request('/organization-switcher?lang=fr', {
         method: 'POST',
         headers: { 'content-type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ name: 'Northwind' }),
+        body: new URLSearchParams({ name: 'Northwind' }).toString(),
       }),
     } as never);
 

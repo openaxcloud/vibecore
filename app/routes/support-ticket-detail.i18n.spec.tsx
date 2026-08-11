@@ -164,7 +164,7 @@ function actionArgs(
     request: new Request(url, {
       method: 'POST',
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ body }),
+      body: new URLSearchParams({ body }).toString(),
     }),
   } as Parameters<typeof action>[0];
 }

@@ -185,7 +185,7 @@ describe('upgrade i18n', () => {
       request: new Request('https://e-code.ai/upgrade?lang=fr', {
         method: 'POST',
         headers: { 'content-type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ planKey: 'pro', interval: 'monthly' }),
+        body: new URLSearchParams({ planKey: 'pro', interval: 'monthly' }).toString(),
       }),
       params: {},
       context: {},

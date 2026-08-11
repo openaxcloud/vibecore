@@ -168,7 +168,7 @@ describe('MFA setup i18n', () => {
         request: new Request('https://e-code.ai/mfa-setup?lang=fr', {
           method: 'POST',
           headers: { 'content-type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({ intent: 'verify', code: '000000' }),
+          body: new URLSearchParams({ intent: 'verify', code: '000000' }).toString(),
         }),
         params: {},
         context: {} as never,

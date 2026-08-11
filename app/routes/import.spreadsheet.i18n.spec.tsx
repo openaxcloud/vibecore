@@ -73,7 +73,7 @@ function formRequest(fields: Record<string, string>, language = 'fr') {
   return new Request(`https://e-code.ai/import/spreadsheet?lang=${language}`, {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams(fields),
+    body: new URLSearchParams(fields).toString(),
   });
 }
 

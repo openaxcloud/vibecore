@@ -96,7 +96,7 @@ function actionRequest(planKey: string, language = 'fr-FR'): Request {
       'accept-language': language,
       'content-type': 'application/x-www-form-urlencoded',
     },
-    body: new URLSearchParams({ planKey }),
+    body: new URLSearchParams({ planKey }).toString(),
   });
 }
 

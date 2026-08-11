@@ -162,7 +162,7 @@ async function runAction(fields: Record<string, string>) {
     request: new Request('https://e-code.ai/organization-siem?lang=fr', {
       method: 'POST',
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams(fields),
+      body: new URLSearchParams(fields).toString(),
     }),
     params: {},
     context: {},

@@ -197,7 +197,7 @@ describe('localized import routes', () => {
         'accept-language': 'fr-FR,fr;q=0.9',
         'content-type': 'application/x-www-form-urlencoded',
       },
-      body: new URLSearchParams({ name: 'Projet test' }),
+      body: new URLSearchParams({ name: 'Projet test' }).toString(),
     });
 
     const emptyResult = await emptyAction({ request: emptyRequest } as never);
@@ -208,7 +208,7 @@ describe('localized import routes', () => {
         'accept-language': 'fr-FR,fr;q=0.9',
         'content-type': 'application/x-www-form-urlencoded',
       },
-      body: new URLSearchParams(),
+      body: new URLSearchParams().toString(),
     });
 
     const zipResult = await zipAction({ request: zipRequest } as never);
