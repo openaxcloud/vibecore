@@ -1213,9 +1213,16 @@ describe('sanitizePreviewFramingHeader', () => {
   });
 });
 
-describe('preview-proxy — framing headers through the real app', () => {
-  it('strips upstream framing headers so the IDE can frame the preview, keeping the rest of the CSP', async () => {
-    const fetchImpl = (async () =>
+/*
+ * The framing exemption must stop at the IDE preview. A PUBLISHED app is opened
+ * DIRECTLY by the public in a top-level tab — nothing of ours frames it — so
+ * removing its anti-clickjacking headers would let any site on the internet
+ * frame a user's published app. These three cases pin the boundary in both
+ * directions, so a future refactor cannot widen it by accident.
+ */
+describe('preview-proxy — framing headers are scoped to the IDE preview surface', () => {
+  const framingUpstream = () =>
+    (async () =>
       new Response('<!doctype html><html><head></head><body><div id="root">app</div></body></html>', {
         status: 200,
         headers: {
@@ -1225,7 +1232,8 @@ describe('preview-proxy — framing headers through the real app', () => {
         },
       })) as unknown as typeof fetch;
 
-    const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
+  it('IDE preview (/p/:workspaceId/:port): strips framing headers so the IDE can frame the dev server', async () => {
+    const app = await buildPreviewProxyApp({ fetchImpl: framingUpstream(), resolveAgent: async () => fakeAgent });
 
     const response = await app.inject({
       method: 'GET',
@@ -1239,8 +1247,44 @@ describe('preview-proxy — framing headers through the real app', () => {
     const csp = String(response.headers['content-security-policy'] ?? '');
     expect(csp).not.toMatch(/frame-ancestors/i);
 
-    // The app's own protections must survive — this strips framing, not security.
+    // Strips framing, not security: the app's other directives survive.
     expect(csp).toContain("default-src 'self'");
+
+    await app.close();
+  });
+
+  it('PUBLISHED server deploy (d-<id>): keeps X-Frame-Options and frame-ancestors untouched', async () => {
+    const app = await buildPreviewProxyApp({ fetchImpl: framingUpstream(), previewDomain: 'preview.e-code.ai' });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/',
+      headers: { host: 'd-clr8x9abc123.preview.e-code.ai', accept: 'text/html' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['x-frame-options']).toBe('SAMEORIGIN');
+    expect(String(response.headers['content-security-policy'])).toBe("default-src 'self'; frame-ancestors 'self'");
+
+    await app.close();
+  });
+
+  it('PUBLISHED static deploy (s-<id>): keeps X-Frame-Options and frame-ancestors untouched', async () => {
+    const app = await buildPreviewProxyApp({
+      fetchImpl: framingUpstream(),
+      previewDomain: 'preview.e-code.ai',
+      apiBaseUrl: 'http://api.test',
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/',
+      headers: { host: 's-clr8x9abc123.preview.e-code.ai', accept: 'text/html' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['x-frame-options']).toBe('SAMEORIGIN');
+    expect(String(response.headers['content-security-policy'])).toBe("default-src 'self'; frame-ancestors 'self'");
 
     await app.close();
   });

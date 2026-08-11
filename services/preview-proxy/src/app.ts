@@ -432,10 +432,10 @@ export function verifyPreviewTenantToken(
 }
 
 /*
- * Decide what a preview response may say about who is allowed to frame it.
+ * Decide what an IDE-preview response may say about who is allowed to frame it.
  *
- * The IDE embeds the preview as a cross-origin iframe. Every hop of this proxy
- * forwards upstream headers verbatim, so a dev server — or any plugin or
+ * The IDE embeds the dev server as a cross-origin iframe. Every hop of this
+ * proxy forwards upstream headers verbatim, so a dev server — or any plugin or
  * framework the user's own app happens to run — that emits `X-Frame-Options` or
  * a CSP `frame-ancestors` directive makes the browser refuse the frame. The
  * request still returns 200 with the full document, so the failure surfaces as
@@ -444,12 +444,18 @@ export function verifyPreviewTenantToken(
  *
  * Returns `null` to drop the header, or the value to send.
  *
- * Deliberately narrow: `X-Frame-Options` has no non-framing meaning and is
- * dropped whole, while a CSP loses ONLY its `frame-ancestors` directive and
- * keeps every other protection the app asked for (`default-src`, `script-src`,
- * …). This is a preview surface whose framer is our own IDE; it is not a
- * general-purpose proxy, and it is not a licence to strip security headers
- * wholesale.
+ * ONLY EVER CALL THIS ON THE IDE PREVIEW SURFACE — `handlePreviewRequest`
+ * (host `<workspaceId>-<port>`, path `/p/:workspaceId/:port/*`) and the
+ * same-origin API fallback that mirrors it. PUBLISHED apps (`s-<id>` static and
+ * `d-<id>` server deployments) are visited DIRECTLY by the public and are never
+ * framed by us: their anti-clickjacking headers must reach the browser intact.
+ * Stripping them there would let any site on the internet frame a user's
+ * published app — a clickjacking hole we would have opened ourselves.
+ *
+ * Deliberately narrow even where it does apply: `X-Frame-Options` has no
+ * non-framing meaning and is dropped whole, while a CSP loses ONLY its
+ * `frame-ancestors` directive and keeps every other protection the app asked
+ * for (`default-src`, `script-src`, …).
  */
 export function sanitizePreviewFramingHeader(name: string, value: string): string | null {
   const lower = name.toLowerCase();
@@ -1039,17 +1045,12 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
         }
 
         /*
-         * The IDE frames this response cross-origin; an upstream
-         * X-Frame-Options / CSP frame-ancestors would make the browser refuse
-         * the frame and leave a blank Webview at HTTP 200.
+         * PUBLISHED app (s-<id> / d-<id>): visited DIRECTLY by the public, not
+         * framed by the IDE. Its anti-clickjacking headers are forwarded
+         * untouched — stripping them here would let any site frame a user's
+         * published app. Only the IDE preview surface is sanitized.
          */
-        const framingSafe = sanitizePreviewFramingHeader(name, value);
-
-        if (framingSafe === null) {
-          return;
-        }
-
-        reply.header(name, framingSafe);
+        reply.header(name, value);
       });
 
       if (!upstreamResponse.body) {
@@ -1184,17 +1185,12 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
         }
 
         /*
-         * The IDE frames this response cross-origin; an upstream
-         * X-Frame-Options / CSP frame-ancestors would make the browser refuse
-         * the frame and leave a blank Webview at HTTP 200.
+         * PUBLISHED app (s-<id> / d-<id>): visited DIRECTLY by the public, not
+         * framed by the IDE. Its anti-clickjacking headers are forwarded
+         * untouched — stripping them here would let any site frame a user's
+         * published app. Only the IDE preview surface is sanitized.
          */
-        const framingSafe = sanitizePreviewFramingHeader(name, value);
-
-        if (framingSafe === null) {
-          return;
-        }
-
-        reply.header(name, framingSafe);
+        reply.header(name, value);
       });
 
       if (!upstreamResponse.body) {
