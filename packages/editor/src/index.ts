@@ -436,6 +436,35 @@ function modelUriForPath(monaco: typeof import('monaco-editor/esm/vs/editor/edit
   return monaco.Uri.parse(`file:///${normalizeWorkspaceFilePath(filePath)}`);
 }
 
+/**
+ * Which workspace models may be disposed after the index is rebuilt.
+ *
+ * The invariant that matters is the second condition: the model currently
+ * attached to the editor is NEVER disposed. The rebuilt index deliberately
+ * omits the open file, so a naive "dispose everything no longer owned" pass
+ * destroys the model the editor is displaying — opening B while A was open
+ * rebuilds the index as {A, C, …} and disposes B, which was just attached.
+ * The pane then renders empty (no text, no gutter) until a full reload.
+ *
+ * Kept as a pure function so the rule is stated once and covered by tests
+ * rather than living implicitly inside a React effect.
+ */
+export function workspaceModelUrisToDispose(
+  ownedUris: Iterable<string>,
+  nextOwnedUris: ReadonlySet<string>,
+  attachedUri?: string,
+): string[] {
+  const disposable: string[] = [];
+
+  for (const uri of ownedUris) {
+    if (!nextOwnedUris.has(uri) && uri !== attachedUri) {
+      disposable.push(uri);
+    }
+  }
+
+  return disposable;
+}
+
 function getWorkspaceIndex(
   projectFiles: Record<string, string> | undefined,
   currentFilePath?: string,
@@ -1246,7 +1275,15 @@ export function DesktopCodeEditor({
         targetModel = monaco.editor.createModel(value, languageForPath(filePath, language), uri);
       }
 
-      if (activeModel?.uri.toString() !== targetModel.uri.toString()) {
+      /*
+       * Identity, not URI. A disposed model keeps its URI, so comparing URIs
+       * reports "already attached" for a model that can no longer render — the
+       * editor then stays blank until a full reload, because nothing ever
+       * re-attaches. Monaco drops disposed models from its registry, so
+       * `targetModel` above is a fresh instance in that case and comparing
+       * identity re-attaches it.
+       */
+      if (activeModel !== targetModel) {
         editor.setModel(targetModel);
       }
     }
@@ -1323,10 +1360,12 @@ export function DesktopCodeEditor({
         nextOwnedModelUris.add(uri.toString());
       }
 
-      for (const uriString of ownedWorkspaceModelsRef.current) {
-        if (!nextOwnedModelUris.has(uriString)) {
-          monaco.editor.getModel(monaco.Uri.parse(uriString))?.dispose();
-        }
+      for (const uriString of workspaceModelUrisToDispose(
+        ownedWorkspaceModelsRef.current,
+        nextOwnedModelUris,
+        editor.getModel()?.uri.toString(),
+      )) {
+        monaco.editor.getModel(monaco.Uri.parse(uriString))?.dispose();
       }
 
       ownedWorkspaceModelsRef.current = nextOwnedModelUris;
