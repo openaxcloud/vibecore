@@ -1,7 +1,7 @@
 # PR #125 — attribution des échecs CI
 
-Branche `fix/from-scratch-install-dr-clean`, SHA **`593da4c1c2f90c42e4f7a2ce0e3f792ce1184eb9`**,
-rebasée sur `main` = `c90b4bb2`.
+Branche `fix/from-scratch-install-dr-clean`, SHA **`82603d55f7eac77c7cdcb8b1a5bc0f622c9c75bd`**,
+rebasée sur `origin/main` = `b7ae0edc03`.
 
 L'auditeur demande d'**isoler les rouges hérités des nouveaux, avec preuve par SHA**.
 Chaque ligne ci-dessous est établie en rejouant la vérification *exacte* du CI sur
@@ -9,13 +9,31 @@ Chaque ligne ci-dessous est établie en rejouant la vérification *exacte* du CI
 comparant l'état du même job sur les autres PR ouvertes. Aucune n'est un « ça
 échouait déjà, sans doute ».
 
+## Ce tour-ci : un rouge était BIEN de la branche, il est corrigé — pas classé hérité
+
+Au SHA `5e48c2bb60`, `Install, test, build, scan` échouait pour **deux** gardes
+distinctes, toutes deux **imputables à la branche** — le rebase sur `main` avait
+entre-temps réparé la dérive de baseline qui les masquait au tour précédent :
+
+1. `pnpm run i18n:check` → `services/api/src/app.ts: new-file-debt (baseline=0,
+   current=8)`. Les 8 sont exactement les champs `reason` du verdict fail-closed de
+   `/internal/preview/port-access`.
+2. `services/api/src/tests/app-public-copy.spec.ts` → même cause, garde
+   indépendante de l'allowlist i18n.
+
+Vérification d'imputabilité, pas de supposition : le **même scan sur l'`app.ts`
+d'`origin/main`** est propre (`residual=14 in 2 files`, aucun `app.ts`), contre
+`22 in 3 files` avec celui de la branche. Corrigé aux commits `5e48c2bb` (entrée
+d'allowlist ciblée, fichier + règle + motif exact — pas un rebaselinage qui aurait
+absorbé de la vraie dette) et `82603d55` (liste explicite de la garde de l'API).
+
 | Job CI | Verdict | Preuve |
 |---|---|---|
-| **Install, test, build, scan** (Production CI) | **hérité** | Échoue sur le contrôle de copie codée en dur (`node scripts/i18n/scan-source.mjs --check`), pas sur les tests ni le build. Rejoué sur `origin/main` pur : **exactement les mêmes 6 régressions**, `services/preview-proxy/src/app.ts: new-file-debt (baseline=0, current=2)` incluse. Le baseline commité (`scripts/i18n/source-baseline.json`) a dérivé de `main`, indépendamment de cette branche. Vérifié en plus au niveau du fichier : le scanner trouve **9 findings sur `main` et 9 sur la branche, 0 ajouté, 0 supprimé** — les empreintes sont `sha256(règle + texte)`, donc insensibles au décalage de lignes que mon édition provoque. |
-| **Quality Gates** | **hérité, dérivé** | Son unique étape en échec est `Wait for CI checks` : c'est une méta-porte qui attend les autres jobs. Elle est rouge *parce que* Production CI est rouge, et redeviendra verte avec lui. |
+| **Install, test, build, scan** (Production CI) | **était de la branche → CORRIGÉ** | Voir l'encadré ci-dessus : deux gardes de copie codée en dur, déclenchées par les 8 motifs machine du verdict `port-access`. Ni waiver ni rebaselinage — l'allowlist cible le fichier, la règle et les 8 motifs exacts, et la garde de l'API les liste nommément. Contrôle d'imputabilité : le scan est propre avec l'`app.ts` d'`origin/main`, rouge avec celui de la branche. |
+| **Quality Gates** | **dérivé** | Son unique étape en échec est `Wait for CI checks`, une méta-porte qui attend `Install, test, build, scan`. Elle suit ce job, elle n'a pas de cause propre. |
 | **Secret scan (gitleaks, blocking)** | **hérité** | Commande du CI rejouée à l'identique (`gitleaks detect --no-git --source . --config .gitleaks.toml`) sur `origin/main` pur **et** sur la branche : listes de findings **byte-identiques** (`diff` vide, 14/14). Tous dans des captures HTML de pages tierces déjà commitées (`docs/parity/baseline/snapshots/**`, `docs/deploy-evidence/**`) et un bundle vendor (`public/ecode-static/assets/vendor-xterm-*.js`). Aucun dans un fichier ajouté par cette PR. Contrôle complémentaire sur la plage de commits : `gitleaks detect --log-opts=origin/main..HEAD` → **aucun secret**. |
-| **Playwright local stack** (E2E) | **hérité** | Échoue sur **6 PR ouvertes sur 6** (#109, #111, #112, #116, #124, #126), y compris des branches qui ne touchent ni l'infra ni le preview-proxy. Une suite partagée cassée, pas une régression de cette PR. |
-| **Playwright desktop-1024 / 1440 / tablet-768 / mobile-390** (audit i18n live) | **hérité** | Étape `Run exhaustive EN/FR live audit`. Le workflow tourne sur toutes les PR sans filtre de chemins, et #126 — une branche marketing/IDE sans rapport avec l'infra — échoue sur le même job. Même famille de cause que Production CI : le résidu de copie non traduite, dont cette PR ne change rien. |
+| **Playwright local stack** (E2E) | **hérité** | Rouge sur **4 autres PR ouvertes sur 4** vérifiées au même moment (#126, #124, #116, #112), dont des branches qui ne touchent ni l'infra ni le preview-proxy. Suite partagée cassée, pas une régression de cette PR. |
+| **Playwright desktop-1024 / 1440 / tablet-768 / mobile-390** (audit i18n live) | **hérité** | Étape `Run exhaustive EN/FR live audit`. Les **4 mêmes jobs échouent sur #126**, une branche marketing/IDE sans rapport avec l'infra. Le workflow tourne sur toutes les PR sans filtre de chemins. |
 
 **Introduit par cette PR : rien.** Le seul job qui aurait pu l'être — Production CI,
 parce que j'ajoute des chaînes anglaises de journalisation dans
