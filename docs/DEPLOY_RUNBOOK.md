@@ -208,6 +208,29 @@ Finally, after phase 1 a **runtime probe** asks the *deployed* api to activate
 protection and requires a refusal. No static check can prove that about an image
 Cloud Build produced elsewhere.
 
+#### Relation to the release-gate lot (`feat/deploy-exact-sha-gate`)
+
+That lot is the *general* exact-SHA gate for deploys; this one is the *specific*
+binding for the activation interlock. They compose, and deliberately overlap:
+
+| | release-gate lot | SEC-9 here |
+|---|---|---|
+| Pins | `target_sha`, and every job checks out `ref: target_sha` | nothing — it *reads* `SHORT_SHA` |
+| Proves | required checks are green **for that exact commit** | the interlock is in the **production bundle** of that commit |
+| On mismatch | the run cannot proceed on an unpinned commit | disarms activation, fail-closed |
+
+Their `resolve-target` job derives `short_sha = ${TARGET_SHA:0:10}` into the same
+`SHORT_SHA` env this gate already reads, so no rewiring is needed when it lands.
+Once it does, the checkout is *provably* the target and this gate's
+`sha-mismatch` branch becomes unreachable — kept as a belt, since until then it
+is the only thing separating "we inspected tree A" from "we deployed image B".
+
+⚠️ **Both lots restructure `.github/workflows/deploy-main.yml` heavily** (that one
+adds ~840 lines, including new jobs above `build-and-deploy`). Whichever merges
+second will conflict there and must be re-merged by hand — the step ORDER is the
+load-bearing part on this side: `Detect cutover` before the upgrade, and
+`runtime probe → barrier → phase 2` strictly after `Verify rollout`.
+
 ### Replaying the proof (no cluster needed)
 
 ```bash
