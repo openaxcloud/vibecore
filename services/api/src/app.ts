@@ -8876,7 +8876,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const deploymentId = ((request.params as { deploymentId?: string }).deploymentId ?? '').trim();
 
     if (!/^[A-Za-z0-9_-]{1,80}$/.test(deploymentId)) {
-      return reply.code(400).send({ error: 'Invalid deployment id', code: 'STATIC_DEPLOY_INVALID_ID' });
+      return reply.code(400).send({ error: appPublicEnglish('STATIC_DEPLOY_INVALID_ID'), code: 'STATIC_DEPLOY_INVALID_ID' });
     }
 
     const body = (request.body ?? {}) as { password?: unknown };
@@ -8885,7 +8885,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const ownerStatus = await store.getDeploymentOwnerStatus(deploymentId);
 
     if (!ownerStatus || ownerStatus.projectDeletedAt || ownerStatus.status === 'CANCELED') {
-      return reply.code(404).send({ error: 'Static deployment artifact not found', code: 'STATIC_DEPLOY_ARTIFACT_NOT_FOUND' });
+      return reply.code(404).send({ error: appPublicEnglish('STATIC_DEPLOY_ARTIFACT_NOT_FOUND'), code: 'STATIC_DEPLOY_ARTIFACT_NOT_FOUND' });
     }
 
     // Every response on this credential-checking route is per-request: never cache.
@@ -8896,7 +8896,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     // SEC-1: a gated deployment with a missing/corrupt hash is LOCKED — it cannot
     // be unlocked (there is no valid password to match), and must never open.
     if (access.mode === 'locked') {
-      return reply.code(503).send({ error: 'This deployment is locked.', code: 'DEPLOYMENT_ACCESS_LOCKED' });
+      return reply.code(503).send({ error: appPublicCopy('DEPLOYMENT_ACCESS_LOCKED', transactionalLocaleForRequest(request)), code: 'DEPLOYMENT_ACCESS_LOCKED' });
     }
 
     // Not gated: nothing to unlock. Report OK so a stale gate form degrades gracefully.
@@ -8905,7 +8905,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     if (!password || !verifyPassword(password, access.passwordHash)) {
-      return reply.code(401).send({ error: 'Incorrect password', code: 'DEPLOYMENT_PASSWORD_INCORRECT' });
+      return reply.code(401).send({ error: appPublicCopy('DEPLOYMENT_PASSWORD_INCORRECT', transactionalLocaleForRequest(request)), code: 'DEPLOYMENT_PASSWORD_INCORRECT' });
     }
 
     // SEC-5/6: an EXPIRING token (server-verified) signed with the DEDICATED key.
@@ -9045,7 +9045,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     // SEC-1: a locked deployment (password mode, hash gone) serves nothing.
     if (access.mode === 'locked') {
-      return reply.code(503).send({ error: 'This deployment is locked.', code: 'DEPLOYMENT_ACCESS_LOCKED' });
+      return reply.code(503).send({ error: appPublicCopy('DEPLOYMENT_ACCESS_LOCKED', transactionalLocaleForRequest(request)), code: 'DEPLOYMENT_ACCESS_LOCKED' });
     }
 
     if (access.mode === 'password' && access.passwordHash) {
@@ -9062,7 +9062,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             .send(accessGateHtml());
         }
 
-        return reply.code(401).send({ error: 'Password required', code: 'DEPLOYMENT_PASSWORD_REQUIRED' });
+        return reply.code(401).send({ error: appPublicCopy('DEPLOYMENT_PASSWORD_REQUIRED', transactionalLocaleForRequest(request)), code: 'DEPLOYMENT_PASSWORD_REQUIRED' });
       }
     }
 
@@ -34180,14 +34180,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     if (body.mode === 'password' && !body.password) {
-      return reply.code(400).send({ error: 'A password is required for mode=password', code: 'DEPLOYMENT_ACCESS_PASSWORD_REQUIRED' });
+      return reply.code(400).send({ error: appPublicCopy('DEPLOYMENT_ACCESS_PASSWORD_REQUIRED', transactionalLocaleForRequest(request)), code: 'DEPLOYMENT_ACCESS_PASSWORD_REQUIRED' });
     }
 
     const project = await requireProject(request, store, projectId, 'projects:write');
     const deployment = await store.getDeployment(project.id, deploymentId);
 
     if (!deployment) {
-      return reply.code(404).send({ error: 'Deployment not found', code: 'DEPLOYMENT_NOT_FOUND' });
+      return reply.code(404).send({ error: appPublicEnglish('DEPLOYMENT_NOT_FOUND'), code: 'DEPLOYMENT_NOT_FOUND' });
     }
 
     /*
@@ -34224,8 +34224,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     if (body.mode === 'password' && process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED !== '1') {
       return reply.code(503).send({
-        error:
-          'Password protection cannot be activated yet: the deployment cache-drain window has not elapsed. Retry shortly.',
+        error: appPublicCopy('DEPLOYMENT_ACCESS_ACTIVATION_DISABLED', transactionalLocaleForRequest(request)),
         code: 'DEPLOYMENT_ACCESS_ACTIVATION_DISABLED',
       });
     }
