@@ -1,10 +1,9 @@
-import type { SolutionCopyByLanguage } from './solution-copy';
+import type { CapturedSolutionCopyByLanguage } from './solution-copy';
 
 /**
- * SOL — Enterprise. Declined from the App Builder gabarit, centered on a governed
- * organization rollout of E-Code (SSO, SCIM, roles, audit export, private runtime
- * planning, governed deploys and support). All demo data is fictional and labeled;
- * the one real captured E-Code IDE proof lives on /solutions/app-builder.
+ * SOL — Enterprise. Dedicated governed-organization story in EN and FR. All
+ * member, role, audit, deployment, and readiness data is fictional and labeled;
+ * proof claims stop at the Northwind Control generation and local Webview state.
  */
 export const ENTERPRISE_COPY = {
   en: {
@@ -12,6 +11,8 @@ export const ENTERPRISE_COPY = {
       title: 'Enterprise Rollout with Governance | E-Code',
       description:
         'Plan an E-Code rollout around SSO and SCIM integration, role-based access, audit export, deployment approvals, and runtime requirements — with tenant validation before production enablement.',
+      ogImageAlt:
+        'E-Code Enterprise workspace with Northwind Control source files and the fictional local governance console in Webview.',
     },
     hero: {
       eyebrow: 'Enterprise rollout for governed engineering teams',
@@ -26,32 +27,33 @@ export const ENTERPRISE_COPY = {
     languageSwitch: { label: 'Choose the Enterprise page language', english: 'English', french: 'Français' },
     demo: {
       badge: 'Fictional demo data',
-      brand: 'Northwind Platform',
+      brand: 'Northwind Control',
       brandType: 'Platform engineering',
       nav: ['Members', 'Audit', 'Deploys'],
       eyebrow: 'Organization console',
       title: 'Recent audit events',
       intro:
-        'A responsive organization console that surfaces identity, audit events, and controls in one governed view.',
+        'A responsive local organization-console demonstration that keeps identity readiness, audit events, and controls visible without implying live integrations.',
       primaryHeading: 'Recent audit events',
       primaryRows: [
-        { label: 'Role changed — Engineering', meta: 'admin · 12:04', status: 'SSO' },
-        { label: 'Member provisioned — Platform', meta: 'scim-sync · 11:47' },
-        { label: 'Deploy approved — Payments API', meta: 'release-owner · 11:20' },
+        { label: 'Role boundary review — Engineering', meta: 'Local sample · pending', status: 'SSO' },
+        { label: 'Provisioning readiness — Platform', meta: 'Local sample · unconnected' },
+        { label: 'Deployment approval — Payments API', meta: 'Local sample · review only' },
       ],
       asideHeading: 'Controls',
       asideRows: [
-        { label: 'Identity / SSO', value: 'SCIM' },
-        { label: 'Audit export', value: 'Enabled' },
-        { label: 'Runtime', value: 'Private planning' },
+        { label: 'Identity / SSO', value: 'Not connected' },
+        { label: 'Audit export', value: 'Local only' },
+        { label: 'Runtime', value: 'Planning only' },
       ],
       asideCta: 'Export audit log',
-      disclaimer: 'Inline responsive demonstration · fictional organization data · not a generation record',
+      disclaimer:
+        'Fictional local demonstration · no live identity provider, directory, runtime, audit export, or deployment connection · not a generation record',
       caption: {
-        title: 'An org console that reads like a real governed rollout',
-        body: 'This inline demonstration shows an audit event feed, identity and control status, and an audit export action in one responsive layout.',
+        title: 'A local control surface for reviewing a governed rollout',
+        body: 'This demonstration brings a fictional audit feed, integration readiness, role review, and a local export action into one responsive layout.',
       },
-      alt: 'Enterprise organization console demonstration with a recent audit event list and an identity controls panel.',
+      alt: 'Northwind Control local organization-console demonstration with fictional audit events, role review, and clearly unconnected identity controls.',
     },
     problem: {
       eyebrow: 'From ungoverned adoption to a controlled rollout',
@@ -76,51 +78,68 @@ export const ENTERPRISE_COPY = {
         'The E-Code enterprise rollout maps identity integration, roles, audit export, runtime requirements, and deployment approvals to your existing controls. Configuration and tenant validation precede production enablement.',
     },
     build: {
-      eyebrow: 'One request frames the rollout',
-      title: 'Describe the governance, not the plumbing',
+      eyebrow: 'One prompt frames the control surface',
+      title: 'Model the review workflow without pretending the integrations are live',
       intro:
-        'The request below reads like a note from a platform lead. The four items map what a governed rollout provides — identity, governance, controlled delivery, and support — over real infrastructure, not a locked template.',
+        'The request below asks E-Code for a local governance console that a platform team can inspect. It demonstrates the interface and review flow while keeping real identity, directory, runtime, and deployment connections explicitly out of scope.',
       label: 'Example prompt',
       promptText:
-        'Roll out E-Code across our engineering org with SSO, role-based access, audit export, and governed deployments.',
+        'Create Northwind Control, a governed organization console with members, role boundaries, audit events, deployment approvals, SSO and SCIM readiness, and private-runtime planning, using fictional local data only.',
       outputs: [
         {
-          title: 'Identity and provisioning',
-          body: 'E-Code includes SAML/OIDC and SCIM configuration paths. Your identity metadata, role mapping, joiner/leaver behavior, and tenant connection are validated before they govern production access.',
+          title: 'Identity-readiness interface',
+          body: 'The local console presents SSO and SCIM readiness, members, and role boundaries as fictional review states. It does not connect an identity provider or provision an account.',
         },
         {
-          title: 'Governance and access',
-          body: 'Role-based access scopes build, review, deploy, and administration actions. The rollout verifies which identity, access, and deployment events enter the audit export required by your review process.',
+          title: 'Local audit and role review',
+          body: 'A fictional event feed and role-review view make the intended governance workflow inspectable without claiming a production audit trail or enforced authorization.',
         },
         {
-          title: 'Controlled delivery',
-          body: 'Runtime isolation is an architecture and rollout decision, not a default entitlement. Deployment roles and approval paths are configured and tested against the environments in scope.',
+          title: 'Deployment and runtime planning',
+          body: 'Local approval states and private-runtime planning prompts clarify the decisions to validate later. No deployment platform, private runtime, or production environment is connected.',
         },
         {
-          title: 'Rollout support',
-          body: 'A guided rollout plan, onboarding for teams, and a support path help the organization adopt E-Code in stages rather than all at once.',
+          title: 'Inspectable React and TypeScript project',
+          body: 'The Agent keeps the brief, generated source, local state, and running Webview together so the team can review the control surface before any tenant configuration work.',
         },
       ],
     },
     proofLink: {
-      eyebrow: 'Prompt → agent → Preview',
-      title: 'Inspect the real IDE workflow before planning an organization rollout',
-      body: 'These two captures come from the real App Builder salon-booking run: the prompt, the agent, the generated files, and the running Preview all appear inside E-Code. They prove the build workflow; they do not claim that the fictional organization console above came from that run.',
-      galleryLabel: 'Real IDE evidence from the App Builder salon-booking reference run',
+      eyebrow: 'Northwind Control prompt → Agent → governed Webview',
+      title: 'Inspect the local governance console generated inside E-Code',
+      body: 'These dedicated E-Code captures keep the Northwind Control prompt, Agent activity, generated React and TypeScript files, and fictional local organization console in one workspace. The second state opens “Export ready” from “Export audit log.”',
+      galleryLabel: 'Captured Northwind Control generation and local audit-export interaction inside E-Code',
       disclaimer:
-        'Reference evidence only: both images are genuine captures of the App Builder salon run. The Enterprise console on this page is a scripted role demonstration with fictional organization data, not a generation log.',
-      openFullSizeLabel: 'Open the enterprise workflow reference at full size',
+        'Captured E-Code generation · fictional local members, roles, events, approvals, and readiness states · no live identity provider, directory, audit export, private runtime, deployment integration, or tenant validation is demonstrated',
+      openFullSizeLabel: 'Open the Northwind Control capture at full size',
       preview: {
-        title: 'A real workspace moves from prompt to running Preview',
-        body: 'The first reference capture shows the salon prompt, the agent conversation, the generated project tree, and the booking app running together in the E-Code IDE.',
-        alt: 'Real E-Code App Builder salon run showing the agent, generated project files, and booking application in the Preview tab, used as workflow evidence for the Enterprise page.',
+        title: 'Northwind Control runs beside the files created by the Agent',
+        body: 'The first capture shows the dedicated governance brief and generated project tree while Webview renders fictional members, role boundaries, audit events, deployment approvals, and integration-readiness notices.',
+        alt: 'Real E-Code Enterprise workspace showing the Northwind Control prompt, Agent activity, generated React and TypeScript files, and a fictional local organization console in Webview.',
       },
       iteration: {
-        title: 'The same workspace records the next requested change',
-        body: 'The second reference capture shows a follow-up instruction and the updated Preview, illustrating the inspectable iteration loop an enterprise rollout governs.',
-        alt: 'Real E-Code App Builder salon run after an iteration, with the follow-up agent exchange and updated Preview visible inside the IDE.',
+        title: 'A verified audit-export click opens the local ready state',
+        body: 'After the single generation, a verified click on “Export audit log” opens “Export ready” with the fictional local event scope. It proves the interface transition, not an external export, live audit coverage, or tenant integration.',
+        alt: 'E-Code Enterprise capture after the verified Export audit log click, with Northwind Control files and the local Export ready panel in Webview.',
       },
-      cta: { label: 'See the real IDE proof', ariaLabel: 'See the real E-Code IDE proof on the App Builder page' },
+      cta: {
+        label: 'Inspect the captured Northwind Control run',
+        ariaLabel: 'Inspect the captured E-Code Northwind Control generation and local Export ready interaction',
+      },
+    },
+    proofVisualAlts: {
+      prompt:
+        'E-Code Agent prompt requesting Northwind Control with members, role boundaries, audit events, deployment approvals, and SSO and SCIM readiness.',
+      preview:
+        'E-Code workspace with generated Northwind Control React and TypeScript files and the fictional local organization console open in Webview.',
+      webviewOverview:
+        'Northwind Control in Webview with fictional members, audit events, deployment reviews, and visibly unconnected integrations.',
+      iteration:
+        'E-Code workspace after the verified Export audit log click, with Northwind Control files and Export ready in Webview.',
+      webviewIteration:
+        'Northwind Control Export ready panel listing the fictional local event scope after the verified audit-export interaction.',
+      files:
+        'E-Code file tree for Northwind Control with editable member, role, audit-event, deployment-approval, and readiness source.',
     },
     deliverables: {
       eyebrow: 'What your organization receives',
@@ -260,6 +279,8 @@ export const ENTERPRISE_COPY = {
       title: 'Déploiement entreprise avec gouvernance | E-Code',
       description:
         'Planifiez un déploiement E-Code autour de l’intégration SSO et SCIM, des accès par rôle, de l’export d’audit, des approbations de livraison et des exigences runtime, avec validation du tenant avant activation en production.',
+      ogImageAlt:
+        'Workspace E-Code Entreprise avec fichiers Northwind Control et console locale fictive de gouvernance dans la Webview.',
     },
     hero: {
       eyebrow: 'Déploiement entreprise pour des équipes d’ingénierie gouvernées',
@@ -277,32 +298,33 @@ export const ENTERPRISE_COPY = {
     languageSwitch: { label: 'Choisir la langue de la page Entreprise', english: 'English', french: 'Français' },
     demo: {
       badge: 'Données fictives',
-      brand: 'Northwind Platform',
+      brand: 'Northwind Control',
       brandType: 'Ingénierie de plateforme',
       nav: ['Membres', 'Audit', 'Déploiements'],
       eyebrow: 'Console d’organisation',
       title: 'Événements d’audit récents',
       intro:
-        'Une console d’organisation responsive qui présente l’identité, les événements d’audit et les contrôles dans une vue gouvernée.',
+        'Une démonstration locale responsive de console d’organisation qui garde visibles la préparation de l’identité, les événements d’audit et les contrôles sans suggérer d’intégrations actives.',
       primaryHeading: 'Événements d’audit récents',
       primaryRows: [
-        { label: 'Rôle modifié — Ingénierie', meta: 'admin · 12:04', status: 'SSO' },
-        { label: 'Membre provisionné — Plateforme', meta: 'scim-sync · 11:47' },
-        { label: 'Déploiement approuvé — API Paiements', meta: 'release-owner · 11:20' },
+        { label: 'Revue des limites de rôle — Ingénierie', meta: 'Exemple local · en attente', status: 'SSO' },
+        { label: 'Préparation du provisionnement — Plateforme', meta: 'Exemple local · non connecté' },
+        { label: 'Approbation de déploiement — API Paiements', meta: 'Exemple local · revue uniquement' },
       ],
       asideHeading: 'Contrôles',
       asideRows: [
-        { label: 'Identité / SSO', value: 'SCIM' },
-        { label: 'Export d’audit', value: 'Activé' },
-        { label: 'Runtime', value: 'Planification privée' },
+        { label: 'Identité / SSO', value: 'Non connecté' },
+        { label: 'Export d’audit', value: 'Local uniquement' },
+        { label: 'Runtime', value: 'Planification uniquement' },
       ],
       asideCta: 'Exporter le journal d’audit',
-      disclaimer: 'Démonstration responsive intégrée · données d’organisation fictives · pas une trace de génération',
+      disclaimer:
+        'Démonstration locale fictive · aucun fournisseur d’identité, annuaire, runtime, export d’audit ni déploiement connecté · pas une trace de génération',
       caption: {
-        title: 'Une console d’organisation qui se lit comme un vrai déploiement gouverné',
-        body: 'Cette démonstration intégrée présente un flux d’événements d’audit, l’état de l’identité et des contrôles, et une action d’export d’audit dans une mise en page responsive.',
+        title: 'Une surface locale pour examiner un déploiement gouverné',
+        body: 'Cette démonstration réunit un flux d’audit fictif, l’état de préparation des intégrations, la revue des rôles et une action d’export locale dans une mise en page responsive.',
       },
-      alt: 'Démonstration de console d’organisation entreprise avec une liste d’événements d’audit récents et un panneau de contrôles d’identité.',
+      alt: 'Démonstration locale de Northwind Control avec événements d’audit fictifs, revue des rôles et contrôles d’identité clairement non connectés.',
     },
     problem: {
       eyebrow: 'De l’adoption non gouvernée à un déploiement contrôlé',
@@ -328,54 +350,68 @@ export const ENTERPRISE_COPY = {
         'Le déploiement entreprise E-Code aligne l’intégration d’identité, les rôles, l’export d’audit, les exigences runtime et les approbations de livraison sur vos contrôles existants. La configuration et la validation du tenant précèdent l’activation en production.',
     },
     build: {
-      eyebrow: 'Une demande cadre le déploiement',
-      title: 'Décrivez la gouvernance, pas la tuyauterie',
+      eyebrow: 'Un prompt cadre la surface de contrôle',
+      title: 'Modélisez la revue sans prétendre que les intégrations sont actives',
       intro:
-        'La demande ci-dessous se lit comme un mot d’un responsable plateforme. Les quatre éléments cartographient ce qu’un déploiement gouverné fournit — identité, gouvernance, livraison contrôlée et support — sur une vraie infrastructure, pas un template verrouillé.',
+        'La demande ci-dessous confie à E-Code une console locale de gouvernance que l’équipe plateforme peut inspecter. Elle démontre l’interface et le parcours de revue tout en gardant explicitement hors périmètre les connexions réelles d’identité, d’annuaire, de runtime et de déploiement.',
       label: 'Exemple de prompt',
       promptText:
-        'Déployez E-Code dans toute notre organisation d’ingénierie avec le SSO, des accès par rôle, l’export d’audit et des déploiements gouvernés.',
+        'Créez Northwind Control, une console d’organisation gouvernée avec membres, limites de rôles, événements d’audit, approbations de déploiement, préparation SSO et SCIM, et planification d’un runtime privé, uniquement avec des données locales fictives.',
       outputs: [
         {
-          title: 'Identité et provisionnement',
-          body: 'E-Code inclut des parcours de configuration SAML/OIDC et SCIM. Vos métadonnées d’identité, le mapping des rôles, les arrivées et départs, et la connexion du tenant sont validés avant de gouverner les accès de production.',
+          title: 'Interface de préparation de l’identité',
+          body: 'La console locale présente la préparation SSO et SCIM, les membres et les limites de rôles comme des états de revue fictifs. Elle ne connecte aucun fournisseur d’identité et ne provisionne aucun compte.',
         },
         {
-          title: 'Gouvernance et accès',
-          body: 'Les accès par rôle cadrent les actions de construction, revue, déploiement et administration. Le déploiement vérifie quels événements d’identité, d’accès et de livraison entrent dans l’export exigé par votre processus de revue.',
+          title: 'Audit local et revue des rôles',
+          body: 'Un flux d’événements fictifs et une vue de revue des rôles rendent le parcours de gouvernance inspectable sans revendiquer de piste d’audit en production ni d’autorisation appliquée.',
         },
         {
-          title: 'Livraison contrôlée',
-          body: 'L’isolation du runtime est une décision d’architecture et de déploiement, pas un droit activé par défaut. Les rôles et parcours d’approbation sont configurés et testés selon les environnements du périmètre.',
+          title: 'Planification du déploiement et du runtime',
+          body: 'Des états locaux d’approbation et des indications de planification du runtime privé explicitent les décisions à valider ensuite. Aucune plateforme de déploiement, aucun runtime privé ni environnement de production n’est connecté.',
         },
         {
-          title: 'Support au déploiement',
-          body: 'Un plan de déploiement guidé, un onboarding des équipes et un canal de support aident l’organisation à adopter E-Code par étapes plutôt que d’un seul coup.',
+          title: 'Projet React et TypeScript inspectable',
+          body: 'L’Agent garde le brief, la source générée, l’état local et la Webview active ensemble afin que l’équipe examine la surface de contrôle avant tout travail de configuration du tenant.',
         },
       ],
     },
     proofLink: {
-      eyebrow: 'Prompt → agent → aperçu',
-      title: 'Inspectez le vrai parcours IDE avant de planifier un déploiement organisationnel',
-      body: 'Ces deux captures viennent du vrai run App Builder du salon de coiffure : le prompt, l’agent, les fichiers générés et l’aperçu actif apparaissent ensemble dans E-Code. Elles prouvent le parcours de construction ; elles ne prétendent pas que la console d’organisation fictive ci-dessus vient de ce run.',
-      galleryLabel: 'Preuves IDE réelles du run de référence App Builder du salon',
+      eyebrow: 'Prompt Northwind Control → Agent → Webview gouvernée',
+      title: 'Inspectez la console locale de gouvernance générée dans E-Code',
+      body: 'Ces captures E-Code dédiées réunissent dans un même workspace le prompt Northwind Control, l’activité de l’Agent, les fichiers React et TypeScript générés et la console d’organisation locale fictive. Le second état ouvre « Export prêt » depuis « Exporter le journal ».',
+      galleryLabel: 'Génération Northwind Control capturée et interaction locale d’export d’audit dans E-Code',
       disclaimer:
-        'Preuve de référence uniquement : les deux images sont de vraies captures du run App Builder du salon. La console Entreprise de cette page est une démonstration scénarisée avec des données d’organisation fictives, pas un journal de génération.',
-      openFullSizeLabel: 'Ouvrir la référence du parcours entreprise en plein format',
+        'Génération E-Code capturée · membres, rôles, événements, approbations et états de préparation locaux fictifs · aucun fournisseur d’identité, annuaire, export d’audit, runtime privé, déploiement ni tenant validé démontré',
+      openFullSizeLabel: 'Ouvrir la capture Northwind Control en grand',
       preview: {
-        title: 'Un vrai workspace passe du prompt à l’aperçu actif',
-        body: 'La première capture de référence montre le prompt du salon, l’échange avec l’agent, l’arborescence générée et l’application de réservation qui tourne dans l’IDE E-Code.',
-        alt: 'Vrai run App Builder E-Code du salon montrant l’agent, les fichiers projet générés et l’application de réservation dans l’onglet Aperçu, utilisé comme preuve de parcours pour la page Entreprise.',
+        title: 'Northwind Control tourne à côté des fichiers créés par l’Agent',
+        body: 'La première capture montre le brief de gouvernance dédié et l’arborescence générée pendant que la Webview affiche membres fictifs, limites de rôles, événements d’audit, approbations de déploiement et avertissements sur les intégrations.',
+        alt: 'Vrai workspace Entreprise E-Code montrant le prompt Northwind Control, l’activité de l’Agent, les fichiers React et TypeScript générés et une console d’organisation locale fictive dans la Webview.',
       },
       iteration: {
-        title: 'Le même workspace conserve la modification demandée ensuite',
-        body: 'La seconde capture de référence montre une instruction de suivi et l’aperçu mis à jour, soit la boucle d’itération inspectable qu’un déploiement entreprise encadre.',
-        alt: 'Vrai run App Builder E-Code du salon après une itération, avec l’échange de suivi de l’agent et l’aperçu mis à jour visibles dans l’IDE.',
+        title: 'Un clic vérifié sur l’export d’audit ouvre l’état local prêt',
+        body: 'Après la génération unique, un clic vérifié sur « Exporter le journal » ouvre « Export prêt » avec le périmètre fictif des événements locaux. Il prouve la transition d’interface, pas un export externe, une couverture d’audit active ni une intégration tenant.',
+        alt: 'Capture E-Code Entreprise après le clic vérifié sur Exporter le journal, avec les fichiers Northwind Control et le panneau local Export prêt dans la Webview.',
       },
       cta: {
-        label: 'Voir la preuve IDE réelle',
-        ariaLabel: 'Voir la preuve IDE réelle E-Code sur la page App Builder',
+        label: 'Inspecter l’exécution Northwind Control capturée',
+        ariaLabel: 'Inspecter la génération Northwind Control capturée dans E-Code et l’interaction locale Export prêt',
       },
+    },
+    proofVisualAlts: {
+      prompt:
+        'Prompt de l’Agent E-Code demandant Northwind Control avec membres, limites de rôles, événements d’audit, approbations de déploiement et préparation SSO et SCIM.',
+      preview:
+        'Workspace E-Code avec fichiers React et TypeScript Northwind Control générés et console d’organisation locale fictive dans la Webview.',
+      webviewOverview:
+        'Northwind Control dans la Webview avec membres fictifs, événements d’audit, revues de déploiement et intégrations visiblement non connectées.',
+      iteration:
+        'Workspace E-Code après le clic vérifié sur Exporter le journal, avec fichiers Northwind Control et état Export prêt dans la Webview.',
+      webviewIteration:
+        'Panneau Export prêt de Northwind Control listant le périmètre fictif des événements locaux après l’interaction vérifiée.',
+      files:
+        'Arborescence E-Code de Northwind Control avec sources modifiables des membres, rôles, événements d’audit, approbations et états de préparation.',
     },
     deliverables: {
       eyebrow: 'Ce que reçoit votre organisation',
@@ -516,4 +552,4 @@ export const ENTERPRISE_COPY = {
       finalCtaLabel: 'Démarrer votre déploiement entreprise',
     },
   },
-} as const satisfies SolutionCopyByLanguage;
+} as const satisfies CapturedSolutionCopyByLanguage;
