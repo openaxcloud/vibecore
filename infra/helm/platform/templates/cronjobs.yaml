@@ -29,6 +29,11 @@
       "schedule" "*/15 * * * *"
       "queue" "workspace-jobs"
       "job" "workspace.gc")
+    "workspaceFreezeReconcile" (dict
+      "enabled" true
+      "schedule" "20 * * * *"
+      "queue" "workspace-jobs"
+      "job" "workspace.freezeReconcile")
     "connectorHealth" (dict
       "enabled" true
       "schedule" "*/30 * * * *"

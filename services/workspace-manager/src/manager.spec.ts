@@ -6,6 +6,7 @@ import type { WorkspaceEvent } from '@vibecore/workspace-sdk';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   JsonWorkspaceStore,
+  MIN_RECONCILE_GRACE_MS,
   WorkspaceManager,
   detectPodTerminalFailure,
   resolveAgentBaseUrl,
@@ -178,6 +179,17 @@ class TestWorkspaceStore implements WorkspaceStore {
     });
 
     return true;
+  }
+
+  /*
+   * R-P3-07: fence tokens still held by a purge with an unexpired lease. Empty by
+   * default, so existing reconciler tests keep exercising the "genuinely orphaned"
+   * path; tests that model a slow-but-alive purge add their token here.
+   */
+  readonly liveFenceTokens = new Set<string>();
+
+  async isPurgeFenceOwnerLive(fenceToken: string) {
+    return this.liveFenceTokens.has(fenceToken);
   }
 }
 
@@ -491,7 +503,7 @@ describe('WorkspaceManager', () => {
       });
     };
 
-    expect(await manager.reconcileStaleWorkspaceFreezes(24 * 60 * 60 * 1000)).toEqual({ reconciled: 0 });
+    expect(await manager.reconcileStaleWorkspaceFreezes(24 * 60 * 60 * 1000)).toMatchObject({ reconciled: 0 });
 
     const after = (await store.get('workspace_1'))!;
     expect(after.purgeFrozen).toBe(true);
@@ -568,6 +580,77 @@ describe('WorkspaceManager', () => {
     expect(k8s.events).toContain('delete:Service:workspace-workspace_1');
   });
 
+  /*
+   * R-P3-07 (expert reserve #2). The reconciler judged "orphaned" on AGE alone, and the
+   * window came straight off the request body — so `graceMs: 0` made every barrier
+   * stale and one sweep cleared the fleet. Two guards now stand in the way; these test
+   * them at the manager, below the HTTP route, so the floor holds for EVERY caller.
+   */
+  it('account-purge P3 (R-P3-07): the reconciler REFUSES a below-floor graceMs, whoever calls it', async () => {
+    const store = new TestWorkspaceStore();
+    const manager = new WorkspaceManager(store, new TestWorkspaceK8sClient(), new TestEventBus(), 'secret');
+    await manager.startWorkspace(input);
+    await manager.freezeWorkspace('workspaces', 'workspace_1', 'owner-N');
+
+    for (const graceMs of [0, -1, 1_000, 60_000, MIN_RECONCILE_GRACE_MS - 1, Number.NaN]) {
+      await expect(manager.reconcileStaleWorkspaceFreezes(graceMs)).rejects.toThrow(
+        'WORKSPACE_RECONCILE_GRACE_TOO_SMALL',
+      );
+    }
+
+    // Every refusal left the barrier exactly where it was.
+    expect((await store.get('workspace_1'))!.purgeFrozen).toBe(true);
+  });
+
+  /*
+   * "Purge longue": a purge that legitimately runs past the grace window keeps
+   * heartbeating its lease. Age says orphaned; liveness says otherwise. If age won, the
+   * reconciler would pull the barrier out from under a running erasure — precisely the
+   * reprovision-during-purge the barrier exists to prevent.
+   */
+  it('account-purge P3 (R-P3-07): a LONG-RUNNING purge keeps its barrier, however far past the window', async () => {
+    const store = new TestWorkspaceStore();
+    const manager = new WorkspaceManager(store, new TestWorkspaceK8sClient(), new TestEventBus(), 'secret');
+    await manager.startWorkspace(input);
+    await manager.freezeWorkspace('workspaces', 'workspace_1', 'owner-slow');
+
+    // Age it far beyond any window, and keep its owner alive.
+    await store.update('workspace_1', { purgeFrozenAt: new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString() });
+    store.liveFenceTokens.add('owner-slow');
+
+    expect(await manager.reconcileStaleWorkspaceFreezes(24 * 60 * 60 * 1000)).toMatchObject({
+      reconciled: 0,
+      skippedLiveOwner: 1,
+    });
+    expect((await store.get('workspace_1'))!.purgeFrozen).toBe(true);
+
+    // Once the lease finally lapses, the same sweep reclaims it — no permanent freeze.
+    store.liveFenceTokens.delete('owner-slow');
+    expect(await manager.reconcileStaleWorkspaceFreezes(24 * 60 * 60 * 1000)).toMatchObject({ reconciled: 1 });
+    expect((await store.get('workspace_1'))!.purgeFrozen).toBe(false);
+  });
+
+  it('account-purge P3 (R-P3-07): a scan error PROPAGATES instead of reporting an empty sweep', async () => {
+    class UnscannableStore extends TestWorkspaceStore {
+      override async list(): Promise<WorkspaceRecord[]> {
+        throw new Error('connection terminated unexpectedly');
+      }
+    }
+
+    const manager = new WorkspaceManager(
+      new UnscannableStore(),
+      new TestWorkspaceK8sClient(),
+      new TestEventBus(),
+      'secret',
+    );
+
+    // Pre-fix this was `.catch(() => [])` → `{reconciled: 0}`, i.e. a broken reconciler
+    // was indistinguishable from a clean sweep and stayed broken silently.
+    await expect(manager.reconcileStaleWorkspaceFreezes(24 * 60 * 60 * 1000)).rejects.toThrow(
+      'connection terminated unexpectedly',
+    );
+  });
+
   it('account-purge P3 (R-P3-04): a barrier orphaned by an abandoned purge is RECOVERABLE by the stale-freeze reconciler (never left frozen forever)', async () => {
     const k8s = new TestWorkspaceK8sClient();
     const store = new TestWorkspaceStore();
@@ -579,21 +662,21 @@ describe('WorkspaceManager', () => {
     expect((await store.get('workspace_1'))!.purgeFrozen).toBe(true);
 
     // A FRESH barrier (within grace) is NOT reclaimed — the purge may still be running.
-    expect(await manager.reconcileStaleWorkspaceFreezes(60 * 60 * 1000)).toEqual({ reconciled: 0 });
+    expect(await manager.reconcileStaleWorkspaceFreezes(60 * 60 * 1000)).toMatchObject({ reconciled: 0 });
     expect((await store.get('workspace_1'))!.purgeFrozen).toBe(true);
 
     // Age the barrier past the grace window (models an abandoned/crashed attempt).
     await store.update('workspace_1', { purgeFrozenAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString() });
 
     // The reconciler finds + lifts the orphan (no owner, no pointer) → recovered.
-    expect(await manager.reconcileStaleWorkspaceFreezes(24 * 60 * 60 * 1000)).toEqual({ reconciled: 1 });
+    expect(await manager.reconcileStaleWorkspaceFreezes(24 * 60 * 60 * 1000)).toMatchObject({ reconciled: 1 });
     const recovered = (await store.get('workspace_1'))!;
     expect(recovered.purgeFrozen).toBe(false);
     expect(recovered.purgeFenceToken).toBeUndefined();
     expect(recovered.purgeFrozenAt).toBeUndefined();
 
     // Recovery is idempotent — a second pass reclaims nothing.
-    expect(await manager.reconcileStaleWorkspaceFreezes(24 * 60 * 60 * 1000)).toEqual({ reconciled: 0 });
+    expect(await manager.reconcileStaleWorkspaceFreezes(24 * 60 * 60 * 1000)).toMatchObject({ reconciled: 0 });
   });
 
   it('never runs the real agent-reachability fetch under vitest, even without the timeout env (keeps the root `vitest --run` suite fast)', async () => {
