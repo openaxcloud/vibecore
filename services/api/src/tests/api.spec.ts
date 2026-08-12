@@ -4343,10 +4343,30 @@ export function App() { return 'Old app'; }
     const readme = await zip.file('README.md')!.async('string');
 
     expect(paths).toEqual(['README.md']);
-    expect(readme).toContain('Application files are intentionally left for the IDE agent');
-    expect(readme).toContain(prompt);
     expect(zip.file('package.json')).toBeNull();
     expect(zip.file('src/App.tsx')).toBeNull();
+
+    /*
+     * BUG-QA-PROMPT-IN-README. This assertion used to be
+     * `expect(readme).toContain(prompt)` — it locked IN the leak. The README is
+     * a delivered project file (exported, committed, deployed, visible to every
+     * collaborator), so the user's prompt must never reach it: prompts routinely
+     * carry API keys and database URLs.
+     */
+    expect(readme).not.toContain(prompt);
+
+    /*
+     * …and the prompt must still be available to the IDE, which is what makes
+     * the prompt->app flow work. It now travels through platform state, which is
+     * never exported.
+     */
+    const ideState = await app.inject({
+      method: 'GET',
+      url: `/projects/${project.json().project.id}/ide-state`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(ideState.statusCode).toBe(200);
+    expect(ideState.json().ideState.state.chat.pendingPrompt.prompt).toBe(prompt);
 
     await app.close();
   });
