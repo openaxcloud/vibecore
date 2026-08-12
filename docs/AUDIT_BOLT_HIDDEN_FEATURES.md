@@ -577,7 +577,7 @@ Total features inventoried: 181. Replit tools mapped: 32.
 - **Activity / Event Logs**: surfaced — COMPLETE - Audit trail and project activity timeline
 - **Collaborators / Multiplayer**: surfaced — COMPLETE - Real-time collaboration, presence, permissions
 - **Account / Workspace Settings**: surfaced — COMPLETE - IDE settings, keybindings, account, billing, sessions
-- **Usage / Billing**: code-only — BUILD - Add 'Billing' panel to IDE showing credit balance, effort-based usage per checkpoint, invoices; integrate CreditWallet model (in REPLIT_PARITY_SPEC P0 phase)
+- **Usage / Billing**: surfaced — REQUALIFIED (BD-26) - Billing is realized in the **User area (orgNav)**, not an IDE panel: wallet, credits, PAYG, budget cap, plans, invoices, Stripe portal. The original "add a Billing panel to the IDE" (BUILD) verdict is **superseded** — see `docs/BOLT_FEATURE_PLACEMENT_MATRIX.md` ("Billing … ✅ User (orgNav)").
 - **Monitoring / Metrics**: surfaced — COMPLETE - Runtime health, error tracking, performance metrics
 - **Debugger**: surfaced — COMPLETE - Process inspection, log snapshot, debugger UI state management
 - **Themes / Appearance**: surfaced — COMPLETE - Dark/light theme toggle, persisted to localStorage and document

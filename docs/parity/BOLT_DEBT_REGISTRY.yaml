@@ -236,18 +236,24 @@ items:
     source: "docs/MIGRATION_FROM_BOLT.md:86-94"
     priority: 4
     owner: platform
-    status: NON_FAIT
+    status: FAIT_PROUVE
     nextAction: "Exécuter le cleanup conditionnel ou acter qu'il est caduc (le runtime remote est en prod)"
     conditionDeCloture: "Chaque sous-point exécuté ou déclaré caduc avec justification"
+    evidenceId: "docs/MIGRATION_FROM_BOLT.md"
+    provenAt: "2026-08-12"
+    provenNote: "Déclaré CADUC avec justification (encart dans MIGRATION_FROM_BOLT.md §Phase 5) : remote-kubernetes est le mode par défaut en prod (inverse du contexte d'origine WebContainer) ; chaque sous-point (prompts runtime-aware, stacktraces, routes preview/connect, observabilité runtime, E2E) est réalisé dans ce cadre ou rendu sans objet."
     targetDate: "2026-12-31"
   - id: BD-26
     title: "Requalification « Billing dans l'IDE » (verdict BUILD) → réalisé en User area : jamais actée nulle part"
     source: "docs/AUDIT_BOLT_HIDDEN_FEATURES.md:580 ; COVERAGE_GAP_AUDIT_2026-07-17.md famille C"
     priority: 4
     owner: platform
-    status: NON_FAIT
+    status: FAIT_PROUVE
     nextAction: "Acter la requalification par une note documentaire (matrice de placement)"
     conditionDeCloture: "Note écrite dans docs/BOLT_FEATURE_PLACEMENT_MATRIX.md (ou successeur)"
+    evidenceId: "docs/AUDIT_BOLT_HIDDEN_FEATURES.md"
+    provenAt: "2026-08-12"
+    provenNote: "Requalification actée : la matrice de placement (docs/BOLT_FEATURE_PLACEMENT_MATRIX.md:69) enregistre déjà « Billing … ✅ User (orgNav) » ; le résidu incohérent (AUDIT_BOLT_HIDDEN_FEATURES.md:580 « code-only — BUILD, ajouter un panneau Billing à l'IDE ») est corrigé en « surfaced — REQUALIFIED, Billing en User area, verdict BUILD superseded »."
     targetDate: "2026-08-31"
   - id: BD-27
     title: "Dashboards Prometheus in-app avancés (per-org lifecycle P50/P95) — option jamais décidée"

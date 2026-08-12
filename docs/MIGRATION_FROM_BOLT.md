@@ -85,6 +85,24 @@ Regles :
 
 ### Phase 5 - Nettoyage apres stabilisation
 
+> **CADUC (BD-25, 2026-08-12).** Cette checklist a ete redigee quand le mode
+> WebContainer etait le defaut et le runtime distant experimental. La situation
+> s'est **inversee** : `remote-kubernetes` est le mode par defaut en production
+> (workspace-manager / preview-proxy / workspace-agent, build arg
+> `VITE_RUNTIME_MODE=remote-kubernetes`), et les sous-points ci-dessous ont ete
+> soit realises dans ce cadre, soit rendus sans objet :
+> - **prompts runtime-aware** : les prompts de generation ciblent le runtime
+>   distant (fichiers projet dans `/workspace`, pas de WebContainer).
+> - **stack traces generalisees** / **routes preview/connect** : servies par le
+>   preview-proxy et les routes `/api/runtime/*` de l'API — plus specifiques a
+>   WebContainer.
+> - **observabilite runtime distante** : metriques workspace-lifecycle exposees
+>   (voir `/admin/platform-metrics`).
+> - **E2E deux modes** : le mode WebContainer n'est plus un chemin de production
+>   commerciale ; l'E2E cible le runtime distant reel (env de test dedie).
+>
+> Conserve ci-dessous a titre historique.
+
 Seulement apres validation :
 
 - Deplacer les prompts WebContainer-specifiques vers des prompts runtime-aware.
