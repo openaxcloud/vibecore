@@ -105,7 +105,12 @@ async function paneActions(page: Page, paneIndex = 0) {
   // times since a click can land mid-render on a freshly-split pane.
   await pane.click({ position: { x: 30, y: 8 } }).catch(() => {});
 
-  const trigger = pane.locator('button[aria-label="Tab actions"]').first();
+  /*
+   * RPL-IDE-001.6 — the trigger's aria-label now names the active tab
+   * ("Options for Webview"), so it can no longer be matched by exact text.
+   * The test id is the stable handle.
+   */
+  const trigger = pane.locator('[data-testid="tab-options"]').first();
   const menu = page.locator('.bolt-project-tab-actions-menu').first();
 
   for (let attempt = 0; attempt < 4; attempt += 1) {

@@ -14936,10 +14936,14 @@ body :where(.lucide, svg[data-lucide]) {
   padding: 6px;
 }
 
+/*
+ * RPL-IDE-001.6 — portalled to <body>, so `fixed` with a JS-computed anchor.
+ * In the normal flow the menu was clipped by the 40 px tab bar (and eight more
+ * `overflow: hidden` ancestors above it) down to a single visible item.
+ */
 .bolt-project-tab-actions-menu {
-  position: absolute;
-  right: 0;
-  top: 32px;
+  position: fixed;
+  z-index: 200;
 }
 
 .bolt-project-tab-actions-menu button {
@@ -26491,11 +26495,16 @@ html[data-ecode-announcement-dismissed='true'] [data-ecode-announcement] {
   font-variant-numeric: tabular-nums;
 }
 
+/*
+ * Portalled to <body> and positioned from the trigger's rect: the topbar slot
+ * this panel anchors to is 32 px tall with `overflow: hidden`, so an in-flow
+ * absolute panel was clipped to nothing (proved live at 1440 — 280x94 popover
+ * inside a 32 px clipping ancestor). `fixed` + a body portal escapes the nine
+ * `overflow: hidden` ancestors between the trigger and the document.
+ */
 .vc-resources-popover {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  z-index: 80;
+  position: fixed;
+  z-index: 200;
   display: grid;
   width: min(280px, calc(100vw - 24px));
   gap: 10px;
@@ -26621,8 +26630,6 @@ html[data-ecode-announcement-dismissed='true'] [data-ecode-announcement] {
   }
 
   .vc-resources-popover {
-    left: auto;
-    right: 0;
     width: min(280px, calc(100vw - 16px));
   }
 }

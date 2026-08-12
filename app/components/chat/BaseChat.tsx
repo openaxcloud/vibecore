@@ -17,7 +17,18 @@ import type { JSONValue, Message } from 'ai';
 import type { TFunction } from 'i18next';
 import Cookies from 'js-cookie';
 import { Copy, Download, Trash2, Users } from 'lucide-react';
-import React, { lazy, Suspense, type RefCallback, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  lazy,
+  Suspense,
+  type RefCallback,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { createPortal } from 'react-dom';
 import { Bar } from 'react-chartjs-2';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import {
@@ -12435,6 +12446,41 @@ function IdeTabBar({
     setOpen(true);
   }, []);
 
+  /*
+   * RPL-IDE-001.6 — the menu is portalled to <body> and positioned from the
+   * trigger's rect. It cannot stay in the normal flow: between the ⋮ button and
+   * the document there are NINE `overflow: hidden` ancestors, the innermost of
+   * them the 40 px-tall tab bar, so the menu was clipped to a single visible
+   * item. (Playwright treats a clipped element as visible — it has a non-empty
+   * box — which is why automated checks never caught it; only a screenshot did.)
+   */
+  const [actionsAnchor, setActionsAnchor] = useState<{ top: number; right: number } | null>(null);
+
+  useLayoutEffect(() => {
+    if (!actionsOpen) {
+      setActionsAnchor(null);
+
+      return undefined;
+    }
+
+    const place = () => {
+      const rect = actionsButtonRef.current?.getBoundingClientRect();
+
+      if (rect) {
+        setActionsAnchor({ top: rect.bottom + 4, right: Math.max(8, window.innerWidth - rect.right) });
+      }
+    };
+
+    place();
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', place, true);
+
+    return () => {
+      window.removeEventListener('resize', place);
+      window.removeEventListener('scroll', place, true);
+    };
+  }, [actionsOpen]);
+
   const closeOptionsMenu = useCallback((options: { restoreFocus?: boolean } = {}) => {
     setActionsOpen(false);
 
@@ -12513,9 +12559,27 @@ function IdeTabBar({
       closeOptionsMenu();
     };
 
+    /*
+     * Escape is handled at the window, not by the menu's own onKeyDown.
+     * The menu is portalled to <body>, i.e. OUTSIDE React's root container, so
+     * its key events do not reliably reach the React handler — proved live at
+     * 1440, where Escape left the menu open. The tool popup already uses this
+     * same window-level pattern.
+     */
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeOptionsMenu({ restoreFocus: true });
+      }
+    };
+
+    window.addEventListener('keydown', handleEscape);
     document.addEventListener('pointerdown', handlePointerDown, true);
 
-    return () => document.removeEventListener('pointerdown', handlePointerDown, true);
+    return () => {
+      window.removeEventListener('keydown', handleEscape);
+      document.removeEventListener('pointerdown', handlePointerDown, true);
+    };
   }, [actionsOpen, closeOptionsMenu]);
 
   useEffect(() => {
@@ -12960,159 +13024,167 @@ function IdeTabBar({
           >
             <span className="i-ph:dots-three" aria-hidden />
           </button>
-          {actionsOpen && (
-            <div
-              ref={actionsMenuRef}
-              className="bolt-project-tab-actions-menu"
-              role="menu"
-              aria-orientation="vertical"
-              aria-label={optionsMenuLabel}
-              data-testid="tab-options-menu"
-              onKeyDown={handleOptionsMenuKeyDown}
-            >
-              <div role="group" aria-label={t('baseChatAst.options.windowGroup')}>
-                <p className="bolt-project-tab-actions-group-label" aria-hidden>
-                  {t('baseChatAst.options.windowGroup')}
-                </p>
-                {onOpenNewWindow ? (
-                  <button
-                    type="button"
-                    role="menuitem"
-                    data-testid="tab-options-open-new-window"
-                    onClick={() => runOptionsAction(() => onOpenNewWindow(activeTabId ?? tabs[0]?.id))}
-                  >
-                    <span className="i-ph:arrow-square-out" aria-hidden />
-                    {t('chat.copy.openInNewWindow_a75732d8')}
-                  </button>
-                ) : null}
-                {onResetLayout ? (
-                  <button
-                    type="button"
-                    role="menuitem"
-                    data-testid="tab-options-reset-layout"
-                    onClick={() => runOptionsAction(() => onResetLayout())}
-                  >
-                    <span className="i-ph:layout" aria-hidden />
-                    {t('baseChatAst.options.resetLayout')}
-                  </button>
-                ) : null}
-              </div>
+          {actionsOpen &&
+            typeof document !== 'undefined' &&
+            createPortal(
+              <div
+                ref={actionsMenuRef}
+                className="bolt-project-tab-actions-menu"
+                role="menu"
+                aria-orientation="vertical"
+                aria-label={optionsMenuLabel}
+                data-testid="tab-options-menu"
+                style={
+                  actionsAnchor
+                    ? { top: `${actionsAnchor.top}px`, right: `${actionsAnchor.right}px` }
+                    : { visibility: 'hidden' }
+                }
+                onKeyDown={handleOptionsMenuKeyDown}
+              >
+                <div role="group" aria-label={t('baseChatAst.options.windowGroup')}>
+                  <p className="bolt-project-tab-actions-group-label" aria-hidden>
+                    {t('baseChatAst.options.windowGroup')}
+                  </p>
+                  {onOpenNewWindow ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      data-testid="tab-options-open-new-window"
+                      onClick={() => runOptionsAction(() => onOpenNewWindow(activeTabId ?? tabs[0]?.id))}
+                    >
+                      <span className="i-ph:arrow-square-out" aria-hidden />
+                      {t('chat.copy.openInNewWindow_a75732d8')}
+                    </button>
+                  ) : null}
+                  {onResetLayout ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      data-testid="tab-options-reset-layout"
+                      onClick={() => runOptionsAction(() => onResetLayout())}
+                    >
+                      <span className="i-ph:layout" aria-hidden />
+                      {t('baseChatAst.options.resetLayout')}
+                    </button>
+                  ) : null}
+                </div>
 
-              <div role="group" aria-label={t('baseChatAst.options.paneGroup')}>
-                <p className="bolt-project-tab-actions-group-label" aria-hidden>
-                  {t('baseChatAst.options.paneGroup')}
-                </p>
-                <button
-                  type="button"
-                  role="menuitem"
-                  data-testid="tab-options-split-right"
-                  onClick={() => runOptionsAction(() => onSplitActiveRight?.(activeTabId ?? tabs[0]?.id))}
-                >
-                  <span className="i-ph:columns" aria-hidden />
-                  {t('chat.copy.splitActiveRight_59014f08')}
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  data-testid="tab-options-split-down"
-                  onClick={() => runOptionsAction(() => onSplitActiveDown?.(activeTabId ?? tabs[0]?.id))}
-                >
-                  <span className="i-ph:rows" aria-hidden />
-                  {t('chat.copy.splitActiveDown_7468f839')}
-                </button>
-                {onToggleFloating ? (
+                <div role="group" aria-label={t('baseChatAst.options.paneGroup')}>
+                  <p className="bolt-project-tab-actions-group-label" aria-hidden>
+                    {t('baseChatAst.options.paneGroup')}
+                  </p>
                   <button
                     type="button"
                     role="menuitem"
-                    data-testid="tab-options-toggle-floating"
-                    onClick={() => runOptionsAction(() => onToggleFloating())}
+                    data-testid="tab-options-split-right"
+                    onClick={() => runOptionsAction(() => onSplitActiveRight?.(activeTabId ?? tabs[0]?.id))}
                   >
-                    <span className={isFloating ? 'i-ph:push-pin' : 'i-ph:frame-corners'} aria-hidden />
-                    {isFloating ? t('chat.copy.dockPane_f6b796f1') : t('chat.copy.floatPane_ca0c0b63')}
+                    <span className="i-ph:columns" aria-hidden />
+                    {t('chat.copy.splitActiveRight_59014f08')}
                   </button>
-                ) : null}
-                {onClosePane ? (
                   <button
                     type="button"
                     role="menuitem"
-                    data-testid="tab-options-close-pane"
-                    onClick={() => runOptionsAction(() => onClosePane())}
+                    data-testid="tab-options-split-down"
+                    onClick={() => runOptionsAction(() => onSplitActiveDown?.(activeTabId ?? tabs[0]?.id))}
                   >
-                    <span className="i-ph:x-square" aria-hidden />
-                    {t('baseChatAst.options.closePane')}
+                    <span className="i-ph:rows" aria-hidden />
+                    {t('chat.copy.splitActiveDown_7468f839')}
                   </button>
-                ) : null}
-              </div>
+                  {onToggleFloating ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      data-testid="tab-options-toggle-floating"
+                      onClick={() => runOptionsAction(() => onToggleFloating())}
+                    >
+                      <span className={isFloating ? 'i-ph:push-pin' : 'i-ph:frame-corners'} aria-hidden />
+                      {isFloating ? t('chat.copy.dockPane_f6b796f1') : t('chat.copy.floatPane_ca0c0b63')}
+                    </button>
+                  ) : null}
+                  {onClosePane ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      data-testid="tab-options-close-pane"
+                      onClick={() => runOptionsAction(() => onClosePane())}
+                    >
+                      <span className="i-ph:x-square" aria-hidden />
+                      {t('baseChatAst.options.closePane')}
+                    </button>
+                  ) : null}
+                </div>
 
-              <div role="group" aria-label={t('baseChatAst.options.tabGroup')}>
-                <p className="bolt-project-tab-actions-group-label" aria-hidden>
-                  {t('baseChatAst.options.tabGroup')}
-                </p>
-                <button
-                  type="button"
-                  role="menuitem"
-                  data-testid="tab-options-pin"
-                  onClick={() => runOptionsAction(() => onTogglePin?.(activeTabId ?? tabs[0]?.id))}
-                >
-                  <span className="i-ph:push-pin-simple" aria-hidden />
-                  {tabs.find((tab) => tab.id === activeTabId)?.pinned
-                    ? t('chat.copy.unpinTab_279bad8b')
-                    : t('chat.copy.pinTab_3623fa20')}
-                </button>
-                {/*
+                <div role="group" aria-label={t('baseChatAst.options.tabGroup')}>
+                  <p className="bolt-project-tab-actions-group-label" aria-hidden>
+                    {t('baseChatAst.options.tabGroup')}
+                  </p>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-testid="tab-options-pin"
+                    onClick={() => runOptionsAction(() => onTogglePin?.(activeTabId ?? tabs[0]?.id))}
+                  >
+                    <span className="i-ph:push-pin-simple" aria-hidden />
+                    {tabs.find((tab) => tab.id === activeTabId)?.pinned
+                      ? t('chat.copy.unpinTab_279bad8b')
+                      : t('chat.copy.pinTab_3623fa20')}
+                  </button>
+                  {/*
                   RPL-IDE-001.4 + .6 — the keyboard route to the cross-pane move.
                   Dragging a tab is a pointer-only gesture; without this, moving a
                   tab between panes was unreachable without a mouse.
                 */}
-                {onMoveTabToPane && otherPanes.length
-                  ? otherPanes.map((pane, index) => (
-                      <button
-                        key={pane.id}
-                        type="button"
-                        role="menuitem"
-                        data-testid={`tab-options-move-to-pane-${index}`}
-                        onClick={() => runOptionsAction(() => onMoveTabToPane(pane.id))}
-                      >
-                        <span className="i-ph:arrow-line-right" aria-hidden />
-                        {t('baseChatAst.options.moveTabToPane', { pane: pane.label })}
-                      </button>
-                    ))
-                  : null}
-                <button
-                  type="button"
-                  role="menuitem"
-                  data-testid="tab-options-close-others"
-                  onClick={() => runOptionsAction(() => onCloseOthers?.(activeTabId ?? tabs[0]?.id))}
-                >
-                  {t('chat.copy.closeOthers_445ef4ad')}
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  data-testid="tab-options-close-to-right"
-                  onClick={() => runOptionsAction(() => onCloseToRight?.(activeTabId ?? tabs[0]?.id))}
-                >
-                  {t('chat.copy.closeToRight_8b7725b0')}
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  data-testid="tab-options-close-saved"
-                  onClick={() => runOptionsAction(() => onCloseSaved?.())}
-                >
-                  {t('chat.copy.closeSaved_40a993da')}
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  data-testid="tab-options-close-all"
-                  onClick={() => runOptionsAction(() => onCloseAll?.())}
-                >
-                  {t('chat.copy.closeAll_98553cc8')}
-                </button>
-              </div>
-            </div>
-          )}
+                  {onMoveTabToPane && otherPanes.length
+                    ? otherPanes.map((pane, index) => (
+                        <button
+                          key={pane.id}
+                          type="button"
+                          role="menuitem"
+                          data-testid={`tab-options-move-to-pane-${index}`}
+                          onClick={() => runOptionsAction(() => onMoveTabToPane(pane.id))}
+                        >
+                          <span className="i-ph:arrow-line-right" aria-hidden />
+                          {t('baseChatAst.options.moveTabToPane', { pane: pane.label })}
+                        </button>
+                      ))
+                    : null}
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-testid="tab-options-close-others"
+                    onClick={() => runOptionsAction(() => onCloseOthers?.(activeTabId ?? tabs[0]?.id))}
+                  >
+                    {t('chat.copy.closeOthers_445ef4ad')}
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-testid="tab-options-close-to-right"
+                    onClick={() => runOptionsAction(() => onCloseToRight?.(activeTabId ?? tabs[0]?.id))}
+                  >
+                    {t('chat.copy.closeToRight_8b7725b0')}
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-testid="tab-options-close-saved"
+                    onClick={() => runOptionsAction(() => onCloseSaved?.())}
+                  >
+                    {t('chat.copy.closeSaved_40a993da')}
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-testid="tab-options-close-all"
+                    onClick={() => runOptionsAction(() => onCloseAll?.())}
+                  >
+                    {t('chat.copy.closeAll_98553cc8')}
+                  </button>
+                </div>
+              </div>,
+              document.body,
+            )}
         </div>
       </div>
       {toolMenu}

@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -43,6 +44,53 @@ export function ProjectResourcesPanel({
   const [snapshot, setSnapshot] = useState<WorkspaceResourceSnapshot | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const popoverRef = useRef<HTMLDivElement | null>(null);
+
+  /*
+   * The popover is portalled to <body> and positioned from the trigger's rect.
+   *
+   * It cannot live in the normal flow: the topbar slot it sits in
+   * (`.bolt-project-topbar-left`) is 32 px tall with `overflow: hidden`, so an
+   * absolutely-positioned panel hanging below the trigger was clipped to
+   * nothing — the button lit up and no panel appeared. Measured live at 1440:
+   * popover 280×94 at y=37 inside a 32 px clipping ancestor.
+   */
+  const [anchor, setAnchor] = useState<{ top: number; left: number } | null>(null);
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setAnchor(null);
+
+      return undefined;
+    }
+
+    const place = () => {
+      const rect = triggerRef.current?.getBoundingClientRect();
+
+      if (!rect) {
+        return;
+      }
+
+      const width = popoverRef.current?.offsetWidth ?? 280;
+
+      /*
+       * Keep the panel on screen on narrow viewports rather than letting it
+       * hang off the right edge.
+       */
+      const left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8));
+
+      setAnchor({ top: rect.bottom + 6, left });
+    };
+
+    place();
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', place, true);
+
+    return () => {
+      window.removeEventListener('resize', place);
+      window.removeEventListener('scroll', place, true);
+    };
+  }, [open]);
 
   const load = useCallback(
     async (signal?: AbortSignal) => {
@@ -119,9 +167,14 @@ export function ProjectResourcesPanel({
     };
 
     const handlePointerDown = (event: PointerEvent) => {
-      if (!containerRef.current?.contains(event.target as Node | null)) {
-        setOpen(false);
+      const target = event.target as Node | null;
+
+      // The panel is portalled out of this subtree, so it has to be checked too.
+      if (containerRef.current?.contains(target) || popoverRef.current?.contains(target)) {
+        return;
       }
+
+      setOpen(false);
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -174,80 +227,90 @@ export function ProjectResourcesPanel({
         ) : null}
       </button>
 
-      {open ? (
-        <div className="vc-resources-popover" role="dialog" aria-label={label} data-testid="project-resources-popover">
-          <div className="vc-resources-popover-head">
-            <strong>{label}</strong>
-            <button
-              type="button"
-              className="vc-resources-refresh"
-              aria-label={t('workspaceResources.refresh')}
-              title={t('workspaceResources.refresh')}
-              onClick={() => void load()}
+      {open && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              ref={popoverRef}
+              className="vc-resources-popover"
+              role="dialog"
+              aria-label={label}
+              data-testid="project-resources-popover"
+              style={anchor ? { top: `${anchor.top}px`, left: `${anchor.left}px` } : { visibility: 'hidden' }}
             >
-              <span className="i-ph:arrows-clockwise" aria-hidden />
-            </button>
-          </div>
+              <div className="vc-resources-popover-head">
+                <strong>{label}</strong>
+                <button
+                  type="button"
+                  className="vc-resources-refresh"
+                  aria-label={t('workspaceResources.refresh')}
+                  title={t('workspaceResources.refresh')}
+                  onClick={() => void load()}
+                >
+                  <span className="i-ph:arrows-clockwise" aria-hidden />
+                </button>
+              </div>
 
-          {state === 'loading' && !snapshot ? (
-            <p className="vc-resources-state" data-testid="project-resources-loading">
-              {t('workspaceResources.loading')}
-            </p>
-          ) : null}
+              {state === 'loading' && !snapshot ? (
+                <p className="vc-resources-state" data-testid="project-resources-loading">
+                  {t('workspaceResources.loading')}
+                </p>
+              ) : null}
 
-          {state === 'unavailable' ? (
-            <p className="vc-resources-state" role="status" data-testid="project-resources-unavailable">
-              {t('workspaceResources.unavailable')}
-            </p>
-          ) : null}
+              {state === 'unavailable' ? (
+                <p className="vc-resources-state" role="status" data-testid="project-resources-unavailable">
+                  {t('workspaceResources.unavailable')}
+                </p>
+              ) : null}
 
-          {snapshot ? (
-            <dl className="vc-resources-list">
-              <ResourceRow
-                testId="project-resources-memory"
-                label={t('workspaceResources.memory')}
-                ratio={memoryRatio}
-                value={
-                  snapshot.memory
-                    ? snapshot.memory.limitBytes !== null
-                      ? `${formatBytes(snapshot.memory.usedBytes, locale)} / ${formatBytes(snapshot.memory.limitBytes, locale)}`
-                      : t('workspaceResources.usedNoLimit', {
-                          used: formatBytes(snapshot.memory.usedBytes, locale),
-                        })
-                    : null
-                }
-                emptyLabel={t('workspaceResources.notMeasured')}
-              />
-              <ResourceRow
-                testId="project-resources-cpu"
-                label={t('workspaceResources.cpu')}
-                ratio={processorRatio}
-                value={cpuLabel}
-                emptyLabel={t('workspaceResources.notMeasured')}
-              />
-              <ResourceRow
-                testId="project-resources-storage"
-                label={t('workspaceResources.storage')}
-                ratio={storageRatio}
-                value={
-                  snapshot.storage
-                    ? `${formatBytes(snapshot.storage.usedBytes, locale)} / ${formatBytes(snapshot.storage.totalBytes, locale)}`
-                    : null
-                }
-                emptyLabel={t('workspaceResources.notMeasured')}
-              />
-            </dl>
-          ) : null}
+              {snapshot ? (
+                <dl className="vc-resources-list">
+                  <ResourceRow
+                    testId="project-resources-memory"
+                    label={t('workspaceResources.memory')}
+                    ratio={memoryRatio}
+                    value={
+                      snapshot.memory
+                        ? snapshot.memory.limitBytes !== null
+                          ? `${formatBytes(snapshot.memory.usedBytes, locale)} / ${formatBytes(snapshot.memory.limitBytes, locale)}`
+                          : t('workspaceResources.usedNoLimit', {
+                              used: formatBytes(snapshot.memory.usedBytes, locale),
+                            })
+                        : null
+                    }
+                    emptyLabel={t('workspaceResources.notMeasured')}
+                  />
+                  <ResourceRow
+                    testId="project-resources-cpu"
+                    label={t('workspaceResources.cpu')}
+                    ratio={processorRatio}
+                    value={cpuLabel}
+                    emptyLabel={t('workspaceResources.notMeasured')}
+                  />
+                  <ResourceRow
+                    testId="project-resources-storage"
+                    label={t('workspaceResources.storage')}
+                    ratio={storageRatio}
+                    value={
+                      snapshot.storage
+                        ? `${formatBytes(snapshot.storage.usedBytes, locale)} / ${formatBytes(snapshot.storage.totalBytes, locale)}`
+                        : null
+                    }
+                    emptyLabel={t('workspaceResources.notMeasured')}
+                  />
+                </dl>
+              ) : null}
 
-          {snapshot?.capturedAt ? (
-            <p className="vc-resources-captured">
-              {t('workspaceResources.capturedAt', {
-                time: new Date(snapshot.capturedAt).toLocaleTimeString(locale),
-              })}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
+              {snapshot?.capturedAt ? (
+                <p className="vc-resources-captured">
+                  {t('workspaceResources.capturedAt', {
+                    time: new Date(snapshot.capturedAt).toLocaleTimeString(locale),
+                  })}
+                </p>
+              ) : null}
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
