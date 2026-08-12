@@ -76,23 +76,24 @@ log "2/6  build seven DISTINCT images, read back their real digests"
 : > "${WORK}/digests.txt"
 for entry in "${SERVICES[@]}"; do
   key="${entry%%:*}"; rest="${entry#*:}"; image="${rest%%:*}"; port="${rest##*:}"
-  d="${WORK}/img-${image}"; mkdir -p "$d"
+  d="${WORK}/img-${image}"; mkdir -p "$d/www"
   # Serve the chart's real probe paths so the pods actually become Ready — a proof
   # that stopped at "Running but never Ready" would skip the rollout wait entirely.
-  cat > "$d/default.conf" <<EOF
-server {
-  listen ${port};
-  location = /health { return 200 '{"ok":true,"service":"${image}"}'; add_header Content-Type application/json; }
-  location = /ready  { return 200 '{"ok":true,"service":"${image}"}'; add_header Content-Type application/json; }
-  location / { return 200 '${image}'; add_header Content-Type text/plain; }
-}
-EOF
+  #
+  # busybox httpd, not nginx: the chart runs every container with
+  # `readOnlyRootFilesystem: true` and `runAsNonRoot` (uid 1000), and nginx dies
+  # immediately on that ("mkdir /var/cache/nginx/client_temp failed: Read-only file
+  # system"). busybox httpd serves a static directory and writes nothing, so it
+  # satisfies the chart's real hardening instead of forcing us to weaken it for the
+  # proof — which would have made the proof about a chart we do not ship.
+  printf '{"ok":true,"service":"%s"}' "${image}" > "$d/www/health"
+  printf '{"ok":true,"service":"%s"}' "${image}" > "$d/www/ready"
   # Distinct content per service => distinct digest per service.
-  printf 'vibecore-gate-proof service=%s port=%s\n' "${image}" "${port}" > "$d/marker.txt"
+  printf 'vibecore-gate-proof service=%s port=%s\n' "${image}" "${port}" > "$d/www/index.html"
   cat > "$d/Dockerfile" <<EOF
-FROM nginx:1.27-alpine
-COPY default.conf /etc/nginx/conf.d/default.conf
-COPY marker.txt /marker.txt
+FROM busybox:1.36
+COPY www /www
+ENTRYPOINT ["/bin/busybox", "httpd", "-f", "-v", "-p", "${port}", "-h", "/www"]
 EOF
   docker build -q -t "localhost:${REGISTRY_PUBLISH_PORT}/vibecore/${image}:proof" "$d" >/dev/null
   docker push -q "localhost:${REGISTRY_PUBLISH_PORT}/vibecore/${image}:proof" >/dev/null
@@ -204,10 +205,15 @@ collect_observed() {
     key="${entry%%:*}"; rest="${entry#*:}"; image="${rest%%:*}"
     dep="$(kubectl --context "${CTX}" -n "${NS}" get deploy -l "app.kubernetes.io/name=${image}" -o name 2>/dev/null | head -n1)"
     [ -n "${dep}" ] || dep="deploy/${RELEASE}-vibecore-platform-${image}"
-    depname="${dep#deploy/}"
+    # `kubectl get -o name` prints `deployment.apps/<name>`, not `deploy/<name>`.
+    depname="${dep##*/}"
     kubectl --context "${CTX}" -n "${NS}" rollout status "${dep}" --timeout=5m >/dev/null
     hash="$(kubectl --context "${CTX}" -n "${NS}" get rs -o json | jq -r --arg d "${depname}" \
       '[ .items[] | select((.metadata.ownerReferences // [])[]?.name == $d) ] | sort_by(.metadata.creationTimestamp) | last | .metadata.labels["pod-template-hash"] // ""')"
+    if [ -z "${hash}" ]; then
+      echo "FAIL: could not find the current ReplicaSet for ${depname}" >&2
+      exit 1
+    fi
     ids="$(kubectl --context "${CTX}" -n "${NS}" get pods \
       -l "app.kubernetes.io/name=${image},pod-template-hash=${hash}" -o json \
       | jq -c --arg img "${image}" '[ .items[] | select(.metadata.deletionTimestamp == null) | select(.status.phase == "Running") | .status.containerStatuses[]? | select(.name == $img) | .imageID ]')"

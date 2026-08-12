@@ -265,7 +265,9 @@ jobs:
             dep="$(kubectl -n "${HELM_NAMESPACE}" get deploy -l "app.kubernetes.io/name=${image}" -o name 2>/dev/null | head -n1)"
             [ -n "${dep}" ] || dep="deploy/${HELM_RELEASE}-vibecore-platform-${image}"
             kubectl -n "${HELM_NAMESPACE}" rollout status "${dep}" --timeout=5m
-            depname="${dep#deploy/}"
+            # `-o name` yields `deployment.apps/<name>`; stripping "deploy/" would leave
+            # the group prefix and break the ownerReferences match below.
+            depname="${dep##*/}"
             HASH="$(kubectl -n "${HELM_NAMESPACE}" get rs -o json \
               | jq -r --arg d "${depname}" '[ .items[] | select((.metadata.ownerReferences // [])[]?.name == $d) ] | sort_by(.metadata.creationTimestamp) | last | .metadata.labels["pod-template-hash"] // ""')"
             IDS="$(kubectl -n "${HELM_NAMESPACE}" get pods \
