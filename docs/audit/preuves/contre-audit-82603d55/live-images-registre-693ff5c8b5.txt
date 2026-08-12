@@ -1,0 +1,16 @@
+# Images du SHA fige 693ff5c8b5 dans le registre d'audit (API Artifact Registry)
+2026-08-12T18:46:01Z
+  deps:693ff5c8b5                sha256:3d8311ce9e30e00a7073279166b07344877d453942ae9e26ccb2846224b2c964
+  api:693ff5c8b5                 sha256:ce851c90a4189f70285ed7e90584c638c8bcd75108e9cbb1c9a150673e360385
+  worker:693ff5c8b5              sha256:bb44bcce0a97d54114ee505101088fecb33aa86baac4c2a28c0ebbaf33990bcd
+  admin:693ff5c8b5               sha256:c0cf931edfb936d3a86f5d4aac4b67cd33043fa5c5b2883e5bf071e789e09719
+  ai-gateway:693ff5c8b5          sha256:9b362563c2266b4ffafaff8e882f5106035a23d5f85ac13ef490d6ebc6a8d1f3
+  workspace-manager:693ff5c8b5   sha256:55db4afc0028e8055dd6a911faffa4d8b684d99a644c65490885901dab7b3f57
+  preview-proxy:693ff5c8b5       sha256:dbedd1e78d6bb6260293a024a2274713b50a4960ae390796cefeeb4022418644
+  screenshotter:693ff5c8b5       sha256:146a6a463d907345d0abc4b25590519445e11460d13dba80f16786ab10a9e380
+  web:693ff5c8b5                 sha256:45b2e8706fd8d9c2eae34462a377ad5f213dc6c5e8f1fed9ecfd04ba59f16f80
+  workspace-agent:sha-693ff5c8b5 sha256:4b39237e2c9ee1497bc1780574b578c97a1efec5ea88c9af98edc45caa56db32
+
+# Release Helm de l'env d'audit
+NAME    	NAMESPACE	REVISION	UPDATED                             	STATUS  	CHART                  	APP VERSION
+vibecore	vibecore 	9       	2026-08-12 21:42:06.321476 +0300 IDT	deployed	vibecore-platform-0.1.0	0.1.0      
