@@ -143,6 +143,39 @@ describe('object-storage routes — purge freeze barrier', () => {
     expect(after.statusCode).toBe(200);
   });
 
+  /*
+   * The 403 body is sent straight to the client, so it only gets localized if its
+   * English text is a catalogue entry the preSerialization hook can look up. It used
+   * to be a hardcoded literal — the one user-visible message in the whole purge-freeze
+   * path that stayed English for a French client.
+   */
+  it('localizes the frozen-storage 403 for a French client (and stays English otherwise)', async () => {
+    const { app, store, project, token } = await setup();
+    store.setObjectStoragePurgeFrozen(project.id, true);
+
+    const french = await app.inject({
+      method: 'POST',
+      url: `/projects/${project.id}/thumbnail/upload-url`,
+      headers: { ...bearer(token), 'accept-language': 'fr-FR;q=0.9, en;q=0.4' },
+      payload: {},
+    });
+
+    expect(french.statusCode).toBe(403);
+    expect(french.json().code).toBe('OBJECT_STORAGE_PURGE_FROZEN');
+    expect(french.headers['content-language']).toBe('fr');
+    expect(french.json().error).toBe('Le stockage d’objets est gelé pendant la suppression de ce compte.');
+
+    const english = await app.inject({
+      method: 'POST',
+      url: `/projects/${project.id}/thumbnail/upload-url`,
+      headers: { ...bearer(token), 'accept-language': 'en-US' },
+      payload: {},
+    });
+
+    expect(english.statusCode).toBe(403);
+    expect(english.json().error).toBe('Object storage is frozen while this account is being deleted.');
+  });
+
   it('a frozen project blocks the generic upload-url write too, but still allows reads', async () => {
     const { app, store, project, token } = await setup();
     store.setObjectStoragePurgeFrozen(project.id, true);

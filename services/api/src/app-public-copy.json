@@ -819,6 +819,10 @@
     "en": "Object storage is not enabled.",
     "fr": "Le stockage d’objets n’est pas activé."
   },
+  "OBJECT_STORAGE_PURGE_FROZEN": {
+    "en": "Object storage is frozen while this account is being deleted.",
+    "fr": "Le stockage d’objets est gelé pendant la suppression de ce compte."
+  },
   "THUMBNAIL_NOT_FOUND": {
     "en": "No thumbnail has been captured.",
     "fr": "Aucune miniature n’a été capturée."

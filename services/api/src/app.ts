@@ -32204,9 +32204,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   const objectStorageWriteBlocked = async (projectId: string, reply: FastifyReply): Promise<boolean> => {
     if (await isObjectStoragePurgeFrozen(projectId)) {
+      /*
+       * Catalogue copy, not a literal: this 403 is sent straight to the client, and the
+       * preSerialization hook localizes a >=400 payload by looking its ENGLISH text up
+       * in app-public-copy. A hardcoded string misses that lookup, so a French client
+       * was told in English that their storage is frozen — the one user-visible message
+       * in the whole account-purge freeze path that never got translated.
+       */
       await reply
         .code(403)
-        .send({ error: 'Object storage is frozen for account deletion', code: 'OBJECT_STORAGE_PURGE_FROZEN' });
+        .send({ error: appPublicEnglish('OBJECT_STORAGE_PURGE_FROZEN'), code: 'OBJECT_STORAGE_PURGE_FROZEN' });
 
       return true;
     }
