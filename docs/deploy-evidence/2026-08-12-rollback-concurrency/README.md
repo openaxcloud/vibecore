@@ -220,6 +220,71 @@ preuve antérieures, déjà couvertes).
 `eslint --fix`, mais délibérément **non corrigé ici** : ajouter un fichier sans rapport au
 diff d'un lot sensible compliquerait le contre-audit. À traiter séparément.
 
+### 5. Rollback LIVE sur le CLUSTER DE TEST DÉDIÉ — [`live-rollback-cluster.txt`](live-rollback-cluster.txt)
+
+Branche déployée sur une release **isolée** du cluster d'audit, image API construite depuis
+le SHA du lot. Ni la prod ni la release partagée ne sont touchées :
+
+| | mien | partagé (intact) |
+|---|---|---|
+| cluster | `vibecore-audit-cluster` — projet **`vibecore-audit-test-20260807`** (≠ prod `vibecore-495216`) | |
+| release / ns | `vibecore-rbaudit` / `vibecore-rbaudit` | `vibecore` / `vibecore` |
+| runtime ns | `workspaces-rbaudit` | `workspaces` |
+| base | `vibecore_rbaudit` | `vibecore` |
+| Redis | `rbaudit-redis` (in-ns) | `vibecore-redis` |
+| image API | **`api:ab8e02bde8`** (SHA du lot) | `api:82603d55f7` |
+
+**Contenu et empreinte, avant / après** — octets lus sur le VRAI PVC RWX du cluster :
+
+```
+v2 (AVANT)              "RELEASE-V2-CURRENT-CONTENT"    sha256:5545e9ae…7d3d
+v3 (APRÈS le rollback)  "RELEASE-V1-ORIGINAL-CONTENT"   sha256:a06d31c2…637f   ← identique à v1
+v1 (source)             "RELEASE-V1-ORIGINAL-CONTENT"   sha256:a06d31c2…637f
+```
+
+Réponse du vrai endpoint : `201`, `restoredFromVersion=1`, `supersededVersion=2`,
+`verifiedArtifactDigest == restoredArtifactDigest == sha256:34083315…72f0`. Et la table
+`ReleaseManifest` de la vraie base porte l'échelle : `v3` a l'empreinte de `v1`.
+
+**Concurrence, sur le cluster, avec de vrais `pg_advisory_xact_lock`** :
+
+```
+#0 201 restoredFrom=2 | #1 409 ROLLBACK_RELEASE_MOVED expected=3 observed=4
+                      | #2 409 ROLLBACK_RELEASE_MOVED expected=3 observed=4
+commits=1 refus=2  → équivalence sérielle: true
+```
+
+#### Portée déclarée, sans enjoliver
+
+Les deux releases initiales ont été **matérialisées** (octets sur le PVC + lignes en base),
+pas produites par un build en pod workspace. Le chemin de publish a bien démarré — pod
+gVisor `Running`, sources écrites, worker consommant BullMQ, build lancé — mais échoue à
+l'`npm install` : les fichiers écrits ne survivent pas au pod qui exécute le build dans cet
+environnement éphémère. C'est du cycle de vie workspace, **hors du lot Rollback**, et je ne
+l'ai pas maquillé en succès.
+
+Ce qui est SOUS AUDIT s'exécute en réel : sélection N-1, vérification d'empreinte,
+restauration des octets, compare-and-set, flip READY, écriture du manifeste, refus 409 des
+concurrents. Le chemin de publish avec **vrai `npm run build`** est prouvé séparément
+(§4) et produit **exactement les mêmes empreintes**.
+
+#### Trois défauts d'infrastructure trouvés en montant l'environnement
+
+Aucun ne vient du lot, tous méritent une fiche :
+
+1. **Install à neuf impossible** — le hook `pre-install` de migration référence le
+   ServiceAccount de l'API, créé seulement APRÈS les hooks :
+   `error looking up service account …-api: not found`. Un `helm install` du chart dans un
+   namespace neuf ne peut pas réussir. Contourné en pré-créant le SA.
+2. **URLs figées sur la release partagée** — `workspaceManagerUrl` et `API_BASE_URL`/
+   `SAAS_API_URL` pointent en dur sur `…vibecore.svc`. Une seconde release pilote donc le
+   workspace-manager et l'API des AUTRES. Ici la NetworkPolicy a tenu (502 / `fetch failed`),
+   mais l'isolation reposait sur un garde-fou réseau, pas sur la configuration.
+3. **DNS bloqué par la NetworkPolicy** — la règle DNS vise `namespaceSelector: kube-system`
+   alors que la résolution passe par la ClusterIP `10.30.0.10` ; il faut une policy
+   `allow-dns-clusterip`. Le namespace partagé en avait une, ajoutée à la main 10 h plus tôt
+   — donc quelqu'un d'autre a déjà heurté le même mur.
+
 ## Ce qui reste à faire
 
 **Un rollback live en PRODUCTION.** Il exigerait de déployer une branche non mergée d'un

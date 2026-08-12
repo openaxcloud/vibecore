@@ -1,0 +1,60 @@
+=== Cluster de test dédié — release isolée ===
+cluster : vibecore-audit-cluster (projet vibecore-audit-test-20260807, europe-west9-a)
+release : vibecore-rbaudit / namespace vibecore-rbaudit  (≠ release partagée 'vibecore')
+runtime : workspaces-rbaudit                             (≠ 'workspaces' partagé)
+base    : vibecore_rbaudit sur Cloud SQL vibecore-audit-postgres (≠ base 'vibecore')
+image   : api:ab8e02bde8 construite depuis le SHA du lot
+
+NAME               	NAMESPACE         	REVISION	UPDATED                             	STATUS  	CHART                       	APP VERSION
+vibecore-rbaudit   	vibecore-rbaudit  	6       	2026-08-12 18:50:43.241599 +0300 IDT	failed  	vibecore-platform-0.1.0     	0.1.0      
+vibecore-ws-rbaudit	workspaces-rbaudit	1       	2026-08-12 16:46:29.493433 +0300 IDT	deployed	workspaces-runtime-0.1.0    	0.1.0      
+
+=== 1. RECONCILER + historique (vraie base) ===
+===== 1. RECONCILER — manifestes écrits par l’API au premier GET ====
+  dep_rb_1_552884 status=READY rollbackable=true reason=-
+  dep_rb_2_552884 status=READY rollbackable=true reason=-
+  historique :
+    v2 deployment=dep_rb_2_552884 digest=sha256:f9ffdb5b3e81641d4bfdb62fc0f35bdf3fe9022c6611b3a7fb1dcd59e6fd5c1a
+    v1 deployment=dep_rb_1_552884 digest=sha256:34083315b5712dd9c18774b39e8d7b1439e772454c62a387d38090eab8ea72f0
+
+===== 2. AVANT — contenu servi par la route publique ================
+=== 2/3. AVANT + ROLLBACK (HTTP réel) ===
+===== 2. AVANT — contenu servi par la route publique ================
+  GET /static-deployments/dep_rb_2_552884/index.html → 200
+  contenu = "<!doctype html><html><body><h1>RELEASE-V2-CURRENT-CONTENT</h1></body></html>"
+  sha256  = sha256:5545e9aec3aa0876d58f5ef1c2bf362fffefc3a87355b5968e31fc8b1b8c7d3d
+
+===== 3. ROLLBACK — vrai endpoint sur l’API déployée ================
+  status                 : 201
+  restoredFromVersion    : 1
+  supersededVersion      : 2
+  verifiedArtifactDigest : sha256:34083315b5712dd9c18774b39e8d7b1439e772454c62a387d38090eab8ea72f0
+  restoredArtifactDigest : sha256:34083315b5712dd9c18774b39e8d7b1439e772454c62a387d38090eab8ea72f0
+  rollbackable           : true
+
+=== 4. Lignes en base après rollback ===
+dep_rb_1_552884|READY||true
+dep_rb_2_552884|READY||true
+cmsqbu2zv001a0nxmhziq8v76|READY|dep_rb_1_552884|true
+1|dep_rb_1_552884|sha256:34083315b5712dd9c18774b39e8d7b1439e772454c62a387d38090eab8ea72f0
+2|dep_rb_2_552884|sha256:f9ffdb5b3e81641d4bfdb62fc0f35bdf3fe9022c6611b3a7fb1dcd59e6fd5c1a
+3|cmsqbu2zv001a0nxmhziq8v76|sha256:34083315b5712dd9c18774b39e8d7b1439e772454c62a387d38090eab8ea72f0
+
+=== 5. OCTETS sur le VRAI PVC (vérité terrain) ===
+v1 (source) [dep_rb_1_552884]
+   octets = "<!doctype html><html><body><h1>RELEASE-V1-ORIGINAL-CONTENT</h1></body></html>"
+   sha256 = sha256:a06d31c2d7fa828bb022587992be3e4d0580495f7914ae042a5b776c7076637f
+v2 (avant) [dep_rb_2_552884]
+   octets = "<!doctype html><html><body><h1>RELEASE-V2-CURRENT-CONTENT</h1></body></html>"
+   sha256 = sha256:5545e9aec3aa0876d58f5ef1c2bf362fffefc3a87355b5968e31fc8b1b8c7d3d
+v3 (rollback restaure) [cmsqbu2zv001a0nxmhziq8v76]
+   octets = "<!doctype html><html><body><h1>RELEASE-V1-ORIGINAL-CONTENT</h1></body></html>"
+   sha256 = sha256:a06d31c2d7fa828bb022587992be3e4d0580495f7914ae042a5b776c7076637f
+
+=== 6. CONCURRENCE sur le cluster ===
+#0: status=201 code=- restoredFrom=2 expected=- observed=-
+#1: status=409 code=ROLLBACK_RELEASE_MOVED restoredFrom=- expected=3 observed=4
+#2: status=409 code=ROLLBACK_RELEASE_MOVED restoredFrom=- expected=3 observed=4
+commits=1 refus=2 versions=[2]
+toutes distinctes (equivalence serielle): true
+refus tous ROLLBACK_RELEASE_MOVED: true
