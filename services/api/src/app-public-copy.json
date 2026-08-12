@@ -2499,6 +2499,10 @@
     "en": "Rolled back to release v{version} (deployment {deploymentId}); artifact digest {artifactDigest} verified byte-identical before restore.",
     "fr": "Retour effectué vers la version v{version} (déploiement {deploymentId}) ; l’empreinte d’artefact {artifactDigest} a été vérifiée à l’identique avant la restauration."
   },
+  "ROLLBACK_STATIC_SUCCESS_RESTORED_LOG": {
+    "en": "Rolled back to release v{version} (deployment {deploymentId}); source digest {artifactDigest} verified byte-identical before restore, restored bytes digest {restoredArtifactDigest} recorded.",
+    "fr": "Retour effectué vers la version v{version} (déploiement {deploymentId}) ; l’empreinte source {artifactDigest} a été vérifiée à l’identique avant la restauration, et l’empreinte des octets restaurés {restoredArtifactDigest} a été enregistrée."
+  },
   "ROLLBACK_SERVER_DISABLED": {
     "en": "Server rollback is disabled (SERVER_DEPLOY_ROLLBACK_FROM_DIGEST=0).",
     "fr": "Le retour arrière serveur est désactivé (SERVER_DEPLOY_ROLLBACK_FROM_DIGEST=0)."

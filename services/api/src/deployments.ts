@@ -792,6 +792,13 @@ export function canPublishDeployment(source: Pick<DeploymentRecord, 'status' | '
  * that points production at the SAME built artifact (no rebuild), Vercel-style.
  * The new deployment links back to its source via `parentDeploymentId`. Pure —
  * the caller supplies the resolved production URL.
+ *
+ * NOTE (READY↔manifest invariant): this builds a row that is ALREADY READY and copies
+ * `source.metadata` wholesale, which includes the source's `rollbackable` flag — a flag
+ * that says nothing about the PRODUCTION release being created here. The caller MUST
+ * therefore pass this input through `sealPendingRollback` (app.ts) before persisting it,
+ * and record the production manifest afterwards. Do not "fix" that by inlining the flag
+ * here: the invariant has exactly one owner, in app.ts.
  */
 export function buildPublishedDeploymentInput(source: DeploymentRecord, productionUrl: string) {
   return {

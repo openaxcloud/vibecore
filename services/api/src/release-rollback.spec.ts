@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  assertConfigDigestMatches,
   RollbackError,
   resolveRollbackImage,
   resolveRollbackSecrets,
   retainRelease,
   type RetainedRelease,
 } from './release-rollback.js';
+import { configDigest } from './release-manifest.js';
 
 const IMAGE_URI = 'europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-apps/app-proj123:v2';
 const DIGEST = 'sha256:' + 'a'.repeat(64);
@@ -138,6 +140,67 @@ describe('resolveRollbackSecrets — rollback after secret rotation', () => {
       throw new Error('should have thrown');
     } catch (error) {
       expect((error as RollbackError).code).toBe('ROLLBACK_SECRET_POLICY_UNSATISFIABLE');
+    }
+  });
+});
+
+describe('assertConfigDigestMatches (reserve #4 — deterministic config invariant)', () => {
+  it('passes when the current config fingerprints identically to the release digest', () => {
+    const secrets = { API_KEY: 'v1-value', DATABASE_URL: 'postgres://x' };
+    const recorded = configDigest(secrets);
+    // Same effective config at rollback time — deterministic restore is provable.
+    expect(() => assertConfigDigestMatches(configDigest({ ...secrets }), recorded)).not.toThrow();
+  });
+
+  it('passes for the empty-config sentinel on both sides (project with no secrets)', () => {
+    expect(() => assertConfigDigestMatches(configDigest({}), configDigest({}))).not.toThrow();
+  });
+
+  it('REFUSES (mismatch) when a secret was rotated since the release', () => {
+    const recorded = configDigest({ API_KEY: 'old-value-at-v1' });
+    try {
+      assertConfigDigestMatches(configDigest({ API_KEY: 'new-rotated-value' }), recorded);
+      throw new Error('should have thrown');
+    } catch (error) {
+      expect((error as RollbackError).code).toBe('ROLLBACK_CONFIG_DIGEST_MISMATCH');
+      expect((error as RollbackError).statusCode).toBe(409);
+    }
+  });
+
+  it('REFUSES (mismatch) when a secret was added since the release', () => {
+    const recorded = configDigest({ API_KEY: 'v1' });
+    try {
+      assertConfigDigestMatches(configDigest({ API_KEY: 'v1', NEW_SECRET: 'x' }), recorded);
+      throw new Error('should have thrown');
+    } catch (error) {
+      expect((error as RollbackError).code).toBe('ROLLBACK_CONFIG_DIGEST_MISMATCH');
+    }
+  });
+
+  it('REFUSES (unknown) when the release recorded no config digest', () => {
+    try {
+      assertConfigDigestMatches(configDigest({ API_KEY: 'v1' }), undefined);
+      throw new Error('should have thrown');
+    } catch (error) {
+      expect((error as RollbackError).code).toBe('ROLLBACK_CONFIG_DIGEST_UNKNOWN');
+    }
+  });
+
+  it('REFUSES (unknown) when the release digest is malformed', () => {
+    try {
+      assertConfigDigestMatches(configDigest({ API_KEY: 'v1' }), 'not-a-digest');
+      throw new Error('should have thrown');
+    } catch (error) {
+      expect((error as RollbackError).code).toBe('ROLLBACK_CONFIG_DIGEST_UNKNOWN');
+    }
+  });
+
+  it('REFUSES (unknown) when the current config could not be fingerprinted', () => {
+    try {
+      assertConfigDigestMatches(undefined, configDigest({ API_KEY: 'v1' }));
+      throw new Error('should have thrown');
+    } catch (error) {
+      expect((error as RollbackError).code).toBe('ROLLBACK_CONFIG_DIGEST_UNKNOWN');
     }
   });
 });

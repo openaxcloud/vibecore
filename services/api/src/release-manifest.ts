@@ -31,6 +31,128 @@ export class RollbackManifestError extends Error {
   }
 }
 
+/**
+ * The release-stream head moved between the moment a rollback selected its N-1 and the
+ * moment it tried to commit — i.e. a concurrent rollback or publish won the race.
+ */
+export class ReleaseHeadMovedError extends Error {
+  readonly code = 'ROLLBACK_RELEASE_MOVED';
+  readonly statusCode = 409;
+
+  constructor(
+    readonly expectedVersion: number,
+    readonly observedVersion: number,
+  ) {
+    super(
+      `The release history moved while this rollback was running (expected head v${expectedVersion}, found v${observedVersion}) — refusing to commit a rollback computed against a stale head.`,
+    );
+    this.name = 'ReleaseHeadMovedError';
+  }
+}
+
+/** The advisory-lock key that serializes one project+environment release stream. */
+export function releaseStreamLockKey(projectId: string, environment: string): string {
+  return `release-manifest:${projectId}:${environment}`;
+}
+
+/** The store surface the release-stream CAS needs — a narrow slice of ApiStore. */
+export interface ReleaseStreamStore {
+  withSerializedMutation<T>(key: string, fn: () => Promise<T>): Promise<T>;
+  listReleaseManifests(
+    projectId: string,
+    environment: string,
+    options?: { take?: number },
+  ): Promise<ReleaseManifestRecord[]>;
+  createReleaseManifest(input: {
+    projectId: string;
+    deploymentId: string;
+    environment: string;
+    version: number;
+    provider: string;
+    artifactKind: 'static-snapshot' | 'server-image';
+    artifactRef: string;
+    artifactDigest: string;
+    storeGeneration?: string;
+    configDigest?: string;
+    dbMigrationPoint?: string;
+  }): Promise<ReleaseManifestRecord>;
+}
+
+/**
+ * Read the current head version of a project+environment release stream, under the
+ * stream's advisory lock. This is the value a rollback must later compare-and-set
+ * against, so it MUST be read under the same lock the append takes.
+ */
+export async function readReleaseHeadVersion(
+  store: ReleaseStreamStore,
+  projectId: string,
+  environment: string,
+): Promise<number> {
+  return store.withSerializedMutation(releaseStreamLockKey(projectId, environment), async () => {
+    const latest = await store.listReleaseManifests(projectId, environment, { take: 1 });
+
+    return latest[0]?.version ?? 0;
+  });
+}
+
+/**
+ * ============================================================================
+ * THE LINEARIZATION POINT of the rollback chain (expert concurrency reserve).
+ * ============================================================================
+ *
+ * Append a release manifest ONLY IF the stream head is still `expectedHeadVersion`,
+ * atomically, under the stream's advisory lock. Otherwise throw
+ * {@link ReleaseHeadMovedError} and write nothing.
+ *
+ * Why a compare-and-set rather than one long lock: the rollback chain is
+ * select N-1 → restore → manifest → READY, and its middle step is a bounded-at-200s
+ * call to the workspace manager. `withSerializedMutation` holds a pg_advisory_xact_lock
+ * on a dedicated 5-connection pool, so wrapping the whole chain would pin a transaction
+ * for minutes and, with any nesting, exhaust that pool and deadlock. The CAS gives the
+ * same guarantee — at most one rollback commits against a given head — while holding
+ * the lock only for two short reads/writes.
+ *
+ * Without it, N concurrent rollbacks all read head=[vN] outside any lock, all select the
+ * same N-1, and all restore it, receiving distinct version numbers that make the result
+ * look ordered while being unreachable by any sequential execution.
+ */
+export async function appendReleaseManifestAtHead(
+  store: ReleaseStreamStore,
+  params: {
+    projectId: string;
+    environment: string;
+    expectedHeadVersion: number;
+    manifest: {
+      deploymentId: string;
+      provider: string;
+      artifactKind: 'static-snapshot' | 'server-image';
+      artifactRef: string;
+      artifactDigest: string;
+      storeGeneration?: string;
+      configDigest?: string;
+      dbMigrationPoint?: string;
+    };
+  },
+): Promise<ReleaseManifestRecord> {
+  const { projectId, environment, expectedHeadVersion, manifest } = params;
+
+  return store.withSerializedMutation(releaseStreamLockKey(projectId, environment), async () => {
+    const latest = await store.listReleaseManifests(projectId, environment, { take: 1 });
+    const observedVersion = latest[0]?.version ?? 0;
+
+    if (observedVersion !== expectedHeadVersion) {
+      throw new ReleaseHeadMovedError(expectedHeadVersion, observedVersion);
+    }
+
+    return store.createReleaseManifest({
+      projectId,
+      environment,
+      version: observedVersion + 1,
+      ...manifest,
+    });
+  });
+}
+
 /** A single file in a static snapshot: its deployment-root-relative path + the sha256 of its bytes. */
 export interface SnapshotEntry {
   path: string;

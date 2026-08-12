@@ -219,3 +219,54 @@ export function resolveRollbackSecrets(input: RollbackSecretInputs): RollbackSec
 
   return { policy: 'CURRENT', secrets: input.currentSecrets, pinned: false };
 }
+
+/* ===================== deterministic config invariant ===================== */
+
+const CONFIG_DIGEST_RE = /^sha256:[a-f0-9]{64}$/;
+
+/**
+ * Expert refusal reserve #4 — the DETERMINISTIC-config gate for a server rollback.
+ *
+ * A rollback to release N-1 must run with EXACTLY the config N-1 ran with. E-Code
+ * keeps no `ProjectSecret` version history (a rotation overwrites the value), so
+ * the only way to prove "current config == N-1 config" is to compare fingerprints:
+ * the manifest recorded N-1's `configDigest` at publish, and the caller recomputes
+ * the digest of the CURRENT effective config here. This is what turns "re-deploy
+ * N-1's image but with whatever config happens to be live now" into a verified,
+ * deterministic restore.
+ *
+ * FAILS CLOSED — never silently deploys drifted config under an "N-1" label:
+ *  - N-1 recorded no configDigest        → ROLLBACK_CONFIG_DIGEST_UNKNOWN
+ *  - the recomputed digest is malformed  → ROLLBACK_CONFIG_DIGEST_UNKNOWN
+ *  - current digest ≠ N-1's digest       → ROLLBACK_CONFIG_DIGEST_MISMATCH (config
+ *    drifted since N-1; with no version history we cannot reconstruct it — refuse).
+ *
+ * The digests are opaque fingerprints (see `configDigest`); NO secret value is
+ * stored in the manifest or compared here.
+ */
+export function assertConfigDigestMatches(
+  recomputedConfigDigest: string | undefined,
+  manifestConfigDigest: string | undefined,
+): void {
+  if (!manifestConfigDigest || !CONFIG_DIGEST_RE.test(manifestConfigDigest)) {
+    throw new RollbackError(
+      'Previous release recorded no config fingerprint — cannot prove the current secrets/config match what it ran with. Refusing a non-deterministic rollback.',
+      'ROLLBACK_CONFIG_DIGEST_UNKNOWN',
+    );
+  }
+
+  if (!recomputedConfigDigest || !CONFIG_DIGEST_RE.test(recomputedConfigDigest)) {
+    throw new RollbackError(
+      'Current project config could not be fingerprinted — refusing to roll back without proving it matches the previous release.',
+      'ROLLBACK_CONFIG_DIGEST_UNKNOWN',
+    );
+  }
+
+  if (recomputedConfigDigest !== manifestConfigDigest) {
+    throw new RollbackError(
+      `Project config drifted since the previous release (current ${recomputedConfigDigest}, release ${manifestConfigDigest}). ` +
+        'E-Code keeps no ProjectSecret version history, so the previous config cannot be reconstructed — refusing rather than deploying current config under a rollback label.',
+      'ROLLBACK_CONFIG_DIGEST_MISMATCH',
+    );
+  }
+}
