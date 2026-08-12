@@ -312,6 +312,35 @@ node the pull fails, the probe returns an EMPTY string, and an assertion expecti
 `401` reports a product failure when nothing was observed. Probes now retry and
 exit `PROBE_INCONCLUSIVE` rather than let an empty read become a verdict.
 
+### Observing the cache window itself (the hazard, not the sequence)
+
+The harnesses above prove the deploy *sequence*. `cache-window-demo.sh` proves the
+*hazard it exists for*, by putting a real shared cache (`cache-proxy.mjs`,
+honouring `max-age` as RFC 9111 permits) between the visitor and the api and
+running the actual attack on both code versions:
+
+```bash
+scripts/sec9-cutover/cache-window-demo.sh   # ~1 min, Docker only
+```
+
+```
+A. PRE-CUTOVER code (max-age=60) — the attack
+1. anonymous GET (public)    -> 200 | cache-control: public, max-age=60 | x-cache: MISS
+2. owner activates password  -> 200                (pre-cutover code has NO interlock)
+3. anonymous GET again       -> 200 | x-cache: HIT
+>> VULNERABILITY OBSERVED: protected at the origin, still served to an anonymous
+   visitor by the shared cache.
+
+B. POST-CUTOVER code (no-cache) — the same attack, closed
+1. anonymous GET (public)    -> 200 | cache-control: public, no-cache, must-revalidate
+2. owner activates password  -> 200
+3. anonymous GET again       -> 401 | x-cache: MISS
+>> CLOSED: not reusable without revalidation; the revalidation traverses the gate.
+```
+
+Scenario A is asserted to LEAK — if it ever stops reproducing the hazard, the
+script fails loudly, because scenario B would otherwise prove nothing.
+
 **If `kind` cannot start on your host** (constrained Docker, systemd boot
 detection failing, or no spare CPU to keep a control plane healthy), use the
 Docker-backed variant, which asserts the same six steps:
