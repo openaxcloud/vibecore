@@ -8387,6 +8387,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const importStaging = new Map<string, ImportFile[]>();
 
   /*
+   * PREVIEW payload (TPL-02.3): what the user is about to import, described
+   * WITHOUT its content. Only path + byte size leave the staging — the content
+   * of a staged file is never echoed back, so an import preview can never
+   * become a second way to read a secret the scanner just flagged. Sorted so
+   * the preview is stable between a create and a later re-read.
+   */
+  const importPreviewFiles = (importJobId: string) =>
+    (importStaging.get(importJobId) ?? [])
+      .map((file) => ({ path: file.path, sizeBytes: Buffer.byteLength(file.content) }))
+      .sort((a, b) => a.path.localeCompare(b.path));
+
+  /*
    * SAFETY billing ledger (in-process, mirrors importStaging): idempotent credit
    * reservation reserved BEFORE any paid work, settled ONLY on COMMITTED, and
    * compensated on every non-committed exit (cancel/timeout/rollback/failure).
@@ -19883,6 +19895,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             provider: existing.provider,
             findings: (existing.findings as unknown[]) ?? [],
             stagedFileCount: existing.stagedFileCount,
+            stagedFiles: importPreviewFiles(existing.id),
             requiresConsent,
             replayed: true,
           },
@@ -19966,6 +19979,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             provider: body.provider,
             findings, // redacted previews only
             stagedFileCount: stagedFiles.length,
+            stagedFiles: importPreviewFiles(job.id),
             requiresConsent: true,
           },
         });
@@ -19981,6 +19995,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           provider: body.provider,
           findings: [],
           stagedFileCount: stagedFiles.length,
+          stagedFiles: importPreviewFiles(job.id),
           requiresConsent: false,
         },
       });
@@ -20221,9 +20236,33 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       ? localizeAppPublicMessage(job.error, transactionalLocaleForRequest(request))
       : undefined;
 
+    /*
+     * PREVIEW (TPL-02.3) — what the per-connector review screen reads so a
+     * reload or a deep link describes the import exactly like the create did.
+     *
+     * Present ONLY while a staging exists. The staging is disposed on every
+     * terminal exit (commit, cancel, timeout, rollback), and `preview: null`
+     * is how the screen tells "this is over" apart from "an import with no
+     * file" — rendering an empty list for both would read as the latter.
+     *
+     * Findings are RECOMPUTED from the staging with the same function the
+     * commit gate uses, so the screen can never show a stale "clean" while the
+     * gate blocks. Reading this never advances the state machine.
+     */
+    const stagedForPreview = importStaging.get(importJobId);
+    const previewFindings = stagedForPreview ? scanStagedFilesForSecrets(stagedForPreview) : [];
+
     return {
       import: {
         ...job,
+        preview: stagedForPreview
+          ? {
+              stagedFileCount: stagedForPreview.length,
+              stagedFiles: importPreviewFiles(importJobId),
+              findings: previewFindings,
+              requiresConsent: previewFindings.length > 0,
+            }
+          : null,
         error: localizedJobError
           ? localizedJobError.matched
             ? localizedJobError.value

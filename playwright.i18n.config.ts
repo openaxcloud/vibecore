@@ -35,6 +35,18 @@ const apiWebServer =
         },
       ];
 
+/*
+ * Budgets d'attente. Les valeurs par défaut visent le dev server local. Contre
+ * un environnement DISTANT (audit, staging) la première hydratation est bien
+ * plus lente — mesuré sur l'env d'audit : le sélecteur de langue de la page
+ * d'accueil apparaît à 6,1 s sur un contexte neuf et 15,2 s sur le suivant,
+ * au-delà du budget local de 5 s. Sans ces variables l'audit échouait sur de
+ * la LATENCE et non sur une chaîne non traduite, ce qui est exactement le
+ * genre de faux négatif qui décrédibilise une preuve.
+ */
+const expectTimeout = Number(process.env.I18N_EXPECT_TIMEOUT_MS) || baseConfig.expect?.timeout || 5_000;
+const testTimeout = Number(process.env.I18N_TEST_TIMEOUT_MS) || baseConfig.timeout || 30_000;
+
 /**
  * Exhaustive EN/FR proof matrix. Kept separate from the everyday E2E config so
  * normal feature suites do not pay for four full responsive crawls.
@@ -44,6 +56,8 @@ export default defineConfig({
   webServer: [...auditWebServers, ...apiWebServer],
   workers: 1,
   preserveOutput: 'always',
+  timeout: testTimeout,
+  expect: { ...baseConfig.expect, timeout: expectTimeout },
   projects: [
     {
       name: 'desktop-1440',

@@ -384,3 +384,140 @@ describe('POST /orgs/:orgId/imports — secure import, no silent deletion, dispo
     expect(allLogs).not.toContain(IMPORTED_SECRET); // …but never the value
   });
 });
+
+/*
+ * TPL-02.3 — the preview contract the per-connector review screen reads.
+ * These lock two things the screen depends on: it can list what would land,
+ * and looking at it can never mutate or leak.
+ */
+describe('import preview — what the review screen reads before anything is written', () => {
+  it('the create response lists the staged files (path + size) and still leaks no content', async () => {
+    const { app, org } = await setup();
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/orgs/${org.id}/imports`,
+      headers: auth('imp-token'),
+      payload: { idempotencyKey: 'idem-p-1', provider: 'github', files: stagedFiles() },
+    });
+
+    const body = res.json();
+    const paths = body.import.stagedFiles.map((f: { path: string }) => f.path);
+
+    // Sorted so a create and a later re-read describe the import identically.
+    expect(paths).toEqual(['.env', 'README.md', 'src/index.js']);
+    expect(body.import.stagedFileCount).toBe(3);
+
+    const env = body.import.stagedFiles.find((f: { path: string }) => f.path === '.env');
+    expect(env.sizeBytes).toBe(Buffer.byteLength(SOURCE_ENV_CONTENT));
+
+    /*
+     * The whole point of a redacted scan is lost if the preview hands back the
+     * file bodies next to it. Nothing in the payload may carry content.
+     */
+    expect(JSON.stringify(body.import.stagedFiles)).not.toContain(IMPORTED_SECRET);
+    expect(JSON.stringify(body.import.stagedFiles)).not.toContain('console.log');
+    expect(JSON.stringify(body.import)).not.toContain(IMPORTED_SECRET);
+  });
+
+  it('GET replays the same preview and is READ-ONLY (state unchanged after two reads)', async () => {
+    const { app, org, projectStorage } = await setup();
+
+    const created = await app.inject({
+      method: 'POST',
+      url: `/orgs/${org.id}/imports`,
+      headers: auth('imp-token'),
+      payload: { idempotencyKey: 'idem-p-2', provider: 'github', files: stagedFiles() },
+    });
+
+    const importJobId = created.json().import.importJobId;
+    const stateAfterCreate = created.json().import.state;
+
+    const first = await app.inject({
+      method: 'GET',
+      url: `/orgs/${org.id}/imports/${importJobId}`,
+      headers: auth('imp-token'),
+    });
+    const second = await app.inject({
+      method: 'GET',
+      url: `/orgs/${org.id}/imports/${importJobId}`,
+      headers: auth('imp-token'),
+    });
+
+    expect(first.statusCode).toBe(200);
+    expect(first.json().import.state).toBe(stateAfterCreate);
+    expect(second.json().import.state).toBe(stateAfterCreate);
+    expect(second.json().import.preview.stagedFiles).toEqual(first.json().import.preview.stagedFiles);
+
+    // Findings are recomputed, so the screen can never show "clean" while the gate blocks.
+    expect(first.json().import.preview.requiresConsent).toBe(true);
+    expect(first.json().import.preview.findings.length).toBeGreaterThan(0);
+    expect(JSON.stringify(first.json())).not.toContain(IMPORTED_SECRET);
+
+    // Reading a preview must never mount the target.
+    expect(projectStorage.writeCalls).toEqual([]);
+  });
+
+  it('another org gets 404, not a different error that would confirm the job exists', async () => {
+    const { app, store, org } = await setup();
+
+    const created = await app.inject({
+      method: 'POST',
+      url: `/orgs/${org.id}/imports`,
+      headers: auth('imp-token'),
+      payload: { idempotencyKey: 'idem-p-3', provider: 'github', files: stagedFiles() },
+    });
+
+    const importJobId = created.json().import.importJobId;
+
+    const outsider = await store.createUser({ email: 'out@example.com', name: 'Out', passwordHash: hashPassword('x') });
+
+    const otherOrg = await store.createOrganization({
+      name: 'Other',
+      slug: 'other-org',
+      ownerUserId: outsider.id,
+    });
+    await store.createSession({ userId: outsider.id, token: 'out-token', expiresAt: new Date(Date.now() + 3600_000) });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/orgs/${otherOrg.id}/imports/${importJobId}`,
+      headers: auth('out-token'),
+    });
+
+    expect(res.statusCode).toBe(404);
+    expect(res.json().code).toBe('IMPORT_JOB_NOT_FOUND');
+  });
+
+  it('after the staging is disposed the preview is null, not an empty file list', async () => {
+    const { app, org } = await setup();
+
+    const created = await app.inject({
+      method: 'POST',
+      url: `/orgs/${org.id}/imports`,
+      headers: auth('imp-token'),
+      payload: { idempotencyKey: 'idem-p-4', provider: 'github', files: stagedFiles() },
+    });
+
+    const importJobId = created.json().import.importJobId;
+
+    await app.inject({
+      method: 'POST',
+      url: `/orgs/${org.id}/imports/${importJobId}/cancel`,
+      headers: auth('imp-token'),
+    });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/orgs/${org.id}/imports/${importJobId}`,
+      headers: auth('imp-token'),
+    });
+
+    /*
+     * The job row survives (its reservation lifecycle stays observable), but the
+     * preview is explicitly null — "this is over", not "an import with no file".
+     */
+    expect(res.statusCode).toBe(200);
+    expect(res.json().import.preview).toBeNull();
+  });
+});

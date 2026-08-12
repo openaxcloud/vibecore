@@ -1,0 +1,78 @@
+== 1. projet source (auteur) ==
+   projet = cmspqndb0000y0nfzo6x9vhr9
+== 2. écriture des fichiers PII (import zip réel) ==
+   fichiers écrits = 10
+== 3. snapshot immuable ==
+   snapshot = cmspqnev300160ncqv8v0v4ge
+== 4. curation du listing (platform admin + step-up) ==
+   listing = tpl026-pii-1786517929
+== 5. remix par un AUTRE utilisateur ==
+   clone = cmspqnfg8001c0ncqmqlxkc19 | piiMaskedCount = 9
+== 6. relecture des OCTETS réels (export zip, pas de métadonnées) ==
+   contrôle positif — IBAN en clair dans le SOURCE : True
+   détecteur appliqué au SOURCE : 10/10 fragments trouvés
+     'FR7630006000011234567890189' -> ['fixtures/payouts.json', 'src/billing/customer.ts']
+     'FR76 3000 6000 0112 3456 7890 189' -> ['docs/mandat-sepa.md']
+     '3000' -> ['docs/mandat-sepa.md', 'fixtures/payouts.json', 'src/billing/customer.ts']
+     '6000' -> ['docs/mandat-sepa.md', 'fixtures/payouts.json', 'src/billing/customer.ts']
+     '0112' -> ['docs/mandat-sepa.md', 'fixtures/payouts.json', 'src/billing/customer.ts']
+     '3456' -> ['docs/mandat-sepa.md', 'fixtures/payouts.json', 'src/billing/customer.ts']
+     '7890' -> ['docs/mandat-sepa.md', 'fixtures/payouts.json', 'src/billing/customer.ts']
+     '189' -> ['docs/mandat-sepa.md', 'fixtures/payouts.json', 'src/billing/customer.ts']
+     '890189' -> ['fixtures/payouts.json', 'src/billing/customer.ts']
+     '7890189' -> ['fixtures/payouts.json', 'src/billing/customer.ts']
+
+   fichiers clonés : 10
+    - README.md
+    - docs/mandat-sepa.md
+    - fixtures/payouts.json
+    - index.html
+    - package.json
+    - src/App.tsx
+    - src/billing/customer.ts
+    - src/main.tsx
+    - src/styles.css
+    - vite.config.ts
+
+   --- contenu cloné de src/billing/customer.ts ---
+// Fiche client de démonstration — données personnelles réalistes.
+export const customer = {
+  email: '[PII:email masked on remix]',
+  phone: '[PII:phone masked on remix]',
+  iban: '[PII:iban masked on remix]',
+  card: '[PII:card masked on remix]',
+};
+
+   --- contenu cloné de docs/mandat-sepa.md ---
+# Mandat de prélèvement SEPA
+
+Titulaire : Claire Dupont
+IBAN : [PII:iban masked on remix]
+Contact : [PII:email masked on remix] / [PII:phone masked on remix]
+
+   --- contenu cloné de fixtures/payouts.json ---
+{
+  "payouts": [
+    {
+      "beneficiary": "[PII:name masked on remix]",
+      "iban": "[PII:iban masked on remix]",
+      "amount": 1250
+    }
+  ]
+}
+
+
+OK — aucun fragment d'IBAN source ne survit dans le clone.
+{
+  "verdict": "PASS",
+  "sourceProjectId": "cmspqndb0000y0nfzo6x9vhr9",
+  "snapshotId": "cmspqnev300160ncqv8v0v4ge",
+  "listingSlug": "tpl026-pii-1786517929",
+  "cloneProjectId": "cmspqnfg8001c0ncqmqlxkc19",
+  "piiMaskedCount": 9,
+  "scrubbedValueLines": 0,
+  "clonedFileCount": 10,
+  "leaks": [],
+  "emailStillClear": false,
+  "cardStillClear": false
+}

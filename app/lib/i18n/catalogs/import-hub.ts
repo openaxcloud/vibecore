@@ -60,6 +60,54 @@ export const importHubEn = {
   'importHub.credential.requirement.figma':
     'a Figma personal access token and the file key of the design you want to import',
   'importHub.credential.requirement.claude': 'a connected Claude source for the design or artifact you want to import',
+
+  /*
+   * TPL-02.3 — per-connector preview. Shown BEFORE anything is written to a
+   * project: what would land, what the secret scan found, and the per-finding
+   * decision the commit gate requires. The wording never promises an import
+   * happened; staging is disposable until the explicit commit.
+   */
+  'importHub.preview.metaTitle': 'Review import - E-Code',
+  'importHub.preview.title': 'Review before importing',
+  'importHub.preview.description':
+    'Nothing has been written yet. These files are staged in a disposable area; review them and confirm to create the project.',
+  'importHub.preview.source': 'Source',
+  'importHub.preview.sourceRef': 'From {{ref}}',
+  'importHub.preview.filesHeading': 'Files that would be imported ({{count}})',
+  'importHub.preview.filesEmpty': 'This import stages no file.',
+  'importHub.preview.fileSize': '{{bytes}} bytes',
+  'importHub.preview.scanHeading': 'Secret scan',
+  'importHub.preview.scanClean': 'No secret-shaped content was found. You can create the project.',
+  'importHub.preview.scanFound':
+    '{{count}} finding(s) need a decision. The import cannot be committed while any finding is undecided.',
+  'importHub.preview.findingLocation': '{{path}}, line {{line}}',
+  'importHub.preview.findingKind.env-secret': 'Environment secret',
+  'importHub.preview.findingKind.private-key': 'Private key',
+  'importHub.preview.findingKind.provider-token': 'Provider token',
+  'importHub.preview.findingKind.high-entropy': 'High-entropy value',
+  'importHub.preview.decision.redact': 'Redact this line',
+  'importHub.preview.decision.keep': 'Keep it as-is',
+  'importHub.preview.decisionRequired': 'Choose for every finding to continue.',
+  'importHub.preview.submit': 'Create the project',
+  'importHub.preview.submitting': 'Creating…',
+  'importHub.preview.cancel': 'Cancel this import',
+  'importHub.preview.error.unresolved': 'Every finding needs an explicit decision before the import can be committed.',
+  'importHub.preview.error.stagingGone':
+    'This staged import has expired or was already committed. Nothing was written; start the import again.',
+  'importHub.preview.error.commitFailed': 'The import could not be committed. Nothing was written; you can retry.',
+  'importHub.preview.redactedNote': 'Redaction rewrites the staged copy only — your source is never modified.',
+
+  /*
+   * Credential-gated connectors get the SAME preview contract described up
+   * front, without inventing a file list they cannot know before a token
+   * exists. Honesty over completeness.
+   */
+  'importHub.credential.previewHeading': 'What the preview will show once connected',
+  'importHub.credential.previewStep1': 'The exact files {{label}} would stage, with their sizes.',
+  'importHub.credential.previewStep2': 'Every secret-shaped finding, previewed redacted — never the raw value.',
+  'importHub.credential.previewStep3': 'A per-finding redact-or-keep decision, required before anything is written.',
+  'importHub.credential.previewNote':
+    'No file is staged and no project is created until {{label}} is connected. This page performs no import.',
 } as const;
 
 export type ImportHubKey = keyof typeof importHubEn;
@@ -132,6 +180,47 @@ export const importHubFr: ImportHubCopy = {
     'un jeton d’accès personnel Figma et la clé du fichier de design à importer',
   'importHub.credential.requirement.claude':
     'une source Claude connectée pour le design ou l’artifact que vous souhaitez importer',
+
+  'importHub.preview.metaTitle': 'Vérifier l’import - E-Code',
+  'importHub.preview.title': 'Vérifier avant d’importer',
+  'importHub.preview.description':
+    'Rien n’a encore été écrit. Ces fichiers sont préparés dans un espace jetable ; vérifiez-les puis confirmez pour créer le projet.',
+  'importHub.preview.source': 'Source',
+  'importHub.preview.sourceRef': 'Depuis {{ref}}',
+  'importHub.preview.filesHeading': 'Fichiers qui seraient importés ({{count}})',
+  'importHub.preview.filesEmpty': 'Cet import ne prépare aucun fichier.',
+  'importHub.preview.fileSize': '{{bytes}} octets',
+  'importHub.preview.scanHeading': 'Analyse des secrets',
+  'importHub.preview.scanClean': 'Aucun contenu de forme secrète détecté. Vous pouvez créer le projet.',
+  'importHub.preview.scanFound':
+    '{{count}} détection(s) attendent une décision. L’import ne peut pas être validé tant qu’une détection reste sans décision.',
+  'importHub.preview.findingLocation': '{{path}}, ligne {{line}}',
+  'importHub.preview.findingKind.env-secret': 'Secret d’environnement',
+  'importHub.preview.findingKind.private-key': 'Clé privée',
+  'importHub.preview.findingKind.provider-token': 'Jeton de fournisseur',
+  'importHub.preview.findingKind.high-entropy': 'Valeur à forte entropie',
+  'importHub.preview.decision.redact': 'Masquer cette ligne',
+  'importHub.preview.decision.keep': 'La conserver telle quelle',
+  'importHub.preview.decisionRequired': 'Choisissez pour chaque détection afin de continuer.',
+  'importHub.preview.submit': 'Créer le projet',
+  'importHub.preview.submitting': 'Création…',
+  'importHub.preview.cancel': 'Annuler cet import',
+  'importHub.preview.error.unresolved':
+    'Chaque détection doit recevoir une décision explicite avant que l’import puisse être validé.',
+  'importHub.preview.error.stagingGone':
+    'Cet import préparé a expiré ou a déjà été validé. Rien n’a été écrit ; relancez l’import.',
+  'importHub.preview.error.commitFailed':
+    'L’import n’a pas pu être validé. Rien n’a été écrit ; vous pouvez réessayer.',
+  'importHub.preview.redactedNote':
+    'Le masquage ne réécrit que la copie préparée — votre source n’est jamais modifiée.',
+
+  'importHub.credential.previewHeading': 'Ce que l’aperçu affichera une fois la source connectée',
+  'importHub.credential.previewStep1': 'Les fichiers exacts que {{label}} préparerait, avec leur taille.',
+  'importHub.credential.previewStep2':
+    'Chaque détection de forme secrète, prévisualisée masquée — jamais la valeur brute.',
+  'importHub.credential.previewStep3': 'Une décision masquer-ou-conserver par détection, exigée avant toute écriture.',
+  'importHub.credential.previewNote':
+    'Aucun fichier n’est préparé et aucun projet n’est créé tant que {{label}} n’est pas connecté. Cette page n’effectue aucun import.',
 };
 
 export type ImportHubCredentialProviderId = 'vercel' | 'figma' | 'claude';
