@@ -1413,6 +1413,15 @@
       "justification": "Motifs machine du verdict fail-closed de /internal/preview/port-access, consommes par le preview-proxy et les logs. Jamais affiches a un utilisateur : les traduire casserait le contrat entre les deux services.",
       "owner": "platform-security",
       "expiresOn": "2027-08-12"
+    },
+    {
+      "id": "screenshotter-startup-refusals",
+      "path": "services/screenshotter/src/server.ts",
+      "rule": "error-message",
+      "textPattern": "^(?:SCREENSHOTTER_SHARED_SECRET est requis|alors que cette route rend|SCREENSHOTTER_ALLOWED_HOSTS est requis|ce qui fait de /capture)",
+      "justification": "Refus au DEMARRAGE dans un point d'entree de service : ces messages partent dans les logs du pod, a destination de l'operateur qui doit comprendre pourquoi le conteneur ne monte pas. Aucun utilisateur ne les voit ; les traduire nuirait au diagnostic.",
+      "owner": "platform-security",
+      "expiresOn": "2027-08-12"
     }
   ]
 }
