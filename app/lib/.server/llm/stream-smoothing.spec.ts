@@ -54,6 +54,7 @@ async function runTransform(blocks: string[]) {
    * here and is independent of the delay.
    */
   const transform = smoothStream({ chunking: 'word', delayInMs: null });
+
   const transformed = source.pipeThrough(
     transform({ tools: {} as never, stopStream: () => undefined }) as unknown as TransformStream,
   );
