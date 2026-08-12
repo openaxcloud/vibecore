@@ -10,10 +10,14 @@ import { describe, expect, it } from 'vitest';
 
 import {
   BREAK_GLASS_WORKFLOW,
+  CHART_VALUES,
   DEPLOY_WORKFLOW,
   POLICY_FILE,
   checkGateWiring,
+  parseEnabledChartServices,
   parseNeeds,
+  parseRolloutWaitList,
+  parseServiceMatrix,
   parseWorkflowRegions,
   stripComments,
 } from './validate-deploy-gate-wired.mjs';
@@ -23,6 +27,7 @@ function realFiles() {
     deployWorkflow: fs.readFileSync(DEPLOY_WORKFLOW, 'utf8'),
     breakGlassWorkflow: fs.readFileSync(BREAK_GLASS_WORKFLOW, 'utf8'),
     policy: JSON.parse(fs.readFileSync(POLICY_FILE, 'utf8')),
+    chartValues: fs.readFileSync(CHART_VALUES, 'utf8'),
   };
 }
 
@@ -83,6 +88,49 @@ describe('deploy gate wiring', () => {
     const files = realFiles();
     files.breakGlassWorkflow += '\n          gcloud builds submit .\n';
     expect(checkGateWiring(files).join('\n')).toMatch(/must not build images/);
+  });
+});
+
+describe('service matrix must not drift from the chart or the rollout wait', () => {
+  it('pins a digest for every service the chart enables', () => {
+    const { deployWorkflow, chartValues } = realFiles();
+    const pinned = parseServiceMatrix(deployWorkflow)
+      .filter((s) => s.chartService)
+      .map((s) => s.key)
+      .sort();
+    expect(pinned).toEqual([...parseEnabledChartServices(chartValues)].sort());
+  });
+
+  it('verifies imageIDs for exactly the services it waits on', () => {
+    const { deployWorkflow } = realFiles();
+    const { jobs } = parseWorkflowRegions(deployWorkflow);
+    const rolled = parseServiceMatrix(deployWorkflow)
+      .filter((s) => s.rolled)
+      .map((s) => s.image)
+      .sort();
+    expect(rolled).toEqual([...parseRolloutWaitList(jobs.get('build-and-deploy'))].sort());
+  });
+
+  it('catches a newly enabled chart service that nobody pinned', () => {
+    const files = realFiles();
+    // Simulate someone enabling `screenshotter` in the chart without updating SERVICES.
+    files.chartValues = files.chartValues.replace(
+      /( {2}screenshotter:\n(?: {4}.*\n)*? {4}enabled: )false/,
+      '$1true',
+    );
+    expect(checkGateWiring(files).join('\n')).toMatch(/is enabled in .* but is not pinned by digest/);
+  });
+
+  it('catches a service that would be waited on but never verified', () => {
+    const files = realFiles();
+    files.deployWorkflow = files.deployWorkflow.replace('for svc in web api', 'for svc in web admin api');
+    expect(checkGateWiring(files).join('\n')).toMatch(/do not match the rollout wait list/);
+  });
+
+  it('catches a chart service dropped from the digest matrix', () => {
+    const files = realFiles();
+    files.deployWorkflow = files.deployWorkflow.replace('api:api:runtime:true:true ', '');
+    expect(checkGateWiring(files).join('\n')).toMatch(/'api' is enabled in .* but is not pinned by digest/);
   });
 });
 
