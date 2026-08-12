@@ -34,9 +34,44 @@ trap cleanup EXIT
 
 # curl from inside the cluster (the Service is not routable from the host).
 kc() { kubectl --context "kind-${CLUSTER}" "$@"; }
+#
+# `kubectl run --rm -i` is not a reliable transport on its own: the throwaway pod
+# has to be scheduled, started and attached to, and under load any of those can
+# lose the output — which comes back as an EMPTY string, not an error. An empty
+# status then fails an assertion that expects e.g. "401", making the harness
+# report a product failure when nothing about the product was actually observed.
+#
+# Retry until we get a non-empty answer. An inconclusive probe must never be
+# reported as a verdict either way.
 incluster() {
-  kc -n "${NS}" run "probe-$RANDOM" --rm -i --restart=Never --quiet \
-    --image=curlimages/curl:8.10.1 --command -- curl -s "$@" 2>/dev/null
+  local attempt out
+  for attempt in 1 2 3 4 5; do
+    out="$(kc -n "${NS}" run "probe-$RANDOM-${attempt}" --rm -i --restart=Never --quiet \
+      --image=curlimages/curl:8.10.1 --command -- curl -s --retry 3 --retry-connrefused -m 20 "$@" 2>/dev/null)"
+
+    if [ -n "${out}" ]; then
+      printf '%s' "${out}"
+      return 0
+    fi
+  done
+
+  echo "PROBE_INCONCLUSIVE" >&2
+
+  return 1
+}
+
+# Wait until the Service actually has ready endpoints. `rollout status` returns on
+# pod availability, which is not the same thing as the Service being routable.
+wait_endpoints() {
+  local i
+  for i in $(seq 1 60); do
+    if [ -n "$(kc -n "${NS}" get endpoints api -o jsonpath='{.subsets[*].addresses[*].ip}' 2>/dev/null)" ]; then
+      return 0
+    fi
+    sleep 2
+  done
+  say "FAIL: Service 'api' never got ready endpoints"
+  exit 1
 }
 flag() { kc -n "${NS}" get cm platform-env -o jsonpath='{.data.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED}'; }
 setflag() {
@@ -46,6 +81,7 @@ setflag() {
   # chart (whose configmap checksum annotation rolls the Deployment).
   kc -n "${NS}" rollout restart deploy/api >/dev/null
   kc -n "${NS}" rollout status deploy/api --timeout=180s >/dev/null
+  wait_endpoints
 }
 
 hdr "0. cluster + images"
@@ -57,6 +93,7 @@ kind load docker-image sec9-api:old sec9-api:new --name "${CLUSTER}" >/dev/null
 kc create ns "${NS}" >/dev/null
 kc apply -f "${HERE}/manifests.yaml" >/dev/null
 kc -n "${NS}" rollout status deploy/api --timeout=180s >/dev/null
+wait_endpoints
 say "cluster up; api at image sec9-api:old (MODE=old), $(kc -n ${NS} get pods -l app.kubernetes.io/name=api --no-headers | wc -l | tr -d ' ') pods"
 
 hdr "0b. BASELINE — pre-cutover pods serve a cacheable PUBLIC response"
@@ -71,6 +108,7 @@ say "flag before: '$(flag)'"
 kc -n "${NS}" set image deploy/api api=sec9-api:new >/dev/null
 kc -n "${NS}" set env deploy/api MODE=new >/dev/null
 kc -n "${NS}" rollout status deploy/api --timeout=180s >/dev/null
+wait_endpoints
 say "rollout complete (this is where the OLD workflow stopped)"
 
 ACT1="$(incluster -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' \
