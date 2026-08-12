@@ -37,11 +37,13 @@ are green, and it deploys **by image digest**, verified against what the pods re
 ## Decision to make before merging: `Production E2E`
 
 As of 2026-08-12 the E2E suite is red on **every** branch — 0 successes in the last 25
-runs, dozens of failing specs (`dashboard.spec.ts`, `critical-paths.spec.ts`, IDE
-themes). Requiring it as-is means refusing every deploy, permanently. Pick one:
+runs, **265 failing tests across 19 spec files**, with heterogeneous causes (absent UI,
+count mismatches, design-token assertions, the responsive/mobile matrix). Requiring it
+as-is means refusing every deploy, permanently. Pick one:
 
-- **A — fix E2E first.** Full gate, matches the requirement exactly. Unknown size; the
-  release-integrity defect stays open meanwhile.
+- **A — fix E2E first.** Full gate, matches the requirement exactly. The numbers above
+  make this a multi-area effort, not a single fixture or missing secret; the
+  release-integrity defect stays open for its whole duration.
 - **B — waive E2E, with a date and a ticket** *(recommended)*. The gate enforces
   CI + Security + Quality immediately. Proven against the real API: all three commits
   above are **still refused** under the waiver, and an all-green commit passes with
@@ -124,6 +126,8 @@ run itself is how you see it go green and can then delete the waiver with eviden
   previous tag-based path works unchanged.
 
 ## Evidence
+
+Consolidated, requirement-by-requirement: [`RELEASE_GATE_EVIDENCE.md`](RELEASE_GATE_EVIDENCE.md).
 
 - Gate refuses red commits / authorises green ones — GitHub Actions run
   [31593821375](https://github.com/openaxcloud/vibecore/actions/runs/31593821375),
