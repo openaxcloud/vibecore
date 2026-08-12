@@ -182,6 +182,28 @@ donc aucun agent n'est résolu). C'est un refus sans aucun octet applicatif — 
 code diffère du 404 du chemin HTTP, ce qui vaut d'être harmonisé un jour, mais la
 substance est identique.
 
+## Rejeu au SHA `693ff5c8b5` — les 4 portes, par assertions
+
+Ce document décrit l'enquête d'origine. La preuve **courante et rejouable** vit
+dans [`CONTRE_AUDIT_82603D55.md`](CONTRE_AUDIT_82603D55.md) et son journal brut
+[`live-4-portes-693ff5c8b5.txt`](preuves/contre-audit-82603d55/live-4-portes-693ff5c8b5.txt) :
+
+```
+scripts/proofs/replay-preview-doors.sh 693ff5c8b5
+```
+
+Le script monte lui-même org légitime + org intruse, projet, workspace **gVisor**,
+serveur de dev (5173 HTTP, 5174 HTTP+WS), forge les jetons **dans le cluster**, et
+**affirme** chaque porte (statut + fragment de corps ; `101` + données pour le cas
+légitime). Il refuse de mesurer si la flotte des composants traversés n'est pas
+homogène sur le tag attendu, ou si `PREVIEW_PROXY_ENFORCE_TENANT` et
+`PREVIEW_ENFORCE_PRIVATE_PORTS` ne sont pas tous deux à `true` dans **chaque** pod
+du proxy.
+
+Nouveauté par rapport à l'enquête initiale : la porte 3 est désormais jouée en
+**E2E réel** par le screenshotter déployé (vrai Chromium → `/p/<ws>/<port>` → proxy
+→ workspace), avec le refus symétrique vérifié sans jeton.
+
 ## Verdict
 
 | Porte | Portait le jeton ? | Après correctif |
