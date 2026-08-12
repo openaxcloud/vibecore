@@ -2,7 +2,7 @@
 # (P0-A2-01 / P0-LS-16). Ne jamais éditer à la main — drift-check en CI. Le
 # champ validation reflète le dernier run du validateur sur l'arbre.
 schemaVersion: 1
-fileCount: 173
+fileCount: 174
 generatedAt: "2026-08-12T13:27:01Z"
 generatedFromCommit: 309d7349bd7af565cbc20d87f104090ae67a8a8a
 mergedCommit: 309d7349bd7af565cbc20d87f104090ae67a8a8a
@@ -416,6 +416,11 @@ documents:
   - file: history/2026-07-20-PLAN_FINAL_LIVRAISON-superseded.md
     sha256: "8ab9a3efcdccf632d830ef7932a4678a3e2b6396b106934067fd2b8a7bde06ef"
     schemaVersion: 2
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: incoming/EVIDENCE_PR52_8e3caa34.md
+    sha256: "545fcd93a5ced192a88476f6ff2e347bc7db0c18e2427b704f8a30beb8a4a1ab"
+    schemaVersion: 1
     repoCommit: null
     reviewer: UNKNOWN
   - file: incoming/PR37_REVIEW_CHECKS_20260721.txt
