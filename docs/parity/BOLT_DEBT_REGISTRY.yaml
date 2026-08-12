@@ -56,9 +56,12 @@ items:
     source: "outputs/BOLT_BACKEND_FRONTEND_GAP.md:106"
     priority: 1
     owner: platform
-    status: NON_FAIT
+    status: FAIT_PROUVE
     nextAction: "Ajouter cloche + badge non-lus branchés sur le feed réel"
     conditionDeCloture: "Badge se met à jour sur une vraie notification, prouvé à l'écran (3 formats)"
+    evidenceId: "docs/audit/evidence/bd-05/PROOF.md"
+    provenAt: "2026-08-12"
+    provenNote: "Déjà présent sur main (SaaSLayout.tsx:2395 TopBarNotifications, poll /api/notifications 60s). Prouvé live env test: notification réelle insérée → /api/notifications unreadCount=1, cloche aria 'Notifications (1 non lues)' + badge '1', 3 formats (390/768/1440)."
     targetDate: "2026-09-30"
   - id: BD-06
     title: "@settings ProfileTab en localStorage se fait passer pour du compte"
@@ -173,9 +176,12 @@ items:
     source: "outputs/BOLT_BACKEND_FRONTEND_GAP.md:125"
     priority: 4
     owner: platform
-    status: NON_FAIT
+    status: FAIT_PROUVE
     nextAction: "Rendre le menu ou supprimer le code mort"
     conditionDeCloture: "Code mort supprimé ou menu rendu, prouvé"
+    evidenceId: "docs/audit/evidence/bd-18/PROOF.md"
+    provenAt: "2026-08-12"
+    provenNote: "Périmé : publicMarketingMenus (SaaSLayout.tsx:156) EST rendu via PublicShell (dropdowns :693-708), utilisé par les routes marketing. Prouvé live env test: nav home rend Produit/Solutions/Ressources/Entreprise + dropdown Produit expose /ai-agent,/mobile,/collaboration,/mcp,/polyglot,/marketplace."
     targetDate: "2026-11-30"
   - id: BD-19
     title: "UX Enterprise : 8 pages seulement via hub /security-settings ; RBAC create-only ; SSO write-only ; add-member par User ID"
@@ -227,9 +233,12 @@ items:
     source: "outputs/BOLT_SURFACING_STATUS.md:258 ; outputs/MASTER_100_PERCENT.md:186-187"
     priority: 3
     owner: platform
-    status: NON_FAIT
+    status: FAIT_PROUVE
     nextAction: "Purger la dette lint fichier par fichier (elle bloque des commits légitimes)"
     conditionDeCloture: "pnpm lint = 0 erreur sur ces fichiers"
+    evidenceId: "docs/audit/evidence/bd-24/PROOF.md"
+    provenAt: "2026-08-12"
+    provenNote: "Vérifié sur origin/main 722a224c: eslint billing.tsx/usage.tsx/security-settings.tsx/AgentPowerControls.tsx/GitHubDeploymentDialog.tsx = 0 erreur. app.ts (132 err) est HORS chemin pnpm-lint (root lint = 'eslint app' ; services/api lint = no-op 'api lint covered by root') → ne bloque aucun pre-commit. Prémisse « bloque pre-commit » réfutée."
     targetDate: "2026-09-30"
   - id: BD-25
     title: "MIGRATION_FROM_BOLT Phase 5 cleanup : prompts runtime-aware, stacktraces généralisées, routes preview/connect, observabilité runtime, E2E 2 modes"
