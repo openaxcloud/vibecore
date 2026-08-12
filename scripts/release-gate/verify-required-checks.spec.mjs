@@ -10,7 +10,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { evaluateRequiredChecks, selfTestCases } from './verify-required-checks.mjs';
+import { evaluateRequiredChecks, selfTestCases, validateWaiver } from './verify-required-checks.mjs';
 import policy from './required-checks.json';
 
 const SHA = '113c17e877d50f40a0a8ba5c2e68aaa027337985';
@@ -184,6 +184,87 @@ describe('release gate — cross-commit and tampering defences', () => {
         jobsByRunId: greenJobs(runs),
       });
       expect(result.verdict, `'${bad}' must be refused`).toBe('REFUSE');
+    }
+  });
+});
+
+describe('release gate — waivers are bounded, loud, and fail closed on expiry', () => {
+  const NOW = Date.parse('2026-08-12T12:00:00Z');
+
+  function waived(extra = {}) {
+    const wf = policy.requiredWorkflows.find((w) => w.displayName === 'Production E2E');
+    return {
+      ...policy,
+      requiredWorkflows: policy.requiredWorkflows.map((w) =>
+        w.id === wf.id
+          ? {
+              ...w,
+              waivedUntil: '2026-09-01',
+              waiverReason: 'the E2E suite is red for reasons unrelated to release integrity',
+              waiverTicket: 'BUG-E2E-001',
+              ...extra,
+            }
+          : w,
+      ),
+    };
+  }
+
+  it('lets a live waiver authorise a release without that check — and says so loudly', () => {
+    const runs = greenRuns().filter((r) => r.path !== '.github/workflows/e2e.yml');
+    const result = evaluateRequiredChecks({
+      policy: waived(),
+      targetSha: SHA,
+      workflowRuns: runs,
+      jobsByRunId: greenJobs(runs),
+      nowMs: NOW,
+    });
+    expect(result.verdict).toBe('PASS');
+    expect(result.warnings.join('\n')).toMatch(/Production E2E.*WAIVED until 2026-09-01/);
+    expect(result.workflows.find((w) => w.displayName === 'Production E2E').state).toBe('WAIVED');
+  });
+
+  it('requires the check again the moment the waiver expires — no deploy rides a stale waiver', () => {
+    const runs = greenRuns().filter((r) => r.path !== '.github/workflows/e2e.yml');
+    const result = evaluateRequiredChecks({
+      policy: waived(),
+      targetSha: SHA,
+      workflowRuns: runs,
+      jobsByRunId: greenJobs(runs),
+      nowMs: Date.parse('2026-09-02T00:00:01Z'),
+    });
+    expect(result.verdict).not.toBe('PASS');
+    expect(result.warnings.join('\n')).toMatch(/waiver EXPIRED/);
+    expect(result.waiting.join('\n')).toMatch(/Production E2E/);
+  });
+
+  it('refuses a waiver with no reason, no ticket or a malformed date', () => {
+    for (const bad of [
+      { waiverReason: 'because' },
+      { waiverTicket: undefined },
+      { waivedUntil: 'soon' },
+      { waivedUntil: '01/09/2026' },
+    ]) {
+      const runs = greenRuns();
+      const result = evaluateRequiredChecks({
+        policy: waived(bad),
+        targetSha: SHA,
+        workflowRuns: runs,
+        jobsByRunId: greenJobs(runs),
+        nowMs: NOW,
+      });
+      expect(result.verdict, JSON.stringify(bad)).toBe('REFUSE');
+    }
+  });
+
+  it('rejects a waiver longer than the ceiling', () => {
+    expect(
+      validateWaiver({ waivedUntil: '2027-01-01', waiverReason: 'x'.repeat(30), waiverTicket: 'T-1', waiverMaxDays: 400 }),
+    ).toContainEqual(expect.stringMatching(/exceeds the 30-day ceiling/));
+  });
+
+  it('ships with NO waiver in effect — every required check is genuinely required', () => {
+    for (const wf of policy.requiredWorkflows) {
+      expect(wf.waivedUntil, `${wf.displayName} must not ship waived`).toBeUndefined();
     }
   });
 });

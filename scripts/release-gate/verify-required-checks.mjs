@@ -81,25 +81,55 @@ const TERMINAL_BAD = new Set([
  * @param {Map<number, Array<object>>} args.jobsByRunId  run id -> that run's `jobs`
  * @returns {{verdict: 'PASS'|'REFUSE'|'WAIT', workflows: Array<object>, refusals: string[], waiting: string[]}}
  */
-export function evaluateRequiredChecks({ policy, targetSha, workflowRuns, jobsByRunId }) {
+export function evaluateRequiredChecks({ policy, targetSha, workflowRuns, jobsByRunId, nowMs }) {
   if (!SHA_RE.test(String(targetSha ?? ''))) {
     return {
       verdict: 'REFUSE',
       workflows: [],
       refusals: [`targetSha is not a full 40-hex commit sha: '${targetSha}'`],
       waiting: [],
+      warnings: [],
     };
   }
 
   const allowedEvents = new Set(policy.allowedEvents ?? ['push']);
   const requiredBranch = policy.requiredHeadBranch ?? null;
+  const now = nowMs ?? Date.now();
 
   const workflows = [];
   const refusals = [];
   const waiting = [];
+  const warnings = [];
 
   for (const wf of policy.requiredWorkflows) {
     const label = `${wf.displayName} (id=${wf.id}, ${wf.path})`;
+
+    // A waiver lets a check be temporarily not-required — for a pipeline that is
+    // broken for reasons unrelated to release integrity, where making it required
+    // today would block every deploy forever rather than gate anything.
+    //
+    // It EXPIRES, and expiry fails closed: past the date the check is required again
+    // and deploys start refusing. That is deliberate. A waiver with no deadline is
+    // just a deleted check with extra steps, and the reason this gate exists at all
+    // is that "Production E2E" was effectively waived — by never running — with
+    // nobody noticing for months.
+    if (wf.waivedUntil) {
+      const problems = validateWaiver(wf);
+      if (problems.length > 0) {
+        workflows.push({ ...summaryOf(wf), state: 'REFUSE', detail: problems.join('; ') });
+        refusals.push(`${label}: ${problems.join('; ')}`);
+        continue;
+      }
+      const expiry = Date.parse(`${wf.waivedUntil}T23:59:59Z`);
+      if (now <= expiry) {
+        const days = Math.ceil((expiry - now) / 86_400_000);
+        const detail = `WAIVED until ${wf.waivedUntil} (${days}d left) — ${wf.waiverReason}`;
+        workflows.push({ ...summaryOf(wf), state: 'WAIVED', detail });
+        warnings.push(`${label}: ${detail}`);
+        continue;
+      }
+      warnings.push(`${label}: waiver EXPIRED on ${wf.waivedUntil} — this check is required again`);
+    }
 
     // Rule 1+2: the run must belong to this pinned workflow id AND carry the exact sha.
     const sameWorkflow = workflowRuns.filter((r) => r.workflow_id === wf.id);
@@ -189,7 +219,33 @@ export function evaluateRequiredChecks({ policy, targetSha, workflowRuns, jobsBy
   }
 
   const verdict = refusals.length > 0 ? 'REFUSE' : waiting.length > 0 ? 'WAIT' : 'PASS';
-  return { verdict, workflows, refusals, waiting };
+  return { verdict, workflows, refusals, waiting, warnings };
+}
+
+/**
+ * A waiver must be auditable and bounded. Anything less is a permanent hole that
+ * merely looks temporary, so a malformed one REFUSES rather than being ignored.
+ */
+export function validateWaiver(wf, maxDays = 30) {
+  const problems = [];
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(wf.waivedUntil)) {
+    problems.push(`waivedUntil must be YYYY-MM-DD (got '${wf.waivedUntil}')`);
+    return problems;
+  }
+  const expiry = Date.parse(`${wf.waivedUntil}T23:59:59Z`);
+  if (Number.isNaN(expiry)) {
+    problems.push(`waivedUntil '${wf.waivedUntil}' is not a real date`);
+  }
+  if (!wf.waiverReason || String(wf.waiverReason).trim().length < 20) {
+    problems.push('waiverReason must say WHY, in at least 20 characters');
+  }
+  if (!wf.waiverTicket) {
+    problems.push('waiverTicket must reference the work that removes the waiver');
+  }
+  if (typeof wf.waiverMaxDays === 'number' && wf.waiverMaxDays > maxDays) {
+    problems.push(`waiverMaxDays ${wf.waiverMaxDays} exceeds the ${maxDays}-day ceiling`);
+  }
+  return problems;
 }
 
 function summaryOf(wf) {
@@ -277,12 +333,12 @@ async function evaluateOnce({ policy, repo, targetSha, token }) {
 // Reporting
 // ---------------------------------------------------------------------------
 
-function renderReport({ verdict, workflows, refusals, waiting }, { targetSha, repo }) {
+function renderReport({ verdict, workflows, refusals, waiting, warnings }, { targetSha, repo }) {
   const lines = [];
   lines.push(`Release gate — repo ${repo}, target commit ${targetSha}`);
   lines.push('');
   for (const w of workflows) {
-    const icon = w.state === 'PASS' ? '✅' : w.state === 'REFUSE' ? '❌' : '⏳';
+    const icon = w.state === 'PASS' ? '✅' : w.state === 'REFUSE' ? '❌' : w.state === 'WAIVED' ? '⚠️ ' : '⏳';
     lines.push(`${icon} ${w.state.padEnd(7)} ${w.displayName} [id=${w.id}] — ${w.detail}`);
     if (w.runUrl) {
       lines.push(`             ${w.runUrl}`);
@@ -296,6 +352,10 @@ function renderReport({ verdict, workflows, refusals, waiting }, { targetSha, re
   if (waiting.length > 0) {
     lines.push('STILL WAITING ON:');
     waiting.forEach((r) => lines.push(`  - ${r}`));
+  }
+  if ((warnings ?? []).length > 0) {
+    lines.push('⚠️  WAIVERS IN EFFECT (this release was NOT fully gated):');
+    warnings.forEach((r) => lines.push(`  - ${r}`));
   }
   lines.push('');
   lines.push(`VERDICT: ${verdict}`);
