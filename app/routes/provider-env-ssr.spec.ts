@@ -43,6 +43,7 @@ describe('BUG-QA-PROVIDERS-SSR-ENV-001 — provider env must survive the SSR shi
     const holder = globalThis as typeof globalThis & {
       process?: { env?: Record<string, string | undefined> };
     };
+
     const previous = holder.process;
 
     try {

@@ -52,6 +52,7 @@ export const loader: LoaderFunction = async ({ context, request }) => {
         if (config.baseUrlKey) {
           const baseUrlEnvVar = config.baseUrlKey;
           const cloudflareEnv = (context?.cloudflare?.env as Record<string, any>)?.[baseUrlEnvVar];
+
           /*
            * `process.env` is shimmed to `{}` by vite-plugin-node-polyfills in the
            * SSR bundle, so a bare read here always returns undefined and this

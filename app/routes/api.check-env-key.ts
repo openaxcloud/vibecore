@@ -39,18 +39,17 @@ export const loader: LoaderFunction = async ({ context, request }) => {
    * Check API key in order of precedence:
    * 1. Client-side API keys (from cookies)
    * 2. Server environment variables (from Cloudflare env)
-   * 3. Process environment variables (from .env.local)
+   * 3. Process environment variables (from .env.local), read via
+   *    `readRuntimeEnv` — same SSR trap as api.configured-providers:
+   *    `process.env` is shimmed to `{}` by vite-plugin-node-polyfills in the
+   *    SSR bundle, so a bare read reports the key as absent even when it is
+   *    set and working (BUG-QA-PROVIDERS-SSR-ENV-001). Go through
+   *    `globalThis.process.env`.
    * 4. LLMManager environment variables
    */
   const rawValue =
     apiKeys?.[provider] ||
     (context?.cloudflare?.env as Record<string, any>)?.[envVarName] ||
-    /*
-     * Same SSR trap as api.configured-providers: `process.env` is shimmed to
-     * `{}` by vite-plugin-node-polyfills in the SSR bundle, so a bare read
-     * reports the key as absent even when it is set and working
-     * (BUG-QA-PROVIDERS-SSR-ENV-001). Go through `globalThis.process.env`.
-     */
     readRuntimeEnv(envVarName) ||
     llmManager.env[envVarName];
 
