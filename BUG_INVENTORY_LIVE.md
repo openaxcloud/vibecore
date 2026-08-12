@@ -143,3 +143,30 @@ Prochaine etape : instrumenter les trois signaux au moment exact de la decision 
 | BUG-TPL-002 | **`POST /orgs/:orgId/projects/from-ai` crée un projet contenant UNIQUEMENT `README.md`** — pas de `package.json`, pas de point d'entrée, pas de config Vite. Aucun `npm run dev` n'est possible : pas de dev server, pas d'aperçu, pas de runtime. C'est le parcours principal de création (le formulaire de prompt de l'accueil). | ✅ 12/08 | ☐ | ✅ **12/08** reproduit live | Création réelle : prompt « Crée une todo app React… » → projet `cmsq0quio…`, **1 fichier : `README.md`**. ⚠️ **Nuance honnête** : ce chemin suppose que l'**agent** génère ensuite l'application à partir du prompt ; l'état « sans runtime » est donc censé être transitoire en production. Il ne l'est pas ici (aucune clé LLM dans l'env de test), et il ne l'est pas non plus si la génération échoue — sans aucun filet, l'utilisateur reste avec un projet vide et un IDE sans runtime. À trancher avec l'expert : filet de secours (squelette minimal exécutable) ou état explicite « en attente de génération ». |
 
 **Fait connexe, à ne pas confondre avec un défaut :** aucun des chemins de création (`projects`, `from-template`, `from-ai`) ne crée d'enregistrement `Workspace`. Le runtime est provisionné **paresseusement** à la première ouverture de l'IDE (`ProjectWorkspaceProvider`). Un projet fraîchement créé est donc bien « sans runtime » jusqu'à l'ouverture — c'est le comportement conçu, pas un bug ; il devient un problème seulement si l'interface laisse croire le contraire.
+
+### 2026-08-12 — BUG-PERF-LOAD : 2ᵉ cause corrigée et **prouvée sur build réel**
+
+`50f30c5d` sur `main`. Preuve par comparaison du chunk `root` **construit** contre celui de **prod** :
+
+| | prod (avant) | build local (après) |
+|---|---|---|
+| imports statiques du chunk `root` | **96** | **95** |
+| `vendor-monaco-core` importé par `root` | **oui** (2 283 041 o bruts / 573 Ko transférés) | **non** |
+| `vendor-terminal` importé par `root` | **oui** (324 358 o / 81 Ko transférés) | **non** |
+| `vendor-codemirror` importé par `root` | non (corrigé par `df8eb531`) | non |
+| nouveau chunk d'utilitaires | — | `vendor-vite-helpers` : **985 o bruts / 636 o gzip** |
+
+Le compte est cohérent : 96 − 2 (monaco, terminal) + 1 (helper) = **95**. **Aucun chunk lourd n'est supprimé** — `vendor-monaco-core` (2,28 Mo), `vendor-terminal` (324 Ko) et `vendor-codemirror` (748 Ko) sont toujours émis pour l'IDE, ils ne sont simplement plus sur le chemin critique de chaque page. Les feuilles de style restent émises à l'identique (`xterm-LZoznX6r.css`, `vendor-monaco-core-CP2cXDiA.css` — mêmes noms qu'en prod). **Gain ≈ 654 Ko par page.**
+
+Cumul des deux causes de BUG-PERF-LOAD : `df8eb531` (CodeMirror, 257 Ko, vérifié en prod) + `50f30c5d` (Monaco + xterm, ~654 Ko) ≈ **911 Ko retirés de chaque chargement de page**, sur les 2 113 Ko mesurés au départ.
+
+### BUG-RUNTIME-DIVERGENCE — hypothèses éliminées, signal fautif non encore identifié
+
+La décision est `reused && seededThisSession && hasLivePort`, et `storageNewerThanSeed` doit être faux. État de l'enquête, tout mesuré en réel :
+
+- **`seededThisSession`** — était la cause du 1ᵉʳ correctif ; le marqueur durable est écrit et relu (`vibecore.workspace-seed.ws-3782577d5c8de3a7 = {"revision":"6"}`). **Réglé.**
+- **`storageNewerThanSeed`** — **éliminé** : `ProjectIdeState.version` valait **6** au seed et **6** à la réouverture. (À noter tout de même : `GET /projects/:id/ide-state` renvoie un `ETag: "6"` *avec guillemets* et un `version: 6` *numérique* ; `fetchPersistedProjectRevision` préfère l'ETag et retombe sur la version — deux représentations pour la même grandeur, fragile même si ce n'est pas la cause ici.)
+- **`reused`** — **éliminé comme défaut de casse** : `reused:true` exige `payload.status === 'running'` en minuscules ; l'API renvoie bien `'running'` en minuscules sur un pod chaud (vérifié : 2ᵉ POST → `'running'`, alors que le 1ᵉʳ POST sur un pod fraîchement créé renvoyait `'starting'`, ce qui est correct).
+- **`hasLivePort`** — **non éliminé.** `hasLivePreviewPort` exige `port.ready === true` **strictement**, alors que le code voisin de `refreshRuntimePorts` accepte `preview.ready !== false`. L'API `/ports` renvoie bien `ready:true`, mais la valeur transite par `#applyPortEvent` (`ready ?? type === 'open'`) et par le magasin `previews`, vide au montage d'une page neuve.
+
+**Conclusion honnête : le signal fautif n'est pas identifié.** Le trancher demande d'instrumenter les trois valeurs à l'instant exact de la décision côté client, donc un build déployé — impossible tant que je ne mute pas le cluster de test partagé. **Le correctif `fix/runtime-divergence-seed-marker` reste NON mergé et insuffisant.**
