@@ -27,14 +27,26 @@ export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
 };
 
 export default function SolutionsIndexRoute() {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const copy = getMarketingSolutionsRouteCopy(i18n.resolvedLanguage ?? i18n.language);
+
+  const localizedPages = Object.fromEntries(
+    Object.entries(solutionPages).map(([slug, page]) => [
+      slug,
+      {
+        ...page,
+        title: t(`marketingSolutions.cards.${slug}.title`),
+        description: t(`marketingSolutions.cards.${slug}.description`),
+      },
+    ]),
+  );
 
   return (
     <MarketingIndexPage
       title={copy['marketingSolutions.index.title']}
       description={copy['marketingSolutions.index.description']}
-      pages={solutionPages}
+      pages={localizedPages}
+      pagesAreLocalized
     />
   );
 }

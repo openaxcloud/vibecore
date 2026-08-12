@@ -3,6 +3,7 @@ import path from 'node:path';
 
 /** Enterprise is deliberately included; App Builder is the finished reference. */
 export const SOLUTION_COPY_SOURCES = Object.freeze([
+  ['solutions-index', 'app/lib/i18n/catalogs/solutions-index-cards.ts'],
   ['website-builder', 'app/components/marketing/solutions/website-builder.copy.ts'],
   ['game-builder', 'app/components/marketing/solutions/game-builder.copy.ts'],
   ['dashboard-builder', 'app/components/marketing/solutions/dashboard-builder.copy.ts'],
@@ -25,6 +26,9 @@ export const FR_RESIDUAL_ALLOWLIST = Object.freeze([
   { value: 'Dashboard Builder', reason: 'Published E-Code offer name.' },
   { value: 'Chatbot Builder', reason: 'Published E-Code offer name.' },
   { value: 'Internal AI Builder', reason: 'Published E-Code offer name.' },
+  { value: 'Enterprise', reason: 'Published E-Code offer name.' },
+  { value: 'Startups', reason: 'Published E-Code offer name.' },
+  { value: 'Freelancers', reason: 'Published E-Code offer name.' },
   { value: 'English', reason: 'Native language name shown by the language switcher.' },
   { value: 'Français', reason: 'Native language name shown by the language switcher.' },
   { value: 'Git', reason: 'Technical product term.' },
@@ -231,6 +235,7 @@ export function parseSolutionCopySource(source, file = '<source>') {
 
   function parseString() {
     const quote = source[index];
+
     let value = '';
     index += 1;
 
@@ -255,6 +260,7 @@ export function parseSolutionCopySource(source, file = '<source>') {
     }
 
     index += 1;
+
     return value;
   }
 
@@ -266,6 +272,7 @@ export function parseSolutionCopySource(source, file = '<source>') {
     }
 
     index += match[0].length;
+
     return match[0];
   }
 
@@ -287,6 +294,7 @@ export function parseSolutionCopySource(source, file = '<source>') {
     }
 
     index += 1;
+
     return values;
   }
 
@@ -316,18 +324,28 @@ export function parseSolutionCopySource(source, file = '<source>') {
     }
 
     index += 1;
+
     return value;
   }
 
   function parseValue() {
     skipTrivia();
+
     const character = source[index];
 
-    if (character === '{') return parseObject();
-    if (character === '[') return parseArray();
-    if (character === "'" || character === '"' || character === '`') return parseString();
+    if (character === '{') {
+      return parseObject();
+    }
 
-    fail('solution catalogue values must be static strings, arrays, or objects');
+    if (character === '[') {
+      return parseArray();
+    }
+
+    if (character === "'" || character === '"' || character === '`') {
+      return parseString();
+    }
+
+    return fail('solution catalogue values must be static strings, arrays, or objects');
   }
 
   const result = parseObject();
@@ -372,7 +390,9 @@ function isAllowedValue(value, allowlist) {
   const normalized = value.trim();
   const exact = allowlist.find((entry) => entry.value === normalized);
 
-  if (exact) return exact;
+  if (exact) {
+    return exact;
+  }
 
   // Names, versions, dates and technical labels contain no prose to translate.
   if (/^(?:[\d.,+%€$:/#-]+|T\d|Q\d|v\d+)$/i.test(normalized)) {
@@ -385,9 +405,13 @@ function isAllowedValue(value, allowlist) {
 export function looksLikeEnglishProse(value) {
   const words = normalizedWords(value);
 
-  if (words.length === 0) return false;
+  if (words.length === 0) {
+    return false;
+  }
 
-  if (words.length === 1) return ENGLISH_ONLY_UI_WORDS.has(words[0]);
+  if (words.length === 1) {
+    return ENGLISH_ONLY_UI_WORDS.has(words[0]);
+  }
 
   const english = words.filter((word) => ENGLISH_MARKERS.has(word)).length;
   const englishOnly = words.filter((word) => ENGLISH_ONLY_UI_WORDS.has(word)).length;

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { loader, meta } from './solutions._index';
+import { solutionPages } from '~/components/marketing/EcodeMarketingPages';
 import {
   getMarketingSolutionsRouteCopy,
   marketingSolutionsRouteEn,
@@ -51,6 +52,20 @@ describe('localized Solutions index route', () => {
       ['fr', 'Solutions E-Code'],
     ] as const) {
       expect(createI18nInstance(language).t('marketingSolutions.index.title')).toBe(expected);
+    }
+  });
+
+  it('localizes every Solutions card through t() without changing offer names', () => {
+    const english = createI18nInstance('en');
+    const french = createI18nInstance('fr');
+
+    for (const slug of Object.keys(solutionPages)) {
+      const titleKey = `marketingSolutions.cards.${slug}.title`;
+      const descriptionKey = `marketingSolutions.cards.${slug}.description`;
+
+      expect(french.t(titleKey)).toBe(english.t(titleKey));
+      expect(french.t(descriptionKey)).not.toBe(english.t(descriptionKey));
+      expect(french.t(descriptionKey)).not.toBe(descriptionKey);
     }
   });
 

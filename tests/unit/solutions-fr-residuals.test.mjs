@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'vitest';
 
+// eslint-disable-next-line no-restricted-imports -- this test exercises a standalone repository audit script.
 import {
   FR_RESIDUAL_ALLOWLIST,
   SOLUTION_COPY_SOURCES,
@@ -11,10 +12,11 @@ import {
 } from '../../scripts/solutions-fr-residuals-lib.mjs';
 
 describe('Solutions French residual audit', () => {
-  it('scans exactly the eight remaining pages, including Enterprise and excluding App Builder', () => {
+  it('scans the Solutions index plus exactly eight remaining pages, including Enterprise', () => {
     assert.deepEqual(
       SOLUTION_COPY_SOURCES.map(([slug]) => slug),
       [
+        'solutions-index',
         'website-builder',
         'game-builder',
         'dashboard-builder',
@@ -74,7 +76,7 @@ describe('Solutions French residual audit', () => {
   it('reports zero English residuals across all eight real French catalogues', () => {
     const report = auditSolutionFiles();
 
-    assert.equal(report.summary.pages, 8);
+    assert.equal(report.summary.pages, 9);
     assert.equal(report.summary.findings, 0, JSON.stringify(report.findings, null, 2));
     assert.equal(report.summary.englishStrings, report.summary.frenchStrings);
     assert.equal(report.summary.translatedPercent, 100);

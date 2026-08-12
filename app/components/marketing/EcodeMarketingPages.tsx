@@ -503,15 +503,20 @@ export function MarketingIndexPage({
   title,
   description,
   pages,
+  pagesAreLocalized = false,
 }: {
   title: string;
   description: string;
   pages: Record<string, MarketingPageDefinition>;
+  pagesAreLocalized?: boolean;
 }) {
   const { i18n } = useTranslation();
   const language = i18n.resolvedLanguage ?? i18n.language;
   const ui = getMarketingUiCopy(language);
-  const localizedPages = Object.values(pages).map((page) => localizeMarketingPage(page, language));
+
+  const localizedPages = Object.values(pages).map((page) =>
+    pagesAreLocalized ? page : localizeMarketingPage(page, language),
+  );
 
   return (
     <PublicShell>

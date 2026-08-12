@@ -1,3 +1,4 @@
+import { solutionsIndexCardsEn, solutionsIndexCardsFr } from './solutions-index-cards';
 import { normalizeSupportedLanguage } from '~/lib/i18n/language';
 import { MARKETING_SITE_URL, socialMetaTags } from '~/utils/social-meta';
 
@@ -8,6 +9,7 @@ import { MARKETING_SITE_URL, socialMetaTags } from '~/utils/social-meta';
  * source scanner counted as residual debt on this file.
  */
 export const marketingSolutionsRouteEn = {
+  ...solutionsIndexCardsEn,
   'marketingSolutions.seo.title': 'Solutions — E-Code',
   'marketingSolutions.seo.description':
     'Explore E-Code solutions for app builders, websites, games, dashboards, AI agents and enterprise teams.',
@@ -21,6 +23,7 @@ export type MarketingSolutionsRouteKey = keyof typeof marketingSolutionsRouteEn;
 export type MarketingSolutionsRouteCopy = Readonly<Record<MarketingSolutionsRouteKey, string>>;
 
 export const marketingSolutionsRouteFr: MarketingSolutionsRouteCopy = {
+  ...solutionsIndexCardsFr,
   'marketingSolutions.seo.title': 'Solutions — E-Code',
   'marketingSolutions.seo.description':
     "Découvrez les solutions E-Code pour créer des applications, des sites web, des jeux, des tableaux de bord, des agents IA et pour les équipes d'entreprise.",

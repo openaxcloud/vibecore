@@ -8,8 +8,10 @@ const report = auditSolutionFiles();
 if (json) {
   process.stdout.write(`${JSON.stringify({ ...report, allowlist: FR_RESIDUAL_ALLOWLIST }, null, 2)}\n`);
 } else {
+  const detailPageCount = report.pages.filter((page) => page.slug !== 'solutions-index').length;
+
   console.log(
-    `Solutions FR: ${report.summary.pages} pages, ${report.summary.frenchStrings} chaînes, ` +
+    `Solutions FR: index + ${detailPageCount} pages, ${report.summary.frenchStrings} chaînes, ` +
       `${report.summary.findings} résidu(s), ${report.summary.translatedPercent.toFixed(2)} % conforme.`,
   );
 
