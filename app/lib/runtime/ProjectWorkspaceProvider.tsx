@@ -5,6 +5,7 @@ import { clientStoresServicesText } from '~/lib/i18n/catalogs/client-stores-serv
 import { createRuntimeAdapter, getRuntimeMode, RuntimeAdapterProvider } from '~/lib/runtime/RuntimeAdapterProvider';
 import { isTransientRuntimeError, withRuntimeRetry } from '~/lib/runtime/retry';
 import { workspaceQuotaPrompt } from '~/lib/runtime/workspace-quota';
+import { readSeedMarker, writeSeedMarker } from '~/lib/runtime/seed-marker';
 import { reseedWorkspacePreservingOnFailure, shouldReattachWarmWorkspace } from '~/lib/runtime/workspace-reattach';
 import { hasLivePreviewPort } from '~/lib/runtime/workspace-status';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -160,8 +161,17 @@ export function ProjectWorkspaceProvider({
          * Probe the runtime's live ports first so hasLivePreviewPort sees the warm
          * pod's forwarded dev-server port (listPorts repopulates the previews store).
          */
-        const sessionAlreadySeeded = seededWorkspaceSessions.has(sessionId);
-        const seededRevision = seededWorkspaceSessions.get(sessionId);
+        /*
+         * The in-memory Map only covers remounts WITHIN one page load; it is
+         * empty on every fresh load, which made a plain reopen always take the
+         * destructive wipe+reseed branch (BUG-RUNTIME-DIVERGENCE). Fall back to
+         * the device-durable marker so a reopen of a warm, current pod adopts it.
+         */
+        const durableMarker = readSeedMarker(sessionId);
+        const sessionAlreadySeeded = seededWorkspaceSessions.has(sessionId) || durableMarker !== undefined;
+        const seededRevision = seededWorkspaceSessions.has(sessionId)
+          ? seededWorkspaceSessions.get(sessionId)
+          : durableMarker?.revision;
         await workbenchStore.refreshRuntimePorts().catch(() => undefined);
 
         if (cancelled) {
@@ -277,6 +287,7 @@ export function ProjectWorkspaceProvider({
            * session reattaches to a genuinely-seeded, warm pod.
            */
           seededWorkspaceSessions.set(sessionId, currentRevision);
+          writeSeedMarker(sessionId, currentRevision);
         }
 
         /*
