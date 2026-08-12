@@ -1,0 +1,16 @@
+== contrôle de non-vacuité : le secret est bien dans ce qu'on envoie ==
+   OK — secret présent dans la charge envoyée
+== 1. staging (POST /orgs/:orgId/imports) ==
+   202 state=AWAITING_USER_ACTION requiresConsent=True
+   stagedFiles = [{"path": ".env", "sizeBytes": 67}, {"path": "README.md", "sizeBytes": 11}, {"path": "src/index.js", "sizeBytes": 18}]
+== 2. relecture (GET) — même aperçu, lecture seule ==
+   state=AWAITING_USER_ACTION findings=1 preview stable=True
+== 3. la porte tient : commit SANS décision ==
+   409 code=IMPORT_UNRESOLVED_FINDINGS
+== 4. commit AVEC décision « redact » ==
+   consent = {".env:2": "redact"}
+!! POST /orgs/cmspxdz2a00029da3nqdz4adl/imports/cmspxexz800040na3z8yo8x80/commit -> 409
+{
+  "error": "Import staging expired or already committed",
+  "code": "IMPORT_STAGING_GONE"
+}
