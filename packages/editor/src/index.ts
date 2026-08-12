@@ -54,6 +54,14 @@ function useEditorUiCopy(): EditorCopy {
   return getEditorCopy(language);
 }
 
+/*
+ * Re-export du module feuille : les appelants existants de
+ * `@vibecore/editor` continuent de marcher a l'identique. Les surfaces qui
+ * n'ont besoin QUE de cette fonction (app/root.tsx) doivent importer
+ * `@vibecore/editor/install-pwa-sw` pour ne pas tirer CodeMirror.
+ */
+export { installEditorPwaServiceWorker } from './install-pwa-sw.js';
+
 export type EditorBreakpoint = 'desktop' | 'tablet-landscape' | 'tablet-portrait' | 'mobile';
 export type EditorKind = 'monaco' | 'codemirror';
 
@@ -1986,29 +1994,6 @@ export function TouchSymbolToolbar({
     ),
     children,
   );
-}
-
-export function installEditorPwaServiceWorker(scriptUrl = '/sw.js') {
-  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
-    return;
-  }
-
-  const register = () => {
-    navigator.serviceWorker.register(scriptUrl).catch(() => undefined);
-  };
-
-  /*
-   * This is typically called from a React effect, which runs *after* the
-   * document 'load' event has already fired on a normal hard page load. In
-   * that case adding a 'load' listener would never invoke the callback and the
-   * service worker would never register. Register immediately when the
-   * document has finished loading; otherwise defer until 'load'.
-   */
-  if (typeof document === 'undefined' || document.readyState === 'complete') {
-    register();
-  } else {
-    window.addEventListener('load', register, { once: true });
-  }
 }
 
 export const editorBreakpoints = {

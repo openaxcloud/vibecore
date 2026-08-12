@@ -33,7 +33,13 @@ import {
 } from './components/dashboard/sidebar-collapse';
 import { ImpersonationBanner } from './components/dashboard/ImpersonationBanner';
 import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
-import { installEditorPwaServiceWorker } from '@vibecore/editor';
+/*
+ * Sous-chemin volontaire (module feuille SANS dependance) et non le barrel
+ * `@vibecore/editor` : le barrel importe tout `@codemirror/*` en VALEUR, ce
+ * qui faisait entrer les chunks editeur dans le graphe de la route racine —
+ * donc de TOUTES les pages, marketing comprises. Voir BUG-PERF-LOAD.
+ */
+import { installEditorPwaServiceWorker } from '@vibecore/editor/install-pwa-sw';
 import xtermStyles from '@xterm/xterm/css/xterm.css?url';
 import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { DndProvider } from 'react-dnd';
