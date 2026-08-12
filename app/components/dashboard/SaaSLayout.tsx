@@ -102,7 +102,7 @@ import { legacyMarketingEn, legacyMarketingKeyByEnglish } from '~/lib/i18n/catal
 import { userAreaEn, type UserAreaTranslationKey } from '~/lib/i18n/catalogs/user-area';
 import { formatUserAreaNumber } from '~/lib/i18n/user-area-locale';
 import type { ProjectLifecycle } from '~/lib/project-card-presentation';
-import { profileStore } from '~/lib/stores/profile';
+import { profileStore, hydrateProfileFromServer } from '~/lib/stores/profile';
 import { themeStore, toggleTheme } from '~/lib/stores/theme';
 import { resolveUserAreaSurface } from '~/lib/user-area-surface';
 import { classNames } from '~/utils/classNames';
@@ -1073,6 +1073,14 @@ export function AppShell({
   const navigate = useNavigate();
   const location = useLocation();
   const navigation = useNavigation();
+
+  /*
+   * BD-06: hydrate the profile (name + avatar) from the account so the shell
+   * avatar/name reflect real cross-device state, not a per-browser localStorage blob.
+   */
+  useEffect(() => {
+    void hydrateProfileFromServer();
+  }, []);
 
   const [tourRestartToken, setTourRestartToken] = useState(0);
 

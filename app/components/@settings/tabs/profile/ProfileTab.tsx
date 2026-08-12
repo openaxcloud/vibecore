@@ -1,10 +1,10 @@
 import { useStore } from '@nanostores/react';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { downscaleAvatarDataUrl, isQuotaExceededError } from './avatar-upload';
 import { formatProfileTabCopy, getProfileTabCopy } from '~/lib/i18n/catalogs/profile-tab';
-import { profileStore, updateProfile } from '~/lib/stores/profile';
+import { profileStore, updateProfile, hydrateProfileFromServer } from '~/lib/stores/profile';
 import { classNames } from '~/utils/classNames';
 import { debounce } from '~/utils/debounce';
 
@@ -13,6 +13,14 @@ export default function ProfileTab() {
   const copy = getProfileTabCopy(i18n.resolvedLanguage ?? i18n.language);
   const profile = useStore(profileStore);
   const [isUploading, setIsUploading] = useState(false);
+
+  /*
+   * BD-06: load the real account profile (name + preferences.profile) from the
+   * server so this tab reflects the account, not a per-browser localStorage blob.
+   */
+  useEffect(() => {
+    void hydrateProfileFromServer();
+  }, []);
 
   // Create debounced update functions
   const debouncedUpdate = useCallback(
@@ -48,8 +56,9 @@ export default function ProfileTab() {
           const optimized = await downscaleAvatarDataUrl(base64String);
 
           /*
-           * updateProfile persists synchronously to localStorage and can throw
-           * QuotaExceededError, so this must stay inside the try/catch.
+           * updateProfile writes the account (server-side preferences.profile,
+           * debounced). Kept inside the try/catch so a downscale/read failure is
+           * still surfaced to the user.
            */
           updateProfile({ avatar: optimized });
           toast.success(copy['profileTab.toast.avatarUpdated']);
