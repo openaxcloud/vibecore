@@ -27,6 +27,21 @@ d'`origin/main`** est propre (`residual=14 in 2 files`, aucun `app.ts`), contre
 d'allowlist ciblée, fichier + règle + motif exact — pas un rebaselinage qui aurait
 absorbé de la vraie dette) et `82603d55` (liste explicite de la garde de l'API).
 
+**Une fois ces deux-là corrigés, `Production CI` échoue plus tôt, sur `Lint`** — et
+celui-là est bien hérité, avec la preuve la plus directe possible : `app/root.tsx`
+est **byte-identique à `origin/main`** dans cette branche (`git diff origin/main...HEAD
+-- app/root.tsx` est vide), et le run `Production CI` de **`main` lui-même**
+(`722a224c36`, 2026-08-12T06:18Z) échoue sur **exactement** la même ligne :
+
+```
+/home/runner/work/vibecore/vibecore/app/root.tsx
+  36:1  error  Expected line before comment  @blitz/lines-around-comment
+✖ 28 problems (1 error, 27 warnings)
+```
+
+Même compte de problèmes, même règle, même position. Le corriger ici serait une
+correction de `main` glissée dans une PR d'infra — c'est signalé, pas emporté.
+
 | Job CI | Verdict | Preuve |
 |---|---|---|
 | **Install, test, build, scan** (Production CI) | **était de la branche → CORRIGÉ** | Voir l'encadré ci-dessus : deux gardes de copie codée en dur, déclenchées par les 8 motifs machine du verdict `port-access`. Ni waiver ni rebaselinage — l'allowlist cible le fichier, la règle et les 8 motifs exacts, et la garde de l'API les liste nommément. Contrôle d'imputabilité : le scan est propre avec l'`app.ts` d'`origin/main`, rouge avec celui de la branche. |
