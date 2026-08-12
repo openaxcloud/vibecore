@@ -1,0 +1,20 @@
+=== ce que l amont a REELLEMENT recu (vrai Chromium) ===
+  Host: 127.0.0.1:57243   url: /p/ws-test/5173/   tenant: present
+  Host: 127.0.0.1:57243   url: /d/clx9k2m4p/   tenant: present
+
+=== verifications ===
+  OK   Host recu = celui du proxy (le navigateur le recalcule, donc inutilisable pour router) — Host=127.0.0.1:57243
+  OK   autorite de routage presente dans le CHEMIN — url=/p/ws-test/5173/
+  OK   jeton tenant recu sur l en-tete interne
+  OK   le document est servi (200, donc le proxy a pu router) — status=200
+  OK   capture PNG reelle et non vide — 10106 octets
+
+=== vignette d une publication d-<id> ===
+  Host: 127.0.0.1:57243   url: /d/clx9k2m4p/   interne: present
+  OK   la publication est routee par le CHEMIN /d/<id> — url=/d/clx9k2m4p/
+  OK   en-tete d appel interne present (le chemin n'est pas public)
+  OK   la publication est servie (200) — status=200
+
+capture ecrite: /private/tmp/claude-501/-Users-hb-dev-vibecore/3d889db4-9892-4dbb-ad47-3a71b7f6bd96/scratchpad/preuves-4-bloqueurs/routage-chromium.png (10106 octets)
+
+ROUTAGE PROUVE

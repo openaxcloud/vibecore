@@ -1,0 +1,33 @@
+=== A. listages en panne, projet TOUJOURS present -> doit ECHOUER ===
+  mode=listages-en-panne -> exit=1 (attendu: echec)
+      ==> [3/3] VERIFICATION de la disparition
+          projet .................. ACTIVE
+          clusters GKE restants    INDETERMINE
+          !! 'clusters GKE restants' illisible — une erreur d'API ne prouve pas l'absence :
+             ERROR: (gcloud) PERMISSION_DENIED: Request had insufficient authentication scopes.
+          instances SQL restantes  INDETERMINE
+          !! 'instances SQL restantes' illisible — une erreur d'API ne prouve pas l'absence :
+             ERROR: (gcloud) PERMISSION_DENIED: Request had insufficient authentication scopes.
+          VM Compute restantes     INDETERMINE
+          !! 'VM Compute restantes' illisible — une erreur d'API ne prouve pas l'absence :
+             ERROR: (gcloud) PERMISSION_DENIED: Request had insufficient authentication scopes.
+          buckets restants         INDETERMINE
+          !! 'buckets restants' illisible — une erreur d'API ne prouve pas l'absence :
+             ERROR: (gcloud) PERMISSION_DENIED: Request had insufficient authentication scopes.
+      ==> CONTROLE PROD (doit etre intacte)
+          release vibecore (prod) . revision=976 status=deployed  [contexte: connectgateway_vibecore-495216_europe-west9_vibecore-prod-app]
+      ==> TEARDOWN INCOMPLET — voir les lignes marquees !!
+
+=== B. listages refuses APRES suppression confirmee -> doit REUSSIR ===
+  mode=projet-supprime -> exit=0 (attendu: succes)
+      ==> [3/3] VERIFICATION de la disparition
+          projet .................. GONE
+          clusters GKE restants    0 (projet supprime, listage refuse comme prevu)
+          instances SQL restantes  0 (projet supprime, listage refuse comme prevu)
+          VM Compute restantes     0 (projet supprime, listage refuse comme prevu)
+          buckets restants         0 (projet supprime, listage refuse comme prevu)
+      ==> CONTROLE PROD (doit etre intacte)
+          release vibecore (prod) . revision=976 status=deployed  [contexte: connectgateway_vibecore-495216_europe-west9_vibecore-prod-app]
+      ==> TEARDOWN VERIFIE: plus aucune ressource facturee dans vibecore-audit-test-20260807
+
+OK: erreur d'API != ressource absente, et le cas legitime passe toujours.

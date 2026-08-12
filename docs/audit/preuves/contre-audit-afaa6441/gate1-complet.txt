@@ -1,0 +1,58 @@
+scripts/audit-env: tous les appels helm/kubectl/terraform portent une cible epinglee
+.github/workflows: tous les appels helm/kubectl portent une cible epinglee
+=== A. TEMOIN — ancien appel: --kube-context, sans enveloppe ===
+  cible recue : APISERVER:https://apiserver-hostile.example.com
+  OK: la redirection est bien reproduite (c'est le defaut a fermer).
+
+=== B. AVEC l'enveloppe, meme environnement hostile ===
+  cible recue : connectgateway_vibecore-495216_europe-west9_vibecore-prod-app
+  OK: environnement neutralise, cible nommee, aucune valeur journalisee.
+
+=== C. kubeconfig SUBSTITUE (bon nom de contexte, autre apiserver) -> refus ===
+  exit=1, appels helm enregistres: 0
+  OK: refus avant tout appel — REFUS (fail-closed): l'apiserver de 'connectgateway_vibecore-495216_europe-west9_vibecore-prod-app' n'est pas le Connect Gateway attendu.
+
+=== D. un deploiement STAGING ne peut pas viser la prod -> refus ===
+  exit=1, appels helm enregistres: 0
+  OK: refus — REFUS (fail-closed): la cible 'connectgateway_vibecore-495216_europe-west9_vibecore-prod-app' ressemble a la PRODUCTION — refus sur un chemin staging.
+
+=== E. cas legitime: prod-gateway passe bien (pas un 'tout refuser') ===
+  exit=0
+  OK: kubectl|--context=connectgateway_vibecore-495216_europe-west9_vibecore-prod-app -n vibecore rollout status deploy/api
+
+OK: l'environnement ne choisit plus la cible d'un helm/kubectl de CI.
+=== A. listages en panne, projet TOUJOURS present -> doit ECHOUER ===
+  mode=listages-en-panne -> exit=1 (attendu: echec)
+      ==> [3/3] VERIFICATION de la disparition
+          projet .................. ACTIVE
+          clusters GKE restants    INDETERMINE
+          !! 'clusters GKE restants' illisible — une erreur d'API ne prouve pas l'absence :
+             ERROR: (gcloud) PERMISSION_DENIED: Request had insufficient authentication scopes.
+          instances SQL restantes  INDETERMINE
+          !! 'instances SQL restantes' illisible — une erreur d'API ne prouve pas l'absence :
+             ERROR: (gcloud) PERMISSION_DENIED: Request had insufficient authentication scopes.
+          VM Compute restantes     INDETERMINE
+          !! 'VM Compute restantes' illisible — une erreur d'API ne prouve pas l'absence :
+             ERROR: (gcloud) PERMISSION_DENIED: Request had insufficient authentication scopes.
+          buckets restants         INDETERMINE
+          !! 'buckets restants' illisible — une erreur d'API ne prouve pas l'absence :
+             ERROR: (gcloud) PERMISSION_DENIED: Request had insufficient authentication scopes.
+      ==> CONTROLE PROD (doit etre intacte)
+          release vibecore (prod) . revision=976 status=deployed  [contexte: connectgateway_vibecore-495216_europe-west9_vibecore-prod-app]
+      ==> TEARDOWN INCOMPLET — voir les lignes marquees !!
+
+=== B. listages refuses APRES suppression confirmee -> doit REUSSIR ===
+  mode=projet-supprime -> exit=0 (attendu: succes)
+      ==> [3/3] VERIFICATION de la disparition
+          projet .................. GONE
+          clusters GKE restants    0 (projet supprime, listage refuse comme prevu)
+          instances SQL restantes  0 (projet supprime, listage refuse comme prevu)
+          VM Compute restantes     0 (projet supprime, listage refuse comme prevu)
+          buckets restants         0 (projet supprime, listage refuse comme prevu)
+      ==> CONTROLE PROD (doit etre intacte)
+          release vibecore (prod) . revision=976 status=deployed  [contexte: connectgateway_vibecore-495216_europe-west9_vibecore-prod-app]
+      ==> TEARDOWN VERIFIE: plus aucune ressource facturee dans vibecore-audit-test-20260807
+
+OK: erreur d'API != ressource absente, et le cas legitime passe toujours.
+shellcheck: scripts audit-env + ci propres
+infra scaffold valid
