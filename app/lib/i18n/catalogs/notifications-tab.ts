@@ -44,6 +44,9 @@ export const notificationsTabEn = {
   'notificationsTab.category.feature': 'Feature',
   'notificationsTab.error.safeMessage': 'A technical error occurred. Review the affected action and try again.',
   'notificationsTab.time.unknown': 'Unknown date',
+  'notificationsTab.ideNotice.text':
+    'These are local IDE activity events on this device (system, updates, errors, providers, network) — not your account notifications.',
+  'notificationsTab.ideNotice.link': 'Manage account notifications →',
 } as const;
 
 export type NotificationsTabKey = keyof typeof notificationsTabEn;
@@ -92,6 +95,9 @@ export const notificationsTabFr: NotificationsTabCopy = {
   'notificationsTab.error.safeMessage':
     'Une erreur technique est survenue. Vérifiez l’action concernée, puis réessayez.',
   'notificationsTab.time.unknown': 'Date inconnue',
+  'notificationsTab.ideNotice.text':
+    "Il s'agit des événements d'activité locale de l'IDE sur cet appareil (système, mises à jour, erreurs, fournisseurs, réseau) — pas des notifications de votre compte.",
+  'notificationsTab.ideNotice.link': 'Gérer les notifications du compte →',
 };
 
 type NotificationsTabInterpolationValue = string | number | bigint;

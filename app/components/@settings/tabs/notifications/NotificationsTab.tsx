@@ -264,6 +264,24 @@ const NotificationsTab = () => {
 
   return (
     <div className="flex h-full flex-col gap-6">
+      {/*
+       * BD-09: this tab shows the LOCAL IDE activity log (logStore), not the
+       * account notification centre. Say so honestly and point at the real
+       * notifications surface so the label stops masquerading as account state.
+       */}
+      <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-xs text-bolt-elements-textSecondary">
+        <span
+          className="i-ph:info mr-1 inline-block align-middle text-sm text-bolt-elements-textTertiary"
+          aria-hidden
+        />
+        {copy['notificationsTab.ideNotice.text']}{' '}
+        <a
+          href="/notifications"
+          className="whitespace-nowrap font-medium text-[var(--vc-ide-accent-action)] underline underline-offset-2"
+        >
+          {copy['notificationsTab.ideNotice.link']}
+        </a>
+      </div>
       <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
