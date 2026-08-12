@@ -806,7 +806,16 @@ export function EcodeExactPublicFooter({ copy: copyOverride }: { copy?: Marketin
             </div>
           </div>
 
-          <nav aria-label={copy.a11y.footerNavigation} className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+          <nav
+            aria-label={copy.a11y.footerNavigation}
+            /*
+             * gap-x reste a 10 (40px) : l'alignement horizontal des colonnes ne
+             * bouge pas. Seul l'ecart VERTICAL est resserre (40px -> 24px) ; il ne
+             * joue qu'une fois les colonnes empilees (mobile 1 col, tablette 2 col),
+             * ou il separait deux titres de colonnes.
+             */
+            className="grid gap-x-10 gap-y-6 sm:grid-cols-2 lg:grid-cols-4"
+          >
             <FooterColumn title={copy.footer.columnLabels.product} links={productLinks} />
             <div>
               <FooterColumn title={copy.footer.columnLabels.resources} links={resourceLinks} />
@@ -916,7 +925,7 @@ function FooterColumn({ title, links }: { title: string; links: readonly FooterL
       <h4 className="text-[13px] font-semibold uppercase tracking-[0.3em] text-[var(--ecode-text-muted)] dark:text-slate-400">
         {title}
       </h4>
-      <ul role="list" className="mt-4 space-y-2 text-[13px]">
+      <ul role="list" className="mt-3 space-y-2 text-[13px]">
         {links.map((link) => (
           <li key={link.id}>
             <Link
