@@ -61,6 +61,12 @@ For B, edit the `Production E2E` entry in
 A waiver with no reason, no ticket, or a malformed date is a **refusal**, not an
 ignored field.
 
+**Under B, E2E still runs on every push to `main`, and still goes red.** That is
+intended — do not "fix" it by removing the `push: [main]` trigger this lot added to
+`e2e.yml`. Removing it is what created the original hole: a required check that never
+runs is a check that is vacuously satisfied. The waiver ignores E2E's *result*; the
+run itself is how you see it go green and can then delete the waiver with evidence.
+
 ## Steps
 
 1. **Merge the lint fix first** (PR #133). Two `@blitz/lines-around-comment` errors in
