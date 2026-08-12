@@ -1,4 +1,111 @@
-# R-P3-06 — purge barrier release is an atomic CAS (expert reserve on PR #52)
+# R-P3-06 / R-P3-07 — purge barrier: atomic CAS, then a fail-closed door in front of it
+
+Answers two successive BLOCKING reserves on PR #52.
+
+| Reserve | Audited SHA | Subject |
+|---|---|---|
+| R-P3-06 | `3bd148b47d8a59fc224c854e50321304459ccce8` | ABA on the fence release (read-then-write) |
+| R-P3-07 | `b8c620c0b35a218672e83e5012bb8713a071e586` | the reconcile route had **no authentication at all** |
+
+R-P3-06 made the release correct under concurrency. R-P3-07 is the reserve that
+followed: a correct CAS is worth nothing if anyone on the network can call the route
+that performs it. Both sections below stand on their own.
+
+---
+
+# R-P3-07 — the reconcile route was unauthenticated (reserve #2)
+
+## The defect
+
+The manager's global `onRequest` hook exempted the **entire** `/internal/` namespace,
+on the assumption that every route under it enforces its own auth. One did
+(`/internal/workspaces/:id/agent` → preview-proxy secret).
+`/internal/reconcile-workspace-freezes` did not — and `graceMs` was read raw off the
+request body. So:
+
+```
+POST /internal/reconcile-workspace-freezes   (no Authorization header)
+{"graceMs": 0}
+```
+
+`graceMs: 0` puts the staleness cutoff at *now*, making **every** barrier stale, and
+nothing asked who was calling. One unauthenticated request disarmed every active purge
+fence in the fleet — the exact barrier that stops a runtime being reprovisioned in the
+middle of an erasure.
+
+The endpoint also had **no caller anywhere in the repo**, which is why the missing auth
+went unnoticed: barriers were only ever reconciled by a hand-rolled curl.
+
+## Red/green proof
+
+[`r-p3-07-auth-red-green.txt`](./r-p3-07-auth-red-green.txt) — the same exploit against
+a barrier frozen **one second earlier** whose owning purge is **alive**:
+
+```
+--- before the fix ---
+[redproof] status=200 body={"scanned":1,"reconciled":1,"skippedLiveOwner":0,"failed":0}
+[redproof] purgeFrozen AFTER unauthenticated call = false     ← barrier DOWN
+
+--- after the fix ---
+[redproof] status=401 body={"error":"Unauthorized workspace manager request",
+                            "code":"WORKSPACE_MANAGER_UNAUTHORIZED"}
+[redproof] purgeFrozen AFTER unauthenticated call = true      ← barrier HELD
+```
+
+The 9 new route tests were re-run against the pre-fix code: **8 fail** (`expected 200 to
+be 401`, `expected 200 to be 400`, `expected 404 to be 503`, …). The 9th is the positive
+case — an authenticated call with a sane window still works — and passes on both, as it
+must.
+
+## The fix
+
+| # | Reserve | Change |
+|---|---------|--------|
+| 1 | Dedicated fail-closed auth | The blanket exemption is replaced by an explicit `INTERNAL_ROUTE_AUTH` registry. Each internal route declares its scheme; a route with **no** declaration is refused `503`. Forgetting to wire auth now fails closed instead of publishing an open control-plane endpoint. Matching is exact-path or `prefix + '/'`, so `/internal/…-EVIL` inherits nothing. `requireControlPlaneAuth` has **no dev exemption** — unlike the global hook, an unset secret is refused everywhere. |
+| 2 | `graceMs` floor | zod `min(MIN_RECONCILE_GRACE_MS)` = 1h at the route **and** re-checked in the manager, so the floor holds for every caller, not just this route. `0` / negative / NaN / below-floor → `400`. Default unchanged (24h). |
+| 3 | Live plan/fence binding | `isPurgeFenceOwnerLive(fenceToken)`: a barrier whose token still belongs to a `PurgePlan` with an unexpired lease is **never** lifted, whatever its age. A running purge heartbeats its lease, so a legitimately long purge is skipped rather than raced. Fail-closed: if liveness can't be determined the barrier stays up (counted in `failed`). Not filtered on `status` — a `RECLAIMING` plan with a live lease is still being acted on. |
+| 4 | Errors propagated | The scan no longer does `.catch(() => [])` — a permanently broken reconciler used to return `{reconciled: 0}`, indistinguishable from a clean sweep. The job throws on a network error and on any non-2xx. |
+| 5 | Authenticated, observable job | New BullMQ job `workspace.freezeReconcile` + hourly Helm CronJob, carrying the dedicated secret, timeout-bounded, returning `{scanned, reconciled, skippedLiveOwner, failed}` so a sweep that skipped live owners or hit failures is not "success". |
+
+## Tests
+
+Required by the reserve, all present:
+
+| Case | Expected | Where |
+|---|---|---|
+| no token | `401` + barrier held | `app.spec.ts` |
+| wrong token | `401` + barrier held | `app.spec.ts` |
+| no secret configured (non-prod) | `503` + barrier held | `app.spec.ts` |
+| `graceMs: 0` with a **valid** token | `400` + barrier held | `app.spec.ts` |
+| negative / below-floor `graceMs` | `400` | `app.spec.ts` + `manager.spec.ts` |
+| undeclared internal route | `503`, not exempted | `app.spec.ts` |
+| **long purge** (alive past the window) | barrier held, then reclaimed once the lease lapses | `manager.spec.ts` + real PG |
+| liveness lookup fails | barrier held, `failed: 1` | `app.spec.ts` |
+| job: missing URL / missing secret / 400,401,403,500,503 / network error | throws | `workspace-freeze-reconcile.spec.ts` |
+
+Liveness is additionally proven against **real `PurgePlan` rows** on PostgreSQL 16
+(unexpired lease → live; expired → reclaimable; `RECLAIMING` + live lease → live), and
+end-to-end through the manager:
+
+```
+[proof] longpurge alive → skippedLiveOwner=1 purgeFrozen=true
+[proof] longpurge dead  → purgeFrozen=false
+```
+
+## Honest limits (R-P3-07)
+
+- The auth is a **shared bearer secret**, matching the rest of this control plane — not
+  mTLS or per-caller identity. It closes the reserve as filed; it does not make the
+  internal namespace individually attributable.
+- `JsonWorkspaceStore` (single-file dev store) reports "no live owner": it has no
+  `PurgePlan` table, because purge leases only exist in the Postgres deployment.
+  Production runs `PrismaWorkspaceStore`, which does the real lease lookup.
+- The hourly CronJob is **rendered and unit-tested, not observed running in-cluster** —
+  nothing here was deployed.
+
+---
+
+# R-P3-06 — purge barrier release is an atomic CAS (reserve #1)
 
 Answers the BLOCKING reserve raised against PR #52 @ audited SHA
 `3bd148b47d8a59fc224c854e50321304459ccce8`.

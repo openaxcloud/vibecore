@@ -1,7 +1,13 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { K8sObject, WorkspaceK8sClient } from '@vibecore/k8s-client';
 import { buildWorkspaceManagerApp } from './app.js';
-import { WorkspaceManager, type EventBus, type WorkspaceRecord, type WorkspaceStore } from './manager.js';
+import {
+  MIN_RECONCILE_GRACE_MS,
+  WorkspaceManager,
+  type EventBus,
+  type WorkspaceRecord,
+  type WorkspaceStore,
+} from './manager.js';
 import type { WorkspaceEvent } from '@vibecore/workspace-sdk';
 
 const ENV_KEYS = [
@@ -92,6 +98,19 @@ class TestWorkspaceStore implements WorkspaceStore {
     });
 
     return true;
+  }
+
+  /* R-P3-07: fence tokens whose purge plan still holds an unexpired lease. */
+  readonly liveFenceTokens = new Set<string>();
+  /* Set to simulate the lease lookup itself failing (must fail CLOSED). */
+  livenessError: Error | undefined;
+
+  async isPurgeFenceOwnerLive(fenceToken: string) {
+    if (this.livenessError) {
+      throw this.livenessError;
+    }
+
+    return this.liveFenceTokens.has(fenceToken);
   }
 }
 
@@ -397,6 +416,232 @@ describe('workspace-manager app', () => {
         url: '/databases/resource?kind=Secret&namespace=project-databases&name=x',
       });
       expect(forbidden.statusCode).toBe(403);
+      await app.close();
+    });
+  });
+
+  /*
+   * R-P3-07 (expert reserve #2 on PR #52). The global onRequest hook exempted the whole
+   * `/internal/` namespace, and `/internal/reconcile-workspace-freezes` carried no auth
+   * of its own — so an UNAUTHENTICATED POST could lift an active purge barrier, and
+   * `graceMs: 0` made every barrier "stale" so ONE call cleared the entire fleet.
+   *
+   * These assert the observable contract at the HTTP edge: the barrier must survive
+   * every unauthorised shape of the call.
+   */
+  describe('internal freeze-reconcile route is fail-closed (R-P3-07)', () => {
+    const SECRET = 'manager-secret-r-p3-07';
+
+    /** A store holding ONE runtime frozen long ago — the barrier under attack. */
+    function frozenRuntimeApp() {
+      const runtime = manager();
+      runtime.store.workspaces.set('workspace_frozen', {
+        id: 'workspace_frozen',
+        orgId: 'org_1',
+        projectId: 'project_1',
+        plan: 'pro',
+        status: 'STOPPED',
+        pvcName: 'pvc-workspace_frozen',
+        podName: 'workspace-workspace_frozen',
+        serviceName: 'svc-workspace_frozen',
+        agentTokenSecretName: 'agent-token-workspace_frozen',
+        createdAt: new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString(),
+        lastActiveAt: new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString(),
+        purgeFrozen: true,
+        purgeFenceToken: 'owner-live',
+        purgeFrozenAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+      } as WorkspaceRecord);
+
+      return { runtime, app: buildWorkspaceManagerApp(runtime.manager) };
+    }
+
+    const stillFrozen = (runtime: ReturnType<typeof manager>) =>
+      runtime.store.workspaces.get('workspace_frozen')!.purgeFrozen;
+
+    it('refuses an UNAUTHENTICATED call and leaves the barrier UP', async () => {
+      process.env.WORKSPACE_MANAGER_SHARED_SECRET = SECRET;
+      const { runtime, app } = frozenRuntimeApp();
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/internal/reconcile-workspace-freezes',
+        payload: {},
+      });
+
+      expect(res.statusCode).toBe(401);
+      expect(res.json().code).toBe('WORKSPACE_MANAGER_UNAUTHORIZED');
+      expect(stillFrozen(runtime)).toBe(true);
+      await app.close();
+    });
+
+    it('refuses a WRONG token and leaves the barrier UP', async () => {
+      process.env.WORKSPACE_MANAGER_SHARED_SECRET = SECRET;
+      const { runtime, app } = frozenRuntimeApp();
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/internal/reconcile-workspace-freezes',
+        headers: { authorization: 'Bearer not-the-secret' },
+        payload: {},
+      });
+
+      expect(res.statusCode).toBe(401);
+      expect(stillFrozen(runtime)).toBe(true);
+      await app.close();
+    });
+
+    /*
+     * The dedicated scheme has NO dev exemption, unlike the global hook: a route that
+     * can disable a safety barrier must not become open just because a secret is unset.
+     */
+    it('refuses when NO secret is configured, even outside production', async () => {
+      delete process.env.WORKSPACE_MANAGER_SHARED_SECRET;
+      const { runtime, app } = frozenRuntimeApp();
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/internal/reconcile-workspace-freezes',
+        payload: {},
+      });
+
+      expect(res.statusCode).toBe(503);
+      expect(res.json().code).toBe('WORKSPACE_MANAGER_NOT_CONFIGURED');
+      expect(stillFrozen(runtime)).toBe(true);
+      await app.close();
+    });
+
+    it('rejects graceMs:0 (400) even WITH a valid token — the barrier survives', async () => {
+      process.env.WORKSPACE_MANAGER_SHARED_SECRET = SECRET;
+      const { runtime, app } = frozenRuntimeApp();
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/internal/reconcile-workspace-freezes',
+        headers: { authorization: `Bearer ${SECRET}` },
+        payload: { graceMs: 0 },
+      });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.json().code).toBe('WORKSPACE_RECONCILE_GRACE_INVALID');
+      expect(stillFrozen(runtime)).toBe(true);
+      await app.close();
+    });
+
+    it('rejects a negative and a below-floor graceMs', async () => {
+      process.env.WORKSPACE_MANAGER_SHARED_SECRET = SECRET;
+      const { runtime, app } = frozenRuntimeApp();
+
+      for (const graceMs of [-1, 1, 60_000, MIN_RECONCILE_GRACE_MS - 1]) {
+        const res = await app.inject({
+          method: 'POST',
+          url: '/internal/reconcile-workspace-freezes',
+          headers: { authorization: `Bearer ${SECRET}` },
+          payload: { graceMs },
+        });
+
+        expect(res.statusCode, `graceMs=${graceMs}`).toBe(400);
+      }
+
+      expect(stillFrozen(runtime)).toBe(true);
+      await app.close();
+    });
+
+    /*
+     * The refusal goes through the shared message catalogue like every other route,
+     * so the preSerialization hook can localise it. Written inline, the string would
+     * miss the catalogue lookup and this one route would answer a French client in
+     * English — a silent inconsistency no status-code assertion would catch.
+     */
+    it('localises the refusal for a French client', async () => {
+      process.env.WORKSPACE_MANAGER_SHARED_SECRET = SECRET;
+      const { runtime, app } = frozenRuntimeApp();
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/internal/reconcile-workspace-freezes',
+        headers: { 'accept-language': 'fr-FR;q=0.9, en;q=0.4' },
+        payload: {},
+      });
+
+      expect(res.statusCode).toBe(401);
+      expect(res.headers['content-language']).toBe('fr');
+      expect(res.json().error).toBe('Requête non autorisée vers le gestionnaire d’espaces de travail.');
+      expect(res.json().code).toBe('WORKSPACE_MANAGER_UNAUTHORIZED');
+      expect(stillFrozen(runtime)).toBe(true);
+      await app.close();
+    });
+
+    it('an internal route with NO declared scheme is refused, not exempted', async () => {
+      process.env.WORKSPACE_MANAGER_SHARED_SECRET = SECRET;
+      const { app } = frozenRuntimeApp();
+
+      // A lookalike must not inherit the real route's registry entry by prefix.
+      const res = await app.inject({
+        method: 'POST',
+        url: '/internal/reconcile-workspace-freezes-EVIL',
+        payload: {},
+      });
+
+      expect(res.statusCode).toBe(503);
+      expect(res.json().code).toBe('WORKSPACE_MANAGER_INTERNAL_ROUTE_UNGATED');
+      await app.close();
+    });
+
+    it('an AUTHENTICATED call with a valid window still works (the gate is not a wall)', async () => {
+      process.env.WORKSPACE_MANAGER_SHARED_SECRET = SECRET;
+      const { runtime, app } = frozenRuntimeApp();
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/internal/reconcile-workspace-freezes',
+        headers: { authorization: `Bearer ${SECRET}` },
+        payload: { graceMs: 24 * 60 * 60 * 1000 },
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toMatchObject({ scanned: 1, reconciled: 1, skippedLiveOwner: 0, failed: 0 });
+      expect(stillFrozen(runtime)).toBe(false);
+      await app.close();
+    });
+
+    /*
+     * "Purge longue": the barrier is far past the grace window, but its owner is still
+     * heartbeating its lease. Age says orphaned, liveness says otherwise — and liveness
+     * wins, or the reconciler would pull the barrier out from under a running erasure.
+     */
+    it('does NOT lift a barrier whose purge is still ALIVE, however old it is', async () => {
+      process.env.WORKSPACE_MANAGER_SHARED_SECRET = SECRET;
+      const { runtime, app } = frozenRuntimeApp();
+      runtime.store.liveFenceTokens.add('owner-live');
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/internal/reconcile-workspace-freezes',
+        headers: { authorization: `Bearer ${SECRET}` },
+        payload: { graceMs: 24 * 60 * 60 * 1000 },
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toMatchObject({ scanned: 1, reconciled: 0, skippedLiveOwner: 1, failed: 0 });
+      expect(stillFrozen(runtime)).toBe(true);
+      await app.close();
+    });
+
+    it('leaves the barrier UP when liveness cannot be determined (fail-closed)', async () => {
+      process.env.WORKSPACE_MANAGER_SHARED_SECRET = SECRET;
+      const { runtime, app } = frozenRuntimeApp();
+      runtime.store.livenessError = new Error('connection terminated unexpectedly');
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/internal/reconcile-workspace-freezes',
+        headers: { authorization: `Bearer ${SECRET}` },
+        payload: { graceMs: 24 * 60 * 60 * 1000 },
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toMatchObject({ reconciled: 0, failed: 1 });
+      expect(stillFrozen(runtime)).toBe(true);
       await app.close();
     });
   });
