@@ -183,6 +183,54 @@ catégorie doit rester vide.
 
 ---
 
+## Rejeu LIVE des 4 portes au SHA cible
+
+Demandé : que les 4 portes soient **rejouables en réel** au SHA remis. Elles le
+sont, par un script versionné — `scripts/proofs/replay-preview-doors.sh <tag>` —
+qui monte lui-même tout ce dont il a besoin : organisation légitime + organisation
+intruse, projet, **workspace en pod gVisor**, un vrai serveur de dev (HTTP sur
+5173, HTTP+WebSocket sur 5174), et forge les jetons `vc_preview` **dans le
+cluster** (le secret HMAC n'en sort jamais).
+
+Il **refuse de mesurer** si la flotte des composants traversés n'est pas homogène
+sur le tag attendu, ou si l'enforcement n'est pas actif sur **chaque** réplique du
+proxy — les deux pièges qui ont déjà produit une fausse preuve (une réplique restée
+sur l'ancienne image avait renvoyé un 200 lu à tort comme une fuite inter-tenant).
+Ce refus s'est déclenché deux fois pendant cette campagne, sur un tier `web` qu'une
+autre session poussait à la main en parallèle : c'est le garde qui fonctionne.
+
+Environnement : cluster `vibecore-audit-cluster`, release `vibecore` révision 7,
+images **`82603d55f7`** (empreintes dans
+[`live-images-registre.txt`](preuves/contre-audit-afaa6441/live-images-registre.txt)),
+`PREVIEW_PROXY_ENFORCE_TENANT=true` et `PREVIEW_ENFORCE_PRIVATE_PORTS=true` lus
+dans les deux pods du proxy. Journal brut :
+[`live-4-portes-82603d55f7.txt`](preuves/contre-audit-afaa6441/live-4-portes-82603d55f7.txt).
+
+| Porte | jeton/cookie légitime | intrus (autre org) | signature invalide | absent |
+|---|---|---|---|---|
+| **1.** lien direct (hôte + cookie) | **200** + le vrai HTML du dev server | **404** (refus de propriété amont) | **403** | **403** |
+| **2.** publications, chemin interne `/d/<id>` | **503** — passe le garde, puis l'extinction ne peut pas être vérifiée : refus | — | **403** `PREVIEW_INTERNAL_ONLY` | **403** |
+| **3.** screenshotter (chemin + en-tête interne) | **200** + le vrai HTML | **404** | **403** | **403** |
+| **4.** WebSocket HMR | **101 + `SECRET-DU-TENANT-A`** | **502** | **403** | **403** |
+
+Lectures qui comptent :
+
+- **Porte 2** — le discriminant est bien l'en-tête interne : `403` sans lui ou avec
+  un mauvais secret, et une fois le garde franchi c'est la vérification
+  d'extinction qui refuse à son tour (`503 PUBLICATION_STATE_UNAVAILABLE`) faute de
+  pouvoir établir que la publication est encore valide. Deux refus en série, aucun
+  octet applicatif servi. Sur l'image précédente, ce chemin **n'existait pas** :
+  `404 Route GET:/d/… not found` — [`live-publications-AVANT.txt`](preuves/contre-audit-afaa6441/live-publications-AVANT.txt).
+- **Porte 4** — le `502` de l'intrus traduit le refus de propriété du
+  `workspace-manager` (signature valide, mais l'org ne possède pas ce workspace,
+  donc aucun agent résolu). Refus sans octet applicatif ; le code diffère du `404`
+  du chemin HTTP, ce qui vaut d'être harmonisé un jour, mais la substance est
+  identique.
+- **L'accès légitime est préservé partout** : sans les colonnes « légitime » à
+  200/101, ce tableau décrirait une plateforme cassée, pas une plateforme isolée.
+
+---
+
 ## Ce que Gate 1 exécute maintenant
 
 `node infra/scripts/validate.mjs` — [`gate1-complet.txt`](preuves/contre-audit-afaa6441/gate1-complet.txt) :

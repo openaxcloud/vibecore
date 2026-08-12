@@ -56,9 +56,16 @@ say "cluster: $AUDIT_KUBE_CONTEXT"
 say
 
 # --- 2. la flotte tourne-t-elle TOUTE le tag attendu ? ----------------------
-say "== flotte =="
+#
+# PORTEE : les composants que les 4 portes TRAVERSENT reellement — le proxy (qui
+# tient la porte), l'api (verdict des ports prives) et le workspace-manager
+# (resolution d'agent + propriete de l'org). Le tier `web` en est volontairement
+# exclu : aucune porte ne passe par lui, et l'inclure rendait la preuve otage d'un
+# travail concurrent sans rapport sur le meme cluster d'audit (une autre session y
+# poussait ses propres images `web` a la main pendant la mesure).
+say "== flotte (composants traverses par les portes) =="
 fleet_ok=1
-for comp in api preview-proxy workspace-manager web; do
+for comp in api preview-proxy workspace-manager; do
   tags="$(k get pods -l "app.kubernetes.io/component=$comp" \
     -o jsonpath='{range .items[*]}{.spec.containers[0].image}{"\n"}{end}' | sed 's/.*://' | sort -u)"
   n="$(k get pods -l "app.kubernetes.io/component=$comp" --no-headers 2>/dev/null | grep -c .)"
