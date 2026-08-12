@@ -33,6 +33,7 @@ import {
 } from './components/dashboard/sidebar-collapse';
 import { ImpersonationBanner } from './components/dashboard/ImpersonationBanner';
 import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
+
 /*
  * Sous-chemin volontaire (module feuille SANS dependance) et non le barrel
  * `@vibecore/editor` : le barrel importe tout `@codemirror/*` en VALEUR, ce
