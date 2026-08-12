@@ -41,13 +41,21 @@ kc() { kubectl --context "kind-${CLUSTER}" "$@"; }
 # status then fails an assertion that expects e.g. "401", making the harness
 # report a product failure when nothing about the product was actually observed.
 #
+# The probe runs the stub image (already loaded into the node) with probe.mjs, so
+# it needs NO registry: pulling curlimages/curl made every probe depend on Docker
+# Hub, and `kind load` of it fails here on the multi-arch manifest.
+#
 # Retry until we get a non-empty answer. An inconclusive probe must never be
 # reported as a verdict either way.
-incluster() {
+#
+# probe <METHOD> <URL> [JSON_BODY] -> curl-like transcript (status line, headers,
+# blank line, body).
+probe() {
   local attempt out
   for attempt in 1 2 3 4 5; do
     out="$(kc -n "${NS}" run "probe-$RANDOM-${attempt}" --rm -i --restart=Never --quiet \
-      --image=curlimages/curl:8.10.1 --command -- curl -s --retry 3 --retry-connrefused -m 20 "$@" 2>/dev/null)"
+      --image=sec9-api:new --image-pull-policy=IfNotPresent \
+      --command -- node /app/probe.mjs "$@" 2>/dev/null)"
 
     if [ -n "${out}" ]; then
       printf '%s' "${out}"
@@ -59,6 +67,9 @@ incluster() {
 
   return 1
 }
+
+# Status code only.
+probe_code() { probe "$@" | head -1 | awk '{print $2}'; }
 
 # Wait until the Service actually has ready endpoints. `rollout status` returns on
 # pod availability, which is not the same thing as the Service being routable.
@@ -89,7 +100,13 @@ kind create cluster --name "${CLUSTER}" --wait 300s >/dev/null
 kc wait --for=condition=Ready node --all --timeout=300s >/dev/null
 docker build -q -t sec9-api:old "${HERE}" >/dev/null
 docker build -q -t sec9-api:new "${HERE}" >/dev/null
-kind load docker-image sec9-api:old sec9-api:new --name "${CLUSTER}" >/dev/null
+# Preload EVERY image the run needs, probe tool included. A fresh kind node has an
+# empty image store, so a `kubectl run --image=curlimages/curl` reaches out to
+# Docker Hub — and a rate limit or an offline moment then turns every probe into
+# an empty answer, i.e. a fake product failure. Load it once, pin IfNotPresent,
+# and the harness stops depending on the registry at all.
+kind load docker-image sec9-api:old --name "${CLUSTER}" >/dev/null
+kind load docker-image sec9-api:new --name "${CLUSTER}" >/dev/null
 kc create ns "${NS}" >/dev/null
 kc apply -f "${HERE}/manifests.yaml" >/dev/null
 kc -n "${NS}" rollout status deploy/api --timeout=180s >/dev/null
@@ -97,7 +114,7 @@ wait_endpoints
 say "cluster up; api at image sec9-api:old (MODE=old), $(kc -n ${NS} get pods -l app.kubernetes.io/name=api --no-headers | wc -l | tr -d ' ') pods"
 
 hdr "0b. BASELINE — pre-cutover pods serve a cacheable PUBLIC response"
-OLD_HEADERS="$(incluster -D - -o /dev/null http://api.${NS}.svc:3001/)"
+OLD_HEADERS="$(probe GET http://api.${NS}.svc:3001/)"
 say "$(printf '%s' "${OLD_HEADERS}" | grep -iE '^(HTTP|cache-control|x-mode)' | tr -d '\r')"
 printf '%s' "${OLD_HEADERS}" | grep -qi 'cache-control: public, max-age=60' \
   || { say "FAIL: expected max-age=60 from MODE=old"; exit 1; }
@@ -111,8 +128,7 @@ kc -n "${NS}" rollout status deploy/api --timeout=180s >/dev/null
 wait_endpoints
 say "rollout complete (this is where the OLD workflow stopped)"
 
-ACT1="$(incluster -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' \
-  -d '{"mode":"password","password":"letmein"}' http://api.${NS}.svc:3001/access)"
+ACT1="$(probe_code POST http://api.${NS}.svc:3001/access '{"mode":"password","password":"letmein"}')"
 say "RUNTIME PROBE — deployed api answers HTTP ${ACT1} to an activation attempt"
 [ "${ACT1}" = "503" ] || { say "FAIL: expected 503 while the interlock is closed"; exit 1; }
 say "=> activation is REFUSED by the deployed production API itself (503), flag='$(flag)'"
@@ -137,37 +153,34 @@ say "=> barrier waited >= 90s AFTER the last pre-cutover pod disappeared"
 hdr "4. PHASE 2 — arm activation"
 setflag 1
 say "flag now: '$(flag)'"
-ACT2="$(incluster -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' \
-  -d '{"mode":"password","password":"letmein"}' http://api.${NS}.svc:3001/access)"
+ACT2="$(probe_code POST http://api.${NS}.svc:3001/access '{"mode":"password","password":"letmein"}')"
 say "activation attempt -> HTTP ${ACT2}"
 [ "${ACT2}" = "200" ] || { say "FAIL: expected activation to succeed after phase 2"; exit 1; }
 
 hdr "5. NEGATIVES — anonymous + cache"
-ANON="$(incluster -D - -o /tmp/anon.body http://api.${NS}.svc:3001/)"
+ANON="$(probe GET http://api.${NS}.svc:3001/)"
 ANON_CODE="$(printf '%s' "${ANON}" | head -1 | tr -d '\r')"
 say "anonymous GET -> ${ANON_CODE}"
 printf '%s' "${ANON}" | grep -qiE '^HTTP/1.1 401' || { say "FAIL: anonymous must be 401"; exit 1; }
 say "$(printf '%s' "${ANON}" | grep -iE '^(cache-control|vary)' | tr -d '\r')"
 printf '%s' "${ANON}" | grep -qi 'no-store' || { say "FAIL: gated response must be no-store"; exit 1; }
-BODY_LEAK="$(incluster -s http://api.${NS}.svc:3001/ | grep -c 'SECRET CONTENT' || true)"
+BODY_LEAK="$(probe GET http://api.${NS}.svc:3001/ | grep -c 'SECRET CONTENT' || true)"
 say "bytes of protected content leaked to anonymous: ${BODY_LEAK}"
 [ "${BODY_LEAK}" = "0" ] || { say "FAIL: content leaked"; exit 1; }
-PUB_NOW="$(incluster -D - -o /dev/null http://api.${NS}.svc:3001/ | grep -i '^cache-control' | tr -d '\r')"
+PUB_NOW="$(probe GET http://api.${NS}.svc:3001/ | grep -i '^cache-control' | tr -d '\r')"
 say "post-cutover header on every response: ${PUB_NOW}"
 say "=> nothing reusable without revalidation; a revalidation hits the gate and gets 401"
 
 hdr "6. ROLLBACK of phase 2 — flag back to 0"
 setflag 0
 say "flag now: '$(flag)'"
-ACT3="$(incluster -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' \
-  -d '{"mode":"password","password":"other"}' http://api.${NS}.svc:3001/access)"
+ACT3="$(probe_code POST http://api.${NS}.svc:3001/access '{"mode":"password","password":"other"}')"
 say "activation attempt after rollback -> HTTP ${ACT3}"
 [ "${ACT3}" = "503" ] || { say "FAIL: rollback must re-close activation"; exit 1; }
-STILL="$(incluster -o /dev/null -w '%{http_code}' http://api.${NS}.svc:3001/)"
+STILL="$(probe_code GET http://api.${NS}.svc:3001/)"
 say "already-protected deployment, anonymous GET after rollback -> HTTP ${STILL}"
 [ "${STILL}" = "401" ] || { say "FAIL: ENFORCEMENT must not depend on the deploy flag"; exit 1; }
-UNLOCK="$(incluster -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' \
-  -d '{"password":"letmein"}' http://api.${NS}.svc:3001/__access)"
+UNLOCK="$(probe_code POST http://api.${NS}.svc:3001/__access '{"password":"letmein"}')"
 say "unlock with the real password after rollback -> HTTP ${UNLOCK}"
 [ "${UNLOCK}" = "200" ] || { say "FAIL: legitimate unlock must still work"; exit 1; }
 
