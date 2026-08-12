@@ -74,15 +74,22 @@ ko() {
 # qui prouve que la porte tenant a statué.
 attendu() {
   local label="$1" want_code="$2" want_body="$3"; shift 3
-  local res code body
-  res="$(k exec "$API_POD" -- sh -lc "curl -sS -m 30 -o /tmp/b -w '%{http_code}' $* ; echo; head -c 400 /tmp/b | tr -d '\n'" 2>&1 | tail -2)"
-  code="$(printf '%s' "$res" | head -1 | tr -d ' \r')"
-  body="$(printf '%s' "$res" | tail -1)"
+  local res code hits preview
 
-  printf '  %-46s %s  %s\n' "$label" "$code" "$(printf '%s' "$body" | cut -c1-72)" | tee -a "$OUT"
+  # Le marqueur est cherche dans le corps ENTIER, cote pod, pas dans un apercu
+  # tronque : le proxy injecte son shim HMR avant `<body>`, si bien que le
+  # marqueur applicatif se trouve au-dela des premieres centaines d'octets. Une
+  # assertion qui ne regarde que le debut du corps produit un faux echec — et,
+  # dans l'autre sens, aurait pu produire un faux succes.
+  res="$(k exec "$API_POD" -- sh -lc "curl -sS -m 30 -o /tmp/b -w '%{http_code}' $* ; echo; grep -c -F -- '$want_body' /tmp/b 2>/dev/null || echo 0; head -c 90 /tmp/b | tr -d '\n'" 2>&1 | tail -3)"
+  code="$(printf '%s' "$res" | sed -n '1p' | tr -d ' \r')"
+  hits="$(printf '%s' "$res" | sed -n '2p' | tr -d ' \r')"
+  preview="$(printf '%s' "$res" | sed -n '3p')"
+
+  printf '  %-46s %s  %s\n' "$label" "$code" "$(printf '%s' "$preview" | cut -c1-68)" | tee -a "$OUT"
 
   [[ "$code" == "$want_code" ]] || ko "$label: statut $code, attendu $want_code"
-  [[ "$body" == *"$want_body"* ]] || ko "$label: le corps ne contient pas « $want_body »"
+  [[ "${hits:-0}" -gt 0 ]] || ko "$label: le corps ne contient pas « $want_body »"
 }
 
 say "############ REJEU LIVE DES 4 PORTES ############"
@@ -297,10 +304,51 @@ shot_ko="$(k exec "$API_POD" -- sh -lc "curl -sS -m 120 -o /tmp/shot2.png -w '%{
   -H 'content-type: application/json' \
   -d '{\"url\":\"https://$WS-5173.$PREVIEW_SUFFIX/\",\"projectId\":\"$PROJ\"}'" 2>&1 | tail -1)"
 say "  POST /capture (SANS jeton)     -> HTTP ${shot_ko%% *}, ${shot_ko##* } octets"
-proxy_refus="$(k logs -l app.kubernetes.io/component=preview-proxy --since=3m --tail=-1 2>/dev/null |
-  grep -c 'PREVIEW_TENANT_FORBIDDEN' || true)"
-say "  refus PREVIEW_TENANT_FORBIDDEN dans les logs du proxy (3 dernieres min): $proxy_refus"
-[[ "$proxy_refus" -gt 0 ]] || ko "aucun refus tenant journalise par le proxy pour la capture sans jeton"
+
+# Ce que le proxy a REELLEMENT repondu au screenshotter, lu dans ses logs
+# structures et correle par requete. On ne cherche PAS un code d'erreur dans les
+# logs : ce code vit dans le CORPS de la reponse, pas dans la ligne de log. Ce qui
+# est journalise, et qui suffit, c'est le couple (url, statut) par requete.
+doc_path="/p/$WS/5173/"
+SHOT_IP="$(k get pods -l app.kubernetes.io/component=screenshotter -o jsonpath='{.items[0].status.podIP}')"
+say "  ip du pod screenshotter: $SHOT_IP"
+verdicts="$(k logs -l app.kubernetes.io/component=preview-proxy --since=10m --tail=-1 2>/dev/null |
+  SHOT_IP="$SHOT_IP" WS="$WS" python3 -c '
+import json, os, sys
+from collections import Counter
+ip, ws = os.environ["SHOT_IP"], os.environ["WS"]
+seen = {}
+for line in sys.stdin:
+    line = line.strip()
+    if not line.startswith("{"):
+        continue
+    try:
+        d = json.loads(line)
+    except Exception:
+        continue
+    key = (d.get("hostname"), d.get("reqId"))
+    r = d.get("req")
+    if isinstance(r, dict):
+        seen.setdefault(key, {})["url"] = r.get("url")
+        seen.setdefault(key, {})["from"] = r.get("remoteAddress")
+    s = d.get("res")
+    if isinstance(s, dict):
+        seen.setdefault(key, {})["code"] = s.get("statusCode")
+doc = f"/p/{ws}/5173/"
+tally = Counter(
+    v.get("code") for v in seen.values() if v.get("from") == ip and v.get("url") == doc
+)
+print(" ".join(f"{code}x{n}" for code, n in sorted(tally.items(), key=lambda kv: str(kv[0]))))
+')"
+say "  statuts du proxy sur $doc_path pour les requetes VENANT du screenshotter: ${verdicts:-aucun}"
+# Avec jeton -> 200 ; sans jeton -> 403. Les deux doivent apparaitre : le premier
+# prouve que l'acces legitime traverse le trajet complet, le second que la porte
+# refuse le meme trajet sans jeton.
+[[ "$verdicts" == *"200x"* ]] || ko "E2E: aucun 200 du proxy pour la capture avec jeton"
+[[ "$verdicts" == *"403x"* ]] || ko "E2E: aucun 403 du proxy pour la capture SANS jeton"
+# Et les deux rendus doivent differer : meme URL, contenu different selon le droit.
+[[ "${shot_size}" != "${shot_ko##* }" ]] ||
+  ko "E2E: le rendu sans jeton fait la meme taille qu'avec jeton — suspect"
 
 say
 say "== PORTE 4 — upgrade WebSocket (HMR) sur un port qui sert vraiment une socket =="
