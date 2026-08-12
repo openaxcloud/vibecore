@@ -418,6 +418,7 @@ import {
   permissionsForAction,
 } from './strike-system.js';
 import { createThumbnailCapturer, ThumbnailCapturer, type ThumbnailLogger } from './thumbnail-capture.js';
+import { redactUrlCredentials } from './log-redaction.js';
 import {
   recordPreviewBeacon,
   readClientBeacon,
@@ -8425,11 +8426,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       serializers: {
         req(request): any {
           /*
-           * Mask capability tokens that travel in the URL path (chat-share links
-           * are GET /chat-shares/<token>, auth-allowlisted). Logging the raw path
-           * would persist a working, unexpirable share credential in cleartext.
+           * Mask credentials that travel in the URL — both the capability tokens
+           * in the PATH (chat-share links are GET /chat-shares/<token>,
+           * auth-allowlisted) and the bearer tokens in the QUERY STRING. The
+           * runtime WebSocket endpoints (ports/watch, files/watch, terminal)
+           * must pass their token as `?token=` because a browser cannot set
+           * headers on a WS handshake, so logging the raw URL wrote a WORKING
+           * credential into the logs on every connection. Pino's `redact`
+           * option only walks object properties, so it never saw it.
            */
-          const safeUrl = (request.url as string).replace(/\/chat-shares\/[^/?#]+/, '/chat-shares/[redacted]');
+          const safeUrl = redactUrlCredentials(request.url as string);
 
           return redactSecrets({
             method: request.method,
