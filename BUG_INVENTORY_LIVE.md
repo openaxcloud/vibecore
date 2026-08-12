@@ -228,3 +228,19 @@ Issue observée dans le pod : `canary.txt` **SUPPRIMÉ**, `vite` PID **79 → 13
 3. **`currentRevision` passe de `"5"` à `"9"` en une seule session** — la révision lue est `ideState.version`, qui est incrémentée par les écritures d'**ide-state** (onglets ouverts, curseur, état d'UI), pas seulement par les écritures de fichiers. Même avec un marqueur parfait, `storageNewerThanSeed` vaudrait donc `true` à presque chaque réouverture et forcerait le reseed. C'est bien « le signal observe la mauvaise ressource » du doc `3fbcff3a` — mais parce qu'il est **trop bruyant**, pas parce qu'il est muet comme ce doc l'affirmait.
 
 **Conséquence pour le correctif.** Traiter (1) seul ne peut rien changer : c'est mesuré. Un correctif complet doit traiter les trois — marqueur durable, signal de port fiable (ne pas avaler l'échec de `refreshRuntimePorts`, et aligner la sémantique de `ready`), et révision dérivée des **fichiers** et non de l'ide-state. **LOT SENSIBLE** (décide un wipe de pod) : à concevoir avec l'expert avant tout merge.
+
+### 2026-08-12 — Preuves APRÈS dans l'isolement QA (`qa-corebugs-8db427`, images `qa8db427v2`)
+
+Pile isolée complète : `qa-web`, `qa-api`, `qa-worker`, `qa-wsm`, `qa-pp` (preview-proxy), `qa-redis`, namespace de workspaces `qa-ws-8db427`, TLS Let's Encrypt de confiance. Zéro mutation de la release partagée.
+
+| ID | Avant | Après | Verdict |
+|---|---|---|---|
+| **BUG-DEPLOY-LIVE** (#3) | HTML **200** mais assets référencés en `/static-deployments/<id>/assets/…` → **404 `STATIC_DEPLOY_FILE_NOT_FOUND`** ; `<div id="root">` vide → **app blanche** | HTML **200**, assets référencés en **`/assets/…`** → **200** (`index-*.js` **142 842 o**, `index-*.css` **770 o**) ; le bundle servi contient bien React et le titre du projet | ✅ **rouge→vert live** |
+| **BUG-QA-TOKEN-IN-LOGS** | **9 occurrences** d'un jeton porteur vivant dans les logs du pod api partagé (`ports/watch`, `files/watch`, `terminal`) | `"url":"…/ports/watch?token=[redacted]"` — **0 occurrence en clair**, chemin et endpoint toujours lisibles | ✅ **rouge→vert live** |
+| **BUG-QA-PROMPT-IN-README** | README extrait de l'export ZIP contenant `sk-corp-…`, `postgres://admin:MotDePasse42@…` et `Requested model: claude-sonnet-4-5-20250929` | clé API **absente**, mot de passe **absent**, identifiant du modèle **absent** ; et `GET /ide-state` porte le prompt **complet** + modèle + framework + type d'artefact | ✅ **rouge→vert live**, flux prompt→app préservé |
+
+**Cause racine de #3, affinée par l'isolement.** Le `preview-proxy` sert l'hôte `s-<id>.<preview-domain>` en proxifiant vers `${apiBaseUrl}/static-deployments/<id>` : **il ajoute déjà le préfixe**. `snapshotStaticBuild` qui réécrivait l'HTML avec ce même préfixe produisait donc un **double préfixe** — `…/static-deployments/<id>/static-deployments/<id>/assets/x.js`, d'où le 404, pendant que `/assets/x.js` répondait 200. Le correctif (ne pas réécrire quand une origine dédiée existe) est exactement le bon.
+
+**Piège rencontré, à connaître.** Un test verrouillait la fuite : `api.spec.ts` affirmait `expect(readme).toContain(prompt)`. Il affirme désormais l'inverse **et** vérifie que le prompt reste disponible via l'ide-state. `api.spec.ts` **124/124**.
+
+**Note d'écosystème.** `c2b99192` (autre session) a câblé le catalogue de modèles — **BUG-TPL-001 est donc corrigé par ailleurs**. Ce commit change le lockfile : toute image reconstruite doit repartir d'un `deps` frais, sinon le build casse sur `@vibecore/template-catalog/server` introuvable.
