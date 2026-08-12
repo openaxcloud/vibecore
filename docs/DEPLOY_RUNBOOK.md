@@ -263,9 +263,28 @@ Needs `kind` + a running Docker with ~2 GB free. It is deliberately NOT wired
 into CI: it is the on-demand, human-replayable proof that the sequence works on
 a real control plane, not a substitute for the fast checks above.
 
+The step that only a real control plane can show is #3. `kubectl rollout status`
+has already returned by then, yet the barrier observes:
+
+```
+barrier: waiting — 2 pre-cutover pod(s) still present (api-db65c8964-845xt [terminating], api-db65c8964-9qrdc [terminating])
+barrier: waiting — 1 pre-cutover pod(s) still present (api-db65c8964-845xt [terminating])
+barrier: all 2 api pod(s) are post-cutover — starting the 90s quiet period
+barrier: CLEARED — 93s elapsed with zero pre-cutover pods; activation is safe
+```
+
+Terminating pods still serve through their preStop drain, so "rollout complete"
+is not "nothing can still mint a `max-age=60` response". That gap is the whole
+reason this barrier exists.
+
+**Run it on a quiet machine.** kind's control plane loses its
+leader-election lease if something heavy (a full `tsc`, another test suite) is
+competing for CPU; the node then sits `NotReady` with
+`cni plugin not initialized`, or cluster creation times out waiting for systemd.
+
 **If `kind` cannot start on your host** (constrained Docker, systemd boot
-detection failing), use the Docker-backed variant, which asserts the same six
-steps:
+detection failing, or no spare CPU to keep a control plane healthy), use the
+Docker-backed variant, which asserts the same six steps:
 
 ```bash
 scripts/sec9-cutover/run-docker.sh
