@@ -702,12 +702,31 @@ jobs:
               fi
             fi
 
+            # Every failure below is fail-closed and, on the FIRST digest-based upgrade,
+            # is also the most likely thing to stop the cutover. So each one prints what
+            # the release actually stores for this service: without it the operator gets
+            # "cannot pin this service" and has to go dig the values out of the cluster
+            # by hand, during a deploy, to learn something the job already knew.
+            explain_stored() {
+              echo "::group::what the release stores for ${key}"
+              jq -r --arg k "${key}" '{
+                "services.\($k).imageDigest": (.services[$k].imageDigest // "(absent)"),
+                "services.\($k).imageTag":    (.services[$k].imageTag // "(absent)"),
+                "global.imageDigest":         (.global.imageDigest // "(absent)"),
+                "global.imageTag":            (.global.imageTag // "(absent)")
+              }' /tmp/stored-values.json
+              echo "Fix: re-run once with this tier rebuilt, or pin it explicitly with"
+              echo "  helm upgrade ... --set-string services.${key}.imageDigest=sha256:<64 hex>"
+              echo "::endgroup::"
+            }
+
             if [ -n "${PINNED:-}" ]; then
               DIGEST="${PINNED}"
               echo "${key}: carried forward pinned digest ${DIGEST}"
             else
               if [ -z "${TAG}" ] || [ "${TAG}" = "null" ]; then
                 echo "::error::${key}: no digest and no tag available — cannot pin this service"
+                explain_stored
                 exit 1
               fi
               if [ "${TAG}" = "REQUIRED_OVERRIDE_AT_DEPLOY" ]; then
@@ -715,6 +734,7 @@ jobs:
                 # real image pinned for this service, so there is nothing to carry
                 # forward — deploying would resolve a placeholder tag that does not exist.
                 echo "::error::${key}: the release stores the values-prod placeholder tag; this service has never been pinned to a real image"
+                explain_stored
                 exit 1
               fi
               # Ask the registry what that tag resolves to RIGHT NOW, once, and use the
@@ -724,6 +744,8 @@ jobs:
                 --format='value(image_summary.digest)' 2>/dev/null || echo "")"
               if ! printf '%s' "${DIGEST}" | grep -Eq '^sha256:[0-9a-f]{64}$'; then
                 echo "::error::${key}: could not resolve ${REG}/${image}:${TAG} to a digest (got '${DIGEST}')"
+                echo "The tag does not exist in the registry, or the deploy service account cannot read it."
+                explain_stored
                 exit 1
               fi
               echo "${key}: ${image}:${TAG} -> ${DIGEST}"
