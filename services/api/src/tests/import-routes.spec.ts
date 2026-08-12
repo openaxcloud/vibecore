@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
 
+import JSZip from 'jszip';
+
 import { hashPassword } from '@vibecore/auth';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -391,6 +393,45 @@ describe('POST /orgs/:orgId/imports — secure import, no silent deletion, dispo
  * and looking at it can never mutate or leak.
  */
 describe('import preview — what the review screen reads before anything is written', () => {
+  it('stages an ARCHIVE the same way as a file list — same scan, same quarantine', async () => {
+    const { app, org, projectStorage } = await setup();
+
+    /*
+     * Le hub route zip/Bolt/Lovable/Base44/previous-agent vers cette forme.
+     * Ce qui compte : une archive doit produire EXACTEMENT le même staging
+     * qu'une liste de fichiers, sinon l'écran d'aperçu mentirait selon le
+     * connecteur emprunté.
+     */
+    const zip = new JSZip();
+
+    for (const file of stagedFiles()) {
+      zip.file(file.path, file.content);
+    }
+
+    const zipBase64 = (await zip.generateAsync({ type: 'nodebuffer' })).toString('base64');
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/orgs/${org.id}/imports`,
+      headers: auth('imp-token'),
+      payload: { idempotencyKey: 'idem-p-zip', provider: 'zip', zipBase64 },
+    });
+
+    expect(res.statusCode).toBe(202); // le secret de .env quarantaine l'import
+
+    const body = res.json();
+    expect(body.import.stagedFiles.map((f: { path: string }) => f.path)).toEqual([
+      '.env',
+      'README.md',
+      'src/index.js',
+    ]);
+    expect(body.import.findings.some((f: { path: string }) => f.path === '.env')).toBe(true);
+    expect(JSON.stringify(body.import)).not.toContain(IMPORTED_SECRET);
+
+    // Rien n'est écrit dans un projet cible tant que le commit n'a pas eu lieu.
+    expect(projectStorage.writeCalls).toEqual([]);
+  });
+
   it('the create response lists the staged files (path + size) and still leaks no content', async () => {
     const { app, org } = await setup();
 

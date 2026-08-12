@@ -19812,6 +19812,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       .array(z.object({ path: z.string().min(1), content: z.string(), encoding: z.string().optional() }))
       .max(5000)
       .default([]),
+
+    /*
+     * Archive form of the SAME staging (TPL-02.3). The zip/Bolt/Lovable/Base44/
+     * previous-agent connectors all hand over a .zip; expanding it here reuses
+     * the archive reader the project import already relies on, instead of
+     * making the web tier unzip and re-serialize every file just to hand them
+     * straight back. The staged files are identical either way, so the scan,
+     * the quarantine branch and the commit gate are unchanged.
+     */
+    zipBase64: z.string().optional(),
   });
 
   const importConsentSchema = z.object({
@@ -19930,7 +19940,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * with the same key never double-reserves. The debit is recorded ONLY if
        * the import reaches COMMITTED (settle); every other exit compensates.
        */
-      const stagedFiles: ImportFile[] = body.files ?? [];
+      const stagedFiles: ImportFile[] = body.zipBase64
+        ? (await filesFromZipBase64(body.zipBase64)).map((file) => ({ path: file.path, content: file.content }))
+        : (body.files ?? []);
       importLedger.reserve({
         key: body.idempotencyKey,
         organizationId: orgId,

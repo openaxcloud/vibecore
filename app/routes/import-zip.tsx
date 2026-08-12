@@ -22,7 +22,6 @@ import {
 } from '~/lib/i18n/catalogs/import-routes';
 import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { isReauthRedirect } from '~/lib/route-reauth';
-import { projectIdePath } from '~/utils/project-url';
 
 const IMPORT_ZIP_CANONICAL_URL = 'https://e-code.ai/import-zip';
 
@@ -61,7 +60,6 @@ export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
  */
 const MAX_ARCHIVE_BYTES = 18 * 1024 * 1024;
 
-type Project = { id: string; slug?: string };
 type ImportZipSource = 'bolt' | 'lovable' | 'base44' | 'previous-agent-export';
 type ImportZipErrorCode = 'archiveRequired' | 'importFailed';
 type ImportZipActionData = { errorCode: ImportZipErrorCode };
@@ -132,18 +130,36 @@ export async function action({ request }: EnterpriseActionArgs) {
     return actionError('archiveRequired', 400);
   }
 
-  let result: { project: Project };
-
   try {
     const organization = await firstOrganization(request);
-    result = await apiRequest<{ project: Project }>(request, `/orgs/${organization.id}/projects/import/zip`, {
+    const requestedSource = new URL(request.url).searchParams.get('source');
+
+    const provider = IMPORT_ZIP_SOURCES.has(requestedSource as ImportZipSource)
+      ? (requestedSource as ImportZipSource)
+      : 'zip';
+
+    /*
+     * TPL-02.3 — l'archive n'écrit plus directement dans un projet. Elle est
+     * STAGÉE dans l'espace jetable, analysée, puis présentée sur l'écran
+     * d'aperçu : l'utilisateur voit ce qui va atterrir et tranche chaque
+     * détection de secret AVANT que quoi que ce soit ne soit créé. Le projet
+     * n'existe qu'après le commit explicite depuis cet écran.
+     *
+     * L'idempotencyKey est dérivée du contenu (nom + taille + horodatage de
+     * l'archive) : re-soumettre le même formulaire rejoue le même import au
+     * lieu d'en ouvrir un second et de réserver deux fois des crédits.
+     */
+    const staged = await apiRequest<{ import: { importJobId: string } }>(request, `/orgs/${organization.id}/imports`, {
       method: 'POST',
-      body: JSON.stringify({ name, zipBase64: base64FromArrayBuffer(await archive.arrayBuffer()) }),
+      body: JSON.stringify({
+        provider,
+        sourceRef: name ?? archive.name,
+        idempotencyKey: `zip:${organization.id}:${archive.name}:${archive.size}:${archive.lastModified}`,
+        zipBase64: base64FromArrayBuffer(await archive.arrayBuffer()),
+      }),
     });
 
-    return redirect(
-      projectIdePath({ id: result.project.id, slug: result.project.slug, organizationSlug: organization.slug }),
-    );
+    return redirect(`/import/preview/${staged.import.importJobId}`);
   } catch (error) {
     if (isReauthRedirect(error) || (error instanceof Response && error.status === 401)) {
       throw error;
