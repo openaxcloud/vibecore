@@ -632,29 +632,59 @@ jobs:
           STORED="$(helm get values "${HELM_RELEASE}" -n "${HELM_NAMESPACE}" -a -o json 2>/dev/null || echo '{}')"
           printf '%s' "${STORED}" > /tmp/stored-values.json
 
-          # valuesKey:imageName:tier  — tier decides whether THIS run rebuilt it.
-          SERVICES="web:web:web admin:admin:none api:api:runtime worker:worker:runtime aiGateway:ai-gateway:runtime workspaceManager:workspace-manager:runtime previewProxy:preview-proxy:runtime"
+          # valuesKey:imageName:tier:chartService:rolled
+          #   tier         — which build produces it, i.e. whether THIS run rebuilt it
+          #   chartService — helm pins `services.<key>.imageDigest` for it, so its digest
+          #                  must be resolvable on EVERY run (rebuilt or carried forward)
+          #   rolled       — this workflow waits for its rollout and checks its imageIDs
+          #
+          # admin: an enabled chart service this continuous path never builds or rolls.
+          # Its current digest is carried forward so the release stays fully pinned.
+          #
+          # screenshotter (`enabled: false` in the chart) and workspace-agent (not a
+          # chart service at all — an image reference the api hands to workspace pods,
+          # tagged `sha-<sha>`) are chartService=false: there is no Deployment to pin, so
+          # nothing to carry forward, and demanding a digest for them on a run that did
+          # not rebuild them would block the deploy over an image nobody deploys. They
+          # are listed so that WHEN they are rebuilt they are still scanned and
+          # signature-verified — the previous vulnerability gate covered both, and
+          # dropping them to keep the rollout check simple would have silently ended
+          # that coverage. If screenshotter is ever enabled, flip its chartService to
+          # true so it gets pinned like every other running service.
+          SERVICES="web:web:web:true:true admin:admin:none:true:false api:api:runtime:true:true worker:worker:runtime:true:true aiGateway:ai-gateway:runtime:true:true workspaceManager:workspace-manager:runtime:true:true previewProxy:preview-proxy:runtime:true:true screenshotter:screenshotter:runtime:false:false workspaceAgent:workspace-agent:wsagent:false:false"
 
           rebuilt_web="${{ steps.tiers.outputs.web }}"
           rebuilt_runtime="${{ steps.tiers.outputs.runtime }}"
+          rebuilt_wsagent="${{ steps.tiers.outputs.wsagent }}"
 
           echo '[]' > /tmp/services.json
 
           for entry in ${SERVICES}; do
-            key="${entry%%:*}"; rest="${entry#*:}"; image="${rest%%:*}"; tier="${rest##*:}"
+            IFS=: read -r key image tier chart_service rolled <<< "${entry}"
 
             case "${tier}" in
               web) rebuilt="${rebuilt_web}" ;;
               runtime) rebuilt="${rebuilt_runtime}" ;;
+              wsagent) rebuilt="${rebuilt_wsagent}" ;;
               *) rebuilt=false ;;
             esac
 
+            # An image that is neither a chart service nor rebuilt has nothing to carry
+            # forward: the workspace-agent is referenced by digest in the configmap, so
+            # when this run did not rebuild it the previous value simply stays.
+            if [ "${chart_service}" != "true" ] && [ "${rebuilt}" != "true" ]; then
+              echo "${key}: not rebuilt and not a chart service — leaving the current reference untouched"
+              continue
+            fi
+
             if [ "${rebuilt}" = "true" ]; then
-              TAG="${SHORT_SHA}"
+              # The workspace-agent uses the `sha-<sha>` tag convention, not `<sha>`.
+              if [ "${tier}" = "wsagent" ]; then TAG="sha-${SHORT_SHA}"; else TAG="${SHORT_SHA}"; fi
               SOURCE_SHA="${TARGET_SHA}"
               case "${tier}" in
                 web) BUILD_ID="${WEB_BUILD_ID}" ;;
                 runtime) BUILD_ID="${RUNTIME_BUILD_ID}" ;;
+                wsagent) BUILD_ID="${WSAGENT_BUILD_ID}" ;;
               esac
             else
               BUILD_ID=""
@@ -702,8 +732,9 @@ jobs:
             jq --arg service "${key}" --arg image "${image}" --arg tag "${TAG}" \
                --arg digest "${DIGEST}" --arg buildId "${BUILD_ID:-}" \
                --arg sourceSha "${SOURCE_SHA:-}" --argjson rebuilt "${rebuilt}" \
+               --argjson chartService "${chart_service}" --argjson rolled "${rolled}" \
                '. += [{service:$service, image:$image, tag:$tag, digest:$digest,
-                       rebuilt:$rebuilt,
+                       rebuilt:$rebuilt, chartService:$chartService, rolled:$rolled,
                        cloudBuildId:(if $buildId == "" then null else $buildId end),
                        sourceSha:(if $sourceSha == "" then null else $sourceSha end)}]' \
                /tmp/services.json > /tmp/services.next && mv /tmp/services.next /tmp/services.json
@@ -711,7 +742,7 @@ jobs:
           done
 
           echo "::group::resolved digests"
-          jq -r '.[] | "\(.service)\t\(.digest)\t\(if .rebuilt then "rebuilt" else "carried forward" end)"' /tmp/services.json
+          jq -r '.[] | "\(.service)\t\(.digest)\t\(if .rebuilt then "rebuilt" else "carried forward" end)\t\(if .rolled then "rolled" else "not rolled" end)"' /tmp/services.json
           echo "::endgroup::"
 
       - name: Install Trivy and cosign
@@ -892,23 +923,22 @@ jobs:
           # flag actually reached the running api pods.
           SETS+=( --set-string "platformEnv.runtime.serverDeployRollbackFromDigest=1" )
 
+          # Only entries that ARE chart services get a `services.<key>` override —
+          # `--set services.workspaceAgent.…` would invent a service the chart has no
+          # template for, and helm would happily store it.
           while read -r service digest tag; do
             SETS+=( --set-string "services.${service}.imageDigest=${digest}" )
             if [ -n "${tag}" ] && [ "${tag}" != "null" ]; then
               SETS+=( --set-string "services.${service}.imageTag=${tag}" )
             fi
-          done < <(jq -r '.services[] | "\(.service) \(.digest) \(.tag // "")"' release-manifest.json)
+          done < <(jq -r '.services[] | select(.chartService) | "\(.service) \(.digest) \(.tag // "")"' release-manifest.json)
 
-          if [ "${{ steps.tiers.outputs.wsagent }}" = "true" ]; then
-            # The workspace-agent is not a chart service: it is an image reference the
-            # api hands to each workspace pod. Pin it by digest too, for the same reason.
-            WSAGENT_DIGEST="$(gcloud artifacts docker images describe \
-              "${REG}/workspace-agent:sha-${SHORT_SHA}" \
-              --project="${GCP_PROJECT_ID}" --format='value(image_summary.digest)')"
-            if ! printf '%s' "${WSAGENT_DIGEST}" | grep -Eq '^sha256:[0-9a-f]{64}$'; then
-              echo "::error::could not resolve the workspace-agent digest"
-              exit 1
-            fi
+          # The workspace-agent is not a chart service: it is an image reference the api
+          # hands to each workspace pod. Pin it by the digest already resolved, scanned
+          # and signature-verified above — never by re-resolving the tag here, which
+          # would reintroduce the gap between "what we checked" and "what we ship".
+          WSAGENT_DIGEST="$(jq -r '.services[] | select(.service == "workspaceAgent") | .digest' release-manifest.json)"
+          if [ -n "${WSAGENT_DIGEST}" ]; then
             SETS+=( --set-string "platformEnv.runtime.workspaceAgentImage=${REG}/workspace-agent@${WSAGENT_DIGEST}" )
           fi
 
@@ -984,17 +1014,17 @@ jobs:
 
             jq --arg s "${service}" --argjson ids "${IDS}" '. + {($s): $ids}' /tmp/observed.json \
               > /tmp/observed.next && mv /tmp/observed.next /tmp/observed.json
-          done < <(jq -r '.services[] | select(.service != "admin") | "\(.service) \(.image)"' release-manifest.json)
+          done < <(jq -r '.services[] | select(.rolled) | "\(.service) \(.image)"' release-manifest.json)
 
           echo "::group::observed imageIDs"
           jq . /tmp/observed.json
           echo "::endgroup::"
 
-          # `admin` is excluded above only because this workflow never rolls it; its
-          # digest is still pinned in the chart and recorded in the manifest.
-          jq 'del(.services[] | select(.service == "admin"))' release-manifest.json > /tmp/manifest-rolled.json
+          # verify-imageids itself skips entries with rolled=false (admin, screenshotter,
+          # workspace-agent), so the set of services that must match is decided by the
+          # manifest — an auditable artifact — rather than by a filter in this file.
           node scripts/release-gate/release-manifest.mjs verify-imageids \
-            --manifest /tmp/manifest-rolled.json \
+            --manifest release-manifest.json \
             --observed /tmp/observed.json
 
       # D2 (approved 2026-07-17): POST-DEPLOY proof that the rollback flag
