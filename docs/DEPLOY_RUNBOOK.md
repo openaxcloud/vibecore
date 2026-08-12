@@ -183,6 +183,31 @@ so a lost value postpones activation instead of permitting a defeatable one.
 
 The barrier costs ~90 s **once**, on the cutover deploy only.
 
+### SEC-9 — how "is this tree post-cutover?" is decided
+
+Originally this was `grep -rq DEPLOYMENT_ACCESS_ACTIVATION_ENABLED services/api/src`.
+That greps a **directory**, and the directory holds the tests. The token also
+lives in `deployment-password.spec.ts`, so deleting the interlock from the
+production route while leaving the spec in place still matched — the workflow
+concluded "steady state", skipped the drain barrier, and armed activation
+against an api with no interlock. **False-positive cutover.**
+
+The replacement is not an exclude list. `scripts/verify-prod-interlock.mjs`
+walks the **production module graph** from `services/api/src/server.ts` and only
+inspects files genuinely reachable from it — a spec is not reachable, so it
+cannot vote, and nothing has to be excluded by name. The graph is cross-checked
+against `tsc`'s own emitted file set (identical). It also fails if a test file
+*is* reachable from the entrypoint, if the graph is implausibly small (broken
+walker), and resolves with exact case so macOS and Linux agree.
+
+`--expect-sha` binds the verdict to the commit being deployed. On
+`workflow_dispatch -f short_sha=<other>` the inspected tree is not the deployed
+image, so nothing is certified and the flag is disarmed (fail-closed).
+
+Finally, after phase 1 a **runtime probe** asks the *deployed* api to activate
+protection and requires a refusal. No static check can prove that about an image
+Cloud Build produced elsewhere.
+
 ### Replaying the proof (no cluster needed)
 
 ```bash
@@ -201,7 +226,42 @@ node scripts/validate-helm-access-activation-flag.mjs
 # App side: fail-closed activation, enforcement NOT gated by the flag,
 # un-protect still allowed, post-cutover cache headers.
 pnpm --filter @vibecore/api test -- src/tests/deployment-password.spec.ts
+
+# SEC-9 RED/GREEN: on ONE fixture (token only in a spec), the OLD grep passes
+# and the NEW production-graph verifier fails.
+pnpm vitest --run scripts/verify-prod-interlock.spec.mjs
+
+# SEC-9 authority check: the walker's graph vs what tsc actually emits.
+# Slow (full api build) so it is opt-in, but it is the reason the phrase
+# "production bundle" is not just a claim.
+SEC9_CROSSCHECK_TSC=1 pnpm vitest --run scripts/verify-prod-interlock.spec.mjs
 ```
+
+### Replaying the proof ON A REAL CLUSTER
+
+`scripts/sec9-cutover/run.sh` stands a real single-node Kubernetes cluster up
+(kind), deploys a stub api in the chart's shape (`maxUnavailable: 0`,
+`maxSurge: 1`, `minReadySeconds`, a 10s preStop drain, the flag delivered by
+ConfigMap+`envFrom`) and drives the whole cutover, asserting each step:
+
+| # | Step | Assertion |
+|---|---|---|
+| 0 | baseline | pre-cutover pods really serve `Cache-Control: public, max-age=60` |
+| 1 | phase 1 | after rollout the **deployed** api answers **503** to activation |
+| 3 | barrier | the real `deploy-cache-window.mjs` waits ≥ 90s after the last old pod vanishes |
+| 4 | phase 2 | flag → `1`, activation now returns **200** |
+| 5 | negatives | anonymous GET → **401**, `no-store`, zero bytes of protected content |
+| 6 | rollback | flag → `0`: activation refused again, **but the already-protected deployment stays gated (401)** and a legitimate unlock still works |
+
+```bash
+scripts/sec9-cutover/run.sh          # ~4 min; deletes the cluster on exit
+scripts/sec9-cutover/run.sh --keep   # keep the cluster to poke at it
+# evidence transcript: /tmp/sec9-cutover-evidence.log (override with SEC9_LOG)
+```
+
+Needs `kind` + a running Docker with ~2 GB free. It is deliberately NOT wired
+into CI: it is the on-demand, human-replayable proof that the sequence works on
+a real control plane, not a substitute for the fast checks above.
 
 ### Manual deploys
 

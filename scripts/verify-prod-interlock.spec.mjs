@@ -17,6 +17,7 @@
  * Run: pnpm vitest --run scripts/verify-prod-interlock.spec.mjs
  */
 import { execFileSync } from 'node:child_process';
+import { createRequire } from 'node:module';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -170,6 +171,62 @@ describe('SEC-9 — cutover detection reads the production bundle', () => {
 
     expect(appSpellings).toEqual(['services/api/src/app.ts']);
   });
+
+  /*
+   * The whole claim of this script is "these are the files that ship". The
+   * authority on that is the compiler, so cross-check the walker's graph against
+   * what `tsc` actually emits from the same entrypoint. Guarded because a full
+   * api build takes minutes — too slow for every CI run, but it must stay
+   * replayable on demand and is documented in docs/DEPLOY_RUNBOOK.md:
+   *
+   *   SEC9_CROSSCHECK_TSC=1 pnpm vitest --run scripts/verify-prod-interlock.spec.mjs
+   */
+  it.runIf(process.env.SEC9_CROSSCHECK_TSC === '1')(
+    'graph matches the real tsc production graph exactly',
+    () => {
+      const out = mkdtempSync(join(tmpdir(), 'sec9-tsc-'));
+      created.push(out);
+
+      // Resolve the compiler through Node's own resolution rather than a hard
+      // path under REPO_ROOT: in a git worktree, node_modules is often a symlink
+      // farm pointing at the primary checkout, so the literal path may not exist.
+      const tscBin = join(
+        dirname(createRequire(import.meta.url).resolve('typescript/package.json')),
+        'bin/tsc',
+      );
+
+      execFileSync(
+        'node',
+        [
+          tscBin,
+          '--outDir', out,
+          '--rootDir', 'src',
+          '--module', 'NodeNext',
+          '--moduleResolution', 'NodeNext',
+          '--target', 'ES2022',
+          '--lib', 'ES2022',
+          '--types', 'node',
+          '--skipLibCheck', 'true',
+          '--esModuleInterop', 'true',
+          '--strict', 'true',
+          '--resolveJsonModule', 'true',
+          'src/server.ts',
+        ],
+        { cwd: join(REPO_ROOT, 'services/api'), stdio: 'inherit' },
+      );
+
+      const emitted = execFileSync('find', [out, '-name', '*.js'], { encoding: 'utf8' })
+        .split('\n')
+        .filter(Boolean)
+        .map((f) => `services/api/src/${f.replace(`${out}/`, '').replace(/\.js$/, '.ts')}`)
+        .sort();
+
+      const walked = productionModuleGraph(REPO_ROOT).files.filter((f) => f.endsWith('.ts')).sort();
+
+      expect(walked).toEqual(emitted);
+    },
+    600_000,
+  );
 
   it('is deterministic: same tree -> same digest', () => {
     expect(verifyInterlock(REPO_ROOT).attestation.graphDigest).toBe(verifyInterlock(REPO_ROOT).attestation.graphDigest);
