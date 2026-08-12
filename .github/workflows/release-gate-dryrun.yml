@@ -18,6 +18,11 @@
 name: Release gate (dry run)
 
 on:
+  # TEMPORARY (throwaway proof branch only): workflow_dispatch requires the workflow
+  # to exist on the default branch, so live evidence is produced by a push here.
+  # Not part of the deliverable — this branch is deleted after the evidence is captured.
+  push:
+    branches: [proof/release-gate-live]
   workflow_dispatch:
     inputs:
       sha:
@@ -33,6 +38,94 @@ permissions:
   actions: read
 
 jobs:
+  proof-red:
+    name: PROOF — a commit with red CI must be REFUSED
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        sha:
+          - 113c17e877d50f40a0a8ba5c2e68aaa027337985  # Production CI = failure, deployed anyway
+          - 9fc8a243fa1baa61d3f33e2aa6a66c88625ba878  # Production CI = failure, deployed anyway
+          - 3a53b4394993d440ba0e51f9eb82d235b188cbff  # CI + Quality = cancelled, deployed anyway
+    steps:
+      - uses: actions/checkout@v4
+      - name: Self-test the gate engine
+        run: node scripts/release-gate/verify-required-checks.mjs --self-test
+      - name: Self-test the gate WIRING policy
+        run: node scripts/release-gate/validate-deploy-gate-wired.mjs --self-test
+      - name: Assert the wiring is intact on the real workflow
+        run: node scripts/release-gate/validate-deploy-gate-wired.mjs
+      - name: Gate must refuse ${{ matrix.sha }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -uo pipefail
+          rc=0
+          node scripts/release-gate/verify-required-checks.mjs \
+            --sha "${{ matrix.sha }}" --repo "${GITHUB_REPOSITORY}" --no-wait || rc=$?
+          if [ "${rc}" -eq 0 ]; then
+            echo "::error::REGRESSION — the gate allowed a commit whose pipeline was not green"
+            exit 1
+          fi
+          echo "proven: gate refuses ${{ matrix.sha }} (exit ${rc}), in a job with NO id-token permission"
+
+  proof-green:
+    name: PROOF — an all-green commit is authorised
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Gate must pass an all-green commit
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # 2c104f24 is green on the three pipelines that ran on main before e2e.yml was
+          # given a push:main trigger, so E2E is evaluated under a WAIVER — the same
+          # mechanism offered for the phased cutover, exercised here for real.
+          jq '(.requiredWorkflows[] | select(.displayName=="Production E2E")) |= (. + {
+                waivedUntil: "2026-08-26",
+                waiverReason: "E2E suite red across all branches for reasons unrelated to release integrity",
+                waiverTicket: "BUG-E2E-001"})' \
+            scripts/release-gate/required-checks.json > /tmp/policy-waived.json
+          node scripts/release-gate/verify-required-checks.mjs \
+            --sha 2c104f24b7d6c52a5e41b394036a0eba37f39a2a \
+            --policy /tmp/policy-waived.json --no-wait
+          echo "proven: gate authorises an all-green commit, and prints the waiver loudly"
+
+  proof-red-under-waiver:
+    name: PROOF — a red commit is STILL refused under the E2E waiver
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        sha:
+          - 113c17e877d50f40a0a8ba5c2e68aaa027337985
+          - 3a53b4394993d440ba0e51f9eb82d235b188cbff
+    steps:
+      - uses: actions/checkout@v4
+      - name: Waiving E2E must not weaken the CI/Security/Quality gate
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -uo pipefail
+          jq '(.requiredWorkflows[] | select(.displayName=="Production E2E")) |= (. + {
+                waivedUntil: "2026-08-26",
+                waiverReason: "E2E suite red across all branches for reasons unrelated to release integrity",
+                waiverTicket: "BUG-E2E-001"})' \
+            scripts/release-gate/required-checks.json > /tmp/policy-waived.json
+          rc=0
+          node scripts/release-gate/verify-required-checks.mjs \
+            --sha "${{ matrix.sha }}" --policy /tmp/policy-waived.json --no-wait || rc=$?
+          if [ "${rc}" -eq 0 ]; then
+            echo "::error::REGRESSION — the E2E waiver let a red commit through"
+            exit 1
+          fi
+          echo "proven: ${{ matrix.sha }} still refused under the waiver (exit ${rc})"
+
   dry-run:
     name: Evaluate required checks for a commit (no deploy)
     runs-on: ubuntu-latest
