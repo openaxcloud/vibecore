@@ -24,6 +24,8 @@ import {
   bringFloatingPaneToFront as engineBringFloatingPaneToFront,
   dockPane as engineDockPane,
   floatPane as engineFloatPane,
+  moveTab as engineMoveTab,
+  reorderTab as engineReorderTab,
   setSplitRatio as engineSetSplitRatio,
   splitPane as engineSplitPane,
   updateFloatingBounds as engineUpdateFloatingBounds,
@@ -42,6 +44,13 @@ import {
 } from './image-attachments';
 import { clearComposerDraft, createComposerDraftWriter, readComposerDraft } from './composer-draft';
 import { describeSkipReason, parseDotEnv } from './parse-dot-env';
+import {
+  TAB_DRAG_PANE_MIME,
+  TAB_DRAG_TAB_MIME,
+  dropSlotForTab,
+  isProjectEditorTabDrag,
+  samePaneReorderIndex,
+} from './project-editor-tab-drag';
 import { AppliedFilesToastBuffer } from './applied-files-toast-buffer';
 import {
   describeAutoApplyFailure,
@@ -2118,6 +2127,15 @@ function findLeaf(node: IdePaneNode, paneId: string): IdePaneLeaf | undefined {
   }
 
   return findLeaf(node.first, paneId) ?? findLeaf(node.second, paneId);
+}
+
+/**
+ * RPL-IDE-001.4 — a floating pane is a leaf too, and a tab can be dragged in or
+ * out of one. Floating panes live outside the docked tree, so `findLeaf` alone
+ * misses them.
+ */
+function findFloatingLeaf(floatingPanes: IdeFloatingPane[], paneId: string): IdePaneLeaf | undefined {
+  return floatingPanes.find((floating) => floating.pane.id === paneId)?.pane;
 }
 
 function findLeafContainingTab(node: IdePaneNode, tabId: string): IdePaneLeaf | undefined {
@@ -7442,69 +7460,66 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       [projectId, currentWorkspaceId],
     );
 
-    const swapPaneTabs = useCallback(
-      (sourcePaneId: string, sourceTabId: string, targetPaneId: string, targetTabId?: string) => {
-        if (sourcePaneId === targetPaneId) {
-          setPaneTree((currentTree) =>
-            updateLeaf(currentTree, sourcePaneId, (leaf) => {
-              const sourceIndex = leaf.tabs.findIndex((tab) => tab.id === sourceTabId);
-
-              const targetIndex = targetTabId
-                ? leaf.tabs.findIndex((tab) => tab.id === targetTabId)
-                : leaf.tabs.length - 1;
-
-              if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) {
-                return leaf;
-              }
-
-              const tabs = [...leaf.tabs];
-              const [sourceTab] = tabs.splice(sourceIndex, 1);
-              const insertionIndex = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex;
-              tabs.splice(insertionIndex, 0, sourceTab);
-
-              return {
-                ...leaf,
-                tabs,
-                activeTabId: sourceTab.id,
-              };
-            }),
-          );
-          return;
-        }
-
-        const sourceLeaf = findLeaf(paneTree, sourcePaneId);
-        const targetLeaf = findLeaf(paneTree, targetPaneId);
+    /**
+     * RPL-IDE-001.4 — move a tab to a slot in a (possibly different) pane.
+     *
+     * `toIndex` is the insertion slot expressed against the destination pane's
+     * tab array **as it currently stands** ("insert before the tab at index i",
+     * `tabs.length` meaning append). That is exactly what the engine's
+     * `moveTab` expects for a cross-pane move; for a same-pane reorder the
+     * engine's `reorderTab` wants a *post-removal* index instead, so the slot is
+     * shifted down by one when the tab travels rightwards. Keeping the
+     * conversion here means every call site — tab strip, pane body, keyboard —
+     * speaks the same, simpler language.
+     *
+     * The previous implementation *swapped* the dragged tab with whatever tab
+     * sat under the pointer. That is not the Replit/Cursor gesture: dropping a
+     * tab on another pane must MOVE it there, leaving the source pane one tab
+     * lighter (and collapsing it when it empties). Both behaviours now come from
+     * the tested engine rather than being re-derived on the tree.
+     */
+    const moveProjectEditorTab = useCallback(
+      (sourcePaneId: string, sourceTabId: string, targetPaneId: string, toIndex?: number) => {
+        const sourceLeaf = findLeaf(paneTree, sourcePaneId) ?? findFloatingLeaf(floatingPanes, sourcePaneId);
+        const targetLeaf = findLeaf(paneTree, targetPaneId) ?? findFloatingLeaf(floatingPanes, targetPaneId);
         const sourceTab = sourceLeaf?.tabs.find((tab) => tab.id === sourceTabId);
 
-        const targetTab =
-          targetLeaf?.tabs.find((tab) => tab.id === targetTabId) ??
-          targetLeaf?.tabs.find((tab) => tab.id === targetLeaf.activeTabId) ??
-          targetLeaf?.tabs[0];
-
-        if (!sourceLeaf || !targetLeaf || !sourceTab || !targetTab) {
+        if (!sourceLeaf || !targetLeaf || !sourceTab) {
           return;
         }
 
-        setPaneTree((currentTree) => {
-          const withTargetInSource = updateLeaf(currentTree, sourcePaneId, (leaf) => ({
-            ...leaf,
-            tabs: leaf.tabs.map((tab) => (tab.id === sourceTab.id ? targetTab : tab)),
-            activeTabId: targetTab.id,
-          }));
+        if (sourcePaneId === targetPaneId) {
+          const fromIndex = sourceLeaf.tabs.findIndex((tab) => tab.id === sourceTabId);
 
-          return updateLeaf(withTargetInSource, targetPaneId, (leaf) => ({
-            ...leaf,
-            tabs: leaf.tabs.map((tab) => (tab.id === targetTab.id ? sourceTab : tab)),
-            activeTabId: sourceTab.id,
-          }));
-        });
+          const postRemovalIndex = samePaneReorderIndex(
+            fromIndex,
+            toIndex ?? sourceLeaf.tabs.length,
+            sourceLeaf.tabs.length,
+          );
 
-        setActivePaneId(targetPaneId);
+          if (postRemovalIndex === null) {
+            return;
+          }
+
+          applyProjectEditorWindowOp((windowState) =>
+            engineReorderTab(windowState, { paneId: sourcePaneId, tabId: sourceTabId, toIndex: postRemovalIndex }),
+          );
+        } else {
+          applyProjectEditorWindowOp((windowState) =>
+            engineMoveTab(windowState, {
+              tabId: sourceTabId,
+              sourcePaneId,
+              targetPaneId,
+              toIndex: toIndex ?? targetLeaf.tabs.length,
+            }),
+          );
+        }
+
         setActiveWorkspacePanel(sourceTab.panel);
         setRecentTabIds((ids) => [sourceTab.id, ...ids.filter((id) => id !== sourceTab.id)].slice(0, 20));
         setProjectPanelSearchParam(sourceTab.panel);
       },
-      [paneTree, setProjectPanelSearchParam],
+      [applyProjectEditorWindowOp, floatingPanes, paneTree, setProjectPanelSearchParam],
     );
 
     const clearPaneDropTarget = useCallback(() => setPaneDropTarget(null), []);
@@ -7701,8 +7716,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       (leaf: IdePaneLeaf) => {
         const activeTab = leaf.tabs.find((tab) => tab.id === leaf.activeTabId) ?? leaf.tabs[0];
 
-        const canAcceptPaneDrop = (event: React.DragEvent) =>
-          Array.from(event.dataTransfer.types).includes('application/x-vibecore-tab-id');
+        const canAcceptPaneDrop = (event: React.DragEvent) => isProjectEditorTabDrag(event.dataTransfer.types);
+
         const activatePaneDrop = (event: React.DragEvent) => {
           if (!canAcceptPaneDrop(event)) {
             return;
@@ -7732,13 +7747,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               }
             }}
             onDrop={(event) => {
-              const sourcePaneId = event.dataTransfer.getData('application/x-vibecore-pane-id');
-              const sourceTabId = event.dataTransfer.getData('application/x-vibecore-tab-id');
+              const sourcePaneId = event.dataTransfer.getData(TAB_DRAG_PANE_MIME);
+              const sourceTabId = event.dataTransfer.getData(TAB_DRAG_TAB_MIME);
 
               if (sourcePaneId && sourceTabId && sourcePaneId !== leaf.id) {
                 event.preventDefault();
                 event.stopPropagation();
-                swapPaneTabs(sourcePaneId, sourceTabId, leaf.id, activeTab?.id);
+
+                // Dropping on the pane body (not on the strip) appends to the end.
+                moveProjectEditorTab(sourcePaneId, sourceTabId, leaf.id);
               }
 
               setPaneDropTarget(null);
@@ -7796,9 +7813,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               onToggleFloating={() => togglePaneFloating(leaf.id)}
               onOpenNewWindow={(tabId) => openProjectEditorWindow(leaf.tabs.find((tab) => tab.id === tabId))}
               isFloating={floatingPanes.some((floating) => floating.pane.id === leaf.id)}
-              onSwapTab={(sourcePaneId, sourceTabId, targetTabId) =>
-                swapPaneTabs(sourcePaneId, sourceTabId, leaf.id, targetTabId)
+              onMoveTab={(sourcePaneId, sourceTabId, toIndex) =>
+                moveProjectEditorTab(sourcePaneId, sourceTabId, leaf.id, toIndex)
               }
+              paneId={leaf.id}
               onDragEnd={clearPaneDropTarget}
               onTogglePin={(tabId) => togglePaneTabPinned(leaf.id, tabId)}
               recentFiles={recentProjectFiles}
@@ -7872,7 +7890,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         openProjectEditorWindow,
         floatingPanes,
         scrollPositions,
-        swapPaneTabs,
+        moveProjectEditorTab,
         t,
         unsavedFiles,
       ],
@@ -12154,7 +12172,8 @@ function IdeTabBar({
   onToggleFloating,
   onOpenNewWindow,
   isFloating,
-  onSwapTab,
+  onMoveTab,
+  paneId,
   onDragEnd,
   onTogglePin,
   recentFiles = [],
@@ -12187,7 +12206,16 @@ function IdeTabBar({
   onToggleFloating?: () => void;
   onOpenNewWindow?: (tabId?: string) => void;
   isFloating?: boolean;
-  onSwapTab?: (sourcePaneId: string, sourceTabId: string, targetTabId?: string) => void;
+
+  /**
+   * RPL-IDE-001.4 — move `sourceTabId` out of `sourcePaneId` into THIS pane at
+   * `toIndex`, the slot in this pane's current tab array ("insert before the tab
+   * at index i"; omit to append). Same-pane calls are a reorder.
+   */
+  onMoveTab?: (sourcePaneId: string, sourceTabId: string, toIndex?: number) => void;
+
+  /** Id of the pane owning this strip — the drag payload's destination. */
+  paneId?: string;
   onDragEnd?: () => void;
   onTogglePin?: (tabId?: string) => void;
   recentFiles?: string[];
@@ -12197,6 +12225,13 @@ function IdeTabBar({
   const [open, setOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [toolQuery, setToolQuery] = useState('');
+
+  /**
+   * RPL-IDE-001.4 — insertion slot under the pointer during a tab drag, drawn as
+   * a caret between two tabs so the drop position is visible before releasing
+   * (Replit/Cursor behaviour). `null` = no drag over this strip.
+   */
+  const [dropSlot, setDropSlot] = useState<number | null>(null);
   const addTabButtonRef = useRef<HTMLButtonElement | null>(null);
   const toolMenuRef = useRef<HTMLDivElement | null>(null);
   const commandPaletteShortcut = formatKeybindingCombo('cmd+k');
@@ -12601,29 +12636,56 @@ function IdeTabBar({
     </div>
   ) : null;
 
+  /*
+   * RPL-IDE-001.4 — `getData` is deliberately blocked during dragover by the
+   * HTML drag protocol (only `types` is readable), so the visual affordance is
+   * driven by the presence of our tab MIME type and the payload is read on drop.
+   */
+  const isTabDrag = (event: React.DragEvent) => Boolean(onMoveTab) && isProjectEditorTabDrag(event.dataTransfer.types);
+
+  const clearDropSlot = () => setDropSlot(null);
+
+  const dropTabAt = (event: React.DragEvent, toIndex?: number) => {
+    const sourcePaneId = event.dataTransfer.getData(TAB_DRAG_PANE_MIME);
+    const sourceTabId = event.dataTransfer.getData(TAB_DRAG_TAB_MIME);
+
+    setDropSlot(null);
+
+    if (!sourcePaneId || !sourceTabId || !onMoveTab) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    onMoveTab(sourcePaneId, sourceTabId, toIndex);
+  };
+
   return (
     <>
       <div className="bolt-project-tabbar" data-tools-panel-open={open ? 'true' : undefined}>
         <div
           className="bolt-project-tabs"
           role="tablist"
+          data-pane-strip={paneId}
           onKeyDown={moveTabFocus}
           onDragOver={(event) => {
-            if (onSwapTab) {
-              event.preventDefault();
+            if (!isTabDrag(event)) {
+              return;
             }
-          }}
-          onDrop={(event) => {
-            const sourcePaneId = event.dataTransfer.getData('application/x-vibecore-pane-id');
-            const sourceTabId = event.dataTransfer.getData('application/x-vibecore-tab-id');
 
-            if (sourcePaneId && sourceTabId) {
-              event.preventDefault();
-              onSwapTab?.(sourcePaneId, sourceTabId, activeTabId);
+            // Bare strip area (after the last tab) — append.
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+            setDropSlot(tabs.length);
+          }}
+          onDragLeave={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+              clearDropSlot();
             }
           }}
+          onDrop={(event) => dropTabAt(event, tabs.length)}
         >
-          {tabs.map((tab) => (
+          {tabs.map((tab, index) => (
             <div
               key={tab.id}
               role="tab"
@@ -12632,6 +12694,8 @@ function IdeTabBar({
               data-panel={tab.panel}
               data-pinned={tab.pinned ? 'true' : undefined}
               data-dirty={tab.dirty ? 'true' : undefined}
+              data-drop-before={dropSlot === index ? 'true' : undefined}
+              data-drop-after={dropSlot === index + 1 && index === tabs.length - 1 ? 'true' : undefined}
               aria-label={
                 tab.pinned && tab.dirty
                   ? t('baseChatAst.tab.pinnedUnsaved', { label: tab.label })
@@ -12667,25 +12731,32 @@ function IdeTabBar({
                 }
 
                 event.dataTransfer.effectAllowed = 'move';
-                event.dataTransfer.setData('application/x-vibecore-pane-id', paneId);
-                event.dataTransfer.setData('application/x-vibecore-tab-id', tab.id);
+                event.dataTransfer.setData(TAB_DRAG_PANE_MIME, paneId);
+                event.dataTransfer.setData(TAB_DRAG_TAB_MIME, tab.id);
               }}
-              onDragEnd={onDragEnd}
+              onDragEnd={(event) => {
+                clearDropSlot();
+                onDragEnd?.();
+                void event;
+              }}
               onDragOver={(event) => {
-                if (onSwapTab) {
-                  event.preventDefault();
+                if (!isTabDrag(event)) {
+                  return;
                 }
-              }}
-              onDrop={(event) => {
-                const sourcePaneId = event.dataTransfer.getData('application/x-vibecore-pane-id');
-                const sourceTabId = event.dataTransfer.getData('application/x-vibecore-tab-id');
 
-                if (sourcePaneId && sourceTabId) {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  onSwapTab?.(sourcePaneId, sourceTabId, tab.id);
-                }
+                /*
+                 * Pointer past the tab's midpoint means "insert after me". This
+                 * is what makes the drop position deterministic instead of
+                 * "wherever the browser felt like it".
+                 */
+                event.preventDefault();
+                event.stopPropagation();
+                event.dataTransfer.dropEffect = 'move';
+                setDropSlot(dropSlotForTab(index, event.clientX, event.currentTarget.getBoundingClientRect()));
               }}
+              onDrop={(event) =>
+                dropTabAt(event, dropSlotForTab(index, event.clientX, event.currentTarget.getBoundingClientRect()))
+              }
             >
               <button
                 type="button"

@@ -9024,6 +9024,33 @@ body :where(.lucide, svg[data-lucide]) {
   scroll-snap-align: start;
 }
 
+/*
+ * RPL-IDE-001.4 — insertion caret shown while a tab is dragged over the strip,
+ * so the drop slot is visible before release. Uses the IDE accent token, which
+ * is already defined per theme, so the caret reads in light and dark alike.
+ */
+.bolt-project-tab[data-drop-before='true']::before,
+.bolt-project-tab[data-drop-after='true']::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--vc-ide-accent-action);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--vc-ide-accent-action) 28%, transparent);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.bolt-project-tab[data-drop-before='true']::before {
+  left: -1px;
+}
+
+.bolt-project-tab[data-drop-after='true']::after {
+  right: -1px;
+}
+
 .bolt-project-tab-main {
   display: inline-flex;
   height: 100%;
