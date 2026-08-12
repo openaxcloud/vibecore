@@ -169,6 +169,7 @@ import { workbenchRuntimeEn, workbenchRuntimeFr } from './catalogs/workbench-run
 import { workbenchSearchEn, workbenchSearchFr } from './catalogs/workbench-search';
 import { workbenchSurfaceEn, workbenchSurfaceFr } from './catalogs/workbench-surface';
 import { workspaceMiscEn, workspaceMiscFr } from './catalogs/workspace-misc';
+import { workspaceResourcesEn, workspaceResourcesFr } from './catalogs/workspace-resources';
 import { detectUserLanguage, SUPPORTED_LANGUAGES, type SupportedLanguage } from './language';
 import { ar } from './messages/ar';
 import { en } from './messages/en';
@@ -193,6 +194,7 @@ const RESOURCES: Record<SupportedLanguage, { translation: Record<string, string>
       ...assistantMessageEn,
       ...auditLogsEn,
       ...baseChatAstEn,
+      ...workspaceResourcesEn,
       ...baseChatMobileHeaderEn,
       ...userAreaEn,
       ...notificationsEn,
@@ -345,6 +347,7 @@ const RESOURCES: Record<SupportedLanguage, { translation: Record<string, string>
       ...assistantMessageFr,
       ...auditLogsFr,
       ...baseChatAstFr,
+      ...workspaceResourcesFr,
       ...baseChatMobileHeaderFr,
       ...userAreaFr,
       ...notificationsFr,

@@ -8530,7 +8530,14 @@ body :where(.lucide, svg[data-lucide]) {
   line-height: 1;
 }
 
-.bolt-project-ide-rail-label {
+/*
+ * RPL-IDE-001.5 — the dock is a 48 px icon column, so the label and the shortcut
+ * hint stay available to assistive tech (and to `aria-keyshortcuts`) while the
+ * visible affordance is the tooltip, as in Replit. Rendering "⌘P" inside the
+ * column would blow the rail's width apart at every viewport.
+ */
+.bolt-project-ide-rail-label,
+.bolt-project-ide-rail-shortcut {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -8538,6 +8545,26 @@ body :where(.lucide, svg[data-lucide]) {
   clip: rect(0 0 0 0);
   white-space: nowrap;
   clip-path: inset(50%);
+}
+
+/*
+ * RPL-IDE-001.5 — "All tools" is pinned to the foot of the dock and separated
+ * from the shortcuts above it, so the nine docked tools can scroll independently
+ * without ever pushing it out of reach on a short viewport.
+ */
+.bolt-project-ide-rail-footer {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  margin-top: auto;
+  gap: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--vc-ide-border-subtle);
+}
+
+.bolt-project-ide-rail-item-all-tools[aria-expanded='true'],
+.bolt-project-ide-rail-item-all-tools:hover {
+  color: var(--vc-ide-text-primary);
 }
 
 .bolt-project-ide-rail-item:hover,
@@ -14936,6 +14963,48 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-tab-actions-menu button:hover {
   background: var(--vc-ide-bg-hover);
   color: var(--vc-ide-text-primary);
+}
+
+/*
+ * RPL-IDE-001.6 — Window / Pane / Tab scopes. The menu now has real groups, so
+ * they need to lay out like the flat button list used to, and the whole menu
+ * needs to cap its height: with several panes open the Tab group grows a "Move
+ * tab to …" entry per destination, which on a 812 px-tall phone would otherwise
+ * run off the bottom of the screen with no way to reach the last item.
+ */
+.bolt-project-tab-actions-menu {
+  max-height: min(70vh, 460px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.bolt-project-tab-actions-menu [role='group'] {
+  display: grid;
+  gap: 2px;
+}
+
+.bolt-project-tab-actions-menu [role='group'] + [role='group'] {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--vc-ide-border-subtle);
+}
+
+.bolt-project-tab-actions-group-label {
+  margin: 0;
+  padding: 4px 8px 2px;
+  color: var(--vc-ide-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Keyboard navigation must be visible, not just functional. */
+.bolt-project-tab-actions-menu button:focus-visible {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+  outline: 2px solid var(--vc-ide-accent-action);
+  outline-offset: -2px;
 }
 
 .bolt-project-bottom-terminal {
@@ -26362,4 +26431,265 @@ html[data-ecode-announcement-dismissed='true'] [data-ecode-announcement] {
 
 .vc-no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/*
+ * RPL-IDE-001.7 — Resources panel (RAM / CPU / Storage) beside the app name.
+ *
+ * Every colour is an existing IDE token, so the panel follows the theme in both
+ * light and dark without a second set of rules. The trigger degrades by width:
+ * label + value on desktop, value only on tablet, icon only on mobile — the
+ * topbar has a fixed height and cannot afford to wrap.
+ */
+.vc-resources {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+}
+
+.vc-resources-trigger {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
+}
+
+.vc-resources-trigger:hover,
+.vc-resources-trigger:focus-visible,
+.vc-resources-trigger[aria-expanded='true'] {
+  border-color: color-mix(in srgb, var(--vc-ide-border-visible), transparent 20%);
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+}
+
+.vc-resources-trigger-icon {
+  flex: 0 0 auto;
+  font-size: 14px;
+}
+
+.vc-resources-trigger-text {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.vc-resources-trigger-value {
+  flex: 0 0 auto;
+  color: var(--vc-ide-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.vc-resources-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 80;
+  display: grid;
+  width: min(280px, calc(100vw - 24px));
+  gap: 10px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: var(--vc-ui-radius-popover);
+  background: var(--vc-ide-bg-card);
+  box-shadow: var(--vc-ui-shadow-xl);
+  padding: 12px;
+}
+
+.vc-resources-popover-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+}
+
+.vc-resources-refresh {
+  display: inline-flex;
+  height: 24px;
+  width: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: var(--vc-ide-text-muted);
+}
+
+.vc-resources-refresh:hover,
+.vc-resources-refresh:focus-visible {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+}
+
+.vc-resources-state {
+  margin: 0;
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+}
+
+.vc-resources-list {
+  display: grid;
+  margin: 0;
+  gap: 10px;
+}
+
+.vc-resources-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+}
+
+.vc-resources-row dt {
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.vc-resources-row dd {
+  margin: 0;
+  color: var(--vc-ide-text-primary);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.vc-resources-bar {
+  grid-column: 1 / -1;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--vc-ide-bg-hover);
+}
+
+.vc-resources-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--vc-ide-accent-action);
+  transition: width 240ms ease;
+}
+
+.vc-resources-row[data-tone='warning'] .vc-resources-bar > span {
+  background: var(--vc-ide-accent-warning);
+}
+
+.vc-resources-row[data-tone='critical'] .vc-resources-bar > span {
+  background: var(--vc-ide-accent-error);
+}
+
+.vc-resources-captured {
+  margin: 0;
+  color: var(--vc-ide-text-muted);
+  font-size: 10px;
+}
+
+/* Tablet: drop the word, keep the number — it is the actionable part. */
+@media (max-width: 1024px) {
+  .vc-resources-trigger-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+  }
+}
+
+/* Mobile: icon only, and the popover anchors to the viewport edge, not the button. */
+@media (max-width: 767px) {
+  .vc-resources-trigger-value {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+  }
+
+  .vc-resources-trigger {
+    padding: 3px 6px;
+  }
+
+  .vc-resources-popover {
+    left: auto;
+    right: 0;
+    width: min(280px, calc(100vw - 16px));
+  }
+}
+
+/*
+ * RPL-IDE-001.8 — Spotlight. The surface is the command palette (same engine,
+ * same keyboard model); what makes it Spotlight is the project header and the
+ * fact that the app name opens it. Styling stays on IDE tokens so the header
+ * follows the theme with the rest of the palette.
+ */
+.bolt-project-spotlight-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--vc-ide-border-subtle);
+  padding: 12px 14px;
+}
+
+.bolt-project-spotlight-head > [class*='i-ph:'] {
+  flex: 0 0 auto;
+  color: var(--vc-ide-accent-action);
+  font-size: 18px;
+}
+
+.bolt-project-spotlight-head > span {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+}
+
+.bolt-project-spotlight-head strong {
+  overflow: hidden;
+  color: var(--vc-ide-text-primary);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.bolt-project-spotlight-head small {
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+}
+
+/* The app name is a real target: it must look and focus like one. */
+.bolt-project-spotlight-trigger {
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.bolt-project-spotlight-trigger:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.bolt-project-spotlight-trigger:focus-visible {
+  outline: 2px solid var(--vc-ide-accent-action);
+  outline-offset: 2px;
+}
+
+/* Mobile: the header must not eat the list on a short viewport. */
+@media (max-width: 767px) {
+  .bolt-project-spotlight-head {
+    padding: 10px 12px;
+  }
+
+  .bolt-project-spotlight-head small {
+    display: none;
+  }
 }

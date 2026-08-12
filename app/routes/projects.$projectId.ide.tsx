@@ -25,6 +25,7 @@ import {
 import {
   lazy,
   Suspense,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -48,6 +49,7 @@ import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { InputDialog } from '~/components/ui/InputDialog';
 import { ZoneErrorBoundary } from '~/components/ui/PanelBoundary';
 import { configuredToast } from '~/components/ui/use-toast';
+import { ProjectResourcesPanel } from '~/components/workbench/ProjectResourcesPanel';
 import { formatProjectIdeCopy, formatProjectIdeCount, getProjectIdeCopy } from '~/lib/i18n/catalogs/project-ide';
 import { friendlyLabel, pickFriendlyLabel } from '~/lib/labels/friendly-id';
 import { loadProjectIdeData, type ProjectLoaderData } from '~/lib/project-ide-loader.server';
@@ -259,6 +261,18 @@ function IdeProjectTopBar({
   const renameInputRef = useRef<HTMLInputElement>(null);
   const filesPanelOpen = useStore(workbenchStore.projectFilesPanelOpen);
   const effectiveWorkspace = runtimeWorkspaceStatus ?? workspace;
+
+  /**
+   * RPL-IDE-001.8 — hand Spotlight to the workspace shell, which owns the
+   * palette engine it is built on. Same window-event channel the topbar already
+   * uses to open tool panels.
+   */
+  const openProjectSpotlight = useCallback(() => {
+    window.dispatchEvent(
+      new CustomEvent('vibecore:open-project-spotlight', { detail: { projectName: displayProjectName } }),
+    );
+  }, [displayProjectName]);
+
   const isReallyRunning = isWorkspaceReallyRunning(effectiveWorkspace, previews);
   const previewRunning = isReallyRunning;
   const workspaceState = workspaceUiState(effectiveWorkspace, { ports: previews, loading, error });
@@ -496,7 +510,34 @@ function IdeProjectTopBar({
                   }}
                 >
                   <span className="bolt-project-breadcrumb-kicker">{copy['projectIde.project.kicker']}</span>
-                  <span className="bolt-project-breadcrumb-value truncate" title={projectTooltip}>
+                  {/*
+                    RPL-IDE-001.8 — clicking the app NAME opens Spotlight; the
+                    chevron keeps the existing project menu (Settings, Fork,
+                    Rename…). `preventDefault` stops the click from toggling the
+                    surrounding <details>, so the two targets stay distinct
+                    instead of one swallowing the other.
+                  */}
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="bolt-project-breadcrumb-value bolt-project-spotlight-trigger truncate"
+                    title={copy['projectIde.project.spotlight']}
+                    aria-label={text(copy['projectIde.project.spotlightAria'], { project: projectLabel.display })}
+                    aria-haspopup="dialog"
+                    data-testid="project-spotlight-trigger"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      openProjectSpotlight();
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        openProjectSpotlight();
+                      }
+                    }}
+                  >
                     {projectLabel.display}
                   </span>
                   <ChevronDown className="h-3.5 w-3.5" aria-hidden />
@@ -583,6 +624,12 @@ function IdeProjectTopBar({
             <span className="bolt-project-breadcrumb-value truncate">{branchLabel.display}</span>
           </Link>
         </nav>
+        {/*
+          RPL-IDE-001.7 — Resources sits beside the app name, as in Replit, so
+          RAM/CPU/Storage pressure is visible from wherever you are in the IDE
+          rather than being buried in a tool tab.
+        */}
+        <ProjectResourcesPanel projectId={projectId} workspaceId={effectiveWorkspace?.id} />
       </div>
       <div className="bolt-project-topbar-actions">
         <div className="bolt-project-action-group bolt-project-action-group--language" data-priority="high">

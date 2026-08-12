@@ -19,6 +19,8 @@ export const projectIdeEn = {
   'projectIde.identifier': ' (ID {identifier})',
   'projectIde.project.kicker': 'Project',
   'projectIde.project.menu': 'Project menu for {project}{identifier}',
+  'projectIde.project.spotlight': 'Open Spotlight',
+  'projectIde.project.spotlightAria': 'Open Spotlight for {project}',
   'projectIde.project.name': 'Project name',
   'projectIde.project.renameHelp': 'Edit the project name. Press Enter to save or Escape to cancel.',
   'projectIde.project.saving': 'Saving',
@@ -141,6 +143,8 @@ export const projectIdeFr: ProjectIdeCopy = {
   'projectIde.identifier': ' (ID {identifier})',
   'projectIde.project.kicker': 'Projet',
   'projectIde.project.menu': 'Menu du projet {project}{identifier}',
+  'projectIde.project.spotlight': 'Ouvrir Spotlight',
+  'projectIde.project.spotlightAria': 'Ouvrir Spotlight pour {project}',
   'projectIde.project.name': 'Nom du projet',
   'projectIde.project.renameHelp':
     'Modifiez le nom du projet. Appuyez sur Entrée pour enregistrer ou sur Échap pour annuler.',

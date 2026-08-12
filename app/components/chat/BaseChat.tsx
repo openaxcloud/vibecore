@@ -29,6 +29,7 @@ import {
   setSplitRatio as engineSetSplitRatio,
   splitPane as engineSplitPane,
   updateFloatingBounds as engineUpdateFloatingBounds,
+  updatePane as engineUpdatePane,
   type ProjectEditorWindowState,
 } from '~/lib/project-editor-layout';
 import { ClientOnly } from 'remix-utils/client-only';
@@ -51,6 +52,12 @@ import {
   isProjectEditorTabDrag,
   samePaneReorderIndex,
 } from './project-editor-tab-drag';
+import {
+  PROJECT_EDITOR_TOOL_CATEGORY_LABEL_KEYS,
+  PROJECT_EDITOR_TOOL_SHORTCUTS,
+  projectEditorToolList,
+  projectEditorToolsByCategory,
+} from './project-editor-tool-catalog';
 import { AppliedFilesToastBuffer } from './applied-files-toast-buffer';
 import {
   describeAutoApplyFailure,
@@ -3437,8 +3444,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [editorMinimapEnabled, setEditorMinimapEnabled] = useState(true);
     const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile' | 'custom'>('desktop');
     const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-    const [commandPaletteMode, setCommandPaletteMode] = useState<'all' | 'tools' | 'files'>('all');
+
+    /*
+     * RPL-IDE-001.8 — `spotlight` is a fourth mode of the same palette engine:
+     * it shows every section (files, tools, commands, open tabs) and adds a
+     * project header, and it is what the app name in the topbar opens.
+     */
+    const [commandPaletteMode, setCommandPaletteMode] = useState<'all' | 'tools' | 'files' | 'spotlight'>('all');
     const [commandPaletteQuery, setCommandPaletteQuery] = useState('');
+
+    /** RPL-IDE-001.8 — project name shown in the Spotlight header, sent by the topbar. */
+    const [spotlightProjectName, setSpotlightProjectName] = useState('');
     const [commandPaletteIndex, setCommandPaletteIndex] = useState(0);
 
     /*
@@ -5459,7 +5475,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       [activePaneId, openProjectFilesPanel, openWorkspacePanel],
     );
 
-    const openCommandPalette = useCallback((mode: 'all' | 'tools' | 'files' = 'all') => {
+    const openCommandPalette = useCallback((mode: 'all' | 'tools' | 'files' | 'spotlight' = 'all') => {
       setCommandPaletteMode(mode);
       setCommandPaletteQuery('');
       setCommandPaletteIndex(0);
@@ -5595,6 +5611,32 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         window.removeEventListener('vibecore:open-project-ide-panel', handleOpenProjectIdePanel);
       };
     }, [activateMobileTool, openIdeTool, projectIdeMode, useMobileIde]);
+
+    /*
+     * RPL-IDE-001.8 — the app name lives in the topbar (`projects.$projectId.ide.tsx`)
+     * while Spotlight is rendered here, inside the workspace shell. They talk over
+     * the same window-event channel the topbar already uses to open tool panels,
+     * rather than threading a callback through the whole route tree.
+     */
+    useEffect(() => {
+      if (!projectIdeMode) {
+        return undefined;
+      }
+
+      const handleOpenSpotlight = (event: Event) => {
+        const name = (event as CustomEvent<{ projectName?: string }>).detail?.projectName;
+
+        if (name) {
+          setSpotlightProjectName(name);
+        }
+
+        openCommandPalette('spotlight');
+      };
+
+      window.addEventListener('vibecore:open-project-spotlight', handleOpenSpotlight);
+
+      return () => window.removeEventListener('vibecore:open-project-spotlight', handleOpenSpotlight);
+    }, [openCommandPalette, projectIdeMode]);
 
     const closeWorkspacePanel = useCallback(
       (panel: IdeWorkspacePanel, paneId = activePaneId, tabId?: string) => {
@@ -7522,6 +7564,55 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       [applyProjectEditorWindowOp, floatingPanes, paneTree, setProjectPanelSearchParam],
     );
 
+    /**
+     * RPL-IDE-001.6 — close a whole pane (Pane scope of the Options menu).
+     * `closePaneTabs(paneId, 'all')` empties the tab list but leaves the pane
+     * standing; the engine's `updatePane` returning null removes it AND
+     * collapses its parent split, which is the behaviour the menu item promises.
+     * Refuses on the last docked pane so the workspace never goes blank.
+     */
+    const closeProjectEditorPane = useCallback(
+      (targetPaneId: string) => {
+        const isFloating = floatingPanes.some((floating) => floating.pane.id === targetPaneId);
+
+        if (!isFloating && countLeaves(paneTree) < 2) {
+          return;
+        }
+
+        applyProjectEditorWindowOp((windowState) => engineUpdatePane(windowState, targetPaneId, () => null));
+      },
+      [applyProjectEditorWindowOp, floatingPanes, paneTree],
+    );
+
+    /**
+     * RPL-IDE-001.6 — every pane in this window, docked then floating, labelled
+     * by the tool it is currently showing so "Move tab to Webview" reads like the
+     * screen rather than like "Move tab to pane-1a2b".
+     */
+    const projectEditorPaneChoices = useMemo(() => {
+      const label = (pane: IdePaneLeaf, index: number) => {
+        const activeTab = pane.tabs.find((tab) => tab.id === pane.activeTabId) ?? pane.tabs[0];
+
+        return activeTab ? panelTitle(activeTab.panel, t) : t('baseChatAst.options.paneNumber', { index: index + 1 });
+      };
+
+      const docked = flattenPaneLeafIds(paneTree)
+        .map((id) => findLeaf(paneTree, id))
+        .filter((pane): pane is IdePaneLeaf => Boolean(pane));
+
+      return [...docked, ...floatingPanes.map((floating) => floating.pane)].map((pane, index) => ({
+        id: pane.id,
+        label: label(pane, index),
+      }));
+    }, [floatingPanes, paneTree, t]);
+
+    /** RPL-IDE-001.6 — Window scope: back to a single default pane. */
+    const resetProjectEditorLayout = useCallback(() => {
+      setPaneTree(cloneDefaultPaneTree());
+      setFloatingPanes([]);
+      setActivePaneId('pane-main');
+    }, []);
+
     const clearPaneDropTarget = useCallback(() => setPaneDropTarget(null), []);
 
     const renderPaneContent = useCallback(
@@ -7817,6 +7908,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 moveProjectEditorTab(sourcePaneId, sourceTabId, leaf.id, toIndex)
               }
               paneId={leaf.id}
+              onClosePane={() => closeProjectEditorPane(leaf.id)}
+              onResetLayout={resetProjectEditorLayout}
+              onMoveTabToPane={(targetPaneId) => {
+                const tabId = leaf.activeTabId ?? leaf.tabs[0]?.id;
+
+                if (tabId) {
+                  moveProjectEditorTab(leaf.id, tabId, targetPaneId);
+                }
+              }}
+              otherPanes={projectEditorPaneChoices.filter((pane) => pane.id !== leaf.id)}
               onDragEnd={clearPaneDropTarget}
               onTogglePin={(tabId) => togglePaneTabPinned(leaf.id, tabId)}
               recentFiles={recentProjectFiles}
@@ -7891,6 +7992,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         floatingPanes,
         scrollPositions,
         moveProjectEditorTab,
+        closeProjectEditorPane,
+        resetProjectEditorLayout,
+        projectEditorPaneChoices,
         t,
         unsavedFiles,
       ],
@@ -8024,8 +8128,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const renderIdeRailToolItem = (item: (typeof ideRailToolItems)[number]) => {
       const badgeLabel = 'badgeLabel' in item ? item.badgeLabel : undefined;
       const title = 'title' in item && item.title ? item.title : IDE_TOOL_DESCRIPTIONS[item.panel];
-      const tooltip = formatRailItemTooltip(t, item.label, title, badgeLabel);
+      const baseTooltip = formatRailItemTooltip(t, item.label, title, badgeLabel);
       const active = 'active' in item ? item.active : activeWorkspacePanel === item.panel;
+
+      /*
+       * RPL-IDE-001.5 — dock shortcuts. Only tools with a genuinely registered
+       * keybinding advertise one (the catalog spec enforces that), so the dock
+       * never promises a key combination that does nothing.
+       */
+      const shortcut = PROJECT_EDITOR_TOOL_SHORTCUTS[item.panel as keyof typeof PROJECT_EDITOR_TOOL_SHORTCUTS];
+      const shortcutLabel = shortcut ? formatKeybindingCombo(shortcut) : undefined;
+      const tooltip = shortcutLabel ? `${baseTooltip} · ${shortcutLabel}` : baseTooltip;
 
       return (
         <HeaderTip key={item.panel} label={tooltip} side="right">
@@ -8033,19 +8146,60 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             type="button"
             className="bolt-project-ide-rail-item"
             aria-current={active ? 'page' : undefined}
+            aria-keyshortcuts={shortcut}
             aria-label={formatRailItemLabel(item.label, badgeLabel)}
             title={tooltip}
             data-vc-tooltip={tooltip}
+            data-testid={`ide-dock-${item.panel}`}
             data-tone={item.tone}
             onClick={() => openIdeTool(item.panel)}
           >
             <span className={item.icon} aria-hidden />
             <span className="bolt-project-ide-rail-label">{item.label}</span>
+            {shortcutLabel ? (
+              <span className="bolt-project-ide-rail-shortcut" aria-hidden>
+                {shortcutLabel}
+              </span>
+            ) : null}
             {item.badge ? (
               <span className="bolt-project-ide-rail-badge" aria-hidden>
                 {formatRailBadgeValue(item.badge, language)}
               </span>
             ) : null}
+          </button>
+        </HeaderTip>
+      );
+    };
+
+    /**
+     * RPL-IDE-001.5 — "All tools" at the foot of the dock. The searchable popup
+     * existed only behind the tab strip's "+", which meant the dock could reach
+     * nine tools and nothing else. Opening it in `tools` mode lists the full
+     * catalog and each result opens in a tab of the active pane.
+     */
+    const renderIdeRailAllToolsItem = () => {
+      const label = t('baseChatAst.tool.allTools');
+      const tooltip = `${label} · ${formatKeybindingCombo('cmd+t')}`;
+
+      return (
+        <HeaderTip label={tooltip} side="right">
+          <button
+            type="button"
+            className="bolt-project-ide-rail-item bolt-project-ide-rail-item-all-tools"
+            aria-label={label}
+            aria-haspopup="dialog"
+            aria-keyshortcuts="cmd+t"
+            title={tooltip}
+            data-vc-tooltip={tooltip}
+            data-testid="ide-dock-all-tools"
+            data-tone="neutral"
+            onClick={() => openCommandPalette('tools')}
+          >
+            <span className="i-ph:squares-four" aria-hidden />
+            <span className="bolt-project-ide-rail-label">{label}</span>
+            <span className="bolt-project-ide-rail-shortcut" aria-hidden>
+              {formatKeybindingCombo('cmd+t')}
+            </span>
           </button>
         </HeaderTip>
       );
@@ -8119,6 +8273,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         >
           <aside className="bolt-project-ide-rail" aria-label={t('chat.copy.workspaceTools_7b36c62b')}>
             <div className="bolt-project-ide-rail-tools">{ideRailToolItems.map(renderIdeRailToolItem)}</div>
+            <div className="bolt-project-ide-rail-footer">{renderIdeRailAllToolsItem()}</div>
           </aside>
         </ZoneErrorBoundary>
         <PanelGroup direction="horizontal" className="bolt-project-panel-group">
@@ -8618,37 +8773,28 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             kind: 'file' as const,
             filePath,
           })),
-          ...[
-            ['files', formatKeybindingCombo('cmd+p')],
-            ['search', ''],
-            ['terminal', formatKeybindingCombo('cmd+`')],
-            ['preview', formatKeybindingCombo('cmd+enter')],
-            ['database', ''],
-            ['object-storage', ''],
-            ['env', ''],
-            ['secrets', ''],
-            ['git', ''],
-            ['packages', ''],
-            ['skills', ''],
-            ['integrations', ''],
-            ['workflows', ''],
-            ['deployments', ''],
-            ['security', ''],
-            ['monitoring', ''],
-            ['ports', ''],
-            ['extensions', ''],
-            ['snapshots', ''],
-            ['settings', formatKeybindingCombo('cmd+,')],
-          ].map(([panel, shortcut]) => ({
-            id: `tool:${panel}`,
-            section: t('baseChatAst.common.tools'),
-            title: panelTitle(panel, t),
-            description: t(IDE_TOOL_DESCRIPTIONS[panel as keyof typeof IDE_TOOL_DESCRIPTIONS]),
-            shortcut,
-            icon: panelIcon(panel),
-            kind: 'tool' as const,
-            panel: panel as IdeWorkspacePanel | IdeRightPanel,
-          })),
+
+          /*
+           * RPL-IDE-001.5 — driven by the shared catalog, so the palette lists
+           * EVERY Project Editor tool. The previous hand-written list stopped at
+           * 20 of 29: `studio`, `domains`, `locks`, `overview`, `logs`,
+           * `activity`, `collaborators`, `debugger` and `editor` were rendered
+           * as panels but could not be reached from here at all.
+           */
+          ...projectEditorToolList().map((tool) => {
+            const shortcut = PROJECT_EDITOR_TOOL_SHORTCUTS[tool.id];
+
+            return {
+              id: `tool:${tool.id}`,
+              section: t('baseChatAst.common.tools'),
+              title: panelTitle(tool.id, t),
+              description: t(IDE_TOOL_DESCRIPTIONS[tool.id as keyof typeof IDE_TOOL_DESCRIPTIONS]),
+              shortcut: shortcut ? formatKeybindingCombo(shortcut) : '',
+              icon: tool.icon,
+              kind: 'tool' as const,
+              panel: tool.id as IdeWorkspacePanel | IdeRightPanel,
+            };
+          }),
           ...[
             ['run', t('baseChatAst.command.runApp'), t('baseChatAst.command.runAppDescription'), ''],
             ['stop', t('baseChatAst.command.stopApp'), t('baseChatAst.command.stopAppDescription'), ''],
@@ -8925,8 +9071,28 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               className="bolt-project-command-palette"
               role="dialog"
               aria-modal="true"
-              aria-label={t('chat.copy.commandPalette_7b6b539e')}
+              data-mode={commandPaletteMode}
+              data-testid={commandPaletteMode === 'spotlight' ? 'project-spotlight' : 'project-command-palette'}
+              aria-label={
+                commandPaletteMode === 'spotlight'
+                  ? t('baseChatAst.spotlight.title')
+                  : t('chat.copy.commandPalette_7b6b539e')
+              }
             >
+              {/*
+                RPL-IDE-001.8 — Spotlight is project-scoped, so it names the
+                project it is searching. Without this header it is just the
+                command palette under another trigger.
+              */}
+              {commandPaletteMode === 'spotlight' ? (
+                <header className="bolt-project-spotlight-head" data-testid="project-spotlight-head">
+                  <span className="i-ph:magic-wand" aria-hidden />
+                  <span>
+                    <strong>{spotlightProjectName}</strong>
+                    <small>{t('baseChatAst.spotlight.subtitle')}</small>
+                  </span>
+                </header>
+              ) : null}
               <input
                 type="text"
                 autoFocus
@@ -12174,6 +12340,10 @@ function IdeTabBar({
   isFloating,
   onMoveTab,
   paneId,
+  onClosePane,
+  onResetLayout,
+  onMoveTabToPane,
+  otherPanes = [],
   onDragEnd,
   onTogglePin,
   recentFiles = [],
@@ -12216,6 +12386,18 @@ function IdeTabBar({
 
   /** Id of the pane owning this strip — the drag payload's destination. */
   paneId?: string;
+
+  /** RPL-IDE-001.6 — Pane scope: close this pane entirely (its tabs go with it). */
+  onClosePane?: () => void;
+
+  /** RPL-IDE-001.6 — Window scope: restore the default single-pane layout. */
+  onResetLayout?: () => void;
+
+  /** RPL-IDE-001.6 — Tab scope: keyboard equivalent of dragging the tab to another pane. */
+  onMoveTabToPane?: (targetPaneId: string) => void;
+
+  /** Panes other than this one, as move destinations. */
+  otherPanes?: Array<{ id: string; label: string }>;
   onDragEnd?: () => void;
   onTogglePin?: (tabId?: string) => void;
   recentFiles?: string[];
@@ -12233,6 +12415,8 @@ function IdeTabBar({
    */
   const [dropSlot, setDropSlot] = useState<number | null>(null);
   const addTabButtonRef = useRef<HTMLButtonElement | null>(null);
+  const actionsButtonRef = useRef<HTMLButtonElement | null>(null);
+  const actionsMenuRef = useRef<HTMLDivElement | null>(null);
   const toolMenuRef = useRef<HTMLDivElement | null>(null);
   const commandPaletteShortcut = formatKeybindingCombo('cmd+k');
 
@@ -12250,6 +12434,89 @@ function IdeTabBar({
     setToolQuery('');
     setOpen(true);
   }, []);
+
+  const closeOptionsMenu = useCallback((options: { restoreFocus?: boolean } = {}) => {
+    setActionsOpen(false);
+
+    if (options.restoreFocus) {
+      window.requestAnimationFrame(() => actionsButtonRef.current?.focus());
+    }
+  }, []);
+
+  /** Run a menu action, then close and hand focus back to the trigger. */
+  const runOptionsAction = useCallback(
+    (action: () => void) => {
+      action();
+      closeOptionsMenu({ restoreFocus: true });
+    },
+    [closeOptionsMenu],
+  );
+
+  /*
+   * RPL-IDE-001.6 — menu keyboard model. Roving focus over the live
+   * `[role="menuitem"]` list rather than a precomputed index, so the wrapping
+   * stays correct however many items the current pane/window state renders
+   * (Float vs Dock, per-pane Move entries, optional Reset layout).
+   */
+  const handleOptionsMenuKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      const items = Array.from(actionsMenuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? []);
+
+      if (!items.length) {
+        return;
+      }
+
+      const currentIndex = items.findIndex((item) => item === document.activeElement);
+
+      const focusAt = (index: number) => {
+        event.preventDefault();
+        items[(index + items.length) % items.length]?.focus();
+      };
+
+      if (event.key === 'ArrowDown') {
+        focusAt(currentIndex + 1);
+      } else if (event.key === 'ArrowUp') {
+        focusAt(currentIndex <= 0 ? items.length - 1 : currentIndex - 1);
+      } else if (event.key === 'Home') {
+        focusAt(0);
+      } else if (event.key === 'End') {
+        focusAt(items.length - 1);
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        closeOptionsMenu({ restoreFocus: true });
+      } else if (event.key === 'Tab') {
+        // Tabbing out of a menu closes it, as in every native menu.
+        closeOptionsMenu();
+      }
+    },
+    [closeOptionsMenu],
+  );
+
+  /* Focus the first item on open, and close on an outside pointer press. */
+  useEffect(() => {
+    if (!actionsOpen) {
+      return undefined;
+    }
+
+    window.requestAnimationFrame(() =>
+      actionsMenuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus(),
+    );
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+
+      if (target && (actionsMenuRef.current?.contains(target) || actionsButtonRef.current?.contains(target))) {
+        return;
+      }
+
+      closeOptionsMenu();
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown, true);
+
+    return () => document.removeEventListener('pointerdown', handlePointerDown, true);
+  }, [actionsOpen, closeOptionsMenu]);
 
   useEffect(() => {
     if (!open) {
@@ -12284,224 +12551,27 @@ function IdeTabBar({
     };
   }, [closeToolMenu, open]);
 
-  const tools: Array<[IdeWorkspacePanel | IdeRightPanel, string, string, string, string, string]> = [
-    [
-      'overview',
-      panelTitle('overview', t),
-      t(IDE_TOOL_DESCRIPTIONS.overview),
-      'i-ph:gauge',
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.workspace'),
-    ],
-    [
-      'editor',
-      t('baseChatAst.common.code'),
-      t(IDE_TOOL_DESCRIPTIONS.editor),
-      'i-ph:code',
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.workspace'),
-    ],
-    [
-      'files',
-      panelTitle('files', t),
-      t(IDE_TOOL_DESCRIPTIONS.files),
-      'i-ph:files',
-      'var(--vc-ide-accent-warning)',
-      t('baseChatAst.common.workspace'),
-    ],
-    [
-      'search',
-      panelTitle('search', t),
-      t(IDE_TOOL_DESCRIPTIONS.search),
-      'i-ph:magnifying-glass',
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.workspace'),
-    ],
-    [
-      'locks',
-      panelTitle('locks', t),
-      t(IDE_TOOL_DESCRIPTIONS.locks),
-      'i-ph:lock',
-      'var(--vc-ide-accent-warning)',
-      t('baseChatAst.common.workspace'),
-    ],
-    [
-      'terminal',
-      SHELL_TERMINAL_LABEL,
-      t(IDE_TOOL_DESCRIPTIONS.terminal),
-      'i-ph:terminal-window',
-      'var(--vc-ide-accent-success)',
-      t('baseChatAst.common.runtime'),
-    ],
-    [
-      'logs',
-      panelTitle('logs', t),
-      t(IDE_TOOL_DESCRIPTIONS.logs),
-      'i-ph:list-magnifying-glass',
-      'var(--vc-ide-accent-success)',
-      t('baseChatAst.common.runtime'),
-    ],
-    [
-      'preview',
-      panelTitle('preview', t),
-      t(IDE_TOOL_DESCRIPTIONS.preview),
-      'i-ph:browser',
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.runtime'),
-    ],
-    [
-      'database',
-      panelTitle('database', t),
-      t(IDE_TOOL_DESCRIPTIONS.database),
-      'i-ph:database',
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.data'),
-    ],
-    [
-      'object-storage',
-      panelTitle('object-storage', t),
-      t(IDE_TOOL_DESCRIPTIONS['object-storage']),
-      'i-ph:package',
-      'var(--vc-ide-accent-warning)',
-      t('baseChatAst.common.data'),
-    ],
-    [
-      'env',
-      panelTitle('env', t),
-      t(IDE_TOOL_DESCRIPTIONS.env),
-      'i-ph:brackets-curly',
-      'var(--vc-ide-accent-warning)',
-      t('baseChatAst.common.configuration'),
-    ],
-    [
-      'secrets',
-      panelTitle('secrets', t),
-      t(IDE_TOOL_DESCRIPTIONS.secrets),
-      'i-ph:lock',
-      'var(--vc-ide-accent-warning)',
-      t('baseChatAst.common.configuration'),
-    ],
-    [
-      'git',
-      panelTitle('git', t),
-      t(IDE_TOOL_DESCRIPTIONS.git),
-      'i-ph:git-branch',
-      'var(--vc-ide-accent-success)',
-      t('baseChatAst.common.project'),
-    ],
-    [
-      'packages',
-      panelTitle('packages', t),
-      t(IDE_TOOL_DESCRIPTIONS.packages),
-      'i-ph:cube',
-      'var(--vc-ide-accent-warning)',
-      t('baseChatAst.common.project'),
-    ],
-    [
-      'skills',
-      panelTitle('skills', t),
-      t(IDE_TOOL_DESCRIPTIONS.skills),
-      'i-ph:sparkle',
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.project'),
-    ],
-    [
-      'integrations',
-      panelTitle('integrations', t),
-      t(IDE_TOOL_DESCRIPTIONS.integrations),
-      'i-ph:plugs-connected',
-      'var(--vc-ide-accent-success)',
-      t('baseChatAst.common.project'),
-    ],
-    [
-      'workflows',
-      panelTitle('workflows', t),
-      t(IDE_TOOL_DESCRIPTIONS.workflows),
-      'i-ph:git-branch',
-      'var(--vc-ide-accent-success)',
-      t('baseChatAst.common.project'),
-    ],
-    [
-      'debugger',
-      panelTitle('debugger', t),
-      t(IDE_TOOL_DESCRIPTIONS.debugger),
-      'i-ph:bug',
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.project'),
-    ],
-    [
-      'deployments',
-      panelTitle('deployments', t),
-      t(IDE_TOOL_DESCRIPTIONS.deployments),
-      'i-ph:rocket-launch',
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.delivery'),
-    ],
-    [
-      'security',
-      panelTitle('security', t),
-      t(IDE_TOOL_DESCRIPTIONS.security),
-      'i-ph:shield-check',
-      'var(--vc-ide-accent-error)',
-      t('baseChatAst.common.security'),
-    ],
-    [
-      'monitoring',
-      panelTitle('monitoring', t),
-      t(IDE_TOOL_DESCRIPTIONS.monitoring),
-      'i-ph:chart-line',
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.delivery'),
-    ],
-    [
-      'ports',
-      panelTitle('ports', t),
-      t(IDE_TOOL_DESCRIPTIONS.ports),
-      'i-ph:plugs',
-      'var(--vc-ide-accent-success)',
-      t('baseChatAst.common.runtime'),
-    ],
-    [
-      'extensions',
-      panelTitle('extensions', t),
-      t(IDE_TOOL_DESCRIPTIONS.extensions),
-      'i-ph:puzzle-piece',
-      'var(--vc-ide-text-secondary)',
-      t('baseChatAst.common.project'),
-    ],
-    [
-      'snapshots',
-      panelTitle('snapshots', t),
-      t(IDE_TOOL_DESCRIPTIONS.snapshots),
-      'i-ph:stack',
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.project'),
-    ],
-    [
-      'activity',
-      panelTitle('activity', t),
-      t(IDE_TOOL_DESCRIPTIONS.activity),
-      'i-ph:activity',
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.team'),
-    ],
-    [
-      'collaborators',
-      panelTitle('collaborators', t),
-      t(IDE_TOOL_DESCRIPTIONS.collaborators),
-      'i-ph:users',
-      'var(--vc-ide-text-secondary)',
-      t('baseChatAst.common.team'),
-    ],
-    [
-      'settings',
-      panelTitle('settings', t),
-      t(IDE_TOOL_DESCRIPTIONS.settings),
-      'i-ph:gear',
-      'var(--vc-ide-text-secondary)',
-      t('baseChatAst.common.configuration'),
-    ],
-  ];
+  /*
+   * RPL-IDE-001.5 — the All-tools list comes from the shared catalog, which is
+   * derived from the engine's `PROJECT_EDITOR_TOOLS`. It used to be 217 lines of
+   * hand-maintained tuples here that had drifted: `studio` (Agent Studio) and
+   * `domains` were rendered as real panels but appeared in no tool list, so they
+   * could not be opened from this popup at all.
+   */
+  const tools: Array<[IdeWorkspacePanel | IdeRightPanel, string, string, string, string, string]> =
+    projectEditorToolsByCategory().flatMap(([category, categoryTools]) =>
+      categoryTools.map(
+        (tool) =>
+          [
+            tool.id as IdeWorkspacePanel | IdeRightPanel,
+            toolDisplayTitle(tool.id, t),
+            t(IDE_TOOL_DESCRIPTIONS[tool.id as keyof typeof IDE_TOOL_DESCRIPTIONS]),
+            tool.icon,
+            tool.accent,
+            t(PROJECT_EDITOR_TOOL_CATEGORY_LABEL_KEYS[category] as never),
+          ] as [IdeWorkspacePanel | IdeRightPanel, string, string, string, string, string],
+      ),
+    );
 
   const normalizedToolQuery = toolQuery.trim().toLowerCase();
 
@@ -12641,6 +12711,16 @@ function IdeTabBar({
    * HTML drag protocol (only `types` is readable), so the visual affordance is
    * driven by the presence of our tab MIME type and the payload is read on drop.
    */
+  /*
+   * RPL-IDE-001.6 — the trigger names the tab it acts on. "Tab actions" alone
+   * told a screen-reader user nothing about scope when several panes are open.
+   */
+  const optionsMenuActiveTab = tabs.find((tab) => tab.id === activeTabId) ?? tabs[0];
+
+  const optionsMenuLabel = optionsMenuActiveTab
+    ? t('baseChatAst.options.menuForTab', { label: optionsMenuActiveTab.label })
+    : t('chat.copy.tabActions_b7a78b89');
+
   const isTabDrag = (event: React.DragEvent) => Boolean(onMoveTab) && isProjectEditorTabDrag(event.dataTransfer.types);
 
   const clearDropSlot = () => setDropSlot(null);
@@ -12847,111 +12927,190 @@ function IdeTabBar({
             <span className="i-ph:plus" aria-hidden />
           </button>
         </div>
+        {/*
+          RPL-IDE-001.6 — Options (⋮) for the active tab. Previously a flat,
+          unlabelled list of buttons in a plain <div>: no menu semantics, no
+          keyboard navigation, no Escape, no outside-click, and no way to tell
+          which scope an action acted on. It is now a real `role="menu"` split
+          into the three scopes the Project Editor model has — Window, Pane and
+          Tab — with every item wired to a working action.
+        */}
         <div className="bolt-project-tool-popover">
           <button
+            ref={actionsButtonRef}
             type="button"
             className="bolt-project-tab-action"
-            aria-label={t('chat.copy.tabActions_b7a78b89')}
-            title={t('chat.copy.tabActions_b7a78b89')}
+            aria-label={optionsMenuLabel}
+            title={optionsMenuLabel}
+            aria-haspopup="menu"
             aria-expanded={actionsOpen}
+            data-testid="tab-options"
             onMouseDown={(event) => event.stopPropagation()}
             onClick={() => {
               closeToolMenu();
               setActionsOpen((value) => !value);
             }}
+            onKeyDown={(event) => {
+              if (event.key === 'ArrowDown' && !actionsOpen) {
+                event.preventDefault();
+                closeToolMenu();
+                setActionsOpen(true);
+              }
+            }}
           >
             <span className="i-ph:dots-three" aria-hidden />
           </button>
           {actionsOpen && (
-            <div className="bolt-project-tab-actions-menu">
-              <button
-                type="button"
-                onClick={() => {
-                  onTogglePin?.(activeTabId ?? tabs[0]?.id);
-                  setActionsOpen(false);
-                }}
-              >
-                <span className="i-ph:push-pin-simple" aria-hidden />
-                {tabs.find((tab) => tab.id === activeTabId)?.pinned
-                  ? t('chat.copy.unpinTab_279bad8b')
-                  : t('chat.copy.pinTab_3623fa20')}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onCloseOthers?.(activeTabId ?? tabs[0]?.id);
-                  setActionsOpen(false);
-                }}
-              >
-                {t('chat.copy.closeOthers_445ef4ad')}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onCloseToRight?.(activeTabId ?? tabs[0]?.id);
-                  setActionsOpen(false);
-                }}
-              >
-                {t('chat.copy.closeToRight_8b7725b0')}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onCloseAll?.();
-                  setActionsOpen(false);
-                }}
-              >
-                {t('chat.copy.closeAll_98553cc8')}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onCloseSaved?.();
-                  setActionsOpen(false);
-                }}
-              >
-                {t('chat.copy.closeSaved_40a993da')}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onSplitActiveRight?.(activeTabId ?? tabs[0]?.id);
-                  setActionsOpen(false);
-                }}
-              >
-                {t('chat.copy.splitActiveRight_59014f08')}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onSplitActiveDown?.(activeTabId ?? tabs[0]?.id);
-                  setActionsOpen(false);
-                }}
-              >
-                {t('chat.copy.splitActiveDown_7468f839')}
-              </button>
-              {onToggleFloating ? (
+            <div
+              ref={actionsMenuRef}
+              className="bolt-project-tab-actions-menu"
+              role="menu"
+              aria-orientation="vertical"
+              aria-label={optionsMenuLabel}
+              data-testid="tab-options-menu"
+              onKeyDown={handleOptionsMenuKeyDown}
+            >
+              <div role="group" aria-label={t('baseChatAst.options.windowGroup')}>
+                <p className="bolt-project-tab-actions-group-label" aria-hidden>
+                  {t('baseChatAst.options.windowGroup')}
+                </p>
+                {onOpenNewWindow ? (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-testid="tab-options-open-new-window"
+                    onClick={() => runOptionsAction(() => onOpenNewWindow(activeTabId ?? tabs[0]?.id))}
+                  >
+                    <span className="i-ph:arrow-square-out" aria-hidden />
+                    {t('chat.copy.openInNewWindow_a75732d8')}
+                  </button>
+                ) : null}
+                {onResetLayout ? (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-testid="tab-options-reset-layout"
+                    onClick={() => runOptionsAction(() => onResetLayout())}
+                  >
+                    <span className="i-ph:layout" aria-hidden />
+                    {t('baseChatAst.options.resetLayout')}
+                  </button>
+                ) : null}
+              </div>
+
+              <div role="group" aria-label={t('baseChatAst.options.paneGroup')}>
+                <p className="bolt-project-tab-actions-group-label" aria-hidden>
+                  {t('baseChatAst.options.paneGroup')}
+                </p>
                 <button
                   type="button"
-                  onClick={() => {
-                    onToggleFloating();
-                    setActionsOpen(false);
-                  }}
+                  role="menuitem"
+                  data-testid="tab-options-split-right"
+                  onClick={() => runOptionsAction(() => onSplitActiveRight?.(activeTabId ?? tabs[0]?.id))}
                 >
-                  {isFloating ? t('chat.copy.dockPane_f6b796f1') : t('chat.copy.floatPane_ca0c0b63')}
+                  <span className="i-ph:columns" aria-hidden />
+                  {t('chat.copy.splitActiveRight_59014f08')}
                 </button>
-              ) : null}
-              {onOpenNewWindow ? (
                 <button
                   type="button"
-                  onClick={() => {
-                    onOpenNewWindow(activeTabId ?? tabs[0]?.id);
-                    setActionsOpen(false);
-                  }}
+                  role="menuitem"
+                  data-testid="tab-options-split-down"
+                  onClick={() => runOptionsAction(() => onSplitActiveDown?.(activeTabId ?? tabs[0]?.id))}
                 >
-                  {t('chat.copy.openInNewWindow_a75732d8')}
+                  <span className="i-ph:rows" aria-hidden />
+                  {t('chat.copy.splitActiveDown_7468f839')}
                 </button>
-              ) : null}
+                {onToggleFloating ? (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-testid="tab-options-toggle-floating"
+                    onClick={() => runOptionsAction(() => onToggleFloating())}
+                  >
+                    <span className={isFloating ? 'i-ph:push-pin' : 'i-ph:frame-corners'} aria-hidden />
+                    {isFloating ? t('chat.copy.dockPane_f6b796f1') : t('chat.copy.floatPane_ca0c0b63')}
+                  </button>
+                ) : null}
+                {onClosePane ? (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-testid="tab-options-close-pane"
+                    onClick={() => runOptionsAction(() => onClosePane())}
+                  >
+                    <span className="i-ph:x-square" aria-hidden />
+                    {t('baseChatAst.options.closePane')}
+                  </button>
+                ) : null}
+              </div>
+
+              <div role="group" aria-label={t('baseChatAst.options.tabGroup')}>
+                <p className="bolt-project-tab-actions-group-label" aria-hidden>
+                  {t('baseChatAst.options.tabGroup')}
+                </p>
+                <button
+                  type="button"
+                  role="menuitem"
+                  data-testid="tab-options-pin"
+                  onClick={() => runOptionsAction(() => onTogglePin?.(activeTabId ?? tabs[0]?.id))}
+                >
+                  <span className="i-ph:push-pin-simple" aria-hidden />
+                  {tabs.find((tab) => tab.id === activeTabId)?.pinned
+                    ? t('chat.copy.unpinTab_279bad8b')
+                    : t('chat.copy.pinTab_3623fa20')}
+                </button>
+                {/*
+                  RPL-IDE-001.4 + .6 — the keyboard route to the cross-pane move.
+                  Dragging a tab is a pointer-only gesture; without this, moving a
+                  tab between panes was unreachable without a mouse.
+                */}
+                {onMoveTabToPane && otherPanes.length
+                  ? otherPanes.map((pane, index) => (
+                      <button
+                        key={pane.id}
+                        type="button"
+                        role="menuitem"
+                        data-testid={`tab-options-move-to-pane-${index}`}
+                        onClick={() => runOptionsAction(() => onMoveTabToPane(pane.id))}
+                      >
+                        <span className="i-ph:arrow-line-right" aria-hidden />
+                        {t('baseChatAst.options.moveTabToPane', { pane: pane.label })}
+                      </button>
+                    ))
+                  : null}
+                <button
+                  type="button"
+                  role="menuitem"
+                  data-testid="tab-options-close-others"
+                  onClick={() => runOptionsAction(() => onCloseOthers?.(activeTabId ?? tabs[0]?.id))}
+                >
+                  {t('chat.copy.closeOthers_445ef4ad')}
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  data-testid="tab-options-close-to-right"
+                  onClick={() => runOptionsAction(() => onCloseToRight?.(activeTabId ?? tabs[0]?.id))}
+                >
+                  {t('chat.copy.closeToRight_8b7725b0')}
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  data-testid="tab-options-close-saved"
+                  onClick={() => runOptionsAction(() => onCloseSaved?.())}
+                >
+                  {t('chat.copy.closeSaved_40a993da')}
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  data-testid="tab-options-close-all"
+                  onClick={() => runOptionsAction(() => onCloseAll?.())}
+                >
+                  {t('chat.copy.closeAll_98553cc8')}
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -22917,6 +23076,23 @@ function MobileReplitAgentIcon({ className }: { className?: string }) {
       <circle cx="17" cy="17" r="3" />
     </svg>
   );
+}
+
+/**
+ * RPL-IDE-001.5 — tool label as the All-tools popup shows it. Identical to
+ * `panelTitle` apart from two labels the popup has always used: the editor reads
+ * "Code" there, and the shell carries the deployment's configured terminal name.
+ */
+function toolDisplayTitle(tool: string, t: TFunction) {
+  if (tool === 'editor') {
+    return t('baseChatAst.common.code');
+  }
+
+  if (tool === 'terminal') {
+    return SHELL_TERMINAL_LABEL;
+  }
+
+  return panelTitle(tool, t);
 }
 
 function panelTitle(panel: string, t?: TFunction) {

@@ -26,6 +26,7 @@ import {
   type WorkspaceAgentPublicError,
 } from './public-i18n.js';
 import { TerminalSessionManager, type TerminalSession } from './terminal-session.js';
+import { readWorkspaceResources } from './workspace-resources.js';
 
 export interface WorkspaceAgentOptions {
   workspaceRoot?: string;
@@ -1104,6 +1105,14 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
   });
 
   app.get('/ports', async () => ({ ports: await detectPorts(processes) }));
+
+  /**
+   * RPL-IDE-001.7 — real RAM / CPU / Storage for the Resources panel, read from
+   * this container's own cgroup and the workspace volume's statfs. Authenticated
+   * by the agent-token hook above like every other data route; the workspace
+   * root is the agent's own, so a caller cannot point it at another path.
+   */
+  app.get('/resources', async () => readWorkspaceResources(root));
 
   app.all('/preview/:port/*', async (request, reply) => {
     const port = Number((request.params as { port: string; '*': string }).port);
