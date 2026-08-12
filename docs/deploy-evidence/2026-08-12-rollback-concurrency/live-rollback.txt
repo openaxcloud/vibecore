@@ -1,0 +1,62 @@
+
+===== 0. SETUP — register, create project (real HTTP against the live server) 
+register: 201
+project: 201 cmspzrg6t002d20lnrm4h9hdr
+
+===== 1. SEED — two published releases with DISTINCT real bytes =====
+  v1 deployment=dep_live_1_mspzrjdwisuk
+       bytes    = "<!doctype html><html><body><h1>RELEASE-V1-ORIGINAL-CONTENT</h1></body></html>"
+       digest   = sha256:34083315b5712dd9c18774b39e8d7b1439e772454c62a387d38090eab8ea72f0
+  v2 deployment=dep_live_2_mspzrkeu3fbi
+       bytes    = "<!doctype html><html><body><h1>RELEASE-V2-CURRENT-CONTENT</h1></body></html>"
+       digest   = sha256:f9ffdb5b3e81641d4bfdb62fc0f35bdf3fe9022c6611b3a7fb1dcd59e6fd5c1a
+
+===== 2. BEFORE — what the public static route actually serves ======
+GET http://127.0.0.1:3199/static-deployments/dep_live_2_mspzrkeu3fbi/index.html
+  status  = 200
+  content = "<!doctype html><html><body><h1>RELEASE-V2-CURRENT-CONTENT</h1></body></html>"
+  sha256  = sha256:5545e9aec3aa0876d58f5ef1c2bf362fffefc3a87355b5968e31fc8b1b8c7d3d
+  matches v2 recorded digest: true
+
+===== 3. ROLLBACK — POST /projects/:id/deployments/rollback-to-previous (real endpoint) 
+  status                    = 201
+  restoredFromVersion       = 1
+  restoredFromDeploymentId  = dep_live_1_mspzrjdwisuk
+  supersededVersion         = 2
+  verifiedArtifactDigest    = sha256:34083315b5712dd9c18774b39e8d7b1439e772454c62a387d38090eab8ea72f0
+  restoredArtifactDigest    = sha256:34083315b5712dd9c18774b39e8d7b1439e772454c62a387d38090eab8ea72f0
+  rollbackable              = true
+  new deployment id         = cmspzrkow002h20ln3pedyz8r
+
+===== 4. AFTER — what the public static route serves for the RESTORED release 
+GET http://127.0.0.1:3199/static-deployments/cmspzrkow002h20ln3pedyz8r/index.html
+  status  = 200
+  content = "<!doctype html><html><body><h1>RELEASE-V1-ORIGINAL-CONTENT</h1></body></html>"
+  sha256  = sha256:a06d31c2d7fa828bb022587992be3e4d0580495f7914ae042a5b776c7076637f
+
+  BEFORE content : "<!doctype html><html><body><h1>RELEASE-V2-CURRENT-CONTENT</h1></body></html>"
+  AFTER  content : "<!doctype html><html><body><h1>RELEASE-V1-ORIGINAL-CONTENT</h1></body></html>"
+  content CHANGED: true
+  after == v1 marker present: true
+  after == v2 marker absent : true
+
+===== 5. CONCURRENCY — three simultaneous rollbacks on the same release stream 
+  #0: status=201 code=- restoredFrom=2 expected=- observed=-
+  #1: status=409 code=ROLLBACK_RELEASE_MOVED restoredFrom=- expected=3 observed=4
+  #2: status=201 code=- restoredFrom=3 expected=- observed=-
+
+  committed=2 refused=1
+  all refusals are ROLLBACK_RELEASE_MOVED: true
+  restored versions among commits: [2,3]
+  all distinct (serial-equivalent): true
+  at least one refusal or full serialisation: true
+
+===== 6. RELEASE HISTORY (live, from Postgres via the real API) =====
+  v5  deployment=cmspzrkvt002m20ln6jo8jzcy  digest=sha256:34083315b5712dd9c18774b39e8d7b1439e772454c62a387d38090eab8ea72f0
+  v4  deployment=cmspzrksd002j20lnh00eckf6  digest=sha256:f9ffdb5b3e81641d4bfdb62fc0f35bdf3fe9022c6611b3a7fb1dcd59e6fd5c1a
+  v3  deployment=cmspzrkow002h20ln3pedyz8r  digest=sha256:34083315b5712dd9c18774b39e8d7b1439e772454c62a387d38090eab8ea72f0
+  v2  deployment=dep_live_2_mspzrkeu3fbi  digest=sha256:f9ffdb5b3e81641d4bfdb62fc0f35bdf3fe9022c6611b3a7fb1dcd59e6fd5c1a
+  v1  deployment=dep_live_1_mspzrjdwisuk  digest=sha256:34083315b5712dd9c18774b39e8d7b1439e772454c62a387d38090eab8ea72f0
+
+===== VERDICT =======================================================
+LIVE ROLLBACK PROVEN

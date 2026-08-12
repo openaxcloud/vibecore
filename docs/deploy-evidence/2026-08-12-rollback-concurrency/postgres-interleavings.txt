@@ -1,0 +1,15 @@
+
+ RUN  v3.2.6 /Users/hb/dev/vibecore-wt-rollback/services/api
+
+ ✓ src/tests/rollback-concurrency-postgres.spec.ts (5 tests) 17375ms
+   ✓ rollback concurrency — real Postgres, both interleavings > (A) two rollbacks that selected the SAME head: one commits, one refused  10724ms
+   ✓ rollback concurrency — real Postgres, both interleavings > (A′) three CONCURRENT commits from one head on separate connections: exactly one wins  1036ms
+   ✓ rollback concurrency — real Postgres, both interleavings > (B) a publish commits while a rollback holds a stale head: the rollback is refused  395ms
+   ✓ rollback concurrency — real Postgres, both interleavings > (A″) counter-proof: the pre-fix append lets three concurrent rollbacks all restore v1  1597ms
+   ✓ rollback concurrency — real Postgres, both interleavings > (C) rollback and publish serialise on one and the same stream lock key  3599ms
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  13:38:29
+   Duration  24.39s (transform 576ms, setup 0ms, collect 4.75s, tests 17.37s, environment 0ms, prepare 231ms)
+

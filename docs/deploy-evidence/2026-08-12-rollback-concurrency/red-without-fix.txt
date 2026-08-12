@@ -1,0 +1,62 @@
+
+ RUN  v3.2.6 /Users/hb/dev/vibecore-wt-rollback/services/api
+
+ ❯ src/tests/rollback-concurrency-linearization.spec.ts (4 tests | 2 failed) 10729ms
+   × rollback concurrency — serial equivalence of the release stream > three CONCURRENT rollbacks: exactly one commits, the others are refused 409 6434ms
+     → expected [ 201, 201, 201 ] to deeply equal [ 201, 409, 409 ]
+   × rollback concurrency — serial equivalence of the release stream > a publish that lands mid-rollback moves the head and the rollback refuses 4259ms
+     → expected 201 to be 409 // Object.is equality
+   ✓ rollback concurrency — serial equivalence of the release stream > appendReleaseManifestAtHead refuses a stale head and writes nothing 11ms
+   ✓ rollback concurrency — serial equivalence of the release stream > N concurrent appends from one head: exactly one wins, N-1 refused 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/tests/rollback-concurrency-linearization.spec.ts > rollback concurrency — serial equivalence of the release stream > three CONCURRENT rollbacks: exactly one commits, the others are refused 409
+AssertionError: expected [ 201, 201, 201 ] to deeply equal [ 201, 409, 409 ]
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  [[22m
+[2m    201,[22m
+[32m-   409,[39m
+[32m-   409,[39m
+[31m+   201,[39m
+[31m+   201,[39m
+[2m  ][22m
+
+ ❯ src/tests/rollback-concurrency-linearization.spec.ts:208:22
+    206|      * three restorations of v1, an outcome no sequential order can pr…
+    207|      */
+    208|     expect(statuses).toEqual([201, 409, 409]);
+       |                      ^
+    209| 
+    210|     const winners = bodies.filter((_, i) => results[i].statusCode === …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/tests/rollback-concurrency-linearization.spec.ts > rollback concurrency — serial equivalence of the release stream > a publish that lands mid-rollback moves the head and the rollback refuses
+AssertionError: expected 201 to be 409 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 409[39m
+[31m+ 201[39m
+
+ ❯ src/tests/rollback-concurrency-linearization.spec.ts:291:28
+    289| 
+    290|     // The rollback computed N-1 from a head that no longer exists → r…
+    291|     expect(res.statusCode).toBe(409);
+       |                            ^
+    292| 
+    293|     const body = res.json() as Record<string, unknown>;
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 2 passed (4)
+   Start at  13:28:59
+   Duration  46.06s (transform 17.32s, setup 0ms, collect 34.20s, tests 10.73s, environment 1ms, prepare 144ms)
+
