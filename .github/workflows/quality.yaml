@@ -6,10 +6,12 @@ on:
   pull_request:
     branches: [main]
 
-# Cancel in-progress runs on the same branch/PR  
+# Cancel in-progress runs on the same branch/PR — except on main, where this is a
+# required check for the production deploy gate and a cancelled run reads as "not
+# green" (see ci.yml for the full reasoning).
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   quality-checks:

@@ -1,6 +1,8 @@
 {{- range $name, $svc := .Values.services }}
 {{- if $svc.enabled }}
 {{- $imageTag := default $.Values.global.imageTag $svc.imageTag }}
+{{- $imageDigest := default $.Values.global.imageDigest $svc.imageDigest }}
+{{- $imageArgs := dict "registry" $.Values.global.imageRegistry "image" $svc.image "digest" $imageDigest "tag" $imageTag }}
 {{- /*
 Mount the shared PVC only on the API. Project storage + static-deployment
 artifacts are written by the API; worker and workspace-manager don't read
@@ -75,11 +77,10 @@ spec:
           type: RuntimeDefault
       containers:
         - name: {{ kebabcase $name }}
-          image: "{{ $.Values.global.imageRegistry }}/{{ $svc.image }}:{{ $imageTag }}"
-          # `latest` is mutable in our registry, so always pull to pick up new SHAs.
-          # For pinned (immutable) tags, IfNotPresent would be cheaper, but the
-          # current flow rolls all services on the `latest` tag.
-          imagePullPolicy: {{ if eq ($imageTag | toString) "latest" }}Always{{ else }}IfNotPresent{{ end }}
+          # Digest-pinned in production (services.<svc>.imageDigest), tag-based
+          # everywhere else. See "vibecore-platform.imageRef" for why.
+          image: "{{ include "vibecore-platform.imageRef" $imageArgs }}"
+          imagePullPolicy: {{ include "vibecore-platform.imagePullPolicy" $imageArgs }}
           ports:
             - name: http
               containerPort: {{ $svc.port }}
