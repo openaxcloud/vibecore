@@ -262,6 +262,32 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
     return result.count === 1;
   }
 
+  /**
+   * RR-CODEX-14 v7 (R-P3-07): is this fence token still held by a LIVE purge?
+   *
+   * A running purge renews its PurgePlan lease on a heartbeat, so an unexpired
+   * `leaseExpiresAt` is the authoritative "still working" signal — exactly what the
+   * api's own `validatePurgeLease` uses before each irreversible delete. Deliberately
+   * NOT filtered on `status`: a plan in RECLAIMING with a live lease is still being
+   * acted upon, and the safe answer for the reconciler is "hands off".
+   *
+   * Throws on a DB error rather than returning false — the caller must not read
+   * "cannot check" as "nobody owns it".
+   */
+  async isPurgeFenceOwnerLive(fenceToken: string): Promise<boolean> {
+    if (!fenceToken) {
+      // A barrier with no owning token can never be matched to a live plan.
+      return false;
+    }
+
+    const live = await this.prisma.purgePlan.findFirst({
+      where: { ownerToken: fenceToken, leaseExpiresAt: { gt: new Date() } },
+      select: { id: true },
+    });
+
+    return live !== null;
+  }
+
   async get(workspaceId: string): Promise<WorkspaceRecord | undefined> {
     const row = (await this.prisma.workspaceRuntime.findUnique({
       where: { id: workspaceId },

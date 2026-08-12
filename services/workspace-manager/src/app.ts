@@ -3,9 +3,10 @@ import { getClusterCapacity } from '@vibecore/k8s-client';
 import Fastify from 'fastify';
 import { z } from 'zod';
 import { runAppBuild } from './app-builds.js';
-import { WorkspaceManager } from './manager.js';
+import { DEFAULT_RECONCILE_GRACE_MS, MIN_RECONCILE_GRACE_MS, WorkspaceManager } from './manager.js';
 import {
   localizeWorkspaceManagerMessage,
+  workspaceManagerError,
   workspaceManagerLocaleFromHeader,
   workspaceManagerMessage,
   workspaceManagerMessageKeyForEnglish,
@@ -188,6 +189,67 @@ function requirePreviewProxyAuth(request: { headers: Record<string, string | str
   }
 }
 
+/**
+ * R-P3-07: dedicated, ALWAYS fail-closed auth for internal control-plane routes.
+ *
+ * Deliberately stricter than the global hook: that one allows an unset secret outside
+ * production as a dev convenience. These routes can lift purge barriers — the guard
+ * that stops a runtime being reprovisioned mid-erasure — so an unset secret is refused
+ * everywhere, in dev and in tests too. Convenience is not worth a namespace that can
+ * disable a safety barrier when someone forgets an env var.
+ */
+function requireControlPlaneAuth(request: { headers: Record<string, string | string[] | undefined> }) {
+  const expected = normalizeSharedSecret(process.env.WORKSPACE_MANAGER_SHARED_SECRET);
+
+  /*
+   * Messages come from the shared catalogue (like requirePreviewProxyAuth and the
+   * global hook) rather than being written inline: the preSerialization hook localises
+   * `error`/`message` by looking the ENGLISH text up in that catalogue, so a raw string
+   * would silently pass through untranslated and this one route would answer a French
+   * client in English while every other route is localised.
+   */
+  if (!expected) {
+    throw workspaceManagerError('managerNotConfigured', {
+      statusCode: 503,
+      code: 'WORKSPACE_MANAGER_NOT_CONFIGURED',
+    });
+  }
+
+  const authorization = request.headers.authorization;
+  const value = Array.isArray(authorization) ? authorization[0] : authorization;
+  const token = normalizeSharedSecret(value?.replace(/^Bearer\s+/i, ''));
+
+  if (!token || !secretsMatch(token, expected)) {
+    throw workspaceManagerError('managerUnauthorized', {
+      statusCode: 401,
+      code: 'WORKSPACE_MANAGER_UNAUTHORIZED',
+    });
+  }
+}
+
+type InternalAuthScheme = (request: { headers: Record<string, string | string[] | undefined> }) => void;
+
+/*
+ * R-P3-07: the explicit auth registry for `/internal/*`. Matching is on the PATH only
+ * (query string stripped) and by exact path or `prefix + '/'`, so a lookalike URL like
+ * `/internal/reconcile-workspace-freezes-EVIL` cannot inherit another route's entry —
+ * it simply has none and is refused.
+ *
+ * Adding an internal route without adding it here makes that route 503, by design.
+ */
+const INTERNAL_ROUTE_AUTH: ReadonlyArray<{ path: string; scheme: InternalAuthScheme }> = [
+  // preview-proxy resolves agent base URLs with the preview secret it already holds.
+  { path: '/internal/workspaces', scheme: (request) => requirePreviewProxyAuth(request) },
+  // barrier reconciliation is control-plane: manager secret, no dev exemption.
+  { path: '/internal/reconcile-workspace-freezes', scheme: (request) => requireControlPlaneAuth(request) },
+];
+
+function internalRouteAuthScheme(url: string): InternalAuthScheme | undefined {
+  const path = url.split('?')[0] ?? url;
+
+  return INTERNAL_ROUTE_AUTH.find((entry) => path === entry.path || path.startsWith(`${entry.path}/`))?.scheme;
+}
+
 function normalizeSharedSecret(value: string | undefined): string | undefined {
   const normalized = value?.trim();
   return normalized ? normalized : undefined;
@@ -301,15 +363,38 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
     }
 
     /*
-     * The internal preview-proxy agent endpoint enforces its own auth via
-     * requirePreviewProxyAuth (PREVIEW_PROXY_SHARED_SECRET). The global hook
-     * authenticates against WORKSPACE_MANAGER_SHARED_SECRET (with a fallback to
-     * the preview secret), so once an operator sets a distinct manager secret
-     * the global check would 401 preview-proxy before its own auth runs and
-     * break every preview. Skip the global hook here and let the route's
-     * dedicated check gate it.
+     * R-P3-07 (expert reserve #2 on PR #52). This used to be a blanket
+     * `if (url.startsWith('/internal/')) return;` — a whole URL namespace exempted
+     * from the global hook on the assumption that every route under it enforces its
+     * own auth. `/internal/reconcile-workspace-freezes` did not, so an UNAUTHENTICATED
+     * POST could lift an active purge barrier. An exemption that silently covers
+     * routes added later is the bug; the namespace must be DEFAULT-DENY.
+     *
+     * Every internal route now declares its dedicated scheme in INTERNAL_ROUTE_AUTH.
+     * A route with no declaration is REFUSED here — so forgetting to wire auth fails
+     * closed (503, route unreachable) instead of publishing an unauthenticated
+     * control-plane endpoint.
      */
     if (request.url.startsWith('/internal/')) {
+      const scheme = internalRouteAuthScheme(request.url);
+
+      if (!scheme) {
+        return reply.code(503).send({
+          error: 'Internal route has no dedicated authentication configured',
+          code: 'WORKSPACE_MANAGER_INTERNAL_ROUTE_UNGATED',
+        });
+      }
+
+      try {
+        // Dedicated, fail-closed: each scheme throws with its own statusCode/code.
+        scheme(request as never);
+      } catch (error) {
+        const status = (error as { statusCode?: number })?.statusCode ?? 401;
+        const code = (error as { code?: string })?.code ?? 'WORKSPACE_MANAGER_UNAUTHORIZED';
+
+        return reply.code(status).send({ error: (error as Error).message, code });
+      }
+
       return;
     }
 
@@ -529,11 +614,42 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
    * reconciler finds every runtime frozen longer than the grace window and lifts it, so
    * a barrier is never durably orphaned. Internal (shared-secret gated) + idempotent.
    */
-  app.post('/internal/reconcile-workspace-freezes', async (request) => {
-    // Default grace: 24h — comfortably longer than any purge attempt + its lease
-    // reclaim window, so only truly orphaned barriers are lifted.
-    const graceMs = (request.body as { graceMs?: number } | undefined)?.graceMs ?? 24 * 60 * 60 * 1000;
-    return manager.reconcileStaleWorkspaceFreezes(graceMs);
+  app.post('/internal/reconcile-workspace-freezes', async (request, reply) => {
+    /*
+     * R-P3-07: `graceMs` used to be read raw off the body with only a default —
+     * `{"graceMs": 0}` set the cutoff to "now", making EVERY barrier stale, so one
+     * call lifted every active fence. It is now floored at MIN_RECONCILE_GRACE_MS
+     * (and the manager re-checks, so the floor holds for every caller, not just this
+     * route). Default stays 24h.
+     */
+    const parsed = z
+      .object({
+        graceMs: z
+          .number()
+          .int()
+          .min(MIN_RECONCILE_GRACE_MS)
+          .max(30 * 24 * 60 * 60 * 1000)
+          .default(DEFAULT_RECONCILE_GRACE_MS),
+      })
+      .safeParse(request.body ?? {});
+
+    if (!parsed.success) {
+      return reply.code(400).send({
+        error: `graceMs must be an integer between ${MIN_RECONCILE_GRACE_MS} and ${30 * 24 * 60 * 60 * 1000} ms`,
+        code: 'WORKSPACE_RECONCILE_GRACE_INVALID',
+      });
+    }
+
+    const result = await manager.reconcileStaleWorkspaceFreezes(parsed.data.graceMs);
+
+    /*
+     * Observable: the caller (and the cron that drives it) sees what the sweep
+     * actually did — barriers left alone because their purge is still alive, and
+     * failures — instead of a bare count that reads as success either way.
+     */
+    request.log.info({ event: 'workspace.freeze.reconcile', graceMs: parsed.data.graceMs, ...result });
+
+    return result;
   });
 
   /*

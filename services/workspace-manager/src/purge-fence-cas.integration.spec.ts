@@ -480,6 +480,120 @@ integrationDescribe('stale-freeze reconciler is version-checked (real PostgreSQL
 });
 
 /*
+ * R-P3-07 (expert reserve #2): the stale-freeze reconciler must bind to a LIVE purge
+ * plan, not merely to the barrier's age. Exercised against REAL PurgePlan rows, since
+ * the production implementation is a Postgres lease lookup — an in-memory stub would
+ * prove nothing about the query that actually runs.
+ */
+integrationDescribe('fence liveness is bound to a real PurgePlan lease', () => {
+  let store: PrismaWorkspaceStore;
+  const planIds: string[] = [];
+
+  beforeAll(() => {
+    store = new PrismaWorkspaceStore(prismaA!);
+  });
+
+  afterAll(async () => {
+    if (planIds.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (prismaA as any).purgePlan.deleteMany({ where: { id: { in: planIds } } });
+    }
+  });
+
+  async function createPlan(ownerToken: string, leaseExpiresAt: Date, status = 'ACTIVE') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const plan = await (prismaA as any).purgePlan.create({
+      data: { userId: uniqueId('user'), ownerToken, leaseExpiresAt, status },
+    });
+    planIds.push(plan.id);
+
+    return plan;
+  }
+
+  it('an UNEXPIRED lease reports the fence owner as LIVE (a long purge is protected)', async () => {
+    const token = uniqueId('owner-live');
+    await createPlan(token, new Date(Date.now() + 5 * 60 * 1000));
+
+    expect(await store.isPurgeFenceOwnerLive(token)).toBe(true);
+  });
+
+  it('an EXPIRED lease reports NOT live (a crashed purge is reclaimable)', async () => {
+    const token = uniqueId('owner-dead');
+    await createPlan(token, new Date(Date.now() - 60 * 1000));
+
+    expect(await store.isPurgeFenceOwnerLive(token)).toBe(false);
+  });
+
+  /*
+   * A plan in RECLAIMING with a live lease is still being acted upon by whoever
+   * claimed it — the safe answer for the reconciler is "hands off", so liveness is
+   * deliberately NOT filtered on status.
+   */
+  it('a RECLAIMING plan with a live lease still counts as live', async () => {
+    const token = uniqueId('owner-reclaiming');
+    await createPlan(token, new Date(Date.now() + 5 * 60 * 1000), 'RECLAIMING');
+
+    expect(await store.isPurgeFenceOwnerLive(token)).toBe(true);
+  });
+
+  it('an unknown token, and the empty token, are not live', async () => {
+    expect(await store.isPurgeFenceOwnerLive(uniqueId('never-existed'))).toBe(false);
+    expect(await store.isPurgeFenceOwnerLive('')).toBe(false);
+  });
+
+  /*
+   * End-to-end through the manager on real Postgres: same barrier, same age, only the
+   * lease differs — and that alone decides whether it is reclaimed.
+   */
+  it('the reconciler skips a long-running purge and reclaims it once the lease lapses', async () => {
+    const token = uniqueId('owner-longpurge');
+    const id = uniqueId('ws-longpurge');
+    createdIds.push(id);
+
+    await store.create({
+      id,
+      orgId: uniqueId('org'),
+      projectId: uniqueId('proj'),
+      plan: 'pro',
+      status: 'STOPPED',
+      pvcName: `pvc-${id}`,
+      podName: `workspace-${id}`,
+      serviceName: `svc-${id}`,
+      agentTokenSecretName: `agent-token-${id}`,
+      purgeFrozen: true,
+      purgeFenceToken: token,
+      purgeFrozenAt: new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString(),
+    });
+
+    const plan = await createPlan(token, new Date(Date.now() + 5 * 60 * 1000));
+    const manager = new WorkspaceManager(store, noopK8s, noopEvents, 'token-secret');
+
+    const skipped = await manager.reconcileStaleWorkspaceFreezes(24 * 60 * 60 * 1000);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let row = await (prismaB as any).workspaceRuntime.findUnique({ where: { id } });
+    console.log(`[proof] longpurge alive → skippedLiveOwner=${skipped.skippedLiveOwner} purgeFrozen=${row?.purgeFrozen}`);
+
+    expect(skipped.skippedLiveOwner).toBeGreaterThanOrEqual(1);
+    expect(row?.purgeFrozen).toBe(true);
+    expect(row?.purgeFenceToken).toBe(token);
+
+    // The purge dies: its lease lapses and the barrier becomes reclaimable.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (prismaA as any).purgePlan.update({
+      where: { id: plan.id },
+      data: { leaseExpiresAt: new Date(Date.now() - 60 * 1000) },
+    });
+
+    await manager.reconcileStaleWorkspaceFreezes(24 * 60 * 60 * 1000);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    row = await (prismaB as any).workspaceRuntime.findUnique({ where: { id } });
+    console.log(`[proof] longpurge dead → purgeFrozen=${row?.purgeFrozen}`);
+
+    expect(row?.purgeFrozen).toBe(false);
+  });
+});
+
+/*
  * R-P3-06 reserve #3: barrier reads must fail CLOSED. The pre-fix guards did
  * `.catch(() => undefined)`, making a DB error indistinguishable from "no barrier" —
  * so a Postgres blip during an erasure window silently AUTHORISED the reprovision the

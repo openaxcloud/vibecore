@@ -124,7 +124,33 @@ export interface WorkspaceStore {
     workspaceId: string,
     observed: { fenceToken?: string; frozenAt?: string },
   ): Promise<boolean>;
+
+  /*
+   * RR-CODEX-14 v7 (R-P3-07): is this fence token still owned by a purge that is
+   * ALIVE — i.e. a PurgePlan whose lease has not expired? The stale-freeze reconciler
+   * judged "orphaned" purely on the barrier's AGE, so a purge that legitimately ran
+   * longer than the grace window had its live barrier lifted out from under it, in the
+   * middle of the erasure it was protecting.
+   *
+   * A running purge heartbeats its lease, so "lease still valid" is the authoritative
+   * liveness signal, and it is what separates a slow purge from a crashed one.
+   * Implementations MUST throw rather than guess: the reconciler treats an error as
+   * "cannot prove it is ownerless" and leaves the barrier up.
+   */
+  isPurgeFenceOwnerLive(fenceToken: string): Promise<boolean>;
 }
+
+/*
+ * R-P3-07: hard floor for the stale-freeze reconciler's grace window. The purge lease
+ * TTL is 5 minutes and is heartbeated, so a barrier whose owner has been silent for an
+ * hour is genuinely abandoned — while anything shorter starts racing purges that are
+ * merely slow. Enforced in the manager AND at the route, so neither a hand-rolled
+ * caller nor a future internal caller can shrink it.
+ */
+export const MIN_RECONCILE_GRACE_MS = 60 * 60 * 1000;
+
+/** Default grace window: comfortably longer than any purge attempt + its reclaim. */
+export const DEFAULT_RECONCILE_GRACE_MS = 24 * 60 * 60 * 1000;
 
 export interface EventBus {
   publish(event: WorkspaceEvent): Promise<void>;
@@ -221,6 +247,17 @@ export class JsonWorkspaceStore implements WorkspaceStore {
     await this.write(workspaces);
 
     return true;
+  }
+
+  /*
+   * R-P3-07: this single-file dev store has no PurgePlan table to consult — account
+   * purges (and therefore purge leases) only exist in the Postgres-backed deployment.
+   * There is consequently no live owner it could ever report, and saying so is honest
+   * rather than a guess. Production runs PrismaWorkspaceStore, which does the real
+   * lease lookup.
+   */
+  async isPurgeFenceOwnerLive(_fenceToken: string) {
+    return false;
   }
 
   async get(workspaceId: string) {
@@ -1465,51 +1502,112 @@ export class WorkspaceManager {
 
   /**
    * RR-CODEX-14 (P3, R-P3-04): recover ORPHANED workspace barriers — a barrier whose
-   * owning purge crashed before unfreeze. Lifts any barrier older than `graceMs`
-   * (the purge would have completed or been reclaimed by then), so a runtime is never
-   * left durably frozen with no owner and no pointer. Returns how many were lifted.
+   * owning purge crashed before unfreeze. Lifts a barrier only when it is BOTH older
+   * than `graceMs` AND provably ownerless, so a runtime is never left durably frozen
+   * with no owner while a LIVE purge never has its barrier pulled from under it.
+   *
+   * R-P3-07 (expert reserve #2 on PR #52): age alone was the whole test, and `graceMs`
+   * came straight from the request body. `graceMs: 0` therefore made EVERY barrier
+   * "stale" — one call lifted every active fence in the fleet. Two independent guards
+   * now stand between a caller and a live barrier:
+   *
+   *   1. a hard floor on `graceMs` (below), enforced here as well as at the route, so
+   *      no caller — internal, retried, or hand-rolled — can shrink the window to 0;
+   *   2. a LIVE-OWNER check: a barrier whose fence token still belongs to a purge plan
+   *      holding an unexpired lease is NEVER lifted, whatever its age. This is what
+   *      makes a legitimately long purge safe — it heartbeats its lease, so the
+   *      reconciler keeps skipping it instead of racing it.
+   *
+   * Counts are returned (not just `reconciled`) so the job that drives this is
+   * observable: a sweep that skipped live owners or hit failures is not "success".
    */
-  async reconcileStaleWorkspaceFreezes(graceMs: number): Promise<{ reconciled: number }> {
+  async reconcileStaleWorkspaceFreezes(graceMs: number): Promise<{
+    scanned: number;
+    reconciled: number;
+    skippedLiveOwner: number;
+    failed: number;
+  }> {
+    if (!Number.isFinite(graceMs) || graceMs < MIN_RECONCILE_GRACE_MS) {
+      throw Object.assign(
+        new Error(
+          `WORKSPACE_RECONCILE_GRACE_TOO_SMALL: graceMs must be >= ${MIN_RECONCILE_GRACE_MS}ms ` +
+            `(got ${graceMs}) — a shorter window would lift barriers of purges that are still running`,
+        ),
+        { statusCode: 400, code: 'WORKSPACE_RECONCILE_GRACE_TOO_SMALL' },
+      );
+    }
+
     const cutoff = Date.now() - graceMs;
-    const rows = await this.store.list().catch(() => [] as WorkspaceRecord[]);
+
+    /*
+     * R-P3-07: NOT `.catch(() => [])`. Swallowing the scan error reported
+     * `{reconciled: 0}` — indistinguishable from a clean sweep with nothing to do, so
+     * a permanently failing reconciler looked healthy forever. Let it propagate; the
+     * job surfaces it and retries.
+     */
+    const rows = await this.store.list();
     let reconciled = 0;
+    let skippedLiveOwner = 0;
+    let failed = 0;
+    let scanned = 0;
 
     for (const row of rows) {
       if (!row.purgeFrozen) {
         continue;
       }
 
+      scanned += 1;
+
       const frozenAtMs = row.purgeFrozenAt ? new Date(row.purgeFrozenAt).getTime() : 0;
 
-      if (frozenAtMs < cutoff) {
-        /*
-         * R-P3-06: same TOCTOU as unfreezeWorkspace — `row` is a SNAPSHOT from the
-         * list() above, and a purge may have re-frozen this runtime since. Release
-         * with a CAS on the exact observed version (token + frozenAt), so a barrier
-         * that was refreshed after the scan is NEVER lifted on the old row's age.
-         * A CAS miss (or a DB error) leaves the runtime frozen — fail-closed.
-         */
-        await this.store
+      if (frozenAtMs >= cutoff) {
+        continue;
+      }
+
+      /*
+       * R-P3-07: the barrier is old — but "old" is not "orphaned". Ask whether its
+       * fence token still belongs to a purge holding a live lease. FAIL-CLOSED: an
+       * error here counts as failed and the barrier is LEFT UP, because we cannot
+       * prove nobody owns it.
+       */
+      try {
+        if (row.purgeFenceToken !== undefined && (await this.store.isPurgeFenceOwnerLive(row.purgeFenceToken))) {
+          skippedLiveOwner += 1;
+          continue;
+        }
+      } catch {
+        failed += 1;
+        continue;
+      }
+
+      /*
+       * R-P3-06: same TOCTOU as unfreezeWorkspace — `row` is a SNAPSHOT from the
+       * list() above, and a purge may have re-frozen this runtime since. Release
+       * with a CAS on the exact observed version (token + frozenAt), so a barrier
+       * that was refreshed after the scan is NEVER lifted on the old row's age.
+       * A CAS miss (or a DB error) leaves the runtime frozen — fail-closed.
+       */
+      try {
+        const released = await this.store.releaseStalePurgeFence(row.id, {
           /*
            * `!== undefined`, NOT truthiness: an EMPTY-STRING token is a real stored
            * value and must go into the CAS verbatim. Folding '' into "absent" makes
            * the CAS compare against NULL, match 0 rows, and leave that barrier
            * unreclaimable forever — the opposite of what this reconciler is for.
            */
-          .releaseStalePurgeFence(row.id, {
-            ...(row.purgeFenceToken !== undefined ? { fenceToken: row.purgeFenceToken } : {}),
-            ...(row.purgeFrozenAt !== undefined ? { frozenAt: row.purgeFrozenAt } : {}),
-          })
-          .then((released) => {
-            if (released) {
-              reconciled += 1;
-            }
-          })
-          .catch(() => undefined);
+          ...(row.purgeFenceToken !== undefined ? { fenceToken: row.purgeFenceToken } : {}),
+          ...(row.purgeFrozenAt !== undefined ? { frozenAt: row.purgeFrozenAt } : {}),
+        });
+
+        if (released) {
+          reconciled += 1;
+        }
+      } catch {
+        failed += 1;
       }
     }
 
-    return { reconciled };
+    return { scanned, reconciled, skippedLiveOwner, failed };
   }
 
   /**
