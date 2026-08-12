@@ -188,7 +188,43 @@ choix que le preview-proxy pour son propre secret : un pod qui ne monte pas se v
 tout de suite, une porte ouverte ne se voit pas. `mint-secrets.sh` génère désormais
 ce secret, pour l'audit comme pour toute installation à neuf.
 
-### Porte `/p` en E2E réel
+### Porte `/p` en E2E réel — et ce que la passe de mise au point a appris
+
+Le screenshotter est déployé sur l'environnement d'audit
+(`services.screenshotter.enabled: true`, image construite au même SHA), et le rejeu
+appelle son `/capture` avec une URL d'**hôte de preview**. C'est donc le service
+lui-même, avec son vrai Chromium, qui réécrit vers `/p/<ws>/<port>`, traverse le
+proxy et rend le PNG du serveur de dev.
+
+La première exécution a fait **échouer 3 assertions**. Aucune n'était un défaut du
+produit — les trois mesuraient mal, et c'est précisément ce qu'un script assertif
+sert à révéler :
+
+1. le marqueur applicatif était cherché dans un aperçu de 400 octets, alors que le
+   proxy **injecte son shim HMR avant `<body>`** : « PREUVE PORTE » se trouve
+   au-delà. Faux échec — et une fenêtre tronquée aurait tout aussi bien pu produire
+   un faux succès. Le corps entier est maintenant grepé côté pod ;
+2. le refus de la capture sans jeton était cherché comme **chaîne** dans les logs du
+   proxy, or le code d'erreur vit dans le **corps** de la réponse, pas dans la ligne
+   de log.
+
+Ce que la même passe a **prouvé**, en corrélant les logs structurés du proxy par
+requête, pour les requêtes venant de l'IP du pod screenshotter sur le document
+`/p/ws-porte/5173/` :
+
+```
+capture avec jeton LEGITIME   -> proxy 200  -> PNG reel de 9 648 octets (89504e47…)
+capture SANS jeton            -> proxy 403  -> PNG d'une page d'erreur (11 048 octets)
+statuts observes cote proxy   : 200x2  403x2
+```
+
+L'assertion finale porte donc sur ce couple : le `200` prouve que l'accès légitime
+traverse le trajet complet, le `403` que la porte refuse **le même trajet** sans
+jeton, et les deux rendus doivent différer en taille. Le PNG local du Chromium de
+test reste un test unitaire du mapping d'URL ; il ne tient plus lieu de preuve de
+bout en bout.
+
+### Porte `/p` — configuration
 
 Le screenshotter est désormais **déployé sur l'environnement d'audit**
 (`services.screenshotter.enabled: true` dans `values-audit-test.yaml`, avec
