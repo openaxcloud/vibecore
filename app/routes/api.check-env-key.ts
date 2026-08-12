@@ -3,6 +3,7 @@ import { getApiKeysFromCookie } from '~/lib/api/cookies';
 import { readSessionToken } from '~/lib/enterprise-api.server';
 import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 import { LLMManager } from '~/lib/modules/llm/manager';
+import { readRuntimeEnv } from '~/lib/modules/llm/runtime-env';
 
 export const loader: LoaderFunction = async ({ context, request }) => {
   /*
@@ -44,7 +45,13 @@ export const loader: LoaderFunction = async ({ context, request }) => {
   const rawValue =
     apiKeys?.[provider] ||
     (context?.cloudflare?.env as Record<string, any>)?.[envVarName] ||
-    process.env[envVarName] ||
+    /*
+     * Same SSR trap as api.configured-providers: `process.env` is shimmed to
+     * `{}` by vite-plugin-node-polyfills in the SSR bundle, so a bare read
+     * reports the key as absent even when it is set and working
+     * (BUG-QA-PROVIDERS-SSR-ENV-001). Go through `globalThis.process.env`.
+     */
+    readRuntimeEnv(envVarName) ||
     llmManager.env[envVarName];
 
   const normalizedValue = typeof rawValue === 'string' ? rawValue.replace(/\s+/g, '') : rawValue;
