@@ -36,6 +36,10 @@ ORG_OK='org_porte'
 ORG_PIRATE='org_pirate'
 PROJ='proj_porte'
 WS='ws-porte'
+# Le POD ne porte pas l'id du workspace : le manager le prefixe. Attendre
+# `pod/ws-porte` echouait donc silencieusement (« pod introuvable »).
+WS_POD="workspace-$WS"
+
 OUT="${OUT:-/tmp/portes-preview-$EXPECTED_TAG.txt}"
 
 audit_env_pin_cluster_target
@@ -126,13 +130,13 @@ k exec "$API_POD" -- sh -lc "curl -sS -m 300 -o /tmp/start.json -w '%{http_code}
 
 say
 say "  attente du pod..."
-audit_kubectl -n "$RUNTIME_NS" wait --for=condition=Ready "pod/$WS" --timeout=300s 2>&1 | tee -a "$OUT"
-audit_kubectl -n "$RUNTIME_NS" get pod "$WS" -o wide 2>&1 | tail -2 | tee -a "$OUT"
+audit_kubectl -n "$RUNTIME_NS" wait --for=condition=Ready "pod/$WS_POD" --timeout=300s 2>&1 | tee -a "$OUT"
+audit_kubectl -n "$RUNTIME_NS" get pod "$WS_POD" -o wide 2>&1 | tail -2 | tee -a "$OUT"
 
 # --- 6. un VRAI serveur de dev dans le pod : HTTP 5173, HTTP+WS 5174 -------
 say
 say "== serveur de dev dans le pod (5173 HTTP, 5174 HTTP+WebSocket) =="
-audit_kubectl -n "$RUNTIME_NS" exec "$WS" -- sh -lc 'cat > /tmp/srv.js <<"JS"
+audit_kubectl -n "$RUNTIME_NS" exec "$WS_POD" -- sh -lc 'cat > /tmp/srv.js <<"JS"
 const http = require("node:http");
 const crypto = require("node:crypto");
 const page = "<!doctype html><html><head><meta charset=utf-8><title>porte</title></head><body><h1>PREUVE PORTE</h1><p>ws-porte</p></body></html>";
@@ -148,8 +152,22 @@ srv.on("upgrade", (req, socket) => {
 });
 srv.listen(5174, "0.0.0.0");
 JS
-(setsid node /tmp/srv.js >/tmp/srv.log 2>&1 &) ; sleep 2
-for p in 5173 5174; do printf "  port %s: " "$p"; (echo > /dev/tcp/127.0.0.1/$p) 2>/dev/null && echo ouvert || echo FERME; done' 2>&1 | tee -a "$OUT"
+(setsid node /tmp/srv.js >/tmp/srv.log 2>&1 &) ; sleep 3
+head -5 /tmp/srv.log' 2>&1 | tee -a "$OUT"
+
+# Sonde des ports en NODE, pas en `/dev/tcp` : le shell du conteneur n'est pas
+# bash, donc `/dev/tcp` y echoue TOUJOURS — il rapportait « FERME » sur un serveur
+# qui tournait parfaitement (EADDRINUSE au relancement l'a prouve).
+audit_kubectl -n "$RUNTIME_NS" exec "$WS_POD" -- node -e '
+const net = require("node:net");
+const check = (p) => new Promise((res) => {
+  const s = net.connect(p, "127.0.0.1");
+  s.on("connect", () => { s.destroy(); res(`  port ${p}: ouvert`); });
+  s.on("error", (e) => res(`  port ${p}: FERME (${e.code})`));
+  s.setTimeout(3000, () => { s.destroy(); res(`  port ${p}: TIMEOUT`); });
+});
+(async () => { for (const p of [5173, 5174]) console.log(await check(p)); })();
+' 2>&1 | tee -a "$OUT"
 
 # --- 7. forger les jetons DANS le cluster ---------------------------------
 say
