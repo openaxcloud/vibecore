@@ -332,4 +332,8 @@ Le déploiement échoue en `ENOENT … /workspace/.vibecore-deploy-<id>/package.
 
 Vérification arithmétique : `sha256("cmsq0qp8i00060ndf3hi3z3n1:cmspluik800040n9w4cmcx1fw")[:16] = 1db6975b749c4df6`, soit **exactement** le pod créé par le build. Le mécanisme est confirmé à l'octet près.
 
-**Effet de bord découvert au nettoyage** : le pod dérivé n'a **aucun enregistrement `Workspace`** en base (`select … where id='ws-1db6975b749c4df6'` → 0 ligne), donc `POST /api/runtime/workspaces/<id>/stop` répond **404**. Le build fabrique ainsi des pods **orphelins** que la plateforme ne sait pas arrêter par son API et que le GC par enregistrement ne voit pas. Il a fallu les supprimer directement dans le cluster.
+**Effet de bord découvert au nettoyage — ⚠️ CORRIGÉ APRÈS VÉRIFICATION.** Le pod dérivé n'a **aucun enregistrement `Workspace`** (`select … where id='ws-1db6975b749c4df6'` → 0 ligne), donc `POST /api/runtime/workspaces/<id>/stop` répond **404** : ce runtime est **invisible depuis la surface produit** — il n'apparaît pas dans les workspaces du projet et l'utilisateur ne peut ni le voir ni l'arrêter.
+
+En revanche — et **je m'étais trompée en écrivant qu'il échappait au GC** — il possède bien une ligne **`WorkspaceRuntime`** (`id='ws-1db6975b749c4df6'`, `podName='workspace-ws-1db6975b749c4df6'`, `status='STOPPED'`). Or `triggerWorkspaceGarbageCollect` itère précisément la table `WorkspaceRuntime` : **le pod est donc bien récupérable par le GC**, il n'y a pas de fuite de ressources. La portée réelle du défaut est l'**invisibilité côté produit**, pas l'accumulation.
+
+Constat annexe : d'autres lignes `WorkspaceRuntime` sans enregistrement `Workspace` préexistent dans cette base de test (`ws-codex826`, `ws-route`, issus d'autres sessions), donc le cas n'est pas propre à ce scénario.
