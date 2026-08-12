@@ -6,8 +6,13 @@ on:
     branches: [main, stable, product/saas-platform-production]
 
 concurrency:
+  # Never cancel on main. This workflow is a REQUIRED check for the production
+  # deploy gate, and a cancelled run is not a green run: cancelling main's CI
+  # because a second commit arrived would refuse the first commit's deploy on a
+  # result that was never allowed to finish. That is exactly how 3a53b439 ended
+  # up deployed with `Production CI = cancelled` before the gate existed.
   group: production-ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read

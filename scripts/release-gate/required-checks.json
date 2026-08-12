@@ -1,0 +1,62 @@
+{
+  "$comment": [
+    "RELEASE-INTEGRITY POLICY — the set of checks that MUST be green, for the EXACT",
+    "commit being deployed, before any production rollout starts.",
+    "",
+    "Why workflows are pinned by numeric `id` and not by `name`: a workflow's display",
+    "name is just a `name:` line in a YAML file that any commit can change. Pinning the",
+    "name means a commit that renames a cheap always-green workflow to 'Production CI'",
+    "satisfies the gate while the real CI is red or deleted. The numeric id is minted by",
+    "GitHub per workflow FILE PATH and cannot be claimed by another file.",
+    "",
+    "`path` is asserted too, as a second, independent key: the API reports the path each",
+    "run actually executed. id+path disagreeing means the pinned id no longer refers to",
+    "the file we think it does -> refuse rather than guess.",
+    "",
+    "`requiredJobs` is the anti-gutting guard. Pinning only the workflow lets a commit",
+    "empty out ci.yml (delete every real step, keep a green no-op job) and still deploy.",
+    "The named jobs must EXIST in the run and be `success`; a deleted or renamed job is",
+    "a refusal, which forces the rename to be a deliberate, reviewed edit of this file.",
+    "",
+    "Jobs deliberately NOT required: quality.yaml 'PR Size Check' (skipped by design on",
+    "push events) and 'Accessibility Tests' / 'Performance Audit' (continue-on-error /",
+    "advisory). Requiring an advisory job would make the gate lie about what blocks."
+  ],
+  "repository": "openaxcloud/vibecore",
+  "allowedEvents": ["push"],
+  "requiredHeadBranch": "main",
+  "waitTimeoutSeconds": 5400,
+  "pollIntervalSeconds": 30,
+  "requiredWorkflows": [
+    {
+      "id": 271139572,
+      "path": ".github/workflows/ci.yml",
+      "displayName": "Production CI",
+      "requiredJobs": ["Install, test, build, scan"]
+    },
+    {
+      "id": 271139579,
+      "path": ".github/workflows/e2e.yml",
+      "displayName": "Production E2E",
+      "requiredJobs": ["Playwright local stack"]
+    },
+    {
+      "id": 271139585,
+      "path": ".github/workflows/security.yaml",
+      "displayName": "Security Analysis",
+      "requiredJobs": [
+        "Secret scan (gitleaks, blocking)",
+        "CodeQL Analysis (javascript)",
+        "CodeQL Analysis (typescript)",
+        "Dependency Vulnerability Scan",
+        "Secrets Detection"
+      ]
+    },
+    {
+      "id": 271139584,
+      "path": ".github/workflows/quality.yaml",
+      "displayName": "Code Quality",
+      "requiredJobs": ["Quality Analysis"]
+    }
+  ]
+}

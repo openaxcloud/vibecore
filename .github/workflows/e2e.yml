@@ -4,11 +4,21 @@ on:
   pull_request:
   workflow_dispatch:
   push:
-    branches: [stable, product/saas-platform-production]
+    # `main` was missing here, and that was not a cosmetic gap: the production
+    # deploy gate requires E2E to be green for the exact commit it deploys, and a
+    # required check that never runs is a check that is vacuously satisfied. Every
+    # commit merged to main between the creation of this workflow and 2026-08-12
+    # reached production without a single E2E run against it.
+    branches: [main, stable, product/saas-platform-production]
 
 concurrency:
+  # Deliberately NOT cancel-in-progress on main. Cancelling an E2E run makes it
+  # `cancelled`, which the deploy gate reads as "not green" — so a rapid second
+  # push would kill the first commit's E2E and block its (already queued) deploy
+  # on a result that was never allowed to finish. On PR branches, cancelling is
+  # still the right trade: nothing deploys from there.
   group: production-e2e-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   e2e:

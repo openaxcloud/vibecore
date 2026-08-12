@@ -2,6 +2,12 @@ global:
   environment: staging
   imageRegistry: us-central1-docker.pkg.dev/PROJECT/vibecore
   imageTag: latest
+  # Immutable digest (sha256:<64 hex>) applied to every service that has no
+  # per-service `imageDigest`. When set it WINS over imageTag, so the kubelet
+  # resolves content instead of a movable pointer. Empty by default so a
+  # from-scratch install and `helm template` still work from tags; production
+  # deploys always supply digests (see .github/workflows/deploy-main.yml).
+  imageDigest: ''
   appDomain: staging.example.com
   previewDomain: preview.staging.example.com
   # Optional additional public hosts. Leave empty when not needed (staging).
