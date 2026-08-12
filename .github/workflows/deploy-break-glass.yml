@@ -281,8 +281,14 @@ jobs:
             # `-o name` yields `deployment.apps/<name>`; stripping "deploy/" would leave
             # the group prefix and break the ownerReferences match below.
             depname="${dep##*/}"
+            # The ACTIVE ReplicaSet is the one at the Deployment's current revision, not
+            # the newest one: a restore returns to a pod template Kubernetes has already
+            # seen, so it REUSES that older ReplicaSet and the newest one is the one just
+            # scaled to zero. Picking by timestamp here would make every break-glass
+            # restore report "no running pod" for services that are running fine.
+            REV="$(kubectl -n "${HELM_NAMESPACE}" get deploy "${depname}" -o jsonpath='{.metadata.annotations.deployment\.kubernetes\.io/revision}')"
             HASH="$(kubectl -n "${HELM_NAMESPACE}" get rs -o json \
-              | jq -r --arg d "${depname}" '[ .items[] | select((.metadata.ownerReferences // [])[]?.name == $d) ] | sort_by(.metadata.creationTimestamp) | last | .metadata.labels["pod-template-hash"] // ""')"
+              | jq -r --arg d "${depname}" --arg rev "${REV}" '[ .items[] | select((.metadata.ownerReferences // [])[]?.name == $d) | select(.metadata.annotations["deployment.kubernetes.io/revision"] == $rev) ] | first | .metadata.labels["pod-template-hash"] // ""')"
             IDS="$(kubectl -n "${HELM_NAMESPACE}" get pods \
               -l "app.kubernetes.io/name=${image},pod-template-hash=${HASH}" -o json \
               | jq -c --arg img "${image}" '[ .items[] | select(.metadata.deletionTimestamp == null) | select(.status.phase == "Running") | .status.containerStatuses[]? | select(.name == $img) | .imageID ]')"

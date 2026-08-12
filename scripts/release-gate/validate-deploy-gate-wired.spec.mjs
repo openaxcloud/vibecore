@@ -63,6 +63,12 @@ describe('deploy gate wiring', () => {
     expect(checkGateWiring(files).join('\n')).toMatch(/free-form 'short_sha'/);
   });
 
+  it('catches removal of the "dispatched sha must be on main" guard', () => {
+    const files = realFiles();
+    files.deployWorkflow = files.deployWorkflow.replace(/merge-base --is-ancestor/g, 'cat-file -e');
+    expect(checkGateWiring(files).join('\n')).toMatch(/ancestor of origin\/main/);
+  });
+
   it('catches a rollout that goes back to mutable tags', () => {
     const files = realFiles();
     files.deployWorkflow = files.deployWorkflow.replace(

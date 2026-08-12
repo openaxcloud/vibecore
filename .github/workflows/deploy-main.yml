@@ -1019,13 +1019,24 @@ jobs:
             # Caught by scripts/release-gate/proof-digest-rollout.sh on a real cluster.
             depname="${dep##*/}"
 
+            # The ACTIVE ReplicaSet is the one carrying the Deployment's current
+            # revision — NOT the most recently created one. Kubernetes reuses an
+            # existing ReplicaSet when a rollout returns to a pod template it has seen
+            # before, so after a break-glass restore (or any return to an earlier
+            # digest) the newest-by-creationTimestamp ReplicaSet is the one that was
+            # just scaled to ZERO, and this step would report "no running pod" for a
+            # service that is running perfectly. Caught by
+            # scripts/release-gate/proof-digest-rollout.sh step 8 on a real cluster.
+            REV="$(kubectl -n "${HELM_NAMESPACE}" get deploy "${depname}" \
+              -o jsonpath='{.metadata.annotations.deployment\.kubernetes\.io/revision}')"
             HASH="$(kubectl -n "${HELM_NAMESPACE}" get rs -o json \
-              | jq -r --arg d "${depname}" '
-                  [ .items[] | select((.metadata.ownerReferences // [])[]?.name == $d) ]
-                  | sort_by(.metadata.creationTimestamp) | last
-                  | .metadata.labels["pod-template-hash"] // ""')"
-            if [ -z "${HASH}" ]; then
-              echo "::error::${service}: could not find the current ReplicaSet for ${depname}"
+              | jq -r --arg d "${depname}" --arg rev "${REV}" '
+                  [ .items[]
+                    | select((.metadata.ownerReferences // [])[]?.name == $d)
+                    | select(.metadata.annotations["deployment.kubernetes.io/revision"] == $rev) ]
+                  | first | .metadata.labels["pod-template-hash"] // ""')"
+            if [ -z "${HASH}" ] || [ "${HASH}" = "null" ]; then
+              echo "::error::${service}: could not find the ReplicaSet for ${depname} at revision ${REV}"
               exit 1
             fi
 

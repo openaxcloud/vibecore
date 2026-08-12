@@ -38,9 +38,9 @@ added the trigger.
 | 3 | Official checks green, by workflow **ID** | `required-checks.json` pins **id + file path + job names** | 63 vitest cases; pinning by name alone cannot pass |
 | 4 | missing/pending/skipped/cancelled/failure/wrong-sha/usurped ⇒ refuse **before WIF** | `release-gate` job has `contents: read, actions: read` and **no `id-token`**; `id-token: write` is granted to `build-and-deploy` alone | run [31597733139](https://github.com/openaxcloud/vibecore/actions/runs/31597733139), **7/7 green**: the 3 red SHAs refused, 2 of them still refused under an E2E waiver, and the all-green SHA authorised — all in jobs that cannot exchange a WIF token. Wiring validator fails if `id-token` moves to workflow level |
 | 5 | Manifest: service → source SHA → build id → digest → signature/SBOM | `release-manifest.mjs build` — refuses to emit an unverifiable manifest | 13 spec cases: no digest, malformed digest, rebuilt without build id, built from another commit, unverified signature all throw |
-| 6 | Deploy **by digest**, verify `imageID` after rollout | chart renders `@sha256:` and **fails the render** on a malformed or absent pin; post-rollout check compares kubelet `imageID` for the current ReplicaSet | `proof-digest-rollout.sh` on a real cluster: 7 distinct digests, 17 containers, 7/7 imageIDs match, **and a wrong digest is rejected** |
+| 6 | Deploy **by digest**, verify `imageID` after rollout | chart renders `@sha256:` and **fails the render** on a malformed or absent pin; post-rollout check compares kubelet `imageID` for the Deployment's **current revision** ReplicaSet | `proof-digest-rollout.sh` on a real cluster, 8/8: 7 distinct digests, 17 containers, 7/7 imageIDs match, a wrong digest is rejected, **a partial `--reuse-values` upgrade leaves every other service pinned**, and **a last-known-good manifest restores them** |
 | 7 | Manual path bound to the same SHA/image | same jobs, same gate, same digests; dispatch names a commit already on `main` | wiring validator + spec |
-| 8 | Break-glass only to a signed last-known-good, double approval | `deploy-break-glass.yml`: no build step, restores a previous **successful gated** run's manifest, cosign-verifies every digest, `production-break-glass` environment | wiring validator fails if break-glass gains a build step or loses its signature check |
+| 8 | Break-glass only to a signed last-known-good, double approval | `deploy-break-glass.yml`: no build step, restores a previous **successful gated** run's manifest, cosign-verifies every digest, `production-break-glass` environment | wiring validator fails if break-glass gains a build step or loses its signature check. **The restore mechanism is executed** in `proof-digest-rollout.sh` step 8 — same `jq` filter, same `--set-string services.<key>.imageDigest`, same `--reuse-values --atomic` — and the cluster returns to every digest the manifest names. Only the cosign step needs the production KMS key and cannot run outside prod |
 
 ## Re-runnable proofs
 
@@ -50,7 +50,9 @@ GITHUB_TOKEN="$(gh auth token)" \
   node scripts/release-gate/verify-required-checks.mjs --no-wait --sha <40-hex>
 #    exit 0 = authorised · exit 2 = refused, with the reason per workflow
 
-# 2. Deploy-by-digest on a real cluster, end to end, incl. a negative control (~6 min)
+# 2. Deploy-by-digest end to end on a real cluster (~10 min): distinct digests,
+#    imageID concordance, a negative control, the --reuse-values round trip, and a
+#    break-glass restore
 bash scripts/release-gate/proof-digest-rollout.sh
 
 # 3. The gate's own wiring — proves it can FAIL before trusting its all-clear
@@ -97,7 +99,14 @@ was visible by reading the code:
 5. `gh run download` exits 1 **and does not create the target directory** when nothing
    matches, so the break-glass path died before printing its own actionable error —
    on the one path that only ever runs during an incident.
-6. The dry-run job reported **green when the gate had errored**. The gate has exactly
+6. The active ReplicaSet was picked as "newest by `creationTimestamp`". Kubernetes
+   **reuses** an existing ReplicaSet when a rollout returns to a pod template it has
+   seen before, so after a break-glass restore — or any return to an earlier digest —
+   the newest ReplicaSet is the one just scaled to ZERO. Every restore would have
+   failed with "no running pod" for services that were running perfectly, in exactly
+   the incident where a false failure is most costly. Now selected by the Deployment's
+   `deployment.kubernetes.io/revision`. Found by step 8 the first time it ran.
+7. The dry-run job reported **green when the gate had errored**. The gate has exactly
    two verdicts (0 = PASS, 2 = REFUSE); `report` mode swallowed every other code and
    `refuse` mode accepted any non-zero one, so a transport error read as "correctly
    refused". Found by watching a real run, in the tool whose entire job is to give a

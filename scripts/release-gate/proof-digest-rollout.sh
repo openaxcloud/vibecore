@@ -22,6 +22,14 @@
 #   6. NEGATIVE CONTROL: rewrites the manifest with a wrong digest and asserts the
 #      verification FAILS. Without this, step 5 passing proves only that the script
 #      runs, not that it can detect a mismatch.
+#   7. `--reuse-values` round trip: re-pins ONE service to a new digest and asserts the
+#      others keep theirs. The production deploy always re-asserts only the digests it
+#      resolved this run, so if the rest fell back to tags, a routine web-only deploy
+#      would silently unpin every backend — with all checks still green.
+#   8. BREAK-GLASS restore: re-applies the earlier manifest's digests exactly as
+#      deploy-break-glass.yml does, and asserts the cluster returns to them. That is
+#      requirement 8's mechanism; only its cosign step needs the production KMS key and
+#      cannot run here.
 #
 # Usage:  bash scripts/release-gate/proof-digest-rollout.sh [--keep]
 # Needs:  docker, kind, kubectl, helm, jq, node
@@ -65,14 +73,14 @@ cleanup() {
 trap cleanup EXIT
 
 # ---------------------------------------------------------------------------
-log "1/6  throwaway registry"
+log "1/8  throwaway registry"
 docker rm -f "${REGISTRY_CONTAINER}" >/dev/null 2>&1 || true
 docker run -d --restart=no -p "${REGISTRY_PUBLISH_PORT}:5000" --name "${REGISTRY_CONTAINER}" registry:2 >/dev/null
 for _ in $(seq 1 30); do curl -sf "http://localhost:${REGISTRY_PUBLISH_PORT}/v2/" >/dev/null && break; sleep 1; done
 echo "registry up on localhost:${REGISTRY_PUBLISH_PORT}"
 
 # ---------------------------------------------------------------------------
-log "2/6  build seven DISTINCT images, read back their real digests"
+log "2/8  build seven DISTINCT images, read back their real digests"
 : > "${WORK}/digests.txt"
 for entry in "${SERVICES[@]}"; do
   key="${entry%%:*}"; rest="${entry#*:}"; image="${rest%%:*}"; port="${rest##*:}"
@@ -109,7 +117,7 @@ fi
 echo "  ${distinct}/${#SERVICES[@]} digests are distinct"
 
 # ---------------------------------------------------------------------------
-log "3/6  kind cluster wired to that registry"
+log "3/8  kind cluster wired to that registry"
 kind delete cluster --name "${CLUSTER}" >/dev/null 2>&1 || true
 kind create cluster --name "${CLUSTER}" --wait 180s >/dev/null
 docker network connect kind "${REGISTRY_CONTAINER}" >/dev/null 2>&1 || true
@@ -136,7 +144,7 @@ docker exec "${NODE}" crictl pull "${REGISTRY_HOST}/vibecore/api:proof" >/dev/nu
 echo "  node pulls from ${REGISTRY_HOST}"
 
 # ---------------------------------------------------------------------------
-log "4/6  helm upgrade the REAL chart, every service pinned by digest"
+log "4/8  helm upgrade the REAL chart, every service pinned by digest"
 # The chart RENDERS the namespace, but the platform secret has to exist before the
 # first pod starts or `--atomic --wait` rolls the whole install back. So the
 # namespace is created up front carrying Helm's ownership metadata — without it Helm
@@ -191,7 +199,7 @@ helm --kube-context "${CTX}" upgrade --install "${RELEASE}" "${REPO_ROOT}/infra/
 echo "  helm upgrade --atomic completed"
 
 # ---------------------------------------------------------------------------
-log "5/6  the SAME post-rollout verification the deploy workflow runs"
+log "5/8  the SAME post-rollout verification the deploy workflow runs"
 jq -n --argjson services "${MANIFEST_SERVICES}" \
   '{schemaVersion:1, targetSha:"'"$(printf 'f%.0s' {1..40})"'", registry:"proof",
     services:$services}' > "${WORK}/manifest-input.json"
@@ -208,8 +216,12 @@ collect_observed() {
     # `kubectl get -o name` prints `deployment.apps/<name>`, not `deploy/<name>`.
     depname="${dep##*/}"
     kubectl --context "${CTX}" -n "${NS}" rollout status "${dep}" --timeout=5m >/dev/null
-    hash="$(kubectl --context "${CTX}" -n "${NS}" get rs -o json | jq -r --arg d "${depname}" \
-      '[ .items[] | select((.metadata.ownerReferences // [])[]?.name == $d) ] | sort_by(.metadata.creationTimestamp) | last | .metadata.labels["pod-template-hash"] // ""')"
+    # Active ReplicaSet = the one at the Deployment's CURRENT revision. A restore
+    # reuses an earlier ReplicaSet, so "newest by creationTimestamp" points at the one
+    # that was just scaled to zero. Step 8 caught exactly that.
+    rev="$(kubectl --context "${CTX}" -n "${NS}" get deploy "${depname}" -o jsonpath='{.metadata.annotations.deployment\.kubernetes\.io/revision}')"
+    hash="$(kubectl --context "${CTX}" -n "${NS}" get rs -o json | jq -r --arg d "${depname}" --arg rev "${rev}" \
+      '[ .items[] | select((.metadata.ownerReferences // [])[]?.name == $d) | select(.metadata.annotations["deployment.kubernetes.io/revision"] == $rev) ] | first | .metadata.labels["pod-template-hash"] // ""')"
     if [ -z "${hash}" ]; then
       echo "FAIL: could not find the current ReplicaSet for ${depname}" >&2
       exit 1
@@ -227,7 +239,7 @@ node "${REPO_ROOT}/scripts/release-gate/release-manifest.mjs" verify-imageids \
   --manifest "${WORK}/manifest.json" --observed "${WORK}/observed.json"
 
 # ---------------------------------------------------------------------------
-log "6/6  NEGATIVE CONTROL — a wrong digest must be caught"
+log "6/8  NEGATIVE CONTROL — a wrong digest must be caught"
 jq '.services[0].digest = "sha256:'"$(printf '0%.0s' {1..64})"'"' "${WORK}/manifest.json" > "${WORK}/manifest-tampered.json"
 if node "${REPO_ROOT}/scripts/release-gate/release-manifest.mjs" verify-imageids \
      --manifest "${WORK}/manifest-tampered.json" --observed "${WORK}/observed.json" >/dev/null 2>&1; then
@@ -236,4 +248,68 @@ if node "${REPO_ROOT}/scripts/release-gate/release-manifest.mjs" verify-imageids
 fi
 echo "  a mismatched digest is rejected (verification can actually fail)"
 
-printf '\n\033[1;32mPROOF COMPLETE\033[0m — chart deployed by digest on a real cluster; every running container matches its manifest digest; a wrong digest is detected.\n'
+# ---------------------------------------------------------------------------
+log "7/8  --reuse-values round trip — a partial upgrade must not unpin the rest"
+#
+# The production deploy always runs `helm upgrade --reuse-values` and only re-asserts
+# the digests it resolved this run. The whole design rests on an assumption that has
+# never been tested: that the services NOT re-set keep their PINNED DIGEST, rather than
+# falling back to a tag. If they fell back, a routine web-only deploy would silently
+# unpin every backend service while every check stayed green.
+docker build -q -t "localhost:${REGISTRY_PUBLISH_PORT}/vibecore/api:proof2" - >/dev/null <<'EOF'
+FROM busybox:1.36
+RUN mkdir -p /www && printf '{"ok":true,"service":"api","rev":2}' > /www/health \
+  && cp /www/health /www/ready && printf 'rev2\n' > /www/index.html
+ENTRYPOINT ["/bin/busybox", "httpd", "-f", "-v", "-p", "3001", "-h", "/www"]
+EOF
+docker push -q "localhost:${REGISTRY_PUBLISH_PORT}/vibecore/api:proof2" >/dev/null
+API_DIGEST_2="$(docker inspect --format='{{index .RepoDigests 0}}' \
+  "localhost:${REGISTRY_PUBLISH_PORT}/vibecore/api:proof2" | sed 's/.*@//')"
+API_DIGEST_1="$(awk '$1=="api"{print $2}' "${WORK}/digests.txt")"
+if [ "${API_DIGEST_1}" = "${API_DIGEST_2}" ]; then
+  echo "FAIL: the second api image has the same digest — the test cannot detect a change" >&2
+  exit 1
+fi
+echo "  api: ${API_DIGEST_1} -> ${API_DIGEST_2}"
+
+helm --kube-context "${CTX}" upgrade "${RELEASE}" "${REPO_ROOT}/infra/helm/platform" \
+  -n "${NS}" --reuse-values --atomic --timeout 8m \
+  --set-string "services.api.imageDigest=${API_DIGEST_2}" >/dev/null
+
+collect_observed
+# api moved; everything else must still be on its ORIGINAL digest.
+jq --arg d "${API_DIGEST_2}" '(.services[] | select(.service == "api") | .digest) |= $d' \
+  "${WORK}/manifest.json" > "${WORK}/manifest-rev2.json"
+node "${REPO_ROOT}/scripts/release-gate/release-manifest.mjs" verify-imageids \
+  --manifest "${WORK}/manifest-rev2.json" --observed "${WORK}/observed.json"
+# And prove it is still a DIGEST reference, not a tag that happens to resolve.
+untagged="$(kubectl --context "${CTX}" -n "${NS}" get deploy -o json \
+  | jq -r '[ .items[].spec.template.spec.containers[].image | select(contains("@sha256:") | not) ] | join(", ")')"
+if [ -n "${untagged}" ]; then
+  echo "FAIL: --reuse-values left these images unpinned: ${untagged}" >&2
+  exit 1
+fi
+echo "  every other service kept its pinned digest through a partial upgrade"
+
+# ---------------------------------------------------------------------------
+log "8/8  BREAK-GLASS restore — a last-known-good manifest puts the cluster back"
+#
+# Exercises requirement 8's actual mechanism: take the manifest recorded by the earlier
+# (good) release and re-apply exactly what deploy-break-glass.yml applies — the digests
+# of chart services, nothing else, no build. The cosign verification in the real job
+# needs the production KMS key and cannot run here; everything downstream of it can.
+BG_SETS=()
+while read -r service digest; do
+  BG_SETS+=( --set-string "services.${service}.imageDigest=${digest}" )
+done < <(jq -r '.services[] | select(.chartService != false) | "\(.service) \(.digest)"' "${WORK}/manifest.json")
+echo "  restoring $(( ${#BG_SETS[@]} / 2 )) digest pin(s) from the last-known-good manifest"
+
+helm --kube-context "${CTX}" upgrade "${RELEASE}" "${REPO_ROOT}/infra/helm/platform" \
+  -n "${NS}" --reuse-values --atomic --timeout 8m "${BG_SETS[@]}" >/dev/null
+
+collect_observed
+node "${REPO_ROOT}/scripts/release-gate/release-manifest.mjs" verify-imageids \
+  --manifest "${WORK}/manifest.json" --observed "${WORK}/observed.json"
+echo "  the cluster is back on every digest the last-known-good manifest names"
+
+printf '\n\033[1;32mPROOF COMPLETE\033[0m — deployed by digest on a real cluster; running imageIDs match the manifest; a wrong digest is detected; a partial --reuse-values upgrade leaves the other services pinned; and a last-known-good manifest restores them.\n'

@@ -234,6 +234,14 @@ export function checkGateWiring({ deployWorkflow, breakGlassWorkflow, policy, ch
   if (!/target_sha:/.test(topLevel)) {
     problems.push(`${DEPLOY_WORKFLOW}: expected a 'target_sha' dispatch input bound to a real commit`);
   }
+  // Without the ancestor check, `target_sha` is only "a commit that exists" — a
+  // dispatcher could deploy a commit that lived on a side branch, reviewed by nobody
+  // and merged by nobody, while still satisfying a per-commit check gate.
+  if (!/merge-base --is-ancestor/.test(jobs.get('resolve-target'))) {
+    problems.push(
+      `${DEPLOY_WORKFLOW}: resolve-target must assert the dispatched sha is an ancestor of origin/main`,
+    );
+  }
   for (const job of ['release-gate', 'preflight-gates', 'build-and-deploy']) {
     if (!/HEAD_SHA.*!=.*TARGET_SHA|"\$\{HEAD_SHA\}" != "\$\{TARGET_SHA\}"/.test(jobs.get(job))) {
       problems.push(`${DEPLOY_WORKFLOW}: job '${job}' must assert its checkout HEAD equals the target SHA`);
