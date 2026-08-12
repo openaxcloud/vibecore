@@ -282,6 +282,13 @@ leader-election lease if something heavy (a full `tsc`, another test suite) is
 competing for CPU; the node then sits `NotReady` with
 `cni plugin not initialized`, or cluster creation times out waiting for systemd.
 
+**No registry needed.** The in-cluster probe runs `probe.mjs` inside the stub
+image the harness already loads, pinned `IfNotPresent`. An earlier version shelled
+out to `curlimages/curl`, which made every probe depend on Docker Hub: on a fresh
+node the pull fails, the probe returns an EMPTY string, and an assertion expecting
+`401` reports a product failure when nothing was observed. Probes now retry and
+exit `PROBE_INCONCLUSIVE` rather than let an empty read become a verdict.
+
 **If `kind` cannot start on your host** (constrained Docker, systemd boot
 detection failing, or no spare CPU to keep a control plane healthy), use the
 Docker-backed variant, which asserts the same six steps:
