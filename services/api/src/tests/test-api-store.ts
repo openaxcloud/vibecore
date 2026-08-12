@@ -1980,6 +1980,8 @@ export class TestApiStore implements ApiStore {
       environmentName: (deployment as any).environment,
       organizationId: project?.organizationId,
       planKey: subscription?.status === 'ACTIVE' ? subscription.planKey : undefined,
+      // P104: see store.ts — omitting this fails OPEN on the static-serve gate.
+      metadata: deployment.metadata as Record<string, unknown> | undefined,
     };
   }
 
