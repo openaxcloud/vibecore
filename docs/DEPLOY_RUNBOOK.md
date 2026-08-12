@@ -263,6 +263,23 @@ Needs `kind` + a running Docker with ~2 GB free. It is deliberately NOT wired
 into CI: it is the on-demand, human-replayable proof that the sequence works on
 a real control plane, not a substitute for the fast checks above.
 
+**If `kind` cannot start on your host** (constrained Docker, systemd boot
+detection failing), use the Docker-backed variant, which asserts the same six
+steps:
+
+```bash
+scripts/sec9-cutover/run-docker.sh
+# evidence: /tmp/sec9-cutover-docker-evidence.log
+```
+
+Real in both: two genuinely different api builds, real container start/stop with
+a real drain delay, real HTTP over a real network, and the **real, unmodified**
+`scripts/deploy-cache-window.mjs` making its decisions from real container state
+(`fake-kubectl.sh` only reshapes `docker ps` into the JSON `kubectl get pods`
+returns — the barrier is not stubbed). What the Docker variant does **not**
+exercise is a Kubernetes control plane: rolling-update mechanics, real preStop
+hooks and endpoint propagation. Use `run.sh` when you need those too.
+
 ### Manual deploys
 
 The two-phase sequence lives in `deploy-main.yml`. If you deploy by hand
