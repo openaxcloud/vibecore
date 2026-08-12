@@ -155,9 +155,12 @@ items:
     source: "outputs/BOLT_BACKEND_FRONTEND_GAP.md:123 ; outputs/BOLT_SURFACING_STATUS.md:220 (/help,/search dits volontaires)"
     priority: 4
     owner: platform
-    status: NON_FAIT
+    status: FAIT_PROUVE
     nextAction: "Relier, rediriger ou supprimer chaque route ; si « volontaire », le documenter"
     conditionDeCloture: "Zéro route orpheline non documentée (liste vérifiée)"
+    evidenceId: "docs/audit/ORPHAN_ROUTES_BD16.md"
+    provenAt: "2026-08-12"
+    provenNote: "Aucune route morte (vérifié sur main): /help = alias de /help-center (MarketingStaticPage), /marketplace/templates = re-export de /templates, /mobile-workspace/:id = deeplink SEO réel, /search = utilitaire réel. Les deux hors nav primaire sont volontaires. Disposition documentée dans docs/audit/ORPHAN_ROUTES_BD16.md → zéro route orpheline non documentée."
     targetDate: "2026-11-30"
   - id: BD-17
     title: "Pages marketing statiques avec API backing inutilisée (mcp/marketplace/polyglot/community/web-search)"
