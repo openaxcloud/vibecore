@@ -1395,6 +1395,42 @@
       "justification": "This is the canonical persisted PAYG_CHARGE reason. Both credit-ledger HTTP boundaries recognize the kind/value pair and return locale catalogue copy; it is never rendered raw in French.",
       "owner": "billing-and-i18n",
       "expiresOn": "2027-08-05"
+    },
+    {
+      "id": "dormant-solution-catalog-default-copy",
+      "path": "app/components/marketing/EcodeMarketingPages.tsx",
+      "rule": "visible-object-copy",
+      "textPattern": "^(?:Solutions|What you can build|Production workflow|Prompt to project|Code review|Runtime preview|Deployment path|\\{…\\} gives teams a faster path from idea to a typed, reviewable project with a running preview\\.|Every generated project should be inspectable, testable and ready for deployment planning\\.)$",
+      "justification": "Structural defaults of makeSolution(), never rendered: localizeMarketingPage() replaces eyebrow/highlights/sections from the request-locale catalogue, and every solutionPages slug is served by its own localized static route (solutions.<slug>.tsx) which React Router matches before solutions.$slug.tsx. Verified live on 2026-08-12: the 9 /solutions/* pages plus /enterprise render in <html lang=\"fr\"> with none of these strings, in FR and in EN. The invariant is locked by app/routes/solutions.localized-route-coverage.spec.ts, which fails (naming the slug) if a slug ever loses its localized route.",
+      "owner": "marketing-and-i18n",
+      "expiresOn": "2027-08-12"
+    },
+    {
+      "id": "marketing-catalog-missing-entry-invariant",
+      "path": "app/components/marketing/EcodeMarketingPages.tsx",
+      "rule": "error-message",
+      "textPattern": "^Missing (?:auxiliary )?marketing catalog entry: \\{…\\}$",
+      "justification": "Programmer invariant thrown when a slug has no catalogue entry at all. A missing entry is a build/data defect, not a user-facing state; the catalogue is validated in CI (en/fr counts must match) so this throw is unreachable in a shipped build.",
+      "owner": "marketing-and-i18n",
+      "expiresOn": "2027-08-12"
+    },
+    {
+      "id": "localized-marketing-title-frame-catalog-pages",
+      "path": "app/components/marketing/EcodeMarketingPages.tsx",
+      "rule": "visible-object-copy",
+      "textPattern": "^\\{…\\} - E-Code$",
+      "justification": "Same frame already allowlisted for EcodeProductMarketingPages.tsx: the interpolated title comes from the active locale catalogue and only the non-translatable E-Code brand suffix is static. The existing Ecode*Pages.tsx entry only covers the visible-variable-copy rule, so the object-copy occurrence in makeMarketingMeta was left uncovered.",
+      "owner": "marketing-and-i18n",
+      "expiresOn": "2027-08-12"
+    },
+    {
+      "id": "localized-solution-title-frame-em-dash",
+      "path": "app/routes/solutions.$slug.tsx",
+      "rule": "visible-object-copy",
+      "textPattern": "^\\{…\\} — E-Code$",
+      "justification": "Same brand-suffix frame as the other marketing titles, written with an em dash here; the title itself comes from the loader data or from getMarketingSolutionsRouteCopy(language), so a French visitor never receives an English title.",
+      "owner": "marketing-and-i18n",
+      "expiresOn": "2027-08-12"
     }
   ]
 }
