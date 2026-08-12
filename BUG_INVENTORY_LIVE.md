@@ -244,3 +244,36 @@ Pile isolée complète : `qa-web`, `qa-api`, `qa-worker`, `qa-wsm`, `qa-pp` (pre
 **Piège rencontré, à connaître.** Un test verrouillait la fuite : `api.spec.ts` affirmait `expect(readme).toContain(prompt)`. Il affirme désormais l'inverse **et** vérifie que le prompt reste disponible via l'ide-state. `api.spec.ts` **124/124**.
 
 **Note d'écosystème.** `c2b99192` (autre session) a câblé le catalogue de modèles — **BUG-TPL-001 est donc corrigé par ailleurs**. Ce commit change le lockfile : toute image reconstruite doit repartir d'un `deps` frais, sinon le build casse sur `@vibecore/template-catalog/server` introuvable.
+
+### 2026-08-12 — BUG-PERF-LOAD : 3ᵉ levier livré, bilan complet en production
+
+`3f2b6cc7` sur `main`, CD vert. `experimentalMinChunkSize: 50_000` laisse Rollup fusionner les petits chunks.
+
+**Pourquoi ce levier était nécessaire.** Les deux premiers avaient retiré 931 Ko sans que le temps mural suive. La mesure disait pourquoi : les ressources les plus lentes de la home pesaient **1 à 11 Ko** et prenaient **~9,5 s chacune** — le goulot n'était plus le poids mais la **contention**, ~96 chunks (médiane 8 Ko, 68 sous 20 Ko) pour les ~210 modules du graphe racine.
+
+**Courbe mesurée sur le build réel** (fermeture des imports statiques depuis le chunk racine) :
+
+| seuil | requêtes | gzip | |
+|---|---|---|---|
+| baseline | 96 | 881 Ko | |
+| 20 Ko | 41 | 890 Ko | −57 % / +1,0 % |
+| **50 Ko** | **30** | **903 Ko** | **−69 % / +2,5 %** ← retenu |
+| 100 Ko | 27 | 910 Ko | −72 % / +3,3 % |
+
+**Bilan des trois leviers, mesuré en production sur `https://e-code.ai/`** :
+
+| | départ | après les 3 leviers |
+|---|---|---|
+| requêtes | 118 | **46** |
+| transfert | 2 113 Ko | **1 212 Ko** |
+| décodé (JS parsé) | 8 101 Ko | **4 931 Ko** |
+| `modulepreload` | 104 | **35** |
+| `root.imports` | 96, dont monaco | **29, zéro chunk lourd** |
+| chunks IDE sur la page marketing | 926 Ko | **1 fichier** (le CSS xterm) |
+| DOMContentLoaded | 1 220 ms | **913 ms** |
+| **`load`** | **6 062 ms** | **4 102 ms** |
+| ressource la plus lente | ~10 000 ms | **3 581 ms** |
+
+⚠️ **Honnêteté sur le temps mural** : les octets et les compteurs de requêtes sont déterministes et reproductibles ; le `load` d'un échantillon isolé est bruité (j'ai relevé 11,8 s à un moment de la session sur un build intermédiaire). Ce qui est solide, c'est la **disparition de la contention** — la ressource la plus lente passe de ~10 s à 3,6 s, ce qui est cohérent avec la suppression de 66 allers-retours.
+
+**Anti-régression vérifiée au RUNTIME, pas seulement au build** : `vite.config.ts` documente deux régressions passées où un regroupement de chunks avait produit un cycle d'initialisation et une page blanche. Le serveur construit a donc été lancé localement : `/`, `/login`, `/pricing`, `/register`, `/enterprise` répondent 200, React est hydraté (marqueurs internes présents, 83 éléments interactifs), zéro erreur console, aucun « Cannot access … before initialization ». Aucun chunk lourd n'entre dans la fermeture racine, et monaco/codemirror/terminal restent émis pour l'IDE.
