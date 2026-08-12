@@ -51,12 +51,17 @@ jobs:
           EXPECT: ${{ inputs.expect }}
         run: |
           set -uo pipefail
+          # `|| rc=$?` is load-bearing, not style. GitHub invokes every `run` block as
+          # `bash -e`, and `set -uo pipefail` does NOT clear that -e — so without the
+          # `||` the step dies the instant the gate refuses, the assertion below never
+          # runs, and `expect: refuse` could never be satisfied. Found by a live run:
+          # the gate correctly printed VERDICT: REFUSE and the job still went red.
           # --no-wait: a dry run reports the CURRENT state of a commit's checks. It
           # must not sit for 90 minutes waiting for a pipeline that may never run —
           # that is the deploy path's job, not this one's.
+          rc=0
           node scripts/release-gate/verify-required-checks.mjs \
-            --sha "${SHA}" --repo "${GITHUB_REPOSITORY}" --no-wait --json verdict.json
-          rc=$?
+            --sha "${SHA}" --repo "${GITHUB_REPOSITORY}" --no-wait --json verdict.json || rc=$?
           echo "gate exit code: ${rc}"
 
           case "${EXPECT}" in
