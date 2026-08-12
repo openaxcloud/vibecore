@@ -40,16 +40,25 @@ const DIR = join(import.meta.dirname, '.');
  * paraissent QUE dans les enveloppes elles-mêmes. `--kube-context` / `--context`
  * explicites sont acceptés : c'est exactement la propriété recherchée.
  */
+/*
+ * `--context` / `--kube-context` ne figurent PLUS ici. Un appel nu qui porte le
+ * drapeau reste un appel nu : le drapeau nomme une cible sans rien prouver de son
+ * identité, et il ne protège pas de `HELM_KUBEAPISERVER`, qui court-circuite le
+ * kubeconfig. Seules les enveloppes — qui neutralisent l'environnement PUIS
+ * vérifient l'identité — sont acceptées. `command helm|kubectl|terraform`
+ * n'apparaît que DANS ces enveloppes.
+ */
 const ALLOWED = [
   /\baudit_helm\b/,
   /\baudit_kubectl\b/,
   /\baudit_terraform\b/,
   /\bhelm repo\b/,
   /\bcommand (helm|kubectl|terraform)\b/,
-  /--kube-context/,
-  /--context[= ]/,
   /\bcommand -v (helm|kubectl|terraform)\b/,
-  /kubectl config get-contexts/,
+  // Enveloppe dediee au CONTROLE D'INTEGRITE de la prod : lecture seule, cible
+  // figee, sous-commandes mutantes refusees (voir lib.sh).
+  /\baudit_helm_prod_readonly\b/,
+  /\bkubectl config\b/,
 ];
 
 const CALL = /(?:^|[\s;&|(`$])(helm|kubectl|terraform)\s/;

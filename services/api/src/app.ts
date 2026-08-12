@@ -29297,10 +29297,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { private: false, reason: 'no-ports-state' };
     }
 
-    let state: { visibility?: Record<string, string> };
+    let parsed: unknown;
 
     try {
-      state = JSON.parse(raw) as { visibility?: Record<string, string> };
+      parsed = JSON.parse(raw);
     } catch (error) {
       app.log.error(
         { projectId: workspace.projectId, port: query.port, err: error },
@@ -29310,13 +29310,71 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { private: true, reason: 'ports-state-unparseable' };
     }
 
-    const visibility = state?.visibility;
+    /*
+     * VALIDATION D'EXÉCUTION, pas une assertion de type.
+     *
+     * LE DÉFAUT QUE CECI FERME. La version précédente faisait
+     * `JSON.parse(raw) as { visibility?: Record<string, string> }` puis testait
+     * `if (visibility && typeof visibility !== 'object')`. Un `as` ne vérifie RIEN
+     * à l'exécution, et ce test laissait passer tout ce qui suit :
+     *
+     *   null                    -> `visibility` undefined, `?.[port]` undefined  -> public
+     *   []                      -> typeof 'object', truthy                        -> public
+     *   "chaine"                -> `.visibility` undefined                        -> public
+     *   {"visibility": null}    -> falsy, donc le garde ne s'applique pas         -> public
+     *   {"visibility": []}      -> typeof 'object'                                -> public
+     *
+     * Cinq JSON syntaxiquement VALIDES mais sémantiquement inconnus, tous rendus
+     * « public ». C'est le même fail-open que la panne de base, une couche plus bas :
+     * on ne prouve pas qu'un port est public, on constate juste qu'on n'a pas trouvé
+     * de quoi le déclarer privé. Or l'absence de preuve n'est pas une preuve
+     * d'absence.
+     *
+     * La règle est maintenant explicite et positive : la racine DOIT être un objet
+     * simple ; si `visibility` est présent il DOIT être un objet simple ; chaque clé
+     * DOIT être un port valide et chaque valeur DOIT être exactement `public` ou
+     * `private`. Toute donnée qui ne rentre pas dans cette grammaire est INCONNUE,
+     * donc traitée comme privée.
+     */
+    const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+      typeof value === 'object' && value !== null && !Array.isArray(value);
 
-    if (visibility && typeof visibility !== 'object') {
+    const denyMalformed = (detail: string) => {
+      app.log.error(
+        { projectId: workspace.projectId, port: query.port, detail },
+        'port-access: VIBECORE_PORTS_STATE mal forme — fail-closed',
+      );
+
       return { private: true, reason: 'ports-state-malformed' };
+    };
+
+    if (!isPlainObject(parsed)) {
+      return denyMalformed('racine: objet simple attendu');
     }
 
-    return { private: visibility?.[String(query.port)] === 'private', reason: 'ports-state-read' };
+    const rawVisibility = parsed.visibility;
+
+    // `visibility` absent est légitime : un état qui ne porte que d'autres clés.
+    // `null` ne l'est PAS — c'est une valeur présente et non conforme.
+    if (rawVisibility !== undefined) {
+      if (!isPlainObject(rawVisibility)) {
+        return denyMalformed('visibility: objet simple attendu');
+      }
+
+      for (const [portKey, visibilityValue] of Object.entries(rawVisibility)) {
+        if (!/^[1-9][0-9]{0,4}$/.test(portKey) || Number(portKey) > 65535) {
+          return denyMalformed(`visibility: port invalide (${portKey})`);
+        }
+
+        if (visibilityValue !== 'public' && visibilityValue !== 'private') {
+          return denyMalformed(`visibility: valeur inconnue pour le port ${portKey}`);
+        }
+      }
+    }
+
+    const visibility = (rawVisibility ?? {}) as Record<string, 'public' | 'private'>;
+
+    return { private: visibility[String(query.port)] === 'private', reason: 'ports-state-read' };
   });
 
   /*

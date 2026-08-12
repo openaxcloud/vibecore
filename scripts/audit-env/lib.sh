@@ -181,6 +181,30 @@ audit_helm() {
   command helm --kube-context="$AUDIT_KUBE_CONTEXT" "$@"
 }
 
+# Contrôle d'intégrité de la PRODUCTION — LECTURE SEULE, par construction.
+#
+# `down.sh` doit pouvoir affirmer « la prod est intacte » après un teardown, ce qui
+# suppose de l'interroger. Un `helm --kube-context=<prod>` nu le permettait, mais
+# rien n'empêchait alors d'écrire `upgrade` ou `uninstall` sur cette même ligne :
+# la lecture seule reposait sur la vigilance du relecteur. Ici, elle est vérifiée —
+# la liste des sous-commandes autorisées est fermée, et tout le reste est refusé
+# avant d'atteindre Helm.
+readonly AUDIT_ENV_PROD_READONLY_VERBS='list history status get'
+
+audit_helm_prod_readonly() {
+  local ctx="${1:?contexte prod}" verb="${2:?sous-commande}" allowed=0 candidate
+  shift 2
+
+  for candidate in $AUDIT_ENV_PROD_READONLY_VERBS; do
+    [[ "$verb" == "$candidate" ]] && allowed=1
+  done
+
+  ((allowed == 1)) ||
+    _audit_env_die "sous-commande '$verb' interdite sur la PROD (lecture seule: $AUDIT_ENV_PROD_READONLY_VERBS)."
+
+  command helm --kube-context="$ctx" "$verb" "$@"
+}
+
 # Terraform : la neutralisation faite au démarrage ne suffit pas à elle seule,
 # parce qu'un script peut réexporter une variable entre-temps (ou un futur
 # contributeur l'ajouter « juste pour un essai »). L'enveloppe REVÉRIFIE juste

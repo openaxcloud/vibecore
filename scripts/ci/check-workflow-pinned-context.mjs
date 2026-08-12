@@ -26,13 +26,18 @@ const DIR = join(import.meta.dirname, '..', '..', '.github', 'workflows');
  * l'étape de credentials en a besoin pour nommer le contexte qu'elle vient
  * d'obtenir. `helm repo` est purement local. Le reste doit passer par l'enveloppe.
  */
+/*
+ * `--context` / `--kube-context` NE SONT PLUS des laissez-passer. Ils nomment une
+ * cible, ils ne prouvent RIEN sur son identité : le nom d'un contexte est une
+ * chaîne libre choisie par celui qui écrit le kubeconfig, et `HELM_KUBEAPISERVER`
+ * contourne le kubeconfig entièrement. Seule l'enveloppe vérifie l'identité auprès
+ * de GCP — donc seule l'enveloppe est acceptée.
+ */
 const ALLOWED = [
   /scripts\/ci\/cluster\.sh/,
   /\bkubectl config\b/,
   /\bhelm repo\b/,
   /\bhelm (lint|template|show)\b/,
-  /--kube-context/,
-  /--context[= ]/,
 ];
 
 const CALL = /(?:^|[\s;&|(`$])(helm|kubectl)\s/;

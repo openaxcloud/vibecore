@@ -64,8 +64,12 @@ ingress:
 platformEnv:
   saasApiUrl: 'http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001'
   apiBaseUrl: 'http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001'
-  screenshotterUrl: ''
-  screenshotterAllowedHosts: ''
+  # Vignettes automatiques : ACTIVEES ici, parce que le trajet complet
+  # screenshotter -> preview-proxy -> workspace est l'une des 4 portes d'acces a un
+  # preview et doit etre prouve en REEL, pas seulement au niveau du proxy.
+  screenshotterUrl: 'http://vibecore-vibecore-platform-screenshotter.vibecore.svc.cluster.local:3030'
+  screenshotterAllowedHosts: 'preview.__LB_IP__.sslip.io'
+  screenshotterPreviewProxyUrl: 'http://vibecore-vibecore-platform-preview-proxy.vibecore.svc.cluster.local:3020'
   publicApiBaseUrl: 'https://api.__LB_IP__.sslip.io'
   platformAdminEmails: 'audit-admin@audit-test.invalid'
   trustProxy: 'true'
@@ -114,6 +118,12 @@ platformEnv:
 # Replica counts kept low enough to fit 2x e2-standard-4, but >1 where the
 # audit needs real concurrency (web SSR, api multi-replica over shared RWX).
 services:
+  # Le screenshotter est `enabled: false` par defaut dans le chart (son image est
+  # lourde et rien ne la consomme tant que l'infra n'est pas validee). Ici il est
+  # ACTIF : la porte des vignettes se prouve avec le vrai renderer.
+  screenshotter:
+    enabled: true
+    replicas: 1
   web:
     replicas: 2
     resources:
