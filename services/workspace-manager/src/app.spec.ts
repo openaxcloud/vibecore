@@ -527,6 +527,30 @@ describe('workspace-manager app', () => {
       await app.close();
     });
 
+    /*
+     * The refusal message comes from the catalogue (so it localises, and so the i18n
+     * source-scan guard stays clean), while the actual bounds travel in `detail` —
+     * data, not copy. A caller that needs the numbers still gets them.
+     */
+    it('carries the graceMs bounds as data, not as untranslatable copy', async () => {
+      process.env.WORKSPACE_MANAGER_SHARED_SECRET = SECRET;
+      const { app } = frozenRuntimeApp();
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/internal/reconcile-workspace-freezes',
+        headers: { authorization: `Bearer ${SECRET}` },
+        payload: { graceMs: 0 },
+      });
+
+      expect(res.json().detail).toEqual({
+        minGraceMs: MIN_RECONCILE_GRACE_MS,
+        maxGraceMs: 30 * 24 * 60 * 60 * 1000,
+      });
+      expect(res.json().error).not.toMatch(/graceMs must be/);
+      await app.close();
+    });
+
     it('rejects a negative and a below-floor graceMs', async () => {
       process.env.WORKSPACE_MANAGER_SHARED_SECRET = SECRET;
       const { runtime, app } = frozenRuntimeApp();

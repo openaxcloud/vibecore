@@ -380,7 +380,7 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
 
       if (!scheme) {
         return reply.code(503).send({
-          error: 'Internal route has no dedicated authentication configured',
+          error: workspaceManagerMessage('internalRouteUngated', 'en'),
           code: 'WORKSPACE_MANAGER_INTERNAL_ROUTE_UNGATED',
         });
       }
@@ -634,9 +634,15 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
       .safeParse(request.body ?? {});
 
     if (!parsed.success) {
+      /*
+       * Message from the catalogue so the preSerialization hook can localise it; the
+       * exact bounds stay in `detail`, which is data, not copy — a client that needs
+       * the numbers still gets them without putting untranslatable text in `error`.
+       */
       return reply.code(400).send({
-        error: `graceMs must be an integer between ${MIN_RECONCILE_GRACE_MS} and ${30 * 24 * 60 * 60 * 1000} ms`,
+        error: workspaceManagerMessage('reconcileGraceInvalid', 'en'),
         code: 'WORKSPACE_RECONCILE_GRACE_INVALID',
+        detail: { minGraceMs: MIN_RECONCILE_GRACE_MS, maxGraceMs: 30 * 24 * 60 * 60 * 1000 },
       });
     }
 

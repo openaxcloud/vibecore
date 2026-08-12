@@ -1395,6 +1395,24 @@
       "justification": "This is the canonical persisted PAYG_CHARGE reason. Both credit-ledger HTTP boundaries recognize the kind/value pair and return locale catalogue copy; it is never rendered raw in French.",
       "owner": "billing-and-i18n",
       "expiresOn": "2027-08-05"
+    },
+    {
+      "id": "worker-freeze-reconcile-job-diagnostics",
+      "path": "services/worker/src/index.ts",
+      "rule": "error-message",
+      "textPattern": "^(?:WORKSPACE_MANAGER_URL is required to trigger workspace\\.freezeReconcile|WORKSPACE_MANAGER_SHARED_SECRET is required to trigger workspace\\.freezeReconcile|workspace\\.freezeReconcile upstream failed: .*)$",
+      "justification": "BullMQ job-failure diagnostics for the purge-barrier reconcile cron. They are thrown to fail the job and are only ever read in worker logs and the BullMQ failed-job record; no HTTP response or UI ever renders them. Naming the env vars and the upstream status verbatim is what makes the failure actionable for an operator.",
+      "owner": "workspace-platform-and-i18n",
+      "expiresOn": "2027-08-12"
+    },
+    {
+      "id": "workspace-manager-purge-barrier-operator-diagnostics",
+      "path": "services/workspace-manager/src/manager.ts",
+      "rule": "error-message",
+      "textPattern": "^(?:WORKSPACE_RECONCILE_GRACE_TOO_SMALL: graceMs must be >= .*|\\(got .*\\) — a shorter window would lift barriers of purges that are still running|WORKSPACE_PURGE_BARRIER_UNVERIFIABLE: could not read the purge barrier for .*|reprovision refused \\(fail-closed\\): .*|WORKSPACE_FREEZE_PERSIST_FAILED: could not read runtime .* to freeze it:.*)$",
+      "justification": "Operator diagnostics for the account-purge barrier (R-P3-06/07). app.setErrorHandler never serializes error.message: it maps to a catalogue key or falls back to the localized internalServerError/requestFailed copy, so these texts reach service logs only. The grace-floor guard is additionally unreachable over HTTP — the route validates graceMs with zod first and answers 400 with the localized reconcileGraceInvalid message. Naming the failing runtime, the bound and the underlying DB error verbatim is what makes a fail-closed refusal diagnosable.",
+      "owner": "workspace-platform-and-i18n",
+      "expiresOn": "2027-08-12"
     }
   ]
 }

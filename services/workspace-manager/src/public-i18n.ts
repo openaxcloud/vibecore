@@ -24,6 +24,8 @@ const copy = {
     internalServerError: 'An internal error occurred. Please try again.',
     previewProxyNotConfigured: 'The preview proxy is not configured.',
     previewProxyUnauthorized: 'Unauthorized preview proxy request.',
+    internalRouteUngated: 'This internal route has no dedicated authentication configured.',
+    reconcileGraceInvalid: 'The reconciliation grace window is outside the permitted range.',
   },
   fr: {
     workspaceNotFound: 'Espace de travail introuvable.',
@@ -49,6 +51,8 @@ const copy = {
     internalServerError: 'Une erreur interne est survenue. Veuillez réessayer.',
     previewProxyNotConfigured: 'Le proxy d’aperçu n’est pas configuré.',
     previewProxyUnauthorized: 'Requête non autorisée vers le proxy d’aperçu.',
+    internalRouteUngated: 'Cette route interne n’a pas d’authentification dédiée configurée.',
+    reconcileGraceInvalid: 'La fenêtre de grâce de réconciliation est en dehors de la plage autorisée.',
   },
 } as const;
 
