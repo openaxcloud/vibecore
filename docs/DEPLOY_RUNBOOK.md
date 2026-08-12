@@ -66,6 +66,30 @@ GITHUB_TOKEN="$(gh auth token)" \
 # exit 0 = would deploy, exit 2 = would be refused (prints why, per workflow)
 ```
 
+**Waivers — how to make a check temporarily not-required, safely.** A pipeline can be
+broken for reasons that have nothing to do with release integrity. Making it required
+anyway does not gate anything, it blocks everything. So a required workflow may carry:
+
+```jsonc
+{ "displayName": "Production E2E",
+  "waivedUntil": "2026-08-26",              // hard expiry
+  "waiverReason": "suite red for reasons unrelated to release integrity",
+  "waiverTicket": "BUG-E2E-001" }           // the work that removes the waiver
+```
+
+A waiver is **loud** (printed on every gate run and in the verdict artifact, under
+`⚠️ WAIVERS IN EFFECT — this release was NOT fully gated`) and it **expires**: past
+the date the check is required again and deploys start refusing. Expiry fails closed
+on purpose — this whole gate exists because `Production E2E` was already waived *de
+facto*, by never running, with nobody noticing for months. A waiver missing a reason,
+a ticket, or with a malformed date is a **refusal**, not a silently ignored field.
+
+**Status as of 2026-08-12: nothing is waived, and the E2E suite is red on every
+branch** (0 successes in the last 25 runs). Enabling the gate as written therefore
+refuses every deploy until E2E is fixed. Decide deliberately: fix E2E first, or waive
+it with a date and a ticket — in which case the gate still enforces CI + Security +
+Quality, which alone would have blocked all three commits that shipped red.
+
 **Reproduce the whole digest mechanism locally**, without touching production:
 
 ```bash
