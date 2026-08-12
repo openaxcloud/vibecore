@@ -81,3 +81,41 @@ correction du symptôme d'Avi.
 Dans tous les cas la validation doit se faire dans un isolement dédié, avec les
 témoins déjà utilisés ici (canary dans le pod, PID du dev server, `mtime` d'un
 fichier source) : ce sont eux qui rendent le rouge→vert incontestable.
+
+---
+
+## Option D — Unifier l'identité du workspace (ajoutée après la piste Rollback)
+
+Défaut **distinct** mais recouvrant, confirmé empiriquement : voir
+**BUG-WS-ID-SPLIT** dans `BUG_INVENTORY_LIVE.md`. Trois des quatre chemins de
+création laissent Prisma poser un `cuid()`, pendant que huit sites — dont le
+build statique, le flux de build de déploiement, les outils de l'agent, le
+restore de snapshot et `authorizeRuntimeWorkspace` lui-même — **dérivent**
+`ws-sha256(projectId:userId)[:16]`. Un projet dont le workspace actif vient de
+l'API publique, du planificateur ou du publish voit donc le build cibler un
+workspace **différent**, provisionné vide.
+
+Deux façons de refermer l'écart :
+
+- **D1 — résoudre au lieu de dériver.** Les huit sites lisent le workspace actif
+  du projet (`authorizeRuntimeWorkspace` avec un vrai `workspaceId`, et rejet
+  explicite en cas de non-appartenance) au lieu de recalculer un id.
+  *Pour* : supprime la classe entière, y compris BUG-IDE-001.
+  *Contre* : huit points d'appel, chacun avec son contexte d'autorisation ; il
+  faut décider ce que devient un projet à **plusieurs** workspaces (lequel est
+  « actif » ?). *Coût* : moyen-élevé. *Réversibilité* : bonne, site par site.
+- **D2 — poser l'id dérivé partout à la création.** Les trois chemins qui
+  omettent l'id posent `runtimeWorkspaceId(projectId, userId)`.
+  *Pour* : correctif d'une ligne par site, l'écart disparaît mécaniquement.
+  *Contre* : ne marche que si un projet n'a **qu'un** workspace par utilisateur —
+  or l'id dérivé ne dépend que de `(projectId, userId)`, donc deux workspaces du
+  même utilisateur sur le même projet **entreraient en collision**. À écarter si
+  le multi-workspace est un cas réel. *Coût* : faible. *Risque* : élevé.
+
+**Ce que cela change pour l'arbitrage.** D est **orthogonal** à A/B/C : il ne
+corrige pas le reseed au reopen (ma reproduction n'avait aucune divergence d'id
+et reseedait quand même), et A/B/C ne corrigent pas le build qui vise un pod
+vide. Les deux chantiers sont nécessaires. Si l'un doit passer d'abord, **D1**
+a le meilleur ratio : il ferme aussi BUG-IDE-001 et le symptôme « le build ne
+voit pas mes fichiers », qui est plus destructeur pour l'utilisateur qu'un
+rebuild lent.
