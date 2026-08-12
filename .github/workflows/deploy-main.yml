@@ -474,6 +474,16 @@ jobs:
           #
           # --expect-sha binds the verdict to the exact commit being deployed, so a
           # certification can never be carried over from another tree.
+          #
+          # RELATION TO THE RELEASE-GATE LOT (feat/deploy-exact-sha-gate): that lot
+          # adds a `resolve-target` job which pins `target_sha`, derives
+          # `short_sha = ${TARGET_SHA:0:10}` into this same SHORT_SHA env, and makes
+          # every job check out `ref: target_sha`. The two compose rather than
+          # duplicate: this gate keeps reading SHORT_SHA and keeps returning the same
+          # verdict, while that lot makes the checkout PROVABLY the target — at which
+          # point the `sha-mismatch` branch below becomes unreachable. It is kept as a
+          # belt, because it is the only thing standing between "we inspected tree A"
+          # and "we deployed image B" until that lot actually lands.
           INTERLOCK_FAIL_REASON=''
 
           if node scripts/verify-prod-interlock.mjs \
