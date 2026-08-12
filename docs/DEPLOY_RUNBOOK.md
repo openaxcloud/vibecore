@@ -27,6 +27,11 @@ aspirational design.
 
 ## Release gate — a commit only deploys if its own pipeline is green
 
+> **Switching it on for the first time:** follow
+> [`RELEASE_GATE_CUTOVER.md`](RELEASE_GATE_CUTOVER.md) — ordered steps, the two
+> admin-only prerequisites, and the `Production E2E` decision. This section describes
+> the gate once it is live.
+
 **Added 2026-08-12.** Before this, `deploy-main.yml` built and rolled out every push
 to `main` with no relationship to that commit's test results. Verified against the
 GitHub API, three commits reached production on a red or cancelled pipeline —
