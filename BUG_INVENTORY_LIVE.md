@@ -170,3 +170,23 @@ La décision est `reused && seededThisSession && hasLivePort`, et `storageNewerT
 - **`hasLivePort`** — **non éliminé.** `hasLivePreviewPort` exige `port.ready === true` **strictement**, alors que le code voisin de `refreshRuntimePorts` accepte `preview.ready !== false`. L'API `/ports` renvoie bien `ready:true`, mais la valeur transite par `#applyPortEvent` (`ready ?? type === 'open'`) et par le magasin `previews`, vide au montage d'une page neuve.
 
 **Conclusion honnête : le signal fautif n'est pas identifié.** Le trancher demande d'instrumenter les trois valeurs à l'instant exact de la décision côté client, donc un build déployé — impossible tant que je ne mute pas le cluster de test partagé. **Le correctif `fix/runtime-divergence-seed-marker` reste NON mergé et insuffisant.**
+
+### 2026-08-12 — BUG-PERF-LOAD : mesure **en production** après les deux correctifs
+
+`df8eb531` + `50f30c5d` déployés (CD verts). Mesure prod, navigateur réel sur `https://e-code.ai/`, même méthode que la mesure initiale :
+
+| | avant (12/08 matin) | après | écart |
+|---|---|---|---|
+| requêtes | 118 | **114** | −4 |
+| **transfert** | **2 113 Ko** | **1 182 Ko** | **−931 Ko (−44 %)** |
+| **décodé (JS parsé)** | **8 101 Ko** | **4 667 Ko** | **−3 434 Ko (−42 %)** |
+| chunks IDE sur la page marketing | **926 Ko** | **2 Ko** (le seul CSS xterm) | **−924 Ko** |
+| `root.imports` (manifeste) | 96, dont monaco | **95, zéro chunk lourd** | |
+| poids des assets référencés (mesure serveur) | 1 971,2 Ko | **1 040,6 Ko** | −930,6 Ko |
+| plus gros chunk préchargé | `vendor-monaco-core` 573 Ko | `runtime` 227 Ko | |
+
+`vendor-vite-helpers-CLcXU_4U.js` (985 o) est bien en ligne, **même empreinte que le build local** — l'artefact déployé est exactement celui qui a été vérifié.
+
+**⚠️ Le temps mural n'est PAS résolu pour autant, et il ne faut pas le revendiquer.** Avec moitié moins d'octets, l'événement `load` reste élevé (11,8 s sur cet échantillon, contre 6,06 s sur l'échantillon initial — deux mesures trop bruitées pour être comparées). La cause est ailleurs : les ressources les plus lentes pèsent **1 à 11 Ko** et prennent pourtant **~9,3 à 10,0 s chacune** (`marketing-exact-product-controls` 4 Ko/9 997 ms, `fr-B4WEzLGT` 11 Ko/9 622 ms, `support-ticket-detail` 3 Ko/9 391 ms…). Ce sont des `modulepreload` en **contention** : **102 requêtes** émises d'un coup.
+
+**Troisième levier, ouvert : le chunk `root` importe statiquement ~95 chunks de ROUTES** (`import"./admin-billing-*.js"`, `./support-*.js`, `./team-access-log-*.js`, `./upgrade-*.js`, `./ide-new-route-*.js`…) en imports d'effet de bord, alors que la home marketing n'en apparie aucune. C'est ce qui fixe le plancher de 102 requêtes. Tant que ce point n'est pas traité, le gain en octets ne se convertit pas en gain de temps perçu. À instruire ensuite.
