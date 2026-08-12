@@ -28,6 +28,11 @@
 #     ImagePullBackOff — re-tag or rebuild the rest. See
 #     docs/INFRASTRUCTURE.md → "Targeted Rebuilds".
 substitutions:
+  # Dockerfile du service. Par defaut l'image node generique ; le screenshotter
+  # passe `_DOCKERFILE=infra/docker/screenshotter.Dockerfile` (base
+  # Playwright/Chromium). Parametre plutot que duplique : un second fichier de
+  # build divergerait du premier des la premiere evolution.
+  _DOCKERFILE: infra/docker/node-service.Dockerfile
   _REGION: europe-west9
   _PROJECT: vibecore-495216
   _REPO: vibecore-prod-containers
@@ -69,7 +74,7 @@ steps:
       - DOCKER_BUILDKIT=1
     args:
       - build
-      - -f=infra/docker/node-service.Dockerfile
+      - -f=${_DOCKERFILE}
       - --build-arg=BUILDKIT_INLINE_CACHE=1
       - --build-arg=DEPS_IMAGE=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/deps:${_DEPS_TAG}
       - --build-arg=PACKAGE_FILTER=${_PACKAGE_FILTER}

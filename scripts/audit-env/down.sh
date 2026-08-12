@@ -155,7 +155,7 @@ echo "==> CONTROLE PROD (doit etre intacte)"
 # affichait la release d'audit sous l'etiquette « prod » et un teardown qui
 # aurait detruit la prod se serait quand meme conclu par « prod intacte ».
 if kubectl config get-contexts -o name 2>/dev/null | grep -qx "$PROD_KUBE_CONTEXT"; then
-  prod_json="$(helm --kube-context="$PROD_KUBE_CONTEXT" -n vibecore list -o json 2>/dev/null || echo '[]')"
+  prod_json="$(audit_helm_prod_readonly "$PROD_KUBE_CONTEXT" list -n vibecore -o json 2>/dev/null || echo '[]')"
   prod_rev="$(printf '%s' "$prod_json" | python3 -c 'import json,sys;d=json.load(sys.stdin);print(d[0]["revision"] if d else "AUCUNE")' 2>/dev/null || echo '?')"
   prod_status="$(printf '%s' "$prod_json" | python3 -c 'import json,sys;d=json.load(sys.stdin);print(d[0]["status"] if d else "AUCUNE")' 2>/dev/null || echo '?')"
   echo "    release vibecore (prod) . revision=$prod_rev status=$prod_status  [contexte: $PROD_KUBE_CONTEXT]"

@@ -5,42 +5,53 @@
 #   scripts/ci/cluster.sh prod-direct  helm    upgrade --install vibecore …
 #   scripts/ci/cluster.sh staging      kubectl -n vibecore get pods
 #
-# LE DÉFAUT QUE CECI FERME. deploy-main.yml neutralisait les variables `HELM_*`
-# dans l'étape « Get cluster credentials »… et un `unset` ne franchit pas la
-# frontière d'une étape : chaque `run:` est un shell neuf, ré-alimenté par le bloc
-# `env:` du workflow et par l'environnement du runner. Les étapes suivantes
-# repartaient donc avec les variables intactes. Et `--kube-context` ne suffit pas à
-# les couvrir : `HELM_KUBEAPISERVER` (+ `HELM_KUBETOKEN`) contourne le kubeconfig
-# ENTIÈREMENT, donc le contexte nommé n'est même plus consulté. Un
-# `HELM_KUBEAPISERVER=https://127.0.0.1:1` faisait échouer l'upgrade de prod ;
-# pointé sur un autre apiserver, il l'y aurait appliqué.
+# ---------------------------------------------------------------------------
+# DÉFAUT 1 (fermé au tour précédent) — la PORTÉE d'un `unset`.
 #
-# Trois propriétés, à chaque appel :
-#   1. l'environnement est neutralisé DANS LE PROCESSUS QUI EXÉCUTE L'OUTIL —
-#      c'est la seule portée où un `unset` a un sens ;
-#   2. la cible est NOMMÉE explicitement (`--kube-context` / `--context`), jamais
-#      héritée du « contexte courant » ;
-#   3. l'identité de cette cible est vérifiée dans le kubeconfig avant d'agir,
-#      selon la cible demandée — sinon un kubeconfig substitué pourrait définir un
-#      contexte du bon NOM pointant ailleurs.
+# deploy-main.yml neutralisait les variables `HELM_*` dans l'étape de credentials,
+# mais un `unset` ne franchit pas la frontière d'une étape : chaque `run:` est un
+# shell neuf, ré-alimenté par le bloc `env:` du workflow et par l'environnement du
+# runner. Et `--kube-context` ne couvre pas le problème : `HELM_KUBEAPISERVER`
+# (+ `HELM_KUBETOKEN`) contourne le kubeconfig ENTIÈREMENT, donc le contexte nommé
+# n'est même plus consulté.
 #
-# Les trois cibles existent parce que les workflows s'authentifient de deux façons
-# différentes, et qu'il faut vérifier ce qui est réellement vérifiable :
-#   prod-gateway  Connect Gateway (`fleet memberships get-credentials`), utilisé
-#                 par deploy-main.yml et ar-protect-images.yml. Le nom du contexte
-#                 est déterministe -> allow-list d'UN élément + apiserver vérifié.
-#   prod-direct   action `get-gke-credentials` (deploy-prod.yml). Le nom du contexte
-#                 est `gke_<projet>_<région>_<cluster>` et dépend de `vars.*`, donc
-#                 il n'est pas connu du dépôt : on exige qu'il désigne le PROJET de
-#                 production, ce qui est la propriété qui compte.
-#   staging       même action, cluster de staging : on exige l'inverse, que la cible
-#                 ne soit PAS un cluster de production.
+# DÉFAUT 2 (fermé ici) — une SOUS-CHAÎNE n'est pas une identité.
+#
+# La version précédente se contentait de :
+#   `[[ "$server" == *"vibecore-prod-app"* ]]`      (prod-gateway)
+#   `[[ "$ctx"    == *"vibecore-495216"*   ]]`      (prod-direct)
+#   `[[ "$ctx" != *prod* && "$server" != *gateway* ]]` (staging, deny-list)
+#
+# Trois trous, reproduits en hermétique par l'auditeur (faux Helm atteint, exit 0) :
+#   * un AUTRE projet Connect Gateway portant une membership du même nom passait —
+#     le nom de la membership est un libellé, pas une identité ;
+#   * n'importe quel apiserver passait dès que le NOM du contexte contenait
+#     `vibecore-495216` — or le nom d'un contexte est une chaîne libre, choisie par
+#     celui qui écrit le kubeconfig ;
+#   * une deny-list se contourne par construction : il suffit d'un nom qui évite
+#     les motifs interdits.
+#
+# CE QUI EST VÉRIFIÉ MAINTENANT, dans cet ordre, à chaque appel :
+#   1. l'environnement est neutralisé DANS LE PROCESSUS qui exécute l'outil ;
+#   2. le NOM du contexte doit être EXACTEMENT celui de l'allow-list ;
+#   3. l'apiserver attendu est RÉSOLU AUPRÈS DE GCP (autoritatif : Resource
+#      Manager pour le numéro de projet, Fleet pour la membership, GKE pour
+#      l'endpoint), puis comparé par ÉGALITÉ STRICTE à celui du kubeconfig.
+#
+# Aucune comparaison de sous-chaîne, aucune deny-list, et l'identité ne provient
+# jamais d'un nom écrit dans un fichier : elle provient de l'API qui en est
+# l'autorité. Une panne de résolution est un REFUS, pas un laissez-passer.
+# ---------------------------------------------------------------------------
 set -euo pipefail
 
+# --- allow-list EXACTE, pinnée dans le code (l'infra est de l'IaC) ----------
 readonly PROD_PROJECT_ID='vibecore-495216'
-readonly PROD_GATEWAY_CONTEXT='connectgateway_vibecore-495216_europe-west9_vibecore-prod-app'
-readonly PROD_MEMBERSHIP='vibecore-prod-app'
-readonly GATEWAY_HOST='connectgateway.googleapis.com'
+readonly PROD_PROJECT_NUMBER='267592214411'
+readonly PROD_LOCATION='europe-west9'
+readonly PROD_APP_CLUSTER='vibecore-prod-app'
+# Contextes attendus, à la lettre.
+readonly PROD_GATEWAY_CONTEXT="connectgateway_${PROD_PROJECT_ID}_${PROD_LOCATION}_${PROD_APP_CLUSTER}"
+readonly PROD_DIRECT_CONTEXT="gke_${PROD_PROJECT_ID}_${PROD_LOCATION}_${PROD_APP_CLUSTER}"
 
 die() {
   echo "REFUS (fail-closed): $*" >&2
@@ -81,55 +92,83 @@ case "$tool" in
   *) die "outil '$tool' non pris en charge (helm ou kubectl uniquement)." ;;
 esac
 
-# --- 2. nommer la cible ----------------------------------------------------
-# `current-context` n'est lu QUE pour les cibles dont le nom dépend de `vars.*` du
-# dépôt ; il est ensuite passé explicitement et son identité est contrôlée.
+# --- identité du projet, auprès de l'autorité ------------------------------
+# Le couple (id, numéro) est vérifié: un id de projet peut être recréé, le numéro
+# non. Si Resource Manager ne répond pas, on refuse.
+assert_prod_project() {
+  local number
+  number="$(gcloud projects describe "$PROD_PROJECT_ID" --format='value(projectNumber)' 2>/dev/null)" ||
+    die "impossible de resoudre le projet '$PROD_PROJECT_ID' aupres de Resource Manager."
+  [[ "$number" == "$PROD_PROJECT_NUMBER" ]] ||
+    die "le projet '$PROD_PROJECT_ID' porte le numero '$number', pas '$PROD_PROJECT_NUMBER'."
+}
+
+# --- 2. le NOM du contexte, par égalité stricte ----------------------------
+# --- 3. l'apiserver ATTENDU, résolu auprès de GCP --------------------------
 ctx=''
+expected_server=''
+
 case "$target" in
   prod-gateway)
-    # PROD_KUBE_CONTEXT est renseignée par l'étape de credentials ; elle est
-    # CONFRONTÉE à la constante, jamais utilisée telle quelle.
     ctx="${PROD_KUBE_CONTEXT:-$PROD_GATEWAY_CONTEXT}"
     [[ "$ctx" == "$PROD_GATEWAY_CONTEXT" ]] ||
       die "contexte '$ctx' != '$PROD_GATEWAY_CONTEXT' (allow-list d'un seul element)."
+    assert_prod_project
+
+    # La membership est lue chez Fleet : son nom canonique contient le PROJET
+    # propriétaire. Un homonyme dans un autre projet ne peut donc pas passer.
+    membership="$(gcloud container fleet memberships describe "$PROD_APP_CLUSTER" \
+      --project="$PROD_PROJECT_ID" --location="$PROD_LOCATION" --format='value(name)' 2>/dev/null)" ||
+      die "membership '$PROD_APP_CLUSTER' introuvable dans '$PROD_PROJECT_ID'/$PROD_LOCATION."
+    [[ "$membership" == "projects/${PROD_PROJECT_ID}/locations/${PROD_LOCATION}/memberships/${PROD_APP_CLUSTER}" ]] ||
+      die "identite de membership inattendue: '$membership'."
+
+    # URL du Connect Gateway, reconstruite depuis le NUMÉRO de projet vérifié.
+    expected_server="https://${PROD_LOCATION}-connectgateway.googleapis.com/v1/projects/${PROD_PROJECT_NUMBER}/locations/${PROD_LOCATION}/gkeMemberships/${PROD_APP_CLUSTER}"
     ;;
-  prod-direct | staging)
+
+  prod-direct)
+    # `get-gke-credentials` écrit un contexte `gke_<projet>_<région>_<cluster>` :
+    # ce nom est exigé à la lettre, PAS « contient l'id du projet ».
     ctx="$(kubectl config current-context 2>/dev/null || true)"
     [[ -n "$ctx" ]] || die "aucun contexte courant — lancer d'abord l'etape de credentials."
+    [[ "$ctx" == "$PROD_DIRECT_CONTEXT" ]] ||
+      die "contexte '$ctx' != '$PROD_DIRECT_CONTEXT' (allow-list d'un seul element)."
+    assert_prod_project
+
+    endpoint="$(gcloud container clusters describe "$PROD_APP_CLUSTER" \
+      --project="$PROD_PROJECT_ID" --location="$PROD_LOCATION" --format='value(endpoint)' 2>/dev/null)" ||
+      die "endpoint du cluster '$PROD_APP_CLUSTER' non resolu aupres de GKE."
+    [[ -n "$endpoint" ]] || die "GKE a renvoye un endpoint vide pour '$PROD_APP_CLUSTER'."
+    expected_server="https://${endpoint}"
     ;;
+
+  staging)
+    # Aucune identité de staging n'est épinglée, et ce n'est pas un oubli : le dépôt
+    # ne définit ni `vars.STAGING_APP_CLUSTER` ni `vars.GCP_REGION` (vérifié — seules
+    # `GAR_LOCATION` et `GCP_PROJECT_ID` existent), donc il n'y a aujourd'hui aucun
+    # cluster de staging à autoriser. Une deny-list « tout sauf ce qui ressemble à la
+    # prod » se contourne par construction : il suffit d'un nom qui évite les motifs.
+    # On refuse donc, en disant quoi faire — ajouter le triplet (projet+numéro,
+    # région, cluster) à l'allow-list ci-dessus, dans le commit même qui provisionne
+    # l'environnement.
+    die "aucune identite de staging n'est epinglee dans l'allow-list — refus. Ajouter (projet+numero, region, cluster) dans scripts/ci/cluster.sh, dans le commit qui provisionne le staging."
+    ;;
+
   *) die "cible '$target' inconnue (prod-gateway | prod-direct | staging)." ;;
 esac
 
-# --- 3. vérifier l'IDENTITÉ de la cible, pas seulement son nom -------------
+# --- comparaison par ÉGALITÉ STRICTE avec le kubeconfig --------------------
 cluster="$(kubectl config view -o "jsonpath={.contexts[?(@.name=='${ctx}')].context.cluster}")"
 [[ -n "$cluster" ]] || die "contexte '$ctx' absent du kubeconfig."
 
 server="$(kubectl config view -o "jsonpath={.clusters[?(@.name=='${cluster}')].cluster.server}")"
 [[ -n "$server" ]] || die "le cluster '$cluster' n'a pas d'apiserver dans le kubeconfig."
 
-case "$target" in
-  prod-gateway)
-    [[ "$server" == "https://${GATEWAY_HOST}/"* ]] ||
-      die "l'apiserver de '$ctx' n'est pas le Connect Gateway attendu."
-    [[ "$server" == *"${PROD_MEMBERSHIP}"* ]] ||
-      die "l'apiserver de '$ctx' ne pointe pas sur la membership '${PROD_MEMBERSHIP}'."
-    ;;
-  prod-direct)
-    # `get-gke-credentials` écrit un contexte `gke_<projet>_<zone>_<cluster>`.
-    [[ "$ctx" == *"${PROD_PROJECT_ID}"* ]] ||
-      die "la cible '$ctx' ne designe pas le projet de production '${PROD_PROJECT_ID}'."
-    ;;
-  staging)
-    # Symétrique : un déploiement de staging ne doit jamais atterrir en prod, que
-    # ce soit par un `vars.STAGING_APP_CLUSTER` mal renseigné ou par un kubeconfig
-    # substitué.
-    if [[ "$ctx" == *"${PROD_MEMBERSHIP}"* || "$server" == *"${GATEWAY_HOST}"* ]]; then
-      die "la cible '$ctx' ressemble a la PRODUCTION — refus sur un chemin staging."
-    fi
-    ;;
-esac
+[[ "$server" == "$expected_server" ]] ||
+  die "apiserver '$server' != identite autoritative '$expected_server'."
 
-echo "==> cible ${target} verifiee: ${ctx} -> ${server}" >&2
+echo "==> cible ${target} verifiee (identite autoritative): ${ctx} -> ${server}" >&2
 
 if [[ "$tool" == "helm" ]]; then
   exec helm --kube-context="$ctx" "$@"

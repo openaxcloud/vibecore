@@ -111,6 +111,56 @@ describe('/internal/preview/port-access — fail-closed', () => {
   });
 
   /*
+   * JSON SYNTAXIQUEMENT VALIDE mais sémantiquement inconnu.
+   *
+   * Ces cinq cas passaient tous en `private:false` : `JSON.parse(...) as {...}` ne
+   * vérifie rien à l'exécution, `typeof null === 'object'`, `typeof [] === 'object'`,
+   * et un `?.[port]` sur une valeur inattendue rend `undefined` — donc « pas privé »,
+   * donc « public ». Le fail-open était intact, une couche plus bas que la panne de
+   * base : on ne prouvait pas qu'un port était public, on constatait seulement
+   * n'avoir rien trouvé qui le déclare privé.
+   *
+   * Les cinq entrées sont celles rapportées au contre-audit, à l'identique.
+   */
+  const jsonValidesMaisInconnus: Array<[string, string]> = [
+    ['null', 'null'],
+    ['[]', '[]'],
+    ['"string"', '"string"'],
+    ['{"visibility":null}', '{"visibility":null}'],
+    ['{"visibility":[]}', '{"visibility":[]}'],
+  ];
+
+  it.each(jsonValidesMaisInconnus)('DENIE sur un JSON valide mais inconnu: %s', async (_label, payload) => {
+    store.portsState = payload;
+
+    const response = await ask();
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().private).toBe(true);
+    expect(response.json().reason).toBe('ports-state-malformed');
+  });
+
+  /*
+   * La grammaire est POSITIVE : un port hors bornes ou une valeur autre que
+   * `public`/`private` est une donnée inconnue, pas une donnée à interpréter.
+   */
+  it.each([
+    ['port non numerique', '{"visibility":{"http":"private"}}'],
+    ['port hors bornes', '{"visibility":{"70000":"private"}}'],
+    ['port a zero', '{"visibility":{"0":"private"}}'],
+    ['valeur inconnue', '{"visibility":{"5173":"restreint"}}'],
+    ['valeur non chaine', '{"visibility":{"5173":true}}'],
+    ['visibility imbrique', '{"visibility":{"5173":{"mode":"private"}}}'],
+  ])('DENIE sur une grammaire non respectee: %s', async (_label, payload) => {
+    store.portsState = payload;
+
+    const response = await ask();
+
+    expect(response.json().private).toBe(true);
+    expect(response.json().reason).toBe('ports-state-malformed');
+  });
+
+  /*
    * Le pendant indispensable : sans ces cas, « tout refuser » passerait le test
    * tout en cassant la fonctionnalité. Un état lu avec succès est la SEULE preuve
    * qu'un port est public.
@@ -133,12 +183,35 @@ describe('/internal/preview/port-access — fail-closed', () => {
     expect(response.json().reason).toBe('no-ports-state');
   });
 
-  it('DENIE quand ce port precis est marque prive', async () => {
-    store.portsState = JSON.stringify({ visibility: { '5173': 'private' } });
+  it('DENIE quand ce port precis est marque prive (cas nominal)', async () => {
+    store.portsState = '{"visibility":{"5173":"private"}}';
 
     const response = await ask();
 
     expect(response.json().private).toBe(true);
+    expect(response.json().reason).toBe('ports-state-read');
+  });
+
+  /*
+   * Le pendant obligatoire de la grammaire stricte : un port explicitement PUBLIC
+   * doit rester public. Sans ce cas, « tout refuser » passerait la suite entiere.
+   */
+  it('AUTORISE quand ce port est explicitement public', async () => {
+    store.portsState = '{"visibility":{"5173":"public","3000":"private"}}';
+
+    const response = await ask();
+
+    expect(response.json().private).toBe(false);
+    expect(response.json().reason).toBe('ports-state-read');
+  });
+
+  it('AUTORISE quand visibility est absent mais la racine est un objet valide', async () => {
+    store.portsState = '{"autreCle":{"x":1}}';
+
+    const response = await ask();
+
+    expect(response.json().private).toBe(false);
+    expect(response.json().reason).toBe('ports-state-read');
   });
 
   it('reste public quand la fonctionnalite est eteinte (fonction off, pas une incertitude)', async () => {

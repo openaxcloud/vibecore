@@ -115,6 +115,7 @@ assertIncludes(overriddenPlatform, 'kubernetes.io/metadata.name: "edge-nginx"', 
 const SHELL_SCRIPTS = [
   ...readdirSync(resolve(root, '../scripts/audit-env')).filter((f) => f.endsWith('.sh')).map((f) => `../scripts/audit-env/${f}`),
   ...readdirSync(resolve(root, '../scripts/ci')).filter((f) => f.endsWith('.sh')).map((f) => `../scripts/ci/${f}`),
+  ...readdirSync(resolve(root, '../scripts/proofs')).filter((f) => f.endsWith('.sh')).map((f) => `../scripts/proofs/${f}`),
 ];
 
 /*
@@ -142,7 +143,15 @@ execFileSync(process.execPath, [resolve(root, '../scripts/ci/check-workflow-pinn
  * cible que l'outil reçoit RÉELLEMENT sous environnement hostile. Chacun contient
  * son cas témoin, donc un « tout refuser » ne peut pas les faire passer.
  */
-for (const script of ['../scripts/ci/test-cluster-wrapper.sh', '../scripts/audit-env/test-teardown-verification.sh']) {
+for (const script of [
+  '../scripts/ci/test-cluster-wrapper.sh',
+  '../scripts/audit-env/test-teardown-verification.sh',
+  /*
+   * `test-pinned-context.sh` existait mais n'était lancé que à la main : une garde
+   * qu'on n'exécute pas ne garde rien. Il tourne ici, comme les deux autres.
+   */
+  '../scripts/audit-env/test-pinned-context.sh',
+]) {
   execFileSync('bash', [resolve(root, script)], { stdio: 'inherit' });
 }
 
@@ -153,16 +162,25 @@ for (const script of ['../scripts/ci/test-cluster-wrapper.sh', '../scripts/audit
  * du fichier généré. shellcheck le voyait (SC2006) et personne ne le lançait.
  * Absent de la machine -> on le dit, on ne fait pas semblant d'avoir vérifié.
  */
+/*
+ * shellcheck est OBLIGATOIRE, et son absence est BLOQUANTE.
+ *
+ * La version précédente se contentait d'annoncer « verification NON EFFECTUEE » et
+ * continuait : une porte qui s'ouvre quand l'outil manque n'est pas une porte. Le
+ * défaut qu'elle a laissé passer était réel (des backticks exécutés dans un heredoc,
+ * SC2006), donc la conclusion « propre » ne doit pouvoir être atteinte que si la
+ * vérification a bel et bien eu lieu.
+ */
 try {
   execFileSync('shellcheck', ['--version'], { stdio: 'ignore' });
-  execFileSync('shellcheck', ['-x', ...SHELL_SCRIPTS.map((s) => resolve(root, s))], { stdio: 'inherit' });
-  console.log('shellcheck: scripts audit-env + ci propres');
 } catch (error) {
-  if (error.code === 'ENOENT') {
-    console.log('shellcheck ABSENT — verification NON EFFECTUEE (ce n est pas un succes)');
-  } else {
-    throw error;
-  }
+  throw new Error(
+    `shellcheck introuvable (${error.code ?? 'erreur'}) — verification IMPOSSIBLE, donc Gate 1 echoue. ` +
+      'Installer shellcheck (brew install shellcheck / apt-get install shellcheck).',
+  );
 }
+
+execFileSync('shellcheck', ['-x', ...SHELL_SCRIPTS.map((s) => resolve(root, s))], { stdio: 'inherit' });
+console.log('shellcheck: scripts audit-env + ci + proofs propres');
 
 console.log('infra scaffold valid');
