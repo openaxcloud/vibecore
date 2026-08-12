@@ -1,0 +1,54 @@
+live server listening on http://127.0.0.1:3212
+
+===== 0. SETUP (real HTTP) ============================================
+  register: 201
+  project : 201 cmsq0pf0d000bf2lnbn4rs6kz
+
+===== 1. PUBLISH v1 — REAL build (npm run build actually executes) ====
+  status     : 201
+  deployment : cmsq0pfkl000ff2lnp5iptfle READY
+  build log  : ["Static deploy: building in /var/folders/8w/yc9wlx9j12n4v06d_4lvdsn40000gn/T/rb-realbuild-QtBYJl/projects/cmsq0pf0d000bf2lnbn4rs6kz","[build] built 2026-08-12T11:40:23.600Z","Static deploy: snapshot stored at /var/folders/8w/yc9wlx9j12n4v06d_4lvdsn40000gn/T/rb-realbuild-QtBYJl/static/cmsq0pfkl000ff2lnp5iptfle"]
+
+===== 2. PUBLISH v2 — REAL build with different source ================
+  status     : 201
+  deployment : cmsq0pgee000kf2lnj50vuhul READY
+  releases   :
+    v2 deployment=cmsq0pgee000kf2lnj50vuhul digest=sha256:f9ffdb5b3e81641d4bfdb62fc0f35bdf3fe9022c6611b3a7fb1dcd59e6fd5c1a
+    v1 deployment=cmsq0pfkl000ff2lnp5iptfle digest=sha256:34083315b5712dd9c18774b39e8d7b1439e772454c62a387d38090eab8ea72f0
+
+===== 3. BEFORE — public serve path ===================================
+  GET /static-deployments/cmsq0pgee000kf2lnj50vuhul/index.html  → 200
+  content = "<!doctype html><html><body><h1>RELEASE-V2-CURRENT-CONTENT</h1></body></html>"
+  sha256  = sha256:5545e9aec3aa0876d58f5ef1c2bf362fffefc3a87355b5968e31fc8b1b8c7d3d
+
+===== 4. ROLLBACK — real endpoint =====================================
+  status                 : 201
+  restoredFromVersion    : 1
+  supersededVersion      : 2
+  verifiedArtifactDigest : sha256:34083315b5712dd9c18774b39e8d7b1439e772454c62a387d38090eab8ea72f0
+  restoredArtifactDigest : sha256:34083315b5712dd9c18774b39e8d7b1439e772454c62a387d38090eab8ea72f0
+  rollbackable           : true
+
+===== 5. AFTER — public serve path for the restored release ===========
+  GET /static-deployments/cmsq0pgr5000pf2lnbzwkgizw/index.html  → 200
+  content = "<!doctype html><html><body><h1>RELEASE-V1-ORIGINAL-CONTENT</h1></body></html>"
+  sha256  = sha256:a06d31c2d7fa828bb022587992be3e4d0580495f7914ae042a5b776c7076637f
+
+  BEFORE : "<!doctype html><html><body><h1>RELEASE-V2-CURRENT-CONTENT</h1></body></html>"
+  AFTER  : "<!doctype html><html><body><h1>RELEASE-V1-ORIGINAL-CONTENT</h1></body></html>"
+  changed: true
+  after has V1 marker : true
+  after has V2 marker : false
+
+===== 6. CONCURRENCY — three simultaneous rollbacks ===================
+  #0: status=201 code=- restoredFrom=2 expected=- observed=-
+  #1: status=409 code=ROLLBACK_RELEASE_MOVED restoredFrom=- expected=4 observed=5
+  #2: status=201 code=- restoredFrom=3 expected=- observed=-
+
+  committed=2 refused=1
+  restored versions among commits: [2,3]
+  all distinct (serial-equivalent): true
+  refusals all ROLLBACK_RELEASE_MOVED: true
+
+===== VERDICT =========================================================
+LIVE ROLLBACK (REAL BUILD) PROVEN

@@ -155,7 +155,10 @@ cd services/api && DATABASE_URL=postgresql://vc:vc@127.0.0.1:55444/vibecore \
   npx vitest --run --config vitest.config.ts --pool=forks --poolOptions.forks.singleFork=true \
   src/tests/rollback-concurrency-postgres.spec.ts src/tests/rollback-concurrency-linearization.spec.ts
 
-# rollback live (serveur réel + Postgres réel + HTTP réel)
+# rollback live avec VRAI build (serveur + Postgres + HTTP réels)
+DATABASE_URL=postgresql://vc:vc@127.0.0.1:55444/vibecore npx tsx scripts/prove-rollback-live-realbuild.mts
+
+# variante à releases semées (serveur externe déjà lancé)
 API_PORT=3199 API_HOST=127.0.0.1 DATABASE_URL=postgresql://vc:vc@127.0.0.1:55444/vibecore \
   STATIC_DEPLOY_STORAGE_DIR=/tmp/live-static AUTH_JWT_SECRET=live-proof-secret-0123456789abcdef \
   npx tsx services/api/src/server.ts &
@@ -163,19 +166,44 @@ API_BASE=http://127.0.0.1:3199 DATABASE_URL=postgresql://vc:vc@127.0.0.1:55444/v
   STATIC_DEPLOY_STORAGE_DIR=/tmp/live-static npx tsx scripts/prove-rollback-live.mjs
 ```
 
-## Portée du « live »
+### 4. Rollback LIVE avec VRAI PUBLISH — [`live-rollback-realbuild.txt`](live-rollback-realbuild.txt)
 
-Serveur réel, Postgres réel, HTTP réel, octets réels servis par la vraie route statique. La
-seule chose non produite par le chemin de production est la **fabrication** des deux
-releases initiales : un publish réel passe par un build en pod workspace, qui demande un
-cluster. Elles sont donc semées avec de vrais octets et la **fonction de digest du serveur
-elle-même** (`computeStaticSnapshotDigest`, importée, pas réimplémentée) — et le endpoint de
-rollback recalcule puis vérifie ce digest, donc une valeur fausse ferait échouer la preuve
-au lieu de passer silencieusement.
+La preuve précédente **semait** les deux releases initiales. Celle-ci ferme l'écart : elle
+pilote le vrai endpoint de publish avec le **vrai build** (`runStaticBuild`), donc un
+`npm run build` s'exécute réellement et produit les octets ensuite snapshotés, digérés,
+manifestés et servis.
 
-**Un rollback live en PRODUCTION reste à faire** et n'est pas fait ici : il exigerait de
-déployer une branche non mergée d'un lot sensible sur la prod. C'est la décision d'Avi, pas
-la mienne.
+```
+1. PUBLISH v1 — REAL build
+   build log : ["Static deploy: building in …/projects/cmsq0os43001nvylnsshxl98g",
+                "[build] built 2026-08-12T11:39:54.825Z",
+                "Static deploy: snapshot stored at …/static/cmsq0osz9001rvyln9b53wahc"]
+   deployment : cmsq0osz9001rvyln9b53wahc READY
+2. PUBLISH v2 — REAL build, source différente          → READY
+   v2 digest=sha256:f9ffdb5b…5c1a   v1 digest=sha256:34083315…72f0
+
+3. BEFORE  "RELEASE-V2-CURRENT-CONTENT"   sha256:5545e9ae…7d3d
+4. ROLLBACK 201  verified == restored == sha256:34083315…72f0   rollbackable=true
+5. AFTER   "RELEASE-V1-ORIGINAL-CONTENT"  sha256:a06d31c2…637f   changed=true
+
+6. #0 201 restoredFrom=2 | #1 409 ROLLBACK_RELEASE_MOVED expected=4 observed=5 | #2 201 restoredFrom=3
+   restored versions among commits: [2,3]   all distinct: true
+
+LIVE ROLLBACK (REAL BUILD) PROVEN
+```
+
+Corroboration utile : les empreintes obtenues par le **vrai build** (`34083315…72f0` pour
+le contenu V1, `f9ffdb5b…5c1a` pour V2) sont **identiques** à celles de la run semée — les
+deux chemins produisent bien le même artefact.
+
+Seul écart restant avec la prod : le build tourne dans le processus API plutôt que dans un
+pod workspace (`staticBuildRunner` / `useWorkspacePodBuild` sont les options de
+l'application elle-même, et le chemin de code après le retour du build est identique).
+
+## Ce qui reste à faire
+
+**Un rollback live en PRODUCTION.** Il exigerait de déployer une branche non mergée d'un
+lot sensible sur la prod : c'est la décision d'Avi, pas la mienne.
 
 ## Suites
 
