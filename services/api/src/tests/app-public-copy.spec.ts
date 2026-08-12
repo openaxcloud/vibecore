@@ -329,6 +329,19 @@ describe('app.ts i18n source guard', () => {
       // Security audit/SIEM framing and internal-secret maintenance response.
       '{…} (trigger={…})',
       'DB_ROLLBACK_ENABLED is off',
+
+      /*
+       * ReleaseManifestOutcome.reason — WHY a published release is not rollbackable.
+       * These are machine codes, not copy: they are persisted verbatim into
+       * `metadata.rollbackUnavailableReason`, asserted on by the rollback suites, and
+       * mapped to user-facing text at the surface. Localising them would corrupt stored
+       * data (a row written in French would stop matching a check written in English).
+       */
+      'not_ready',
+      'no_static_snapshot',
+      'server_no_digest',
+      'external_provider',
+      'append_failed',
     ]);
 
     expect(result.parseErrors).toEqual([]);

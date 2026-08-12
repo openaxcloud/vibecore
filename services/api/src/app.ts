@@ -34838,8 +34838,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               {
                 timestamp: new Date().toISOString(),
                 level: 'error',
-                message:
-                  'Rollback destination snapshot could not be digested after restore — refusing to serve/record an unverified rollback.',
+                message: appPublicEnglish('ROLLBACK_DEST_DIGEST_FAILED_LOG'),
               },
             ],
             finishedAt: new Date().toISOString(),
@@ -34847,8 +34846,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           .catch(() => undefined);
 
         return reply.code(409).send({
-          error:
-            'Rollback destination snapshot could not be digested after restore — refusing to serve an unverified rollback.',
+          error: appPublicCopy('ROLLBACK_DEST_DIGEST_FAILED', locale),
           code: 'ROLLBACK_DEST_DIGEST_FAILED',
         });
       }

@@ -2499,6 +2499,14 @@
     "en": "Rolled back to release v{version} (deployment {deploymentId}); artifact digest {artifactDigest} verified byte-identical before restore.",
     "fr": "Retour effectué vers la version v{version} (déploiement {deploymentId}) ; l’empreinte d’artefact {artifactDigest} a été vérifiée à l’identique avant la restauration."
   },
+  "ROLLBACK_DEST_DIGEST_FAILED_LOG": {
+    "en": "Rollback destination snapshot could not be digested after restore — refusing to serve/record an unverified rollback.",
+    "fr": "L’empreinte de l’instantané de destination n’a pas pu être calculée après la restauration — retour arrière non vérifié refusé, ni servi ni enregistré."
+  },
+  "ROLLBACK_DEST_DIGEST_FAILED": {
+    "en": "Rollback destination snapshot could not be digested after restore — refusing to serve an unverified rollback.",
+    "fr": "L’empreinte de l’instantané de destination n’a pas pu être calculée après la restauration — retour arrière non vérifié refusé."
+  },
   "ROLLBACK_STATIC_SUCCESS_RESTORED_LOG": {
     "en": "Rolled back to release v{version} (deployment {deploymentId}); source digest {artifactDigest} verified byte-identical before restore, restored bytes digest {restoredArtifactDigest} recorded.",
     "fr": "Retour effectué vers la version v{version} (déploiement {deploymentId}) ; l’empreinte source {artifactDigest} a été vérifiée à l’identique avant la restauration, et l’empreinte des octets restaurés {restoredArtifactDigest} a été enregistrée."
