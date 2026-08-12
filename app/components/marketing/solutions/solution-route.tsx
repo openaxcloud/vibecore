@@ -14,6 +14,7 @@ import {
   type SolutionCopyByLanguage,
   type SolutionRouteConfig,
 } from './solution-copy';
+import { createSolutionTranslator } from './solution-translator';
 import { SUPPORTED_LANGUAGES, USER_LANGUAGE_COOKIE, type SupportedLanguage } from '~/lib/i18n/language';
 
 const OPEN_GRAPH_LOCALES = {
@@ -159,9 +160,10 @@ export function makeSolutionRoute(config: SolutionRouteConfig, copy: SolutionCop
   ];
 
   const meta: MetaFunction = ({ data }) => {
-    const language = (data as { language?: BilingualLanguage } | undefined)?.language ?? 'en';
-    const pageCopy = copy[language];
-    const imageAlt = `${pageCopy.hero.title} — E-Code`;
+    const requestedLanguage = (data as { language?: string } | undefined)?.language;
+    const translator = createSolutionTranslator(copy, requestedLanguage);
+    const { language } = translator;
+    const imageAlt = translator.t('seo.ogImageAlt');
     const ogImage = config.ogImage[language];
 
     const alternateLocales = (['en', 'fr'] as const)
@@ -169,24 +171,24 @@ export function makeSolutionRoute(config: SolutionRouteConfig, copy: SolutionCop
       .map((candidate) => ({ property: 'og:locale:alternate', content: OPEN_GRAPH_LOCALES[candidate] }));
 
     return [
-      { title: pageCopy.seo.title },
-      { name: 'description', content: pageCopy.seo.description },
+      { title: translator.t('seo.title') },
+      { name: 'description', content: translator.t('seo.description') },
       { name: 'robots', content: 'index,follow' },
       { property: 'og:type', content: 'website' },
       { property: 'og:site_name', content: 'E-Code' },
       { property: 'og:url', content: config.canonicalUrl },
       { property: 'og:locale', content: OPEN_GRAPH_LOCALES[language] },
       ...alternateLocales,
-      { property: 'og:title', content: pageCopy.seo.title },
-      { property: 'og:description', content: pageCopy.seo.description },
+      { property: 'og:title', content: translator.t('seo.title') },
+      { property: 'og:description', content: translator.t('seo.description') },
       { property: 'og:image', content: ogImage },
       { property: 'og:image:type', content: 'image/png' },
       { property: 'og:image:width', content: '1200' },
       { property: 'og:image:height', content: '630' },
       { property: 'og:image:alt', content: imageAlt },
       { name: 'twitter:card', content: 'summary_large_image' },
-      { name: 'twitter:title', content: pageCopy.seo.title },
-      { name: 'twitter:description', content: pageCopy.seo.description },
+      { name: 'twitter:title', content: translator.t('seo.title') },
+      { name: 'twitter:description', content: translator.t('seo.description') },
       { name: 'twitter:image', content: ogImage },
       { name: 'twitter:image:alt', content: imageAlt },
     ];
@@ -194,8 +196,9 @@ export function makeSolutionRoute(config: SolutionRouteConfig, copy: SolutionCop
 
   function Component() {
     const { language } = useLoaderData<typeof loader>();
+    const translator = createSolutionTranslator(copy, language);
 
-    return <SolutionSalesPage copy={copy[language]} language={language} />;
+    return <SolutionSalesPage copy={translator.catalogue} language={translator.language} />;
   }
 
   return { loader, meta, headers, links, handle: { serverRenderedMarketing: true }, Component };

@@ -1,25 +1,29 @@
-import type { SolutionCopyByLanguage } from './solution-copy';
+import type { CapturedSolutionCopyByLanguage } from './solution-copy';
 
 /**
- * SOL — Internal AI Builder. Declined from the App Builder gabarit, centered on a
- * fictional private HR procedures assistant. All demo data is fictional and
- * labeled; the one real captured E-Code IDE proof lives on /solutions/app-builder.
+ * SOL — Internal AI Builder. Dedicated HR-procedure assistant story in EN and
+ * FR. All procedures and employee details are fictional and labeled; proof claims
+ * stop at the captured Agent exchange, generated files, Webview, and local search.
  */
 export const INTERNAL_AI_BUILDER_COPY = {
   en: {
     seo: {
       title: 'Internal AI Builder with Real Code | E-Code',
       description:
-        'Describe the internal assistant your team needs. E-Code creates an editable project that models procedure sources, approval states, access rules, and audit events. Connect identity and private data, then complete security testing before deployment.',
+        'Describe PeopleOps. E-Code generates local procedure search with cited answers in editable source; identity, private data, and permissions require testing.',
+      ogImageAlt: 'E-Code Internal AI Builder workspace with PeopleOps files and a cited HR-04 result in Webview.',
     },
     hero: {
       eyebrow: 'Internal AI Builder for private team tools',
       title: 'Structure an internal assistant before you connect private company data',
       subtitle:
         'Describe the internal workflow you want to automate — policy questions, approval routing, procedure lookup. E-Code turns that scope into editable source code with source adapters, roles, states, and audit-event models you can inspect. Run the interface in Preview, then connect identity, storage, private procedures, and review every control before rollout.',
-      primaryCta: { label: 'Describe your assistant', ariaLabel: 'Describe your internal AI assistant with E-Code' },
+      primaryCta: {
+        label: 'Describe your internal agent',
+        ariaLabel: 'Describe your internal AI assistant with E-Code',
+      },
       secondaryCta: {
-        label: 'See how it builds',
+        label: 'See the internal workflow',
         ariaLabel: 'See how E-Code builds the internal assistant from a prompt',
       },
       microcopy:
@@ -28,32 +32,33 @@ export const INTERNAL_AI_BUILDER_COPY = {
     languageSwitch: { label: 'Choose the Internal AI Builder page language', english: 'English', french: 'Français' },
     demo: {
       badge: 'Fictional demo data',
-      brand: 'PeopleOps Assistant',
-      brandType: 'Internal HR tool',
-      nav: ['Ask', 'Approvals', 'Audit'],
-      eyebrow: 'Private workspace',
-      title: 'Answer HR policy questions and route approvals in one place.',
+      brand: 'PeopleOps',
+      brandType: 'Local HR search demo',
+      nav: ['Search', 'History', 'Feedback'],
+      eyebrow: 'Fictional local policy library',
+      title: 'Find the annual-leave procedure and keep its citation visible.',
       intro:
-        'A private internal assistant that answers procedure questions and moves approval requests to the right owner.',
-      primaryHeading: 'Recent requests',
+        'A responsive PeopleOps scenario with deterministic answers, cited procedure cards, search history, and feedback controls. Every procedure stays in fictional local fixtures.',
+      primaryHeading: 'Fictional procedure cards',
       primaryRows: [
-        { label: 'Parental leave — policy', meta: 'M. Dubois · Sales', status: 'Approved' },
-        { label: 'Remote work — exception', meta: 'A. Laurent · Support' },
-        { label: 'Expense limit — clarification', meta: 'S. Moreau · Finance' },
+        { label: 'Annual leave policy', meta: 'Local procedure · HR-04', status: 'Suggested query' },
+        { label: 'Remote work policy', meta: 'Local procedure · HR-11' },
+        { label: 'Expense policy', meta: 'Local procedure · FIN-02' },
       ],
-      asideHeading: 'Governance',
+      asideHeading: 'Visible boundaries',
       asideRows: [
-        { label: 'Access', value: 'Role-based' },
-        { label: 'Audit log', value: 'On' },
-        { label: 'Data', value: 'Private only' },
+        { label: 'Policy library', value: 'Local fixtures' },
+        { label: 'Permissions', value: 'Permissions UI only' },
+        { label: 'Answer path', value: 'Deterministic search' },
       ],
-      asideCta: 'Open audit trail',
-      disclaimer: 'Inline responsive demonstration · fictional HR data · not a generation record',
+      asideCta: 'Open annual-leave result',
+      disclaimer:
+        'Scripted local interface · fictional HR procedures · no authentication, RAG, SSO, external document connection, or production deployment · not a generation record',
       caption: {
-        title: 'A private assistant that reads like a real internal tool',
-        body: 'This inline demonstration shows a request list, an approvals view, and a governance panel in one responsive layout.',
+        title: 'A procedure-search scenario with the source boundary in plain sight',
+        body: 'This local interface demonstrates a suggested query, cited procedure result, history, and feedback state without presenting fictional fixtures as a connected company corpus.',
       },
-      alt: 'Internal HR assistant demonstration with a recent requests list and a governance panel showing access, audit, and data controls.',
+      alt: 'Scripted PeopleOps interface with fictional local HR procedure cards, an annual-leave query, a cited HR-04 result, and demo-only permissions.',
     },
     problem: {
       eyebrow: 'From scattered procedures to a governed internal tool',
@@ -78,53 +83,66 @@ export const INTERNAL_AI_BUILDER_COPY = {
         'E-Code starts from the workflow you describe and creates an internal-assistant project in real source files. You inspect the modeled source, access, routing, and audit paths in Preview, then connect the systems and enforce the controls required by your environment.',
     },
     build: {
-      eyebrow: 'One prompt starts the assistant',
+      eyebrow: 'One prompt starts the HR procedure search',
       title: 'Describe the workflow, not the plumbing',
       intro:
-        'The request below reads like a note from an operations lead. The four items map its implementation scope in real source files, with governance in view from the start.',
-      label: 'Example prompt',
+        'The request below states the starting need. The captured Agent prompt scopes it as PeopleOps with a fictional local library and explicit demo-permission limits before E-Code creates the editable React and TypeScript files and running Webview.',
+      label: 'Internal HR workflow brief',
       promptText: 'Build an internal agent that searches our HR procedures, available only to my teams.',
       outputs: [
         {
-          title: 'Private context grounding',
-          body: 'A source-adapter boundary models where approved procedures enter the assistant. Your documents are not connected by this page; choose the source, permissions, and retrieval checks before use.',
+          title: 'PeopleOps search workspace',
+          body: 'The Agent creates the responsive search interface in editable React and TypeScript files, with suggested procedure questions and a conversation result area.',
         },
         {
-          title: 'Approval routing',
-          body: 'Requests are modeled with owners, states, and a routing path. Connect persistence and notifications, then test reassignment, retries, and failure handling.',
+          title: 'Cited local procedure cards',
+          body: 'Fictional policies live in local fixtures and appear as cited cards. No company document source, vector store, or retrieval pipeline is connected.',
         },
         {
-          title: 'Access and audit',
-          body: 'Role checks and audit events are represented in source code for review. They are not proof of enforced authentication, immutable logging, or authorization coverage.',
+          title: 'History, feedback, and demo permissions',
+          body: 'The project renders search history, a feedback control, and permissions as interface states. Those states do not enforce identity, team access, or SSO.',
         },
         {
-          title: 'Preview and export',
-          body: 'E-Code runs the project interface in Preview across screen sizes and keeps the source exportable. Preview does not certify a private or production-ready deployment.',
+          title: 'A verifiable Webview interaction',
+          body: 'Clicking “Annual leave policy” in Webview reveals the deterministic HR-04 answer and its feedback control beside the generated files. The interaction proves the local UI path, not private retrieval.',
         },
       ],
     },
     proofLink: {
-      eyebrow: 'Prompt → agent → Preview',
-      title: 'Use a documented E-Code run as workflow evidence, not as an internal-security claim',
-      body: 'These IDE captures belong to the real App Builder salon-booking run. They show a prompt, Agent activity, generated files, Preview, and a correction cycle inside E-Code. The PeopleOps Assistant shown above is a scripted, fictional interface and was not captured from an internal-AI generation.',
-      galleryLabel: 'Documented App Builder salon workspace used as Internal AI Builder workflow evidence',
+      eyebrow: 'PeopleOps prompt → Agent → HR-04 in Webview',
+      title: 'Inspect the PeopleOps procedure search generated inside E-Code',
+      body: 'These dedicated captures keep the HR search prompt, Agent activity, generated React and TypeScript project tree, and the PeopleOps Webview together. The second state opens the “Annual leave policy” result and cites local procedure HR-04.',
+      galleryLabel: 'Captured PeopleOps generation and annual-leave procedure interaction inside E-Code',
       disclaimer:
-        'Workflow reference from the real E-Code salon run · salon records fictional · PeopleOps scenario and HR records fictional · not an internal-agent generation record · no private source or identity provider demonstrated',
-      openFullSizeLabel: 'Inspect the full-size salon workflow capture',
+        'Captured E-Code generation · fictional local HR library and deterministic answers · permissions are an interface demo · no authentication, RAG, SSO, external documents, enforced team access, or production deployment is demonstrated',
+      openFullSizeLabel: 'Open the PeopleOps capture at full size',
       preview: {
-        title: 'The real workspace keeps the request, files, and running app in view',
-        body: 'This salon App Builder capture verifies the E-Code workspace and its generated booking Preview. It does not demonstrate an HR assistant, a private-document connection, authentication, role enforcement, or a production audit store.',
-        alt: 'Documented E-Code App Builder salon workspace with the booking request, generated files, and application Preview; it provides no evidence of private HR data or access controls.',
+        title: 'PeopleOps runs beside the files the Agent created',
+        body: 'The first capture shows the real E-Code Agent exchange and generated project tree while Webview renders PeopleOps with suggested questions, cited local procedures, search history, and the local-library disclosure.',
+        alt: 'Real E-Code Internal AI Builder workspace showing the PeopleOps prompt, Agent activity, generated React and TypeScript files, and the fictional local HR search interface in Webview.',
       },
       iteration: {
-        title: 'The captured run also records a runtime correction',
-        body: 'A second App Builder image shows the Agent receiving a router-error follow-up beside the salon project. That is evidence of an inspectable repair loop, not evidence that the fictional PeopleOps access and audit flows were generated or security-tested.',
-        alt: 'Documented E-Code salon-run correction with a router-error follow-up, project files, and booking Preview; no internal AI security flow is depicted.',
+        title: 'A verified policy click opens the cited HR-04 answer',
+        body: 'After the single generation, a verified click on “Annual leave policy” shows the deterministic HR-04 answer and feedback control. The capture does not prove a private corpus, RAG, authentication, or enforced permissions.',
+        alt: 'E-Code Internal AI Builder capture after the verified policy click, with PeopleOps files and the cited HR-04 answer in Webview.',
       },
-      cta: { label: 'See the real IDE proof', ariaLabel: 'See the real E-Code IDE proof on the App Builder page' },
+      cta: {
+        label: 'Inspect the captured PeopleOps run',
+        ariaLabel: 'Inspect the captured E-Code PeopleOps generation and HR-04 Webview interaction',
+      },
+    },
+    proofVisualAlts: {
+      prompt: 'E-Code Agent prompt requesting PeopleOps for local HR procedure search with team access boundaries.',
+      preview: 'E-Code workspace with generated PeopleOps files and the fictional HR search interface in Webview.',
+      webviewOverview: 'PeopleOps in Webview with local procedure cards, search history, and demo-only permissions.',
+      iteration:
+        'E-Code workspace after the verified Annual leave policy click, with PeopleOps files and cited HR-04 answer.',
+      webviewIteration:
+        'PeopleOps showing the cited HR-04 answer and feedback control after the verified policy interaction.',
+      files: 'E-Code file tree for PeopleOps with editable procedure cards, local search, and permission states.',
     },
     deliverables: {
-      eyebrow: 'What you receive',
+      eyebrow: 'What PeopleOps includes',
       title: 'A traceable internal-tool project with honest deployment boundaries',
       intro:
         'The generated project exposes its source, procedure-adapter seam, responsive workspace, and release options. A static review surface can publish through E-Code; private data operations still belong in a separately secured runtime.',
@@ -178,41 +196,41 @@ export const INTERNAL_AI_BUILDER_COPY = {
           body: 'Model the events that matter, then route them to tamper-resistant storage with the retention and access rules your organization requires.',
         },
         {
-          title: 'Responsive by default',
+          title: 'Responsive employee workspace',
           body: 'The interface adapts from wide desktop to phone without a separate mobile build.',
         },
         {
-          title: 'Exportable source',
+          title: 'Exportable procedure-tool source',
           body: 'Export the project for your chosen hosting path, then apply your organization’s deployment, privacy, and security controls.',
         },
       ],
     },
     useCases: {
-      eyebrow: 'Who builds with it',
+      eyebrow: 'Internal workflows to structure',
       title: 'Four internal workflows to structure before rollout',
       intro:
         'From HR procedure search to request intake, these scenarios define inspectable starting points; governance becomes real only after identity, data, audit, and security validation.',
       items: [
         {
           title: 'HR procedures assistant',
-          body: 'Answer policy questions and route leave, exception, and approval requests.',
+          body: 'Model policy-search results and leave, exception, and approval routes before connecting the private corpus and workflow engine.',
         },
         {
           title: 'Internal help desk',
-          body: 'Surface IT, finance, and operations procedures with routing to the right owner.',
+          body: 'Structure IT, finance, and operations procedure views with an explicit, still-unconnected owner-routing boundary.',
         },
         {
           title: 'Onboarding and knowledge tools',
-          body: 'Guide new hires through processes grounded in your internal documentation.',
+          body: 'Build the guided process interface, then connect approved documentation and validate access before employee use.',
         },
         {
           title: 'Approval and request flows',
-          body: 'Model structured request paths with owners, states, and an audit trail.',
+          body: 'Model request paths, owners, states, and audit-event shapes without presenting them as persisted or enforced.',
         },
       ],
     },
     faq: {
-      eyebrow: 'Common questions',
+      eyebrow: 'Questions about internal AI',
       title: 'Internal AI Builder, answered honestly',
       intro: 'What the Internal AI Builder path produces, and where its boundaries are.',
       items: [
@@ -233,17 +251,20 @@ export const INTERNAL_AI_BUILDER_COPY = {
           body: 'Not by default. Privacy depends on the model, storage, identity, logging, network, and hosting choices in your deployment. The page demo contains only fictional data, and E-Code does not claim a compliance certification for your resulting system.',
         },
         {
-          title: 'How do I change the assistant later?',
-          body: 'Edit the files directly or ask the Agent for the next change and review the diff against the running Preview.',
+          title: 'How do I evolve the internal agent later?',
+          body: 'Edit the PeopleOps procedure cards and local answer logic directly or ask the Agent for another policy path, citation, or feedback state, then verify the diff in Preview.',
         },
       ],
     },
     finalCta: {
-      title: 'Describe your assistant and see it running',
+      title: 'Describe the internal procedure flow and test it locally',
       body: 'Turn the internal workflow you have in mind into an editable project, run its interface in Preview, and inspect source, access rules, and audit events before connecting private data or rolling it out.',
-      primaryCta: { label: 'Describe your assistant', ariaLabel: 'Describe your internal AI assistant with E-Code' },
+      primaryCta: {
+        label: 'Describe your internal agent',
+        ariaLabel: 'Describe your internal AI assistant with E-Code',
+      },
       secondaryCta: {
-        label: 'See how it builds',
+        label: 'See the internal workflow',
         ariaLabel: 'See how E-Code builds the internal assistant from a prompt',
       },
     },
@@ -254,7 +275,7 @@ export const INTERNAL_AI_BUILDER_COPY = {
       problemLabel: 'The internal AI tooling problem',
       buildLabel: 'How the Internal AI Builder works',
       outputListLabel: 'Internal assistant build outputs',
-      proofLinkLabel: 'See the real E-Code IDE proof',
+      proofLinkLabel: 'Inspect the internal-agent IDE evidence',
       deliverablesLabel: 'What the Internal AI Builder delivers',
       featuresLabel: 'Internal AI Builder capabilities',
       useCasesLabel: 'Internal AI Builder use cases',
@@ -264,18 +285,23 @@ export const INTERNAL_AI_BUILDER_COPY = {
   },
   fr: {
     seo: {
-      title: 'Générateur d’IA interne avec vrai code | E-Code',
+      title: 'Générateur d’IA interne avec un code source modifiable | E-Code',
       description:
-        'Décrivez l’assistant interne attendu. E-Code crée un projet modifiable qui modélise les sources de procédures, les états d’approbation, les règles d’accès et les événements d’audit. Connectez l’identité et les données privées, puis terminez les tests de sécurité avant déploiement.',
+        'Décrivez PeopleOps. E-Code génère une recherche locale de procédures avec des réponses citées ; l’identité, les sources privées et les droits exigent une connexion et des tests.',
+      ogImageAlt:
+        'Workspace E-Code Internal AI Builder avec fichiers PeopleOps et résultat RH-04 cité dans la Webview.',
     },
     hero: {
       eyebrow: 'Générateur d’IA interne pour des outils d’équipe privés',
       title: 'Structurez un assistant interne avant de brancher les données privées de l’entreprise',
       subtitle:
-        'Décrivez le flux interne à automatiser — questions de politique, approbations, recherche de procédures. E-Code transforme ce périmètre en code source modifiable avec adaptateurs de sources, rôles, états et modèles d’événements d’audit. Exécutez l’interface dans l’aperçu, puis branchez identité, stockage et procédures privées, et relisez chaque contrôle avant le déploiement.',
-      primaryCta: { label: 'Décrivez votre assistant', ariaLabel: 'Décrivez votre assistant IA interne avec E-Code' },
+        'Décrivez le flux interne à automatiser — questions sur les politiques internes, approbations, recherche dans les procédures. E-Code transforme ce périmètre en code source modifiable avec des adaptateurs de sources, des rôles, des états et des modèles d’événements d’audit. Exécutez l’interface dans l’aperçu, puis branchez l’identité, le stockage et les procédures privées, et relisez chaque contrôle avant le déploiement.',
+      primaryCta: {
+        label: 'Décrivez votre agent interne',
+        ariaLabel: 'Décrivez votre assistant IA interne avec E-Code',
+      },
       secondaryCta: {
-        label: 'Voir la construction',
+        label: 'Voir le parcours interne',
         ariaLabel: 'Voir comment E-Code construit l’assistant interne à partir d’un prompt',
       },
       microcopy:
@@ -288,32 +314,33 @@ export const INTERNAL_AI_BUILDER_COPY = {
     },
     demo: {
       badge: 'Données fictives',
-      brand: 'PeopleOps Assistant',
-      brandType: 'Outil RH interne',
-      nav: ['Demander', 'Approbations', 'Audit'],
-      eyebrow: 'Espace privé',
-      title: 'Répondez aux questions de politique RH et acheminez les approbations au même endroit.',
+      brand: 'PeopleOps',
+      brandType: 'Démo locale de recherche RH',
+      nav: ['Recherche', 'Historique', 'Retours'],
+      eyebrow: 'Bibliothèque locale fictive',
+      title: 'Trouvez la politique de congés annuels et gardez sa citation visible.',
       intro:
-        'Un assistant interne privé qui répond aux questions de procédure et achemine les demandes d’approbation vers le bon responsable.',
-      primaryHeading: 'Demandes récentes',
+        'Un scénario PeopleOps responsive avec des réponses déterministes, des cartes de procédures citées, un historique et des options de retour. Chaque procédure reste une donnée de test locale fictive.',
+      primaryHeading: 'Cartes de procédures fictives',
       primaryRows: [
-        { label: 'Congé parental — politique', meta: 'M. Dubois · Ventes', status: 'Approuvé' },
-        { label: 'Télétravail — exception', meta: 'A. Laurent · Support' },
-        { label: 'Plafond de dépenses — clarification', meta: 'S. Moreau · Finance' },
+        { label: 'Politique de congés annuels', meta: 'Procédure locale · RH-04', status: 'Question suggérée' },
+        { label: 'Politique de télétravail', meta: 'Procédure locale · RH-11' },
+        { label: 'Politique de dépenses', meta: 'Procédure locale · FIN-02' },
       ],
-      asideHeading: 'Gouvernance',
+      asideHeading: 'Limites visibles',
       asideRows: [
-        { label: 'Accès', value: 'Par rôle' },
-        { label: 'Journal d’audit', value: 'Activé' },
-        { label: 'Données', value: 'Privées uniquement' },
+        { label: 'Bibliothèque', value: 'Données de test locales' },
+        { label: 'Autorisations', value: 'Interface d’autorisations uniquement' },
+        { label: 'Réponse', value: 'Recherche déterministe' },
       ],
-      asideCta: 'Ouvrir le journal d’audit',
-      disclaimer: 'Démonstration responsive intégrée · données RH fictives · pas une trace de génération',
+      asideCta: 'Ouvrir le résultat congés',
+      disclaimer:
+        'Interface locale scénarisée · procédures RH fictives · aucune authentification, RAG, SSO, connexion documentaire externe ni production · pas une trace de génération',
       caption: {
-        title: 'Un assistant privé qui se lit comme un vrai outil interne',
-        body: 'Cette démonstration intégrée présente une liste de demandes, une vue des approbations et un panneau de gouvernance dans une mise en page responsive.',
+        title: 'Un scénario de recherche dont la frontière documentaire reste explicite',
+        body: 'Cette interface locale présente une question suggérée, un résultat cité, un historique et une option de retour sans faire passer les données de test fictives pour un corpus d’entreprise connecté.',
       },
-      alt: 'Démonstration d’assistant RH interne avec une liste de demandes récentes et un panneau de gouvernance affichant les contrôles d’accès, d’audit et de données.',
+      alt: 'Interface PeopleOps scénarisée avec cartes de procédures RH locales fictives, question sur les congés annuels, résultat RH-04 cité et permissions de démonstration.',
     },
     problem: {
       eyebrow: 'Des procédures éparses à un outil interne gouverné',
@@ -323,11 +350,11 @@ export const INTERNAL_AI_BUILDER_COPY = {
       obstacles: [
         {
           title: 'Les assistants génériques ignorent votre contexte',
-          body: 'Sans connexion aux sources explicite et testée, un modèle ignore quelle procédure approuvée s’applique et peut répondre hors des règles opérationnelles de l’entreprise.',
+          body: 'Sans connexion explicite et testée aux sources, un modèle ignore quelle procédure approuvée s’applique et peut répondre hors des règles opérationnelles de l’entreprise.',
         },
         {
-          title: 'Les outils hébergés imposent leur chemin de données',
-          body: 'Une plateforme éditeur apporte son propre stockage, sa rétention et son modèle d’accès. L’équipe sécurité doit toujours vérifier où vont les documents et qui peut les récupérer.',
+          title: 'Les outils hébergés imposent leur propre circuit de données',
+          body: 'Une plateforme fournie par un éditeur apporte son propre stockage, sa rétention et son modèle d’accès. L’équipe de sécurité doit toujours vérifier où vont les documents et qui peut les récupérer.',
         },
         {
           title: 'La gouvernance passe après',
@@ -335,74 +362,85 @@ export const INTERNAL_AI_BUILDER_COPY = {
         },
       ],
       bridge:
-        'E-Code part du flux décrit et crée un projet d’assistant interne dans de vrais fichiers source. Vous inspectez les chemins modélisés de sources, d’accès, d’acheminement et d’audit dans l’aperçu, puis branchez les systèmes et appliquez les contrôles requis par votre environnement.',
+        'E-Code part du flux décrit et crée un projet d’assistant interne dans des fichiers source modifiables. Vous inspectez les mécanismes modélisés pour les sources, les accès, l’acheminement et l’audit dans l’aperçu, puis branchez les systèmes et appliquez les contrôles requis par votre environnement.',
     },
     build: {
-      eyebrow: 'Un prompt lance l’assistant',
+      eyebrow: 'Un prompt lance la recherche dans les procédures RH',
       title: 'Décrivez le flux, pas la tuyauterie',
       intro:
-        'La demande ci-dessous se lit comme un mot d’un responsable des opérations. Les quatre éléments cartographient son périmètre d’implémentation dans de vrais fichiers source, avec la gouvernance en vue dès le départ.',
-      label: 'Exemple de prompt',
+        'La demande ci-dessous pose le besoin initial. Le prompt transmis à l’Agent présente le projet comme PeopleOps, avec une bibliothèque locale fictive et des permissions limitées à la démo, avant la création des fichiers React et TypeScript modifiables et de la Webview active.',
+      label: 'Brief du processus RH interne',
       promptText: 'Un agent interne qui cherche dans nos procédures RH, réservé à mes équipes.',
       outputs: [
         {
-          title: 'Ancrage au contexte privé',
-          body: 'Une frontière d’adaptateur modélise l’entrée des procédures approuvées dans l’assistant. Cette page ne connecte pas vos documents : choisissez la source, les permissions et les vérifications de récupération avant usage.',
+          title: 'Espace de recherche PeopleOps',
+          body: 'L’Agent crée l’interface de recherche responsive dans des fichiers React et TypeScript modifiables, avec des questions suggérées et une zone de résultat conversationnelle.',
         },
         {
-          title: 'Acheminement des approbations',
-          body: 'Les demandes sont modélisées avec responsables, états et parcours. Branchez la persistance et les notifications, puis testez réattribution, reprises et gestion des échecs.',
+          title: 'Cartes de procédures locales citées',
+          body: 'Des politiques fictives sont conservées dans des données de test locales et apparaissent sous forme de cartes citées. Aucune source documentaire d’entreprise, base vectorielle ni pipeline de recherche n’est connecté.',
         },
         {
-          title: 'Accès et audit',
-          body: 'Les contrôles de rôle et événements d’audit sont représentés dans le code source pour relecture. Ils ne prouvent ni authentification appliquée, ni journal immuable, ni couverture complète des autorisations.',
+          title: 'Historique, retours et permissions de démo',
+          body: 'Le projet affiche un historique, une option de retour et des permissions sous forme d’états d’interface. Ces états n’appliquent ni identité, ni accès d’équipe, ni SSO.',
         },
         {
-          title: 'Aperçu et export',
-          body: 'E-Code exécute l’interface du projet dans l’aperçu à toutes les tailles d’écran et garde la source exportable. L’aperçu ne certifie ni confidentialité ni aptitude à la production.',
+          title: 'Interaction vérifiable dans la Webview',
+          body: 'Le clic sur « Politique de congés annuels » affiche la réponse déterministe RH-04 et son option de retour à côté des fichiers générés. L’interaction prouve le parcours local de l’interface, pas une recherche privée.',
         },
       ],
     },
     proofLink: {
-      eyebrow: 'Prompt → agent → aperçu',
-      title: 'Prenez un run E-Code documenté comme preuve du flux, pas comme promesse de sécurité interne',
-      body: 'Ces captures IDE appartiennent au véritable run App Builder de réservation du salon. Elles montrent dans E-Code un prompt, l’activité de l’Agent, les fichiers générés, l’aperçu et un cycle de correction. PeopleOps Assistant ci-dessus reste une interface scénarisée et fictive, non capturée lors d’une génération d’IA interne.',
-      galleryLabel: 'Workspace salon App Builder documenté, utilisé comme preuve du flux Générateur d’IA interne',
+      eyebrow: 'Prompt PeopleOps → Agent → RH-04 dans la Webview',
+      title: 'Inspectez la recherche de procédures PeopleOps générée dans E-Code',
+      body: 'Ces captures dédiées réunissent le prompt RH, l’activité de l’Agent, l’arborescence React et TypeScript générée et la Webview PeopleOps. Le second état ouvre « Politique de congés annuels » et cite la procédure locale RH-04.',
+      galleryLabel: 'Génération PeopleOps capturée et interaction sur la procédure de congés dans E-Code',
       disclaimer:
-        'Référence issue du vrai run salon E-Code · données salon fictives · scénario PeopleOps et données RH fictifs · pas une trace de génération d’agent interne · aucune source privée ni fournisseur d’identité démontré',
-      openFullSizeLabel: 'Examiner la capture complète du flux salon',
+        'Génération E-Code capturée · bibliothèque RH locale fictive et réponses déterministes · permissions en démo d’interface · aucune authentification, RAG, SSO, source externe, restriction d’équipe appliquée ni production démontrée',
+      openFullSizeLabel: 'Ouvrir la capture PeopleOps en grand',
       preview: {
-        title: 'Le vrai workspace garde demande, fichiers et app active dans la même vue',
-        body: 'Cette capture salon App Builder vérifie l’espace E-Code et son aperçu de réservation généré. Elle ne démontre ni assistant RH, ni connexion à des documents privés, ni authentification, ni application des rôles, ni stockage d’audit de production.',
-        alt: 'Workspace salon E-Code App Builder documenté avec la demande de réservation, les fichiers générés et l’aperçu de l’application ; aucune donnée RH privée ni contrôle d’accès n’y est prouvé.',
+        title: 'PeopleOps tourne à côté des fichiers créés par l’Agent',
+        body: 'La première capture montre le vrai échange avec l’Agent et l’arborescence générée pendant que la Webview affiche PeopleOps, ses questions suggérées, procédures locales citées, historique et avertissement sur la bibliothèque locale.',
+        alt: 'Vrai workspace Internal AI Builder E-Code montrant le prompt PeopleOps, l’activité de l’Agent, les fichiers React et TypeScript générés et la recherche RH locale fictive dans la Webview.',
       },
       iteration: {
-        title: 'Le run capturé consigne aussi une correction d’exécution',
-        body: 'Une seconde image App Builder montre l’Agent recevant un suivi d’erreur de routeur auprès du projet salon. Elle prouve une boucle de réparation inspectable, pas la génération ni les tests de sécurité des flux fictifs d’accès et d’audit PeopleOps.',
-        alt: 'Correction documentée du run salon E-Code avec suivi d’erreur de routeur, fichiers du projet et aperçu de réservation ; aucun flux de sécurité IA interne n’est représenté.',
+        title: 'Un clic vérifié sur la procédure ouvre la réponse RH-04 citée',
+        body: 'Après la génération unique, un clic vérifié sur « Politique de congés annuels » affiche la réponse déterministe RH-04 et une option de retour. La capture ne prouve ni corpus privé, ni RAG, ni authentification, ni permissions appliquées.',
+        alt: 'Capture E-Code Internal AI Builder après le clic vérifié sur la procédure, avec fichiers PeopleOps et réponse RH-04 citée dans la Webview.',
       },
       cta: {
-        label: 'Voir la preuve IDE réelle',
-        ariaLabel: 'Voir la preuve IDE réelle E-Code sur la page App Builder',
+        label: 'Inspecter l’exécution PeopleOps capturée',
+        ariaLabel: 'Inspecter la génération PeopleOps capturée dans E-Code et l’interaction RH-04 dans la Webview',
       },
     },
+    proofVisualAlts: {
+      prompt:
+        'Prompt de l’Agent E-Code demandant PeopleOps pour rechercher des procédures RH avec des limites d’accès.',
+      preview: 'Workspace E-Code avec fichiers PeopleOps générés et recherche RH locale fictive dans la Webview.',
+      webviewOverview:
+        'PeopleOps dans la Webview avec cartes de procédures, historique et permissions limitées à la démo.',
+      iteration: 'Workspace E-Code après le clic vérifié sur Politique de congés annuels, avec réponse RH-04 citée.',
+      webviewIteration:
+        'PeopleOps affichant la réponse RH-04 citée et une option de retour après l’interaction vérifiée.',
+      files: 'Arborescence E-Code de PeopleOps avec cartes, recherche locale et états de permissions modifiables.',
+    },
     deliverables: {
-      eyebrow: 'Ce que vous recevez',
+      eyebrow: 'Ce que comprend PeopleOps',
       title: 'Un projet d’outil interne traçable, avec des limites de déploiement franches',
       intro:
-        'Le projet généré expose sa source, la jonction vers les procédures, l’espace responsive et ses options de mise en ligne. Une surface statique de revue se publie via E-Code ; les opérations sur données privées restent dans un runtime sécurisé séparément.',
+        'Le projet généré expose sa source, le point de connexion aux procédures, l’espace responsive et ses options de mise en ligne. Une surface statique de revue peut être publiée via E-Code ; les opérations sur des données privées nécessitent toujours un runtime distinct et sécurisé.',
       items: [
         {
           title: 'Fichiers de projet relisibles et transportables',
           body: 'Composants, routes, états de flux et structures de politique restent lisibles et exportables vers votre dépôt et votre processus de revue.',
         },
         {
-          title: 'Adaptateur de procédures visible dans la source',
-          body: 'La jonction vers les procédures approuvées apparaît dans le code. Ajoutez le vrai stockage seulement après avoir défini les permissions et validé la récupération sur vos documents.',
+          title: 'Connexion aux procédures visible dans la source',
+          body: 'Le point de connexion aux procédures approuvées apparaît dans le code. Ajoutez le stockage réel seulement après avoir défini les permissions et validé la recherche dans vos documents.',
         },
         {
           title: 'Espace responsive actif dans l’aperçu',
-          body: 'Examinez les écrans de demande et de politique sur mobile, tablette et desktop. L’aperçu démontre l’interface, pas des documents privés connectés, l’authentification d’entreprise ni des autorisations appliquées.',
+          body: 'Examinez les écrans de demande et de politique sur mobile, tablette et ordinateur. L’aperçu démontre l’interface, pas des documents privés connectés, l’authentification d’entreprise ni des autorisations appliquées.',
         },
         {
           title: 'Mise en ligne guidée pour les builds statiques compatibles',
@@ -410,27 +448,27 @@ export const INTERNAL_AI_BUILDER_COPY = {
         },
         {
           title: 'URL E-Code consacrée à la revue statique',
-          body: 'Placez une surface statique compatible sur une URL E-Code active. Recherche privée, écriture d’approbation, contrôle d’identité et événement durable exigent le code exporté et un runtime backend déployé avec les contrôles requis.',
+          body: 'Publiez une surface statique compatible sur une URL E-Code. Toute recherche privée, tout enregistrement d’approbation, tout contrôle d’identité et toute journalisation durable exigent le code exporté et un runtime backend déployé avec les contrôles requis.',
         },
         {
-          title: 'Conversation avec l’Agent comme boucle de changement',
+          title: 'Conversation avec l’Agent comme boucle d’itération',
           body: 'Décrivez l’ajustement suivant de politique ou de flux, relisez les fichiers source concernés et vérifiez l’interface actualisée dans l’aperçu avant d’avancer.',
         },
       ],
     },
     features: {
       eyebrow: 'Pensé pour des outils internes privés',
-      title: 'Le flux interne dans le code, avec le travail de sécurité explicite',
+      title: 'Le flux interne dans le code, avec des exigences de sécurité explicites',
       intro:
-        'Le parcours Générateur d’IA interne garde frontières de sources, règles de gouvernance et itération visibles, sans prétendre qu’un aperçu fournit la sécurité de production.',
+        'Le parcours Générateur d’IA interne garde les frontières des sources, les règles de gouvernance et les itérations visibles, sans prétendre qu’un aperçu fournit la sécurité de production.',
       items: [
         {
-          title: 'Réponses ancrées aux procédures',
-          body: 'Une frontière de récupération indique où brancher les procédures approuvées ; la qualité de l’ancrage reste à évaluer sur votre corpus.',
+          title: 'Réponses fondées sur les procédures',
+          body: 'Un point de connexion indique où brancher les procédures approuvées ; la qualité de la recherche et des réponses reste à évaluer sur votre corpus.',
         },
         {
           title: 'Acheminement des approbations',
-          body: 'Responsables et états expriment le chemin prévu ; persistance, notifications et reprise sur erreur restent des intégrations à tester.',
+          body: 'Les responsables et les états décrivent le parcours prévu ; la persistance, les notifications, la gestion des erreurs et les nouvelles tentatives restent des intégrations à tester.',
         },
         {
           title: 'Structure des règles d’accès',
@@ -441,41 +479,41 @@ export const INTERNAL_AI_BUILDER_COPY = {
           body: 'Modélisez les événements utiles, puis acheminez-les vers un stockage résistant à l’altération avec la rétention et les accès exigés par votre organisation.',
         },
         {
-          title: 'Responsive par défaut',
+          title: 'Espace salarié responsive',
           body: 'L’interface s’adapte du grand écran au téléphone sans build mobile séparé.',
         },
         {
-          title: 'Source exportable',
+          title: 'Source exportable de l’outil de procédures',
           body: 'Exportez le projet vers l’hébergement choisi, puis appliquez les contrôles de déploiement, de confidentialité et de sécurité de votre organisation.',
         },
       ],
     },
     useCases: {
-      eyebrow: 'Qui construit avec',
+      eyebrow: 'Workflows internes à structurer',
       title: 'Quatre flux internes à structurer avant le déploiement aux équipes',
       intro:
         'De la recherche de procédures RH à la saisie de demandes, ces scénarios fournissent des bases inspectables ; la gouvernance devient réelle après validation de l’identité, des données, de l’audit et de la sécurité.',
       items: [
         {
           title: 'Assistant de procédures RH',
-          body: 'Répondez aux questions de politique et acheminez les demandes de congé, d’exception et d’approbation.',
+          body: 'Modélisez les résultats de recherche et les parcours de congé, d’exception et d’approbation avant de brancher le corpus privé et le moteur de processus.',
         },
         {
-          title: 'Help desk interne',
-          body: 'Faites remonter les procédures IT, finance et opérations avec acheminement vers le bon responsable.',
+          title: 'Centre d’assistance interne',
+          body: 'Structurez les vues de procédures IT, finance et opérations avec une connexion explicite, encore inactive, vers le bon responsable.',
         },
         {
-          title: 'Outils d’onboarding et de savoir',
-          body: 'Guidez les nouvelles recrues à travers des processus ancrés dans votre documentation interne.',
+          title: 'Outils d’intégration et de gestion des connaissances',
+          body: 'Construisez l’interface guidée, puis branchez la documentation approuvée et validez les accès avant toute utilisation par les employés.',
         },
         {
           title: 'Flux d’approbation et de demande',
-          body: 'Modélisez des parcours de demande structurés avec responsables, états et journal d’audit.',
+          body: 'Modélisez les parcours, les responsables, les états et les structures d’événements d’audit sans les présenter comme persistés ou appliqués.',
         },
       ],
     },
     faq: {
-      eyebrow: 'Questions fréquentes',
+      eyebrow: 'Questions sur l’IA interne',
       title: 'Le Générateur d’IA interne, en toute honnêteté',
       intro: 'Ce que produit le parcours Générateur d’IA interne, et où sont ses limites.',
       items: [
@@ -485,7 +523,7 @@ export const INTERNAL_AI_BUILDER_COPY = {
         },
         {
           title: 'Comment utilise-t-il nos procédures privées ?',
-          body: 'Le projet peut modéliser un adaptateur de recherche dans les procédures, mais cette page ne connecte ni documents, ni modèle, ni source de données. Vous choisissez corpus et fournisseur, limitez les accès, puis évaluez récupération et réponses avant usage par les équipes.',
+          body: 'Le projet peut modéliser un adaptateur pour rechercher dans les procédures, mais cette page ne connecte ni documents, ni modèle, ni source de données. Vous choisissez le corpus et le fournisseur, limitez les accès, puis évaluez la qualité de la recherche et des réponses avant tout usage par les équipes.',
         },
         {
           title: 'Puis-je contrôler l’accès et voir un journal d’audit ?',
@@ -496,17 +534,20 @@ export const INTERNAL_AI_BUILDER_COPY = {
           body: 'Pas par défaut. La confidentialité dépend du modèle, du stockage, de l’identité, des journaux, du réseau et de l’hébergement choisis. La démo de cette page contient seulement des données fictives et E-Code ne revendique aucune certification pour le système obtenu.',
         },
         {
-          title: 'Comment modifier l’assistant ensuite ?',
-          body: 'Modifiez les fichiers directement ou demandez le changement suivant à l’Agent et relisez le diff face à l’aperçu actif.',
+          title: 'Comment faire évoluer l’agent interne ensuite ?',
+          body: 'Modifiez directement les cartes de procédures et la logique de réponse locale de PeopleOps ou demandez à l’Agent un autre parcours, une citation ou un mécanisme de retour, puis vérifiez le diff dans l’aperçu.',
         },
       ],
     },
     finalCta: {
-      title: 'Décrivez votre assistant et voyez-le tourner',
-      body: 'Transformez le flux interne envisagé en un projet modifiable, exécutez son interface dans l’aperçu et inspectez sources, règles d’accès et événements d’audit avant de connecter des données privées ou de le déployer aux équipes.',
-      primaryCta: { label: 'Décrivez votre assistant', ariaLabel: 'Décrivez votre assistant IA interne avec E-Code' },
+      title: 'Décrivez le parcours de procédure interne et testez-le localement',
+      body: 'Transformez le flux interne envisagé en un projet modifiable, exécutez son interface dans l’aperçu et inspectez les sources, les règles d’accès et les événements d’audit avant de connecter des données privées ou de le déployer aux équipes.',
+      primaryCta: {
+        label: 'Décrivez votre agent interne',
+        ariaLabel: 'Décrivez votre assistant IA interne avec E-Code',
+      },
       secondaryCta: {
-        label: 'Voir la construction',
+        label: 'Voir le parcours interne',
         ariaLabel: 'Voir comment E-Code construit l’assistant interne à partir d’un prompt',
       },
     },
@@ -517,7 +558,7 @@ export const INTERNAL_AI_BUILDER_COPY = {
       problemLabel: 'Le problème de l’outillage IA interne',
       buildLabel: 'Comment fonctionne le Générateur d’IA interne',
       outputListLabel: 'Résultats de la génération de l’assistant interne',
-      proofLinkLabel: 'Voir la preuve IDE réelle E-Code',
+      proofLinkLabel: 'Inspecter la preuve IDE de l’agent interne',
       deliverablesLabel: 'Ce que livre le Générateur d’IA interne',
       featuresLabel: 'Capacités du Générateur d’IA interne',
       useCasesLabel: 'Cas d’usage du Générateur d’IA interne',
@@ -525,4 +566,4 @@ export const INTERNAL_AI_BUILDER_COPY = {
       finalCtaLabel: 'Commencer à construire votre assistant interne',
     },
   },
-} as const satisfies SolutionCopyByLanguage;
+} as const satisfies CapturedSolutionCopyByLanguage;
