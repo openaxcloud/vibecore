@@ -8384,7 +8384,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * would back this with a shared ephemeral store; the invariant — no target
    * mount until commit — holds regardless of the backing store.)
    */
-  const importStaging = new Map<string, ImportFile[]>();
+  const importStaging = {
+    /** Écrit la copie jetable, visible par TOUS les réplicas. */
+    set: (importJobId: string, files: ImportFile[]) => store.updateImportJob(importJobId, { stagedFiles: files }),
+
+    get: async (importJobId: string): Promise<ImportFile[] | undefined> =>
+      (await store.getImportStagedFiles(importJobId)) as ImportFile[] | undefined,
+
+    /** Sortie terminale : la copie jetable disparaît (NULL, pas un tableau vide). */
+    delete: (importJobId: string) => store.updateImportJob(importJobId, { stagedFiles: null }),
+  };
 
   /*
    * PREVIEW payload (TPL-02.3): what the user is about to import, described
@@ -8393,8 +8402,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * become a second way to read a secret the scanner just flagged. Sorted so
    * the preview is stable between a create and a later re-read.
    */
-  const importPreviewFiles = (importJobId: string) =>
-    (importStaging.get(importJobId) ?? [])
+  const importPreviewFiles = (files: ImportFile[]) =>
+    files
       .map((file) => ({ path: file.path, sizeBytes: Buffer.byteLength(file.content) }))
       .sort((a, b) => a.path.localeCompare(b.path));
 
@@ -19835,7 +19844,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * debit — so an import that never committed is never charged (safety rule 3).
    */
   const cleanupImport = async (importJobId: string, terminal: ImportState, error?: string) => {
-    importStaging.delete(importJobId); // dispose the staging — target never mounted
+    await importStaging.delete(importJobId); // dispose the staging — target never mounted
     importLedger.compensateByJob(importJobId); // release the reservation, zero debit
     await store.updateImportJob(importJobId, { state: terminal, ...(error ? { error } : {}) }).catch(() => undefined);
   };
@@ -19852,7 +19861,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const expired = await store.reapExpiredImportJobs(nowIso).catch((): string[] => []);
 
     for (const id of expired) {
-      importStaging.delete(id);
+      await importStaging.delete(id);
       importLedger.compensateByJob(id); // timeout is a non-committed exit → release, zero debit
     }
 
@@ -19905,7 +19914,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             provider: existing.provider,
             findings: (existing.findings as unknown[]) ?? [],
             stagedFileCount: existing.stagedFileCount,
-            stagedFiles: importPreviewFiles(existing.id),
+            stagedFiles: importPreviewFiles((await importStaging.get(existing.id)) ?? []),
             requiresConsent,
             replayed: true,
           },
@@ -19952,7 +19961,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       await store.updateImportJob(job.id, { creditsReserved: true });
 
       // STAGING_ISOLATED — files into the disposable staging, NOT the target.
-      importStaging.set(job.id, stagedFiles);
+      await importStaging.set(job.id, stagedFiles);
       await advance('STAGING_ISOLATED', { stagedFileCount: stagedFiles.length });
 
       // SCANNING — read-only detection; content is never mutated here.
@@ -19991,7 +20000,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             provider: body.provider,
             findings, // redacted previews only
             stagedFileCount: stagedFiles.length,
-            stagedFiles: importPreviewFiles(job.id),
+            stagedFiles: importPreviewFiles(stagedFiles),
             requiresConsent: true,
           },
         });
@@ -20007,7 +20016,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           provider: body.provider,
           findings: [],
           stagedFileCount: stagedFiles.length,
-          stagedFiles: importPreviewFiles(job.id),
+          stagedFiles: importPreviewFiles(stagedFiles),
           requiresConsent: false,
         },
       });
@@ -20050,7 +20059,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    const staged = importStaging.get(importJobId);
+    const staged = await importStaging.get(importJobId);
 
     if (!staged) {
       throw Object.assign(new Error(appPublicEnglish('IMPORT_STAGING_GONE')), {
@@ -20153,7 +20162,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       await persistProjectFileManifest(store, project.id, written, request.currentUser!.id);
       await recordUsage(request, orgId, 'projects.count');
 
-      importStaging.delete(importJobId); // staging disposed after successful commit
+      await importStaging.delete(importJobId); // staging disposed after successful commit
       await advance('COMMITTED', { targetProjectId: project.id });
 
       /*
@@ -20261,7 +20270,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * commit gate uses, so the screen can never show a stale "clean" while the
      * gate blocks. Reading this never advances the state machine.
      */
-    const stagedForPreview = importStaging.get(importJobId);
+    const stagedForPreview = await importStaging.get(importJobId);
     const previewFindings = stagedForPreview ? scanStagedFilesForSecrets(stagedForPreview) : [];
 
     return {
@@ -20270,7 +20279,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         preview: stagedForPreview
           ? {
               stagedFileCount: stagedForPreview.length,
-              stagedFiles: importPreviewFiles(importJobId),
+              stagedFiles: importPreviewFiles(stagedForPreview),
               findings: previewFindings,
               requiresConsent: previewFindings.length > 0,
             }

@@ -2378,6 +2378,7 @@ export class TestApiStore implements ApiStore {
       findings?: unknown;
       consent?: unknown;
       targetProjectId?: string;
+      stagedFiles?: unknown;
       stagedFileCount?: number;
       redactedCount?: number;
       creditsReserved?: boolean;
@@ -2391,8 +2392,27 @@ export class TestApiStore implements ApiStore {
     }
   }
 
+  /*
+   * Reproduit fidèlement le store Prisma : `getImportJob` NE renvoie PAS la
+   * copie jetable. La route GET étale ce job dans sa réponse HTTP ; un store de
+   * test qui laisserait passer `stagedFiles` rendrait vert un test censé
+   * prouver que le contenu ne fuit jamais.
+   */
   async getImportJob(id: string) {
-    return this.importJobs.get(id);
+    const row = this.importJobs.get(id);
+
+    if (!row) {
+      return undefined;
+    }
+
+    const { stagedFiles: _stagedFiles, ...rest } = row as Record<string, unknown>;
+
+    return rest as typeof row;
+  }
+
+  async getImportStagedFiles(id: string) {
+    return (this.importJobs.get(id) as { stagedFiles?: Array<{ path: string; content: string; encoding?: string }> })
+      ?.stagedFiles;
   }
 
   async reapExpiredImportJobs(nowIso: string): Promise<string[]> {

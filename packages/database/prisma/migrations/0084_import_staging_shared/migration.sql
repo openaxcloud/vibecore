@@ -1,0 +1,14 @@
+-- Import staging partagé entre réplicas (TPL-02.3 / BUG-IMPORT-001).
+--
+-- Les fichiers stagés d'un import vivaient dans une Map en mémoire du
+-- processus API. Avec plusieurs réplicas derrière le load balancer, la
+-- requête suivante tombe sur un autre pod, qui ne connaît pas ce staging :
+-- l'aperçu revient vide et le commit échoue en IMPORT_STAGING_GONE.
+-- Prouvé en réel le 2026-08-12 sur l'environnement de test (2 réplicas) :
+-- 8 lectures consécutives du MÊME import ont donné 5 aperçus et 3 vides.
+--
+-- La colonne porte la copie jetable. Elle est remise à NULL sur chaque
+-- sortie terminale (commit, annulation, expiration, rollback) : l'invariant
+-- « la cible n'est jamais montée avant le commit » est inchangé, et rien ne
+-- survit à un import qui n'a pas abouti.
+ALTER TABLE "ImportJob" ADD COLUMN "stagedFiles" JSONB;

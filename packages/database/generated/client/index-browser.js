@@ -1504,6 +1504,7 @@ exports.Prisma.ImportJobScalarFieldEnum = {
   findings: 'findings',
   consent: 'consent',
   targetProjectId: 'targetProjectId',
+  stagedFiles: 'stagedFiles',
   stagedFileCount: 'stagedFileCount',
   redactedCount: 'redactedCount',
   creditsReserved: 'creditsReserved',

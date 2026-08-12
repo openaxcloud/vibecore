@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
 
+import { hashPassword } from '@vibecore/auth';
 import JSZip from 'jszip';
 
-import { hashPassword } from '@vibecore/auth';
 import { describe, expect, it, vi } from 'vitest';
 
 import { buildApiApp } from '../app.js';
@@ -172,6 +172,7 @@ describe('POST /orgs/:orgId/imports — secure import, no silent deletion, dispo
       headers: auth('imp-token'),
       payload: { idempotencyKey: 'idem-r-3', provider: 'github', files: stagedFiles() },
     });
+
     const importJobId = created.json().import.importJobId;
     expect(created.json().import.state).toBe('AWAITING_USER_ACTION'); // staged, never resolved
 
@@ -218,6 +219,7 @@ describe('POST /orgs/:orgId/imports — secure import, no silent deletion, dispo
       headers: auth('imp-token'),
       payload: { idempotencyKey: 'idem-r-4', provider: 'github', files: stagedFiles() },
     });
+
     const freshId = created.json().import.importJobId;
 
     const reapedNow = await store.reapExpiredImportJobs(new Date().toISOString());
@@ -271,6 +273,11 @@ describe('POST /orgs/:orgId/imports — secure import, no silent deletion, dispo
       headers: auth('imp-token'),
       payload: { consent: { [`${finding.path}:${finding.line}`]: 'redact' } },
     });
+
+    if (committed.statusCode !== 201) {
+      console.log('DEBUG commit', committed.statusCode, JSON.stringify(committed.json()));
+    }
+
     expect(committed.statusCode).toBe(201);
 
     const targetId = committed.json().project.id;
@@ -420,11 +427,7 @@ describe('import preview — what the review screen reads before anything is wri
     expect(res.statusCode).toBe(202); // le secret de .env quarantaine l'import
 
     const body = res.json();
-    expect(body.import.stagedFiles.map((f: { path: string }) => f.path)).toEqual([
-      '.env',
-      'README.md',
-      'src/index.js',
-    ]);
+    expect(body.import.stagedFiles.map((f: { path: string }) => f.path)).toEqual(['.env', 'README.md', 'src/index.js']);
     expect(body.import.findings.some((f: { path: string }) => f.path === '.env')).toBe(true);
     expect(JSON.stringify(body.import)).not.toContain(IMPORTED_SECRET);
 
@@ -497,6 +500,52 @@ describe('import preview — what the review screen reads before anything is wri
 
     // Reading a preview must never mount the target.
     expect(projectStorage.writeCalls).toEqual([]);
+  });
+
+  it('le staging survit au load balancer : stagé sur une instance, relu sur une AUTRE (BUG-IMPORT-001)', async () => {
+    const { app, store, projectStorage, org } = await setup();
+
+    /*
+     * Deuxième instance de l'app sur LE MÊME store : c'est exactement ce que
+     * voit un second réplica derrière le load balancer. Avec le staging en
+     * mémoire du processus, cette instance-ci ne voyait rien — l'aperçu
+     * revenait vide et le commit échouait en IMPORT_STAGING_GONE.
+     *
+     * Constaté en réel le 2026-08-12 sur l'env de test (2 réplicas api) :
+     * 8 lectures consécutives du MÊME import → 5 aperçus, 3 vides.
+     *
+     * ⚠️ Ce test couvre la LECTURE. Le commit cross-réplica reste cassé pour
+     * une SECONDE raison, encore ouverte : le registre de crédits
+     * (`ImportCreditLedger`) est lui aussi en mémoire du processus, donc un
+     * commit servi par un autre réplica répond `BILLING_RESERVATION_MISSING`.
+     * Voir BUG-IMPORT-001 dans BUG_INVENTORY_LIVE.md.
+     */
+    const otherReplica = await buildApiApp({ store, projectStorage, emailProvider: new QuietEmailProvider() });
+
+    const created = await app.inject({
+      method: 'POST',
+      url: `/orgs/${org.id}/imports`,
+      headers: auth('imp-token'),
+      payload: { idempotencyKey: 'idem-p-lb', provider: 'github', files: stagedFiles() },
+    });
+
+    const importJobId = created.json().import.importJobId;
+
+    const read = await otherReplica.inject({
+      method: 'GET',
+      url: `/orgs/${org.id}/imports/${importJobId}`,
+      headers: auth('imp-token'),
+    });
+
+    expect(read.statusCode).toBe(200);
+    expect(read.json().import.preview).not.toBeNull();
+    expect(read.json().import.preview.stagedFiles.map((f: { path: string }) => f.path)).toEqual([
+      '.env',
+      'README.md',
+      'src/index.js',
+    ]);
+    expect(read.json().import.preview.findings.length).toBeGreaterThan(0);
+    expect(JSON.stringify(read.json())).not.toContain(IMPORTED_SECRET);
   });
 
   it('another org gets 404, not a different error that would confirm the job exists', async () => {

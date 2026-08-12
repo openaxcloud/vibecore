@@ -1470,6 +1470,9 @@ export class PrismaApiStore implements ApiStore {
       findings?: unknown;
       consent?: unknown;
       targetProjectId?: string;
+
+      /** `null` dispose la copie jetable (sortie terminale). */
+      stagedFiles?: unknown;
       stagedFileCount?: number;
       redactedCount?: number;
       creditsReserved?: boolean;
@@ -1483,12 +1486,26 @@ export class PrismaApiStore implements ApiStore {
         ...(patch.findings !== undefined ? { findings: patch.findings as object } : {}),
         ...(patch.consent !== undefined ? { consent: patch.consent as object } : {}),
         ...(patch.targetProjectId !== undefined ? { targetProjectId: patch.targetProjectId } : {}),
+        ...(patch.stagedFiles !== undefined ? { stagedFiles: patch.stagedFiles as object | null } : {}),
         ...(patch.stagedFileCount !== undefined ? { stagedFileCount: patch.stagedFileCount } : {}),
         ...(patch.redactedCount !== undefined ? { redactedCount: patch.redactedCount } : {}),
         ...(patch.creditsReserved !== undefined ? { creditsReserved: patch.creditsReserved } : {}),
         ...(patch.error !== undefined ? { error: patch.error } : {}),
       },
     });
+  }
+
+  /*
+   * Lecture DÉDIÉE de la copie jetable. Volontairement séparée de
+   * `getImportJob` : la route GET étale le job dans sa réponse HTTP, donc y
+   * inclure les fichiers renverrait leur CONTENU au client — et l'aperçu
+   * deviendrait une seconde façon de lire le secret que le scan vient de
+   * signaler. Seul le serveur appelle ceci.
+   */
+  async getImportStagedFiles(id: string) {
+    const row = await this.prisma.importJob.findUnique({ where: { id }, select: { stagedFiles: true } });
+
+    return (row?.stagedFiles as Array<{ path: string; content: string; encoding?: string }> | null) ?? undefined;
   }
 
   async getImportJob(id: string) {

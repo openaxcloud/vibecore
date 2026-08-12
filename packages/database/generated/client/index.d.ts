@@ -142003,6 +142003,7 @@ export namespace Prisma {
     findings: number
     consent: number
     targetProjectId: number
+    stagedFiles: number
     stagedFileCount: number
     redactedCount: number
     creditsReserved: number
@@ -142068,6 +142069,7 @@ export namespace Prisma {
     findings?: true
     consent?: true
     targetProjectId?: true
+    stagedFiles?: true
     stagedFileCount?: true
     redactedCount?: true
     creditsReserved?: true
@@ -142174,6 +142176,7 @@ export namespace Prisma {
     findings: JsonValue | null
     consent: JsonValue | null
     targetProjectId: string | null
+    stagedFiles: JsonValue | null
     stagedFileCount: number
     redactedCount: number
     creditsReserved: boolean
@@ -142212,6 +142215,7 @@ export namespace Prisma {
     findings?: boolean
     consent?: boolean
     targetProjectId?: boolean
+    stagedFiles?: boolean
     stagedFileCount?: boolean
     redactedCount?: boolean
     creditsReserved?: boolean
@@ -142231,6 +142235,7 @@ export namespace Prisma {
     findings?: boolean
     consent?: boolean
     targetProjectId?: boolean
+    stagedFiles?: boolean
     stagedFileCount?: boolean
     redactedCount?: boolean
     creditsReserved?: boolean
@@ -142250,6 +142255,7 @@ export namespace Prisma {
     findings?: boolean
     consent?: boolean
     targetProjectId?: boolean
+    stagedFiles?: boolean
     stagedFileCount?: boolean
     redactedCount?: boolean
     creditsReserved?: boolean
@@ -142269,6 +142275,7 @@ export namespace Prisma {
     findings?: boolean
     consent?: boolean
     targetProjectId?: boolean
+    stagedFiles?: boolean
     stagedFileCount?: boolean
     redactedCount?: boolean
     creditsReserved?: boolean
@@ -142278,7 +142285,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type ImportJobOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "actorUserId" | "provider" | "state" | "sourceRef" | "findings" | "consent" | "targetProjectId" | "stagedFileCount" | "redactedCount" | "creditsReserved" | "error" | "expiresAt" | "createdAt" | "updatedAt", ExtArgs["result"]["importJob"]>
+  export type ImportJobOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "actorUserId" | "provider" | "state" | "sourceRef" | "findings" | "consent" | "targetProjectId" | "stagedFiles" | "stagedFileCount" | "redactedCount" | "creditsReserved" | "error" | "expiresAt" | "createdAt" | "updatedAt", ExtArgs["result"]["importJob"]>
 
   export type $ImportJobPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "ImportJob"
@@ -142305,6 +142312,12 @@ export namespace Prisma {
        * Set only at COMMITTED. Null everywhere else = target never mounted.
        */
       targetProjectId: string | null
+      /**
+       * Copie JETABLE des fichiers stagés, partagée entre réplicas API (une Map
+       * en mémoire ne survivait pas au load balancer). Remise à NULL sur chaque
+       * sortie terminale : rien ne persiste d'un import non abouti.
+       */
+      stagedFiles: Prisma.JsonValue | null
       stagedFileCount: number
       redactedCount: number
       /**
@@ -142747,6 +142760,7 @@ export namespace Prisma {
     readonly findings: FieldRef<"ImportJob", 'Json'>
     readonly consent: FieldRef<"ImportJob", 'Json'>
     readonly targetProjectId: FieldRef<"ImportJob", 'String'>
+    readonly stagedFiles: FieldRef<"ImportJob", 'Json'>
     readonly stagedFileCount: FieldRef<"ImportJob", 'Int'>
     readonly redactedCount: FieldRef<"ImportJob", 'Int'>
     readonly creditsReserved: FieldRef<"ImportJob", 'Boolean'>
@@ -156435,6 +156449,7 @@ export namespace Prisma {
     findings: 'findings',
     consent: 'consent',
     targetProjectId: 'targetProjectId',
+    stagedFiles: 'stagedFiles',
     stagedFileCount: 'stagedFileCount',
     redactedCount: 'redactedCount',
     creditsReserved: 'creditsReserved',
@@ -166083,6 +166098,7 @@ export namespace Prisma {
     findings?: JsonNullableFilter<"ImportJob">
     consent?: JsonNullableFilter<"ImportJob">
     targetProjectId?: StringNullableFilter<"ImportJob"> | string | null
+    stagedFiles?: JsonNullableFilter<"ImportJob">
     stagedFileCount?: IntFilter<"ImportJob"> | number
     redactedCount?: IntFilter<"ImportJob"> | number
     creditsReserved?: BoolFilter<"ImportJob"> | boolean
@@ -166102,6 +166118,7 @@ export namespace Prisma {
     findings?: SortOrderInput | SortOrder
     consent?: SortOrderInput | SortOrder
     targetProjectId?: SortOrderInput | SortOrder
+    stagedFiles?: SortOrderInput | SortOrder
     stagedFileCount?: SortOrder
     redactedCount?: SortOrder
     creditsReserved?: SortOrder
@@ -166124,6 +166141,7 @@ export namespace Prisma {
     findings?: JsonNullableFilter<"ImportJob">
     consent?: JsonNullableFilter<"ImportJob">
     targetProjectId?: StringNullableFilter<"ImportJob"> | string | null
+    stagedFiles?: JsonNullableFilter<"ImportJob">
     stagedFileCount?: IntFilter<"ImportJob"> | number
     redactedCount?: IntFilter<"ImportJob"> | number
     creditsReserved?: BoolFilter<"ImportJob"> | boolean
@@ -166143,6 +166161,7 @@ export namespace Prisma {
     findings?: SortOrderInput | SortOrder
     consent?: SortOrderInput | SortOrder
     targetProjectId?: SortOrderInput | SortOrder
+    stagedFiles?: SortOrderInput | SortOrder
     stagedFileCount?: SortOrder
     redactedCount?: SortOrder
     creditsReserved?: SortOrder
@@ -166170,6 +166189,7 @@ export namespace Prisma {
     findings?: JsonNullableWithAggregatesFilter<"ImportJob">
     consent?: JsonNullableWithAggregatesFilter<"ImportJob">
     targetProjectId?: StringNullableWithAggregatesFilter<"ImportJob"> | string | null
+    stagedFiles?: JsonNullableWithAggregatesFilter<"ImportJob">
     stagedFileCount?: IntWithAggregatesFilter<"ImportJob"> | number
     redactedCount?: IntWithAggregatesFilter<"ImportJob"> | number
     creditsReserved?: BoolWithAggregatesFilter<"ImportJob"> | boolean
@@ -176944,6 +176964,7 @@ export namespace Prisma {
     findings?: NullableJsonNullValueInput | InputJsonValue
     consent?: NullableJsonNullValueInput | InputJsonValue
     targetProjectId?: string | null
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
     stagedFileCount?: number
     redactedCount?: number
     creditsReserved?: boolean
@@ -176963,6 +176984,7 @@ export namespace Prisma {
     findings?: NullableJsonNullValueInput | InputJsonValue
     consent?: NullableJsonNullValueInput | InputJsonValue
     targetProjectId?: string | null
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
     stagedFileCount?: number
     redactedCount?: number
     creditsReserved?: boolean
@@ -176982,6 +177004,7 @@ export namespace Prisma {
     findings?: NullableJsonNullValueInput | InputJsonValue
     consent?: NullableJsonNullValueInput | InputJsonValue
     targetProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
     stagedFileCount?: IntFieldUpdateOperationsInput | number
     redactedCount?: IntFieldUpdateOperationsInput | number
     creditsReserved?: BoolFieldUpdateOperationsInput | boolean
@@ -177001,6 +177024,7 @@ export namespace Prisma {
     findings?: NullableJsonNullValueInput | InputJsonValue
     consent?: NullableJsonNullValueInput | InputJsonValue
     targetProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
     stagedFileCount?: IntFieldUpdateOperationsInput | number
     redactedCount?: IntFieldUpdateOperationsInput | number
     creditsReserved?: BoolFieldUpdateOperationsInput | boolean
@@ -177020,6 +177044,7 @@ export namespace Prisma {
     findings?: NullableJsonNullValueInput | InputJsonValue
     consent?: NullableJsonNullValueInput | InputJsonValue
     targetProjectId?: string | null
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
     stagedFileCount?: number
     redactedCount?: number
     creditsReserved?: boolean
@@ -177039,6 +177064,7 @@ export namespace Prisma {
     findings?: NullableJsonNullValueInput | InputJsonValue
     consent?: NullableJsonNullValueInput | InputJsonValue
     targetProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
     stagedFileCount?: IntFieldUpdateOperationsInput | number
     redactedCount?: IntFieldUpdateOperationsInput | number
     creditsReserved?: BoolFieldUpdateOperationsInput | boolean
@@ -177058,6 +177084,7 @@ export namespace Prisma {
     findings?: NullableJsonNullValueInput | InputJsonValue
     consent?: NullableJsonNullValueInput | InputJsonValue
     targetProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
     stagedFileCount?: IntFieldUpdateOperationsInput | number
     redactedCount?: IntFieldUpdateOperationsInput | number
     creditsReserved?: BoolFieldUpdateOperationsInput | boolean
@@ -184178,6 +184205,7 @@ export namespace Prisma {
     findings?: SortOrder
     consent?: SortOrder
     targetProjectId?: SortOrder
+    stagedFiles?: SortOrder
     stagedFileCount?: SortOrder
     redactedCount?: SortOrder
     creditsReserved?: SortOrder

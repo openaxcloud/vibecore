@@ -2460,6 +2460,10 @@ model ImportJob {
   consent         Json?
   /// Set only at COMMITTED. Null everywhere else = target never mounted.
   targetProjectId String?
+  /// Copie JETABLE des fichiers stagés, partagée entre réplicas API (une Map
+  /// en mémoire ne survivait pas au load balancer). Remise à NULL sur chaque
+  /// sortie terminale : rien ne persiste d'un import non abouti.
+  stagedFiles     Json?
   stagedFileCount Int       @default(0)
   redactedCount   Int       @default(0)
   /// E-CODE DECISION (not Replit parity): idempotent credit reservation marker.
