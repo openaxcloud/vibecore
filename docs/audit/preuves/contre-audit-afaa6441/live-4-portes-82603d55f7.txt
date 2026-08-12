@@ -1,0 +1,58 @@
+############ REJEU LIVE DES 4 PORTES ############
+date: 2026-08-12T06:57:38Z   tag attendu: 82603d55f7
+cluster: gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster
+
+== flotte (composants traverses par les portes) ==
+  api: 2 replique(s), tag(s)=82603d55f7 
+  preview-proxy: 2 replique(s), tag(s)=82603d55f7 
+  workspace-manager: 1 replique(s), tag(s)=82603d55f7 
+
+== drapeaux (lus dans CHAQUE pod du proxy, pas dans le configmap) ==
+  vibecore-vibecore-platform-preview-proxy-647d7b9d5d-2gbpl: TENANT=true PRIVATE=true
+  vibecore-vibecore-platform-preview-proxy-647d7b9d5d-5z577: TENANT=true PRIVATE=true
+
+== seed org/projet ==
+orgs: org_porte,org_pirate
+
+== demarrage du workspace ws-porte (pod gVisor) ==
+  image agent: europe-west9-docker.pkg.dev/vibecore-audit-test-20260807/vibecore-audit-containers/workspace-agent:sha-82603d55f7
+200
+{"id":"ws-porte","orgId":"org_porte","projectId":"proj_porte","plan":"free","status":"RUNNING","pvcName":"pvc-ws-porte","podName":"workspace-ws-porte","serviceName":"workspace-ws-porte","agentTokenSecretName":"agent-token-ws-porte","createdAt":"2026-08-09T16:03:07.525Z","lastActiveAt":"2026-08-12T06
+  attente du pod...
+pod/workspace-ws-porte condition met
+NAME                 READY   STATUS    RESTARTS   AGE   IP           NODE                                                  NOMINATED NODE   READINESS GATES
+workspace-ws-porte   1/1     Running   0          16s   10.20.2.11   gke-vibecore-audit-clu-sandbox-gvisor-e6905fa0-ngnx   <none>           <none>
+
+== serveur de dev dans le pod (5173 HTTP, 5174 HTTP+WebSocket) ==
+  port 5173: ouvert
+  port 5174: ouvert
+
+== jetons vc_preview forges dans le pod api (le secret ne sort pas) ==
+  jeton legitime : b3JnX3BvcnRl.<exp>.<sig tronquee>
+  jeton intrus   : b3JnX3BpcmF0ZQ.<exp>.<sig tronquee>
+  domaine preview: preview.34.163.208.161.sslip.io
+
+== PORTE 1 — lien de preview DIRECT (forme HOTE + cookie) ==
+  cookie LEGITIME                                200  <!doctype html><html><head><script data-ecode-hmr-shim>(function(){if(typeof w
+  cookie INTRUS                                  404  {"error":"The workspace preview is not reachable yet. Please try again.","code
+  cookie BIDON                                   403  {"error":"You do not have access to this preview.","code":"PREVIEW_TENANT_FORB
+  SANS cookie                                    403  {"error":"You do not have access to this preview.","code":"PREVIEW_TENANT_FORB
+
+== PORTE 2 — publications: le chemin interne /d/<id> n'est pas public ==
+  sans en-tete interne                           403  {"error":"This address is reserved for internal callers.","code":"PREVIEW_INTE
+  en-tete interne BIDON                          403  {"error":"This address is reserved for internal callers.","code":"PREVIEW_INTE
+  en-tete interne VALIDE                         503  {"error":"This publication’s state could not be verified. Please try again i
+
+== PORTE 3 — screenshotter (forme CHEMIN + en-tete interne de tenant) ==
+  jeton LEGITIME                                 200  <!doctype html><html><head><script data-ecode-hmr-shim>(function(){if(typeof w
+  jeton INTRUS                                   404  {"error":"The workspace preview is not reachable yet. Please try again.","code
+  jeton BIDON                                    403  {"error":"You do not have access to this preview.","code":"PREVIEW_TENANT_FORB
+  SANS jeton                                     403  {"error":"You do not have access to this preview.","code":"PREVIEW_TENANT_FORB
+
+== PORTE 4 — upgrade WebSocket (HMR) sur un port qui sert vraiment une socket ==
+  SANS cookie                                  REFUSE par le proxy: HTTP/1.1 403 Bad Request
+  cookie INTRUS                                REFUSE par le proxy: HTTP/1.1 502 Bad Request
+  cookie BIDON                                 REFUSE par le proxy: HTTP/1.1 403 Bad Request
+  cookie LEGITIME                              101 + DONNEES: SECRET-DU-TENANT-A
+
+############ FIN — journal complet: /private/tmp/claude-501/-Users-hb-dev-vibecore/3d889db4-9892-4dbb-ad47-3a71b7f6bd96/scratchpad/portes-live-82603d55f7.txt ############
