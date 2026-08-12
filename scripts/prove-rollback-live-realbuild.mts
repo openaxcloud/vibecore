@@ -22,7 +22,7 @@
  *   DATABASE_URL=postgresql://... \
  *   npx tsx scripts/prove-rollback-live-realbuild.mts
  */
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -39,7 +39,12 @@ const BASE = `http://127.0.0.1:${PORT}`;
 const root = await mkdtemp(join(tmpdir(), 'rb-realbuild-'));
 process.env.PROJECT_STORAGE_DIR = join(root, 'projects');
 process.env.STATIC_DEPLOY_STORAGE_DIR = join(root, 'static');
-process.env.AUTH_JWT_SECRET ??= 'live-realbuild-secret-0123456789abcdef';
+/*
+ * Generated per run, never a literal: a hardcoded secret-shaped string in the repo trips
+ * the blocking gitleaks gate (and suppressing that with an ignore entry would be exactly
+ * the wrong reflex for a scanner whose job is to be noisy about literals).
+ */
+process.env.AUTH_JWT_SECRET ??= randomBytes(24).toString('hex');
 await mkdir(process.env.PROJECT_STORAGE_DIR, { recursive: true });
 await mkdir(process.env.STATIC_DEPLOY_STORAGE_DIR, { recursive: true });
 

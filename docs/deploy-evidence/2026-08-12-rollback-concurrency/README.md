@@ -160,7 +160,7 @@ DATABASE_URL=postgresql://vc:vc@127.0.0.1:55444/vibecore npx tsx scripts/prove-r
 
 # variante à releases semées (serveur externe déjà lancé)
 API_PORT=3199 API_HOST=127.0.0.1 DATABASE_URL=postgresql://vc:vc@127.0.0.1:55444/vibecore \
-  STATIC_DEPLOY_STORAGE_DIR=/tmp/live-static AUTH_JWT_SECRET=live-proof-secret-0123456789abcdef \
+  STATIC_DEPLOY_STORAGE_DIR=/tmp/live-static AUTH_JWT_SECRET="$(openssl rand -hex 24)" \
   npx tsx services/api/src/server.ts &
 API_BASE=http://127.0.0.1:3199 DATABASE_URL=postgresql://vc:vc@127.0.0.1:55444/vibecore \
   STATIC_DEPLOY_STORAGE_DIR=/tmp/live-static npx tsx scripts/prove-rollback-live.mjs
@@ -199,6 +199,26 @@ deux chemins produisent bien le même artefact.
 Seul écart restant avec la prod : le build tourne dans le processus API plutôt que dans un
 pod workspace (`staticBuildRunner` / `useWorkspacePodBuild` sont les options de
 l'application elle-même, et le chemin de code après le retour du build est identique).
+
+## État CI au SHA — un seul échec était le nôtre, il est corrigé
+
+| Check | Cause | À nous ? |
+|---|---|---|
+| `Secret scan (gitleaks, blocking)` | littéral `AUTH_JWT_SECRET=…` dans les instructions de rejeu de ce README | **oui → corrigé** |
+| `Install, test, build, scan` | lint `app/root.tsx:36` `@blitz/lines-around-comment` | non — fichier **byte-identique à main** (`git rev-parse HEAD:app/root.tsx == origin/main:app/root.tsx`), absent de notre diff |
+| `Quality Gates` | attend le check ci-dessus | non — conséquence |
+| `Playwright` ×4 / `French i18n live audit` | balises OG/Twitter manquantes sur les pages marketing du site **live** (`i18n-french-live.spec.ts`) | non — front marketing, aucun rapport avec un changement backend `services/api` |
+
+Correction gitleaks : le secret de dev n'est plus un littéral, il est **généré**
+(`randomBytes` dans le script, `$(openssl rand -hex 24)` dans la doc). Pas d'entrée ajoutée
+à `.gitleaksignore` — supprimer la cause vaut mieux que faire taire un scanner dont le
+travail est justement d'être bruyant sur les littéraux. Après correction :
+`gitleaks` → **0 finding dans les fichiers de ce lot** (les 5 restants sont des archives de
+preuve antérieures, déjà couvertes).
+
+⚠️ **`app/root.tsx` bloque la CI de tout le monde**, pas seulement cette PR. Corrigeable en
+`eslint --fix`, mais délibérément **non corrigé ici** : ajouter un fichier sans rapport au
+diff d'un lot sensible compliquerait le contre-audit. À traiter séparément.
 
 ## Ce qui reste à faire
 
