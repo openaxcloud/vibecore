@@ -16,7 +16,7 @@
  * Run: pnpm vitest --run scripts/deploy-activation-sequencing.spec.mjs
  */
 import { execFileSync } from 'node:child_process';
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -47,18 +47,67 @@ const VERIFY_STEP = 'Verify the activation interlock state (SEC-8)';
  * @param {boolean} o.codeHasInterlock  whether the fake services/api/src mentions it.
  * @returns {{outputs: Record<string,string>, stdout: string}}
  */
-function runCutoverStep({ liveFlag, codeHasInterlock }) {
+function runCutoverStep({ liveFlag, codeHasInterlock, shaMismatch = false, interlockOnlyInSpec = false }) {
   const dir = mkdtempSync(join(tmpdir(), 'sec8-cutover-'));
 
   try {
-    // Fake source tree: only the one fact the step greps for.
-    mkdirSync(join(dir, 'services/api/src'), { recursive: true });
-    writeFileSync(
-      join(dir, 'services/api/src/app.ts'),
-      codeHasInterlock
-        ? "if (process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED !== '1') { /* gate */ }\n"
-        : '// pre-cutover api code, no interlock at all\n',
+    /*
+     * A REAL miniature repo, not a stub: the step now runs
+     * scripts/verify-prod-interlock.mjs, which walks the production module graph
+     * from services/api/src/server.ts and needs a git HEAD for its exact-SHA
+     * gate. Filler modules put the graph over the verifier's plausibility floor
+     * so the fixture exercises the real check rather than tripping the floor.
+     */
+    const src = join(dir, 'services/api/src');
+    mkdirSync(join(src, 'tests'), { recursive: true });
+    mkdirSync(join(dir, 'scripts'), { recursive: true });
+    copyFileSync(
+      join(REPO_ROOT, 'scripts/verify-prod-interlock.mjs'),
+      join(dir, 'scripts/verify-prod-interlock.mjs'),
     );
+
+    const FILLERS = 60;
+
+    for (let i = 0; i < FILLERS; i += 1) {
+      writeFileSync(join(src, `m${i}.ts`), `export const m${i} = ${i};\n`);
+    }
+
+    writeFileSync(join(src, 'server.ts'), "import { buildApiApp } from './app.js';\nbuildApiApp();\n");
+    writeFileSync(
+      join(src, 'app.ts'),
+      [
+        ...Array.from({ length: FILLERS }, (_, i) => `import './m${i}.js';`),
+        'export function buildApiApp() {',
+        codeHasInterlock
+          ? "  if (process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED !== '1') { return 503; }"
+          : '  // pre-cutover api code, no interlock at all',
+        '}',
+      ].join('\n'),
+    );
+
+    /*
+     * The reported defect: the token present ONLY in a spec file. The old grep
+     * matched it; the production-graph verifier must not.
+     */
+    writeFileSync(
+      join(src, 'tests/deployment-password.spec.ts'),
+      interlockOnlyInSpec
+        ? "it('x', () => { process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED = '1'; });\n"
+        : "it('x', () => {});\n",
+    );
+
+    for (const cmd of [
+      ['init', '-q'],
+      ['config', 'user.email', 'sec9@test'],
+      ['config', 'user.name', 'sec9'],
+      ['add', '-A'],
+      ['commit', '-qm', 'fixture'],
+    ]) {
+      execFileSync('git', cmd, { cwd: dir, stdio: 'ignore' });
+    }
+
+    const headSha = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: dir, encoding: 'utf8' }).trim();
+    const shortSha = shaMismatch ? 'deadbeef01' : headSha.slice(0, 10);
 
     // Fake kubectl: prints the live flag, or exits non-zero to model an absent key.
     const bin = join(dir, 'bin');
@@ -83,6 +132,8 @@ function runCutoverStep({ liveFlag, codeHasInterlock }) {
         GITHUB_OUTPUT: outputFile,
         HELM_NAMESPACE: 'vibecore',
         HELM_RELEASE: 'vibecore',
+        SHORT_SHA: shortSha,
+        RUNNER_TEMP: dir,
       },
     });
 
@@ -127,6 +178,33 @@ describe('deploy-main.yml — SEC-8 activation decision (real step, executed)', 
     // phase1_flag must be '1', not empty: --reuse-values would otherwise freeze
     // whatever the release stores, which is how an interlock silently rots.
     expect(outputs).toMatchObject({ barrier: 'false', phase1_flag: '1', final_flag: '1' });
+  });
+
+  it('SEC-9 THE REPORTED DEFECT: interlock only in the SPEC must NOT count as present', () => {
+    /*
+     * Production route stripped of the interlock, spec file still carrying the
+     * string. The old `grep -rq ... services/api/src` matched and reported
+     * "steady state" — arming activation against an api with no interlock. The
+     * production-graph verifier must see through it and DISARM instead.
+     */
+    const { outputs, stdout } = runCutoverStep({
+      liveFlag: '1',
+      codeHasInterlock: false,
+      interlockOnlyInSpec: true,
+    });
+
+    expect(outputs).toMatchObject({ barrier: 'false', phase1_flag: '0', final_flag: '0' });
+    expect(stdout).toContain('PRODUCTION BUNDLE');
+    expect(stdout).not.toContain('Steady state');
+  });
+
+  it('SEC-9 exact-SHA gate: a tree that is not the deployed image cannot certify anything', () => {
+    const { outputs, stdout } = runCutoverStep({ liveFlag: '1', codeHasInterlock: true, shaMismatch: true });
+
+    // Interlock genuinely present, but we cannot prove it for the image being
+    // deployed -> fail closed rather than trust a verdict about another tree.
+    expect(outputs).toMatchObject({ barrier: 'false', phase1_flag: '0', final_flag: '0' });
+    expect(stdout).toContain('exact-SHA gate');
   });
 
   it('deploying PRE-cutover code disarms the flag and warns loudly', () => {
