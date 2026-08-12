@@ -12560,24 +12560,33 @@ function IdeTabBar({
     };
 
     /*
-     * Escape is handled at the window, not by the menu's own onKeyDown.
-     * The menu is portalled to <body>, i.e. OUTSIDE React's root container, so
-     * its key events do not reliably reach the React handler — proved live at
-     * 1440, where Escape left the menu open. The tool popup already uses this
-     * same window-level pattern.
+     * Escape is handled on the window in the CAPTURE phase, not by the menu's
+     * own onKeyDown.
+     *
+     * Two things defeat the obvious approaches, both established by measuring
+     * the live IDE at 1440 rather than by reasoning: the menu is portalled to
+     * <body>, i.e. outside React's root container, so its React `onKeyDown`
+     * does not reliably receive the event; and the project-wide keybinding
+     * handler already owns Escape (`overlay.close`) and consumes it first, so a
+     * bubble-phase window listener never ran either — the menu stayed open with
+     * exactly one trigger and one menu node in the DOM.
+     *
+     * Capture runs before both, and closing the topmost menu is the correct
+     * precedence for Escape anyway.
      */
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
+        event.stopPropagation();
         closeOptionsMenu({ restoreFocus: true });
       }
     };
 
-    window.addEventListener('keydown', handleEscape);
+    window.addEventListener('keydown', handleEscape, true);
     document.addEventListener('pointerdown', handlePointerDown, true);
 
     return () => {
-      window.removeEventListener('keydown', handleEscape);
+      window.removeEventListener('keydown', handleEscape, true);
       document.removeEventListener('pointerdown', handlePointerDown, true);
     };
   }, [actionsOpen, closeOptionsMenu]);

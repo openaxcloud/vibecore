@@ -1,7 +1,7 @@
-import { expect, test, type Page, type TestInfo } from '@playwright/test';
-import JSZip from 'jszip';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { expect, test, type Page, type TestInfo } from '@playwright/test';
+import JSZip from 'jszip';
 
 /**
  * RPL-IDE-001.4 → .8 — live proof.
@@ -38,6 +38,7 @@ function width(testInfo: TestInfo) {
 
 async function authenticate(page: Page) {
   const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
   let payload: { token: string; organization: { id: string } } | undefined;
   let text = '';
 
@@ -162,8 +163,10 @@ for (const theme of ['light', 'dark'] as const) {
     await shot(page, `panels-loaded-${label}`);
 
     /* ---------------------------------------------------------------- .8 */
-    // Spotlight opens from the app NAME on every width — it is topbar chrome,
-    // not part of the desktop-only pane model.
+    /*
+     * Spotlight opens from the app NAME on every width — it is topbar chrome,
+     * not part of the desktop-only pane model.
+     */
     const spotlightTrigger = page.locator('[data-testid="project-spotlight-trigger"]');
 
     if (await spotlightTrigger.isVisible().catch(() => false)) {
@@ -191,14 +194,19 @@ for (const theme of ['light', 'dark'] as const) {
       await resourcesTrigger.click();
       await expect(page.locator('[data-testid="project-resources-popover"]')).toBeVisible();
 
-      // Either real figures or an explicit "unavailable" — never a silent blank.
-      const measured = page.locator('[data-testid="project-resources-memory"]');
-      const unavailable = page.locator('[data-testid="project-resources-unavailable"]');
-      await page.waitForTimeout(2000);
-      expect(
-        (await measured.count()) > 0 || (await unavailable.count()) > 0,
-        'Resources panel must state a reading or say it is unavailable',
-      ).toBeTruthy();
+      /*
+       * The panel must SETTLE on either real figures or an explicit
+       * "unavailable" — never a silent blank. The read travels IDE → API →
+       * agent and samples the CPU for 200 ms, and a cold or sleeping workspace
+       * makes that take seconds, so this waits for the outcome instead of
+       * snapshotting mid-flight and calling a slow read a failure.
+       */
+      const settled = page.locator(
+        '[data-testid="project-resources-memory"], [data-testid="project-resources-unavailable"]',
+      );
+      await expect(settled.first(), 'Resources panel must state a reading or say it is unavailable').toBeVisible({
+        timeout: 45_000,
+      });
 
       await assertNoHorizontalOverflow(page);
       await shot(page, `resources-${label}`);
@@ -249,8 +257,10 @@ for (const theme of ['light', 'dark'] as const) {
     // Real menu semantics, and the three scopes the model has.
     await expect(menu).toHaveAttribute('role', 'menu');
 
-    // Asserted structurally rather than by label text, so the proof holds in
-    // whichever language the account happens to render in.
+    /*
+     * Asserted structurally rather than by label text, so the proof holds in
+     * whichever language the account happens to render in.
+     */
     expect(await menu.locator('[role="group"]').count(), 'Window / Pane / Tab groups').toBeGreaterThanOrEqual(3);
     expect(await menu.locator('[role="menuitem"]').count()).toBeGreaterThan(4);
     await shot(page, `options-menu-${label}`);
@@ -258,6 +268,7 @@ for (const theme of ['light', 'dark'] as const) {
     // Keyboard: the menu focuses its first item and arrows move through it.
     const focusedBefore = await page.evaluate(() => document.activeElement?.getAttribute('data-testid') ?? '');
     await page.keyboard.press('ArrowDown');
+
     const focusedAfter = await page.evaluate(() => document.activeElement?.getAttribute('data-testid') ?? '');
     expect(focusedAfter, 'ArrowDown must move focus inside the menu').not.toBe(focusedBefore);
     await shot(page, `options-menu-keyboard-${label}`);
@@ -267,8 +278,10 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(menu).toBeHidden();
 
     /* ---------------------------------------------------------------- .4 */
-    // Split so there are two panes, then move a tab from one to the other and
-    // assert it MOVED (destination +1, source -1) rather than swapping.
+    /*
+     * Split so there are two panes, then move a tab from one to the other and
+     * assert it MOVED (destination +1, source -1) rather than swapping.
+     */
     await openOptionsMenu(page, 0);
     await page.locator('[data-testid="tab-options-split-right"]').click();
     await page.waitForTimeout(900);
@@ -279,6 +292,7 @@ for (const theme of ['light', 'dark'] as const) {
       await shot(page, `panes-before-move-${label}`);
 
       await openOptionsMenu(page, 0);
+
       const moveItem = page.locator('[data-testid="tab-options-move-to-pane-0"]');
 
       if (await moveItem.isVisible().catch(() => false)) {
