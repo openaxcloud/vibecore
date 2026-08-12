@@ -1,25 +1,30 @@
-import type { SolutionCopyByLanguage } from './solution-copy';
+import type { CapturedSolutionCopyByLanguage } from './solution-copy';
 
 /**
- * SOL — Freelancers. Declined from the App Builder gabarit, centered on a
- * fictional independent developer delivering client projects with a clean
- * handoff. All demo data is fictional and labeled; the one real captured
- * E-Code IDE proof lives on /solutions/app-builder.
+ * SOL — Freelancers. Dedicated Studio Ferro delivery-workspace story in EN and
+ * FR. All clients, projects, deliverables, feedback, commercial records, time,
+ * and approvals are fictional and labeled; proof claims stop at the captured
+ * Agent exchange, generated files, Webview, and local delivery-review interaction.
  */
 export const FREELANCERS_COPY = {
   en: {
     seo: {
-      title: 'Deliver Client Projects Faster | E-Code for Freelancers',
+      title: 'Deliver Client Projects with a Clean Handoff | E-Code for Freelancers',
       description:
-        'Start each client project from repeatable templates, share preview links for review, and hand off editable source code. E-Code turns a brief into a working app in real files with a running Preview, project export, and publishing for supported builds.',
+        'Describe Studio Ferro. E-Code generates an editable delivery workspace with Preview and export; client reviews, payments, approvals, and email stay unconnected.',
+      ogImageAlt:
+        'E-Code Freelancers workspace with Studio Ferro files and a fictional client-delivery view in Webview.',
     },
     hero: {
       eyebrow: 'E-Code for freelancers and independent studios',
-      title: 'Deliver client projects faster, with a handoff that stays clean',
+      title: 'Deliver client projects with a handoff that stays clean',
       subtitle:
         'Describe the client brief once and E-Code turns it into a working app in editable source code. Start from your own repeatable patterns, share a preview link for review, iterate through the Agent, and hand off an exported project the client can inspect and continue.',
       primaryCta: { label: 'Start a client project', ariaLabel: 'Start a client project with E-Code' },
-      secondaryCta: { label: 'See how it builds', ariaLabel: 'See how E-Code builds a client project from a prompt' },
+      secondaryCta: {
+        label: 'See the client-delivery flow',
+        ariaLabel: 'See how E-Code builds a client project from a prompt',
+      },
       microcopy:
         'Begin from the brief you already have. Source files, the running Preview, and a shareable preview link stay visible as the work moves toward handoff.',
     },
@@ -27,37 +32,38 @@ export const FREELANCERS_COPY = {
     demo: {
       badge: 'Fictional demo data',
       brand: 'Studio Ferro',
-      brandType: 'Independent developer',
-      nav: ['Projects', 'Previews', 'Handoff'],
-      eyebrow: 'Client delivery',
-      title: 'Ship each client project on a repeatable path to handoff.',
+      brandType: 'Local freelance delivery workspace',
+      nav: ['Project', 'Deliverables', 'Business'],
+      eyebrow: 'Fictional client workspace',
+      title: 'Keep the deliverable, feedback, invoice, and approval in one view.',
       intro:
-        'A responsive delivery view that tracks active client projects, the preview links shared for review, and the handoff pack.',
-      primaryHeading: 'Active client projects',
+        'A responsive local Studio Ferro scenario with project status, deliverables, feedback threads, a proposal, invoice status, time log, and client-approval states.',
+      primaryHeading: 'Fictional delivery state',
       primaryRows: [
-        { label: 'Boutique — storefront', meta: 'preview shared · v3', status: 'Delivered' },
-        { label: 'Clinic — booking portal', meta: 'preview shared · v2' },
-        { label: 'Agency — landing page', meta: 'in build · v1' },
+        { label: 'Brand system — final pack', meta: 'fictional deliverable · v3', status: 'Review requested' },
+        { label: 'Client feedback thread', meta: 'local sample comments' },
+        { label: 'Project status', meta: 'fictional timeline state' },
       ],
-      asideHeading: 'Handoff',
+      asideHeading: 'Freelance records',
       asideRows: [
-        { label: 'Source', value: 'Exported' },
-        { label: 'Preview link', value: 'Shared' },
-        { label: 'Docs', value: 'Included' },
+        { label: 'Proposal', value: 'Local sample' },
+        { label: 'Invoice', value: 'Status only' },
+        { label: 'Time log', value: 'Fictional entries' },
       ],
-      asideCta: 'Send handoff pack',
-      disclaimer: 'Inline responsive demonstration · fictional freelancer data · not a generation record',
+      asideCta: 'Review delivery',
+      disclaimer:
+        'Scripted local interface · fictional client, project, deliverables, feedback, invoice, time, and approval states · no payment, signature, email, client authentication, or external acceptance · not a generation record',
       caption: {
-        title: 'A delivery view that reads like a real client pipeline',
-        body: 'This inline demonstration shows active client projects, the preview links shared for review, and a source-code handoff pack in one responsive layout.',
+        title: 'A client-delivery workspace without invented client activity',
+        body: 'This local interface demonstrates a deliverable review, feedback, commercial statuses, time entries, and approval controls without claiming that a real client acted.',
       },
-      alt: 'Freelancer client-delivery demonstration with a list of active client projects and a handoff panel.',
+      alt: 'Scripted Studio Ferro freelancer workspace with fictional project status, deliverables, feedback, proposal, invoice status, time entries, and local approval controls.',
     },
     problem: {
       eyebrow: 'From one-off builds to a repeatable delivery path',
       title: 'Client work is fast to start and slow to hand off cleanly',
       intro:
-        'A freelancer wins on speed and on trust. Rebuilding the same scaffolding for every client burns the speed, and a messy handoff — code the client cannot run, edit, or keep — burns the trust on the last day of the project.',
+        'A freelancer depends on efficient delivery and client trust. Rebuilding the same scaffolding for every client slows delivery, while a messy handoff — code the client cannot run, edit, or keep — erodes trust at the end of the project.',
       obstacles: [
         {
           title: 'Every project starts from zero',
@@ -77,53 +83,69 @@ export const FREELANCERS_COPY = {
     },
     build: {
       eyebrow: 'One prompt starts the client project',
-      title: 'Describe the brief, not the boilerplate',
+      title: 'Describe the delivery workflow you repeat for every client',
       intro:
-        'The request below reads like a note from a client. The four items map its implementation scope in real source files, from the portal down to the handoff of the code.',
-      label: 'Example prompt',
+        'This freelancer brief becomes Studio Ferro in editable React and TypeScript files. E-Code runs the client-delivery workspace in Webview while every project and commercial record stays fictional and local.',
+      label: 'Client-delivery brief',
       promptText:
-        'Build a client web app with a portal, shareable preview links, and a clean handoff of the source code.',
+        'Create Studio Ferro, a client delivery workspace for a freelance designer. Include project status, deliverables, feedback threads, proposal, invoice status, time log, and a client approval flow using realistic fictional local data. Do not claim real payments, signatures, emails, or client authentication. Build accessible responsive React and TypeScript with clay, ink, sage, and orange actions. No purple.',
       outputs: [
         {
-          title: 'Client portal',
-          body: 'Sign-in, a project dashboard, and the core client screens render across desktop, tablet, and mobile from real components and routes.',
+          title: 'Project and deliverable overview',
+          body: 'The Agent creates a responsive workspace with fictional project status and deliverable cards in editable project files.',
         },
         {
-          title: 'Shareable preview links',
-          body: 'The running app is reachable through a preview link you can send for review, so feedback happens against the real thing, not screenshots.',
+          title: 'Feedback and review states',
+          body: 'Local threads keep sample feedback beside each deliverable. They do not send email, identify a real client, or record an external review.',
         },
         {
-          title: 'Reusable structure',
-          body: 'Layout, navigation, and base screens are modeled as editable code you can lift into the next client project instead of rebuilding it.',
+          title: 'Proposal, invoice status, and time log',
+          body: 'Fictional commercial records and time entries provide project context without processing payment, issuing an invoice, collecting a signature, or synchronizing another service.',
         },
         {
-          title: 'Source-code handoff',
-          body: 'E-Code runs the app in Preview and exports the project files. Supported builds also use guided publishing; source ownership and reuse remain governed by the applicable E-Code terms and your client agreement.',
+          title: 'A local approval panel in Webview',
+          body: 'Clicking “Review delivery” opens “Approval requested” with local approve and request-changes controls beside the Agent exchange and generated files. The capture proves the UI state, not client acceptance.',
         },
       ],
     },
     proofLink: {
-      eyebrow: 'Prompt → agent → Preview',
-      title: 'Review the real prompt-to-Preview workflow before a client handoff',
-      body: 'These are authentic captures from the App Builder salon-booking run. They show the prompt, agent exchange, files, and running Preview a freelancer reviews inside E-Code; they do not present the fictional client-delivery board above as a captured generation.',
-      galleryLabel: 'Real salon-booking run used as client-delivery workflow evidence',
+      eyebrow: 'Studio Ferro prompt → Agent → delivery review in Webview',
+      title: 'Inspect the freelance delivery workspace generated inside E-Code',
+      body: 'These dedicated captures keep the Studio Ferro prompt, Agent activity, generated React and TypeScript project tree, and the local delivery workspace together. The second state opens “Approval requested” from “Review delivery.”',
+      galleryLabel: 'Captured Studio Ferro generation and Approval requested interaction inside E-Code',
       disclaimer:
-        'Both IDE images document the real App Builder reference run. The freelancer project board on this page is a scripted demonstration with fictional client data, not a generation log or client engagement.',
-      openFullSizeLabel: 'Open the client-delivery workflow reference at full size',
+        'Captured E-Code generation · fictional local client, project, deliverables, feedback, proposal, invoice, time, and approval states · no payment, signature, email, client authentication, external review, or acceptance is demonstrated',
+      openFullSizeLabel: 'Open the Studio Ferro capture at full size',
       preview: {
-        title: 'The client brief stays beside the working result',
-        body: 'The real reference capture shows the salon request, agent conversation, generated project files, and booking Preview in the same E-Code workspace.',
-        alt: 'Real E-Code App Builder salon run showing the request, agent conversation, generated files, and booking app Preview as workflow evidence for freelancers.',
+        title: 'Studio Ferro runs beside the files the Agent created',
+        body: 'The first capture shows the real Agent exchange and generated project tree while Webview renders project status, deliverables, feedback, proposal, invoice status, time log, and the local-data disclosure.',
+        alt: 'Real E-Code Freelancers workspace showing the Studio Ferro prompt, Agent activity, generated React and TypeScript files, and a fictional local client-delivery workspace in Webview.',
       },
       iteration: {
-        title: 'A review note becomes a visible iteration',
-        body: 'The follow-up capture records the next instruction and updated Preview together, illustrating the review loop before exported-source handoff.',
-        alt: 'Real E-Code App Builder salon follow-up showing the next instruction and updated booking Preview inside the IDE.',
+        title: 'A verified “Review delivery” click opens the local approval state',
+        body: 'After the single generation, a verified click on “Review delivery” opens “Approval requested” with local approve and request-changes controls. It proves the interface transition, not a signature, payment, email, login, or real client decision.',
+        alt: 'E-Code Freelancers capture after the verified Review delivery click, with Studio Ferro files and Approval requested in Webview.',
       },
-      cta: { label: 'See the real IDE proof', ariaLabel: 'See the real E-Code IDE proof on the App Builder page' },
+      cta: {
+        label: 'Inspect the captured Studio Ferro run',
+        ariaLabel: 'Inspect the captured E-Code Studio Ferro generation and Approval requested Webview interaction',
+      },
+    },
+    proofVisualAlts: {
+      prompt:
+        'E-Code Agent prompt requesting Studio Ferro with project status, deliverables, invoice, time, and approvals.',
+      preview: 'E-Code workspace with generated Studio Ferro files and the fictional client-delivery view in Webview.',
+      webviewOverview:
+        'Studio Ferro in Webview with project status, deliverables, feedback, invoice, time, and approval controls.',
+      iteration:
+        'E-Code workspace after the verified Review delivery click, with Studio Ferro files and Approval requested.',
+      webviewIteration:
+        'Studio Ferro showing Approval requested with local approve and request-changes controls after the verified click.',
+      files:
+        'E-Code file tree for Studio Ferro with editable project, deliverable, invoice, time, and approval source.',
     },
     deliverables: {
-      eyebrow: 'What you receive',
+      eyebrow: 'What the client handoff includes',
       title: 'A client project you can review, ship, and hand off',
       intro:
         'The project stays inspectable from the first generated file through Preview and export. Shareable preview links carry review; an exported-source handoff reduces the client’s dependency on your workspace.',
@@ -177,8 +199,8 @@ export const FREELANCERS_COPY = {
           body: 'Request the next change and review the diff against the running Preview.',
         },
         {
-          title: 'Responsive by default',
-          body: 'Layouts adapt from wide desktop to phone without a separate mobile build.',
+          title: 'Responsive client deliverables',
+          body: 'Project status, feedback threads, invoice state, time logs, and approval controls remain usable in a desktop review or a client’s phone check.',
         },
         {
           title: 'Exportable project files',
@@ -187,30 +209,31 @@ export const FREELANCERS_COPY = {
       ],
     },
     useCases: {
-      eyebrow: 'Who builds with it',
-      title: 'Projects freelancers ship with E-Code',
-      intro: 'From a client portal to a launch page, the same loop produces a real, responsive app ready to hand off.',
+      eyebrow: 'Client projects to deliver',
+      title: 'Project foundations freelancers prepare for review and handoff',
+      intro:
+        'From a client portal to a launch page, the loop produces responsive source and a running interface; client acceptance, external sharing, service connections, and the final transfer remain verifiable delivery steps.',
       items: [
         {
           title: 'Client web apps and portals',
-          body: 'Dashboards and sign-in flows delivered as editable project files for the client’s next development step.',
+          body: 'Dashboard and sign-in interfaces delivered as editable project files, with identity and server enforcement still explicit integration work.',
         },
         {
           title: 'Marketing and landing pages',
-          body: 'Responsive sites with lead capture, shared for review before they go live.',
+          body: 'Responsive sites with a validated form UI and delivery hook, ready for review before any live submission service is connected.',
         },
         {
           title: 'Internal tools for clients',
-          body: 'Small back-office apps that model a real workflow rather than a static prototype.',
+          body: 'Small back-office interfaces that model a client workflow while keeping persistence, identity, and authorization boundaries visible.',
         },
         {
           title: 'Prototypes for pitches',
-          body: 'A running preview link that turns a proposal into something the client can click.',
+          body: 'A running preview link to review the proposed journey; client opening and acceptance are confirmed outside the scripted page demo.',
         },
       ],
     },
     faq: {
-      eyebrow: 'Common questions',
+      eyebrow: 'Freelance-delivery questions',
       title: 'E-Code for freelancers, answered honestly',
       intro: 'What the Freelancers path produces, and where its boundaries are.',
       items: [
@@ -240,7 +263,10 @@ export const FREELANCERS_COPY = {
       title: 'Start a client project and share it today',
       body: 'Turn a client brief into a working app in real source code, share a preview link for review, and hand off an editable, exported project.',
       primaryCta: { label: 'Start a client project', ariaLabel: 'Start a client project with E-Code' },
-      secondaryCta: { label: 'See how it builds', ariaLabel: 'See how E-Code builds a client project from a prompt' },
+      secondaryCta: {
+        label: 'See the client-delivery flow',
+        ariaLabel: 'See how E-Code builds a client project from a prompt',
+      },
     },
     aria: {
       pageLabel: 'Freelancers solution page',
@@ -249,7 +275,7 @@ export const FREELANCERS_COPY = {
       problemLabel: 'The client delivery problem',
       buildLabel: 'How E-Code works for freelancers',
       outputListLabel: 'Client project build outputs',
-      proofLinkLabel: 'See the real E-Code IDE proof',
+      proofLinkLabel: 'Inspect the client-delivery IDE evidence',
       deliverablesLabel: 'What E-Code delivers for freelancers',
       featuresLabel: 'Freelancer delivery capabilities',
       useCasesLabel: 'Freelancer use cases',
@@ -259,18 +285,20 @@ export const FREELANCERS_COPY = {
   },
   fr: {
     seo: {
-      title: 'Livrez vos projets clients plus vite | E-Code pour freelances',
+      title: 'Livrez vos projets clients avec une transmission propre | E-Code',
       description:
-        'Démarrez chaque projet client depuis des modèles réutilisables, partagez des liens d’aperçu pour la revue et transmettez un code source modifiable. E-Code transforme un brief en une application fonctionnelle dans de vrais fichiers, avec un aperçu actif, l’export du projet et la publication des builds pris en charge.',
+        'Décrivez Studio Ferro. E-Code génère un espace de livraison modifiable avec aperçu et export ; revues, paiements, validations et emails restent déconnectés.',
+      ogImageAlt:
+        'Workspace E-Code Freelancers avec fichiers Studio Ferro et espace fictif de livraison client dans la Webview.',
     },
     hero: {
       eyebrow: 'E-Code pour freelances et studios indépendants',
-      title: 'Livrez vos projets clients plus vite, avec un transfert qui reste propre',
+      title: 'Livrez vos projets clients avec une transmission qui reste propre',
       subtitle:
-        'Décrivez le brief client une fois et E-Code en fait une application fonctionnelle dans un vrai code source modifiable. Partez de vos propres modèles réutilisables, partagez un lien d’aperçu pour la revue, itérez avec l’Agent et transmettez un projet exporté que le client peut inspecter et poursuivre.',
+        'Décrivez le brief client une fois et E-Code en fait une application fonctionnelle sous forme de code source modifiable. Partez de vos propres modèles réutilisables, partagez un lien d’aperçu pour la revue, itérez avec l’Agent et transmettez un projet exporté que le client peut inspecter et poursuivre.',
       primaryCta: { label: 'Démarrer un projet client', ariaLabel: 'Démarrer un projet client avec E-Code' },
       secondaryCta: {
-        label: 'Voir la construction',
+        label: 'Voir le parcours de livraison client',
         ariaLabel: 'Voir comment E-Code construit un projet client à partir d’un prompt',
       },
       microcopy:
@@ -280,49 +308,50 @@ export const FREELANCERS_COPY = {
     demo: {
       badge: 'Données fictives',
       brand: 'Studio Ferro',
-      brandType: 'Développeur indépendant',
-      nav: ['Projets', 'Aperçus', 'Transfert'],
-      eyebrow: 'Livraison client',
-      title: 'Livrez chaque projet client sur un parcours répétable jusqu’au transfert.',
+      brandType: 'Espace local de livraison freelance',
+      nav: ['Projet', 'Livrables', 'Gestion'],
+      eyebrow: 'Espace client fictif',
+      title: 'Gardez livrable, retours, facture et validation dans la même vue.',
       intro:
-        'Une vue de livraison responsive qui suit les projets clients actifs, les liens d’aperçu partagés pour la revue et le dossier de transfert.',
-      primaryHeading: 'Projets clients actifs',
+        'Un scénario Studio Ferro local et responsive avec statut du projet, livrables, fils de commentaires, proposition, état de facture, suivi du temps et validation client.',
+      primaryHeading: 'État de livraison fictif',
       primaryRows: [
-        { label: 'Boutique — vitrine', meta: 'aperçu partagé · v3', status: 'Livré' },
-        { label: 'Clinique — portail de réservation', meta: 'aperçu partagé · v2' },
-        { label: 'Agence — page d’atterrissage', meta: 'en construction · v1' },
+        { label: 'Identité visuelle — lot final', meta: 'livrable fictif · v3', status: 'Revue demandée' },
+        { label: 'Fil de commentaires client', meta: 'commentaires locaux d’exemple' },
+        { label: 'Statut du projet', meta: 'état de planning fictif' },
       ],
-      asideHeading: 'Transfert',
+      asideHeading: 'Fiches freelance',
       asideRows: [
-        { label: 'Source', value: 'Exporté' },
-        { label: 'Lien d’aperçu', value: 'Partagé' },
-        { label: 'Docs', value: 'Inclus' },
+        { label: 'Proposition', value: 'Exemple local' },
+        { label: 'Facture', value: 'Statut seul' },
+        { label: 'Temps', value: 'Entrées fictives' },
       ],
-      asideCta: 'Envoyer le dossier de transfert',
-      disclaimer: 'Démonstration responsive intégrée · données de freelance fictives · pas une trace de génération',
+      asideCta: 'Examiner le livrable',
+      disclaimer:
+        'Interface locale scénarisée · client, projet, livrables, retours, facture, temps et validations fictifs · aucun paiement, signature, email, accès client ni accord externe · pas une trace de génération',
       caption: {
-        title: 'Une vue de livraison qui se lit comme un vrai pipeline client',
-        body: 'Cette démonstration intégrée présente les projets clients actifs, les liens d’aperçu partagés pour la revue et un dossier de transfert du code source dans une mise en page responsive.',
+        title: 'Un espace de livraison sans activité client inventée',
+        body: 'Cette interface locale présente la revue d’un livrable, les commentaires, les états commerciaux, le temps et les contrôles de validation sans prétendre qu’un vrai client a agi.',
       },
-      alt: 'Démonstration de livraison client pour freelance avec une liste de projets clients actifs et un panneau de transfert.',
+      alt: 'Espace freelance Studio Ferro scénarisé avec statut de projet, livrables, commentaires, proposition, état de facture, temps et contrôles locaux de validation fictifs.',
     },
     problem: {
       eyebrow: 'Des builds ponctuels à un parcours de livraison répétable',
       title: 'Le travail client démarre vite et se transmet lentement',
       intro:
-        'Un freelance gagne sur la vitesse et sur la confiance. Reconstruire le même échafaudage pour chaque client brûle la vitesse, et un transfert bâclé — un code que le client ne peut ni exécuter, ni modifier, ni conserver — brûle la confiance le dernier jour du projet.',
+        'Un freelance dépend d’une livraison efficace et de la confiance du client. Reconstruire le même échafaudage pour chaque mission ralentit la livraison, tandis qu’une transmission bâclée — un code que le client ne peut ni exécuter, ni modifier, ni conserver — entame la confiance en fin de projet.',
       obstacles: [
         {
           title: 'Chaque projet repart de zéro',
-          body: 'Recâbler l’authentification, la mise en page et les mêmes écrans de base pour chaque nouveau client mange les heures à consacrer à ce qui rend le projet spécifique.',
+          body: 'Recâbler l’authentification, la mise en page et les mêmes écrans de base pour chaque nouveau client absorbe le temps à consacrer à ce qui rend le projet spécifique.',
         },
         {
           title: 'La revue se fait par captures d’écran',
-          body: 'Envoyer des images et planifier des appels pour montrer l’avancement ralentit chaque tour de retours, et le client ne voit la vraie application en fonctionnement que tard.',
+          body: 'Envoyer des images et planifier des appels pour montrer l’avancement ralentit chaque cycle de retours, et le client ne voit la vraie application en fonctionnement que tard.',
         },
         {
-          title: 'Le transfert laisse des fils qui pendent',
-          body: 'Un zip sans structure claire, ou un build que vous seul savez exécuter, transforme la livraison finale en tickets de support et laisse le client dépendant de vous.',
+          title: 'La transmission laisse des zones d’ombre',
+          body: 'Une archive sans structure claire, ou un build que vous seul savez exécuter, transforme la livraison finale en tickets d’assistance et laisse le client dépendant de vous.',
         },
       ],
       bridge:
@@ -330,59 +359,71 @@ export const FREELANCERS_COPY = {
     },
     build: {
       eyebrow: 'Un prompt lance le projet client',
-      title: 'Décrivez le brief, pas le boilerplate',
+      title: 'Décrivez le parcours de livraison répété pour chaque client',
       intro:
-        'La demande ci-dessous se lit comme un mot d’un client. Les quatre éléments cartographient son périmètre d’implémentation dans de vrais fichiers source, du portail jusqu’au transfert du code.',
-      label: 'Exemple de prompt',
+        'Ce brief freelance devient Studio Ferro dans des fichiers React et TypeScript modifiables. E-Code exécute l’espace de livraison dans la Webview, avec chaque projet et fiche commerciale conservés en données locales fictives.',
+      label: 'Brief de livraison client',
       promptText:
-        'Construis une app web client avec un portail, des liens d’aperçu partageables et un transfert propre du code source.',
+        'Créez Studio Ferro, un espace de livraison client pour un designer freelance. Ajoutez le statut du projet, les livrables, les fils de commentaires, la proposition, l’état de facture, le suivi du temps et le parcours de validation client avec des données locales fictives réalistes. Ne prétendez pas avoir de paiements, de signatures, d’emails ou d’authentification client réels. React et TypeScript accessibles et responsive, argile, encre, sauge et actions orange. Aucun violet.',
       outputs: [
         {
-          title: 'Portail client',
-          body: 'Connexion, tableau de bord de projet et écrans clients principaux s’affichent sur desktop, tablette et mobile à partir de vrais composants et routes.',
+          title: 'Vue projet et livrables',
+          body: 'L’Agent crée un espace responsive avec statut du projet et cartes de livrables fictifs dans des fichiers modifiables.',
         },
         {
-          title: 'Liens d’aperçu partageables',
-          body: 'L’application en fonctionnement est accessible via un lien d’aperçu que vous pouvez envoyer pour la revue, pour des retours sur le vrai produit, pas sur des captures.',
+          title: 'Commentaires et états de revue',
+          body: 'Des fils locaux rattachent les commentaires d’exemple à chaque livrable. Ils n’envoient aucun email, n’identifient aucun vrai client et ne consignent aucune revue externe.',
         },
         {
-          title: 'Structure réutilisable',
-          body: 'Mise en page, navigation et écrans de base sont modélisés comme un code modifiable que vous reprenez dans le projet client suivant au lieu de le reconstruire.',
+          title: 'Proposition, état de facture et temps',
+          body: 'Des fiches commerciales et entrées de temps fictives donnent le contexte sans traiter de paiement, émettre de facture, recueillir de signature ni synchroniser un autre service.',
         },
         {
-          title: 'Transfert du code source',
-          body: 'E-Code exécute l’application dans l’aperçu et exporte les fichiers du projet. Les builds pris en charge utilisent aussi la publication guidée ; la propriété et la réutilisation de la source suivent les conditions E-Code applicables et votre contrat client.',
+          title: 'Panneau de validation local dans la Webview',
+          body: 'Le clic sur « Examiner le livrable » ouvre « Validation demandée » avec des contrôles locaux pour approuver ou demander des modifications, à côté de l’Agent et des fichiers générés. La capture prouve l’état de l’interface, pas l’accord du client.',
         },
       ],
     },
     proofLink: {
-      eyebrow: 'Prompt → agent → aperçu',
-      title: 'Relisez le vrai parcours du prompt à l’aperçu avant un transfert client',
-      body: 'Voici de vraies captures du run App Builder du salon de coiffure. Elles montrent le prompt, l’échange avec l’agent, les fichiers et l’aperçu actif qu’un freelance relit dans E-Code ; elles ne présentent pas le tableau de livraison client fictif ci-dessus comme une génération capturée.',
-      galleryLabel: 'Vrai run de réservation du salon utilisé comme preuve du parcours de livraison client',
+      eyebrow: 'Prompt Studio Ferro → Agent → revue dans la Webview',
+      title: 'Inspectez l’espace de livraison freelance généré dans E-Code',
+      body: 'Ces captures dédiées réunissent le prompt Studio Ferro, l’activité de l’Agent, l’arborescence React et TypeScript générée et l’espace de livraison local. Le second état ouvre « Validation demandée » depuis « Examiner le livrable ».',
+      galleryLabel: 'Génération Studio Ferro capturée et interaction Validation demandée dans E-Code',
       disclaimer:
-        'Les deux images IDE documentent le vrai run App Builder de référence. Le tableau de projets freelance de cette page est une démonstration scénarisée avec des données clients fictives, pas un journal de génération ni une mission client.',
-      openFullSizeLabel: 'Ouvrir la référence du parcours de livraison client en plein format',
+        'Génération E-Code capturée · client, projet, livrables, commentaires, proposition, facture, temps et validations locaux fictifs · aucun paiement, signature, email, accès client, revue externe ni accord démontré',
+      openFullSizeLabel: 'Ouvrir la capture Studio Ferro en grand',
       preview: {
-        title: 'Le brief client reste à côté du résultat fonctionnel',
-        body: 'La vraie capture de référence montre la demande du salon, la conversation avec l’agent, les fichiers projet générés et l’aperçu de réservation dans le même workspace E-Code.',
-        alt: 'Vrai run App Builder E-Code du salon montrant la demande, la conversation avec l’agent, les fichiers générés et l’aperçu de réservation comme preuve de parcours pour les freelances.',
+        title: 'Studio Ferro tourne à côté des fichiers créés par l’Agent',
+        body: 'La première capture montre le vrai échange avec l’Agent et l’arborescence générée pendant que la Webview affiche statut, livrables, commentaires, proposition, état de facture, temps et avertissement sur les données locales.',
+        alt: 'Vrai workspace Freelances E-Code montrant le prompt Studio Ferro, l’activité de l’Agent, les fichiers React et TypeScript générés et un espace local fictif de livraison client dans la Webview.',
       },
       iteration: {
-        title: 'Une note de revue devient une itération visible',
-        body: 'La capture de suivi conserve ensemble l’instruction suivante et l’aperçu mis à jour, pour illustrer la boucle de revue avant le transfert de la source exportée.',
-        alt: 'Vrai suivi App Builder E-Code du salon montrant l’instruction suivante et l’aperçu de réservation mis à jour dans l’IDE.',
+        title: 'Un clic vérifié sur « Examiner le livrable » ouvre la validation locale',
+        body: 'Après la génération unique, un clic vérifié sur « Examiner le livrable » ouvre « Validation demandée » avec les contrôles « Approuver » et « Demander des modifications ». La capture prouve la transition de l’interface, pas une signature, un paiement, un email, une connexion ni une décision client réelle.',
+        alt: 'Capture E-Code Freelancers après le clic vérifié sur Examiner le livrable, avec fichiers Studio Ferro et Validation demandée dans la Webview.',
       },
       cta: {
-        label: 'Voir la preuve IDE réelle',
-        ariaLabel: 'Voir la preuve IDE réelle E-Code sur la page App Builder',
+        label: 'Inspecter l’exécution Studio Ferro capturée',
+        ariaLabel:
+          'Inspecter la génération Studio Ferro capturée dans E-Code et l’état Validation demandée dans la Webview',
       },
     },
+    proofVisualAlts: {
+      prompt: 'Prompt de l’Agent E-Code demandant Studio Ferro avec projet, livrables, facture, temps et validations.',
+      preview:
+        'Workspace E-Code avec fichiers Studio Ferro générés et espace fictif de livraison client dans la Webview.',
+      webviewOverview:
+        'Studio Ferro dans la Webview avec projet, livrables, commentaires, facture, temps et validations.',
+      iteration: 'Workspace E-Code après le clic vérifié sur Examiner le livrable, avec l’état Validation demandée.',
+      webviewIteration: 'Studio Ferro affichant Validation demandée et les contrôles locaux après le clic vérifié.',
+      files:
+        'Arborescence E-Code de Studio Ferro avec sources modifiables du projet, des livrables, du temps et des validations.',
+    },
     deliverables: {
-      eyebrow: 'Ce que vous recevez',
+      eyebrow: 'Ce que comprend le transfert client',
       title: 'Un projet client que vous pouvez relire, livrer et transmettre',
       intro:
-        'Le projet reste inspectable du premier fichier généré jusqu’à l’aperçu et l’export. Les liens d’aperçu partageables portent la revue ; le transfert de la source exportée réduit la dépendance du client à votre workspace.',
+        'Le projet reste inspectable du premier fichier généré jusqu’à l’aperçu et l’export. Les liens d’aperçu partageables servent de support à la revue ; la transmission de la source exportée réduit la dépendance du client à votre workspace.',
       items: [
         {
           title: 'Source préparée pour le transfert',
@@ -394,11 +435,11 @@ export const FREELANCERS_COPY = {
         },
         {
           title: 'Aperçu responsive pour la revue',
-          body: 'Le projet compatible tourne dans l’aperçu sur desktop, tablette et mobile, pour donner au client une interface courante unique à relire plutôt qu’un dossier de captures.',
+          body: 'Le projet compatible tourne dans l’aperçu sur ordinateur, tablette et mobile, pour donner au client une interface courante unique à relire plutôt qu’un dossier de captures.',
         },
         {
           title: 'Publication guidée des projets statiques',
-          body: 'Les sites et frontends statiques pris en charge suivent le parcours de publication guidée E-Code, avec contenu final, domaines, analytics et validation client traités comme des étapes de livraison nommées.',
+          body: 'Les sites et frontends statiques pris en charge suivent le parcours de publication guidée E-Code, avec contenu final, domaines, outils d’analyse et validation client traités comme des étapes de livraison nommées.',
         },
         {
           title: 'URL statique en ligne et relais runtime',
@@ -422,7 +463,7 @@ export const FREELANCERS_COPY = {
         },
         {
           title: 'Liens d’aperçu pour la revue',
-          body: 'Partagez une URL d’aperçu active pour que les clients valident la vraie application, pas une maquette.',
+          body: 'Partagez une URL d’aperçu active pour que les clients relisent la vraie application, pas une maquette.',
         },
         {
           title: 'Transfert du code source',
@@ -433,8 +474,8 @@ export const FREELANCERS_COPY = {
           body: 'Demandez le changement suivant et relisez le diff face à l’aperçu actif.',
         },
         {
-          title: 'Responsive par défaut',
-          body: 'Les mises en page s’adaptent du grand écran au téléphone sans build mobile séparé.',
+          title: 'Livrables client responsives',
+          body: 'Statut du projet, fils de commentaires, état de facture, temps et contrôles de validation restent utilisables en revue sur ordinateur ou sur le téléphone du client.',
         },
         {
           title: 'Fichiers projet exportables',
@@ -443,36 +484,36 @@ export const FREELANCERS_COPY = {
       ],
     },
     useCases: {
-      eyebrow: 'Qui construit avec',
-      title: 'Les projets que les freelances livrent avec E-Code',
+      eyebrow: 'Projets clients à livrer',
+      title: 'Les bases de projets que les freelances préparent pour revue et transfert',
       intro:
-        'D’un portail client à une page de lancement, la même boucle produit une vraie application responsive prête à transmettre.',
+        'D’un portail client à une page de lancement, la boucle produit une source responsive et une interface active ; validation client, partage externe, branchements de services et transfert final restent des étapes de livraison vérifiables.',
       items: [
         {
           title: 'Apps web et portails clients',
-          body: 'Tableaux de bord et parcours de connexion livrés sous forme de fichiers projet modifiables pour la prochaine étape de développement du client.',
+          body: 'Interfaces de tableau de bord et de connexion livrées sous forme de fichiers modifiables, l’identité et les contrôles serveur restant du travail d’intégration explicite.',
         },
         {
           title: 'Pages vitrines et d’atterrissage',
-          body: 'Sites responsives avec capture de leads, partagés pour la revue avant la mise en ligne.',
+          body: 'Sites responsives avec interface de formulaire validée et point d’envoi, prêts pour revue avant tout branchement à un service de soumission actif.',
         },
         {
           title: 'Outils internes pour clients',
-          body: 'Petites applications de back-office qui modélisent un vrai workflow plutôt qu’une maquette statique.',
+          body: 'Petites interfaces de back-office qui modélisent un processus client tout en rendant visibles les frontières de persistance, d’identité et d’autorisation.',
         },
         {
           title: 'Prototypes pour propositions',
-          body: 'Un lien d’aperçu actif qui transforme une proposition en quelque chose que le client peut cliquer.',
+          body: 'Un lien d’aperçu actif pour relire le parcours proposé ; ouverture et validation par le client se confirment hors de la démo scénarisée de la page.',
         },
       ],
     },
     faq: {
-      eyebrow: 'Questions fréquentes',
+      eyebrow: 'Questions sur la livraison freelance',
       title: 'E-Code pour freelances, en toute honnêteté',
       intro: 'Ce que produit le parcours Freelances, et où sont ses limites.',
       items: [
         {
-          title: 'Le client obtient-il du vrai code ou un projet verrouillé ?',
+          title: 'Le client obtient-il un code source modifiable ou un projet verrouillé ?',
           body: 'Vous exportez des fichiers source modifiables — composants, routes, styles et contenu — au lieu de transmettre seulement une capture ou une maquette hébergée. La propriété et la réutilisation autorisée suivent les conditions E-Code applicables et votre contrat client.',
         },
         {
@@ -495,10 +536,10 @@ export const FREELANCERS_COPY = {
     },
     finalCta: {
       title: 'Démarrez un projet client et partagez-le aujourd’hui',
-      body: 'Transformez un brief client en une application fonctionnelle dans du vrai code source, partagez un lien d’aperçu pour la revue et transmettez un projet modifiable et exporté.',
+      body: 'Transformez un brief client en une application fonctionnelle sous forme de code source modifiable, partagez un lien d’aperçu pour la revue et transmettez un projet modifiable et exporté.',
       primaryCta: { label: 'Démarrer un projet client', ariaLabel: 'Démarrer un projet client avec E-Code' },
       secondaryCta: {
-        label: 'Voir la construction',
+        label: 'Voir le parcours de livraison client',
         ariaLabel: 'Voir comment E-Code construit un projet client à partir d’un prompt',
       },
     },
@@ -509,7 +550,7 @@ export const FREELANCERS_COPY = {
       problemLabel: 'Le problème de la livraison client',
       buildLabel: 'Comment E-Code fonctionne pour les freelances',
       outputListLabel: 'Résultats de la génération du projet client',
-      proofLinkLabel: 'Voir la preuve IDE réelle E-Code',
+      proofLinkLabel: 'Inspecter la preuve IDE de livraison client',
       deliverablesLabel: 'Ce que livre E-Code pour les freelances',
       featuresLabel: 'Capacités de livraison pour freelances',
       useCasesLabel: 'Cas d’usage freelances',
@@ -517,4 +558,4 @@ export const FREELANCERS_COPY = {
       finalCtaLabel: 'Démarrer votre projet client',
     },
   },
-} as const satisfies SolutionCopyByLanguage;
+} as const satisfies CapturedSolutionCopyByLanguage;

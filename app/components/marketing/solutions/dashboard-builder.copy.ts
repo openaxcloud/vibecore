@@ -1,24 +1,29 @@
-import type { SolutionCopyByLanguage } from './solution-copy';
+import type { CapturedSolutionCopyByLanguage } from './solution-copy';
 
 /**
- * SOL-03 — Dashboard Builder. Declined from the App Builder gabarit, centered on a
- * fictional sales dashboard. All demo data is fictional and labeled; the embedded
- * IDE images come from the separately verified App Builder run.
+ * SOL-03 — Dashboard Builder. Dedicated sales-analytics story in EN and FR.
+ * All metrics are fictional and labeled; proof claims stop at the captured Agent
+ * exchange, generated files, Webview, and local filters over sample data.
  */
 export const DASHBOARD_BUILDER_COPY = {
   en: {
     seo: {
       title: 'Dashboard Builder with Real Code | E-Code',
       description:
-        'Describe the KPIs, tables, and filters your team needs. E-Code turns it into a data-rich dashboard in editable source files with a running Preview, project export, and code you extend to connect your own data and authentication.',
+        'Describe PipelineIQ. E-Code generates editable sales charts, pipeline stages, and working filters over fictional local data; no external database is connected.',
+      ogImageAlt:
+        'E-Code Dashboard Builder workspace with PipelineIQ files, sales charts, and local filters in Webview.',
     },
     hero: {
       eyebrow: 'Dashboard Builder ready for your data',
       title: 'Turn your sales numbers into a dashboard your team actually uses',
       subtitle:
-        'Describe the KPIs, the pipeline view, and the filters you need. E-Code turns that into a data-rich dashboard in editable source code. Inspect every file, run it in Preview, refine it through the Agent, and extend the code to connect your own data and team access.',
+        'Describe the revenue charts, pipeline stages, date and region filters, and deals table you need. E-Code generates PipelineIQ in editable source code, runs it against clearly labeled local sample data, and keeps the Agent, files, and Webview visible while you refine the dashboard.',
       primaryCta: { label: 'Describe your dashboard', ariaLabel: 'Describe your dashboard with E-Code' },
-      secondaryCta: { label: 'See how it builds', ariaLabel: 'See how E-Code builds the dashboard from a prompt' },
+      secondaryCta: {
+        label: 'See the dashboard workflow',
+        ariaLabel: 'See how E-Code builds the dashboard from a prompt',
+      },
       microcopy:
         'Start from the metrics you already track. Source files, the running Preview, and the chart and filter components stay visible as the dashboard evolves.',
     },
@@ -26,31 +31,32 @@ export const DASHBOARD_BUILDER_COPY = {
     demo: {
       badge: 'Fictional demo data',
       brand: 'PipelineIQ',
-      brandType: 'Revenue operations',
+      brandType: 'Sample revenue dashboard',
       nav: ['Overview', 'Pipeline', 'Team'],
-      eyebrow: 'This quarter',
+      eyebrow: 'Sample quarter',
       title: 'Every deal, KPI, and forecast in one consolidated view.',
       intro:
         'A responsive dashboard that presents open opportunities, key metrics, and a forecast path in one clear layout.',
-      primaryHeading: 'Open opportunities',
+      primaryHeading: 'Fictional opportunities',
       primaryRows: [
-        { label: 'Northwind Traders', meta: '€48k · Negotiation', status: 'Closing' },
-        { label: 'Atlas Logistics', meta: '€32k · Proposal' },
-        { label: 'Beacon Retail Group', meta: '€19k · Discovery' },
+        { label: 'Northwind Traders', meta: '€48k sample · Negotiation', status: 'Sample stage' },
+        { label: 'Atlas Logistics', meta: '€32k sample · Proposal' },
+        { label: 'Beacon Retail Group', meta: '€19k sample · Discovery' },
       ],
-      asideHeading: 'Key metrics',
+      asideHeading: 'Sample metrics',
       asideRows: [
-        { label: 'Pipeline', value: '€420k' },
-        { label: 'Win rate', value: '38%' },
-        { label: 'Avg. deal', value: '€24k' },
+        { label: 'Fictional pipeline', value: '€420k sample' },
+        { label: 'Fictional win rate', value: '38% sample' },
+        { label: 'Fictional avg. deal', value: '€24k sample' },
       ],
-      asideCta: 'Open forecast',
-      disclaimer: 'Inline responsive demonstration · fictional pipeline data · not a generation record',
+      asideCta: 'Open sample forecast',
+      disclaimer:
+        'Local interface over fictional records · no CRM, database, identity provider, live refresh, or production forecast · not a generation record',
       caption: {
-        title: 'A dashboard that reads like a real revenue tool',
-        body: 'This inline demonstration shows a KPI row, an opportunity table, and a forecast panel in one responsive layout.',
+        title: 'A sales-dashboard scenario grounded in local sample records',
+        body: 'This local interface demonstrates a KPI row, opportunity table, and forecast panel without presenting the sample figures as business results.',
       },
-      alt: 'Sales dashboard demonstration with an open opportunities table and a key metrics panel.',
+      alt: 'Local sales dashboard interface with fictional opportunity values and explicitly labeled sample metrics.',
     },
     problem: {
       eyebrow: 'From spreadsheet sprawl to an inspectable dashboard',
@@ -72,70 +78,81 @@ export const DASHBOARD_BUILDER_COPY = {
         },
       ],
       bridge:
-        'E-Code starts from the KPIs and views you describe and produces a dashboard in real source files. You inspect the components, run it in Preview, and extend the code to connect your data and team access.',
+        'E-Code starts from the KPIs and sales views you describe and produces a dashboard in real source files. You inspect the components, run the local dataset in Preview, and ask the Agent to change the filters or variance view without leaving the project.',
     },
     build: {
       eyebrow: 'One prompt starts the dashboard',
       title: 'Describe the metrics, not the charting library',
       intro:
         'The request below reads like a note from a sales leader. The four items map its implementation scope in real source files, not a locked BI template.',
-      label: 'Example prompt',
+      label: 'Sales dashboard brief',
       promptText: 'Build a dashboard for my sales, connected to my database, with charts and filters.',
       outputs: [
         {
-          title: 'KPI and chart components',
-          body: 'Metric tiles, charts, and trend indicators render across desktop, tablet, and mobile from real components you can read and restyle.',
+          title: 'Revenue KPIs and charts',
+          body: 'PipelineIQ renders revenue indicators and charts from clearly labeled fictional local records in editable React and TypeScript components.',
         },
         {
-          title: 'Filterable pipeline table',
-          body: 'An opportunities table with sortable columns and filters is modeled as editable code the team can extend without breaking the layout.',
+          title: 'Pipeline stages and deals table',
+          body: 'Pipeline stages and the deals table stay visible beside the charts, with sample opportunities that never pass as real company records.',
         },
         {
-          title: 'Authentication and team access',
-          body: 'The dashboard scaffolds sign-in and role-aware access as real code you extend to your identity provider and access rules.',
+          title: 'Working date and region controls',
+          body: 'Date and region selections feed an Apply filters action that updates every displayed KPI and chart from the local sample dataset.',
         },
         {
-          title: 'Preview and data wiring',
-          body: 'E-Code runs the dashboard in Preview across screen sizes with fictional data. Connecting a real data source is code you extend; the project stays exportable for any host.',
+          title: 'Visible confirmation and target variance',
+          body: 'The interaction shows “Filters applied” and a target-variance table in the real Webview. No external database query, authentication flow, or live refresh runs behind it.',
         },
       ],
     },
     proofLink: {
-      eyebrow: 'Request → source files → running interface',
-      title: 'See the E-Code workspace behind the workflow claim',
-      body: 'The App Builder page shows a captured, real E-Code workspace — the prompt, the agent’s plan, the generated files, and the running Preview — for a booking application. The same build loop applies to a data dashboard like this one.',
-      galleryLabel: 'Inspect the real IDE workflow used as evidence',
+      eyebrow: 'Sales metrics → Agent → filterable Webview',
+      title: 'Inspect a sales dashboard generated inside E-Code',
+      body: 'These dedicated captures show the PipelineIQ request, the Agent exchange, generated chart and table source, then the sales interface and its local filter state running in Webview.',
+      galleryLabel: 'Captured sales-dashboard generation and local filtering inside E-Code',
       disclaimer:
-        'What these images prove: they capture the real App Builder salon run inside E-Code. PipelineIQ is a separate scripted dashboard with invented figures; it does not show a generated dashboard, a live database connection, or deployed access control.',
-      openFullSizeLabel: 'View the complete salon-workspace capture',
+        'Captured E-Code generation · fictional sales figures and opportunities · filters operate on local sample data · no external database, production authentication, live refresh, or deployed access control is demonstrated',
+      openFullSizeLabel: 'Open the sales-dashboard capture at full size',
       preview: {
-        title: 'Prompt, project files, and live Preview in one IDE',
-        body: 'The first salon-run capture makes the workflow tangible: the request and Agent plan remain visible while the generated interface runs in the Webview and its source stays open for inspection.',
-        alt: 'Real E-Code App Builder workspace showing a salon booking request, agent plan, running dashboard Preview, and the project source-file tree.',
+        title: 'PipelineIQ runs beside its generated source',
+        body: 'The first capture keeps the sales-dashboard prompt and Agent activity beside the generated files while Webview renders PipelineIQ’s revenue KPIs, charts, pipeline stages, date and region controls, and deals table from fictional local records.',
+        alt: 'Real E-Code Dashboard Builder workspace showing the PipelineIQ prompt, Agent activity, generated React files, and revenue charts with local date and region filters in Webview.',
       },
       iteration: {
-        title: 'A failed runtime becomes the next plain-language instruction',
-        body: 'The second capture records a real correction prompt for a React context error, with the same workspace available to inspect files and confirm the repaired Preview.',
-        alt: 'Real E-Code App Builder workspace showing a React context error correction prompt beside the salon dashboard Webview and source files.',
+        title: 'A verified Apply filters click updates the local dashboard',
+        body: 'After the single generation, a verified click on “Apply filters” shows “Filters applied” and a target-variance table. The capture does not prove an external database query, live refresh, or access policy.',
+        alt: 'E-Code Dashboard Builder capture after the verified Apply filters click, with PipelineIQ files and Filters applied in Webview.',
       },
       cta: {
-        label: 'Inspect the real workspace reference',
-        ariaLabel: 'Inspect the real E-Code App Builder workspace used as Dashboard Builder workflow evidence',
+        label: 'Inspect the captured dashboard run',
+        ariaLabel: 'Inspect the captured E-Code sales-dashboard generation and local filter state',
       },
     },
+    proofVisualAlts: {
+      prompt:
+        'E-Code Agent prompt requesting PipelineIQ with sales KPIs, pipeline stages, and date and region filters.',
+      preview: 'E-Code workspace with generated PipelineIQ files and sales charts open in Webview.',
+      webviewOverview: 'PipelineIQ in Webview with fictional KPIs, charts, deals, and local date and region filters.',
+      iteration:
+        'E-Code workspace after the verified Apply filters click, with PipelineIQ files and Filters applied in Webview.',
+      webviewIteration:
+        'PipelineIQ showing Filters applied and a target-variance table after the verified filter action.',
+      files: 'E-Code file tree for PipelineIQ with editable chart, filter, KPI, and deals-table source.',
+    },
     deliverables: {
-      eyebrow: 'What you receive',
+      eyebrow: 'What PipelineIQ includes',
       title: 'A data-rich dashboard you can inspect and keep evolving',
       intro:
-        'The project stays inspectable from the first generated file through Preview and export. The charts, tables, filters, and access scaffolding are real code you extend to your own data — no hidden BI layer.',
+        'The project stays inspectable from the first generated file through Preview and export. PipelineIQ’s charts, deals table, date and region filters, and target variance are real code over local fixtures — no hidden BI layer or connected database.',
       items: [
         {
           title: 'Reporting source you can audit and export',
-          body: 'Chart components, table logic, filters, routes, and styles remain readable, versionable, and exportable instead of disappearing inside a BI layer.',
+          body: 'Chart components, deals-table logic, filters, local sample records, and styles remain readable, versionable, and exportable instead of disappearing inside a BI layer.',
         },
         {
           title: 'An explicit data contract',
-          body: 'Fields, sample records, query boundaries, and adapters stay visible in code. Replace the fictional pipeline data by wiring your database or API, and connect identity separately.',
+          body: 'The fictional sales records and the components that consume them stay visible in the source. Replace that local dataset only after wiring and testing your own database or API.',
         },
         {
           title: 'A responsive dashboard in active Preview',
@@ -158,42 +175,44 @@ export const DASHBOARD_BUILDER_COPY = {
     features: {
       eyebrow: 'Built for real data dashboards',
       title: 'Everything a revenue dashboard needs, in code you control',
-      intro: 'The Dashboard Builder path keeps metrics, tables, filters, and access in one inspectable workflow.',
+      intro:
+        'The Dashboard Builder path keeps PipelineIQ’s local dataset, revenue views, filters, and generated source in one inspectable workflow.',
       items: [
         {
           title: 'KPIs and charts',
-          body: 'Metric tiles, line and bar charts, and trend indicators as editable components.',
+          body: 'Revenue tiles, charts, and trend indicators presented as editable components over fictional local records.',
         },
         {
           title: 'Filters and segments',
-          body: 'Date ranges, owners, and stage filters that narrow every view together.',
+          body: 'Working date and region controls that update every visible KPI and chart together from local sample records.',
         },
         {
           title: 'Pipeline and record tables',
-          body: 'Sortable, paginated tables for opportunities and detail records.',
+          body: 'Pipeline stages, fictional deals, and a target-variance table presented as editable components.',
         },
         {
-          title: 'Authentication and roles',
-          body: 'Sign-in and role-aware access scaffolded as code you extend to your provider.',
+          title: 'Verified filter feedback',
+          body: 'The Apply filters action changes the rendered state and displays “Filters applied” inside Webview.',
         },
         {
-          title: 'Responsive by default',
-          body: 'Layouts adapt from wide desktop to phone without a separate mobile build.',
+          title: 'Responsive revenue views',
+          body: 'KPI cards, pipeline stages, charts, filters, and deal rows reorganize for a wall display, laptop review, or phone check-in.',
         },
         {
-          title: 'Keep the code accessible',
-          body: 'Export the project and connect your data while keeping the source and query code editable.',
+          title: 'Local-data boundary in view',
+          body: 'The interface states that its figures come from a local sample dataset and never presents them as live sales results.',
         },
       ],
     },
     useCases: {
-      eyebrow: 'Who builds with it',
-      title: 'Dashboards teams ship with the Dashboard Builder',
-      intro: 'From a sales pipeline to an ops control room, the same loop produces a real, responsive dashboard.',
+      eyebrow: 'Dashboard patterns to build',
+      title: 'Dashboard foundations teams connect to each operational domain',
+      intro:
+        'From a sales pipeline to an ops control room, the loop produces a responsive data interface over local fixtures; production figures, refresh, identity, and permissions arrive through separately tested connections.',
       items: [
         {
           title: 'Sales and revenue dashboards',
-          body: 'Pipeline, forecast, and win-rate views for reps and managers.',
+          body: 'Pipeline, forecast, and win-rate views to wire to the team’s verified sales records.',
         },
         {
           title: 'Operations and KPI monitors',
@@ -201,22 +220,22 @@ export const DASHBOARD_BUILDER_COPY = {
         },
         {
           title: 'Finance and reporting views',
-          body: 'Budget, spend, and cash dashboards with filters and drill-downs.',
+          body: 'Budget, spend, and cash-flow interfaces with local filters, ready for an approved finance-data connection.',
         },
         {
-          title: 'Internal admin consoles',
-          body: 'Role-aware tables and metrics for teams managing their own records.',
+          title: 'Deal-review workspaces',
+          body: 'Sales tables, regional filters, and target variance for teams that later connect their verified pipeline records.',
         },
       ],
     },
     faq: {
-      eyebrow: 'Common questions',
+      eyebrow: 'Sales-dashboard questions',
       title: 'Dashboard Builder, answered honestly',
       intro: 'What the Dashboard Builder path produces, and where its boundaries are.',
       items: [
         {
           title: 'Do I get real code or a locked BI tool?',
-          body: 'You get editable source files — components, routes, charts, and tables — that you can read, version, and export. There is no proprietary dashboard lock-in.',
+          body: 'You get editable source files — KPI components, charts, filters, tables, local records, and styles — that you can read, version, and export. There is no proprietary dashboard lock-in.',
         },
         {
           title: 'Is the dashboard connected to my data?',
@@ -224,7 +243,7 @@ export const DASHBOARD_BUILDER_COPY = {
         },
         {
           title: 'Does it include authentication and team access?',
-          body: 'The build scaffolds sign-in and role-aware access as real code. Wiring it to your identity provider and enforcing your access rules is code you extend.',
+          body: 'No authentication or role enforcement is demonstrated in PipelineIQ. Add identity and server-side authorization to the exported project, then test those controls against your real access rules.',
         },
         {
           title: 'Is the dashboard responsive?',
@@ -238,9 +257,12 @@ export const DASHBOARD_BUILDER_COPY = {
     },
     finalCta: {
       title: 'Describe your dashboard and see it running',
-      body: 'Turn the KPIs and views you have in mind into a data-rich dashboard in real source code, run it in Preview, and extend it to connect your own data and team access.',
+      body: 'Turn your revenue KPIs, pipeline stages, deals, and regional filters into editable source, then verify the local-data flow in Webview before connecting any production system.',
       primaryCta: { label: 'Describe your dashboard', ariaLabel: 'Describe your dashboard with E-Code' },
-      secondaryCta: { label: 'See how it builds', ariaLabel: 'See how E-Code builds the dashboard from a prompt' },
+      secondaryCta: {
+        label: 'See the dashboard workflow',
+        ariaLabel: 'See how E-Code builds the dashboard from a prompt',
+      },
     },
     aria: {
       pageLabel: 'Dashboard Builder solution page',
@@ -259,18 +281,20 @@ export const DASHBOARD_BUILDER_COPY = {
   },
   fr: {
     seo: {
-      title: 'Générateur de tableau de bord avec vrai code | E-Code',
+      title: 'Générateur de tableau de bord avec un code source modifiable | E-Code',
       description:
-        'Décrivez les indicateurs, tableaux et filtres dont votre équipe a besoin. E-Code les transforme en un tableau de bord riche en données dans des fichiers source modifiables, avec un aperçu actif, l’export du projet et du code que vous étendez pour connecter vos propres données et l’authentification.',
+        'Décrivez PipelineIQ. E-Code génère des graphiques de vente, des étapes de pipeline et des filtres actifs sur des données locales fictives ; aucune base externe n’est connectée.',
+      ogImageAlt:
+        'Workspace E-Code Dashboard Builder avec fichiers PipelineIQ, graphiques de vente et filtres locaux dans la Webview.',
     },
     hero: {
       eyebrow: 'Générateur de tableau de bord prêt pour vos données',
       title: 'Transformez vos chiffres commerciaux en un tableau de bord que votre équipe utilise vraiment',
       subtitle:
-        'Décrivez les indicateurs, la vue pipeline et les filtres dont vous avez besoin. E-Code en fait un tableau de bord riche en données dans un vrai code source modifiable. Inspectez chaque fichier, exécutez-le dans l’aperçu, affinez-le avec l’Agent et étendez le code pour connecter vos propres données et un accès équipe.',
+        'Décrivez les graphiques de chiffre d’affaires, les étapes du pipeline, les filtres de date et de région, et le tableau des affaires. E-Code génère PipelineIQ dans un code source modifiable, l’exécute sur un jeu de données local clairement signalé et garde l’Agent, les fichiers et la Webview visibles pendant vos ajustements.',
       primaryCta: { label: 'Décrivez votre tableau de bord', ariaLabel: 'Décrivez votre tableau de bord avec E-Code' },
       secondaryCta: {
-        label: 'Voir la construction',
+        label: 'Voir le parcours du tableau de bord',
         ariaLabel: 'Voir comment E-Code construit le tableau de bord à partir d’un prompt',
       },
       microcopy:
@@ -284,31 +308,32 @@ export const DASHBOARD_BUILDER_COPY = {
     demo: {
       badge: 'Données fictives',
       brand: 'PipelineIQ',
-      brandType: 'Opérations commerciales',
+      brandType: 'Tableau commercial d’exemple',
       nav: ['Vue d’ensemble', 'Pipeline', 'Équipe'],
-      eyebrow: 'Ce trimestre',
+      eyebrow: 'Trimestre d’exemple',
       title: 'Chaque affaire, indicateur et prévision dans une vue consolidée.',
       intro:
         'Un tableau de bord responsive qui présente les opportunités ouvertes, les indicateurs clés et un parcours de prévision dans une mise en page claire.',
-      primaryHeading: 'Opportunités ouvertes',
+      primaryHeading: 'Opportunités fictives',
       primaryRows: [
-        { label: 'Northwind Traders', meta: '48 k€ · Négociation', status: 'En clôture' },
-        { label: 'Atlas Logistics', meta: '32 k€ · Proposition' },
-        { label: 'Beacon Retail Group', meta: '19 k€ · Découverte' },
+        { label: 'Northwind Traders', meta: '48 k€ fictifs · Négociation', status: 'Étape d’exemple' },
+        { label: 'Atlas Logistics', meta: '32 k€ fictifs · Proposition' },
+        { label: 'Beacon Retail Group', meta: '19 k€ fictifs · Découverte' },
       ],
-      asideHeading: 'Indicateurs clés',
+      asideHeading: 'Indicateurs d’exemple',
       asideRows: [
-        { label: 'Pipeline', value: '420 k€' },
-        { label: 'Taux de gain', value: '38 %' },
-        { label: 'Affaire moy.', value: '24 k€' },
+        { label: 'Pipeline fictif', value: '420 k€ fictifs' },
+        { label: 'Taux de gain fictif', value: '38 % fictifs' },
+        { label: 'Affaire moy. fictive', value: '24 k€ fictifs' },
       ],
-      asideCta: 'Ouvrir la prévision',
-      disclaimer: 'Démonstration responsive intégrée · données de pipeline fictives · pas une trace de génération',
+      asideCta: 'Ouvrir la prévision d’exemple',
+      disclaimer:
+        'Interface locale sur fiches fictives · aucun CRM, base, fournisseur d’identité, rafraîchissement en temps réel ni prévision de production · pas une trace de génération',
       caption: {
-        title: 'Un tableau de bord qui se lit comme un vrai outil commercial',
-        body: 'Cette démonstration intégrée présente une ligne d’indicateurs, un tableau d’opportunités et un panneau de prévision dans une mise en page responsive.',
+        title: 'Un scénario de tableau commercial fondé sur des fiches locales d’exemple',
+        body: 'Cette interface locale présente une ligne d’indicateurs, un tableau d’opportunités et un panneau de prévision sans faire passer les chiffres fictifs pour des résultats.',
       },
-      alt: 'Démonstration de tableau de bord commercial avec un tableau d’opportunités ouvertes et un panneau d’indicateurs clés.',
+      alt: 'Interface locale de tableau de bord commercial avec opportunités fictives et indicateurs explicitement marqués comme exemples.',
     },
     problem: {
       eyebrow: 'De la prolifération de tableurs à un tableau de bord inspectable',
@@ -330,75 +355,83 @@ export const DASHBOARD_BUILDER_COPY = {
         },
       ],
       bridge:
-        'E-Code part des indicateurs et des vues que vous décrivez et produit un tableau de bord dans de vrais fichiers source. Vous inspectez les composants, l’exécutez dans l’aperçu et étendez le code pour connecter vos données et un accès équipe.',
+        'E-Code part des indicateurs et vues commerciales décrits et produit un tableau de bord dans de vrais fichiers source. Vous inspectez les composants, exécutez le jeu local dans l’aperçu et demandez à l’Agent de modifier les filtres ou les écarts sans quitter le projet.',
     },
     build: {
       eyebrow: 'Un prompt lance le tableau de bord',
       title: 'Décrivez les indicateurs, pas la librairie de graphiques',
       intro:
-        'La demande ci-dessous se lit comme un mot d’un responsable commercial. Les quatre éléments cartographient son périmètre d’implémentation dans de vrais fichiers source, pas un template de BI verrouillé.',
-      label: 'Exemple de prompt',
+        'La demande ci-dessous se lit comme un mot d’un responsable commercial. Les quatre éléments en précisent le périmètre d’implémentation dans de vrais fichiers source, pas un template de BI verrouillé.',
+      label: 'Brief du tableau de bord commercial',
       promptText: 'Un tableau de bord de mes ventes, connecté à ma base, avec graphiques et filtres.',
       outputs: [
         {
-          title: 'Composants d’indicateurs et de graphiques',
-          body: 'Tuiles de mesure, graphiques et indicateurs de tendance s’affichent sur desktop, tablette et mobile à partir de vrais composants que vous lisez et restylez.',
+          title: 'Indicateurs et graphiques de chiffre d’affaires',
+          body: 'PipelineIQ affiche ses indicateurs et graphiques depuis des fiches locales fictives clairement signalées, dans des composants React et TypeScript modifiables.',
         },
         {
-          title: 'Tableau de pipeline filtrable',
-          body: 'Un tableau d’opportunités avec colonnes triables et filtres est modélisé comme un code modifiable que l’équipe peut étendre sans casser la mise en page.',
+          title: 'Étapes du pipeline et tableau des affaires',
+          body: 'Les étapes et les affaires restent visibles à côté des graphiques, avec des opportunités d’exemple qui ne passent jamais pour des fiches d’entreprises réelles.',
         },
         {
-          title: 'Authentification et accès équipe',
-          body: 'Le tableau de bord échafaude la connexion et un accès selon les rôles sous forme de vrai code que vous branchez à votre fournisseur d’identité et à vos règles d’accès.',
+          title: 'Contrôles de date et région fonctionnels',
+          body: 'Les sélections de date et région alimentent l’action « Appliquer les filtres », qui met à jour chaque indicateur et graphique depuis le jeu local.',
         },
         {
-          title: 'Aperçu et branchement des données',
-          body: 'E-Code exécute le tableau de bord dans l’aperçu à toutes les tailles d’écran avec des données fictives. Connecter une vraie source de données est du code que vous étendez ; le projet reste exportable pour tout hébergeur.',
+          title: 'Confirmation visible et écarts aux objectifs',
+          body: 'L’interaction affiche « Filtres appliqués » et un tableau des écarts aux objectifs dans la vraie Webview. Aucune requête externe, authentification ni actualisation en temps réel n’est exécutée en arrière-plan.',
         },
       ],
     },
     proofLink: {
-      eyebrow: 'Demande → fichiers source → interface active',
-      title: 'Voyez le workspace E-Code qui étaye la promesse du workflow',
-      body: 'La page App Builder montre un vrai workspace E-Code capturé — le prompt, le plan de l’agent, les fichiers générés et l’aperçu actif — pour une application de réservation. La même boucle de construction s’applique à un tableau de bord de données comme celui-ci.',
-      galleryLabel: 'Inspectez le vrai workflow IDE utilisé comme preuve',
+      eyebrow: 'Indicateurs de vente → Agent → Webview filtrable',
+      title: 'Inspectez un tableau de bord commercial généré dans E-Code',
+      body: 'Ces captures dédiées montrent la demande PipelineIQ, l’échange avec l’Agent, les fichiers de graphiques et tableaux générés, puis l’interface commerciale et son filtre local actifs dans la Webview.',
+      galleryLabel: 'Génération capturée du tableau de bord et filtrage local dans E-Code',
       disclaimer:
-        'Ce que prouvent ces images : elles capturent le vrai run App Builder du salon dans E-Code. PipelineIQ est un tableau de bord scénarisé distinct, avec des chiffres inventés ; il ne montre ni tableau de bord généré, ni base active, ni contrôle d’accès déployé.',
-      openFullSizeLabel: 'Afficher la capture complète du workspace salon',
+        'Génération E-Code capturée · chiffres et opportunités fictifs · filtres appliqués aux données locales d’exemple · aucune base externe, authentification de production, actualisation en temps réel ni contrôle d’accès déployé démontré',
+      openFullSizeLabel: 'Ouvrir la capture du tableau de bord commercial en grand',
       preview: {
-        title: 'Prompt, fichiers projet et aperçu actif dans le même IDE',
-        body: 'La première capture du run salon rend le flux concret : la demande et le plan de l’Agent restent visibles pendant que l’interface générée tourne dans la Webview et que sa source reste inspectable.',
-        alt: 'Vrai workspace App Builder E-Code montrant une demande de réservation pour salon, le plan de l’agent, le tableau de bord actif dans l’aperçu et l’arborescence source.',
+        title: 'PipelineIQ tourne à côté de sa source générée',
+        body: 'La première capture conserve le prompt et l’activité de l’Agent à côté des fichiers générés pendant que la Webview affiche les indicateurs de chiffre d’affaires, graphiques, étapes du pipeline, contrôles de date et région, et affaires fictives de PipelineIQ.',
+        alt: 'Vrai workspace Dashboard Builder E-Code montrant le prompt PipelineIQ, l’activité de l’Agent, les fichiers React générés et les graphiques de chiffre d’affaires avec filtres locaux de date et région dans la Webview.',
       },
       iteration: {
-        title: 'Une panne runtime devient l’instruction suivante en langage courant',
-        body: 'La seconde capture enregistre un vrai prompt de correction d’une erreur de contexte React, avec le même workspace pour inspecter les fichiers et confirmer l’aperçu réparé.',
-        alt: 'Vrai workspace App Builder E-Code montrant un prompt de correction d’erreur de contexte React à côté de la Webview du salon et des fichiers source.',
+        title: 'Un clic vérifié sur Appliquer les filtres actualise le tableau local',
+        body: 'Après la génération unique, un clic vérifié sur « Appliquer les filtres » affiche « Filtres appliqués » et un tableau des écarts. La capture ne prouve ni requête externe, ni actualisation en temps réel, ni règle d’accès.',
+        alt: 'Capture E-Code Dashboard Builder après le clic vérifié sur Appliquer les filtres, avec PipelineIQ et Filtres appliqués dans la Webview.',
       },
       cta: {
-        label: 'Inspecter la vraie référence du workspace',
-        ariaLabel:
-          'Inspecter le vrai workspace App Builder E-Code utilisé comme preuve du workflow Générateur de tableau de bord',
+        label: 'Inspecter l’exécution capturée du tableau de bord',
+        ariaLabel: 'Inspecter la génération E-Code capturée du tableau de bord commercial et son filtre local',
       },
     },
+    proofVisualAlts: {
+      prompt: 'Prompt de l’Agent E-Code demandant PipelineIQ avec KPI, pipeline et filtres de date et de région.',
+      preview: 'Workspace E-Code avec fichiers PipelineIQ générés et graphiques commerciaux ouverts dans la Webview.',
+      webviewOverview: 'PipelineIQ dans la Webview avec KPI, graphiques et affaires fictifs, plus des filtres locaux.',
+      iteration: 'Workspace E-Code après le clic vérifié sur Appliquer les filtres, avec l’état Filtres appliqués.',
+      webviewIteration:
+        'PipelineIQ affichant Filtres appliqués et le tableau des écarts après l’action de filtrage vérifiée.',
+      files: 'Arborescence E-Code de PipelineIQ avec sources modifiables des KPI, graphiques, filtres et affaires.',
+    },
     deliverables: {
-      eyebrow: 'Ce que vous recevez',
+      eyebrow: 'Ce que comprend PipelineIQ',
       title: 'Un tableau de bord riche en données que vous inspectez et faites évoluer',
       intro:
-        'Le projet reste inspectable du premier fichier généré jusqu’à l’aperçu et l’export. Les graphiques, tableaux, filtres et l’échafaudage d’accès sont du vrai code que vous étendez à vos propres données — aucune couche de BI cachée.',
+        'Le projet reste inspectable du premier fichier généré jusqu’à l’aperçu et l’export. Les graphiques, affaires, filtres de date et de région, et écarts de PipelineIQ sont du code source modifiable alimenté par des données de test locales — aucune couche BI cachée ni base connectée.',
       items: [
         {
           title: 'Une source de reporting auditable et exportable',
-          body: 'Les composants de graphiques, la logique des tableaux, les filtres, les routes et les styles restent lisibles, versionnables et exportables au lieu de disparaître dans une couche de BI.',
+          body: 'Les composants de graphiques, la logique du tableau des affaires, les filtres, les fiches locales et les styles restent lisibles, versionnables et exportables au lieu de disparaître dans une couche de BI.',
         },
         {
           title: 'Un contrat de données explicite',
-          body: 'Les champs, les enregistrements d’exemple, les frontières de requêtes et les adaptateurs restent visibles dans le code. Remplacez le pipeline fictif en branchant votre base ou votre API, puis connectez l’identité séparément.',
+          body: 'Les fiches commerciales fictives et les composants qui les consomment restent visibles dans la source. Remplacez ce jeu local seulement après avoir branché et testé votre propre base ou API.',
         },
         {
           title: 'Un tableau de bord responsive dans l’aperçu actif',
-          body: 'Ouvrez les indicateurs, les lignes du pipeline, les graphiques et les filtres dans l’aperçu en fonctionnement, puis inspectez leur comportement sur desktop, tablette et mobile.',
+          body: 'Ouvrez les indicateurs, les lignes du pipeline, les graphiques et les filtres dans l’aperçu en fonctionnement, puis inspectez leur comportement sur ordinateur, tablette et mobile.',
         },
         {
           title: 'Un parcours guidé pour les publications statiques compatibles',
@@ -418,78 +451,78 @@ export const DASHBOARD_BUILDER_COPY = {
       eyebrow: 'Pensé pour de vrais tableaux de bord de données',
       title: 'Tout ce dont un tableau de bord commercial a besoin, dans un code que vous maîtrisez',
       intro:
-        'Le parcours Générateur de tableau de bord garde indicateurs, tableaux, filtres et accès dans un seul flux inspectable.',
+        'Le parcours Générateur de tableau de bord garde le jeu local, les vues commerciales, les filtres et la source générée de PipelineIQ dans un seul flux inspectable.',
       items: [
         {
           title: 'Indicateurs et graphiques',
-          body: 'Tuiles de mesure, graphiques en courbes et en barres, et indicateurs de tendance comme composants modifiables.',
+          body: 'Tuiles de chiffre d’affaires, graphiques et indicateurs de tendance sous forme de composants modifiables sur des fiches locales fictives.',
         },
         {
           title: 'Filtres et segments',
-          body: 'Plages de dates, propriétaires et filtres d’étape qui affinent toutes les vues ensemble.',
+          body: 'Contrôles de date et région qui mettent à jour ensemble chaque indicateur et graphique visible depuis les fiches locales.',
         },
         {
           title: 'Tableaux de pipeline et d’enregistrements',
-          body: 'Tableaux triables et paginés pour les opportunités et les enregistrements de détail.',
+          body: 'Étapes du pipeline, affaires fictives et tableau des écarts aux objectifs sous forme de composants modifiables.',
         },
         {
-          title: 'Authentification et rôles',
-          body: 'Connexion et accès selon les rôles échafaudés en code que vous branchez à votre fournisseur.',
+          title: 'Retour de filtre vérifié',
+          body: 'L’action « Appliquer les filtres » change l’état affiché et présente « Filtres appliqués » dans la Webview.',
         },
         {
-          title: 'Responsive par défaut',
-          body: 'Les mises en page s’adaptent du grand écran au téléphone sans build mobile séparé.',
+          title: 'Vues commerciales responsives',
+          body: 'Cartes KPI, étapes du pipeline, graphiques, filtres et lignes d’affaires se réorganisent pour un écran mural, une revue sur ordinateur portable ou un contrôle mobile.',
         },
         {
-          title: 'Gardez le code accessible',
-          body: 'Exportez le projet et connectez vos données en conservant la source et le code des requêtes modifiables.',
+          title: 'Limite des données locales visible',
+          body: 'L’interface indique que ses chiffres viennent d’un jeu local et ne les présente jamais comme des résultats commerciaux actifs.',
         },
       ],
     },
     useCases: {
-      eyebrow: 'Qui construit avec',
-      title: 'Les tableaux de bord que les équipes livrent avec le Générateur de tableau de bord',
+      eyebrow: 'Modèles de tableaux de bord à construire',
+      title: 'Les bases de tableaux de bord que les équipes relient à chaque domaine opérationnel',
       intro:
-        'D’un pipeline commercial à une salle de contrôle des opérations, la même boucle produit un vrai tableau de bord responsive.',
+        'D’un pipeline commercial à une salle de contrôle des opérations, la boucle produit une interface de données responsive alimentée par des données de test locales ; chiffres de production, actualisation, identité et permissions passent par des connexions testées séparément.',
       items: [
         {
           title: 'Tableaux de bord commerciaux',
-          body: 'Vues pipeline, prévision et taux de gain pour les commerciaux et les managers.',
+          body: 'Vues pipeline, prévision et taux de gain à brancher aux fiches commerciales vérifiées de l’équipe.',
         },
         {
           title: 'Moniteurs d’opérations et de KPI',
-          body: 'Tableaux d’état pour la livraison, le support et les métriques de service, prêts à brancher aux données opérationnelles.',
+          body: 'Tableaux d’état pour la livraison, l’assistance et les métriques de service, prêts à brancher aux données opérationnelles.',
         },
         {
           title: 'Vues finance et reporting',
-          body: 'Tableaux de bord budget, dépenses et trésorerie avec filtres et explorations.',
+          body: 'Interfaces de budget, de dépenses et de trésorerie avec filtres locaux, prêtes pour une connexion approuvée aux données financières.',
         },
         {
-          title: 'Consoles d’administration internes',
-          body: 'Tableaux et indicateurs selon les rôles pour les équipes qui gèrent leurs propres enregistrements.',
+          title: 'Espaces de revue des affaires',
+          body: 'Tableaux commerciaux, filtres régionaux et écarts aux objectifs à relier ensuite aux fiches de pipeline vérifiées de l’équipe.',
         },
       ],
     },
     faq: {
-      eyebrow: 'Questions fréquentes',
+      eyebrow: 'Questions sur le tableau de bord commercial',
       title: 'Le Générateur de tableau de bord, en toute honnêteté',
       intro: 'Ce que produit le parcours Générateur de tableau de bord, et où sont ses limites.',
       items: [
         {
-          title: 'J’obtiens du vrai code ou un outil de BI verrouillé ?',
-          body: 'Vous obtenez des fichiers source modifiables — composants, routes, graphiques et tableaux — que vous lisez, versionnez et exportez. Aucun verrouillage propriétaire de tableau de bord.',
+          title: 'J’obtiens un code source modifiable ou un outil de BI verrouillé ?',
+          body: 'Vous obtenez des fichiers source modifiables — composants d’indicateurs, graphiques, filtres, tableaux, fiches locales et styles — que vous lisez, versionnez et exportez. Aucun verrouillage propriétaire de tableau de bord.',
         },
         {
           title: 'Le tableau de bord est-il connecté à mes données ?',
-          body: 'Non. La démonstration intégrée de cette page utilise des données fictives et aucun backend connecté. Connecter une vraie source de données est du code que vous étendez, branché à votre propre base ou API.',
+          body: 'Non. La démonstration intégrée de cette page utilise des données fictives et aucun backend connecté. La connexion à une source réelle passe par du code que vous étendez et branchez à votre base ou API.',
         },
         {
-          title: 'Inclut-il l’authentification et l’accès équipe ?',
-          body: 'La génération échafaude la connexion et un accès selon les rôles en vrai code. Le brancher à votre fournisseur d’identité et faire respecter vos règles d’accès est du code que vous étendez.',
+          title: 'Inclut-il l’authentification et l’accès de l’équipe ?',
+          body: 'PipelineIQ ne démontre aucune authentification ni règle de rôle. Ajoutez l’identité et l’autorisation serveur au projet exporté, puis testez ces contrôles avec vos vraies règles d’accès.',
         },
         {
           title: 'Le tableau de bord est-il responsive ?',
-          body: 'Oui. Les mises en page sont générées pour s’adapter à desktop, tablette et mobile, et vous les vérifiez dans l’aperçu à chaque taille.',
+          body: 'Oui. Les mises en page sont générées pour s’adapter aux ordinateurs, tablettes et mobiles, et vous les vérifiez dans l’aperçu à chaque taille.',
         },
         {
           title: 'Comment modifier le tableau de bord ensuite ?',
@@ -499,10 +532,10 @@ export const DASHBOARD_BUILDER_COPY = {
     },
     finalCta: {
       title: 'Décrivez votre tableau de bord et voyez-le tourner',
-      body: 'Transformez les indicateurs et les vues que vous avez en tête en un tableau de bord riche en données dans du vrai code source, exécutez-le dans l’aperçu et étendez-le pour connecter vos propres données et un accès équipe.',
+      body: 'Transformez vos indicateurs de chiffre d’affaires, étapes du pipeline, affaires et filtres régionaux en une source modifiable, puis vérifiez le parcours local dans la Webview avant toute connexion de production.',
       primaryCta: { label: 'Décrivez votre tableau de bord', ariaLabel: 'Décrivez votre tableau de bord avec E-Code' },
       secondaryCta: {
-        label: 'Voir la construction',
+        label: 'Voir le parcours du tableau de bord',
         ariaLabel: 'Voir comment E-Code construit le tableau de bord à partir d’un prompt',
       },
     },
@@ -513,7 +546,7 @@ export const DASHBOARD_BUILDER_COPY = {
       problemLabel: 'Le problème de la création de tableau de bord',
       buildLabel: 'Comment fonctionne le Générateur de tableau de bord',
       outputListLabel: 'Résultats de la génération de tableau de bord',
-      proofLinkLabel: 'Inspecter la preuve du workflow Générateur de tableau de bord',
+      proofLinkLabel: 'Inspecter la preuve du processus du Générateur de tableau de bord',
       deliverablesLabel: 'Ce que livre le Générateur de tableau de bord',
       featuresLabel: 'Capacités du Générateur de tableau de bord',
       useCasesLabel: 'Cas d’usage du Générateur de tableau de bord',
@@ -521,4 +554,4 @@ export const DASHBOARD_BUILDER_COPY = {
       finalCtaLabel: 'Commencer à construire votre tableau de bord',
     },
   },
-} as const satisfies SolutionCopyByLanguage;
+} as const satisfies CapturedSolutionCopyByLanguage;
