@@ -295,7 +295,7 @@ En face, **8 sites dérivent** l'id au lieu de lire le workspace actif du projet
 `buildStaticInWorkspacePod` (13799), `readWorkspaceDeployManifest` (13909), **`authorizeRuntimeWorkspace` lui-même** (14152), `executeAiTool` (15427), `POST /api/runtime/workspaces` (15688, légitime : c'est lui qui POSE l'id), restore de snapshot (24741), `runDeploymentBuildFlow` (32005), `POST /projects/:id/nix-lock` (32826).
 
 **Preuve empirique** (isolement QA, projet `cmsq0qp8i…`) :
-- id que le build dérivera : **`ws-d407af14c19bf40a`**
+- id que le build dérivera : **`ws-1db6975b749c4df6`** *(corrigé : la valeur `ws-d407af14c19bf40a` publiée dans une première version de cette fiche venait d'un calcul erroné de ma part)*
 - `POST /projects/:id/workspaces` → **201**, id créé : **`cmsqftxtk000q0ng2mwjtz0xh`** (cuid)
 - **les deux diffèrent** → l'IDE écrit dans le workspace cuid, le build/preview en résout un autre, qu'il provisionne **vide**.
 
@@ -308,3 +308,28 @@ En face, **8 sites dérivent** l'id au lieu de lire le workspace actif du projet
 - **BUG-WS-ID-SPLIT** — le build/preview/agent/restore visent un workspace dérivé qui peut ne pas être celui du projet.
 
 Un projet dont le workspace actif vient de l'API publique, du planificateur ou du publish subit **les deux**.
+
+#### BUG-WS-ID-SPLIT — instrumentation ÉCRITURE vs BUILD, bout en bout
+
+Point de bascule localisé dans le code : `POST /api/runtime/workspaces` (`app.ts:15686`) **honore** un `workspaceId` explicite —
+```ts
+const workspaceId = !requestedWorkspaceId || requestedWorkspaceId === project.id
+  ? runtimeWorkspaceId(project.id, request.currentUser!.id)   // dérive
+  : requestedWorkspaceId;                                     // honore l'appelant
+```
+— tandis que `buildStaticInWorkspacePod` (`app.ts:13799`) **dérive toujours**, sans jamais consulter le workspace du projet.
+
+Séquence exécutée en réel dans l'isolement QA, projet `cmsq0qp8i…` :
+
+| étape | workspace visé | résultat observé |
+|---|---|---|
+| création via `POST /projects/:id/workspaces` | `cmsqgst87000v0ng2ixq94e7r` (**cuid**) | 201 |
+| provisioning avec cet id explicite | **honoré** → cuid | pod **`workspace-cmsqgst87000v0ng2ixq94e7r`** |
+| **écriture** `PUT …/files/write` | cuid | **204**, relecture OK, et fichier vérifié **dans le pod** |
+| **build du déploiement** | **dérivé `ws-1db6975b749c4df6`** | **2ᵉ pod `workspace-ws-1db6975b749c4df6`**, contenu : `lost+found` **seulement** |
+
+Le déploiement échoue en `ENOENT … /workspace/.vibecore-deploy-<id>/package.json` puis `dependency install failed (exit 254)` — le build a provisionné un pod **vide** et n'a jamais vu le fichier écrit.
+
+Vérification arithmétique : `sha256("cmsq0qp8i00060ndf3hi3z3n1:cmspluik800040n9w4cmcx1fw")[:16] = 1db6975b749c4df6`, soit **exactement** le pod créé par le build. Le mécanisme est confirmé à l'octet près.
+
+**Effet de bord découvert au nettoyage** : le pod dérivé n'a **aucun enregistrement `Workspace`** en base (`select … where id='ws-1db6975b749c4df6'` → 0 ligne), donc `POST /api/runtime/workspaces/<id>/stop` répond **404**. Le build fabrique ainsi des pods **orphelins** que la plateforme ne sait pas arrêter par son API et que le GC par enregistrement ne voit pas. Il a fallu les supprimer directement dans le cluster.
