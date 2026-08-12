@@ -1,0 +1,21 @@
+=== A. TEMOIN — ancien appel: --kube-context, sans enveloppe ===
+  cible recue : APISERVER:https://apiserver-hostile.example.com
+  OK: la redirection est bien reproduite (c'est le defaut a fermer).
+
+=== B. AVEC l'enveloppe, meme environnement hostile ===
+  cible recue : connectgateway_vibecore-495216_europe-west9_vibecore-prod-app
+  OK: environnement neutralise, cible nommee, aucune valeur journalisee.
+
+=== C. kubeconfig SUBSTITUE (bon nom de contexte, autre apiserver) -> refus ===
+  exit=1, appels helm enregistres: 0
+  OK: refus avant tout appel — REFUS (fail-closed): l'apiserver de 'connectgateway_vibecore-495216_europe-west9_vibecore-prod-app' n'est pas le Connect Gateway attendu.
+
+=== D. un deploiement STAGING ne peut pas viser la prod -> refus ===
+  exit=1, appels helm enregistres: 0
+  OK: refus — REFUS (fail-closed): la cible 'connectgateway_vibecore-495216_europe-west9_vibecore-prod-app' ressemble a la PRODUCTION — refus sur un chemin staging.
+
+=== E. cas legitime: prod-gateway passe bien (pas un 'tout refuser') ===
+  exit=0
+  OK: kubectl|--context=connectgateway_vibecore-495216_europe-west9_vibecore-prod-app -n vibecore rollout status deploy/api
+
+OK: l'environnement ne choisit plus la cible d'un helm/kubectl de CI.

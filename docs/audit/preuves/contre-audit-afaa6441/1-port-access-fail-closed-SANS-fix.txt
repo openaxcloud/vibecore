@@ -1,0 +1,20 @@
+   × /internal/preview/port-access — fail-closed > DENIE quand la lecture du workspace echoue (panne DB) 123ms
+     → expected false to be true // Object.is equality
+   × /internal/preview/port-access — fail-closed > DENIE quand la lecture des variables de projet echoue (panne DB) 44ms
+     → expected false to be true // Object.is equality
+   × /internal/preview/port-access — fail-closed > DENIE quand VIBECORE_PORTS_STATE est un JSON invalide 25ms
+     → expected false to be true // Object.is equality
+   × /internal/preview/port-access — fail-closed > DENIE quand le champ visibility est malforme (chaine au lieu d objet) 27ms
+     → expected false to be true // Object.is equality
+   × /internal/preview/port-access — fail-closed > AUTORISE quand l etat est lu et ne marque pas ce port prive 16ms
+     → expected undefined to be 'ports-state-read' // Object.is equality
+   × /internal/preview/port-access — fail-closed > AUTORISE quand aucun etat de ports n existe (cas normal, lecture reussie) 17ms
+     → expected undefined to be 'no-ports-state' // Object.is equality
+   ✓ /internal/preview/port-access — fail-closed > DENIE quand ce port precis est marque prive 52ms
+   × /internal/preview/port-access — fail-closed > reste public quand la fonctionnalite est eteinte (fonction off, pas une incertitude) 34ms
+     → expected undefined to be 'feature-disabled' // Object.is equality
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected false to be true // Object.is equality
+AssertionError: expected false to be true // Object.is equality
+AssertionError: expected false to be true // Object.is equality
+AssertionError: expected false to be true // Object.is equality

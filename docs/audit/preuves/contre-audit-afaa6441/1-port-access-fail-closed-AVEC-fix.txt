@@ -1,0 +1,10 @@
+
+ RUN  v3.2.6 /Users/hb/dev/vibecore-fresh-install/services/api
+
+ ✓ src/tests/preview-port-access-failclosed.spec.ts (8 tests) 267ms
+
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  08:31:43
+   Duration  1.97s (transform 753ms, setup 0ms, collect 1.50s, tests 267ms, environment 0ms, prepare 53ms)
+

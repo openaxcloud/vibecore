@@ -1,0 +1,26 @@
+=== A. listages en panne, projet TOUJOURS present -> doit ECHOUER ===
+  mode=listages-en-panne -> exit=0 (attendu: echec)
+      ==> [3/3] VERIFICATION de la disparition
+          projet .................. ACTIVE
+          clusters GKE restants ... 0
+          instances SQL restantes . 0
+          VM Compute restantes .... 0
+          buckets restants ........ 0
+      ==> CONTROLE PROD (doit etre intacte)
+          release vibecore (prod) . revision=976 status=deployed  [contexte: connectgateway_vibecore-495216_europe-west9_vibecore-prod-app]
+      ==> TEARDOWN VERIFIE: plus aucune ressource facturee dans vibecore-audit-test-20260807
+  ECHEC: des listages illisibles ont ete pris pour '0 ressource'.
+
+=== B. listages refuses APRES suppression confirmee -> doit REUSSIR ===
+  mode=projet-supprime -> exit=0 (attendu: succes)
+      ==> [3/3] VERIFICATION de la disparition
+          projet .................. GONE
+          clusters GKE restants ... 0
+          instances SQL restantes . 0
+          VM Compute restantes .... 0
+          buckets restants ........ 0
+      ==> CONTROLE PROD (doit etre intacte)
+          release vibecore (prod) . revision=976 status=deployed  [contexte: connectgateway_vibecore-495216_europe-west9_vibecore-prod-app]
+      ==> TEARDOWN VERIFIE: plus aucune ressource facturee dans vibecore-audit-test-20260807
+
+ECHEC: la verification de teardown tire de mauvaises conclusions.
