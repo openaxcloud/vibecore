@@ -38,7 +38,7 @@ added the trigger.
 | 3 | Official checks green, by workflow **ID** | `required-checks.json` pins **id + file path + job names** | 63 vitest cases; pinning by name alone cannot pass |
 | 4 | missing/pending/skipped/cancelled/failure/wrong-sha/usurped ⇒ refuse **before WIF** | `release-gate` job has `contents: read, actions: read` and **no `id-token`**; `id-token: write` is granted to `build-and-deploy` alone | run [31597733139](https://github.com/openaxcloud/vibecore/actions/runs/31597733139), **7/7 green**: the 3 red SHAs refused, 2 of them still refused under an E2E waiver, and the all-green SHA authorised — all in jobs that cannot exchange a WIF token. Wiring validator fails if `id-token` moves to workflow level |
 | 5 | Manifest: service → source SHA → build id → digest → signature/SBOM | `release-manifest.mjs build` — refuses to emit an unverifiable manifest | 13 spec cases: no digest, malformed digest, rebuilt without build id, built from another commit, unverified signature all throw. The build-id resolution was also run **against 40 real production Cloud Build records** (read-only `gcloud builds list`): it returns the right build for the tier that was built, an empty string for a tier that was not, and traverses the 2 records that carry no `_SHORT_SHA` substitution without erroring |
-| 6 | Deploy **by digest**, verify `imageID` after rollout | chart renders `@sha256:` and **fails the render** on a malformed or absent pin; post-rollout check compares kubelet `imageID` for the Deployment's **current revision** ReplicaSet | `proof-digest-rollout.sh` on a real cluster, 8/8: 7 distinct digests, 17 containers, 7/7 imageIDs match, a wrong digest is rejected, **a partial `--reuse-values` upgrade leaves every other service pinned**, and **a last-known-good manifest restores them** |
+| 6 | Deploy **by digest**, verify `imageID` after rollout | chart renders `@sha256:` and **fails the render** on a malformed or absent pin; what each non-rebuilt service currently runs is read from the **live Deployment** (authoritative, and unlike `helm get values` always valid JSON); post-rollout check compares kubelet `imageID` for the Deployment's **current revision** ReplicaSet. `screenshotter` is pinned but deliberately not imageID-checked — this path has never waited on its rollout and it is not enabled everywhere | `proof-digest-rollout.sh` on a real cluster, 8/8: 7 distinct digests, 17 containers, 7/7 imageIDs match, a wrong digest is rejected, **a partial `--reuse-values` upgrade leaves every other service pinned**, and **a last-known-good manifest restores them** |
 | 7 | Manual path bound to the same SHA/image | same jobs, same gate, same digests; dispatch names a commit already on `main` | wiring validator + spec |
 | 8 | Break-glass only to a signed last-known-good, double approval | `deploy-break-glass.yml`: no build step, restores a previous **successful gated** run's manifest, cosign-verifies every digest, `production-break-glass` environment | wiring validator fails if break-glass gains a build step or loses its signature check. **The restore mechanism is executed** in `proof-digest-rollout.sh` step 8 — same `jq` filter, same `--set-string services.<key>.imageDigest`, same `--reuse-values --atomic` — and the cluster returns to every digest the manifest names. Only the cosign step needs the production KMS key and cannot run outside prod |
 
@@ -99,14 +99,27 @@ was visible by reading the code:
 5. `gh run download` exits 1 **and does not create the target directory** when nothing
    matches, so the break-glass path died before printing its own actionable error —
    on the one path that only ever runs during an incident.
-6. The active ReplicaSet was picked as "newest by `creationTimestamp`". Kubernetes
+6. `helm get values -o json` on the REAL production release emits **invalid JSON** —
+   one stored value (the Nix registry blob) contains a raw newline inside a string,
+   which `jq` rejects. The digest-resolution step parsed that blob, so under `set -e`
+   it would have died there and **every deploy would have been blocked**, before ever
+   reading a tag. It now reads the live Deployments instead, which are authoritative
+   and always valid. Found only by querying the production release read-only.
+7. The production release carries `screenshotter.enabled: true` — set once via `--set`
+   and frozen by `--reuse-values` — while both `values.yaml` and `values-prod.yaml` say
+   false. The matrix, and the drift check that guarded it, were both written against
+   chart defaults, so a genuinely running service would have been the only one left on
+   a mutable tag while everything else was digest-pinned. Enablement is now discovered
+   from the cluster, and the drift check compares against every service the chart
+   DEFINES rather than the ones it enables.
+8. The active ReplicaSet was picked as "newest by `creationTimestamp`". Kubernetes
    **reuses** an existing ReplicaSet when a rollout returns to a pod template it has
    seen before, so after a break-glass restore — or any return to an earlier digest —
    the newest ReplicaSet is the one just scaled to ZERO. Every restore would have
    failed with "no running pod" for services that were running perfectly, in exactly
    the incident where a false failure is most costly. Now selected by the Deployment's
    `deployment.kubernetes.io/revision`. Found by step 8 the first time it ran.
-7. The dry-run job reported **green when the gate had errored**. The gate has exactly
+9. The dry-run job reported **green when the gate had errored**. The gate has exactly
    two verdicts (0 = PASS, 2 = REFUSE); `report` mode swallowed every other code and
    `refuse` mode accepted any non-zero one, so a transport error read as "correctly
    refused". Found by watching a real run, in the tool whose entire job is to give a

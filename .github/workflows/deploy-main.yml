@@ -626,11 +626,11 @@ jobs:
           REG="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPO}"
           echo "REG=${REG}" >> "$GITHUB_ENV"
 
-          # What the release currently has stored, used only for services this run
-          # does not rebuild. `-a` includes computed values, so chart defaults are
-          # visible too. Missing release (first install) yields an empty object.
-          STORED="$(helm get values "${HELM_RELEASE}" -n "${HELM_NAMESPACE}" -a -o json 2>/dev/null || echo '{}')"
-          printf '%s' "${STORED}" > /tmp/stored-values.json
+          # NOTE: this step deliberately does NOT read `helm get values`. On the real
+          # production release that command emits INVALID JSON (a stored value contains
+          # a raw newline inside a string), so parsing it would abort this step and
+          # block every deploy. The live Deployments answer the same question — what is
+          # each service running — and are always valid. See the non-rebuilt branch.
 
           # valuesKey:imageName:tier:chartService:rolled
           #   tier         — which build produces it, i.e. whether THIS run rebuilt it
@@ -641,17 +641,25 @@ jobs:
           # admin: an enabled chart service this continuous path never builds or rolls.
           # Its current digest is carried forward so the release stays fully pinned.
           #
-          # screenshotter (`enabled: false` in the chart) and workspace-agent (not a
-          # chart service at all — an image reference the api hands to workspace pods,
-          # tagged `sha-<sha>`) are chartService=false: there is no Deployment to pin, so
-          # nothing to carry forward, and demanding a digest for them on a run that did
-          # not rebuild them would block the deploy over an image nobody deploys. They
-          # are listed so that WHEN they are rebuilt they are still scanned and
-          # signature-verified — the previous vulnerability gate covered both, and
-          # dropping them to keep the rollout check simple would have silently ended
-          # that coverage. If screenshotter is ever enabled, flip its chartService to
-          # true so it gets pinned like every other running service.
-          SERVICES="web:web:web:true:true admin:admin:none:true:false api:api:runtime:true:true worker:worker:runtime:true:true aiGateway:ai-gateway:runtime:true:true workspaceManager:workspace-manager:runtime:true:true previewProxy:preview-proxy:runtime:true:true screenshotter:screenshotter:runtime:false:false workspaceAgent:workspace-agent:wsagent:false:false"
+          # screenshotter is a chart service like any other. The chart AND values-prod
+          # both say `enabled: false`, but the live production release has it TRUE — set
+          # once via `--set` and frozen by `--reuse-values`. Chart defaults are not what
+          # runs, so enablement is discovered from the cluster (no Deployment => skip)
+          # rather than assumed here; otherwise a genuinely running service would be the
+          # only one left on a mutable tag.
+          #
+          # screenshotter stays rolled=false on purpose: this workflow has never waited
+          # on its rollout, and it is not enabled in every environment, so demanding a
+          # running pod for it would introduce a new failure mode. Its digest IS pinned,
+          # scanned and signature-verified; only the post-rollout imageID check skips it.
+          # That is a deliberate, stated limit — not an oversight.
+          #
+          # workspace-agent is not a chart service at all — it is an image reference the
+          # api hands to each workspace pod, tagged `sha-<sha>`. It is listed so that
+          # when it is rebuilt it is still scanned and signature-verified; the previous
+          # vulnerability gate covered it, and dropping it would have silently ended
+          # that coverage.
+          SERVICES="web:web:web:true:true admin:admin:none:true:false api:api:runtime:true:true worker:worker:runtime:true:true aiGateway:ai-gateway:runtime:true:true workspaceManager:workspace-manager:runtime:true:true previewProxy:preview-proxy:runtime:true:true screenshotter:screenshotter:runtime:true:false workspaceAgent:workspace-agent:wsagent:false:false"
 
           rebuilt_web="${{ steps.tiers.outputs.web }}"
           rebuilt_runtime="${{ steps.tiers.outputs.runtime }}"
@@ -688,11 +696,36 @@ jobs:
               esac
             else
               BUILD_ID=""
-              # Prefer a digest the previous release already pinned; fall back to its
-              # tag on the first digest-based upgrade (and for `admin`, which is only
-              # ever tag-deployed by other workflows).
-              PINNED="$(jq -r --arg k "${key}" '.services[$k].imageDigest // .global.imageDigest // ""' /tmp/stored-values.json)"
-              TAG="$(jq -r --arg k "${key}" '.services[$k].imageTag // .global.imageTag // ""' /tmp/stored-values.json)"
+              # What is this service RUNNING right now? Read it from the live Deployment,
+              # not from `helm get values`.
+              #
+              # Two reasons, both found by reading the real production release:
+              #   * `helm get values -o json` on it emits INVALID JSON — one stored value
+              #     (the Nix registry blob) contains a raw newline inside a string, which
+              #     `jq` rejects. Under `set -e` this step would have died there and
+              #     EVERY deploy would have been blocked, before ever reading a tag.
+              #   * the release has `screenshotter.enabled: true`, set once via `--set`
+              #     and frozen by `--reuse-values`, while both values.yaml and
+              #     values-prod.yaml say false. Chart defaults are not what runs.
+              #
+              # The Deployment is the authority on both questions at once: it exists iff
+              # the service is enabled, and its image is exactly what is deployed.
+              DEP_IMAGE="$(kubectl -n "${HELM_NAMESPACE}" get deploy \
+                -l "app.kubernetes.io/name=${image}" \
+                -o jsonpath='{.items[0].spec.template.spec.containers[0].image}' 2>/dev/null || echo "")"
+              if [ -z "${DEP_IMAGE}" ]; then
+                # No Deployment => the service is disabled in this release. There is
+                # nothing running to carry forward and nothing to pin.
+                echo "${key}: no Deployment in the cluster (service disabled) — skipping"
+                continue
+              fi
+              PINNED=""
+              TAG=""
+              case "${DEP_IMAGE}" in
+                *@sha256:*) PINNED="${DEP_IMAGE##*@}" ;;
+                *:*)        TAG="${DEP_IMAGE##*:}" ;;
+              esac
+              echo "${key}: currently running ${DEP_IMAGE}"
               # The commit that produced the image now running — carried forward, never
               # restamped with this run's commit (the manifest must not claim that a
               # service was built from a commit it was not built from).
@@ -707,14 +740,10 @@ jobs:
             # the release actually stores for this service: without it the operator gets
             # "cannot pin this service" and has to go dig the values out of the cluster
             # by hand, during a deploy, to learn something the job already knew.
-            explain_stored() {
-              echo "::group::what the release stores for ${key}"
-              jq -r --arg k "${key}" '{
-                "services.\($k).imageDigest": (.services[$k].imageDigest // "(absent)"),
-                "services.\($k).imageTag":    (.services[$k].imageTag // "(absent)"),
-                "global.imageDigest":         (.global.imageDigest // "(absent)"),
-                "global.imageTag":            (.global.imageTag // "(absent)")
-              }' /tmp/stored-values.json
+            explain_current() {
+              echo "::group::what ${key} is actually running"
+              kubectl -n "${HELM_NAMESPACE}" get deploy -l "app.kubernetes.io/name=${image}" \
+                -o custom-columns='DEPLOYMENT:.metadata.name,IMAGE:.spec.template.spec.containers[0].image' 2>&1 || true
               echo "Fix: re-run once with this tier rebuilt, or pin it explicitly with"
               echo "  helm upgrade ... --set-string services.${key}.imageDigest=sha256:<64 hex>"
               echo "::endgroup::"
@@ -726,7 +755,7 @@ jobs:
             else
               if [ -z "${TAG}" ] || [ "${TAG}" = "null" ]; then
                 echo "::error::${key}: no digest and no tag available — cannot pin this service"
-                explain_stored
+                explain_current
                 exit 1
               fi
               if [ "${TAG}" = "REQUIRED_OVERRIDE_AT_DEPLOY" ]; then
@@ -734,7 +763,7 @@ jobs:
                 # real image pinned for this service, so there is nothing to carry
                 # forward — deploying would resolve a placeholder tag that does not exist.
                 echo "::error::${key}: the release stores the values-prod placeholder tag; this service has never been pinned to a real image"
-                explain_stored
+                explain_current
                 exit 1
               fi
               # Ask the registry what that tag resolves to RIGHT NOW, once, and use the
@@ -745,7 +774,7 @@ jobs:
               if ! printf '%s' "${DIGEST}" | grep -Eq '^sha256:[0-9a-f]{64}$'; then
                 echo "::error::${key}: could not resolve ${REG}/${image}:${TAG} to a digest (got '${DIGEST}')"
                 echo "The tag does not exist in the registry, or the deploy service account cannot read it."
-                explain_stored
+                explain_current
                 exit 1
               fi
               echo "${key}: ${image}:${TAG} -> ${DIGEST}"

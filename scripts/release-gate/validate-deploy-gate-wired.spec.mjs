@@ -14,7 +14,7 @@ import {
   DEPLOY_WORKFLOW,
   POLICY_FILE,
   checkGateWiring,
-  parseEnabledChartServices,
+  parseChartServiceKeys,
   parseNeeds,
   parseRolloutWaitList,
   parseServiceMatrix,
@@ -98,13 +98,24 @@ describe('deploy gate wiring', () => {
 });
 
 describe('service matrix must not drift from the chart or the rollout wait', () => {
-  it('pins a digest for every service the chart enables', () => {
+  it('pins a digest for every service the chart DEFINES, not just the ones enabled by default', () => {
     const { deployWorkflow, chartValues } = realFiles();
     const pinned = parseServiceMatrix(deployWorkflow)
       .filter((s) => s.chartService)
       .map((s) => s.key)
       .sort();
-    expect(pinned).toEqual([...parseEnabledChartServices(chartValues)].sort());
+    expect(pinned).toEqual([...parseChartServiceKeys(chartValues)].sort());
+  });
+
+  it('covers screenshotter, which the chart disables but production actually runs', () => {
+    // Real production release: screenshotter.enabled=true, set once via `--set` and
+    // frozen by --reuse-values, while values.yaml and values-prod.yaml both say false.
+    // Checking the matrix against chart defaults would have left the one genuinely
+    // running service on a mutable tag.
+    const matrix = parseServiceMatrix(realFiles().deployWorkflow);
+    const shot = matrix.find((s) => s.key === 'screenshotter');
+    expect(shot, 'screenshotter must be in the matrix').toBeDefined();
+    expect(shot.chartService, 'screenshotter must be digest-pinned when present').toBe(true);
   });
 
   it('verifies imageIDs for exactly the services it waits on', () => {
@@ -117,14 +128,13 @@ describe('service matrix must not drift from the chart or the rollout wait', () 
     expect(rolled).toEqual([...parseRolloutWaitList(jobs.get('build-and-deploy'))].sort());
   });
 
-  it('catches a newly enabled chart service that nobody pinned', () => {
+  it('catches a newly added chart service that nobody pinned', () => {
     const files = realFiles();
-    // Simulate someone enabling `screenshotter` in the chart without updating SERVICES.
     files.chartValues = files.chartValues.replace(
-      /( {2}screenshotter:\n(?: {4}.*\n)*? {4}enabled: )false/,
-      '$1true',
+      /^services:$/m,
+      'services:\n  brandNewService:\n    enabled: true\n    image: brand-new\n',
     );
-    expect(checkGateWiring(files).join('\n')).toMatch(/is enabled in .* but is not pinned by digest/);
+    expect(checkGateWiring(files).join('\n')).toMatch(/is defined in .* but is not pinned by digest/);
   });
 
   it('catches a service that would be waited on but never verified', () => {
@@ -136,7 +146,7 @@ describe('service matrix must not drift from the chart or the rollout wait', () 
   it('catches a chart service dropped from the digest matrix', () => {
     const files = realFiles();
     files.deployWorkflow = files.deployWorkflow.replace('api:api:runtime:true:true ', '');
-    expect(checkGateWiring(files).join('\n')).toMatch(/'api' is enabled in .* but is not pinned by digest/);
+    expect(checkGateWiring(files).join('\n')).toMatch(/'api' is defined in .* but is not pinned by digest/);
   });
 });
 

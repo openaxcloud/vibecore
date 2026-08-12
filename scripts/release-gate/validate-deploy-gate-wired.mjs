@@ -52,28 +52,34 @@ export function parseServiceMatrix(deployWorkflow) {
     });
 }
 
-/** Chart service keys whose `enabled:` is true, from values.yaml. */
-export function parseEnabledChartServices(valuesYaml) {
+/**
+ * Every service key the chart DEFINES, from values.yaml — not only the ones enabled by
+ * default.
+ *
+ * Enablement is deliberately not the oracle: the live production release carries
+ * `screenshotter.enabled: true`, set once with `--set` and frozen by `--reuse-values`,
+ * while both values.yaml and values-prod.yaml say false. A matrix checked against
+ * chart defaults would have declared that service out of scope and left the only
+ * genuinely running one on a mutable tag. The deploy discovers enablement from the
+ * cluster (no Deployment => skip); this check only ensures no chart service is missing
+ * from the matrix in the first place.
+ */
+export function parseChartServiceKeys(valuesYaml) {
   const body = valuesYaml.split(/^services:\s*$/m)[1];
   if (body === undefined) {
     return null;
   }
-  const enabled = [];
-  let current = null;
+  const keys = [];
   for (const line of body.split('\n')) {
     if (/^\S/.test(line)) {
       break; // left the `services:` block
     }
     const key = /^ {2}([A-Za-z][A-Za-z0-9]*):\s*$/.exec(line);
     if (key) {
-      current = key[1];
-      continue;
-    }
-    if (current && /^ {4}enabled:\s*true\s*$/.test(line)) {
-      enabled.push(current);
+      keys.push(key[1]);
     }
   }
-  return enabled;
+  return keys;
 }
 
 /** Image names the deploy workflow waits for in its "Verify rollout" step. */
@@ -274,26 +280,26 @@ export function checkGateWiring({ deployWorkflow, breakGlassWorkflow, policy, ch
   // and forget the matrix, and it deploys by MUTABLE TAG while everything else is
   // digest-pinned — with every check still green, because nothing was looking.
   const matrix = parseServiceMatrix(deployJob);
-  const enabled = chartValues ? parseEnabledChartServices(chartValues) : null;
+  const chartKeys = chartValues ? parseChartServiceKeys(chartValues) : null;
   const waitList = parseRolloutWaitList(deployJob);
 
   if (!matrix) {
     problems.push(`${DEPLOY_WORKFLOW}: could not find the SERVICES matrix`);
   } else {
-    if (enabled) {
+    if (chartKeys) {
       const pinned = matrix.filter((s) => s.chartService).map((s) => s.key).sort();
-      const expected = [...enabled].sort();
+      const expected = [...chartKeys].sort();
       for (const key of expected) {
         if (!pinned.includes(key)) {
           problems.push(
-            `${DEPLOY_WORKFLOW}: chart service '${key}' is enabled in ${CHART_VALUES} but is not pinned by digest (missing from SERVICES, or chartService=false)`,
+            `${DEPLOY_WORKFLOW}: chart service '${key}' is defined in ${CHART_VALUES} but is not pinned by digest (missing from SERVICES, or chartService=false) — if it is ever enabled it would be the only service left on a mutable tag`,
           );
         }
       }
       for (const key of pinned) {
         if (!expected.includes(key)) {
           problems.push(
-            `${DEPLOY_WORKFLOW}: SERVICES pins '${key}' as a chart service, but ${CHART_VALUES} does not enable it`,
+            `${DEPLOY_WORKFLOW}: SERVICES pins '${key}' as a chart service, but ${CHART_VALUES} defines no such service`,
           );
         }
       }
