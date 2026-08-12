@@ -953,7 +953,12 @@ jobs:
             if [ -n "${tag}" ] && [ "${tag}" != "null" ]; then
               SETS+=( --set-string "services.${service}.imageTag=${tag}" )
             fi
-          done < <(jq -r '.services[] | select(.chartService) | "\(.service) \(.digest) \(.tag // "")"' release-manifest.json)
+          # `!= false`, not a bare truthiness test: an entry whose chartService field is
+          # absent would be silently skipped by the latter, i.e. a service would quietly
+          # keep whatever digest the release already stored instead of the one this run
+          # verified. Absent means "not marked as non-chart", so include it and let the
+          # chart reject an unknown key loudly. Same expression as the break-glass path.
+          done < <(jq -r '.services[] | select(.chartService != false) | "\(.service) \(.digest) \(.tag // "")"' release-manifest.json)
 
           # The workspace-agent is not a chart service: it is an image reference the api
           # hands to each workspace pod. Pin it by the digest already resolved, scanned
@@ -1036,7 +1041,12 @@ jobs:
 
             jq --arg s "${service}" --argjson ids "${IDS}" '. + {($s): $ids}' /tmp/observed.json \
               > /tmp/observed.next && mv /tmp/observed.next /tmp/observed.json
-          done < <(jq -r '.services[] | select(.rolled) | "\(.service) \(.image)"' release-manifest.json)
+          # Must match verify-imageids' own filter EXACTLY (`rolled !== false`). With a
+          # bare truthiness test here, an entry whose `rolled` field is absent would be
+          # skipped when collecting imageIDs but still demanded by the verifier — which
+          # then reports "no running pod reported an imageID" and fails the deploy for a
+          # reason that has nothing to do with the images.
+          done < <(jq -r '.services[] | select(.rolled != false) | "\(.service) \(.image)"' release-manifest.json)
 
           echo "::group::observed imageIDs"
           jq . /tmp/observed.json
