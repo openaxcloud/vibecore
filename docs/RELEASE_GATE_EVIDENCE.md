@@ -36,7 +36,7 @@ added the trigger.
 | 1 | Target is the full `GITHUB_SHA`; no free dispatch input | `resolve-target` job. `short_sha` deleted; `target_sha` must be 40-hex **and** an ancestor of `origin/main`; the image tag is *derived* (`sha[0:10]`) | `validate-deploy-gate-wired` fails if `short_sha` returns; spec `catches a reintroduced free-form short_sha input` |
 | 2 | `checkout HEAD == TARGET_SHA` before build/deploy | asserted in `resolve-target`, `release-gate`, `preflight-gates`, `build-and-deploy` | wiring validator asserts the assertion exists in each job |
 | 3 | Official checks green, by workflow **ID** | `required-checks.json` pins **id + file path + job names** | 63 vitest cases; pinning by name alone cannot pass |
-| 4 | missing/pending/skipped/cancelled/failure/wrong-sha/usurped ⇒ refuse **before WIF** | `release-gate` job has `contents: read, actions: read` and **no `id-token`**; `id-token: write` is granted to `build-and-deploy` alone | run [31597733139](https://github.com/openaxcloud/vibecore/actions/runs/31597733139) — 3 red SHAs refused in a job that cannot exchange a WIF token. Wiring validator fails if `id-token` moves to workflow level |
+| 4 | missing/pending/skipped/cancelled/failure/wrong-sha/usurped ⇒ refuse **before WIF** | `release-gate` job has `contents: read, actions: read` and **no `id-token`**; `id-token: write` is granted to `build-and-deploy` alone | run [31597733139](https://github.com/openaxcloud/vibecore/actions/runs/31597733139), **7/7 green**: the 3 red SHAs refused, 2 of them still refused under an E2E waiver, and the all-green SHA authorised — all in jobs that cannot exchange a WIF token. Wiring validator fails if `id-token` moves to workflow level |
 | 5 | Manifest: service → source SHA → build id → digest → signature/SBOM | `release-manifest.mjs build` — refuses to emit an unverifiable manifest | 13 spec cases: no digest, malformed digest, rebuilt without build id, built from another commit, unverified signature all throw |
 | 6 | Deploy **by digest**, verify `imageID` after rollout | chart renders `@sha256:` and **fails the render** on a malformed or absent pin; post-rollout check compares kubelet `imageID` for the current ReplicaSet | `proof-digest-rollout.sh` on a real cluster: 7 distinct digests, 17 containers, 7/7 imageIDs match, **and a wrong digest is rejected** |
 | 7 | Manual path bound to the same SHA/image | same jobs, same gate, same digests; dispatch names a commit already on `main` | wiring validator + spec |
@@ -97,3 +97,8 @@ was visible by reading the code:
 5. `gh run download` exits 1 **and does not create the target directory** when nothing
    matches, so the break-glass path died before printing its own actionable error —
    on the one path that only ever runs during an incident.
+6. The dry-run job reported **green when the gate had errored**. The gate has exactly
+   two verdicts (0 = PASS, 2 = REFUSE); `report` mode swallowed every other code and
+   `refuse` mode accepted any non-zero one, so a transport error read as "correctly
+   refused". Found by watching a real run, in the tool whose entire job is to give a
+   trustworthy verdict.
