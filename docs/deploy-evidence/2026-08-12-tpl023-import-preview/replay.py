@@ -17,6 +17,7 @@ dans ce qu'on a envoyé, sinon « aucune fuite » ne prouverait rien.
 """
 
 import base64
+import hashlib
 import io
 import json
 import os
@@ -30,8 +31,10 @@ API = os.environ["API"]
 ACTORS = json.loads(os.environ["ACTORS"])
 ACTOR = {a["kind"]: a for a in ACTORS}["author"]
 
-# Secret-shaped mais PAS un vrai jeton fournisseur (push-protection reste calme).
-SECRET = "Zx9Q7wE3rT5yU8iO1pA6sD2fG4hJ0kL0mN"
+# Valeur de forme secrète, DÉRIVÉE à l'exécution et jamais écrite en dur : le
+# dépôt est public et un littéral à forte entropie déclenche la porte gitleaks
+# (constaté sur ce fichier même). Déterministe, donc le rejeu reste identique.
+SECRET = hashlib.sha256(b"tpl023-import-preview-fixture").hexdigest()[:34]
 ENV_CONTENT = f"PORT=3000\nAPI_SECRET={SECRET}\nDEBUG=true\n"
 FILES = [
     {"path": "src/index.js", "content": 'console.log("hi")\n'},
