@@ -143,6 +143,17 @@ export default defineConfig((config) => {
         },
         output: {
           format: 'esm',
+
+          /*
+           * Rollup's default splitting produced ~96 chunks for the root route's
+           * ~210-module graph — a median chunk of 8 KB, 68 of them under 20 KB.
+           * The browser therefore opened ~100 connections before it could
+           * hydrate ANY page, and the measured cost was dominated by that
+           * contention, not by bytes: the slowest resources on the marketing
+           * home weighed 1-11 KB yet took ~9.5 s each. Merging the small ones
+           * trades a handful of chunks for far fewer round-trips. See BUG-PERF-LOAD.
+           */
+          experimentalMinChunkSize: 50_000,
           manualChunks,
         },
       },
