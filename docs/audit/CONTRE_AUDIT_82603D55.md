@@ -164,6 +164,30 @@ l'outil manque n'est pas une porte, et le défaut qu'elle a laissé passer étai
 
 [`gate1-complet.txt`](preuves/contre-audit-82603d55/gate1-complet.txt)
 
+### Trouvé en préparant cette preuve : le screenshotter n'authentifiait rien
+
+`buildScreenshotterApp` n'exige le porteur **que si** un secret est fourni :
+
+```ts
+if (options.sharedSecret && !bearerOk(request.headers.authorization, options.sharedSecret)) {
+  return reply.code(401).send({ error: 'unauthorized' });
+}
+```
+
+Et `mint-secrets.sh` n'en générait aucun pour l'environnement d'audit. `/capture`
+acceptait donc n'importe quel appelant du cluster — or cette route **rend une URL
+arbitraire en portant le jeton tenant fourni par l'appelant** : un renderer ouvert
+est un SSRF avec autorisation en prime. Même motif que les fail-open du
+contre-audit, par omission cette fois : la porte n'existait que si on pensait à la
+poser.
+
+Le serveur **refuse maintenant de démarrer** sans `SCREENSHOTTER_SHARED_SECRET`, et
+sans `SCREENSHOTTER_ALLOWED_HOSTS` (liste vide = tout hôte autorisé, ce que le
+commentaire d'origine annonçait lui-même comme « only safe for local/dev »). Même
+choix que le preview-proxy pour son propre secret : un pod qui ne monte pas se voit
+tout de suite, une porte ouverte ne se voit pas. `mint-secrets.sh` génère désormais
+ce secret, pour l'audit comme pour toute installation à neuf.
+
 ### Porte `/p` en E2E réel
 
 Le screenshotter est désormais **déployé sur l'environnement d'audit**
