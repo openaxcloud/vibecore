@@ -312,6 +312,29 @@ node the pull fails, the probe returns an EMPTY string, and an assertion expecti
 `401` reports a product failure when nothing was observed. Probes now retry and
 exit `PROBE_INCONCLUSIVE` rather than let an empty read become a verdict.
 
+### The cache window against the REAL api (runs in CI)
+
+Everything under `scripts/sec9-cutover/` drives a **stub** api — good enough to
+prove the deploy sequence, but it does not prove the real
+`/static-deployments/:id/*` route emits headers a shared cache treats safely.
+`services/api/src/tests/deployment-cache-window.spec.ts` closes that: the origin
+is `buildApiApp()` itself on a real port, with a real shared cache in front, and
+it runs on every CI build.
+
+```bash
+pnpm --filter @vibecore/api test -- src/tests/deployment-cache-window.spec.ts
+```
+
+Two tests, and the first carries as much weight as the second:
+
+1. **CONTROL** — the cache genuinely replays a `max-age=60` entry: after the
+   origin starts answering 401, the cache still returns `200` + `x-cache: HIT`
+   **without consulting it** (asserted via an origin hit-counter). Without this,
+   test 2 could pass simply because the cache never caches anything.
+2. **REAL API** — the public response is `no-cache` (and carries no positive
+   `max-age`), so activating protection takes effect on the *very next* anonymous
+   hit: `401`, not `HIT`, zero bytes of content.
+
 ### Observing the cache window itself (the hazard, not the sequence)
 
 The harnesses above prove the deploy *sequence*. `cache-window-demo.sh` proves the
