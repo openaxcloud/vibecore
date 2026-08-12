@@ -329,6 +329,15 @@ describe('app.ts i18n source guard', () => {
       // Security audit/SIEM framing and internal-secret maintenance response.
       '{…} (trigger={…})',
       'DB_ROLLBACK_ENABLED is off',
+      /*
+       * P104: boot-time misconfiguration guard. Thrown only when NODE_ENV is
+       * production and no deployment-access HMAC secret is configured at all —
+       * it aborts the request path rather than signing tokens with a fallback
+       * key. The text goes to logs; the client sees the generic 500 body. Same
+       * class as 'DB_ROLLBACK_ENABLED is off' above: an operator diagnostic, not
+       * user copy, so localizing it would hide the failing env var name.
+       */
+      'No deployment-access HMAC secret (DEPLOYMENT_ACCESS_TOKEN_SECRET or a base secret) configured',
     ]);
 
     expect(result.parseErrors).toEqual([]);

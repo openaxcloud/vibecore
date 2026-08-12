@@ -2550,5 +2550,25 @@
   "ENTITLEMENT_CHECK_UNAVAILABLE": {
     "en": "Your plan limits could not be verified right now. Try again in a moment — no deployment was created.",
     "fr": "Impossible de vérifier les limites de votre plan pour le moment. Réessayez dans un instant — aucune publication n’a été créée."
+  },
+  "DEPLOYMENT_ACCESS_LOCKED": {
+    "en": "This deployment is locked.",
+    "fr": "Ce déploiement est verrouillé."
+  },
+  "DEPLOYMENT_PASSWORD_INCORRECT": {
+    "en": "Incorrect password",
+    "fr": "Mot de passe incorrect."
+  },
+  "DEPLOYMENT_PASSWORD_REQUIRED": {
+    "en": "Password required",
+    "fr": "Mot de passe requis."
+  },
+  "DEPLOYMENT_ACCESS_PASSWORD_REQUIRED": {
+    "en": "A password is required for mode=password",
+    "fr": "Un mot de passe est requis pour le mode « password »."
+  },
+  "DEPLOYMENT_ACCESS_ACTIVATION_DISABLED": {
+    "en": "Password protection cannot be activated yet: the deployment cache-drain window has not elapsed. Retry shortly.",
+    "fr": "La protection par mot de passe ne peut pas encore être activée : la fenêtre de purge du cache de déploiement n’est pas écoulée. Réessayez dans un instant."
   }
 }
