@@ -1,46 +1,63 @@
 # PR #125 — attribution des échecs CI
 
-Branche `fix/from-scratch-install-dr-clean`, SHA **`82603d55f7eac77c7cdcb8b1a5bc0f622c9c75bd`**,
-rebasée sur `origin/main` = `b7ae0edc03`.
+Branche `fix/from-scratch-install-dr-clean`, **SHA figé
+`693ff5c8b5c5e115aec827097d0fcc2992f17ee6`**, rebasée sur `origin/main` =
+`d06be185` (qui contient `29354701`, vérifié comme ancêtre).
 
 L'auditeur demande d'**isoler les rouges hérités des nouveaux, avec preuve par SHA**.
 Chaque ligne ci-dessous est établie en rejouant la vérification *exacte* du CI sur
-`origin/main` **pur** (export propre du commit, aucun fichier de la branche), ou en
-comparant l'état du même job sur les autres PR ouvertes. Aucune n'est un « ça
-échouait déjà, sans doute ».
+`origin/main` **pur**, ou en comparant l'état du même job sur d'autres PR ouvertes.
+Aucune n'est un « ça échouait déjà, sans doute ».
 
-## Ce tour-ci : un rouge était BIEN de la branche, il est corrigé — pas classé hérité
+## Production CI : VERTE — et pourquoi il faut lire les annulations
 
-Au SHA `5e48c2bb60`, `Install, test, build, scan` échouait pour **deux** gardes
-distinctes, toutes deux **imputables à la branche** — le rebase sur `main` avait
-entre-temps réparé la dérive de baseline qui les masquait au tour précédent :
+`Production CI` (`Install, test, build, scan`) est **verte** sur cette branche. Son
+historique demande une lecture attentive, parce que le workflow porte un groupe de
+concurrence : **pousser un commit annule le run en cours**. D'où :
 
-1. `pnpm run i18n:check` → `services/api/src/app.ts: new-file-debt (baseline=0,
-   current=8)`. Les 8 sont exactement les champs `reason` du verdict fail-closed de
-   `/internal/preview/port-access`.
-2. `services/api/src/tests/app-public-copy.spec.ts` → même cause, garde
-   indépendante de l'allowlist i18n.
+| SHA | Production CI | lecture |
+|---|---|---|
+| `df358a8772` | échec | i18n : les messages de refus au démarrage du screenshotter (corrigé) |
+| `2f4c9edfb6` | **succès** | — |
+| `693ff5c8b5` (**figé**) | annulée, puis **relancée sur ce SHA exact** | annulée parce qu'un commit `docs/` a été poussé 30 s après ; relancée explicitement (`gh run rerun`) pour que la preuve porte sur le SHA remis et non sur son successeur |
+| `5e807e50cc` | **succès** | = SHA figé + un fichier `docs/` |
 
-Vérification d'imputabilité, pas de supposition : le **même scan sur l'`app.ts`
-d'`origin/main`** est propre (`residual=14 in 2 files`, aucun `app.ts`), contre
-`22 in 3 files` avec celui de la branche. Corrigé aux commits `5e48c2bb` (entrée
-d'allowlist ciblée, fichier + règle + motif exact — pas un rebaselinage qui aurait
-absorbé de la vraie dette) et `82603d55` (liste explicite de la garde de l'API).
+Autrement dit : ni `df358a8772` ni les runs annulés ne disent quoi que ce soit
+contre le SHA figé. La preuve retenue est le **re-run sur `693ff5c8b5` lui-même**,
+plus le succès sur `5e807e50cc`, qui n'en diffère que par de la documentation.
 
-**Une fois ces deux-là corrigés, `Production CI` échoue plus tôt, sur `Lint`** — et
-celui-là est bien hérité, avec la preuve la plus directe possible : `app/root.tsx`
-est **byte-identique à `origin/main`** dans cette branche (`git diff origin/main...HEAD
--- app/root.tsx` est vide), et le run `Production CI` de **`main` lui-même**
-(`722a224c36`, 2026-08-12T06:18Z) échoue sur **exactement** la même ligne :
+**`Quality Gates` est strictement dérivée, et l'annulation le prouve à la lettre.**
+Sa seule étape en échec est `Wait for CI checks`, dont le journal dit :
 
 ```
-/home/runner/work/vibecore/vibecore/app/root.tsx
-  36:1  error  Expected line before comment  @blitz/lines-around-comment
-✖ 28 problems (1 error, 27 warnings)
+Checks completed:
+Install, test, build, scan: completed (cancelled)
+The conclusion of one or more checks were not allowed.
+Allowed conclusions are: success, skipped.
 ```
 
-Même compte de problèmes, même règle, même position. Le corriger ici serait une
-correction de `main` glissée dans une PR d'infra — c'est signalé, pas emporté.
+Elle n'a donc pas observé un échec de test : elle a observé une **annulation**, que
+son paramètre `allowed-conclusions` refuse. Relancée après le re-run vert de
+`Production CI` sur le même SHA, elle suit.
+
+## Tableau définitif au SHA figé (tous les workflows relancés, plus aucun « annulé »)
+
+```
+success  Production CI              <- Lint, i18n, Typecheck, Unit, Integration, Builds, Security
+success  PR Validation              <- contient Quality Gates
+success  Code Quality
+success  Production Terraform
+success  Preview Deployment
+success  Security Analysis
+success  Semantic Pull Request
+failure  French i18n live audit     <- Playwright desktop-1024/1440, tablet-768, mobile-390
+failure  Production E2E             <- Playwright local stack
+```
+
+Sept workflows verts, deux rouges, et les deux rouges ne contiennent QUE les cinq
+jobs Playwright — qui échouent à l'identique sur la PR #126, vérifié au même instant.
+
+## Les rouges restants sont la suite Playwright partagée
 
 | Job CI | Verdict | Preuve |
 |---|---|---|
