@@ -70,6 +70,10 @@ PREVIEW_PROXY_SHARED_SECRET=$(rnd)
 PREVIEW_TENANT_SECRET=$(rnd)
 WORKSPACE_MANAGER_SHARED_SECRET=$(rnd)
 EMAIL_HTTP_TOKEN=$(rnd)
+# Porteur exige par /capture du screenshotter. Le service REFUSE de demarrer sans
+# lui : cette route rend une URL arbitraire en portant le jeton tenant recu, donc un
+# renderer non authentifie serait un SSRF avec autorisation en prime.
+SCREENSHOTTER_SHARED_SECRET=$(rnd)
 EOF
 chmod 600 "$ENV_FILE"
 
