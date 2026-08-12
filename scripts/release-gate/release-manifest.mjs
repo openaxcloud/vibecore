@@ -86,6 +86,16 @@ export function buildManifest(input) {
     return {
       service: s.service,
       image: s.image ?? s.service,
+      // Not every image this release ships is a Deployment that gets rolled:
+      //   chartService — has a `services.<key>` entry, so its digest is set on the chart
+      //   rolled       — this workflow waits for its rollout and verifies its imageIDs
+      // `admin` and `screenshotter` are chart services this path never rolls; the
+      // workspace-agent is not a chart service at all (it is an image reference the
+      // api hands to workspace pods). All three are still built, scanned, signature-
+      // verified and recorded — dropping them from the manifest to keep the rollout
+      // check simple would have silently ended their vulnerability coverage.
+      chartService: s.chartService !== false,
+      rolled: s.rolled !== false,
       // For a service this run did NOT rebuild, sourceSha is the commit that DID
       // build the image now running — carried forward, never silently restamped
       // with the current commit.
@@ -132,7 +142,11 @@ export function verifyImageIds(manifest, observed) {
   const mismatches = [];
   let checked = 0;
 
-  for (const svc of manifest.services) {
+  // Only services this release actually rolled can be checked against running pods.
+  // The filter lives here rather than in the caller so a workflow cannot quietly
+  // narrow it: dropping a rolled service from the check is then a manifest change,
+  // visible in the artifact, not an invisible edit to a jq expression.
+  for (const svc of manifest.services.filter((s) => s.rolled !== false)) {
     const ids = observed[svc.service];
 
     if (!ids || ids.length === 0) {

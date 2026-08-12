@@ -77,6 +77,41 @@ describe('release manifest — build', () => {
   });
 });
 
+describe('release manifest — images that ship but are not rolled', () => {
+  it('defaults every entry to chartService + rolled, so omitting the flags never silently skips a check', () => {
+    const m = buildManifest(input());
+    expect(m.services[0].chartService).toBe(true);
+    expect(m.services[0].rolled).toBe(true);
+  });
+
+  it('keeps non-rolled images (admin, screenshotter, workspace-agent) in the manifest so they stay scanned and signed', () => {
+    const m = buildManifest(
+      input([
+        svc(),
+        svc({ service: 'screenshotter', digest: DIGEST2, rolled: false }),
+        svc({ service: 'workspaceAgent', digest: `sha256:${'3'.repeat(64)}`, chartService: false, rolled: false }),
+      ]),
+    );
+    expect(m.services).toHaveLength(3);
+    expect(m.services.find((s) => s.service === 'workspaceAgent').chartService).toBe(false);
+    expect(m.services.filter((s) => s.rolled)).toHaveLength(1);
+  });
+
+  it('does not demand running pods for an image the release never rolled', () => {
+    const m = buildManifest(input([svc(), svc({ service: 'screenshotter', digest: DIGEST2, rolled: false })]));
+    const result = verifyImageIds(m, { api: [`${REGISTRY}/api@${DIGEST}`] });
+    expect(result.ok).toBe(true);
+    expect(result.checked).toBe(1);
+  });
+
+  it('still demands them for every rolled image', () => {
+    const m = buildManifest(input([svc(), svc({ service: 'web', digest: DIGEST2 })]));
+    const result = verifyImageIds(m, { api: [`${REGISTRY}/api@${DIGEST}`] });
+    expect(result.ok).toBe(false);
+    expect(result.mismatches[0]).toMatch(/web: no running pod/);
+  });
+});
+
 describe('release manifest — verify-imageids', () => {
   const manifest = buildManifest(input([svc(), svc({ service: 'web', digest: DIGEST2 })]));
 

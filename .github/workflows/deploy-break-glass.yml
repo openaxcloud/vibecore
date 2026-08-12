@@ -246,9 +246,15 @@ jobs:
         run: |
           set -euo pipefail
           SETS=( --set-string "platformEnv.runtime.serverDeployRollbackFromDigest=1" )
+          # Chart services only: a manifest entry like the workspace-agent is not a
+          # `services.<key>` in the chart, and setting one would invent a service.
           while read -r service digest; do
             SETS+=( --set-string "services.${service}.imageDigest=${digest}" )
-          done < <(jq -r '.services[] | "\(.service) \(.digest)"' release-manifest.json)
+          done < <(jq -r '.services[] | select(.chartService != false) | "\(.service) \(.digest)"' release-manifest.json)
+          WSAGENT_DIGEST="$(jq -r '.services[] | select(.service == "workspaceAgent") | .digest' release-manifest.json)"
+          if [ -n "${WSAGENT_DIGEST}" ]; then
+            SETS+=( --set-string "platformEnv.runtime.workspaceAgentImage=${REG}/workspace-agent@${WSAGENT_DIGEST}" )
+          fi
           echo "helm --set args: ${SETS[*]}"
           helm upgrade "${HELM_RELEASE}" infra/helm/platform \
             --namespace "${HELM_NAMESPACE}" \
@@ -275,11 +281,10 @@ jobs:
               | jq -c --arg img "${image}" '[ .items[] | select(.metadata.deletionTimestamp == null) | select(.status.phase == "Running") | .status.containerStatuses[]? | select(.name == $img) | .imageID ]')"
             jq --arg s "${service}" --argjson ids "${IDS}" '. + {($s): $ids}' /tmp/observed.json > /tmp/observed.next
             mv /tmp/observed.next /tmp/observed.json
-          done < <(jq -r '.services[] | select(.service != "admin") | "\(.service) \(.image)"' release-manifest.json)
+          done < <(jq -r '.services[] | select(.rolled != false) | "\(.service) \(.image)"' release-manifest.json)
 
-          jq 'del(.services[] | select(.service == "admin"))' release-manifest.json > /tmp/manifest-rolled.json
           node scripts/release-gate/release-manifest.mjs verify-imageids \
-            --manifest /tmp/manifest-rolled.json --observed /tmp/observed.json
+            --manifest release-manifest.json --observed /tmp/observed.json
 
       - name: Record the break-glass in the audit trail
         if: always()
