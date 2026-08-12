@@ -183,6 +183,19 @@ export function ProjectWorkspaceProvider({
           return;
         }
 
+        /* INSTRUMENTATION TEMPORAIRE (isolement QA) — ne pas merger. */
+        const __signals = {
+          reused: session.reused === true,
+          seededThisSession: sessionAlreadySeeded,
+          hasLivePort: hasLivePreviewPort(workbenchStore.previews.get()),
+          seededRevision,
+          currentRevision,
+          previewsCount: workbenchStore.previews.get().length,
+          previewsRaw: workbenchStore.previews.get().map((p) => ({ port: p.port, ready: p.ready })),
+        };
+        console.warn('[QA-REATTACH-SIGNALS]', JSON.stringify(__signals));
+        (globalThis as Record<string, unknown>).__qaReattachSignals = __signals;
+
         const reattachWarmWorkspace = shouldReattachWarmWorkspace({
           reused: session.reused === true,
           seededThisSession: sessionAlreadySeeded,
