@@ -103,11 +103,18 @@ run itself is how you see it go green and can then delete the waiver with eviden
    `services.<svc>.imageDigest=…` → `Verify rollout` → `Verify running imageIDs match
    the release manifest`.
 
-   **The one thing to watch on the first run** is step `Resolve immutable image
-   digests` for the tiers this run did *not* rebuild. It reads what the release
-   currently stores; if a service has no real pinned tag it fails closed and prints
-   exactly what it found plus the command to pin it explicitly. That is the most
-   likely first-run stop, and it is safe — nothing has been rolled out at that point.
+   **What to watch on the first run** is step `Resolve immutable image digests` for the
+   tiers this run did *not* rebuild. It reads what each service is **currently running**
+   from its live Deployment and carries that forward — a digest as-is, a tag resolved
+   against the registry. If a service has no Deployment it is treated as disabled and
+   skipped; if its reference cannot be resolved it fails closed and prints what it found
+   plus the command to pin it explicitly. Nothing has been rolled out at that point.
+
+   *(An earlier draft of this document warned instead about the `REQUIRED_OVERRIDE_AT_DEPLOY`
+   placeholder in the stored Helm values. Reading the real release showed that is not the
+   risk: every service carries a real tag, but `helm get values -o json` on it emits
+   invalid JSON — one value holds a raw newline — so parsing it would have blocked every
+   deploy. The step no longer reads the stored values at all.)*
 
 8. **Download the run's `release-manifest-<shortsha>` artifact** and keep it. It is the
    input the break-glass path restores from.
