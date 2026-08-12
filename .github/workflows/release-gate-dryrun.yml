@@ -1,0 +1,85 @@
+# Answer "would this commit be allowed to deploy?" without deploying anything.
+#
+# Same policy file, same engine, same job shape as the gate inside
+# deploy-main.yml — but with no build, no rollout, and no cloud credentials at all
+# (note the permissions block: there is no `id-token`, so this workflow physically
+# cannot reach GCP even if someone edited it to try).
+#
+# Use it to check a commit before merging, to confirm a refusal is genuine rather
+# than a gate bug, or to demonstrate the gate's behaviour on historical commits.
+#
+#   gh workflow run release-gate-dryrun.yml -R openaxcloud/vibecore \
+#     -f sha=<full 40-hex commit>
+#
+# `expect` turns the run into an assertion: with expect=refuse the job is GREEN when
+# the gate refuses, which is what makes this usable as evidence that a known-red
+# commit is actually blocked.
+
+name: Release gate (dry run)
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: Full 40-hex commit sha to evaluate
+        required: true
+      expect:
+        description: What the gate should say — "pass", "refuse", or "report" (just print)
+        required: false
+        default: report
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  dry-run:
+    name: Evaluate required checks for a commit (no deploy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Self-test the gate engine
+        run: node scripts/release-gate/verify-required-checks.mjs --self-test
+
+      - name: Evaluate
+        id: gate
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SHA: ${{ inputs.sha }}
+          EXPECT: ${{ inputs.expect }}
+        run: |
+          set -uo pipefail
+          # --no-wait: a dry run reports the CURRENT state of a commit's checks. It
+          # must not sit for 90 minutes waiting for a pipeline that may never run —
+          # that is the deploy path's job, not this one's.
+          node scripts/release-gate/verify-required-checks.mjs \
+            --sha "${SHA}" --repo "${GITHUB_REPOSITORY}" --no-wait --json verdict.json
+          rc=$?
+          echo "gate exit code: ${rc}"
+
+          case "${EXPECT}" in
+            pass)
+              if [ "${rc}" -ne 0 ]; then
+                echo "::error::expected the gate to PASS ${SHA}, but it refused"
+                exit 1
+              fi
+              echo "asserted: gate PASSES ${SHA}" ;;
+            refuse)
+              if [ "${rc}" -eq 0 ]; then
+                echo "::error::expected the gate to REFUSE ${SHA}, but it passed"
+                exit 1
+              fi
+              echo "asserted: gate REFUSES ${SHA}" ;;
+            *)
+              echo "report-only mode (gate exit ${rc})" ;;
+          esac
+
+      - name: Upload verdict
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate-verdict-${{ inputs.sha }}
+          path: verdict.json
+          if-no-files-found: warn
