@@ -277,3 +277,34 @@ Pile isolée complète : `qa-web`, `qa-api`, `qa-worker`, `qa-wsm`, `qa-pp` (pre
 ⚠️ **Honnêteté sur le temps mural** : les octets et les compteurs de requêtes sont déterministes et reproductibles ; le `load` d'un échantillon isolé est bruité (j'ai relevé 11,8 s à un moment de la session sur un build intermédiaire). Ce qui est solide, c'est la **disparition de la contention** — la ressource la plus lente passe de ~10 s à 3,6 s, ce qui est cohérent avec la suppression de 66 allers-retours.
 
 **Anti-régression vérifiée au RUNTIME, pas seulement au build** : `vite.config.ts` documente deux régressions passées où un regroupement de chunks avait produit un cycle d'initialisation et une page blanche. Le serveur construit a donc été lancé localement : `/`, `/login`, `/pricing`, `/register`, `/enterprise` répondent 200, React est hydraté (marqueurs internes présents, 83 éléments interactifs), zéro erreur console, aucun « Cannot access … before initialization ». Aucun chunk lourd n'entre dans la fermeture racine, et monaco/codemirror/terminal restent émis pour l'IDE.
+
+### 2026-08-12 — BUG-WS-ID-SPLIT : le build lit un AUTRE workspace que celui où les fichiers sont écrits
+
+Piste remontée par la session Rollback (« deux schémas de nommage, `workspace-<cuid>` et `workspace-ws-<hash>` ») — **confirmée**.
+
+**Mécanisme.** `Workspace.id` a pour défaut `cuid()` (`schema.prisma:639`). Sur les **4** chemins de création, **un seul** pose un id explicite :
+
+| site | id posé | pod obtenu |
+|---|---|---|
+| `app.ts:14173` — provisioning runtime de l'IDE | `id: workspaceId` = `runtimeWorkspaceId()` | `workspace-ws-<hash16>` |
+| `app.ts:24401` — **API publique `POST /projects/:id/workspaces`** | *aucun* → cuid | **`workspace-<cuid>`** |
+| `app.ts:14577` — workspace « Scheduled » | *aucun* → cuid | **`workspace-<cuid>`** |
+| `app.ts:34025` — workspace « Production » créé au publish | *aucun* → cuid | **`workspace-<cuid>`** |
+
+En face, **8 sites dérivent** l'id au lieu de lire le workspace actif du projet — `runtimeWorkspaceId(projectId, userId) = 'ws-' + sha256(projectId:userId).slice(0,16)` :
+`buildStaticInWorkspacePod` (13799), `readWorkspaceDeployManifest` (13909), **`authorizeRuntimeWorkspace` lui-même** (14152), `executeAiTool` (15427), `POST /api/runtime/workspaces` (15688, légitime : c'est lui qui POSE l'id), restore de snapshot (24741), `runDeploymentBuildFlow` (32005), `POST /projects/:id/nix-lock` (32826).
+
+**Preuve empirique** (isolement QA, projet `cmsq0qp8i…`) :
+- id que le build dérivera : **`ws-d407af14c19bf40a`**
+- `POST /projects/:id/workspaces` → **201**, id créé : **`cmsqftxtk000q0ng2mwjtz0xh`** (cuid)
+- **les deux diffèrent** → l'IDE écrit dans le workspace cuid, le build/preview en résout un autre, qu'il provisionne **vide**.
+
+**Conséquence** : « j'ai écrit mes fichiers, le build/preview ne les voit pas ». Même famille que **BUG-IDE-001**, dont le correctif ne couvre que la route packages/install et n'est pas mergé.
+
+**⚠️ Ce n'est PAS la cause du symptôme d'Avi que j'ai reproduit.** Dans ma reproduction de BUG-RUNTIME-DIVERGENCE, le workspace du projet était `ws-cffad4076a042f07`, soit **exactement** l'id dérivé — aucune divergence — et le wipe+reseed s'est quand même produit, piloté par les trois signaux mesurés. Les quatre workspaces de la base de test sont d'ailleurs tous en forme `ws-<hash16>`, parce qu'ils viennent tous du chemin IDE.
+
+**Donc deux défauts distincts, aux symptômes qui se recouvrent** :
+- **BUG-RUNTIME-DIVERGENCE** — rouvrir un projet reconstruit un pod pourtant chaud et à jour (3 causes mesurées) ;
+- **BUG-WS-ID-SPLIT** — le build/preview/agent/restore visent un workspace dérivé qui peut ne pas être celui du projet.
+
+Un projet dont le workspace actif vient de l'API publique, du planificateur ou du publish subit **les deux**.
