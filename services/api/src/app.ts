@@ -6027,24 +6027,31 @@ function starterFiles(input: {
   }
 
   if (input.sourceType === 'ai') {
-    const generationContext = [
-      input.artifactType
-        ? appPublicCopy('PROJECT_STARTER_ARTIFACT_TYPE', locale, { value: input.artifactType })
-        : undefined,
-      input.framework ? appPublicCopy('PROJECT_STARTER_FRAMEWORK', locale, { value: input.framework }) : undefined,
-      input.model ? appPublicCopy('PROJECT_STARTER_MODEL', locale, { value: input.model }) : undefined,
-    ]
-      .filter(Boolean)
-      .join('\n');
-
+    /*
+     * BUG-QA-PROMPT-IN-README. This README is a PROJECT FILE: it is exported in
+     * the ZIP, committed to the user's git, shipped inside deployment artifacts
+     * and visible to every collaborator. It must therefore carry nothing that
+     * belongs to the platform or to the user's private input.
+     *
+     * It previously embedded, verbatim:
+     *   - the platform's own scaffolding wording ("Application files are
+     *     intentionally left for the IDE agent to produce…"),
+     *   - the generation context, INCLUDING the exact model identifier
+     *     (e.g. "Requested model: claude-sonnet-4-5-20250929"),
+     *   - the raw user prompt — which routinely contains secrets. Proven live:
+     *     a prompt carrying an API key and a Postgres URL with its password was
+     *     recovered intact from `GET /projects/:id/export/zip`.
+     *
+     * The prompt now travels through `ProjectIdeState.chat.pendingPrompt`
+     * (written by the caller right after creation), which is exactly what the
+     * IDE already reads (`Chat.client.tsx` → `memory.chat?.pendingPrompt`).
+     * `extractGenerationPrompt` keeps its README fallback so projects created
+     * BEFORE this change stay recoverable.
+     */
     return [
       {
         path: 'README.md',
-        content: `# ${input.name}\n\n${appPublicCopy('PROJECT_STARTER_AI_DESCRIPTION', locale)}\n\n${
-          generationContext
-            ? `${appPublicCopy('PROJECT_STARTER_GENERATION_CONTEXT', locale)}\n\n${generationContext}\n\n`
-            : ''
-        }${appPublicCopy('PROJECT_STARTER_PROMPT_LABEL', locale)}\n\n${input.prompt}\n`,
+        content: `# ${input.name}\n\n${appPublicCopy('PROJECT_STARTER_AI_DESCRIPTION', locale)}\n`,
       },
     ];
   }
@@ -19792,6 +19799,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }),
     );
     await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
+
+    /*
+     * Carry the generation prompt OUT of the delivered files
+     * (BUG-QA-PROMPT-IN-README). `ProjectIdeState` is platform state, not a
+     * project file: it is never exported, committed or deployed. This is also
+     * the channel the IDE already consumes — `Chat.client.tsx` reads
+     * `memory.chat?.pendingPrompt` to auto-run the first generation — so the
+     * prompt→app flow is preserved without shipping the prompt to the customer.
+     */
+    await mutateProjectIdeState(store, project.id, request.currentUser!.id, (_ctx, existing) =>
+      mergeProjectIdeState(existing?.state, {
+        chat: {
+          pendingPrompt: {
+            id: randomUUID(),
+            prompt: body.prompt,
+            ...(body.model ? { model: body.model } : {}),
+            ...(body.framework ? { framework: body.framework } : {}),
+            ...(body.artifactType ? { artifactType: body.artifactType } : {}),
+            createdAt: new Date().toISOString(),
+          },
+        },
+      }),
+    );
     await commitInitialScaffold(gitProvider, project.id);
     await recordUsage(request, orgId, 'projects.count');
     await store.recordProjectActivity({
