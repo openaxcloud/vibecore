@@ -1383,7 +1383,23 @@ export async function snapshotStaticBuild(deploymentId: string, outputDir: strin
 
   if (await pathExists(indexHtmlPath)) {
     const original = await readFile(indexHtmlPath, 'utf8');
-    const rewritten = rewriteHtmlAbsoluteUrls(original, `/static-deployments/${deploymentId}/`);
+
+    /*
+     * BUG-DEPLOY-LIVE. The prefix rewrite below only makes sense for the LEGACY
+     * path-based serving mode (`<api>/static-deployments/<id>/...`). When a
+     * dedicated origin exists (PREVIEW_DOMAIN set — i.e. production and every
+     * real deployment), the snapshot is served at the ROOT of
+     * `s-<id>.preview.<domain>`, so a rewritten `/static-deployments/<id>/assets/x.js`
+     * is looked up as a file INSIDE the snapshot and 404s
+     * (`STATIC_DEPLOY_FILE_NOT_FOUND`) — the document loads but every asset
+     * fails, leaving `<div id="root">` empty: a blank deployed app.
+     *
+     * The legacy path keeps working either way: that route 302-redirects to the
+     * dedicated origin whenever one exists, so the prefix is never needed there.
+     */
+    const rewritten = staticDeployDedicatedOrigin(deploymentId)
+      ? original
+      : rewriteHtmlAbsoluteUrls(original, `/static-deployments/${deploymentId}/`);
 
     if (rewritten !== original) {
       const { writeFile } = await import('node:fs/promises');
