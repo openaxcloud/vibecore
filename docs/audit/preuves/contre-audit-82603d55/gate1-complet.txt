@@ -1,0 +1,98 @@
+scripts/audit-env: tous les appels helm/kubectl/terraform portent une cible epinglee
+.github/workflows: tous les appels helm/kubectl portent une cible epinglee
+=== A. TEMOIN — ancien appel: --kube-context, sans enveloppe ===
+  OK: redirection reproduite (cible recue = APISERVER:https://apiserver-hostile.example.com)
+
+=== A2. AVEC l'enveloppe, meme environnement hostile ===
+  OK: environnement neutralise, cible nommee, aucune valeur de jeton journalisee.
+
+=== B1. prod-gateway : AUTRE projet Connect Gateway, meme nom de membership ===
+  OK    B1 autre projet, membership homonyme -> REFUS (fail-closed): apiserver 'https://europe-west9-connectgateway.googleapis.com/v1/projects/999999999999/locations/
+
+=== B2. prod-direct : apiserver arbitraire, nom de contexte contenant l'id prod ===
+  OK    B2 nom de contexte trompeur -> REFUS (fail-closed): contexte 'gke_vibecore-495216_europe-west9_cluster-de-l-attaquant' != 'gke_vibecore-495216_europe
+
+=== B2b. prod-direct : bon nom de contexte, mais apiserver != endpoint autoritatif ===
+  OK    B2b apiserver substitue -> REFUS (fail-closed): apiserver 'https://apiserver-hostile.example.com' != identite autoritative 'https://34.155.5.126'
+
+=== B3. staging : apiserver arbitraire echappant a l'ancienne deny-list ===
+  OK    B3 staging non epingle -> REFUS (fail-closed): aucune identite de staging n'est epinglee dans l'allow-list — refus. Ajouter (projet+numero, re
+
+=== C. prod-gateway : membership homonyme dans un autre projet (vu par Fleet) ===
+  OK    C identite de membership d'un autre projet -> REFUS (fail-closed): identite de membership inattendue: 'projects/projet-tiers/locations/europe-west9/memberships/vibe
+
+=== D. numero de projet qui ne correspond pas a l'id ===
+  OK    D numero de projet different -> REFUS (fail-closed): le projet 'vibecore-495216' porte le numero '111111111111', pas '267592214411'.
+
+=== E. cas LEGITIMES — ce n'est pas un « tout refuser » ===
+  OK    prod-gateway legitime -> kubectl|--context=connectgateway_vibecore-495216_europe-west9_vibecore-prod-app -n vibecor
+  OK    prod-direct legitime  -> helm|gke_vibecore-495216_europe-west9_vibecore-prod-app|--kube-context=gke_vibecore-495216
+
+OK: l'environnement ne choisit plus la cible, et une sous-chaine ne vaut plus identite.
+=== A. listages en panne, projet TOUJOURS present -> doit ECHOUER ===
+  mode=listages-en-panne -> exit=1 (attendu: echec)
+      ==> [3/3] VERIFICATION de la disparition
+          projet .................. ACTIVE
+          clusters GKE restants    INDETERMINE
+          !! 'clusters GKE restants' illisible — une erreur d'API ne prouve pas l'absence :
+             ERROR: (gcloud) PERMISSION_DENIED: Request had insufficient authentication scopes.
+          instances SQL restantes  INDETERMINE
+          !! 'instances SQL restantes' illisible — une erreur d'API ne prouve pas l'absence :
+             ERROR: (gcloud) PERMISSION_DENIED: Request had insufficient authentication scopes.
+          VM Compute restantes     INDETERMINE
+          !! 'VM Compute restantes' illisible — une erreur d'API ne prouve pas l'absence :
+             ERROR: (gcloud) PERMISSION_DENIED: Request had insufficient authentication scopes.
+          buckets restants         INDETERMINE
+          !! 'buckets restants' illisible — une erreur d'API ne prouve pas l'absence :
+             ERROR: (gcloud) PERMISSION_DENIED: Request had insufficient authentication scopes.
+      ==> CONTROLE PROD (doit etre intacte)
+          release vibecore (prod) . revision=976 status=deployed  [contexte: connectgateway_vibecore-495216_europe-west9_vibecore-prod-app]
+      ==> TEARDOWN INCOMPLET — voir les lignes marquees !!
+
+=== B. listages refuses APRES suppression confirmee -> doit REUSSIR ===
+  mode=projet-supprime -> exit=0 (attendu: succes)
+      ==> [3/3] VERIFICATION de la disparition
+          projet .................. GONE
+          clusters GKE restants    0 (projet supprime, listage refuse comme prevu)
+          instances SQL restantes  0 (projet supprime, listage refuse comme prevu)
+          VM Compute restantes     0 (projet supprime, listage refuse comme prevu)
+          buckets restants         0 (projet supprime, listage refuse comme prevu)
+      ==> CONTROLE PROD (doit etre intacte)
+          release vibecore (prod) . revision=976 status=deployed  [contexte: connectgateway_vibecore-495216_europe-west9_vibecore-prod-app]
+      ==> TEARDOWN VERIFIE: plus aucune ressource facturee dans vibecore-audit-test-20260807
+
+OK: erreur d'API != ressource absente, et le cas legitime passe toujours.
+=== Test de regression : cible validee == cible utilisee ===
+
+  environnement hostile: HELM_KUBECONTEXT=<prod>, HELM_NAMESPACE=vibecore
+      --- cibles enregistrees ---
+      kubectl|gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster|--context=gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster get nodes -o jsonpath={.items[0].spec.providerID}
+      kubectl|gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster|--context=gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster apply -f /Users/hb/dev/vibecore-fresh-install/infra/kubernetes/ingress-nginx/namespace.yaml
+      helm|gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster|--kube-context=gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster upgrade --install ingress-nginx ingress-nginx/ingress-nginx --namespace ingress-nginx --set controller.replicaCount=1 --set controller.resources.requests.cpu=100m --set controller.resources.requests.memory=180Mi --wait --timeout 10m
+      helm|gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster|--kube-context=gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster upgrade --install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --set crds.enabled=true --set resources.requests.cpu=50m --wait --timeout 10m
+      helm|gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster|--kube-context=gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster upgrade --install nfs-provisioner nfs-ganesha-server-and-external-provisioner/nfs-server-provisioner --namespace nfs --create-namespace --set persistence.enabled=true --set persistence.size=50Gi --set storageClass.name=nfs --set storageClass.defaultClass=false --set storageClass.accessModes[0]=ReadWriteMany --wait --timeout 10m
+      kubectl|gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster|--context=gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster apply -f -
+      kubectl|gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster|--context=gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster -n vibecore apply -f -
+      kubectl|gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster|--context=gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster -n ingress-nginx get svc ingress-nginx-controller -o jsonpath={.status.loadBalancer.ingress[0].ip}
+      kubectl|gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster|--context=gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster apply -f -
+      kubectl|gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster|--context=gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster -n vibecore apply -f -
+      --- fin ---
+      appels vers l'audit : 10
+      appels AMBIANTS (cible choisie par l'environnement) : 0
+      appels vers la PROD : 0
+
+=== Test de regression : etat Terraform VERIFIE == etat Terraform DETRUIT ===
+
+  environnement hostile: TF_CLI_ARGS_destroy=-state=<sentinelle>, TF_DATA_DIR, TF_WORKSPACE=prod, TF_VAR_project_id=<prod>
+      --- etats Terraform vises ---
+      terraform|ETAT-PAR-DEFAUT|-chdir=/var/folders/8w/yc9wlx9j12n4v06d_4lvdsn40000gn/T/tmp.gwMkpMpWGF/tf output -raw project_id
+      terraform|ETAT-PAR-DEFAUT|-chdir=/var/folders/8w/yc9wlx9j12n4v06d_4lvdsn40000gn/T/tmp.gwMkpMpWGF/tf output -raw cluster_name
+      terraform|ETAT-PAR-DEFAUT|-chdir=/var/folders/8w/yc9wlx9j12n4v06d_4lvdsn40000gn/T/tmp.gwMkpMpWGF/tf output -raw cluster_zone
+      terraform|ETAT-PAR-DEFAUT|-chdir=/var/folders/8w/yc9wlx9j12n4v06d_4lvdsn40000gn/T/tmp.gwMkpMpWGF/tf destroy -input=false -auto-approve
+      --- fin ---
+      appels terraform vers un etat SUBSTITUE : 0
+      appels terraform 'destroy' observes : 1
+
+OK: aucune cible ambiante, aucune cible prod, aucun etat Terraform substitue.
+shellcheck: scripts audit-env + ci + proofs propres
+infra scaffold valid

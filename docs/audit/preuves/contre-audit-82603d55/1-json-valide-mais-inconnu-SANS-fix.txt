@@ -1,0 +1,22 @@
+   × /internal/preview/port-access — fail-closed > DENIE sur un JSON valide mais inconnu: null 16ms
+     → expected false to be true // Object.is equality
+   × /internal/preview/port-access — fail-closed > DENIE sur un JSON valide mais inconnu: [] 20ms
+     → expected false to be true // Object.is equality
+   × /internal/preview/port-access — fail-closed > DENIE sur un JSON valide mais inconnu: "string" 16ms
+     → expected false to be true // Object.is equality
+   × /internal/preview/port-access — fail-closed > DENIE sur un JSON valide mais inconnu: {"visibility":null} 14ms
+     → expected false to be true // Object.is equality
+   × /internal/preview/port-access — fail-closed > DENIE sur un JSON valide mais inconnu: {"visibility":[]} 19ms
+     → expected false to be true // Object.is equality
+   × /internal/preview/port-access — fail-closed > DENIE sur une grammaire non respectee: port non numerique 15ms
+     → expected false to be true // Object.is equality
+   × /internal/preview/port-access — fail-closed > DENIE sur une grammaire non respectee: port hors bornes 13ms
+     → expected false to be true // Object.is equality
+   × /internal/preview/port-access — fail-closed > DENIE sur une grammaire non respectee: port a zero 17ms
+     → expected false to be true // Object.is equality
+   × /internal/preview/port-access — fail-closed > DENIE sur une grammaire non respectee: valeur inconnue 13ms
+     → expected false to be true // Object.is equality
+   × /internal/preview/port-access — fail-closed > DENIE sur une grammaire non respectee: valeur non chaine 22ms
+     → expected false to be true // Object.is equality
+   × /internal/preview/port-access — fail-closed > DENIE sur une grammaire non respectee: visibility imbrique 13ms
+     → expected false to be true // Object.is equality
