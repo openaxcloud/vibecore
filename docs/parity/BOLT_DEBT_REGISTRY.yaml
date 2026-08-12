@@ -65,9 +65,12 @@ items:
     source: "outputs/BOLT_BACKEND_FRONTEND_GAP.md:107"
     priority: 1
     owner: platform
-    status: NON_FAIT
+    status: FAIT_PROUVE
     nextAction: "Brancher sur l'API compte réelle ou retirer le tab (le vrai profil vit dans /account-settings)"
     conditionDeCloture: "Aucune surface ne présente du localStorage comme état de compte ; décision retrait/câblage tracée"
+    evidenceId: "docs/audit/evidence/bd-06/PROOF.md"
+    provenAt: "2026-08-12"
+    provenNote: "Câblé: profileStore hydrate/persiste vers le compte via nouvelle route /api/account/profile (name→/auth/me, bio/avatar→preferences.profile) ; localStorage supprimé. Prouvé live (web c3636dad2b): /api/account/profile renvoie le nom réel, hydratation AppShell s'exécute, sidebar affiche 'ProfileProof Alpha', PATCH round-trip → /auth/me nom='ProfileProof Beta' + bio persistée. bolt_profile localStorage null."
     targetDate: "2026-09-15"
   - id: BD-07
     title: "CloudProvidersTab BYOK localStorage vs toggle admin DB (double surface contradictoire)"
