@@ -32,6 +32,55 @@ import process from 'node:process';
 export const DEPLOY_WORKFLOW = '.github/workflows/deploy-main.yml';
 export const BREAK_GLASS_WORKFLOW = '.github/workflows/deploy-break-glass.yml';
 export const POLICY_FILE = 'scripts/release-gate/required-checks.json';
+export const CHART_VALUES = 'infra/helm/platform/values.yaml';
+
+/**
+ * Parse the deploy workflow's `SERVICES=` line into structured entries.
+ * Shape: valuesKey:imageName:tier:chartService:rolled
+ */
+export function parseServiceMatrix(deployWorkflow) {
+  const m = /SERVICES="([^"]+)"/.exec(deployWorkflow);
+  if (!m) {
+    return null;
+  }
+  return m[1]
+    .trim()
+    .split(/\s+/)
+    .map((entry) => {
+      const [key, image, tier, chartService, rolled] = entry.split(':');
+      return { key, image, tier, chartService: chartService === 'true', rolled: rolled === 'true' };
+    });
+}
+
+/** Chart service keys whose `enabled:` is true, from values.yaml. */
+export function parseEnabledChartServices(valuesYaml) {
+  const body = valuesYaml.split(/^services:\s*$/m)[1];
+  if (body === undefined) {
+    return null;
+  }
+  const enabled = [];
+  let current = null;
+  for (const line of body.split('\n')) {
+    if (/^\S/.test(line)) {
+      break; // left the `services:` block
+    }
+    const key = /^ {2}([A-Za-z][A-Za-z0-9]*):\s*$/.exec(line);
+    if (key) {
+      current = key[1];
+      continue;
+    }
+    if (current && /^ {4}enabled:\s*true\s*$/.test(line)) {
+      enabled.push(current);
+    }
+  }
+  return enabled;
+}
+
+/** Image names the deploy workflow waits for in its "Verify rollout" step. */
+export function parseRolloutWaitList(deployJobText) {
+  const m = /for svc in ([^;]+); do/.exec(deployJobText);
+  return m ? m[1].trim().split(/\s+/) : null;
+}
 
 /**
  * Split a workflow file into: the top-level (pre-`jobs:`) region, and one region per
@@ -127,7 +176,7 @@ export function grantsIdToken(region, indent) {
  * @param {{deployWorkflow: string, breakGlassWorkflow: string, policy: object}} files
  * @returns {string[]} problems (empty = wired correctly)
  */
-export function checkGateWiring({ deployWorkflow, breakGlassWorkflow, policy }) {
+export function checkGateWiring({ deployWorkflow, breakGlassWorkflow, policy, chartValues }) {
   const problems = [];
   const { topLevel, jobs } = parseWorkflowRegions(deployWorkflow);
   breakGlassWorkflow = breakGlassWorkflow ? stripComments(breakGlassWorkflow) : breakGlassWorkflow;
@@ -209,6 +258,50 @@ export function checkGateWiring({ deployWorkflow, breakGlassWorkflow, policy }) 
     problems.push(`${DEPLOY_WORKFLOW}: image signatures must be verified before the rollout`);
   }
 
+  // --- the service matrix must agree with the chart and with the rollout wait ---
+  //
+  // Three places encode the same fact and are maintained by hand: the workflow's
+  // SERVICES line, the chart's enabled services, and the list the deploy waits on.
+  // Drift between them is silent and one-directional-bad: add a service to the chart
+  // and forget the matrix, and it deploys by MUTABLE TAG while everything else is
+  // digest-pinned — with every check still green, because nothing was looking.
+  const matrix = parseServiceMatrix(deployJob);
+  const enabled = chartValues ? parseEnabledChartServices(chartValues) : null;
+  const waitList = parseRolloutWaitList(deployJob);
+
+  if (!matrix) {
+    problems.push(`${DEPLOY_WORKFLOW}: could not find the SERVICES matrix`);
+  } else {
+    if (enabled) {
+      const pinned = matrix.filter((s) => s.chartService).map((s) => s.key).sort();
+      const expected = [...enabled].sort();
+      for (const key of expected) {
+        if (!pinned.includes(key)) {
+          problems.push(
+            `${DEPLOY_WORKFLOW}: chart service '${key}' is enabled in ${CHART_VALUES} but is not pinned by digest (missing from SERVICES, or chartService=false)`,
+          );
+        }
+      }
+      for (const key of pinned) {
+        if (!expected.includes(key)) {
+          problems.push(
+            `${DEPLOY_WORKFLOW}: SERVICES pins '${key}' as a chart service, but ${CHART_VALUES} does not enable it`,
+          );
+        }
+      }
+    }
+
+    if (waitList) {
+      const rolled = matrix.filter((s) => s.rolled).map((s) => s.image).sort();
+      const waited = [...waitList].sort();
+      if (rolled.join(',') !== waited.join(',')) {
+        problems.push(
+          `${DEPLOY_WORKFLOW}: services flagged rolled=true [${rolled}] do not match the rollout wait list [${waited}] — one would be waited on without being verified, or verified without being waited on`,
+        );
+      }
+    }
+  }
+
   // --- the policy must still require the four pipelines ---
   const names = (policy.requiredWorkflows ?? []).map((w) => w.displayName);
   for (const required of ['Production CI', 'Production E2E', 'Security Analysis', 'Code Quality']) {
@@ -252,6 +345,7 @@ function selfTest() {
   const deployWorkflow = fs.readFileSync(DEPLOY_WORKFLOW, 'utf8');
   const breakGlassWorkflow = fs.readFileSync(BREAK_GLASS_WORKFLOW, 'utf8');
   const policy = JSON.parse(fs.readFileSync(POLICY_FILE, 'utf8'));
+  const chartValues = fs.readFileSync(CHART_VALUES, 'utf8');
 
   // Prove the validator can actually FAIL — a checker that only ever passes is
   // indistinguishable from no checker at all.
@@ -263,21 +357,37 @@ function selfTest() {
       ),
       breakGlassWorkflow,
       policy,
+      chartValues,
     })],
     ['id-token granted workflow-wide', () => ({
       deployWorkflow: deployWorkflow.replace('permissions:\n  contents: read', 'permissions:\n  contents: read\n  id-token: write'),
       breakGlassWorkflow,
       policy,
+      chartValues,
     })],
     ['E2E dropped from the policy', () => ({
       deployWorkflow,
       breakGlassWorkflow,
       policy: { ...policy, requiredWorkflows: policy.requiredWorkflows.filter((w) => w.displayName !== 'Production E2E') },
+      chartValues,
     })],
     ['break-glass allowed to build', () => ({
       deployWorkflow,
       breakGlassWorkflow: `${breakGlassWorkflow}\n          gcloud builds submit .\n`,
       policy,
+      chartValues,
+    })],
+    ['a chart service left out of the digest matrix', () => ({
+      deployWorkflow: deployWorkflow.replace('api:api:runtime:true:true ', ''),
+      breakGlassWorkflow,
+      policy,
+      chartValues,
+    })],
+    ['a service waited on but no longer verified', () => ({
+      deployWorkflow: deployWorkflow.replace('for svc in web api', 'for svc in web admin api'),
+      breakGlassWorkflow,
+      policy,
+      chartValues,
     })],
   ];
 
@@ -291,7 +401,7 @@ function selfTest() {
     }
   }
 
-  const clean = checkGateWiring({ deployWorkflow, breakGlassWorkflow, policy });
+  const clean = checkGateWiring({ deployWorkflow, breakGlassWorkflow, policy, chartValues });
   console.log(`${clean.length === 0 ? 'ok  ' : 'FAIL'}  accepts the real, unmutated workflow`);
   if (clean.length > 0) {
     clean.forEach((p) => console.log(`        ${p}`));
@@ -309,6 +419,7 @@ function main() {
     deployWorkflow: fs.readFileSync(DEPLOY_WORKFLOW, 'utf8'),
     breakGlassWorkflow: fs.existsSync(BREAK_GLASS_WORKFLOW) ? fs.readFileSync(BREAK_GLASS_WORKFLOW, 'utf8') : '',
     policy: JSON.parse(fs.readFileSync(POLICY_FILE, 'utf8')),
+    chartValues: fs.existsSync(CHART_VALUES) ? fs.readFileSync(CHART_VALUES, 'utf8') : null,
   });
 
   if (problems.length > 0) {
