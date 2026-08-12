@@ -929,6 +929,9 @@ importers:
       '@vibecore/security':
         specifier: workspace:*
         version: link:../../packages/security
+      '@vibecore/template-catalog':
+        specifier: workspace:*
+        version: link:../../packages/template-catalog
       '@xmldom/xmldom':
         specifier: ^0.9.10
         version: 0.9.10

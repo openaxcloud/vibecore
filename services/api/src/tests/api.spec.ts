@@ -3397,6 +3397,58 @@ describe('SaaS API', () => {
     }
   });
 
+  it('scaffolds distinct, template-specific files for each curated template id (from-template)', async () => {
+    const store = new TestApiStore();
+    const projectStorage = new MemoryProjectStorage();
+    const app = await buildTestApiApp({ store, projectStorage });
+    const auth = await register(app, { email: 'tpl-distinct@example.com', organizationName: 'Tpl Distinct Org' });
+    await store.upsertSubscription({ organizationId: auth.organization.id, planKey: 'team', status: 'ACTIVE' });
+
+    const createFromTemplate = async (templateName: string, name: string) => {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/orgs/${auth.organization.id}/projects/from-template`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { name, templateName },
+      });
+      expect(response.statusCode).toBe(201);
+
+      return response.json().project.id as string;
+    };
+
+    const signature = (projectId: string) =>
+      [...(projectStorage.files.get(projectId) ?? new Map()).entries()]
+        .map(([path, content]) => `${path}:${content.length}`)
+        .sort()
+        .join('|');
+
+    const crmId = await createFromTemplate('react-saas', 'CRM App');
+    const apiId = await createFromTemplate('fastify-api', 'API Monitor App');
+    const dashId = await createFromTemplate('next-dashboard', 'Ops Dashboard App');
+
+    const crmFiles = projectStorage.files.get(crmId)!;
+
+    /*
+     * The chosen template scaffolds its OWN application — not the identical
+     * generic Vite shell every template produced before this fix.
+     */
+    expect(crmFiles.get('src/App.tsx')).toContain('data-gallery-app-id="react-saas"');
+    expect(crmFiles.get('src/App.tsx')).not.toContain('Created from the Bolt template');
+    expect(crmFiles.get('src/App.tsx')).not.toContain('Créé à partir du modèle Bolt');
+
+    // Three different templates produce three genuinely different file sets.
+    const signatures = new Set([signature(crmId), signature(apiId), signature(dashId)]);
+    expect(signatures.size).toBe(3);
+
+    /*
+     * A templateName with no catalog entry still scaffolds a runnable project
+     * (generic Vite fallback) rather than an empty one.
+     */
+    const fallbackId = await createFromTemplate('react-basic-starter', 'Fallback App');
+    expect(projectStorage.files.get(fallbackId)?.size ?? 0).toBeGreaterThan(0);
+    expect(projectStorage.files.get(fallbackId)?.get('package.json')).toBeDefined();
+  });
+
   it('supports persistent project CRUD, settings, collaborators and soft delete restore', async () => {
     const store = new TestApiStore();
     const projectStorage = new MemoryProjectStorage();

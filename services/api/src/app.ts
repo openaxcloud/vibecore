@@ -98,6 +98,7 @@ import {
   requireCsrfToken,
   requireProductionSecret,
 } from '@vibecore/security';
+import { getGalleryDemoApp } from '@vibecore/template-catalog/server';
 import { DOMParser } from '@xmldom/xmldom';
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 import { Redis } from 'ioredis';
@@ -5987,6 +5988,21 @@ function starterFiles(input: {
 
   if (input.sourceType === 'template') {
     const templateName = input.templateName ?? '';
+
+    /*
+     * Each curated template maps to a distinct, real, runnable application in
+     * @vibecore/template-catalog (the same source the Gallery demo apps ship
+     * from). Use those exact files so every template scaffolds its OWN app —
+     * not the identical generic Vite shell every template produced before this
+     * fix. A templateName with no catalog entry (e.g. a browse-only framework
+     * starter that isn't wired to from-template) falls through to the generic
+     * but still-runnable Vite scaffold below, so a project is never empty.
+     */
+    const demoApp = templateName ? getGalleryDemoApp(templateName) : undefined;
+
+    if (demoApp && demoApp.files.length > 0) {
+      return demoApp.files.map((demoFile) => ({ path: demoFile.path, content: demoFile.content }));
+    }
 
     return [
       {
