@@ -637,6 +637,9 @@ importers:
       sass-embedded:
         specifier: ^1.93.3
         version: 1.99.0
+      sharp:
+        specifier: ^0.34.5
+        version: 0.34.5
       stream-browserify:
         specifier: ^3.0.0
         version: 3.0.0

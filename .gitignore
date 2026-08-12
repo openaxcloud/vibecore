@@ -39,6 +39,9 @@ functions/build/
 **/.vibecore/
 test-results/
 tmp/
+# Raw Solution generation runs may contain resumable credentials and rejected
+# screenshots. Only curated, sanitized evidence belongs under docs/.
+outputs/solutions/
 .claude/
 .playwright-mcp/
 /connected-accounts-fixed.png
@@ -81,6 +84,7 @@ docs/instructions/Roadmap.md
 !REPLIT_PARITY.md
 !DESIGN_PROGRAM_MASTER.md
 !DESIGN_AUDIT_LIVE.md
+!DESIGN_BATCH_SOLUTIONS_SPEC.md
 !LAUNCH_READINESS.md
 .qodo
 .vibecore-audit/
