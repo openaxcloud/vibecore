@@ -92,9 +92,12 @@ items:
     source: "outputs/BOLT_BACKEND_FRONTEND_GAP.md:112"
     priority: 2
     owner: platform
-    status: NON_FAIT
+    status: FAIT_PROUVE
     nextAction: "Brancher sur les préférences réelles ou renommer honnêtement"
     conditionDeCloture: "Le tab reflète et modifie les préférences serveur, prouvé"
+    evidenceId: "docs/audit/evidence/bd-09/PROOF.md"
+    provenAt: "2026-08-12"
+    provenNote: "Requalifié honnêtement (option nextAction). Prouvé live (web 7369b39436): l'onglet affiche une banniere 'evenements d'activite locale de l'IDE ... pas des notifications de votre compte' + lien 'Gerer les notifications du compte ->' (a href=/notifications) au-dessus des logs IDE reels. En+Fr."
     targetDate: "2026-09-30"
   - id: BD-10
     title: "Verrous fichiers IDE en localStorage — non enforced serveur, pas cross-device"
