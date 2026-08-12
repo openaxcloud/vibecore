@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /*
- * Garde statique : aucun appel `helm`/`kubectl` NU dans scripts/audit-env/.
+ * Garde statique : aucun appel `helm`/`kubectl`/`terraform` NU dans
+ * scripts/audit-env/.
  *
  * POURQUOI. Ces scripts validaient le contexte kubectl courant puis appelaient
  * helm sans `--kube-context`. Or Helm résout sa cible via ses variables
@@ -18,6 +19,15 @@
  * Le plus dangereux appel nu du lot était sur une LIGNE DE CONTINUATION
  * (`… | kubectl apply -f -`, celui qui écrit le Secret de la plateforme), donc
  * cette garde inspecte la ligne entière, pas seulement son début.
+ *
+ * `terraform` est soumis à la MÊME règle, pour la même raison : il lit sa cible
+ * dans `TF_CLI_ARGS_destroy` / `TF_DATA_DIR` / `TF_WORKSPACE` avant ses arguments,
+ * si bien que `down.sh` pouvait vérifier la liaison sur le vrai état puis
+ * `destroy` un état substitué. L'enveloppe `audit_terraform` refuse de s'exécuter
+ * tant qu'une de ces variables est définie.
+ *
+ * Les corps de heredoc sont ignorés : ces scripts en émettent (fiche d'accès,
+ * Secret de la plateforme) et le texte qu'ils IMPRIMENT n'exécute rien.
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -33,38 +43,61 @@ const DIR = join(import.meta.dirname, '.');
 const ALLOWED = [
   /\baudit_helm\b/,
   /\baudit_kubectl\b/,
+  /\baudit_terraform\b/,
   /\bhelm repo\b/,
-  /\bcommand (helm|kubectl)\b/,
+  /\bcommand (helm|kubectl|terraform)\b/,
   /--kube-context/,
   /--context[= ]/,
-  /\bcommand -v (helm|kubectl)\b/,
+  /\bcommand -v (helm|kubectl|terraform)\b/,
   /kubectl config get-contexts/,
 ];
 
-const CALL = /(?:^|[\s;&|(`$])(helm|kubectl)\s/;
+const CALL = /(?:^|[\s;&|(`$])(helm|kubectl|terraform)\s/;
+/**
+ * Retire les chaînes littérales SANS substitution de commande : le mot
+ * « terraform » dans un `echo` n'exécute rien. Une chaîne contenant `$(` ou une
+ * backquote est conservée telle quelle — c'est justement là que se cache un appel
+ * réel (`"$(terraform output …)"`).
+ */
+const stripLiterals = (code) =>
+  code.replace(/'[^']*'|"(?:[^"\\]|\\.)*"/g, (m) => (/\$\(|`/.test(m) ? m : ''));
+
+/** Ouverture de heredoc : `<<EOF`, `<<-'EOF'`, `<< "EOF"`. */
+const HEREDOC_OPEN = /<<-?\s*(['"]?)([A-Za-z_][A-Za-z0-9_]*)\1/;
 
 const offenders = [];
 
 for (const file of readdirSync(DIR).filter((f) => f.endsWith('.sh')).sort()) {
   const lines = readFileSync(join(DIR, file), 'utf8').split('\n');
+  /** Délimiteur du heredoc en cours, sinon null. */
+  let heredoc = null;
 
   lines.forEach((line, i) => {
-    const code = line.replace(/#.*$/, '');
+    if (heredoc !== null) {
+      if (line.trim() === heredoc) {
+        heredoc = null;
+      }
 
-    if (!CALL.test(code)) {
       return;
     }
 
-    if (ALLOWED.some((re) => re.test(code))) {
-      return;
+    const code = stripLiterals(line.replace(/#.*$/, ''));
+    const opened = code.match(HEREDOC_OPEN);
+
+    if (CALL.test(code) && !ALLOWED.some((re) => re.test(code))) {
+      offenders.push(`${file}:${i + 1}: ${line.trim()}`);
     }
 
-    offenders.push(`${file}:${i + 1}: ${line.trim()}`);
+    if (opened) {
+      heredoc = opened[2];
+    }
   });
 }
 
 if (offenders.length > 0) {
-  console.error('Appel helm/kubectl SANS contexte epingle (utiliser audit_helm / audit_kubectl) :');
+  console.error(
+    'Appel helm/kubectl/terraform SANS cible epinglee (utiliser audit_helm / audit_kubectl / audit_terraform) :',
+  );
   for (const o of offenders) {
     console.error(`  ${o}`);
   }
@@ -72,4 +105,4 @@ if (offenders.length > 0) {
   process.exit(1);
 }
 
-console.log('scripts/audit-env: tous les appels helm/kubectl portent un contexte epingle');
+console.log('scripts/audit-env: tous les appels helm/kubectl/terraform portent une cible epinglee');

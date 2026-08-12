@@ -41,6 +41,14 @@ const WORKSPACE = 'ws-test';
 const PORT = '5173';
 const PREVIEW_HOST = `${WORKSPACE}-${PORT}.${PREVIEW_DOMAIN}`;
 const TENANT_TOKEN = 'jeton-tenant-de-test';
+/*
+ * Vignette d'une PUBLICATION. L'API planifie aussi ces captures, et leur URL n'a
+ * pas de `-<port>` : le routage par chemin doit donc les couvrir aussi, sinon la
+ * requête part avec un Host que le proxy ne route pas (la réserve du contre-audit).
+ */
+const DEPLOY_ID = 'clx9k2m4p';
+const DEPLOY_HOST = `d-${DEPLOY_ID}.${PREVIEW_DOMAIN}`;
+const INTERNAL_SECRET = 'secret-proxy-de-test';
 
 const outIndex = process.argv.indexOf('--out');
 const outPng = outIndex > -1 ? process.argv[outIndex + 1] : null;
@@ -60,13 +68,23 @@ const server = createServer((req, res) => {
     host: req.headers.host,
     url: req.url,
     tenant: req.headers['x-vibecore-preview-tenant'],
+    internal: req.headers['x-vibecore-preview-internal'],
   });
 
-  const expectedPrefix = `/p/${WORKSPACE}/${PORT}`;
+  const routable =
+    req.url?.startsWith(`/p/${WORKSPACE}/${PORT}`) === true || req.url?.startsWith(`/d/${DEPLOY_ID}`) === true;
 
-  if (!req.url?.startsWith(expectedPrefix)) {
+  if (!routable) {
     res.writeHead(404, { 'content-type': 'text/plain' });
-    res.end('routage impossible: ni hote ni chemin ne portent workspace+port');
+    res.end('routage impossible: ni hote ni chemin ne portent la cible');
+
+    return;
+  }
+
+  // Le chemin d'une publication n'est ouvert qu'aux appelants internes.
+  if (req.url?.startsWith(`/d/`) && req.headers['x-vibecore-preview-internal'] !== INTERNAL_SECRET) {
+    res.writeHead(403, { 'content-type': 'text/plain' });
+    res.end('chemin de publication reserve aux appelants internes');
 
     return;
   }
@@ -124,7 +142,11 @@ await context.route('**/*', async (route) => {
 
   await route.continue({
     url: target,
-    headers: { ...route.request().headers(), 'x-vibecore-preview-tenant': TENANT_TOKEN },
+    headers: {
+      ...route.request().headers(),
+      'x-vibecore-preview-tenant': TENANT_TOKEN,
+      'x-vibecore-preview-internal': INTERNAL_SECRET,
+    },
   });
 });
 
@@ -146,6 +168,23 @@ try {
 } catch (error) {
   navError = navError ?? (error instanceof Error ? error.message.split('\n')[0] : String(error));
 }
+
+/*
+ * Deuxième trajet, dans le MÊME navigateur : la vignette d'une publication. En
+ * mode legacy elle échoue pour la même raison que la première (Host recalculé) ;
+ * avec le correctif elle doit passer par `/d/<id>`.
+ */
+const deployFrom = received.length;
+let deployStatus = null;
+
+try {
+  const response = await page.goto(`http://${DEPLOY_HOST}/`, { waitUntil: 'load', timeout: 20_000 });
+  deployStatus = response?.status() ?? null;
+} catch (error) {
+  deployStatus = error instanceof Error ? error.message.split('\n')[0] : String(error);
+}
+
+const deployFirst = received[deployFrom];
 
 await browser.close();
 await new Promise((resolve) => server.close(resolve));
@@ -188,6 +227,22 @@ check(
 check('jeton tenant recu sur l en-tete interne', first.tenant === TENANT_TOKEN);
 check('le document est servi (200, donc le proxy a pu router)', status === 200, `status=${status}`);
 check('capture PNG reelle et non vide', png.length > 1000 && png.subarray(1, 4).toString() === 'PNG', `${png.length} octets`);
+
+// --- vignette d'une PUBLICATION (reserve du contre-audit) -------------------
+console.log('\n=== vignette d une publication d-<id> ===');
+
+if (!deployFirst) {
+  check('la requete de publication est arrivee', false, 'aucune requete');
+} else {
+  console.log(`  Host: ${deployFirst.host}   url: ${deployFirst.url}   interne: ${deployFirst.internal ? 'present' : 'absent'}`);
+  check(
+    'la publication est routee par le CHEMIN /d/<id>',
+    deployFirst.url?.startsWith(`/d/${DEPLOY_ID}`) === true,
+    `url=${deployFirst.url}`,
+  );
+  check("en-tete d appel interne present (le chemin n'est pas public)", deployFirst.internal === INTERNAL_SECRET);
+  check('la publication est servie (200)', deployStatus === 200, `status=${deployStatus}`);
+}
 
 if (navError) {
   console.log(`  note: ${navError}`);

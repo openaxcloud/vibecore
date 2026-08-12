@@ -49,7 +49,7 @@ echo "==> [1/3] terraform destroy"
 # audit_env_require_tf_state_binding ci-dessus — plus de branche « pas d'état,
 # on passe directement à la suppression du projet », qui détruisait un projet
 # sans avoir jamais pu vérifier à quoi son état correspondait.
-terraform -chdir="$TF_DIR" destroy -input=false -auto-approve || {
+audit_terraform -chdir="$TF_DIR" destroy -input=false -auto-approve || {
   echo "!! destroy partiel — la suppression du projet ci-dessous reste le filet" >&2
 }
 
@@ -63,7 +63,50 @@ fi
 echo "==> [3/3] VERIFICATION de la disparition"
 fail=0
 
-state="$(gcloud projects describe "$PROJECT_ID" --format='value(lifecycleState)' 2>/dev/null || echo 'GONE')"
+# ---------------------------------------------------------------------------
+# Une ERREUR D'API n'est pas une PREUVE D'ABSENCE.
+#
+# La version précédente écrivait `… 2>/dev/null || echo 'GONE'` et
+# `… 2>/dev/null || true` : un jeton expiré, un quota, une coupure réseau ou une
+# API désactivée produisaient donc « projet GONE, 0 cluster, 0 instance SQL,
+# 0 VM, 0 bucket » — soit le rapport « TEARDOWN VERIFIE » exact, alors que
+# l'infrastructure pouvait tourner et facturer entièrement. La vérification
+# affirmait le contraire de ce qu'elle avait observé.
+#
+# Désormais chaque sonde distingue trois issues : lecture réussie (le compte
+# compte), absence CONFIRMÉE par le message de l'API alors que le projet est
+# effectivement supprimé (attendu → 0), et tout le reste → INDETERMINE, qui fait
+# échouer le teardown. Un doute n'est pas un succès.
+# ---------------------------------------------------------------------------
+
+# Motifs par lesquels une API Google dit « ce projet n'existe plus ». Acceptés
+# UNIQUEMENT quand la suppression du projet est par ailleurs confirmée.
+_absence_confirmee() {
+  local msg="$1"
+  [[ "$msg" == *"NOT_FOUND"* || "$msg" == *"not found"* || "$msg" == *"does not exist"* ||
+    "$msg" == *"was not found"* || "$msg" == *"has been deleted"* ||
+    "$msg" == *"pending deletion"* || "$msg" == *"marked for deletion"* ||
+    "$msg" == *"scheduled for deletion"* ]]
+}
+
+project_absent=0
+err_file="$(mktemp)"
+trap 'rm -f "$err_file"' EXIT
+
+if state="$(gcloud projects describe "$PROJECT_ID" --format='value(lifecycleState)' 2>"$err_file")"; then
+  state="${state:-VIDE}"
+else
+  if _absence_confirmee "$(cat "$err_file")"; then
+    state='GONE'
+    project_absent=1
+  else
+    state="INDETERMINE"
+    echo "    !! lecture du projet IMPOSSIBLE — ce n'est pas une preuve de suppression :" >&2
+    sed 's/^/       /' "$err_file" >&2
+    fail=1
+  fi
+fi
+[[ "$state" == "DELETE_REQUESTED" ]] && project_absent=1
 echo "    projet .................. $state"
 if [[ "$SKIP_PROJECT_DELETE" != "1" && "$state" != "DELETE_REQUESTED" && "$state" != "GONE" ]]; then
   echo "    !! attendu DELETE_REQUESTED ou GONE" >&2
@@ -73,20 +116,38 @@ fi
 # Explicit commands rather than a word-split variable: relying on the shell to
 # split "container clusters list" silently yields an empty result (and a FALSE
 # PASS) under any shell that does not word-split, e.g. zsh.
-count_of() { printf '%s' "${1:-}" | grep -c . || true; }
+#
+# `probe <label> <cmd…>` renvoie un compte, ou `INDETERMINE`. Jamais 0 par défaut.
+probe() {
+  local label="$1"; shift
+  local out n
 
-n_clusters="$(count_of "$(gcloud container clusters list --project="$PROJECT_ID" --format='value(name)' 2>/dev/null || true)")"
-n_sql="$(count_of "$(gcloud sql instances list --project="$PROJECT_ID" --format='value(name)' 2>/dev/null || true)")"
-n_vms="$(count_of "$(gcloud compute instances list --project="$PROJECT_ID" --format='value(name)' 2>/dev/null || true)")"
-n_buckets="$(count_of "$(gcloud storage ls --project="$PROJECT_ID" 2>/dev/null || true)")"
+  if out="$("$@" 2>"$err_file")"; then
+    n="$(printf '%s' "$out" | grep -c . || true)"
+    printf '    %-24s %s\n' "$label" "$n"
+    [[ "$n" == "0" ]] || fail=1
 
-echo "    clusters GKE restants ... $n_clusters"
-echo "    instances SQL restantes . $n_sql"
-echo "    VM Compute restantes .... $n_vms"
-echo "    buckets restants ........ $n_buckets"
-for n in "$n_clusters" "$n_sql" "$n_vms" "$n_buckets"; do
-  [[ "$n" == "0" ]] || fail=1
-done
+    return 0
+  fi
+
+  # L'appel a échoué. Après une suppression de projet CONFIRMÉE, c'est attendu :
+  # l'API refuse de lister les ressources d'un projet qui n'existe plus.
+  if [[ "$project_absent" == "1" ]] && _absence_confirmee "$(cat "$err_file")"; then
+    printf '    %-24s 0 (projet supprime, listage refuse comme prevu)\n' "$label"
+
+    return 0
+  fi
+
+  printf '    %-24s INDETERMINE\n' "$label"
+  echo "    !! '$label' illisible — une erreur d'API ne prouve pas l'absence :" >&2
+  sed 's/^/       /' "$err_file" >&2
+  fail=1
+}
+
+probe "clusters GKE restants" gcloud container clusters list --project="$PROJECT_ID" --format='value(name)'
+probe "instances SQL restantes" gcloud sql instances list --project="$PROJECT_ID" --format='value(name)'
+probe "VM Compute restantes" gcloud compute instances list --project="$PROJECT_ID" --format='value(name)'
+probe "buckets restants" gcloud storage ls --project="$PROJECT_ID"
 
 echo "==> CONTROLE PROD (doit etre intacte)"
 # --kube-context EXPLICITE. Sans lui, cette commande interrogeait le contexte

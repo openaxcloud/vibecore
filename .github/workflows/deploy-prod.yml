@@ -201,12 +201,12 @@ jobs:
 
       - name: Record current release for rollback
         run: |
-          helm history vibecore -n vibecore || true
+          scripts/ci/cluster.sh prod-direct helm history vibecore -n vibecore || true
           echo "Rollback command: helm rollback vibecore <REVISION> -n vibecore"
 
       - name: Deploy production platform chart
         run: |
-          helm upgrade --install vibecore infra/helm/platform \
+          scripts/ci/cluster.sh prod-direct helm upgrade --install vibecore infra/helm/platform \
             --namespace vibecore \
             --create-namespace \
             --atomic \

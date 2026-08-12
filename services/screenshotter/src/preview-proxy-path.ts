@@ -3,6 +3,12 @@
  *
  *   http(s)://<ws>-<port>.<previewDomain>/<chemin>?<query>
  *     ->  http://<proxy>/p/<ws>/<port>/<chemin>?<query>
+ *   http(s)://d-<id>.<previewDomain>/<chemin>   ->  http://<proxy>/d/<id>/<chemin>
+ *   http(s)://s-<id>.<previewDomain>/<chemin>   ->  http://<proxy>/s/<id>/<chemin>
+ *
+ * Les deux dernières formes existent parce que l'API planifie AUSSI les vignettes
+ * des publications : ne couvrir que `<ws>-<port>` laissait ces captures partir avec
+ * un Host que le proxy ne route pas.
  *
  * Pourquoi le chemin et pas `Host` : `Host` est un en-tête interdit à la
  * modification, recalculé par le navigateur quand l'URL change (vérifié avec un
@@ -33,6 +39,22 @@ export function previewProxyPathUrl(proxy: URL, requestUrl: URL, previewHostSuff
   // Un hôte de preview est UN seul label de sous-domaine.
   if (!label || label.includes('.')) {
     return null;
+  }
+
+  /*
+   * Publications : `d-<id>` (déploiement serveur) et `s-<id>` (statique). Même
+   * grammaire que `parseDeployHost` / `parseStaticDeployHost` côté proxy —
+   * l'identifiant est un cuid, `[a-z0-9]{6,}`, et ces formes ne portent PAS de
+   * `-<port>` final, donc elles ne peuvent pas collisionner avec `<ws>-<port>`.
+   * Le test d'abord : sinon `d-abc123` serait vu comme workspace `d` port… rien,
+   * et un `s-1234` comme un port.
+   */
+  const publication = /^([ds])-([a-z0-9]{6,})$/.exec(label);
+
+  if (publication) {
+    const path = `/${publication[1]}/${encodeURIComponent(publication[2])}${requestUrl.pathname}`;
+
+    return `${proxy.protocol}//${proxy.host}${path}${requestUrl.search}`;
   }
 
   const match = /^(.+)-(\d{1,5})$/.exec(label);

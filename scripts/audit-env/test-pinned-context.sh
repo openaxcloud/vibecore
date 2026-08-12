@@ -15,8 +15,10 @@
 #
 # Il ÉCHOUE sur la version d'avant le correctif (appels nus → la cible vient de
 # l'environnement) et PASSE après (la cible est passée explicitement).
+# Les exports sont VOLONTAIREMENT locaux a chaque sous-shell : un cas ne doit pas
+# contaminer le suivant. SC2030/SC2031 decrivent precisement cette isolation.
+# shellcheck disable=SC2030,SC2031
 set -uo pipefail
-
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AUDIT_CTX='gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster'
 PROD_CTX='connectgateway_vibecore-495216_europe-west9_vibecore-prod-app'
@@ -109,8 +111,47 @@ esac
 exit 0
 FAKE
 
+cat > "$TMP/bin/terraform" <<'FAKE'
+#!/usr/bin/env bash
+# Faux terraform qui EMULE la resolution de cible reelle : TF_CLI_ARGS_<cmd> est
+# PREPENDU aux arguments de la ligne de commande, donc `-state=` y gagne. C'est
+# ce qui permettait de verifier la liaison sur le vrai etat puis de detruire un
+# autre etat. On journalise l'etat effectivement vise.
+cmd=""
+for a in "$@"; do
+  case "$a" in
+    -*) ;;
+    *) cmd="$a"; break ;;
+  esac
+done
+
+var="TF_CLI_ARGS_${cmd}"
+all="${TF_CLI_ARGS:-} ${!var:-} $*"
+state="ETAT-PAR-DEFAUT"
+for tok in $all; do
+  case "$tok" in
+    -state=*) state="${tok#-state=}" ;;
+  esac
+done
+[[ -n "${TF_DATA_DIR:-}" ]] && state="${state}+TF_DATA_DIR"
+[[ -n "${TF_WORKSPACE:-}" ]] && state="${state}+TF_WORKSPACE"
+[[ -n "${TF_VAR_project_id:-}" ]] && state="${state}+TF_VAR_project_id=${TF_VAR_project_id}"
+echo "terraform|$state|$*" >> "$FAKE_CALL_LOG"
+
+# Outputs attendus par audit_env_require_tf_state_binding.
+if [[ "$cmd" == "output" ]]; then
+  case "$*" in
+    *project_id*) echo 'vibecore-audit-test-20260807' ;;
+    *cluster_name*) echo 'vibecore-audit-cluster' ;;
+    *cluster_zone*) echo 'europe-west9-a' ;;
+    *) echo 'valeur' ;;
+  esac
+fi
+exit 0
+FAKE
+
 # `helm repo` est local (il ecrit ~/.config/helm) : le faux helm l'absorbe.
-chmod +x "$TMP/bin/helm" "$TMP/bin/kubectl" "$TMP/bin/gcloud"
+chmod +x "$TMP/bin/helm" "$TMP/bin/kubectl" "$TMP/bin/gcloud" "$TMP/bin/terraform"
 
 fail=0
 note() { printf '  %s\n' "$*"; }
@@ -173,8 +214,69 @@ HELM_NAMESPACE='vibecore' \
   bash "$HERE/addons.sh"
 
 echo
+echo "=== Test de regression : etat Terraform VERIFIE == etat Terraform DETRUIT ==="
+echo
+# Même défaut, autre outil. `down.sh` lit les outputs de l'état pour prouver qu'il
+# décrit bien le projet d'audit, PUIS lance `terraform destroy`. Avec
+# `TF_CLI_ARGS_destroy=-state=<sentinelle>`, la vérification porte sur le vrai état
+# et la destruction sur un autre : l'état vérifié n'est pas l'état détruit.
+#
+# La sentinelle n'existe pas sur le disque ; c'est un MARQUEUR. Le faux terraform
+# n'écrit rien, donc ce test ne peut rien détruire, ici ni ailleurs.
+SENTINEL='/tmp/audit-env-sentinelle-jamais-detruite.tfstate'
+TF_FIXTURE="$TMP/tf"
+mkdir -p "$TF_FIXTURE"
+: > "$TF_FIXTURE/terraform.tfstate"   # audit_env_require_tf_state_binding exige sa présence
+
+: > "$LOG"
+(
+  export FAKE_CALL_LOG="$LOG"
+  export PATH="$TMP/bin:$PATH"
+  export HOME="$TMP"
+  mkdir -p "$TMP/.kube"; : > "$TMP/.kube/config"
+  export TF_DIR="$TF_FIXTURE"
+  export SKIP_PROJECT_DELETE=1          # aucune suppression de projet, même simulée
+  export TF_CLI_ARGS_destroy="-state=$SENTINEL"
+  export TF_DATA_DIR="$TMP/tf-hostile"
+  export TF_WORKSPACE='prod'
+  export TF_VAR_project_id='vibecore-495216'
+  bash "$HERE/down.sh" > "$TMP/down.out" 2>&1
+) || true
+
+note "environnement hostile: TF_CLI_ARGS_destroy=-state=<sentinelle>, TF_DATA_DIR, TF_WORKSPACE=prod, TF_VAR_project_id=<prod>"
+note "    --- etats Terraform vises ---"
+grep '^terraform|' "$LOG" | sed 's/^/      /' || note "      (aucun appel terraform)"
+note "    --- fin ---"
+if [[ -n "${AUDIT_TEST_VERBOSE:-}" ]]; then
+  note "    --- sortie de down.sh ---"
+  sed 's/^/      /' "$TMP/down.out" | tail -25
+fi
+
+tf_hostile="$(grep -c "^terraform|.*\(${SENTINEL//\//\\/}\|TF_DATA_DIR\|TF_WORKSPACE\|TF_VAR_project_id\)" "$LOG" || true)"
+tf_destroy="$(grep -c '^terraform|.*destroy' "$LOG" || true)"
+
+note "    appels terraform vers un etat SUBSTITUE : $tf_hostile"
+note "    appels terraform 'destroy' observes : $tf_destroy"
+
+if [[ "$tf_hostile" != "0" ]]; then
+  note "    ECHEC: l'environnement a substitue l'etat/le workspace/les variables"
+  grep '^terraform|' "$LOG" | grep -v 'ETAT-PAR-DEFAUT|' | head -3 | sed 's/^/      /'
+  fail=1
+fi
+
+if [[ "$tf_destroy" == "0" ]]; then
+  note "    ECHEC: aucun 'destroy' observe — le script n'est pas alle jusque-la"
+  fail=1
+fi
+
+if [[ -e "$SENTINEL" ]]; then
+  note "    ECHEC: la sentinelle a ete touchee"
+  fail=1
+fi
+
+echo
 if [[ "$fail" == "0" ]]; then
-  echo "OK: aucune cible ambiante, aucune cible prod — l'environnement ne choisit plus."
+  echo "OK: aucune cible ambiante, aucune cible prod, aucun etat Terraform substitue."
 else
   echo "ECHEC: la cible utilisee ne suit pas la cible validee." >&2
 fi
