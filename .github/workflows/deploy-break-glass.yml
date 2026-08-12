@@ -119,8 +119,15 @@ jobs:
           RUN_ID: ${{ inputs.manifest_run_id }}
         run: |
           set -euo pipefail
-          gh run download "${RUN_ID}" -R "${GITHUB_REPOSITORY}" -p 'release-manifest-*' -D /tmp/lkg
-          MANIFEST="$(find /tmp/lkg -name release-manifest.json | head -n1)"
+          # `mkdir` + `|| true`, deliberately. Verified against the real CLI: when
+          # nothing matches the pattern, `gh run download` exits 1 AND does not create
+          # the directory. Under `set -e` the step would die on that line printing only
+          # "no valid artifacts found to download", and the explicit, actionable message
+          # below would never be reached. This path runs during an incident — the
+          # operator should get the sentence that says what to do, not gh's.
+          mkdir -p /tmp/lkg
+          gh run download "${RUN_ID}" -R "${GITHUB_REPOSITORY}" -p 'release-manifest-*' -D /tmp/lkg || true
+          MANIFEST="$(find /tmp/lkg -name release-manifest.json | head -n1 || true)"
           if [ -z "${MANIFEST}" ]; then
             echo "::error::run ${RUN_ID} has no release-manifest.json artifact — it predates the manifest, or the deploy never got that far"
             exit 1
