@@ -66,6 +66,17 @@ GITHUB_TOKEN="$(gh auth token)" \
 # exit 0 = would deploy, exit 2 = would be refused (prints why, per workflow)
 ```
 
+**Reproduce the whole digest mechanism locally**, without touching production:
+
+```bash
+bash scripts/release-gate/proof-digest-rollout.sh        # ~6 min, needs docker + kind
+```
+It builds seven *distinct* images (one digest per service, so a cross-service mix-up
+would show), pushes them to a throwaway registry, `helm upgrade --install`s **this
+chart** with `services.<svc>.imageDigest=…`, asserts every rendered reference is
+`@sha256:…`, waits for the rollout, runs the same `verify-imageids` check the deploy
+runs — and then tampers with a digest to prove the check can actually fail.
+
 **Consequence to expect:** a red `main` no longer deploys. `Production CI` has been
 failing on a large share of recent `main` commits, so until those are fixed, pushes
 will be *refused* rather than silently shipped. That is the intended behaviour; the
