@@ -204,7 +204,7 @@ l'application elle-même, et le chemin de code après le retour du build est ide
 
 | Check | Cause | À nous ? |
 |---|---|---|
-| `Secret scan (gitleaks, blocking)` | littéral `AUTH_JWT_SECRET=…` dans les instructions de rejeu de ce README | **oui → corrigé** |
+| `Secret scan (gitleaks, blocking)` | littéral `AUTH_JWT_SECRET=…` dans les instructions de rejeu de ce README | **oui → corrigé, CI verte confirmée au SHA `8f6fcd89`** |
 | `Install, test, build, scan` | lint `app/root.tsx:36` `@blitz/lines-around-comment` | non — fichier **byte-identique à main** (`git rev-parse HEAD:app/root.tsx == origin/main:app/root.tsx`), absent de notre diff |
 | `Quality Gates` | attend le check ci-dessus | non — conséquence |
 | `Playwright` ×4 / `French i18n live audit` | balises OG/Twitter manquantes sur les pages marketing du site **live** (`i18n-french-live.spec.ts`) | non — front marketing, aucun rapport avec un changement backend `services/api` |
