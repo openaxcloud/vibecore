@@ -954,7 +954,13 @@ jobs:
             if [ -z "${dep}" ]; then
               dep="deploy/${HELM_RELEASE}-vibecore-platform-${label}"
             fi
-            depname="${dep#deploy/}"
+            # `kubectl get -o name` prints `deployment.apps/<name>`, NOT `deploy/<name>`.
+            # Stripping a literal "deploy/" leaves the group prefix attached, the
+            # ownerReferences match below never fires, and the ReplicaSet lookup comes
+            # back empty — which this step then reports as "no running pod", i.e. a
+            # deploy that failed for a reason that has nothing to do with the images.
+            # Caught by scripts/release-gate/proof-digest-rollout.sh on a real cluster.
+            depname="${dep##*/}"
 
             HASH="$(kubectl -n "${HELM_NAMESPACE}" get rs -o json \
               | jq -r --arg d "${depname}" '
