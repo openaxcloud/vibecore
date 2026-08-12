@@ -71,7 +71,7 @@ jobs:
       - name: Tag running platform images (running-*)
         run: |
           set -euo pipefail
-          kubectl get pods -A \
+          scripts/ci/cluster.sh prod-gateway kubectl get pods -A \
             -o jsonpath='{range .items[*]}{range .spec.containers[*]}{.image}{"\n"}{end}{end}' \
             | grep "$REPO_CONTAINERS" | sort -u | while read -r img; do
             pkg="${img#"$REPO_CONTAINERS"/}"; pkg="${pkg%%:*}"
@@ -83,7 +83,7 @@ jobs:
           set -euo pipefail
           # imageTags from the live release values; tier keys are camelCase,
           # image package names are the kebab-case `image` field next to them.
-          helm -n "$NAMESPACE" get values vibecore -a -o json \
+          scripts/ci/cluster.sh prod-gateway helm -n "$NAMESPACE" get values vibecore -a -o json \
             | jq -r '(.services // {}) | to_entries[]
                      | select((.value | type == "object") and .value.imageTag and .value.image)
                      | "\(.value.image) \(.value.imageTag)"' \
@@ -93,7 +93,7 @@ jobs:
           done
 
           # The workspace-agent image is referenced by env, not by a Deployment.
-          agent_img=$(kubectl -n "$NAMESPACE" get configmap \
+          agent_img=$(scripts/ci/cluster.sh prod-gateway kubectl -n "$NAMESPACE" get configmap \
             vibecore-vibecore-platform-platform-env \
             -o jsonpath='{.data.WORKSPACE_AGENT_IMAGE}' || true)
           if [ -n "$agent_img" ]; then
@@ -106,7 +106,7 @@ jobs:
           set -euo pipefail
           # Includes scaled-to-zero apps: their Deployment object still carries
           # the image, and the scale-to-zero wake path must be able to pull it.
-          kubectl -n workspaces get deploy \
+          scripts/ci/cluster.sh prod-gateway kubectl -n workspaces get deploy \
             -o jsonpath='{range .items[*]}{.spec.template.spec.containers[0].image}{"\n"}{end}' \
             | grep "$REPO_APPS" | sort -u | while read -r img; do
             pkg="${img#"$REPO_APPS"/}"; pkg="${pkg%%:*}"

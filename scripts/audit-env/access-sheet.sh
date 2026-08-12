@@ -19,7 +19,7 @@ TF_DIR="$REPO/infra/terraform/envs/audit-test"
 OUT="$TF_DIR/credentials/TEST_ENV_ACCESS.md"
 PROJECT_ID="vibecore-audit-test-20260807"
 
-tf() { terraform -chdir="$TF_DIR" output -raw "$1" 2>/dev/null || echo "(indisponible)"; }
+tf() { audit_terraform -chdir="$TF_DIR" output -raw "$1" 2>/dev/null || echo "(indisponible)"; }
 
 LB_IP="$(audit_kubectl -n ingress-nginx get svc ingress-nginx-controller \
   -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo '(non deploye)')"

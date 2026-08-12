@@ -23,7 +23,7 @@ LB_IP="${LB_IP:-$(audit_kubectl -n ingress-nginx get svc ingress-nginx-controlle
   -o jsonpath='{.status.loadBalancer.ingress[0].ip}')}"
 [[ -n "$LB_IP" ]] || { echo "!! LB_IP introuvable" >&2; exit 1; }
 
-SQL_IP="$(terraform -chdir="$TF_DIR" output -raw postgres_private_ip)"
+SQL_IP="$(audit_terraform -chdir="$TF_DIR" output -raw postgres_private_ip)"
 # PSA range is a /16 handed out by Google; derive it from the instance IP.
 SQL_CIDR="$(printf '%s' "$SQL_IP" | awk -F. '{print $1"."$2".0.0/16"}')"
 

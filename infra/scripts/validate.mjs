@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const root = resolve(new URL('..', import.meta.url).pathname);
@@ -111,6 +111,12 @@ const overriddenPlatform = helmTemplate([
 assertIncludes(overriddenPlatform, 'app.kubernetes.io/name: "edge-nginx"', 'overridden ingress controller app label');
 assertIncludes(overriddenPlatform, 'kubernetes.io/metadata.name: "edge-nginx"', 'overridden ingress controller namespace label');
 
+/** Scripts shell couverts par shellcheck (glob resolu ici, pas dans un shell). */
+const SHELL_SCRIPTS = [
+  ...readdirSync(resolve(root, '../scripts/audit-env')).filter((f) => f.endsWith('.sh')).map((f) => `../scripts/audit-env/${f}`),
+  ...readdirSync(resolve(root, '../scripts/ci')).filter((f) => f.endsWith('.sh')).map((f) => `../scripts/ci/${f}`),
+];
+
 /*
  * Les scripts audit-env doivent passer un contexte cluster EXPLICITE à chaque
  * appel helm/kubectl. Sans ça, `HELM_KUBECONTEXT=<prod>` fait valider l'audit et
@@ -119,5 +125,44 @@ assertIncludes(overriddenPlatform, 'kubernetes.io/metadata.name: "edge-nginx"', 
 execFileSync(process.execPath, [resolve(root, '../scripts/audit-env/check-pinned-context.mjs')], {
   stdio: 'inherit',
 });
+
+/*
+ * Même invariante sur l'autre moitié du parc : les workflows GitHub. Un
+ * `unset HELM_*` posé dans une étape ne survit pas à la fin de cette étape, donc
+ * tout appel helm/kubectl passe par scripts/ci/cluster.sh, qui neutralise
+ * l'environnement dans le processus qui exécute l'outil.
+ */
+execFileSync(process.execPath, [resolve(root, '../scripts/ci/check-workflow-pinned-context.mjs')], {
+  stdio: 'inherit',
+});
+
+/*
+ * Les deux gardes ci-dessus sont STATIQUES. Ces tests-là sont dynamiques et
+ * hermétiques (faux binaires, aucun cluster, aucun réseau) : ils vérifient la
+ * cible que l'outil reçoit RÉELLEMENT sous environnement hostile. Chacun contient
+ * son cas témoin, donc un « tout refuser » ne peut pas les faire passer.
+ */
+for (const script of ['../scripts/ci/test-cluster-wrapper.sh', '../scripts/audit-env/test-teardown-verification.sh']) {
+  execFileSync('bash', [resolve(root, script)], { stdio: 'inherit' });
+}
+
+/*
+ * shellcheck sur ces mêmes scripts. Ce n'est pas du style pour du style : le
+ * défaut trouvé dans mint-secrets.sh était une paire de BACKTICKS dans un heredoc
+ * à délimiteur non quoté — bash exécutait donc `vc_preview` et le nom disparaissait
+ * du fichier généré. shellcheck le voyait (SC2006) et personne ne le lançait.
+ * Absent de la machine -> on le dit, on ne fait pas semblant d'avoir vérifié.
+ */
+try {
+  execFileSync('shellcheck', ['--version'], { stdio: 'ignore' });
+  execFileSync('shellcheck', ['-x', ...SHELL_SCRIPTS.map((s) => resolve(root, s))], { stdio: 'inherit' });
+  console.log('shellcheck: scripts audit-env + ci propres');
+} catch (error) {
+  if (error.code === 'ENOENT') {
+    console.log('shellcheck ABSENT — verification NON EFFECTUEE (ce n est pas un succes)');
+  } else {
+    throw error;
+  }
+}
 
 console.log('infra scaffold valid');

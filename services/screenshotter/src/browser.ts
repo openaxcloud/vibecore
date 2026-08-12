@@ -20,6 +20,11 @@ export interface PlaywrightRendererOptions {
    * navigate the URL directly (dev/local).
    */
   previewProxyUrl?: string;
+  /**
+   * Secret partagé du preview-proxy. Requis pour les vignettes de PUBLICATIONS,
+   * dont le routage par chemin est réservé aux appelants internes.
+   */
+  previewProxySecret?: string;
   /** Host suffixes that identify a preview to route through previewProxyUrl. */
   previewHostSuffixes?: string[];
 }
@@ -145,6 +150,18 @@ export class PlaywrightPageRenderer implements PageRenderer {
                 // le navigateur l'ignorerait et cela masquerait le vrai mécanisme
                 // de routage, qui est le chemin.
                 ...(input.tenantToken ? { 'x-vibecore-preview-tenant': input.tenantToken } : {}),
+
+                /*
+                 * Routage par chemin des PUBLICATIONS (`/d/<id>`, `/s/<id>`) : le
+                 * proxy ne l'ouvre qu'aux appelants internes, sinon deux
+                 * publications se retrouveraient sur une même origine et
+                 * perdraient l'isolation que `d-`/`s-` existent pour donner. Même
+                 * préfixe `x-vibecore-` que le jeton tenant, donc retiré avant
+                 * tout forward vers l'amont.
+                 */
+                ...(this.options.previewProxySecret
+                  ? { 'x-vibecore-preview-internal': this.options.previewProxySecret }
+                  : {}),
               },
             });
           } catch {

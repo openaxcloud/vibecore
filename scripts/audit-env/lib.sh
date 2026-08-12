@@ -68,15 +68,75 @@ readonly AUDIT_ENV_HOSTILE_ENV_VARS=(
   HELM_NAMESPACE
 )
 
+# ---------------------------------------------------------------------------
+# Même défaut, autre outil : TERRAFORM.
+#
+# `down.sh` prouvait la liaison projet <-> état <-> cluster en lisant les outputs
+# de l'état, PUIS lançait `terraform destroy`. Or Terraform, comme Helm, lit sa
+# cible dans son environnement AVANT ses arguments :
+#
+#   TF_CLI_ARGS_destroy=-state=/sentinel/prod.tfstate
+#     -> la vérification lit le VRAI état (audit, elle passe)
+#     -> le destroy opère sur l'état SUBSTITUÉ (n'importe quelle infra)
+#
+# L'état vérifié n'était donc pas l'état détruit. Sont neutralisés :
+#   TF_CLI_ARGS* .......... injecte n'importe quel argument, dont -state/-chdir
+#   TF_DATA_DIR ........... déplace .terraform, donc le backend et le lock
+#   TF_WORKSPACE .......... change de workspace, donc d'état, dans le même backend
+#   TF_CLI_CONFIG_FILE
+#   TERRAFORM_CONFIG ...... `provider_installation`/`dev_overrides` : substitue le
+#                           BINAIRE du provider google par un autre
+#   TF_VAR_* .............. project_id/zone ont des defaults épinglés dans
+#                           variables.tf ; un TF_VAR_project_id les écrase
+# Plus les overrides du provider google et de gcloud, qui redirigent la cible sans
+# toucher à l'état : GOOGLE_PROJECT, CLOUDSDK_CORE_PROJECT, …
+readonly AUDIT_ENV_HOSTILE_TF_ENV_VARS=(
+  TF_CLI_ARGS
+  TF_CLI_ARGS_init
+  TF_CLI_ARGS_validate
+  TF_CLI_ARGS_plan
+  TF_CLI_ARGS_apply
+  TF_CLI_ARGS_destroy
+  TF_CLI_ARGS_refresh
+  TF_CLI_ARGS_import
+  TF_CLI_ARGS_state
+  TF_CLI_ARGS_output
+  TF_DATA_DIR
+  TF_WORKSPACE
+  TF_CLI_CONFIG_FILE
+  TERRAFORM_CONFIG
+  TF_PLUGIN_CACHE_DIR
+  GOOGLE_PROJECT
+  GOOGLE_CLOUD_PROJECT
+  GCLOUD_PROJECT
+  GOOGLE_REGION
+  GOOGLE_ZONE
+  CLOUDSDK_CORE_PROJECT
+  CLOUDSDK_ACTIVE_CONFIG_NAME
+)
+
 # Épingle la cible. Idempotent, à appeler tout en haut de chaque script.
 audit_env_pin_cluster_target() {
   local var found=() ctx
 
   # --- 1. neutraliser l'ambiant -------------------------------------------
-  for var in "${AUDIT_ENV_HOSTILE_ENV_VARS[@]}"; do
+  #
+  # On journalise le NOM, jamais la VALEUR. `HELM_KUBETOKEN` porte un jeton
+  # d'authentification au cluster : la version précédente l'imprimait en clair, et
+  # ces sorties finissent dans des logs de CI et des artefacts de preuve joints à
+  # une revue. Un garde-fou qui recopie le secret qu'il neutralise fabrique la
+  # fuite qu'il prétend éviter.
+  for var in "${AUDIT_ENV_HOSTILE_ENV_VARS[@]}" "${AUDIT_ENV_HOSTILE_TF_ENV_VARS[@]}"; do
     if [[ -n "${!var:-}" ]]; then
-      found+=("$var=${!var}")
+      found+=("$var=[REDACTED]")
     fi
+    unset "$var"
+  done
+
+  # `TF_VAR_<nom>` est un espace de noms ouvert : on ne peut pas l'énumérer à
+  # l'avance, donc on balaie l'environnement réel plutôt qu'une liste.
+  for var in $(compgen -v | grep '^TF_VAR_' || true); do
+    found+=("$var=[REDACTED]")
     unset "$var"
   done
 
@@ -84,7 +144,9 @@ audit_env_pin_cluster_target() {
   # « contexte courant », vu à la fois par helm et par kubectl. On impose le
   # chemin par défaut au lieu d'honorer l'override.
   if [[ -n "${KUBECONFIG:-}" && "${KUBECONFIG}" != "$HOME/.kube/config" ]]; then
-    found+=("KUBECONFIG=${KUBECONFIG}")
+    # Un chemin n'est pas un secret, mais il peut contenir un nom de projet ou
+    # d'utilisateur : même traitement, aucune exception à retenir.
+    found+=("KUBECONFIG=[REDACTED]")
   fi
   export KUBECONFIG="$HOME/.kube/config"
 
@@ -117,6 +179,23 @@ audit_kubectl() {
 audit_helm() {
   [[ -n "${AUDIT_KUBE_CONTEXT:-}" ]] || _audit_env_die "audit_helm appelé avant audit_env_pin_cluster_target."
   command helm --kube-context="$AUDIT_KUBE_CONTEXT" "$@"
+}
+
+# Terraform : la neutralisation faite au démarrage ne suffit pas à elle seule,
+# parce qu'un script peut réexporter une variable entre-temps (ou un futur
+# contributeur l'ajouter « juste pour un essai »). L'enveloppe REVÉRIFIE juste
+# avant l'exécution, et refuse plutôt que d'exécuter sur une cible incertaine.
+audit_terraform() {
+  local var
+  [[ -n "${AUDIT_KUBE_CONTEXT:-}" ]] ||
+    _audit_env_die "audit_terraform appelé avant audit_env_pin_cluster_target."
+
+  for var in "${AUDIT_ENV_HOSTILE_TF_ENV_VARS[@]}" $(compgen -v | grep '^TF_VAR_' || true); do
+    [[ -z "${!var:-}" ]] ||
+      _audit_env_die "$var est définie au moment de l'appel terraform — cible Terraform non fiable (valeur non journalisée)."
+  done
+
+  command terraform "$@"
 }
 
 # Assert that the GCP PROJECT itself is the audit project, by exact ID plus the
@@ -226,10 +305,10 @@ audit_env_require_tf_state_binding() {
   [[ -f "$tf_dir/terraform.tfstate" ]] ||
     _audit_env_die "pas d'état Terraform dans '$tf_dir' — impossible de lier l'état au projet."
 
-  tf_project="$(terraform -chdir="$tf_dir" output -raw project_id 2>/dev/null)" ||
+  tf_project="$(audit_terraform -chdir="$tf_dir" output -raw project_id 2>/dev/null)" ||
     _audit_env_die "l'état de '$tf_dir' n'expose pas project_id."
-  tf_cluster="$(terraform -chdir="$tf_dir" output -raw cluster_name 2>/dev/null || true)"
-  tf_zone="$(terraform -chdir="$tf_dir" output -raw cluster_zone 2>/dev/null || true)"
+  tf_cluster="$(audit_terraform -chdir="$tf_dir" output -raw cluster_name 2>/dev/null || true)"
+  tf_zone="$(audit_terraform -chdir="$tf_dir" output -raw cluster_zone 2>/dev/null || true)"
 
   [[ "$tf_project" == "$AUDIT_ENV_PROJECT_ID" ]] ||
     _audit_env_die "l'état Terraform décrit le projet '$tf_project', pas '$AUDIT_ENV_PROJECT_ID'."

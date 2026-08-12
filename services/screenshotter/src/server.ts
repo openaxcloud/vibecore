@@ -18,6 +18,9 @@ const renderer = new PlaywrightPageRenderer({
   // Route preview hosts through the in-cluster preview-proxy (avoids the hairpin).
   // Same suffixes as the SSRF allowlist: an allowed preview host is proxied.
   previewProxyUrl: process.env.SCREENSHOTTER_PREVIEW_PROXY_URL?.trim() || undefined,
+  // Le proxy compare ce secret sur `/d/<id>` et `/s/<id>` (vignettes de
+  // publications) ; c'est le meme PREVIEW_PROXY_SHARED_SECRET que cote API.
+  previewProxySecret: process.env.PREVIEW_PROXY_SHARED_SECRET?.trim() || undefined,
   previewHostSuffixes: allowedHostSuffixes,
 });
 

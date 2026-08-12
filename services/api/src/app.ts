@@ -29220,15 +29220,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   /*
    * Preview private-port gate (Replit "private port"): the preview-proxy asks
    * whether a workspace's port is marked private in the project's persisted
-   * VIBECORE_PORTS_STATE. Returns { private:false } when the feature flag is off
-   * or the workspace/port can't be resolved, so the proxy never gates by
-   * mistake. Authed with the preview secret the proxy already carries.
+   * VIBECORE_PORTS_STATE.
+   *
+   * FAIL-CLOSED. Cette route répondait `{ private: false }` — donc « public » —
+   * sur CHACUN de ses chemins d'échec : erreur de base sur la lecture du
+   * workspace, erreur de base sur la lecture des variables de projet, et JSON
+   * invalide dans l'état des ports. Une panne de base devenait donc une
+   * autorisation : l'API renvoyait `200 {"private":false}` et le proxy servait le
+   * port privé à un visiteur anonyme. Le proxy avait bien été rendu fail-closed
+   * de son côté, mais un `200 {"private":false}` n'est pas une erreur pour lui —
+   * c'est une réponse valide qui affirme « ce port est public ». Le fail-open
+   * était donc simplement déplacé d'un cran, ici.
+   *
+   * Distinction qui compte : seul un état lu avec succès et ne marquant PAS ce
+   * port comme privé prouve qu'il est public. Tout le reste est une incertitude,
+   * et une incertitude se refuse. `reason` n'est là que pour l'observabilité —
+   * le proxy ne lit que `private`.
+   *
+   * Le drapeau désactivé reste la seule sortie « public » sans preuve : ce n'est
+   * pas une incertitude, c'est une fonctionnalité éteinte, et le proxy a de toute
+   * façon son propre drapeau d'enforcement.
    */
   app.get('/internal/preview/port-access', async (request) => {
     requirePreviewProxySecret(request);
 
     if (process.env.PREVIEW_PRIVATE_PORTS_ENABLED !== 'true') {
-      return { private: false };
+      return { private: false, reason: 'feature-disabled' };
     }
 
     const query = parse(
@@ -29236,30 +29253,70 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.query ?? {},
     );
 
-    const workspace = await store.getWorkspace(query.workspaceId).catch(() => undefined);
+    let workspace: Awaited<ReturnType<typeof store.getWorkspace>> | undefined;
 
-    if (!workspace) {
-      return { private: false };
+    try {
+      workspace = await store.getWorkspace(query.workspaceId);
+    } catch (error) {
+      app.log.error(
+        { workspaceId: query.workspaceId, port: query.port, err: error },
+        'port-access: lecture du workspace impossible — fail-closed (port traite comme prive)',
+      );
+
+      return { private: true, reason: 'workspace-lookup-failed' };
     }
 
-    const envVars = await store
-      .listProjectEnvVars(workspace.projectId)
-      .catch(() => [] as Array<{ key: string; value?: string }>);
+    if (!workspace) {
+      // Workspace inconnu : on ne peut pas établir que ce port est public, donc on
+      // ne l'affirme pas. Coût nul — le proxy échouera de toute façon à résoudre
+      // l'agent — et aucune fuite si l'identifiant venait à exister.
+      return { private: true, reason: 'workspace-unknown' };
+    }
+
+    let envVars: Array<{ key: string; value?: string }>;
+
+    try {
+      envVars = await store.listProjectEnvVars(workspace.projectId);
+    } catch (error) {
+      app.log.error(
+        { projectId: workspace.projectId, port: query.port, err: error },
+        'port-access: lecture des variables de projet impossible — fail-closed',
+      );
+
+      return { private: true, reason: 'env-lookup-failed' };
+    }
 
     const raw = envVars.find((entry) => entry.key === 'VIBECORE_PORTS_STATE')?.value;
 
-    let isPrivate = false;
-
-    if (typeof raw === 'string' && raw.trim()) {
-      try {
-        const state = JSON.parse(raw) as { visibility?: Record<string, string> };
-        isPrivate = state?.visibility?.[String(query.port)] === 'private';
-      } catch {
-        isPrivate = false;
-      }
+    if (typeof raw !== 'string' || !raw.trim()) {
+      /*
+       * Aucun état de ports enregistré. C'est le cas NORMAL d'un projet qui n'a
+       * jamais marqué de port privé : l'absence d'état est une information, pas
+       * une incertitude, et la lecture a réussi. Donc public.
+       */
+      return { private: false, reason: 'no-ports-state' };
     }
 
-    return { private: isPrivate };
+    let state: { visibility?: Record<string, string> };
+
+    try {
+      state = JSON.parse(raw) as { visibility?: Record<string, string> };
+    } catch (error) {
+      app.log.error(
+        { projectId: workspace.projectId, port: query.port, err: error },
+        'port-access: VIBECORE_PORTS_STATE illisible — fail-closed',
+      );
+
+      return { private: true, reason: 'ports-state-unparseable' };
+    }
+
+    const visibility = state?.visibility;
+
+    if (visibility && typeof visibility !== 'object') {
+      return { private: true, reason: 'ports-state-malformed' };
+    }
+
+    return { private: visibility?.[String(query.port)] === 'private', reason: 'ports-state-read' };
   });
 
   /*

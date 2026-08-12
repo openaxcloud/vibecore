@@ -67,3 +67,66 @@ describe('previewProxyPathUrl', () => {
     );
   });
 });
+
+/*
+ * Vignettes des PUBLICATIONS. L'API planifie aussi les captures des URL publiées :
+ * ne router que `<ws>-<port>` laissait ces requêtes partir avec un Host que le
+ * proxy ne route pas — la vignette d'une app publiée ne pouvait pas se prendre.
+ */
+describe('previewProxyPathUrl — publications d-/s-', () => {
+  const proxy = new URL('http://preview-proxy.vibecore.svc:3020');
+  const suffixes = ['preview.e-code.ai'];
+
+  it('route un deploiement serveur d-<id> vers /d/<id>', () => {
+    expect(previewProxyPathUrl(proxy, new URL('https://d-clx9k2m4p.preview.e-code.ai/'), suffixes)).toBe(
+      'http://preview-proxy.vibecore.svc:3020/d/clx9k2m4p/',
+    );
+  });
+
+  it('route une publication statique s-<id> vers /s/<id>', () => {
+    expect(previewProxyPathUrl(proxy, new URL('https://s-clx9k2m4p.preview.e-code.ai/index.html'), suffixes)).toBe(
+      'http://preview-proxy.vibecore.svc:3020/s/clx9k2m4p/index.html',
+    );
+  });
+
+  it('preserve sous-chemin et query des sous-ressources publiees', () => {
+    expect(
+      previewProxyPathUrl(proxy, new URL('https://d-clx9k2m4p.preview.e-code.ai/assets/app.js?v=3'), suffixes),
+    ).toBe('http://preview-proxy.vibecore.svc:3020/d/clx9k2m4p/assets/app.js?v=3');
+  });
+
+  /*
+   * Le point qui rendait l'ordre des tests obligatoire : `d-clx9k2m4p` ne doit pas
+   * être lu comme un workspace, et un `<ws>-<port>` ne doit pas être lu comme une
+   * publication. Les deux grammaires cohabitent sur le même label.
+   */
+  it('ne confond pas une publication avec un workspace, ni l inverse', () => {
+    // Publication : pas de port final, donc jamais /p/.
+    const pub = previewProxyPathUrl(proxy, new URL('https://d-clx9k2m4p.preview.e-code.ai/'), suffixes);
+    expect(pub).not.toContain('/p/');
+
+    // Workspace dont l'identifiant COMMENCE par `d-` : c'est bien un preview.
+    expect(previewProxyPathUrl(proxy, new URL('https://d-abc123-5173.preview.e-code.ai/'), suffixes)).toBe(
+      'http://preview-proxy.vibecore.svc:3020/p/d-abc123/5173/',
+    );
+  });
+
+  it('normalise la casse de l hote comme le fait le proxy', () => {
+    /*
+     * `new URL` met le nom d'hote en minuscules — et le proxy fait de meme avant
+     * de parser. Un identifiant saisi en majuscules est donc VALIDE des deux
+     * cotes : c'est la meme URL. Assertion posee explicitement pour que la
+     * prochaine lecture ne croie pas a un trou de validation.
+     */
+    expect(previewProxyPathUrl(proxy, new URL('https://d-ABC123.preview.e-code.ai/'), suffixes)).toBe(
+      'http://preview-proxy.vibecore.svc:3020/d/abc123/',
+    );
+  });
+
+  it('refuse un identifiant de publication trop court ou hors grammaire', () => {
+    // `parseDeployHost` cote proxy exige [a-z0-9]{6,} : en dessous, on ne devine pas.
+    expect(previewProxyPathUrl(proxy, new URL('https://d-abc.preview.e-code.ai/'), suffixes)).toBeNull();
+    // Prefixe autre que d-/s- : ni publication, ni preview (pas de port).
+    expect(previewProxyPathUrl(proxy, new URL('https://x-clx9k2m4p.preview.e-code.ai/'), suffixes)).toBeNull();
+  });
+});

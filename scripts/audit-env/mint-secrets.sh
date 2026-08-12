@@ -32,7 +32,7 @@ audit_env_require_audit_cluster
 
 rnd() { openssl rand -hex 32; }
 
-DATABASE_URL="$(terraform -chdir="$TF_DIR" output -raw database_url)"
+DATABASE_URL="$(audit_terraform -chdir="$TF_DIR" output -raw database_url)"
 REDIS_URL="redis://vibecore-redis.${NS}.svc.cluster.local:6379"
 
 # API_CORS_ORIGINS n'est PLUS mint ici : le chart le rend desormais dans son
@@ -46,6 +46,12 @@ mkdir -p "$OUT_DIR"
 chmod 700 "$OUT_DIR"
 ENV_FILE="$OUT_DIR/audit-test.env"
 
+# Delimiteur NON quote, deliberement : ce heredoc doit interpoler $DATABASE_URL et
+# les $(rnd). Consequence a ne pas oublier — TOUT ce qu'il contient est evalue, y
+# compris dans les lignes de COMMENTAIRE. Une paire de backticks autour de
+# `vc_preview` executait donc `vc_preview` (bash: command not found), et le nom
+# disparaissait du fichier genere. D'ou les guillemets simples ci-dessous : SC2006
+# reste ainsi vert, et la prochaine occurrence sera refusee par la CI.
 cat > "$ENV_FILE" <<EOF
 # Audit test environment — GENERATED TEST CREDENTIALS, not production.
 # Regenerate at will: these protect nothing real and expire with the project.
@@ -58,7 +64,7 @@ WORKSPACE_AGENT_TOKEN_SECRET=$(rnd)
 BACKUP_ENCRYPTION_KEY=$(rnd)
 SIEM_SIGNING_SECRET=$(rnd)
 PREVIEW_PROXY_SHARED_SECRET=$(rnd)
-# HMAC du cookie `vc_preview`. Requis des que l'isolation preview est enforcee
+# HMAC du cookie 'vc_preview'. Requis des que l'isolation preview est enforcee
 # (values-audit-test.yaml : platformEnv.preview.*) — le preview-proxy REFUSE de
 # demarrer sans lui, et l'app ne peut pas signer le cookie sans lui non plus.
 PREVIEW_TENANT_SECRET=$(rnd)
