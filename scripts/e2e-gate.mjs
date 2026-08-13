@@ -77,6 +77,7 @@ if (daysLeft > MAX_WINDOW_DAYS) {
 /* ---- 2. Collect outcomes from the report. ---- */
 
 const results = new Map();
+const flaky = [];
 
 function walk(suites, trail) {
   for (const suite of suites ?? []) {
@@ -94,9 +95,23 @@ function walk(suites, trail) {
       const column = spec.column ?? 0;
       const titlePath = [...here.slice(1), spec.title].filter(Boolean).join(' › ');
       const key = `${file}:${line}:${column} › ${titlePath}`;
-      const ok = (spec.tests ?? []).every((t) => t.status === 'expected' || t.status === 'skipped');
+
+      /*
+       * `flaky` means Playwright retried and the test went green. That is not a
+       * gate failure — it is reported separately below so the instability stays
+       * visible instead of being silently swallowed.
+       */
+      const ok = (spec.tests ?? []).every(
+        (t) => t.status === 'expected' || t.status === 'skipped' || t.status === 'flaky',
+      );
+
+      const wasFlaky = (spec.tests ?? []).some((t) => t.status === 'flaky');
 
       results.set(key, ok ? 'passed' : 'failed');
+
+      if (wasFlaky) {
+        flaky.push(key);
+      }
     }
 
     walk(suite.suites, here);
@@ -139,6 +154,12 @@ console.log(`E2E gate — waiver expires ${expires} (${daysLeft} day(s) left)`);
 console.log(`  tests reported : ${results.size}`);
 console.log(`  failing        : ${failed.length}`);
 console.log(`  waived         : ${waived.length}`);
+console.log(`  flaky (passed on retry): ${flaky.length}`);
+
+if (flaky.length) {
+  console.log('\n⚠ passed only after a retry — real instability, worth diagnosing:');
+  flaky.forEach((key) => console.log(`    - ${key}`));
+}
 
 if (unknownWaivers.length) {
   console.log('\n⚠ waived entries that did not appear in this report (renamed or moved?):');
