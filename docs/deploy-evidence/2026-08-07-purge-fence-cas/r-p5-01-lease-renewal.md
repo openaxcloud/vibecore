@@ -91,3 +91,65 @@ laissant le renouvellement gagner sur un lease expiré depuis 10 s. Il passe tou
 mais il est désormais **déterministe** : le renouvellement perd systématiquement et c'est
 le reconciler qui gagne. Cette assertion `expect(renewWon).not.toBe(reconWon)` reste
 vraie, ce qui est cohérent — mais elle ne teste plus une vraie course.
+
+---
+
+# CronJob de purge — état honnête (IMPLEMENTED_UNPROVEN maintenu)
+
+Le second expert demande de prouver le CronJob de purge en cluster de test. **Je ne peux
+pas le déclarer prouvé**, et voici pourquoi, avec la cause exacte.
+
+## Pourquoi il n'a jamais tourné
+
+Le cluster d'audit `vibecore-audit-test-20260807` (projet GCP distinct de la prod) porte
+bien la plateforme : release Helm `vibecore` révision 10, **10 CronJobs actifs**
+(`workspace-gc`, `siem-deliver`, `inactivity-gc`, …).
+
+`account-purge` n'en fait **pas** partie, et ce n'est pas un incident de déploiement :
+
+```
+$ git show origin/main:infra/helm/platform/templates/cronjobs.yaml | grep -c accountPurge
+0
+$ git log -1 -S accountPurge -- infra/helm/platform/templates/cronjobs.yaml
+04e40a6e feat(purge): exécuteur réel de purge de compte (§16.12)
+```
+
+`accountPurge` **n'existe pas sur `main`** — il est introduit par le lot lui-même. Le
+cluster tourne un chart issu de `main`, il ne peut donc pas l'avoir. Autrement dit : le
+CronJob de purge n'a jamais tourné **nulle part**, parce que le changement de chart qui
+le crée est encore non mergé dans cette PR. Idem pour `workspaceFreezeReconcile`, ajouté
+en R-P3-07.
+
+## Ce qui EST prouvé
+
+Les deux CronJobs sont validés **server-side contre l'API réelle** du cluster d'audit —
+schéma et admission compris, sans rien persister :
+
+```
+$ kubectl --context gke_vibecore-audit-test-…-audit-cluster apply --dry-run=server -n vibecore -f purge-crons.yaml
+cronjob.batch/vibecore-vibecore-platform-cron-account-purge created (server dry run)
+cronjob.batch/vibecore-vibecore-platform-cron-workspace-freeze-rec created (server dry run)
+
+$ kubectl … get cronjobs -n vibecore | grep -cE 'account-purge|freeze-rec'
+0        # rien créé — c'était bien un dry-run
+```
+
+Schedules rendus : `account-purge` → `30 4 * * *`, `workspace-freeze-reconcile` →
+`20 * * * *`.
+
+## Ce qui n'est PAS prouvé
+
+- Aucune **exécution planifiée réelle** observée : pas de Job créé par le contrôleur cron,
+  pas de log de pod, pas de trace d'un balayage.
+- Le comportement du job (auth, propagation des non-2xx, compteurs) n'est couvert que par
+  ses tests unitaires (`workspace-freeze-reconcile.spec.ts`, 10/10), pas par un run cluster.
+
+## Pourquoi je n'ai pas déployé pour le prouver
+
+Il aurait fallu déployer une branche **non mergée** sur un cluster **partagé** — d'autres
+sessions y travaillent (namespaces `qa-corebugs-*`, `qa-ws-*` actifs). C'est une mutation
+d'infrastructure commune que rien dans le mandat n'autorise, et sur un lot en
+contre-audit elle brouillerait la frontière entre « prouvé » et « poussé pour prouver ».
+
+**Le point reste donc IMPLEMENTED_UNPROVEN**, et la voie propre est de le prouver après
+merge, quand le chart porte réellement les deux CronJobs.
