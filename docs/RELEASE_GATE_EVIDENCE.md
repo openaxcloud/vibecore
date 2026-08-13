@@ -24,6 +24,26 @@ for sha in 113c17e8 9fc8a243 3a53b439; do
 done
 ```
 
+### Still happening — measured on 2026-08-13, not 2026-08-12
+
+The three commits above are not a historical curiosity. Re-measured on the day this lot
+was finalised: **13 production deploys, and 5 of the 6 most recent shipped on a red or
+cancelled `Production CI`.**
+
+| deployed at (UTC) | commit | Production CI | Code Quality | reached production |
+|---|---|---|---|---|
+| 14:30 | `f11b9266` | **failure** | **cancelled** | yes |
+| 13:41 | `e4869bc7` | **failure** | success | yes |
+| 13:17 | `307303ce` | **failure** | success | yes |
+| 12:31 | `99015dca` | **failure** | success | yes |
+| 11:57 | `1348bf9f` | **cancelled** | **cancelled** | yes |
+| 10:24 | `d6ef0c91` | success | success | yes |
+
+Every one of those `deploy-main.yml` runs concluded `success`: the deploy path has no
+idea the tests failed. The head of `main` at the time of writing (`93e7eaf8`) is red on
+`Production CI` too — and the gate refuses it, live, in run
+[31714258577](https://github.com/openaxcloud/vibecore/actions/runs/31714258577).
+
 A fourth hole, not in the original report: `e2e.yml` had no `push: [main]` trigger, so
 `Production E2E` had never run on **any** main commit. "E2E is green" was true only
 because nothing ever asked. Requiring E2E was therefore unsatisfiable until this lot
@@ -41,6 +61,20 @@ added the trigger.
 | 6 | Deploy **by digest**, verify `imageID` after rollout | chart renders `@sha256:` and **fails the render** on a malformed or absent pin; what each non-rebuilt service currently runs is read from the **live Deployment** (authoritative, and unlike `helm get values` always valid JSON); post-rollout check compares kubelet `imageID` for the Deployment's **current revision** ReplicaSet. `screenshotter` is pinned but deliberately not imageID-checked — this path has never waited on its rollout and it is not enabled everywhere | `proof-digest-rollout.sh` on a real cluster, **9/9**: 7 distinct digests, 17 containers, 7/7 imageIDs match, a wrong digest is rejected, a partial `--reuse-values` upgrade leaves every other service pinned, a last-known-good manifest restores them, and **a post-check failure is rolled back to the last verified revision** |
 | 7 | Manual path bound to the same SHA/image | same jobs, same gate, same digests; dispatch names a commit already on `main` | wiring validator + spec |
 | 8 | Break-glass only to a signed last-known-good, double approval | `deploy-break-glass.yml`: no build step, restores a previous **successful gated** run's manifest, cosign-verifies every digest, and passes through TWO sequential environments (`production-break-glass-1` then `-2`) whose real approvals must come from two DISTINCT people | wiring validator fails if break-glass gains a build step, loses its signature check, or loses either approval environment. **The restore mechanism is executed** in `proof-digest-rollout.sh` step 8 — same `jq` filter, same `--set-string services.<key>.imageDigest`, same `--reuse-values --atomic` — and the cluster returns to every digest the manifest names. Only the cosign step needs the production KMS key and cannot run outside prod |
+
+## Live refusals at the current SHA, after the waiver was removed (2026-08-13)
+
+Five dispatches of `release-gate-dryrun.yml`, each asserting `expect=refuse`, so the job
+is green **only because the gate refused**. All ran with `permissions: contents: read,
+actions: read` — **no `id-token`**, i.e. no credential exists at the moment of the verdict.
+
+| commit | run | why it was refused |
+|---|---|---|
+| `113c17e8` | [31714230481](https://github.com/openaxcloud/vibecore/actions/runs/31714230481) | Production CI `failure` |
+| `9fc8a243` | [31714238989](https://github.com/openaxcloud/vibecore/actions/runs/31714238989) | Production CI `failure` |
+| `3a53b439` | [31714248169](https://github.com/openaxcloud/vibecore/actions/runs/31714248169) | Production CI + Code Quality `cancelled` |
+| `2c104f24` | [31714254849](https://github.com/openaxcloud/vibecore/actions/runs/31714254849) | CI/Security/Quality all green — refused on **Production E2E: no run**, the honest post-waiver state |
+| `93e7eaf8` (head of `main`) | [31714258577](https://github.com/openaxcloud/vibecore/actions/runs/31714258577) | Production CI `failure` |
 
 ## Re-runnable proofs
 
