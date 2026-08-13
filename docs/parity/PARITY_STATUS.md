@@ -1,11 +1,11 @@
 # PARITY_STATUS — vue GÉNÉRÉE (ne pas éditer : modifier les registres ou PARITY_STATUS_NOTES.md puis régénérer)
 
 schemaVersion: 2
-repoCommit: 307303ce
+repoCommit: e4869bc7
 généréPar: scripts/parity/generate-parity-status.mjs (drift-check CI)
 
 **Statut global** : `overallStatus: NOT_APPROVED` · `highestPassedLevel: contractsPresent`
-**Attestation CI** : run 31704180434 (2026-08-13T13:18:30Z, commit 307303ce) — verte.
+**Attestation CI** : run 31706174880 (2026-08-13T13:43:23Z, commit e4869bc7) — verte.
 
 | Niveau | État |
 |---|---|
